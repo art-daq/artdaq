@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq	v1_06_00
+parent artdaq	v1_06_01
 defaultqual	e5:ib
 
 # These optional lines define the installed directories where
@@ -18,10 +18,10 @@ bindir      fq_dir      bin
 #
 product		version		optional
 gcc		v4_8_2
-art		v1_09_02
+art		v1_09_03
 mvapich2	v1_9_0
 mpich		v3_1
-xmlrpc_c	v1_25_27
+xmlrpc_c	v1_25_28
 
 # list products required ONLY for the build
 # any products here must NOT have qualifiers
