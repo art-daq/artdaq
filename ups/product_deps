@@ -25,7 +25,7 @@ xmlrpc_c	v1_25_28
 
 # list products required ONLY for the build
 # any products here must NOT have qualifiers
-only_for_build	cetbuildtools	v3_10_01
+only_for_build	cetbuildtools	v3_13_00
 only_for_build	smc_compiler	v6_1_0
 
 # e5  - with gcc 4.8.1 and -std=c++11
