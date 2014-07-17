@@ -1,6 +1,6 @@
 #include "artdaq/DAQdata/makeFragmentGenerator.hh"
 
-#include "art/Utilities/LibraryManager.h"
+#include "cetlib/LibraryManager.h"
 #include "art/Utilities/Exception.h"
 #include "artdaq/DAQdata/GeneratorMacros.hh"
 #include "fhiclcpp/ParameterSet.h"
@@ -9,7 +9,7 @@ std::unique_ptr<artdaq::FragmentGenerator>
 artdaq::makeFragmentGenerator(std::string const & generator_plugin_spec,
                               fhicl::ParameterSet const & ps)
 {
-  static art::LibraryManager lm("generator");
+  static cet::LibraryManager lm("generator");
   artdaq::makeFunc_t *makeFunc (nullptr);
   try {
     lm.getSymbolByLibspec(generator_plugin_spec,
