@@ -1,6 +1,6 @@
 #include "art/Framework/Core/FileBlock.h"
 #include "art/Framework/Core/InputSourceMacros.h"
-#include "art/Framework/Core/PrincipalMaker.h"
+#include "art/Framework/IO/Sources/SourceHelper.h"
 #include "art/Framework/Core/ProductRegistryHelper.h"
 #include "art/Framework/IO/Sources/Source.h"
 #include "art/Framework/IO/Sources/SourceTraits.h"
@@ -54,7 +54,7 @@ public:
     ~NetMonInputDetail();
 
     NetMonInputDetail(const fhicl::ParameterSet&, art::ProductRegistryHelper&,
-                      const art::PrincipalMaker&);
+                      const art::SourceHelper&);
 
     void closeCurrentFile();
 
@@ -82,19 +82,19 @@ private:
 private:
     bool shutdownMsgReceived_;
     bool outputFileCloseNeeded_;
-    const art::PrincipalMaker& pm_;
+    const art::SourceHelper& pm_;
 };
 
 art::NetMonInputDetail::
 NetMonInputDetail(const fhicl::ParameterSet& ps,
                   art::ProductRegistryHelper& helper,
-                  const art::PrincipalMaker& pm)
+                  const art::SourceHelper& pm)
     : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm)
 {
     FDEBUG(1) << "Begin: NetMonInputDetail::NetMonInputDetail("
                  "const fhicl::ParameterSet& ps, "
                  "art::ProductRegistryHelper& helper, "
-                 "const art::PrincipalMaker& pm)\n";
+                 "const art::SourceHelper& pm)\n";
     (void) ps;
     (void) helper;
     //
@@ -271,7 +271,7 @@ NetMonInputDetail(const fhicl::ParameterSet& ps,
     FDEBUG(1) << "End:   NetMonInputDetail::NetMonInputDetail("
                  "const fhicl::ParameterSet& ps, "
                  "art::ProductRegistryHelper& helper, "
-                 "const art::PrincipalMaker& pm)\n";
+                 "const art::SourceHelper& pm)\n";
 }
 
 art::NetMonInputDetail::

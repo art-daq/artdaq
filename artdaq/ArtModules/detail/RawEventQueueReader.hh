@@ -4,7 +4,7 @@
 #include "art/Framework/Core/Frameworkfwd.h"
 
 #include "art/Framework/Core/FileBlock.h"
-#include "art/Framework/Core/PrincipalMaker.h"
+#include "art/Framework/IO/Sources/SourceHelper.h"
 #include "art/Framework/Core/ProductRegistryHelper.h"
 #include "art/Framework/IO/Sources/SourceTraits.h"
 #include "art/Framework/Principal/EventPrincipal.h"
@@ -22,7 +22,7 @@ namespace artdaq {
       RawEventQueueReader(RawEventQueueReader const &) = delete;
       RawEventQueueReader & operator=(RawEventQueueReader const &) = delete;
 
-      art::PrincipalMaker const   pmaker;
+      art::SourceHelper const   pmaker;
       RawEventQueue       &       incoming_events;
       daqrate::seconds            waiting_time;
       bool                        resume_after_timeout;
@@ -33,11 +33,11 @@ namespace artdaq {
 
       RawEventQueueReader(fhicl::ParameterSet const & ps,
                           art::ProductRegistryHelper & help,
-                          art::PrincipalMaker const & pm);
+                          art::SourceHelper const & pm);
 
       RawEventQueueReader(fhicl::ParameterSet const & ps,
                           art::ProductRegistryHelper & help,
-                          art::PrincipalMaker const & pm,
+                          art::SourceHelper const & pm,
 			  art::MasterProductRegistry&) : RawEventQueueReader(ps, help, pm) {}
 
       void closeCurrentFile();

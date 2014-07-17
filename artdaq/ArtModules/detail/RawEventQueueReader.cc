@@ -12,7 +12,7 @@ using std::string;
 
 artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet const & ps,
                art::ProductRegistryHelper & help,
-               art::PrincipalMaker const & pm):
+               art::SourceHelper const & pm):
   pmaker(pm),
   incoming_events(getGlobalQueue()),
   waiting_time(ps.get<double>("waiting_time", 86400.0)),

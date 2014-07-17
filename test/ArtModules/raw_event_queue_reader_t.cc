@@ -4,7 +4,7 @@
 
 #include "fhiclcpp/make_ParameterSet.h"
 #include "art/Framework/Core/FileBlock.h"
-#include "art/Framework/Core/PrincipalMaker.h"
+#include "art/Framework/IO/Sources/SourceHelper.h"
 #include "art/Framework/Core/RootDictionaryManager.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
@@ -43,7 +43,7 @@ using art::EventPrincipal;
 using art::FileBlock;
 using art::FileFormatVersion;
 using art::ModuleDescription;
-using art::PrincipalMaker;
+using art::SourceHelper;
 using art::ProcessConfiguration;
 using art::ProductRegistryHelper;
 using art::RunID;
@@ -179,8 +179,8 @@ struct REQRTestFixture {
     return s_helper;
   }
 
-  PrincipalMaker & principal_maker() {
-    static PrincipalMaker
+  SourceHelper & principal_maker() {
+    static SourceHelper
     s_principal_maker(*gf().fake_single_module_process("daq",
                       "TEST",
                       ParameterSet()));
