@@ -15,7 +15,7 @@ namespace artdaq
 class artdaq::BoardReaderApp : public artdaq::Commandable
 {
 public:
-  BoardReaderApp(MPI_Comm local_group_comm);
+  BoardReaderApp(MPI_Comm local_group_comm, std::string name);
   BoardReaderApp(BoardReaderApp const&) = delete;
   virtual ~BoardReaderApp() = default;
   BoardReaderApp& operator=(BoardReaderApp const&) = delete;
@@ -39,6 +39,7 @@ private:
   MPI_Comm local_group_comm_;
   std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;
   std::future<size_t> fragment_processing_future_;
+  std::string name_;
 };
 
 #endif /* artdaq_Application_MPI2_BoardReaderApp_hh */

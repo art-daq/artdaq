@@ -13,12 +13,12 @@ const std::string artdaq::EventBuilderCore::STORE_EVENT_WAIT_STAT_KEY("EventBuil
 /**
  * Constructor.
  */
-artdaq::EventBuilderCore::EventBuilderCore(int mpi_rank, MPI_Comm local_group_comm) :
-  mpi_rank_(mpi_rank), local_group_comm_(local_group_comm),
+artdaq::EventBuilderCore::EventBuilderCore(int mpi_rank, MPI_Comm local_group_comm, std::string name) :
+  mpi_rank_(mpi_rank), local_group_comm_(local_group_comm), name_(name),
   data_sender_count_(0), art_initialized_(false),
   stop_requested_(false), pause_requested_(false), run_is_paused_(false)
 {
-  mf::LogDebug("EventBuilderCore") << "Constructor";
+  mf::LogDebug(name_) << "Constructor";
   statsHelper_.addMonitoredQuantityName(INPUT_FRAGMENTS_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(STORE_EVENT_WAIT_STAT_KEY);
@@ -29,7 +29,7 @@ artdaq::EventBuilderCore::EventBuilderCore(int mpi_rank, MPI_Comm local_group_co
  */
 artdaq::EventBuilderCore::~EventBuilderCore()
 {
-  mf::LogDebug("EventBuilderCore") << "Destructor";
+  mf::LogDebug(name_) << "Destructor";
 }
 
 void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_time, size_t check_count)
@@ -61,7 +61,7 @@ void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_ti
 bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 {
   init_string_ = pset.to_string();
-  mf::LogDebug("EventBuilderCore") << "initialize method called with DAQ "
+  mf::LogDebug(name_) << "initialize method called with DAQ "
                                << "ParameterSet = \"" << init_string_ << "\".";
 
   // pull out the relevant parts of the ParameterSet
@@ -70,7 +70,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     daq_pset = pset.get<fhicl::ParameterSet>("daq");
   }
   catch (...) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "Unable to find the DAQ parameters in the initialization "
       << "ParameterSet: \"" + pset.to_string() + "\".";
     return false;
@@ -80,7 +80,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     evb_pset = daq_pset.get<fhicl::ParameterSet>("event_builder");
   }
   catch (...) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "Unable to find the event_builder parameters in the DAQ "
       << "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
     return false;
@@ -93,14 +93,14 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   }
   catch (...) {
     //Okay if no metrics have been defined...
-    mf::LogDebug("EventBuilderCore") << "Error loading metrics or no metric plugins defined.";
+    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
   }
   // determine the data receiver parameters
   try {
     max_fragment_size_words_ = daq_pset.get<uint64_t>("max_fragment_size_words");
   }
   catch (...) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "The max_fragment_size_words parameter was not specified "
       << "in the DAQ initialization PSet: \""
       << daq_pset.to_string() << "\".";
@@ -108,7 +108,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   }
   try {mpi_buffer_count_ = evb_pset.get<size_t>("mpi_buffer_count");}
   catch (...) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "The  mpi_buffer_count parameter was not specified "
       << "in the event_builder initialization PSet: \""
       << evb_pset.to_string() << "\".";
@@ -118,7 +118,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     first_data_sender_rank_ = evb_pset.get<size_t>("first_fragment_receiver_rank");
   }
   catch (...) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "The first_fragment_receiver_rank parameter was not specified "
       << "in the event_builder initialization PSet: \""
       << evb_pset.to_string() << "\".";
@@ -126,7 +126,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   }
   try {data_sender_count_ = evb_pset.get<size_t>("fragment_receiver_count");}
   catch (...) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "The fragment_receiver_count parameter was not specified "
       << "in the event_builder initialization PSet: \""
       << evb_pset.to_string() << "\".";
@@ -136,7 +136,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     expected_fragments_per_event_ =
       evb_pset.get<size_t>("expected_fragments_per_event");}
   catch (...) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "The expected_fragments_per_event parameter was not specified "
       << "in the event_builder initialization PSet: \"" << pset.to_string()
       << "\".";
@@ -146,7 +146,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   // other parameters
   try {use_art_ = evb_pset.get<bool>("use_art");}
   catch (...) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "The use_art parameter was not specified "
       << "in the event_builder initialization PSet: \""
       << evb_pset.to_string() << "\".";
@@ -180,7 +180,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
     if (tmp != previous_pset_) {
-      mf::LogError("EventBuilderCore")
+      mf::LogError(name_)
 	<< "The art configuration can not be altered after art "
 	<< "has been configured.";
       return false;
@@ -235,11 +235,11 @@ bool artdaq::EventBuilderCore::stop()
     endSucceeded = event_store_ptr_->endSubrun();
     while (! endSucceeded && attemptsToEnd < 3) {
       ++attemptsToEnd;
-      mf::LogDebug("EventBuilderCore") << "Retrying EventStore::endSubrun()";
+      mf::LogDebug(name_) << "Retrying EventStore::endSubrun()";
       endSucceeded = event_store_ptr_->endSubrun();
     }
     if (! endSucceeded) {
-      mf::LogError("EventBuilderCore")
+      mf::LogError(name_)
         << "EventStore::endSubrun in stop method failed after three tries.";
     }
   }
@@ -249,11 +249,11 @@ bool artdaq::EventBuilderCore::stop()
   endSucceeded = event_store_ptr_->endRun();
   while (! endSucceeded && attemptsToEnd < 3) {
     ++attemptsToEnd;
-    mf::LogDebug("EventBuilderCore") << "Retrying EventStore::endRun()";
+    mf::LogDebug(name_) << "Retrying EventStore::endRun()";
     endSucceeded = event_store_ptr_->endRun();
   }
   if (! endSucceeded) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "EventStore::endRun in stop method failed after three tries.";
   }
 
@@ -274,11 +274,11 @@ bool artdaq::EventBuilderCore::pause()
   endSucceeded = event_store_ptr_->endSubrun();
   while (! endSucceeded && attemptsToEnd < 3) {
     ++attemptsToEnd;
-    mf::LogDebug("EventBuilderCore") << "Retrying EventStore::endSubrun()";
+    mf::LogDebug(name_) << "Retrying EventStore::endSubrun()";
     endSucceeded = event_store_ptr_->endSubrun();
   }
   if (! endSucceeded) {
-    mf::LogError("EventBuilderCore")
+    mf::LogError(name_)
       << "EventStore::endSubrun in pause method failed after three tries.";
   }
 
@@ -311,7 +311,7 @@ bool artdaq::EventBuilderCore::shutdown()
   endSucceeded = event_store_ptr_->endOfData(readerReturnValue);
   while (! endSucceeded && attemptsToEnd < 3) {
     ++attemptsToEnd;
-    mf::LogDebug("EventBuilderCore") << "Retrying EventStore::endOfData()";
+    mf::LogDebug(name_) << "Retrying EventStore::endOfData()";
     endSucceeded = event_store_ptr_->endOfData(readerReturnValue);
   }
   metricMan_.shutdown();
@@ -320,7 +320,7 @@ bool artdaq::EventBuilderCore::shutdown()
 
 bool artdaq::EventBuilderCore::soft_initialize(fhicl::ParameterSet const& pset)
 {
-  mf::LogDebug("EventBuilderCore") << "soft_initialize method called with DAQ "
+  mf::LogDebug(name_) << "soft_initialize method called with DAQ "
                                << "ParameterSet = \"" << pset.to_string()
                                << "\".";
   return true;
@@ -328,7 +328,7 @@ bool artdaq::EventBuilderCore::soft_initialize(fhicl::ParameterSet const& pset)
 
 bool artdaq::EventBuilderCore::reinitialize(fhicl::ParameterSet const& pset)
 {
-  mf::LogDebug("EventBuilderCore") << "reinitialize method called with DAQ "
+  mf::LogDebug(name_) << "reinitialize method called with DAQ "
                                << "ParameterSet = \"" << pset.to_string()
                                << "\".";
   return true;
@@ -348,7 +348,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
 
   MPI_Barrier(local_group_comm_);
 
-  mf::LogDebug("EventBuilderCore") << "Waiting for first fragment.";
+  mf::LogDebug(name_) << "Waiting for first fragment.";
   artdaq::MonitoredQuantity::TIME_POINT_T startTime;
   while (process_fragments) {
     artdaq::FragmentPtr pfragment(new artdaq::Fragment);
@@ -361,7 +361,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
     statsHelper_.addSample(INPUT_WAIT_STAT_KEY,
                            (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
     if (senderSlot == (size_t) MPI_ANY_SOURCE) {
-      mf::LogInfo("EventBuilderCore")
+      mf::LogInfo(name_)
         << "The receiving of data has stopped - ending the run.";
       event_store_ptr_->flushData();
       flush_mutex_.unlock();
@@ -371,7 +371,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
     else if (senderSlot == artdaq::RHandles::RECV_TIMEOUT) {
       if (stop_requested_.load() &&
           recvTimeout == endrun_recv_timeout_usec_) {
-        mf::LogWarning("EventBuilderCore")
+        mf::LogWarning(name_)
           << "Stop timeout expired - forcibly ending the run.";
 	event_store_ptr_->flushData();
 	flush_mutex_.unlock();
@@ -379,7 +379,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
       }
       else if (pause_requested_.load() &&
                recvTimeout == pause_recv_timeout_usec_) {
-        mf::LogWarning("EventBuilderCore")
+        mf::LogWarning(name_)
           << "Pause timeout expired - forcibly pausing the run.";
 	event_store_ptr_->flushData();
 	flush_mutex_.unlock();
@@ -388,14 +388,14 @@ size_t artdaq::EventBuilderCore::process_fragments()
       continue;
     }
     if (senderSlot >= fragments_received.size()) {
-        mf::LogError("EventBuilderCore")
+        mf::LogError(name_)
           << "Invalid senderSlot received from RHandles::recvFragment: "
           << senderSlot;
         continue;
     }
     fragments_received[senderSlot] += 1;
     if (artdaq::Fragment::isSystemFragmentType(pfragment->type())) {
-      mf::LogDebug("EventBuilderCore")
+      mf::LogDebug(name_)
         << "Sender slot = " << senderSlot
         << ", fragment type = " << ((int)pfragment->type())
         << ", sequence ID = " << pfragment->sequenceID();
@@ -431,7 +431,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
           flush_mutex_.unlock();
           process_fragments = false;
           pfragment = std::move(rejectedFragment);
-          mf::LogWarning("EventBuilderCore")
+          mf::LogWarning(name_)
             << "Unable to process fragment " << pfragment->fragmentID()
             << " in event " << pfragment->sequenceID()
             << " because of back-pressure - forcibly ending the run.";
@@ -441,14 +441,14 @@ size_t artdaq::EventBuilderCore::process_fragments()
           flush_mutex_.unlock();
           process_fragments = false;
           pfragment = std::move(rejectedFragment);
-          mf::LogWarning("EventBuilderCore")
+          mf::LogWarning(name_)
             << "Unable to process fragment " << pfragment->fragmentID()
             << " in event " << pfragment->sequenceID()
             << " because of back-pressure - forcibly pausing the run.";
         }
         else {
           pfragment = std::move(rejectedFragment);
-          mf::LogWarning("EventBuilderCore")
+          mf::LogWarning(name_)
             << "Unable to process fragment " << pfragment->fragmentID()
             << " in event " << pfragment->sequenceID()
             << " because of back-pressure - retrying...";
@@ -606,9 +606,9 @@ void artdaq::EventBuilderCore::sendMetrics_()
 void artdaq::EventBuilderCore::logMessage_(std::string const& text)
 {
   if (verbose_) {
-    mf::LogInfo("EventBuilderCore") << text;
+    mf::LogInfo(name_) << text;
   }
   else {
-    mf::LogDebug("EventBuilderCore") << text;
+    mf::LogDebug(name_) << text;
   }
 }

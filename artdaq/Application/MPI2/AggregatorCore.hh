@@ -31,7 +31,7 @@ public:
   static const std::string SHM_COPY_TIME_STAT_KEY;
   static const std::string FILE_CHECK_TIME_STAT_KEY;
 
-  AggregatorCore(int mpi_rank, MPI_Comm local_group_comm);
+  AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, std::string name);
   AggregatorCore(AggregatorCore const&) = delete;
   ~AggregatorCore();
   AggregatorCore& operator=(AggregatorCore const&) = delete;
@@ -52,6 +52,7 @@ public:
 private:
   int mpi_rank_;
   MPI_Comm local_group_comm_;
+  std::string name_;
   art::RunID run_id_;
   bool art_initialized_;
 

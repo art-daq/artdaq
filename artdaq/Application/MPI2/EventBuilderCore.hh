@@ -25,7 +25,7 @@ public:
   static const std::string INPUT_WAIT_STAT_KEY;
   static const std::string STORE_EVENT_WAIT_STAT_KEY;
 
-  EventBuilderCore(int mpi_rank, MPI_Comm local_group_comm);
+  EventBuilderCore(int mpi_rank, MPI_Comm local_group_comm, std::string name);
   EventBuilderCore(EventBuilderCore const&) = delete;
   ~EventBuilderCore();
   EventBuilderCore& operator=(EventBuilderCore const&) = delete;
@@ -48,6 +48,7 @@ private:
 
   int mpi_rank_;
   MPI_Comm local_group_comm_;
+  std::string name_;
 
   std::string init_string_;
   fhicl::ParameterSet previous_pset_;

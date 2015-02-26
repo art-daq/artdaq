@@ -26,7 +26,7 @@ public:
   static const std::string OUTPUT_WAIT_STAT_KEY;
   static const std::string FRAGMENTS_PER_READ_STAT_KEY;
 
-  BoardReaderCore(MPI_Comm local_group_comm);
+  BoardReaderCore(MPI_Comm local_group_comm, std::string name);
   BoardReaderCore(BoardReaderCore const&) = delete;
   ~BoardReaderCore();
   BoardReaderCore& operator=(BoardReaderCore const&) = delete;
@@ -49,6 +49,7 @@ private:
   MPI_Comm local_group_comm_;
   std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
   art::RunID run_id_;
+  std::string name_;
 
   uint64_t max_fragment_size_words_;
   size_t mpi_buffer_count_;

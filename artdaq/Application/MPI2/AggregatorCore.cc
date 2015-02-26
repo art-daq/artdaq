@@ -27,8 +27,8 @@ const std::string artdaq::AggregatorCore::FILE_CHECK_TIME_STAT_KEY("AggregatorCo
  * Constructor.
  */
 // TODO - make global queue size configurable
-artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm) :
-  mpi_rank_(mpi_rank), local_group_comm_(local_group_comm),
+artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, std::string name) :
+  mpi_rank_(mpi_rank), local_group_comm_(local_group_comm), name_(name),
   art_initialized_(false),
   data_sender_count_(0), event_queue_(artdaq::getGlobalQueue(10)),
   stop_requested_(false), local_pause_requested_(false),
@@ -36,7 +36,7 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm) 
   system_pause_requested_(false), previous_run_duration_(-1.0),
   shm_segment_id_(-1), shm_ptr_(NULL)
 {
-  mf::LogDebug("AggregatorCore") << "Constructor";
+  mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
   stats_helper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
   stats_helper_.addMonitoredQuantityName(STORE_EVENT_WAIT_STAT_KEY);
@@ -49,7 +49,7 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm) 
  */
 artdaq::AggregatorCore::~AggregatorCore()
 {
-  mf::LogDebug("AggregatorCore") << "Destructor";
+  mf::LogDebug(name_) << "Destructor";
 }
 
 /**
@@ -58,7 +58,7 @@ artdaq::AggregatorCore::~AggregatorCore()
 bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 {
   init_string_ = pset.to_string();
-  mf::LogDebug("AggregatorCore") << "initialize method called with DAQ "
+  mf::LogDebug(name_) << "initialize method called with DAQ "
                              << "ParameterSet = \"" << init_string_ << "\".";
 
   // pull out the relevant parts of the ParameterSet
@@ -67,7 +67,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     daq_pset = pset.get<fhicl::ParameterSet>("daq");
   }
   catch (...) {
-    mf::LogError("AggregatorCore")
+    mf::LogError(name_)
       << "Unable to find the DAQ parameters in the initialization "
       << "ParameterSet: \"" + pset.to_string() + "\".";
     return false;
@@ -77,7 +77,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     agg_pset = daq_pset.get<fhicl::ParameterSet>("aggregator");
   }
   catch (...) {
-    mf::LogError("AggregatorCore")
+    mf::LogError(name_)
       << "Unable to find the aggregator parameters in the DAQ "
       << "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
     return false;
@@ -90,7 +90,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   }
   catch (...) {
     //Okay if no metrics defined
-    mf::LogDebug("AggregatorCore") << "Error loading metrics or no metric plugins defined.";
+ mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
   }
 
   // determine the data receiver parameters
@@ -98,7 +98,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     max_fragment_size_words_ = daq_pset.get<uint64_t>("max_fragment_size_words");
   }
   catch (...) {
-    mf::LogError("AggregatorCore")
+    mf::LogError(name_)
       << "The max_fragment_size_words parameter was not specified "
       << "in the DAQ initialization PSet: \""
       << daq_pset.to_string() << "\".";
@@ -106,7 +106,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   }
   try {mpi_buffer_count_ = agg_pset.get<size_t>("mpi_buffer_count");}
   catch (...) {
-    mf::LogError("AggregatorCore")
+    mf::LogError(name_)
       << "The  mpi_buffer_count parameter was not specified "
       << "in the aggregator initialization PSet: \""
       << agg_pset.to_string() << "\".";
@@ -116,7 +116,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     first_data_sender_rank_ = agg_pset.get<size_t>("first_event_builder_rank");
   }
   catch (...) {
-    mf::LogError("AggregatorCore")
+    mf::LogError(name_)
       << "The first_event_builder_rank parameter was not specified "
       << "in the aggregator initialization PSet: \""
       << agg_pset.to_string() << "\".";
@@ -124,7 +124,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   }
   try {data_sender_count_ = agg_pset.get<size_t>("event_builder_count");}
   catch (...) {
-    mf::LogError("AggregatorCore")
+    mf::LogError(name_)
       << "The event_builder_count parameter was not specified "
       << "in the aggregator initialization PSet: \""
       << agg_pset.to_string() << "\".";
@@ -134,7 +134,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     expected_events_per_bunch_ =
       agg_pset.get<size_t>("expected_events_per_bunch");}
   catch (...) {
-    mf::LogError("AggregatorCore")
+    mf::LogError(name_)
       << "The expected_events_per_bunch parameter was not specified "
       << "in the aggregator initialization PSet: \"" << pset.to_string()
       << "\".";
@@ -149,7 +149,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_ + 1)) {
     is_online_monitor_ = true;
   }
-  mf::LogDebug("AggregatorCore") << "Rank " << mpi_rank_
+  mf::LogDebug(name_) << "Rank " << mpi_rank_
                              << ", is_data_logger  = " << is_data_logger_
                              << ", is_online_monitor = " << is_online_monitor_;
 
@@ -201,7 +201,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
           catch (...) {}
           break;
         default:
-          mf::LogWarning("AggregatorCore")
+          mf::LogWarning(name_)
             << "Unexpected XMLRPC client list element, index = "
             << loopCount << ", value = \"" << *iter2 << "\"";
         }
@@ -255,7 +255,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
     if (tmp != previous_pset_) {
-      mf::LogError("AggregatorCore")
+      mf::LogError(name_)
         << "The art configuration can not be altered after art "
         << "has been configured.";
       return false;
@@ -350,7 +350,7 @@ bool artdaq::AggregatorCore::shutdown()
   endSucceeded = event_store_ptr_->endOfData(readerReturnValue);
   while (! endSucceeded && attemptsToEnd < 3) {
     ++attemptsToEnd;
-    mf::LogDebug("AggregatorCore") << "Retrying EventStore::endOfData()";
+    mf::LogDebug(name_) << "Retrying EventStore::endOfData()";
     endSucceeded = event_store_ptr_->endOfData(readerReturnValue);
   }
   metricMan_.shutdown();
@@ -359,7 +359,7 @@ bool artdaq::AggregatorCore::shutdown()
 
 bool artdaq::AggregatorCore::soft_initialize(fhicl::ParameterSet const& pset)
 {
-  mf::LogDebug("AggregatorCore") << "soft_initialize method called with DAQ "
+  mf::LogDebug(name_) << "soft_initialize method called with DAQ "
                              << "ParameterSet = \"" << pset.to_string()
                              << "\".";
   return true;
@@ -367,7 +367,7 @@ bool artdaq::AggregatorCore::soft_initialize(fhicl::ParameterSet const& pset)
 
 bool artdaq::AggregatorCore::reinitialize(fhicl::ParameterSet const& pset)
 {
-  mf::LogDebug("AggregatorCore") << "reinitialize method called with DAQ "
+  mf::LogDebug(name_) << "reinitialize method called with DAQ "
                              << "ParameterSet = \"" << pset.to_string()
                              << "\".";
   return true;
@@ -401,7 +401,7 @@ size_t artdaq::AggregatorCore::process_fragments()
     attachToSharedMemory_(true);
   }
 
-  mf::LogDebug("AggregatorCore") << "Waiting for first fragment.";
+  mf::LogDebug(name_) << "Waiting for first fragment.";
   artdaq::MonitoredQuantity::TIME_POINT_T startTime;
   while (process_fragments) {
     artdaq::FragmentPtr fragmentPtr(new artdaq::Fragment);
@@ -425,7 +425,7 @@ size_t artdaq::AggregatorCore::process_fragments()
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
     if (senderSlot == (size_t) MPI_ANY_SOURCE) {
       if (endSubRunMsg != nullptr) {
-        mf::LogInfo("AggregatorCore")
+        mf::LogInfo(name_)
           << "The receiving of data has stopped - ending the run.";
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
@@ -433,11 +433,11 @@ size_t artdaq::AggregatorCore::process_fragments()
         daqrate::seconds const enq_timeout(5.0);
         bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
         if (! enqStatus) {
-          mf::LogError("AggregatorCore") << "Failed to enqueue SubRun event.";
+          mf::LogError(name_) << "Failed to enqueue SubRun event.";
         }
       }
       else {
-        mf::LogError("AggregatorCore")
+        mf::LogError(name_)
           << "The receiving of data has stopped, but no endSubRun message "
           << "is available to send to art.";
       }
@@ -448,7 +448,7 @@ size_t artdaq::AggregatorCore::process_fragments()
       if (stop_requested_.load() &&
           recvTimeout == endrun_recv_timeout_usec_) {
         if (endSubRunMsg != nullptr) {
-          mf::LogWarning("AggregatorCore")
+          mf::LogWarning(name_)
             << "Stop timeout expired - forcibly ending the run.";
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
@@ -456,12 +456,12 @@ size_t artdaq::AggregatorCore::process_fragments()
           daqrate::seconds const enq_timeout(5.0);
           bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
           if (! enqStatus) {
-            mf::LogError("AggregatorCore") << "Failed to enqueue SubRun event.";
+            mf::LogError(name_) << "Failed to enqueue SubRun event.";
           }
         }
         else {
           if (event_count_in_subrun_ > 0) {
-            mf::LogError("AggregatorCore")
+            mf::LogError(name_)
               << "Timeout receiving fragments after stop, but no endSubRun message "
               << "is available to send to art.";
           }
@@ -476,7 +476,7 @@ size_t artdaq::AggregatorCore::process_fragments()
       else if (local_pause_requested_.load() &&
                recvTimeout == pause_recv_timeout_usec_) {
         if (endSubRunMsg != nullptr) {
-          mf::LogWarning("AggregatorCore")
+          mf::LogWarning(name_)
             << "Pause timeout expired - forcibly pausing the run.";
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
@@ -484,11 +484,11 @@ size_t artdaq::AggregatorCore::process_fragments()
           daqrate::seconds const enq_timeout(5.0);
           bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
           if (! enqStatus) {
-            mf::LogError("AggregatorCore") << "Failed to enqueue SubRun event.";
+            mf::LogError(name_) << "Failed to enqueue SubRun event.";
           }
         }
         else {
-          mf::LogError("AggregatorCore")
+          mf::LogError(name_)
             << "Timeout receiving fragments after pause, but no endSubRun message "
             << "is available to send to art.";
         }
@@ -497,7 +497,7 @@ size_t artdaq::AggregatorCore::process_fragments()
       continue;
     }
     if (senderSlot >= fragments_received.size()) {
-      mf::LogError("AggregatorCore")
+      mf::LogError(name_)
         << "Invalid senderSlot received from RHandles::recvFragment: "
         << senderSlot;
       continue;
@@ -505,7 +505,7 @@ size_t artdaq::AggregatorCore::process_fragments()
     fragments_received[senderSlot] += 1;
     if (artdaq::Fragment::isSystemFragmentType(fragmentPtr->type()) &&
         fragmentPtr->type() != artdaq::Fragment::DataFragmentType) {
-      mf::LogDebug("AggregatorCore")
+      mf::LogDebug(name_)
         << "Sender slot = " << senderSlot
         << ", fragment type = " << ((int)fragmentPtr->type())
         << ", sequence ID = " << fragmentPtr->sequenceID();
@@ -514,7 +514,7 @@ size_t artdaq::AggregatorCore::process_fragments()
     // 11-Sep-2013, KAB - protect against invalid fragments
     if (fragmentPtr->type() == artdaq::Fragment::InvalidFragmentType) {
       size_t fragSize = fragmentPtr->size() * sizeof(artdaq::RawDataType);
-      mf::LogError("AggregatorCore") << "Fragment received with type of "
+      mf::LogError(name_) << "Fragment received with type of "
                                  << "INVALID.  Size = " << fragSize
                                  << ", sequence ID = " << fragmentPtr->sequenceID()
                                  << ", fragment ID = " << fragmentPtr->fragmentID()
@@ -563,14 +563,14 @@ size_t artdaq::AggregatorCore::process_fragments()
     //----------------------------------------------------------------------------
 
     artdaq::Fragment::sequence_id_t seq=fragmentPtr->sequenceID();
-    TRACE( 21, "AggregatorCore::process_fragments seq=%lu isLogger=%d type=%d"
-          , seq, is_data_logger_, fragmentPtr->type() );
+    TRACE( 21, "%s::process_fragments seq=%lu isLogger=%d type=%d"
+	   , name_.c_str(), seq, is_data_logger_, fragmentPtr->type() );
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     if (!art_initialized_) {
       /* The init fragment should always be the first fragment out of the
          EventBuilder. */
       if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
-        mf::LogDebug("AggregatorCore") << "Init";
+        mf::LogDebug(name_) << "Init";
         if (is_data_logger_) {
           copyFragmentToSharedMemory_(fragmentWasCopied,
                                       esrWasCopied, eodWasCopied,
@@ -581,7 +581,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         daqrate::seconds const enq_timeout(5.0);
         bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout);
         if (! enqStatus) {
-          mf::LogError("AggregatorCore") << "Failed to enqueue INIT event.";
+          mf::LogError(name_) << "Failed to enqueue INIT event.";
         }
         art_initialized_ = true;
       }
@@ -649,8 +649,9 @@ size_t artdaq::AggregatorCore::process_fragments()
     }
     float delta=artdaq::MonitoredQuantity::getCurrentTime() - startTime;
     stats_helper_.addSample(STORE_EVENT_WAIT_STAT_KEY, delta );
-    TRACE( (delta>3.0)?0:22, "AggregatorCore::process_fragments seq=%lu isLogger=%d delta=%f start=%f"
-          , seq, is_data_logger_, delta, startTime );
+    metricMan_.sendMetric(STORE_EVENT_WAIT_STAT_KEY, delta, "seconds", 5 );
+    TRACE( (delta>3.0)?0:22, "%s::process_fragments seq=%lu isLogger=%d delta=%f start=%f"
+	   ,name_.c_str(), seq, is_data_logger_, delta, startTime );
 
     // 27-Sep-2013, KAB - added automatic file closing
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
@@ -682,7 +683,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         if (pause_thread_.get() != 0) {
           pause_thread_->join();
         }
-        mf::LogDebug("AggregatorCore") << "Starting sendPauseAndResume thread "
+        mf::LogDebug(name_) << "Starting sendPauseAndResume thread "
                                        << ", event count in subrun = "
                                        << event_count_in_subrun_;
         pause_thread_.reset(new std::thread(&AggregatorCore::sendPauseAndResume_, this));
@@ -713,7 +714,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         daqrate::seconds const enq_timeout(5.0);
         bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
         if (! enqStatus) {
-          mf::LogError("AggregatorCore") << "Failed to enqueue SubRun event.";
+          mf::LogError(name_) << "Failed to enqueue SubRun event.";
         }
         process_fragments = false;
       }
@@ -797,7 +798,7 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
   //   of events built (in the current or previous run
   // - report on the number of incomplete events in the EventStore
   //   (if running)
-  std::string tmpString = "AggregatorCore run number = ";
+  std::string tmpString = name_ + " run number = ";
   tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
   return tmpString;
 }
@@ -805,7 +806,7 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
 size_t artdaq::AggregatorCore::getLatestFileSize_() const
 {
   if (disk_writing_directory_.size() == 0) {
-    mf::LogDebug("AggregatorCore") << "Latest file size = 0 (no directory)";
+    mf::LogDebug(name_) << "Latest file size = 0 (no directory)";
     return 0;
   }
   BFS::path outputDir(disk_writing_directory_);
@@ -827,12 +828,12 @@ size_t artdaq::AggregatorCore::getLatestFileSize_() const
   }
   time_t now = time(0);
   if ((now - latestFileTime) < 60) {
-    mf::LogDebug("AggregatorCore") << "Latest file size = "
+    mf::LogDebug(name_) << "Latest file size = "
                                    << latestFileSize;
     return latestFileSize;
   }
   else {
-    mf::LogDebug("AggregatorCore") << "Latest file size = 0 (too old)";
+    mf::LogDebug(name_) << "Latest file size = 0 (too old)";
     return 0;
   }
 }
@@ -840,14 +841,14 @@ size_t artdaq::AggregatorCore::getLatestFileSize_() const
 bool artdaq::AggregatorCore::sendPauseAndResume_()
 {
   xmlrpc_c::clientSimple myClient;
-  mf::LogInfo("AggregatorCore") << "Starting automatic pause...";
+  mf::LogInfo(name_) << "Starting automatic pause...";
   for (size_t igrp = 0; igrp < xmlrpc_client_lists_.size(); ++igrp) {
     for (size_t idx = 0; idx < xmlrpc_client_lists_[igrp].size(); ++idx) {
       for (size_t iAttempt = 0; iAttempt < 5; ++iAttempt) {
         xmlrpc_c::value result;
         myClient.call((xmlrpc_client_lists_[igrp])[idx], "daq.pause", &result);
         std::string const resultString = xmlrpc_c::value_string(result);
-        mf::LogDebug("AggregatorCore") << "Pause: "
+        mf::LogDebug(name_) << "Pause: "
                                        << (xmlrpc_client_lists_[igrp])[idx]
                                        << " " << resultString;
         if (std::string::npos !=
@@ -856,21 +857,21 @@ bool artdaq::AggregatorCore::sendPauseAndResume_()
         }
         else {
           sleep(2);
-          mf::LogWarning("AggregatorCore") << "Retrying pause command to "
+          mf::LogWarning(name_) << "Retrying pause command to "
                                            << (xmlrpc_client_lists_[igrp])[idx]
                                            << " (" << resultString << ")";
         }
       }
     }
   }
-  mf::LogInfo("AggregatorCore") << "Starting automatic resume...";
+  mf::LogInfo(name_) << "Starting automatic resume...";
   for (int igrp = (xmlrpc_client_lists_.size()-1); igrp >= 0; --igrp) {
     for (size_t idx = 0; idx < xmlrpc_client_lists_[igrp].size(); ++idx) {
       for (size_t iAttempt = 0; iAttempt < 5; ++iAttempt) {
         xmlrpc_c::value result;
         myClient.call((xmlrpc_client_lists_[igrp])[idx], "daq.resume", &result);
         std::string const resultString = xmlrpc_c::value_string(result);
-        mf::LogDebug("AggregatorCore") << "Resume: "
+        mf::LogDebug(name_) << "Resume: "
                                        << (xmlrpc_client_lists_[igrp])[idx]
                                        << " " << resultString;
         if (std::string::npos !=
@@ -879,14 +880,14 @@ bool artdaq::AggregatorCore::sendPauseAndResume_()
         }
         else {
           sleep(2);
-          mf::LogWarning("AggregatorCore") << "Retrying resume command to "
+          mf::LogWarning(name_) << "Retrying resume command to "
                                            << (xmlrpc_client_lists_[igrp])[idx]
                                            << " (" << resultString << ")";
         }
       }
     }
   }
-  mf::LogInfo("AggregatorCore") << "Done with automatic resume...";
+  mf::LogInfo(name_) << "Done with automatic resume...";
   system_pause_requested_.store(false);
   return true;
 }
@@ -894,10 +895,10 @@ bool artdaq::AggregatorCore::sendPauseAndResume_()
 void artdaq::AggregatorCore::logMessage_(std::string const& text)
 {
   if (is_data_logger_) {
-    mf::LogInfo("AggregatorCore") << text;
+    mf::LogInfo(name_) << text;
   }
   else {
-    mf::LogDebug("AggregatorCore") << text;
+    mf::LogDebug(name_) << text;
   }
 }
 
@@ -1051,7 +1052,7 @@ void artdaq::AggregatorCore::attachToSharedMemory_(bool initialize)
            IPC_CREAT | 0666);
 
   if (shm_segment_id_ > -1) {
-    mf::LogDebug("AggregatorCore")
+    mf::LogDebug(name_)
       << "Created/fetched shared memory segment with ID = " << shm_segment_id_
       << " and size " << (max_fragment_size_words_ * sizeof(artdaq::RawDataType))
       << " bytes";
@@ -1060,17 +1061,17 @@ void artdaq::AggregatorCore::attachToSharedMemory_(bool initialize)
       if (initialize) {
         shm_ptr_->hasFragment = 0;
       }
-      mf::LogDebug("AggregatorCore")
+      mf::LogDebug(name_)
         << "Attached to shared memory segment at address 0x"
         << std::hex << shm_ptr_ << std::dec;
     }
     else {
-      mf::LogError("AggregatorCore") << "Failed to attach to shared memory segment "
+      mf::LogError(name_) << "Failed to attach to shared memory segment "
                                  << shm_segment_id_;
     }
   }
   else {
-    mf::LogError("AggregatorCore") << "Failed to connect to shared memory segment"
+    mf::LogError(name_) << "Failed to connect to shared memory segment"
                                << ", errno = " << errno << ".  Please check "
                                << "if a stale shared memory segment needs to "
                                << "be cleaned up. (ipcs, ipcrm -m <segId>)";
@@ -1103,7 +1104,7 @@ copyFragmentToSharedMemory_(bool& fragment_has_been_copied,
     int loopCount = 0;
     while (shm_ptr_->hasFragment == 1 && loopCount < 10) {
       if (fragmentType != artdaq::Fragment::DataFragmentType) {
-        mf::LogDebug("AggregatorCore") << "Trying to copy fragment of type "
+        mf::LogDebug(name_) << "Trying to copy fragment of type "
                                    << fragmentType
                                    << ", loopCount = "
                                    << loopCount;
@@ -1139,12 +1140,12 @@ copyFragmentToSharedMemory_(bool& fragment_has_been_copied,
 
       ++fragment_count_to_shm_;
       if ((fragment_count_to_shm_ % 250) == 0) {
-        mf::LogDebug("AggregatorCore") << "Copied " << fragment_count_to_shm_
+        mf::LogDebug(name_) << "Copied " << fragment_count_to_shm_
                                    << " fragments to shared memory in this run.";
       }
     }
     else {
-      mf::LogWarning("AggregatorCore") << "Fragment invalid for shared memory! "
+      mf::LogWarning(name_) << "Fragment invalid for shared memory! "
                                    << "fragment address and size = "
                                    << fragAddr << " " << fragSize << " "
                                    << "sequence ID, fragment ID, and type = "
@@ -1174,7 +1175,7 @@ receiveFragmentFromSharedMemory_(artdaq::Fragment& fragment,
       shm_ptr_->hasFragment = 0;
 
       if (fragment.type() != artdaq::Fragment::DataFragmentType) {
-        mf::LogDebug("AggregatorCore")
+        mf::LogDebug(name_)
           << "Received fragment from shared memory, type ="
           << ((int)fragment.type()) << ", sequenceID = "
           << fragment.sequenceID();

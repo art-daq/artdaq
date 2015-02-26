@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq	v1_12_07
-defaultqual	e6:s6:eth
+parent artdaq	v1_12_08
+defaultqual	e7:s7:eth
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -17,47 +17,34 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-artdaq_core 		v1_04_09
+artdaq_core 		v1_04_10
 mvapich2		v1_9_0
-mpich			v3_1_2
+mpich			v3_1_2a
 xmlrpc_c		v1_25_30
 TRACE			v3_03_03
-cetbuildtools		v4_03_03	-	only_for_build
+cetbuildtools		v4_07_03	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
 end_product_list
 
-# e5 - with gcc 4.8.2 and -std=c++11
 # e6 - with gcc 4.9.1 and -std=c++1y
-# s4 - with art v1_11_03
-# s5 - with art v1_12_04
+# e7 - with gcc 4.9.2 and -std=c++1y
 # s6 - with art v1_12_05
+# s7 - with art v1_13_01
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		artdaq_core		mvapich2	mpich		xmlrpc_c	TRACE	notes
+e7:s7:ib:debug		e7:s7:debug		-nq-		-		e7:debug	-nq-	-std=c++1y
+e7:s7:ib:prof		e7:s7:prof		-nq-		-		e7:prof		-nq-	-std=c++1y
+e7:s7:eth:debug		e7:s7:debug		-		e7:debug	e7:debug	-nq-	-std=c++1y
+e7:s7:eth:prof		e7:s7:prof		-		e7:prof		e7:prof		-nq-	-std=c++1y
+e6:s7:ib:debug		e6:s7:debug		-nq-		-		e6:debug	-nq-	-std=c++1y
+e6:s7:ib:prof		e6:s7:prof		-nq-		-		e6:prof		-nq-	-std=c++1y
+e6:s7:eth:debug		e6:s7:debug		-		e6:debug	e6:debug	-nq-	-std=c++1y
+e6:s7:eth:prof		e6:s7:prof		-		e6:prof		e6:prof		-nq-	-std=c++1y
 e6:s6:ib:debug		e6:s6:debug		-nq-		-		e6:debug	-nq-	-std=c++1y
 e6:s6:ib:prof		e6:s6:prof		-nq-		-		e6:prof		-nq-	-std=c++1y
 e6:s6:eth:debug		e6:s6:debug		-		e6:debug	e6:debug	-nq-	-std=c++1y
 e6:s6:eth:prof		e6:s6:prof		-		e6:prof		e6:prof		-nq-	-std=c++1y
-e6:s5:ib:debug		e6:s5:debug		-nq-		-		e6:debug	-nq-	-std=c++1y
-e6:s5:ib:prof		e6:s5:prof		-nq-		-		e6:prof		-nq-	-std=c++1y
-e6:s5:eth:debug		e6:s5:debug		-		e6:debug	e6:debug	-nq-	-std=c++1y
-e6:s5:eth:prof		e6:s5:prof		-		e6:prof		e6:prof		-nq-	-std=c++1y
-e6:s4:ib:debug		e6:s4:debug		-nq-		-		e6:debug	-nq-	-std=c++1y
-e6:s4:ib:prof		e6:s4:prof		-nq-		-		e6:prof		-nq-	-std=c++1y
-e6:s4:eth:debug		e6:s4:debug		-		e6:debug	e6:debug	-nq-	-std=c++1y
-e6:s4:eth:prof		e6:s4:prof		-		e6:prof		e6:prof		-nq-	-std=c++1y
-e5:s6:ib:debug		e5:s6:debug		-nq-		-		e5:debug	-nq-	-std=c++11
-e5:s6:ib:prof		e5:s6:prof		-nq-		-		e5:prof		-nq-	-std=c++11
-e5:s6:eth:debug		e5:s6:debug		-		e5:debug	e5:debug	-nq-	-std=c++11
-e5:s6:eth:prof		e5:s6:prof		-		e5:prof		e5:prof		-nq-	-std=c++11
-e5:s5:ib:debug		e5:s5:debug		-nq-		-		e5:debug	-nq-	-std=c++11
-e5:s5:ib:prof		e5:s5:prof		-nq-		-		e5:prof		-nq-	-std=c++11
-e5:s5:eth:debug		e5:s5:debug		-		e5:debug	e5:debug	-nq-	-std=c++11
-e5:s5:eth:prof		e5:s5:prof		-		e5:prof		e5:prof		-nq-	-std=c++11
-e5:s4:ib:debug		e5:s4:debug		-nq-		-		e5:debug	-nq-	-std=c++11
-e5:s4:ib:prof		e5:s4:prof		-nq-		-		e5:prof		-nq-	-std=c++11
-e5:s4:eth:debug		e5:s4:debug		-		e5:debug	e5:debug	-nq-	-std=c++11
-e5:s4:eth:prof		e5:s4:prof		-		e5:prof		e5:prof		-nq-	-std=c++11
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:

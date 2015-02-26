@@ -33,11 +33,12 @@ int main(int argc, char *argv[])
   }
 
   // handle the command-line arguments
-  std::string usage = std::string(argv[0]) + " -p port_number <other-options>";
+  std::string usage = std::string(argv[0]) + " -p port_number -n name <other-options>";
   boost::program_options::options_description desc(usage);
 
   desc.add_options ()
     ("port,p", boost::program_options::value<unsigned short>(), "Port number")
+    ("name,n", boost::program_options::value<std::string>(), "Application Nickname")
     ("help,h", "produce help message");
 
   boost::program_options::variables_map vm;
@@ -59,14 +60,20 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  artdaq::setMsgFacAppName("EventBuilder", vm["port"].as<unsigned short> ()); 
-  mf::LogDebug("EventBuilderMain") << "artdaq version " << 
+  std::string name = "EventBuilder";
+  if(vm.count("name")) {
+    name = vm["name"].as<std::string>();
+    mf::LogDebug(name + "Main") << "Setting application name to " << name << std::endl;
+  }
+
+  artdaq::setMsgFacAppName(name, vm["port"].as<unsigned short> ()); 
+  mf::LogDebug(name + "Main") << "artdaq version " << 
     artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 				   << ", built " << 
     artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp();
 
   // create the EventBuilderApp
-  artdaq::EventBuilderApp evb_app(mpiSentry->rank(), local_group_comm );
+  artdaq::EventBuilderApp evb_app(mpiSentry->rank(), local_group_comm, name );
 
   // create the xmlrpc_commander and run it
   xmlrpc_commander commander(vm["port"].as<unsigned short> (), evb_app);
