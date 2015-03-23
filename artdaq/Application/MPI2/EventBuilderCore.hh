@@ -44,7 +44,7 @@ public:
   std::string report(std::string const&) const;
 
 private:
-  void initializeEventStore(size_t depth, double wait_time, bool send_triggers, int trigger_port, std::string trigger_addr);
+void initializeEventStore(size_t depth, double wait_time, size_t check_count, bool send_triggers, int trigger_port, std::string trigger_addr);
 
   int mpi_rank_;
   MPI_Comm local_group_comm_;

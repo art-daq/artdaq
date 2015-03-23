@@ -32,13 +32,13 @@ artdaq::EventBuilderCore::~EventBuilderCore()
   mf::LogDebug(name_) << "Destructor";
 }
 
-void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_time, bool send_triggers, int trigger_port, std::string trigger_addr)
+void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_time, size_t check_count, bool send_triggers, int trigger_port, std::string trigger_addr)
 {
   if (use_art_) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
     event_store_ptr_.reset(new artdaq::EventStore(expected_fragments_per_event_, 1,
 						  mpi_rank_, init_string_,
-						  reader, depth, wait_time,
+						  reader, depth, wait_time, check_count,
                                                   print_event_store_stats_,
                                                   send_triggers, trigger_port, trigger_addr));
     art_initialized_ = true;
@@ -51,7 +51,7 @@ void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_ti
     artdaq::EventStore::ART_CMDLINE_FCN * reader = &artdaq::simpleQueueReaderApp;
     event_store_ptr_.reset(new artdaq::EventStore(expected_fragments_per_event_, 1,
 						  mpi_rank_, 1, dummyArgs,
-						  reader, depth, wait_time,
+						  reader, depth, wait_time, check_count,
                                                   print_event_store_stats_,
                                                   send_triggers, trigger_port, trigger_addr));
   }
@@ -162,6 +162,8 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 
   size_t event_queue_depth = evb_pset.get<size_t>("event_queue_depth", 20);
   double event_queue_wait_time = evb_pset.get<double>("event_queue_wait_time", 5.0);
+  size_t event_queue_check_count = evb_pset.get<size_t>("event_queue_check_count", 5000);
+  
   bool send_triggers = evb_pset.get<bool>("send_triggers",false);
   int trigger_port = evb_pset.get<int>("trigger_port",3001);
   std::string trigger_addr = evb_pset.get<std::string>("trigger_address","227.128.12.26");
@@ -176,7 +178,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
      config changes we have to throw up our hands and bail out.
   */
   if (art_initialized_ == false) {
-    this->initializeEventStore(event_queue_depth, event_queue_wait_time, send_triggers, trigger_port, trigger_addr);
+      this->initializeEventStore(event_queue_depth, event_queue_wait_time, event_queue_check_count, send_triggers, trigger_port, trigger_addr);
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
     previous_pset_ = tmp;

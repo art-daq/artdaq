@@ -224,6 +224,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 
   size_t event_queue_depth = agg_pset.get<size_t>("event_queue_depth", 20);
   double event_queue_wait_time = agg_pset.get<double>("event_queue_wait_time", 5.0);
+  size_t event_queue_check_count = agg_pset.get<size_t>("event_queue_check_count", 5000);
   print_event_store_stats_ = agg_pset.get<bool>("print_event_store_stats", false);
 
   inrun_recv_timeout_usec_=agg_pset.get<size_t>("inrun_recv_timeout_usec",    100000);
@@ -244,7 +245,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     event_store_ptr_.reset(new artdaq::EventStore(desired_events_per_bunch, 1,
                                                   mpi_rank_, init_string_,
                                                   reader, event_queue_depth, 
-                                                  event_queue_wait_time, 
+                                                  event_queue_wait_time, event_queue_check_count,
                                                   print_event_store_stats_));
     event_store_ptr_->setSeqIDModulus(desired_events_per_bunch);
     fhicl::ParameterSet tmp = pset;

@@ -268,7 +268,19 @@ class MPIHandler
     configFile = Tempfile.new("config")
     hostsFile = Tempfile.new("hosts")
     begin
-      Open3.popen3("killall -15 mpirun; sleep 1; killall -9 mpirun") { |stdin, stdout, stderr|
+      # First, we get the pid of the mpirun process
+      script = "pid=`ps aux|grep \"ARTDAQ_SHM_KEY "+ @shmKey.to_s + "\"|grep -v \"grep\"|awk '{print $2}'`;"
+
+      # Now, we loop through all of the children, walking through the PPID tree
+      script += "pids=\"\";child=`ps --ppid $pid|grep -v \"PID\"|awk '{print $1}'`;"
+      script += "while [ \"$child\" != \"\" ]; do child=`ps --ppid $child|grep -v \"PID\"|awk '{print $1}'`;"
+      script += "pids+=\" $child\";done;"
+     
+      # And tear down everything we've built.
+      script += "kill $pids"#;sleep 1;kill -9 $pids" # We may not want to do this...think of the multi-node systems!
+
+      #puts "Running script: " + script
+      Open3.popen3(script) { |stdin, stdout, stderr|
         # Block until this is done.
         stdout.each { |line|
           puts line
