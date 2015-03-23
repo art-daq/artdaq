@@ -105,7 +105,7 @@ int main(int argc, char * argv[]) try
                            1,
                            es_argc,
                            es_argv,
-                           es_fcn, 20, 5.0,
+                           es_fcn, 20, 5.0, 5000,
                            event_builder_pset.get<bool>("print_event_store_stats", false));
   //////////////////////////////////////////////////////////////////////
 

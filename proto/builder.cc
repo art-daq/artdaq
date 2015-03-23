@@ -226,7 +226,7 @@ void Program::sink()
                               sink_rank,
                               useArt ? conf_.art_argc_ : 1,
                               useArt ? conf_.art_argv_ : dummyArgs,
-                              reader, 100, 10.0,
+                              reader, 100, 10.0, 5000,
                               printStats);
     { // Block to handle scope of h, below.
       artdaq::RHandles h(sink_buffers_ *

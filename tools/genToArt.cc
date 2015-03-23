@@ -178,6 +178,7 @@ namespace {
                              &artapp,
                              eb_pset.get<size_t>("queue_size", 20),
                              eb_pset.get<double>("timeout", 5.0),
+                             eb_pset.get<size_t>("queue_check_count", 5000),
                              eb_pset.get<bool>("print_stats", false));
 
     auto const events_to_generate =
