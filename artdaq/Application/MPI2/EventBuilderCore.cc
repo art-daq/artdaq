@@ -39,7 +39,7 @@ void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_ti
     event_store_ptr_.reset(new artdaq::EventStore(expected_fragments_per_event_, 1,
 						  mpi_rank_, init_string_,
 						  reader, depth, wait_time, check_count,
-                                                  print_event_store_stats_));
+                                                  print_event_store_stats_, &metricMan_));
     art_initialized_ = true;
   }
   else {
@@ -51,7 +51,7 @@ void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_ti
     event_store_ptr_.reset(new artdaq::EventStore(expected_fragments_per_event_, 1,
 						  mpi_rank_, 1, dummyArgs,
 						  reader, depth, wait_time, check_count,
-                                                  print_event_store_stats_));
+                                                  print_event_store_stats_, &metricMan_));
   }
 }
 
@@ -89,7 +89,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   fhicl::ParameterSet metric_pset;
   try {
     metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset);
+    metricMan_.initialize(metric_pset, name_ + ".");
   }
   catch (...) {
     //Okay if no metrics have been defined...
@@ -570,14 +570,14 @@ void artdaq::EventBuilderCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-    metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_,
-                          stats.recentSampleRate, "fragments/sec", 1);
+    metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_, 
+                          stats.recentSampleRate, "fragments/sec", 1, false);
     metricMan_.sendMetric(FRAGMENT_SIZE_METRIC_NAME_,
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/fragment", 2);
+                           / 1024.0 / 1024.0), "MB/fragment", 2, false);
     metricMan_.sendMetric(DATA_RATE_METRIC_NAME_,
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2);
+                           / 1024.0 / 1024.0), "MB/sec", 2, false);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "fragmentCount" in the
@@ -591,7 +591,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / fragmentCount),
-                          "seconds/fragment", 3);
+                          "seconds/fragment", 3, false);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -599,7 +599,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(EVENT_STORE_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / fragmentCount),
-                          "seconds/fragment", 3);
+                          "seconds/fragment", 3, false);
   }
 }
 

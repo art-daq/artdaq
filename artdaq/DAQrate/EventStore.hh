@@ -3,6 +3,7 @@
 
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
+#include "artdaq/DAQrate/MetricManager.hh"
 
 #include <map>
 #include <memory>
@@ -51,21 +52,25 @@ namespace artdaq {
     // executed by the thread this EventStore will spawn.
     EventStore(size_t num_fragments_per_event, run_id_t run,
                int store_id, int argc, char * argv[],
-               ART_CMDLINE_FCN * reader, bool printSummaryStats = false);
+               ART_CMDLINE_FCN * reader, bool printSummaryStats = false,
+               MetricManager* metricMan = nullptr);
     EventStore(size_t num_fragments_per_event, run_id_t run,
                int store_id, const std::string& configString,
-               ART_CFGSTRING_FCN * reader, bool printSummaryStats = false);
+               ART_CFGSTRING_FCN * reader, bool printSummaryStats = false,
+	       MetricManager* metricMan = nullptr);
 
     EventStore(size_t num_fragments_per_event, run_id_t run,
                int store_id, int argc, char * argv[],
                ART_CMDLINE_FCN * reader, size_t max_art_queue_size,
                double enq_timeout_sec, size_t enq_check_count,
-                bool printSummaryStats = false);
+	       bool printSummaryStats = false,
+               MetricManager* metricMan = nullptr);
     EventStore(size_t num_fragments_per_event, run_id_t run,
                int store_id, const std::string& configString,
                ART_CFGSTRING_FCN * reader, size_t max_art_queue_size,
                double enq_timeout_sec,  size_t enq_check_count,
-               bool printSummaryStats = false);
+               bool printSummaryStats = false,
+               MetricManager* metricMan = nullptr);
 
     ~EventStore();
 
@@ -132,6 +137,7 @@ namespace artdaq {
     daqrate::seconds const enq_timeout_;
     size_t        enq_check_count_;
     bool const     printSummaryStats_;
+    MetricManager* metricMan_;
 
     void initStatistics_();
     void reportStatistics_();

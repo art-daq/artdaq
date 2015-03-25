@@ -27,24 +27,28 @@ public:
   ~MetricManager();
   MetricManager& operator=(MetricManager const&) = delete;
 
-  void initialize(fhicl::ParameterSet const&);
+  void initialize(fhicl::ParameterSet const&, std::string prefix = "");
   void do_start();
   void do_stop();
   void do_pause();
   void do_resume();
-  void reinitialize(fhicl::ParameterSet const&);
+  void reinitialize(fhicl::ParameterSet const&, std::string prefix = "");
   void shutdown();
 
   template<typename T>
-  void sendMetric(std::string const& name, T value, std::string const& unit, int level)
+  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool applyPrefix = true)
   {
     if(initialized_ && running_)
     {
+      std::string nameTemp = name;
+      if(applyPrefix) {
+	nameTemp = prefix_ + name;
+      }
       for(auto & metric : metric_plugins_)
       {
         if(metric->getRunLevel() >= level) {
           try{
-            metric->sendMetric(name, value, unit);
+            metric->sendMetric(nameTemp, value, unit);
           }
           catch (...) {
             mf::LogWarning("MetricManager") << "Error sending value to metric plugin with name "
@@ -61,10 +65,13 @@ public:
     }
   }
 
+  void setPrefix(std::string prefix) { prefix_ = prefix; }
+
 private:
   std::vector<std::unique_ptr<artdaq::MetricPlugin>> metric_plugins_;
   bool initialized_;
   bool running_;
+  std::string prefix_;
 };
 
 #endif /* artdaq_DAQrate_MetricManager_hh */
