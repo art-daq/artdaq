@@ -29,7 +29,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
   sleep_on_stop_us_(0)
 {
   board_id_ = ps.get<int> ("board_id");
-  instance_name_for_metrics_ = "Board " + board_id_;
+  instance_name_for_metrics_ = "Board " + boost::lexical_cast<std::string>(board_id_);
 
   fragment_ids_ = ps.get< std::vector< artdaq::Fragment::fragment_id_t > >( "fragment_ids", std::vector< artdaq::Fragment::fragment_id_t >() );
 
