@@ -296,7 +296,6 @@ size_t artdaq::BoardReaderCore::process_fragments()
 
     delta_time=artdaq::MonitoredQuantity::getCurrentTime() - startTime;
     statsHelper_.addSample(INPUT_WAIT_STAT_KEY,delta_time);
-    metricMan_.sendMetric(INPUT_WAIT_STAT_KEY,delta_time,"seconds",5);
     
     TRACE( 16, "%s::process_fragments INPUT_WAIT=%f", name_.c_str(), delta_time );
 
