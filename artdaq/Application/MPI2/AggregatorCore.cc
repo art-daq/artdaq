@@ -649,7 +649,6 @@ size_t artdaq::AggregatorCore::process_fragments()
     }
     float delta=artdaq::MonitoredQuantity::getCurrentTime() - startTime;
     stats_helper_.addSample(STORE_EVENT_WAIT_STAT_KEY, delta );
-    metricMan_.sendMetric(STORE_EVENT_WAIT_STAT_KEY, delta, "seconds", 5 );
     TRACE( (delta>3.0)?0:22, "%s::process_fragments seq=%lu isLogger=%d delta=%f start=%f"
 	   ,name_.c_str(), seq, is_data_logger_, delta, startTime );
 
