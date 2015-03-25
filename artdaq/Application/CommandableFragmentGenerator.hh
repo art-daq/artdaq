@@ -148,6 +148,10 @@ namespace artdaq {
 
     void set_exception( bool exception ) { exception_.store( exception ); }
 
+    void metricsReportingInstanceName(std::string const& name) {
+      instance_name_for_metrics_ = name;
+    }
+
     // John F., 12/10/13 
     // Is there a better way to handle mutex_ than leaving it a protected variable?
 
