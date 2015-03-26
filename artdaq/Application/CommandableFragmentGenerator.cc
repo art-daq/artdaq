@@ -6,6 +6,7 @@
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator() :
   mutex_(),
+  metricMan_(nullptr),
   run_number_(-1), subrun_number_(-1),
   timeout_( std::numeric_limits<uint64_t>::max() ), 
   timestamp_( std::numeric_limits<uint64_t>::max() ), 
@@ -20,6 +21,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator() :
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet &ps) :
   mutex_(),
+  metricMan_(nullptr),
   run_number_(-1), subrun_number_(-1),
   timeout_( std::numeric_limits<uint64_t>::max() ), 
   timestamp_( std::numeric_limits<uint64_t>::max() ), 

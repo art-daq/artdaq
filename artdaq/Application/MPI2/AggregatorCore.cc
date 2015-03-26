@@ -86,7 +86,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   fhicl::ParameterSet metric_pset;
   try {
     metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset);
+    metricMan_.initialize(metric_pset, name_ + ".");
   }
   catch (...) {
     //Okay if no metrics defined
@@ -246,7 +246,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
                                                   mpi_rank_, init_string_,
                                                   reader, event_queue_depth, 
                                                   event_queue_wait_time, event_queue_check_count,
-                                                  print_event_store_stats_));
+                                                  print_event_store_stats_, &metricMan_));
     event_store_ptr_->setSeqIDModulus(desired_events_per_bunch);
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
@@ -983,13 +983,13 @@ void artdaq::AggregatorCore::sendMetrics_()
     mqPtr->getStats(stats);
     eventCount = std::max(double(stats.recentSampleCount), 1.0);
     metricMan_.sendMetric(EVENT_RATE_METRIC_NAME_,
-                          stats.recentSampleRate, "events/sec", 1);
+                          stats.recentSampleRate, "events/sec", 1, false);
     metricMan_.sendMetric(EVENT_SIZE_METRIC_NAME_,
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/event", 2);
+                           / 1024.0 / 1024.0), "MB/event", 2, false);
     metricMan_.sendMetric(DATA_RATE_METRIC_NAME_,
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2);
+                           / 1024.0 / 1024.0), "MB/sec", 2, false);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "eventCount" in the
@@ -1003,7 +1003,7 @@ void artdaq::AggregatorCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 3);
+                          "seconds/event", 3, false);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1011,7 +1011,7 @@ void artdaq::AggregatorCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(EVENT_STORE_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 3);
+                          "seconds/event", 3, false);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1019,7 +1019,7 @@ void artdaq::AggregatorCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(SHM_COPY_TIME_METRIC_NAME_,
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 4);
+                          "seconds/event", 4, false);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1027,7 +1027,7 @@ void artdaq::AggregatorCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(FILE_CHECK_TIME_METRIC_NAME_,
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 4);
+                          "seconds/event", 4, false);
   }
 }
 

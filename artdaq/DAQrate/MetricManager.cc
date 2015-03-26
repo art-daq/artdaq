@@ -19,8 +19,9 @@ artdaq::MetricManager::~MetricManager()
   shutdown();
 }
 
-void artdaq::MetricManager::initialize(fhicl::ParameterSet const& pset)
+void artdaq::MetricManager::initialize(fhicl::ParameterSet const& pset, std::string prefix)
 {
+  prefix_ = prefix;
   if(initialized_)
   {
     shutdown();
@@ -78,13 +79,13 @@ void artdaq::MetricManager::do_stop()
   }
 }
 
-void artdaq::MetricManager::do_pause() { do_stop(); }
-void artdaq::MetricManager::do_resume() { do_start(); }
+void artdaq::MetricManager::do_pause() { /*do_stop();*/ }
+  void artdaq::MetricManager::do_resume() { /*do_start();*/ }
 
-void artdaq::MetricManager::reinitialize(fhicl::ParameterSet const& pset)
+void artdaq::MetricManager::reinitialize(fhicl::ParameterSet const& pset, std::string prefix)
 {
   shutdown();
-  initialize(pset);
+  initialize(pset, prefix);
 }
 
 void artdaq::MetricManager::shutdown()

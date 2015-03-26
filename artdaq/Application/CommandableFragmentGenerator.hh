@@ -51,6 +51,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Data/Fragments.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
+#include "artdaq/DAQrate/MetricManager.hh"
 
 
 namespace artdaq {
@@ -58,7 +59,7 @@ namespace artdaq {
   public:
 
     CommandableFragmentGenerator();
-    CommandableFragmentGenerator(const fhicl::ParameterSet & );
+    CommandableFragmentGenerator(const fhicl::ParameterSet &);
 
     // Destroy the CommandableFragmentGenerator.
     virtual ~CommandableFragmentGenerator() = default;
@@ -104,6 +105,8 @@ namespace artdaq {
     virtual std::string metricsReportingInstanceName() const {
       return instance_name_for_metrics_;
     }
+
+    void SetMetricManager(MetricManager* metricMan) { metricMan_ = metricMan; }
 
     // The following functions are not yet implemented, and their
     // signatures may be subject to change.
@@ -161,6 +164,7 @@ namespace artdaq {
     // it's not worth breaking code by implementing this. 
 
     std::mutex mutex_;
+    MetricManager* metricMan_;
 
   private:
 
