@@ -1,6 +1,5 @@
 
 #include "artdaq/DAQrate/SHandles.hh"
-#include "artdaq/DAQrate/Perf.hh"
 #include "artdaq/DAQdata/Debug.hh"
 #include "artdaq/DAQrate/MPITag.hh"
 #include "artdaq/DAQrate/Utils.hh"
@@ -121,9 +120,7 @@ sendFragTo(Fragment && frag, size_t dest)
         << max_payload_size_
         << ").";
   }
-  SendMeas sm;
   size_t buffer_idx = findAvailable();
-  sm.found(frag.sequenceID(), buffer_idx, dest);
   Fragment & curfrag = payload_[buffer_idx];
   curfrag = std::move(frag);
   TRACE( 5, "sendFragTo before send dest=%lu seqID=%lu", dest, curfrag.sequenceID() );
