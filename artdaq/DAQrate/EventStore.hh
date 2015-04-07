@@ -3,6 +3,7 @@
 
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
+#include "artdaq/DAQrate/MetricManager.hh"
 
 #include <map>
 #include <memory>
@@ -57,12 +58,14 @@ namespace artdaq {
                int store_id, int argc, char * argv[],
                ART_CMDLINE_FCN * reader, bool printSummaryStats = false,
                bool send_triggers = false, int trigger_port = 0,
-               std::string trigger_addr = "227.128.12.26");
+               std::string trigger_addr = "227.128.12.26",
+               MetricManager* metricMan = nullptr);
     EventStore(size_t num_fragments_per_event, run_id_t run,
                int store_id, const std::string& configString,
                ART_CFGSTRING_FCN * reader, bool printSummaryStats = false,
                bool send_triggers = false, int trigger_port = 0,
-               std::string trigger_addr = "227.128.12.26");
+               std::string trigger_addr = "227.128.12.26",
+	       MetricManager* metricMan = nullptr);
 
     EventStore(size_t num_fragments_per_event, run_id_t run,
                int store_id, int argc, char * argv[],
@@ -70,14 +73,16 @@ namespace artdaq {
                double enq_timeout_sec, size_t enq_check_count,
                bool printSummaryStats = false,
                bool send_triggers = false, int trigger_port = 0,
-               std::string trigger_addr = "227.128.12.26");
+               std::string trigger_addr = "227.128.12.26",
+               MetricManager* metricMan = nullptr);
     EventStore(size_t num_fragments_per_event, run_id_t run,
                int store_id, const std::string& configString,
                ART_CFGSTRING_FCN * reader, size_t max_art_queue_size,
                double enq_timeout_sec, size_t enq_check_count,
                bool printSummaryStats = false,
                bool send_triggers = false, int trigger_port = 0,
-               std::string trigger_addr = "227.128.12.26");
+               std::string trigger_addr = "227.128.12.26",
+               MetricManager* metricMan = nullptr);
 
     ~EventStore();
 
@@ -149,6 +154,7 @@ namespace artdaq {
     daqrate::seconds const enq_timeout_;
     size_t        enq_check_count_;
     bool const     printSummaryStats_;
+    MetricManager* metricMan_;
 
     void initStatistics_();
     void reportStatistics_();

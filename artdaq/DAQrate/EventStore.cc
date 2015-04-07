@@ -38,7 +38,8 @@ namespace artdaq {
                          bool printSummaryStats,
                          bool send_triggers,
                          int trigger_port,
-                         std::string trigger_addr) :
+                         std::string trigger_addr,
+                         MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
     max_queue_size_(50),
@@ -54,7 +55,8 @@ namespace artdaq {
     highestSeqIDSeen_(0),
     enq_timeout_(5.0),
     enq_check_count_(5000),
-    printSummaryStats_(printSummaryStats)
+    printSummaryStats_(printSummaryStats),
+    metricMan_(metricMan)
   {
     initStatistics_();
     setup_trigger_(trigger_addr);
@@ -69,7 +71,8 @@ namespace artdaq {
                          bool printSummaryStats,
                          bool send_triggers,
                          int trigger_port,
-                         std::string trigger_addr) :
+                         std::string trigger_addr,
+                         MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
     max_queue_size_(50),
@@ -85,7 +88,8 @@ namespace artdaq {
     highestSeqIDSeen_(0),
     enq_timeout_(5.0),
     enq_check_count_(5000),
-    printSummaryStats_(printSummaryStats)
+    printSummaryStats_(printSummaryStats),
+    metricMan_(metricMan)
   {
     initStatistics_();
     setup_trigger_(trigger_addr);
@@ -103,7 +107,8 @@ namespace artdaq {
                          bool printSummaryStats,
                          bool send_triggers,
                          int trigger_port,
-                         std::string trigger_addr) :
+                         std::string trigger_addr,
+                         MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
     max_queue_size_(max_art_queue_size),
@@ -119,7 +124,8 @@ namespace artdaq {
     highestSeqIDSeen_(0),
     enq_timeout_(enq_timeout_sec),
     enq_check_count_(enq_check_count),
-    printSummaryStats_(printSummaryStats)
+    printSummaryStats_(printSummaryStats),
+    metricMan_(metricMan)
   {
     initStatistics_();
     setup_trigger_(trigger_addr);
@@ -136,7 +142,8 @@ namespace artdaq {
                          bool printSummaryStats,
                          bool send_triggers,
                          int trigger_port,
-                         std::string trigger_addr) :
+                         std::string trigger_addr,
+                         MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
     max_queue_size_(max_art_queue_size),
@@ -152,7 +159,8 @@ namespace artdaq {
     highestSeqIDSeen_(0),
     enq_timeout_(enq_timeout_sec),
     enq_check_count_(enq_check_count),
-    printSummaryStats_(printSummaryStats)
+    printSummaryStats_(printSummaryStats),
+    metricMan_(metricMan)
   {
     initStatistics_();
     setup_trigger_(trigger_addr);
@@ -340,11 +348,21 @@ namespace artdaq {
                                << queue_.capacity()
                                << ", queue size = "
                                << queue_.size();
+    if(metricMan_) {
+      double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
+      metricMan_->do_start();
+      metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1,true);
+    }
   }
 
   void EventStore::startSubrun()
   {
     ++subrun_id_;
+    if(metricMan_) {
+      double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
+      metricMan_->do_start();
+      metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, true);
+    }
   }
 
   bool EventStore::endRun()
