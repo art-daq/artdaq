@@ -3,6 +3,9 @@
 #include "fhiclcpp/make_ParameterSet.h"
 #include <boost/filesystem.hpp>
 #include <unistd.h>
+#include <fstream>
+#include <sstream>
+
 namespace BFS = boost::filesystem;
 
 void artdaq::configureMessageFacility(char const* progname)
@@ -10,6 +13,8 @@ void artdaq::configureMessageFacility(char const* progname)
   std::string logPathProblem = "";
   std::string logfileName = "";
   char* logRootString = getenv("ARTDAQ_LOG_ROOT");
+  char* logFhiclCode = getenv("ARTDAQ_LOG_FHICL");
+
   if (logRootString != nullptr) {
     if (! BFS::exists(logRootString)) {
       logPathProblem = "Log file root directory ";
@@ -72,8 +77,24 @@ void artdaq::configureMessageFacility(char const* progname)
        << "      type : \"file\" threshold : \"DEBUG\" "
        << "      filename : \"" << logfileName << "\" "
        << "      append : false "
-       << "    } "
-       << "  } ";
+       << "    } ";
+
+    if (logFhiclCode != nullptr) {
+      std::ifstream logfhicl( logFhiclCode );
+      
+      if ( logfhicl.is_open() ) {
+	std::stringstream fhiclstream;
+	fhiclstream << logfhicl.rdbuf();
+	ss << fhiclstream.str();
+      } else {
+	throw cet::exception("configureMessageFacility") << 
+	  "Unable to open requested fhicl file \"" << 
+	  logFhiclCode << "\".";
+      }
+    } 
+
+    ss << "  } ";
+
     fhicl::ParameterSet pset;
     std::string pstr(ss.str());
     fhicl::make_ParameterSet(pstr, pset);
