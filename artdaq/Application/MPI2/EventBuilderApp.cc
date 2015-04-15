@@ -154,10 +154,12 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
     return report_string_;
   }
 
-  // to-do: act differently depending on the value of "which"
-  std::string tmpString = "Current state = " + status() + "\n";
-  if (event_builder_ptr_.get() != 0) {
-    tmpString.append(event_builder_ptr_->report(which));
+  if (event_builder_ptr_.get() != nullptr) {
+    return event_builder_ptr_->report(which);
   }
-  return tmpString;
+  else {
+    std::string tmpString("This EventBuilder has not yet been initialized and ");
+    tmpString.append("therefore can not provide reporting.");
+    return tmpString;
+  }
 }
