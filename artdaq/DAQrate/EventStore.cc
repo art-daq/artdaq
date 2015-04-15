@@ -308,7 +308,6 @@ namespace artdaq {
                                << queue_.size();
     if(metricMan_) {
       double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-      metricMan_->do_start();
       metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1,true);
     }
   }
@@ -318,7 +317,6 @@ namespace artdaq {
     ++subrun_id_;
     if(metricMan_) {
       double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-      metricMan_->do_start();
       metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, true);
     }
   }
