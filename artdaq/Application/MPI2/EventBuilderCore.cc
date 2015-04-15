@@ -85,16 +85,6 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
       << "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
     return false;
   }
-  // pull out the Metric part of the ParameterSet
-  fhicl::ParameterSet metric_pset;
-  try {
-    metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset, name_ + ".");
-  }
-  catch (...) {
-    //Okay if no metrics have been defined...
-    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
-  }
   // determine the data receiver parameters
   try {
     max_fragment_size_words_ = daq_pset.get<uint64_t>("max_fragment_size_words");
@@ -165,6 +155,24 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   // fetch the monitoring parameters and create the MonitoredQuantity instances
   statsHelper_.createCollectors(evb_pset, 100, 20.0, 60.0, INPUT_FRAGMENTS_STAT_KEY);
 
+  // pull out the Metric part of the ParameterSet
+  std::string metricsReportingInstanceName = "EventBuilder " +
+    boost::lexical_cast<std::string>(1+mpi_rank_-first_data_sender_rank_-data_sender_count_);
+  fhicl::ParameterSet metric_pset;
+  try {
+    metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
+    metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+  }
+  catch (...) {
+    //Okay if no metrics have been defined...
+    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
+  }
+  FRAGMENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Rate";
+  FRAGMENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Fragment Size";
+  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
+  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg Input Wait Time";
+  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
+
   /* Once art has been initialized we can't tear it down or change it's
      configuration.  We'll keep track of when we have initialized it.  Once it
      has been initialized we need to verify that the configuration is the same
@@ -187,14 +195,6 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     }
   }
   
-  std::string metricsReportingInstanceName = "EventBuilder " +
-    boost::lexical_cast<std::string>(1+mpi_rank_-first_data_sender_rank_-data_sender_count_);
-  FRAGMENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Rate";
-  FRAGMENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Fragment Size";
-  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
-  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg Input Wait Time";
-  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
-
   return true;
 }
 
@@ -416,7 +416,10 @@ size_t artdaq::EventBuilderCore::process_fragments()
                   boost::lexical_cast<std::string>(event_store_ptr_->subrunID()) +
                   ").");
     }
-    if (statsHelper_.statsRollingWindowHasMoved()) {sendMetrics_();}
+    if (statsHelper_.statsRollingWindowHasMoved()) {
+      sendMetrics_();
+      event_store_ptr_->sendMetrics();
+    }
 
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType) {
@@ -489,13 +492,25 @@ size_t artdaq::EventBuilderCore::process_fragments()
   // that they don't get called while metrics reporting is still going on.
   if (stop_requested_.load()) {metricMan_.do_stop();}
   else if (pause_requested_.load()) {metricMan_.do_pause();}
+  // 14-Apr-2015, KAB: added catch-all for instances when the end-of-data
+  // markers are all received before we are told to stop or pause
+  else {metricMan_.do_stop();}
 
   receiver_ptr_.reset(nullptr);
   return 0;
 }
 
-std::string artdaq::EventBuilderCore::report(std::string const&) const
+std::string artdaq::EventBuilderCore::report(std::string const& which) const
 {
+  if (which == "incomplete_event_count") {
+    if (event_store_ptr_ != nullptr) {
+      return boost::lexical_cast<std::string>(event_store_ptr_->incompleteEventCount());
+    }
+    else {
+      return "-1";
+    }
+  }
+
   // lots of cool stuff that we can do here
   // - report on the number of fragments received and the number
   //   of events built (in the current or previous run
@@ -503,6 +518,7 @@ std::string artdaq::EventBuilderCore::report(std::string const&) const
   //   (if running)
   std::string tmpString = "Event Builder run number = ";
   tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
+  tmpString.append(". Command \"" + which + "\" is not currently supported.");
   return tmpString;
 }
 
