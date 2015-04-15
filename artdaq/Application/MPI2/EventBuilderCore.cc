@@ -155,7 +155,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   // fetch the monitoring parameters and create the MonitoredQuantity instances
   statsHelper_.createCollectors(evb_pset, 100, 20.0, 60.0, INPUT_FRAGMENTS_STAT_KEY);
 
-  // pull out the Metric part of the ParameterSet
+  // initialize the MetricManager and the names of our metrics
   std::string metricsReportingInstanceName = "EventBuilder " +
     boost::lexical_cast<std::string>(1+mpi_rank_-first_data_sender_rank_-data_sender_count_);
   fhicl::ParameterSet metric_pset;
