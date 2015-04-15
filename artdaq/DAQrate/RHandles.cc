@@ -1,7 +1,6 @@
 #include "artdaq/DAQrate/RHandles.hh"
 
 #include "art/Utilities/Exception.h"
-#include "artdaq/DAQrate/Perf.hh"
 #include "artdaq/DAQdata/Debug.hh"
 #include "artdaq/DAQrate/MPITag.hh"
 #include "artdaq/DAQrate/Utils.hh"
@@ -65,7 +64,6 @@ recvFragment(Fragment & output, size_t timeout_usec)
     return MPI_ANY_SOURCE; // Nothing to do.
   }
   TRACE( 6,"recvFragment entered tmo=%lu us",timeout_usec  );
-  RecvMeas rm;
   int wait_result;
   int which;
   MPI_Status status;
@@ -172,8 +170,6 @@ recvFragment(Fragment & output, size_t timeout_usec)
   TRACE( 7, "recvFragment before payload_[which].swap(tmp) adr=%p", (void*)tmp.headerAddress() );
   payload_[which].swap(tmp);
   TRACE( 7, "recvFragment after payload_[which].swap(tmp)" );
-  // Performance measurement.
-  rm.woke(sequence_id, which);
   // Fragment accounting.
   if (output.type() == Fragment::EndOfDataFragmentType) {
     src_status_[src_index] = status_t::PENDING;
@@ -217,13 +213,11 @@ recvFragment(Fragment & output, size_t timeout_usec)
       req_sources_[which] = MPI_ANY_SOURCE; // Done with this buffer.
     }
     else { // Post for input from a still-active source.
-      rm.post(nextSource);
       post_(which, nextSource); // This buffer doesn't need cancelling.
     }
     cancelAndRepost_(status.MPI_SOURCE); // Cancel and possibly repost.
   }
   else {
-    rm.post(status.MPI_SOURCE);
     post_(which, status.MPI_SOURCE);
   }
   return status.MPI_SOURCE;

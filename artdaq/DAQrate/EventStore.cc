@@ -14,15 +14,6 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracelib.h"
 
-// jbk note about performance measurement collection -
-// We should no longer need this "Perf" performance measurement.
-// The event store is used in applications that do not use MPI,
-// and the Perf performance measurement collector requires MPI
-// to be initialized.
-#if 0
-#include "artdaq/DAQrate/Perf.hh"
-#endif
-
 using namespace std;
 
 namespace artdaq {
@@ -192,10 +183,6 @@ namespace artdaq {
       // the event queue.
       RawEvent_ptr complete_event(loc->second);
       complete_event->markComplete();
-#if 0
-      // jbk - see note at top of file
-      PerfWriteEvent(EventMeas::END, sequence_id);
-#endif
 
       events_.erase(loc);
       // 13-Dec-2012, KAB - this monitoring needs to come before
