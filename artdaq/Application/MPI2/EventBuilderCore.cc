@@ -16,7 +16,7 @@ const std::string artdaq::EventBuilderCore::STORE_EVENT_WAIT_STAT_KEY("EventBuil
 artdaq::EventBuilderCore::EventBuilderCore(int mpi_rank, MPI_Comm local_group_comm, std::string name) :
   mpi_rank_(mpi_rank), local_group_comm_(local_group_comm), name_(name),
   data_sender_count_(0), art_initialized_(false),
-  stop_requested_(false), pause_requested_(false), run_is_paused_(false)
+  stop_requested_(false), pause_requested_(false), run_is_paused_(false), processing_fragments_(false)
 {
   mf::LogDebug(name_) << "Constructor";
   statsHelper_.addMonitoredQuantityName(INPUT_FRAGMENTS_STAT_KEY);
@@ -208,8 +208,8 @@ bool artdaq::EventBuilderCore::start(art::RunID id)
   fragment_count_in_run_ = 0;
   statsHelper_.resetStatistics();
   flush_mutex_.lock();
-  event_store_ptr_->startRun(id.run());
   metricMan_.do_start();
+  event_store_ptr_->startRun(id.run());
 
   logMessage_("Started run " + boost::lexical_cast<std::string>(run_id_.run()));
   return true;
@@ -259,6 +259,7 @@ bool artdaq::EventBuilderCore::stop()
 
   flush_mutex_.unlock();
   run_is_paused_.store(false);
+  if (! processing_fragments_.load()) {metricMan_.do_stop();}
   return true;
 }
 
@@ -284,6 +285,7 @@ bool artdaq::EventBuilderCore::pause()
 
   flush_mutex_.unlock();
   run_is_paused_.store(true);
+  if (! processing_fragments_.load()) {metricMan_.do_pause();}
   return true;
 }
 
@@ -293,8 +295,8 @@ bool artdaq::EventBuilderCore::resume()
   eod_fragments_received_ = 0;
   pause_requested_.store(false);
   flush_mutex_.lock();
-  event_store_ptr_->startSubrun();
   metricMan_.do_resume();
+  event_store_ptr_->startSubrun();
   run_is_paused_.store(false);
   return true;
 }
@@ -336,6 +338,7 @@ bool artdaq::EventBuilderCore::reinitialize(fhicl::ParameterSet const& pset)
 
 size_t artdaq::EventBuilderCore::process_fragments()
 {
+  processing_fragments_.store(true);
   bool process_fragments = true;
   size_t senderSlot;
   std::vector<size_t> fragments_received(data_sender_count_ + first_data_sender_rank_, 0);
@@ -492,11 +495,9 @@ size_t artdaq::EventBuilderCore::process_fragments()
   // that they don't get called while metrics reporting is still going on.
   if (stop_requested_.load()) {metricMan_.do_stop();}
   else if (pause_requested_.load()) {metricMan_.do_pause();}
-  // 14-Apr-2015, KAB: added catch-all for instances when the end-of-data
-  // markers are all received before we are told to stop or pause
-  else {metricMan_.do_stop();}
 
   receiver_ptr_.reset(nullptr);
+  processing_fragments_.store(false);
   return 0;
 }
 

@@ -292,9 +292,8 @@ bool artdaq::AggregatorCore::start(art::RunID id)
   stop_requested_.store(false);
   local_pause_requested_.store(false);
   run_id_ = id;
-  event_store_ptr_->startRun(run_id_.run());
-
   metricMan_.do_start();
+  event_store_ptr_->startRun(run_id_.run());
 
   logMessage_("Started run " + boost::lexical_cast<std::string>(run_id_.run()));
   return true;
@@ -310,6 +309,7 @@ bool artdaq::AggregatorCore::stop()
      received all of the EOD fragments it expects.  Higher level code will block
      until the process_fragments() thread exits. */
   stop_requested_.store(true);
+  if (! processing_fragments_.load()) {metricMan_.do_stop();}
   return true;
 }
 
@@ -323,6 +323,7 @@ bool artdaq::AggregatorCore::pause()
      received all of the EOD fragments it expects.  Higher level code will block
      until the process_fragments() thread exits. */
   local_pause_requested_.store(true);
+  if (! processing_fragments_.load()) {metricMan_.do_pause();}
   return true;
 }
 
@@ -333,8 +334,8 @@ bool artdaq::AggregatorCore::resume()
   local_pause_requested_.store(false);
 
   logMessage_("Resuming run " + boost::lexical_cast<std::string>(run_id_.run()));
-  event_store_ptr_->startSubrun();
   metricMan_.do_resume();
+  event_store_ptr_->startSubrun();
   return true;
 }
 
@@ -746,9 +747,6 @@ size_t artdaq::AggregatorCore::process_fragments()
   // that they don't get called while metrics reporting is still going on.
   if (stop_requested_.load()) {metricMan_.do_stop();}
   else if (local_pause_requested_.load()) {metricMan_.do_pause();}
-  // 14-Apr-2015, KAB: added catch-all for instances when the end-of-data
-  // markers are all received before we are told to stop or pause
-  else {metricMan_.do_stop();}
 
   receiver_ptr_.reset(nullptr);
   if (is_online_monitor_) {
