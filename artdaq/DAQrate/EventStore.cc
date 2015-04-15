@@ -485,4 +485,13 @@ namespace artdaq {
       outStream.close();
     }
   }
+
+  void
+  EventStore::sendMetrics() const
+  {
+    if (metricMan_) {
+      metricMan_->sendMetric("Incomplete Event Count", events_.size(),
+                             "events", 1, true);
+    }
+  }
 }
