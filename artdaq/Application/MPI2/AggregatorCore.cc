@@ -59,7 +59,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 {
   init_string_ = pset.to_string();
   mf::LogDebug(name_) << "initialize method called with DAQ "
-                             << "ParameterSet = \"" << init_string_ << "\".";
+                      << "ParameterSet = \"" << init_string_ << "\".";
 
   // pull out the relevant parts of the ParameterSet
   fhicl::ParameterSet daq_pset;
@@ -81,16 +81,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
       << "Unable to find the aggregator parameters in the DAQ "
       << "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
     return false;
-  }
-  // pull out the Metric part of the ParameterSet
-  fhicl::ParameterSet metric_pset;
-  try {
-    metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset, name_ + ".");
-  }
-  catch (...) {
-    //Okay if no metrics defined
- mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
   }
 
   // determine the data receiver parameters
@@ -233,8 +223,33 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 
   onmon_event_prescale_ = agg_pset.get<size_t>("onmon_event_prescale", 1);
 
+  filesize_check_interval_seconds_ = agg_pset.get<int32_t>("filesize_check_interval_seconds", 20);
+  filesize_check_interval_events_ = agg_pset.get<int32_t>("filesize_check_interval_events", 20);
+
   // fetch the monitoring parameters and create the MonitoredQuantity instances
   stats_helper_.createCollectors(agg_pset, 50, 20.0, 60.0, INPUT_EVENTS_STAT_KEY);
+
+  // initialize the MetricManager and the names of our metrics
+  std::string metricsReportingInstanceName = "Data Logger";
+  if (! is_data_logger_) {
+    metricsReportingInstanceName = "Online Monitor";
+  }
+  fhicl::ParameterSet metric_pset;
+  try {
+    metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
+    metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+  }
+  catch (...) {
+    //Okay if no metrics defined
+    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
+  }
+  EVENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Event Rate";
+  EVENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Event Size";
+  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
+  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Average Input Wait Time";
+  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
+  SHM_COPY_TIME_METRIC_NAME_ = metricsReportingInstanceName + " Avg Shared Memory Copy Time";
+  FILE_CHECK_TIME_METRIC_NAME_ = metricsReportingInstanceName + " Average File Check Time";
 
   if (event_store_ptr_ == nullptr) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
@@ -260,25 +275,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
         << "has been configured.";
       return false;
     }
-  }
-
-  if (is_data_logger_) {
-    EVENT_RATE_METRIC_NAME_ = "Data Logger Event Rate";
-    EVENT_SIZE_METRIC_NAME_ = "Data Logger Average Event Size";
-    DATA_RATE_METRIC_NAME_ = "Data Logger Data Rate";
-    INPUT_WAIT_METRIC_NAME_ = "Data Logger Average Input Wait Time";
-    EVENT_STORE_WAIT_METRIC_NAME_ = "Data Logger Avg art Queue Wait Time";
-    SHM_COPY_TIME_METRIC_NAME_ = "Data Logger Avg Shared Memory Copy Time";
-    FILE_CHECK_TIME_METRIC_NAME_ = "Data Logger Average File Check Time";
-  }
-  else {
-    EVENT_RATE_METRIC_NAME_ = "Online Monitor Event Rate";
-    EVENT_SIZE_METRIC_NAME_ = "Online Monitor Average Event Size";
-    DATA_RATE_METRIC_NAME_ = "Online Monitor Data Rate";
-    INPUT_WAIT_METRIC_NAME_ = "Online Monitor Average Input Wait Time";
-    EVENT_STORE_WAIT_METRIC_NAME_ = "Online Monitor Avg art Queue Wait Time";
-    SHM_COPY_TIME_METRIC_NAME_ = "Online Monitor Avg Shared Memory Copy Time";
-    FILE_CHECK_TIME_METRIC_NAME_ = "Online Monitor Average File Check Time";
   }
 
   return true;
@@ -389,6 +385,7 @@ size_t artdaq::AggregatorCore::process_fragments()
   artdaq::FragmentPtr endSubRunMsg(nullptr);
   bool eodWasCopied = false;
   bool esrWasCopied = false;
+  time_t last_filesize_check_time = subrun_start_time_;
 
   if (is_data_logger_) {
     receiver_ptr_.reset(new artdaq::RHandles(mpi_buffer_count_,
@@ -668,12 +665,15 @@ size_t artdaq::AggregatorCore::process_fragments()
           threshold_reached = true;
         }
         else {
-          if ((now - subrun_start_time_) >= 30 &&
-              (event_count_in_run_ % 20) == 0) {
+          if (filesize_check_interval_seconds_ > 0 &&
+              filesize_check_interval_events_ > 0 &&
+              (now - last_filesize_check_time) >= filesize_check_interval_seconds_ &&
+              (event_count_in_run_ % filesize_check_interval_events_) == 0) {
             if (file_close_threshold_bytes_ > 0 &&
                 getLatestFileSize_() >= file_close_threshold_bytes_) {
               threshold_reached = true;
             }
+            last_filesize_check_time = now;
           }
         }
       }
@@ -746,6 +746,9 @@ size_t artdaq::AggregatorCore::process_fragments()
   // that they don't get called while metrics reporting is still going on.
   if (stop_requested_.load()) {metricMan_.do_stop();}
   else if (local_pause_requested_.load()) {metricMan_.do_pause();}
+  // 14-Apr-2015, KAB: added catch-all for instances when the end-of-data
+  // markers are all received before we are told to stop or pause
+  else {metricMan_.do_stop();}
 
   receiver_ptr_.reset(nullptr);
   if (is_online_monitor_) {
@@ -792,6 +795,24 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
     return boost::lexical_cast<std::string>(latestFileSize);
   }
 
+  if (which == "subrun_number") {
+    if (event_store_ptr_.get() != nullptr) {
+      return boost::lexical_cast<std::string>(event_store_ptr_->subrunID());
+    }
+    else {
+      return "-1";
+    }
+  }
+
+  if (which == "incomplete_event_count") {
+    if (event_store_ptr_ != nullptr) {
+      return boost::lexical_cast<std::string>(event_store_ptr_->incompleteEventCount());
+    }
+    else {
+      return "-1";
+    }
+  }
+
   // lots of cool stuff that we can do here
   // - report on the number of fragments received and the number
   //   of events built (in the current or previous run
@@ -799,6 +820,7 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
   //   (if running)
   std::string tmpString = name_ + " run number = ";
   tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
+  tmpString.append(". Command=\"" + which + "\" is not currently supported.");
   return tmpString;
 }
 

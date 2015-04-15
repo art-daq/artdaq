@@ -67,6 +67,8 @@ private:
   size_t endrun_recv_timeout_usec_;
   size_t pause_recv_timeout_usec_;
   size_t onmon_event_prescale_;
+  int32_t filesize_check_interval_seconds_;
+  int32_t filesize_check_interval_events_;
   bool is_data_logger_;
   bool is_online_monitor_;
 
