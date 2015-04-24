@@ -72,7 +72,7 @@ namespace artdaq {
                          MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(pset.get<size_t>("event_queue_depth",50)),
+    max_queue_size_(pset.get<size_t>("event_queue_depth",20)),
     run_id_(run),
     subrun_id_(0),
     events_(),
@@ -500,7 +500,7 @@ namespace artdaq {
   void
   EventStore::send_trigger_(Fragment::sequence_id_t seqNum)
   {
-    std::thread trigger(do_send_trigger_, seqNum);
+    std::thread trigger([=]{do_send_trigger_(seqNum);});
     trigger.detach();
   }
 }

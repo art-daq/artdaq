@@ -170,16 +170,12 @@ namespace {
       expected_frags_per_event += gen.numFragIDs();
     }
 
-    artdaq::EventStore store(expected_frags_per_event,
+    artdaq::EventStore store(eb_pset, expected_frags_per_event,
                              gta_pset.get<artdaq::EventStore::run_id_t>("run_number"),
                              1, // Store ID.
                              argc,
                              argv,
-                             &artapp,
-                             eb_pset.get<size_t>("queue_size", 20),
-                             eb_pset.get<double>("timeout", 5.0),
-                             eb_pset.get<size_t>("queue_check_count", 5000),
-                             eb_pset.get<bool>("print_stats", false));
+                             &artapp);
 
     auto const events_to_generate =
       gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", -1);

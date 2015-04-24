@@ -14,9 +14,9 @@ genToArt:
 
   event_builder:
   {
-    queue_size: 20
-    timeout: 5.0
-    print_stats: false
+    event_queue_depth: 20
+    event_queue_wait_time: 5.0
+    print_event_store_stats: false
   }
 }
 
