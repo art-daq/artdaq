@@ -7,6 +7,8 @@ simple_plugin(FragmentSniffer "module"
   ${ART_PERSISTENCY_PROVENANCE}
   ${MF_MESSAGELOGGER}
   ${FHICLCPP}
+  ${Boost_FILESYSTEM_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY}
   )
 
 cet_test(raw_event_queue_reader_t USE_BOOST_UNIT

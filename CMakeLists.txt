@@ -39,12 +39,20 @@ cet_set_compiler_flags(DIAGS VIGILANT
 cet_report_compiler_flags()
 
 # these are minimum required versions, not the actual product versions
+find_ups_boost(v1_53_0)
+find_ups_product (cetbuildtools v4_09_02)
+find_ups_product( TRACE v3_03_00 )
 find_ups_product( art v1_08_10 )
 find_ups_product( artdaq_core v1_03_01 )
-find_ups_product( cetbuildtools v4_01_03 )
-find_ups_product( messagefacility v1_10_00 )
+find_ups_product( cetlib v1_08_00 )
+find_ups_product( cetpkgsupport v1_08_03 )
+find_ups_product( clhep v2_2_0_3 )
+find_ups_product( fhiclcpp v3_04_00 )
+find_ups_product( messagefacility v1_14_01 )
+find_ups_product( sqlite v3_08_05_00 )
+find_ups_product( tbb v4_1 )
 find_ups_product( xmlrpc_c v1_25_18 )
-find_ups_product( TRACE v3_03_00 )
+find_ups_root( v5_34_20 )
 
 # Include at the top level to make sure include directory is visible
 # everywhere.
