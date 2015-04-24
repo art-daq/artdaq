@@ -32,15 +32,13 @@ artdaq::EventBuilderCore::~EventBuilderCore()
   mf::LogDebug(name_) << "Destructor";
 }
 
-void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_time, size_t check_count, bool send_triggers, int trigger_port, std::string trigger_addr)
+void artdaq::EventBuilderCore::initializeEventStore(fhicl::ParameterSet pset)
 {
   if (use_art_) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
-    event_store_ptr_.reset(new artdaq::EventStore(expected_fragments_per_event_, 1,
+    event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
 						  mpi_rank_, init_string_,
-						  reader, depth, wait_time, check_count,
-                                                  print_event_store_stats_,
-                                                  send_triggers, trigger_port, trigger_addr, &metricMan_));
+						  reader, &metricMan_));
     art_initialized_ = true;
   }
   else {
@@ -49,11 +47,9 @@ void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_ti
     char * dummyArgs[1] { "SimpleQueueReader" };
 #pragma GCC diagnostic pop
     artdaq::EventStore::ART_CMDLINE_FCN * reader = &artdaq::simpleQueueReaderApp;
-    event_store_ptr_.reset(new artdaq::EventStore(expected_fragments_per_event_, 1,
+    event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
 						  mpi_rank_, 1, dummyArgs,
-						  reader, depth, wait_time, check_count,
-                                                  print_event_store_stats_,
-                                                  send_triggers, trigger_port, trigger_addr, &metricMan_));
+						  reader, &metricMan_));
   }
 }
 
@@ -154,19 +150,10 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
       << evb_pset.to_string() << "\".";
     return false;
   }
-  print_event_store_stats_ = evb_pset.get<bool>("print_event_store_stats", false);
   inrun_recv_timeout_usec_=evb_pset.get<size_t>("inrun_recv_timeout_usec",    100000);
   endrun_recv_timeout_usec_=evb_pset.get<size_t>("endrun_recv_timeout_usec",20000000);
   pause_recv_timeout_usec_=evb_pset.get<size_t>("pause_recv_timeout_usec",3000000);
   verbose_ = evb_pset.get<bool>("verbose", false);
-
-  size_t event_queue_depth = evb_pset.get<size_t>("event_queue_depth", 20);
-  double event_queue_wait_time = evb_pset.get<double>("event_queue_wait_time", 5.0);
-  size_t event_queue_check_count = evb_pset.get<size_t>("event_queue_check_count", 5000);
-  
-  bool send_triggers = evb_pset.get<bool>("send_triggers",false);
-  int trigger_port = evb_pset.get<int>("trigger_port",3001);
-  std::string trigger_addr = evb_pset.get<std::string>("trigger_address","227.128.12.26");
 
   // fetch the monitoring parameters and create the MonitoredQuantity instances
   statsHelper_.createCollectors(evb_pset, 100, 20.0, 60.0, INPUT_FRAGMENTS_STAT_KEY);
@@ -178,7 +165,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
      config changes we have to throw up our hands and bail out.
   */
   if (art_initialized_ == false) {
-      this->initializeEventStore(event_queue_depth, event_queue_wait_time, event_queue_check_count, send_triggers, trigger_port, trigger_addr);
+    this->initializeEventStore(evb_pset);
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
     previous_pset_ = tmp;

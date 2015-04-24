@@ -4,6 +4,7 @@
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
+#include <fhiclcpp/ParameterSet.h>
 
 #include <map>
 #include <memory>
@@ -54,35 +55,16 @@ namespace artdaq {
 
     // Create an EventStore that uses 'reader' as the function to be
     // executed by the thread this EventStore will spawn.
-    EventStore(size_t num_fragments_per_event, run_id_t run,
+    EventStore(fhicl::ParameterSet pset,
+               size_t num_fragments_per_event, run_id_t run,
                int store_id, int argc, char * argv[],
-               ART_CMDLINE_FCN * reader, bool printSummaryStats = false,
-               bool send_triggers = false, int trigger_port = 0,
-               std::string trigger_addr = "227.128.12.26",
+               ART_CMDLINE_FCN * reader,
                MetricManager* metricMan = nullptr);
-    EventStore(size_t num_fragments_per_event, run_id_t run,
+    EventStore(fhicl::ParameterSet pset,
+               size_t num_fragments_per_event, run_id_t run,
                int store_id, const std::string& configString,
-               ART_CFGSTRING_FCN * reader, bool printSummaryStats = false,
-               bool send_triggers = false, int trigger_port = 0,
-               std::string trigger_addr = "227.128.12.26",
+               ART_CFGSTRING_FCN * reader,
 	       MetricManager* metricMan = nullptr);
-
-    EventStore(size_t num_fragments_per_event, run_id_t run,
-               int store_id, int argc, char * argv[],
-               ART_CMDLINE_FCN * reader, size_t max_art_queue_size,
-               double enq_timeout_sec, size_t enq_check_count,
-               bool printSummaryStats = false,
-               bool send_triggers = false, int trigger_port = 0,
-               std::string trigger_addr = "227.128.12.26",
-               MetricManager* metricMan = nullptr);
-    EventStore(size_t num_fragments_per_event, run_id_t run,
-               int store_id, const std::string& configString,
-               ART_CFGSTRING_FCN * reader, size_t max_art_queue_size,
-               double enq_timeout_sec, size_t enq_check_count,
-               bool printSummaryStats = false,
-               bool send_triggers = false, int trigger_port = 0,
-               std::string trigger_addr = "227.128.12.26",
-               MetricManager* metricMan = nullptr);
 
     ~EventStore();
 
@@ -144,6 +126,7 @@ namespace artdaq {
 
     bool send_triggers_;
     int  trigger_port_;
+    size_t trigger_delay_;
     int trigger_socket_;
     struct sockaddr_in trigger_addr_;
 
@@ -160,6 +143,7 @@ namespace artdaq {
     void reportStatistics_();
     void setup_trigger_(std::string trigger_addr);
     void send_trigger_(Fragment::sequence_id_t seqNum);
+    void do_send_trigger_(Fragment::sequence_id_t seqNum);
   };
 }
 #endif /* artdaq_DAQrate_EventStore_hh */

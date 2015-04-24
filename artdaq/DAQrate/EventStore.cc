@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <thread>
+#include <chrono>
 
 #include "cetlib/exception.h"
 #include "artdaq-core/Core/StatisticsCollection.hh"
@@ -29,141 +31,66 @@ namespace artdaq {
   const std::string EventStore::EVENT_RATE_STAT_KEY("EventStoreEventRate");
   const std::string EventStore::INCOMPLETE_EVENT_STAT_KEY("EventStoreIncompleteEvents");
 
-  EventStore::EventStore(size_t num_fragments_per_event,
+  EventStore::EventStore(fhicl::ParameterSet pset, 
+                         size_t num_fragments_per_event,
                          run_id_t run,
                          int store_id,
                          int argc,
                          char * argv[],
                          ART_CMDLINE_FCN * reader,
-                         bool printSummaryStats,
-                         bool send_triggers,
-                         int trigger_port,
-                         std::string trigger_addr,
                          MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(50),
+    max_queue_size_(pset.get<size_t>("event_queue_depth",50)),
     run_id_(run),
     subrun_id_(0),
     events_(),
     queue_(getGlobalQueue(max_queue_size_)),
     reader_thread_(std::async(std::launch::async, reader, argc, argv)),
-    send_triggers_(send_triggers),
-    trigger_port_(trigger_port),
+    send_triggers_(pset.get<bool>("send_triggers",false)),
+    trigger_port_(pset.get<int>("trigger_port",3001)),
+    trigger_delay_(pset.get<size_t>("trigger_delay",10)),
     seqIDModulus_(1),
     lastFlushedSeqID_(0),
     highestSeqIDSeen_(0),
-    enq_timeout_(5.0),
-    enq_check_count_(5000),
-    printSummaryStats_(printSummaryStats),
+    enq_timeout_(pset.get<double>("event_queue_wait_time",5.0)),
+    enq_check_count_(pset.get<size_t>("event_queue_check_count",5000)),
+    printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
     metricMan_(metricMan)
   {
     initStatistics_();
-    setup_trigger_(trigger_addr);
+    setup_trigger_(pset.get<std::string>("trigger_address","227.128.12.26"));
     TRACE( 12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized" );
   }
 
-  EventStore::EventStore(size_t num_fragments_per_event,
+  EventStore::EventStore(fhicl::ParameterSet pset,
+                         size_t num_fragments_per_event,
                          run_id_t run,
                          int store_id,
                          const std::string& configString,
                          ART_CFGSTRING_FCN * reader,
-                         bool printSummaryStats,
-                         bool send_triggers,
-                         int trigger_port,
-                         std::string trigger_addr,
                          MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(50),
+    max_queue_size_(pset.get<size_t>("event_queue_depth",50)),
     run_id_(run),
     subrun_id_(0),
     events_(),
     queue_(getGlobalQueue(max_queue_size_)),
     reader_thread_(std::async(std::launch::async, reader, configString)),
-    send_triggers_(send_triggers),
-    trigger_port_(trigger_port),
+    send_triggers_(pset.get<bool>("send_triggers",false)),
+    trigger_port_(pset.get<int>("trigger_port",3001)),
+    trigger_delay_(pset.get<size_t>("trigger_delay",10)),
     seqIDModulus_(1),
     lastFlushedSeqID_(0),
     highestSeqIDSeen_(0),
-    enq_timeout_(5.0),
-    enq_check_count_(5000),
-    printSummaryStats_(printSummaryStats),
+    enq_timeout_(pset.get<double>("event_queue_wait_time",5.0)),
+    enq_check_count_(pset.get<size_t>("event_queue_check_count",5000)),
+    printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
     metricMan_(metricMan)
   {
     initStatistics_();
-    setup_trigger_(trigger_addr);
-  }
-
-  EventStore::EventStore(size_t num_fragments_per_event,
-                         run_id_t run,
-                         int store_id,
-                         int argc,
-                         char * argv[],
-                         ART_CMDLINE_FCN * reader,
-                         size_t max_art_queue_size,
-                         double enq_timeout_sec,
-                         size_t enq_check_count,
-                         bool printSummaryStats,
-                         bool send_triggers,
-                         int trigger_port,
-                         std::string trigger_addr,
-                         MetricManager* metricMan) :
-    id_(store_id),
-    num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(max_art_queue_size),
-    run_id_(run),
-    subrun_id_(0),
-    events_(),
-    queue_(getGlobalQueue(max_queue_size_)),
-    reader_thread_(std::async(std::launch::async, reader, argc, argv)),
-    send_triggers_(send_triggers),
-    trigger_port_(trigger_port),
-    seqIDModulus_(1),
-    lastFlushedSeqID_(0),
-    highestSeqIDSeen_(0),
-    enq_timeout_(enq_timeout_sec),
-    enq_check_count_(enq_check_count),
-    printSummaryStats_(printSummaryStats),
-    metricMan_(metricMan)
-  {
-    initStatistics_();
-    setup_trigger_(trigger_addr);
-  }
-
-  EventStore::EventStore(size_t num_fragments_per_event,
-                         run_id_t run,
-                         int store_id,
-                         const std::string& configString,
-                         ART_CFGSTRING_FCN * reader,
-                         size_t max_art_queue_size,
-                         double enq_timeout_sec,
-                         size_t enq_check_count,
-                         bool printSummaryStats,
-                         bool send_triggers,
-                         int trigger_port,
-                         std::string trigger_addr,
-                         MetricManager* metricMan) :
-    id_(store_id),
-    num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(max_art_queue_size),
-    run_id_(run),
-    subrun_id_(0),
-    events_(),
-    queue_(getGlobalQueue(max_queue_size_)),
-    reader_thread_(std::async(std::launch::async, reader, configString)),
-    send_triggers_(send_triggers),
-    trigger_port_(trigger_port),
-    seqIDModulus_(1),
-    lastFlushedSeqID_(0),
-    highestSeqIDSeen_(0),
-    enq_timeout_(enq_timeout_sec),
-    enq_check_count_(enq_check_count),
-    printSummaryStats_(printSummaryStats),
-    metricMan_(metricMan)
-  {
-    initStatistics_();
-    setup_trigger_(trigger_addr);
+    setup_trigger_(pset.get<std::string>("trigger_address","227.128.12.26"));
   }
 
   EventStore::~EventStore()
@@ -553,10 +480,10 @@ namespace artdaq {
 	  }
       }
   }
-  
-  void
-  EventStore::send_trigger_(Fragment::sequence_id_t seqNum)
+
+  void EventStore::do_send_trigger_(Fragment::sequence_id_t seqNum)
   {
+    std::this_thread::sleep_for(std::chrono::microseconds(trigger_delay_));
     uint32_t buffer[3];
     buffer[0] = 0x54524947;
     buffer[1] = static_cast<uint32_t>(seqNum >> 32);
@@ -568,5 +495,12 @@ namespace artdaq {
       {
 	mf::LogError("EventStore") << "Error sending trigger message" << std::endl;
       }
+  }  
+
+  void
+  EventStore::send_trigger_(Fragment::sequence_id_t seqNum)
+  {
+    std::thread trigger(do_send_trigger_, seqNum);
+    trigger.detach();
   }
 }
