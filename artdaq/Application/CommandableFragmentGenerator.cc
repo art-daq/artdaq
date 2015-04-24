@@ -2,6 +2,9 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracelib.h"		// TRACE
 
+#include <boost/exception/all.hpp>
+#include <boost/throw_exception.hpp>
+
 #include <limits>
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator() :
@@ -59,11 +62,18 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
   try { 
     std::lock_guard<std::mutex> lk(mutex_);
     result = getNext_( output );
-  } catch (cet::exception &e) {
-    mf::LogError ("getNext") << "exception caught: " << e;
+  } catch (const cet::exception &e) {
+    mf::LogError ("getNext") << "cet::exception caught: " << e;
     set_exception (true);
     return false;
-
+  } catch (const boost::exception& e) {
+    mf::LogError ("getNext") << "boost::exception caught: " << boost::diagnostic_information(e);
+    set_exception (true);
+    return false;
+  } catch (const std::exception& e  ) {
+    mf::LogError ("getNext") << "std::exception caught: " << e.what();
+    set_exception (true);
+    return false;
   } catch (...) {
     mf::LogError ("getNext") << "unknown exception caught";
     set_exception (true);
