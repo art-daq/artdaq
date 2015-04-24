@@ -62,7 +62,6 @@ private:
   size_t first_data_sender_rank_;
   size_t data_sender_count_;
   size_t expected_events_per_bunch_;
-  bool print_event_store_stats_;
   size_t inrun_recv_timeout_usec_;
   size_t endrun_recv_timeout_usec_;
   size_t pause_recv_timeout_usec_;

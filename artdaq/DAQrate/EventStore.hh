@@ -4,12 +4,17 @@
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
+#include <fhiclcpp/ParameterSet.h>
 
 #include <map>
 #include <memory>
 //#include <thread>
 #include <future>
 #include <stdint.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 namespace artdaq {
 
@@ -50,27 +55,16 @@ namespace artdaq {
 
     // Create an EventStore that uses 'reader' as the function to be
     // executed by the thread this EventStore will spawn.
-    EventStore(size_t num_fragments_per_event, run_id_t run,
+    EventStore(fhicl::ParameterSet pset,
+               size_t num_fragments_per_event, run_id_t run,
                int store_id, int argc, char * argv[],
-               ART_CMDLINE_FCN * reader, bool printSummaryStats = false,
+               ART_CMDLINE_FCN * reader,
                MetricManager* metricMan = nullptr);
-    EventStore(size_t num_fragments_per_event, run_id_t run,
+    EventStore(fhicl::ParameterSet pset,
+               size_t num_fragments_per_event, run_id_t run,
                int store_id, const std::string& configString,
-               ART_CFGSTRING_FCN * reader, bool printSummaryStats = false,
+               ART_CFGSTRING_FCN * reader,
 	       MetricManager* metricMan = nullptr);
-
-    EventStore(size_t num_fragments_per_event, run_id_t run,
-               int store_id, int argc, char * argv[],
-               ART_CMDLINE_FCN * reader, size_t max_art_queue_size,
-               double enq_timeout_sec, size_t enq_check_count,
-	       bool printSummaryStats = false,
-               MetricManager* metricMan = nullptr);
-    EventStore(size_t num_fragments_per_event, run_id_t run,
-               int store_id, const std::string& configString,
-               ART_CFGSTRING_FCN * reader, size_t max_art_queue_size,
-               double enq_timeout_sec,  size_t enq_check_count,
-               bool printSummaryStats = false,
-               MetricManager* metricMan = nullptr);
 
     ~EventStore();
 
@@ -130,6 +124,12 @@ namespace artdaq {
     RawEventQueue & queue_;
     std::future<int> reader_thread_;
 
+    bool send_triggers_;
+    int  trigger_port_;
+    size_t trigger_delay_;
+    int trigger_socket_;
+    struct sockaddr_in trigger_addr_;
+
     unsigned int seqIDModulus_;
     sequence_id_t lastFlushedSeqID_;
     sequence_id_t highestSeqIDSeen_;
@@ -141,6 +141,9 @@ namespace artdaq {
 
     void initStatistics_();
     void reportStatistics_();
+    void setup_trigger_(std::string trigger_addr);
+    void send_trigger_(Fragment::sequence_id_t seqNum);
+    void do_send_trigger_(Fragment::sequence_id_t seqNum);
   };
 }
 #endif /* artdaq_DAQrate_EventStore_hh */
