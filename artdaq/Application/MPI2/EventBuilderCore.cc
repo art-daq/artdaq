@@ -167,6 +167,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     //Okay if no metrics have been defined...
     mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
   }
+  FRAGMENT_COUNT_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Count";
   FRAGMENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Rate";
   FRAGMENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Fragment Size";
   DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
@@ -587,6 +588,9 @@ void artdaq::EventBuilderCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
+    metricMan_.sendMetric(FRAGMENT_COUNT_METRIC_NAME_, 
+			  static_cast<unsigned long>(stats.fullSampleCount), 
+                          "fragments", 1, false);
     metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_, 
                           stats.recentSampleRate, "fragments/sec", 1, false);
     metricMan_.sendMetric(FRAGMENT_SIZE_METRIC_NAME_,

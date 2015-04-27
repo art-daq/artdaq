@@ -92,6 +92,7 @@ private:
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
 
+  std::string FRAGMENT_COUNT_METRIC_NAME_;
   std::string FRAGMENT_RATE_METRIC_NAME_;
   std::string FRAGMENT_SIZE_METRIC_NAME_;
   std::string DATA_RATE_METRIC_NAME_;
