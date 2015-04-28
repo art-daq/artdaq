@@ -264,7 +264,6 @@ namespace artdaq {
                                << queue_.size();
     if(metricMan_) {
       double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-      metricMan_->do_start();
       metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1,true);
     }
   }
@@ -274,7 +273,6 @@ namespace artdaq {
     ++subrun_id_;
     if(metricMan_) {
       double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-      metricMan_->do_start();
       metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, true);
     }
   }
@@ -489,5 +487,14 @@ namespace artdaq {
   {
     std::thread trigger([=]{do_send_trigger_(seqNum);});
     trigger.detach();
+  }
+
+  void
+  EventStore::sendMetrics() const
+  {
+    if (metricMan_) {
+      metricMan_->sendMetric("Incomplete Event Count", events_.size(),
+                             "events", 1, true);
+    }
   }
 }

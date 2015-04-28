@@ -117,6 +117,8 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
       << "\".";
     return false;
   }
+  FRAGMENT_COUNT_METRIC_NAME_ =
+    generator_ptr_->metricsReportingInstanceName() + " Fragment Count";
   FRAGMENT_RATE_METRIC_NAME_ =
     generator_ptr_->metricsReportingInstanceName() + " Fragment Rate";
   FRAGMENT_SIZE_METRIC_NAME_ =
@@ -440,6 +442,9 @@ void artdaq::BoardReaderCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
+    metricMan_.sendMetric(FRAGMENT_COUNT_METRIC_NAME_,
+			  static_cast<unsigned long>(stats.fullSampleCount), 
+			  "fragments", 1, false);
     metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_,
                           stats.recentSampleRate, "fragments/sec", 1, false);
     metricMan_.sendMetric(FRAGMENT_SIZE_METRIC_NAME_,

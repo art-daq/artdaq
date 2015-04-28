@@ -112,6 +112,9 @@ namespace artdaq {
     bool endRun();
     bool endSubrun();
 
+    void sendMetrics() const;
+    size_t incompleteEventCount() const {return events_.size();}
+
   private:
     // id_ is the unique identifier of this object; MPI programs will
     // use the MPI rank to fill in this value.
