@@ -129,9 +129,14 @@ std::string artdaq::AggregatorApp::report(std::string const& which) const
     return report_string_;
   }
 
-  if (which == "event_count" || which == "run_duration" || which == "file_size") {
+  // 14-Apr-2015, KAB: removed filter on known commands; let AggregatorCore
+  // handle things.
+  if (aggregator_ptr_.get() != nullptr) {
     return aggregator_ptr_->report(which);
   }
-
-  return "Unknown request: " + which;
+  else {
+    std::string tmpString("This Aggregator has not yet been initialized and ");
+    tmpString.append("therefore can not provide reporting.");
+    return tmpString;
+  }
 }

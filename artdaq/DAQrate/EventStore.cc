@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <thread>
+#include <chrono>
 
 #include "cetlib/exception.h"
 #include "artdaq-core/Core/StatisticsCollection.hh"
@@ -20,117 +22,66 @@ namespace artdaq {
   const std::string EventStore::EVENT_RATE_STAT_KEY("EventStoreEventRate");
   const std::string EventStore::INCOMPLETE_EVENT_STAT_KEY("EventStoreIncompleteEvents");
 
-  EventStore::EventStore(size_t num_fragments_per_event,
+  EventStore::EventStore(fhicl::ParameterSet pset, 
+                         size_t num_fragments_per_event,
                          run_id_t run,
                          int store_id,
                          int argc,
                          char * argv[],
                          ART_CMDLINE_FCN * reader,
-                         bool printSummaryStats,
                          MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(50),
+    max_queue_size_(pset.get<size_t>("event_queue_depth",50)),
     run_id_(run),
     subrun_id_(0),
     events_(),
     queue_(getGlobalQueue(max_queue_size_)),
     reader_thread_(std::async(std::launch::async, reader, argc, argv)),
+    send_triggers_(pset.get<bool>("send_triggers",false)),
+    trigger_port_(pset.get<int>("trigger_port",3001)),
+    trigger_delay_(pset.get<size_t>("trigger_delay",10)),
     seqIDModulus_(1),
     lastFlushedSeqID_(0),
     highestSeqIDSeen_(0),
-    enq_timeout_(5.0),
-    enq_check_count_(5000),
-    printSummaryStats_(printSummaryStats),
+    enq_timeout_(pset.get<double>("event_queue_wait_time",5.0)),
+    enq_check_count_(pset.get<size_t>("event_queue_check_count",5000)),
+    printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
     metricMan_(metricMan)
   {
     initStatistics_();
+    setup_trigger_(pset.get<std::string>("trigger_address","227.128.12.26"));
     TRACE( 12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized" );
   }
 
-  EventStore::EventStore(size_t num_fragments_per_event,
+  EventStore::EventStore(fhicl::ParameterSet pset,
+                         size_t num_fragments_per_event,
                          run_id_t run,
                          int store_id,
                          const std::string& configString,
                          ART_CFGSTRING_FCN * reader,
-                         bool printSummaryStats,
                          MetricManager* metricMan) :
     id_(store_id),
     num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(50),
+    max_queue_size_(pset.get<size_t>("event_queue_depth",20)),
     run_id_(run),
     subrun_id_(0),
     events_(),
     queue_(getGlobalQueue(max_queue_size_)),
     reader_thread_(std::async(std::launch::async, reader, configString)),
+    send_triggers_(pset.get<bool>("send_triggers",false)),
+    trigger_port_(pset.get<int>("trigger_port",3001)),
+    trigger_delay_(pset.get<size_t>("trigger_delay",10)),
     seqIDModulus_(1),
     lastFlushedSeqID_(0),
     highestSeqIDSeen_(0),
-    enq_timeout_(5.0),
-    enq_check_count_(5000),
-    printSummaryStats_(printSummaryStats),
+    enq_timeout_(pset.get<double>("event_queue_wait_time",5.0)),
+    enq_check_count_(pset.get<size_t>("event_queue_check_count",5000)),
+    printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
     metricMan_(metricMan)
   {
     initStatistics_();
-  }
-
-  EventStore::EventStore(size_t num_fragments_per_event,
-                         run_id_t run,
-                         int store_id,
-                         int argc,
-                         char * argv[],
-                         ART_CMDLINE_FCN * reader,
-                         size_t max_art_queue_size,
-                         double enq_timeout_sec,
-                         size_t enq_check_count,
-                         bool printSummaryStats,
-                         MetricManager* metricMan) :
-    id_(store_id),
-    num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(max_art_queue_size),
-    run_id_(run),
-    subrun_id_(0),
-    events_(),
-    queue_(getGlobalQueue(max_queue_size_)),
-    reader_thread_(std::async(std::launch::async, reader, argc, argv)),
-    seqIDModulus_(1),
-    lastFlushedSeqID_(0),
-    highestSeqIDSeen_(0),
-    enq_timeout_(enq_timeout_sec),
-    enq_check_count_(enq_check_count),
-    printSummaryStats_(printSummaryStats),
-    metricMan_(metricMan)
-  {
-    initStatistics_();
-  }
-
-  EventStore::EventStore(size_t num_fragments_per_event,
-                         run_id_t run,
-                         int store_id,
-                         const std::string& configString,
-                         ART_CFGSTRING_FCN * reader,
-                         size_t max_art_queue_size,
-                         double enq_timeout_sec,
-                         size_t enq_check_count,
-                         bool printSummaryStats,
-                         MetricManager* metricMan) :
-    id_(store_id),
-    num_fragments_per_event_(num_fragments_per_event),
-    max_queue_size_(max_art_queue_size),
-    run_id_(run),
-    subrun_id_(0),
-    events_(),
-    queue_(getGlobalQueue(max_queue_size_)),
-    reader_thread_(std::async(std::launch::async, reader, configString)),
-    seqIDModulus_(1),
-    lastFlushedSeqID_(0),
-    highestSeqIDSeen_(0),
-    enq_timeout_(enq_timeout_sec),
-    enq_check_count_(enq_check_count),
-    printSummaryStats_(printSummaryStats),
-    metricMan_(metricMan)
-  {
-    initStatistics_();
+    setup_trigger_(pset.get<std::string>("trigger_address","227.128.12.26"));
   }
 
   EventStore::~EventStore()
@@ -138,6 +89,8 @@ namespace artdaq {
     if (printSummaryStats_) {
       reportStatistics_();
     }
+    shutdown(trigger_socket_,2);
+    close(trigger_socket_);
   }
 
   void EventStore::insert(FragmentPtr pfrag,
@@ -173,6 +126,9 @@ namespace artdaq {
       RawEvent_ptr newevent(new RawEvent(run_id_, subrun_id_, pfrag->sequenceID()));
       loc =
         events_.insert(loc, EventMap::value_type(sequence_id, newevent));
+
+      // Trigger the board readers!
+      if(send_triggers_){ send_trigger_(sequence_id); }
     }
 
     // Now insert the fragment into the event we have located.
@@ -308,7 +264,6 @@ namespace artdaq {
                                << queue_.size();
     if(metricMan_) {
       double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-      metricMan_->do_start();
       metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1,true);
     }
   }
@@ -318,7 +273,6 @@ namespace artdaq {
     ++subrun_id_;
     if(metricMan_) {
       double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-      metricMan_->do_start();
       metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, true);
     }
   }
@@ -470,6 +424,77 @@ namespace artdaq {
       }
       outStream << "Incomplete count now = " << events_.size() << std::endl;
       outStream.close();
+    }
+  }
+  
+  void
+  EventStore::setup_trigger_(std::string trigger_addr)
+  {
+    if ( send_triggers_)
+      {
+	trigger_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if(!trigger_socket_)
+	  {
+	    mf::LogError("EventStore") << "Trigger sending requested but I failed to create the socket!" << std::endl;
+            exit(1);
+	  }
+        trigger_addr_.sin_addr.s_addr=inet_addr(trigger_addr.c_str());
+        trigger_addr_.sin_port = htons(trigger_port_);
+        trigger_addr_.sin_family = AF_INET;
+
+        struct sockaddr_in si_me;
+        si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+        si_me.sin_port = htons(trigger_port_);
+        si_me.sin_family=  AF_INET;
+
+        int yes = 1;
+        if(setsockopt(trigger_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0){
+	  mf::LogError("EventStore") << "Unable to enable port reuse on trigger socket" << std::endl;
+          exit(1);
+        }
+        if(bind(trigger_socket_, (struct sockaddr *)&si_me, sizeof(si_me)) == -1)
+	  {
+	    mf::LogError("EventStore")<< "Cannot bind trigger socket to port " <<trigger_port_ << std::endl;
+            exit(1);
+	  }
+       
+        if(setsockopt(trigger_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int) ) == -1 )
+	  {
+	    mf::LogError("EventStore") << "Cannot set trigger socket to broadcast." << std::endl;
+            exit(1);
+	  }
+      }
+  }
+
+  void EventStore::do_send_trigger_(Fragment::sequence_id_t seqNum)
+  {
+    std::this_thread::sleep_for(std::chrono::microseconds(trigger_delay_));
+    uint32_t buffer[3];
+    buffer[0] = 0x54524947;
+    buffer[1] = static_cast<uint32_t>(seqNum >> 32);
+    buffer[2] = static_cast<uint32_t>(seqNum);
+    char str[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(trigger_addr_.sin_addr), str, INET_ADDRSTRLEN);
+    mf::LogWarning("EventStore") << "Sending trigger with seqNum " << (int)seqNum << " to multicast group " << str << std::endl;
+    if(sendto(trigger_socket_, buffer, sizeof(buffer), 0, (struct sockaddr *)&trigger_addr_, sizeof(trigger_addr_)) < 0)
+      {
+	mf::LogError("EventStore") << "Error sending trigger message" << std::endl;
+      }
+  }  
+
+  void
+  EventStore::send_trigger_(Fragment::sequence_id_t seqNum)
+  {
+    std::thread trigger([=]{do_send_trigger_(seqNum);});
+    trigger.detach();
+  }
+
+  void
+  EventStore::sendMetrics() const
+  {
+    if (metricMan_) {
+      metricMan_->sendMetric("Incomplete Event Count", events_.size(),
+                             "events", 1, true);
     }
   }
 }

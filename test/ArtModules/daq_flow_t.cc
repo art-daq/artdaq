@@ -33,12 +33,13 @@ int main(int argc, char * argv[])
     ParameterSet sim_config;
     sim_config.put("fragments_per_event", NUM_FRAGS_PER_EVENT);
     sim_config.put("run_number", RUN_ID);
+    sim_config.put("print_event_store_stats", true);
     // Eventually, this test should make a mixed-up streams of
     // Fragments; this has too clean a pattern to be an interesting
     // test of the EventStore's ability to deal with multiple events
     // simulatenously.
     GenericFragmentSimulator sim(sim_config);
-    EventStore events(NUM_FRAGS_PER_EVENT, RUN_ID, STORE_ID, argc, argv, &artapp, 1);
+    EventStore events(sim_config,NUM_FRAGS_PER_EVENT, RUN_ID, STORE_ID, argc, argv, &artapp);
     FragmentPtrs frags;
     size_t event_count = 0;
     while (frags.clear(), event_count++ < NUM_EVENTS && sim.getNext(frags)) {

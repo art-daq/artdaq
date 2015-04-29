@@ -1,4 +1,5 @@
 #include "artdaq/DAQrate/EventStore.hh"
+#include <fhiclcpp/ParameterSet.h>
 
 #include <thread>
 
@@ -43,7 +44,8 @@ BOOST_AUTO_TEST_CASE(Trivial)
   */
   std::unique_ptr<artdaq::EventStore> eventStore;
   artdaq::EventStore::ART_CMDLINE_FCN *bogusReader = &bogusApp;
-  eventStore.reset(new artdaq::EventStore(4, 1, 0, 0, nullptr, bogusReader, false));
+  fhicl::ParameterSet pset;
+  eventStore.reset(new artdaq::EventStore(pset, 4, 1, 0, 0, nullptr, bogusReader));
 
   int sequenceID[8] = {1, 2, 1, 2, 1, 2, 2, 1};
   int fragmentID[8] = {1, 2, 3, 4, 1, 2, 3, 4};
@@ -78,7 +80,8 @@ BOOST_AUTO_TEST_CASE(SequenceMod)
   */
   std::unique_ptr<artdaq::EventStore> eventStore;
   artdaq::EventStore::ART_CMDLINE_FCN *bogusReader = &bogusApp;
-  eventStore.reset(new artdaq::EventStore(4, 1, 0, 0, nullptr, bogusReader, false));
+  fhicl::ParameterSet pset;
+  eventStore.reset(new artdaq::EventStore(pset, 4, 1, 0, 0, nullptr, bogusReader));
   eventStore->setSeqIDModulus(4);
 
   int sequenceID[8] = {1, 5, 4, 6, 7, 2, 8, 3};
