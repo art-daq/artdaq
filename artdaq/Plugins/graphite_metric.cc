@@ -10,6 +10,7 @@
 #include <iostream>
 #include <ctime>
 #include <string>
+#include <algorithm>
 #include <boost/asio.hpp>
 
 using boost::asio::ip::tcp;
@@ -43,6 +44,7 @@ namespace artdaq {
         std::string unitWarn = unit;
         const std::time_t result = std::time(0);
         boost::asio::streambuf data;
+        std::replace(name.begin(), name.end(), ' ','_'); 
         std::ostream out(&data);
         out << namespace_ << name << " "
             << value << " "

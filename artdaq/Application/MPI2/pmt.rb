@@ -89,7 +89,8 @@ class MPIHandler
     end
   end
 
-  def initialize(logToStdout, logPath, onmonDisplay, port, preloadLib)
+  def initialize(logToStdout, logPath, onmonDisplay, port, preloadLib,
+                 logFhicl)
     @mpiThread = nil
     @executables = []
     @logPath = logPath
@@ -97,6 +98,7 @@ class MPIHandler
     @onmonDisplay = onmonDisplay
     @shmKey = 1078394880 + port
     @preloadLib = preloadLib
+    @logFhicl = logFhicl
   end
 
   def addExecutable(program, host, options)
@@ -137,7 +139,10 @@ class MPIHandler
     end
     logString = ""
     if @logPath != ""
-      logString = "-genv ARTDAQ_LOG_ROOT " + @logPath
+      logString += " -genv ARTDAQ_LOG_ROOT " + @logPath
+    end
+    if @logFhicl != ""
+      logString += " -genv ARTDAQ_LOG_FHICL " + @logFhicl
     end
     mpiCmd = "mpirun %s %s -genv ARTDAQ_SHM_KEY %d -launcher rsh -configfile %s -f %s" %
       [displayString, logString, @shmKey, configFileHandle.path, hostsFileHandle.path]
@@ -422,10 +427,10 @@ class PMT
   end
 
   def initialize(parameterFile, portNumber, logToStdout, logPath,
-                 onmonDisplay, preloadLib, configFile)
+                 onmonDisplay, preloadLib, configFile, logFhicl)
     @rpcThread = nil
     @mpiHandler = MPIHandler.new(logToStdout, logPath, onmonDisplay,
-                                 portNumber, preloadLib)
+                                 portNumber, preloadLib, logFhicl)
 
     if parameterFile != nil
       IO.foreach(parameterFile) { |definition|
@@ -521,6 +526,7 @@ if __FILE__ == $0
   options.logPath = ""
   options.preload = ""
   options.configFile = nil
+  options.logFhicl = ""
 
   optParser = OptionParser.new do |opts|
     opts.banner = "Usage: pmt.rb [options]"
@@ -561,6 +567,11 @@ if __FILE__ == $0
       options.logPath = path
     end
 
+    opts.on("-f", "--logfhicl [fhicl log control]",
+            "FHiCL code directing messagefacility messages.") do |logfhicl|
+      options.logFhicl = logfhicl
+    end
+
     opts.on("--preload [library]",
             "Library to be pre-loaded before the MPI program starts.") do |lib|
       options.preload = lib
@@ -581,7 +592,7 @@ if __FILE__ == $0
   pmt = PMT.new(options.parameterFile, options.portNumber,
                 options.logToStdout, options.logPath,
                 options.onmonDisplay, options.preload,
-                options.configFile)
+                options.configFile, options.logFhicl)
 
   if options.doCleanup and options.parameterFile == nil
     puts "A program definition file needs to be specified for the cleanup"

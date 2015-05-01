@@ -16,7 +16,7 @@ const std::string artdaq::EventBuilderCore::STORE_EVENT_WAIT_STAT_KEY("EventBuil
 artdaq::EventBuilderCore::EventBuilderCore(int mpi_rank, MPI_Comm local_group_comm, std::string name) :
   mpi_rank_(mpi_rank), local_group_comm_(local_group_comm), name_(name),
   data_sender_count_(0), art_initialized_(false),
-  stop_requested_(false), pause_requested_(false), run_is_paused_(false)
+  stop_requested_(false), pause_requested_(false), run_is_paused_(false), processing_fragments_(false)
 {
   mf::LogDebug(name_) << "Constructor";
   statsHelper_.addMonitoredQuantityName(INPUT_FRAGMENTS_STAT_KEY);
@@ -32,14 +32,13 @@ artdaq::EventBuilderCore::~EventBuilderCore()
   mf::LogDebug(name_) << "Destructor";
 }
 
-void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_time, size_t check_count)
+void artdaq::EventBuilderCore::initializeEventStore(fhicl::ParameterSet pset)
 {
   if (use_art_) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
-    event_store_ptr_.reset(new artdaq::EventStore(expected_fragments_per_event_, 1,
+    event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
 						  mpi_rank_, init_string_,
-						  reader, depth, wait_time, check_count,
-                                                  print_event_store_stats_));
+						  reader, &metricMan_));
     art_initialized_ = true;
   }
   else {
@@ -48,10 +47,9 @@ void artdaq::EventBuilderCore::initializeEventStore(size_t depth, double wait_ti
     char * dummyArgs[1] { "SimpleQueueReader" };
 #pragma GCC diagnostic pop
     artdaq::EventStore::ART_CMDLINE_FCN * reader = &artdaq::simpleQueueReaderApp;
-    event_store_ptr_.reset(new artdaq::EventStore(expected_fragments_per_event_, 1,
+    event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
 						  mpi_rank_, 1, dummyArgs,
-						  reader, depth, wait_time, check_count,
-                                                  print_event_store_stats_));
+						  reader, &metricMan_));
   }
 }
 
@@ -84,16 +82,6 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
       << "Unable to find the event_builder parameters in the DAQ "
       << "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
     return false;
-  }
-  // pull out the Metric part of the ParameterSet
-  fhicl::ParameterSet metric_pset;
-  try {
-    metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset);
-  }
-  catch (...) {
-    //Okay if no metrics have been defined...
-    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
   }
   // determine the data receiver parameters
   try {
@@ -152,18 +140,32 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
       << evb_pset.to_string() << "\".";
     return false;
   }
-  print_event_store_stats_ = evb_pset.get<bool>("print_event_store_stats", false);
   inrun_recv_timeout_usec_=evb_pset.get<size_t>("inrun_recv_timeout_usec",    100000);
   endrun_recv_timeout_usec_=evb_pset.get<size_t>("endrun_recv_timeout_usec",20000000);
   pause_recv_timeout_usec_=evb_pset.get<size_t>("pause_recv_timeout_usec",3000000);
   verbose_ = evb_pset.get<bool>("verbose", false);
 
-  size_t event_queue_depth = evb_pset.get<size_t>("event_queue_depth", 20);
-  double event_queue_wait_time = evb_pset.get<double>("event_queue_wait_time", 5.0);
-  size_t event_queue_check_count = evb_pset.get<size_t>("event_queue_check_count", 5000);
-
   // fetch the monitoring parameters and create the MonitoredQuantity instances
   statsHelper_.createCollectors(evb_pset, 100, 20.0, 60.0, INPUT_FRAGMENTS_STAT_KEY);
+
+  // initialize the MetricManager and the names of our metrics
+  std::string metricsReportingInstanceName = "EventBuilder " +
+    boost::lexical_cast<std::string>(1+mpi_rank_-first_data_sender_rank_-data_sender_count_);
+  fhicl::ParameterSet metric_pset;
+  try {
+    metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
+    metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+  }
+  catch (...) {
+    //Okay if no metrics have been defined...
+    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
+  }
+  FRAGMENT_COUNT_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Count";
+  FRAGMENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Rate";
+  FRAGMENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Fragment Size";
+  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
+  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg Input Wait Time";
+  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
 
   /* Once art has been initialized we can't tear it down or change it's
      configuration.  We'll keep track of when we have initialized it.  Once it
@@ -172,7 +174,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
      config changes we have to throw up our hands and bail out.
   */
   if (art_initialized_ == false) {
-    this->initializeEventStore(event_queue_depth, event_queue_wait_time, event_queue_check_count);
+    this->initializeEventStore(evb_pset);
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
     previous_pset_ = tmp;
@@ -187,14 +189,6 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     }
   }
   
-  std::string metricsReportingInstanceName = "EventBuilder " +
-    boost::lexical_cast<std::string>(1+mpi_rank_-first_data_sender_rank_-data_sender_count_);
-  FRAGMENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Rate";
-  FRAGMENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Fragment Size";
-  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
-  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg Input Wait Time";
-  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
-
   return true;
 }
 
@@ -208,8 +202,8 @@ bool artdaq::EventBuilderCore::start(art::RunID id)
   fragment_count_in_run_ = 0;
   statsHelper_.resetStatistics();
   flush_mutex_.lock();
-  event_store_ptr_->startRun(id.run());
   metricMan_.do_start();
+  event_store_ptr_->startRun(id.run());
 
   logMessage_("Started run " + boost::lexical_cast<std::string>(run_id_.run()));
   return true;
@@ -259,6 +253,7 @@ bool artdaq::EventBuilderCore::stop()
 
   flush_mutex_.unlock();
   run_is_paused_.store(false);
+  if (! processing_fragments_.load()) {metricMan_.do_stop();}
   return true;
 }
 
@@ -284,6 +279,7 @@ bool artdaq::EventBuilderCore::pause()
 
   flush_mutex_.unlock();
   run_is_paused_.store(true);
+  if (! processing_fragments_.load()) {metricMan_.do_pause();}
   return true;
 }
 
@@ -293,8 +289,8 @@ bool artdaq::EventBuilderCore::resume()
   eod_fragments_received_ = 0;
   pause_requested_.store(false);
   flush_mutex_.lock();
-  event_store_ptr_->startSubrun();
   metricMan_.do_resume();
+  event_store_ptr_->startSubrun();
   run_is_paused_.store(false);
   return true;
 }
@@ -336,6 +332,7 @@ bool artdaq::EventBuilderCore::reinitialize(fhicl::ParameterSet const& pset)
 
 size_t artdaq::EventBuilderCore::process_fragments()
 {
+  processing_fragments_.store(true);
   bool process_fragments = true;
   size_t senderSlot;
   std::vector<size_t> fragments_received(data_sender_count_ + first_data_sender_rank_, 0);
@@ -416,7 +413,10 @@ size_t artdaq::EventBuilderCore::process_fragments()
                   boost::lexical_cast<std::string>(event_store_ptr_->subrunID()) +
                   ").");
     }
-    if (statsHelper_.statsRollingWindowHasMoved()) {sendMetrics_();}
+    if (statsHelper_.statsRollingWindowHasMoved()) {
+      sendMetrics_();
+      event_store_ptr_->sendMetrics();
+    }
 
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType) {
@@ -491,11 +491,21 @@ size_t artdaq::EventBuilderCore::process_fragments()
   else if (pause_requested_.load()) {metricMan_.do_pause();}
 
   receiver_ptr_.reset(nullptr);
+  processing_fragments_.store(false);
   return 0;
 }
 
-std::string artdaq::EventBuilderCore::report(std::string const&) const
+std::string artdaq::EventBuilderCore::report(std::string const& which) const
 {
+  if (which == "incomplete_event_count") {
+    if (event_store_ptr_ != nullptr) {
+      return boost::lexical_cast<std::string>(event_store_ptr_->incompleteEventCount());
+    }
+    else {
+      return "-1";
+    }
+  }
+
   // lots of cool stuff that we can do here
   // - report on the number of fragments received and the number
   //   of events built (in the current or previous run
@@ -503,6 +513,7 @@ std::string artdaq::EventBuilderCore::report(std::string const&) const
   //   (if running)
   std::string tmpString = "Event Builder run number = ";
   tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
+  tmpString.append(". Command \"" + which + "\" is not currently supported.");
   return tmpString;
 }
 
@@ -570,14 +581,17 @@ void artdaq::EventBuilderCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-    metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_,
-                          stats.recentSampleRate, "fragments/sec", 1);
+    metricMan_.sendMetric(FRAGMENT_COUNT_METRIC_NAME_, 
+			  static_cast<unsigned long>(stats.fullSampleCount), 
+                          "fragments", 1, false);
+    metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_, 
+                          stats.recentSampleRate, "fragments/sec", 1, false);
     metricMan_.sendMetric(FRAGMENT_SIZE_METRIC_NAME_,
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/fragment", 2);
+                           / 1024.0 / 1024.0), "MB/fragment", 2, false);
     metricMan_.sendMetric(DATA_RATE_METRIC_NAME_,
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2);
+                           / 1024.0 / 1024.0), "MB/sec", 2, false);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "fragmentCount" in the
@@ -591,7 +605,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / fragmentCount),
-                          "seconds/fragment", 3);
+                          "seconds/fragment", 3, false);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -599,7 +613,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(EVENT_STORE_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / fragmentCount),
-                          "seconds/fragment", 3);
+                          "seconds/fragment", 3, false);
   }
 }
 

@@ -2,10 +2,14 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracelib.h"		// TRACE
 
+#include <boost/exception/all.hpp>
+#include <boost/throw_exception.hpp>
+
 #include <limits>
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator() :
   mutex_(),
+  metricMan_(nullptr),
   run_number_(-1), subrun_number_(-1),
   timeout_( std::numeric_limits<uint64_t>::max() ), 
   timestamp_( std::numeric_limits<uint64_t>::max() ), 
@@ -20,6 +24,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator() :
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet &ps) :
   mutex_(),
+  metricMan_(nullptr),
   run_number_(-1), subrun_number_(-1),
   timeout_( std::numeric_limits<uint64_t>::max() ), 
   timestamp_( std::numeric_limits<uint64_t>::max() ), 
@@ -29,7 +34,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
   sleep_on_stop_us_(0)
 {
   board_id_ = ps.get<int> ("board_id");
-  instance_name_for_metrics_ = "Board " + board_id_;
+  instance_name_for_metrics_ = "Board " + boost::lexical_cast<std::string>(board_id_);
 
   fragment_ids_ = ps.get< std::vector< artdaq::Fragment::fragment_id_t > >( "fragment_ids", std::vector< artdaq::Fragment::fragment_id_t >() );
 
@@ -57,11 +62,18 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
   try { 
     std::lock_guard<std::mutex> lk(mutex_);
     result = getNext_( output );
-  } catch (cet::exception &e) {
-    mf::LogError ("getNext") << "exception caught: " << e;
+  } catch (const cet::exception &e) {
+    mf::LogError ("getNext") << "cet::exception caught: " << e;
     set_exception (true);
     return false;
-
+  } catch (const boost::exception& e) {
+    mf::LogError ("getNext") << "boost::exception caught: " << boost::diagnostic_information(e);
+    set_exception (true);
+    return false;
+  } catch (const std::exception& e  ) {
+    mf::LogError ("getNext") << "std::exception caught: " << e.what();
+    set_exception (true);
+    return false;
   } catch (...) {
     mf::LogError ("getNext") << "unknown exception caught";
     set_exception (true);

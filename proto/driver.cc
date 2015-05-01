@@ -100,13 +100,12 @@ int main(int argc, char * argv[]) try
   char **es_argv (want_artapp?argv:args);
   artdaq::EventStore::ART_CMDLINE_FCN *
     es_fcn(want_artapp?&artapp:&artdaq::simpleQueueReaderApp);
-  artdaq::EventStore store(event_builder_pset.get<size_t>("expected_fragments_per_event"),
+  artdaq::EventStore store(event_builder_pset, event_builder_pset.get<size_t>("expected_fragments_per_event"),
 			   pset.get<artdaq::EventStore::run_id_t>("run_number"),
                            1,
                            es_argc,
                            es_argv,
-                           es_fcn, 20, 5.0,
-                           event_builder_pset.get<bool>("print_event_store_stats", false));
+                           es_fcn);
   //////////////////////////////////////////////////////////////////////
 
   int events_to_generate = pset.get<int>("events_to_generate", 0);

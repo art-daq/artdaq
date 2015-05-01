@@ -44,7 +44,7 @@ public:
   std::string report(std::string const&) const;
 
 private:
-  void initializeEventStore(size_t depth, double wait_time, size_t check_count);
+  void initializeEventStore(fhicl::ParameterSet pset);
 
   int mpi_rank_;
   MPI_Comm local_group_comm_;
@@ -60,7 +60,6 @@ private:
   size_t expected_fragments_per_event_;
   size_t eod_fragments_received_;
   bool use_art_;
-  bool print_event_store_stats_;
   art::RunID run_id_;
 
   std::unique_ptr<artdaq::RHandles> receiver_ptr_;
@@ -69,6 +68,7 @@ private:
   std::atomic<bool> stop_requested_;
   std::atomic<bool> pause_requested_;
   std::atomic<bool> run_is_paused_;
+  std::atomic<bool> processing_fragments_;
   size_t inrun_recv_timeout_usec_;
   size_t endrun_recv_timeout_usec_;
   size_t pause_recv_timeout_usec_;
@@ -91,6 +91,7 @@ private:
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
 
+  std::string FRAGMENT_COUNT_METRIC_NAME_;
   std::string FRAGMENT_RATE_METRIC_NAME_;
   std::string FRAGMENT_SIZE_METRIC_NAME_;
   std::string DATA_RATE_METRIC_NAME_;

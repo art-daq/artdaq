@@ -59,7 +59,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 {
   init_string_ = pset.to_string();
   mf::LogDebug(name_) << "initialize method called with DAQ "
-                             << "ParameterSet = \"" << init_string_ << "\".";
+                      << "ParameterSet = \"" << init_string_ << "\".";
 
   // pull out the relevant parts of the ParameterSet
   fhicl::ParameterSet daq_pset;
@@ -81,16 +81,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
       << "Unable to find the aggregator parameters in the DAQ "
       << "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
     return false;
-  }
-  // pull out the Metric part of the ParameterSet
-  fhicl::ParameterSet metric_pset;
-  try {
-    metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset);
-  }
-  catch (...) {
-    //Okay if no metrics defined
- mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
   }
 
   // determine the data receiver parameters
@@ -222,19 +212,39 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   file_close_timeout_secs_ = agg_pset.get<time_t>("file_duration", 0);
   file_close_event_count_ = agg_pset.get<size_t>("file_event_count", 0);
 
-  size_t event_queue_depth = agg_pset.get<size_t>("event_queue_depth", 20);
-  double event_queue_wait_time = agg_pset.get<double>("event_queue_wait_time", 5.0);
-  size_t event_queue_check_count = agg_pset.get<size_t>("event_queue_check_count", 5000);
-  print_event_store_stats_ = agg_pset.get<bool>("print_event_store_stats", false);
-
   inrun_recv_timeout_usec_=agg_pset.get<size_t>("inrun_recv_timeout_usec",    100000);
   endrun_recv_timeout_usec_=agg_pset.get<size_t>("endrun_recv_timeout_usec",20000000);
   pause_recv_timeout_usec_=agg_pset.get<size_t>("pause_recv_timeout_usec",3000000);
 
   onmon_event_prescale_ = agg_pset.get<size_t>("onmon_event_prescale", 1);
 
+  filesize_check_interval_seconds_ = agg_pset.get<int32_t>("filesize_check_interval_seconds", 20);
+  filesize_check_interval_events_ = agg_pset.get<int32_t>("filesize_check_interval_events", 20);
+
   // fetch the monitoring parameters and create the MonitoredQuantity instances
   stats_helper_.createCollectors(agg_pset, 50, 20.0, 60.0, INPUT_EVENTS_STAT_KEY);
+
+  // initialize the MetricManager and the names of our metrics
+  std::string metricsReportingInstanceName = "Data Logger";
+  if (! is_data_logger_) {
+    metricsReportingInstanceName = "Online Monitor";
+  }
+  fhicl::ParameterSet metric_pset;
+  try {
+    metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
+    metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+  }
+  catch (...) {
+    //Okay if no metrics defined
+    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
+  }
+  EVENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Event Rate";
+  EVENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Event Size";
+  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
+  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Average Input Wait Time";
+  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
+  SHM_COPY_TIME_METRIC_NAME_ = metricsReportingInstanceName + " Avg Shared Memory Copy Time";
+  FILE_CHECK_TIME_METRIC_NAME_ = metricsReportingInstanceName + " Average File Check Time";
 
   if (event_store_ptr_ == nullptr) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
@@ -242,11 +252,9 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     if (is_online_monitor_) {
       desired_events_per_bunch = 1;
     }
-    event_store_ptr_.reset(new artdaq::EventStore(desired_events_per_bunch, 1,
+    event_store_ptr_.reset(new artdaq::EventStore(agg_pset, desired_events_per_bunch, 1,
                                                   mpi_rank_, init_string_,
-                                                  reader, event_queue_depth, 
-                                                  event_queue_wait_time, event_queue_check_count,
-                                                  print_event_store_stats_));
+                                                  reader, &metricMan_));
     event_store_ptr_->setSeqIDModulus(desired_events_per_bunch);
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
@@ -260,25 +268,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
         << "has been configured.";
       return false;
     }
-  }
-
-  if (is_data_logger_) {
-    EVENT_RATE_METRIC_NAME_ = "Data Logger Event Rate";
-    EVENT_SIZE_METRIC_NAME_ = "Data Logger Average Event Size";
-    DATA_RATE_METRIC_NAME_ = "Data Logger Data Rate";
-    INPUT_WAIT_METRIC_NAME_ = "Data Logger Average Input Wait Time";
-    EVENT_STORE_WAIT_METRIC_NAME_ = "Data Logger Avg art Queue Wait Time";
-    SHM_COPY_TIME_METRIC_NAME_ = "Data Logger Avg Shared Memory Copy Time";
-    FILE_CHECK_TIME_METRIC_NAME_ = "Data Logger Average File Check Time";
-  }
-  else {
-    EVENT_RATE_METRIC_NAME_ = "Online Monitor Event Rate";
-    EVENT_SIZE_METRIC_NAME_ = "Online Monitor Average Event Size";
-    DATA_RATE_METRIC_NAME_ = "Online Monitor Data Rate";
-    INPUT_WAIT_METRIC_NAME_ = "Online Monitor Average Input Wait Time";
-    EVENT_STORE_WAIT_METRIC_NAME_ = "Online Monitor Avg art Queue Wait Time";
-    SHM_COPY_TIME_METRIC_NAME_ = "Online Monitor Avg Shared Memory Copy Time";
-    FILE_CHECK_TIME_METRIC_NAME_ = "Online Monitor Average File Check Time";
   }
 
   return true;
@@ -296,9 +285,8 @@ bool artdaq::AggregatorCore::start(art::RunID id)
   stop_requested_.store(false);
   local_pause_requested_.store(false);
   run_id_ = id;
-  event_store_ptr_->startRun(run_id_.run());
-
   metricMan_.do_start();
+  event_store_ptr_->startRun(run_id_.run());
 
   logMessage_("Started run " + boost::lexical_cast<std::string>(run_id_.run()));
   return true;
@@ -314,6 +302,7 @@ bool artdaq::AggregatorCore::stop()
      received all of the EOD fragments it expects.  Higher level code will block
      until the process_fragments() thread exits. */
   stop_requested_.store(true);
+  if (! processing_fragments_.load()) {metricMan_.do_stop();}
   return true;
 }
 
@@ -327,6 +316,7 @@ bool artdaq::AggregatorCore::pause()
      received all of the EOD fragments it expects.  Higher level code will block
      until the process_fragments() thread exits. */
   local_pause_requested_.store(true);
+  if (! processing_fragments_.load()) {metricMan_.do_pause();}
   return true;
 }
 
@@ -337,8 +327,8 @@ bool artdaq::AggregatorCore::resume()
   local_pause_requested_.store(false);
 
   logMessage_("Resuming run " + boost::lexical_cast<std::string>(run_id_.run()));
-  event_store_ptr_->startSubrun();
   metricMan_.do_resume();
+  event_store_ptr_->startSubrun();
   return true;
 }
 
@@ -389,6 +379,7 @@ size_t artdaq::AggregatorCore::process_fragments()
   artdaq::FragmentPtr endSubRunMsg(nullptr);
   bool eodWasCopied = false;
   bool esrWasCopied = false;
+  time_t last_filesize_check_time = subrun_start_time_;
 
   if (is_data_logger_) {
     receiver_ptr_.reset(new artdaq::RHandles(mpi_buffer_count_,
@@ -649,7 +640,6 @@ size_t artdaq::AggregatorCore::process_fragments()
     }
     float delta=artdaq::MonitoredQuantity::getCurrentTime() - startTime;
     stats_helper_.addSample(STORE_EVENT_WAIT_STAT_KEY, delta );
-    metricMan_.sendMetric(STORE_EVENT_WAIT_STAT_KEY, delta, "seconds", 5 );
     TRACE( (delta>3.0)?0:22, "%s::process_fragments seq=%lu isLogger=%d delta=%f start=%f"
 	   ,name_.c_str(), seq, is_data_logger_, delta, startTime );
 
@@ -669,12 +659,15 @@ size_t artdaq::AggregatorCore::process_fragments()
           threshold_reached = true;
         }
         else {
-          if ((now - subrun_start_time_) >= 30 &&
-              (event_count_in_run_ % 20) == 0) {
+          if (filesize_check_interval_seconds_ > 0 &&
+              filesize_check_interval_events_ > 0 &&
+              (now - last_filesize_check_time) >= filesize_check_interval_seconds_ &&
+              (event_count_in_run_ % filesize_check_interval_events_) == 0) {
             if (file_close_threshold_bytes_ > 0 &&
                 getLatestFileSize_() >= file_close_threshold_bytes_) {
               threshold_reached = true;
             }
+            last_filesize_check_time = now;
           }
         }
       }
@@ -793,6 +786,24 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
     return boost::lexical_cast<std::string>(latestFileSize);
   }
 
+  if (which == "subrun_number") {
+    if (event_store_ptr_.get() != nullptr) {
+      return boost::lexical_cast<std::string>(event_store_ptr_->subrunID());
+    }
+    else {
+      return "-1";
+    }
+  }
+
+  if (which == "incomplete_event_count") {
+    if (event_store_ptr_ != nullptr) {
+      return boost::lexical_cast<std::string>(event_store_ptr_->incompleteEventCount());
+    }
+    else {
+      return "-1";
+    }
+  }
+
   // lots of cool stuff that we can do here
   // - report on the number of fragments received and the number
   //   of events built (in the current or previous run
@@ -800,6 +811,7 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
   //   (if running)
   std::string tmpString = name_ + " run number = ";
   tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
+  tmpString.append(". Command=\"" + which + "\" is not currently supported.");
   return tmpString;
 }
 
@@ -984,13 +996,13 @@ void artdaq::AggregatorCore::sendMetrics_()
     mqPtr->getStats(stats);
     eventCount = std::max(double(stats.recentSampleCount), 1.0);
     metricMan_.sendMetric(EVENT_RATE_METRIC_NAME_,
-                          stats.recentSampleRate, "events/sec", 1);
+                          stats.recentSampleRate, "events/sec", 1, false);
     metricMan_.sendMetric(EVENT_SIZE_METRIC_NAME_,
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/event", 2);
+                           / 1024.0 / 1024.0), "MB/event", 2, false);
     metricMan_.sendMetric(DATA_RATE_METRIC_NAME_,
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2);
+                           / 1024.0 / 1024.0), "MB/sec", 2, false);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "eventCount" in the
@@ -1004,7 +1016,7 @@ void artdaq::AggregatorCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 3);
+                          "seconds/event", 3, false);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1012,7 +1024,7 @@ void artdaq::AggregatorCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(EVENT_STORE_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 3);
+                          "seconds/event", 3, false);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1020,7 +1032,7 @@ void artdaq::AggregatorCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(SHM_COPY_TIME_METRIC_NAME_,
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 4);
+                          "seconds/event", 4, false);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1028,7 +1040,7 @@ void artdaq::AggregatorCore::sendMetrics_()
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(FILE_CHECK_TIME_METRIC_NAME_,
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 4);
+                          "seconds/event", 4, false);
   }
 }
 
