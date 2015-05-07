@@ -22,7 +22,9 @@ const std::string artdaq::BoardReaderCore::
 /**
  * Default constructor.
  */
-artdaq::BoardReaderCore::BoardReaderCore(MPI_Comm local_group_comm, std::string name) :
+artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
+                                         MPI_Comm local_group_comm, std::string name) :
+  parent_application_(parent_application),
   local_group_comm_(local_group_comm), generator_ptr_(nullptr), name_(name),
   stop_requested_(false), pause_requested_(false)
 {

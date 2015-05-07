@@ -4,7 +4,7 @@
 /**
  * Default constructor.
  */
-artdaq::Commandable::Commandable() : fsm_(*this)
+artdaq::Commandable::Commandable() : fsm_(*this), primary_mutex_()
 {
 }
 
@@ -17,6 +17,7 @@ artdaq::Commandable::Commandable() : fsm_(*this)
  */
 bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "All is OK.";
 
@@ -37,6 +38,7 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
  */
 bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timestamp)
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "All is OK.";
 
@@ -57,6 +59,7 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
  */
 bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "All is OK.";
 
@@ -77,6 +80,7 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
  */
 bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "All is OK.";
 
@@ -97,6 +101,7 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
  */
 bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "All is OK.";
 
@@ -117,6 +122,7 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
  */
 bool artdaq::Commandable::shutdown(uint64_t timeout)
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "All is OK.";
 
@@ -137,6 +143,7 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
  */
 bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "All is OK.";
 
@@ -157,6 +164,7 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
  */
 bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "All is OK.";
 
@@ -173,11 +181,36 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 }
 
 /**
+ * Processes the inRunError request.
+ */
+bool artdaq::Commandable::inRunError()
+{
+  std::lock_guard<std::mutex> lk(primary_mutex_);
+  external_request_status_ = true;
+  report_string_ = "An error condition was reported while running.";
+
+  std::string initialState = fsm_.getState().getName();
+  fsm_.inRunError();
+  if (external_request_status_) {
+    std::string finalState = fsm_.getState().getName();
+    mf::LogDebug("CommandableInterface")
+      << "States before and after an inRunError transition: "
+      << initialState << " and " << finalState;
+  }
+
+  return (external_request_status_);
+}
+
+/**
  * Returns the current state.
  */
 std::string artdaq::Commandable::status() const
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   std::string fullStateName = fsm_.getState().getName();
+
+  // 06-May-2015, KAB: TODO: add special handling for InRunError
+
   size_t pos = fullStateName.rfind("::");
   if (pos != std::string::npos) {
     return fullStateName.substr(pos+2);
@@ -192,7 +225,11 @@ std::string artdaq::Commandable::status() const
  */
 std::vector<std::string> artdaq::Commandable::legal_commands() const
 {
+  std::lock_guard<std::mutex> lk(primary_mutex_);
   std::string currentState = this->status();
+
+  // 06-May-2015, KAB: TODO: add special handling for InRunError
+
   if (currentState == "Ready") {
     return { "init", "soft_init", "start", "shutdown" };
   }

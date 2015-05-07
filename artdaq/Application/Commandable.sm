@@ -113,12 +113,18 @@ Running
   pause(timeout: uint64_t, timestamp: uint64_t)  [ctxt.do_pause(timeout, timestamp)]  Paused  {}
   pause(timeout: uint64_t, timestamp: uint64_t)  nil        {}
   stop(timeout: uint64_t, timestamp: uint64_t) pop(stop, timeout, timestamp) {}
+  inRunError() InRunError {}
 }
 
 Paused
 {
   resume(timeout: uint64_t, timestamp: uint64_t)  [ctxt.do_resume(timeout, timestamp)]  Running  {}
   resume(timeout: uint64_t, timestamp: uint64_t)  nil        {}
+  stop(timeout: uint64_t, timestamp: uint64_t) pop(stop, timeout, timestamp) {}
+}
+
+InRunError
+{
   stop(timeout: uint64_t, timestamp: uint64_t) pop(stop, timeout, timestamp) {}
 }
 
