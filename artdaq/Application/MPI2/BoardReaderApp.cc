@@ -23,7 +23,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
   // produce the desired result since that creates a new instance and
   // then deletes the old one, and we need the opposite order.
   fragment_receiver_ptr_.reset(nullptr);
-  fragment_receiver_ptr_.reset(new BoardReaderCore(local_group_comm_, name_));
+  fragment_receiver_ptr_.reset(new BoardReaderCore(*this, local_group_comm_, name_));
   external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
   if (! external_request_status_) {
     report_string_ = "Error initializing ";

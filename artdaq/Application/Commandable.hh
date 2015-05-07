@@ -80,7 +80,7 @@ private:
   // the inRunError() transition from being called at the same time as
   // an externally requested transition. We only lock the methods that
   // are externally called.
-  std::mutex primary_mutex_;
+  mutable std::mutex primary_mutex_;
 };
 
 #endif /* artdaq_Application_Commandable_hh */
