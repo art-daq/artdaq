@@ -124,6 +124,8 @@ namespace artdaq {
     //    virtual void ResetCmd() final {}
     //    virtual void ShutdownCmd() final {}
 
+    bool exception() const { return exception_.load(); }
+
   protected:
 
     // John F., 12/6/13 -- need to figure out which of these getter
@@ -139,7 +141,6 @@ namespace artdaq {
     uint64_t timeout() const { return timeout_; }
     uint64_t timestamp() const { return timestamp_; }
     bool should_stop() const { return should_stop_.load(); }
-    bool exception() const { return exception_.load(); }
 
     int board_id () const { return board_id_; }
 
