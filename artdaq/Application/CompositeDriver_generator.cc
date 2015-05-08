@@ -105,7 +105,7 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
         throw cet::exception("CompositeDriver_generator")
           << "The FragmentGenerator for "
           << generator_list_[idx]->metricsReportingInstanceName()
-          << " threw an exception."
+          << " threw an exception.";
       }
       generator_active_list_[idx] = status;
       if (status) {anyGeneratorIsActive = true;}
