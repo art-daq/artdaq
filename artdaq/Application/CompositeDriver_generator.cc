@@ -93,6 +93,20 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
   for (size_t idx = 0; idx < generator_list_.size(); ++idx) {
     if (generator_active_list_[idx]) {
       bool status = generator_list_[idx]->getNext(frags);
+
+      // 08-May-2015, KAB & JCF: if the generator getNext() method returns
+      // false (which indicates that the data flow has stopped) *and* the
+      // reason that it has stopped is because there was an exception that
+      // wasn't handled by the experiment-specific FragmentGenerator class,
+      // we throw an exception so that the process will move to the
+      // InRunError state. This is somewhat like re-throwing the exception,
+      // but we don't have access to the original exception at this point.
+      if (! status && generator_list_[idx]->exception()) {
+        throw cet::exception("CompositeDriver_generator")
+          << "The FragmentGenerator for "
+          << generator_list_[idx]->metricsReportingInstanceName()
+          << " threw an exception."
+      }
       generator_active_list_[idx] = status;
       if (status) {anyGeneratorIsActive = true;}
     }
