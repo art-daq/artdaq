@@ -298,6 +298,15 @@ size_t artdaq::BoardReaderCore::process_fragments()
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
     active = generator_ptr_->getNext(frags);
+    // 08-May-2015, KAB & JCF: if the generator getNext() method returns false
+    // (which indicates that the data flow has stopped) *and* the reason that
+    // it has stopped is because there was an exception that wasn't handled by
+    // the experiment-specific FragmentGenerator class, we move to the
+    // InRunError state so that external observers (e.g. RunControl or
+    // DAQInterface) can see that there was a problem.
+    if (! active && generator_ptr_->exception()) {
+      parent_application_.inRunError();
+    }
 
     delta_time=artdaq::MonitoredQuantity::getCurrentTime() - startTime;
     statsHelper_.addSample(INPUT_WAIT_STAT_KEY,delta_time);
