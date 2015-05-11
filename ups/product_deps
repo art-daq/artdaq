@@ -75,6 +75,26 @@ g360:e6:s6:ib:debug		e6:s6:debug		-nq-		-		e6:debug	e6	e6:g360:debug	-std=c++1y
 g360:e6:s6:ib:prof		e6:s6:prof		-nq-		-		e6:prof		e6	e6:g360:prof	-std=c++1y
 g360:e6:s6:eth:debug		e6:s6:debug		-		e6:debug	e6:debug	e6	e6:g360:debug	-std=c++1y
 g360:e6:s6:eth:prof		e6:s6:prof		-		e6:prof		e6:prof		e6	e6:g360:prof	-std=c++1y
+g317:e7:s8:ib:debug		e7:s8:debug		-nq-		-		e7:debug	e7	e7:g317:debug		-std=c++1y
+g317:e7:s8:ib:prof		e7:s8:prof		-nq-		-		e7:prof		e7	e7:g317:prof		-std=c++1y
+g317:e7:s8:eth:debug		e7:s8:debug		-		e7:debug	e7:debug	e7	e7:g317:debug		-std=c++1y
+g317:e7:s8:eth:prof		e7:s8:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
+g317:e7:s7:ib:debug		e7:s7:debug		-nq-		-		e7:debug	e7	e7:g317:debug	-std=c++1y
+g317:e7:s7:ib:prof		e7:s7:prof		-nq-		-		e7:prof		e7	e7:g317:prof	-std=c++1y
+g317:e7:s7:eth:debug		e7:s7:debug		-		e7:debug	e7:debug	e7	e7:g317:debug	-std=c++1y
+g317:e7:s7:eth:prof		e7:s7:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
+g317:e6:s8:ib:debug		e6:s8:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
+g317:e6:s8:ib:prof		e6:s8:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
+g317:e6:s8:eth:debug		e6:s8:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
+g317:e6:s8:eth:prof		e6:s8:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
+g317:e6:s7:ib:debug		e6:s7:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
+g317:e6:s7:ib:prof		e6:s7:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
+g317:e6:s7:eth:debug		e6:s7:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
+g317:e6:s7:eth:prof		e6:s7:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
+g317:e6:s6:ib:debug		e6:s6:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
+g317:e6:s6:ib:prof		e6:s6:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
+g317:e6:s6:eth:debug		e6:s6:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
+g317:e6:s6:eth:prof		e6:s6:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
