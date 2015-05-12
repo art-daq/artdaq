@@ -113,7 +113,7 @@ Running
   pause(timeout: uint64_t, timestamp: uint64_t)  [ctxt.do_pause(timeout, timestamp)]  Paused  {}
   pause(timeout: uint64_t, timestamp: uint64_t)  nil        {}
   stop(timeout: uint64_t, timestamp: uint64_t) pop(stop, timeout, timestamp) {}
-  inRunError() InRunError {}
+  in_run_failure() InRunError {}
 }
 
 Paused

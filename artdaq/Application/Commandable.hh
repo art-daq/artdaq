@@ -31,7 +31,7 @@ public:
   bool shutdown(uint64_t timeout);
   bool soft_initialize(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp);
   bool reinitialize(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp);
-  bool inRunError();
+  bool in_run_failure();
 
   /* Report_ptr */
   virtual std::string report(std::string const&) const {
@@ -72,12 +72,12 @@ protected:
 private:
   // 06-May-2015, KAB: added a mutex to be used in avoiding problems when
   // requests are sent to a Commandable object from different threads. The
-  // reason that we're doing this now is that we've added the inRunError()
+  // reason that we're doing this now is that we've added the in_run_failure()
   // transition that will generally be called from inside the Application.
   // Prior to this, the only way that transitions were requested was via
   // external XMLRPC commands, and those were presumed to be called one
   // at a time. The use of scoped locks based on the mutex will prevent
-  // the inRunError() transition from being called at the same time as
+  // the in_run_failure() transition from being called at the same time as
   // an externally requested transition. We only lock the methods that
   // are externally called.
   mutable std::mutex primary_mutex_;

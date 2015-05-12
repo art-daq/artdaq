@@ -152,7 +152,7 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
   if (external_request_status_) {
     std::string finalState = fsm_.getState().getName();
     mf::LogDebug("CommandableInterface")
-      << "States before and after an soft_init transition: "
+      << "States before and after a soft_init transition: "
       << initialState << " and " << finalState;
   }
 
@@ -173,7 +173,7 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
   if (external_request_status_) {
     std::string finalState = fsm_.getState().getName();
     mf::LogDebug("CommandableInterface")
-      << "States before and after an reinit transition: "
+      << "States before and after a reinit transition: "
       << initialState << " and " << finalState;
   }
 
@@ -181,20 +181,20 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 }
 
 /**
- * Processes the inRunError request.
+ * Processes the in_run_failure request.
  */
-bool artdaq::Commandable::inRunError()
+bool artdaq::Commandable::in_run_failure()
 {
   std::lock_guard<std::mutex> lk(primary_mutex_);
   external_request_status_ = true;
   report_string_ = "An error condition was reported while running.";
 
   std::string initialState = fsm_.getState().getName();
-  fsm_.inRunError();
+  fsm_.in_run_failure();
   if (external_request_status_) {
     std::string finalState = fsm_.getState().getName();
     mf::LogDebug("CommandableInterface")
-      << "States before and after an inRunError transition: "
+      << "States before and after an in_run_failure transition: "
       << initialState << " and " << finalState;
   }
 
@@ -208,9 +208,6 @@ std::string artdaq::Commandable::status() const
 {
   std::lock_guard<std::mutex> lk(primary_mutex_);
   std::string fullStateName = fsm_.getState().getName();
-
-  // 06-May-2015, KAB: TODO: add special handling for InRunError
-
   size_t pos = fullStateName.rfind("::");
   if (pos != std::string::npos) {
     return fullStateName.substr(pos+2);
@@ -225,19 +222,24 @@ std::string artdaq::Commandable::status() const
  */
 std::vector<std::string> artdaq::Commandable::legal_commands() const
 {
-  std::lock_guard<std::mutex> lk(primary_mutex_);
+  // 12-May-2015, KAB: Since this method calls the status() method,
+  // it either needs to use a recursive mutex or not use locking at all.
+  // For the moment, we'll trust the status() method to handle the locking.
   std::string currentState = this->status();
-
-  // 06-May-2015, KAB: TODO: add special handling for InRunError
 
   if (currentState == "Ready") {
     return { "init", "soft_init", "start", "shutdown" };
   }
   if (currentState == "Running") {
+    // 12-May-2015, KAB: in_run_failure is also possible, but it
+    // shouldn't be requested externally.
     return { "pause", "stop" };
   }
   if (currentState == "Paused") {
     return { "resume", "stop" };
+  }
+  if (currentState == "InRunError") {
+    return { "pause", "stop" };
   }
 
   // Booted and Error
