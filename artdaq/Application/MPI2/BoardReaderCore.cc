@@ -190,9 +190,9 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
   prev_seq_id_ = 0;
   statsHelper_.resetStatistics();
 
+  metricMan_.do_start();
   generator_ptr_->StartCmd(id.run(), timeout, timestamp);
   run_id_ = id;
-  metricMan_.do_start();
 
   mf::LogDebug(name_) << "Started run " << run_id_.run() << 
     ", timeout = " << timeout <<  ", timestamp = " << timestamp << std::endl;
@@ -223,8 +223,8 @@ bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 {
   mf::LogDebug(name_) << "Resuming run " << run_id_.run();
   pause_requested_.store(false);
+  metricMan_.do_start();
   generator_ptr_->ResumeCmd(timeout, timestamp);
-  metricMan_.do_resume();
   return true;
 }
 
@@ -305,7 +305,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
     // InRunError state so that external observers (e.g. RunControl or
     // DAQInterface) can see that there was a problem.
     if (! active && generator_ptr_->exception()) {
-      parent_application_.inRunError();
+      parent_application_.in_run_failure();
     }
 
     delta_time=artdaq::MonitoredQuantity::getCurrentTime() - startTime;
@@ -362,10 +362,10 @@ size_t artdaq::BoardReaderCore::process_fragments()
   // generation and readout before stopping the readout of the other cards
   //MPI_Barrier(local_group_comm_);
 
-  // 12-Jan-2015, KAB: moved MetricManager stop and pause commands here so
-  // that they don't get called while metrics reporting is still going on.
-  if (stop_requested_.load()) {metricMan_.do_stop();}
-  else if (pause_requested_.load()) {metricMan_.do_pause();}
+  // 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
+  // processing fragments loop so that metrics correctly go to zero when
+  // there is no data flowing
+  metricMan_.do_stop();
 
   sender_ptr_.reset(nullptr);
   return fragment_count_;
