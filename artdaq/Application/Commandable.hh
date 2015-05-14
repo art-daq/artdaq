@@ -65,6 +65,8 @@ public:
   virtual void InRunExit();
 
 protected:
+  std::string current_state() const;
+
   CommandableContext fsm_;
   bool external_request_status_;
   std::string report_string_;

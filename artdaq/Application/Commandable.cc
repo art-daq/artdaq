@@ -207,14 +207,12 @@ bool artdaq::Commandable::in_run_failure()
 std::string artdaq::Commandable::status() const
 {
   std::lock_guard<std::mutex> lk(primary_mutex_);
-  std::string fullStateName = fsm_.getState().getName();
-  size_t pos = fullStateName.rfind("::");
-  if (pos != std::string::npos) {
-    return fullStateName.substr(pos+2);
+  std::string currentState = this->current_state();
+  if (currentState == "InRunError") {
+    return "Error";
   }
-  else {
-    return fullStateName;
-  }
+
+  return currentState;
 }
 
 /**
@@ -222,10 +220,8 @@ std::string artdaq::Commandable::status() const
  */
 std::vector<std::string> artdaq::Commandable::legal_commands() const
 {
-  // 12-May-2015, KAB: Since this method calls the status() method,
-  // it either needs to use a recursive mutex or not use locking at all.
-  // For the moment, we'll trust the status() method to handle the locking.
-  std::string currentState = this->status();
+  std::lock_guard<std::mutex> lk(primary_mutex_);
+  std::string currentState = this->current_state();
 
   if (currentState == "Ready") {
     return { "init", "soft_init", "start", "shutdown" };
@@ -325,4 +321,23 @@ void artdaq::Commandable::BootedEnter()
 void artdaq::Commandable::InRunExit()
 {
   mf::LogDebug("CommandableInterface") << "InRunExit called.";
+}
+
+// *********************
+// *** Utility methods. 
+// *********************
+
+/**
+ * Returns the current state name.
+ */
+std::string artdaq::Commandable::current_state() const
+{
+  std::string fullStateName = fsm_.getState().getName();
+  size_t pos = fullStateName.rfind("::");
+  if (pos != std::string::npos) {
+    return fullStateName.substr(pos+2);
+  }
+  else {
+    return fullStateName;
+  }
 }
