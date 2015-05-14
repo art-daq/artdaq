@@ -224,7 +224,7 @@ namespace {
 
 #define GENERATE_INIT_TRANSITION(NAME, CALL, DESCRIPTION)			\
 									\
-  class NAME ## _: public cmd_ {				\
+  class NAME ## _: public cmd_ {					\
 								\
   public:							\
   NAME ## _(xmlrpc_commander& c):				\
@@ -234,7 +234,14 @@ namespace {
   static const uint64_t defaultTimestamp = std::numeric_limits<const uint64_t>::max(); \
 									\
   private:								\
-  bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const  ) { \
+  bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP ) { \
+    									\
+    try {								\
+      getParam<fhicl::ParameterSet>(paramList, 0);			\
+    } catch (...) {							\
+      *retvalP = xmlrpc_c::value_string ("The "#NAME" message requires a single argument that is a string containing the initialization ParameterSet");	\
+      return true;							\
+    }									\
 									\
     return _c._commandable.CALL( getParam<fhicl::ParameterSet>(paramList, 0), \
 				 getParam<uint64_t>(paramList, 1, defaultTimeout), \
@@ -263,12 +270,19 @@ namespace {
 
   private:
 
-    bool execute_ (xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const  ) {
+    bool execute_ (xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP ) {
+      
+      try {
+	getParam<art::RunID>(paramList, 0);
+      } catch (...) {
+	*retvalP = xmlrpc_c::value_string ("The start message requires the run number as an argument."); 
+	return true;
+      }
 
-	  return _c._commandable.start( getParam<art::RunID>(paramList, 0),
-					getParam<uint64_t>(paramList, 1, defaultTimeout),
-					getParam<uint64_t>(paramList, 2, defaultTimestamp)
-					); 
+      return _c._commandable.start( getParam<art::RunID>(paramList, 0),
+				    getParam<uint64_t>(paramList, 1, defaultTimeout),
+				    getParam<uint64_t>(paramList, 2, defaultTimestamp)
+				    ); 
     }
   };
 
@@ -294,7 +308,8 @@ public:									\
 									\
 private:								\
 									\
- bool execute_ (const xmlrpc_c::paramList& paramList , xmlrpc_c::value* const  ) { \
+ bool execute_ (const xmlrpc_c::paramList& paramList , xmlrpc_c::value* const ) { \
+ 									\
    return _c._commandable.CALL( getParam<uint64_t>(paramList, 0, defaultTimeout), \
 				getParam<uint64_t>(paramList, 1, defaultTimestamp) \
 				);					\
@@ -333,7 +348,7 @@ private:								\
   private:
 
     bool execute_ (xmlrpc_c::paramList const& , xmlrpc_c::value* const retvalP ) {
-
+      
       *retvalP = xmlrpc_c::value_string (_c._commandable.status());
       return true;
     }
@@ -349,6 +364,13 @@ private:								\
   private:
     bool execute_ (xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP ) {
       
+      try {
+	getParam<std::string>(paramList, 0);
+      } catch (...) {
+	*retvalP = xmlrpc_c::value_string("The report message requires a single argument that selects the type of statistics to be reported."); 
+	return true;
+      }									
+
       *retvalP = xmlrpc_c::value_string( _c._commandable.report( getParam<std::string>(paramList, 0) ) );
       return true;
     }
@@ -362,7 +384,14 @@ private:								\
       cmd_(c, "s:s", "reset statistics") {}
 
   private:
-    bool execute_ (xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const  ) {
+    bool execute_ (xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP ) {
+
+      try {
+	getParam<std::string>(paramList, 0);
+      } catch (...) {
+	*retvalP = xmlrpc_c::value_string("The reset_stats message requires a single argument that selects the type of statistics to be reported."); 	
+	return true;
+      }
 
       return _c._commandable.reset_stats( getParam<std::string>(paramList, 0) );
     }
