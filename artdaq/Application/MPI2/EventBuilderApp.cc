@@ -151,11 +151,12 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
 {
   std::string resultString;
 
-  // if there is an outstanding error/message, prepend that
+  // if there is an outstanding report/message at the Commandable/Application
+  // level, prepend that
   if (report_string_.length() > 0) {
-    resultString.append("*** Overall status message: ");
-    resultString.append(report_string_ + "\n");
-    resultString.append("*** Requested report response: ");
+    resultString.append("*** Overall status message:\r\n");
+    resultString.append(report_string_ + "\r\n");
+    resultString.append("*** Requested report response:\r\n");
   }
 
   // pass the request to the EventBuilderCore instance, if it's available

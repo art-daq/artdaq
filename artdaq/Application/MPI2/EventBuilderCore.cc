@@ -509,7 +509,7 @@ std::string artdaq::EventBuilderCore::report(std::string const& which) const
   //   of events built (in the current or previous run
   // - report on the number of incomplete events in the EventStore
   //   (if running)
-  std::string tmpString = "Event Builder run number = ";
+  std::string tmpString = name_ + " run number = ";
   tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
   tmpString.append(". Command \"" + which + "\" is not currently supported.");
   return tmpString;
