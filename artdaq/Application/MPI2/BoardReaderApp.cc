@@ -159,15 +159,24 @@ void artdaq::BoardReaderApp::BootedEnter()
 
 std::string artdaq::BoardReaderApp::report(std::string const& which) const
 {
-  // if there is an outstanding error, return that
+  std::string resultString;
+
+  // if there is an outstanding report/message at the Commandable/Application
+  // level, prepend that
   if (report_string_.length() > 0) {
-    return report_string_;
+    resultString.append("*** Overall status message: ");
+    resultString.append(report_string_ + "\n");
+    resultString.append("*** Requested report response: ");
   }
 
-  // to-do: act differently depending on the value of "which"
-  std::string tmpString = "Current state = " + status() + "\n";
+  // pass the request to the BoardReaderCore instance, if it's available
   if (fragment_receiver_ptr_.get() != 0) {
-    tmpString.append(fragment_receiver_ptr_->report(which));
+    resultString.append(fragment_receiver_ptr_->report(which));
   }
-  return tmpString;
+  else {
+    resultString.append("This BoardReader has not yet been initialized and ");
+    resultString.append("therefore can not provide reporting.");
+  }
+
+  return resultString;
 }
