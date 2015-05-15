@@ -124,19 +124,23 @@ bool artdaq::AggregatorApp::do_reinitialize(fhicl::ParameterSet const& , uint64_
 
 std::string artdaq::AggregatorApp::report(std::string const& which) const
 {
-  // if there is an outstanding error, return that
+  std::string resultString;
+
+  // if there is an outstanding error/message, prepend that
   if (report_string_.length() > 0) {
-    return report_string_;
+    resultString.append("Pre-existing overall status:\n");
+    resultString.append(report_string_ + "\n");
+    resultString.append("Requested report contents:\n");
   }
 
-  // 14-Apr-2015, KAB: removed filter on known commands; let AggregatorCore
-  // handle things.
-  if (aggregator_ptr_.get() != nullptr) {
-    return aggregator_ptr_->report(which);
+  // pass the request to the AggregatorCore instance, if it's available
+  if (aggregator_ptr_.get() != 0) {
+    resultString.append(aggregator_ptr_->report(which));
   }
   else {
-    std::string tmpString("This Aggregator has not yet been initialized and ");
-    tmpString.append("therefore can not provide reporting.");
-    return tmpString;
+    resultString.append("This Aggregator has not yet been initialized and ");
+    resultString.append("therefore can not provide reporting.");
   }
+
+  return resultString;
 }
