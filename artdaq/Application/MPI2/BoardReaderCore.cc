@@ -371,9 +371,24 @@ size_t artdaq::BoardReaderCore::process_fragments()
   return fragment_count_;
 }
 
-std::string artdaq::BoardReaderCore::report(std::string const&) const
+std::string artdaq::BoardReaderCore::report(std::string const& which) const
 {
-  return generator_ptr_->ReportCmd();
+  std::string resultString;
+
+  // pass the request to the FragmentGenerator instance, if it's available
+  if (generator_ptr_.get() != 0) {
+    resultString = generator_ptr_->ReportCmd(which);
+    if (resultString.length() > 0) {return resultString;}
+  }
+
+  // handle the request at this level, if we can
+  // --> nothing here yet
+
+  // if we haven't been able to come up with any report so far, say so
+  std::string tmpString = name_ + " run number = ";
+  tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
+  tmpString.append(". Command=\"" + which + "\" is not currently supported.");
+  return tmpString;
 }
 
 std::string artdaq::BoardReaderCore::buildStatisticsString_()
