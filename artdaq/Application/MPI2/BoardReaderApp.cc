@@ -167,13 +167,13 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
     else {return "Success";}
   }
 
-  // if there is an outstanding report/message at the Commandable/Application
-  // level, prepend that
-  if (report_string_.length() > 0) {
-    resultString.append("*** Overall status message:\r\n");
-    resultString.append(report_string_ + "\r\n");
-    resultString.append("*** Requested report response:\r\n");
-  }
+  //// if there is an outstanding report/message at the Commandable/Application
+  //// level, prepend that
+  //if (report_string_.length() > 0) {
+  //  resultString.append("*** Overall status message:\r\n");
+  //  resultString.append(report_string_ + "\r\n");
+  //  resultString.append("*** Requested report response:\r\n");
+  //}
 
   // pass the request to the BoardReaderCore instance, if it's available
   if (fragment_receiver_ptr_.get() != 0) {
