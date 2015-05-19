@@ -9,6 +9,8 @@ art_make_library( LIBRARY_NAME artdaq_Application
   configureMessageFacility
   CommandableFragmentGenerator
   makeCommandableFragmentGenerator
+  TriggeredFragmentGenerator
+  makeTriggeredFragmentGenerator
   LIBRARIES
   artdaq_DAQrate
   ${ART_UTILITIES}
