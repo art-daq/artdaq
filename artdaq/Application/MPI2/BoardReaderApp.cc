@@ -161,6 +161,12 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 {
   std::string resultString;
 
+  // if all that is requested is the latest state change result, return it
+  if (which == "transition_status") {
+    if (report_string_.length() > 0) {return report_string_;}
+    else {return "Success";}
+  }
+
   // if there is an outstanding report/message at the Commandable/Application
   // level, prepend that
   if (report_string_.length() > 0) {

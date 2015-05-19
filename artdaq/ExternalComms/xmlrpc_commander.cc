@@ -185,7 +185,7 @@ namespace {
 	  } 
 	}
 	else {
-	  std::string problemReport = _c._commandable.report("all");
+	  std::string problemReport = _c._commandable.report("transition_status");
 	  *retvalP = xmlrpc_c::value_string (problemReport); 
 	}
 
