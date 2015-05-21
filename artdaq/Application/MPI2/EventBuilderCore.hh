@@ -68,6 +68,7 @@ private:
   std::atomic<bool> stop_requested_;
   std::atomic<bool> pause_requested_;
   std::atomic<bool> run_is_paused_;
+  std::atomic<bool> processing_fragments_;
   size_t inrun_recv_timeout_usec_;
   size_t endrun_recv_timeout_usec_;
   size_t pause_recv_timeout_usec_;
@@ -90,6 +91,7 @@ private:
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
 
+  std::string FRAGMENT_COUNT_METRIC_NAME_;
   std::string FRAGMENT_RATE_METRIC_NAME_;
   std::string FRAGMENT_SIZE_METRIC_NAME_;
   std::string DATA_RATE_METRIC_NAME_;

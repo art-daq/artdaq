@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Persistency/Provenance/RunID.h"
@@ -30,13 +31,16 @@ public:
   bool shutdown(uint64_t timeout);
   bool soft_initialize(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp);
   bool reinitialize(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp);
+  bool in_run_failure();
 
   /* Report_ptr */
   virtual std::string report(std::string const&) const {
+    std::lock_guard<std::mutex> lk(primary_mutex_);
     return report_string_;
   }
   std::string status() const;
   virtual bool reset_stats(std::string const& which) {
+    std::lock_guard<std::mutex> lk(primary_mutex_);
     if (which=="fail") {
       return false;
     }
@@ -61,9 +65,24 @@ public:
   virtual void InRunExit();
 
 protected:
+  std::string current_state() const;
+
   CommandableContext fsm_;
   bool external_request_status_;
   std::string report_string_;
+
+private:
+  // 06-May-2015, KAB: added a mutex to be used in avoiding problems when
+  // requests are sent to a Commandable object from different threads. The
+  // reason that we're doing this now is that we've added the in_run_failure()
+  // transition that will generally be called from inside the Application.
+  // Prior to this, the only way that transitions were requested was via
+  // external XMLRPC commands, and those were presumed to be called one
+  // at a time. The use of scoped locks based on the mutex will prevent
+  // the in_run_failure() transition from being called at the same time as
+  // an externally requested transition. We only lock the methods that
+  // are externally called.
+  mutable std::mutex primary_mutex_;
 };
 
 #endif /* artdaq_Application_Commandable_hh */

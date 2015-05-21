@@ -23,7 +23,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
   // produce the desired result since that creates a new instance and
   // then deletes the old one, and we need the opposite order.
   fragment_receiver_ptr_.reset(nullptr);
-  fragment_receiver_ptr_.reset(new BoardReaderCore(local_group_comm_, name_));
+  fragment_receiver_ptr_.reset(new BoardReaderCore(*this, local_group_comm_, name_));
   external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
   if (! external_request_status_) {
     report_string_ = "Error initializing ";
@@ -159,15 +159,30 @@ void artdaq::BoardReaderApp::BootedEnter()
 
 std::string artdaq::BoardReaderApp::report(std::string const& which) const
 {
-  // if there is an outstanding error, return that
-  if (report_string_.length() > 0) {
-    return report_string_;
+  std::string resultString;
+
+  // if all that is requested is the latest state change result, return it
+  if (which == "transition_status") {
+    if (report_string_.length() > 0) {return report_string_;}
+    else {return "Success";}
   }
 
-  // to-do: act differently depending on the value of "which"
-  std::string tmpString = "Current state = " + status() + "\n";
+  //// if there is an outstanding report/message at the Commandable/Application
+  //// level, prepend that
+  //if (report_string_.length() > 0) {
+  //  resultString.append("*** Overall status message:\r\n");
+  //  resultString.append(report_string_ + "\r\n");
+  //  resultString.append("*** Requested report response:\r\n");
+  //}
+
+  // pass the request to the BoardReaderCore instance, if it's available
   if (fragment_receiver_ptr_.get() != 0) {
-    tmpString.append(fragment_receiver_ptr_->report(which));
+    resultString.append(fragment_receiver_ptr_->report(which));
   }
-  return tmpString;
+  else {
+    resultString.append("This BoardReader has not yet been initialized and ");
+    resultString.append("therefore can not provide reporting.");
+  }
+
+  return resultString;
 }

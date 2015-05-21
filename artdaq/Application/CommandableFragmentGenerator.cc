@@ -14,8 +14,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator() :
   timeout_( std::numeric_limits<uint64_t>::max() ), 
   timestamp_( std::numeric_limits<uint64_t>::max() ), 
   should_stop_(false), exception_(false),
-  ev_counter_(1),
-  board_id_(-1),
+  latest_exception_report_("none"),
+  ev_counter_(1), board_id_(-1),
   instance_name_for_metrics_("FragmentGenerator"),
   sleep_on_stop_us_(0)
 {
@@ -29,8 +29,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
   timeout_( std::numeric_limits<uint64_t>::max() ), 
   timestamp_( std::numeric_limits<uint64_t>::max() ), 
   should_stop_(false), exception_(false),
-  ev_counter_(1),
-  board_id_(-1), 
+  latest_exception_report_("none"),
+  ev_counter_(1), board_id_(-1), 
   sleep_on_stop_us_(0)
 {
   board_id_ = ps.get<int> ("board_id");
@@ -43,7 +43,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 
   if (fragment_id != -99) {
     if (fragment_ids_.size() != 0) {
-      throw cet::exception("Error in CommandableFragmentGenerator: can't both define \"fragment_id\" and \"fragment_ids\" in FHiCL document");
+      latest_exception_report_ = "Error in CommandableFragmentGenerator: can't both define \"fragment_id\" and \"fragment_ids\" in FHiCL document";
+      throw cet::exception(latest_exception_report_);
     } else {
       fragment_ids_.emplace_back( fragment_id );
     }
@@ -63,18 +64,25 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
     std::lock_guard<std::mutex> lk(mutex_);
     result = getNext_( output );
   } catch (const cet::exception &e) {
+    latest_exception_report_ = "cet::exception caught in getNext(): ";
+    latest_exception_report_.append(e.what());
     mf::LogError ("getNext") << "cet::exception caught: " << e;
     set_exception (true);
     return false;
   } catch (const boost::exception& e) {
+    latest_exception_report_ = "boost::exception caught in getNext(): ";
+    latest_exception_report_.append(boost::diagnostic_information(e));
     mf::LogError ("getNext") << "boost::exception caught: " << boost::diagnostic_information(e);
     set_exception (true);
     return false;
   } catch (const std::exception& e  ) {
+    latest_exception_report_ = "std::exception caught in getNext(): ";
+    latest_exception_report_.append(e.what());
     mf::LogError ("getNext") << "std::exception caught: " << e.what();
     set_exception (true);
     return false;
   } catch (...) {
+    latest_exception_report_ = "Unknown exception caught in getNext().";
     mf::LogError ("getNext") << "unknown exception caught";
     set_exception (true);
     return false;
@@ -108,6 +116,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
   exception_.store(false);
   run_number_ = run;
   subrun_number_ = 1;
+  latest_exception_report_ = "none";
 
   // no lock required: thread not started yet
   start();
@@ -149,11 +158,31 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
   resume();
 }
 
-std::string artdaq::CommandableFragmentGenerator::ReportCmd() 
+std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& which) 
 {
-  if (exception()) return "exception";
   std::lock_guard<std::mutex> lk(mutex_);
 
-  return report();
-}
+  // 14-May-2015, KAB: please see the comments associated with the report()
+  // methods in the CommandableFragmentGenerator.hh file for more information
+  // on the use of those methods in this method.
 
+  // check if the child class has something meaningful for this request
+  std::string childReport = reportSpecific(which);
+  if (childReport.length() > 0) {return childReport;}
+
+  // handle the requests that we can take care of at this level
+  if (which == "latest_exception") {
+    return latest_exception_report_;
+  }
+
+  // check if the child class has provided a catch-all report function
+  childReport = report();
+  if (childReport.length() > 0) {return childReport;}
+
+  // if we haven't been able to come up with any report so far, say so
+  std::string tmpString = "The \"" + which + "\" command is not ";
+  tmpString.append("currently supported by the ");
+  tmpString.append(metricsReportingInstanceName());
+  tmpString.append(" fragment generator.");
+  return tmpString;
+}

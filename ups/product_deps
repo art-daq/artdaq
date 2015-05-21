@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq	v1_12_08
-defaultqual	e7:s7:eth
+parent artdaq  v1_12_09
+defaultqual    e7:s8:eth
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -21,7 +21,7 @@ artdaq_core 		v1_04_11
 mvapich2		v1_9_0
 mpich			v3_1_2a
 xmlrpc_c		v1_25_30a
-TRACE			v3_03_03
+TRACE			v3_05_00
 cetbuildtools		v4_09_02	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
 end_product_list

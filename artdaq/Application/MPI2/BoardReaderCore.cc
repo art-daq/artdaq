@@ -22,7 +22,9 @@ const std::string artdaq::BoardReaderCore::
 /**
  * Default constructor.
  */
-artdaq::BoardReaderCore::BoardReaderCore(MPI_Comm local_group_comm, std::string name) :
+artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
+                                         MPI_Comm local_group_comm, std::string name) :
+  parent_application_(parent_application),
   local_group_comm_(local_group_comm), generator_ptr_(nullptr), name_(name),
   stop_requested_(false), pause_requested_(false)
 {
@@ -117,6 +119,8 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
       << "\".";
     return false;
   }
+  FRAGMENT_COUNT_METRIC_NAME_ =
+    generator_ptr_->metricsReportingInstanceName() + " Fragment Count";
   FRAGMENT_RATE_METRIC_NAME_ =
     generator_ptr_->metricsReportingInstanceName() + " Fragment Rate";
   FRAGMENT_SIZE_METRIC_NAME_ =
@@ -186,9 +190,9 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
   prev_seq_id_ = 0;
   statsHelper_.resetStatistics();
 
+  metricMan_.do_start();
   generator_ptr_->StartCmd(id.run(), timeout, timestamp);
   run_id_ = id;
-  metricMan_.do_start();
 
   mf::LogDebug(name_) << "Started run " << run_id_.run() << 
     ", timeout = " << timeout <<  ", timestamp = " << timestamp << std::endl;
@@ -219,8 +223,8 @@ bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 {
   mf::LogDebug(name_) << "Resuming run " << run_id_.run();
   pause_requested_.store(false);
+  metricMan_.do_start();
   generator_ptr_->ResumeCmd(timeout, timestamp);
-  metricMan_.do_resume();
   return true;
 }
 
@@ -294,6 +298,15 @@ size_t artdaq::BoardReaderCore::process_fragments()
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
     active = generator_ptr_->getNext(frags);
+    // 08-May-2015, KAB & JCF: if the generator getNext() method returns false
+    // (which indicates that the data flow has stopped) *and* the reason that
+    // it has stopped is because there was an exception that wasn't handled by
+    // the experiment-specific FragmentGenerator class, we move to the
+    // InRunError state so that external observers (e.g. RunControl or
+    // DAQInterface) can see that there was a problem.
+    if (! active && generator_ptr_->exception()) {
+      parent_application_.in_run_failure();
+    }
 
     delta_time=artdaq::MonitoredQuantity::getCurrentTime() - startTime;
     statsHelper_.addSample(INPUT_WAIT_STAT_KEY,delta_time);
@@ -349,18 +362,33 @@ size_t artdaq::BoardReaderCore::process_fragments()
   // generation and readout before stopping the readout of the other cards
   //MPI_Barrier(local_group_comm_);
 
-  // 12-Jan-2015, KAB: moved MetricManager stop and pause commands here so
-  // that they don't get called while metrics reporting is still going on.
-  if (stop_requested_.load()) {metricMan_.do_stop();}
-  else if (pause_requested_.load()) {metricMan_.do_pause();}
+  // 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
+  // processing fragments loop so that metrics correctly go to zero when
+  // there is no data flowing
+  metricMan_.do_stop();
 
   sender_ptr_.reset(nullptr);
   return fragment_count_;
 }
 
-std::string artdaq::BoardReaderCore::report(std::string const&) const
+std::string artdaq::BoardReaderCore::report(std::string const& which) const
 {
-  return generator_ptr_->ReportCmd();
+  std::string resultString;
+
+  // pass the request to the FragmentGenerator instance, if it's available
+  if (generator_ptr_.get() != 0) {
+    resultString = generator_ptr_->ReportCmd(which);
+    if (resultString.length() > 0) {return resultString;}
+  }
+
+  // handle the request at this level, if we can
+  // --> nothing here yet
+
+  // if we haven't been able to come up with any report so far, say so
+  std::string tmpString = name_ + " run number = ";
+  tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
+  tmpString.append(". Command=\"" + which + "\" is not currently supported.");
+  return tmpString;
 }
 
 std::string artdaq::BoardReaderCore::buildStatisticsString_()
@@ -440,6 +468,9 @@ void artdaq::BoardReaderCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
+    metricMan_.sendMetric(FRAGMENT_COUNT_METRIC_NAME_,
+			  static_cast<unsigned long>(stats.fullSampleCount), 
+			  "fragments", 1, false);
     metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_,
                           stats.recentSampleRate, "fragments/sec", 1, false);
     metricMan_.sendMetric(FRAGMENT_SIZE_METRIC_NAME_,
