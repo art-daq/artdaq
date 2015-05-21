@@ -100,7 +100,9 @@ namespace artdaq {
     // getNext() will be part of a new SubRun.
     void ResumeCmd(uint64_t timeout, uint64_t timestamp);
 
-    std::string ReportCmd();
+    // 14-May-2015, KAB: added a "which" argument to allow callers
+    // to specify particular types of report information.
+    std::string ReportCmd(std::string const& which="");
 
     virtual std::string metricsReportingInstanceName() const {
       return instance_name_for_metrics_;
@@ -124,6 +126,8 @@ namespace artdaq {
     //    virtual void ResetCmd() final {}
     //    virtual void ShutdownCmd() final {}
 
+    bool exception() const { return exception_.load(); }
+
   protected:
 
     // John F., 12/6/13 -- need to figure out which of these getter
@@ -139,7 +143,6 @@ namespace artdaq {
     uint64_t timeout() const { return timeout_; }
     uint64_t timestamp() const { return timestamp_; }
     bool should_stop() const { return should_stop_.load(); }
-    bool exception() const { return exception_.load(); }
 
     int board_id () const { return board_id_; }
 
@@ -189,6 +192,7 @@ namespace artdaq {
     uint64_t timestamp_;
 
     std::atomic<bool> should_stop_, exception_;
+    std::string latest_exception_report_;
     std::atomic<size_t> ev_counter_;
 
     int board_id_;
@@ -244,7 +248,16 @@ namespace artdaq {
     // the correct subrun number (and run number).
     virtual void resume() {}
 
-    virtual std::string report() { return ""; }
+    // Let's say that the contract with the report() functions is that they
+    // return a non-empty string if they have something useful to report,
+    // but if they don't know how to handle a given request, they simply
+    // return an empty string and the ReportCmd() takes care of saying
+    // "the xyz command is not currently supported".
+    // For backward compatibility, we keep the report function that takes
+    // no arguments and add one that takes a "which" argument. In the 
+    // ReportCmd function, we'll call the more specific one first.
+    virtual std::string report() {return "";}
+    virtual std::string reportSpecific(std::string const&) {return "";}
   };
 
 }

@@ -5,6 +5,7 @@
 #include "art/Utilities/Exception.h"
 #include "cetlib/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include <boost/algorithm/string.hpp>    
 
 using fhicl::ParameterSet;
 
@@ -20,6 +21,13 @@ artdaq::CompositeDriver::CompositeDriver(ParameterSet const & ps):
         << pset.to_string() << "\"";
     }
   }
+
+  std::string compositeMetricName;
+  for (auto& generator : generator_list_) {
+    if (compositeMetricName.length() > 0) {compositeMetricName.append(", ");}
+    compositeMetricName.append(generator->metricsReportingInstanceName());
+  }
+  this->metricsReportingInstanceName(compositeMetricName);
 }
 
 artdaq::CompositeDriver::~CompositeDriver() noexcept
@@ -93,6 +101,31 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
   for (size_t idx = 0; idx < generator_list_.size(); ++idx) {
     if (generator_active_list_[idx]) {
       bool status = generator_list_[idx]->getNext(frags);
+
+      // 08-May-2015, KAB & JCF: if the generator getNext() method returns
+      // false (which indicates that the data flow has stopped) *and* the
+      // reason that it has stopped is because there was an exception that
+      // wasn't handled by the experiment-specific FragmentGenerator class,
+      // we throw an exception so that the process will move to the
+      // InRunError state. We do our best to try to reproduce the original
+      // exception message.
+      if (! status && generator_list_[idx]->exception()) {
+        std::string reportString =
+          generator_list_[idx]->ReportCmd("latest_exception");
+        if (std::string::npos !=
+            boost::algorithm::to_lower_copy(reportString).find("exception")) {
+          throw cet::exception("CompositeDriver_generator")
+            << "The FragmentGenerator for "
+            << generator_list_[idx]->metricsReportingInstanceName()
+            << " threw an exception: " << reportString;
+        }
+        else {
+          throw cet::exception("CompositeDriver_generator")
+            << "The FragmentGenerator for "
+            << generator_list_[idx]->metricsReportingInstanceName()
+            << " threw an exception.";
+        }
+      }
       generator_active_list_[idx] = status;
       if (status) {anyGeneratorIsActive = true;}
     }

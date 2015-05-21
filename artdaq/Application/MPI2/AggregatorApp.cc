@@ -124,19 +124,30 @@ bool artdaq::AggregatorApp::do_reinitialize(fhicl::ParameterSet const& , uint64_
 
 std::string artdaq::AggregatorApp::report(std::string const& which) const
 {
-  // if there is an outstanding error, return that
-  if (report_string_.length() > 0) {
-    return report_string_;
+  std::string resultString;
+
+  // if all that is requested is the latest state change result, return it
+  if (which == "transition_status") {
+    if (report_string_.length() > 0) {return report_string_;}
+    else {return "Success";}
   }
 
-  // 14-Apr-2015, KAB: removed filter on known commands; let AggregatorCore
-  // handle things.
-  if (aggregator_ptr_.get() != nullptr) {
-    return aggregator_ptr_->report(which);
+  //// if there is an outstanding report/message at the Commandable/Application
+  //// level, prepend that
+  //if (report_string_.length() > 0) {
+  //  resultString.append("*** Overall status message:\r\n");
+  //  resultString.append(report_string_ + "\r\n");
+  //  resultString.append("*** Requested report response:\r\n");
+  //}
+
+  // pass the request to the AggregatorCore instance, if it's available
+  if (aggregator_ptr_.get() != 0) {
+    resultString.append(aggregator_ptr_->report(which));
   }
   else {
-    std::string tmpString("This Aggregator has not yet been initialized and ");
-    tmpString.append("therefore can not provide reporting.");
-    return tmpString;
+    resultString.append("This Aggregator has not yet been initialized and ");
+    resultString.append("therefore can not provide reporting.");
   }
+
+  return resultString;
 }
