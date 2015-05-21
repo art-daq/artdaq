@@ -35,26 +35,26 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		artdaq_core		mvapich2	mpich		xmlrpc_c	TRACE	notes
-e7:s9:ib:debug		e7:s9:debug		-nq-		-		e7:debug	-nq-	-std=c++1y
-e7:s9:ib:prof		e7:s9:prof		-nq-		-		e7:prof		-nq-	-std=c++1y
-e7:s9:eth:debug		e7:s9:debug		-		e7:debug	e7:debug	-nq-	-std=c++1y
-e7:s9:eth:prof		e7:s9:prof		-		e7:prof		e7:prof		-nq-	-std=c++1y
-e7:s8:ib:debug		e7:s8:debug		-nq-		-		e7:debug	-nq-	-std=c++1y
-e7:s8:ib:prof		e7:s8:prof		-nq-		-		e7:prof		-nq-	-std=c++1y
-e7:s8:eth:debug		e7:s8:debug		-		e7:debug	e7:debug	-nq-	-std=c++1y
-e7:s8:eth:prof		e7:s8:prof		-		e7:prof		e7:prof		-nq-	-std=c++1y
-e7:s7:ib:debug		e7:s7:debug		-nq-		-		e7:debug	-nq-	-std=c++1y
-e7:s7:ib:prof		e7:s7:prof		-nq-		-		e7:prof		-nq-	-std=c++1y
-e7:s7:eth:debug		e7:s7:debug		-		e7:debug	e7:debug	-nq-	-std=c++1y
-e7:s7:eth:prof		e7:s7:prof		-		e7:prof		e7:prof		-nq-	-std=c++1y
-e6:s7:ib:debug		e6:s7:debug		-nq-		-		e6:debug	-nq-	-std=c++1y
-e6:s7:ib:prof		e6:s7:prof		-nq-		-		e6:prof		-nq-	-std=c++1y
-e6:s7:eth:debug		e6:s7:debug		-		e6:debug	e6:debug	-nq-	-std=c++1y
-e6:s7:eth:prof		e6:s7:prof		-		e6:prof		e6:prof		-nq-	-std=c++1y
-e6:s6:ib:debug		e6:s6:debug		-nq-		-		e6:debug	-nq-	-std=c++1y
-e6:s6:ib:prof		e6:s6:prof		-nq-		-		e6:prof		-nq-	-std=c++1y
-e6:s6:eth:debug		e6:s6:debug		-		e6:debug	e6:debug	-nq-	-std=c++1y
-e6:s6:eth:prof		e6:s6:prof		-		e6:prof		e6:prof		-nq-	-std=c++1y
+e7:s9:ib:debug		e7:s9:debug		-nq-		-		e7:debug	e7	-std=c++1y
+e7:s9:ib:prof		e7:s9:prof		-nq-		-		e7:prof		e7	-std=c++1y
+e7:s9:eth:debug		e7:s9:debug		-		e7:debug	e7:debug	e7	-std=c++1y
+e7:s9:eth:prof		e7:s9:prof		-		e7:prof		e7:prof		e7	-std=c++1y
+e7:s8:ib:debug		e7:s8:debug		-nq-		-		e7:debug	e7	-std=c++1y
+e7:s8:ib:prof		e7:s8:prof		-nq-		-		e7:prof		e7	-std=c++1y
+e7:s8:eth:debug		e7:s8:debug		-		e7:debug	e7:debug	e7	-std=c++1y
+e7:s8:eth:prof		e7:s8:prof		-		e7:prof		e7:prof		e7	-std=c++1y
+e7:s7:ib:debug		e7:s7:debug		-nq-		-		e7:debug	e7	-std=c++1y
+e7:s7:ib:prof		e7:s7:prof		-nq-		-		e7:prof		e7	-std=c++1y
+e7:s7:eth:debug		e7:s7:debug		-		e7:debug	e7:debug	e7	-std=c++1y
+e7:s7:eth:prof		e7:s7:prof		-		e7:prof		e7:prof		e7	-std=c++1y
+e6:s7:ib:debug		e6:s7:debug		-nq-		-		e6:debug	e6	-std=c++1y
+e6:s7:ib:prof		e6:s7:prof		-nq-		-		e6:prof		e6	-std=c++1y
+e6:s7:eth:debug		e6:s7:debug		-		e6:debug	e6:debug	e6	-std=c++1y
+e6:s7:eth:prof		e6:s7:prof		-		e6:prof		e6:prof		e6	-std=c++1y
+e6:s6:ib:debug		e6:s6:debug		-nq-		-		e6:debug	e6	-std=c++1y
+e6:s6:ib:prof		e6:s6:prof		-nq-		-		e6:prof		e6	-std=c++1y
+e6:s6:eth:debug		e6:s6:debug		-		e6:debug	e6:debug	e6	-std=c++1y
+e6:s6:eth:prof		e6:s6:prof		-		e6:prof		e6:prof		e6	-std=c++1y
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
