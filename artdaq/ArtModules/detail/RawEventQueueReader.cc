@@ -131,30 +131,38 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
         outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
                                            popped_event->subrunID(),
                                            currentTime);
+#ifdef ARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID /* Old, error-prone interface. */
         art::EventID const evid(art::EventID::flushEvent(outR->id(),outSR->id()));
+#else
+        art::EventID const evid(art::EventID::flushEvent(outSR->id()));
+#endif
         outE = pmaker.makeEventPrincipal(evid, currentTime);
       } else {
         // If the previous subrun was neither 0 nor flush and was identical with the current
-	// subrun, then it must have been associated with a data event.  In that case, we need
-	// to generate a flush event with a valid run but flush subrun and event number in order
-	// to end the subrun.
-	if(inSR!=0 && !inSR->id().isFlush() && inSR->subRun() == popped_event->subrunID()){
-          art::EventID const evid(art::EventID::flushEvent(inR->id()));        
+  // subrun, then it must have been associated with a data event.  In that case, we need
+  // to generate a flush event with a valid run but flush subrun and event number in order
+  // to end the subrun.
+  if(inSR!=0 && !inSR->id().isFlush() && inSR->subRun() == popped_event->subrunID()){
+          art::EventID const evid(art::EventID::flushEvent(inR->id()));
           outSR = pmaker.makeSubRunPrincipal(evid.subRunID(), currentTime);
           outE = pmaker.makeEventPrincipal(evid, currentTime);
-	// If this is either a new or another empty subrun, then generate a flush event with
-	// valid run and subrun numbers but flush event number 
-	//} else if(inSR==0 || inSR->id().isFlush()){
-	} else {
+  // If this is either a new or another empty subrun, then generate a flush event with
+  // valid run and subrun numbers but flush event number
+  //} else if(inSR==0 || inSR->id().isFlush()){
+  } else {
           outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
-					     popped_event->subrunID(),
-					     currentTime);
+               popped_event->subrunID(),
+               currentTime);
+#ifdef ARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID /* Old, error-prone interface. */
           art::EventID const evid(art::EventID::flushEvent(inR->id(),outSR->id()));
+#else
+          art::EventID const evid(art::EventID::flushEvent(outSR->id()));
+#endif
           outE = pmaker.makeEventPrincipal(evid, currentTime);
-	// Possible error condition
-	//} else {
-	}
-	outR = 0;
+  // Possible error condition
+  //} else {
+  }
+  outR = 0;
       }
       outputFileCloseNeeded = true;
       return true;
