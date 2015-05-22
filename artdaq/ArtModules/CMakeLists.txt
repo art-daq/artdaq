@@ -9,12 +9,12 @@ art_make( BASENAME_ONLY
   LIB_LIBRARIES
   artdaq_DAQrate
   artdaq_DAQdata
-  ${ART_FRAMEWORK_CORE}
-  ${ART_FRAMEWORK_IO_SOURCES}
-  ${ART_FRAMEWORK_PRINCIPAL}
-  ${ART_PERSISTENCY_PROVENANCE}
-  ${ART_UTILITIES}
-  ${MF_MESSAGELOGGER}
+  art_Framework_Core
+  art_Framework_IO_Sources
+  art_Framework_Principal
+  art_Persistency_Provenance
+  art_Utilities
+  MF_MessageLogger
   ${ROOT_CINTEX}
   ${ROOT_RIO}
   ${ROOT_CORE}
@@ -24,42 +24,44 @@ art_make( BASENAME_ONLY
 
 simple_plugin(RawInput "source"
   artdaq_ArtModules
-  ${ART_FRAMEWORK_CORE}
-  ${ART_FRAMEWORK_IO_SOURCES}
-  ${ART_FRAMEWORK_PRINCIPAL}
-  ${ART_PERSISTENCY_PROVENANCE}
-  ${ART_UTILITIES}
-  ${MF_MESSAGELOGGER}
+  art_Framework_Core
+  art_Framework_IO_Sources
+  art_Framework_Principal
+  art_Persistency_Provenance
+  art_Utilities
+  MF_MessageLogger
 )
 
 simple_plugin(NetMonInput "source"
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
-  ${ART_FRAMEWORK_CORE}
-  ${ART_FRAMEWORK_IO_SOURCES}	
-  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-  ${ART_UTILITIES}
-  ${MF_MESSAGELOGGER}
-  ${FHICLCPP}
-  ${CETLIB}
+  artdaq_ArtModules
+  art_Framework_Core
+  art_Framework_IO_Sources
+  art_Framework_Principal
+  art_Persistency_Provenance
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
 )
 
 simple_plugin(NetMonOutput "module"
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
-  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-  ${ART_UTILITIES}
-  ${MF_MESSAGELOGGER}
-  ${FHICLCPP}
-  ${CETLIB}
+  art_Framework_Services_Registry
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
   ${ROOT_RIO}
 )
 
 simple_plugin(NetMonTransportService "service"
   artdaq_DAQrate
-  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-  ${MF_MESSAGELOGGER}
-  ${FHICLCPP}
+  art_Framework_Services_Registry
+  MF_MessageLogger
+  fhiclcpp
   ${ROOT_RIO}
   ${ROOT_NET}
   ${ROOT_CORE}

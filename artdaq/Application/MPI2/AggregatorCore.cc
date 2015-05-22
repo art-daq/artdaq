@@ -302,7 +302,6 @@ bool artdaq::AggregatorCore::stop()
      received all of the EOD fragments it expects.  Higher level code will block
      until the process_fragments() thread exits. */
   stop_requested_.store(true);
-  if (! processing_fragments_.load()) {metricMan_.do_stop();}
   return true;
 }
 
@@ -316,7 +315,6 @@ bool artdaq::AggregatorCore::pause()
      received all of the EOD fragments it expects.  Higher level code will block
      until the process_fragments() thread exits. */
   local_pause_requested_.store(true);
-  if (! processing_fragments_.load()) {metricMan_.do_pause();}
   return true;
 }
 
@@ -327,7 +325,7 @@ bool artdaq::AggregatorCore::resume()
   local_pause_requested_.store(false);
 
   logMessage_("Resuming run " + boost::lexical_cast<std::string>(run_id_.run()));
-  metricMan_.do_resume();
+  metricMan_.do_start();
   event_store_ptr_->startSubrun();
   return true;
 }
@@ -736,10 +734,10 @@ size_t artdaq::AggregatorCore::process_fragments()
     previous_run_duration_ = stats.fullDuration;
   }
 
-  // 13-Jan-2015, KAB: moved MetricManager stop and pause commands here so
-  // that they don't get called while metrics reporting is still going on.
-  if (stop_requested_.load()) {metricMan_.do_stop();}
-  else if (local_pause_requested_.load()) {metricMan_.do_pause();}
+  // 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
+  // processing fragments loop so that metrics correctly go to zero when
+  // there is no data flowing
+  metricMan_.do_stop();
 
   receiver_ptr_.reset(nullptr);
   if (is_online_monitor_) {

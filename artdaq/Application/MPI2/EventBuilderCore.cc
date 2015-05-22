@@ -253,7 +253,6 @@ bool artdaq::EventBuilderCore::stop()
 
   flush_mutex_.unlock();
   run_is_paused_.store(false);
-  if (! processing_fragments_.load()) {metricMan_.do_stop();}
   return true;
 }
 
@@ -279,7 +278,6 @@ bool artdaq::EventBuilderCore::pause()
 
   flush_mutex_.unlock();
   run_is_paused_.store(true);
-  if (! processing_fragments_.load()) {metricMan_.do_pause();}
   return true;
 }
 
@@ -289,7 +287,7 @@ bool artdaq::EventBuilderCore::resume()
   eod_fragments_received_ = 0;
   pause_requested_.store(false);
   flush_mutex_.lock();
-  metricMan_.do_resume();
+  metricMan_.do_start();
   event_store_ptr_->startSubrun();
   run_is_paused_.store(false);
   return true;
@@ -485,10 +483,10 @@ size_t artdaq::EventBuilderCore::process_fragments()
     }
   }
 
-  // 13-Jan-2015, KAB: moved MetricManager stop and pause commands here so
-  // that they don't get called while metrics reporting is still going on.
-  if (stop_requested_.load()) {metricMan_.do_stop();}
-  else if (pause_requested_.load()) {metricMan_.do_pause();}
+  // 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
+  // processing fragments loop so that metrics correctly go to zero when
+  // there is no data flowing
+  metricMan_.do_stop();
 
   receiver_ptr_.reset(nullptr);
   processing_fragments_.store(false);
@@ -511,7 +509,7 @@ std::string artdaq::EventBuilderCore::report(std::string const& which) const
   //   of events built (in the current or previous run
   // - report on the number of incomplete events in the EventStore
   //   (if running)
-  std::string tmpString = "Event Builder run number = ";
+  std::string tmpString = name_ + " run number = ";
   tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
   tmpString.append(". Command \"" + which + "\" is not currently supported.");
   return tmpString;
