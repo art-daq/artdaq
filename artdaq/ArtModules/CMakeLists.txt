@@ -30,8 +30,6 @@ simple_plugin(RawInput "source"
   art_Persistency_Provenance
   art_Utilities
   MF_MessageLogger
-  ${Boost_FILESYSTEM_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
 )
 
 simple_plugin(NetMonInput "source"
@@ -67,8 +65,6 @@ simple_plugin(NetMonTransportService "service"
   ${ROOT_RIO}
   ${ROOT_NET}
   ${ROOT_CORE}
-  ${Boost_FILESYSTEM_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
 )
 
 _check_if_version_greater(art ${ART_VERSION} v1_08_00)
@@ -88,8 +84,6 @@ simple_plugin(ArtdaqBuildInfo "module"
   ${MF_MESSAGELOGGER}
   ${FHICLCPP}
   ${CETLIB}
-  ${Boost_FILESYSTEM_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
 )
 
 
