@@ -22,7 +22,7 @@ mvapich2		v1_9_0
 mpich			v3_1_2a
 xmlrpc_c		v1_25_30a
 TRACE			v3_05_00
-cetbuildtools		v4_09_02	-	only_for_build
+cetbuildtools		v4_10_02	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
 end_product_list
 
