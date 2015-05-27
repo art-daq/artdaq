@@ -142,11 +142,16 @@ sendFragTo(Fragment && frag, size_t dest)
              MPI_COMM_WORLD );
   }
   TRACE( 5, "sendFragTo COMPLETE" );
-  Debug << "send COMPLETE: "
-        << " buffer_idx=" << buffer_idx
-        << " send_size=" << curfrag.size()
-        << " dest=" << dest
-        << " sequenceID=" << curfrag.sequenceID()
-        << " fragID=" << curfrag.fragmentID()
-        << flusher;
+  
+  {
+    std::ostringstream debugstream;
+    debugstream << "send COMPLETE: "
+		<< " buffer_idx=" << buffer_idx
+		<< " send_size=" << curfrag.size()
+		<< " dest=" << dest
+		<< " sequenceID=" << curfrag.sequenceID()
+		<< " fragID=" << curfrag.fragmentID()
+		<< '\n';
+    TRACE(11, debugstream.str().c_str());
+  }
 }

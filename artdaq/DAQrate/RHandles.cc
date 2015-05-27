@@ -1,7 +1,7 @@
 #include "artdaq/DAQrate/RHandles.hh"
 
 #include "art/Utilities/Exception.h"
-#include "artdaq/DAQdata/Debug.hh"
+//#include "artdaq/DAQdata/Debug.hh"
 #include "artdaq/DAQrate/MPITag.hh"
 #include "artdaq/DAQrate/Utils.hh"
 #include "cetlib/container_algorithms.h"
@@ -27,10 +27,16 @@ artdaq::RHandles::RHandles(size_t buffer_count,
   last_source_posted_(-1),
   payload_(buffer_count_)
 {
-  Debug << "RHandles construction: "
-        << buffer_count << " buffers, "
-        << src_count << " sources starting at rank "
-        << src_start << flusher;
+
+  {
+    std::ostringstream debugstream;
+    debugstream << "RHandles construction: "
+		<< buffer_count << " buffers, "
+		<< src_count << " sources starting at rank "
+		<< src_start << '\n';
+    TRACE(4, debugstream.str().c_str());
+  }
+
   if (src_count == 0) {
     throw art::Exception(art::errors::Configuration, "RHandles: ")
       << "No sources configured.\n";
@@ -131,17 +137,22 @@ recvFragment(Fragment & output, size_t timeout_usec)
   { throw art::Exception(art::errors::LogicError, "RHandles: ")
       << "INTERNAL ERROR: req is not MPI_REQUEST_NULL in recvFragment.\n"; }
   Fragment::sequence_id_t sequence_id = payload_[which].sequenceID();
-  Debug << "recv: " << rank
-        << " idx=" << which
-        << " Waitany_error=" << wait_result
-        << " status_error=" << status.MPI_ERROR
-        << " source=" << status.MPI_SOURCE
-        << " tag=" << status.MPI_TAG
-        << " Fragment_sequenceID=" << sequence_id
-        << " Fragment_size=" << payload_[which].size()
-        << " preAutoResize_Fragment_dataSize=" << payload_[which].dataSize()
-        << " fragID=" << payload_[which].fragmentID()
-        << flusher;
+
+  {
+    std::ostringstream debugstream;
+    debugstream << "recv: " << rank
+		<< " idx=" << which
+		<< " Waitany_error=" << wait_result
+		<< " status_error=" << status.MPI_ERROR
+		<< " source=" << status.MPI_SOURCE
+		<< " tag=" << status.MPI_TAG
+		<< " Fragment_sequenceID=" << sequence_id
+		<< " Fragment_size=" << payload_[which].size()
+		<< " preAutoResize_Fragment_dataSize=" << payload_[which].dataSize()
+		<< " fragID=" << payload_[which].fragmentID()
+		<< '\n';
+    TRACE(4, debugstream.str().c_str());
+  }
   char err_buffer[MPI_MAX_ERROR_STRING];
   int resultlen;
   switch (wait_result) {
@@ -174,20 +185,30 @@ recvFragment(Fragment & output, size_t timeout_usec)
   if (output.type() == Fragment::EndOfDataFragmentType) {
     src_status_[src_index] = status_t::PENDING;
     expected_count_[src_index] = *output.dataBegin();
-    Debug << "Received EOD from source " << status.MPI_SOURCE
-          << " (index " << src_index << ") expecting total of "
-          << *output.dataBegin() << " fragments" << flusher;
+
+    {
+      std::ostringstream debugstream;
+      debugstream << "Received EOD from source " << status.MPI_SOURCE
+		  << " (index " << src_index << ") expecting total of "
+		  << *output.dataBegin() << " fragments" << '\n';
+      TRACE(4, debugstream.str().c_str());
+    }
   }
   else {
     recv_frag_count_.incSlot(status.MPI_SOURCE);
   }
   switch (src_status_[src_index]) {
   case status_t::PENDING:
-    Debug << "Checking received count "
-          << recv_frag_count_.slotCount(status.MPI_SOURCE)
-          << " against expected total "
-          << expected_count_[src_index]
-          << flusher;
+
+    {
+      std::ostringstream debugstream;
+      debugstream << "Checking received count "
+		  << recv_frag_count_.slotCount(status.MPI_SOURCE)
+		  << " against expected total "
+		  << expected_count_[src_index]
+		  << '\n';
+      TRACE(4, debugstream.str().c_str());
+    }
     if (recv_frag_count_.slotCount(status.MPI_SOURCE) ==
         expected_count_[src_index]) {
       src_status_[src_index] = status_t::DONE;
@@ -256,9 +277,14 @@ void
 artdaq::RHandles::
 cancelReq_(size_t buf, bool blocking_wait)
 {
-  Debug << "Cancelling post for buffer "
-        << buf
-        << flusher;
+
+  {
+    std::ostringstream debugstream;
+    debugstream << "Cancelling post for buffer "
+		<< buf
+		<< '\n';
+    TRACE(4, debugstream.str().c_str());
+  }
   int result = MPI_Cancel(&reqs_[buf]);
   if (result == MPI_SUCCESS) {
     MPI_Status status;
@@ -303,11 +329,16 @@ void
 artdaq::RHandles::
 post_(size_t buf, size_t src)
 {
-  Debug << "Posting buffer " << buf
-        << " size=" << payload_[buf].size()
-        << " for receive src=" << src
-        << " header address=0x" << std::hex << payload_[buf].headerAddress() << std::dec
-        << flusher;
+
+  {
+    std::ostringstream debugstream;
+    debugstream << "Posting buffer " << buf
+		<< " size=" << payload_[buf].size()
+		<< " for receive src=" << src
+		<< " header address=0x" << std::hex << payload_[buf].headerAddress() << std::dec
+		<< '\n';
+    TRACE(4, debugstream.str().c_str());
+  }
   MPI_Irecv(&*payload_[buf].headerBegin(),
             (payload_[buf].size() * sizeof(Fragment::value_type)),
             MPI_BYTE,
