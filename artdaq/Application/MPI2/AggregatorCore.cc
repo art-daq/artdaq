@@ -149,11 +149,16 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
       pset.get<fhicl::ParameterSet>("outputs");
     fhicl::ParameterSet normalout_pset =
       output_pset.get<fhicl::ParameterSet>("normalOutput");
-    std::string filename = normalout_pset.get<std::string>("fileName", "");
-    if (filename.size() > 0) {
-      size_t pos = filename.rfind("/");
-      if (pos != std::string::npos) {
-        disk_writing_directory_ = filename.substr(0, pos);
+
+    if (!normalout_pset.is_empty()) {
+      std::string filename = normalout_pset.get<std::string>("fileName", "");
+      if (filename.size() > 0) {
+	size_t pos = filename.rfind("/");
+	if (pos != std::string::npos) {
+	  disk_writing_directory_ = filename.substr(0, pos);
+	}
+      } else {
+	mf::LogWarning(name_) << "Problem finding \"fileName\" parameter in \"normalOutput\" RootOutput module FHiCL code";
       }
     }
   }
