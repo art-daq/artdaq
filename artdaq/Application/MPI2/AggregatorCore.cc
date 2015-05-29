@@ -230,14 +230,22 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     metricsReportingInstanceName = "Online Monitor";
   }
   fhicl::ParameterSet metric_pset;
+
   try {
     metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+  } catch (...) {} // OK if there's no metrics table defined in the FHiCL                                    
+
+  if (metric_pset.is_empty()) {
+    mf::LogInfo(name_) << "No metric plugins appear to be defined";
+  } else {
+    try {
+      metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+    } catch (...) {
+      ExceptionHandler(ExceptionHandlerRethrow::no,
+                       "Error loading metrics in AggregatorCore::initialize()");
+    }
   }
-  catch (...) {
-    //Okay if no metrics defined
-    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
-  }
+
   EVENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Event Rate";
   EVENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Event Size";
   DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";

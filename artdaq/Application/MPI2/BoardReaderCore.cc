@@ -78,12 +78,19 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   fhicl::ParameterSet metric_pset;
   try {
     metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset, name_ + ".");
+  } catch (...) {} // OK if there's no metrics table defined in the FHiCL 
+
+  if (metric_pset.is_empty()) {
+    mf::LogInfo(name_) << "No metric plugins appear to be defined";
+  } else {
+    try {
+      metricMan_.initialize(metric_pset, name_ + ".");
+    } catch (...) {
+      ExceptionHandler(ExceptionHandlerRethrow::no,
+                       "Error loading metrics in BoardReaderCore::initialize()");
+    }
   }
-  catch (...) {
-    //Okay if no metrics have been defined...
-    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
-  }
+
   // create the requested CommandableFragmentGenerator
   std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
   if (frag_gen_name.length() == 0) {
