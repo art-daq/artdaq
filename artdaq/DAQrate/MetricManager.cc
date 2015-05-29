@@ -6,10 +6,13 @@
 // and sends them data as it is recieved. It also maintains the state of the plugins
 // relative to the application state.
 
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
 #include "artdaq/Plugins/makeMetricPlugin.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "fhiclcpp/ParameterSet.h"
+
+#include <sstream>
 
 artdaq::MetricManager::
 MetricManager() : metric_plugins_(0), initialized_(false), running_(false) { }
@@ -36,10 +39,13 @@ void artdaq::MetricManager::initialize(fhicl::ParameterSet const& pset, std::str
       metric_plugins_.push_back(makeMetricPlugin(
           plugin_pset.get<std::string>("metricPluginType",""), plugin_pset));
       }
-      catch(...) {
-        mf::LogWarning("MetricManager") << "Error loading plugin with name " << name;
+      catch (...) {
+	std::stringstream errorstream;
+	errorstream << "Exception caught in MetricManager::initialize, error loading plugin with name " << name;
+	ExceptionHandler(ExceptionHandlerRethrow::no, errorstream.str());
       }
     }
+
   initialized_ = true;
 }
 
@@ -52,9 +58,12 @@ void artdaq::MetricManager::do_start()
       try{
       metric->startMetrics();
         mf::LogDebug("MetricManager") << "Metric Plugin " << metric->getLibName() << " started.";
-      }
-      catch(...) {
-        mf::LogWarning("MetricManager") << "Error starting plugin with name " << metric->getLibName();
+      } catch (...) {
+	std::stringstream errorstream;
+	errorstream << 
+	  "Exception caught in MetricManager::do_start(), error starting plugin with name " << 
+	  metric->getLibName();
+	ExceptionHandler(ExceptionHandlerRethrow::no, errorstream.str());
       }
     }
     running_ = true;
@@ -71,7 +80,11 @@ void artdaq::MetricManager::do_stop()
         mf::LogDebug("MetricManager") << "Metric Plugin " << metric->getLibName() << " stopped.";
       }
       catch(...) {
-        mf::LogWarning("MetricManager") << "Error stopping plugin with name " << metric->getLibName();
+	std::stringstream errorstream;
+	errorstream << 
+	  "Exception caught in MetricManager::do_stop(), error stopping plugin with name " << 
+	  metric->getLibName();
+	ExceptionHandler(ExceptionHandlerRethrow::no, errorstream.str());
       }
     }
     running_ = false;
@@ -101,9 +114,12 @@ void artdaq::MetricManager::shutdown()
         std::string name = i->getLibName();
         i.reset(nullptr);
         mf::LogDebug("MetricManager") << "Metric Plugin " << name << " shutdown.";
-      }
-      catch(...) {
-        mf::LogError("MetricManager") << "Error Shutting down metric with name " << i->getLibName();
+      } catch(...) {
+	std::stringstream errorstream;
+	errorstream << 
+	  "Exception caught in MetricManager::shutdown(), error shutting down metric with name " << 
+	  i->getLibName();
+	ExceptionHandler(ExceptionHandlerRethrow::no, errorstream.str());
       }
     }
     initialized_ = false;
