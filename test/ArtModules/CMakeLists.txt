@@ -2,11 +2,11 @@ include_directories(${MPI_INCLUDE_PATH})
 
 simple_plugin(FragmentSniffer "module"
   artdaq_DAQdata
-  ${ART_FRAMEWORK_CORE}
-  ${ART_FRAMEWORK_PRINCIPAL}
-  ${ART_PERSISTENCY_PROVENANCE}
-  ${MF_MESSAGELOGGER}
-  ${FHICLCPP}
+  art_Framework_Core
+  art_Framework_Principal
+  art_Persistency_Provenance
+  MF_MessageLogger
+  fhiclcpp
   )
 
 cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
@@ -14,11 +14,11 @@ cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
   artdaq_ArtModules
   artdaq_DAQrate
   artdaq_DAQdata
-  ${ARTDAQ-CORE_DATA_DICT}
-  ${ART_FRAMEWORK_CORE}
-  ${ART_FRAMEWORK_PRINCIPAL}
-  ${ART_PERSISTENCY_PROVENANCE}
-  ${ART_UTILITIES}
+  artdaq-core_Data_dict
+  art_Framework_Core
+  art_Framework_Principal
+  art_Persistency_Provenance
+  art_Utilities
   )
 
 cet_test(daq_flow_t
@@ -29,9 +29,9 @@ cet_test(daq_flow_t
   artdaq_Application_MPI2
   artdaq_DAQrate
   artdaq_DAQdata
-  ${MF_MESSAGELOGGER}
-  ${FHICLCPP}
-  ${CETLIB}
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
   TEST_ARGS -c daq_flow_t.fcl
   DATAFILES daq_flow_t.fcl
   )

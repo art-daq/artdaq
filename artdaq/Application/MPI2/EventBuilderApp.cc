@@ -149,17 +149,30 @@ void artdaq::EventBuilderApp::BootedEnter()
 
 std::string artdaq::EventBuilderApp::report(std::string const& which) const
 {
-  // if there is an outstanding error, return that
-  if (report_string_.length() > 0) {
-    return report_string_;
+  std::string resultString;
+
+  // if all that is requested is the latest state change result, return it
+  if (which == "transition_status") {
+    if (report_string_.length() > 0) {return report_string_;}
+    else {return "Success";}
   }
 
+  //// if there is an outstanding report/message at the Commandable/Application
+  //// level, prepend that
+  //if (report_string_.length() > 0) {
+  //  resultString.append("*** Overall status message:\r\n");
+  //  resultString.append(report_string_ + "\r\n");
+  //  resultString.append("*** Requested report response:\r\n");
+  //}
+
+  // pass the request to the EventBuilderCore instance, if it's available
   if (event_builder_ptr_.get() != nullptr) {
-    return event_builder_ptr_->report(which);
+    resultString.append(event_builder_ptr_->report(which));
   }
   else {
-    std::string tmpString("This EventBuilder has not yet been initialized and ");
-    tmpString.append("therefore can not provide reporting.");
-    return tmpString;
+    resultString.append("This EventBuilder has not yet been initialized and ");
+    resultString.append("therefore can not provide reporting.");
   }
+
+  return resultString;
 }

@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Application/Commandable.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/quiet_mpi.hh"
@@ -26,7 +27,8 @@ public:
   static const std::string OUTPUT_WAIT_STAT_KEY;
   static const std::string FRAGMENTS_PER_READ_STAT_KEY;
 
-  BoardReaderCore(MPI_Comm local_group_comm, std::string name);
+  BoardReaderCore(Commandable& parent_application, MPI_Comm local_group_comm,
+                  std::string name);
   BoardReaderCore(BoardReaderCore const&) = delete;
   ~BoardReaderCore();
   BoardReaderCore& operator=(BoardReaderCore const&) = delete;
@@ -45,6 +47,7 @@ public:
   std::string report(std::string const&) const;
 
 private:
+  Commandable& parent_application_;
   int mpi_rank_;
   MPI_Comm local_group_comm_;
   std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
