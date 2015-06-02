@@ -17,7 +17,12 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
   , trigger_addr_(ps.get<std::string>("trigger_address", "227.128.12.26"))
   , triggerBuffer_()
   , haveData_(false)
+  , dataBuffer_()
+  , newDataBuffer_()
+  , data_(new Fragment())
 {
+  dataBuffer_.emplace_back(FragmentPtr(new Fragment()));
+  
   std::string modeString = ps.get<std::string>("trigger_mode", "triggered");
   if(modeString == "triggered" || modeString == "Triggered" 
      || modeString == "triggerOnly" || modeString == "TriggerOnly") 
@@ -85,7 +90,13 @@ void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
       return;
     }
 
-    haveData_ = getNextFragment_(dataBuffer_);
+    std::cout << "TriggeredFragmentGenerator: calling getNextFragment_" << std::endl;
+    haveData_ = getNextFragment_(newDataBuffer_);
+    dataBufferMutex_.lock();
+    newDataBuffer_.swap(dataBuffer_);
+    dataBufferMutex_.unlock();
+    newDataBuffer_.clear();
+    std::cout << "TriggeredFragmentGenerator: end of getNextFragment_ call, haveData_ is " << haveData_ << std::endl;
   }
 }
 
@@ -112,19 +123,22 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
   // artdaq::Fragment constructor itself was not altered so as to
   // maintain backward compatibility.
 
+  int ms_to_wait = mode_ == TriggeredFragmentGeneratorMode::TriggerOrData ? 100 : 1000;
   while(!(haveData_ && mode_ == TriggeredFragmentGeneratorMode::TriggerOrData) && triggerBuffer_.size() == 0) {
+    //std::cout << "Start of wait loop: D:" << haveData_ << ", " << printMode_() << ", T:" << triggerBuffer_.size() << std::endl;
     if(should_stop()) {
       return false;
     }
     struct pollfd ufds[1];
     ufds[0].fd = triggersocket_;
     ufds[0].events = POLLIN | POLLPRI;
-    int rv = poll(ufds, 1, 1000);
+    int rv = poll(ufds, 1, ms_to_wait);
     if(rv > 0) 
     {
       // Event counter is monotonically increasing. If we recieve a trigger for an event,
       // fill in the triggers for all the events leading up to it as well.
-      if(ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI) {
+      if(ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
+      {
 	std::cout << "Recieved packet on Trigger channel" << std::endl;
         TriggerPacket buffer;
         recv(triggersocket_, &buffer, sizeof(buffer), 0);
@@ -154,30 +168,47 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
     }
   }
 
+  dataBufferMutex_.lock();
   if(haveData_) {
     data_ = std::move(dataBuffer_.back());
     dataBuffer_.erase(--dataBuffer_.end());
     haveData_ = false;
   } 
-  (*data_).setSequenceID(ev_counter());
-  dataBuffer_.emplace_back(FragmentPtr(new Fragment(*data_)));
+  data_->setSequenceID(ev_counter());
 
   switch(mode_) {
   case TriggeredFragmentGeneratorMode::TriggerOnly:
   case TriggeredFragmentGeneratorMode::TriggerOrData:
   default:
-    frags.push_back(std::move(dataBuffer_.back()));
+    frags.emplace_back(FragmentPtr(new Fragment(*data_)));
     break;
   case TriggeredFragmentGeneratorMode::BufferedTriggered:
-    for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it) {
+    dataBuffer_.emplace_back(FragmentPtr(new Fragment(*data_)));
+    auto it = dataBuffer_.begin();
+    while( it != dataBuffer_.end() ) {
       (*it)->setSequenceID(ev_counter());
       frags.push_back(std::move(*it));
-      dataBuffer_.erase(it);
+      it = dataBuffer_.erase(it);
     }
     break;
   }
-
   dataBuffer_.clear();
+  dataBufferMutex_.unlock();
+
   ev_counter_inc();
   return true;
+}
+
+std::string artdaq::TriggeredFragmentGenerator::printMode_()
+{
+  switch (mode_) {
+  case TriggeredFragmentGeneratorMode::TriggerOrData:
+    return "TriggerOrData";
+  case TriggeredFragmentGeneratorMode::BufferedTriggered:
+    return "Buffered";
+  case TriggeredFragmentGeneratorMode::TriggerOnly:
+    return "Triggered";
+  }
+
+  return "Triggered";
 }

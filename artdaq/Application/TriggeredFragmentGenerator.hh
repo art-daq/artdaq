@@ -33,6 +33,7 @@
 #include <queue>
 #include <atomic>
 #include <thread>
+#include <mutex>
 
 namespace artdaq {    
 
@@ -65,6 +66,7 @@ namespace artdaq {
 
     bool getNext_(FragmentPtrs & output) final;
     void getNextFragmentLoop_();
+    std::string printMode_();
 
     // FHiCL-configurable variables. Note that the C++ variable names
     // are the FHiCL variable names with a "_" appended
@@ -81,6 +83,8 @@ namespace artdaq {
     std::thread dataThread_;
     std::atomic<bool> haveData_;
     FragmentPtrs dataBuffer_;
+    FragmentPtrs newDataBuffer_;
+    std::mutex dataBufferMutex_;
     FragmentPtr data_;
   };
 }
