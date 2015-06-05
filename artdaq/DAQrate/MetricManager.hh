@@ -36,7 +36,7 @@ public:
   void shutdown();
 
   template<typename T>
-  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool applyPrefix = true)
+  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool applyPrefix = true, bool accumulate = true)
   {
     if(initialized_ && running_)
     {
@@ -48,7 +48,7 @@ public:
       {
         if(metric->getRunLevel() >= level) {
           try{
-            metric->sendMetric(nameTemp, value, unit);
+            metric->sendMetric(nameTemp, value, unit, accumulate);
           }
           catch (...) {
             mf::LogWarning("MetricManager") << "Error sending value to metric plugin with name "
