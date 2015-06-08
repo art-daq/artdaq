@@ -62,7 +62,13 @@ namespace artdaq {
     }
     virtual void sendMetric(std::string name, int value, std::string unit, bool accumulate = true)
     {
-      if(!accumulate) { sendMetric_(name, value, unit); return; }
+      if(!accumulate) { 
+	sendMetric_(name, value, unit);
+	if(intAccumulator_.count(name) > 0) {
+	  intAccumulator_[name].clear();
+        }
+	return;
+      }
   
       intAccumulator_[name].push_back(value);
 
@@ -84,7 +90,13 @@ namespace artdaq {
     }
     virtual void sendMetric(std::string name, double value, std::string unit, bool accumulate = true)
     {
-      if(!accumulate) { sendMetric_(name, value, unit); return; }
+      if(!accumulate) { 
+	sendMetric_(name, value, unit);
+	if(doubleAccumulator_.count(name) > 0) {
+	  doubleAccumulator_[name].clear();
+        }
+	return;
+      }
 
       doubleAccumulator_[name].push_back(value);
 
@@ -106,7 +118,13 @@ namespace artdaq {
     }
     virtual void sendMetric(std::string name, float value, std::string unit, bool accumulate = true)
     {
-      if(!accumulate) { sendMetric_(name, value, unit); return; }
+      if(!accumulate) { 
+	sendMetric_(name, value, unit);
+	if(floatAccumulator_.count(name) > 0) {
+	  floatAccumulator_[name].clear();
+        }
+	return;
+      }
 
       floatAccumulator_[name].push_back(value);
 
@@ -128,7 +146,13 @@ namespace artdaq {
     }
     virtual void sendMetric(std::string name, long unsigned int value, std::string unit, bool accumulate = true)
     {
-      if(!accumulate) { sendMetric_(name, value, unit); return; }
+      if(!accumulate) { 
+	sendMetric_(name, value, unit);
+	if(uintAccumulator_.count(name) > 0) {
+	  uintAccumulator_[name].clear();
+        }
+	return;
+      }
 
       uint32_t uvalue = static_cast<uint32_t>(value);
       uintAccumulator_[name].push_back(uvalue);

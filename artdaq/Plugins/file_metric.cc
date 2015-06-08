@@ -48,10 +48,12 @@ namespace artdaq {
           }
         }
       }
+      openFile_();
       startMetrics();
     }
     ~FileMetric() {
       stopMetrics();
+      closeFile_();
     }
     virtual std::string getLibName() { return "file"; }
     virtual void sendMetric_(std::string name, std::string value, std::string unit ) 
@@ -79,21 +81,29 @@ namespace artdaq {
     }
     virtual void startMetrics_()
     {
-      if(stopped_)
-      {
-        outputStream_.open(outputFile_.c_str(),mode_);
-        const std::time_t result = std::time(NULL);
-        outputStream_ << std::ctime(&result) << "FileMetric plugin started." << std::endl;
-        stopped_ = false;
-      }
+      stopped_ = false;
+      const std::time_t result = std::time(NULL);
+      outputStream_ << std::ctime(&result) << "FileMetric plugin started." << std::endl;
     }
     virtual void stopMetrics_()
     {
-      if(!stopped_) {
+      stopped_ = true;
+      const std::time_t result = std::time(NULL);
+      outputStream_ << std::ctime(&result) << "FileMetric plugin has been stopped!" << std::endl;
+    }
+  private:
+    void openFile_()
+    {
+        outputStream_.open(outputFile_.c_str(),mode_);
         const std::time_t result = std::time(NULL);
-        outputStream_ << std::ctime(&result) << "FileMetric plugin has been stopped!" << std::endl;
+	outputStream_ << std::ctime(&result) << "FileMetric plugin file opened." << std::endl;
+
+    }
+    void closeFile_()
+    {
+        const std::time_t result = std::time(NULL);
+	outputStream_ << std::ctime(&result) << "FileMetric closing file stream." << std::endl;
         outputStream_.close();
-      }
     }
   };
 
