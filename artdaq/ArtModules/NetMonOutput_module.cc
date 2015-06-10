@@ -32,7 +32,6 @@
 #include "fhiclcpp/ParameterSetRegistry.h"
 
 #include "artdaq/ArtModules/NetMonTransportService.h"
-#include "artdaq/DAQdata/NetMonHeader.hh"
 
 #include <iomanip>
 #include <iostream>

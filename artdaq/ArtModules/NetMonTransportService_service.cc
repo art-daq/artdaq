@@ -3,7 +3,6 @@
 #include "artdaq-core/Core/GlobalQueue.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
@@ -81,15 +80,15 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile & msg)
     connect();
   }
 
-  artdaq::NetMonHeader header;
-  header.data_length = static_cast<uint64_t>(msg.Length());
+  auto const data_size_words =
+    std::ceil(msg.Length() /
+              static_cast<double>(sizeof(artdaq::RawDataType)));
   artdaq::Fragment
-    fragment(std::ceil(msg.Length() /
-                       static_cast<double>(sizeof(artdaq::RawDataType))),
-             sequenceId, 0, messageType, header);
-
+    fragment(sequenceId, 0, messageType);
+  fragment.resize(data_size_words);
   memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
   sender_ptr_->sendFragment(std::move(fragment));
+
 }
 
 void
@@ -119,10 +118,11 @@ receiveMessage(TBufferFile *&msg)
     recvd_fragments_.reset(nullptr);
   }
 
-  artdaq::NetMonHeader *header = topFrag.metadata<artdaq::NetMonHeader>();
-  char *buffer = (char *)malloc(header->data_length);
-  memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
-  msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
+  auto const data_size_bytes =
+    topFrag.dataSize() * sizeof(artdaq::RawDataType);
+  char *buffer = (char *)malloc(data_size_bytes);
+  memcpy(buffer, &*topFrag.dataBegin(), data_size_bytes);
+  msg = new TBufferFile(TBuffer::kRead, data_size_bytes, buffer, kTRUE, 0);
 }
 
 DEFINE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService,
