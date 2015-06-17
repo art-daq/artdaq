@@ -19,10 +19,9 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
   , haveData_(false)
   , dataBuffer_()
   , newDataBuffer_()
-  , data_(new Fragment())
 {
   dataBuffer_.emplace_back(FragmentPtr(new Fragment()));
-  (*dataBuffer.begin())->setSystemType(Fragment::EmptyFragmentType);
+  (*dataBuffer_.begin())->setSystemType(Fragment::EmptyFragmentType);
   
   std::string modeString = ps.get<std::string>("trigger_mode", "triggered");
   if(modeString == "triggered" || modeString == "Triggered" 
@@ -101,15 +100,8 @@ void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
       newDataBuffer_.swap(dataBuffer_);
       break;
     case TriggeredFragmentGeneratorMode::BufferedTriggered:
-      dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer.size());
+      dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
       std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_,dataBuffer_.end()));
-      dataBuffer_.emplace_back(FragmentPtr(new Fragment(*data_)));
-      auto it = dataBuffer_.begin();
-      while( it != dataBuffer_.end() ) {
-	(*it)->setSequenceID(ev_counter());
-	frags.push_back(std::move(*it));
-	it = dataBuffer_.erase(it);
-      }
       break;
     }
     dataBufferMutex_.unlock();
@@ -190,7 +182,7 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
   for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
   {
     (*it)->setSequenceID(ev_counter());
-    frags.emplace_back(FragmentPtr(new Fragment(*it)));
+    frags.emplace_back(FragmentPtr(new Fragment(*(*it))));
   }
   dataBufferMutex_.unlock();
 
