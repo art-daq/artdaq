@@ -85,7 +85,6 @@ namespace artdaq {
     FragmentPtrs dataBuffer_;
     FragmentPtrs newDataBuffer_;
     std::mutex dataBufferMutex_;
-    FragmentPtr data_;
   };
 }
 

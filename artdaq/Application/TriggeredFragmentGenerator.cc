@@ -22,6 +22,7 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
   , data_(new Fragment())
 {
   dataBuffer_.emplace_back(FragmentPtr(new Fragment()));
+  (*dataBuffer.begin())->setSystemType(Fragment::EmptyFragmentType);
   
   std::string modeString = ps.get<std::string>("trigger_mode", "triggered");
   if(modeString == "triggered" || modeString == "Triggered" 
@@ -93,7 +94,24 @@ void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
     std::cout << "TriggeredFragmentGenerator: calling getNextFragment_" << std::endl;
     haveData_ = getNextFragment_(newDataBuffer_);
     dataBufferMutex_.lock();
-    newDataBuffer_.swap(dataBuffer_);
+    switch(mode_) {
+    case TriggeredFragmentGeneratorMode::TriggerOnly:
+    case TriggeredFragmentGeneratorMode::TriggerOrData:
+    default:
+      newDataBuffer_.swap(dataBuffer_);
+      break;
+    case TriggeredFragmentGeneratorMode::BufferedTriggered:
+      dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer.size());
+      std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_,dataBuffer_.end()));
+      dataBuffer_.emplace_back(FragmentPtr(new Fragment(*data_)));
+      auto it = dataBuffer_.begin();
+      while( it != dataBuffer_.end() ) {
+	(*it)->setSequenceID(ev_counter());
+	frags.push_back(std::move(*it));
+	it = dataBuffer_.erase(it);
+      }
+      break;
+    }
     dataBufferMutex_.unlock();
     newDataBuffer_.clear();
     std::cout << "TriggeredFragmentGenerator: end of getNextFragment_ call, haveData_ is " << haveData_ << std::endl;
@@ -169,30 +187,11 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
   }
 
   dataBufferMutex_.lock();
-  if(haveData_) {
-    data_ = std::move(dataBuffer_.back());
-    dataBuffer_.erase(--dataBuffer_.end());
-    haveData_ = false;
-  } 
-  data_->setSequenceID(ev_counter());
-
-  switch(mode_) {
-  case TriggeredFragmentGeneratorMode::TriggerOnly:
-  case TriggeredFragmentGeneratorMode::TriggerOrData:
-  default:
-    frags.emplace_back(FragmentPtr(new Fragment(*data_)));
-    break;
-  case TriggeredFragmentGeneratorMode::BufferedTriggered:
-    dataBuffer_.emplace_back(FragmentPtr(new Fragment(*data_)));
-    auto it = dataBuffer_.begin();
-    while( it != dataBuffer_.end() ) {
-      (*it)->setSequenceID(ev_counter());
-      frags.push_back(std::move(*it));
-      it = dataBuffer_.erase(it);
-    }
-    break;
+  for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
+  {
+    (*it)->setSequenceID(ev_counter());
+    frags.emplace_back(FragmentPtr(new Fragment(*it)));
   }
-  dataBuffer_.clear();
   dataBufferMutex_.unlock();
 
   ev_counter_inc();
