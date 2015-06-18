@@ -153,7 +153,7 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
         TriggerPacket buffer;
         recv(triggersocket_, &buffer, sizeof(buffer), 0);
 	std::cout << "Trigger header word: 0x" << std::hex << (int)buffer.header << std::dec << std::endl;
-        if(buffer.header == 0x54524947 && buffer.fragment_ID >= ev_counter())
+        if(buffer.header == 0x54524947 && buffer.fragment_ID >= ev_counter() && buffer.fragment_ID < ev_counter() + 100)
 	{
             int delta = buffer.fragment_ID - ev_counter() + 1;
 	    mf::LogDebug("TriggeredFragmentGenerator") << "Recieved trigger for fragment_ID " << buffer.fragment_ID << " (delta: " << delta << ")";
@@ -184,6 +184,7 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
     (*it)->setSequenceID(ev_counter());
     frags.emplace_back(FragmentPtr(new Fragment(*(*it))));
   }
+  haveData_ = false;
   dataBufferMutex_.unlock();
 
   ev_counter_inc();
