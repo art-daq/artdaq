@@ -1,4 +1,6 @@
-include_directories(${MPI_INCLUDE_PATH})
+include_directories(${MPI_INCLUDE_PATH} $ENV{NDDSHOME}/include $ENV{NDDSHOME}/include/ndds )
+
+set( ARCH "x64Linux2.6gcc4.4.5" ) # Needed for RTI-DDS
 
 art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   SOURCE
@@ -21,6 +23,9 @@ art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   ${XMLRPC_CLIENTPP}
   ${XMLRPCPP}
   ${TRACE}
+  $ENV{NDDSHOME}/lib/${ARCH}/libnddscpp.so
+  $ENV{NDDSHOME}/lib/${ARCH}/libnddsc.so
+  $ENV{NDDSHOME}/lib/${ARCH}/libnddscore.so
 )
 
 art_make_exec(EventBuilderMain

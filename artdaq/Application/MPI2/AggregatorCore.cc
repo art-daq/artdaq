@@ -15,6 +15,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>    
+
 namespace BFS = boost::filesystem;
 
 const std::string artdaq::AggregatorCore::INPUT_EVENTS_STAT_KEY("AggregatorCoreInputEvents");
@@ -22,6 +23,7 @@ const std::string artdaq::AggregatorCore::INPUT_WAIT_STAT_KEY("AggregatorCoreInp
 const std::string artdaq::AggregatorCore::STORE_EVENT_WAIT_STAT_KEY("AggregatorCoreStoreEventWaitTime");
 const std::string artdaq::AggregatorCore::SHM_COPY_TIME_STAT_KEY("AggregatorCoreShmCopyTime");
 const std::string artdaq::AggregatorCore::FILE_CHECK_TIME_STAT_KEY("AggregatorCoreFileCheckTime");
+
 
 /**
  * Constructor.
@@ -34,7 +36,8 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   stop_requested_(false), local_pause_requested_(false),
   processing_fragments_(false),
   system_pause_requested_(false), previous_run_duration_(-1.0),
-  shm_segment_id_(-1), shm_ptr_(NULL)
+  shm_segment_id_(-1), shm_ptr_(NULL),
+  participant_(nullptr, participantDeleter)
 {
   mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
@@ -268,6 +271,57 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
         << "has been configured.";
       return false;
     }
+  }
+
+
+  participant_.reset( DDSDomainParticipantFactory::get_instance()->
+		      create_participant(
+					 0,                              // Domain ID 
+					 DDS_PARTICIPANT_QOS_DEFAULT,    // QoS 
+					 nullptr,                           // Listener
+					 DDS_STATUS_MASK_NONE)
+		      );
+
+  topic_ = participant_->create_topic(
+				      "Meaningless sentence",                        // Topic name
+				      DDSStringTypeSupport::get_type_name(), // Type name
+				      DDS_TOPIC_QOS_DEFAULT,                 // Topic QoS
+				      nullptr,                                  // Listener 
+				      DDS_STATUS_MASK_NONE) ;
+
+  if (participant_ == nullptr || 
+      topic_ == nullptr) {
+    mf::LogWarning(name_) << "Problem setting up the RTI-DDS participant and/or topic";
+  }
+
+  if (is_data_logger_) {
+	
+    writer_ = participant_->create_datawriter(
+					      topic_,
+					      DDS_DATAWRITER_QOS_DEFAULT,     // QoS
+					      nullptr,                           // Listener
+					      DDS_STATUS_MASK_NONE) ;
+
+    string_writer_ = DDSStringDataWriter::narrow(writer_);
+
+
+    if (writer_ == nullptr ||
+	string_writer_ == nullptr) {
+      mf::LogWarning(name_) << "Problem setting up the RTI-DDS writer objects";
+    }
+
+  } else {
+
+    reader_ = participant_->create_datareader(
+					      topic_,
+					      DDS_DATAREADER_QOS_DEFAULT,    // QoS 
+					      &string_listener_,                      // Listener 
+					      DDS_DATA_AVAILABLE_STATUS);
+
+    if (reader_ == nullptr) {
+      mf::LogWarning(name_) << "Problem setting up the RTI-DDS reader objects";
+    }
+
   }
 
   return true;
@@ -545,6 +599,12 @@ size_t artdaq::AggregatorCore::process_fragments()
       copyFragmentToSharedMemory_(fragmentWasCopied,
                                   esrWasCopied, eodWasCopied,
                                   *fragmentPtr, 0);
+
+      DDS_ReturnCode_t retcode = string_writer_->write( "The quick brown fox jumped over something",
+							DDS_HANDLE_NIL);
+      if (retcode != DDS_RETCODE_OK) {
+	mf::LogWarning(name_) << "Problem writing RTI-DDS string";
+      }
     }
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
@@ -1213,3 +1273,66 @@ void artdaq::AggregatorCore::detachFromSharedMemory_(bool destroy)
     shmctl(shm_segment_id_, IPC_RMID, NULL);
   }
 }
+
+void artdaq::AggregatorCore::participantDeleter(DDSDomainParticipant* participant) {
+
+  DDS_ReturnCode_t retcode = static_cast<DDS_ReturnCode_t>(0);
+
+  if (participant != NULL) {
+
+    retcode = participant->delete_contained_entities();
+
+    if (retcode != DDS_RETCODE_OK) {
+      mf::LogWarning("AggregatorCore") << "Deletion of DDSDomainParticipant object failed.";
+    }
+
+    retcode = DDSDomainParticipantFactory::get_instance()->
+      delete_participant(participant);
+
+    if (retcode != DDS_RETCODE_OK) {
+      mf::LogWarning("AggregatorCore") << "Deletion of DDSDomainParticipant object failed.";
+    }
+  }
+
+}
+
+// This method gets called back by DDS when one or more data samples have been                           
+// received.                                                                                             
+ 
+void artdaq::StringListener::on_data_available(DDSDataReader *reader) {
+  DDSStringDataReader * string_reader = NULL;
+  char                  sample[1000];
+  DDS_SampleInfo        info;
+  DDS_ReturnCode_t      retcode;
+
+  // Perform a safe type-cast from a generic data reader into a                                        
+  // specific data reader for the type "DDS::String"                                                   
+
+  string_reader = DDSStringDataReader::narrow(reader);
+  if (string_reader == nullptr) {
+    
+    mf::LogError("StringListener") << "Error: Very unexpected - DDSStringDataReader::narrow failed";
+    return;
+  }
+
+  // Loop until there are messages available in the queue 
+  char *ptr_sample = &sample[0];
+  for(;;) {
+    retcode = string_reader->take_next_sample(
+					      ptr_sample,
+					      info);
+    if (retcode == DDS_RETCODE_NO_DATA) {
+      // No more samples 
+      break;
+    } else if (retcode != DDS_RETCODE_OK) {
+      mf::LogWarning("StringListener") << "Unable to take data from data reader, error "
+				      << retcode;
+      return;
+    }
+    if (info.valid_data) {
+      // Valid (this isn't just a lifecycle sample): print it                                      
+      mf::LogInfo("StringListener") << sample;
+    }
+  }
+}
+

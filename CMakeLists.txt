@@ -33,10 +33,13 @@ cet_cmake_env()
 cet_set_compiler_flags(DIAGS VIGILANT
   WERROR
   NO_UNDEFINED
-  EXTRA_FLAGS -pedantic
+  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64
 )
 
 cet_report_compiler_flags()
+
+# JCF, 7/8/15 - not sure this is actually doing anything...
+SET( CMAKE_EXE_LINKER_FLAGS_${BTYPE_UC}  " -m64 -static-libgcc")
 
 # these are minimum required versions, not the actual product versions
 find_ups_boost(v1_53_0)
