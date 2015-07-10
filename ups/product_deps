@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v1_12_10
+parent artdaq  v1_12_11
 defaultqual    e7:s11:eth
 
 # These optional lines define the installed directories where
@@ -17,22 +17,24 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-artdaq_core 		v1_04_13
+artdaq_core 		v1_04_16
 mvapich2		v1_9_0
 mpich			v3_1_2a
 xmlrpc_c		v1_25_30a
 TRACE			v3_05_00
-cetbuildtools		v4_10_02	-	only_for_build
+cetbuildtools		v4_12_05	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
 end_product_list
 
 # e6 - with gcc 4.9.1 and -std=c++1y
 # e7 - with gcc 4.9.2 and -std=c++1y
-# s6 - with art v1_12_05
 # s7 - with art v1_13_01
 # s8 - with art v1_13_02
 # s9 - with art v1_14_00
 # s11 - with art v1_14_02
+# s12 - with art v1_14_03
+# s13 - with art v1_15_00
+# s14 - with art v1_15_01
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		artdaq_core		mvapich2	mpich		xmlrpc_c	TRACE	notes
