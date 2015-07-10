@@ -38,7 +38,7 @@ namespace artdaq {
     ~GraphiteMetric() { stopMetrics(); }
     virtual std::string getLibName() { return "graphite"; }
 
-    virtual void sendMetric(std::string name, std::string value, std::string unit ) 
+    virtual void sendMetric_(std::string name, std::string value, std::string unit ) 
     {
       if(!stopped_) {
         std::string unitWarn = unit;
@@ -53,23 +53,23 @@ namespace artdaq {
         boost::asio::write(socket_, data);
       }
     }
-    virtual void sendMetric(std::string name, int value, std::string unit ) 
+    virtual void sendMetric_(std::string name, int value, std::string unit ) 
     { 
       sendMetric(name, std::to_string(value), unit);
     }
-    virtual void sendMetric(std::string name, double value, std::string unit ) 
+    virtual void sendMetric_(std::string name, double value, std::string unit ) 
     { 
       sendMetric(name, std::to_string(value), unit);
     }
-    virtual void sendMetric(std::string name, float value, std::string unit ) 
+    virtual void sendMetric_(std::string name, float value, std::string unit ) 
     {
       sendMetric(name, std::to_string(value), unit);
     }
-    virtual void sendMetric(std::string name, unsigned long int value, std::string unit ) 
+    virtual void sendMetric_(std::string name, unsigned long int value, std::string unit ) 
     { 
       sendMetric(name, std::to_string(value), unit);
     }
-    virtual void startMetrics() {
+    virtual void startMetrics_() {
       if(stopped_)
       {
         tcp::resolver resolver(io_service_);
@@ -78,7 +78,7 @@ namespace artdaq {
         stopped_ = false;
       }
     }
-    virtual void stopMetrics() {
+    virtual void stopMetrics_() {
       if(!stopped_)
       {
         socket_.shutdown(boost::asio::socket_base::shutdown_send);

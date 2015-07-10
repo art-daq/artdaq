@@ -48,52 +48,62 @@ namespace artdaq {
           }
         }
       }
+      openFile_();
       startMetrics();
     }
     ~FileMetric() {
       stopMetrics();
+      closeFile_();
     }
     virtual std::string getLibName() { return "file"; }
-    virtual void sendMetric(std::string name, std::string value, std::string unit ) 
+    virtual void sendMetric_(std::string name, std::string value, std::string unit ) 
     {
       if(!stopped_) {
         const std::time_t result = std::time(NULL);
         outputStream_ << std::ctime(&result) << "FileMetric: " << name << ": " << value << " " << unit << "." << std::endl;
       }
     }
-    virtual void sendMetric(std::string name, int value, std::string unit ) 
+    virtual void sendMetric_(std::string name, int value, std::string unit ) 
     { 
       sendMetric(name, std::to_string(value), unit);
     }
-    virtual void sendMetric(std::string name, double value, std::string unit ) 
+    virtual void sendMetric_(std::string name, double value, std::string unit ) 
     { 
       sendMetric(name, std::to_string(value), unit);
     }
-    virtual void sendMetric(std::string name, float value, std::string unit ) 
+    virtual void sendMetric_(std::string name, float value, std::string unit ) 
     {
       sendMetric(name, std::to_string(value), unit);
     }
-    virtual void sendMetric(std::string name, unsigned long int value, std::string unit ) 
+    virtual void sendMetric_(std::string name, unsigned long int value, std::string unit ) 
     { 
       sendMetric(name, std::to_string(value), unit);
     }
-    virtual void startMetrics()
+    virtual void startMetrics_()
     {
-      if(stopped_)
-      {
+      stopped_ = false;
+      const std::time_t result = std::time(NULL);
+      outputStream_ << std::ctime(&result) << "FileMetric plugin started." << std::endl;
+    }
+    virtual void stopMetrics_()
+    {
+      stopped_ = true;
+      const std::time_t result = std::time(NULL);
+      outputStream_ << std::ctime(&result) << "FileMetric plugin has been stopped!" << std::endl;
+    }
+  private:
+    void openFile_()
+    {
         outputStream_.open(outputFile_.c_str(),mode_);
         const std::time_t result = std::time(NULL);
-        outputStream_ << std::ctime(&result) << "FileMetric plugin started." << std::endl;
-        stopped_ = false;
-      }
+	outputStream_ << std::ctime(&result) << "FileMetric plugin file opened." << std::endl;
+
     }
-    virtual void stopMetrics()
+    void closeFile_()
     {
-      if(!stopped_) {
         const std::time_t result = std::time(NULL);
-        outputStream_ << std::ctime(&result) << "FileMetric plugin has been stopped!" << std::endl;
+	outputStream_ << std::ctime(&result) << "FileMetric closing file stream." << std::endl;
         outputStream_.close();
-      }
     }
   };
 
