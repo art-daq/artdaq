@@ -154,12 +154,19 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   fhicl::ParameterSet metric_pset;
   try {
     metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+  } catch (...) {} // OK if there's no metrics table defined in the FHiCL
+
+  if (metric_pset.is_empty()) {
+    mf::LogInfo(name_) << "No metric plugins appear to be defined";
+  } else {
+    try {
+      metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+    } catch (...) {
+      ExceptionHandler(ExceptionHandlerRethrow::no, 
+		       "Error loading metrics in EventBuilderCore::initialize()");
+    }
   }
-  catch (...) {
-    //Okay if no metrics have been defined...
-    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
-  }
+
   FRAGMENT_COUNT_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Count";
   FRAGMENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Rate";
   FRAGMENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Fragment Size";

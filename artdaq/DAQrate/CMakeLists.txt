@@ -17,6 +17,7 @@ art_make(BASENAME_ONLY
   artdaq_Plugins
   artdaq-core_Core
   artdaq-core_Data
+  artdaq-core_Utilities
   ${FHICLCPP}
   ${MF_MESSAGELOGGER}
   ${MF_UTILITIES}

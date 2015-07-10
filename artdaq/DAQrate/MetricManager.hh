@@ -9,10 +9,12 @@
 // and sends them data as it is recieved. It also maintains the state of the plugins
 // relative to the application state.
 
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Plugins/MetricPlugin.hh"
 #include "fhiclcpp/fwd.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <sstream>
 
 namespace artdaq
 {
@@ -36,7 +38,7 @@ public:
   void shutdown();
 
   template<typename T>
-  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool applyPrefix = true)
+  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool applyPrefix = true, bool accumulate = true)
   {
     if(initialized_ && running_)
     {
@@ -48,11 +50,14 @@ public:
       {
         if(metric->getRunLevel() >= level) {
           try{
-            metric->sendMetric(nameTemp, value, unit);
+            metric->sendMetric(nameTemp, value, unit, accumulate);
           }
           catch (...) {
-            mf::LogWarning("MetricManager") << "Error sending value to metric plugin with name "
-                                            << metric->getLibName();
+	    std::stringstream errorstream;
+	    errorstream << 
+	      "Error in MetricManager::sendMetric: error sending value to metric plugin with name "
+			<< metric->getLibName();
+	    ExceptionHandler(ExceptionHandlerRethrow::no, errorstream.str());
           }
         }
       }

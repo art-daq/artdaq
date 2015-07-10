@@ -10,6 +10,12 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <errno.h>
+#include <cstring>
+
 #include "art/Persistency/Provenance/RunID.h"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -477,7 +483,58 @@ void xmlrpc_commander::run() try {
  
 #undef register_method
 
-  xmlrpc_c::serverAbyss server(xmlrpc_c::serverAbyss::constrOpt ().registryP (&registry).portNumber (_port));
+  // JCF, 6/3/15
+
+  // In the following code, I configure a socket to have the
+  // SO_REUSEADDR option so that once an artdaq process closes, the
+  // port it was communicating on becomes immediately available
+  // (desirable if, say, the DAQ program is terminated and then
+  // immediately restarted)
+
+  // Much of the following code is cribbed from
+  // http://fossies.org/linux/freeswitch/libs/xmlrpc-c/src/cpp/test/server_abyss.cpp
+
+  // Below, "0" is the default protocol (in this case, given the IPv4
+  // Protocol Family (PF_INET) and the SOCK_STREAM communication
+  // method)
+
+  XMLRPC_SOCKET socket_file_descriptor = socket(PF_INET, SOCK_STREAM, 0); 
+
+  if (socket_file_descriptor < 0) {
+    throw cet::exception("xmlrpc_commander::run") << 
+      "Problem with the socket() call; C-style errno == " << 
+      errno << " (" << strerror(errno) << ")";
+  }
+
+  int enable = 1;
+  int retval = setsockopt(socket_file_descriptor, 
+			  SOL_SOCKET, SO_REUSEADDR, 
+			  &enable, sizeof(int));
+
+  if (retval < 0) {
+    throw cet::exception("xmlrpc_commander::run") << 
+      "Problem with the call to setsockopt(); C-style errno == " << 
+      errno << " (" << strerror(errno) << ")";
+  }
+
+  struct sockaddr_in sockAddr;
+   
+  sockAddr.sin_family = AF_INET;
+  sockAddr.sin_port   = htons(_port);
+  sockAddr.sin_addr.s_addr = 0;
+   
+  retval = bind(socket_file_descriptor, 
+		reinterpret_cast<struct sockaddr*>(&sockAddr), 
+		sizeof(sockAddr));
+
+  if (retval != 0) {
+    close(socket_file_descriptor);
+    throw cet::exception("xmlrpc_commander::run") << 
+      "Problem with the bind() call; C-style errno == " << 
+      errno << " (" << strerror(errno) << ")";
+  }
+
+  xmlrpc_c::serverAbyss server(xmlrpc_c::serverAbyss::constrOpt ().registryP (&registry).socketFd(socket_file_descriptor));
 
 #if 0
   shutdown_ shutdown_obj(&server);
@@ -486,10 +543,26 @@ void xmlrpc_commander::run() try {
 
   mf::LogDebug ("XMLRPC_Commander") << "running server" << std::endl;
 
-  server.run();
+  // JCF, 6/3/15
 
+  // Use a catch block to clean up (i.e., close the socket). An
+  // opportunity for RAII, although all control paths are limited to
+  // this section of the file...
+
+  try {
+    server.run();
+  } catch (...) {
+    mf::LogWarning ("XMLRPC_Commander") << "server threw an exception; closing the socket and rethrowing" << std::endl;
+    close(socket_file_descriptor);
+    throw;
+  }
+
+  close(socket_file_descriptor);
   mf::LogDebug ("XMLRPC_Commander") << "server terminated" << std::endl;
 
+
+
 } catch (...) {
+  
   throw;
 }
