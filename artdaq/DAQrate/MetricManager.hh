@@ -38,7 +38,7 @@ public:
   void shutdown();
 
   template<typename T>
-  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool applyPrefix = true)
+  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool applyPrefix = true, bool accumulate = true)
   {
     if(initialized_ && running_)
     {
@@ -50,7 +50,7 @@ public:
       {
         if(metric->getRunLevel() >= level) {
           try{
-            metric->sendMetric(nameTemp, value, unit);
+            metric->sendMetric(nameTemp, value, unit, accumulate);
           }
           catch (...) {
 	    std::stringstream errorstream;
