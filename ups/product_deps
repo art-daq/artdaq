@@ -24,7 +24,7 @@ xmlrpc_c		v1_25_30a
 TRACE			v3_05_00
 cetbuildtools		v4_12_05	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
-artdaq_ganglia_plugin   v1_0_6          -       optional
+artdaq_ganglia_plugin   v1_0_7          -       optional
 end_product_list
 
 # e6 - with gcc 4.9.1 and -std=c++1y
