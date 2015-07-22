@@ -62,16 +62,19 @@ namespace artdaq {
     }
     virtual void sendMetric(std::string name, int value, std::string unit, bool accumulate = true)
     {
-      if(!accumulate) { 
-	sendMetric_(name, value, unit);
-	if(intAccumulator_.count(name) > 0) {
-	  intAccumulator_[name].clear();
-        }
-	return;
-      }
-  
+      // 22-Jul-2015, KAB - moved push_back here so that we always get the name
+      // added to the map, even if accumulate is false. This helps ensure that a
+      // zero is sent at stop time.
       intAccumulator_[name].push_back(value);
 
+      if(!accumulate) { 
+        sendMetric_(name, value, unit);
+        intAccumulator_[name].clear();
+        struct tms ctime;
+        lastSendTime_[name] = times(&ctime);
+        return;
+      }
+  
       clock_t thisSendTime = 0;
       double deltaT = _timeSinceLastSend(thisSendTime, name);
       if(deltaT >= accumulationTime_)
@@ -90,15 +93,18 @@ namespace artdaq {
     }
     virtual void sendMetric(std::string name, double value, std::string unit, bool accumulate = true)
     {
-      if(!accumulate) { 
-	sendMetric_(name, value, unit);
-	if(doubleAccumulator_.count(name) > 0) {
-	  doubleAccumulator_[name].clear();
-        }
-	return;
-      }
-
+      // 22-Jul-2015, KAB - moved push_back here so that we always get the name
+      // added to the map, even if accumulate is false. This helps ensure that a
+      // zero is sent at stop time.
       doubleAccumulator_[name].push_back(value);
+
+      if(!accumulate) { 
+        sendMetric_(name, value, unit);
+        doubleAccumulator_[name].clear();
+        struct tms ctime;
+        lastSendTime_[name] = times(&ctime);
+        return;
+      }
 
       clock_t thisSendTime = 0;
       double deltaT = _timeSinceLastSend(thisSendTime, name);
@@ -118,15 +124,18 @@ namespace artdaq {
     }
     virtual void sendMetric(std::string name, float value, std::string unit, bool accumulate = true)
     {
-      if(!accumulate) { 
-	sendMetric_(name, value, unit);
-	if(floatAccumulator_.count(name) > 0) {
-	  floatAccumulator_[name].clear();
-        }
-	return;
-      }
-
+      // 22-Jul-2015, KAB - moved push_back here so that we always get the name
+      // added to the map, even if accumulate is false. This helps ensure that a
+      // zero is sent at stop time.
       floatAccumulator_[name].push_back(value);
+
+      if(!accumulate) { 
+        sendMetric_(name, value, unit);
+        floatAccumulator_[name].clear();
+        struct tms ctime;
+        lastSendTime_[name] = times(&ctime);
+        return;
+      }
 
       clock_t thisSendTime = 0;
       double deltaT = _timeSinceLastSend(thisSendTime, name);
@@ -146,16 +155,19 @@ namespace artdaq {
     }
     virtual void sendMetric(std::string name, long unsigned int value, std::string unit, bool accumulate = true)
     {
-      if(!accumulate) { 
-	sendMetric_(name, value, unit);
-	if(uintAccumulator_.count(name) > 0) {
-	  uintAccumulator_[name].clear();
-        }
-	return;
-      }
-
+      // 22-Jul-2015, KAB - moved push_back here so that we always get the name
+      // added to the map, even if accumulate is false. This helps ensure that a
+      // zero is sent at stop time.
       uint32_t uvalue = static_cast<uint32_t>(value);
       uintAccumulator_[name].push_back(uvalue);
+
+      if(!accumulate) { 
+        sendMetric_(name, value, unit);
+        uintAccumulator_[name].clear();
+        struct tms ctime;
+        lastSendTime_[name] = times(&ctime);
+        return;
+      }
 
       clock_t thisSendTime = 0;
       double deltaT = _timeSinceLastSend(thisSendTime, name);
@@ -183,25 +195,29 @@ namespace artdaq {
 	{
 	  static_cast<std::vector<double>>(dv.second).clear();
 	  lastSendTime_[dv.first] = CLOCKS_PER_SEC * (accumulationTime_ + 1);
-	  sendMetric(dv.first,0,"");
+          // 22-Jul-2015, KAB - added cast to get correct call and false to get immediate zero
+	  sendMetric(dv.first,(double)0.0,"",false);
 	}
       for(auto iv : intAccumulator_)
 	{
 	  static_cast<std::vector<int>>(iv.second).clear();
 	  lastSendTime_[iv.first] = CLOCKS_PER_SEC * (accumulationTime_ + 1);
-	  sendMetric(iv.first,0,"");
+          // 22-Jul-2015, KAB - added cast to get correct call and false to get immediate zero
+	  sendMetric(iv.first,(int)0,"",false);
 	}
       for(auto fv : floatAccumulator_)
 	{
 	  static_cast<std::vector<float>>(fv.second).clear();
 	  lastSendTime_[fv.first] = CLOCKS_PER_SEC * (accumulationTime_ + 1);
-	  sendMetric(fv.first,0,"");
+          // 22-Jul-2015, KAB - added cast to get correct call and false to get immediate zero
+	  sendMetric(fv.first,(float)0.0,"",false);
 	}
       for(auto uv : uintAccumulator_)
 	{
 	  static_cast<std::vector<uint32_t>>(uv.second).clear();
 	  lastSendTime_[uv.first] = CLOCKS_PER_SEC * (accumulationTime_ + 1);
-	  sendMetric(uv.first,0,"");
+          // 22-Jul-2015, KAB - added cast to get correct call and false to get immediate zero
+	  sendMetric(uv.first,(long unsigned int)0,"",false);
 	}
       stopMetrics_();
     }
