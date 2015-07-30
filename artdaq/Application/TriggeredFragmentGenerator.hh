@@ -88,4 +88,4 @@ namespace artdaq {
   };
 }
 
-#endif /* artdaq_demo_Generators_ToySimulator_hh */
+#endif /* artdaq_Application_TriggeredFragmentGenerator_hh */
