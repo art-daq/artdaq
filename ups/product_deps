@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v1_12_11
-defaultqual    e7:s11:eth
+parent artdaq  v1_12_12
+defaultqual    e7:s15:eth
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -17,196 +17,97 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-artdaq_core 		v1_04_16
+artdaq_core 		v1_04_17
+artdaq_utilities        v1_00_00
 mvapich2		v1_9_0
-mpich			v3_1_2a
-xmlrpc_c		v1_25_30a
+mpich			v3_1_4
+xmlrpc_c		v1_33_16
 TRACE			v3_05_00
-cetbuildtools		v4_12_05	-	only_for_build
+cetbuildtools		v4_12_06	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
-artdaq_ganglia_plugin   v1_0_6          -       optional
+artdaq_ganglia_plugin   v1_0_8          -       optional
 end_product_list
 
 # e6 - with gcc 4.9.1 and -std=c++1y
 # e7 - with gcc 4.9.2 and -std=c++1y
-# s7 - with art v1_13_01
 # s8 - with art v1_13_02
-# s9 - with art v1_14_00
 # s11 - with art v1_14_02
-# s12 - with art v1_14_03
-# s13 - with art v1_15_00
-# s14 - with art v1_15_01
+# s15 - with art v1_15_02
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
-qualifier		artdaq_core		mvapich2	mpich		xmlrpc_c	TRACE	artdaq_ganglia_plugin	notes
-e7:s14:ib:debug		e7:s14:debug		-nq-		-		e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s14:ib:prof		e7:s14:prof		-nq-		-		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s14:eth:debug	e7:s14:debug		-		e7:debug	e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s14:eth:prof		e7:s14:prof		-		e7:prof		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s13:ib:debug		e7:s13:debug		-nq-		-		e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s13:ib:prof		e7:s13:prof		-nq-		-		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s13:eth:debug	e7:s13:debug		-		e7:debug	e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s13:eth:prof		e7:s13:prof		-		e7:prof		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s12:ib:debug		e7:s12:debug		-nq-		-		e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s12:ib:prof		e7:s12:prof		-nq-		-		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s12:eth:debug	e7:s12:debug		-		e7:debug	e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s12:eth:prof		e7:s12:prof		-		e7:prof		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s11:ib:debug		e7:s11:debug		-nq-		-		e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s11:ib:prof		e7:s11:prof		-nq-		-		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s11:eth:debug	e7:s11:debug		-		e7:debug	e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s11:eth:prof		e7:s11:prof		-		e7:prof		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s10:ib:debug		e7:s10:debug		-nq-		-		e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s10:ib:prof		e7:s10:prof		-nq-		-		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s10:eth:debug	e7:s10:debug		-		e7:debug	e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s10:eth:prof		e7:s10:prof		-		e7:prof		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s8:ib:debug		e7:s8:debug		-nq-		-		e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s8:ib:prof		e7:s8:prof		-nq-		-		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s8:eth:debug		e7:s8:debug		-		e7:debug	e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s8:eth:prof		e7:s8:prof		-		e7:prof		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s7:ib:debug		e7:s7:debug		-nq-		-		e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s7:ib:prof		e7:s7:prof		-nq-		-		e7:prof		e7	e7:g371:prof	-std=c++1y
-e7:s7:eth:debug		e7:s7:debug		-		e7:debug	e7:debug	e7	e7:g371:debug	-std=c++1y
-e7:s7:eth:prof		e7:s7:prof		-		e7:prof		e7:prof		e7	e7:g371:prof	-std=c++1y
-e6:s14:ib:debug		e6:s14:debug		-nq-		-		e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s14:ib:prof		e6:s14:prof		-nq-		-		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s14:eth:debug	e6:s14:debug		-		e6:debug	e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s14:eth:prof		e6:s14:prof		-		e6:prof		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s13:ib:debug		e6:s13:debug		-nq-		-		e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s13:ib:prof		e6:s13:prof		-nq-		-		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s13:eth:debug	e6:s13:debug		-		e6:debug	e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s13:eth:prof		e6:s13:prof		-		e6:prof		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s12:ib:debug		e6:s12:debug		-nq-		-		e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s12:ib:prof		e6:s12:prof		-nq-		-		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s12:eth:debug	e6:s12:debug		-		e6:debug	e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s12:eth:prof		e6:s12:prof		-		e6:prof		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s11:ib:debug		e6:s11:debug		-nq-		-		e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s11:ib:prof		e6:s11:prof		-nq-		-		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s11:eth:debug	e6:s11:debug		-		e6:debug	e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s11:eth:prof		e6:s11:prof		-		e6:prof		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s10:ib:debug		e6:s10:debug		-nq-		-		e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s10:ib:prof		e6:s10:prof		-nq-		-		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s10:eth:debug	e6:s10:debug		-		e6:debug	e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s10:eth:prof		e6:s10:prof		-		e6:prof		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s8:ib:debug		e6:s8:debug		-nq-		-		e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s8:ib:prof		e6:s8:prof		-nq-		-		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s8:eth:debug		e6:s8:debug		-		e6:debug	e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s8:eth:prof		e6:s8:prof		-		e6:prof		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s7:ib:debug		e6:s7:debug		-nq-		-		e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s7:ib:prof		e6:s7:prof		-nq-		-		e6:prof		e6	e6:g371:prof	-std=c++1y
-e6:s7:eth:debug		e6:s7:debug		-		e6:debug	e6:debug	e6	e6:g371:debug	-std=c++1y
-e6:s7:eth:prof		e6:s7:prof		-		e6:prof		e6:prof		e6	e6:g371:prof	-std=c++1y
-g360:e7:s14:ib:debug	e7:s14:debug		-nq-		-		e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s14:ib:prof	e7:s14:prof		-nq-		-		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s14:eth:debug	e7:s14:debug		-		e7:debug	e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s14:eth:prof	e7:s14:prof		-		e7:prof		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s13:ib:debug	e7:s13:debug		-nq-		-		e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s13:ib:prof	e7:s13:prof		-nq-		-		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s13:eth:debug	e7:s13:debug		-		e7:debug	e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s13:eth:prof	e7:s13:prof		-		e7:prof		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s12:ib:debug	e7:s12:debug		-nq-		-		e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s12:ib:prof	e7:s12:prof		-nq-		-		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s12:eth:debug	e7:s12:debug		-		e7:debug	e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s12:eth:prof	e7:s12:prof		-		e7:prof		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s11:ib:debug	e7:s11:debug		-nq-		-		e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s11:ib:prof	e7:s11:prof		-nq-		-		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s11:eth:debug	e7:s11:debug		-		e7:debug	e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s11:eth:prof	e7:s11:prof		-		e7:prof		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s10:ib:debug	e7:s10:debug		-nq-		-		e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s10:ib:prof	e7:s10:prof		-nq-		-		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s10:eth:debug	e7:s10:debug		-		e7:debug	e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s10:eth:prof	e7:s10:prof		-		e7:prof		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s8:ib:debug	e7:s8:debug		-nq-		-		e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s8:ib:prof	e7:s8:prof		-nq-		-		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s8:eth:debug	e7:s8:debug		-		e7:debug	e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s8:eth:prof	e7:s8:prof		-		e7:prof		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s7:ib:debug	e7:s7:debug		-nq-		-		e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s7:ib:prof	e7:s7:prof		-nq-		-		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e7:s7:eth:debug	e7:s7:debug		-		e7:debug	e7:debug	e7	e7:g360:debug	-std=c++1y
-g360:e7:s7:eth:prof	e7:s7:prof		-		e7:prof		e7:prof		e7	e7:g360:prof	-std=c++1y
-g360:e6:s14:ib:debug	e6:s14:debug		-nq-		-		e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s14:ib:prof	e6:s14:prof		-nq-		-		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s14:eth:debug	e6:s14:debug		-		e6:debug	e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s14:eth:prof	e6:s14:prof		-		e6:prof		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s13:ib:debug	e6:s13:debug		-nq-		-		e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s13:ib:prof	e6:s13:prof		-nq-		-		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s13:eth:debug	e6:s13:debug		-		e6:debug	e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s13:eth:prof	e6:s13:prof		-		e6:prof		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s12:ib:debug	e6:s12:debug		-nq-		-		e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s12:ib:prof	e6:s12:prof		-nq-		-		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s12:eth:debug	e6:s12:debug		-		e6:debug	e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s12:eth:prof	e6:s12:prof		-		e6:prof		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s11:ib:debug	e6:s11:debug		-nq-		-		e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s11:ib:prof	e6:s11:prof		-nq-		-		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s11:eth:debug	e6:s11:debug		-		e6:debug	e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s11:eth:prof	e6:s11:prof		-		e6:prof		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s10:ib:debug	e6:s10:debug		-nq-		-		e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s10:ib:prof	e6:s10:prof		-nq-		-		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s10:eth:debug	e6:s10:debug		-		e6:debug	e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s10:eth:prof	e6:s10:prof		-		e6:prof		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s8:ib:debug	e6:s8:debug		-nq-		-		e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s8:ib:prof	e6:s8:prof		-nq-		-		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s8:eth:debug	e6:s8:debug		-		e6:debug	e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s8:eth:prof	e6:s8:prof		-		e6:prof		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s7:ib:debug	e6:s7:debug		-nq-		-		e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s7:ib:prof	e6:s7:prof		-nq-		-		e6:prof		e6	e6:g360:prof	-std=c++1y
-g360:e6:s7:eth:debug	e6:s7:debug		-		e6:debug	e6:debug	e6	e6:g360:debug	-std=c++1y
-g360:e6:s7:eth:prof	e6:s7:prof		-		e6:prof		e6:prof		e6	e6:g360:prof	-std=c++1y
-g317:e7:s14:ib:debug	e7:s14:debug		-nq-		-		e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s14:ib:prof	e7:s14:prof		-nq-		-		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s14:eth:debug	e7:s14:debug		-		e7:debug	e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s14:eth:prof	e7:s14:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s13:ib:debug	e7:s13:debug		-nq-		-		e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s13:ib:prof	e7:s13:prof		-nq-		-		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s13:eth:debug	e7:s13:debug		-		e7:debug	e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s13:eth:prof	e7:s13:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s12:ib:debug	e7:s12:debug		-nq-		-		e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s12:ib:prof	e7:s12:prof		-nq-		-		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s12:eth:debug	e7:s12:debug		-		e7:debug	e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s12:eth:prof	e7:s12:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s11:ib:debug	e7:s11:debug		-nq-		-		e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s11:ib:prof	e7:s11:prof		-nq-		-		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s11:eth:debug	e7:s11:debug		-		e7:debug	e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s11:eth:prof	e7:s11:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s10:ib:debug	e7:s10:debug		-nq-		-		e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s10:ib:prof	e7:s10:prof		-nq-		-		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s10:eth:debug	e7:s10:debug		-		e7:debug	e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s10:eth:prof	e7:s10:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s8:ib:debug	e7:s8:debug		-nq-		-		e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s8:ib:prof	e7:s8:prof		-nq-		-		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s8:eth:debug	e7:s8:debug		-		e7:debug	e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s8:eth:prof	e7:s8:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s7:ib:debug	e7:s7:debug		-nq-		-		e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s7:ib:prof	e7:s7:prof		-nq-		-		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e7:s7:eth:debug	e7:s7:debug		-		e7:debug	e7:debug	e7	e7:g317:debug	-std=c++1y
-g317:e7:s7:eth:prof	e7:s7:prof		-		e7:prof		e7:prof		e7	e7:g317:prof	-std=c++1y
-g317:e6:s14:ib:debug	e6:s14:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s14:ib:prof	e6:s14:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s14:eth:debug	e6:s14:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s14:eth:prof	e6:s14:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s13:ib:debug	e6:s13:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s13:ib:prof	e6:s13:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s13:eth:debug	e6:s13:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s13:eth:prof	e6:s13:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s12:ib:debug	e6:s12:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s12:ib:prof	e6:s12:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s12:eth:debug	e6:s12:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s12:eth:prof	e6:s12:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s11:ib:debug	e6:s11:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s11:ib:prof	e6:s11:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s11:eth:debug	e6:s11:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s11:eth:prof	e6:s11:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s10:ib:debug	e6:s10:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s10:ib:prof	e6:s10:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s10:eth:debug	e6:s10:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s10:eth:prof	e6:s10:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s8:ib:debug	e6:s8:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s8:ib:prof	e6:s8:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s8:eth:debug	e6:s8:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s8:eth:prof	e6:s8:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s7:ib:debug	e6:s7:debug		-nq-		-		e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s7:ib:prof	e6:s7:prof		-nq-		-		e6:prof		e6	e6:g317:prof	-std=c++1y
-g317:e6:s7:eth:debug	e6:s7:debug		-		e6:debug	e6:debug	e6	e6:g317:debug	-std=c++1y
-g317:e6:s7:eth:prof	e6:s7:prof		-		e6:prof		e6:prof		e6	e6:g317:prof	-std=c++1y
+qualifier		artdaq_core    	   artdaq_utilities	mvapich2	mpich		xmlrpc_c	TRACE	artdaq_ganglia_plugin	notes
+e7:s15:ib:debug		e7:s15:debug	    e7:s15:debug	-nq-		-		e7:debug	e7	e7:g371:s15:debug	-std=c++1y
+e7:s15:ib:prof		e7:s15:prof	    e7:s15:prof		-nq-		-		e7:prof		e7	e7:g371:s15:prof	-std=c++1y
+e7:s15:eth:debug	e7:s15:debug	    e7:s15:debug	-		e7:debug	e7:debug	e7	e7:g371:s15:debug	-std=c++1y
+e7:s15:eth:prof		e7:s15:prof 	    e7:s15:prof		-		e7:prof		e7:prof		e7	e7:g371:s15:prof	-std=c++1y
+e7:s11:ib:debug		e7:s11:debug	    e7:s11:debug	-nq-		-		e7:debug	e7	e7:g371:s11:debug	-std=c++1y
+e7:s11:ib:prof		e7:s11:prof	    e7:s11:prof		-nq-		-		e7:prof		e7	e7:g371:s11:prof	-std=c++1y
+e7:s11:eth:debug	e7:s11:debug	    e7:s11:debug	-		e7:debug	e7:debug	e7	e7:g371:s11:debug	-std=c++1y
+e7:s11:eth:prof		e7:s11:prof	    e7:s11:prof		-		e7:prof		e7:prof		e7	e7:g371:s11:prof	-std=c++1y
+e7:s8:ib:debug		e7:s8:debug	    e7:s8:debug		-nq-		-		e7:debug	e7	e7:g371:s8:debug	-std=c++1y
+e7:s8:ib:prof		e7:s8:prof	    e7:s8:prof		-nq-		-		e7:prof		e7	e7:g371:s8:prof		-std=c++1y
+e7:s8:eth:debug		e7:s8:debug	    e7:s8:debug		-		e7:debug	e7:debug	e7	e7:g371:s8:debug	-std=c++1y
+e7:s8:eth:prof		e7:s8:prof	    e7:s8:prof		-		e7:prof		e7:prof		e7	e7:g371:s8:prof		-std=c++1y
+e6:s15:ib:debug		e6:s15:debug	    e6:s15:debug	-nq-		-		e6:debug	e6	e6:g371:s15:debug	-std=c++1y
+e6:s15:ib:prof		e6:s15:prof	    e6:s15:prof		-nq-		-		e6:prof		e6	e6:g371:s15:prof	-std=c++1y
+e6:s15:eth:debug	e6:s15:debug	    e6:s15:debug	-		e6:debug	e6:debug	e6	e6:g371:s15:debug	-std=c++1y
+e6:s15:eth:prof		e6:s15:prof	    e6:s15:prof		-		e6:prof		e6:prof		e6	e6:g371:s15:prof	-std=c++1y
+e6:s11:ib:debug		e6:s11:debug	    e6:s11:debug	-nq-		-		e6:debug	e6	e6:g371:s11:debug	-std=c++1y
+e6:s11:ib:prof		e6:s11:prof	    e6:s11:prof		-nq-		-		e6:prof		e6	e6:g371:s11:prof	-std=c++1y
+e6:s11:eth:debug	e6:s11:debug	    e6:s11:debug	-		e6:debug	e6:debug	e6	e6:g371:s11:debug	-std=c++1y
+e6:s11:eth:prof		e6:s11:prof	    e6:s11:prof		-		e6:prof		e6:prof		e6	e6:g371:s11:prof	-std=c++1y
+e6:s8:ib:debug		e6:s8:debug	    e6:s8:debug		-nq-		-		e6:debug	e6	e6:g371:s8:debug	-std=c++1y
+e6:s8:ib:prof		e6:s8:prof	    e6:s8:prof		-nq-		-		e6:prof		e6	e6:g371:s8:prof		-std=c++1y
+e6:s8:eth:debug		e6:s8:debug	    e6:s8:debug		-		e6:debug	e6:debug	e6	e6:g371:s8:debug	-std=c++1y
+e6:s8:eth:prof		e6:s8:prof	    e6:s8:prof		-		e6:prof		e6:prof		e6	e6:g371:s8:prof		-std=c++1y
+g360:e7:s15:ib:debug	e7:s15:debug	    e7:s15:debug	-nq-		-		e7:debug	e7	e7:g360:s15:debug	-std=c++1y
+g360:e7:s15:ib:prof	e7:s15:prof	    e7:s15:prof		-nq-		-		e7:prof		e7	e7:g360:s15:prof	-std=c++1y
+g360:e7:s15:eth:debug	e7:s15:debug	    e7:s15:debug	-		e7:debug	e7:debug	e7	e7:g360:s15:debug	-std=c++1y
+g360:e7:s15:eth:prof	e7:s15:prof	    e7:s15:prof		-		e7:prof		e7:prof		e7	e7:g360:s15:prof	-std=c++1y
+g360:e7:s11:ib:debug	e7:s11:debug	    e7:s11:debug	-nq-		-		e7:debug	e7	e7:g360:s11:debug	-std=c++1y
+g360:e7:s11:ib:prof	e7:s11:prof	    e7:s11:prof		-nq-		-		e7:prof		e7	e7:g360:s11:prof	-std=c++1y
+g360:e7:s11:eth:debug	e7:s11:debug	    e7:s11:debug	-		e7:debug	e7:debug	e7	e7:g360:s11:debug	-std=c++1y
+g360:e7:s11:eth:prof	e7:s11:prof	    e7:s11:prof		-		e7:prof		e7:prof		e7	e7:g360:s11:prof	-std=c++1y
+g360:e7:s8:ib:debug	e7:s8:debug	    e7:s8:debug		-nq-		-		e7:debug	e7	e7:g360:s8:debug	-std=c++1y
+g360:e7:s8:ib:prof	e7:s8:prof	    e7:s8:prof		-nq-		-		e7:prof		e7	e7:g360:s8:prof		-std=c++1y
+g360:e7:s8:eth:debug	e7:s8:debug	    e7:s8:debug		-		e7:debug	e7:debug	e7	e7:g360:s8:debug	-std=c++1y
+g360:e7:s8:eth:prof	e7:s8:prof	    e7:s8:prof		-		e7:prof		e7:prof		e7	e7:g360:s8:prof		-std=c++1y
+g360:e6:s15:ib:debug	e6:s15:debug	    e6:s15:debug	-nq-		-		e6:debug	e6	e6:g360:s15:debug	-std=c++1y
+g360:e6:s15:ib:prof	e6:s15:prof	    e6:s15:prof		-nq-		-		e6:prof		e6	e6:g360:s15:prof	-std=c++1y
+g360:e6:s15:eth:debug	e6:s15:debug	    e6:s15:debug	-		e6:debug	e6:debug	e6	e6:g360:s15:debug	-std=c++1y
+g360:e6:s15:eth:prof	e6:s15:prof	    e6:s15:prof		-		e6:prof		e6:prof		e6	e6:g360:s15:prof	-std=c++1y
+g360:e6:s11:ib:debug	e6:s11:debug	    e6:s11:debug	-nq-		-		e6:debug	e6	e6:g360:s11:debug	-std=c++1y
+g360:e6:s11:ib:prof	e6:s11:prof	    e6:s11:prof		-nq-		-		e6:prof		e6	e6:g360:s11:prof	-std=c++1y
+g360:e6:s11:eth:debug	e6:s11:debug	    e6:s11:debug	-		e6:debug	e6:debug	e6	e6:g360:s11:debug	-std=c++1y
+g360:e6:s11:eth:prof	e6:s11:prof	    e6:s11:prof		-		e6:prof		e6:prof		e6	e6:g360:s11:prof	-std=c++1y
+g360:e6:s8:ib:debug	e6:s8:debug	    e6:s8:debug		-nq-		-		e6:debug	e6	e6:g360:s8:debug	-std=c++1y
+g360:e6:s8:ib:prof	e6:s8:prof	    e6:s8:prof		-nq-		-		e6:prof		e6	e6:g360:s8:prof		-std=c++1y
+g360:e6:s8:eth:debug	e6:s8:debug	    e6:s8:debug		-		e6:debug	e6:debug	e6	e6:g360:s8:debug	-std=c++1y
+g360:e6:s8:eth:prof	e6:s8:prof	    e6:s8:prof		-		e6:prof		e6:prof		e6	e6:g360:s8:prof		-std=c++1y
+g317:e7:s15:ib:debug	e7:s15:debug	    e7:s15:debug	-nq-		-		e7:debug	e7	e7:g317:s15:debug	-std=c++1y
+g317:e7:s15:ib:prof	e7:s15:prof	    e7:s15:prof		-nq-		-		e7:prof		e7	e7:g317:s15:prof	-std=c++1y
+g317:e7:s15:eth:debug	e7:s15:debu	    e7:s15:debugg	-		e7:debug	e7:debug	e7	e7:g317:s15:debug	-std=c++1y
+g317:e7:s15:eth:prof	e7:s15:prof	    e7:s15:prof		-		e7:prof		e7:prof		e7	e7:g317:s15:prof	-std=c++1y
+g317:e7:s11:ib:debug	e7:s11:debug	    e7:s11:debug	-nq-		-		e7:debug	e7	e7:g317:s11:debug	-std=c++1y
+g317:e7:s11:ib:prof	e7:s11:prof	    e7:s11:prof		-nq-		-		e7:prof		e7	e7:g317:s11:prof	-std=c++1y
+g317:e7:s11:eth:debug	e7:s11:debug	    e7:s11:debug	-		e7:debug	e7:debug	e7	e7:g317:s11:debug	-std=c++1y
+g317:e7:s11:eth:prof	e7:s11:prof	    e7:s11:prof		-		e7:prof		e7:prof		e7	e7:g317:s11:prof	-std=c++1y
+g317:e7:s8:ib:debug	e7:s8:debug	    e7:s8:debug		-nq-		-		e7:debug	e7	e7:g317:s8:debug	-std=c++1y
+g317:e7:s8:ib:prof	e7:s8:prof	    e7:s8:prof		-nq-		-		e7:prof		e7	e7:g317:s8:prof		-std=c++1y
+g317:e7:s8:eth:debug	e7:s8:debug	    e7:s8:debug		-		e7:debug	e7:debug	e7	e7:g317:s8:debug	-std=c++1y
+g317:e7:s8:eth:prof	e7:s8:prof	    e7:s8:prof		-		e7:prof		e7:prof		e7	e7:g317:s8:prof		-std=c++1y
+g317:e6:s15:ib:debug	e6:s15:debug	    e6:s15:debug	-nq-		-		e6:debug	e6	e6:g317:s15:debug	-std=c++1y
+g317:e6:s15:ib:prof	e6:s15:prof	    e6:s15:prof		-nq-		-		e6:prof		e6	e6:g317:s15:prof	-std=c++1y
+g317:e6:s15:eth:debug	e6:s15:debug	    e6:s15:debug	-		e6:debug	e6:debug	e6	e6:g317:s15:debug	-std=c++1y
+g317:e6:s15:eth:prof	e6:s15:prof	    e6:s15:prof		-		e6:prof		e6:prof		e6	e6:g317:s15:prof	-std=c++1y
+g317:e6:s11:ib:debug	e6:s11:debug	    e6:s11:debug	-nq-		-		e6:debug	e6	e6:g317:s11:debug	-std=c++1y
+g317:e6:s11:ib:prof	e6:s11:prof	    e6:s11:prof		-nq-		-		e6:prof		e6	e6:g317:s11:prof	-std=c++1y
+g317:e6:s11:eth:debug	e6:s11:debug	    e6:s11:debug	-		e6:debug	e6:debug	e6	e6:g317:s11:debug	-std=c++1y
+g317:e6:s11:eth:prof	e6:s11:prof	    e6:s11:prof		-		e6:prof		e6:prof		e6	e6:g317:s11:prof	-std=c++1y
+g317:e6:s8:ib:debug	e6:s8:debug	    e6:s8:debug		-nq-		-		e6:debug	e6	e6:g317:s8:debug	-std=c++1y
+g317:e6:s8:ib:prof	e6:s8:prof	    e6:s8:prof		-nq-		-		e6:prof		e6	e6:g317:s8:prof		-std=c++1y
+g317:e6:s8:eth:debug	e6:s8:debug	    e6:s8:debug		-		e6:debug	e6:debug	e6	e6:g317:s8:debug	-std=c++1y
+g317:e6:s8:eth:prof	e6:s8:prof	    e6:s8:prof		-		e6:prof		e6:prof		e6	e6:g317:s8:prof		-std=c++1y
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
