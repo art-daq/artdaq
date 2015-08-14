@@ -8,7 +8,7 @@
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
-#include "artdaq/Plugins/makeMetricPlugin.hh"
+#include "artdaq-utilities/Plugins/makeMetricPlugin.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "fhiclcpp/ParameterSet.h"
 

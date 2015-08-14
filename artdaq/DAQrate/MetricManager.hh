@@ -10,7 +10,7 @@
 // relative to the application state.
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq/Plugins/MetricPlugin.hh"
+#include "artdaq-utilities/Plugins/MetricPlugin.hh"
 #include "fhiclcpp/fwd.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
