@@ -86,7 +86,7 @@ g360:e6:s8:eth:debug	e6:s8:debug	    e6:s8:debug		-		e6:debug	e6:debug	e6	e6:g36
 g360:e6:s8:eth:prof	e6:s8:prof	    e6:s8:prof		-		e6:prof		e6:prof		e6	e6:g360:s8:prof		-std=c++1y
 g317:e7:s15:ib:debug	e7:s15:debug	    e7:s15:debug	-nq-		-		e7:debug	e7	e7:g317:s15:debug	-std=c++1y
 g317:e7:s15:ib:prof	e7:s15:prof	    e7:s15:prof		-nq-		-		e7:prof		e7	e7:g317:s15:prof	-std=c++1y
-g317:e7:s15:eth:debug	e7:s15:debu	    e7:s15:debugg	-		e7:debug	e7:debug	e7	e7:g317:s15:debug	-std=c++1y
+g317:e7:s15:eth:debug	e7:s15:debug	    e7:s15:debug	-		e7:debug	e7:debug	e7	e7:g317:s15:debug	-std=c++1y
 g317:e7:s15:eth:prof	e7:s15:prof	    e7:s15:prof		-		e7:prof		e7:prof		e7	e7:g317:s15:prof	-std=c++1y
 g317:e7:s11:ib:debug	e7:s11:debug	    e7:s11:debug	-nq-		-		e7:debug	e7	e7:g317:s11:debug	-std=c++1y
 g317:e7:s11:ib:prof	e7:s11:prof	    e7:s11:prof		-nq-		-		e7:prof		e7	e7:g317:s11:prof	-std=c++1y
