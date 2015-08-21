@@ -442,22 +442,7 @@ namespace artdaq {
         trigger_addr_.sin_port = htons(trigger_port_);
         trigger_addr_.sin_family = AF_INET;
 
-        struct sockaddr_in si_me;
-        si_me.sin_addr.s_addr = htonl(INADDR_ANY);
-        si_me.sin_port = htons(trigger_port_);
-        si_me.sin_family=  AF_INET;
-
         int yes = 1;
-        if(setsockopt(trigger_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0){
-	  mf::LogError("EventStore") << "Unable to enable port reuse on trigger socket" << std::endl;
-          exit(1);
-        }
-        if(bind(trigger_socket_, (struct sockaddr *)&si_me, sizeof(si_me)) == -1)
-	  {
-	    mf::LogError("EventStore")<< "Cannot bind trigger socket to port " <<trigger_port_ << std::endl;
-            exit(1);
-	  }
-       
         if(setsockopt(trigger_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int) ) == -1 )
 	  {
 	    mf::LogError("EventStore") << "Cannot set trigger socket to broadcast." << std::endl;
