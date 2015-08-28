@@ -179,6 +179,22 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   rt_priority_ = fr_pset.get<int>("rt_priority", 0);
   synchronous_sends_ = fr_pset.get<bool>("synchronous_sends", true);
 
+  mpi_sync_fragment_interval_ = fr_pset.get<size_t>("mpi_sync_interval", 0);
+  mpi_sync_wait_threshold_ = fr_pset.get<size_t>("mpi_sync_wait_threshold",
+                                                 ((size_t) (0.9 * mpi_sync_fragment_interval_)));
+  mpi_sync_wait_interval_usec_ = fr_pset.get<size_t>("mpi_sync_wait_interval_usec", 100);
+  //if (mpi_sync_fragment_interval_ > 0 && mpi_sync_fragment_interval_ < 10) {
+  //  mf::LogWarning(name_) << "Specified mpi_sync_interval ("
+  //                        << mpi_sync_fragment_interval_ << ") is too small. "
+  //                        << "Setting the interval to 10.";
+  //  mpi_sync_interval = 10;
+  //}
+  mf::LogDebug(name_) << "mpi_sync_fragment_interval is " << mpi_sync_fragment_interval_
+                      << ", mpi_sync_wait_threshold is "
+                      << mpi_sync_wait_threshold_
+                      << ", mpi_sync_wait_interval_usec is "
+                      << mpi_sync_wait_interval_usec_;
+
   // fetch the monitoring parameters and create the MonitoredQuantity instances
   statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
 
@@ -301,6 +317,8 @@ size_t artdaq::BoardReaderCore::process_fragments()
   double delta_time;
   artdaq::FragmentPtrs frags;
   bool active = true;
+  MPI_Request mpi_request;
+  bool barrier_is_pending = false;
   while (active) {
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
@@ -332,6 +350,45 @@ size_t artdaq::BoardReaderCore::process_fragments()
         mf::LogDebug(name_)
           << "Sending fragment " << fragment_count_
           << " with sequence id " << sequence_id << ".";
+      }
+
+      if (mpi_sync_fragment_interval_ > 0 && fragment_count_ > 0 &&
+          (fragment_count_ % mpi_sync_fragment_interval_) == 0) {
+        MPI_Ibarrier(local_group_comm_, &mpi_request);
+        barrier_is_pending = true;
+      }
+      if (barrier_is_pending) {
+        MPI_Status mpi_status;
+        int test_flag;
+        int retcode = MPI_Test(&mpi_request, &test_flag, &mpi_status);
+        if (retcode != MPI_SUCCESS) {
+          mf::LogError(name_) << "MPI_Test for Ibarrier failed with return code "
+                              << retcode;
+        }
+        //mf::LogDebug(name_) << "MPI_Test results: " << retcode << " " << test_flag;
+
+        if (test_flag > 0) {
+          barrier_is_pending = false;
+        }
+        else {
+          size_t tmpVal = (fragment_count_ % mpi_sync_fragment_interval_);
+          if (tmpVal >= mpi_sync_wait_threshold_) {
+            while (test_flag == 0 && ! stop_requested_.load()) {
+              usleep(mpi_sync_wait_interval_usec_);
+              retcode = MPI_Test(&mpi_request, &test_flag, &mpi_status);
+              if (retcode != MPI_SUCCESS) {
+                mf::LogError(name_) << "MPI_Test for Ibarrier failed with return code "
+                                    << retcode;
+                sleep(2);
+              }
+              // warn periodically, need time interval, severity
+            }
+            //mf::LogDebug(name_) << "MPI_Test results: " << retcode << " " << test_flag;
+            if (test_flag > 0) {
+              barrier_is_pending = false;
+            }
+          }
+        }
       }
 
       // check for continous sequence IDs

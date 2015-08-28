@@ -61,6 +61,9 @@ private:
   int rt_priority_;
   bool skip_seqId_test_;
   bool synchronous_sends_;
+  size_t mpi_sync_fragment_interval_;
+  size_t mpi_sync_wait_threshold_;
+  size_t mpi_sync_wait_interval_usec_;
 
   std::unique_ptr<artdaq::SHandles> sender_ptr_;
 
