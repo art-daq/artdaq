@@ -134,6 +134,8 @@ sendFragTo(Fragment && frag, size_t dest)
               &reqs_[buffer_idx]);
   }
   else {
+    //MPI_Ssend(&*curfrag.headerBegin(),
+    // http://www.mcs.anl.gov/research/projects/mpi/sendmode.html
     MPI_Send(&*curfrag.headerBegin(),
              curfrag.size() * sizeof(Fragment::value_type),
              MPI_BYTE,
