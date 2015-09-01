@@ -74,8 +74,6 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
       "TriggeredFragmentGenerator: Unable to join multicast group" << std::endl;
     exit(1);
   }
-
-  dataThread_ = std::thread(&TriggeredFragmentGenerator::getNextFragmentLoop_,this);
 }
 
 artdaq::TriggeredFragmentGenerator::~TriggeredFragmentGenerator()
@@ -203,4 +201,9 @@ std::string artdaq::TriggeredFragmentGenerator::printMode_()
   }
 
   return "Triggered";
+}
+
+void artdaq::TriggeredFragmentGenerator::start()
+{
+  dataThread_ = std::thread(&TriggeredFragmentGenerator::getNextFragmentLoop_,this);
 }
