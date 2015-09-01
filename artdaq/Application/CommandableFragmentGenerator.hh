@@ -56,7 +56,6 @@
 
 namespace artdaq {
   class CommandableFragmentGenerator : public FragmentGenerator {
-  friend class TriggeredFragmentGenerator;
    public:
 
     CommandableFragmentGenerator();
@@ -85,7 +84,7 @@ namespace artdaq {
     // getNext_() -- should return true as long as datataking is meant
     // to take place, even if a particular call returns no fragments.
 
-    virtual void StartCmd(int run, uint64_t timeout, uint64_t timestamp);
+    void StartCmd(int run, uint64_t timeout, uint64_t timestamp);
 
     // After a call to StopCmd(), getNext() will eventually return
     // false. This may not happen for several calls, if the
@@ -99,7 +98,7 @@ namespace artdaq {
 
     // After a call to ResumeCmd(), the next Fragments returned from
     // getNext() will be part of a new SubRun.
-    virtual void ResumeCmd(uint64_t timeout, uint64_t timestamp);
+    void ResumeCmd(uint64_t timeout, uint64_t timestamp);
 
     // 14-May-2015, KAB: added a "which" argument to allow callers
     // to specify particular types of report information.

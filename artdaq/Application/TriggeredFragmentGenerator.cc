@@ -203,40 +203,16 @@ std::string artdaq::TriggeredFragmentGenerator::printMode_()
   return "Triggered";
 }
 
-void artdaq::TriggeredFragmentGenerator::StartCmd(int run, uint64_t timeout, uint64_t timestamp) {
-
-  if (run < 0) throw cet::exception("CommandableFragmentGenerator") << "negative run number";
-
-  //mf::LogDebug("TriggeredFragmentGenerator") << "TFG StartCmd Called" << std::endl;
-  
-  timeout_ = timeout;
-  timestamp_ = timestamp;
-  ev_counter_.store (1);
-  should_stop_.store (false);
-  exception_.store(false);
-  run_number_ = run;
-  subrun_number_ = 1;
-  latest_exception_report_ = "none";
-
-  // Start data-collection thread
+void artdaq::TriggeredFragmentGenerator::start()
+{
   startThread();
-
-  // no lock required: thread not started yet
-  start();
+  start_();
 }
 
-void artdaq::TriggeredFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t timestamp) {
-
-  timeout_ = timeout;
-  timestamp_ = timestamp;
-
-  subrun_number_ += 1;
-  should_stop_ = false; 
-
-  // Start data-collection thread
-
-  // no lock required: thread not started yet
-  resume();
+void artdaq::TriggeredFragmentGenerator::resume()
+{
+  startThread();
+  resume_();
 }
 
 void artdaq::TriggeredFragmentGenerator::startThread()
