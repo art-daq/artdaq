@@ -56,7 +56,8 @@
 
 namespace artdaq {
   class CommandableFragmentGenerator : public FragmentGenerator {
-  public:
+  friend class TriggeredFragmentGenerator;
+   public:
 
     CommandableFragmentGenerator();
     CommandableFragmentGenerator(const fhicl::ParameterSet &);

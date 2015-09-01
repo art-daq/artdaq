@@ -53,9 +53,23 @@ namespace artdaq {
     TriggeredFragmentGenerator(fhicl::ParameterSet const & ps);
     virtual ~TriggeredFragmentGenerator();
 
+
+    // After a call to 'StartCmd', all Fragments returned by getNext()
+    // will be marked as part of a Run with the given run number, and
+    // with subrun number 1. Calling StartCmd also resets the event
+    // number to 1.  After a call to StartCmd(), and until a call to
+    // StopCmd, getNext() -- and hence the virtual function it calls,
+    // getNext_() -- should return true as long as datataking is meant
+    // to take place, even if a particular call returns no fragments.
+
+    void StartCmd(int run, uint64_t timeout, uint64_t timestamp);
+
+    // After a call to ResumeCmd(), the next Fragments returned from
+    // getNext() will be part of a new SubRun.
+    void ResumeCmd(uint64_t timeout, uint64_t timestamp);
+
   protected:
     virtual bool getNextFragment_(FragmentPtrs & output) = 0;
-    virtual void start();
   private:
     
     // Hide this function from subclasses
@@ -67,6 +81,7 @@ namespace artdaq {
 
     bool getNext_(FragmentPtrs & output) final;
     void getNextFragmentLoop_();
+    void startThread();
     std::string printMode_();
 
     // FHiCL-configurable variables. Note that the C++ variable names
