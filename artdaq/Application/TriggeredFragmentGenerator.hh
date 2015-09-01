@@ -62,11 +62,11 @@ namespace artdaq {
     // getNext_() -- should return true as long as datataking is meant
     // to take place, even if a particular call returns no fragments.
 
-    void StartCmd(int run, uint64_t timeout, uint64_t timestamp);
+    virtual void StartCmd(int run, uint64_t timeout, uint64_t timestamp) final;
 
     // After a call to ResumeCmd(), the next Fragments returned from
     // getNext() will be part of a new SubRun.
-    void ResumeCmd(uint64_t timeout, uint64_t timestamp);
+    virtual void ResumeCmd(uint64_t timeout, uint64_t timestamp) final;
 
   protected:
     virtual bool getNextFragment_(FragmentPtrs & output) = 0;
