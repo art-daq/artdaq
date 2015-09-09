@@ -55,17 +55,23 @@ namespace artdaq {
 
   protected:
     virtual bool getNextFragment_(FragmentPtrs & output) = 0;
+    virtual void start_() {}
+    virtual void resume_() {}
   private:
     
     // Hide this function from subclasses
     using CommandableFragmentGenerator::ev_counter_inc;
   
-    // The "getNext_" function is used to implement user-specific
-    // functionality; it's a mandatory override of the pure virtual
-    // getNext_ function declared in CommandableFragmentGenerator
-
+    // These functions are implemented in TriggeredFragmentGenerator to provide
+    // core functionality. Subclasses can (and should, for getNextFragment_) implement
+    // getNextFragment_, start_, and resume_, instead.
     bool getNext_(FragmentPtrs & output) final;
+    void start() final;
+    void resume() final;
+
     void getNextFragmentLoop_();
+    void startThread();
+
     std::string printMode_();
 
     // FHiCL-configurable variables. Note that the C++ variable names
