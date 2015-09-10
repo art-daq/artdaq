@@ -179,21 +179,41 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   rt_priority_ = fr_pset.get<int>("rt_priority", 0);
   synchronous_sends_ = fr_pset.get<bool>("synchronous_sends", true);
 
-  mpi_sync_fragment_interval_ = fr_pset.get<size_t>("mpi_sync_interval", 0);
-  mpi_sync_wait_threshold_ = fr_pset.get<size_t>("mpi_sync_wait_threshold",
-                                                 ((size_t) (0.9 * mpi_sync_fragment_interval_)));
-  mpi_sync_wait_interval_usec_ = fr_pset.get<size_t>("mpi_sync_wait_interval_usec", 100);
-  //if (mpi_sync_fragment_interval_ > 0 && mpi_sync_fragment_interval_ < 10) {
-  //  mf::LogWarning(name_) << "Specified mpi_sync_interval ("
-  //                        << mpi_sync_fragment_interval_ << ") is too small. "
-  //                        << "Setting the interval to 10.";
-  //  mpi_sync_interval = 10;
-  //}
-  mf::LogDebug(name_) << "mpi_sync_fragment_interval is " << mpi_sync_fragment_interval_
-                      << ", mpi_sync_wait_threshold is "
-                      << mpi_sync_wait_threshold_
-                      << ", mpi_sync_wait_interval_usec is "
-                      << mpi_sync_wait_interval_usec_;
+  mpi_sync_fragment_interval_ = fr_pset.get<int>("mpi_sync_interval", 0);
+  if (mpi_sync_fragment_interval_ > 0) {
+    mpi_sync_wait_threshold_fraction_ = fr_pset.get<double>("mpi_sync_wait_threshold", 0.5);
+    mpi_sync_wait_threshold_count_ = mpi_sync_fragment_interval_ * mpi_sync_wait_threshold_fraction_;
+    if (mpi_sync_wait_threshold_count_ >= mpi_sync_fragment_interval_) {
+      mf::LogWarning(name_) << "The calculated mpi_sync wait threshold "
+                            << "(" << mpi_sync_wait_threshold_count_ << " fragments) "
+                            << "is too large, setting it to "
+                            << (mpi_sync_fragment_interval_ - 1) << ".";
+      mpi_sync_wait_threshold_count_ = mpi_sync_fragment_interval_ - 1;
+    }
+    if (mpi_sync_wait_threshold_count_ < 0) {
+      mf::LogWarning(name_) << "The calculated mpi_sync wait threshold "
+                            << "(" << mpi_sync_wait_threshold_count_ << " fragments) "
+                            << "is too small, setting it to zero.";
+      mpi_sync_wait_threshold_count_ = 0;
+    }
+    mpi_sync_wait_interval_usec_ = fr_pset.get<size_t>("mpi_sync_wait_interval_usec", 100);
+    mpi_sync_wait_log_level_ = fr_pset.get<int>("mpi_sync_wait_log_level", 2);
+    mpi_sync_wait_log_interval_sec_ = fr_pset.get<int>("mpi_sync_wait_log_interval_sec", 10);
+  }
+  else {
+    mpi_sync_wait_threshold_fraction_ = 0.0;
+    mpi_sync_wait_threshold_count_ = 0;
+    mpi_sync_wait_interval_usec_ = 1000000;
+    mpi_sync_wait_log_level_ = 0;
+    mpi_sync_wait_log_interval_sec_ = 10;
+  }
+  mf::LogDebug(name_)
+    << "mpi_sync_fragment_interval is " << mpi_sync_fragment_interval_
+    << ", mpi_sync_wait_threshold_fraction is " << mpi_sync_wait_threshold_fraction_
+    << ", mpi_sync_wait_threshold_count is " << mpi_sync_wait_threshold_count_
+    << ", mpi_sync_wait_interval_usec is " << mpi_sync_wait_interval_usec_
+    << ", mpi_sync_wait_log_level is " << mpi_sync_wait_log_level_
+    << ", mpi_sync_wait_log_interval_sec is " << mpi_sync_wait_log_interval_sec_;
 
   // fetch the monitoring parameters and create the MonitoredQuantity instances
   statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
@@ -352,6 +372,12 @@ size_t artdaq::BoardReaderCore::process_fragments()
           << " with sequence id " << sequence_id << ".";
       }
 
+      // 10-Sep-2015, KAB - added non-blocking synchronization between
+      // BoardReader processes.  Ibarrier is called every N fragments
+      // by each BoardReader, but each BR is allowed to continue processing
+      // fragments until a specified threshold of additional fragments is
+      // reached.  Once that threshold is reached, and one or more of the
+      // other BoardReaders haven't called Ibarrier, we wait.
       if (mpi_sync_fragment_interval_ > 0 && fragment_count_ > 0 &&
           (fragment_count_ % mpi_sync_fragment_interval_) == 0) {
         MPI_Ibarrier(local_group_comm_, &mpi_request);
@@ -362,29 +388,60 @@ size_t artdaq::BoardReaderCore::process_fragments()
         int test_flag;
         int retcode = MPI_Test(&mpi_request, &test_flag, &mpi_status);
         if (retcode != MPI_SUCCESS) {
-          mf::LogError(name_) << "MPI_Test for Ibarrier failed with return code "
-                              << retcode;
+          mf::LogError(name_)
+            << "MPI_Test for Ibarrier completion failed with return code "
+            << retcode;
         }
-        //mf::LogDebug(name_) << "MPI_Test results: " << retcode << " " << test_flag;
 
-        if (test_flag > 0) {
+        if (test_flag != 0) {
           barrier_is_pending = false;
         }
         else {
-          size_t tmpVal = (fragment_count_ % mpi_sync_fragment_interval_);
-          if (tmpVal >= mpi_sync_wait_threshold_) {
+          int tmpVal = (fragment_count_ % mpi_sync_fragment_interval_);
+          if (tmpVal >= mpi_sync_wait_threshold_count_) {
+            int report_interval = mpi_sync_wait_log_interval_sec_;
+            time_t last_report_time = time(0);
             while (test_flag == 0 && ! stop_requested_.load()) {
               usleep(mpi_sync_wait_interval_usec_);
               retcode = MPI_Test(&mpi_request, &test_flag, &mpi_status);
-              if (retcode != MPI_SUCCESS) {
-                mf::LogError(name_) << "MPI_Test for Ibarrier failed with return code "
-                                    << retcode;
-                sleep(2);
+              if (retcode != MPI_SUCCESS || test_flag == 0) {
+                time_t now = time(0);
+                if ((now - last_report_time) >= report_interval) {
+                  if (retcode != MPI_SUCCESS) {
+                    mf::LogError(name_)
+                      << "MPI_Test for Ibarrier completion failed with return code "
+                      << retcode;
+                  }
+                  else {
+                    if (mpi_sync_wait_log_level_ == 2) {
+                      mf::LogWarning(name_)
+                        << "Waiting for one or more BoardReaders to catch up "
+                        << "so that the sending of data fragments is reasonably "
+                        << "well synchronized (fragment count is currently "
+                        << fragment_count_
+                        << "). If this situation persists, it may indicate that "
+                        << "the data flow from one or more BoardReaders has "
+                        << "stopped, possibly because of a problem reading out "
+                        << "the associated hardware component(s).";
+                    }
+                    else if (mpi_sync_wait_log_level_ == 3) {
+                      mf::LogError(name_)
+                        << "Waiting for one or more BoardReaders to catch up "
+                        << "so that the sending of data fragments is reasonably "
+                        << "well synchronized (fragment count is currently "
+                        << fragment_count_
+                        << "). If this situation persists, it may indicate that "
+                        << "the data flow from one or more BoardReaders has "
+                        << "stopped, possibly because of a problem reading out "
+                        << "the associated hardware component(s).";
+                    }
+                  }
+                  last_report_time = now;
+                  report_interval += mpi_sync_wait_log_interval_sec_;
+                }
               }
-              // warn periodically, need time interval, severity
             }
-            //mf::LogDebug(name_) << "MPI_Test results: " << retcode << " " << test_flag;
-            if (test_flag > 0) {
+            if (test_flag != 0) {
               barrier_is_pending = false;
             }
           }
