@@ -11,6 +11,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <bitset>
 
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
@@ -23,6 +24,28 @@ const std::string artdaq::AggregatorCore::INPUT_WAIT_STAT_KEY("AggregatorCoreInp
 const std::string artdaq::AggregatorCore::STORE_EVENT_WAIT_STAT_KEY("AggregatorCoreStoreEventWaitTime");
 const std::string artdaq::AggregatorCore::SHM_COPY_TIME_STAT_KEY("AggregatorCoreShmCopyTime");
 const std::string artdaq::AggregatorCore::FILE_CHECK_TIME_STAT_KEY("AggregatorCoreFileCheckTime");
+
+namespace artdaq {
+
+  void display_bits(void* memstart, size_t nbytes, std::string sourcename) {
+
+    std::stringstream bitstr;
+    bitstr << "The " << nbytes << "-byte chunk of memory beginning at " << static_cast<void*>(memstart) << " is : ";
+
+    for(unsigned int i = 0; i < nbytes; i++) {
+
+      if (i % 4 == 0) {
+	bitstr << "\n";
+      }
+
+      bitstr << std::bitset<8>(*((reinterpret_cast<uint8_t*>(memstart))+i)) << " ";
+    }
+
+    mf::LogInfo(sourcename.c_str()) << bitstr.str();
+  }
+
+
+}
 
 
 /**
@@ -282,43 +305,62 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 					 DDS_STATUS_MASK_NONE)
 		      );
 
-  topic_ = participant_->create_topic(
-				      "Meaningless sentence",                        // Topic name
-				      DDSStringTypeSupport::get_type_name(), // Type name
-				      DDS_TOPIC_QOS_DEFAULT,                 // Topic QoS
-				      nullptr,                                  // Listener 
-				      DDS_STATUS_MASK_NONE) ;
+  topic_string_ = participant_->create_topic(
+					     "Meaningless sentence",                        // Topic name
+					     DDSStringTypeSupport::get_type_name(), // Type name
+					     DDS_TOPIC_QOS_DEFAULT,                 // Topic QoS
+					     nullptr,                                  // Listener 
+					     DDS_STATUS_MASK_NONE) ;
+
+  topic_octets_ = participant_->create_topic(
+					     "bag of bytes",                        // Topic name
+					     DDSOctetsTypeSupport::get_type_name(), // Type name
+					     DDS_TOPIC_QOS_DEFAULT,                 // Topic QoS
+					     nullptr,                                  // Listener 
+					     DDS_STATUS_MASK_NONE) ;
 
   if (participant_ == nullptr || 
-      topic_ == nullptr) {
+      topic_string_ == nullptr ||
+      topic_octets_ == nullptr) {
     mf::LogWarning(name_) << "Problem setting up the RTI-DDS participant and/or topic";
   }
 
   if (is_data_logger_) {
 	
-    writer_ = participant_->create_datawriter(
-					      topic_,
-					      DDS_DATAWRITER_QOS_DEFAULT,     // QoS
-					      nullptr,                           // Listener
-					      DDS_STATUS_MASK_NONE) ;
+    string_writer_ = DDSStringDataWriter::narrow( participant_->create_datawriter(
+										  topic_string_,
+										  DDS_DATAWRITER_QOS_DEFAULT,     // QoS
+										  nullptr,                           // Listener
+										  DDS_STATUS_MASK_NONE) );
 
-    string_writer_ = DDSStringDataWriter::narrow(writer_);
+    octets_writer_ = DDSOctetsDataWriter::narrow( participant_->create_datawriter(
+										  topic_octets_,
+										  DDS_DATAWRITER_QOS_DEFAULT,     // QoS                                         
+										  nullptr,                           // Listener                                 
+										  DDS_STATUS_MASK_NONE) 
+						  );
 
-
-    if (writer_ == nullptr ||
-	string_writer_ == nullptr) {
+    if (string_writer_ == nullptr ||
+	octets_writer_ == nullptr) {
       mf::LogWarning(name_) << "Problem setting up the RTI-DDS writer objects";
     }
 
   } else {
 
-    reader_ = participant_->create_datareader(
-					      topic_,
-					      DDS_DATAREADER_QOS_DEFAULT,    // QoS 
-					      &string_listener_,                      // Listener 
-					      DDS_DATA_AVAILABLE_STATUS);
+    string_reader_ = participant_->create_datareader(
+						     topic_string_,
+						     DDS_DATAREADER_QOS_DEFAULT,    // QoS 
+						     &string_listener_,                      // Listener 
+						     DDS_DATA_AVAILABLE_STATUS);
+    
+    octets_reader_ = participant_->create_datareader(
+						     topic_octets_,
+						     DDS_DATAREADER_QOS_DEFAULT,    // QoS 
+						     &octets_listener_,                      // Listener 
+						     DDS_DATA_AVAILABLE_STATUS);
 
-    if (reader_ == nullptr) {
+    if (string_reader_ == nullptr ||
+	octets_reader_ == nullptr) {
       mf::LogWarning(name_) << "Problem setting up the RTI-DDS reader objects";
     }
 
@@ -604,6 +646,16 @@ size_t artdaq::AggregatorCore::process_fragments()
 							DDS_HANDLE_NIL);
       if (retcode != DDS_RETCODE_OK) {
 	mf::LogWarning(name_) << "Problem writing RTI-DDS string";
+      }
+
+      constexpr size_t basic_array_length = 4;
+      uint8_t basic_array[ basic_array_length ] = {0x1, 0x2, 0x3, 0x4};
+
+      retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(basic_array), 
+				       basic_array_length,
+				       DDS_HANDLE_NIL);
+      if (retcode != DDS_RETCODE_OK) {
+	mf::LogWarning(name_) << "Problem writing octets (bytes)";
       }
     }
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
@@ -1332,6 +1384,50 @@ void artdaq::StringListener::on_data_available(DDSDataReader *reader) {
     if (info.valid_data) {
       // Valid (this isn't just a lifecycle sample): print it                                      
       mf::LogInfo("StringListener") << sample;
+    }
+  }
+}
+
+// This method gets called back by DDS when one or more data samples have been                           
+// received.                                                                                             
+ 
+void artdaq::OctetsListener::on_data_available(DDSDataReader *reader) {
+  DDSOctetsDataReader * octets_reader = NULL;
+  DDS_SampleInfo        info;
+  DDS_ReturnCode_t      retcode;
+
+  // Perform a safe type-cast from a generic data reader into a                                        
+  // specific data reader for the type "DDS::Octets"                                                   
+
+  octets_reader = DDSOctetsDataReader::narrow(reader);
+  if (octets_reader == nullptr) {
+    
+    mf::LogError("OctetsListener") << "Error: Very unexpected - DDSOctetsDataReader::narrow failed";
+    return;
+  }
+
+  // Loop until there are messages available in the queue 
+  //  char *ptr_sample = &sample[0];
+  DDS_Octets dds_octets;
+  for(;;) {
+    retcode = octets_reader->take_next_sample(
+					      dds_octets,
+					      //ptr_sample,
+					      info);
+    if (retcode == DDS_RETCODE_NO_DATA) {
+      // No more samples 
+      break;
+    } else if (retcode != DDS_RETCODE_OK) {
+      mf::LogWarning("OctetsListener") << "Unable to take data from data reader, error "
+				      << retcode;
+      return;
+    }
+    if (info.valid_data) {
+      // Valid (this isn't just a lifecycle sample): print it                                      
+
+      mf::LogInfo("OctetsListener") << "First four bytes of " << dds_octets.length << ": ";
+      //      display_bits(ptr_sample, 4, "OctetsListener");
+      display_bits( dds_octets.value, 4, "OctetsListener" );
     }
   }
 }

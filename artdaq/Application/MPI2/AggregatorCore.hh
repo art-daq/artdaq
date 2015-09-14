@@ -31,6 +31,11 @@ namespace artdaq
     void on_data_available(DDSDataReader *reader);
   };
 
+  class OctetsListener: public DDSDataReaderListener {
+  public:
+    void on_data_available(DDSDataReader *reader);
+  };
+
 }
 
 class artdaq::AggregatorCore
@@ -131,11 +136,17 @@ private:
 
 
   std::unique_ptr<DDSDomainParticipant, std::function<void(DDSDomainParticipant*)> >  participant_;
-  DDSTopic* topic_;
-  DDSDataWriter* writer_;
+  DDSTopic* topic_string_;
+  DDSTopic* topic_octets_;
+
   DDSStringDataWriter* string_writer_;
-  DDSDataReader* reader_;
+  DDSOctetsDataWriter* octets_writer_;
+
+  DDSDataReader* string_reader_;
+  DDSDataReader* octets_reader_;
+
   StringListener string_listener_;
+  OctetsListener octets_listener_;
 
 
   //std::unique_ptr<DDSTopic> topic_;
