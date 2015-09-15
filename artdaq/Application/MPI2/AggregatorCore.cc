@@ -313,7 +313,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 					     DDS_STATUS_MASK_NONE) ;
 
   topic_octets_ = participant_->create_topic(
-					     "bag of bytes",                        // Topic name
+					     "artdaq fragments",                        // Topic name
 					     DDSOctetsTypeSupport::get_type_name(), // Type name
 					     DDS_TOPIC_QOS_DEFAULT,                 // Topic QoS
 					     nullptr,                                  // Listener 
@@ -500,7 +500,21 @@ size_t artdaq::AggregatorCore::process_fragments()
       senderSlot = receiver_ptr_->recvFragment(*fragmentPtr, recvTimeout);
     }
     else if (is_online_monitor_) {
-      senderSlot = receiveFragmentFromSharedMemory_(*fragmentPtr, recvTimeout);
+      //           senderSlot = receiveFragmentFromSharedMemory_(*fragmentPtr, recvTimeout);
+
+      //           mf::LogInfo("SharedMemory") << "For fragment with seqID = " << fragmentPtr->sequenceID();
+      //           display_bits(fragmentPtr->headerBeginBytes(), 32, "SharedMemory");
+
+      auto dds_result = octets_listener_.receiveFragmentFromDDS(*fragmentPtr, recvTimeout);
+
+      if (dds_result != artdaq::RHandles::RECV_TIMEOUT) {
+       	mf::LogInfo("DDS") << "For fragment with seqID = " << fragmentPtr->sequenceID();
+       	display_bits(fragmentPtr->headerBeginBytes(), 32, "DDS");
+      	senderSlot = first_data_sender_rank_;
+      } else {
+       	mf::LogWarning("DDS") << "Call to octets_listener_ resulted in a timeout";
+      }
+
     }
     else {
       usleep(recvTimeout);
@@ -638,25 +652,32 @@ size_t artdaq::AggregatorCore::process_fragments()
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     bool fragmentWasCopied = false;
     if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0) {
+
+      DDS_ReturnCode_t retcode = DDS_RETCODE_ERROR;
+      
+      //      constexpr size_t basic_array_length = 4;
+      //      uint8_t basic_array[ basic_array_length ] = {0x1, 0x2, 0x3, 0x4};
+
+      mf::LogInfo(name_) << "For fragment with seqID = " << fragmentPtr->sequenceID();
+      display_bits(fragmentPtr->headerBeginBytes(), 32, "ProcessFragments");
+
+      retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(fragmentPtr->headerBeginBytes()), 
+				       fragmentPtr->sizeBytes(),
+				       DDS_HANDLE_NIL);
+      if (retcode != DDS_RETCODE_OK) {
+	mf::LogWarning(name_) << "Problem writing octets (bytes), retcode was " << retcode;
+      }
+
       copyFragmentToSharedMemory_(fragmentWasCopied,
                                   esrWasCopied, eodWasCopied,
                                   *fragmentPtr, 0);
 
-      DDS_ReturnCode_t retcode = string_writer_->write( "The quick brown fox jumped over something",
+      retcode = string_writer_->write( "The quick brown fox jumped over something",
 							DDS_HANDLE_NIL);
       if (retcode != DDS_RETCODE_OK) {
-	mf::LogWarning(name_) << "Problem writing RTI-DDS string";
+	mf::LogWarning(name_) << "Problem writing RTI-DDS string, retcode was " << retcode;
       }
 
-      constexpr size_t basic_array_length = 4;
-      uint8_t basic_array[ basic_array_length ] = {0x1, 0x2, 0x3, 0x4};
-
-      retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(basic_array), 
-				       basic_array_length,
-				       DDS_HANDLE_NIL);
-      if (retcode != DDS_RETCODE_OK) {
-	mf::LogWarning(name_) << "Problem writing octets (bytes)";
-      }
     }
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
@@ -1396,6 +1417,8 @@ void artdaq::OctetsListener::on_data_available(DDSDataReader *reader) {
   DDS_SampleInfo        info;
   DDS_ReturnCode_t      retcode;
 
+  mf::LogInfo("OctetsListener") << "In OctetsListener::on_data_available";
+
   // Perform a safe type-cast from a generic data reader into a                                        
   // specific data reader for the type "DDS::Octets"                                                   
 
@@ -1407,15 +1430,17 @@ void artdaq::OctetsListener::on_data_available(DDSDataReader *reader) {
   }
 
   // Loop until there are messages available in the queue 
-  //  char *ptr_sample = &sample[0];
-  DDS_Octets dds_octets;
+
+
   for(;;) {
+    //    mf::LogInfo("OctetsListener") << "Next iteration in loop";
+
     retcode = octets_reader->take_next_sample(
-					      dds_octets,
-					      //ptr_sample,
+					      dds_octets_,
 					      info);
     if (retcode == DDS_RETCODE_NO_DATA) {
       // No more samples 
+      //      mf::LogInfo("OctetsListener") << "No more samples";
       break;
     } else if (retcode != DDS_RETCODE_OK) {
       mf::LogWarning("OctetsListener") << "Unable to take data from data reader, error "
@@ -1423,12 +1448,44 @@ void artdaq::OctetsListener::on_data_available(DDSDataReader *reader) {
       return;
     }
     if (info.valid_data) {
-      // Valid (this isn't just a lifecycle sample): print it                                      
 
-      mf::LogInfo("OctetsListener") << "First four bytes of " << dds_octets.length << ": ";
-      //      display_bits(ptr_sample, 4, "OctetsListener");
-      display_bits( dds_octets.value, 4, "OctetsListener" );
+      data_ready_ = true;
+
+      mf::LogInfo("OctetsListener") << "First 32 bytes of " << dds_octets_.length << ": ";
+      display_bits( dds_octets_.value, 32, "OctetsListener" );
     }
   }
+}
+
+size_t artdaq::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fragment,
+						      size_t receiveTimeout) {
+
+  int loopCount = 0;
+  size_t sleepTime = receiveTimeout / 10;
+  
+  while (!data_ready_ && loopCount < 10) {
+    usleep(sleepTime);
+    ++loopCount;
+  }
+
+  if (data_ready_) {
+    fragment.resizeBytes(dds_octets_.length);
+    memcpy(fragment.headerAddress(), dds_octets_.value, dds_octets_.length);
+    
+    data_ready_ = false;
+
+    //  if (fragment.type() != artdaq::Fragment::DataFragmentType) {
+      mf::LogDebug("OctetsListener")
+	<< "Received fragment from DDS, type ="
+	<< ((int)fragment.type()) << ", sequenceID = "
+	<< fragment.sequenceID();
+      //    }
+
+      return artdaq::RHandles::RECV_TIMEOUT + 1 ; // WARNING: Very ad-hoc; need to improve
+  }
+  else {
+    return artdaq::RHandles::RECV_TIMEOUT;
+  }
+
 }
 

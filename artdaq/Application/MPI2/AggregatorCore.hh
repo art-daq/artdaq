@@ -33,7 +33,19 @@ namespace artdaq
 
   class OctetsListener: public DDSDataReaderListener {
   public:
+    
+    OctetsListener() :
+      data_ready_(false) {}
+
     void on_data_available(DDSDataReader *reader);
+
+    size_t receiveFragmentFromDDS(artdaq::Fragment& fragment,
+				  size_t receiveTimeout);
+
+  private:
+    bool data_ready_;
+    DDS_Octets dds_octets_;
+
   };
 
 }
