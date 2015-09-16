@@ -35,7 +35,8 @@ namespace artdaq
   public:
     
     OctetsListener() :
-      data_ready_(false) {}
+      data_ready_(false)
+    { dds_octets_.value =  DDS_OctetBuffer_alloc(1000000); }
 
     void on_data_available(DDSDataReader *reader);
 
@@ -175,6 +176,12 @@ private:
   size_t receiveFragmentFromSharedMemory_(artdaq::Fragment& fragment,
                                           size_t receiveTimeout);
   void detachFromSharedMemory_(bool destroy);
+
+  void copyFragmentToDDS_(bool& fragment_has_been_copied,
+			  bool& esr_has_been_copied,
+			  bool& eod_has_been_copied,
+			  artdaq::Fragment& fragment);
+
 };
 
 #endif

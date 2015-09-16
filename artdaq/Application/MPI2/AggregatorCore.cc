@@ -17,6 +17,12 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>    
 
+#include <ndds/dds_c/dds_c_infrastructure.h>
+#include <ndds/dds_cpp/dds_cpp_infrastructure.h>
+#include <ndds/dds_cpp/dds_cpp_domain.h>
+#include <ndds/ndds_namespace_cpp.h>
+
+
 namespace BFS = boost::filesystem;
 
 const std::string artdaq::AggregatorCore::INPUT_EVENTS_STAT_KEY("AggregatorCoreInputEvents");
@@ -296,11 +302,31 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     }
   }
 
+  DDS_ReturnCode_t retcode = DDS_RETCODE_ERROR;
+  DDS_DomainParticipantQos participant_qos;
+
+  retcode = DDSDomainParticipantFactory::get_instance()->get_default_participant_qos(participant_qos);
+
+  if (retcode != DDS_RETCODE_OK) {
+    mf::LogWarning(name_) << "Problem obtaining default participant QoS, retcode was " << retcode;
+  }
+
+  std::string max_size_string = "10000";
+
+  retcode = DDSPropertyQosPolicyHelper::add_property (
+						      participant_qos.property, "dds.builtin_type.octets.max_size", 
+						      max_size_string.c_str(),
+						      DDS_BOOLEAN_FALSE);
+
+  if (retcode != DDS_RETCODE_OK) {
+    mf::LogWarning(name_) << "Problem setting dds.builtin_type.octets.max_size, retcode was " << retcode;
+  }
+
 
   participant_.reset( DDSDomainParticipantFactory::get_instance()->
 		      create_participant(
 					 0,                              // Domain ID 
-					 DDS_PARTICIPANT_QOS_DEFAULT,    // QoS 
+					 participant_qos,
 					 nullptr,                           // Listener
 					 DDS_STATUS_MASK_NONE)
 		      );
@@ -325,17 +351,42 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     mf::LogWarning(name_) << "Problem setting up the RTI-DDS participant and/or topic";
   }
 
+  // JCF, 9/16/15
+
+  // Following effort to increase the max DDS buffer size from its
+  // default of 2048 bytes is cribbed from section 3.2.7 of the Core
+  // Utilities user manual, "Managing Memory for Built-in Types"
+
+
+  DDS_DataWriterQos writer_qos;
+
+  retcode = participant_->get_default_datawriter_qos(writer_qos);
+
+  if (retcode != DDS_RETCODE_OK) {
+    mf::LogWarning(name_) << "Problem obtaining default datawriter QoS, retcode was " << retcode;
+  }
+
+
+  retcode = DDSPropertyQosPolicyHelper::add_property (
+  						   writer_qos.property, "dds.builtin_type.octets.alloc_size", 
+  						   max_size_string.c_str(),
+  						   DDS_BOOLEAN_FALSE);
+
+  if (retcode != DDS_RETCODE_OK) {
+    mf::LogWarning(name_) << "Problem setting dds.builtin_type.octets.alloc_size, retcode was " << retcode;
+  }
+
   if (is_data_logger_) {
 	
     string_writer_ = DDSStringDataWriter::narrow( participant_->create_datawriter(
 										  topic_string_,
-										  DDS_DATAWRITER_QOS_DEFAULT,     // QoS
+										  writer_qos,
 										  nullptr,                           // Listener
 										  DDS_STATUS_MASK_NONE) );
 
     octets_writer_ = DDSOctetsDataWriter::narrow( participant_->create_datawriter(
 										  topic_octets_,
-										  DDS_DATAWRITER_QOS_DEFAULT,     // QoS                                         
+										  writer_qos,
 										  nullptr,                           // Listener                                 
 										  DDS_STATUS_MASK_NONE) 
 						  );
@@ -505,14 +556,23 @@ size_t artdaq::AggregatorCore::process_fragments()
       //           mf::LogInfo("SharedMemory") << "For fragment with seqID = " << fragmentPtr->sequenceID();
       //           display_bits(fragmentPtr->headerBeginBytes(), 32, "SharedMemory");
 
-      auto dds_result = octets_listener_.receiveFragmentFromDDS(*fragmentPtr, recvTimeout);
+      while (true) {
+	auto dds_result = octets_listener_.receiveFragmentFromDDS(*fragmentPtr, recvTimeout);
 
-      if (dds_result != artdaq::RHandles::RECV_TIMEOUT) {
-       	mf::LogInfo("DDS") << "For fragment with seqID = " << fragmentPtr->sequenceID();
-       	display_bits(fragmentPtr->headerBeginBytes(), 32, "DDS");
-      	senderSlot = first_data_sender_rank_;
-      } else {
-       	mf::LogWarning("DDS") << "Call to octets_listener_ resulted in a timeout";
+	if (dds_result != artdaq::RHandles::RECV_TIMEOUT) {
+	  mf::LogInfo("DDS") << "For fragment with seqID = " << fragmentPtr->sequenceID();
+	  display_bits(fragmentPtr->headerBeginBytes(), 32, "DDS");
+	  //      	senderSlot = first_data_sender_rank_;
+	  break;
+	} else {
+	  mf::LogWarning("DDS") << "Call to octets_listener_ resulted in a timeout";
+	}
+      }
+
+      //      senderSlot = receiveFragmentFromSharedMemory_(*fragmentPtr, recvTimeout);
+      senderSlot = first_data_sender_rank_;
+      if (shm_ptr_ != NULL) {
+	shm_ptr_->hasFragment = 0;
       }
 
     }
@@ -661,16 +721,20 @@ size_t artdaq::AggregatorCore::process_fragments()
       mf::LogInfo(name_) << "For fragment with seqID = " << fragmentPtr->sequenceID();
       display_bits(fragmentPtr->headerBeginBytes(), 32, "ProcessFragments");
 
-      retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(fragmentPtr->headerBeginBytes()), 
-				       fragmentPtr->sizeBytes(),
-				       DDS_HANDLE_NIL);
-      if (retcode != DDS_RETCODE_OK) {
-	mf::LogWarning(name_) << "Problem writing octets (bytes), retcode was " << retcode;
-      }
+      //      retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(fragmentPtr->headerBeginBytes()), 
+      //				       fragmentPtr->sizeBytes(),
+      //				       DDS_HANDLE_NIL);
+      //      if (retcode != DDS_RETCODE_OK) {
+      //	mf::LogWarning(name_) << "Problem writing octets (bytes), retcode was " << retcode;
+      //      }
 
-      copyFragmentToSharedMemory_(fragmentWasCopied,
-                                  esrWasCopied, eodWasCopied,
-                                  *fragmentPtr, 0);
+      //      copyFragmentToSharedMemory_(fragmentWasCopied,
+      //                                  esrWasCopied, eodWasCopied,
+      //                                  *fragmentPtr, 0);
+
+      copyFragmentToDDS_(fragmentWasCopied,
+			 esrWasCopied, eodWasCopied,
+			 *fragmentPtr);
 
       retcode = string_writer_->write( "The quick brown fox jumped over something",
 							DDS_HANDLE_NIL);
@@ -694,9 +758,14 @@ size_t artdaq::AggregatorCore::process_fragments()
       if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
         mf::LogDebug(name_) << "Init";
         if (is_data_logger_) {
-          copyFragmentToSharedMemory_(fragmentWasCopied,
-                                      esrWasCopied, eodWasCopied,
-                                      *fragmentPtr, 500000);
+          //copyFragmentToSharedMemory_(fragmentWasCopied,
+	  //                                      esrWasCopied, eodWasCopied,
+	  //                                      *fragmentPtr, 500000);
+
+	  copyFragmentToDDS_(fragmentWasCopied,
+			 esrWasCopied, eodWasCopied,
+			 *fragmentPtr);
+
         }
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
@@ -747,9 +816,14 @@ size_t artdaq::AggregatorCore::process_fragments()
         }
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType) {
         if (is_data_logger_) {
-          copyFragmentToSharedMemory_(fragmentWasCopied,
+          //copyFragmentToSharedMemory_(fragmentWasCopied,
+	  //                                      esrWasCopied, eodWasCopied,
+	  //                                      *fragmentPtr, 1000000);
+
+          copyFragmentToDDS_(fragmentWasCopied,
                                       esrWasCopied, eodWasCopied,
-                                      *fragmentPtr, 1000000);
+                                      *fragmentPtr);
+
         }
         /* We inject the EndSubrun fragment after all other data has been
            received.  The SHandles and RHandles classes do not guarantee that 
@@ -758,9 +832,12 @@ size_t artdaq::AggregatorCore::process_fragments()
         endSubRunMsg = std::move(fragmentPtr);
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType) {
         if (is_data_logger_) {
-          copyFragmentToSharedMemory_(fragmentWasCopied,
-                                      esrWasCopied, eodWasCopied,
-                                      *fragmentPtr, 1000000);
+	  //          copyFragmentToSharedMemory_(fragmentWasCopied,
+	  //                                      esrWasCopied, eodWasCopied,
+	  //                                      *fragmentPtr, 1000000);
+          copyFragmentToDDS_(fragmentWasCopied,
+			     esrWasCopied, eodWasCopied,
+			     *fragmentPtr);
         }
         eodFragmentsReceived++;
         /* We count the EOD fragment as a fragment received but the SHandles class
@@ -1299,6 +1376,7 @@ copyFragmentToSharedMemory_(bool& fragment_has_been_copied,
   }
 }
 
+
 size_t artdaq::AggregatorCore::
 receiveFragmentFromSharedMemory_(artdaq::Fragment& fragment,
                                  size_t receiveTimeout)
@@ -1344,6 +1422,77 @@ void artdaq::AggregatorCore::detachFromSharedMemory_(bool destroy)
   }
   if (destroy && shm_segment_id_ > -1) {
     shmctl(shm_segment_id_, IPC_RMID, NULL);
+  }
+}
+
+
+void artdaq::AggregatorCore::
+copyFragmentToDDS_(bool& fragment_has_been_copied,
+                            bool& esr_has_been_copied,
+                            bool& eod_has_been_copied,
+                            artdaq::Fragment& fragment)
+{
+  mf::LogInfo(name_) << "Inside of copyFragmentToDDS_, type = " << static_cast<int>(fragment.type()) << ", size = " << fragment.sizeBytes();
+
+  // check if the fragment has already been copied to shared memory
+  if (fragment_has_been_copied) {return;}
+
+  // check if a fragment of this type has already been copied to shm
+  size_t fragmentType = fragment.type();
+  if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType &&
+      esr_has_been_copied) {return;}
+  if (fragmentType == artdaq::Fragment::EndOfDataFragmentType &&
+      eod_has_been_copied) {return;}
+
+  // verify that we have a writer for octets
+  if (octets_writer_ == NULL) {return;}
+
+  // JCF, 9/15/15
+  // Perform the same checks Kurt implemented in the copyFragmentToSharedMemory_() function
+
+  if (fragment.type() != artdaq::Fragment::InvalidFragmentType &&
+      fragment.sizeBytes() < ((max_fragment_size_words_ * sizeof(artdaq::RawDataType)))) {
+
+    if (fragment.type() == artdaq::Fragment::InitFragmentType ) {
+      usleep(500000);
+    }
+
+    //    size_t max_bytes_to_copy = 1000;
+
+    DDS_ReturnCode_t retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(fragment.headerBeginBytes()), 
+						      fragment.sizeBytes(),
+						      //						      fragment.sizeBytes() < max_bytes_to_copy ? fragment.sizeBytes() : max_bytes_to_copy,
+						      DDS_HANDLE_NIL);
+
+    if (retcode != DDS_RETCODE_OK) {
+      mf::LogWarning(name_) << "Problem writing octets (bytes), retcode was " << retcode;
+
+      mf::LogWarning(name_) << "Fragment failed for DDS! "
+			    << "fragment address and size = "
+			    << static_cast<void*>(fragment.headerBeginBytes()) << " " << static_cast<int>(fragment.sizeBytes()) << " "
+			    << "sequence ID, fragment ID, and type = "
+			    << fragment.sequenceID() << " "
+			    << fragment.fragmentID() << " "
+			    << ((int) fragment.type());      
+    } else {
+
+      fragment_has_been_copied = true;
+
+      if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType) {
+	esr_has_been_copied = true;
+      }
+      if (fragmentType == artdaq::Fragment::EndOfDataFragmentType) {
+	eod_has_been_copied = true;
+      }
+    }
+  } else {
+    mf::LogWarning(name_) << "Fragment invalid for shared memory! "
+			  << "fragment address and size = "
+			  << static_cast<void*>(fragment.headerBeginBytes()) << " " << static_cast<int>(fragment.sizeBytes()) << " "
+			  << "sequence ID, fragment ID, and type = "
+			  << fragment.sequenceID() << " "
+			  << fragment.fragmentID() << " "
+			  << ((int) fragment.type());
   }
 }
 
