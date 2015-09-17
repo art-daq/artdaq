@@ -47,7 +47,7 @@ namespace artdaq {
       bitstr << std::bitset<8>(*((reinterpret_cast<uint8_t*>(memstart))+i)) << " ";
     }
 
-    mf::LogInfo(sourcename.c_str()) << bitstr.str();
+    mf::LogDebug(sourcename.c_str()) << bitstr.str();
   }
 
 
@@ -538,12 +538,11 @@ size_t artdaq::AggregatorCore::process_fragments()
 	auto dds_result = octets_listener_.receiveFragmentFromDDS(*fragmentPtr, recvTimeout);
 
 	if (dds_result != artdaq::RHandles::RECV_TIMEOUT) {
-	  mf::LogInfo("DDS") << "For fragment with seqID = " << fragmentPtr->sequenceID();
+	  mf::LogDebug("DDS") << "For fragment with seqID = " << fragmentPtr->sequenceID();
 	  display_bits(fragmentPtr->headerBeginBytes(), 32, "DDS");
-	  //      	senderSlot = first_data_sender_rank_;
 	  break;
 	} else {
-	  mf::LogWarning("DDS") << "Call to octets_listener_ resulted in a timeout";
+	  mf::LogDebug("DDS") << "Call to octets_listener_ resulted in a timeout";
 	}
       }
 
@@ -691,7 +690,7 @@ size_t artdaq::AggregatorCore::process_fragments()
     bool fragmentWasCopied = false;
     if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0) {
 
-      //      mf::LogInfo(name_) << "For fragment with seqID = " << fragmentPtr->sequenceID();
+      //      mf::LogDebug(name_) << "For fragment with seqID = " << fragmentPtr->sequenceID();
       //      display_bits(fragmentPtr->headerBeginBytes(), 32, "ProcessFragments");
 
       //      copyFragmentToSharedMemory_(fragmentWasCopied,
@@ -1482,7 +1481,7 @@ void artdaq::OctetsListener::on_data_available(DDSDataReader *reader) {
   DDS_SampleInfo        info;
   DDS_ReturnCode_t      retcode;
 
-  mf::LogInfo("OctetsListener") << "In OctetsListener::on_data_available";
+  mf::LogDebug("OctetsListener") << "In OctetsListener::on_data_available";
 
   // Perform a safe type-cast from a generic data reader into a                                        
   // specific data reader for the type "DDS::Octets"                                                   
@@ -1512,9 +1511,17 @@ void artdaq::OctetsListener::on_data_available(DDSDataReader *reader) {
     }
     if (info.valid_data) {
 
+      // JCF, 9/17/15
+
+      // We want to make sure the dds_octets_ doesn't get popped from
+      // by receiveFragmentFromDDS before we display its contents
+
+      std::lock_guard<std::mutex> lock(queue_mutex_);
+
       dds_octets_queue_.push( dds_octets_ );
 
-      mf::LogInfo("OctetsListener") << "First 32 bytes of " << dds_octets_queue_.front().length << ": ";
+      mf::LogDebug("OctetsListener") << "Queue is now " << dds_octets_queue_.size() << " entries";
+      mf::LogDebug("OctetsListener") << "First 32 bytes of " << dds_octets_queue_.front().length << ": ";
       display_bits( dds_octets_queue_.front().value, 32, "OctetsListener" );
     }
   }
@@ -1530,6 +1537,13 @@ size_t artdaq::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fragment
     usleep(sleepTime);
     ++loopCount;
   }
+
+  // JCF, 9/17/15
+
+  // Make sure the on_data_available() callback function doesn't
+  // modify dds_octets_queue_ while this section is running
+  
+  std::lock_guard<std::mutex> lock(queue_mutex_);
 
   if (!dds_octets_queue_.empty()) {
     fragment.resizeBytes(dds_octets_queue_.front().length);

@@ -40,6 +40,8 @@ namespace artdaq
     DDS_Octets dds_octets_;
     std::queue<DDS_Octets> dds_octets_queue_;
 
+    std::mutex queue_mutex_;
+
   };
 
 }
