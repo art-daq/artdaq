@@ -311,11 +311,11 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     mf::LogWarning(name_) << "Problem obtaining default participant QoS, retcode was " << retcode;
   }
 
-  std::string max_size_string = "10000";
+  std::string max_size = "1000000";
 
   retcode = DDSPropertyQosPolicyHelper::add_property (
 						      participant_qos.property, "dds.builtin_type.octets.max_size", 
-						      max_size_string.c_str(),
+						      max_size.c_str(),
 						      DDS_BOOLEAN_FALSE);
 
   if (retcode != DDS_RETCODE_OK) {
@@ -331,13 +331,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 					 DDS_STATUS_MASK_NONE)
 		      );
 
-  topic_string_ = participant_->create_topic(
-					     "Meaningless sentence",                        // Topic name
-					     DDSStringTypeSupport::get_type_name(), // Type name
-					     DDS_TOPIC_QOS_DEFAULT,                 // Topic QoS
-					     nullptr,                                  // Listener 
-					     DDS_STATUS_MASK_NONE) ;
-
   topic_octets_ = participant_->create_topic(
 					     "artdaq fragments",                        // Topic name
 					     DDSOctetsTypeSupport::get_type_name(), // Type name
@@ -346,7 +339,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 					     DDS_STATUS_MASK_NONE) ;
 
   if (participant_ == nullptr || 
-      topic_string_ == nullptr ||
       topic_octets_ == nullptr) {
     mf::LogWarning(name_) << "Problem setting up the RTI-DDS participant and/or topic";
   }
@@ -369,7 +361,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 
   retcode = DDSPropertyQosPolicyHelper::add_property (
   						   writer_qos.property, "dds.builtin_type.octets.alloc_size", 
-  						   max_size_string.c_str(),
+  						   max_size.c_str(),
   						   DDS_BOOLEAN_FALSE);
 
   if (retcode != DDS_RETCODE_OK) {
@@ -378,12 +370,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 
   if (is_data_logger_) {
 	
-    string_writer_ = DDSStringDataWriter::narrow( participant_->create_datawriter(
-										  topic_string_,
-										  writer_qos,
-										  nullptr,                           // Listener
-										  DDS_STATUS_MASK_NONE) );
-
     octets_writer_ = DDSOctetsDataWriter::narrow( participant_->create_datawriter(
 										  topic_octets_,
 										  writer_qos,
@@ -391,18 +377,11 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 										  DDS_STATUS_MASK_NONE) 
 						  );
 
-    if (string_writer_ == nullptr ||
-	octets_writer_ == nullptr) {
+    if (octets_writer_ == nullptr) {
       mf::LogWarning(name_) << "Problem setting up the RTI-DDS writer objects";
     }
 
   } else {
-
-    string_reader_ = participant_->create_datareader(
-						     topic_string_,
-						     DDS_DATAREADER_QOS_DEFAULT,    // QoS 
-						     &string_listener_,                      // Listener 
-						     DDS_DATA_AVAILABLE_STATUS);
     
     octets_reader_ = participant_->create_datareader(
 						     topic_octets_,
@@ -410,8 +389,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 						     &octets_listener_,                      // Listener 
 						     DDS_DATA_AVAILABLE_STATUS);
 
-    if (string_reader_ == nullptr ||
-	octets_reader_ == nullptr) {
+    if (octets_reader_ == nullptr) {
       mf::LogWarning(name_) << "Problem setting up the RTI-DDS reader objects";
     }
 
@@ -713,8 +691,6 @@ size_t artdaq::AggregatorCore::process_fragments()
     bool fragmentWasCopied = false;
     if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0) {
 
-      DDS_ReturnCode_t retcode = DDS_RETCODE_ERROR;
-      
       //      mf::LogInfo(name_) << "For fragment with seqID = " << fragmentPtr->sequenceID();
       //      display_bits(fragmentPtr->headerBeginBytes(), 32, "ProcessFragments");
 
@@ -725,13 +701,6 @@ size_t artdaq::AggregatorCore::process_fragments()
       copyFragmentToDDS_(fragmentWasCopied,
 			 esrWasCopied, eodWasCopied,
 			 *fragmentPtr);
-
-      retcode = string_writer_->write( "The quick brown fox jumped over something",
-							DDS_HANDLE_NIL);
-      if (retcode != DDS_RETCODE_OK) {
-	mf::LogWarning(name_) << "Problem writing RTI-DDS string, retcode was " << retcode;
-      }
-
     }
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
@@ -1503,46 +1472,6 @@ void artdaq::AggregatorCore::participantDeleter(DDSDomainParticipant* participan
     }
   }
 
-}
-
-// This method gets called back by DDS when one or more data samples have been                           
-// received.                                                                                             
- 
-void artdaq::StringListener::on_data_available(DDSDataReader *reader) {
-  DDSStringDataReader * string_reader = NULL;
-  char                  sample[1000];
-  DDS_SampleInfo        info;
-  DDS_ReturnCode_t      retcode;
-
-  // Perform a safe type-cast from a generic data reader into a                                        
-  // specific data reader for the type "DDS::String"                                                   
-
-  string_reader = DDSStringDataReader::narrow(reader);
-  if (string_reader == nullptr) {
-    
-    mf::LogError("StringListener") << "Error: Very unexpected - DDSStringDataReader::narrow failed";
-    return;
-  }
-
-  // Loop until there are messages available in the queue 
-  char *ptr_sample = &sample[0];
-  for(;;) {
-    retcode = string_reader->take_next_sample(
-					      ptr_sample,
-					      info);
-    if (retcode == DDS_RETCODE_NO_DATA) {
-      // No more samples 
-      break;
-    } else if (retcode != DDS_RETCODE_OK) {
-      mf::LogWarning("StringListener") << "Unable to take data from data reader, error "
-				      << retcode;
-      return;
-    }
-    if (info.valid_data) {
-      // Valid (this isn't just a lifecycle sample): print it                                      
-      mf::LogInfo("StringListener") << sample;
-    }
-  }
 }
 
 // This method gets called back by DDS when one or more data samples have been                           
