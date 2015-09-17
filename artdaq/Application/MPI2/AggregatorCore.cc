@@ -715,18 +715,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 
       DDS_ReturnCode_t retcode = DDS_RETCODE_ERROR;
       
-      //      constexpr size_t basic_array_length = 4;
-      //      uint8_t basic_array[ basic_array_length ] = {0x1, 0x2, 0x3, 0x4};
-
-      mf::LogInfo(name_) << "For fragment with seqID = " << fragmentPtr->sequenceID();
-      display_bits(fragmentPtr->headerBeginBytes(), 32, "ProcessFragments");
-
-      //      retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(fragmentPtr->headerBeginBytes()), 
-      //				       fragmentPtr->sizeBytes(),
-      //				       DDS_HANDLE_NIL);
-      //      if (retcode != DDS_RETCODE_OK) {
-      //	mf::LogWarning(name_) << "Problem writing octets (bytes), retcode was " << retcode;
-      //      }
+      //      mf::LogInfo(name_) << "For fragment with seqID = " << fragmentPtr->sequenceID();
+      //      display_bits(fragmentPtr->headerBeginBytes(), 32, "ProcessFragments");
 
       //      copyFragmentToSharedMemory_(fragmentWasCopied,
       //                                  esrWasCopied, eodWasCopied,
@@ -1457,11 +1447,8 @@ copyFragmentToDDS_(bool& fragment_has_been_copied,
       usleep(500000);
     }
 
-    //    size_t max_bytes_to_copy = 1000;
-
     DDS_ReturnCode_t retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(fragment.headerBeginBytes()), 
 						      fragment.sizeBytes(),
-						      //						      fragment.sizeBytes() < max_bytes_to_copy ? fragment.sizeBytes() : max_bytes_to_copy,
 						      DDS_HANDLE_NIL);
 
     if (retcode != DDS_RETCODE_OK) {
@@ -1582,14 +1569,12 @@ void artdaq::OctetsListener::on_data_available(DDSDataReader *reader) {
 
 
   for(;;) {
-    //    mf::LogInfo("OctetsListener") << "Next iteration in loop";
 
     retcode = octets_reader->take_next_sample(
 					      dds_octets_,
 					      info);
     if (retcode == DDS_RETCODE_NO_DATA) {
       // No more samples 
-      //      mf::LogInfo("OctetsListener") << "No more samples";
       break;
     } else if (retcode != DDS_RETCODE_OK) {
       mf::LogWarning("OctetsListener") << "Unable to take data from data reader, error "
@@ -1598,10 +1583,10 @@ void artdaq::OctetsListener::on_data_available(DDSDataReader *reader) {
     }
     if (info.valid_data) {
 
-      data_ready_ = true;
+      dds_octets_queue_.push( dds_octets_ );
 
-      mf::LogInfo("OctetsListener") << "First 32 bytes of " << dds_octets_.length << ": ";
-      display_bits( dds_octets_.value, 32, "OctetsListener" );
+      mf::LogInfo("OctetsListener") << "First 32 bytes of " << dds_octets_queue_.front().length << ": ";
+      display_bits( dds_octets_queue_.front().value, 32, "OctetsListener" );
     }
   }
 }
@@ -1612,23 +1597,21 @@ size_t artdaq::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fragment
   int loopCount = 0;
   size_t sleepTime = receiveTimeout / 10;
   
-  while (!data_ready_ && loopCount < 10) {
+  while (dds_octets_queue_.empty() && loopCount < 10) {
     usleep(sleepTime);
     ++loopCount;
   }
 
-  if (data_ready_) {
-    fragment.resizeBytes(dds_octets_.length);
-    memcpy(fragment.headerAddress(), dds_octets_.value, dds_octets_.length);
+  if (!dds_octets_queue_.empty()) {
+    fragment.resizeBytes(dds_octets_queue_.front().length);
+    memcpy(fragment.headerAddress(), dds_octets_queue_.front().value, dds_octets_queue_.front().length);
     
-    data_ready_ = false;
+    dds_octets_queue_.pop();
 
-    //  if (fragment.type() != artdaq::Fragment::DataFragmentType) {
       mf::LogDebug("OctetsListener")
 	<< "Received fragment from DDS, type ="
 	<< ((int)fragment.type()) << ", sequenceID = "
 	<< fragment.sequenceID();
-      //    }
 
       return artdaq::RHandles::RECV_TIMEOUT + 1 ; // WARNING: Very ad-hoc; need to improve
   }

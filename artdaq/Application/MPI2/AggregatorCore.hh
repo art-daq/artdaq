@@ -7,6 +7,7 @@
 #include <thread>
 #include <functional>
 #include <iostream>
+#include <queue>
 
 
 #include "fhiclcpp/ParameterSet.h"
@@ -34,18 +35,15 @@ namespace artdaq
   class OctetsListener: public DDSDataReaderListener {
   public:
     
-    OctetsListener() :
-      data_ready_(false)
-    { dds_octets_.value =  DDS_OctetBuffer_alloc(1000000); }
-
     void on_data_available(DDSDataReader *reader);
 
     size_t receiveFragmentFromDDS(artdaq::Fragment& fragment,
 				  size_t receiveTimeout);
 
   private:
-    bool data_ready_;
+
     DDS_Octets dds_octets_;
+    std::queue<DDS_Octets> dds_octets_queue_;
 
   };
 
