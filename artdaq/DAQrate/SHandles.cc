@@ -125,6 +125,7 @@ sendFragTo(Fragment && frag, size_t dest)
   curfrag = std::move(frag);
   TRACE( 5, "sendFragTo before send dest=%lu seqID=%lu", dest, curfrag.sequenceID() );
   if (! synchronous_sends_) {
+    // 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
     MPI_Isend(&*curfrag.headerBegin(),
               curfrag.size() * sizeof(Fragment::value_type),
               MPI_BYTE,
@@ -134,12 +135,17 @@ sendFragTo(Fragment && frag, size_t dest)
               &reqs_[buffer_idx]);
   }
   else {
-    MPI_Send(&*curfrag.headerBegin(),
-             curfrag.size() * sizeof(Fragment::value_type),
-             MPI_BYTE,
-             dest,
-             MPITag::FINAL,
-             MPI_COMM_WORLD );
+    // 14-Sep-2015, KAB: switched from MPI_Send to MPI_Ssend based on
+    // http://www.mcs.anl.gov/research/projects/mpi/sendmode.html.
+    // This change was made after we noticed that MPI buffering
+    // downstream of NetMonOutput was causing EventBuilder memory
+    // usage to grow when using MPI_Send with MPICH 3.1.4 and 3.1.2a.
+    MPI_Ssend(&*curfrag.headerBegin(),
+              curfrag.size() * sizeof(Fragment::value_type),
+              MPI_BYTE,
+              dest,
+              MPITag::FINAL,
+              MPI_COMM_WORLD );
   }
   TRACE( 5, "sendFragTo COMPLETE" );
   
