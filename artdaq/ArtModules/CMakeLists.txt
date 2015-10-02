@@ -57,6 +57,26 @@ simple_plugin(NetMonOutput "module"
   ${ROOT_RIO}
 )
 
+simple_plugin(BinaryMPIOutput "module"
+  artdaq_ArtModules
+  art_Framework_Services_Registry
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${ROOT_RIO}
+)
+
+simple_plugin(BinaryFileOutput "module"
+  artdaq_ArtModules
+  art_Framework_Services_Registry
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${ROOT_RIO}
+)
+
 simple_plugin(NetMonTransportService "service"
   artdaq_DAQrate
   art_Framework_Services_Registry
