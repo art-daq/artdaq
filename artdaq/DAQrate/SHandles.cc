@@ -5,6 +5,8 @@
 #include "artdaq/DAQrate/Utils.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "cetlib/exception.h"
+
+#define TRACE_NAME "SHandles"
 #include "trace.h"		// TRACE
 
 #include <algorithm>
@@ -25,8 +27,16 @@ artdaq::SHandles::SHandles(size_t buffer_count,
   broadcast_sends_(broadcast_sends),
   synchronous_sends_(synchronous_sends),
   reqs_(buffer_count_, MPI_REQUEST_NULL),
-  payload_(buffer_count_)
+  payload_(buffer_count_),
+  my_mpi_rank_([](){ auto rank=0; MPI_Comm_rank(MPI_COMM_WORLD, &rank);return rank;}())
 {
+    std::ostringstream debugstream;
+    debugstream << "SHandles construction: "
+                << "rank " << my_mpi_rank_ << ", "
+		<< buffer_count << " buffers, "
+		<< dest_count << " destination starting at rank "
+		<< dest_start << '\n';
+    TRACE(4, debugstream.str().c_str());
 }
 
 artdaq::SHandles::~SHandles()
@@ -123,7 +133,7 @@ sendFragTo(Fragment && frag, size_t dest)
   size_t buffer_idx = findAvailable();
   Fragment & curfrag = payload_[buffer_idx];
   curfrag = std::move(frag);
-  TRACE( 5, "sendFragTo before send dest=%lu seqID=%lu", dest, curfrag.sequenceID() );
+  TRACE( 5, "sendFragTo before send src=%i dest=%lu seqID=%lu", my_mpi_rank_ , dest, curfrag.sequenceID() );
   if (! synchronous_sends_) {
     // 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
     MPI_Isend(&*curfrag.headerBegin(),
@@ -154,6 +164,7 @@ sendFragTo(Fragment && frag, size_t dest)
     debugstream << "send COMPLETE: "
 		<< " buffer_idx=" << buffer_idx
 		<< " send_size=" << curfrag.size()
+		<< " src=" << my_mpi_rank_
 		<< " dest=" << dest
 		<< " sequenceID=" << curfrag.sequenceID()
 		<< " fragID=" << curfrag.fragmentID()

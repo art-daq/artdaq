@@ -7,6 +7,8 @@
 #include "cetlib/container_algorithms.h"
 #include "cetlib/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+
+#define TRACE_NAME "RHandles"
 #include "trace.h"		// TRACE
 
 const size_t artdaq::RHandles::RECV_TIMEOUT = 0xfedcba98;
@@ -25,12 +27,14 @@ artdaq::RHandles::RHandles(size_t buffer_count,
   reqs_(buffer_count_, MPI_REQUEST_NULL),
   req_sources_(buffer_count_, MPI_ANY_SOURCE),
   last_source_posted_(-1),
-  payload_(buffer_count_)
+  payload_(buffer_count_),
+  my_mpi_rank_([](){ auto rank=0; MPI_Comm_rank(MPI_COMM_WORLD, &rank);return rank;}())
 {
 
   {
     std::ostringstream debugstream;
     debugstream << "RHandles construction: "
+                << "rank " << my_mpi_rank_ << ", "
 		<< buffer_count << " buffers, "
 		<< src_count << " sources starting at rank "
 		<< src_start << '\n';
