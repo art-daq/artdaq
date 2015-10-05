@@ -28,4 +28,10 @@ cet_test(genToArt_t HANDBUILT
   DATAFILES fcl/genToArt_t.fcl
 )
 
+cet_test(genToArt_outToBinaryFileOutput_t HANDBUILT
+  TEST_EXEC genToArt
+  TEST_ARGS -c genToArt_outToBinaryFileOutput_t.fcl
+  DATAFILES fcl/genToArt_outToBinaryFileOutput_t.fcl
+)
+
 install_source()
