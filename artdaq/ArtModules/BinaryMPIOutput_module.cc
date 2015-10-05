@@ -198,7 +198,7 @@ write(const EventPrincipal& ep)
 
       for(auto const& fragment: *raw_event_handle) {
 	auto fragment_copy=fragment;
-	auto fragid_id = fragment.fragmentID();
+	auto fragid_id = fragment_copy.fragmentID();
 	auto sequence_id = fragment_copy.sequenceID();
 	TRACE( 1, "BinaryMPIOutput::write seq=%lu frag=%i start",  sequence_id, fragid_id);
 	sender_ptr_->sendFragment(std::move(fragment_copy));
