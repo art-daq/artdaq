@@ -148,7 +148,7 @@ sendFragTo(Fragment && frag, size_t dest)
     // 14-Sep-2015, KAB: switched from MPI_Send to MPI_Ssend based on
     // http://www.mcs.anl.gov/research/projects/mpi/sendmode.html.
     // This change was made after we noticed that MPI buffering
-    // downstream of NetMonOutput was causing EventBuilder memory
+    // downstream of RootMPIOutput was causing EventBuilder memory
     // usage to grow when using MPI_Send with MPICH 3.1.4 and 3.1.2a.
     MPI_Ssend(&*curfrag.headerBegin(),
               curfrag.size() * sizeof(Fragment::value_type),
