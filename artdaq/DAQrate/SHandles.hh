@@ -77,7 +77,8 @@ private:
   bool synchronous_sends_;
 
   Requests reqs_;
-  Fragments payload_;
+  Fragments payload_; 
+  int  my_mpi_rank_;
 };
 
 inline

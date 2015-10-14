@@ -46,16 +46,16 @@
 #include "TMessage.h"
 
 namespace art {
-class NetMonOutput;
+class RootMPIOutput;
 }
 
-using art::NetMonOutput;
+using art::RootMPIOutput;
 using fhicl::ParameterSet;
 
-class art::NetMonOutput : public OutputModule {
+class art::RootMPIOutput : public OutputModule {
 public:
-    explicit NetMonOutput(ParameterSet const&);
-    ~NetMonOutput();
+    explicit RootMPIOutput(ParameterSet const&);
+    ~RootMPIOutput();
 private:
     virtual void openFile(FileBlock const&);
     virtual void closeFile();
@@ -72,52 +72,52 @@ private:
     bool initMsgSent_;
 };
 
-art::NetMonOutput::
-NetMonOutput(ParameterSet const& ps)
+art::RootMPIOutput::
+RootMPIOutput(ParameterSet const& ps)
     : OutputModule(ps), initMsgSent_(false)
 {
-    FDEBUG(1) << "Begin: NetMonOutput::NetMonOutput(ParameterSet const& ps)\n";
+    FDEBUG(1) << "Begin: RootMPIOutput::RootMPIOutput(ParameterSet const& ps)\n";
     ServiceHandle<NetMonTransportService> transport;
     transport->connect();
-    FDEBUG(1) << "End:   NetMonOutput::NetMonOutput(ParameterSet const& ps)\n";
+    FDEBUG(1) << "End:   RootMPIOutput::RootMPIOutput(ParameterSet const& ps)\n";
 }
 
-art::NetMonOutput::
-~NetMonOutput()
+art::RootMPIOutput::
+~RootMPIOutput()
 {
-    FDEBUG(1) << "Begin: NetMonOutput::~NetMonOutput()\n";
+    FDEBUG(1) << "Begin: RootMPIOutput::~RootMPIOutput()\n";
     ServiceHandle<NetMonTransportService> transport;
     transport->disconnect();
-    FDEBUG(1) << "End:   NetMonOutput::~NetMonOutput()\n";
+    FDEBUG(1) << "End:   RootMPIOutput::~RootMPIOutput()\n";
 }
 
 void
-art::NetMonOutput::
+art::RootMPIOutput::
 openFile(FileBlock const&)
 {
-    FDEBUG(1) << "Begin/End: NetMonOutput::openFile(const FileBlock&)\n";
+    FDEBUG(1) << "Begin/End: RootMPIOutput::openFile(const FileBlock&)\n";
 }
 
 void
-art::NetMonOutput::
+art::RootMPIOutput::
 closeFile()
 {
-    FDEBUG(1) << "Begin/End: NetMonOutput::closeFile()\n";
+    FDEBUG(1) << "Begin/End: RootMPIOutput::closeFile()\n";
 }
 
 void
-art::NetMonOutput::
+art::RootMPIOutput::
 respondToCloseInputFile(FileBlock const&)
 {
-    FDEBUG(1) << "Begin/End: NetMonOutput::"
+    FDEBUG(1) << "Begin/End: RootMPIOutput::"
                  "respondToCloseOutputFiles(FileBlock const&)\n";
 }
 
 void
-art::NetMonOutput::
+art::RootMPIOutput::
 respondToCloseOutputFiles(FileBlock const&)
 {
-    FDEBUG(1) << "Begin/End: NetMonOutput::"
+    FDEBUG(1) << "Begin/End: RootMPIOutput::"
                  "respondToCloseOutputFiles(FileBlock const&)\n";
 }
 
@@ -125,7 +125,7 @@ static
 void
 send_shutdown_message()
 {
-    FDEBUG(1) << "Begin: NetMonOutput static send_shutdown_message()\n";
+    FDEBUG(1) << "Begin: RootMPIOutput static send_shutdown_message()\n";
     //
     //  Construct and send the shutdown message.
     //
@@ -135,10 +135,10 @@ send_shutdown_message()
     //  Stream the message type code.
     //
     {
-        FDEBUG(1) << "NetMonOutput static send_shutdown_message: "
+        FDEBUG(1) << "RootMPIOutput static send_shutdown_message: "
                      "streaming shutdown message type code ...\n";
         msg.WriteULong(5);
-        FDEBUG(1) << "NetMonOutput static send_shutdown_message: "
+        FDEBUG(1) << "RootMPIOutput static send_shutdown_message: "
                      "finished streaming shutdown message type code.\n";
     }
     //
@@ -147,22 +147,22 @@ send_shutdown_message()
     //
     {
         art::ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "NetMonOutput static send_shutdown_message: "
+        FDEBUG(1) << "RootMPIOutput static send_shutdown_message: "
                      "sending the shutdown message ...\n";
 	transport->sendMessage(0, artdaq::Fragment::ShutdownFragmentType, msg);
-        FDEBUG(1) << "NetMonOutput static send_shutdown_message: "
+        FDEBUG(1) << "RootMPIOutput static send_shutdown_message: "
                      "sent the shutdown message.\n";
     }
-    FDEBUG(1) << "End:   NetMonOutput static send_shutdown_message()\n";
+    FDEBUG(1) << "End:   RootMPIOutput static send_shutdown_message()\n";
 }
 
 void
-art::NetMonOutput::
+art::RootMPIOutput::
 endJob()
 {
-    FDEBUG(1) << "Begin: NetMonOutput::endJob()\n";
+    FDEBUG(1) << "Begin: RootMPIOutput::endJob()\n";
     send_shutdown_message();
-    FDEBUG(1) << "End:   NetMonOutput::endJob()\n";
+    FDEBUG(1) << "End:   RootMPIOutput::endJob()\n";
 }
 
 #pragma GCC push_options
@@ -171,21 +171,21 @@ static
 void
 send_init_message()
 {
-    FDEBUG(1) << "Begin: NetMonOutput static send_init_message()\n";
+    FDEBUG(1) << "Begin: RootMPIOutput static send_init_message()\n";
     //
     //  Get the classes we will need.
     //
     static TClass* string_class = TClass::GetClass("std::string");
     if (string_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput static send_init_message(): "
+            "RootMPIOutput static send_init_message(): "
             "Could not get TClass for std::string!";
     }
     static TClass* product_list_class = TClass::GetClass(
         "map<art::BranchKey,art::BranchDescription>");
     if (product_list_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput static send_init_message(): "
+            "RootMPIOutput static send_init_message(): "
             "Could not get TClass for "
             "map<art::BranchKey,art::BranchDescription>!";
     }
@@ -197,7 +197,7 @@ send_init_message()
         "std::map<const art::Hash<2>,art::ProcessHistory>");
     if (process_history_map_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput static send_init_message(): "
+            "RootMPIOutput static send_init_message(): "
             "Could not get class for "
             "std::map<const art::Hash<2>,art::ProcessHistory>!";
     }
@@ -208,7 +208,7 @@ send_init_message()
         "std::map<const art::Hash<5>,art::Parentage>");
     if (parentage_map_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput static send_init_message(): "
+            "RootMPIOutput static send_init_message(): "
             "Could not get class for "
             "std::map<const art::Hash<5>,art::Parentage>!";
     }
@@ -221,10 +221,10 @@ send_init_message()
     //  Stream the message type code.
     //
     {
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Streaming message type code ...\n";
         msg.WriteULong(1);
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Finished streaming message type code.\n";
     }
     //
@@ -232,29 +232,29 @@ send_init_message()
     //
     {
         unsigned long ps_cnt = fhicl::ParameterSetRegistry::size();
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "parameter set count: " << ps_cnt << '\n';
         msg.WriteULong(ps_cnt);
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Streaming parameter sets ...\n";
         for (auto I = fhicl::ParameterSetRegistry::begin(),
                 E = fhicl::ParameterSetRegistry::end(); I != E; ++I) {
             std::string pset_str = I->second.to_string();
             msg.WriteObjectAny(&pset_str, string_class);
         }
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Finished streaming parameter sets.\n";
     }
     //
     //  Stream the MasterProductRegistry.
     //
     {
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Streaming MasterProductRegistry ...\n";
         art::ProductList productList(
             art::ProductMetaData::instance().productList());
         msg.WriteObjectAny(&productList, product_list_class);
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Finished streaming MasterProductRegistry.\n";
     }
     //
@@ -266,17 +266,17 @@ send_init_message()
         //std::vector<std::vector<art::BranchID::value_type>>
         art::BranchIDLists* bilr =
             &art::BranchIDListRegistry::instance()->data();
-        FDEBUG(2) << "NetMonOutput static send_init_message(): "
+        FDEBUG(2) << "RootMPIOutput static send_init_message(): "
                      "Content of BranchIDLists\n";
         int max_bli = bilr->size();
-        FDEBUG(2) << "NetMonOutput static send_init_message(): "
+        FDEBUG(2) << "RootMPIOutput static send_init_message(): "
                      "max_bli: " << max_bli << '\n';
         for (int i = 0; i < max_bli; ++i) {
            int max_prdidx = (*bilr)[i].size();
-           FDEBUG(2) << "NetMonOutput static send_init_message(): "
+           FDEBUG(2) << "RootMPIOutput static send_init_message(): "
                         "max_prdidx: " << max_prdidx << '\n';
            for (int j = 0; j < max_prdidx; ++j) {
-               FDEBUG(2) << "NetMonOutput static send_init_message(): "
+               FDEBUG(2) << "RootMPIOutput static send_init_message(): "
                             "bli: " << i
                          << " prdidx: " << j
                          << " bid: 0x" << std::hex
@@ -289,17 +289,17 @@ send_init_message()
     //  Dump the ProcessHistoryRegistry.
     //
     if (art::debugit() >= 1) {
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Dumping ProcessHistoryRegistry ...\n";
         //typedef std::map<const ProcessHistoryID,ProcessHistory>
         //    ProcessHistoryMap;
         art::ProcessHistoryMap const& phr = art::ProcessHistoryRegistry::get();
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "phr: size: " << phr.size() << '\n';
         for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
             std::ostringstream OS;
             I->first.print(OS);
-            FDEBUG(1) << "NetMonOutput static send_init_message(): "
+            FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                          "phr: id: '" << OS.str() << "'\n";
         }
     }
@@ -307,27 +307,27 @@ send_init_message()
     //  Stream the ProcessHistoryRegistry.
     //
     {
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Streaming ProcessHistoryRegistry ...\n";
         //typedef std::map<const ProcessHistoryID,ProcessHistory>
         //    ProcessHistoryMap;
         const art::ProcessHistoryMap& phm = art::ProcessHistoryRegistry::get();
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "phm: size: " << phm.size() << '\n';
         msg.WriteObjectAny(&phm, process_history_map_class);
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Finished streaming ProcessHistoryRegistry.\n";
     }
     //
     //  Stream the ParentageRegistry.
     //
     {
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Streaming ParentageRegistry ...\n";
         //typedef std::map<const ParentageID,Parentage> ParentageMap
         const art::ParentageMap& parentageMap = art::ParentageRegistry::get();
         msg.WriteObjectAny(&parentageMap, parentage_map_class);
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Finished streaming ParentageRegistry.\n";
     }
     //
@@ -336,22 +336,22 @@ send_init_message()
     //
     {
         art::ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Sending the init message ...\n";
 	transport->sendMessage(0, artdaq::Fragment::InitFragmentType, msg);
-        FDEBUG(1) << "NetMonOutput static send_init_message(): "
+        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
                      "Init message sent.\n";
     }
-    FDEBUG(1) << "End:   NetMonOutput static send_init_message()\n";
+    FDEBUG(1) << "End:   RootMPIOutput static send_init_message()\n";
 }
 #pragma GCC pop_options
 
 void
-art::NetMonOutput::
+art::RootMPIOutput::
 writeDataProducts(TBufferFile& msg, const Principal& principal,
                   std::vector<BranchKey*>& bkv)
 {
-    FDEBUG(1) << "Begin: NetMonOutput::writeDataProducts(...)\n";
+    FDEBUG(1) << "Begin: RootMPIOutput::writeDataProducts(...)\n";
     //
     //  Fetch the class dictionaries we need for
     //  writing out the data products.
@@ -359,13 +359,13 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
     static TClass* branch_key_class = TClass::GetClass("art::BranchKey");
     if (branch_key_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput::writeDataProducts(...): "
+            "RootMPIOutput::writeDataProducts(...): "
             "Could not get TClass for art::BranchKey!";
     }
     static TClass* prdprov_class = TClass::GetClass("art::ProductProvenance");
     if (prdprov_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput::writeDataProducts(...): "
+            "RootMPIOutput::writeDataProducts(...): "
             "Could not get TClass for art::ProductProvenance!";
     }
     //
@@ -383,10 +383,10 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
     //  Write the data product count.
     //
     {
-        FDEBUG(1) << "NetMonOutput::writeDataProducts(...): "
+        FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
                      "Streaming product count: " << prd_cnt << '\n';
         msg.WriteULong(prd_cnt);
-        FDEBUG(1) << "NetMonOutput::writeDataProducts(...): "
+        FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
                      "Finished streaming product count.\n";
     }
     //
@@ -408,7 +408,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
         const BranchDescription& bd(I->second->productDescription());
         bkv.push_back(new BranchKey(bd));
         if (art::debugit() >= 2) {
-            FDEBUG(2) << "NetMonOutput::writeDataProducts(...): "
+            FDEBUG(2) << "RootMPIOutput::writeDataProducts(...): "
                          "Dumping branch key           of class: '"
                       << bkv.back()->friendlyClassName_
                       << "' modlbl: '"
@@ -420,7 +420,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
                       << "'\n";
         }
         {
-            FDEBUG(1) << "NetMonOutput::writeDataProducts(...): "
+            FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
                          "Streaming branch key         of class: '"
                       << bd.producedClassName()
                       << "' modlbl: '"
@@ -433,7 +433,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
             msg.WriteObjectAny(bkv.back(), branch_key_class);
         }
         {
-            FDEBUG(1) << "NetMonOutput::writeDataProducts(...): "
+            FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
                          "Streaming product            of class: '"
                       << bd.producedClassName()
                       << "' modlbl: '"
@@ -448,7 +448,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
             msg.WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
         }
         {
-            FDEBUG(1) << "NetMonOutput::writeDataProducts(...): "
+            FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
                          "Streaming product provenance of class: '"
                       << bd.producedClassName()
                       << "' modlbl: '"
@@ -463,17 +463,17 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
             msg.WriteObjectAny(prdprov, prdprov_class);
         }
     }
-    FDEBUG(1) << "End:   NetMonOutput::writeDataProducts(...)\n";
+    FDEBUG(1) << "End:   RootMPIOutput::writeDataProducts(...)\n";
 }
 
 void
-art::NetMonOutput::
+art::RootMPIOutput::
 write(const EventPrincipal& ep)
 {
     //
     //  Write an Event message.
     //
-    FDEBUG(1) << "Begin: NetMonOutput::"
+    FDEBUG(1) << "Begin: RootMPIOutput::"
                  "write(const EventPrincipal& ep)\n";
     if (!initMsgSent_) {
         send_init_message();
@@ -485,25 +485,25 @@ write(const EventPrincipal& ep)
     static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
     if (run_aux_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput::write(const EventPrincipal& ep): "
+            "RootMPIOutput::write(const EventPrincipal& ep): "
             "Could not get TClass for art::RunAuxiliary!";
     }
     static TClass* subrun_aux_class = TClass::GetClass("art::SubRunAuxiliary");
     if (subrun_aux_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput::write(const EventPrincipal& ep): "
+            "RootMPIOutput::write(const EventPrincipal& ep): "
             "Could not get TClass for art::SubRunAuxiliary!";
     }
     static TClass* event_aux_class = TClass::GetClass("art::EventAuxiliary");
     if (event_aux_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-           "NetMonOutput::write(const EventPrincipal& ep): "
+           "RootMPIOutput::write(const EventPrincipal& ep): "
            "Could not get TClass for art::EventAuxiliary!";
     }
     static TClass* history_class = TClass::GetClass("art::History");
     if (history_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput::write(const EventPrincipal& ep): "
+            "RootMPIOutput::write(const EventPrincipal& ep): "
             "Could not get TClass for art::History!";
     }
     //
@@ -515,52 +515,52 @@ write(const EventPrincipal& ep)
     //  Write message type code.
     //
     {
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming message type code ...\n";
         msg.WriteULong(4);
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming message type code.\n";
     }
     //
     //  Write RunAuxiliary.
     //
     {
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming RunAuxiliary ...\n";
         msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().aux(),
                            run_aux_class);
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming RunAuxiliary.\n";
     }
     //
     //  Write SubRunAuxiliary.
     //
     {
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming SubRunAuxiliary ...\n";
         msg.WriteObjectAny(&ep.subRunPrincipal().aux(),
                            subrun_aux_class);
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming SubRunAuxiliary.\n";
     }
     //
     //  Write EventAuxiliary.
     //
     {
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming EventAuxiliary ...\n";
         msg.WriteObjectAny(&ep.aux(), event_aux_class);
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming EventAuxiliary.\n";
     }
     //
     //  Write History.
     //
     {
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming History ...\n";
         msg.WriteObjectAny(&ep.history(), history_class);
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming History.\n";
     }
     //
@@ -573,10 +573,10 @@ write(const EventPrincipal& ep)
     //
     {
         ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Sending a message ...\n";
 	transport->sendMessage(ep.id().event(), artdaq::Fragment::DataFragmentType, msg);
-        FDEBUG(1) << "NetMonOutput::write(const EventPrincipal& ep): "
+        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Message sent.\n";
     }
     //
@@ -586,17 +586,17 @@ write(const EventPrincipal& ep)
         delete *I;
         *I = 0;
     }
-    FDEBUG(1) << "End:   NetMonOutput::write(const EventPrincipal& ep)\n";
+    FDEBUG(1) << "End:   RootMPIOutput::write(const EventPrincipal& ep)\n";
 }
 
 void
-art::NetMonOutput::
+art::RootMPIOutput::
 writeRun(const RunPrincipal& rp)
 {
     //
     //  Write an EndRun message.
     //
-    FDEBUG(1) << "Begin: NetMonOutput::writeRun(const RunPrincipal& rp)\n";
+    FDEBUG(1) << "Begin: RootMPIOutput::writeRun(const RunPrincipal& rp)\n";
     (void) rp;
     if (!initMsgSent_) {
         send_init_message();
@@ -695,16 +695,16 @@ writeRun(const RunPrincipal& rp)
         *I = 0;
     }
 #endif // 0
-    FDEBUG(1) << "End:   NetMonOutput::writeRun(const RunPrincipal& rp)\n";
+    FDEBUG(1) << "End:   RootMPIOutput::writeRun(const RunPrincipal& rp)\n";
 }
 
 void
-art::NetMonOutput::writeSubRun(const SubRunPrincipal& srp)
+art::RootMPIOutput::writeSubRun(const SubRunPrincipal& srp)
 {
     //
     //  Write an EndSubRun message.
     //
-    FDEBUG(1) << "Begin: NetMonOutput::"
+    FDEBUG(1) << "Begin: RootMPIOutput::"
                  "writeSubRun(const SubRunPrincipal& srp)\n";
     if (!initMsgSent_) {
         send_init_message();
@@ -717,7 +717,7 @@ art::NetMonOutput::writeSubRun(const SubRunPrincipal& srp)
     static TClass* subrun_aux_class = TClass::GetClass("art::SubRunAuxiliary");
     if (subrun_aux_class == nullptr) {
         throw art::Exception(art::errors::DictionaryNotFound) <<
-            "NetMonOutput::writeSubRun: "
+            "RootMPIOutput::writeSubRun: "
             "Could not get TClass for art::SubRunAuxiliary!";
     }
     //
@@ -729,51 +729,51 @@ art::NetMonOutput::writeSubRun(const SubRunPrincipal& srp)
     //  Write message type code.
     //
     {
-        FDEBUG(1) << "NetMonOutput::writeSubRun: "
+        FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                      "streaming message type code ...\n";
         msg.WriteULong(3);
-        FDEBUG(1) << "NetMonOutput::writeSubRun: "
+        FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                      "finished streaming message type code.\n";
     }
     //
     //  Write SubRunAuxiliary.
     //
     {
-        FDEBUG(1) << "NetMonOutput::writeSubRun: "
+        FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                      "streaming SubRunAuxiliary ...\n";
         if (art::debugit() >= 1) {
-            FDEBUG(1) << "NetMonOutput::writeSubRun: "
+            FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                          "dumping ProcessHistoryRegistry ...\n";
             //typedef std::map<const ProcessHistoryID,ProcessHistory>
             //    ProcessHistoryMap;
             art::ProcessHistoryMap const& phr =
                 art::ProcessHistoryRegistry::get();
-            FDEBUG(1) << "NetMonOutput::writeSubRun: "
+            FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                          "phr: size: " << phr.size() << '\n';
             for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
                 std::ostringstream OS;
                 I->first.print(OS);
-                FDEBUG(1) << "NetMonOutput::writeSubRun: "
+                FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                              "phr: id: '" << OS.str() << "'\n";
                 OS.str("");
-                FDEBUG(1) << "NetMonOutput::writeSubRun: "
+                FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                              "phr: data.size(): "
                           << I->second.data().size() << '\n';
                 if (I->second.data().size()) {
                     I->second.data().back().id().print(OS);
-                    FDEBUG(1) << "NetMonOutput::writeSubRun: "
+                    FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                                  "phr: data.back().id(): '"
                               << OS.str() << "'\n";
                 }
             }
             if (!srp.aux().processHistoryID().isValid()) {
-                FDEBUG(1) << "NetMonOutput::writeSubRun: "
+                FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                              "ProcessHistoryID: 'INVALID'\n";
             }
             else {
                 std::ostringstream OS;
                 srp.aux().processHistoryID().print(OS);
-                FDEBUG(1) << "NetMonOutput::writeSubRun: ProcessHistoryID: '"
+                FDEBUG(1) << "RootMPIOutput::writeSubRun: ProcessHistoryID: '"
                           << OS.str() << "'\n";
                 OS.str("");
                 const ProcessHistory& processHistory =
@@ -781,18 +781,18 @@ art::NetMonOutput::writeSubRun(const SubRunPrincipal& srp)
                 if (processHistory.data().size()) {
                     // FIXME: Print something special on invalid id() here!
                     processHistory.data().back().id().print(OS);
-                    FDEBUG(1) << "NetMonOutput::writeSubRun: "
+                    FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                                  "ProcessConfigurationID: '"
                               << OS.str() << "'\n";
                     OS.str("");
-                    FDEBUG(1) << "NetMonOutput::writeSubRun: "
+                    FDEBUG(1) << "RootMPIOutput::writeSubRun: "
                                  "ProcessConfiguration: '"
                               << processHistory.data().back() << '\n';
                 }
             }
         }
         msg.WriteObjectAny(&srp.aux(), subrun_aux_class);
-        FDEBUG(1) << "NetMonOutput::writeSubRun: streamed SubRunAuxiliary.\n";
+        FDEBUG(1) << "RootMPIOutput::writeSubRun: streamed SubRunAuxiliary.\n";
     }
     //
     //  Write data products.
@@ -804,9 +804,9 @@ art::NetMonOutput::writeSubRun(const SubRunPrincipal& srp)
     //
     {
         ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "NetMonOutput::writeSubRun: sending a message ...\n";
+        FDEBUG(1) << "RootMPIOutput::writeSubRun: sending a message ...\n";
 	transport->sendMessage(0, artdaq::Fragment::EndOfSubrunFragmentType, msg);
-        FDEBUG(1) << "NetMonOutput::writeSubRun: message sent.\n";
+        FDEBUG(1) << "RootMPIOutput::writeSubRun: message sent.\n";
 
 	// Disconnecting will cause EOD fragments to be generated which will
 	// allow components downstream to flush data and clean up.
@@ -819,9 +819,9 @@ art::NetMonOutput::writeSubRun(const SubRunPrincipal& srp)
         delete *I;
         *I = 0;
     }
-    FDEBUG(1) << "End:   NetMonOutput::"
+    FDEBUG(1) << "End:   RootMPIOutput::"
                  "writeSubRun(const SubRunPrincipal& srp)\n";
 }
 
-DEFINE_ART_MODULE(art::NetMonOutput)
+DEFINE_ART_MODULE(art::RootMPIOutput)
 
