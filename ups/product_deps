@@ -23,7 +23,7 @@ mvapich2		v1_9_0
 mpich			v3_1_4
 xmlrpc_c		v1_33_16
 TRACE			v3_05_00
-cetbuildtools		v4_12_05	-	only_for_build
+cetbuildtools		v4_14_02	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
 artdaq_ganglia_plugin   v1_0_8          -       optional
 artdaq_epics_plugin     v1_0_0          -       optional
