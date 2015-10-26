@@ -30,6 +30,7 @@ art_make_exec(EventBuilderMain
   artdaq_Application_MPI2
   artdaq_ExternalComms
   artdaq_BuildInfo
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )
 
 art_make_exec(BoardReaderMain
@@ -39,6 +40,7 @@ art_make_exec(BoardReaderMain
   artdaq_Application_MPI2
   artdaq_ExternalComms
   artdaq_BuildInfo
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )
 
 art_make_exec(AggregatorMain
@@ -48,6 +50,7 @@ art_make_exec(AggregatorMain
   artdaq_Application_MPI2
   artdaq_ExternalComms
   artdaq_BuildInfo
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )
 
 

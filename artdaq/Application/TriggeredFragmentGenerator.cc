@@ -13,7 +13,7 @@
 
 artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterSet const & ps)
   : CommandableFragmentGenerator(ps)
-  , triggerport_(ps.get<int>("trigger_port",3001))
+  , triggerport_(ps.get<int>("trigger_port",5001))
   , trigger_addr_(ps.get<std::string>("trigger_address", "227.128.12.26"))
   , triggerBuffer_()
   , haveData_(false)
@@ -74,8 +74,6 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
       "TriggeredFragmentGenerator: Unable to join multicast group" << std::endl;
     exit(1);
   }
-
-  dataThread_ = std::thread(&TriggeredFragmentGenerator::getNextFragmentLoop_,this);
 }
 
 artdaq::TriggeredFragmentGenerator::~TriggeredFragmentGenerator()
@@ -90,7 +88,7 @@ void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
       return;
     }
 
-    std::cout << "TriggeredFragmentGenerator: calling getNextFragment_" << std::endl;
+    //std::cout << "TriggeredFragmentGenerator: calling getNextFragment_" << std::endl;
     haveData_ = getNextFragment_(newDataBuffer_);
     dataBufferMutex_.lock();
     switch(mode_) {
@@ -106,7 +104,7 @@ void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
     }
     dataBufferMutex_.unlock();
     newDataBuffer_.clear();
-    std::cout << "TriggeredFragmentGenerator: end of getNextFragment_ call, haveData_ is " << haveData_ << std::endl;
+    //std::cout << "TriggeredFragmentGenerator: end of getNextFragment_ call, haveData_ is " << haveData_ << std::endl;
   }
 }
 
@@ -149,10 +147,10 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
       // fill in the triggers for all the events leading up to it as well.
       if(ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
       {
-	std::cout << "Recieved packet on Trigger channel" << std::endl;
+	//std::cout << "Recieved packet on Trigger channel" << std::endl;
         TriggerPacket buffer;
         recv(triggersocket_, &buffer, sizeof(buffer), 0);
-	std::cout << "Trigger header word: 0x" << std::hex << (int)buffer.header << std::dec << std::endl;
+	//std::cout << "Trigger header word: 0x" << std::hex << (int)buffer.header << std::dec << std::endl;
         if(buffer.header == 0x54524947 && buffer.fragment_ID >= ev_counter() && buffer.fragment_ID < ev_counter() + 100)
 	{
             int delta = buffer.fragment_ID - ev_counter() + 1;
@@ -203,4 +201,22 @@ std::string artdaq::TriggeredFragmentGenerator::printMode_()
   }
 
   return "Triggered";
+}
+
+void artdaq::TriggeredFragmentGenerator::start()
+{
+  startThread();
+  start_();
+}
+
+void artdaq::TriggeredFragmentGenerator::resume()
+{
+  startThread();
+  resume_();
+}
+
+void artdaq::TriggeredFragmentGenerator::startThread()
+{
+  //mf::LogDebug("TriggeredFragmentGenerator") << "Starting Data Receiver Thread" << std::endl;
+  dataThread_ = std::thread(&TriggeredFragmentGenerator::getNextFragmentLoop_,this);
 }

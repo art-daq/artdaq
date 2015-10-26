@@ -19,6 +19,7 @@ cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
   art_Framework_Principal
   art_Persistency_Provenance
   art_Utilities
+  ${ART_VERSION}
   )
 
 cet_test(daq_flow_t
