@@ -45,6 +45,15 @@
 #include "TClass.h"
 #include "TMessage.h"
 
+#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#  define CONST_WRITE
+struct Config {
+
+};
+#else
+#  define CONST_WRITE const
+#endif
+
 namespace art {
 class RootMPIOutput;
 }
@@ -63,9 +72,9 @@ private:
     virtual void respondToCloseOutputFiles(FileBlock const&);
     virtual void endJob();
 
-    virtual void write(EventPrincipal const&);
-    virtual void writeRun(RunPrincipal const&);
-    virtual void writeSubRun(SubRunPrincipal const&);
+    virtual void write(EventPrincipal CONST_WRITE&);
+    virtual void writeRun(RunPrincipal CONST_WRITE&);
+    virtual void writeSubRun(SubRunPrincipal CONST_WRITE&);
     void writeDataProducts(TBufferFile&, const Principal&,
                            std::vector<BranchKey*>&);
 private:
@@ -74,7 +83,11 @@ private:
 
 art::RootMPIOutput::
 RootMPIOutput(ParameterSet const& ps)
+#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+  : OutputModule(OutputModule::Table<Config>(ps)), initMsgSent_(false)
+#else
     : OutputModule(ps), initMsgSent_(false)
+#endif
 {
     FDEBUG(1) << "Begin: RootMPIOutput::RootMPIOutput(ParameterSet const& ps)\n";
     ServiceHandle<NetMonTransportService> transport;
@@ -468,7 +481,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 
 void
 art::RootMPIOutput::
-write(const EventPrincipal& ep)
+write(CONST_WRITE EventPrincipal& ep)
 {
     //
     //  Write an Event message.
@@ -591,7 +604,7 @@ write(const EventPrincipal& ep)
 
 void
 art::RootMPIOutput::
-writeRun(const RunPrincipal& rp)
+writeRun(CONST_WRITE RunPrincipal& rp)
 {
     //
     //  Write an EndRun message.
@@ -699,7 +712,7 @@ writeRun(const RunPrincipal& rp)
 }
 
 void
-art::RootMPIOutput::writeSubRun(const SubRunPrincipal& srp)
+art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 {
     //
     //  Write an EndSubRun message.
