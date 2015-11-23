@@ -23,6 +23,15 @@
 #include <memory>
 #include "unistd.h"
 
+#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#  define CONST_WRITE
+struct Config {
+  fhicl::Atom<std::string> fileName { fhicl::Name("fileName") };
+};
+#else
+#  define CONST_WRITE const
+#endif
+
 namespace art {
 class BinaryFileOutput;
 }
@@ -37,9 +46,9 @@ public:
 private:
     void beginJob() override;
     void endJob() override;
-    void write(EventPrincipal const&) override;
-    void writeRun(RunPrincipal const &) override {};
-    void writeSubRun(SubRunPrincipal const &) override {};
+    void write(EventPrincipal CONST_WRITE&) override;
+    void writeRun(RunPrincipal CONST_WRITE &) override {};
+    void writeSubRun(SubRunPrincipal CONST_WRITE &) override {};
 
     void initialize_FILE_();
     void deinitialize_FILE_();
@@ -53,7 +62,11 @@ private:
                                          
 art::BinaryFileOutput::
 BinaryFileOutput(ParameterSet const& ps)
-    : OutputModule(ps)
+#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+  : OutputModule(OutputModule::Table<Config>(ps))
+#else
+	: OutputModule(ps)
+#endif
 {
     FDEBUG(1) << "Begin: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";    
     readParameterSet_(ps); 
@@ -122,7 +135,7 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 
 void
 art::BinaryFileOutput::
-write(const EventPrincipal& ep)
+write(CONST_WRITE EventPrincipal& ep)
 {
     using RawEvent  = artdaq::Fragments;
     using RawEvents = std::vector<RawEvent>;
