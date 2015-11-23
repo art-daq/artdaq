@@ -23,6 +23,21 @@
 #include <memory>
 #include "unistd.h"
 
+#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#  define CONST_WRITE
+struct Config {
+  fhicl::Atom<uint64_t> max_fragment_size_words  { fhicl::Name("max_fragment_size_words") };
+  fhicl::Atom<size_t>   mpi_buffer_count         { fhicl::Name("mpi_buffer_count") };
+  fhicl::Atom<size_t>   first_evb_rank           { fhicl::Name("first_event_builder_rank")};
+  fhicl::Atom<size_t>   evb_count                { fhicl::Name("event_builder_count")};
+  fhicl::Atom<int>      rt_priority              { fhicl::Name("rt_priority"), 0};
+  fhicl::Atom<bool>     synchronous_sends        { fhicl::Name("synchronous_sends"), true};
+
+};
+#else
+#  define CONST_WRITE const
+#endif
+
 namespace art {
 class BinaryMPIOutput;
 }
@@ -37,9 +52,9 @@ public:
 private:
     void beginJob() override;
     void endJob() override;
-    void write(EventPrincipal const&) override;
-    void writeRun(RunPrincipal const &) override {};
-    void writeSubRun(SubRunPrincipal const &) override {};
+    void write(EventPrincipal CONST_WRITE&) override;
+    void writeRun(RunPrincipal CONST_WRITE &) override {};
+    void writeSubRun(SubRunPrincipal CONST_WRITE &) override {};
 
     void initialize_MPI_();
     void deinitialize_MPI_();
@@ -57,7 +72,11 @@ private:
 
 art::BinaryMPIOutput::
 BinaryMPIOutput(ParameterSet const& ps)
-    : OutputModule(ps)
+#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+  : OutputModule(OutputModule::Table<Config>(ps))
+#else
+	: OutputModule(ps)
+#endif
 {
     FDEBUG(1) << "Begin: BinaryMPIOutput::BinaryMPIOutput(ParameterSet const& ps)\n";
     readParameterSet_(ps); 
@@ -178,7 +197,7 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 
 void
 art::BinaryMPIOutput::
-write(const EventPrincipal& ep)
+write(CONST_WRITE EventPrincipal& ep)
 {  
     assert(sender_ptr_);
     

@@ -11,6 +11,7 @@
 #include "artdaq-utilities/Plugins/makeMetricPlugin.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "fhiclcpp/ParameterSet.h"
+#include "art/Version/GetReleaseVersion.h"
 
 #include <sstream>
 
@@ -30,7 +31,13 @@ void artdaq::MetricManager::initialize(fhicl::ParameterSet const& pset, std::str
     shutdown();
   }
   mf::LogDebug("MetricManager") << "Confiugring metrics with parameter set:\n" << pset.to_string();
+
+#ifdef GET_PSET_KEYS_MSG
+  std::vector<std::string> names  = pset.get_pset_names();
+#else
   std::vector<std::string> names = pset.get_pset_keys();
+#endif
+
   for(auto name : names)
     {
       try {

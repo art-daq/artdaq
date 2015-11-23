@@ -8,6 +8,7 @@
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "tracelib.h"		// TRACE
+#include <errno.h>
 
 #include <sstream>
 #include <iomanip>
