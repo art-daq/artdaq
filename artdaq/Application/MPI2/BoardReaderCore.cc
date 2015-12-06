@@ -15,6 +15,8 @@ const std::string artdaq::BoardReaderCore::
 const std::string artdaq::BoardReaderCore::
   INPUT_WAIT_STAT_KEY("BoardReaderCoreInputWaitTime");
 const std::string artdaq::BoardReaderCore::
+  BRSYNC_WAIT_STAT_KEY("BoardReaderCoreBRSyncWaitTime");
+const std::string artdaq::BoardReaderCore::
   OUTPUT_WAIT_STAT_KEY("BoardReaderCoreOutputWaitTime");
 const std::string artdaq::BoardReaderCore::
   FRAGMENTS_PER_READ_STAT_KEY("BoardReaderCoreFragmentsPerRead");
@@ -31,6 +33,7 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
   mf::LogDebug(name_) << "Constructor";
   statsHelper_.addMonitoredQuantityName(FRAGMENTS_PROCESSED_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
+  statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
 }
@@ -136,6 +139,8 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
     generator_ptr_->metricsReportingInstanceName() + " Data Rate";
   INPUT_WAIT_METRIC_NAME_ =
     generator_ptr_->metricsReportingInstanceName() + " Avg Input Wait Time";
+  BRSYNC_WAIT_METRIC_NAME_ =
+    generator_ptr_->metricsReportingInstanceName() + " Avg BR Sync Wait Time";
   OUTPUT_WAIT_METRIC_NAME_ =
     generator_ptr_->metricsReportingInstanceName() + " Avg Output Wait Time";
   FRAGMENTS_PER_READ_METRIC_NAME_ =
@@ -302,7 +307,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
     sched_param s_param = {};
     s_param.sched_priority = rt_priority_;
     if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param))
-      mf::LogWarning(name_) << "setting realtime prioriry failed";
+      mf::LogWarning(name_) << "setting realtime priority failed";
 #pragma GCC diagnostic pop
   }
 
@@ -361,7 +366,6 @@ size_t artdaq::BoardReaderCore::process_fragments()
     if (! active) {break;}
     statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
 
-    startTime = artdaq::MonitoredQuantity::getCurrentTime();
     for (auto & fragPtr : frags) {
       artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
       statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
@@ -372,6 +376,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
           << " with sequence id " << sequence_id << ".";
       }
 
+      startTime = artdaq::MonitoredQuantity::getCurrentTime();
       // 10-Sep-2015, KAB - added non-blocking synchronization between
       // BoardReader processes.  Ibarrier is called every N fragments
       // by each BoardReader, but each BR is allowed to continue processing
@@ -447,6 +452,8 @@ size_t artdaq::BoardReaderCore::process_fragments()
           }
         }
       }
+      statsHelper_.addSample(BRSYNC_WAIT_STAT_KEY,
+                             artdaq::MonitoredQuantity::getCurrentTime() - startTime);
 
       // check for continous sequence IDs
       if (! skip_seqId_test_ && abs(sequence_id-prev_seq_id_) > 1) {
@@ -457,10 +464,14 @@ size_t artdaq::BoardReaderCore::process_fragments()
       }
       prev_seq_id_ = sequence_id;
 
+      startTime = artdaq::MonitoredQuantity::getCurrentTime();
       TRACE( 17, "%s::process_fragments seq=%lu sendFragment start", name_.c_str(), sequence_id );
       sender_ptr_->sendFragment(std::move(*fragPtr));
       TRACE( 17, "%s::process_fragments seq=%lu sendFragment done", name_.c_str(), sequence_id );
       ++fragment_count_;
+      statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
+                             artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+
       bool readyToReport = statsHelper_.readyToReport(fragment_count_);
       if (readyToReport) {
         std::string statString = buildStatisticsString_();
@@ -473,8 +484,6 @@ size_t artdaq::BoardReaderCore::process_fragments()
       }
     }
     if (statsHelper_.statsRollingWindowHasMoved()) {sendMetrics_();}
-    statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
-                           artdaq::MonitoredQuantity::getCurrentTime() - startTime);
     frags.clear();
   }
 
@@ -547,11 +556,20 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
   // denominator of the calculations below is important because the way that
   // the accumulation of these statistics is done is not fragment-by-fragment
   // but read-by-read (where each read can contain multiple fragments).
+  // 05-Dec-2015, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
+  // fragment, but we'll leave the calculation the same.
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
     oss << ", input wait time = "
+        << (mqPtr->recentValueSum() / fragmentCount) << " sec";
+  }
+
+  mqPtr = artdaq::StatisticsCollection::getInstance().
+    getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
+  if (mqPtr.get() != 0) {
+    oss << ", BRsync wait time = "
         << (mqPtr->recentValueSum() / fragmentCount) << " sec";
   }
 
@@ -606,11 +624,21 @@ void artdaq::BoardReaderCore::sendMetrics_()
   // denominator of the calculations below is important because the way that
   // the accumulation of these statistics is done is not fragment-by-fragment
   // but read-by-read (where each read can contain multiple fragments).
+  // 05-Dec-2015, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
+  // fragment, but we'll leave the calculation the same.
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
     metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
+                          (mqPtr->recentValueSum() / fragmentCount),
+                          "seconds/fragment", 3, false);
+  }
+
+  mqPtr = artdaq::StatisticsCollection::getInstance().
+    getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
+  if (mqPtr.get() != 0) {
+    metricMan_.sendMetric(BRSYNC_WAIT_METRIC_NAME_,
                           (mqPtr->recentValueSum() / fragmentCount),
                           "seconds/fragment", 3, false);
   }
