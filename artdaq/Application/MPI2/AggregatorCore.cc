@@ -433,7 +433,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
-        daqrate::seconds const enq_timeout(5.0);
+        daqrate::seconds const enq_timeout(30.0);
         bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue SubRun event.";
@@ -456,7 +456,7 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
-          daqrate::seconds const enq_timeout(5.0);
+          daqrate::seconds const enq_timeout(30.0);
           bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
           if (! enqStatus) {
             mf::LogError(name_) << "Failed to enqueue SubRun event.";
@@ -484,7 +484,7 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
-          daqrate::seconds const enq_timeout(5.0);
+          daqrate::seconds const enq_timeout(30.0);
           bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
           if (! enqStatus) {
             mf::LogError(name_) << "Failed to enqueue SubRun event.";
@@ -581,7 +581,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         }
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
-        daqrate::seconds const enq_timeout(5.0);
+        daqrate::seconds const enq_timeout(30.0);
         bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout);
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue INIT event.";
@@ -716,7 +716,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
-        daqrate::seconds const enq_timeout(5.0);
+        daqrate::seconds const enq_timeout(30.0);
         bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue SubRun event.";
