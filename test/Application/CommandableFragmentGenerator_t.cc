@@ -15,6 +15,7 @@ public:
   bool getNext_(artdaq::FragmentPtrs &) override;
   std::vector<artdaq::Fragment::fragment_id_t> fragmentIDs() override;
   void start() override;
+  void stopNoMutex() override;
   void stop() override;
   void pause() override;
   void resume() override;
@@ -43,6 +44,10 @@ fragmentIDs()
 
 void
 artdaqtest::CommandableFragmentGeneratorTest::start()
+{ }
+
+void
+artdaqtest::CommandableFragmentGeneratorTest::stopNoMutex()
 { }
 
 void
