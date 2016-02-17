@@ -55,8 +55,8 @@ namespace artdaq {
 
   protected:
     virtual bool getNextFragment_(FragmentPtrs & output) = 0;
-    virtual void start_() {}
-    virtual void resume_() {}
+    virtual void start_() = 0;
+    virtual void resume_();
   private:
     
     // Hide this function from subclasses

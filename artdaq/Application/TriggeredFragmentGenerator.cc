@@ -220,3 +220,8 @@ void artdaq::TriggeredFragmentGenerator::startThread()
   //mf::LogDebug("TriggeredFragmentGenerator") << "Starting Data Receiver Thread" << std::endl;
   dataThread_ = std::thread(&TriggeredFragmentGenerator::getNextFragmentLoop_,this);
 }
+
+void artdaq::TriggeredFragmentGenerator::resume_()
+{
+#pragma message "Using default implementation of TriggeredFragmentGenerator::resume_()"
+}
