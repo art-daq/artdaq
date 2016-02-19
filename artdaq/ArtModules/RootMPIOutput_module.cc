@@ -26,7 +26,7 @@
 #include "cetlib/column_width.h"
 #include "cetlib/lpad.h"
 #include "cetlib/rpad.h"
-#include "cpp0x/algorithm"
+#include <algorithm>
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
@@ -83,7 +83,9 @@ private:
 
 art::RootMPIOutput::
 RootMPIOutput(ParameterSet const& ps)
-#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#if (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 18) || ART_MAJOR_VERSION > 1
+  : OutputModule(ps), initMsgSent_(false)
+#elif ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
   : OutputModule(OutputModule::Table<Config>(ps)), initMsgSent_(false)
 #else
     : OutputModule(ps), initMsgSent_(false)
