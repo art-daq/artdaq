@@ -104,28 +104,19 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   try {
     generator_ptr_ = artdaq::makeCommandableFragmentGenerator(frag_gen_name, fr_pset);
     generator_ptr_->SetMetricManager(&metricMan_);
-  }
-  catch (art::Exception& excpt) {
-    mf::LogError(name_)
-      << "Exception creating a CommandableFragmentGenerator of type \""
-      << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-      << "\", exception = " << excpt;
+  } catch (...) {
+
+    std::stringstream exception_string;
+    exception_string << "Exception thrown during initialization of fragment generator of type \""
+		     << frag_gen_name << "\"";
+
+    ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str() );
+
+    mf::LogDebug(name_) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string();
+
     return false;
   }
-  catch (cet::exception& excpt) {
-    mf::LogError(name_)
-      << "Exception creating a CommandableFragmentGenerator of type \""
-      << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-      << "\", exception = " << excpt;
-    return false;
-  }
-  catch (...) {
-    mf::LogError(name_)
-      << "Unknown exception creating a CommandableFragmentGenerator of type \""
-      << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-      << "\".";
-    return false;
-  }
+
   FRAGMENT_COUNT_METRIC_NAME_ =
     generator_ptr_->metricsReportingInstanceName() + " Fragment Count";
   FRAGMENT_RATE_METRIC_NAME_ =

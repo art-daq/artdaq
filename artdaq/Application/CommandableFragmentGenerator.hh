@@ -219,34 +219,32 @@ namespace artdaq {
     // over-written by the specified run number, etc. After a call to
     // StartCmd(), and until a call to StopCmd(), getNext_() is
     // expected to return true as long as datataking is intended.
-    virtual void start() {}
+    virtual void start() = 0;
 
     // On call to StopCmd, stopNoMutex() is called prior to StopCmd
     // acquiring the mutex
-
-    virtual void stopNoMutex() {}
+    virtual void stopNoMutex()  = 0;
 
     // If a CommandableFragmentGenerator subclass is reading from a file, calling
     // stop() should arrange that the next call to getNext_() returns
     // false, rather than allowing getNext_() to read to the end of the
     // file.
-    virtual void stop() {}
+    virtual void stop() = 0;
 
     // On call to PauseCmd, pauseNoMutex() is called prior to PauseCmd
     // acquiring the mutex
-
-    virtual void pauseNoMutex() {}
+    virtual void pauseNoMutex();
 
     // If a CommandableFragmentGenerator subclass is reading from hardware, the
     // implementation of pause() should tell the hardware to stop
     // sending data.
-    virtual void pause() {}
+    virtual void pause();
 
     // The subrun number will be incremented *before* a call to
     // resume. Subclasses are responsible for assuring that, after a
     // call to resume, that getNext_() will return Fragments marked with
     // the correct subrun number (and run number).
-    virtual void resume() {}
+    virtual void resume();
 
     // Let's say that the contract with the report() functions is that they
     // return a non-empty string if they have something useful to report,
@@ -256,8 +254,8 @@ namespace artdaq {
     // For backward compatibility, we keep the report function that takes
     // no arguments and add one that takes a "which" argument. In the 
     // ReportCmd function, we'll call the more specific one first.
-    virtual std::string report() {return "";}
-    virtual std::string reportSpecific(std::string const&) {return "";}
+    virtual std::string report();
+    virtual std::string reportSpecific(std::string const&);
   };
 
 }

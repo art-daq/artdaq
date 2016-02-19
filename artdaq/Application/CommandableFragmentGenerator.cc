@@ -186,3 +186,25 @@ std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& w
   tmpString.append(" fragment generator.");
   return tmpString;
 }
+
+// Default implemenetations of state functions
+void artdaq::CommandableFragmentGenerator::pauseNoMutex() {
+#pragma message "Using default implementation of CommandableFragmentGenerator::pauseNoMutex()"
+}
+
+void artdaq::CommandableFragmentGenerator::pause() {
+#pragma message "Using default implementation of CommandableFragmentGenerator::pause()"
+}
+
+void artdaq::CommandableFragmentGenerator::resume() {
+#pragma message "Using default implementation of CommandableFragmentGenerator::resume()"
+}
+
+std::string artdaq::CommandableFragmentGenerator::report() {
+#pragma message "Using default implementation of CommandableFragmentGenerator::report()"
+  return "";
+}
+std::string artdaq::CommandableFragmentGenerator::reportSpecific(std::string const&) {
+#pragma message "Using default implementation of CommandableFragmentGenerator::repostSpecific(std::string)"
+  return "";
+}
