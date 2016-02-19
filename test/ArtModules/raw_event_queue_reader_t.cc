@@ -1,7 +1,7 @@
 #include "artdaq/ArtModules/detail/RawEventQueueReader.hh"
 
 #include "art/Framework/Core/FileBlock.h"
-#include "art/Framework/Core/RootDictionaryManager.h"
+//#include "art/Framework/Core/RootDictionaryManager.h"
 #include "art/Framework/IO/Sources/SourceHelper.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/EventPrincipal.h"
@@ -79,15 +79,15 @@ public:
   void finalize();
 
   art::MasterProductRegistry  productRegistry_;
-  art::RootDictionaryManager rdm_;
+  //art::RootDictionaryManager rdm_;
 };
 
 MPRGlobalTestFixture::MPRGlobalTestFixture()
   :
   branchKeys_(),
   processConfigurations_(),
-  productRegistry_(),
-  rdm_()
+  productRegistry_()//,
+//  rdm_()
 {
   // We can only insert products registered in the MasterProductRegistry.
   productRegistry_.addProduct(fake_single_process_branch("hlt",  "HLT"));
@@ -119,7 +119,7 @@ fake_single_module_process(std::string const & tag,
                                  processName);
   auto emplace_pair =
   processConfigurations_.emplace(tag,
-                                 cet::make_unique<art::ProcessConfiguration>(processName, processParams.id(), release, pass));
+                                 std::make_unique<art::ProcessConfiguration>(processName, processParams.id(), release, pass));
   return emplace_pair.first->second.get();
 }
 
@@ -193,7 +193,7 @@ struct REQRTestFixture {
                                 moduleType,
                                 moduleLabel,
                                 *pc_ptr);
-      s_source_helper = cet::make_unique<art::SourceHelper>(md);
+      s_source_helper = std::make_unique<art::SourceHelper>(md);
     }
     return *s_source_helper;
   }

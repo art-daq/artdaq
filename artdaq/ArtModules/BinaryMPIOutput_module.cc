@@ -72,7 +72,9 @@ private:
 
 art::BinaryMPIOutput::
 BinaryMPIOutput(ParameterSet const& ps)
-#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#if (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 18) || ART_MAJOR_VERSION > 1
+  : OutputModule(ps)
+#elif ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
   : OutputModule(OutputModule::Table<Config>(ps))
 #else
 	: OutputModule(ps)

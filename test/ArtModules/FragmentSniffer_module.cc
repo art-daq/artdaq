@@ -7,7 +7,7 @@
 #include "art/Persistency/Provenance/BranchType.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/Fragments.hh"
-#include "cpp0x/memory"
+#include <memory>
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
