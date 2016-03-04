@@ -110,3 +110,4 @@ simple_plugin(ArtdaqBuildInfo "module"
 
 install_headers(SUBDIRS detail)                                                         
 install_source(SUBDIRS detail)
+install_fhicl(SUBDIRS fcl)

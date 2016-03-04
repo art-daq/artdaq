@@ -70,10 +70,21 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const & p)
   , load_factor_(p.get<double>("cpu_load_ratio", 1.0))
   , isNormal_(p.get<bool>("use_normal_distribution", false))
   , engine_(p.get<int64_t>("random_seed",271828))
-  , uniform_distn_(new std::uniform_real_distribution<double>(min_ms_, max_ms_))
-  , normal_distn_(new std::normal_distribution<double>(mean_ms_, sigma_ms_))
   , pass_distn_(new std::uniform_int_distribution<int>(0,100))
 {
+  // Set limits on parameters
+  if(pass_factor_ > 100) pass_factor_ = 100;
+  if(pass_factor_ < 0) pass_factor_ = 0;
+  if(load_factor_ < 0.0) load_factor_ = 0.0;
+  if(load_factor_ > 1.0) load_factor_ = 1.0;
+
+  if(min_ms_ < 0) min_ms_ = 0;
+  if(min_ms_ > max_ms_) max_ms_ = min_ms_;
+  if(mean_ms_ < 0) mean_ms_ = 0;
+  if(sigma_ms_ < 0) sigma_ms_ = 0;
+   
+  uniform_distn_.reset(new std::uniform_real_distribution<double>(min_ms_, max_ms_));
+  normal_distn_.reset(new std::normal_distribution<double>(mean_ms_, sigma_ms_));
 }
 
 bool artdaq::RandomDelayFilter::filter(art::Event & e)
@@ -103,6 +114,17 @@ void artdaq::RandomDelayFilter::reconfigure(fhicl::ParameterSet const & p)
   load_factor_ = p.get<double>("cpu_load_ratio", 1.0);
   isNormal_    = p.get<bool>("use_normal_distribution", false);
   engine_      = std::mt19937(p.get<int64_t>("random_seed",271828));
+
+  // Set limits on parameters
+  if(pass_factor_ > 100) pass_factor_ = 100;
+  if(pass_factor_ < 0) pass_factor_ = 0;
+  if(load_factor_ < 0.0) load_factor_ = 0.0;
+  if(load_factor_ > 1.0) load_factor_ = 1.0;
+
+  if(min_ms_ < 0) min_ms_ = 0;
+  if(min_ms_ > max_ms_) max_ms_ = min_ms_;
+  if(mean_ms_ < 0) mean_ms_ = 0;
+  if(sigma_ms_ < 0) sigma_ms_ = 0;
 
   uniform_distn_.reset(new std::uniform_real_distribution<double>(min_ms_, max_ms_));
   normal_distn_.reset(new std::normal_distribution<double>(mean_ms_, sigma_ms_));
