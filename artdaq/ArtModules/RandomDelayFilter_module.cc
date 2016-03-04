@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <random>
+#include <chrono>
 
 namespace artdaq {
   class RandomDelayFilter;
@@ -72,7 +73,14 @@ bool artdaq::RandomDelayFilter::filter(art::Event & e)
 {
   double delay = isNormal_ ? (*normal_distn_)(engine_) : (*uniform_distn_)(engine_);
   mf::LogDebug("RandomDelayFilter") << "Simulating processing of event " << e.event() << " by delaying " << std::to_string(delay) << "ms.";
-  usleep(1000 * delay);
+
+  auto i = 0;
+  auto now = std::chrono::high_resolution_clock::now();
+  while(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - now).count() < delay)
+	{
+	  i = i + 1 % std::numeric_limits<int>::max();
+	}
+
   return true;
 }
 
