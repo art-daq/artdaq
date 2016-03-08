@@ -16,6 +16,10 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
   , triggerport_(ps.get<int>("trigger_port",5001))
   , trigger_addr_(ps.get<std::string>("trigger_address", "227.128.12.26"))
   , triggerBuffer_()
+  , windowOffset_(static_cast<Fragment::timestamp_t>(ps.get<uint64_t>("trigger_window_offset",0)))
+  , windowWidth_(static_cast<Fragment::timestamp_t>(ps.get<uint64_t>("trigger_window_width",0)))
+  , staleTimeout_(static_cast<Fragment::timestamp_t>(ps.get<uint64_t>("stale_trigger_timeout", 0xFFFFFFFFFFFFFFFF)))
+  , uniqueWindows_(ps.get<bool>("trigger_windows_are_unique", true))
   , haveData_(false)
   , dataBuffer_()
   , newDataBuffer_()
@@ -23,48 +27,51 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
   dataBuffer_.emplace_back(FragmentPtr(new Fragment()));
   (*dataBuffer_.begin())->setSystemType(Fragment::EmptyFragmentType);
   
-  std::string modeString = ps.get<std::string>("trigger_mode", "triggered");
-  if(modeString == "triggered" || modeString == "Triggered" 
-     || modeString == "triggerOnly" || modeString == "TriggerOnly") 
-  { 
-    mode_ = TriggeredFragmentGeneratorMode::TriggerOnly; 
-  }
-  else if(modeString == "untriggered" || modeString == "Untriggered" 
-	  || modeString == "triggerOrData" || modeString == "TriggerOrData")
+  std::string modeString = ps.get<std::string>("trigger_mode", "single");
+  if(modeString == "single" || modeString == "Single") 
+	{ 
+	  mode_ = TriggeredFragmentGeneratorMode::Single; 
+	}
+  else if(modeString.find("buffer") != std::string::npos || modeString.find("Buffer") != std::string::npos)
     {
-      mode_ = TriggeredFragmentGeneratorMode::TriggerOrData; 
+      mode_ = TriggeredFragmentGeneratorMode::Buffer; 
     }
-  else if(modeString.find("buffered") != std::string::npos || modeString.find("Buffered") != std::string::npos)
+  else if(modeString == "window" || modeString == "Window")
     {
-      mode_ = TriggeredFragmentGeneratorMode::BufferedTriggered; 
+      mode_ = TriggeredFragmentGeneratorMode::Window; 
     }
+  else if(modeString == "ignored" || modeString == "Ignored")
+	{
+      mode_ = TriggeredFragmentGeneratorMode::Ignored;
+	}
+  mf::LogDebug("TriggeredFragmentGenerator") << "Trigger mode is " << printMode_();
 
   triggersocket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if(!triggersocket_) 
-  {
-    throw art::Exception(art::errors::Configuration) << "TriggeredFragmentGenerator: Error creating socket!" << std::endl;
-    exit(1);
-  }
+	{
+	  throw art::Exception(art::errors::Configuration) << "TriggeredFragmentGenerator: Error creating socket!" << std::endl;
+	  exit(1);
+	}
 
   struct sockaddr_in si_me_trigger;
 
   int yes = 1;
   if(setsockopt(triggersocket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
-  {
-    throw art::Exception(art::errors::Configuration) <<
-      "TriggeredFragmentGenrator: Unable to enable port reuse on trigger socket" << std::endl;
-    exit(1);
-  }
+	{
+	  throw art::Exception(art::errors::Configuration) <<
+		"TriggeredFragmentGenrator: Unable to enable port reuse on trigger socket" << std::endl;
+	  exit(1);
+	}
   memset(&si_me_trigger,0,sizeof(si_me_trigger));
   si_me_trigger.sin_family = AF_INET;
   si_me_trigger.sin_port = htons(triggerport_);
   si_me_trigger.sin_addr.s_addr = htonl(INADDR_ANY);
   if(bind(triggersocket_, (struct sockaddr *)&si_me_trigger, sizeof(si_me_trigger)) == -1)
-  {
+	{
       throw art::Exception(art::errors::Configuration) << 
         "TriggeredFragmentGenerator: Cannot bind trigger socket to port " << triggerport_ << std::endl;
       exit(1);
-  }
+	}
  
   struct ip_mreq mreq;
   mreq.imr_multiaddr.s_addr=inet_addr(trigger_addr_.c_str());
@@ -92,12 +99,13 @@ void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
     haveData_ = getNextFragment_(newDataBuffer_);
     dataBufferMutex_.lock();
     switch(mode_) {
-    case TriggeredFragmentGeneratorMode::TriggerOnly:
-    case TriggeredFragmentGeneratorMode::TriggerOrData:
+    case TriggeredFragmentGeneratorMode::Ignored:
+    case TriggeredFragmentGeneratorMode::Single:
     default:
       newDataBuffer_.swap(dataBuffer_);
       break;
-    case TriggeredFragmentGeneratorMode::BufferedTriggered:
+    case TriggeredFragmentGeneratorMode::Buffer:
+	case TriggeredFragmentGeneratorMode::Window:
       dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
       std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_,dataBuffer_.end()));
       break;
@@ -113,26 +121,8 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
     return false;
   }
  
-  // And use it, along with the artdaq::Fragment header information
-  // (fragment id, sequence id, and user type) to create a fragment
-
-  // We'll use the static factory function 
-
-  // artdaq::Fragment::FragmentBytes(std::size_t payload_size_in_bytes, sequence_id_t sequence_id,
-  //  fragment_id_t fragment_id, type_t type, const T & metadata)
-
-  // which will then return a unique_ptr to an artdaq::Fragment
-  // object. The advantage of this approach over using the
-  // artdaq::Fragment constructor is that, if we were to want to
-  // initialize the artdaq::Fragment with a nonzero-size payload (data
-  // after the artdaq::Fragment header and metadata), we could provide
-  // the size of the payload in bytes, rather than in units of the
-  // artdaq::Fragment's RawDataType (8 bytes, as of 3/26/14). The
-  // artdaq::Fragment constructor itself was not altered so as to
-  // maintain backward compatibility.
-
-  int ms_to_wait = mode_ == TriggeredFragmentGeneratorMode::TriggerOrData ? 100 : 1000;
-  while(!(haveData_ && mode_ == TriggeredFragmentGeneratorMode::TriggerOrData) && triggerBuffer_.size() == 0) {
+  int ms_to_wait = mode_ == TriggeredFragmentGeneratorMode::Ignored ? 100 : 1000;
+  while(!(haveData_ && mode_ == TriggeredFragmentGeneratorMode::Ignored) && triggerBuffer_.size() == 0) {
     //std::cout << "Start of wait loop: D:" << haveData_ << ", " << printMode_() << ", T:" << triggerBuffer_.size() << std::endl;
     if(should_stop()) {
       return false;
@@ -142,65 +132,114 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
     ufds[0].events = POLLIN | POLLPRI;
     int rv = poll(ufds, 1, ms_to_wait);
     if(rv > 0) 
-    {
-      // Event counter is monotonically increasing. If we recieve a trigger for an event,
-      // fill in the triggers for all the events leading up to it as well.
-      if(ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
-      {
-	//std::cout << "Recieved packet on Trigger channel" << std::endl;
-        TriggerPacket buffer;
-        recv(triggersocket_, &buffer, sizeof(buffer), 0);
-	//std::cout << "Trigger header word: 0x" << std::hex << (int)buffer.header << std::dec << std::endl;
-        if(buffer.header == 0x54524947 && buffer.fragment_ID >= ev_counter() && buffer.fragment_ID < ev_counter() + 100)
-	{
-            int delta = buffer.fragment_ID - ev_counter() + 1;
-	    mf::LogDebug("TriggeredFragmentGenerator") << "Recieved trigger for fragment_ID " << buffer.fragment_ID << " (delta: " << delta << ")";
-            for(int i = 0; i < delta; ++i)
-	    {
-                TriggerPacket trig;
-                trig.header = 0x54524947;
-                trig.fragment_ID = ev_counter() + i;
-		triggerBuffer_.push(trig);
-	    }
-	}
-      }
-    }
+	  {
+		// Event counter is monotonically increasing. If we recieve a trigger for an event,
+		// fill in the triggers for all the events leading up to it as well.
+		if(ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
+		  {
+			//std::cout << "Recieved packet on Trigger channel" << std::endl;
+			TriggerPacket buffer;
+			recv(triggersocket_, &buffer, sizeof(buffer), 0);
+			//std::cout << "Trigger header word: 0x" << std::hex << (int)buffer.header << std::dec << std::endl;
+			if(buffer.header == 0x54524947 && buffer.fragment_ID >= ev_counter() && buffer.fragment_ID < ev_counter() + 100)
+			  {
+				int delta = buffer.fragment_ID - ev_counter();
+				mf::LogDebug("TriggeredFragmentGenerator") << "Recieved trigger for fragment_ID " << buffer.fragment_ID << " (delta: " << delta << ")";
+				for(int i = 0; i < delta; ++i)
+				  {
+					TriggerPacket trig;
+					trig.header = 0;
+					trig.fragment_ID = ev_counter() + i;
+					trig.timestamp = 0;
+					triggerBuffer_.push(trig);
+				  }
+
+					triggerBuffer_.push(buffer);
+                
+			  }
+		  }
+	  }
   }
 
   while(triggerBuffer_.size() > 0 && triggerBuffer_.front().fragment_ID < ev_counter()) { triggerBuffer_.pop(); }
     
+
+  TriggerPacket trigger;
   if (triggerBuffer_.size() > 0) {
     if(triggerBuffer_.front().fragment_ID == ev_counter()) {
+	  trigger = triggerBuffer_.front();
       mf::LogDebug("TriggeredFragmentGenerator") << "Received trigger, sending data";
       triggerBuffer_.pop();
     }
   }
+  else { trigger.header = 0; trigger.fragment_ID = ev_counter(); }
 
   dataBufferMutex_.lock();
-  for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
-  {
-    (*it)->setSequenceID(ev_counter());
-    frags.emplace_back(FragmentPtr(new Fragment(*(*it))));
-  }
+  // Check that the current trigger is actually a valid trigger. If not, send an empty fragment. (We missed a trigger)
+  if(mode_ != TriggeredFragmentGeneratorMode::Ignored && trigger.header != 0)
+	{	
+	  Fragment::timestamp_t min = trigger.timestamp > windowOffset_ ? trigger.timestamp - windowOffset_ : 0;
+	  Fragment::timestamp_t max = min + windowWidth_;
+	  // For Single, Ignored, and Buffer modes, the dataBuffer is equal to the desired data.
+	  // Ignored mode TFGs rely on subclasses to handle the ev_counter for their fragments
+	  // Window mode TFGs must do a little bit more work to decide which fragments to send for a given trigger
+	  for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
+		{
+		  // If not in Ignored mode, set the sequence ID of the fragment to the current trigger's sequence ID.
+		  if(mode_ != TriggeredFragmentGeneratorMode::Ignored) (*it)->setSequenceID(ev_counter());
+
+		  if(mode_ == TriggeredFragmentGeneratorMode::Window)
+			{
+			  Fragment::timestamp_t fragT = (*it)->GetTimestamp();
+			  if(fragT < min || fragT > max)
+				{
+				  //Check for timeout
+				  if(fragT < (min > staleTimeout ? min - staleTimeout : 0) ) { 
+					dataBuffer_.remove(it);
+					--it;
+                  }
+				  continue;
+				}
+			}
+
+		  frags.emplace_back(FragmentPtr(new Fragment(*(*it))));
+
+		  if(mode_ == TriggeredFragmentGeneratorMode::Buffer || (mode_ == TriggeredFragmentGenerator::Window && uniqueWindows_))
+			{
+			  dataBuffer_.remove(it);
+			  --it;
+			}
+		}
+	}
+  else
+	{
+	  mf::LogWarning("TriggeredFragmentGenerator") << "Missed trigger " << ev_counter() << ", sending empty fragment";
+	  auto frag = new Fragment();
+	  frag->setSequenceID(ev_counter());
+	  frag->setSystemType(Fragment::EmptyFragmentType);
+	  frags.emplace_back(FragmentPtr(frag));
+	}
   haveData_ = false;
   dataBufferMutex_.unlock();
 
-  ev_counter_inc();
+  if(mode_ != TriggeredFragmentGeneratorMode::Ignored) ev_counter_inc();
   return true;
 }
 
 std::string artdaq::TriggeredFragmentGenerator::printMode_()
 {
   switch (mode_) {
-  case TriggeredFragmentGeneratorMode::TriggerOrData:
-    return "TriggerOrData";
-  case TriggeredFragmentGeneratorMode::BufferedTriggered:
-    return "Buffered";
-  case TriggeredFragmentGeneratorMode::TriggerOnly:
-    return "Triggered";
+  case TriggeredFragmentGeneratorMode::Single:
+    return "Single";
+  case TriggeredFragmentGeneratorMode::Buffer:
+	return "Buffer";
+  case TriggeredFragmentGeneratorMode::Window:
+    return "Window";
+  case TriggeredFragmentGeneratorMode::Ignored:
+    return "Ignored";
   }
 
-  return "Triggered";
+  return "ERROR";
 }
 
 void artdaq::TriggeredFragmentGenerator::start()
@@ -217,6 +256,7 @@ void artdaq::TriggeredFragmentGenerator::resume()
 
 void artdaq::TriggeredFragmentGenerator::startThread()
 {
+  if(dataThread_ && dataThread_.joinable())  dataThread_.join();
   //mf::LogDebug("TriggeredFragmentGenerator") << "Starting Data Receiver Thread" << std::endl;
   dataThread_ = std::thread(&TriggeredFragmentGenerator::getNextFragmentLoop_,this);
 }
@@ -224,4 +264,9 @@ void artdaq::TriggeredFragmentGenerator::startThread()
 void artdaq::TriggeredFragmentGenerator::resume_()
 {
 #pragma message "Using default implementation of TriggeredFragmentGenerator::resume_()"
+}
+
+void artdaq::TriggeredFragmentGenerator::ev_counter_inc_()
+{
+  if(mode_ == TriggeredFragmentGenerator::Ignored) ev_counter_inc();
 }

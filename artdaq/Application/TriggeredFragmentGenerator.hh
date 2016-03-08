@@ -40,12 +40,14 @@ namespace artdaq {
   struct TriggerPacket {
     uint32_t header; //TRIG, or 0x54524947
     Fragment::sequence_id_t fragment_ID;
+	Fragment::timestamp_t timestamp;
   };
 
   enum class TriggeredFragmentGeneratorMode {
-    TriggerOnly,
-      TriggerOrData,
-      BufferedTriggered,
+	  Single,
+	  Buffer,
+	  Window,
+	  Ignored
   };
 
   class TriggeredFragmentGenerator : public CommandableFragmentGenerator {
@@ -57,6 +59,8 @@ namespace artdaq {
     virtual bool getNextFragment_(FragmentPtrs & output) = 0;
     virtual void start_() = 0;
     virtual void resume_();
+
+    void ev_counter_inc_();
   private:
     
     // Hide this function from subclasses
@@ -86,6 +90,11 @@ namespace artdaq {
     std::queue< TriggerPacket > triggerBuffer_;
 
     TriggeredFragmentGeneratorMode mode_;
+	Fragment::timestamp_t windowOffset_;
+	Fragment::timestamp_t windowWidth_;
+	Fragment::timestamp_t staleTimeout_;
+	bool uniqueWindows_;
+
     std::thread dataThread_;
     std::atomic<bool> haveData_;
     FragmentPtrs dataBuffer_;
