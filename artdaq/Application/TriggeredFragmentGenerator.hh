@@ -93,6 +93,7 @@ namespace artdaq {
 	Fragment::timestamp_t windowOffset_;
 	Fragment::timestamp_t windowWidth_;
 	Fragment::timestamp_t staleTimeout_;
+	size_t maxFragmentCount_;
 	bool uniqueWindows_;
 
     std::thread dataThread_;

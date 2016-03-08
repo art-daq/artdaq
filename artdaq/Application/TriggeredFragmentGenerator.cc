@@ -106,7 +106,7 @@ void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
       break;
     case TriggeredFragmentGeneratorMode::Buffer:
 	case TriggeredFragmentGeneratorMode::Window:
-      dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
+      //dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
       std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_,dataBuffer_.end()));
       break;
     }
@@ -159,6 +159,25 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 			  }
 		  }
 	  }
+
+	if((mode_ == TriggeredFragmentGeneratorMode::Buffer || mode_ == TriggeredFragmentGeneratorMode::Window)	   && triggerBuffer_.size() == 0)
+	  {
+		dataBufferMutex_.lock();
+		// Eliminate extra fragments
+		while(dataBuffer_.size() > maxFragmentCount_)
+		  {
+			dataBuffer_.erase(dataBuffer_.begin());
+		  }
+		Fragment::timestamp_t last = dataBuffer_.back()->timestamp();
+		Fragment::timestamp_t min = last > staleTimeout_ ? last - staleTimeout_ : 0;
+		for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
+		  { if((*it)->timestamp() < min) {
+			  it = dataBuffer_.erase(it);
+			  --it;
+			}
+		  }
+		dataBufferMutex_.unlock();
+	  }
   }
 
   while(triggerBuffer_.size() > 0 && triggerBuffer_.front().fragment_ID < ev_counter()) { triggerBuffer_.pop(); }
@@ -190,12 +209,12 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 
 		  if(mode_ == TriggeredFragmentGeneratorMode::Window)
 			{
-			  Fragment::timestamp_t fragT = (*it)->GetTimestamp();
+			  Fragment::timestamp_t fragT = (*it)->timestamp();
 			  if(fragT < min || fragT > max)
 				{
 				  //Check for timeout
-				  if(fragT < (min > staleTimeout ? min - staleTimeout : 0) ) { 
-					dataBuffer_.remove(it);
+				  if(fragT < (min > staleTimeout_ ? min - staleTimeout_ : 0) ) { 
+					it = dataBuffer_.erase(it);
 					--it;
                   }
 				  continue;
@@ -204,9 +223,9 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 
 		  frags.emplace_back(FragmentPtr(new Fragment(*(*it))));
 
-		  if(mode_ == TriggeredFragmentGeneratorMode::Buffer || (mode_ == TriggeredFragmentGenerator::Window && uniqueWindows_))
+		  if(mode_ == TriggeredFragmentGeneratorMode::Buffer || (mode_ == TriggeredFragmentGeneratorMode::Window && uniqueWindows_))
 			{
-			  dataBuffer_.remove(it);
+			  it = dataBuffer_.erase(it);
 			  --it;
 			}
 		}
@@ -219,6 +238,14 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 	  frag->setSystemType(Fragment::EmptyFragmentType);
 	  frags.emplace_back(FragmentPtr(frag));
 	}
+
+  if(frags.size() == 0) {
+	  mf::LogWarning("TriggeredFragmentGenerator") << "No data available for trigger " << ev_counter() << ", sending empty fragment";
+	  auto frag = new Fragment();
+	  frag->setSequenceID(ev_counter());
+	  frag->setSystemType(Fragment::EmptyFragmentType);
+	  frags.emplace_back(FragmentPtr(frag));
+  }
   haveData_ = false;
   dataBufferMutex_.unlock();
 
@@ -256,7 +283,7 @@ void artdaq::TriggeredFragmentGenerator::resume()
 
 void artdaq::TriggeredFragmentGenerator::startThread()
 {
-  if(dataThread_ && dataThread_.joinable())  dataThread_.join();
+  if(dataThread_.joinable())  dataThread_.join();
   //mf::LogDebug("TriggeredFragmentGenerator") << "Starting Data Receiver Thread" << std::endl;
   dataThread_ = std::thread(&TriggeredFragmentGenerator::getNextFragmentLoop_,this);
 }
@@ -268,5 +295,5 @@ void artdaq::TriggeredFragmentGenerator::resume_()
 
 void artdaq::TriggeredFragmentGenerator::ev_counter_inc_()
 {
-  if(mode_ == TriggeredFragmentGenerator::Ignored) ev_counter_inc();
+  if(mode_ == TriggeredFragmentGeneratorMode::Ignored) ev_counter_inc();
 }
