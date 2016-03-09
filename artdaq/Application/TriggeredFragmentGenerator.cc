@@ -4,6 +4,7 @@
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.h"
+#include "artdaq-core/Data/ContainerFragmentLoader.hh"
 
 #include <fstream>
 #include <iomanip>
@@ -40,7 +41,7 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
     {
       mode_ = TriggeredFragmentGeneratorMode::Window; 
     }
-  else if(modeString == "ignored" || modeString == "Ignored")
+  else if(modeString.find("ignore") != std::string::npos || modeString.find("Ignore") != std::string::npos)
 	{
       mode_ = TriggeredFragmentGeneratorMode::Ignored;
 	}
@@ -160,7 +161,7 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 		  }
 	  }
 
-	if((mode_ == TriggeredFragmentGeneratorMode::Buffer || mode_ == TriggeredFragmentGeneratorMode::Window)	   && triggerBuffer_.size() == 0)
+	if((mode_ == TriggeredFragmentGeneratorMode::Buffer || mode_ == TriggeredFragmentGeneratorMode::Window) && triggerBuffer_.size() == 0)
 	  {
 		dataBufferMutex_.lock();
 		// Eliminate extra fragments
@@ -194,61 +195,61 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
   else { trigger.header = 0; trigger.fragment_ID = ev_counter(); }
 
   dataBufferMutex_.lock();
+
+  if(mode_ == TriggeredFragmentGeneratorMode::Ignored) {
+	// We just copy everything that's here into the output.
+	std::move(dataBuffer_.begin(), dataBuffer_.end(), std::inserter(frags,frags.end()));
+  }
   // Check that the current trigger is actually a valid trigger. If not, send an empty fragment. (We missed a trigger)
-  if(mode_ != TriggeredFragmentGeneratorMode::Ignored && trigger.header != 0)
-	{	
+  else if(trigger.header != 0)	{
+	if(mode_ == TriggeredFragmentGeneratorMode::Single) {
+	  // Return the latest data point
+	  auto frag = std::unique_ptr<artdaq::Fragment>();
+	  frag.swap(dataBuffer_.back());
+	  frag->setSequenceID(ev_counter());
+	  frags.push_back(std::move(frag));
+	}
+	else {
+	  frags.emplace_back(new artdaq::Fragment(0, ev_counter()));
+	  ContainerFragmentLoader cfl(*frags.back());
 	  Fragment::timestamp_t min = trigger.timestamp > windowOffset_ ? trigger.timestamp - windowOffset_ : 0;
 	  Fragment::timestamp_t max = min + windowWidth_;
-	  // For Single, Ignored, and Buffer modes, the dataBuffer is equal to the desired data.
-	  // Ignored mode TFGs rely on subclasses to handle the ev_counter for their fragments
+	  // Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
 	  // Window mode TFGs must do a little bit more work to decide which fragments to send for a given trigger
-	  for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
-		{
-		  // If not in Ignored mode, set the sequence ID of the fragment to the current trigger's sequence ID.
-		  if(mode_ != TriggeredFragmentGeneratorMode::Ignored) (*it)->setSequenceID(ev_counter());
+	  for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)	  {
 
-		  if(mode_ == TriggeredFragmentGeneratorMode::Window)
-			{
-			  Fragment::timestamp_t fragT = (*it)->timestamp();
-			  if(fragT < min || fragT > max)
-				{
-				  //Check for timeout
-				  if(fragT < (min > staleTimeout_ ? min - staleTimeout_ : 0) ) { 
-					it = dataBuffer_.erase(it);
-					--it;
-                  }
-				  continue;
-				}
-			}
-
-		  frags.emplace_back(FragmentPtr(new Fragment(*(*it))));
-
-		  if(mode_ == TriggeredFragmentGeneratorMode::Buffer || (mode_ == TriggeredFragmentGeneratorMode::Window && uniqueWindows_))
-			{
+		if(mode_ == TriggeredFragmentGeneratorMode::Window)		  {
+		  Fragment::timestamp_t fragT = (*it)->timestamp();
+		  if(fragT < min || fragT > max)			  {
+			//Check for timeout
+			if(fragT < (min > staleTimeout_ ? min - staleTimeout_ : 0) ) { 
 			  it = dataBuffer_.erase(it);
 			  --it;
 			}
+			continue;
+		  }
 		}
-	}
-  else
-	{
-	  mf::LogWarning("TriggeredFragmentGenerator") << "Missed trigger " << ev_counter() << ", sending empty fragment";
-	  auto frag = new Fragment();
-	  frag->setSequenceID(ev_counter());
-	  frag->setSystemType(Fragment::EmptyFragmentType);
-	  frags.emplace_back(FragmentPtr(frag));
-	}
 
-  if(frags.size() == 0) {
-	  mf::LogWarning("TriggeredFragmentGenerator") << "No data available for trigger " << ev_counter() << ", sending empty fragment";
-	  auto frag = new Fragment();
-	  frag->setSequenceID(ev_counter());
-	  frag->setSystemType(Fragment::EmptyFragmentType);
-	  frags.emplace_back(FragmentPtr(frag));
+		cfl.addFragment(*it);
+
+		if(mode_ == TriggeredFragmentGeneratorMode::Buffer || (mode_ == TriggeredFragmentGeneratorMode::Window && uniqueWindows_))		  {
+		  it = dataBuffer_.erase(it);
+		  --it;
+		}
+	  }
+	}
+  }
+  else	{
+	mf::LogWarning("TriggeredFragmentGenerator") << "Missed trigger " << ev_counter() << ", sending empty fragment";
+	auto frag = new Fragment();
+	frag->setSequenceID(ev_counter());
+	frag->setSystemType(Fragment::EmptyFragmentType);
+	frags.emplace_back(FragmentPtr(frag));
   }
   haveData_ = false;
   dataBufferMutex_.unlock();
 
+  // Ignored mode TFGs rely on subclasses to handle the ev_counter for their fragments
   if(mode_ != TriggeredFragmentGeneratorMode::Ignored) ev_counter_inc();
   return true;
 }
