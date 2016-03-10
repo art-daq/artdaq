@@ -139,23 +139,21 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 		if(ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
 		  {
 			//std::cout << "Recieved packet on Trigger channel" << std::endl;
-			TriggerPacket buffer;
+			detail::TriggerPacket buffer;
 			recv(triggersocket_, &buffer, sizeof(buffer), 0);
 			//std::cout << "Trigger header word: 0x" << std::hex << (int)buffer.header << std::dec << std::endl;
-			if(buffer.header == 0x54524947 && buffer.fragment_ID >= ev_counter() && buffer.fragment_ID < ev_counter() + 100)
+			if(buffer.header == 0x54524947 && buffer.sequence_id >= ev_counter() && buffer.sequence_id < ev_counter() + 100)
 			  {
-				int delta = buffer.fragment_ID - ev_counter();
-				mf::LogDebug("TriggeredFragmentGenerator") << "Recieved trigger for fragment_ID " << buffer.fragment_ID << " (delta: " << delta << ")";
+				int delta = buffer.sequence_id - ev_counter();
+				mf::LogDebug("TriggeredFragmentGenerator") << "Recieved trigger for sequence ID " << buffer.sequence_id << " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
 				for(int i = 0; i < delta; ++i)
 				  {
-					TriggerPacket trig;
-					trig.header = 0;
-					trig.fragment_ID = ev_counter() + i;
-					trig.timestamp = 0;
+					detail::TriggerMessage trig = detail::TriggerMessage();
+					trig.setSequenceID( ev_counter() + i );
 					triggerBuffer_.push(trig);
 				  }
 
-					triggerBuffer_.push(buffer);
+				triggerBuffer_.push(detail::TriggerMessage(buffer));
                 
 			  }
 		  }
@@ -181,18 +179,21 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 	  }
   }
 
-  while(triggerBuffer_.size() > 0 && triggerBuffer_.front().fragment_ID < ev_counter()) { triggerBuffer_.pop(); }
+  while(triggerBuffer_.size() > 0 && triggerBuffer_.front().sequence_id() < ev_counter()) { triggerBuffer_.pop(); }
     
 
-  TriggerPacket trigger;
+  detail::TriggerMessage trigger;
   if (triggerBuffer_.size() > 0) {
-    if(triggerBuffer_.front().fragment_ID == ev_counter()) {
+    if(triggerBuffer_.front().sequence_id() == ev_counter()) {
 	  trigger = triggerBuffer_.front();
       mf::LogDebug("TriggeredFragmentGenerator") << "Received trigger, sending data";
       triggerBuffer_.pop();
     }
   }
-  else { trigger.header = 0; trigger.fragment_ID = ev_counter(); }
+  else { 
+	trigger = detail::TriggerMessage();
+	trigger.setSequenceID(ev_counter()); 
+  }
 
   dataBufferMutex_.lock();
 
@@ -201,7 +202,7 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 	std::move(dataBuffer_.begin(), dataBuffer_.end(), std::inserter(frags,frags.end()));
   }
   // Check that the current trigger is actually a valid trigger. If not, send an empty fragment. (We missed a trigger)
-  else if(trigger.header != 0)	{
+  else if(trigger.isValid())	{
 	if(mode_ == TriggeredFragmentGeneratorMode::Single) {
 	  // Return the latest data point
 	  auto frag = std::unique_ptr<artdaq::Fragment>();
@@ -212,31 +213,39 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 	else {
 	  frags.emplace_back(new artdaq::Fragment(0, ev_counter()));
 	  ContainerFragmentLoader cfl(*frags.back());
-	  Fragment::timestamp_t min = trigger.timestamp > windowOffset_ ? trigger.timestamp - windowOffset_ : 0;
+	  Fragment::timestamp_t min = trigger.timestamp() > windowOffset_ ? trigger.timestamp() - windowOffset_ : 0;
 	  Fragment::timestamp_t max = min + windowWidth_;
 	  // Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
 	  // Window mode TFGs must do a little bit more work to decide which fragments to send for a given trigger
-	  for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)	  {
+	  bool windowClosed = mode_ != TriggeredFragmentGeneratorMode::Window;
+	  do {
+		// Check for new data. windowClosed is true when the last data point has a timestamp after the trigger
+		dataBufferMutex_.unlock();
+		dataBufferMutex_.lock();
+		windowClosed = dataBuffer_.back()->timestamp() >= max;
 
-		if(mode_ == TriggeredFragmentGeneratorMode::Window)		  {
-		  Fragment::timestamp_t fragT = (*it)->timestamp();
-		  if(fragT < min || fragT > max)			  {
-			//Check for timeout
-			if(fragT < (min > staleTimeout_ ? min - staleTimeout_ : 0) ) { 
-			  it = dataBuffer_.erase(it);
-			  --it;
+		for(auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)	  {
+
+		  if(mode_ == TriggeredFragmentGeneratorMode::Window)		  {
+			Fragment::timestamp_t fragT = (*it)->timestamp();
+			if(fragT < min || fragT > max)			  {
+			  //Check for timeout
+			  if(fragT < (min > staleTimeout_ ? min - staleTimeout_ : 0) ) { 
+				it = dataBuffer_.erase(it);
+				--it;
+			  }
+			  continue;
 			}
-			continue;
+		  }
+
+		  cfl.addFragment(*it);
+
+		  if(mode_ == TriggeredFragmentGeneratorMode::Buffer || (mode_ == TriggeredFragmentGeneratorMode::Window && uniqueWindows_))		  {
+			it = dataBuffer_.erase(it);
+			--it;
 		  }
 		}
-
-		cfl.addFragment(*it);
-
-		if(mode_ == TriggeredFragmentGeneratorMode::Buffer || (mode_ == TriggeredFragmentGeneratorMode::Window && uniqueWindows_))		  {
-		  it = dataBuffer_.erase(it);
-		  --it;
-		}
-	  }
+	  } while(!windowClosed);
 	}
   }
   else	{

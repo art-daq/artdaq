@@ -21,6 +21,7 @@
 #include "fhiclcpp/fwd.h"
 #include "artdaq-core/Data/Fragments.hh" 
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/DAQrate/detail/TriggerMessage.hh"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -36,13 +37,6 @@
 #include <mutex>
 
 namespace artdaq {    
-
-  struct TriggerPacket {
-    uint32_t header; //TRIG, or 0x54524947
-    Fragment::sequence_id_t fragment_ID;
-	Fragment::timestamp_t timestamp;
-  };
-
   enum class TriggeredFragmentGeneratorMode {
 	  Single,
 	  Buffer,
@@ -87,7 +81,7 @@ namespace artdaq {
     //Socket parameters
     struct sockaddr_in si_data_;
     int triggersocket_;
-    std::queue< TriggerPacket > triggerBuffer_;
+    std::queue< detail::TriggerMessage > triggerBuffer_;
 
     TriggeredFragmentGeneratorMode mode_;
 	Fragment::timestamp_t windowOffset_;

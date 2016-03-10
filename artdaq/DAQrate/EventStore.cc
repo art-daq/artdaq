@@ -13,6 +13,7 @@
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQrate/Utils.hh"
+#include "artdaq/DAQrate/detail/TriggerMessage.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracelib.h"
 
@@ -116,6 +117,9 @@ namespace artdaq {
     TRACE( 13, "EventStore::insert seq=%lu fragID=%d id=%d lastFlushed=%lu seqIDMod=%d seq=%lu"
 	  , pfrag->sequenceID(), pfrag->fragmentID(), id_, lastFlushedSeqID_, seqIDModulus_, sequence_id );
 
+	// Get the timestamp of this fragment, in experiment-defined clocks
+	Fragment::timestamp_t timestamp = pfrag->timestamp();
+
     // Find if the right event id is already known to events_ and, if so, where
     // it is.
     EventMap::iterator loc = events_.lower_bound(sequence_id);
@@ -128,7 +132,7 @@ namespace artdaq {
         events_.insert(loc, EventMap::value_type(sequence_id, newevent));
 
       // Trigger the board readers!
-      if(send_triggers_){ send_trigger_(sequence_id); }
+      if(send_triggers_){ send_trigger_(sequence_id, timestamp); }
     }
 
     // Now insert the fragment into the event we have located.
@@ -451,26 +455,23 @@ namespace artdaq {
       }
   }
 
-  void EventStore::do_send_trigger_(Fragment::sequence_id_t seqNum)
+  void EventStore::do_send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp)
   {
     std::this_thread::sleep_for(std::chrono::microseconds(trigger_delay_));
-    uint32_t buffer[3];
-    buffer[0] = 0x54524947;
-    buffer[1] = static_cast<uint32_t>(seqNum >> 32);
-    buffer[2] = static_cast<uint32_t>(seqNum);
+	detail::TriggerMessage message(seqNum, timestamp);
     char str[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(trigger_addr_.sin_addr), str, INET_ADDRSTRLEN);
     mf::LogWarning("EventStore") << "Sending trigger with seqNum " << (int)seqNum << " to multicast group " << str << std::endl;
-    if(sendto(trigger_socket_, buffer, sizeof(buffer), 0, (struct sockaddr *)&trigger_addr_, sizeof(trigger_addr_)) < 0)
+    if(sendto(trigger_socket_, message.buffer(), sizeof(detail::TriggerPacket), 0, (struct sockaddr *)&trigger_addr_, sizeof(trigger_addr_)) < 0)
       {
 	mf::LogError("EventStore") << "Error sending trigger message" << std::endl;
       }
   }  
 
   void
-  EventStore::send_trigger_(Fragment::sequence_id_t seqNum)
+  EventStore::send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp)
   {
-    std::thread trigger([=]{do_send_trigger_(seqNum);});
+    std::thread trigger([=]{do_send_trigger_(seqNum, timestamp);});
     trigger.detach();
   }
 
