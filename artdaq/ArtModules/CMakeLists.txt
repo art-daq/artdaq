@@ -46,8 +46,28 @@ simple_plugin(NetMonInput "source"
   cetlib
 )
 
-simple_plugin(NetMonOutput "module"
+simple_plugin(RootMPIOutput "module"
   artdaq_ArtModules_NetMonTransportService_service
+  artdaq_ArtModules
+  art_Framework_Services_Registry
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${ROOT_RIO}
+)
+
+simple_plugin(BinaryMPIOutput "module"
+  artdaq_ArtModules
+  art_Framework_Services_Registry
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${ROOT_RIO}
+)
+
+simple_plugin(BinaryFileOutput "module"
   artdaq_ArtModules
   art_Framework_Services_Registry
   art_Utilities

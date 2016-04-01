@@ -9,14 +9,15 @@
 namespace artdaq {
   // CompositeDriver handles a set of lower-level generators
   class CompositeDriver : public CommandableFragmentGenerator {
-    public:
-      explicit CompositeDriver(fhicl::ParameterSet const &);
-      virtual ~CompositeDriver() noexcept;
+  public:
+	explicit CompositeDriver(fhicl::ParameterSet const &);
+	virtual ~CompositeDriver() noexcept;
 
-      void start() override;
-      void stop() override;
-      void pause() override;
-      void resume() override;
+	void start() override;
+	void stopNoMutex() override;
+	void stop() override;
+	void pause() override;
+	void resume() override;
 
     private:
       std::vector<artdaq::Fragment::fragment_id_t> fragmentIDs() override;

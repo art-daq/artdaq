@@ -78,6 +78,7 @@ private:
   int saved_wait_result_;
   std::vector<int> ready_indices_;
   std::vector<MPI_Status> ready_statuses_;
+  int my_mpi_rank_;
 };
 
 inline

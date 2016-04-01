@@ -8,6 +8,7 @@
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "tracelib.h"		// TRACE
+#include <errno.h>
 
 #include <sstream>
 #include <iomanip>
@@ -163,6 +164,9 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     return false;
   }
 
+  enq_timeout_ = agg_pset.get<daqrate::seconds>("enq_timeout", 
+						static_cast<daqrate::seconds>(5.0));
+
   is_data_logger_ = false;
   is_online_monitor_ = false;
   if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
@@ -181,11 +185,16 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
       pset.get<fhicl::ParameterSet>("outputs");
     fhicl::ParameterSet normalout_pset =
       output_pset.get<fhicl::ParameterSet>("normalOutput");
-    std::string filename = normalout_pset.get<std::string>("fileName", "");
-    if (filename.size() > 0) {
-      size_t pos = filename.rfind("/");
-      if (pos != std::string::npos) {
-        disk_writing_directory_ = filename.substr(0, pos);
+
+    if (!normalout_pset.is_empty()) {
+      std::string filename = normalout_pset.get<std::string>("fileName", "");
+      if (filename.size() > 0) {
+	size_t pos = filename.rfind("/");
+	if (pos != std::string::npos) {
+	  disk_writing_directory_ = filename.substr(0, pos);
+	}
+      } else {
+	mf::LogWarning(name_) << "Problem finding \"fileName\" parameter in \"normalOutput\" RootOutput module FHiCL code";
       }
     }
   }
@@ -262,14 +271,22 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     metricsReportingInstanceName = "Online Monitor";
   }
   fhicl::ParameterSet metric_pset;
+
   try {
     metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-    metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+  } catch (...) {} // OK if there's no metrics table defined in the FHiCL                                    
+
+  if (metric_pset.is_empty()) {
+    mf::LogInfo(name_) << "No metric plugins appear to be defined";
+  } else {
+    try {
+      metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+    } catch (...) {
+      ExceptionHandler(ExceptionHandlerRethrow::no,
+                       "Error loading metrics in AggregatorCore::initialize()");
+    }
   }
-  catch (...) {
-    //Okay if no metrics defined
-    mf::LogDebug(name_) << "Error loading metrics or no metric plugins defined.";
-  }
+
   EVENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Event Rate";
   EVENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Event Size";
   DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
@@ -566,8 +583,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
-        daqrate::seconds const enq_timeout(5.0);
-        bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
+        bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue SubRun event.";
         }
@@ -589,8 +605,7 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
-          daqrate::seconds const enq_timeout(5.0);
-          bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
+          bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
           if (! enqStatus) {
             mf::LogError(name_) << "Failed to enqueue SubRun event.";
           }
@@ -617,8 +632,7 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
-          daqrate::seconds const enq_timeout(5.0);
-          bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
+          bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
           if (! enqStatus) {
             mf::LogError(name_) << "Failed to enqueue SubRun event.";
           }
@@ -727,8 +741,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         }
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
-        daqrate::seconds const enq_timeout(5.0);
-        bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout);
+        bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout_);
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue INIT event.";
         }
@@ -870,8 +883,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
-        daqrate::seconds const enq_timeout(5.0);
-        bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
+        bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue SubRun event.";
         }

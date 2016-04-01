@@ -14,9 +14,10 @@ art_make(BASENAME_ONLY
   SUBDIRS detail
   LIB_LIBRARIES
   artdaq_DAQdata
-  artdaq_Plugins
+  artdaq-utilities_Plugins
   artdaq-core_Core
   artdaq-core_Data
+  artdaq-core_Utilities
   ${FHICLCPP}
   ${MF_MESSAGELOGGER}
   ${MF_UTILITIES}

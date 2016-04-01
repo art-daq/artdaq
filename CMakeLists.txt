@@ -36,6 +36,11 @@ cet_set_compiler_flags(DIAGS VIGILANT
   EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64
 )
 
+string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
+if( ${BTYPE_UC} MATCHES "DEBUG" )
+  cet_add_compiler_flags(-fsanitize=address)
+endif()
+
 cet_report_compiler_flags()
 
 # JCF, 7/8/15 - not sure this is actually doing anything...
@@ -47,6 +52,7 @@ find_ups_product (cetbuildtools v4_09_02)
 find_ups_product( TRACE v3_03_00 )
 find_ups_product( art v1_08_10 )
 find_ups_product( artdaq_core v1_03_01 )
+find_ups_product( artdaq_utilities v1_00_00)
 find_ups_product( cetlib v1_08_00 )
 find_ups_product( cetpkgsupport v1_08_03 )
 find_ups_product( clhep v2_2_0_3 )
@@ -71,6 +77,12 @@ check_ups_version(art "$ENV{ART_VERSION}" v1_14_00 PRODUCT_OLDER_VAR EVENTID_HAS
 if (EVENTID_HAS_EXPLICIT_RUNID)
   add_definitions(-DARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID)
 endif()
+
+string(REGEX MATCHALL "[0-9]+" ART_VERSION_LIST "$ENV{ART_VERSION}")
+list(GET ART_VERSION_LIST 0 ART_MAJOR_VERSION)
+list(GET ART_VERSION_LIST 1 ART_MINOR_VERSION)
+list(GET ART_VERSION_LIST 2 ART_PATCH_VERSION)
+add_definitions(-DART_MAJOR_VERSION=${ART_MAJOR_VERSION} -DART_MINOR_VERSION=${ART_MINOR_VERSION} -DART_PATCH_VERSION=${ART_PATCH_VERSION})
 
 find_library( XMLRPC_SERVER_ABYSSPP NAMES xmlrpc_server_abyss++ PATHS $ENV{XMLRPC_C_LIBRARY} )
 find_library( XMLRPC_SERVER_ABYSS NAMES xmlrpc_server_abyss PATHS $ENV{XMLRPC_C_LIBRARY} )
