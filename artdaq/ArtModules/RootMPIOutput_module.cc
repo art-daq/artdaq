@@ -140,6 +140,11 @@ static
 void
 send_shutdown_message()
 {
+  // 4/1/2016, ELF: Apparently, all this function does is make things not work.
+  // At this point in the state machine, RHandles and SHandles have already been
+  // destructed. Calling sendMessage will cause SHandles to reconnect itself,
+  // but the other end will never recieve the message.
+#if 0
     FDEBUG(1) << "Begin: RootMPIOutput static send_shutdown_message()\n";
     //
     //  Construct and send the shutdown message.
@@ -169,6 +174,7 @@ send_shutdown_message()
                      "sent the shutdown message.\n";
     }
     FDEBUG(1) << "End:   RootMPIOutput static send_shutdown_message()\n";
+#endif
 }
 
 void
