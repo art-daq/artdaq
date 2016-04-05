@@ -31,18 +31,22 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
   std::string modeString = ps.get<std::string>("trigger_mode", "single");
   if(modeString == "single" || modeString == "Single") 
 	{ 
+	  mf::LogInfo("TriggeredFragmentGenerator") << "Mode is set to SINGLE";
 	  mode_ = TriggeredFragmentGeneratorMode::Single; 
 	}
   else if(modeString.find("buffer") != std::string::npos || modeString.find("Buffer") != std::string::npos)
     {
+      mf::LogInfo("TriggeredFragmentGenerator") << "Mode is set to BUFFER";
       mode_ = TriggeredFragmentGeneratorMode::Buffer; 
     }
   else if(modeString == "window" || modeString == "Window")
     {
+      mf::LogInfo("TriggeredFragmentGenerator") << "Mode is set to WINDOW";
       mode_ = TriggeredFragmentGeneratorMode::Window; 
     }
   else if(modeString.find("ignore") != std::string::npos || modeString.find("Ignore") != std::string::npos)
 	{
+	  mf::LogInfo("TriggeredFragmentGenerator") << "Mode is set to IGNORE";
       mode_ = TriggeredFragmentGeneratorMode::Ignored;
 	}
   mf::LogDebug("TriggeredFragmentGenerator") << "Trigger mode is " << printMode_();
@@ -199,6 +203,7 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 
   if(mode_ == TriggeredFragmentGeneratorMode::Ignored) {
 	// We just copy everything that's here into the output.
+    mf::LogInfo("TriggeredFragmentGenerator") << "Copying data to output";
 	std::move(dataBuffer_.begin(), dataBuffer_.end(), std::inserter(frags,frags.end()));
   }
   // Check that the current trigger is actually a valid trigger. If not, send an empty fragment. (We missed a trigger)
@@ -260,6 +265,8 @@ bool artdaq::TriggeredFragmentGenerator::getNext_(artdaq::FragmentPtrs & frags) 
 
   // Ignored mode TFGs rely on subclasses to handle the ev_counter for their fragments
   if(mode_ != TriggeredFragmentGeneratorMode::Ignored) ev_counter_inc();
+
+  mf::LogInfo("TriggeredFragmentGenerator") << "Returning true";
   return true;
 }
 
@@ -294,7 +301,7 @@ void artdaq::TriggeredFragmentGenerator::resume()
 void artdaq::TriggeredFragmentGenerator::startThread()
 {
   if(dataThread_.joinable())  dataThread_.join();
-  //mf::LogDebug("TriggeredFragmentGenerator") << "Starting Data Receiver Thread" << std::endl;
+  mf::LogWarning("TriggeredFragmentGenerator") << "Starting Data Receiver Thread" << std::endl;
   dataThread_ = std::thread(&TriggeredFragmentGenerator::getNextFragmentLoop_,this);
 }
 
