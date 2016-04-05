@@ -207,10 +207,12 @@ namespace artdaq {
   EventStore::endOfData(int& readerReturnValue)
   {
     RawEvent_ptr end_of_data(nullptr);
+	TRACE(4, "EventStore::endOfData: Enqueuing end_of_data event");
     bool enqSuccess = queue_.enqTimedWait(end_of_data, enq_timeout_);
     if (! enqSuccess) {
       return false;
     }
+	TRACE(4, "EventStore::endOfData: Getting return code from art thread");
     readerReturnValue = reader_thread_.get();
     return true;
   }
