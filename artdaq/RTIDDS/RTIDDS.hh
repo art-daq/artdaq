@@ -32,13 +32,10 @@ public:
   class OctetsListener: public DDSDataReaderListener {
   public:
 
-    //    void on_data_available(DDSDataReader *reader);
-    void on_data_available(DDSDataReader *) {}
+    void on_data_available(DDSDataReader *reader);
 
-    //    size_t receiveFragmentFromDDS(artdaq::Fragment& fragment,
-    //                                  size_t receiveTimeout);
-    size_t receiveFragmentFromDDS(artdaq::Fragment& ,
-                                  size_t ) { return 0;}
+    void receiveFragmentFromDDS(artdaq::Fragment& fragment,
+				size_t receiveTimeout);
 
   private:
 
