@@ -2,7 +2,7 @@ include_directories(${MPI_INCLUDE_PATH} $ENV{NDDSHOME}/include $ENV{NDDSHOME}/in
 
 set( ARCH "x64Linux2.6gcc4.4.5" ) # Needed for RTI-DDS
 
-art_make_library( LIBRARY_NAME artdaq_Application_RTIDDS
+art_make_library( LIBRARY_NAME artdaq_RTIDDS
   SOURCE
   RTIDDS.cc
   LIBRARIES

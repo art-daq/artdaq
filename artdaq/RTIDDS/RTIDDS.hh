@@ -26,6 +26,11 @@ public:
   // JCF, Apr-7-2016
   // Are copy constructor, assignment operators, etc., logical absurdities?
 
+  void copyFragmentToDDS_(bool& fragment_has_been_copied,
+			  bool& esr_has_been_copied,
+			  bool& eod_has_been_copied,
+			  artdaq::Fragment& fragment);
+
   // JCF, Apr-7-2016
   // Should I move OctetsListener outside of RTIDDS?
 
@@ -46,6 +51,7 @@ public:
 
   };
 
+  OctetsListener octets_listener_;
 
 private:
 
@@ -58,7 +64,6 @@ private:
   DDSTopic* topic_octets_;
   DDSOctetsDataWriter* octets_writer_;
   DDSDataReader* octets_reader_;
-  OctetsListener octets_listener_;
 
   static void participantDeleter(DDSDomainParticipant* participant);
 

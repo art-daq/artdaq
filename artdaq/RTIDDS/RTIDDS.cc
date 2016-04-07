@@ -2,6 +2,9 @@
 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include <boost/tokenizer.hpp>
+
+
 artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
   name_(name),
   iotype_(iotype),
@@ -95,6 +98,75 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
       mf::LogWarning(name_) << "Problem setting up the RTI-DDS reader objects";
     }
 
+  }
+}
+
+void artdaq::RTIDDS::copyFragmentToDDS_(bool& fragment_has_been_copied,
+					bool& esr_has_been_copied,
+					bool& eod_has_been_copied,
+					artdaq::Fragment& fragment)
+{
+  //mf::LogInfo(name_) << "Inside of copyFragmentToDDS_, type = " << static_cast<int>(fragment.type()) << ", size = " << fragment.sizeBytes();
+
+  // check if the fragment has already been copied to shared memory
+  if (fragment_has_been_copied) {return;}
+
+  // check if a fragment of this type has already been copied to shm
+  size_t fragmentType = fragment.type();
+  if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType &&
+      esr_has_been_copied) {return;}
+  if (fragmentType == artdaq::Fragment::EndOfDataFragmentType &&
+      eod_has_been_copied) {return;}
+
+  // verify that we have a writer for octets
+  if (octets_writer_ == NULL) {return;}
+
+  // JCF, 9/15/15
+  // Perform the same checks Kurt implemented in the AggregatorCore's copyFragmentToSharedMemory_() function
+
+  size_t max_fragment_size = boost::lexical_cast<size_t>(max_size_) - 
+    detail::RawFragmentHeader::num_words() * sizeof(RawDataType);
+
+  if (fragment.type() != artdaq::Fragment::InvalidFragmentType &&
+      fragment.sizeBytes() < max_fragment_size) {
+
+    if (fragment.type() == artdaq::Fragment::InitFragmentType ) {
+      usleep(500000);
+    }
+
+    DDS_ReturnCode_t retcode = octets_writer_->write( reinterpret_cast<unsigned char*>(fragment.headerBeginBytes()), 
+                                                      fragment.sizeBytes(),
+                                                      DDS_HANDLE_NIL);
+
+    if (retcode != DDS_RETCODE_OK) {
+      mf::LogWarning(name_) << "Problem writing octets (bytes), retcode was " << retcode;
+
+      mf::LogWarning(name_) << "Fragment failed for DDS! "
+                            << "fragment address and size = "
+                            << static_cast<void*>(fragment.headerBeginBytes()) << " " << static_cast<int>(fragment.sizeBytes()) << " "
+                            << "sequence ID, fragment ID, and type = "
+                            << fragment.sequenceID() << " "
+                            << fragment.fragmentID() << " "
+                            << ((int) fragment.type());      
+    } else {
+
+      fragment_has_been_copied = true;
+
+      if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType) {
+        esr_has_been_copied = true;
+      }
+      if (fragmentType == artdaq::Fragment::EndOfDataFragmentType) {
+        eod_has_been_copied = true;
+      }
+    }
+  } else {
+    mf::LogWarning(name_) << "Fragment invalid for shared memory! "
+                          << "fragment address and size = "
+                          << static_cast<void*>(fragment.headerBeginBytes()) << " " << static_cast<int>(fragment.sizeBytes()) << " "
+                          << "sequence ID, fragment ID, and type = "
+                          << fragment.sequenceID() << " "
+                          << fragment.fragmentID() << " "
+                          << ((int) fragment.type());
   }
 }
 

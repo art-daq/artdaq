@@ -18,6 +18,7 @@
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
+#include "artdaq/RTIDDS/RTIDDS.hh"
 
 #include <sys/shm.h> 
 
@@ -26,24 +27,6 @@
 namespace artdaq
 {
   class AggregatorCore;
-
-  class OctetsListener: public DDSDataReaderListener {
-  public:
-    
-    void on_data_available(DDSDataReader *reader);
-
-    size_t receiveFragmentFromDDS(artdaq::Fragment& fragment,
-				  size_t receiveTimeout);
-
-  private:
-
-    DDS_Octets dds_octets_;
-    std::queue<DDS_Octets> dds_octets_queue_;
-
-    std::mutex queue_mutex_;
-
-  };
-
 }
 
 class artdaq::AggregatorCore
@@ -143,15 +126,7 @@ private:
   ShmStruct* shm_ptr_;
   size_t fragment_count_to_shm_;
 
-
-  std::unique_ptr<DDSDomainParticipant, std::function<void(DDSDomainParticipant*)> >  participant_;
-
-  DDSTopic* topic_octets_;
-  DDSOctetsDataWriter* octets_writer_;
-  DDSDataReader* octets_reader_;
-  OctetsListener octets_listener_;
-
-  static void participantDeleter(DDSDomainParticipant* participant);
+  std::unique_ptr<RTIDDS> rtidds_;
 
   void attachToSharedMemory_(bool initialize);
   void copyFragmentToSharedMemory_(bool& fragment_has_been_copied,
@@ -163,10 +138,10 @@ private:
                                           size_t receiveTimeout);
   void detachFromSharedMemory_(bool destroy);
 
-  void copyFragmentToDDS_(bool& fragment_has_been_copied,
-			  bool& esr_has_been_copied,
-			  bool& eod_has_been_copied,
-			  artdaq::Fragment& fragment);
+  // void copyFragmentToDDS_(bool& fragment_has_been_copied,
+  // 			  bool& esr_has_been_copied,
+  // 			  bool& eod_has_been_copied,
+  // 			  artdaq::Fragment& fragment);
 
 };
 
