@@ -48,7 +48,7 @@ cet_test(read_files_t HANDBUILT
 
 # Generate several fragments and verify they made it into the store.
 cet_test(driver_t HANDBUILT
-  TEST_EXEC driver
+  TEST_EXEC artdaqDriver
   TEST_ARGS -c driver_t.fcl
   DATAFILES driver_t.fcl
   )
