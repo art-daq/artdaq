@@ -102,6 +102,14 @@ endif()
 
 find_package(MPI QUIET)
 
+if(NOT ENV{TRACE_DIR})
+message( STATUS "WARNING: TRACE DOES NOT APPEAR TO BE SET UP!")
+else() 
+message( STATUS "TRACE_DIR appears to be: $ENV{TRACE_DIR}")
+endif()
+
+include_directories( "$ENV{TRACE_DIR}/include/" )
+
 # macros for artdaq_dictionary and simple_plugin
 include(ArtDictionary)
 include(ArtMake)
