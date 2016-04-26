@@ -538,8 +538,9 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
                     "readAndConstructPrincipal: "
                     "Could not read art::History!";
             }
-            history.reset(new art::History(
-                          *reinterpret_cast<art::History*>(p)));
+
+	    history.reset(reinterpret_cast<art::History*>(p));
+
             p = 0;
             FDEBUG(1) << "readAndConstructPrincipal: got art::History.\n";
             if (art::debugit() >= 1) {
