@@ -8,7 +8,9 @@ cet_script(numawrap)
 # Build this project's executables:
 
 # Nominally a test exec (no MPI) but we want this to be available to other packages.
-art_make_exec(driver
+art_make_exec(NAME artdaqDriver
+    SOURCE
+    driver.cc
   LIBRARIES
   artdaq_DAQrate
   artdaq_DAQdata
