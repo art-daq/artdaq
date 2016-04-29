@@ -1,0 +1,20 @@
+
+randomDelay: {
+	# Configuration for the RandomDelayFilter_module
+
+	# Time distribution setup
+
+    # Uniform time distribution
+    minimum_delay_ms: 0
+    maximum_delay_ms: 1000
+
+    # Normal time distribution
+    mean_delay_ms: 500
+    sigma_delay_ms: 100
+
+    # Filter parameters
+    pass_filter_percentage: 100 # Should be 0-100. Filter will pass randomly-selected events at the % level specified here
+	cpu_load_ratio: 1.0 # In the range 0.0 to 1.0. This ratio is the time the filter will delay by CPU load versus delay time by usleep calls
+	use_normal_distribution: false # Whether to use the normal distribution for creating delay values, or the uniform. false = uniform, true = normal
+	random_seed: 271828 # The seed used for the random number generator used by both the time distributions and the pass/fail distribution
+}

@@ -98,7 +98,7 @@ void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
       newDataBuffer_.swap(dataBuffer_);
       break;
     case TriggeredFragmentGeneratorMode::BufferedTriggered:
-      dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
+     //dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
       std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_,dataBuffer_.end()));
       break;
     }

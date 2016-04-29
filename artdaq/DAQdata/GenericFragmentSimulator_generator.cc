@@ -29,7 +29,7 @@ bool
 artdaq::GenericFragmentSimulator::getNext_(FragmentPtrs & frags)
 {
   ++current_event_num_;
-  frags.reserve(frags.size() + fragment_ids_.size());
+  //frags.reserve(frags.size() + fragment_ids_.size());
   for (auto fragID : fragment_ids_) {
     frags.emplace_back();
     bool result =
