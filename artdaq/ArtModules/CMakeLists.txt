@@ -32,9 +32,10 @@ simple_plugin(RawInput "source"
   MF_MessageLogger
 )
 
+simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
+
 simple_plugin(NetMonInput "source"
   artdaq_ArtModules_NetMonTransportService_service
-  artdaq_ArtModules
   artdaq_ArtModules
   art_Framework_Core
   art_Framework_IO_Sources
@@ -109,3 +110,4 @@ simple_plugin(ArtdaqBuildInfo "module"
 
 install_headers(SUBDIRS detail)                                                         
 install_source(SUBDIRS detail)
+install_fhicl(SUBDIRS fcl)
