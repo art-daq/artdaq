@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v1_12_15
-defaultqual    e7:s15:eth
+parent artdaq  v1_12_15c
+defaultqual    e9:s21:eth
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -17,7 +17,7 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-artdaq_core 		v1_04_29
+artdaq_core 		v1_04_29a
 artdaq_utilities        v1_00_05
 mvapich2		v1_9_0
 mpich			v3_1_4a

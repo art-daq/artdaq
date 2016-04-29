@@ -10,6 +10,8 @@
 #include <algorithm>
 #include "tracelib.h"
 
+#define TRACE_NAME "BoardReaderCore"
+
 const std::string artdaq::BoardReaderCore::
   FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
 const std::string artdaq::BoardReaderCore::
@@ -354,6 +356,11 @@ size_t artdaq::BoardReaderCore::process_fragments()
 
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     for (auto & fragPtr : frags) {
+       if(!fragPtr.get()) {
+         mf::LogWarning(name_) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
+                               << "This is most likely caused by a problem with the Fragment Generator!";
+         continue;
+      }
       artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
       statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
 

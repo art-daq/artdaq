@@ -145,8 +145,8 @@ namespace artdaq {
     void initStatistics_();
     void reportStatistics_();
     void setup_trigger_(std::string trigger_addr);
-    void send_trigger_(Fragment::sequence_id_t seqNum);
-    void do_send_trigger_(Fragment::sequence_id_t seqNum);
+    void send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
+    void do_send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
   };
 }
 #endif /* artdaq_DAQrate_EventStore_hh */
