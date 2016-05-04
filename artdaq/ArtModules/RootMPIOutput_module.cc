@@ -91,40 +91,40 @@ RootMPIOutput(ParameterSet const& ps)
     : OutputModule(ps), initMsgSent_(false)
 #endif
 {
-    FDEBUG(1) << "Begin: RootMPIOutput::RootMPIOutput(ParameterSet const& ps)\n";
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::RootMPIOutput(ParameterSet const& ps)\n";
     ServiceHandle<NetMonTransportService> transport;
     transport->connect();
-    FDEBUG(1) << "End:   RootMPIOutput::RootMPIOutput(ParameterSet const& ps)\n";
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::RootMPIOutput(ParameterSet const& ps)\n";
 }
 
 art::RootMPIOutput::
 ~RootMPIOutput()
 {
-    FDEBUG(1) << "Begin: RootMPIOutput::~RootMPIOutput()\n";
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::~RootMPIOutput()\n";
     ServiceHandle<NetMonTransportService> transport;
     transport->disconnect();
-    FDEBUG(1) << "End:   RootMPIOutput::~RootMPIOutput()\n";
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::~RootMPIOutput()\n";
 }
 
 void
 art::RootMPIOutput::
 openFile(FileBlock const&)
 {
-    FDEBUG(1) << "Begin/End: RootMPIOutput::openFile(const FileBlock&)\n";
+    mf::LogDebug("RootMPIOutput") << "Begin/End: RootMPIOutput::openFile(const FileBlock&)\n";
 }
 
 void
 art::RootMPIOutput::
 closeFile()
 {
-    FDEBUG(1) << "Begin/End: RootMPIOutput::closeFile()\n";
+    mf::LogDebug("RootMPIOutput") << "Begin/End: RootMPIOutput::closeFile()\n";
 }
 
 void
 art::RootMPIOutput::
 respondToCloseInputFile(FileBlock const&)
 {
-    FDEBUG(1) << "Begin/End: RootMPIOutput::"
+    mf::LogDebug("RootMPIOutput") << "Begin/End: RootMPIOutput::"
                  "respondToCloseOutputFiles(FileBlock const&)\n";
 }
 
@@ -132,7 +132,7 @@ void
 art::RootMPIOutput::
 respondToCloseOutputFiles(FileBlock const&)
 {
-    FDEBUG(1) << "Begin/End: RootMPIOutput::"
+    mf::LogDebug("RootMPIOutput") << "Begin/End: RootMPIOutput::"
                  "respondToCloseOutputFiles(FileBlock const&)\n";
 }
 
@@ -140,7 +140,12 @@ static
 void
 send_shutdown_message()
 {
-    FDEBUG(1) << "Begin: RootMPIOutput static send_shutdown_message()\n";
+  // 4/1/2016, ELF: Apparently, all this function does is make things not work.
+  // At this point in the state machine, RHandles and SHandles have already been
+  // destructed. Calling sendMessage will cause SHandles to reconnect itself,
+  // but the other end will never recieve the message.
+#if 0
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput static send_shutdown_message()\n";
     //
     //  Construct and send the shutdown message.
     //
@@ -150,10 +155,10 @@ send_shutdown_message()
     //  Stream the message type code.
     //
     {
-        FDEBUG(1) << "RootMPIOutput static send_shutdown_message: "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_shutdown_message: "
                      "streaming shutdown message type code ...\n";
         msg.WriteULong(5);
-        FDEBUG(1) << "RootMPIOutput static send_shutdown_message: "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_shutdown_message: "
                      "finished streaming shutdown message type code.\n";
     }
     //
@@ -162,22 +167,23 @@ send_shutdown_message()
     //
     {
         art::ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "RootMPIOutput static send_shutdown_message: "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_shutdown_message: "
                      "sending the shutdown message ...\n";
 	transport->sendMessage(0, artdaq::Fragment::ShutdownFragmentType, msg);
-        FDEBUG(1) << "RootMPIOutput static send_shutdown_message: "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_shutdown_message: "
                      "sent the shutdown message.\n";
     }
-    FDEBUG(1) << "End:   RootMPIOutput static send_shutdown_message()\n";
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput static send_shutdown_message()\n";
+#endif
 }
 
 void
 art::RootMPIOutput::
 endJob()
 {
-    FDEBUG(1) << "Begin: RootMPIOutput::endJob()\n";
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::endJob()\n";
     send_shutdown_message();
-    FDEBUG(1) << "End:   RootMPIOutput::endJob()\n";
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::endJob()\n";
 }
 
 #pragma GCC push_options
@@ -186,7 +192,7 @@ static
 void
 send_init_message()
 {
-    FDEBUG(1) << "Begin: RootMPIOutput static send_init_message()\n";
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput static send_init_message()\n";
     //
     //  Get the classes we will need.
     //
@@ -236,10 +242,10 @@ send_init_message()
     //  Stream the message type code.
     //
     {
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Streaming message type code ...\n";
         msg.WriteULong(1);
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Finished streaming message type code.\n";
     }
     //
@@ -247,29 +253,29 @@ send_init_message()
     //
     {
         unsigned long ps_cnt = fhicl::ParameterSetRegistry::size();
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "parameter set count: " << ps_cnt << '\n';
         msg.WriteULong(ps_cnt);
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Streaming parameter sets ...\n";
         for (auto I = fhicl::ParameterSetRegistry::begin(),
                 E = fhicl::ParameterSetRegistry::end(); I != E; ++I) {
             std::string pset_str = I->second.to_string();
             msg.WriteObjectAny(&pset_str, string_class);
         }
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Finished streaming parameter sets.\n";
     }
     //
     //  Stream the MasterProductRegistry.
     //
     {
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Streaming MasterProductRegistry ...\n";
         art::ProductList productList(
             art::ProductMetaData::instance().productList());
         msg.WriteObjectAny(&productList, product_list_class);
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Finished streaming MasterProductRegistry.\n";
     }
     //
@@ -304,17 +310,17 @@ send_init_message()
     //  Dump the ProcessHistoryRegistry.
     //
     if (art::debugit() >= 1) {
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Dumping ProcessHistoryRegistry ...\n";
         //typedef std::map<const ProcessHistoryID,ProcessHistory>
         //    ProcessHistoryMap;
         art::ProcessHistoryMap const& phr = art::ProcessHistoryRegistry::get();
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "phr: size: " << phr.size() << '\n';
         for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
             std::ostringstream OS;
             I->first.print(OS);
-            FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+            mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                          "phr: id: '" << OS.str() << "'\n";
         }
     }
@@ -322,27 +328,27 @@ send_init_message()
     //  Stream the ProcessHistoryRegistry.
     //
     {
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Streaming ProcessHistoryRegistry ...\n";
         //typedef std::map<const ProcessHistoryID,ProcessHistory>
         //    ProcessHistoryMap;
         const art::ProcessHistoryMap& phm = art::ProcessHistoryRegistry::get();
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "phm: size: " << phm.size() << '\n';
         msg.WriteObjectAny(&phm, process_history_map_class);
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Finished streaming ProcessHistoryRegistry.\n";
     }
     //
     //  Stream the ParentageRegistry.
     //
     {
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Streaming ParentageRegistry ...\n";
         //typedef std::map<const ParentageID,Parentage> ParentageMap
         const art::ParentageMap& parentageMap = art::ParentageRegistry::get();
         msg.WriteObjectAny(&parentageMap, parentage_map_class);
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Finished streaming ParentageRegistry.\n";
     }
     //
@@ -351,13 +357,13 @@ send_init_message()
     //
     {
         art::ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Sending the init message ...\n";
 	transport->sendMessage(0, artdaq::Fragment::InitFragmentType, msg);
-        FDEBUG(1) << "RootMPIOutput static send_init_message(): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
                      "Init message sent.\n";
     }
-    FDEBUG(1) << "End:   RootMPIOutput static send_init_message()\n";
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput static send_init_message()\n";
 }
 #pragma GCC pop_options
 
@@ -366,7 +372,7 @@ art::RootMPIOutput::
 writeDataProducts(TBufferFile& msg, const Principal& principal,
                   std::vector<BranchKey*>& bkv)
 {
-    FDEBUG(1) << "Begin: RootMPIOutput::writeDataProducts(...)\n";
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::writeDataProducts(...)\n";
     //
     //  Fetch the class dictionaries we need for
     //  writing out the data products.
@@ -398,10 +404,10 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
     //  Write the data product count.
     //
     {
-        FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeDataProducts(...): "
                      "Streaming product count: " << prd_cnt << '\n';
         msg.WriteULong(prd_cnt);
-        FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeDataProducts(...): "
                      "Finished streaming product count.\n";
     }
     //
@@ -435,7 +441,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
                       << "'\n";
         }
         {
-            FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
+            mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeDataProducts(...): "
                          "Streaming branch key         of class: '"
                       << bd.producedClassName()
                       << "' modlbl: '"
@@ -448,7 +454,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
             msg.WriteObjectAny(bkv.back(), branch_key_class);
         }
         {
-            FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
+            mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeDataProducts(...): "
                          "Streaming product            of class: '"
                       << bd.producedClassName()
                       << "' modlbl: '"
@@ -463,7 +469,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
             msg.WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
         }
         {
-            FDEBUG(1) << "RootMPIOutput::writeDataProducts(...): "
+            mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeDataProducts(...): "
                          "Streaming product provenance of class: '"
                       << bd.producedClassName()
                       << "' modlbl: '"
@@ -478,7 +484,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
             msg.WriteObjectAny(prdprov, prdprov_class);
         }
     }
-    FDEBUG(1) << "End:   RootMPIOutput::writeDataProducts(...)\n";
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::writeDataProducts(...)\n";
 }
 
 void
@@ -488,7 +494,7 @@ write(CONST_WRITE EventPrincipal& ep)
     //
     //  Write an Event message.
     //
-    FDEBUG(1) << "Begin: RootMPIOutput::"
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::"
                  "write(const EventPrincipal& ep)\n";
     if (!initMsgSent_) {
         send_init_message();
@@ -530,52 +536,52 @@ write(CONST_WRITE EventPrincipal& ep)
     //  Write message type code.
     //
     {
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming message type code ...\n";
         msg.WriteULong(4);
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming message type code.\n";
     }
     //
     //  Write RunAuxiliary.
     //
     {
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming RunAuxiliary ...\n";
         msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().aux(),
                            run_aux_class);
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming RunAuxiliary.\n";
     }
     //
     //  Write SubRunAuxiliary.
     //
     {
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming SubRunAuxiliary ...\n";
         msg.WriteObjectAny(&ep.subRunPrincipal().aux(),
                            subrun_aux_class);
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming SubRunAuxiliary.\n";
     }
     //
     //  Write EventAuxiliary.
     //
     {
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming EventAuxiliary ...\n";
         msg.WriteObjectAny(&ep.aux(), event_aux_class);
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming EventAuxiliary.\n";
     }
     //
     //  Write History.
     //
     {
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Streaming History ...\n";
         msg.WriteObjectAny(&ep.history(), history_class);
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Finished streaming History.\n";
     }
     //
@@ -588,10 +594,10 @@ write(CONST_WRITE EventPrincipal& ep)
     //
     {
         ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Sending a message ...\n";
 	transport->sendMessage(ep.id().event(), artdaq::Fragment::DataFragmentType, msg);
-        FDEBUG(1) << "RootMPIOutput::write(const EventPrincipal& ep): "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::write(const EventPrincipal& ep): "
                      "Message sent.\n";
     }
     //
@@ -601,7 +607,7 @@ write(CONST_WRITE EventPrincipal& ep)
         delete *I;
         *I = 0;
     }
-    FDEBUG(1) << "End:   RootMPIOutput::write(const EventPrincipal& ep)\n";
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::write(const EventPrincipal& ep)\n";
 }
 
 void
@@ -611,7 +617,7 @@ writeRun(CONST_WRITE RunPrincipal& rp)
     //
     //  Write an EndRun message.
     //
-    FDEBUG(1) << "Begin: RootMPIOutput::writeRun(const RunPrincipal& rp)\n";
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::writeRun(const RunPrincipal& rp)\n";
     (void) rp;
     if (!initMsgSent_) {
         send_init_message();
@@ -634,42 +640,42 @@ writeRun(CONST_WRITE RunPrincipal& rp)
     //  Write message type code.
     //
     {
-        FDEBUG(1) << "writeRun: streaming message type code ...\n";
+        mf::LogDebug("RootMPIOutput") << "writeRun: streaming message type code ...\n";
         msg.WriteULong(2);
-        FDEBUG(1) << "writeRun: finished streaming message type code.\n";
+        mf::LogDebug("RootMPIOutput") << "writeRun: finished streaming message type code.\n";
     }
     //
     //  Write RunAuxiliary.
     //
     {
-        FDEBUG(1) << "writeRun: streaming RunAuxiliary ...\n";
+        mf::LogDebug("RootMPIOutput") << "writeRun: streaming RunAuxiliary ...\n";
         if (art::debugit() >= 1) {
-            FDEBUG(1) << "writeRun: dumping ProcessHistoryRegistry ...\n";
+            mf::LogDebug("RootMPIOutput") << "writeRun: dumping ProcessHistoryRegistry ...\n";
             //typedef std::map<const ProcessHistoryID,ProcessHistory>
             //    ProcessHistoryMap;
             art::ProcessHistoryMap const& phr =
                 art::ProcessHistoryRegistry::get();
-            FDEBUG(1) << "writeRun: phr: size: " << phr.size() << '\n';
+            mf::LogDebug("RootMPIOutput") << "writeRun: phr: size: " << phr.size() << '\n';
             for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
                 std::ostringstream OS;
                 I->first.print(OS);
-                FDEBUG(1) << "writeRun: phr: id: '" << OS.str() << "'\n";
+                mf::LogDebug("RootMPIOutput") << "writeRun: phr: id: '" << OS.str() << "'\n";
                 OS.str("");
-                FDEBUG(1) << "writeRun: phr: data.size(): "
+                mf::LogDebug("RootMPIOutput") << "writeRun: phr: data.size(): "
                           << I->second.data().size() << '\n';
                 if (I->second.data().size()) {
                     I->second.data().back().id().print(OS);
-                    FDEBUG(1) << "writeRun: phr: data.back().id(): '"
+                    mf::LogDebug("RootMPIOutput") << "writeRun: phr: data.back().id(): '"
                               << OS.str() << "'\n";
                 }
             }
             if (!rp.aux().processHistoryID().isValid()) {
-                FDEBUG(1) << "writeRun: ProcessHistoryID: 'INVALID'\n";
+                mf::LogDebug("RootMPIOutput") << "writeRun: ProcessHistoryID: 'INVALID'\n";
             }
             else {
                 std::ostringstream OS;
                 rp.aux().processHistoryID().print(OS);
-                FDEBUG(1) << "writeRun: ProcessHistoryID: '"
+                mf::LogDebug("RootMPIOutput") << "writeRun: ProcessHistoryID: '"
                           << OS.str() << "'\n";
                 OS.str("");
                 const ProcessHistory& processHistory =
@@ -677,16 +683,16 @@ writeRun(CONST_WRITE RunPrincipal& rp)
                 if (processHistory.data().size()) {
                     // FIXME: Print something special on invalid id() here!
                     processHistory.data().back().id().print(OS);
-                    FDEBUG(1) << "writeRun: ProcessConfigurationID: '"
+                    mf::LogDebug("RootMPIOutput") << "writeRun: ProcessConfigurationID: '"
                               << OS.str() << "'\n";
                     OS.str("");
-                    FDEBUG(1) << "writeRun: ProcessConfiguration: '"
+                    mf::LogDebug("RootMPIOutput") << "writeRun: ProcessConfiguration: '"
                               << processHistory.data().back() << '\n';
                 }
             }
         }
         msg.WriteObjectAny(&rp.aux(), run_aux_class);
-        FDEBUG(1) << "writeRun: streamed RunAuxiliary.\n";
+        mf::LogDebug("RootMPIOutput") << "writeRun: streamed RunAuxiliary.\n";
     }
     //
     //  Write data products.
@@ -698,9 +704,9 @@ writeRun(CONST_WRITE RunPrincipal& rp)
     //
     {
         ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "writeRun: sending a message ...\n";
+        mf::LogDebug("RootMPIOutput") << "writeRun: sending a message ...\n";
 	transport->sendMessage(0, artdaq::Fragment::EndOfRunFragmentType, msg);
-        FDEBUG(1) << "writeRun: message sent.\n";
+        mf::LogDebug("RootMPIOutput") << "writeRun: message sent.\n";
     }
     //
     //  Delete the branch keys we created for the message.
@@ -710,7 +716,7 @@ writeRun(CONST_WRITE RunPrincipal& rp)
         *I = 0;
     }
 #endif // 0
-    FDEBUG(1) << "End:   RootMPIOutput::writeRun(const RunPrincipal& rp)\n";
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::writeRun(const RunPrincipal& rp)\n";
 }
 
 void
@@ -719,7 +725,7 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
     //
     //  Write an EndSubRun message.
     //
-    FDEBUG(1) << "Begin: RootMPIOutput::"
+    mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::"
                  "writeSubRun(const SubRunPrincipal& srp)\n";
     if (!initMsgSent_) {
         send_init_message();
@@ -744,51 +750,51 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
     //  Write message type code.
     //
     {
-        FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                      "streaming message type code ...\n";
         msg.WriteULong(3);
-        FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                      "finished streaming message type code.\n";
     }
     //
     //  Write SubRunAuxiliary.
     //
     {
-        FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                      "streaming SubRunAuxiliary ...\n";
         if (art::debugit() >= 1) {
-            FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+            mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                          "dumping ProcessHistoryRegistry ...\n";
             //typedef std::map<const ProcessHistoryID,ProcessHistory>
             //    ProcessHistoryMap;
             art::ProcessHistoryMap const& phr =
                 art::ProcessHistoryRegistry::get();
-            FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+            mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                          "phr: size: " << phr.size() << '\n';
             for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
                 std::ostringstream OS;
                 I->first.print(OS);
-                FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+                mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                              "phr: id: '" << OS.str() << "'\n";
                 OS.str("");
-                FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+                mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                              "phr: data.size(): "
                           << I->second.data().size() << '\n';
                 if (I->second.data().size()) {
                     I->second.data().back().id().print(OS);
-                    FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+                    mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                                  "phr: data.back().id(): '"
                               << OS.str() << "'\n";
                 }
             }
             if (!srp.aux().processHistoryID().isValid()) {
-                FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+                mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                              "ProcessHistoryID: 'INVALID'\n";
             }
             else {
                 std::ostringstream OS;
                 srp.aux().processHistoryID().print(OS);
-                FDEBUG(1) << "RootMPIOutput::writeSubRun: ProcessHistoryID: '"
+                mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: ProcessHistoryID: '"
                           << OS.str() << "'\n";
                 OS.str("");
                 const ProcessHistory& processHistory =
@@ -796,18 +802,18 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
                 if (processHistory.data().size()) {
                     // FIXME: Print something special on invalid id() here!
                     processHistory.data().back().id().print(OS);
-                    FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+                    mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                                  "ProcessConfigurationID: '"
                               << OS.str() << "'\n";
                     OS.str("");
-                    FDEBUG(1) << "RootMPIOutput::writeSubRun: "
+                    mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
                                  "ProcessConfiguration: '"
                               << processHistory.data().back() << '\n';
                 }
             }
         }
         msg.WriteObjectAny(&srp.aux(), subrun_aux_class);
-        FDEBUG(1) << "RootMPIOutput::writeSubRun: streamed SubRunAuxiliary.\n";
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: streamed SubRunAuxiliary.\n";
     }
     //
     //  Write data products.
@@ -819,9 +825,9 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
     //
     {
         ServiceHandle<NetMonTransportService> transport;
-        FDEBUG(1) << "RootMPIOutput::writeSubRun: sending a message ...\n";
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: sending a message ...\n";
 	transport->sendMessage(0, artdaq::Fragment::EndOfSubrunFragmentType, msg);
-        FDEBUG(1) << "RootMPIOutput::writeSubRun: message sent.\n";
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: message sent.\n";
 
 	// Disconnecting will cause EOD fragments to be generated which will
 	// allow components downstream to flush data and clean up.
@@ -834,7 +840,7 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
         delete *I;
         *I = 0;
     }
-    FDEBUG(1) << "End:   RootMPIOutput::"
+    mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::"
                  "writeSubRun(const SubRunPrincipal& srp)\n";
 }
 

@@ -109,7 +109,7 @@ sendEODFrag(size_t dest, size_t nFragments)
   (*eod).setFragmentID( my_rank );
   sendFragTo(std::move(*eod), dest);
 # else
-  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest);
+  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 # endif
 }
 
@@ -120,7 +120,7 @@ void artdaq::SHandles::waitAll()
 
 void
 artdaq::SHandles::
-sendFragTo(Fragment && frag, size_t dest)
+sendFragTo(Fragment && frag, size_t dest, bool force_async)
 {
   if (frag.dataSize() > max_payload_size_) {
     throw cet::exception("Unimplemented")
@@ -134,7 +134,7 @@ sendFragTo(Fragment && frag, size_t dest)
   Fragment & curfrag = payload_[buffer_idx];
   curfrag = std::move(frag);
   TRACE( 5, "sendFragTo before send src=%i dest=%lu seqID=%lu", my_mpi_rank_ , dest, curfrag.sequenceID() );
-  if (! synchronous_sends_) {
+  if (! synchronous_sends_ || force_async) {
     // 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
     MPI_Isend(&*curfrag.headerBegin(),
               curfrag.size() * sizeof(Fragment::value_type),

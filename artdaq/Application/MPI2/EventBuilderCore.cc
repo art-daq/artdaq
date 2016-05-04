@@ -5,6 +5,7 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
+#include "trace.h"
 
 const std::string artdaq::EventBuilderCore::INPUT_FRAGMENTS_STAT_KEY("EventBuilderCoreInputFragments");
 const std::string artdaq::EventBuilderCore::INPUT_WAIT_STAT_KEY("EventBuilderCoreInputWaitTime");
@@ -309,13 +310,17 @@ bool artdaq::EventBuilderCore::shutdown()
   int readerReturnValue;
   bool endSucceeded = false;
   int attemptsToEnd = 1;
+  TRACE(4, "EventBuilderCore::shutdown: Calling EventStore::endOfData");
   endSucceeded = event_store_ptr_->endOfData(readerReturnValue);
   while (! endSucceeded && attemptsToEnd < 3) {
     ++attemptsToEnd;
+	TRACE(4, "EventBuilderCore::shutdown: Retrying endOfData call");
     mf::LogDebug(name_) << "Retrying EventStore::endOfData()";
     endSucceeded = event_store_ptr_->endOfData(readerReturnValue);
   }
+  TRACE(4, "EventBuilderCore::shutdown: Shutting down MetricManager");
   metricMan_.shutdown();
+  TRACE(4, "EventBuilderCore::shutdown: Complete");
   return endSucceeded;
 }
 
