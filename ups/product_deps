@@ -17,15 +17,15 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-artdaq_core 		v1_04_29a
-artdaq_utilities        v1_00_05
+artdaq_core 		v1_04_30
+artdaq_utilities        v1_00_06
 mvapich2		v1_9_0
 mpich			v3_1_4a
 xmlrpc_c		v1_33_16b
-cetbuildtools		v4_18_02	-	only_for_build
+cetbuildtools		v5_01_03	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
-artdaq_ganglia_plugin   v1_0_11         -       optional
-artdaq_epics_plugin     v1_0_3          -       optional
+artdaq_ganglia_plugin   v1_0_12         -       optional
+artdaq_epics_plugin     v1_0_4          -       optional
 end_product_list
 
 # e6 - with gcc 4.9.1 and -std=c++1y
