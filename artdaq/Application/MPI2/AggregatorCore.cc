@@ -470,10 +470,13 @@ size_t artdaq::AggregatorCore::process_fragments()
 	
 	try {
 	  rtidds_->octets_listener_.receiveFragmentFromDDS(*fragmentPtr, recvTimeout);
+	  break;
+
 	} catch (...) {
 	  ExceptionHandler(ExceptionHandlerRethrow::no,
                        "Call to octets_listener_ resulted in a timeout");
 	}
+
 	// auto dds_result = rtidds_->octets_listener_.receiveFragmentFromDDS(*fragmentPtr, recvTimeout);
 
 	// if (dds_result != artdaq::RHandles::RECV_TIMEOUT) {
