@@ -1,4 +1,11 @@
 include_directories(${MPI_INCLUDE_PATH})
+
+# Make sure tests have correct environment settings.
+include(CetTest)
+# If you explicitly include CetTest in a subdirectory, you will need to
+# re-initialize the test environment.
+cet_test_env("FHICL_FILE_PATH=.")
+
 cet_test(daqrate PREBUILT NO_AUTO INSTALL_BIN)
 cet_test(builder.sh PREBUILT NO_AUTO INSTALL_BIN)
 
@@ -8,7 +15,9 @@ cet_script(numawrap)
 # Build this project's executables:
 
 # Nominally a test exec (no MPI) but we want this to be available to other packages.
-art_make_exec(driver
+art_make_exec(NAME artdaqDriver
+    SOURCE
+    driver.cc
   LIBRARIES
   artdaq_DAQrate
   artdaq_DAQdata

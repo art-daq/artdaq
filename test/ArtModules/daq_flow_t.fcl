@@ -8,7 +8,7 @@ process_name: dftest
 source:
 {
   module_type: RawInput
-  waiting_time: 3 # waiting time, in seconds, for queue timeout
+  waiting_time: 30 # waiting time, in seconds, for queue timeout
   resume_after_timeout: false
   fragment_type_map: [[226, "ABC"]]
 }
