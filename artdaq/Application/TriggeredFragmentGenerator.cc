@@ -90,7 +90,7 @@ artdaq::TriggeredFragmentGenerator::TriggeredFragmentGenerator(fhicl::ParameterS
 
 artdaq::TriggeredFragmentGenerator::~TriggeredFragmentGenerator()
 {
-  dataThread_.join();
+  if(dataThread_.joinable()) dataThread_.join();
 }
 
 void artdaq::TriggeredFragmentGenerator::getNextFragmentLoop_()
