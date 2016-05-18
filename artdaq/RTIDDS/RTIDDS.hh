@@ -18,26 +18,21 @@ class artdaq::RTIDDS {
 
 public:
 
-  enum class IOType { reader, writer};
-
-  RTIDDS(std::string name, IOType iotype, std::string max_size = "1000000");
+  RTIDDS(std::string name, std::string max_size = "1000000");
   ~RTIDDS() = default;
 
   // JCF, Apr-7-2016
   // Are copy constructor, assignment operators, etc., logical absurdities?
 
-  void copyFragmentToDDS_(bool& fragment_has_been_copied,
-			  bool& esr_has_been_copied,
-			  bool& eod_has_been_copied,
+  void copyFragmentToDDS_(bool& fragmentHasBeenCopied,
+			  bool& esrHasBeenCopied,
+			  bool& eodHasBeenCopied,
 			  artdaq::Fragment& fragment);
-
-  // JCF, Apr-7-2016
-  // Should I move OctetsListener outside of RTIDDS?
 
   class OctetsListener: public DDSDataReaderListener {
   public:
 
-    void on_data_available(DDSDataReader *reader);
+    void onDataAvailable(DDSDataReader *reader);
 
     void receiveFragmentFromDDS(artdaq::Fragment& fragment,
 				size_t receiveTimeout);
@@ -56,7 +51,6 @@ public:
 private:
 
   std::string name_;
-  IOType iotype_;
   std::string max_size_;
 
   std::unique_ptr<DDSDomainParticipant, std::function<void(DDSDomainParticipant*)> >  participant_;

@@ -322,9 +322,9 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   rtidds_name_ << name_ << "_" << "RTIDDS";
 
   if (is_data_logger_) {
-    rtidds_.reset( new RTIDDS(rtidds_name_.str(), RTIDDS::IOType::writer) );
+    rtidds_.reset( new RTIDDS(rtidds_name_.str() ) );
   } else {
-    rtidds_.reset( new RTIDDS(rtidds_name_.str(), RTIDDS::IOType::reader) );
+    rtidds_.reset( new RTIDDS(rtidds_name_.str() ) );
   }
 
   return true;

@@ -1,3 +1,8 @@
+
+include_directories(${MPI_INCLUDE_PATH} $ENV{NDDSHOME}/include $ENV{NDDSHOME}/include/ndds )
+
+set( ARCH "x64Linux2.6gcc4.4.5" ) # Needed for RTI-DDS
+
 include_directories(${MPI_INCLUDE_PATH})
 
 art_make( BASENAME_ONLY
@@ -91,6 +96,18 @@ simple_plugin(BinaryFileOutput "module"
 )
 
 simple_plugin(NetMonTransportService "service"
+  artdaq_DAQrate
+  art_Framework_Services_Registry
+  MF_MessageLogger
+  fhiclcpp
+  ${ROOT_RIO}
+  ${ROOT_NET}
+  ${ROOT_CORE}
+)
+
+simple_plugin(TransferServiceRTIDDS "service"
+  artdaq-core_Utilities
+  artdaq_RTIDDS
   artdaq_DAQrate
   art_Framework_Services_Registry
   MF_MessageLogger
