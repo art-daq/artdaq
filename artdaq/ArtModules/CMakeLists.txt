@@ -65,6 +65,19 @@ simple_plugin(NetMonInput "source"
   cetlib
 )
 
+simple_plugin(TransferInput "source"
+  artdaq_ArtModules_RTIDDS_transfer
+  artdaq_ArtModules
+  art_Framework_Core
+  art_Framework_IO_Sources
+  art_Framework_Principal
+  art_Persistency_Provenance
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+)
+
 simple_plugin(RootMPIOutput "module"
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
