@@ -107,7 +107,7 @@ simple_plugin(NetMonTransportService "service"
 )
 
 
-simple_plugin(TransferServiceRTIDDS "transfer"
+simple_plugin(RTIDDS "transfer"
   artdaq-core_Utilities
   artdaq_RTIDDS
   artdaq_DAQrate

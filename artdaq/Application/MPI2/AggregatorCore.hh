@@ -19,7 +19,7 @@
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
 #include "artdaq/RTIDDS/RTIDDS.hh"
-#include "artdaq/ArtModules/TransferServiceInterface.h"
+#include "artdaq/ArtModules/TransferInterface.h"
 
 #include <sys/shm.h> 
 
@@ -127,7 +127,7 @@ private:
   ShmStruct* shm_ptr_;
   size_t fragment_count_to_shm_;
 
-  std::unique_ptr<TransferServiceInterface> transfer_;
+  std::unique_ptr<TransferInterface> transfer_;
 
   void attachToSharedMemory_(bool initialize);
   void copyFragmentToSharedMemory_(bool& fragment_has_been_copied,

@@ -78,7 +78,7 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   
   fhicl::ParameterSet dummyset;
 
-  transfer_ =  bpf.makePlugin<std::unique_ptr<TransferServiceInterface>,const fhicl::ParameterSet&>("TransferServiceRTIDDS",dummyset);
+  transfer_ =  bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>("RTIDDS",dummyset);
 
   mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
