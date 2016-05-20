@@ -28,6 +28,7 @@
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
 #include "cetlib/BasicPluginFactory.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "TClass.h"
 #include "TMessage.h"
@@ -94,13 +95,15 @@ private:
   // JCF, May-20-2016
   // Plan to make this a settable parameter...
   const std::size_t recvTimeout = 1000000;
+  const std::string name_;
 };
 
 art::TransferInputDetail::
 TransferInputDetail(const fhicl::ParameterSet& ps,
                   art::ProductRegistryHelper& helper,
                   const art::SourceHelper& pm)
-    : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm)
+  : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm),
+    name_("TransferInput")
 {
 
   // JCF, May-20-2016
@@ -111,6 +114,8 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
   fhicl::ParameterSet dummyset;
 
   transfer_ =  bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>("RTIDDS",dummyset);
+
+  mf::LogDebug(name_) << "Created transfer_, located at " << static_cast<void*>(transfer_.get());
 
   // Strictly to avoid compiler warnings about unused variables
   (void) ps;
@@ -159,6 +164,8 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
             "Could not get TClass for "
             "std::map<const art::Hash<5>,art::Parentage>!";
     }
+
+    mf::LogDebug(name_) << "Obtained the TClass info";
     // //
     // //  Start server and listen for a connection.
     // //
@@ -177,9 +184,15 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
     artdaq::Fragment fragment;
     TBufferFile* msg_ptr( nullptr );
 
+    mf::LogDebug(name_) << "Constructor: About to call transfer_->receiveFragmentFrom";
+
     transfer_->receiveFragmentFrom(fragment, recvTimeout);
     
+    mf::LogDebug(name_) << "Constructor: Completed call transfer_->receiveFragmentFrom";
+
     extractTBufferFile(fragment, msg_ptr);
+
+    mf::LogDebug(name_) << "Constructor: finished attempt to obtain TBufferFile at " << static_cast<void*>(msg_ptr);
 
     if (msg_ptr == nullptr) {
         throw art::Exception(art::errors::DataCorruption) <<
@@ -191,17 +204,17 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
     //
     //  Read message type.
     //
-    FDEBUG(1) << "TransferInputDetail: getting message type code ...\n";
+    mf::LogDebug(name_) << "TransferInputDetail: getting message type code ...\n";
     unsigned long msg_type_code = 0;
     msg->ReadULong(msg_type_code);
-    FDEBUG(1) << "TransferInputDetail: message type: " << msg_type_code << '\n';
+    mf::LogDebug(name_) << "TransferInputDetail: message type: " << msg_type_code << '\n';
     //
     //  Read the ParameterSetRegistry.
     //
     unsigned long ps_cnt = 0;
     msg->ReadULong(ps_cnt);
-    FDEBUG(1) << "TransferInputDetail: parameter set count: " << ps_cnt << '\n';
-    FDEBUG(1) << "TransferInputDetail: reading parameter sets ...\n";
+    mf::LogDebug(name_) << "TransferInputDetail: parameter set count: " << ps_cnt << '\n';
+    mf::LogDebug(name_) << "TransferInputDetail: reading parameter sets ...\n";
     for (unsigned long I = 0; I < ps_cnt; ++I) {
         p = msg->ReadObjectAny(string_class);
         std::string* pset_str = reinterpret_cast<std::string*>(p);
@@ -212,25 +225,25 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
         pset.id();
         fhicl::ParameterSetRegistry::put(pset);
     }
-    FDEBUG(1) << "TransferInputDetail: finished reading parameter sets.\n";
+    mf::LogDebug(name_) << "TransferInputDetail: finished reading parameter sets.\n";
     //
     //  Read the MasterProductRegistry.
     //
     p = msg->ReadObjectAny(product_list_class);
     helper.productList(reinterpret_cast<art::ProductList*>(p));
     p = 0;
-    FDEBUG(1) << "TransferInputDetail: got product list\n";
+    mf::LogDebug(name_) << "TransferInputDetail: got product list\n";
     if (art::debugit() >= 1) {
-        FDEBUG(1) << "TransferInputDetail: before BranchIDLists\n";
+        mf::LogDebug(name_) << "TransferInputDetail: before BranchIDLists\n";
         BranchIDLists* bil = &BranchIDListRegistry::instance()->data();
         int max_bli = bil->size();
-        FDEBUG(1) << "TransferInputDetail: max_bli: " << max_bli << '\n';
+        mf::LogDebug(name_) << "TransferInputDetail: max_bli: " << max_bli << '\n';
         for (int i = 0; i < max_bli; ++i) {
             int max_prdidx = (*bil)[i].size();
-            FDEBUG(1) << "TransferInputDetail: max_prdidx: "
+            mf::LogDebug(name_) << "TransferInputDetail: max_prdidx: "
                       << max_prdidx << '\n';
             for (int j = 0; j < max_prdidx; ++j) {
-                FDEBUG(1) << "TransferInputDetail:"
+                mf::LogDebug(name_) << "TransferInputDetail:"
                           << " bli: "
                           << i
                           << " prdidx: "
@@ -243,6 +256,9 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
             }
         }
     }
+
+    mf::LogDebug(name_) << "Constructor: about to call msg->readObjectAny(phm_class)";
+
     //
     //  Read the ProcessHistoryRegistry.
     //
@@ -252,34 +268,34 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
     p = msg->ReadObjectAny(phm_class);
     art::ProcessHistoryMap* phm = reinterpret_cast<art::ProcessHistoryMap*>(p);
     p = 0;
-    FDEBUG(1) << "TransferInputDetail: got ProcessHistoryMap\n";
+    mf::LogDebug(name_) << "TransferInputDetail: got ProcessHistoryMap\n";
     if (art::debugit() >= 1) {
-        FDEBUG(1) << "TransferInputDetail: dumping ProcessHistoryMap ...\n";
-        FDEBUG(1) << "TransferInputDetail: phm: size: "
+        mf::LogDebug(name_) << "TransferInputDetail: dumping ProcessHistoryMap ...\n";
+        mf::LogDebug(name_) << "TransferInputDetail: phm: size: "
                   << (unsigned long) phm->size() << '\n';
         for (auto I = phm->begin(), E = phm->end(); I != E; ++I) {
             std::ostringstream OS;
             I->first.print(OS);
-            FDEBUG(1) << "TransferInputDetail: phm: id: '" << OS.str() << "'\n";
+            mf::LogDebug(name_) << "TransferInputDetail: phm: id: '" << OS.str() << "'\n";
         }
     }
     ProcessHistoryRegistry::put(*phm);
     if (art::debugit() >= 1) {
-        FDEBUG(1) << "TransferInputDetail: dumping ProcessHistoryRegistry ...\n";
+        mf::LogDebug(name_) << "TransferInputDetail: dumping ProcessHistoryRegistry ...\n";
         //typedef std::map<const ProcessHistoryID,ProcessHistory>
         //    ProcessHistoryMap;
         ProcessHistoryMap const& phr = ProcessHistoryRegistry::get();
-        FDEBUG(1) << "TransferInputDetail: phr: size: "
+        mf::LogDebug(name_) << "TransferInputDetail: phr: size: "
                   << (unsigned long) phr.size() << '\n';
         for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
             std::ostringstream OS;
             I->first.print(OS);
-            FDEBUG(1) << "TransferInputDetail: phr: id: '" << OS.str() << "'\n";
+            mf::LogDebug(name_) << "TransferInputDetail: phr: id: '" << OS.str() << "'\n";
             OS.str("");
-            FDEBUG(1) << "TransferInputDetail: phr: data.size(): "
+            mf::LogDebug(name_) << "TransferInputDetail: phr: data.size(): "
                       << I->second.data().size() << '\n';
             I->second.data().back().id().print(OS);
-            FDEBUG(1) << "TransferInputDetail: phr: data.back().id(): '"
+            mf::LogDebug(name_) << "TransferInputDetail: phr: data.back().id(): '"
                       << OS.str() << "'\n";
         }
     }
@@ -290,15 +306,17 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
     p = msg->ReadObjectAny(parentage_map_class);
     art::ParentageMap* parentageMap = reinterpret_cast<art::ParentageMap*>(p);
     p = 0;
-    FDEBUG(1) << "TransferInputDetail: got ParentageMap\n";
+    mf::LogDebug(name_) << "TransferInputDetail: got ParentageMap\n";
     ParentageRegistry::put(*parentageMap);
     //
     //  Finished with init message.
     //
-    FDEBUG(1) << "End:   TransferInputDetail::TransferInputDetail("
+    mf::LogDebug(name_) << "End:   TransferInputDetail::TransferInputDetail("
                  "const fhicl::ParameterSet& ps, "
                  "art::ProductRegistryHelper& helper, "
                  "const art::SourceHelper& pm)\n";
+
+    mf::LogDebug(name_) << "At end of constructor";
 }
 
 void
@@ -312,12 +330,12 @@ void
 art::TransferInputDetail::
 readFile(const std::string& name, art::FileBlock*& fb)
 {
-    FDEBUG(1) << "Begin: TransferInputDetail::"
+    mf::LogDebug(name_) << "Begin: TransferInputDetail::"
                  "readFile(const std::string& name, art::FileBlock*& fb)\n";
     (void) name;
     fb = new art::FileBlock(art::FileFormatVersion(1, "TransferInput2013"),
                             "nothing");
-    FDEBUG(1) << "End:   TransferInputDetail::"
+    mf::LogDebug(name_) << "End:   TransferInputDetail::"
                  "readFile(const std::string& name, art::FileBlock*& fb)\n";
 }
 
@@ -325,16 +343,16 @@ bool
 art::TransferInputDetail::
 hasMoreData() const
 {
-    FDEBUG(1) << "Begin: TransferInputDetail::hasMoreData()\n";
+    mf::LogDebug(name_) << "Begin: TransferInputDetail::hasMoreData()\n";
     if (shutdownMsgReceived_) {
-        FDEBUG(1) << "TransferInputDetail::hasMoreData(): "
+        mf::LogDebug(name_) << "TransferInputDetail::hasMoreData(): "
                      "returning false on shutdownMsgReceived_.\n";
-        FDEBUG(1) << "End:   TransferInputDetail::hasMoreData()\n";
+        mf::LogDebug(name_) << "End:   TransferInputDetail::hasMoreData()\n";
         return false;
     }
-    FDEBUG(1) << "TransferInputDetail::hasMoreData(): "
+    mf::LogDebug(name_) << "TransferInputDetail::hasMoreData(): "
                  "returning true on not shutdownMsgReceived_.\n";
-    FDEBUG(1) << "End:   TransferInputDetail::hasMoreData()\n";
+    mf::LogDebug(name_) << "End:   TransferInputDetail::hasMoreData()\n";
     return true;
 }
 
@@ -388,7 +406,7 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
         //  Read the RunAuxiliary.
         //
         {
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "getting art::RunAuxiliary ...\n";
             p = msg.ReadObjectAny(run_aux_class);
             FDEBUG(2) << "readAndConstructPrincipal: p: 0x" << std::hex
@@ -400,23 +418,23 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
             }
             run_aux.reset(reinterpret_cast<art::RunAuxiliary*>(p));
             p = 0;
-            FDEBUG(1) << "readAndConstructPrincipal: got art::RunAuxiliary.\n";
+            mf::LogDebug(name_) << "readAndConstructPrincipal: got art::RunAuxiliary.\n";
             if (art::debugit() >= 1) {
                 std::ostringstream OS;
                 run_aux->processHistoryID().print(OS);
-                FDEBUG(1) << "readAndConstructPrincipal: ProcessHistoryID: '"
+                mf::LogDebug(name_) << "readAndConstructPrincipal: ProcessHistoryID: '"
                           << OS.str() << "'\n";
             }
             if (art::debugit() >= 1) {
                 if (run_aux->processHistoryID().isValid()) {
                     std::ostringstream OS;
                     run_aux->processHistoryID().print(OS);
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: '"
                               << OS.str() << "'\n";
                 }
                 else {
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: 'INVALID'\n";
                 }
             }
@@ -428,7 +446,7 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
         //  Read the SubRunAuxiliary.
         //
         {
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "getting art::SubRunAuxiliary ...\n";
             p = msg.ReadObjectAny(subrun_aux_class);
             FDEBUG(2) << "readAndConstructPrincipal: p: 0x" << std::hex
@@ -440,18 +458,18 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
             }
             subrun_aux.reset(reinterpret_cast<art::SubRunAuxiliary*>(p));
             p = 0;
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "got art::SubRunAuxiliary.\n";
             if (art::debugit() >= 1) {
                 if (subrun_aux->processHistoryID().isValid()) {
                     std::ostringstream OS;
                     subrun_aux->processHistoryID().print(OS);
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: '"
                               << OS.str() << "'\n";
                 }
                 else {
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: 'INVALID'\n";
                 }
             }
@@ -463,7 +481,7 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
         //  Read the RunAuxiliary.
         //
         {
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "getting art::RunAuxiliary ...\n";
             p = msg.ReadObjectAny(run_aux_class);
             FDEBUG(2) << "readAndConstructPrincipal: p: 0x" << std::hex
@@ -475,18 +493,18 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
             }
             run_aux.reset(reinterpret_cast<art::RunAuxiliary*>(p));
             p = 0;
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "got art::RunAuxiliary.\n";
             if (art::debugit() >= 1) {
                 if (run_aux->processHistoryID().isValid()) {
                     std::ostringstream OS;
                     run_aux->processHistoryID().print(OS);
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: '"
                               << OS.str() << "'\n";
                 }
                 else {
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: 'INVALID'\n";
                 }
             }
@@ -495,7 +513,7 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
         //  Read the SubRunAuxiliary.
         //
         {
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "getting art::SubRunAuxiliary ...\n";
             p = msg.ReadObjectAny(subrun_aux_class);
             FDEBUG(2) << "readAndConstructPrincipal: p: 0x" << std::hex
@@ -507,18 +525,18 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
             }
             subrun_aux.reset(reinterpret_cast<art::SubRunAuxiliary*>(p));
             p = 0;
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "got art::SubRunAuxiliary.\n";
             if (art::debugit() >= 1) {
                 if (subrun_aux->processHistoryID().isValid()) {
                     std::ostringstream OS;
                     subrun_aux->processHistoryID().print(OS);
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: '"
                               << OS.str() << "'\n";
                 }
                 else {
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: 'INVALID'\n";
                 }
             }
@@ -527,7 +545,7 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
         //  Read the EventAuxiliary.
         //
         {
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "getting art::EventAuxiliary ...\n";
             p = msg.ReadObjectAny(event_aux_class);
             FDEBUG(2) << "readAndConstructPrincipal: p: 0x" << std::hex
@@ -539,14 +557,14 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
             }
             event_aux.reset(reinterpret_cast<art::EventAuxiliary*>(p));
             p = 0;
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "got art::EventAuxiliary.\n";
         }
         //
         //  Read the History.
         //
         {
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "getting art::History ...\n";
             p = msg.ReadObjectAny(history_class);
             FDEBUG(2) << "readAndConstructPrincipal: p: 0x" << std::hex
@@ -560,17 +578,17 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
 	    history.reset(reinterpret_cast<art::History*>(p));
 
             p = 0;
-            FDEBUG(1) << "readAndConstructPrincipal: got art::History.\n";
+            mf::LogDebug(name_) << "readAndConstructPrincipal: got art::History.\n";
             if (art::debugit() >= 1) {
                 if (history->processHistoryID().isValid()) {
                     std::ostringstream OS;
                     history->processHistoryID().print(OS);
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: '"
                               << OS.str() << "'\n";
                 }
                 else {
-                    FDEBUG(1) << "readAndConstructPrincipal: "
+                    mf::LogDebug(name_) << "readAndConstructPrincipal: "
                               << "ProcessHistoryID: 'INVALID'\n";
                 }
             }
@@ -581,34 +599,34 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
     //
     if (msg_type_code == 2) {
         // EndRun message.
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "processing EndRun message ...\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "making flush RunPrincipal ...\n";
         outR = pm_.makeRunPrincipal(RunID::flushRun(), run_aux->beginTime());
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished making flush RunPrincipal.\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "making flush SubRunPrincipal ...\n";
         outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(),
                                         run_aux->beginTime());
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished making flush SubRunPrincipal.\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "making flush EventPrincipal ...\n";
         outE = pm_.makeEventPrincipal(EventID::flushEvent(),
                                       run_aux->endTime(), true,
                                       EventAuxiliary::Any);
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished making flush EventPrincipal.\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished processing EndRun message.\n";
     }
     else if (msg_type_code == 3) {
         // EndSubRun message.
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "processing EndSubRun message ...\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "making flush RunPrincipal ...\n";
         outR = pm_.makeRunPrincipal(RunID::flushRun(), subrun_aux->beginTime());
 
@@ -630,27 +648,27 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
         if (inR != nullptr) {inR->setEndTime(currentTime);}
         if (inSR != nullptr) {inSR->setEndTime(currentTime);}
 
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished making flush RunPrincipal.\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "making flush SubRunPrincipal ...\n";
         outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(),
                                         subrun_aux->beginTime());
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished making flush SubRunPrincipal.\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "making flush EventPrincipal ...\n";
         outE = pm_.makeEventPrincipal(EventID::flushEvent(),
                                       subrun_aux->endTime(), true,
                                       EventAuxiliary::Any);
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished making flush EventPrincipal.\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished processing EndSubRun message.\n";
     }
     else if (msg_type_code == 4) {
         // Event message.
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "processing Event message ...\n";
         // FIXME: This need to be an exception throw!
         assert(history->processHistoryID().isValid() &&
@@ -662,31 +680,31 @@ readAndConstructPrincipal(TBufferFile& msg, unsigned long msg_type_code,
                 (inR->run() != event_aux->run())) {
             // New run, either we have no input RunPrincipal, or the
             // input run number does not match the event run number.
-            FDEBUG(1) << "readAndConstructPrincipal: making RunPrincipal ...\n";
+            mf::LogDebug(name_) << "readAndConstructPrincipal: making RunPrincipal ...\n";
             //outR = new RunPrincipal(*run_aux.get(),
             //                        processHistory.data().back());
 	    outR = pm_.makeRunPrincipal(*run_aux.get());
-            FDEBUG(1) << "readAndConstructPrincipal: made RunPrincipal.\n";
+            mf::LogDebug(name_) << "readAndConstructPrincipal: made RunPrincipal.\n";
         }
         if ((inSR == nullptr) || !inSR->id().isValid() ||
                 (inSR->subRun() != event_aux->subRun())) {
             // New SubRun, either we have no input SubRunPrincipal, or the
             // input subRun number does not match the event subRun number.
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "making SubRunPrincipal ...\n";
             //outSR = new SubRunPrincipal(*subrun_aux.get(),
             //                            processHistory.data().back());
 	    outSR = pm_.makeSubRunPrincipal(*subrun_aux.get());
-            FDEBUG(1) << "readAndConstructPrincipal: "
+            mf::LogDebug(name_) << "readAndConstructPrincipal: "
                          "made SubRunPrincipal.\n";
         }
-        FDEBUG(1) << "readAndConstructPrincipal: making EventPrincipal ...\n";
+        mf::LogDebug(name_) << "readAndConstructPrincipal: making EventPrincipal ...\n";
         //outE = new EventPrincipal(*event_aux.get(),
         //                          processHistory.data().back(),
         //                          history);
 	outE = pm_.makeEventPrincipal(*event_aux.get(), std::move(history));
-        FDEBUG(1) << "readAndConstructPrincipal: made EventPrincipal.\n";
-        FDEBUG(1) << "readAndConstructPrincipal: "
+        mf::LogDebug(name_) << "readAndConstructPrincipal: made EventPrincipal.\n";
+        mf::LogDebug(name_) << "readAndConstructPrincipal: "
                      "finished processing Event message.\n";
     }
 }
@@ -716,9 +734,9 @@ readDataProducts(TBufferFile& msg, T*& outPrincipal)
     //
     unsigned long prd_cnt = 0;
     {
-        FDEBUG(1) << "readDataProducts: reading product count ...\n";
+        mf::LogDebug(name_) << "readDataProducts: reading product count ...\n";
         msg.ReadULong(prd_cnt);
-        FDEBUG(1) << "readDataProducts: product count: " << prd_cnt << '\n';
+        mf::LogDebug(name_) << "readDataProducts: product count: " << prd_cnt << '\n';
     }
     //
     //  Read the data products.
@@ -728,7 +746,7 @@ readDataProducts(TBufferFile& msg, T*& outPrincipal)
     for (unsigned long I = 0; I < prd_cnt; ++I) {
         std::unique_ptr<BranchKey> bk;
         {
-            FDEBUG(1) << "readDataProducts: Reading branch key.\n";
+            mf::LogDebug(name_) << "readDataProducts: Reading branch key.\n";
             p = msg.ReadObjectAny(branch_key_class);
             FDEBUG(2) << "readDataProducts: p: 0x" << std::hex
                       << (unsigned long) p << std::dec << '\n';
@@ -736,7 +754,7 @@ readDataProducts(TBufferFile& msg, T*& outPrincipal)
             p = 0;
         }
         if (art::debugit() >= 1) {
-            FDEBUG(1) << "readDataProducts: got product class: '"
+            mf::LogDebug(name_) << "readDataProducts: got product class: '"
                       << bk->friendlyClassName_
                       << "' modlbl: '"
                       << bk->moduleLabel_
@@ -748,7 +766,7 @@ readDataProducts(TBufferFile& msg, T*& outPrincipal)
         }
         ProductList::const_iterator iter;
         {
-            FDEBUG(1) << "readDataProducts: looking up product ...\n";
+            mf::LogDebug(name_) << "readDataProducts: looking up product ...\n";
             iter = productList.find(*bk);
             if (iter == productList.end()) {
                 throw art::Exception(art::errors::InsertFailure)
@@ -768,7 +786,7 @@ readDataProducts(TBufferFile& msg, T*& outPrincipal)
         const BranchDescription& bd = iter->second;
         std::unique_ptr<EDProduct> prd;
         {
-            FDEBUG(1) << "readDataProducts: Reading product.\n";
+            mf::LogDebug(name_) << "readDataProducts: Reading product.\n";
             p = msg.ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
             FDEBUG(2) << "readDataProducts: p: 0x" << std::hex
                       << (unsigned long) p << std::dec << '\n';
@@ -777,7 +795,7 @@ readDataProducts(TBufferFile& msg, T*& outPrincipal)
         }
         std::unique_ptr<const ProductProvenance> prdprov;
         {
-            FDEBUG(1) << "readDataProducts: Reading product provenance.\n";
+            mf::LogDebug(name_) << "readDataProducts: Reading product provenance.\n";
             p = msg.ReadObjectAny(prdprov_class);
             FDEBUG(2) << "readDataProducts: p: 0x" << std::hex
                       << (unsigned long) p << std::dec << '\n';
@@ -785,7 +803,7 @@ readDataProducts(TBufferFile& msg, T*& outPrincipal)
             p = 0;
         }
         {
-            FDEBUG(1) << "readDataProducts: inserting product: class: '"
+            mf::LogDebug(name_) << "readDataProducts: inserting product: class: '"
                       << bd.friendlyClassName()
                       << "' modlbl: '"
                       << bd.moduleLabel()
@@ -805,14 +823,14 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
          art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
          art::EventPrincipal*& outE)
 {
-    FDEBUG(1) << "Begin: TransferInputDetail::readNext\n";
+    mf::LogDebug(name_) << "Begin: TransferInputDetail::readNext\n";
     if (outputFileCloseNeeded_) {
         outputFileCloseNeeded_ = false;
         // Signal that we need the output file closed by returning false,
         // but answering true to the hasMoreData() query.
-        FDEBUG(1) << "TransferInputDetail::readNext: "
+        mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "returning false on outputFileCloseNeeded_\n";
-        FDEBUG(1) << "End:   TransferInputDetail::readNext\n";
+        mf::LogDebug(name_) << "End:   TransferInputDetail::readNext\n";
         return false;
     }
     //
@@ -820,7 +838,7 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
     //
     std::unique_ptr<TBufferFile> msg;
     {
-        FDEBUG(1) << "TransferInputDetail::readNext: "
+        mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "Calling receiveMessage ...\n";
         //ServiceHandle<NetMonTransportService> transport;
 	//        TBufferFile* msg_ptr = 0;
@@ -831,7 +849,7 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 	TBufferFile* msg_ptr( nullptr );    
 	extractTBufferFile(fragment, msg_ptr);
 
-        FDEBUG(1) << "TransferInputDetail::readNext: "
+        mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "receiveMessage returned." << '\n';
         FDEBUG(2) << "TransferInputDetail::readNext: ptr: 0x" << std::hex
                   << (unsigned long) msg_ptr << std::dec << '\n';
@@ -849,18 +867,18 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
     //
     unsigned long msg_type_code = 0;
     {
-        FDEBUG(1) << "TransferInputDetail::readNext: "
+        mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "getting message type code ...\n";
         msg->ReadULong(msg_type_code);
-        FDEBUG(1) << "TransferInputDetail::readNext: "
+        mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "message type: " <<  msg_type_code << '\n';
     }
     if (msg_type_code == 5) {
         // Shutdown message.
         shutdownMsgReceived_ = true;
-        FDEBUG(1) << "TransferInputDetail::readNext: "
+        mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "returning false on Shutdown message.\n";
-        FDEBUG(1) << "End:   TransferInputDetail::readNext\n";
+        mf::LogDebug(name_) << "End:   TransferInputDetail::readNext\n";
         return false;
     }
     FDEBUG(2) << "TransferInputDetail::readNext: Dumping BranchIdList\n";
@@ -897,9 +915,9 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
         // FIXME: We need to merge these into the input RunPrincipal.
         readDataProducts(*msg.get(), outR);
         // Signal that we should close the input and output file.
-        FDEBUG(1) << "TransferInputDetail::readNext: "
+        mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "returning false on EndRun message.\n";
-        FDEBUG(1) << "End:   TransferInputDetail::readNext\n";
+        mf::LogDebug(name_) << "End:   TransferInputDetail::readNext\n";
         return false;
     }
     else if (msg_type_code == 3) {
@@ -926,21 +944,21 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
         // Remember that we should ask for file close next time
         // we are called.
         outputFileCloseNeeded_ = true;
-        FDEBUG(1) << "readNext: returning true on EndSubRun message.\n";
-        FDEBUG(1) << "End:   TransferInputDetail::readNext\n";
+        mf::LogDebug(name_) << "readNext: returning true on EndSubRun message.\n";
+        mf::LogDebug(name_) << "End:   TransferInputDetail::readNext\n";
         return true;
     }
     else if (msg_type_code == 4) {
         // Event message.
         readDataProducts(*msg.get(), outE);
-        FDEBUG(1) << "readNext: returning true on Event message.\n";
-        FDEBUG(1) << "End:   TransferInputDetail::readNext\n";
+        mf::LogDebug(name_) << "readNext: returning true on Event message.\n";
+        mf::LogDebug(name_) << "End:   TransferInputDetail::readNext\n";
         return true;
     }
     // Unknown message.
     // FIXME: What do we throw here for invalid message code?
-    FDEBUG(1) << "readNext: returning false on unknown msg_type_code!\n";
-    FDEBUG(1) << "End:   TransferInputDetail::readNext\n";
+    mf::LogDebug(name_) << "readNext: returning false on unknown msg_type_code!\n";
+    mf::LogDebug(name_) << "End:   TransferInputDetail::readNext\n";
     return false;
 }
 

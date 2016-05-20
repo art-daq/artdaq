@@ -74,6 +74,7 @@ simple_plugin(TransferInput "source"
   art_Persistency_Provenance
   art_Utilities
   MF_MessageLogger
+  MF_Utilities
   fhiclcpp
   cetlib
 )
