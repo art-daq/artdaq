@@ -5,8 +5,9 @@
 #include <boost/tokenizer.hpp>
 
 
-artdaq::RTIDDS::RTIDDS(std::string name, std::string max_size) :
+artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
   name_(name),
+  iotype_(iotype),
   max_size_(max_size)
 {
   
@@ -71,50 +72,56 @@ artdaq::RTIDDS::RTIDDS(std::string name, std::string max_size) :
     mf::LogWarning(name_) << "Problem setting dds.builtin_type.octets.alloc_size, retcode was " << retcode;
   }
 
-  octets_writer_ = DDSOctetsDataWriter::narrow( participant_->create_datawriter(
-										topic_octets_,
-										writer_qos,
-										nullptr,                           // Listener   
-										DDS_STATUS_MASK_NONE)
+
+  if (iotype_ == IOType::writer) {
+
+    octets_writer_ = DDSOctetsDataWriter::narrow( participant_->create_datawriter(
+                                                                                  topic_octets_,
+                                                                                  writer_qos,
+                                                                                  nullptr,                           // Listener   
+										  DDS_STATUS_MASK_NONE)
                                                   );
 
-  if (octets_writer_ == nullptr) {
-    mf::LogWarning(name_) << "Problem setting up the RTI-DDS writer objects";
-  }
+    if (octets_writer_ == nullptr) {
+      mf::LogWarning(name_) << "Problem setting up the RTI-DDS writer objects";
+    }
 
-  octets_reader_ = participant_->create_datareader(
-						   topic_octets_,
-						   DDS_DATAREADER_QOS_DEFAULT,    // QoS                                           
-						   &octets_listener_,                      // Listener                             
+  } else {
+
+    octets_reader_ = participant_->create_datareader(
+                                                     topic_octets_,
+                                                     DDS_DATAREADER_QOS_DEFAULT,    // QoS                                           
+                                                     &octets_listener_,                      // Listener                             
                                                      DDS_DATA_AVAILABLE_STATUS);
 
-  if (octets_reader_ == nullptr) {
-    mf::LogWarning(name_) << "Problem setting up the RTI-DDS reader objects";
-  }
+    if (octets_reader_ == nullptr) {
+      mf::LogWarning(name_) << "Problem setting up the RTI-DDS reader objects";
+    }
 
+  }
 }
 
-void artdaq::RTIDDS::copyFragmentToDDS_(bool& fragmentHasBeenCopied,
-					bool& esrHasBeenCopied,
-					bool& eodHasBeenCopied,
+void artdaq::RTIDDS::copyFragmentToDDS_(bool& fragment_has_been_copied,
+					bool& esr_has_been_copied,
+					bool& eod_has_been_copied,
 					artdaq::Fragment& fragment)
 {
 
-  // check if the fragment has already been copied to shared memory
-  if (fragmentHasBeenCopied) {return;}
+  if (fragment_has_been_copied) {return;}
 
-  // check if a fragment of this type has already been copied to shm
+  // check if a fragment of this type has already been copied
   size_t fragmentType = fragment.type();
   if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType &&
-      esrHasBeenCopied) {return;}
+      esr_has_been_copied) {return;}
   if (fragmentType == artdaq::Fragment::EndOfDataFragmentType &&
-      eodHasBeenCopied) {return;}
+      eod_has_been_copied) {return;}
 
-  // verify that we have a writer for octets
   if (octets_writer_ == NULL) {return;}
 
   // JCF, 9/15/15
-  // Perform the same checks Kurt implemented in the AggregatorCore's copyFragmentToSharedMemory_() function
+
+  // Perform the same checks Kurt implemented in the AggregatorCore's
+  // copyFragmentToSharedMemory_() function
 
   size_t max_fragment_size = boost::lexical_cast<size_t>(max_size_) - 
     detail::RawFragmentHeader::num_words() * sizeof(RawDataType);
@@ -142,13 +149,13 @@ void artdaq::RTIDDS::copyFragmentToDDS_(bool& fragmentHasBeenCopied,
                             << ((int) fragment.type());      
     } else {
 
-      fragmentHasBeenCopied = true;
+      fragment_has_been_copied = true;
 
       if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType) {
-        esrHasBeenCopied = true;
+        esr_has_been_copied = true;
       }
       if (fragmentType == artdaq::Fragment::EndOfDataFragmentType) {
-        eodHasBeenCopied = true;
+        eod_has_been_copied = true;
       }
     }
   } else {
@@ -162,7 +169,7 @@ void artdaq::RTIDDS::copyFragmentToDDS_(bool& fragmentHasBeenCopied,
   }
 }
 
-void artdaq::RTIDDS::OctetsListener::onDataAvailable(DDSDataReader *reader) {
+void artdaq::RTIDDS::OctetsListener::on_data_available(DDSDataReader *reader) {
 
   DDSOctetsDataReader * octets_reader = NULL;
   DDS_SampleInfo        info;
@@ -170,8 +177,6 @@ void artdaq::RTIDDS::OctetsListener::onDataAvailable(DDSDataReader *reader) {
 
   mf::LogDebug("OctetsListener") << "In OctetsListener::on_data_available";
 
-  // Perform a safe type-cast from a generic data reader into a                                        
-  // specific data reader for the type "DDS::Octets"                                                   
 
   octets_reader = DDSOctetsDataReader::narrow(reader);
   if (octets_reader == nullptr) {

@@ -3,9 +3,6 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 
-#include "art/Framework/Services/Registry/ServiceMacros.h"
-
-
 class TransferServiceInterface {
 public:
   
@@ -19,7 +16,6 @@ public:
 
 };
 
-DECLARE_ART_SERVICE_INTERFACE(TransferServiceInterface, LEGACY)
 #endif /* artdaq_ArtModules_TransferServiceInterface_h */
 
 // Local Variables:

@@ -12,6 +12,7 @@ art_make( BASENAME_ONLY
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
+  artdaq_RTIDDS
   artdaq_DAQrate
   artdaq_DAQdata
   art_Framework_Core
@@ -105,11 +106,11 @@ simple_plugin(NetMonTransportService "service"
   ${ROOT_CORE}
 )
 
-simple_plugin(TransferServiceRTIDDS "service"
+
+simple_plugin(TransferServiceRTIDDS "transfer"
   artdaq-core_Utilities
   artdaq_RTIDDS
   artdaq_DAQrate
-  art_Framework_Services_Registry
   MF_MessageLogger
   fhiclcpp
   ${ROOT_RIO}

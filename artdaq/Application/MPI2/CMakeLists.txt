@@ -13,6 +13,7 @@ art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   StatisticsHelper.cc
   MPISentry.cc
   LIBRARIES
+  artdaq_ArtModules_TransferServiceRTIDDS_transfer
   artdaq_DAQrate
   artdaq_Application
   artdaq_RTIDDS
