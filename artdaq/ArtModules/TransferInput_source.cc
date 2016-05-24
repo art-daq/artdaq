@@ -37,7 +37,6 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/ArtModules/TransferInterface.h"
-//#include "artdaq/ArtModules/NetMonTransportService.h"
 
 #include <cstdio>
 #include <iomanip>
@@ -53,43 +52,43 @@ class TransferInputDetail;
 
 class art::TransferInputDetail {
 public:
-    TransferInputDetail(const TransferInputDetail&) = delete;
-    TransferInputDetail& operator=(const TransferInputDetail&) = delete;
+  TransferInputDetail(const TransferInputDetail&) = delete;
+  TransferInputDetail& operator=(const TransferInputDetail&) = delete;
 
   ~TransferInputDetail() = default;
 
-    TransferInputDetail(const fhicl::ParameterSet&, art::ProductRegistryHelper&,
+  TransferInputDetail(const fhicl::ParameterSet&, art::ProductRegistryHelper&,
                       const art::SourceHelper&);
 
-    void closeCurrentFile();
+  void closeCurrentFile();
 
-    void readFile(const std::string&, art::FileBlock*&);
+  void readFile(const std::string&, art::FileBlock*&);
 
-    bool hasMoreData() const;
+  bool hasMoreData() const;
 
-    bool readNext(art::RunPrincipal* const inR,
-                  art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR,
-                  art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
+  bool readNext(art::RunPrincipal* const inR,
+		art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR,
+		art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
 
 private:
-    void
-    readAndConstructPrincipal(TBufferFile&, unsigned long,
+  void
+  readAndConstructPrincipal(TBufferFile&, unsigned long,
                               art::RunPrincipal* const,
                               art::SubRunPrincipal* const,
                               art::RunPrincipal*&,
                               art::SubRunPrincipal*&,
                               art::EventPrincipal*&);
 
-    template <class T>
-    void
-    readDataProducts(TBufferFile&, T*&);
-
+  template <class T>
+  void
+  readDataProducts(TBufferFile&, T*&);
+  
   void extractTBufferFile(const artdaq::Fragment&, TBufferFile*& );
 
 private:
-    bool shutdownMsgReceived_;
-    bool outputFileCloseNeeded_;
-    const art::SourceHelper& pm_;
+  bool shutdownMsgReceived_;
+  bool outputFileCloseNeeded_;
+  const art::SourceHelper& pm_;
   std::unique_ptr<TransferInterface> transfer_;
 
   // JCF, May-20-2016
@@ -190,7 +189,12 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
     
     mf::LogDebug(name_) << "Constructor: Completed call transfer_->receiveFragmentFrom";
 
-    extractTBufferFile(fragment, msg_ptr);
+    try {
+      extractTBufferFile(fragment, msg_ptr);
+    } catch(...) {
+        throw art::Exception(art::errors::DataCorruption) <<
+            "TransferInputDetail: Unable to extract TBufferFile from fragment!";
+    }
 
     mf::LogDebug(name_) << "Constructor: finished attempt to obtain TBufferFile at " << static_cast<void*>(msg_ptr);
 
@@ -847,7 +851,13 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 	transfer_->receiveFragmentFrom(fragment, recvTimeout);
 
 	TBufferFile* msg_ptr( nullptr );    
-	extractTBufferFile(fragment, msg_ptr);
+
+	try {
+	  extractTBufferFile(fragment, msg_ptr);
+	} catch (...) {
+	  mf::LogWarning(name_) << "Unable to find metadata in fragment";
+	  return false;
+	}
 
         mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "receiveMessage returned." << '\n';
