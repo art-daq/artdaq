@@ -1,3 +1,9 @@
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+
+
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ExternalComms
   LIB_LIBRARIES artdaq_Application
@@ -12,6 +18,7 @@ art_make( BASENAME_ONLY
   ${XMLRPCPP}
   ${XMLRPC}
   ${XMLRPC_UTIL}
+  ${XMLRPC_UTILPP}
   ${XMLRPC_XMLPARSE}
   ${XMLRPC_XMLTOK}
 )
