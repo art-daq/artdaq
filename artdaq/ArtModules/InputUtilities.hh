@@ -30,32 +30,79 @@
 
 #include <memory>
 #include <string>
+#include <iostream>
 
 namespace art {
 
-template <typename T> 
-T* ReadObjectAny(const std::unique_ptr<TBufferFile>& infile, const std::string& className) {
+  template <typename T> 
+  T* ReadObjectAny(const std::unique_ptr<TBufferFile>& infile, const std::string& className, const std::string& callerName) {
 
-  static TClass* tclassPtr = TClass::GetClass(className.c_str());
+    static TClass* tclassPtr = TClass::GetClass(className.c_str());
 
-  if (tclassPtr == nullptr) {
-    throw art::Exception(art::errors::DictionaryNotFound) <<
-      "artdaq::ReadObjectAny: "
-      "Could not get TClass for " << className << "!";
+    if (tclassPtr == nullptr) {
+      throw art::Exception(art::errors::DictionaryNotFound) <<
+	callerName << " call to ReadObjectAny: "
+	"Could not get TClass for " << className << "!";
+    }
+
+    // JCF, May-24-2016
+
+    // Be aware of the following from the TBufferFile documentation,
+    // concerning TBufferFile::ReadObjectAny:
+
+    // " In case of multiple inheritance, the return value might not be
+    // the real beginning of the object in memory. You will need to use
+    // a dynamic_cast later if you need to retrieve it."
+
+    T* ptr = reinterpret_cast<T*>( infile->ReadObjectAny(tclassPtr) );
+
+    mf::LogDebug(callerName) << "ReadObjectAny: Got object of class " << className << 
+      ", located at " << static_cast<void*>(ptr);
+
+    return ptr;
   }
 
-  // JCF, May-24-2016
+  template <typename T>
+  void printProcessHistoryID(const std::string& label, const T& object ) {
 
-  // Be aware of the following from the TBufferFile documentation,
-  // concerning TBufferFile::ReadObjectAny:
+    if (art::debugit() >= 1) {
+      if (object->processHistoryID().isValid()) {
+	std::ostringstream OS;
+	object->processHistoryID().print(OS);
+	mf::LogDebug("printProcessHistoryID") << label << ": "
+		  << "ProcessHistoryID: '"
+		  << OS.str() << "'\n";
+      }
+      else {
+	mf::LogDebug("printProcessHistoryID") << label << ": "
+		   << "ProcessHistoryID: 'INVALID'\n";
+      }
+    }
+  }
 
-  // " In case of multiple inheritance, the return value might not be
-  // the real beginning of the object in memory. You will need to use
-  // a dynamic_cast later if you need to retrieve it."
+  template <typename T>
+  void printProcessMap(const T& mappable, const std::string description ) {
+    mf::LogDebug("printProcessMap") << "Got " << description << "\n";
+    
+    if (art::debugit() >= 1) {
+      mf::LogDebug("printProcessMap") << "Dumping " << description << "...\n";
+      mf::LogDebug("printProcessMap") << "Size: "
+		<< (unsigned long) mappable.size() << '\n';
+      for (auto I = mappable.begin(), E = mappable.end(); I != E; ++I) {
+	std::ostringstream OS;
+	I->first.print(OS);
+	mf::LogDebug("printProcessMap") << description << ": id: '" << OS.str() << "'\n";
+	OS.str("");
+	mf::LogDebug("printProcessMap") << description << ": data.size(): "
+		  << I->second.data().size() << '\n';
+	I->second.data().back().id().print(OS);
 
-  return reinterpret_cast<T*>( infile->ReadObjectAny(tclassPtr) );
+	mf::LogDebug("printProcessMap") << description << ": data.back().id(): '"
+		  << OS.str() << "'\n";
+      }
+    }
+  }
 }
 
-}
 
 #endif
