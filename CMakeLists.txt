@@ -92,7 +92,7 @@ find_library( XMLRPC NAMES xmlrpc PATHS $ENV{XMLRPC_C_LIBRARY} )
 find_library( XMLRPC_UTIL NAMES xmlrpc_util PATHS $ENV{XMLRPC_C_LIBRARY} )
 find_library( XMLRPC_UTILPP NAMES xmlrpc_util++ PATHS $ENV{XMLRPC_C_LIBRARY} )
 # XMLRPC_UTILPP is new to v1_39_07:
-if(NOT XMLRPCUTILPP)
+if(NOT XMLRPC_UTILPP)
     set(XMLRPC_UTILPP "")
 endif()
 find_library( XMLRPC_XMLPARSE NAMES xmlrpc_xmlparse PATHS $ENV{XMLRPC_C_LIBRARY} )
