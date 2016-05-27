@@ -37,6 +37,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/ArtModules/TransferInterface.h"
+#include "artdaq/ArtModules/TransferWrapper.hh"
 
 #include <cstdio>
 #include <iomanip>
@@ -89,11 +90,7 @@ private:
   bool shutdownMsgReceived_;
   bool outputFileCloseNeeded_;
   const art::SourceHelper& pm_;
-  std::unique_ptr<TransferInterface> transfer_;
-
-  // JCF, May-20-2016
-  // Plan to make this a settable parameter...
-  const std::size_t recvTimeout = 1000000;
+  std::unique_ptr<artdaq::TransferWrapper> transferWrapper_;
   const std::string name_;
 };
 
@@ -102,19 +99,9 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
                   art::ProductRegistryHelper& helper,
                   const art::SourceHelper& pm)
   : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm),
+    transferWrapper_(std::make_unique<artdaq::TransferWrapper>("RTIDDS")),
     name_("TransferInput")
 {
-
-  // JCF, May-20-2016
-  // Will eventually move this to the initializer list, and make plugin type settable from FHiCL
-
-  static cet::BasicPluginFactory bpf("transfer", "make");
-  
-  fhicl::ParameterSet dummyset;
-
-  transfer_ =  bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>("RTIDDS",dummyset);
-
-  mf::LogDebug(name_) << "Created transfer_, located at " << static_cast<void*>(transfer_.get());
 
   // Strictly to avoid compiler warnings about unused variables
   (void) ps;
@@ -165,45 +152,13 @@ TransferInputDetail(const fhicl::ParameterSet& ps,
     }
 
     mf::LogDebug(name_) << "Obtained the TClass info";
-    // //
-    // //  Start server and listen for a connection.
-    // //
-    // FDEBUG(1) << "TransferInputDetail: Starting server ...\n";
-    // ServiceHandle<NetMonTransportService> transport;
-    // transport->listen();
-    // //
-    // //  Got a connection, now receive the init message.
-    // //
-    // FDEBUG(1) << "TransferInputDetail: Connect request received.\n";
-    // TBufferFile* msg_ptr = 0;
-    // transport->receiveMessage(msg_ptr);
-    // FDEBUG(1) << "TransferInputDetail: receiveMessage returned.  ptr: 0x"
-    //           << std::hex << (unsigned long) msg_ptr << std::dec << '\n';
 
-    artdaq::Fragment fragment;
-    TBufferFile* msg_ptr( nullptr );
+    std::unique_ptr<TBufferFile> msg( nullptr );
+    mf::LogInfo(name_) << "About to call transferWrapper_->receiveMessage";
+    transferWrapper_->receiveMessage( msg );
+    mf::LogInfo(name_) << "Done calling transferWrapper_->receiveMessage";
 
-    mf::LogDebug(name_) << "Constructor: About to call transfer_->receiveFragmentFrom";
 
-    transfer_->receiveFragmentFrom(fragment, recvTimeout);
-    
-    mf::LogDebug(name_) << "Constructor: Completed call transfer_->receiveFragmentFrom";
-
-    try {
-      extractTBufferFile(fragment, msg_ptr);
-    } catch(...) {
-        throw art::Exception(art::errors::DataCorruption) <<
-            "TransferInputDetail: Unable to extract TBufferFile from fragment!";
-    }
-
-    mf::LogDebug(name_) << "Constructor: finished attempt to obtain TBufferFile at " << static_cast<void*>(msg_ptr);
-
-    if (msg_ptr == nullptr) {
-        throw art::Exception(art::errors::DataCorruption) <<
-            "TransferInputDetail: Could not receive message!";
-    }
-    std::unique_ptr<TBufferFile> msg(msg_ptr);
-    msg_ptr = 0;
     void* p = 0;
     //
     //  Read message type.
@@ -844,27 +799,8 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
     {
         mf::LogDebug(name_) << "TransferInputDetail::readNext: "
                      "Calling receiveMessage ...\n";
-        //ServiceHandle<NetMonTransportService> transport;
-	//        TBufferFile* msg_ptr = 0;
-	//        transport->receiveMessage(msg_ptr);
-	artdaq::Fragment fragment;
-	transfer_->receiveFragmentFrom(fragment, recvTimeout);
 
-	TBufferFile* msg_ptr( nullptr );    
-
-	try {
-	  extractTBufferFile(fragment, msg_ptr);
-	} catch (...) {
-	  mf::LogWarning(name_) << "Unable to find metadata in fragment";
-	  return false;
-	}
-
-        mf::LogDebug(name_) << "TransferInputDetail::readNext: "
-                     "receiveMessage returned." << '\n';
-        FDEBUG(2) << "TransferInputDetail::readNext: ptr: 0x" << std::hex
-                  << (unsigned long) msg_ptr << std::dec << '\n';
-        msg.reset(msg_ptr);
-        msg_ptr = 0;
+	transferWrapper_->receiveMessage( msg );
     }
 
     if (!msg) {
