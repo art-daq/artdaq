@@ -31,8 +31,6 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) 
 
   artdaq::Fragment frag;
 
-  // Second argument to "receiveFragmentFrom" is basically meant to eliminate the timeout feature
-
   std::size_t timeout = 1000000;
 
   std::cout << "About to call transfer_->receiveFragmentFrom with timeout of " << timeout << std::endl;

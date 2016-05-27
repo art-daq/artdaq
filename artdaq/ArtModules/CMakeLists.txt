@@ -19,6 +19,7 @@ art_make( BASENAME_ONLY
   art_Framework_IO_Sources
   art_Framework_Principal
   art_Persistency_Provenance
+  artdaq_ArtModules_NetMonTransportService_service
   art_Utilities
   MF_MessageLogger
   ${ROOT_CINTEX}

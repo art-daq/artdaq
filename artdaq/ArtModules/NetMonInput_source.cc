@@ -36,6 +36,7 @@
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq/ArtModules/InputUtilities.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/ArtModules/NetMonWrapper.hh"
 
 #include <cstdio>
 #include <iomanip>
@@ -47,9 +48,11 @@
 #include <iostream>
 
 namespace art {
-class NetMonInputDetail;
+  template <typename U>
+  class NetMonInputDetail;
 }
 
+template <typename U>
 class art::NetMonInputDetail {
 public:
     NetMonInputDetail(const NetMonInputDetail&) = delete;
@@ -88,13 +91,17 @@ private:
     bool shutdownMsgReceived_;
     bool outputFileCloseNeeded_;
     const art::SourceHelper& pm_;
+  U dummyTemplateMember;
+  art::NetMonWrapper netMonWrapper_;
 };
 
-art::NetMonInputDetail::
+template <typename U>
+art::NetMonInputDetail<U>::
 NetMonInputDetail(const fhicl::ParameterSet& ps,
                   art::ProductRegistryHelper& helper,
                   const art::SourceHelper& pm)
-    : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm)
+  : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm),
+    dummyTemplateMember(7)
 {
     mf::LogDebug("NetMonInput") << "Begin: NetMonInputDetail::NetMonInputDetail("
                  "const fhicl::ParameterSet& ps, "
@@ -103,26 +110,34 @@ NetMonInputDetail(const fhicl::ParameterSet& ps,
     (void) ps;
     (void) helper;
 
-    //
-    //  Start server and listen for a connection.
-    //
-    mf::LogDebug("NetMonInput") << "NetMonInputDetail: Starting server ...\n";
-    ServiceHandle<NetMonTransportService> transport;
-    transport->listen();
-    //
-    //  Got a connection, now receive the init message.
-    //
-    mf::LogDebug("NetMonInput") << "NetMonInputDetail: Connect request received.\n";
-    TBufferFile* msg_ptr = 0;
-    transport->receiveMessage(msg_ptr);
-    mf::LogDebug("NetMonInput") << "NetMonInputDetail: receiveMessage returned.  ptr: 0x"
-              << std::hex << (unsigned long) msg_ptr << std::dec << '\n';
-    if (msg_ptr == nullptr) {
-        throw art::Exception(art::errors::DataCorruption) <<
-            "NetMonInputDetail: Could not receive message!";
+    // //
+    // //  Start server and listen for a connection.
+    // //
+    // mf::LogDebug("NetMonInput") << "NetMonInputDetail: Starting server ...\n";
+    // ServiceHandle<NetMonTransportService> transport;
+    // transport->listen();
+    // //
+    // //  Got a connection, now receive the init message.
+    // //
+    // mf::LogDebug("NetMonInput") << "NetMonInputDetail: Connect request received.\n";
+    // TBufferFile* msg_ptr = 0;
+    // transport->receiveMessage(msg_ptr);
+    // mf::LogDebug("NetMonInput") << "NetMonInputDetail: receiveMessage returned.  ptr: 0x"
+    //           << std::hex << (unsigned long) msg_ptr << std::dec << '\n';
+    // if (msg_ptr == nullptr) {
+    //     throw art::Exception(art::errors::DataCorruption) <<
+    //         "NetMonInputDetail: Could not receive message!";
+    // }
+    //    std::unique_ptr<TBufferFile> msg(msg_ptr);
+    //    msg_ptr = nullptr;
+
+    std::unique_ptr<TBufferFile> msg( nullptr );
+    netMonWrapper_.receiveMessage( msg );
+
+    if (!msg) {
+      throw art::Exception(art::errors::DataCorruption) <<
+	"NetMonInputDetail: Could not receive message!";
     }
-    std::unique_ptr<TBufferFile> msg(msg_ptr);
-    msg_ptr = nullptr;
 
     // This first unsigned long is the message type code, ignored here in the constructor
     unsigned long dummy = 0;
@@ -203,7 +218,8 @@ NetMonInputDetail(const fhicl::ParameterSet& ps,
                  "const art::SourceHelper& pm)\n";
 }
 
-art::NetMonInputDetail::
+template <typename U>
+art::NetMonInputDetail<U>::
 ~NetMonInputDetail()
 {
     mf::LogDebug("NetMonInput") << "Begin: NetMonInputDetail::~NetMonInputDetail()\n";
@@ -212,15 +228,17 @@ art::NetMonInputDetail::
     mf::LogDebug("NetMonInput") << "End:   NetMonInputDetail::~NetMonInputDetail()\n";
 }
 
+template <typename U>
 void
-art::NetMonInputDetail::
+art::NetMonInputDetail<U>::
 closeCurrentFile()
 {
     mf::LogDebug("NetMonInput") << "Begin/End: NetMonInputDetail::closeCurrentFile()\n";
 }
 
+template <typename U>
 void
-art::NetMonInputDetail::
+art::NetMonInputDetail<U>::
 readFile(const std::string& name, art::FileBlock*& fb)
 {
     mf::LogDebug("NetMonInput") << "Begin: NetMonInputDetail::"
@@ -232,8 +250,9 @@ readFile(const std::string& name, art::FileBlock*& fb)
                  "readFile(const std::string& name, art::FileBlock*& fb)\n";
 }
 
+template <typename U>
 bool
-art::NetMonInputDetail::
+art::NetMonInputDetail<U>::
 hasMoreData() const
 {
     mf::LogDebug("NetMonInput") << "Begin: NetMonInputDetail::hasMoreData()\n";
@@ -249,8 +268,9 @@ hasMoreData() const
     return true;
 }
 
+template <typename U>
 void
-art::NetMonInputDetail::
+art::NetMonInputDetail<U>::
 readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg, 
 			  unsigned long msg_type_code,
                           art::RunPrincipal* const inR,
@@ -392,9 +412,10 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 
 }
 
+template <typename U>
 template <class T>
 void
-art::NetMonInputDetail::
+art::NetMonInputDetail<U>::
 readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 {
 
@@ -487,8 +508,9 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 }
 
 
+template <typename U>
 bool
-art::NetMonInputDetail::
+art::NetMonInputDetail<U>::
 readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
          art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
          art::EventPrincipal*& outE)
@@ -508,15 +530,17 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
     //
     std::unique_ptr<TBufferFile> msg;
     {
-        mf::LogDebug("NetMonInput") << "NetMonInputDetail::readNext: "
-                     "Calling receiveMessage ...\n";
-        ServiceHandle<NetMonTransportService> transport;
-        TBufferFile* msg_ptr = 0;
-        transport->receiveMessage(msg_ptr);
-        mf::LogDebug("NetMonInput") << "NetMonInputDetail::readNext: "
-                     "receiveMessage returned." << '\n';
-        msg.reset(msg_ptr);
-        msg_ptr = 0;
+        // mf::LogDebug("NetMonInput") << "NetMonInputDetail::readNext: "
+        //              "Calling receiveMessage ...\n";
+        // ServiceHandle<NetMonTransportService> transport;
+        // TBufferFile* msg_ptr = 0;
+        // transport->receiveMessage(msg_ptr);
+        // mf::LogDebug("NetMonInput") << "NetMonInputDetail::readNext: "
+        //              "receiveMessage returned." << '\n';
+        // msg.reset(msg_ptr);
+        // msg_ptr = 0;
+
+      netMonWrapper_.receiveMessage(msg);
     }
 
     if (!msg) {
@@ -605,12 +629,12 @@ namespace art {
 
 // Trait definition (must precede source typedef).
 template <>
-struct Source_generator<art::NetMonInputDetail> {
+struct Source_generator<art::NetMonInputDetail<int>> {
     static constexpr bool value = true;
 };
 
 // Source declaration.
-typedef art::Source<NetMonInputDetail> NetMonInput;
+  typedef art::Source<NetMonInputDetail<int>> NetMonInput;
 
 } // namespace art
 
