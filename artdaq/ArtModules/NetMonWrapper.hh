@@ -4,7 +4,7 @@
 // JCF, May-27-2016
 
 // This class is written with functionality such that it satisfies the
-// requirements needed to be a template in the InputArtdaq class
+// requirements needed to be a template in the ArtdaqInput class
 
 #include "artdaq/ArtModules/NetMonTransportService.h"
 

@@ -6,7 +6,7 @@
 // This is the class through which code that wants to access a
 // transfer plugin (e.g., input sources, AggregatorCore, etc.) can do
 // so. Its functionality is such that it satisfies the requirements
-// needed to be a template in the InputArtdaq class
+// needed to be a template in the ArtdaqInput class
 
 #include <string>
 #include <memory>
