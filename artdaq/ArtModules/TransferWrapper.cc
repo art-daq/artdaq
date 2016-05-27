@@ -12,7 +12,7 @@
 #include <limits>
 #include <iostream>
 
-artdaq::TransferWrapper::TransferWrapper(const std::string& transferPluginName)
+artdaq::TransferWrapper::TransferWrapper(const std::string transferPluginName)
 {
 
   static cet::BasicPluginFactory bpf("transfer", "make");

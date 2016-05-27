@@ -21,7 +21,14 @@ namespace artdaq {
   class TransferWrapper {
   public:
   
-    TransferWrapper(const std::string& transferPluginName);
+    // JCF, May-27-2016
+
+    // Will probably get rid of this default "RTIDDS" value; putting
+    // it in so that for now we can create a TransferWrapper object
+    // without passing any arguments to its constructor, so it can be
+    // used as a template parameter for ArtdaqInput
+
+    TransferWrapper(const std::string transferPluginName = "RTIDDS");
 
     void receiveMessage(std::unique_ptr<TBufferFile>& msg);
 
