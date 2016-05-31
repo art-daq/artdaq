@@ -12,7 +12,12 @@
 #include <memory>
 
 #include "artdaq/ArtModules/TransferInterface.h"
+
 #include "TBufferFile.h"
+
+namespace fhicl {
+  class ParameterSet;
+}
 
 namespace artdaq {
 
@@ -20,15 +25,8 @@ namespace artdaq {
 
   class TransferWrapper {
   public:
-  
-    // JCF, May-27-2016
 
-    // Will probably get rid of this default "RTIDDS" value; putting
-    // it in so that for now we can create a TransferWrapper object
-    // without passing any arguments to its constructor, so it can be
-    // used as a template parameter for ArtdaqInput
-
-    TransferWrapper(const std::string transferPluginName = "RTIDDS");
+    TransferWrapper(const fhicl::ParameterSet& );
 
     void receiveMessage(std::unique_ptr<TBufferFile>& msg);
 
@@ -36,6 +34,7 @@ namespace artdaq {
 
     void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>& );
 
+    std::size_t timeoutInUsecs_;
     std::unique_ptr<TransferInterface> transfer_;
   };
 

@@ -11,16 +11,19 @@
 
 #include <limits>
 #include <iostream>
+#include <string>
 
-artdaq::TransferWrapper::TransferWrapper(const std::string transferPluginName)
+artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& ps) :
+  timeoutInUsecs_(ps.get<std::size_t>("timeoutInUsecs", 100000))
 {
 
   static cet::BasicPluginFactory bpf("transfer", "make");
   
-  fhicl::ParameterSet dummyset;
+  std::string transferImplementationType = ps.get<std::string>("transferImplementationType");
 
   try {
-    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>(transferPluginName, dummyset);
+    //    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>(transferImplementationType, ps);
+    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>>(transferImplementationType);
   } catch (...) {
     ExceptionHandler(ExceptionHandlerRethrow::yes, 
 		     "Problem creating instance of TransferInterface in TransferWrapper");
@@ -31,18 +34,12 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) 
 
   artdaq::Fragment frag;
 
-  std::size_t timeout = 1000000;
-
-  std::cout << "About to call transfer_->receiveFragmentFrom with timeout of " << timeout << std::endl;
-
   try { 
-    transfer_->receiveFragmentFrom(frag, timeout);
+    transfer_->receiveFragmentFrom(frag, timeoutInUsecs_);
   } catch (...) {
     ExceptionHandler(ExceptionHandlerRethrow::yes, 
 		     "Problem receiving data in TransferWrapper::receiveMessage");
   }
-
-  std::cout << "Done with call to transfer_->receiveFragmentFrom" << std::endl;
 
   try {
     extractTBufferFile(frag, msg);

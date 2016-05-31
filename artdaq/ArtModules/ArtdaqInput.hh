@@ -56,7 +56,6 @@
 // to handling art provenance, regardless of the communication
 // protocol used to read data in.
 
-
 namespace art {
   template <typename U>
   class ArtdaqInput;
@@ -109,7 +108,10 @@ art::ArtdaqInput<U>::
 ArtdaqInput(const fhicl::ParameterSet& ps,
                   art::ProductRegistryHelper& helper,
                   const art::SourceHelper& pm)
-  : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm)
+  : shutdownMsgReceived_(false), 
+    outputFileCloseNeeded_(false), 
+    pm_(pm),
+    communicationWrapper_(ps)
 {
   
   // JCF, May-27-2016
@@ -122,7 +124,6 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
                  "const fhicl::ParameterSet& ps, "
                  "art::ProductRegistryHelper& helper, "
                  "const art::SourceHelper& pm)\n";
-    (void) ps;
     (void) helper;
 
     std::unique_ptr<TBufferFile> msg( nullptr );

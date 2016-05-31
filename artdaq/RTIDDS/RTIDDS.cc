@@ -245,10 +245,6 @@ void artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fr
 	<< ((int)fragment.type()) << ", sequenceID = "
 	<< fragment.sequenceID();
   }
-  else {
-    mf::LogError("OctetsListener") << "Empty queue found; treating this (perhaps harshly) as an error";
-    throw std::runtime_error("Empty queue found in OctetsListener; treating this (perhaps harshly) as an error");
-  }
 
 }
 

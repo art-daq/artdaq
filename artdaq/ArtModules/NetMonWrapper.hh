@@ -15,12 +15,22 @@
 #include <string>
 #include <memory>
 
+namespace fhicl {
+  class ParameterSet;
+}
+
 namespace art {
 
   class NetMonWrapper {
   public:
   
-    NetMonWrapper() {
+    // JCF, May-31-2016
+
+    // Parameter set constructor argument is unused for now, but
+    // needed for this class to implement the interface the
+    // ArtdaqInput templatized input source expects
+
+    NetMonWrapper(const fhicl::ParameterSet& ) {
       ServiceHandle<NetMonTransportService> transport;
       transport->listen();
     }
