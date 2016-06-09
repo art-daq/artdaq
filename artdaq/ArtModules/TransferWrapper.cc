@@ -13,17 +13,20 @@
 #include <iostream>
 #include <string>
 
-artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& ps) :
-  timeoutInUsecs_(ps.get<std::size_t>("timeoutInUsecs", 100000))
+artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
+  timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
 {
 
   static cet::BasicPluginFactory bpf("transfer", "make");
   
-  std::string transferImplementationType = ps.get<std::string>("transferImplementationType");
-
   try {
-    //    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>(transferImplementationType, ps);
-    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>>(transferImplementationType);
+    //    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>(transferImplementationType, pset);
+    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>,
+      const fhicl::ParameterSet&,
+      TransferInterface::Role>(
+			       pset.get<std::string>("transferImplementationType"),
+			       pset,
+			       TransferInterface::Role::send);
   } catch (...) {
     ExceptionHandler(ExceptionHandlerRethrow::yes, 
 		     "Problem creating instance of TransferInterface in TransferWrapper");

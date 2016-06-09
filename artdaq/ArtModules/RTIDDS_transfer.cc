@@ -6,7 +6,7 @@
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include <iostream>
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <memory>
 #include <iostream>
@@ -18,11 +18,14 @@ class ParameterSet;
 
 // ----------------------------------------------------------------------
 
+namespace artdaq {
+
 class RTIDDSTransfer : public TransferInterface {
 
 public:
   ~RTIDDSTransfer() = default;
-  RTIDDSTransfer(fhicl::ParameterSet const&) :
+  RTIDDSTransfer(fhicl::ParameterSet const& ps, Role role) :
+    TransferInterface(ps, role),
     rtidds_reader_(std::make_unique<artdaq::RTIDDS>("RTIDDSTransfer_reader", artdaq::RTIDDS::IOType::reader)),
     rtidds_writer_(std::make_unique<artdaq::RTIDDS>("RTIDDSTransfer_writer", artdaq::RTIDDS::IOType::writer))
   {
@@ -42,25 +45,40 @@ private:
 
 };
 
+}
 
-void RTIDDSTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+void artdaq::RTIDDSTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 						size_t receiveTimeout) {
 
-  while (true) {
+  bool receivedFragment = false;
+  static std::size_t consecutive_timeouts = 0;
+  std::size_t message_after_N_timeouts = 10;
+
+  while (!receivedFragment) {
         
     try {
-      rtidds_reader_->octets_listener_.receiveFragmentFromDDS(fragment, receiveTimeout);
-      break;
-
+      receivedFragment = rtidds_reader_->octets_listener_.receiveFragmentFromDDS(fragment, receiveTimeout);
     } catch (...) {
-      artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,
-  			       "Call to octets_listener_ resulted in a timeout");
+      ExceptionHandler(ExceptionHandlerRethrow::yes, 
+		       "Error in RTIDDS transfer plugin: caught exception in call to OctetsListener::receiveFragmentFromDDS, rethrowing");
+    }
+
+    if (!receivedFragment) {
+ 
+      consecutive_timeouts++;
+
+      if (consecutive_timeouts % message_after_N_timeouts == 0) {
+	mf::LogInfo("RTIDDSTransfer") << consecutive_timeouts << " consecutive " << 
+	  static_cast<float>(receiveTimeout)/1e6 << "-second timeouts calling OctetsListener::receiveFragmentFromDDS, will continue trying...";
+      }
+    } else {
+      consecutive_timeouts = 0;
     }
   }
 
 }
 
-void RTIDDSTransfer::copyFragmentTo(bool& fragmentWasCopied,
+void artdaq::RTIDDSTransfer::copyFragmentTo(bool& fragmentWasCopied,
 					   bool& esrWasCopied,
 					   bool& eodWasCopied,
 					   artdaq::Fragment& fragment) {
@@ -70,16 +88,7 @@ void RTIDDSTransfer::copyFragmentTo(bool& fragmentWasCopied,
                                      fragment);
 }
 
-// JCF, May-20-2016
-// Will probably turn this into a macro, usable by other types of TransferService plugins
-
-extern "C"							  \
-std::unique_ptr<TransferInterface>				      \
-make(fhicl::ParameterSet const & ps) {					\
-  return std::unique_ptr<TransferInterface>(new RTIDDSTransfer(ps)); \
-}
-
-
+DEFINE_ARTDAQ_TRANSFER(artdaq::RTIDDSTransfer)
 
 #endif /* artdaq_ArtModules_RTIDDSTransfer_h */
 

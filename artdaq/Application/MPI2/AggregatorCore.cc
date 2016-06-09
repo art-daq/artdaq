@@ -70,16 +70,6 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   system_pause_requested_(false), previous_run_duration_(-1.0),
   shm_segment_id_(-1), shm_ptr_(NULL)
 {
-
-  // JCF, May-19-2016
-  // Will eventually move this to the initializer list, and make plugin type settable from FHiCL
-
-  static cet::BasicPluginFactory bpf("transfer", "make");
-  
-  fhicl::ParameterSet dummyset;
-
-  transfer_ =  bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>("RTIDDS",dummyset);
-
   mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
   stats_helper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
@@ -296,6 +286,31 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
       ExceptionHandler(ExceptionHandlerRethrow::no,
                        "Error loading metrics in AggregatorCore::initialize()");
     }
+  }
+
+  fhicl::ParameterSet transfer_pset;
+
+  try {
+    transfer_pset = daq_pset.get<fhicl::ParameterSet>("monitoring_transfer");
+  }  catch (...) {
+    mf::LogError(name_)
+      << "Unable to find the transfer plugin parameters in the daq "
+      << "ParameterSet: \"" + transfer_pset.to_string() + "\".";
+    return false;
+  }
+
+  try {
+    static cet::BasicPluginFactory bpf("transfer", "make");
+    transfer_ =  
+      bpf.makePlugin<std::unique_ptr<TransferInterface>,
+      const fhicl::ParameterSet&,
+      TransferInterface::Role>(
+			      transfer_pset.get<std::string>("transferPluginType"), 
+			      transfer_pset, 
+			      TransferInterface::Role::send);
+  } catch(...) {
+    ExceptionHandler(ExceptionHandlerRethrow::yes,
+		     "Error creating transfer plugin in AggregatorCore::initialize()");
   }
 
   EVENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Event Rate";

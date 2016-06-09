@@ -4,6 +4,8 @@
 
 #include <boost/tokenizer.hpp>
 
+#include <iostream>
+
 
 artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
   name_(name),
@@ -216,8 +218,11 @@ void artdaq::RTIDDS::OctetsListener::on_data_available(DDSDataReader *reader) {
 
 }
 
-void artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fragment,
-							    size_t receiveTimeout) {
+// receiveFragmentFromDDS returns true (and fills fragment passed to
+// it) in there's no timeout; if there is, returns false
+
+bool artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fragment,
+							    const size_t receiveTimeout) {
 
   int loopCount = 0;
   size_t sleepTime = receiveTimeout / 10;
@@ -240,12 +245,17 @@ void artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fr
     
     dds_octets_queue_.pop();
 
-      mf::LogDebug("OctetsListener")
+    mf::LogDebug("RTIDDS")
 	<< "Received fragment from DDS, type ="
 	<< ((int)fragment.type()) << ", sequenceID = "
-	<< fragment.sequenceID();
+	<< fragment.sequenceID() << ", size in bytes = "
+	<< fragment.sizeBytes()
+	<< std::endl;
+
+    return true;
   }
 
+  return false;
 }
 
 

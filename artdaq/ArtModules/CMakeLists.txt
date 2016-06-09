@@ -9,6 +9,7 @@ art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
   SUBDIRS detail
   NO_PLUGINS
+  EXCLUDE RTIDDS_transfer.cc shmem_transfer.cc
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
@@ -69,7 +70,6 @@ simple_plugin(NetMonInput "source"
 )
 
 simple_plugin(TransferInput "source"
-  artdaq_ArtModules_RTIDDS_transfer
   artdaq_ArtModules
   art_Framework_Core
   art_Framework_IO_Sources
@@ -127,6 +127,16 @@ simple_plugin(NetMonTransportService "service"
 simple_plugin(RTIDDS "transfer"
   artdaq-core_Utilities
   artdaq_RTIDDS
+  artdaq_DAQrate
+  MF_MessageLogger
+  fhiclcpp
+  ${ROOT_RIO}
+  ${ROOT_NET}
+  ${ROOT_CORE}
+)
+
+simple_plugin(shmem "transfer"
+  artdaq-core_Utilities
   artdaq_DAQrate
   MF_MessageLogger
   fhiclcpp

@@ -36,8 +36,8 @@ public:
 
     void on_data_available(DDSDataReader *reader);
 
-    void receiveFragmentFromDDS(artdaq::Fragment& fragment,
-				size_t receiveTimeout);
+    bool receiveFragmentFromDDS(artdaq::Fragment& fragment,
+				const size_t receiveTimeout);
 
   private:
 
