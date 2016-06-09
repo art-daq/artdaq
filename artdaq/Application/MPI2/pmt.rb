@@ -428,7 +428,7 @@ class PMT
 
   def initialize(parameterFile, portNumber, logToStdout, logPath,
                  onmonDisplay, preloadLib, configFile, logFhicl)
-    @rpcThread = nil
+    @rpcThreads = nil
     @mpiHandler = MPIHandler.new(logToStdout, logPath, onmonDisplay,
                                  portNumber, preloadLib, logFhicl)
 
@@ -485,10 +485,19 @@ class PMT
     
     # Instantiate the RPC handler and then create the RPC server.
     @rpcHandler = PMTRPCHandler.new(@mpiHandler)
-    hostname = Socket.gethostname
-    hostParts = hostname.chomp.split(".")
-    @rpcServer = XMLRPC::Server.new(port = portNumber, host = hostParts[0])
-    @rpcServer.add_handler("pmt", @rpcHandler)
+
+#    hostname = Socket.gethostname
+#    hostParts = hostname.chomp.split(".")
+#    @rpcServer = XMLRPC::Server.new(port = portNumber, host = hostParts[0])
+#    @rpcServer.add_handler("pmt", @rpcHandler)
+
+    @rpcServers = []
+    ifs = `ifconfig`.scan(/inet (?:addr:)?(172.(?:1[6-9]|2[0-9]|3[01])\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|127\.0\.0\.1)/)
+    ifs.each do |ip|
+      @rpcServers << XMLRPC::Server.new(port = portNumber, host = ip[0])
+    end
+
+    @rpcServers.each do |rpcs| rpcs.add_handler("pmt", @rpcHandler) end
   end
 
   def start
@@ -500,17 +509,26 @@ class PMT
 
     # Startup the RPC server in a new thread so that we can actually return from
     # here.
-    @rpcThread = Thread.new() do
-      @rpcServer.serve
+    @rpcThreads = []
+    @rpcServers.each do |rpcs|
+#      @rpcThreads << Thread.new() do
+@rpcThreads << Process.fork() do
+        rpcs.serve
+      end
     end
   end
 
   def stop
     # Shutdown the RPC server and prompt the MPI handler class to attempt
     # to clean up.
-    @rpcServer.shutdown
-    if @rpcThread != nil
-      @rpcThread.exit
+    $stdout.flush
+    @rpcServers.each do |rpcs| 
+      rpcs.shutdown 
+    end
+    @rpcThreads.each do |rpct|
+      if rpct != nil
+        Process.kill('INT', rpct)
+      end
     end
     @mpiHandler.stop
   end
