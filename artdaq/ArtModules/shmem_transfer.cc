@@ -2,6 +2,7 @@
 #define artdaq_ArtModules_shmemTransfer_h
 
 #include "artdaq/ArtModules/TransferInterface.h"
+#include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
@@ -30,13 +31,14 @@ public:
   shmemTransfer(fhicl::ParameterSet const& , Role );
   ~shmemTransfer();
 
-  virtual void receiveFragmentFrom(artdaq::Fragment& fragment,
-				   size_t receiveTimeout);
+  virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
+				     size_t receiveTimeout);
 
   virtual void copyFragmentTo(bool& fragmentHasBeenCopied,
 			      bool& esrHasBeenCopied,
 			      bool& eodHasBeenCopied,
-			      artdaq::Fragment& fragment);
+			      artdaq::Fragment& fragment,
+			      size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 private:
 
   struct ShmStruct {
@@ -46,6 +48,8 @@ private:
   };
 
   uint64_t max_fragment_size_words_;
+  size_t first_data_sender_rank_; // Only here to mimic AggregatorCore code
+  size_t send_timeout_usec_;
   int shm_segment_id_;
   ShmStruct* shm_ptr_;
   size_t fragment_count_to_shm_;
@@ -58,6 +62,7 @@ private:
 artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role) :
   TransferInterface(pset, role),
   max_fragment_size_words_(pset.get<uint64_t>("max_fragment_size_words")),
+  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank", std::numeric_limits<size_t>::max())),
   shm_segment_id_(-1),
   shm_ptr_(nullptr),
   fragment_count_to_shm_(0),
@@ -89,7 +94,7 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
       << " and size " << (max_fragment_size_words_ * sizeof(artdaq::RawDataType))
       << " bytes";
     shm_ptr_ = (ShmStruct*) shmat(shm_segment_id_, 0, 0);
-    if (shm_ptr_ != NULL) {
+    if (shm_ptr_) {
       if (role_ == Role::receive) {
         shm_ptr_->hasFragment = 0;
       }
@@ -112,25 +117,21 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
 
 artdaq::shmemTransfer::~shmemTransfer() {
  
-  if (shm_ptr_ != NULL) {
+  if (shm_ptr_) {
     shmdt(shm_ptr_);
-    shm_ptr_ = NULL;
+    shm_ptr_ = nullptr;
   }
 
-  // JCF, June-1-2016
-  // Will this work?
-
-  //  if (destroy && shm_segment_id_ > -1) {
-  if (shm_segment_id_ > -1) {
+  if (role_ == Role::receive && shm_segment_id_ > -1) {
     shmctl(shm_segment_id_, IPC_RMID, NULL);
   }
 }
 
 
-void artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+size_t artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 					size_t receiveTimeout) {
 
-  if (shm_ptr_ != NULL) {
+  if (shm_ptr_) {
     int loopCount = 0;
     int nloops = 10;
     size_t sleepTime = receiveTimeout / nloops;
@@ -138,17 +139,6 @@ void artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
       usleep(sleepTime);
       ++loopCount;
     }
-    
-    if (loopCount == nloops) {
-      mf::LogError(name_) << "Call to shmemTransfer::receiveFragmentFrom timed out";
-
-      // Try to break the fragment, to discourage caller's use of a meaningless fragment
-      fragment.setSequenceID(std::numeric_limits<artdaq::Fragment::sequence_id_t>::max());
-      fragment.setFragmentID(std::numeric_limits<artdaq::Fragment::fragment_id_t>::max());
-
-      throw cet::exception(name_) << "Call to shmemTransfer::receiveFragmentFrom timed out";
-    }
-
 
     if (shm_ptr_->hasFragment == 1) {
       fragment.resize(shm_ptr_->fragmentSizeWords);
@@ -163,11 +153,20 @@ void artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
           << ((int)fragment.type()) << ", sequenceID = "
           << fragment.sequenceID();
       }
+
+      return first_data_sender_rank_;
+    } else {
+      return artdaq::RHandles::RECV_TIMEOUT;
     }
   } else {
 
-    fragment.setSequenceID(std::numeric_limits<artdaq::Fragment::sequence_id_t>::max());
-    fragment.setFragmentID(std::numeric_limits<artdaq::Fragment::fragment_id_t>::max());
+    usleep(receiveTimeout);
+
+    // JCF, Jun-9-2016
+
+    // AggregatorCore code on develop branch returns
+    // artdaq::RHandles::RECV_TIMEOUT, but having a null shm_ptr_
+    // strikes me as an error...
 
     mf::LogError(name_) << "Call to shmemTransfer::receiveFragmentFrom with null shm_ptr_";
     throw cet::exception(name_) << "Call to shmemTransfer::receiveFragmentFrom with null shm_ptr_"; 
@@ -177,12 +176,8 @@ void artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 void artdaq::shmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
 					   bool& esrWasCopied,
 					   bool& eodWasCopied,
-					   artdaq::Fragment& fragment) {
-
-  // JCF, Jun-1-2016
-  // Disable any timeouts for now
-
-  size_t send_timeout_usec = 0; 
+					   artdaq::Fragment& fragment,
+					   size_t send_timeout_usec) {
 
   if (fragmentWasCopied) {return;}
   

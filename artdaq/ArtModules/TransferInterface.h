@@ -4,6 +4,8 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "fhiclcpp/fwd.h"
 
+#include <limits>
+
 namespace fhicl {
   class ParameterSet;
 }
@@ -19,13 +21,14 @@ public:
     role_(role)
   {}
   
-  virtual void receiveFragmentFrom(artdaq::Fragment& fragment,
-			   size_t receiveTimeout) = 0;
+  virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
+				     size_t receiveTimeout) = 0;
 
   virtual void copyFragmentTo(bool& fragmentHasBeenCopied,
 			      bool& esrHasBeenCopied,
 			      bool& eodHasBeenCopied,
-			      artdaq::Fragment& fragment) = 0;
+			      artdaq::Fragment& fragment,
+			      size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
 private:
   Role role_;

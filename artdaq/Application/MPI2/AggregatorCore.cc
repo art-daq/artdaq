@@ -460,10 +460,6 @@ size_t artdaq::AggregatorCore::process_fragments()
                                              max_fragment_size_words_,
                                              true_data_sender_count,
                                              first_data_sender_rank_));
-    attachToSharedMemory_(false);
-  }
-  else {
-    attachToSharedMemory_(true);
   }
 
   mf::LogDebug(name_) << "Waiting for first fragment.";
@@ -627,7 +623,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
       transfer_->copyFragmentTo(fragmentWasCopied,
 				esrWasCopied, eodWasCopied,
-				*fragmentPtr);
+				*fragmentPtr, 0);
     }
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
@@ -647,7 +643,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 	  transfer_->copyFragmentTo(fragmentWasCopied,
 	   			   esrWasCopied, eodWasCopied,
-	   			   *fragmentPtr);
+				    *fragmentPtr, 500000);
         }
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
@@ -700,7 +696,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 	  transfer_->copyFragmentTo(fragmentWasCopied,
 				    esrWasCopied, eodWasCopied,
-				    *fragmentPtr);
+				    *fragmentPtr, 1000000);
         }
         /* We inject the EndSubrun fragment after all other data has been
            received.  The SHandles and RHandles classes do not guarantee that 
@@ -712,7 +708,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 	  transfer_->copyFragmentTo(fragmentWasCopied,
 				    esrWasCopied, eodWasCopied,
-				    *fragmentPtr);
+				    *fragmentPtr, 1000000);
         }
         eodFragmentsReceived++;
         /* We count the EOD fragment as a fragment received but the SHandles class

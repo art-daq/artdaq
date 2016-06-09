@@ -31,13 +31,14 @@ public:
   {
   }
 
-  virtual void receiveFragmentFrom(artdaq::Fragment& fragment,
+  virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
 				   size_t receiveTimeout);
 
   virtual void copyFragmentTo(bool& fragmentHasBeenCopied,
 			      bool& esrHasBeenCopied,
 			      bool& eodHasBeenCopied,
-			      artdaq::Fragment& fragment);
+			      artdaq::Fragment& fragment,
+			      size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 private:
 
   std::unique_ptr<artdaq::RTIDDS> rtidds_reader_;
@@ -47,8 +48,8 @@ private:
 
 }
 
-void artdaq::RTIDDSTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
-						size_t receiveTimeout) {
+size_t artdaq::RTIDDSTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+						   size_t receiveTimeout) {
 
   bool receivedFragment = false;
   static std::size_t consecutive_timeouts = 0;
@@ -76,12 +77,16 @@ void artdaq::RTIDDSTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
     }
   }
 
+  return 0;
 }
 
 void artdaq::RTIDDSTransfer::copyFragmentTo(bool& fragmentWasCopied,
 					   bool& esrWasCopied,
 					   bool& eodWasCopied,
-					   artdaq::Fragment& fragment) {
+					    artdaq::Fragment& fragment,
+					    size_t send_timeout_usec) {
+
+  (void) &send_timeout_usec; // No-op to get the compiler not to complain about unused parameter
 
   rtidds_writer_->copyFragmentToDDS_(fragmentWasCopied,
                                      esrWasCopied, eodWasCopied,
