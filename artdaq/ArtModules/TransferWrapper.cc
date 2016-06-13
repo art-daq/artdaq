@@ -20,7 +20,6 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   static cet::BasicPluginFactory bpf("transfer", "make");
   
   try {
-    //    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>,const fhicl::ParameterSet&>(transferImplementationType, pset);
     transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>,
       const fhicl::ParameterSet&,
       TransferInterface::Role>(

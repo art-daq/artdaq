@@ -1,5 +1,3 @@
-#ifndef artdaq_ArtModules_shmemTransfer_h
-#define artdaq_ArtModules_shmemTransfer_h
 
 #include "artdaq/ArtModules/TransferInterface.h"
 #include "artdaq/DAQrate/RHandles.hh"
@@ -64,7 +62,7 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
   max_fragment_size_words_(pset.get<uint64_t>("max_fragment_size_words")),
   first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank", std::numeric_limits<size_t>::max())),
   shm_segment_id_(-1),
-  shm_ptr_(nullptr),
+  shm_ptr_(NULL),
   fragment_count_to_shm_(0),
   role_(role),
   name_("shmemTransfer")
@@ -76,7 +74,7 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
 
   int shmKey = 0x40470000;
   char* keyChars = getenv("ARTDAQ_SHM_KEY");
-  if (keyChars != nullptr) {
+  if (keyChars != NULL) {
     std::string keyString(keyChars);
     try {
       shmKey = boost::lexical_cast<int>(keyString);
@@ -84,9 +82,15 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
     catch (...) {}
   }
 
-  shm_segment_id_ =
-    shmget(shmKey, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
-           IPC_CREAT | 0666);
+  if (role_ == Role::send) {
+    shm_segment_id_ =
+      shmget(shmKey, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
+			            IPC_CREAT | 0666);
+  } else {
+    shm_segment_id_ =
+      shmget(shmKey, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
+	     0666);
+  }
   
   if (shm_segment_id_ > -1) {
     mf::LogDebug(name_)
@@ -94,7 +98,7 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
       << " and size " << (max_fragment_size_words_ * sizeof(artdaq::RawDataType))
       << " bytes";
     shm_ptr_ = (ShmStruct*) shmat(shm_segment_id_, 0, 0);
-    if (shm_ptr_) {
+    if (shm_ptr_ && shm_ptr_ != (void *) -1 ) {
       if (role_ == Role::receive) {
         shm_ptr_->hasFragment = 0;
       }
@@ -119,7 +123,7 @@ artdaq::shmemTransfer::~shmemTransfer() {
  
   if (shm_ptr_) {
     shmdt(shm_ptr_);
-    shm_ptr_ = nullptr;
+    shm_ptr_ = NULL;
   }
 
   if (role_ == Role::receive && shm_segment_id_ > -1) {
@@ -187,7 +191,7 @@ void artdaq::shmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
   if (fragmentType == artdaq::Fragment::EndOfDataFragmentType &&
       eodWasCopied) {return;}
 
-  if (shm_ptr_ == nullptr) {return;}
+  if (!shm_ptr_) {return;}
 
   // wait for the shm to become free, if requested                                           
   if (send_timeout_usec > 0) {
@@ -248,8 +252,6 @@ void artdaq::shmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
 }
 
 DEFINE_ARTDAQ_TRANSFER(artdaq::shmemTransfer)
-
-#endif /* artdaq_ArtModules_shmemTransfer_h */
 
 // Local Variables:
 // mode: c++

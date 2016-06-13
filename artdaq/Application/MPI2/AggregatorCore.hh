@@ -21,8 +21,6 @@
 #include "artdaq/RTIDDS/RTIDDS.hh"
 #include "artdaq/ArtModules/TransferInterface.h"
 
-#include <sys/shm.h> 
-
 #include <ndds/ndds_cpp.h>
 
 namespace artdaq
@@ -117,27 +115,7 @@ private:
   std::string SHM_COPY_TIME_METRIC_NAME_;
   std::string FILE_CHECK_TIME_METRIC_NAME_;
 
-  // *** Shared memory declarations ***
-  struct ShmStruct {
-    size_t hasFragment;
-    size_t fragmentSizeWords;
-    artdaq::RawDataType fragmentInnards[2];
-  };
-  int shm_segment_id_;
-  ShmStruct* shm_ptr_;
-  size_t fragment_count_to_shm_;
-
   std::unique_ptr<TransferInterface> transfer_;
-
-  void attachToSharedMemory_(bool initialize);
-  void copyFragmentToSharedMemory_(bool& fragment_has_been_copied,
-                                   bool& esr_has_been_copied,
-                                   bool& eod_has_been_copied,
-                                   artdaq::Fragment& fragment,
-                                   size_t send_timeout_usec);
-  size_t receiveFragmentFromSharedMemory_(artdaq::Fragment& fragment,
-                                          size_t receiveTimeout);
-  void detachFromSharedMemory_(bool destroy);
 
 };
 
