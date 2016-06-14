@@ -18,10 +18,7 @@
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
-#include "artdaq/RTIDDS/RTIDDS.hh"
 #include "artdaq/ArtModules/TransferInterface.h"
-
-#include <ndds/ndds_cpp.h>
 
 namespace artdaq
 {

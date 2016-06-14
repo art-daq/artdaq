@@ -21,11 +21,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>    
 
-#include <ndds/dds_c/dds_c_infrastructure.h>
-#include <ndds/dds_cpp/dds_cpp_infrastructure.h>
-#include <ndds/dds_cpp/dds_cpp_domain.h>
-#include <ndds/ndds_namespace_cpp.h>
-
 namespace BFS = boost::filesystem;
 
 const std::string artdaq::AggregatorCore::INPUT_EVENTS_STAT_KEY("AggregatorCoreInputEvents");
