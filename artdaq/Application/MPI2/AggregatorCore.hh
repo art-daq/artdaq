@@ -18,7 +18,7 @@
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
-#include "artdaq/ArtModules/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.h"
 
 namespace artdaq
 {

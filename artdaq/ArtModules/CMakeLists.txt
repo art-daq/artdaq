@@ -1,19 +1,13 @@
 
-include_directories(${MPI_INCLUDE_PATH} $ENV{NDDSHOME}/include $ENV{NDDSHOME}/include/ndds )
-
-set( ARCH "x64Linux2.6gcc4.4.5" ) # Needed for RTI-DDS
-
 include_directories(${MPI_INCLUDE_PATH})
 
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
   SUBDIRS detail
   NO_PLUGINS
-  EXCLUDE RTIDDS_transfer.cc shmem_transfer.cc
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
-  artdaq_RTIDDS
   artdaq_DAQrate
   artdaq_DAQdata
   art_Framework_Core
@@ -40,17 +34,6 @@ simple_plugin(RawInput "source"
   MF_MessageLogger
 )
 
-simple_plugin(RTIDDSInput "source"
-  artdaq_ArtModules
-  artdaq_Application_MPI2
-  art_Framework_Core
-  art_Framework_IO_Sources
-  art_Framework_Principal
-  art_Persistency_Provenance
-  art_Utilities
-  MF_MessageLogger
-)
-
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
 
 
@@ -58,19 +41,6 @@ simple_plugin(NetMonInput "source"
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
   artdaq-core_Utilities
-  art_Framework_Core
-  art_Framework_IO_Sources
-  art_Framework_Principal
-  art_Persistency_Provenance
-  art_Utilities
-  MF_MessageLogger
-  MF_Utilities
-  fhiclcpp
-  cetlib
-)
-
-simple_plugin(TransferInput "source"
-  artdaq_ArtModules
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal
@@ -116,28 +86,6 @@ simple_plugin(BinaryFileOutput "module"
 simple_plugin(NetMonTransportService "service"
   artdaq_DAQrate
   art_Framework_Services_Registry
-  MF_MessageLogger
-  fhiclcpp
-  ${ROOT_RIO}
-  ${ROOT_NET}
-  ${ROOT_CORE}
-)
-
-
-simple_plugin(RTIDDS "transfer"
-  artdaq-core_Utilities
-  artdaq_RTIDDS
-  artdaq_DAQrate
-  MF_MessageLogger
-  fhiclcpp
-  ${ROOT_RIO}
-  ${ROOT_NET}
-  ${ROOT_CORE}
-)
-
-simple_plugin(shmem "transfer"
-  artdaq-core_Utilities
-  artdaq_DAQrate
   MF_MessageLogger
   fhiclcpp
   ${ROOT_RIO}

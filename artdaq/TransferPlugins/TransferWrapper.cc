@@ -1,5 +1,5 @@
 
-#include "artdaq/ArtModules/TransferWrapper.hh"
+#include "artdaq/TransferPlugins/TransferWrapper.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Data/Fragment.hh"

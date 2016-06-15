@@ -1,7 +1,5 @@
-#ifndef artdaq_ArtModules_RTIDDSTransfer_h
-#define artdaq_ArtModules_RTIDDSTransfer_h
 
-#include "artdaq/ArtModules/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.h"
 #include "artdaq/RTIDDS/RTIDDS.hh"
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -94,8 +92,6 @@ void artdaq::RTIDDSTransfer::copyFragmentTo(bool& fragmentWasCopied,
 }
 
 DEFINE_ARTDAQ_TRANSFER(artdaq::RTIDDSTransfer)
-
-#endif /* artdaq_ArtModules_RTIDDSTransfer_h */
 
 // Local Variables:
 // mode: c++

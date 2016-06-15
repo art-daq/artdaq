@@ -1,6 +1,6 @@
 
 #include "artdaq/ArtModules/ArtdaqInput.hh"
-#include "artdaq/ArtModules/TransferWrapper.hh"
+#include "artdaq/TransferPlugins/TransferWrapper.hh"
 
 namespace art {
 

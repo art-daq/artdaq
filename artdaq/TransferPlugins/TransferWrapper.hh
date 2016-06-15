@@ -11,7 +11,7 @@
 #include <string>
 #include <memory>
 
-#include "artdaq/ArtModules/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.h"
 
 #include "TBufferFile.h"
 

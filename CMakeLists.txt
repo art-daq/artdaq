@@ -105,6 +105,14 @@ endif()
 
 find_package(MPI QUIET)
 
+if (DEFINED ENV{NDDSHOME})
+   set( USING_RTIDDS TRUE )
+   message("\"NDDSHOME\" environment variable defined; will build RTI-DDS code")
+else()
+   set( USING_RTIDDS FALSE )
+   message("\"NDDSHOME\" environment variable not defined; will ignore RTI-DDS code")
+endif()
+
 # macros for artdaq_dictionary and simple_plugin
 include(ArtDictionary)
 include(ArtMake)

@@ -1,5 +1,5 @@
 
-#include "artdaq/ArtModules/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.h"
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
