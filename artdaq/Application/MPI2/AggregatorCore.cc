@@ -135,17 +135,38 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   enq_timeout_ = agg_pset.get<daqrate::seconds>("enq_timeout", 
 						static_cast<daqrate::seconds>(5.0));
 
+  // 15-Jun-2016, KAB: added ability to specify either is_data_logger or
+  // is_online_monitor in the parameter set.  If neither are set in the PSet,
+  // then we default to the old-style of behavior in which the first AG is the
+  // data logger and the second is the online monitor.
   is_data_logger_ = false;
   is_online_monitor_ = false;
-  if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
-    is_data_logger_ = true;
+  bool agtype_was_specified = false;
+  if (! agtype_was_specified) {
+    try {
+      is_data_logger_ = agg_pset.get<bool>("is_data_logger");
+      agtype_was_specified = true;
+    }
+    catch (...) {} // leave agtype_was_specified set to false
   }
-  if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_ + 1)) {
-    is_online_monitor_ = true;
+  if (! agtype_was_specified) {
+    try {
+      is_online_monitor_ = agg_pset.get<bool>("is_online_monitor");
+      agtype_was_specified = true;
+    }
+    catch (...) {} // leave agtype_was_specified set to false
+  }
+  if (! agtype_was_specified) {
+    if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
+      is_data_logger_ = true;
+    }
+    if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_ + 1)) {
+      is_online_monitor_ = true;
+    }
   }
   mf::LogDebug(name_) << "Rank " << mpi_rank_
-                             << ", is_data_logger  = " << is_data_logger_
-                             << ", is_online_monitor = " << is_online_monitor_;
+                      << ", is_data_logger  = " << is_data_logger_
+                      << ", is_online_monitor = " << is_online_monitor_;
 
   disk_writing_directory_ = "";
   try {
