@@ -358,10 +358,14 @@ send_init_message()
     {
         art::ServiceHandle<NetMonTransportService> transport;
         mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
-                     "Sending the init message ...\n";
-	transport->sendMessage(0, artdaq::Fragment::InitFragmentType, msg);
+                                      << "Sending the init message to "
+                                      << transport->dataReceiverCount()
+                                      << " data receivers ...\n";
+        for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx) {
+            transport->sendMessage(idx, artdaq::Fragment::InitFragmentType, msg);
+        }
         mf::LogDebug("RootMPIOutput") << "RootMPIOutput static send_init_message(): "
-                     "Init message sent.\n";
+                     "Init message(s) sent.\n";
     }
     mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput static send_init_message()\n";
 }
@@ -825,9 +829,15 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
     //
     {
         ServiceHandle<NetMonTransportService> transport;
-        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: sending a message ...\n";
-	transport->sendMessage(0, artdaq::Fragment::EndOfSubrunFragmentType, msg);
-        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: message sent.\n";
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
+                                      << "Sending the EndOfSubrun message to "
+                                      << transport->dataReceiverCount()
+                                      << " data receivers ...\n";
+        for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx) {
+            transport->sendMessage(idx, artdaq::Fragment::EndOfSubrunFragmentType, msg);
+        }
+        mf::LogDebug("RootMPIOutput") << "RootMPIOutput::writeSubRun: "
+                                      << "EndOfSubrun message(s) sent.\n";
 
 	// Disconnecting will cause EOD fragments to be generated which will
 	// allow components downstream to flush data and clean up.
