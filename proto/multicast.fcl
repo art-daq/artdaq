@@ -1,0 +1,7 @@
+
+multicast: {
+	
+  fragment_size: 1640000
+  subfragment_size: 1000
+  subfragments_per_send: 10
+}
