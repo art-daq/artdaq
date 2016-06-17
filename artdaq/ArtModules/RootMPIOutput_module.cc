@@ -4,25 +4,43 @@
 #include "art/Framework/Principal/OutputHandle.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-#include "art/Persistency/Provenance/BranchDescription.h"
-#include "art/Persistency/Provenance/BranchIDList.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Persistency/Provenance/BranchIDListHelper.h"
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
+#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
+#include "art/Persistency/Provenance/ProductMetaData.h"
+
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/BranchDescription.h"
+#include "canvas/Persistency/Provenance/BranchIDList.h"
+#include "canvas/Persistency/Provenance/BranchKey.h"
+#include "canvas/Persistency/Provenance/History.h"
+#include "canvas/Persistency/Provenance/ParentageRegistry.h"
+#include "canvas/Persistency/Provenance/ProcessConfiguration.h"
+#include "canvas/Persistency/Provenance/ProcessConfigurationID.h"
+#include "canvas/Persistency/Provenance/ProcessHistoryID.h"
+#include "canvas/Persistency/Provenance/ProductList.h"
+#include "canvas/Persistency/Provenance/ProductProvenance.h"
+#include "canvas/Persistency/Provenance/RunAuxiliary.h"
+#include "canvas/Persistency/Provenance/SubRunAuxiliary.h"
+#include "canvas/Utilities/DebugMacros.h"
+#include "canvas/Utilities/Exception.h"
+#else
+#include "art/Persistency/Provenance/BranchDescription.h"
+#include "art/Persistency/Provenance/BranchIDList.h"
 #include "art/Persistency/Provenance/BranchKey.h"
 #include "art/Persistency/Provenance/History.h"
 #include "art/Persistency/Provenance/ParentageRegistry.h"
 #include "art/Persistency/Provenance/ProcessConfiguration.h"
 #include "art/Persistency/Provenance/ProcessConfigurationID.h"
 #include "art/Persistency/Provenance/ProcessHistoryID.h"
-#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductList.h"
-#include "art/Persistency/Provenance/ProductMetaData.h"
 #include "art/Persistency/Provenance/ProductProvenance.h"
 #include "art/Persistency/Provenance/RunAuxiliary.h"
 #include "art/Persistency/Provenance/SubRunAuxiliary.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Utilities/DebugMacros.h"
 #include "art/Utilities/Exception.h"
+#endif
 #include "cetlib/column_width.h"
 #include "cetlib/lpad.h"
 #include "cetlib/rpad.h"
@@ -45,7 +63,7 @@
 #include "TClass.h"
 #include "TMessage.h"
 
-#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#if (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 16) || ART_MAJOR_VERSION > 1
 #  define CONST_WRITE
 struct Config {
 
@@ -83,9 +101,9 @@ private:
 
 art::RootMPIOutput::
 RootMPIOutput(ParameterSet const& ps)
-#if (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 18) || ART_MAJOR_VERSION > 1
+#if (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 18) || (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION == 17 && ART_PATCH_VERSION >= 8) || ART_MAJOR_VERSION > 1
   : OutputModule(ps), initMsgSent_(false)
-#elif ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#elif ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 16
   : OutputModule(OutputModule::Table<Config>(ps)), initMsgSent_(false)
 #else
     : OutputModule(ps), initMsgSent_(false)

@@ -6,7 +6,11 @@
 #include <atomic>
 
 #include "fhiclcpp/ParameterSet.h"
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/RunID.h"
+#else
 #include "art/Persistency/Provenance/RunID.h"
+#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq/DAQrate/EventStore.hh"

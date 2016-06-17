@@ -1,5 +1,9 @@
 #include "artdaq/Application/MPI2/EventBuilderCore.hh"
+#ifdef CANVAS
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/Exception.h"
+#endif
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "art/Framework/Art/artapp.h"

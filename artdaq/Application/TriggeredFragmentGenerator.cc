@@ -1,6 +1,10 @@
 #include "artdaq/Application/TriggeredFragmentGenerator.hh"
 
+#ifdef CANVAS
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/Exception.h"
+#endif
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.h"

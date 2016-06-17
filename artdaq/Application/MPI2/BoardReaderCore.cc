@@ -2,7 +2,11 @@
 #include "artdaq/Application/MPI2/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragments.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
+#ifdef CANVAS
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/Exception.h"
+#endif
 #include "cetlib/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include <pthread.h>
