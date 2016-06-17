@@ -26,6 +26,7 @@ art_make(BASENAME_ONLY
   ${Boost_SYSTEM_LIBRARY} 
   ${MPI_C_LIBRARIES}
   ${TRACE}
+  ${CANVAS}_Utilities
   )
 
 install_headers(SUBDIRS detail)
