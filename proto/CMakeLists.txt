@@ -30,6 +30,21 @@ art_make_exec(NAME artdaqDriver
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+art_make_exec(NAME multicast_sender # NO_INSTALL -- comment out to install
+  LIBRARIES
+  artdaq-core_Data
+  ${CETLIB}
+  ${FHICLCPP}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
+art_make_exec(NAME multicast_receiver # NO_INSTALL -- comment out to install
+  LIBRARIES
+  artdaq-core_Data
+  ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
 art_make_exec(perfdump
   LIBRARIES
   artdaq_DAQrate
@@ -65,5 +80,5 @@ cet_test(config_with_art_t
   TEST_PROPERTIES ENVIRONMENT ARTDAQ_DAQRATE_USE_ART=1
   )
 
-install_fhicl(LIST daqrate_simdata_noart.fcl)
+install_fhicl(LIST daqrate_simdata_noart.fcl multicast.fcl)
 install_source()

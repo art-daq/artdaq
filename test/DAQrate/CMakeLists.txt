@@ -11,17 +11,6 @@ art_make_exec(NAME s_r_handles # NO_INSTALL -- comment out to install
   artdaq_DAQdata
   )
 
-art_make_exec(NAME sender # NO_INSTALL -- comment out to install
-  LIBRARIES
-  ${CETLIB}
-  )
-
-art_make_exec(NAME receiver # NO_INSTALL -- comment out to install
-  LIBRARIES
-  ${CETLIB}
-  )
-
-
 # This is an integration test that exercises SHandles and RHandles,
 # making sure they can communicate as expected.
 set(num_sending_ranks 2)
