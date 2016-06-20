@@ -8,7 +8,7 @@ endif()
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_TransferPlugins
   NO_PLUGINS
-  EXCLUDE RTIDDS_transfer.cc shmem_transfer.cc
+  EXCLUDE RTIDDS_transfer.cc shmem_transfer.cc multicast_transfer.cc
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
@@ -28,7 +28,6 @@ art_make( BASENAME_ONLY
   )
 
 simple_plugin(TransferInput "source"
-#  artdaq_ArtModules
   artdaq_TransferPlugins
   art_Framework_Core
   art_Framework_IO_Sources
@@ -49,6 +48,19 @@ simple_plugin(shmem "transfer"
   ${ROOT_RIO}
   ${ROOT_NET}
   ${ROOT_CORE}
+)
+
+simple_plugin(multicast "transfer"
+  artdaq-core_Utilities
+  cetlib
+  fhiclcpp
+  ${Boost_SYSTEM_LIBRARY}
+#  artdaq_DAQrate
+#  MF_MessageLogger
+#  fhiclcpp
+#  ${ROOT_RIO}
+#  ${ROOT_NET}
+#  ${ROOT_CORE}
 )
 
 if (${USING_RTIDDS})

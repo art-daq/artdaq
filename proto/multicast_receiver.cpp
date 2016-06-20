@@ -22,7 +22,7 @@
 #include <string>
 
 const short multicast_port = 30001;
-const bool gVerbose = false;
+const bool gVerbose = true;
 
 class receiver
 {
@@ -37,6 +37,9 @@ public:
       fragment_size_(fragment_size),
       subfragment_size_(subfragment_size)
   {
+
+    std::cout << "fragment_size is " << fragment_size_ << std::endl;
+    std::cout << "subfragment_size is " << subfragment_size_ << std::endl;
 
     if (fragment_size % subfragment_size != 0) {
       throw cet::exception("receiver") << "Requested subfragment size of " << subfragment_size <<
@@ -77,7 +80,6 @@ public:
 
 	if (gVerbose) {
 	  std::cout << "Received " << bytes_recvd << " bytes" << std::endl;
-	  //  std::cout << "Container consists of " << buffers_.size() << " buffers" << std::endl;
 	  std::cout << "Total bytes received == " << total_bytes_received_ << std::endl;
 	}
 

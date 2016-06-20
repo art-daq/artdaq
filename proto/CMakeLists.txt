@@ -32,6 +32,7 @@ art_make_exec(NAME artdaqDriver
 
 art_make_exec(NAME multicast_sender # NO_INSTALL -- comment out to install
   LIBRARIES
+  artdaq_TransferPlugins_multicast_transfer
   artdaq-core_Data
   ${CETLIB}
   ${FHICLCPP}
@@ -40,6 +41,7 @@ art_make_exec(NAME multicast_sender # NO_INSTALL -- comment out to install
 
 art_make_exec(NAME multicast_receiver # NO_INSTALL -- comment out to install
   LIBRARIES
+  artdaq_TransferPlugins_multicast_transfer
   artdaq-core_Data
   ${CETLIB}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
