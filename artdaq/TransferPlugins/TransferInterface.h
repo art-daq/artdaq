@@ -30,8 +30,11 @@ public:
 			      artdaq::Fragment& fragment,
 			      size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
+protected:
+  Role role() { return role_; }
+
 private:
-  Role role_;
+  const Role role_;
 };
 
 }

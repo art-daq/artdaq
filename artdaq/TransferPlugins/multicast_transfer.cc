@@ -2,6 +2,9 @@
 
 #include "artdaq/TransferPlugins/TransferInterface.h"
 
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+
 #include "fhiclcpp/ParameterSet.h"
 
 #include <boost/asio.hpp>
@@ -11,6 +14,7 @@
 #include <vector>
 #include <cassert>
 #include <string>
+#include <type_traits>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -40,7 +44,8 @@ private:
 
   void fill_staging_memory(const artdaq::Fragment& frag);
 
-  void book_container_of_buffers(std::vector<boost::asio::const_buffer>& buffers,
+  template <typename T>
+  void book_container_of_buffers(std::vector<T>& buffers,
 				 const size_t fragment_size,
 				 const size_t total_subfragments,
 				 const size_t first_subfragment_num,
@@ -69,9 +74,10 @@ private:
     size_t subfragment_number_;
   };
 
-  boost::asio::io_service io_service_;
-  boost::asio::ip::udp::endpoint endpoint_;
-  boost::asio::ip::udp::socket socket_;
+  std::unique_ptr<boost::asio::io_service> io_service_;
+  std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint_;
+  std::unique_ptr<boost::asio::ip::udp::endpoint> opposite_endpoint_;
+  std::unique_ptr<boost::asio::ip::udp::socket> socket_;
 
   size_t subfragment_size_;
   size_t subfragments_per_send_;
@@ -79,37 +85,97 @@ private:
   size_t max_fragment_size_;
   std::vector<byte_t> staging_memory_;
 
+  std::vector<boost::asio::mutable_buffer> receive_buffers_;
 };
 
 }
 
 artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Role role) :
   TransferInterface(pset, role),
-  endpoint_(boost::asio::ip::address::from_string(pset.get<std::string>("multicast_address")), 
-	    pset.get<unsigned short>("multicast_port")), 
-  socket_(io_service_, endpoint_.protocol()),
+  io_service_(std::make_unique<std::remove_reference<decltype(*io_service_)>::type>()),
+  endpoint_(nullptr),
+  opposite_endpoint_(std::make_unique<std::remove_reference<decltype(*opposite_endpoint_)>::type>()),
+  socket_(nullptr),
   subfragment_size_(pset.get<size_t>("subfragment_size")),
   subfragments_per_send_(pset.get<size_t>("subfragments_per_send")),
   max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType))
 {
+  
+
+
+    std::unique_ptr<int> myptr( nullptr );
+
+    myptr = std::make_unique<std::remove_reference<decltype(*myptr)>::type>(18);
+    
+
+
+
+
+  try {
+
+    auto port = pset.get<unsigned short>("multicast_port");
+    auto multicast_address = boost::asio::ip::address::from_string(pset.get<std::string>("multicast_address"));
+
+    if (TransferInterface::role() == Role::send) {
+
+      endpoint_ = std::make_unique<std::remove_reference<decltype(*endpoint_)>::type>( multicast_address, port );
+      socket_ = std::make_unique<std::remove_reference<decltype(*socket_)>::type>( *io_service_, endpoint_->protocol());
+
+    } else {
+
+      // Create the socket so that multiple may be bound to the same address.  
+
+      auto listen_address = boost::asio::ip::address::from_string("0.0.0.0");
+      
+      endpoint_ = std::make_unique<std::remove_reference<decltype(*endpoint_)>::type>( listen_address, port );
+      socket_ = std::make_unique<std::remove_reference<decltype(*socket_)>::type>( *io_service_ );
+
+      socket_->open( endpoint_->protocol() );
+      socket_->set_option(boost::asio::ip::udp::socket::reuse_address(true));
+      socket_->bind(*endpoint_);
+
+      // Join the multicast group.
+
+      socket_->set_option(boost::asio::ip::multicast::join_group(multicast_address));
+    }
+
+  } catch (...) {
+    ExceptionHandler(ExceptionHandlerRethrow::yes, "Problem setting up the socket in multicastTransfer");
+  }
 
   auto max_subfragments = 
     static_cast<size_t>(std::ceil(max_fragment_size_ / static_cast<float>(subfragment_size_) ) );
   
-  if (role == Role::send) {
-    staging_memory_.resize(max_subfragments * (sizeof(subfragment_identifier) + subfragment_size_));
+  staging_memory_.resize(max_subfragments * (sizeof(subfragment_identifier) + subfragment_size_));
+
+  if (TransferInterface::role() == Role::receive) {
+    book_container_of_buffers(receive_buffers_, max_fragment_size_, max_subfragments, 0, max_subfragments - 1);
   }
 
   std::cout << "max_subfragments is " << max_subfragments << std::endl;
   std::cout << "Staging buffer size is " << staging_memory_.size() << std::endl;
+  std::cout << "receive_buffers_ size is " << receive_buffers_.size() << std::endl;
 }
 
 
 size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 						      size_t receiveTimeout) {
 
-  throw cet::exception("multicastTransfer") << "multicastTransfer::receiveFragmentFrom not yet implemented";
+  static size_t total_bytes_received = 0;
 
+  assert(TransferInterface::role() == Role::receive);
+
+  if (fragment.dataSizeBytes() > 0) {
+    throw cet::exception("multicastTransfer") << "Error in multicastTransfer::receiveFragmentFrom: " <<
+      "nonzero payload found in fragment passed as argument";
+  }
+  
+  while (true) {
+    auto bytes_received = socket_->receive_from(receive_buffers_, *opposite_endpoint_);
+    total_bytes_received += bytes_received;
+    std::cout << "Received " << bytes_received << " bytes; " << total_bytes_received << " bytes, total" << std::endl;
+  }
+  
   return 0;
 }
 
@@ -118,6 +184,8 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
 					       bool& eodWasCopied,
 					       artdaq::Fragment& fragment,
 					       size_t send_timeout_usec) {
+
+  assert(TransferInterface::role() == Role::send);
 
   if ( fragment.sizeBytes() > max_fragment_size_) {
     throw cet::exception("multicastTransfer") << "Error in multicastTransfer::copyFragmentTo: " <<
@@ -146,8 +214,6 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
     std::cout << "batch_index == " << batch_index << ", first_subfragment == " << first_subfragment <<
       ", last_subfragment == " << last_subfragment << std::endl;
 
-    std::cout << "Endpoint address / port : " << endpoint_.address() << " " << endpoint_.port() << std::endl;
-
     // JCF, Jun-19-2016
 
     // At least currently, it seems like all the bytes get through to
@@ -155,13 +221,13 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
     // asynchronous version of the socket send function. Perhaps a
     // pause between asynchronous calls would do the equivalent
 
-    //    socket_.async_send_to(
+    //    socket_->async_send_to(
     //    			  buffers,
-    //			  endpoint_,
+    //			  *endpoint_,
     //			  boost::bind(&artdaq::multicastTransfer::async_send_handler, this,
     //				      boost::asio::placeholders::error));
 
-    socket_.send_to(buffers, endpoint_);
+    socket_->send_to(buffers, *endpoint_);
 
     if (last_subfragment == num_subfragments - 1) {
       break;
@@ -209,12 +275,15 @@ void artdaq::multicastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 // STL functions receive iterators. Note also that the lowest possible
 // value for "first_subfragment_num" is 0, not 1.
 
-void artdaq::multicastTransfer::book_container_of_buffers(std::vector<boost::asio::const_buffer>& buffers,
+template <typename T>
+void artdaq::multicastTransfer::book_container_of_buffers(std::vector<T>& buffers,
 							  const size_t fragment_size,
 							  const size_t total_subfragments,
 							  const size_t first_subfragment_num,
 							  const size_t last_subfragment_num) {
-  assert(buffer.size() == 0); 
+
+  assert(staging_memory_.size() >= total_subfragments * (sizeof(subfragment_identifier) + subfragment_size_) );
+  assert(buffers.size() == 0); 
   assert(last_subfragment_num < total_subfragments);
 
   for (auto i_f = first_subfragment_num; i_f <= last_subfragment_num; ++i_f) {

@@ -44,6 +44,7 @@ art_make_exec(NAME multicast_receiver # NO_INSTALL -- comment out to install
   artdaq_TransferPlugins_multicast_transfer
   artdaq-core_Data
   ${CETLIB}
+  ${FHICLCPP}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 

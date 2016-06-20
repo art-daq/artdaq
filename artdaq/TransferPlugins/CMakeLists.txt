@@ -51,6 +51,7 @@ simple_plugin(shmem "transfer"
 )
 
 simple_plugin(multicast "transfer"
+  artdaq-core_Data			
   artdaq-core_Utilities
   cetlib
   fhiclcpp
