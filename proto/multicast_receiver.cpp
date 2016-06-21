@@ -16,9 +16,6 @@
 #include <iostream>
 #include <string>
 
-const short multicast_port = 30001;
-const bool gVerbose = true;
-
 
 // DUPLICATED CODE: also found in sender.cpp. Not as egregious as
 // normal in that this function is unlikely to be changed, and this is
@@ -40,61 +37,38 @@ fhicl::ParameterSet ReadParameterSet() {
 }
 
 
-class receiver
+int main()
 {
-public:
-  receiver()
-  {
 
-    auto pset = ReadParameterSet();
+  std::unique_ptr<artdaq::TransferInterface> transfer;
+  auto pset = ReadParameterSet();
 
-    try {
-      static cet::BasicPluginFactory bpf("transfer", "make");
+  try {
+    static cet::BasicPluginFactory bpf("transfer", "make");
 
-      transfer_ =  
-    	bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
-    	const fhicl::ParameterSet&,
-    	artdaq::TransferInterface::Role>(
-					 "multicast", 
-					 pset, 
-					 artdaq::TransferInterface::Role::receive);
-    } catch(...) {
-      artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::yes,
-			       "Error creating transfer plugin");
-    }
-
-    while (true) {
-
-      artdaq::Fragment myfrag;
-      size_t dummy_timeout = 0;
-
-      transfer_->receiveFragmentFrom(myfrag, dummy_timeout);
-
-      std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment is " << 
-	myfrag.sizeBytes() << " bytes" << std::endl;
-    }
- 
-    
+    transfer =  
+      bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
+      const fhicl::ParameterSet&,
+      artdaq::TransferInterface::Role>(
+				       "multicast", 
+				       pset, 
+				       artdaq::TransferInterface::Role::receive);
+  } catch(...) {
+    artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::yes,
+			     "Error creating transfer plugin");
   }
 
 
-private:
+  while (true) {
 
-  std::unique_ptr<artdaq::TransferInterface> transfer_;
+    artdaq::Fragment myfrag;
+    size_t dummy_timeout = 0;
 
-};
+    transfer->receiveFragmentFrom(myfrag, dummy_timeout);
 
-
-int main()
-{
-  try
-    {
-      receiver r;
-    }
-  catch (std::exception& e)
-    {
-      std::cerr << "Exception: " << e.what() << "\n";
-    }
+    std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment is " << 
+      myfrag.sizeBytes() << " bytes" << std::endl;
+  }
 
   return 0;
 }

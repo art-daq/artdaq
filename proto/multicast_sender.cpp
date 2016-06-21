@@ -19,8 +19,6 @@
 #include <memory>
 #include <limits>
 
-const short multicast_port = 30001;
-const bool gVerbose = false;
 
 fhicl::ParameterSet ReadParameterSet() {
  
@@ -38,78 +36,51 @@ fhicl::ParameterSet ReadParameterSet() {
 }
 
 
-class sender
+
+int main(int argc, char* argv[])
 {
-public:
 
-  sender(const size_t num_sends)
-    : transfer_(nullptr),
-      fragment_size_(1e6)
-  {
-
-    auto pset = ReadParameterSet();
-
-    try {
-      static cet::BasicPluginFactory bpf("transfer", "make");
-
-      transfer_ =  
-    	bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
-    	const fhicl::ParameterSet&,
-    	artdaq::TransferInterface::Role>(
-					 "multicast", 
-					 pset, 
-					 artdaq::TransferInterface::Role::send);
-    } catch(...) {
-      artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::yes,
-			       "Error creating transfer plugin");
+  if (argc > 3)
+    {
+      std::cerr << "Usage: sender (number of sends - default is 1) (fragment size)\n";
+      return 1;
     }
 
-    for (size_t i_i = 0; i_i < num_sends; ++i_i) {
-      create_and_send_fragment();
-    }
+  size_t num_sends = (argc >= 2) ? boost::lexical_cast<size_t>( argv[1] ) : 1;
+  size_t fragment_size = (argc == 3) ? boost::lexical_cast<size_t>( argv[2] ) : 1000000;
+
+  std::unique_ptr<artdaq::TransferInterface> transfer;
+
+  auto pset = ReadParameterSet();
+
+  try {
+    static cet::BasicPluginFactory bpf("transfer", "make");
+
+    transfer =  
+      bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
+      const fhicl::ParameterSet&,
+      artdaq::TransferInterface::Role>(
+				       "multicast", 
+				       pset, 
+				       artdaq::TransferInterface::Role::send);
+  } catch(...) {
+    artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::yes,
+			     "Error creating transfer plugin");
   }
 
-  void create_and_send_fragment() 
-  {
-	
-    frag_.reset(nullptr);
-    frag_ = std::move( artdaq::Fragment::FragmentBytes( fragment_size_ ) );
+  std::unique_ptr<artdaq::Fragment> frag = artdaq::Fragment::FragmentBytes( fragment_size );
+
+  for (size_t i_i = 0; i_i < num_sends; ++i_i) {
+
+    //    frag.reset( std::move( artdaq::Fragment::FragmentBytes( fragment_size ) ) );
 
     bool dummy_bool = true;
     size_t dummy_size_t = std::numeric_limits<size_t>::max();
 
-    transfer_->copyFragmentTo(dummy_bool, dummy_bool, dummy_bool, *frag_, dummy_size_t);
+    transfer->copyFragmentTo(dummy_bool, dummy_bool, dummy_bool, *frag, dummy_size_t);
   }
 
-private:
-
-  std::unique_ptr<artdaq::Fragment> frag_;
-  std::unique_ptr<artdaq::TransferInterface> transfer_;
-
-  const size_t fragment_size_;
-};
-
-
-int main(int argc, char* argv[])
-{
-  try
-    {
-      if (argc > 2)
-	{
-	  std::cerr << "Usage: sender (number of sends - default is 1)\n";
-	  return 1;
-	}
-
-      size_t num_sends = (argc == 2) ? boost::lexical_cast<size_t>( argv[1] ) : 1;
-
-      sender s(num_sends);
-
-      std::cout << "# of sent fragments attempted == " << num_sends << std::endl;
-    }
-  catch (std::exception& e)
-    {
-      std::cerr << "Exception: " << e.what() << "\n";
-    }
+  std::cout << "# of sent fragments attempted == " << num_sends << std::endl;
 
   return 0;
 }
