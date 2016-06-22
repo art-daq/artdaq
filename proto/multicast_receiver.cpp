@@ -36,6 +36,7 @@ fhicl::ParameterSet ReadParameterSet() {
   return pset.get<fhicl::ParameterSet>("multicast");
 }
 
+int do_check(const artdaq::Fragment& frag);
 
 int main()
 {
@@ -66,8 +67,39 @@ int main()
 
     transfer->receiveFragmentFrom(myfrag, dummy_timeout);
 
-    std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment is " << 
+    std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment with seqID == " <<
+      myfrag.sequenceID() << ", fragID == " << myfrag.fragmentID() << " has size " << 
       myfrag.sizeBytes() << " bytes" << std::endl;
+
+    if (do_check(myfrag) != 0) {
+      std::cerr << "Error: do_check indicates fragment failed to transmit correctly" << std::endl;
+    } else {
+      std::cerr << "Success: do_check indicates fragment transmitted correctly" << std::endl;
+    }
+
+  }
+
+  return 0;
+}
+
+// JCF, Jun-22-2016
+
+// do_check assumes std::iota was used to fill the sent fragment with
+// monotonically incrementing 64-bit unsigned integers
+
+int do_check(const artdaq::Fragment& frag) {
+  
+  uint64_t variable_to_compare = 0;
+
+  for (auto ptr_into_frag = reinterpret_cast<const uint64_t*>(frag.dataBeginBytes());
+       ptr_into_frag != reinterpret_cast<const uint64_t*>(frag.dataEndBytes());
+       ++ptr_into_frag, ++variable_to_compare) {
+  
+    if (variable_to_compare != *ptr_into_frag) {
+      std::cerr << "ERROR for fragment with sequence ID " << frag.sequenceID() << ", fragment ID " <<
+	frag.fragmentID() << ": expected " << variable_to_compare << ", got " << *ptr_into_frag << std::endl;
+      return 1;
+    }
   }
 
   return 0;

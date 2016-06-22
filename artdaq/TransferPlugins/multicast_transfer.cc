@@ -15,10 +15,34 @@
 #include <cassert>
 #include <string>
 #include <type_traits>
+#include <bitset>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
+
+namespace {
+
+
+  // void display_bits(const void* memstart, size_t nbytes) {
+
+  //   std::stringstream bitstr;
+  //   bitstr << "The " << nbytes << "-byte chunk of memory beginning at " << static_cast<const void*>(memstart) << " is : ";
+
+  //   for(unsigned int i = 0; i < nbytes; i++) {
+
+  //     if (i % 4 == 0) {
+  //       bitstr << "\n";
+  //     }
+
+  //     bitstr << std::bitset<8>(*((reinterpret_cast<const uint8_t*>(memstart))+i)) << " ";
+  //   }
+
+  //   std::cout << bitstr.str() << std::endl;
+  // }
+
+
+}
 
 namespace artdaq {
 
@@ -52,6 +76,9 @@ private:
 				 const size_t last_subfragment_num);
 
   void async_send_handler(const boost::system::error_code& error);
+
+  void get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& fragment_size,
+				size_t& expected_subfragments);
 
   class subfragment_identifier {
 
@@ -157,11 +184,11 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
   std::cout << "receive_buffers_ size is " << receive_buffers_.size() << std::endl;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 						      size_t receiveTimeout) {
-
-  static size_t total_bytes_received = 0;
 
   assert(TransferInterface::role() == Role::receive);
 
@@ -169,15 +196,107 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
     throw cet::exception("multicastTransfer") << "Error in multicastTransfer::receiveFragmentFrom: " <<
       "nonzero payload found in fragment passed as argument";
   }
+
+  fragment.resizeBytes( max_fragment_size_ - sizeof(artdaq::detail::RawFragmentHeader) );
+
+  static auto current_sequenceID = std::numeric_limits<Fragment::sequence_id_t>::max();
+  static auto current_fragmentID = std::numeric_limits<Fragment::fragment_id_t>::max();
+  static size_t fragment_size = 0;
+  static size_t expected_subfragments = 0;
+  static size_t current_subfragments = 0;
   
+  bool fragment_complete = false;
+
+
   while (true) {
+
     auto bytes_received = socket_->receive_from(receive_buffers_, *opposite_endpoint_);
-    total_bytes_received += bytes_received;
-    std::cout << "Received " << bytes_received << " bytes; " << total_bytes_received << " bytes, total" << std::endl;
+    std::cout << "Received " << bytes_received << " bytes" << std::endl;
+
+    size_t bytes_processed = 0;
+    
+    for (auto& buf : receive_buffers_) {
+
+      auto buf_size = boost::asio::buffer_size(buf);
+      auto size_t_ptr = boost::asio::buffer_cast<const size_t*>(buf);
+      auto seqID = *size_t_ptr;
+      auto fragID = *(size_t_ptr + 1);
+      auto subfragID = *(size_t_ptr + 2);
+
+      std::cout << "(" << seqID << ", " << fragID << ", " << subfragID << ") : " << buf_size << std::endl;
+
+      if ( seqID != current_sequenceID || fragID != current_fragmentID ) {
+
+	// JCF, Jun-22-2016
+	// Code currently operates under the assumption that all subfragments from the call are from the same fragment
+
+	assert(bytes_processed == 0); 
+	assert( current_subfragments <= expected_subfragments );
+
+	if (current_subfragments < expected_subfragments) {
+
+      	  std::cerr << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " <<
+      	    current_sequenceID << ", fragID = " << current_fragmentID << " (expected " << expected_subfragments << ")" 
+      		    << std::endl;
+
+      	  // Throw an exception? Return an empty fragment?
+      	}
+
+	current_subfragments = 0;
+	fragment_size = std::numeric_limits<size_t>::max();
+	expected_subfragments = std::numeric_limits<size_t>::max();
+	current_sequenceID = seqID;
+	current_fragmentID = fragID;
+      }
+
+      auto ptr_into_fragment = fragment.headerBeginBytes() + subfragID * subfragment_size_;
+
+      auto ptr_into_buffer = boost::asio::buffer_cast<const byte_t*>(buf) + sizeof(subfragment_identifier);
+
+      std::copy(ptr_into_buffer, ptr_into_buffer + buf_size - sizeof(subfragment_identifier), ptr_into_fragment);
+
+      if (subfragID == 0) {  
+	
+	if (buf_size >= sizeof(subfragment_identifier) + sizeof(artdaq::detail::RawFragmentHeader)) {
+
+	  get_fragment_quantities(buf, fragment_size, expected_subfragments);
+	  
+	  std::cout << "Expected subfragments is " << expected_subfragments << std::endl;
+	  std::cout << "Expected fragment size is " << fragment_size << std::endl;
+
+	  fragment.resizeBytes( fragment_size - sizeof(artdaq::detail::RawFragmentHeader) );
+
+	} else {
+	  throw cet::exception("multicastTransfer") << "Buffer size is too small to completely contain an artdaq::Fragment header; " << 
+	    "please increase the default size";
+	} 
+      }
+
+      current_subfragments++;      
+
+      if (current_subfragments == expected_subfragments) {	
+
+	fragment_complete = true;
+      }
+
+      bytes_processed += buf_size;      
+      std::cout << "Bytes processed = " << bytes_processed << std::endl;
+
+      if (bytes_processed >= bytes_received) {
+	break;
+      }
+    }
+
+    if (fragment_complete) {
+      std::cout << "Got a complete fragment; breaking out of the loop" << std::endl;
+      break;
+    }
   }
   
   return 0;
 }
+
+#pragma GCC diagnostic pop
 
 void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
 					       bool& esrWasCopied,
@@ -211,8 +330,12 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
 
     book_container_of_buffers(buffers, fragment.sizeBytes(), num_subfragments, first_subfragment, last_subfragment);
 
-    std::cout << "batch_index == " << batch_index << ", first_subfragment == " << first_subfragment <<
-      ", last_subfragment == " << last_subfragment << std::endl;
+    //    for (auto& buf : buffers) {
+    //      display_bits( boost::asio::buffer_cast<const void*>(buf), sizeof(subfragment_identifier));
+    //    }
+
+    //    std::cout << "batch_index == " << batch_index << ", first_subfragment == " << first_subfragment <<
+    //      ", last_subfragment == " << last_subfragment << std::endl;
 
     // JCF, Jun-19-2016
 
@@ -305,6 +428,22 @@ void artdaq::multicastTransfer::async_send_handler(const boost::system::error_co
   }
 }
 
+
+void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& fragment_size,
+							 size_t& expected_subfragments) {
+
+  byte_t* buffer_ptr = boost::asio::buffer_cast<byte_t*>(buf);
+
+  auto subfragment_num = *( reinterpret_cast<size_t*>(buffer_ptr) + 2 );
+
+  assert( subfragment_num == 0 );
+
+  artdaq::detail::RawFragmentHeader* header = 
+    reinterpret_cast<artdaq::detail::RawFragmentHeader*>( buffer_ptr + sizeof(subfragment_identifier));
+
+  fragment_size = header->word_count * sizeof(artdaq::RawDataType);
+  expected_subfragments = static_cast<size_t>(std::ceil( fragment_size / static_cast<float>(subfragment_size_ )));
+}
 
 #pragma GCC diagnostic pop
 

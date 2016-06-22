@@ -12,6 +12,7 @@
 #include "boost/bind.hpp"
 #include <boost/lexical_cast.hpp>
 
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -70,13 +71,21 @@ int main(int argc, char* argv[])
 
   std::unique_ptr<artdaq::Fragment> frag = artdaq::Fragment::FragmentBytes( fragment_size );
 
-  for (size_t i_i = 0; i_i < num_sends; ++i_i) {
+  // Fill the fragment with monotonically increasing 64-bit integers
+  // to be checked on the other end
 
-    //    frag.reset( std::move( artdaq::Fragment::FragmentBytes( fragment_size ) ) );
+  std::iota(reinterpret_cast<uint64_t*>(frag->dataBeginBytes()), 
+	    reinterpret_cast<uint64_t*>(frag->dataEndBytes()),
+	    0);
+
+  for (size_t i_i = 0; i_i < num_sends; ++i_i) {
 
     bool dummy_bool = true;
     size_t dummy_size_t = std::numeric_limits<size_t>::max();
 
+    frag->setSequenceID(i_i + 1);
+    frag->setFragmentID(0);
+    
     transfer->copyFragmentTo(dummy_bool, dummy_bool, dummy_bool, *frag, dummy_size_t);
   }
 
