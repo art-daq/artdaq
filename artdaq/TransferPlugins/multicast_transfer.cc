@@ -21,29 +21,6 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 
-namespace {
-
-
-  // void display_bits(const void* memstart, size_t nbytes) {
-
-  //   std::stringstream bitstr;
-  //   bitstr << "The " << nbytes << "-byte chunk of memory beginning at " << static_cast<const void*>(memstart) << " is : ";
-
-  //   for(unsigned int i = 0; i < nbytes; i++) {
-
-  //     if (i % 4 == 0) {
-  //       bitstr << "\n";
-  //     }
-
-  //     bitstr << std::bitset<8>(*((reinterpret_cast<const uint8_t*>(memstart))+i)) << " ";
-  //   }
-
-  //   std::cout << bitstr.str() << std::endl;
-  // }
-
-
-}
-
 namespace artdaq {
 
 class multicastTransfer : public TransferInterface {
@@ -127,16 +104,6 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
   subfragments_per_send_(pset.get<size_t>("subfragments_per_send")),
   max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType))
 {
-  
-
-
-    std::unique_ptr<int> myptr( nullptr );
-
-    myptr = std::make_unique<std::remove_reference<decltype(*myptr)>::type>(18);
-    
-
-
-
 
   try {
 
@@ -181,7 +148,6 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
 
   std::cout << "max_subfragments is " << max_subfragments << std::endl;
   std::cout << "Staging buffer size is " << staging_memory_.size() << std::endl;
-  std::cout << "receive_buffers_ size is " << receive_buffers_.size() << std::endl;
 }
 
 #pragma GCC diagnostic push
@@ -211,7 +177,7 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
   while (true) {
 
     auto bytes_received = socket_->receive_from(receive_buffers_, *opposite_endpoint_);
-    std::cout << "Received " << bytes_received << " bytes" << std::endl;
+    //    std::cout << "Received " << bytes_received << " bytes" << std::endl;
 
     size_t bytes_processed = 0;
     
@@ -223,7 +189,7 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       auto fragID = *(size_t_ptr + 1);
       auto subfragID = *(size_t_ptr + 2);
 
-      std::cout << "(" << seqID << ", " << fragID << ", " << subfragID << ") : " << buf_size << std::endl;
+      //      std::cout << "(" << seqID << ", " << fragID << ", " << subfragID << ") : " << buf_size << std::endl;
 
       if ( seqID != current_sequenceID || fragID != current_fragmentID ) {
 
@@ -236,7 +202,7 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 	if (current_subfragments < expected_subfragments) {
 
       	  std::cerr << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " <<
-      	    current_sequenceID << ", fragID = " << current_fragmentID << " (expected " << expected_subfragments << ")" 
+      	    current_sequenceID << ", fragID = " << current_fragmentID << " (expected " << expected_subfragments << ")\n" 
       		    << std::endl;
 
       	  // Throw an exception? Return an empty fragment?
@@ -261,8 +227,8 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
 	  get_fragment_quantities(buf, fragment_size, expected_subfragments);
 	  
-	  std::cout << "Expected subfragments is " << expected_subfragments << std::endl;
-	  std::cout << "Expected fragment size is " << fragment_size << std::endl;
+	  //	  std::cout << "Expected subfragments is " << expected_subfragments << std::endl;
+	  //	  std::cout << "Expected fragment size is " << fragment_size << std::endl;
 
 	  fragment.resizeBytes( fragment_size - sizeof(artdaq::detail::RawFragmentHeader) );
 
@@ -280,7 +246,7 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       }
 
       bytes_processed += buf_size;      
-      std::cout << "Bytes processed = " << bytes_processed << std::endl;
+      //      std::cout << "Bytes processed = " << bytes_processed << std::endl;
 
       if (bytes_processed >= bytes_received) {
 	break;
@@ -330,26 +296,6 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
 
     book_container_of_buffers(buffers, fragment.sizeBytes(), num_subfragments, first_subfragment, last_subfragment);
 
-    //    for (auto& buf : buffers) {
-    //      display_bits( boost::asio::buffer_cast<const void*>(buf), sizeof(subfragment_identifier));
-    //    }
-
-    //    std::cout << "batch_index == " << batch_index << ", first_subfragment == " << first_subfragment <<
-    //      ", last_subfragment == " << last_subfragment << std::endl;
-
-    // JCF, Jun-19-2016
-
-    // At least currently, it seems like all the bytes get through to
-    // the multicast_receive process only if we're not using the
-    // asynchronous version of the socket send function. Perhaps a
-    // pause between asynchronous calls would do the equivalent
-
-    //    socket_->async_send_to(
-    //    			  buffers,
-    //			  *endpoint_,
-    //			  boost::bind(&artdaq::multicastTransfer::async_send_handler, this,
-    //				      boost::asio::placeholders::error));
-
     socket_->send_to(buffers, *endpoint_);
 
     if (last_subfragment == num_subfragments - 1) {
@@ -381,9 +327,6 @@ void artdaq::multicastTransfer::fill_staging_memory(const artdaq::Fragment& frag
     auto high_ptr_into_fragment = (i_s == num_subfragments - 1) ?
       fragment.dataEndBytes() :
       fragment.headerBeginBytes() + subfragment_size_ * (i_s + 1);
-
-    //    std::cout << "About to copy " << (ptr_into_fragment_end - ptr_into_fragment_begin) << 
-    //      " bytes" << std::endl;
 
     std::copy(low_ptr_into_fragment, 
 	      high_ptr_into_fragment,
@@ -428,6 +371,8 @@ void artdaq::multicastTransfer::async_send_handler(const boost::system::error_co
   }
 }
 
+#pragma GCC diagnostic push  // Needed since profile builds will ignore the assert
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& fragment_size,
 							 size_t& expected_subfragments) {
@@ -444,6 +389,7 @@ void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::muta
   fragment_size = header->word_count * sizeof(artdaq::RawDataType);
   expected_subfragments = static_cast<size_t>(std::ceil( fragment_size / static_cast<float>(subfragment_size_ )));
 }
+#pragma GCC diagnostic pop
 
 #pragma GCC diagnostic pop
 
