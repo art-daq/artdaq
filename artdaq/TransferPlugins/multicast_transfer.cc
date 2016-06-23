@@ -87,6 +87,8 @@ private:
   size_t subfragments_per_send_;
 
   size_t max_fragment_size_;
+  size_t pause_on_copy_usecs_;
+
   std::vector<byte_t> staging_memory_;
 
   std::vector<boost::asio::mutable_buffer> receive_buffers_;
@@ -102,7 +104,8 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
   socket_(nullptr),
   subfragment_size_(pset.get<size_t>("subfragment_size")),
   subfragments_per_send_(pset.get<size_t>("subfragments_per_send")),
-  max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType))
+  max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType)),
+  pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0))
 {
 
   try {
@@ -297,6 +300,8 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
     book_container_of_buffers(buffers, fragment.sizeBytes(), num_subfragments, first_subfragment, last_subfragment);
 
     socket_->send_to(buffers, *endpoint_);
+
+    usleep(pause_on_copy_usecs_);
 
     if (last_subfragment == num_subfragments - 1) {
       break;
