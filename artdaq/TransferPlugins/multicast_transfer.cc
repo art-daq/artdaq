@@ -52,10 +52,10 @@ private:
 				 const size_t first_subfragment_num,
 				 const size_t last_subfragment_num);
 
-  void async_send_handler(const boost::system::error_code& error);
-
   void get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& fragment_size,
 				size_t& expected_subfragments);
+
+  void set_receive_buffer_size(size_t recv_buff_size);
 
   class subfragment_identifier {
 
@@ -79,8 +79,11 @@ private:
   };
 
   std::unique_ptr<boost::asio::io_service> io_service_;
-  std::unique_ptr<boost::asio::ip::udp::endpoint> endpoint_;
+
+  std::unique_ptr<boost::asio::ip::udp::endpoint> local_endpoint_;
+  std::unique_ptr<boost::asio::ip::udp::endpoint> multicast_endpoint_;
   std::unique_ptr<boost::asio::ip::udp::endpoint> opposite_endpoint_;
+
   std::unique_ptr<boost::asio::ip::udp::socket> socket_;
 
   size_t subfragment_size_;
@@ -99,7 +102,8 @@ private:
 artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Role role) :
   TransferInterface(pset, role),
   io_service_(std::make_unique<std::remove_reference<decltype(*io_service_)>::type>()),
-  endpoint_(nullptr),
+  local_endpoint_(nullptr),
+  multicast_endpoint_(nullptr),
   opposite_endpoint_(std::make_unique<std::remove_reference<decltype(*opposite_endpoint_)>::type>()),
   socket_(nullptr),
   subfragment_size_(pset.get<size_t>("subfragment_size")),
@@ -112,28 +116,47 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
 
     auto port = pset.get<unsigned short>("multicast_port");
     auto multicast_address = boost::asio::ip::address::from_string(pset.get<std::string>("multicast_address"));
+    auto local_address = boost::asio::ip::address::from_string(pset.get<std::string>("local_address"));
+
+    std::cout << "multicast address is set to " << multicast_address << std::endl;
+    std::cout << "local address is set to " << local_address << std::endl;
 
     if (TransferInterface::role() == Role::send) {
 
-      endpoint_ = std::make_unique<std::remove_reference<decltype(*endpoint_)>::type>( multicast_address, port );
-      socket_ = std::make_unique<std::remove_reference<decltype(*socket_)>::type>( *io_service_, endpoint_->protocol());
+      local_endpoint_ = std::make_unique<std::remove_reference<decltype(*local_endpoint_)>::type>( local_address, 0 );
+      multicast_endpoint_ = std::make_unique<std::remove_reference<decltype(*multicast_endpoint_)>::type>( multicast_address, port );
 
-    } else {
+      socket_ = std::make_unique<std::remove_reference<decltype(*socket_)>::type>( *io_service_, 
+										   multicast_endpoint_->protocol());
+      socket_->bind(*local_endpoint_);
+
+    } else {  // TransferInterface::role() == Role::receive
 
       // Create the socket so that multiple may be bound to the same address.  
 
-      auto listen_address = boost::asio::ip::address::from_string("0.0.0.0");
-      
-      endpoint_ = std::make_unique<std::remove_reference<decltype(*endpoint_)>::type>( listen_address, port );
-      socket_ = std::make_unique<std::remove_reference<decltype(*socket_)>::type>( *io_service_ );
+      local_endpoint_ = std::make_unique<std::remove_reference<decltype(*local_endpoint_)>::type>( local_address, port );
+      socket_ = std::make_unique<std::remove_reference<decltype(*socket_)>::type>( *io_service_,
+										   local_endpoint_->protocol());
 
-      socket_->open( endpoint_->protocol() );
-      socket_->set_option(boost::asio::ip::udp::socket::reuse_address(true));
-      socket_->bind(*endpoint_);
+      boost::system::error_code ec;
+
+      socket_->set_option(boost::asio::ip::udp::socket::reuse_address(true), ec);
+
+      if (ec != 0) {
+	std::cerr << "boost::system::error_code with value " << ec << " was found in setting reuse_address option" << std::endl;
+      }
+
+      set_receive_buffer_size( pset.get<size_t>("receive_buffer_size") );
+
+      socket_->bind( boost::asio::ip::udp::endpoint( multicast_address, port ) );
 
       // Join the multicast group.
 
-      socket_->set_option(boost::asio::ip::multicast::join_group(multicast_address));
+      socket_->set_option(boost::asio::ip::multicast::join_group(multicast_address), ec);
+
+      if (ec != 0) {
+	std::cerr << "boost::system::error_code with value " << ec << " was found in attempt to join multicast group" << std::endl;
+      }
     }
 
   } catch (...) {
@@ -180,7 +203,6 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
   while (true) {
 
     auto bytes_received = socket_->receive_from(receive_buffers_, *opposite_endpoint_);
-    //    std::cout << "Received " << bytes_received << " bytes" << std::endl;
 
     size_t bytes_processed = 0;
     
@@ -192,8 +214,6 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       auto fragID = *(size_t_ptr + 1);
       auto subfragID = *(size_t_ptr + 2);
 
-      //      std::cout << "(" << seqID << ", " << fragID << ", " << subfragID << ") : " << buf_size << std::endl;
-
       if ( seqID != current_sequenceID || fragID != current_fragmentID ) {
 
 	// JCF, Jun-22-2016
@@ -204,9 +224,17 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
 	if (current_subfragments < expected_subfragments) {
 
-      	  std::cerr << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " <<
-      	    current_sequenceID << ", fragID = " << current_fragmentID << " (expected " << expected_subfragments << ")\n" 
-      		    << std::endl;
+	  if (expected_subfragments != std::numeric_limits<size_t>::max()) {
+	    std::cerr << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " <<
+	      current_sequenceID << ", fragID = " << current_fragmentID << " (expected " << expected_subfragments << ")\n" 
+		      << std::endl;
+	  } else {
+	    std::cerr << "Warning: only received " << current_subfragments << 
+	      " subfragments for fragment with seqID = " <<
+	      current_sequenceID << ", fragID = " << current_fragmentID << 
+	      ", # of expected subfragments is unknown as fragment header was not received)\n" 
+		      << std::endl;
+	  }
 
       	  // Throw an exception? Return an empty fragment?
       	}
@@ -229,9 +257,6 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 	if (buf_size >= sizeof(subfragment_identifier) + sizeof(artdaq::detail::RawFragmentHeader)) {
 
 	  get_fragment_quantities(buf, fragment_size, expected_subfragments);
-	  
-	  //	  std::cout << "Expected subfragments is " << expected_subfragments << std::endl;
-	  //	  std::cout << "Expected fragment size is " << fragment_size << std::endl;
 
 	  fragment.resizeBytes( fragment_size - sizeof(artdaq::detail::RawFragmentHeader) );
 
@@ -249,7 +274,6 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       }
 
       bytes_processed += buf_size;      
-      //      std::cout << "Bytes processed = " << bytes_processed << std::endl;
 
       if (bytes_processed >= bytes_received) {
 	break;
@@ -299,7 +323,7 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
 
     book_container_of_buffers(buffers, fragment.sizeBytes(), num_subfragments, first_subfragment, last_subfragment);
 
-    socket_->send_to(buffers, *endpoint_);
+    socket_->send_to(buffers, *multicast_endpoint_);
 
     usleep(pause_on_copy_usecs_);
 
@@ -368,13 +392,6 @@ void artdaq::multicastTransfer::book_container_of_buffers(std::vector<T>& buffer
   }
 }
 
-void artdaq::multicastTransfer::async_send_handler(const boost::system::error_code& error) {
-
-  if (error) {
-    std::cerr << "error code received by handle_send_to, " << error << 
-      " (" << error.message() << ")" << std::endl;
-  }
-}
 
 #pragma GCC diagnostic push  // Needed since profile builds will ignore the assert
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -395,6 +412,29 @@ void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::muta
   expected_subfragments = static_cast<size_t>(std::ceil( fragment_size / static_cast<float>(subfragment_size_ )));
 }
 #pragma GCC diagnostic pop
+
+void artdaq::multicastTransfer::set_receive_buffer_size(size_t recv_buff_size) {
+
+  boost::asio::socket_base::receive_buffer_size actual_recv_buff_size;
+  socket_->get_option(actual_recv_buff_size);
+
+  std::cout << "Receive buffer size is currently " << actual_recv_buff_size.value() << 
+    " bytes, will try to change it to " << recv_buff_size << std::endl;
+
+  boost::asio::socket_base::receive_buffer_size recv_buff_option(recv_buff_size);
+
+  boost::system::error_code ec;
+  socket_->set_option(recv_buff_option, ec);
+
+  if (ec != 0) {
+    std::cerr << "boost::system::error_code with value " << ec << 
+      " was found in attempt to change receive buffer" << std::endl;
+  }
+
+  socket_->get_option(actual_recv_buff_size);
+  std::cout << "After attempted change, receive buffer size is now " << actual_recv_buff_size.value() << std::endl;
+}
+
 
 #pragma GCC diagnostic pop
 
