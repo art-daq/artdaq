@@ -56,12 +56,6 @@ simple_plugin(multicast "transfer"
   cetlib
   fhiclcpp
   ${Boost_SYSTEM_LIBRARY}
-#  artdaq_DAQrate
-#  MF_MessageLogger
-#  fhiclcpp
-#  ${ROOT_RIO}
-#  ${ROOT_NET}
-#  ${ROOT_CORE}
 )
 
 if (${USING_RTIDDS})

@@ -92,8 +92,11 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	     0666);
   }
   
+  std::cout << "shmKey == " << shmKey << ", shm_segment_id == " << shm_segment_id_ << std::endl;
+
   if (shm_segment_id_ > -1) {
-    mf::LogDebug(name_)
+    //    mf::LogDebug(name_)
+    mf::LogInfo(name_)
       << "Created/fetched shared memory segment with ID = " << shm_segment_id_
       << " and size " << (max_fragment_size_words_ * sizeof(artdaq::RawDataType))
       << " bytes";
@@ -102,7 +105,8 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
       if (role_ == Role::receive) {
         shm_ptr_->hasFragment = 0;
       }
-      mf::LogDebug(name_)
+      //mf::LogDebug(name_)
+      mf::LogInfo(name_)
         << "Attached to shared memory segment at address 0x"
         << std::hex << shm_ptr_ << std::dec;
     }
@@ -117,6 +121,8 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
 			<< "if a stale shared memory segment needs to "
 			<< "be cleaned up. (ipcs, ipcrm -m <segId>)";
   }
+
+  std::cout << "shm_ptr_ == " << static_cast<void*>(shm_ptr_) << std::endl;
 }
 
 artdaq::shmemTransfer::~shmemTransfer() {
@@ -152,7 +158,7 @@ size_t artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
       shm_ptr_->hasFragment = 0;
 
       if (fragment.type() != artdaq::Fragment::DataFragmentType) {
-	mf::LogDebug(name_)
+	mf::LogInfo(name_)
           << "Received fragment from shared memory, type ="
           << ((int)fragment.type()) << ", sequenceID = "
           << fragment.sequenceID();
@@ -199,7 +205,7 @@ void artdaq::shmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
     int loopCount = 0;
     while (shm_ptr_->hasFragment == 1 && loopCount < 10) {
       if (fragmentType != artdaq::Fragment::DataFragmentType) {
-	mf::LogDebug(name_) << "Trying to copy fragment of type "
+	mf::LogInfo(name_) << "Trying to copy fragment of type "
 			    << fragmentType
 			    << ", loopCount = "
 			    << loopCount;

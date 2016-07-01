@@ -1,0 +1,4 @@
+
+transfer_plugin_type: "shmem"
+max_fragment_size_words: 2000000
+send_timeout_usecs: 1000000

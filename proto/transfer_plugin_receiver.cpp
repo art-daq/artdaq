@@ -1,5 +1,6 @@
 
 #include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/DAQrate/RHandles.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -15,13 +16,14 @@
 
 #include <iostream>
 #include <string>
+#include <limits>
 
 
-// DUPLICATED CODE: also found in sender.cpp. Not as egregious as
+// DUPLICATED CODE: also found in transfer_plugin_sender.cpp. Not as egregious as
 // normal in that this function is unlikely to be changed, and this is
 // a standalone app (not part of artdaq)
 
-fhicl::ParameterSet ReadParameterSet() {
+fhicl::ParameterSet ReadParameterSet(const std::string fhicl_filename) {
  
   if (std::getenv("FHICL_FILE_PATH") == nullptr) {
     std::cerr
@@ -31,18 +33,26 @@ fhicl::ParameterSet ReadParameterSet() {
 
   fhicl::ParameterSet pset;
   cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-  fhicl::make_ParameterSet("multicast.fcl", lookup_policy, pset);
+  fhicl::make_ParameterSet(fhicl_filename, lookup_policy, pset);
 
-  return pset.get<fhicl::ParameterSet>("multicast");
+  return pset;
 }
+
 
 int do_check(const artdaq::Fragment& frag);
 
-int main()
+int main(int argc, char* argv[])
 {
 
+  if (argc != 2) {
+      std::cerr << "Usage: transfer_plugin_receiver <fhicl document>" << std::endl;
+      return 1;
+  }
+
+  std::string fhicl_filename = boost::lexical_cast<std::string>( argv[1] );
+
   std::unique_ptr<artdaq::TransferInterface> transfer;
-  auto pset = ReadParameterSet();
+  auto pset = ReadParameterSet(fhicl_filename);
 
   try {
     static cet::BasicPluginFactory bpf("transfer", "make");
@@ -51,7 +61,7 @@ int main()
       bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
       const fhicl::ParameterSet&,
       artdaq::TransferInterface::Role>(
-				       "multicast", 
+				       pset.get<std::string>("transfer_plugin_type"), 
 				       pset, 
 				       artdaq::TransferInterface::Role::receive);
   } catch(...) {
@@ -63,13 +73,20 @@ int main()
   while (true) {
 
     artdaq::Fragment myfrag;
-    size_t dummy_timeout = 0;
+    size_t timeout = 10*1e6;
 
-    transfer->receiveFragmentFrom(myfrag, dummy_timeout);
+    auto retval = transfer->receiveFragmentFrom(myfrag, timeout);
+
+    if (retval != artdaq::RHandles::RECV_TIMEOUT) {
 
     std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment with seqID == " <<
       myfrag.sequenceID() << ", fragID == " << myfrag.fragmentID() << " has size " << 
       myfrag.sizeBytes() << " bytes" << std::endl;
+
+    } else {
+      std::cerr << "RECV_TIMEOUT received from call to transfer->receiveFragmentFrom" << std::endl;
+      continue;
+    }
 
     if (do_check(myfrag) != 0) {
       std::cerr << "Error: do_check indicates fragment failed to transmit correctly" << std::endl;
@@ -94,10 +111,10 @@ int do_check(const artdaq::Fragment& frag) {
   for (auto ptr_into_frag = reinterpret_cast<const uint64_t*>(frag.dataBeginBytes());
        ptr_into_frag != reinterpret_cast<const uint64_t*>(frag.dataEndBytes());
        ++ptr_into_frag, ++variable_to_compare) {
-  
+
     if (variable_to_compare != *ptr_into_frag) {
       std::cerr << "ERROR for fragment with sequence ID " << frag.sequenceID() << ", fragment ID " <<
-	frag.fragmentID() << ": expected " << variable_to_compare << ", got " << *ptr_into_frag << std::endl;
+	frag.fragmentID() << ": expected ADC value of " << variable_to_compare << ", got " << *ptr_into_frag << std::endl;
       return 1;
     }
   }
