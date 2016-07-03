@@ -225,9 +225,10 @@ bool artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fr
 							    const size_t receiveTimeout) {
 
   int loopCount = 0;
-  size_t sleepTime = receiveTimeout / 10;
-  
-  while (dds_octets_queue_.empty() && loopCount < 10) {
+  size_t sleepTime = 1000; // microseconds
+  size_t nloops = receiveTimeout / sleepTime;
+
+  while (dds_octets_queue_.empty() && loopCount < nloops) {
     usleep(sleepTime);
     ++loopCount;
   }

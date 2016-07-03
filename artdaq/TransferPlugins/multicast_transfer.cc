@@ -1,6 +1,7 @@
 
 
 #include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/DAQrate/RHandles.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -91,6 +92,7 @@ private:
 
   size_t max_fragment_size_;
   size_t pause_on_copy_usecs_;
+  size_t first_data_sender_rank_;
 
   std::vector<byte_t> staging_memory_;
 
@@ -109,7 +111,8 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
   subfragment_size_(pset.get<size_t>("subfragment_size")),
   subfragments_per_send_(pset.get<size_t>("subfragments_per_send")),
   max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType)),
-  pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0))
+  pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0)),
+  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank"))
 {
 
   try {
@@ -189,6 +192,13 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       "nonzero payload found in fragment passed as argument";
   }
 
+  static bool print_warning = true;
+  
+  if (print_warning) {
+    std::cerr << "Please note that multicastTransfer::receiveFragmentFrom does not use its receiveTimeout argument" << std::endl;
+    print_warning = false;
+  }
+
   fragment.resizeBytes( max_fragment_size_ - sizeof(artdaq::detail::RawFragmentHeader) );
 
   static auto current_sequenceID = std::numeric_limits<Fragment::sequence_id_t>::max();
@@ -236,7 +246,7 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 		      << std::endl;
 	  }
 
-      	  // Throw an exception? Return an empty fragment?
+      	  return artdaq::RHandles::RECV_TIMEOUT;
       	}
 
 	current_subfragments = 0;
@@ -282,11 +292,11 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
     if (fragment_complete) {
       std::cout << "Got a complete fragment; breaking out of the loop" << std::endl;
-      break;
+      return first_data_sender_rank_;
     }
   }
   
-  return 0;
+  return RHandles::RECV_TIMEOUT;
 }
 
 #pragma GCC diagnostic pop

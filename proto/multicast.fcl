@@ -15,3 +15,5 @@ subfragments_per_send: 10
 
 pause_on_copy_usecs: 0
 
+first_event_builder_rank: 999
+

@@ -470,9 +470,7 @@ size_t artdaq::AggregatorCore::process_fragments()
     }
     else if (is_online_monitor_) {
 
-      transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
-
-      senderSlot = first_data_sender_rank_;
+      senderSlot = transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
     }
     else {
       usleep(recvTimeout);

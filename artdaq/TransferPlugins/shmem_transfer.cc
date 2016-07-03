@@ -60,7 +60,7 @@ private:
 artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role) :
   TransferInterface(pset, role),
   max_fragment_size_words_(pset.get<uint64_t>("max_fragment_size_words")),
-  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank", std::numeric_limits<size_t>::max())),
+  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank")),
   shm_segment_id_(-1),
   shm_ptr_(NULL),
   fragment_count_to_shm_(0),
@@ -142,9 +142,10 @@ size_t artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 					size_t receiveTimeout) {
 
   if (shm_ptr_) {
-    int loopCount = 0;
-    int nloops = 10;
-    size_t sleepTime = receiveTimeout / nloops;
+    size_t loopCount = 0;
+    size_t sleepTime = 1000; // microseconds
+    size_t nloops = receiveTimeout / sleepTime;
+
     while (shm_ptr_->hasFragment == 0 && loopCount < nloops) {
       usleep(sleepTime);
       ++loopCount;
@@ -171,15 +172,7 @@ size_t artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
   } else {
 
     usleep(receiveTimeout);
-
-    // JCF, Jun-9-2016
-
-    // AggregatorCore code on develop branch returns
-    // artdaq::RHandles::RECV_TIMEOUT, but having a null shm_ptr_
-    // strikes me as an error...
-
-    mf::LogError(name_) << "Call to shmemTransfer::receiveFragmentFrom with null shm_ptr_";
-    throw cet::exception(name_) << "Call to shmemTransfer::receiveFragmentFrom with null shm_ptr_"; 
+    return artdaq::RHandles::RECV_TIMEOUT; // Should we EVER get shm_ptr_ == 0?
   }
 }
 
