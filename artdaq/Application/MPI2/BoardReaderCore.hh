@@ -85,13 +85,6 @@ private:
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
 
-  std::string FRAGMENT_COUNT_METRIC_NAME_;
-  std::string FRAGMENT_RATE_METRIC_NAME_;
-  std::string FRAGMENT_SIZE_METRIC_NAME_;
-  std::string DATA_RATE_METRIC_NAME_;
-  std::string INPUT_WAIT_METRIC_NAME_;
-  std::string OUTPUT_WAIT_METRIC_NAME_;
-  std::string FRAGMENTS_PER_READ_METRIC_NAME_;
 };
 
 #endif /* artdaq_Application_MPI2_BoardReaderCore_hh */

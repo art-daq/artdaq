@@ -38,14 +38,20 @@ public:
   void shutdown();
 
   template<typename T>
-  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool applyPrefix = true, bool accumulate = true)
+  void sendMetric(std::string const& name, T value, std::string const& unit, int level, bool accumulate = true, std::string metricPrefix = "", bool useNameOverride = false)
   {
     if(initialized_ && running_)
     {
       std::string nameTemp = name;
-      if(applyPrefix) {
-	nameTemp = prefix_ + name;
+      if(!useNameOverride) {
+      if(metricPrefix.size() > 0) {
+	nameTemp = prefix_ + "." + metricPrefix + "." + name;
       }
+      else {
+nameTemp = prefix_ + "." + name;
+      }
+      }
+
       for(auto & metric : metric_plugins_)
       {
         if(metric->getRunLevel() >= level) {

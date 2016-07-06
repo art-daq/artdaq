@@ -273,20 +273,12 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     mf::LogInfo(name_) << "No metric plugins appear to be defined";
   } else {
     try {
-      metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+      metricMan_.initialize(metric_pset, metricsReportingInstanceName);
     } catch (...) {
       ExceptionHandler(ExceptionHandlerRethrow::no,
                        "Error loading metrics in AggregatorCore::initialize()");
     }
   }
-
-  EVENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Event Rate";
-  EVENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Event Size";
-  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
-  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Average Input Wait Time";
-  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
-  SHM_COPY_TIME_METRIC_NAME_ = metricsReportingInstanceName + " Avg Shared Memory Copy Time";
-  FILE_CHECK_TIME_METRIC_NAME_ = metricsReportingInstanceName + " Average File Check Time";
 
   if (event_store_ptr_ == nullptr) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
@@ -1030,14 +1022,14 @@ void artdaq::AggregatorCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     eventCount = std::max(double(stats.recentSampleCount), 1.0);
-    metricMan_.sendMetric(EVENT_RATE_METRIC_NAME_,
-                          stats.recentSampleRate, "events/sec", 1, false);
-    metricMan_.sendMetric(EVENT_SIZE_METRIC_NAME_,
+    metricMan_.sendMetric("Event Rate",
+                          stats.recentSampleRate, "events/sec", 1);
+    metricMan_.sendMetric("Average Event Size",
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/event", 2, false);
-    metricMan_.sendMetric(DATA_RATE_METRIC_NAME_,
+                           / 1024.0 / 1024.0), "MB/event", 2);
+    metricMan_.sendMetric("Data Rate",
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2, false);
+                           / 1024.0 / 1024.0), "MB/sec", 2);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "eventCount" in the
@@ -1049,33 +1041,33 @@ void artdaq::AggregatorCore::sendMetrics_()
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Average Input Wait Time",
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 3, false);
+                          "seconds/event", 3);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(EVENT_STORE_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Avg art Queue Wait Time",
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 3, false);
+                          "seconds/event", 3);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(SHM_COPY_TIME_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(SHM_COPY_TIME_METRIC_NAME_,
+    metricMan_.sendMetric("Avg Shared Memory Copy Time",
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 4, false);
+                          "seconds/event", 4);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(FILE_CHECK_TIME_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(FILE_CHECK_TIME_METRIC_NAME_,
+    metricMan_.sendMetric("Average File Check Time",
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 4, false);
+                          "seconds/event", 4);
   }
 }
 

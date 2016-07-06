@@ -90,7 +90,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
     mf::LogInfo(name_) << "No metric plugins appear to be defined";
   } else {
     try {
-      metricMan_.initialize(metric_pset, name_ + ".");
+      metricMan_.initialize(metric_pset, name_);
     } catch (...) {
       ExceptionHandler(ExceptionHandlerRethrow::no,
                        "Error loading metrics in BoardReaderCore::initialize()");
@@ -123,20 +123,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
     return false;
   }
 
-  FRAGMENT_COUNT_METRIC_NAME_ =
-    generator_ptr_->metricsReportingInstanceName() + " Fragment Count";
-  FRAGMENT_RATE_METRIC_NAME_ =
-    generator_ptr_->metricsReportingInstanceName() + " Fragment Rate";
-  FRAGMENT_SIZE_METRIC_NAME_ =
-    generator_ptr_->metricsReportingInstanceName() + " Average Fragment Size";
-  DATA_RATE_METRIC_NAME_ =
-    generator_ptr_->metricsReportingInstanceName() + " Data Rate";
-  INPUT_WAIT_METRIC_NAME_ =
-    generator_ptr_->metricsReportingInstanceName() + " Avg Input Wait Time";
-  OUTPUT_WAIT_METRIC_NAME_ =
-    generator_ptr_->metricsReportingInstanceName() + " Avg Output Wait Time";
-  FRAGMENTS_PER_READ_METRIC_NAME_ =
-    generator_ptr_->metricsReportingInstanceName() + " Avg Frags Per Read";
+  metricMan_.setPrefix(generator_ptr_->metricsReportingInstanceName());
 
   // determine the data sending parameters
   try {
@@ -591,17 +578,17 @@ void artdaq::BoardReaderCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-    metricMan_.sendMetric(FRAGMENT_COUNT_METRIC_NAME_,
+    metricMan_.sendMetric("Fragment Count",
 			  static_cast<unsigned long>(stats.fullSampleCount), 
-			  "fragments", 1, false);
-    metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_,
-                          stats.recentSampleRate, "fragments/sec", 1, false);
-    metricMan_.sendMetric(FRAGMENT_SIZE_METRIC_NAME_,
+			  "fragments", 1);
+    metricMan_.sendMetric("Fragment Rate",
+                          stats.recentSampleRate, "fragments/sec", 1);
+    metricMan_.sendMetric("Average Fragment Size",
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/fragment", 2, false);
-    metricMan_.sendMetric(DATA_RATE_METRIC_NAME_,
+                           / 1024.0 / 1024.0), "MB/fragment", 2);
+    metricMan_.sendMetric("Data Rate",
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2, false);
+                           / 1024.0 / 1024.0), "MB/sec", 2);
   }
 
   // 31-Dec-2014, KAB - Just a reminder that using "fragmentCount" in the
@@ -612,7 +599,7 @@ void artdaq::BoardReaderCore::sendMetrics_()
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Avg Input Wait Time",
                           (mqPtr->recentValueSum() / fragmentCount),
                           "seconds/fragment", 3, false);
   }
@@ -620,7 +607,7 @@ void artdaq::BoardReaderCore::sendMetrics_()
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(OUTPUT_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Avg Output Wait Time",
                           (mqPtr->recentValueSum() / fragmentCount),
                           "seconds/fragment", 3, false);
   }
@@ -628,7 +615,7 @@ void artdaq::BoardReaderCore::sendMetrics_()
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(FRAGMENTS_PER_READ_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(FRAGMENTS_PER_READ_METRIC_NAME_,
+    metricMan_.sendMetric("Avg Frags Per Read",
                           mqPtr->recentValueAverage(), "fragments/read", 4, false);
   }
 }

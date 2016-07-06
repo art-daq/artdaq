@@ -34,7 +34,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
   sleep_on_stop_us_(0)
 {
   board_id_ = ps.get<int> ("board_id");
-  instance_name_for_metrics_ = "Board " + boost::lexical_cast<std::string>(board_id_);
+  instance_name_for_metrics_ = "BoardReader." + boost::lexical_cast<std::string>(board_id_);
 
   fragment_ids_ = ps.get< std::vector< artdaq::Fragment::fragment_id_t > >( "fragment_ids", std::vector< artdaq::Fragment::fragment_id_t >() );
 
@@ -205,6 +205,6 @@ std::string artdaq::CommandableFragmentGenerator::report() {
   return "";
 }
 std::string artdaq::CommandableFragmentGenerator::reportSpecific(std::string const&) {
-#pragma message "Using default implementation of CommandableFragmentGenerator::repostSpecific(std::string)"
+#pragma message "Using default implementation of CommandableFragmentGenerator::reportSpecific(std::string)"
   return "";
 }
