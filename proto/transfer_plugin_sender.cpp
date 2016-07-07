@@ -79,6 +79,15 @@ int main(int argc, char* argv[])
 
   std::unique_ptr<artdaq::Fragment> frag = artdaq::Fragment::FragmentBytes( fragment_size );
 
+  struct ArbitraryMetadata { 
+    const uint64_t val1 = 0;
+    const uint32_t val2 = 0; 
+  };
+
+  ArbitraryMetadata arbitraryMetadata; 
+    
+  frag->setMetadata( arbitraryMetadata );
+
   // Fill the fragment with monotonically increasing 64-bit integers
   // to be checked on the other end
 

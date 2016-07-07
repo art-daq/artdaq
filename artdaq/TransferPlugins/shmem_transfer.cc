@@ -152,11 +152,24 @@ size_t artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
     }
 
     if (shm_ptr_->hasFragment == 1) {
+
+      // JCF, Jul-7-2016
+
+      // Calling artdaq::Fragment::resize with the argument
+      // shm_ptr_->fragmentSizeWords actually allocates more memory
+      // for "fragment" than is needed as shm_ptr_->fragmentSizeWords
+      // is the FULL size of the received fragment, not just the size
+      // of its payload. We correct for this below.
+
       fragment.resize(shm_ptr_->fragmentSizeWords);
+
       artdaq::RawDataType* fragAddr = fragment.headerAddress();
       size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
       memcpy(fragAddr, &shm_ptr_->fragmentInnards[0], fragSize);
       shm_ptr_->hasFragment = 0;
+
+      auto wordsOfHeaderAndMetadata = &*fragment.dataBegin() - &*fragment.headerBegin();
+      fragment.resize( shm_ptr_->fragmentSizeWords - wordsOfHeaderAndMetadata);
 
       if (fragment.type() != artdaq::Fragment::DataFragmentType) {
 	mf::LogInfo(name_)
