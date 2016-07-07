@@ -1,5 +1,7 @@
 include_directories(${MPI_INCLUDE_PATH})
 
+install_script( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh )
+
 art_make_exec(StateResponder
   LIBRARIES
   artdaq_Application_MPI2
