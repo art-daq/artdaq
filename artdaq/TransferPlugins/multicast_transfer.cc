@@ -203,12 +203,12 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
   static auto current_sequenceID = std::numeric_limits<Fragment::sequence_id_t>::max();
   static auto current_fragmentID = std::numeric_limits<Fragment::fragment_id_t>::max();
-  static size_t fragment_size = 0;
-  static size_t expected_subfragments = 0;
-  static size_t current_subfragments = 0;
-  
-  bool fragment_complete = false;
 
+  size_t fragment_size = 0;
+  size_t expected_subfragments = 0;
+  size_t current_subfragments = 0;
+  bool fragment_complete = false;
+  bool last_fragment_truncated = false;
 
   while (true) {
 
@@ -234,6 +234,8 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
 	if (current_subfragments < expected_subfragments) {
 
+	  last_fragment_truncated = true;
+
 	  if (expected_subfragments != std::numeric_limits<size_t>::max()) {
 	    std::cerr << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " <<
 	      current_sequenceID << ", fragID = " << current_fragmentID << " (expected " << expected_subfragments << ")\n" 
@@ -245,8 +247,6 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 	      ", # of expected subfragments is unknown as fragment header was not received)\n" 
 		      << std::endl;
 	  }
-
-      	  return artdaq::RHandles::RECV_TIMEOUT;
       	}
 
 	current_subfragments = 0;
@@ -263,7 +263,7 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       std::copy(ptr_into_buffer, ptr_into_buffer + buf_size - sizeof(subfragment_identifier), ptr_into_fragment);
 
       if (subfragID == 0) {  
-	
+
 	if (buf_size >= sizeof(subfragment_identifier) + sizeof(artdaq::detail::RawFragmentHeader)) {
 
 	  get_fragment_quantities(buf, fragment_size, expected_subfragments);
@@ -289,9 +289,22 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 	break;
       }
     }
+    
+    if (last_fragment_truncated) {
+
+      // JCF, 7-7-2017
+
+      // Don't yet have code to handle the scenario where the set of
+      // subfragments received in the last iteration of the loop was
+      // its own complete fragment, but we know the previous fragment
+      // to be incomplete
+
+      assert( !fragment_complete );
+      return artdaq::RHandles::RECV_TIMEOUT;
+    }
 
     if (fragment_complete) {
-      std::cout << "Got a complete fragment; breaking out of the loop" << std::endl;
+      std::cout << "Got a complete fragment" << std::endl;
       return first_data_sender_rank_;
     }
   }
