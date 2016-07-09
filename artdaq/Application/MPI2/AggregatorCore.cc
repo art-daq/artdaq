@@ -1207,11 +1207,14 @@ receiveFragmentFromSharedMemory_(artdaq::Fragment& fragment,
       ++loopCount;
     }
     if (shm_ptr_->hasFragment == 1) {
-      fragment.resize(shm_ptr_->fragmentSizeWords);
+      fragment.resize(shm_ptr_->fragmentSizeWords); // Slight overshoot on memory, resized below
       artdaq::RawDataType* fragAddr = fragment.headerAddress();
       size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
       memcpy(fragAddr, &shm_ptr_->fragmentInnards[0], fragSize);
       shm_ptr_->hasFragment = 0;
+
+      auto wordsOfHeaderAndMetadata = &*fragment.dataBegin() - &*fragment.headerBegin();
+      fragment.resize( shm_ptr_->fragmentSizeWords - wordsOfHeaderAndMetadata);
 
       if (fragment.type() != artdaq::Fragment::DataFragmentType) {
         mf::LogDebug(name_)
