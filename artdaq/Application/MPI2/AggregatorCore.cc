@@ -295,13 +295,16 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 
   try {
     static cet::BasicPluginFactory bpf("transfer", "make");
+
+    auto role = is_data_logger_ ? TransferInterface::Role::send : TransferInterface::Role::receive ;
+
     transfer_ =  
       bpf.makePlugin<std::unique_ptr<TransferInterface>,
       const fhicl::ParameterSet&,
       TransferInterface::Role>(
 			      transfer_pset.get<std::string>("transferPluginType"), 
 			      transfer_pset, 
-			      TransferInterface::Role::send);
+			      std::move(role));
   } catch(...) {
     ExceptionHandler(ExceptionHandlerRethrow::yes,
 		     "Error creating transfer plugin in AggregatorCore::initialize()");

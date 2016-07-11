@@ -53,7 +53,7 @@ private:
 				 const size_t first_subfragment_num,
 				 const size_t last_subfragment_num);
 
-  void get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& fragment_size,
+  void get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& payload_size, size_t& fragment_size,
 				size_t& expected_subfragments);
 
   void set_receive_buffer_size(size_t recv_buff_size);
@@ -230,7 +230,6 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 	// Code currently operates under the assumption that all subfragments from the call are from the same fragment
 
 	assert(bytes_processed == 0); 
-	assert( current_subfragments <= expected_subfragments );
 
 	if (current_subfragments < expected_subfragments) {
 
@@ -266,9 +265,10 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
 	if (buf_size >= sizeof(subfragment_identifier) + sizeof(artdaq::detail::RawFragmentHeader)) {
 
-	  get_fragment_quantities(buf, fragment_size, expected_subfragments);
+	  auto payload_size = std::numeric_limits<size_t>::max();
+	  get_fragment_quantities(buf, payload_size, fragment_size, expected_subfragments);
 
-	  fragment.resizeBytes( fragment_size - sizeof(artdaq::detail::RawFragmentHeader) );
+	  fragment.resizeBytes( payload_size );
 
 	} else {
 	  throw cet::exception("multicastTransfer") << "Buffer size is too small to completely contain an artdaq::Fragment header; " << 
@@ -419,7 +419,8 @@ void artdaq::multicastTransfer::book_container_of_buffers(std::vector<T>& buffer
 #pragma GCC diagnostic push  // Needed since profile builds will ignore the assert
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& fragment_size,
+void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& payload_size,
+							 size_t& fragment_size,
 							 size_t& expected_subfragments) {
 
   byte_t* buffer_ptr = boost::asio::buffer_cast<byte_t*>(buf);
@@ -432,6 +433,16 @@ void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::muta
     reinterpret_cast<artdaq::detail::RawFragmentHeader*>( buffer_ptr + sizeof(subfragment_identifier));
 
   fragment_size = header->word_count * sizeof(artdaq::RawDataType);
+
+  auto metadata_size = header->metadata_word_count * sizeof(artdaq::RawDataType);
+  payload_size = fragment_size - metadata_size - artdaq::detail::RawFragmentHeader::num_words() * 
+    sizeof(artdaq::RawDataType);
+  
+  assert(fragment_size == 
+	 artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType) +
+	 metadata_size +
+	 payload_size);
+
   expected_subfragments = static_cast<size_t>(std::ceil( fragment_size / static_cast<float>(subfragment_size_ )));
 }
 #pragma GCC diagnostic pop
