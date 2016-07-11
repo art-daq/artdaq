@@ -1,11 +1,14 @@
 
 #include "artdaq/TransferPlugins/TransferWrapper.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
+#include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
+
 #include "cetlib/BasicPluginFactory.h"
 #include "fhiclcpp/ParameterSet.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "TBufferFile.h"
 
@@ -20,12 +23,14 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   static cet::BasicPluginFactory bpf("transfer", "make");
   
   try {
-    transfer_ = bpf.makePlugin<std::unique_ptr<TransferInterface>,
+    transfer_ =  
+      bpf.makePlugin<std::unique_ptr<TransferInterface>,
       const fhicl::ParameterSet&,
       TransferInterface::Role>(
-			       pset.get<std::string>("transferImplementationType"),
-			       pset,
-			       TransferInterface::Role::send);
+			       pset.get<std::string>("transferPluginType"), 
+			       pset, 
+			       TransferInterface::Role::receive);
+
   } catch (...) {
     ExceptionHandler(ExceptionHandlerRethrow::yes, 
 		     "Problem creating instance of TransferInterface in TransferWrapper");
@@ -36,11 +41,22 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) 
 
   artdaq::Fragment frag;
 
-  try { 
-    transfer_->receiveFragmentFrom(frag, timeoutInUsecs_);
-  } catch (...) {
-    ExceptionHandler(ExceptionHandlerRethrow::yes, 
-		     "Problem receiving data in TransferWrapper::receiveMessage");
+  while (true) {
+
+    try { 
+      auto result = transfer_->receiveFragmentFrom(frag, timeoutInUsecs_);
+      
+      if (result != artdaq::RHandles::RECV_TIMEOUT) {
+	break;
+      } else {
+	mf::LogWarning("TransferWrapper") << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again";
+      }
+
+    } catch (...) {
+      ExceptionHandler(ExceptionHandlerRethrow::yes, 
+		       "Problem receiving data in TransferWrapper::receiveMessage");
+    }
+
   }
 
   try {
