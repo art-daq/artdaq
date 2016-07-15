@@ -1,7 +1,11 @@
 
 #include "xmlrpc-c/client_simple.hpp"
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
+#ifdef CANVAS
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/Exception.h"
+#endif
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "art/Framework/Art/artapp.h"
@@ -162,17 +166,38 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   enq_timeout_ = agg_pset.get<daqrate::seconds>("enq_timeout", 
 						static_cast<daqrate::seconds>(5.0));
 
+  // 15-Jun-2016, KAB: added ability to specify either is_data_logger or
+  // is_online_monitor in the parameter set.  If neither are set in the PSet,
+  // then we default to the old-style of behavior in which the first AG is the
+  // data logger and the second is the online monitor.
   is_data_logger_ = false;
   is_online_monitor_ = false;
-  if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
-    is_data_logger_ = true;
+  bool agtype_was_specified = false;
+  if (! agtype_was_specified) {
+    try {
+      is_data_logger_ = agg_pset.get<bool>("is_data_logger");
+      agtype_was_specified = true;
+    }
+    catch (...) {} // leave agtype_was_specified set to false
   }
-  if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_ + 1)) {
-    is_online_monitor_ = true;
+  if (! agtype_was_specified) {
+    try {
+      is_online_monitor_ = agg_pset.get<bool>("is_online_monitor");
+      agtype_was_specified = true;
+    }
+    catch (...) {} // leave agtype_was_specified set to false
+  }
+  if (! agtype_was_specified) {
+    if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
+      is_data_logger_ = true;
+    }
+    if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_ + 1)) {
+      is_online_monitor_ = true;
+    }
   }
   mf::LogDebug(name_) << "Rank " << mpi_rank_
-                             << ", is_data_logger  = " << is_data_logger_
-                             << ", is_online_monitor = " << is_online_monitor_;
+                      << ", is_data_logger  = " << is_data_logger_
+                      << ", is_online_monitor = " << is_online_monitor_;
 
   disk_writing_directory_ = "";
   try {
@@ -275,7 +300,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     mf::LogInfo(name_) << "No metric plugins appear to be defined";
   } else {
     try {
-      metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+      metricMan_.initialize(metric_pset, metricsReportingInstanceName);
     } catch (...) {
       ExceptionHandler(ExceptionHandlerRethrow::no,
                        "Error loading metrics in AggregatorCore::initialize()");
@@ -310,13 +335,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 		     "Error creating transfer plugin in AggregatorCore::initialize()");
   }
 
-  EVENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Event Rate";
-  EVENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Event Size";
-  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
-  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Average Input Wait Time";
-  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
-  SHM_COPY_TIME_METRIC_NAME_ = metricsReportingInstanceName + " Avg Shared Memory Copy Time";
-  FILE_CHECK_TIME_METRIC_NAME_ = metricsReportingInstanceName + " Average File Check Time";
 
   if (event_store_ptr_ == nullptr) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
@@ -1058,14 +1076,14 @@ void artdaq::AggregatorCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     eventCount = std::max(double(stats.recentSampleCount), 1.0);
-    metricMan_.sendMetric(EVENT_RATE_METRIC_NAME_,
-                          stats.recentSampleRate, "events/sec", 1, false);
-    metricMan_.sendMetric(EVENT_SIZE_METRIC_NAME_,
+    metricMan_.sendMetric("Event Rate",
+                          stats.recentSampleRate, "events/sec", 1);
+    metricMan_.sendMetric("Average Event Size",
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/event", 2, false);
-    metricMan_.sendMetric(DATA_RATE_METRIC_NAME_,
+                           / 1024.0 / 1024.0), "MB/event", 2);
+    metricMan_.sendMetric("Data Rate",
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2, false);
+                           / 1024.0 / 1024.0), "MB/sec", 2);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "eventCount" in the
@@ -1077,32 +1095,32 @@ void artdaq::AggregatorCore::sendMetrics_()
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Average Input Wait Time",
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 3, false);
+                          "seconds/event", 3);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(EVENT_STORE_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Avg art Queue Wait Time",
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 3, false);
+                          "seconds/event", 3);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(SHM_COPY_TIME_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(SHM_COPY_TIME_METRIC_NAME_,
+    metricMan_.sendMetric("Avg Shared Memory Copy Time",
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 4, false);
+                          "seconds/event", 4);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(FILE_CHECK_TIME_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(FILE_CHECK_TIME_METRIC_NAME_,
+    metricMan_.sendMetric("Average File Check Time",
                           (mqPtr->recentValueSum() / eventCount),
-                          "seconds/event", 4, false);
+                          "seconds/event", 4);
   }
 }

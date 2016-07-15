@@ -270,7 +270,7 @@ namespace artdaq {
                                << queue_.size();
     if(metricMan_) {
       double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-      metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1,true,false);
+      metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1,false);
     }
   }
 
@@ -279,7 +279,7 @@ namespace artdaq {
     ++subrun_id_;
     if(metricMan_) {
       double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-      metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, true,false);
+      metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1,false);
     }
   }
 
@@ -482,7 +482,7 @@ namespace artdaq {
   {
     if (metricMan_) {
       metricMan_->sendMetric("Incomplete Event Count", events_.size(),
-                             "events", 1, true);
+                             "events", 1);
     }
   }
 }

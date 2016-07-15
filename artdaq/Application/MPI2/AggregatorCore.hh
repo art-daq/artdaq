@@ -11,7 +11,11 @@
 
 
 #include "fhiclcpp/ParameterSet.h"
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/RunID.h"
+#else
 #include "art/Persistency/Provenance/RunID.h"
+#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
@@ -103,14 +107,6 @@ private:
   double previous_run_duration_;
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
-
-  std::string EVENT_RATE_METRIC_NAME_;
-  std::string EVENT_SIZE_METRIC_NAME_;
-  std::string DATA_RATE_METRIC_NAME_;
-  std::string INPUT_WAIT_METRIC_NAME_;
-  std::string EVENT_STORE_WAIT_METRIC_NAME_;
-  std::string SHM_COPY_TIME_METRIC_NAME_;
-  std::string FILE_CHECK_TIME_METRIC_NAME_;
 
   std::unique_ptr<TransferInterface> transfer_;
 

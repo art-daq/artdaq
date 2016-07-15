@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v1_12_16
+parent artdaq  v1_13_00
 defaultqual    e9:s21:eth
 
 # These optional lines define the installed directories where
@@ -17,15 +17,15 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-artdaq_core 		v1_04_30
-artdaq_utilities        v1_00_06
+artdaq_core 		v1_05_00
+artdaq_utilities        v1_00_07
 mvapich2		v1_9_0
-mpich			v3_1_4a
-xmlrpc_c		v1_33_16b
-cetbuildtools		v5_01_03	-	only_for_build
+mpich			v3_2_0
+xmlrpc_c		v1_39_07
+artdaq_ganglia_plugin   v1_01_00        -       optional
+artdaq_epics_plugin     v1_01_00        -       optional
+cetbuildtools		v5_04_01	-	only_for_build
 smc_compiler		v6_1_0		-	only_for_build
-artdaq_ganglia_plugin   v1_0_12         -       optional
-artdaq_epics_plugin     v1_0_4          -       optional
 end_product_list
 
 # e6 - with gcc 4.9.1 and -std=c++1y
@@ -35,51 +35,25 @@ end_product_list
 # s15 - with art v1_15_02
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
-qualifier		artdaq_core    	   artdaq_utilities	mvapich2	mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	notes
-e9:s31:ib:debug		e9:s31:debug	    e9:s31:debug	-nq-		-		e9:debug	e9:g371:s31:debug	e9:s31:debug		-std=c++1y
-e9:s31:ib:prof		e9:s31:prof	    e9:s31:prof		-nq-		-		e9:prof		e9:g371:s31:prof	e9:s31:prof		-std=c++1y
-e9:s31:eth:debug	e9:s31:debug	    e9:s31:debug	-		e9:debug	e9:debug	e9:g371:s31:debug	e9:s31:debug	 	-std=c++1y
-e9:s31:eth:prof		e9:s31:prof 	    e9:s31:prof		-		e9:prof		e9:prof		e9:g371:s31:prof	e9:s31:prof		-std=c++1y
-e9:s21:ib:debug		e9:s21:debug	    e9:s21:debug	-nq-		-		e9:debug	e9:g371:s21:debug	e9:s21:debug		-std=c++1y
-e9:s21:ib:prof		e9:s21:prof	    e9:s21:prof		-nq-		-		e9:prof		e9:g371:s21:prof	e9:s21:prof		-std=c++1y
-e9:s21:eth:debug	e9:s21:debug	    e9:s21:debug	-		e9:debug	e9:debug	e9:g371:s21:debug	e9:s21:debug	 	-std=c++1y
-e9:s21:eth:prof		e9:s21:prof 	    e9:s21:prof		-		e9:prof		e9:prof		e9:g371:s21:prof	e9:s21:prof		-std=c++1y
-e7:s21:ib:debug		e7:s21:debug	    e7:s21:debug	-nq-		-		e7:debug	e7:g371:s21:debug	e7:s21:debug		-std=c++1y
-e7:s21:ib:prof		e7:s21:prof	    e7:s21:prof		-nq-		-		e7:prof		e7:g371:s21:prof	e7:s21:prof		-std=c++1y
-e7:s21:eth:debug	e7:s21:debug	    e7:s21:debug	-		e7:debug	e7:debug	e7:g371:s21:debug	e7:s21:debug	 	-std=c++1y
-e7:s21:eth:prof		e7:s21:prof 	    e7:s21:prof		-		e7:prof		e7:prof		e7:g371:s21:prof	e7:s21:prof		-std=c++1y
-e7:s15:ib:debug		e7:s15:debug	    e7:s15:debug	-nq-		-		e7:debug	e7:g371:s15:debug	e7:s15:debug		-std=c++1y
-e7:s15:ib:prof		e7:s15:prof	    e7:s15:prof		-nq-		-		e7:prof		e7:g371:s15:prof	e7:s15:prof		-std=c++1y
-e7:s15:eth:debug	e7:s15:debug	    e7:s15:debug	-		e7:debug	e7:debug	e7:g371:s15:debug	e7:s15:debug	 	-std=c++1y
-e7:s15:eth:prof		e7:s15:prof 	    e7:s15:prof		-		e7:prof		e7:prof		e7:g371:s15:prof	e7:s15:prof		-std=c++1y
-e7:s11:ib:debug		e7:s11:debug	    e7:s11:debug	-nq-		-		e7:debug	e7:g371:s11:debug	e7:s11:debug		-std=c++1y
-e7:s11:ib:prof		e7:s11:prof	    e7:s11:prof		-nq-		-		e7:prof		e7:g371:s11:prof	e7:s11:prof		-std=c++1y
-e7:s11:eth:debug	e7:s11:debug	    e7:s11:debug	-		e7:debug	e7:debug	e7:g371:s11:debug	e7:s11:debug		-std=c++1y
-e7:s11:eth:prof		e7:s11:prof	    e7:s11:prof		-		e7:prof		e7:prof		e7:g371:s11:prof	e7:s11:prof		-std=c++1y
-e6:s15:ib:debug		e6:s15:debug	    e6:s15:debug	-nq-		-		e6:debug	e6:g371:s15:debug	e6:s15:debug		-std=c++1y
-e6:s15:ib:prof		e6:s15:prof	    e6:s15:prof		-nq-		-		e6:prof		e6:g371:s15:prof	e6:s15:prof		-std=c++1y
-e6:s15:eth:debug	e6:s15:debug	    e6:s15:debug	-		e6:debug	e6:debug	e6:g371:s15:debug	e6:s15:debug		-std=c++1y
-e6:s15:eth:prof		e6:s15:prof	    e6:s15:prof		-		e6:prof		e6:prof		e6:g371:s15:prof	e6:s15:prof		-std=c++1y
-e6:s11:ib:debug		e6:s11:debug	    e6:s11:debug	-nq-		-		e6:debug	e6:g371:s11:debug	e6:s11:debug		-std=c++1y
-e6:s11:ib:prof		e6:s11:prof	    e6:s11:prof		-nq-		-		e6:prof		e6:g371:s11:prof	e6:s11:prof		-std=c++1y
-e6:s11:eth:debug	e6:s11:debug	    e6:s11:debug	-		e6:debug	e6:debug	e6:g371:s11:debug	e6:s11:debug		-std=c++1y
-e6:s11:eth:prof		e6:s11:prof	    e6:s11:prof		-		e6:prof		e6:prof		e6:g371:s11:prof	e6:s11:prof		-std=c++1y
-g317:e7:s15:ib:debug	e7:s15:debug	    e7:s15:debug	-nq-		-		e7:debug	e7:g317:s15:debug	e7:s15:debug		-std=c++1y
-g317:e7:s15:ib:prof	e7:s15:prof	    e7:s15:prof		-nq-		-		e7:prof		e7:g317:s15:prof	e7:s15:prof		-std=c++1y
-g317:e7:s15:eth:debug	e7:s15:debug	    e7:s15:debug	-		e7:debug	e7:debug	e7:g317:s15:debug	e7:s15:debug		-std=c++1y
-g317:e7:s15:eth:prof	e7:s15:prof	    e7:s15:prof		-		e7:prof		e7:prof		e7:g317:s15:prof	e7:s15:prof		-std=c++1y
-g317:e7:s11:ib:debug	e7:s11:debug	    e7:s11:debug	-nq-		-		e7:debug	e7:g317:s11:debug	e7:s11:debug		-std=c++1y
-g317:e7:s11:ib:prof	e7:s11:prof	    e7:s11:prof		-nq-		-		e7:prof		e7:g317:s11:prof	e7:s11:prof		-std=c++1y
-g317:e7:s11:eth:debug	e7:s11:debug	    e7:s11:debug	-		e7:debug	e7:debug	e7:g317:s11:debug	e7:s11:debug		-std=c++1y
-g317:e7:s11:eth:prof	e7:s11:prof	    e7:s11:prof		-		e7:prof		e7:prof		e7:g317:s11:prof	e7:s11:prof		-std=c++1y
-g317:e6:s15:ib:debug	e6:s15:debug	    e6:s15:debug	-nq-		-		e6:debug	e6:g317:s15:debug	e6:s15:debug		-std=c++1y
-g317:e6:s15:ib:prof	e6:s15:prof	    e6:s15:prof		-nq-		-		e6:prof		e6:g317:s15:prof	e6:s15:prof		-std=c++1y
-g317:e6:s15:eth:debug	e6:s15:debug	    e6:s15:debug	-		e6:debug	e6:debug	e6:g317:s15:debug	e6:s15:debug		-std=c++1y
-g317:e6:s15:eth:prof	e6:s15:prof	    e6:s15:prof		-		e6:prof		e6:prof		e6:g317:s15:prof	e6:s15:prof		-std=c++1y
-g317:e6:s11:ib:debug	e6:s11:debug	    e6:s11:debug	-nq-		-		e6:debug	e6:g317:s11:debug	e6:s11:debug		-std=c++1y
-g317:e6:s11:ib:prof	e6:s11:prof	    e6:s11:prof		-nq-		-		e6:prof		e6:g317:s11:prof	e6:s11:prof		-std=c++1y
-g317:e6:s11:eth:debug	e6:s11:debug	    e6:s11:debug	-		e6:debug	e6:debug	e6:g317:s11:debug	e6:s11:debug		-std=c++1y
-g317:e6:s11:eth:prof	e6:s11:prof	    e6:s11:prof		-		e6:prof		e6:prof		e6:g317:s11:prof	e6:s11:prof		-std=c++1y
+qualifier		artdaq_core    	   artdaq_utilities	mvapich2	mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin
+e10:s35:debug		e10:s35:debug	   e10:s35:debug	-		e10:debug	e10:debug	e10:g371:s35:debug	e10:s35:debug
+e10:s35:prof		e10:s35:prof 	   e10:s35:prof		-		e10:prof	e10:prof	e10:g371:s35:prof	e10:s35:prof
+e10:s34:debug		e10:s34:debug	   e10:s34:debug	-		e10:debug	e10:debug	e10:g371:s34:debug	e10:s34:debug
+e10:s34:prof		e10:s34:prof 	   e10:s34:prof		-		e10:prof	e10:prof	e10:g371:s34:prof	e10:s34:prof
+e9:s21:debug		e9:s21:debug	    e9:s21:debug	-		e9:debug	e9:debug	e9:g371:s21:debug	e9:s21:debug
+e9:s21:prof		e9:s21:prof 	    e9:s21:prof		-		e9:prof		e9:prof		e9:g371:s21:prof	e9:s21:prof
+e10:s35:ib:debug	e10:s35:debug	   e10:s35:debug	-nq-		-		e10:debug	e10:g371:s35:debug	e10:s35:debug
+e10:s35:ib:prof		e10:s35:prof	   e10:s35:prof		-nq-		-		e10:prof	e10:g371:s35:prof	e10:s35:prof
+e10:s35:eth:debug	e10:s35:debug	   e10:s35:debug	-		e10:debug	e10:debug	e10:g371:s35:debug	e10:s35:debug
+e10:s35:eth:prof	e10:s35:prof 	   e10:s35:prof		-		e10:prof	e10:prof	e10:g371:s35:prof	e10:s35:prof
+e10:s34:ib:debug	e10:s34:debug	   e10:s34:debug	-nq-		-		e10:debug	e10:g371:s34:debug	e10:s34:debug
+e10:s34:ib:prof		e10:s34:prof	   e10:s34:prof		-nq-		-		e10:prof	e10:g371:s34:prof	e10:s34:prof
+e10:s34:eth:debug	e10:s34:debug	   e10:s34:debug	-		e10:debug	e10:debug	e10:g371:s34:debug	e10:s34:debug
+e10:s34:eth:prof	e10:s34:prof 	   e10:s34:prof		-		e10:prof	e10:prof	e10:g371:s34:prof	e10:s34:prof
+e9:s21:ib:debug		e9:s21:debug	    e9:s21:debug	-nq-		-		e9:debug	e9:g371:s21:debug	e9:s21:debug
+e9:s21:ib:prof		e9:s21:prof	    e9:s21:prof		-nq-		-		e9:prof		e9:g371:s21:prof	e9:s21:prof
+e9:s21:eth:debug	e9:s21:debug	    e9:s21:debug	-		e9:debug	e9:debug	e9:g371:s21:debug	e9:s21:debug
+e9:s21:eth:prof		e9:s21:prof 	    e9:s21:prof		-		e9:prof		e9:prof		e9:g371:s21:prof	e9:s21:prof
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
