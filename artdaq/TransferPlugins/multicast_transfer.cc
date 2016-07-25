@@ -300,11 +300,12 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       // to be incomplete
 
       assert( !fragment_complete );
+      std::cout << "Got an incomplete fragment" << std::endl;
       return artdaq::RHandles::RECV_TIMEOUT;
     }
 
     if (fragment_complete) {
-      std::cout << "Got a complete fragment" << std::endl;
+      //      std::cout << "Got a complete fragment" << std::endl;
       return first_data_sender_rank_;
     }
   }
@@ -330,7 +331,7 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
   static size_t ncalls = 1;
   auto num_subfragments = static_cast<size_t>(std::ceil( fragment.sizeBytes() / static_cast<float>(subfragment_size_ )));
 
-  std::cout << "Call #" << ncalls << ", fragment size is " << fragment.sizeBytes() << std::endl;
+  //  std::cout << "Call #" << ncalls << ", fragment size is " << fragment.sizeBytes() << std::endl;
   ncalls++;
 
   fill_staging_memory(fragment);
@@ -362,7 +363,7 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
 void artdaq::multicastTransfer::fill_staging_memory(const artdaq::Fragment& fragment) {
 
   auto num_subfragments = static_cast<size_t>(std::ceil( fragment.sizeBytes() / static_cast<float>(subfragment_size_ )));
-  std::cout << "# of subfragments to use is " << num_subfragments << std::endl;
+  //  std::cout << "# of subfragments to use is " << num_subfragments << std::endl;
 
   for (auto i_s = 0; i_s < num_subfragments; ++i_s) {
 
