@@ -54,6 +54,7 @@ simple_plugin(multicast "transfer"
   artdaq_DAQrate
   artdaq-core_Data			
   artdaq-core_Utilities
+  MF_MessageLogger
   cetlib
   fhiclcpp
   ${Boost_SYSTEM_LIBRARY}

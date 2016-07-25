@@ -92,7 +92,7 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	     0666);
   }
   
-  std::cout << "shmKey == " << shmKey << ", shm_segment_id == " << shm_segment_id_ << std::endl;
+  mf::LogDebug(name_) << "shmKey == " << shmKey << ", shm_segment_id == " << shm_segment_id_;
 
   if (shm_segment_id_ > -1) {
     //    mf::LogDebug(name_)
@@ -121,8 +121,6 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
 			<< "if a stale shared memory segment needs to "
 			<< "be cleaned up. (ipcs, ipcrm -m <segId>)";
   }
-
-  std::cout << "shm_ptr_ == " << static_cast<void*>(shm_ptr_) << std::endl;
 }
 
 artdaq::shmemTransfer::~shmemTransfer() {
