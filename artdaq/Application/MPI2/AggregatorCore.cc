@@ -163,8 +163,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     return false;
   }
 
-  enq_timeout_ = agg_pset.get<daqrate::seconds>("enq_timeout", 
-						static_cast<daqrate::seconds>(5.0));
+  enq_timeout_ = static_cast<daqrate::seconds>( agg_pset.get<size_t>("enq_timeout", 5.0) ); 
 
   // 15-Jun-2016, KAB: added ability to specify either is_data_logger or
   // is_online_monitor in the parameter set.  If neither are set in the PSet,
