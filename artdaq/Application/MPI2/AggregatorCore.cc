@@ -675,7 +675,7 @@ size_t artdaq::AggregatorCore::process_fragments()
               try_again = false;
               process_fragments = false;
               fragmentPtr = std::move(rejectedFragment);
-              mf::LogWarning("EventBuilderCore")
+              mf::LogWarning(name_)
                 << "Unable to process event " << fragmentPtr->sequenceID()
                 << " because of back-pressure - forcibly ending the run.";
             }
@@ -683,13 +683,13 @@ size_t artdaq::AggregatorCore::process_fragments()
               try_again = false;
               process_fragments = false;
               fragmentPtr = std::move(rejectedFragment);
-              mf::LogWarning("EventBuilderCore")
+              mf::LogWarning(name_)
                 << "Unable to process event " << fragmentPtr->sequenceID()
                 << " because of back-pressure - forcibly pausing the run.";
             }
             else {
               fragmentPtr = std::move(rejectedFragment);
-              mf::LogWarning("EventBuilderCore")
+              mf::LogWarning(name_)
                 << "Unable to process event " << fragmentPtr->sequenceID()
                 << " because of back-pressure - retrying...";
             }
