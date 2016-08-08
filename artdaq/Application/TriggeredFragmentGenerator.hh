@@ -21,6 +21,7 @@
 #include "fhiclcpp/fwd.h"
 #include "artdaq-core/Data/Fragments.hh" 
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/DAQrate/detail/TriggerMessage.hh"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -36,16 +37,11 @@
 #include <mutex>
 
 namespace artdaq {    
-
-  struct TriggerPacket {
-    uint32_t header; //TRIG, or 0x54524947
-    Fragment::sequence_id_t fragment_ID;
-  };
-
   enum class TriggeredFragmentGeneratorMode {
-    TriggerOnly,
-      TriggerOrData,
-      BufferedTriggered,
+	  Single,
+	  Buffer,
+	  Window,
+	  Ignored
   };
 
   class TriggeredFragmentGenerator : public CommandableFragmentGenerator {
@@ -55,8 +51,10 @@ namespace artdaq {
 
   protected:
     virtual bool getNextFragment_(FragmentPtrs & output) = 0;
-    virtual void start_() {}
-    virtual void resume_() {}
+    virtual void start_() = 0;
+    virtual void resume_();
+
+    void ev_counter_inc_();
   private:
     
     // Hide this function from subclasses
@@ -83,9 +81,15 @@ namespace artdaq {
     //Socket parameters
     struct sockaddr_in si_data_;
     int triggersocket_;
-    std::queue< TriggerPacket > triggerBuffer_;
+    std::queue< detail::TriggerMessage > triggerBuffer_;
 
     TriggeredFragmentGeneratorMode mode_;
+	Fragment::timestamp_t windowOffset_;
+	Fragment::timestamp_t windowWidth_;
+	Fragment::timestamp_t staleTimeout_;
+	size_t maxFragmentCount_;
+	bool uniqueWindows_;
+
     std::thread dataThread_;
     std::atomic<bool> haveData_;
     FragmentPtrs dataBuffer_;

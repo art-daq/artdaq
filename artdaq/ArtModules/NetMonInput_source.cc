@@ -5,24 +5,42 @@
 #include "art/Framework/IO/Sources/SourceHelper.h"
 #include "art/Framework/IO/Sources/SourceTraits.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Persistency/Provenance/BranchIDListHelper.h"
+#include "art/Persistency/Provenance/BranchIDListRegistry.h"
+#include "art/Persistency/Provenance/MasterProductRegistry.h"
+#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
+#include "art/Persistency/Provenance/ProductMetaData.h"
+
+#ifdef CANVAS
+#include "canvas/Persistency/Common/EDProduct.h"
+#include "canvas/Persistency/Common/Wrapper.h"
+#include "canvas/Persistency/Provenance/BranchDescription.h"
+#include "canvas/Persistency/Provenance/BranchIDList.h"
+#include "canvas/Persistency/Provenance/BranchKey.h"
+#include "canvas/Persistency/Provenance/History.h"
+#include "canvas/Persistency/Provenance/ParentageRegistry.h"
+#include "canvas/Persistency/Provenance/ProcessConfiguration.h"
+#include "canvas/Persistency/Provenance/ProcessHistory.h"
+#include "canvas/Persistency/Provenance/ProcessHistoryID.h"
+#include "canvas/Persistency/Provenance/ProductList.h"
+#include "canvas/Persistency/Provenance/ProductProvenance.h"
+#include "canvas/Utilities/DebugMacros.h"
+#else
 #include "art/Persistency/Common/EDProduct.h"
 #include "art/Persistency/Common/Wrapper.h"
 #include "art/Persistency/Provenance/BranchDescription.h"
 #include "art/Persistency/Provenance/BranchIDList.h"
-#include "art/Persistency/Provenance/BranchIDListHelper.h"
-#include "art/Persistency/Provenance/BranchIDListRegistry.h"
 #include "art/Persistency/Provenance/BranchKey.h"
 #include "art/Persistency/Provenance/History.h"
-#include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ParentageRegistry.h"
 #include "art/Persistency/Provenance/ProcessConfiguration.h"
 #include "art/Persistency/Provenance/ProcessHistory.h"
 #include "art/Persistency/Provenance/ProcessHistoryID.h"
-#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductList.h"
-#include "art/Persistency/Provenance/ProductMetaData.h"
 #include "art/Persistency/Provenance/ProductProvenance.h"
 #include "art/Utilities/DebugMacros.h"
+#endif
+
 #include "fhiclcpp/make_ParameterSet.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
@@ -75,9 +93,12 @@ private:
                               art::SubRunPrincipal*&,
                               art::EventPrincipal*&);
 
-    template <class T>
-    void
-    readDataProducts(TBufferFile&, T*&);
+  template <class T> 
+  void readDataProducts(TBufferFile& f, T*& t);
+
+  void putInPrincipal(RunPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&, std::unique_ptr<const ProductProvenance>&&);
+  void putInPrincipal(SubRunPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&, std::unique_ptr<const ProductProvenance>&&);
+  void putInPrincipal(EventPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&, std::unique_ptr<const ProductProvenance>&&);
 
 private:
     bool shutdownMsgReceived_;
@@ -776,9 +797,30 @@ readDataProducts(TBufferFile& msg, T*& outPrincipal)
                       << "' procnm: '"
                       << bd.processName()
                       << "'\n";
-            outPrincipal->put(std::move(prd), bd, std::move(prdprov));
+	    putInPrincipal(outPrincipal, std::move(prd), bd, std::move(prdprov));
         }
     }
+}
+
+void art::NetMonInputDetail::putInPrincipal(RunPrincipal*& rp, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
+{
+#if (ART_MAJOR_VERSION == 2 && ART_MINOR_VERSION >= 1) || ART_MAJOR_VERSION > 2
+  rp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forRun(rp->id()));
+#else
+  rp->put(std::move(prd), bd, std::move(prdprov));
+#endif
+}
+ void art::NetMonInputDetail::putInPrincipal(SubRunPrincipal*& srp, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
+ {
+#if (ART_MAJOR_VERSION == 2 && ART_MINOR_VERSION >= 1) || ART_MAJOR_VERSION > 2
+  srp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forSubRun(srp->id()));
+#else
+  srp->put(std::move(prd), bd, std::move(prdprov));
+#endif
+}
+ void art::NetMonInputDetail::putInPrincipal(EventPrincipal*& ep, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
+ {
+  ep->put(std::move(prd), bd, std::move(prdprov));
 }
 
 bool

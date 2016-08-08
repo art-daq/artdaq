@@ -1,6 +1,10 @@
 #include "xmlrpc-c/client_simple.hpp"
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
+#ifdef CANVAS
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/Exception.h"
+#endif
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "art/Framework/Art/artapp.h"
@@ -132,17 +136,41 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     return false;
   }
 
+  enq_timeout_ = agg_pset.get<daqrate::seconds>("enq_timeout", 
+						static_cast<daqrate::seconds>(5.0));
+
+  // 15-Jun-2016, KAB: added ability to specify either is_data_logger or
+  // is_online_monitor in the parameter set.  If neither are set in the PSet,
+  // then we default to the old-style of behavior in which the first AG is the
+  // data logger and the second is the online monitor.
   is_data_logger_ = false;
   is_online_monitor_ = false;
-  if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
-    is_data_logger_ = true;
+  bool agtype_was_specified = false;
+  if (! agtype_was_specified) {
+    try {
+      is_data_logger_ = agg_pset.get<bool>("is_data_logger");
+      agtype_was_specified = true;
+    }
+    catch (...) {} // leave agtype_was_specified set to false
   }
-  if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_ + 1)) {
-    is_online_monitor_ = true;
+  if (! agtype_was_specified) {
+    try {
+      is_online_monitor_ = agg_pset.get<bool>("is_online_monitor");
+      agtype_was_specified = true;
+    }
+    catch (...) {} // leave agtype_was_specified set to false
+  }
+  if (! agtype_was_specified) {
+    if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
+      is_data_logger_ = true;
+    }
+    if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_ + 1)) {
+      is_online_monitor_ = true;
+    }
   }
   mf::LogDebug(name_) << "Rank " << mpi_rank_
-                             << ", is_data_logger  = " << is_data_logger_
-                             << ", is_online_monitor = " << is_online_monitor_;
+                      << ", is_data_logger  = " << is_data_logger_
+                      << ", is_online_monitor = " << is_online_monitor_;
 
   disk_writing_directory_ = "";
   try {
@@ -433,8 +461,9 @@ size_t artdaq::AggregatorCore::process_fragments()
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
-        daqrate::seconds const enq_timeout(30.0);
-        bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
+
+        bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
+
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue SubRun event.";
         }
@@ -456,8 +485,8 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
-          daqrate::seconds const enq_timeout(30.0);
-          bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
+
+          bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
           if (! enqStatus) {
             mf::LogError(name_) << "Failed to enqueue SubRun event.";
           }
@@ -484,8 +513,8 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
-          daqrate::seconds const enq_timeout(30.0);
-          bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
+
+          bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
           if (! enqStatus) {
             mf::LogError(name_) << "Failed to enqueue SubRun event.";
           }
@@ -581,8 +610,9 @@ size_t artdaq::AggregatorCore::process_fragments()
         }
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
-        daqrate::seconds const enq_timeout(30.0);
-        bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout);
+
+        bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout_);
+
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue INIT event.";
         }
@@ -716,8 +746,9 @@ size_t artdaq::AggregatorCore::process_fragments()
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
-        daqrate::seconds const enq_timeout(30.0);
-        bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout);
+
+        bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
+
         if (! enqStatus) {
           mf::LogError(name_) << "Failed to enqueue SubRun event.";
         }

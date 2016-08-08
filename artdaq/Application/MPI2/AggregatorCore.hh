@@ -7,7 +7,11 @@
 #include <thread>
 
 #include "fhiclcpp/ParameterSet.h"
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/RunID.h"
+#else
 #include "art/Persistency/Provenance/RunID.h"
+#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
@@ -70,6 +74,7 @@ private:
   int32_t filesize_check_interval_events_;
   bool is_data_logger_;
   bool is_online_monitor_;
+  daqrate::seconds enq_timeout_;
 
   std::unique_ptr<artdaq::RHandles> receiver_ptr_;
   std::unique_ptr<artdaq::EventStore> event_store_ptr_;

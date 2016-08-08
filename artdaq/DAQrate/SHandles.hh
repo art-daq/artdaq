@@ -65,7 +65,8 @@ private:
 
   // Send the fragment to the specified destination.
   void sendFragTo(Fragment && frag,
-                  size_t dest);
+                  size_t dest,
+				  bool force_async = false);
 
   size_t const buffer_count_;
   uint64_t const max_payload_size_;

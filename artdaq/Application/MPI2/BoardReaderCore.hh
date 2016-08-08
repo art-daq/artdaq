@@ -8,7 +8,11 @@
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "fhiclcpp/ParameterSet.h"
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/RunID.h"
+#else
 #include "art/Persistency/Provenance/RunID.h"
+#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/DAQrate/SHandles.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"

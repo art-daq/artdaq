@@ -2,13 +2,19 @@
 #include "artdaq/Application/MPI2/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragments.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
+#ifdef CANVAS
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/Exception.h"
+#endif
 #include "cetlib/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
 #include "tracelib.h"
+
+#define TRACE_NAME "BoardReaderCore"
 
 const std::string artdaq::BoardReaderCore::
   FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
@@ -104,28 +110,19 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   try {
     generator_ptr_ = artdaq::makeCommandableFragmentGenerator(frag_gen_name, fr_pset);
     generator_ptr_->SetMetricManager(&metricMan_);
-  }
-  catch (art::Exception& excpt) {
-    mf::LogError(name_)
-      << "Exception creating a CommandableFragmentGenerator of type \""
-      << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-      << "\", exception = " << excpt;
+  } catch (...) {
+
+    std::stringstream exception_string;
+    exception_string << "Exception thrown during initialization of fragment generator of type \""
+		     << frag_gen_name << "\"";
+
+    ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str() );
+
+    mf::LogDebug(name_) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string();
+
     return false;
   }
-  catch (cet::exception& excpt) {
-    mf::LogError(name_)
-      << "Exception creating a CommandableFragmentGenerator of type \""
-      << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-      << "\", exception = " << excpt;
-    return false;
-  }
-  catch (...) {
-    mf::LogError(name_)
-      << "Unknown exception creating a CommandableFragmentGenerator of type \""
-      << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-      << "\".";
-    return false;
-  }
+
   FRAGMENT_COUNT_METRIC_NAME_ =
     generator_ptr_->metricsReportingInstanceName() + " Fragment Count";
   FRAGMENT_RATE_METRIC_NAME_ =
@@ -363,6 +360,11 @@ size_t artdaq::BoardReaderCore::process_fragments()
 
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     for (auto & fragPtr : frags) {
+       if(!fragPtr.get()) {
+         mf::LogWarning(name_) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
+                               << "This is most likely caused by a problem with the Fragment Generator!";
+         continue;
+      }
       artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
       statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
 

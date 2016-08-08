@@ -5,8 +5,13 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
+#ifdef CANVAS
+#include "canvas/Utilities/DebugMacros.h"
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/DebugMacros.h"
 #include "art/Utilities/Exception.h"
+#endif
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq/DAQrate/SHandles.hh"
@@ -23,7 +28,7 @@
 #include <memory>
 #include "unistd.h"
 
-#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#if ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 16 || ART_MAJOR_VERSION > 1
 #  define CONST_WRITE
 struct Config {
   fhicl::Atom<uint64_t> max_fragment_size_words  { fhicl::Name("max_fragment_size_words") };
@@ -72,7 +77,9 @@ private:
 
 art::BinaryMPIOutput::
 BinaryMPIOutput(ParameterSet const& ps)
-#if ART_MAJOR_VERSION >= 1 && ART_MINOR_VERSION >= 16
+#if (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 18) || (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION == 17 && ART_PATCH_VERSION >= 8) || ART_MAJOR_VERSION > 1
+  : OutputModule(ps)
+#elif ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 16
   : OutputModule(OutputModule::Table<Config>(ps))
 #else
 	: OutputModule(ps)

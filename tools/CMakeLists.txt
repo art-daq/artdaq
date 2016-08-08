@@ -28,6 +28,12 @@ art_make_exec(genToArt
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+# Make sure tests have correct environment settings.
+include(CetTest)
+# If you explicitly include CetTest in a subdirectory, you will need to
+# re-initialize the test environment.
+cet_test_env("FHICL_FILE_PATH=.")
+
 cet_test(genToArt_t HANDBUILT
   TEST_EXEC genToArt
   TEST_ARGS -c genToArt_t.fcl

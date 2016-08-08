@@ -1,7 +1,7 @@
 #include "artdaq/ArtModules/detail/RawEventQueueReader.hh"
 
 #include "art/Framework/Core/FileBlock.h"
-#include "art/Framework/Core/RootDictionaryManager.h"
+//#include "art/Framework/Core/RootDictionaryManager.h"
 #include "art/Framework/IO/Sources/SourceHelper.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/EventPrincipal.h"
@@ -9,18 +9,31 @@
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Persistency/Provenance/BranchIDListHelper.h"
+#include "art/Persistency/Provenance/MasterProductRegistry.h"
+#include "art/Persistency/Provenance/ProductMetaData.h"
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/EventID.h"
+#include "canvas/Persistency/Provenance/FileFormatVersion.h"
+#include "canvas/Persistency/Provenance/ModuleDescription.h"
+#include "canvas/Persistency/Provenance/Parentage.h"
+#include "canvas/Persistency/Provenance/ProcessConfiguration.h"
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "canvas/Persistency/Provenance/SubRunID.h"
+#include "canvas/Persistency/Provenance/Timestamp.h"
+#include "canvas/Utilities/Exception.h"
+#include "canvas/Utilities/GetPassID.h"
+#else
 #include "art/Persistency/Provenance/EventID.h"
 #include "art/Persistency/Provenance/FileFormatVersion.h"
-#include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ModuleDescription.h"
 #include "art/Persistency/Provenance/Parentage.h"
 #include "art/Persistency/Provenance/ProcessConfiguration.h"
-#include "art/Persistency/Provenance/ProductMetaData.h"
-#include "art/Persistency/Provenance/RunID.h"
 #include "art/Persistency/Provenance/SubRunID.h"
 #include "art/Persistency/Provenance/Timestamp.h"
+#include "art/Persistency/Provenance/RunID.h"
 #include "art/Utilities/Exception.h"
 #include "art/Utilities/GetPassID.h"
+#endif
 #include "art/Version/GetReleaseVersion.h"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq-core/Data/Fragment.hh"
@@ -79,15 +92,15 @@ public:
   void finalize();
 
   art::MasterProductRegistry  productRegistry_;
-  art::RootDictionaryManager rdm_;
+  //art::RootDictionaryManager rdm_;
 };
 
 MPRGlobalTestFixture::MPRGlobalTestFixture()
   :
   branchKeys_(),
   processConfigurations_(),
-  productRegistry_(),
-  rdm_()
+  productRegistry_()//,
+//  rdm_()
 {
   // We can only insert products registered in the MasterProductRegistry.
   productRegistry_.addProduct(fake_single_process_branch("hlt",  "HLT"));
@@ -119,7 +132,7 @@ fake_single_module_process(std::string const & tag,
                                  processName);
   auto emplace_pair =
   processConfigurations_.emplace(tag,
-                                 cet::make_unique<art::ProcessConfiguration>(processName, processParams.id(), release, pass));
+                                 std::make_unique<art::ProcessConfiguration>(processName, processParams.id(), release, pass));
   return emplace_pair.first->second.get();
 }
 
@@ -193,7 +206,7 @@ struct REQRTestFixture {
                                 moduleType,
                                 moduleLabel,
                                 *pc_ptr);
-      s_source_helper = cet::make_unique<art::SourceHelper>(md);
+      s_source_helper = std::make_unique<art::SourceHelper>(md);
     }
     return *s_source_helper;
   }

@@ -6,14 +6,17 @@ art_make( BASENAME_ONLY
   NO_PLUGINS
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
+  ${CANVAS_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
   artdaq_DAQrate
   artdaq_DAQdata
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal
+  ${CANVAS}_Persistency_Common
   art_Persistency_Provenance
-  art_Utilities
+  ${CANVAS}_Persistency_Provenance
+  ${CANVAS}_Utilities
   MF_MessageLogger
   ${ROOT_CINTEX}
   ${ROOT_RIO}
@@ -32,9 +35,10 @@ simple_plugin(RawInput "source"
   MF_MessageLogger
 )
 
+simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
+
 simple_plugin(NetMonInput "source"
   artdaq_ArtModules_NetMonTransportService_service
-  artdaq_ArtModules
   artdaq_ArtModules
   art_Framework_Core
   art_Framework_IO_Sources
@@ -109,3 +113,4 @@ simple_plugin(ArtdaqBuildInfo "module"
 
 install_headers(SUBDIRS detail)                                                         
 install_source(SUBDIRS detail)
+install_fhicl(SUBDIRS fcl)
