@@ -25,7 +25,7 @@ xmlrpc_c		v1_39_07
 artdaq_ganglia_plugin   v1_01_00        -       optional
 artdaq_epics_plugin     v1_01_00        -       optional
 cetbuildtools		v5_04_01	-	only_for_build
-smc_compiler		v6_1_0		-	only_for_build
+smc_compiler		v6_1_0		-nq-	only_for_build
 end_product_list
 
 # e6 - with gcc 4.9.1 and -std=c++1y
