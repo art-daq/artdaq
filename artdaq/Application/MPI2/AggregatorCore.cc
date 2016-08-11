@@ -1,3 +1,4 @@
+
 #include "xmlrpc-c/client_simple.hpp"
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
 #ifdef CANVAS
@@ -11,15 +12,19 @@
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
+#include "cetlib/BasicPluginFactory.h"
+
 #include "tracelib.h"		// TRACE
 #include <errno.h>
 
 #include <sstream>
 #include <iomanip>
+#include <bitset>
 
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>    
+
 namespace BFS = boost::filesystem;
 
 const std::string artdaq::AggregatorCore::INPUT_EVENTS_STAT_KEY("AggregatorCoreInputEvents");
@@ -27,6 +32,29 @@ const std::string artdaq::AggregatorCore::INPUT_WAIT_STAT_KEY("AggregatorCoreInp
 const std::string artdaq::AggregatorCore::STORE_EVENT_WAIT_STAT_KEY("AggregatorCoreStoreEventWaitTime");
 const std::string artdaq::AggregatorCore::SHM_COPY_TIME_STAT_KEY("AggregatorCoreShmCopyTime");
 const std::string artdaq::AggregatorCore::FILE_CHECK_TIME_STAT_KEY("AggregatorCoreFileCheckTime");
+
+namespace artdaq {
+
+  void display_bits(void* memstart, size_t nbytes, std::string sourcename) {
+
+    std::stringstream bitstr;
+    bitstr << "The " << nbytes << "-byte chunk of memory beginning at " << static_cast<void*>(memstart) << " is : ";
+
+    for(unsigned int i = 0; i < nbytes; i++) {
+
+      if (i % 4 == 0) {
+	bitstr << "\n";
+      }
+
+      bitstr << std::bitset<8>(*((reinterpret_cast<uint8_t*>(memstart))+i)) << " ";
+    }
+
+    mf::LogDebug(sourcename.c_str()) << bitstr.str();
+  }
+
+
+}
+
 
 /**
  * Constructor.
@@ -38,8 +66,7 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   data_sender_count_(0), event_queue_(artdaq::getGlobalQueue(10)),
   stop_requested_(false), local_pause_requested_(false),
   processing_fragments_(false),
-  system_pause_requested_(false), previous_run_duration_(-1.0),
-  shm_segment_id_(-1), shm_ptr_(NULL)
+  system_pause_requested_(false), previous_run_duration_(-1.0)
 {
   mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
@@ -136,8 +163,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     return false;
   }
 
-  enq_timeout_ = agg_pset.get<daqrate::seconds>("enq_timeout", 
-						static_cast<daqrate::seconds>(5.0));
+  enq_timeout_ = static_cast<daqrate::seconds>( agg_pset.get<size_t>("enq_timeout", 5.0) ); 
 
   // 15-Jun-2016, KAB: added ability to specify either is_data_logger or
   // is_online_monitor in the parameter set.  If neither are set in the PSet,
@@ -280,6 +306,35 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     }
   }
 
+  fhicl::ParameterSet transfer_pset;
+
+  try {
+    transfer_pset = daq_pset.get<fhicl::ParameterSet>("monitoring_transfer");
+  }  catch (...) {
+    mf::LogError(name_)
+      << "Unable to find the transfer plugin parameters in the daq "
+      << "ParameterSet: \"" + transfer_pset.to_string() + "\".";
+    return false;
+  }
+
+  try {
+    static cet::BasicPluginFactory bpf("transfer", "make");
+
+    auto role = is_data_logger_ ? TransferInterface::Role::send : TransferInterface::Role::receive ;
+
+    transfer_ =  
+      bpf.makePlugin<std::unique_ptr<TransferInterface>,
+      const fhicl::ParameterSet&,
+      TransferInterface::Role>(
+			      transfer_pset.get<std::string>("transferPluginType"), 
+			      transfer_pset, 
+			      std::move(role));
+  } catch(...) {
+    ExceptionHandler(ExceptionHandlerRethrow::yes,
+		     "Error creating transfer plugin in AggregatorCore::initialize()");
+  }
+
+
   if (event_store_ptr_ == nullptr) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
     size_t desired_events_per_bunch = expected_events_per_bunch_;
@@ -312,7 +367,6 @@ bool artdaq::AggregatorCore::start(art::RunID id)
   event_count_in_run_ = 0;
   event_count_in_subrun_ = 0;
   subrun_start_time_ = time(0);
-  fragment_count_to_shm_ = 0;
   stats_helper_.resetStatistics();
   previous_run_duration_ = -1.0;
 
@@ -397,6 +451,7 @@ bool artdaq::AggregatorCore::reinitialize(fhicl::ParameterSet const& pset)
 
 size_t artdaq::AggregatorCore::process_fragments()
 {
+
   processing_fragments_.store(true);
   size_t true_data_sender_count = data_sender_count_;
   if (is_online_monitor_) {
@@ -418,10 +473,6 @@ size_t artdaq::AggregatorCore::process_fragments()
                                              max_fragment_size_words_,
                                              true_data_sender_count,
                                              first_data_sender_rank_));
-    attachToSharedMemory_(false);
-  }
-  else {
-    attachToSharedMemory_(true);
   }
 
   mf::LogDebug(name_) << "Waiting for first fragment.";
@@ -438,7 +489,8 @@ size_t artdaq::AggregatorCore::process_fragments()
       senderSlot = receiver_ptr_->recvFragment(*fragmentPtr, recvTimeout);
     }
     else if (is_online_monitor_) {
-      senderSlot = receiveFragmentFromSharedMemory_(*fragmentPtr, recvTimeout);
+
+      senderSlot = transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
     }
     else {
       usleep(recvTimeout);
@@ -463,6 +515,7 @@ size_t artdaq::AggregatorCore::process_fragments()
           << "The receiving of data has stopped, but no endSubRun message "
           << "is available to send to art.";
       }
+
       process_fragments = false;
       continue;
     }
@@ -514,6 +567,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         }
         process_fragments = false;
       }
+
       continue;
     }
     if (senderSlot >= fragments_received.size()) {
@@ -573,9 +627,10 @@ size_t artdaq::AggregatorCore::process_fragments()
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     bool fragmentWasCopied = false;
     if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0) {
-      copyFragmentToSharedMemory_(fragmentWasCopied,
-                                  esrWasCopied, eodWasCopied,
-                                  *fragmentPtr, 0);
+
+      transfer_->copyFragmentTo(fragmentWasCopied,
+				esrWasCopied, eodWasCopied,
+				*fragmentPtr, 0);
     }
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
@@ -592,9 +647,10 @@ size_t artdaq::AggregatorCore::process_fragments()
       if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
         mf::LogDebug(name_) << "Init";
         if (is_data_logger_) {
-          copyFragmentToSharedMemory_(fragmentWasCopied,
-                                      esrWasCopied, eodWasCopied,
-                                      *fragmentPtr, 500000);
+
+	  transfer_->copyFragmentTo(fragmentWasCopied,
+	   			   esrWasCopied, eodWasCopied,
+				    *fragmentPtr, 500000);
         }
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
@@ -619,7 +675,7 @@ size_t artdaq::AggregatorCore::process_fragments()
               try_again = false;
               process_fragments = false;
               fragmentPtr = std::move(rejectedFragment);
-              mf::LogWarning("EventBuilderCore")
+              mf::LogWarning(name_)
                 << "Unable to process event " << fragmentPtr->sequenceID()
                 << " because of back-pressure - forcibly ending the run.";
             }
@@ -627,13 +683,13 @@ size_t artdaq::AggregatorCore::process_fragments()
               try_again = false;
               process_fragments = false;
               fragmentPtr = std::move(rejectedFragment);
-              mf::LogWarning("EventBuilderCore")
+              mf::LogWarning(name_)
                 << "Unable to process event " << fragmentPtr->sequenceID()
                 << " because of back-pressure - forcibly pausing the run.";
             }
             else {
               fragmentPtr = std::move(rejectedFragment);
-              mf::LogWarning("EventBuilderCore")
+              mf::LogWarning(name_)
                 << "Unable to process event " << fragmentPtr->sequenceID()
                 << " because of back-pressure - retrying...";
             }
@@ -644,9 +700,10 @@ size_t artdaq::AggregatorCore::process_fragments()
         }
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType) {
         if (is_data_logger_) {
-          copyFragmentToSharedMemory_(fragmentWasCopied,
-                                      esrWasCopied, eodWasCopied,
-                                      *fragmentPtr, 1000000);
+
+	  transfer_->copyFragmentTo(fragmentWasCopied,
+				    esrWasCopied, eodWasCopied,
+				    *fragmentPtr, 1000000);
         }
         /* We inject the EndSubrun fragment after all other data has been
            received.  The SHandles and RHandles classes do not guarantee that 
@@ -655,9 +712,10 @@ size_t artdaq::AggregatorCore::process_fragments()
         endSubRunMsg = std::move(fragmentPtr);
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType) {
         if (is_data_logger_) {
-          copyFragmentToSharedMemory_(fragmentWasCopied,
-                                      esrWasCopied, eodWasCopied,
-                                      *fragmentPtr, 1000000);
+
+	  transfer_->copyFragmentTo(fragmentWasCopied,
+				    esrWasCopied, eodWasCopied,
+				    *fragmentPtr, 1000000);
         }
         eodFragmentsReceived++;
         /* We count the EOD fragment as a fragment received but the SHandles class
@@ -769,12 +827,7 @@ size_t artdaq::AggregatorCore::process_fragments()
   metricMan_.do_stop();
 
   receiver_ptr_.reset(nullptr);
-  if (is_online_monitor_) {
-    detachFromSharedMemory_(true);
-  }
-  else {
-    detachFromSharedMemory_(false);
-  }
+
   processing_fragments_.store(false);
   return 0;
 }
@@ -1068,177 +1121,5 @@ void artdaq::AggregatorCore::sendMetrics_()
     metricMan_.sendMetric("Average File Check Time",
                           (mqPtr->recentValueSum() / eventCount),
                           "seconds/event", 4);
-  }
-}
-
-void artdaq::AggregatorCore::attachToSharedMemory_(bool initialize)
-{
-  shm_segment_id_ = -1;
-  shm_ptr_ = NULL;
-
-  int shmKey = 0x40470000;
-  char* keyChars = getenv("ARTDAQ_SHM_KEY");
-  if (keyChars != nullptr) {
-    std::string keyString(keyChars);
-    try {
-      shmKey = boost::lexical_cast<int>(keyString);
-    }
-    catch (...) {}
-  }
-
-  shm_segment_id_ =
-    shmget(shmKey, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
-           IPC_CREAT | 0666);
-
-  if (shm_segment_id_ > -1) {
-    mf::LogDebug(name_)
-      << "Created/fetched shared memory segment with ID = " << shm_segment_id_
-      << " and size " << (max_fragment_size_words_ * sizeof(artdaq::RawDataType))
-      << " bytes";
-    shm_ptr_ = (ShmStruct*) shmat(shm_segment_id_, 0, 0);
-    if (shm_ptr_ != NULL) {
-      if (initialize) {
-        shm_ptr_->hasFragment = 0;
-      }
-      mf::LogDebug(name_)
-        << "Attached to shared memory segment at address 0x"
-        << std::hex << shm_ptr_ << std::dec;
-    }
-    else {
-      mf::LogError(name_) << "Failed to attach to shared memory segment "
-                                 << shm_segment_id_;
-    }
-  }
-  else {
-    mf::LogError(name_) << "Failed to connect to shared memory segment"
-                               << ", errno = " << errno << ".  Please check "
-                               << "if a stale shared memory segment needs to "
-                               << "be cleaned up. (ipcs, ipcrm -m <segId>)";
-  }
-}
-
-void artdaq::AggregatorCore::
-copyFragmentToSharedMemory_(bool& fragment_has_been_copied,
-                            bool& esr_has_been_copied,
-                            bool& eod_has_been_copied,
-                            artdaq::Fragment& fragment,
-                            size_t send_timeout_usec)
-{
-  // check if the fragment has already been copied to shared memory
-  if (fragment_has_been_copied) {return;}
-
-  // check if a fragment of this type has already been copied to shm
-  size_t fragmentType = fragment.type();
-  if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType &&
-      esr_has_been_copied) {return;}
-  if (fragmentType == artdaq::Fragment::EndOfDataFragmentType &&
-      eod_has_been_copied) {return;}
-
-  // verify that we have a shared memory segment
-  if (shm_ptr_ == NULL) {return;}
-
-  // wait for the shm to become free, if requested
-  if (send_timeout_usec > 0) {
-    size_t sleepTime = (send_timeout_usec / 10);
-    int loopCount = 0;
-    while (shm_ptr_->hasFragment == 1 && loopCount < 10) {
-      if (fragmentType != artdaq::Fragment::DataFragmentType) {
-        mf::LogDebug(name_) << "Trying to copy fragment of type "
-                                   << fragmentType
-                                   << ", loopCount = "
-                                   << loopCount;
-      }
-      usleep(sleepTime);
-      ++loopCount;
-    }
-  }
-
-  // copy the fragment if the shm is available
-  if (shm_ptr_->hasFragment == 0) {
-    artdaq::RawDataType* fragAddr = fragment.headerAddress();
-    size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
-
-    // 10-Sep-2013, KAB - protect against large events and
-    // invalid events (and large, invalid events)
-    if (fragment.type() != artdaq::Fragment::InvalidFragmentType &&
-        fragSize < ((max_fragment_size_words_ *
-                     sizeof(artdaq::RawDataType)) -
-                    sizeof(ShmStruct))) {
-      memcpy(&shm_ptr_->fragmentInnards[0], fragAddr, fragSize);
-      shm_ptr_->fragmentSizeWords = fragment.size();
-
-      fragment_has_been_copied = true;
-      if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType) {
-        esr_has_been_copied = true;
-      }
-      if (fragmentType == artdaq::Fragment::EndOfDataFragmentType) {
-        eod_has_been_copied = true;
-      }
-
-      shm_ptr_->hasFragment = 1;
-
-      ++fragment_count_to_shm_;
-      if ((fragment_count_to_shm_ % 250) == 0) {
-        mf::LogDebug(name_) << "Copied " << fragment_count_to_shm_
-                                   << " fragments to shared memory in this run.";
-      }
-    }
-    else {
-      mf::LogWarning(name_) << "Fragment invalid for shared memory! "
-                                   << "fragment address and size = "
-                                   << fragAddr << " " << fragSize << " "
-                                   << "sequence ID, fragment ID, and type = "
-                                   << fragment.sequenceID() << " "
-                                   << fragment.fragmentID() << " "
-                                   << ((int) fragment.type());
-    }
-  }
-}
-
-size_t artdaq::AggregatorCore::
-receiveFragmentFromSharedMemory_(artdaq::Fragment& fragment,
-                                 size_t receiveTimeout)
-{
-  if (shm_ptr_ != NULL) {
-    int loopCount = 0;
-    size_t sleepTime = receiveTimeout / 10;
-    while (shm_ptr_->hasFragment == 0 && loopCount < 10) {
-      usleep(sleepTime);
-      ++loopCount;
-    }
-    if (shm_ptr_->hasFragment == 1) {
-      fragment.resize(shm_ptr_->fragmentSizeWords);
-      artdaq::RawDataType* fragAddr = fragment.headerAddress();
-      size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
-      memcpy(fragAddr, &shm_ptr_->fragmentInnards[0], fragSize);
-      shm_ptr_->hasFragment = 0;
-
-      if (fragment.type() != artdaq::Fragment::DataFragmentType) {
-        mf::LogDebug(name_)
-          << "Received fragment from shared memory, type ="
-          << ((int)fragment.type()) << ", sequenceID = "
-          << fragment.sequenceID();
-      }
-
-      return first_data_sender_rank_;
-    }
-    else {
-      return artdaq::RHandles::RECV_TIMEOUT;
-    }
-  }
-  else {
-    usleep(receiveTimeout);
-    return artdaq::RHandles::RECV_TIMEOUT;
-  }
-}
-
-void artdaq::AggregatorCore::detachFromSharedMemory_(bool destroy)
-{
-  if (shm_ptr_ != NULL) {
-    shmdt(shm_ptr_);
-    shm_ptr_ = NULL;
-  }
-  if (destroy && shm_segment_id_ > -1) {
-    shmctl(shm_segment_id_, IPC_RMID, NULL);
   }
 }
