@@ -9,7 +9,6 @@ art_make_library( LIBRARY_NAME artdaq_Application
   configureMessageFacility
   CommandableFragmentGenerator
   makeCommandableFragmentGenerator
-  TriggeredFragmentGenerator
   LIBRARIES
   artdaq_DAQrate
   artdaq-core_Utilities
@@ -27,5 +26,6 @@ simple_plugin(CompositeDriver "generator" artdaq_DAQdata artdaq_Application)
 
 install_headers()
 install_source()
+install_fhicl()
 
 add_subdirectory(MPI2)
