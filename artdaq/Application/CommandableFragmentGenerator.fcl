@@ -1,7 +1,8 @@
 # This file contains the default values for all CommandableFragmentGenerator FHiCL parameters
-# Feel free to include it in your CommandableFragmentGenerator subclass' configurations
+# Feel free to include it in your CommandableFragmentGenerator subclass configurations
+# See artdaq_demo/tools/generateFragmentReceiver.rb for an example
 
-# board_id: # NO DEFAULT VALUE!
+# board_id: # NO DEFAULT VALUE
 
 fragment_ids: []
 fragment_id: -99 # Please define only one of these
@@ -12,7 +13,7 @@ sleep_on_stop_us: 0
 
 # Trigger configuration
 triggers_enabled: false # Whether to set up the socket for listening for trigger messages
-trigger_mode: ignored # Possible values are: Ignored, Single, Buffer, Window
+trigger_mode: "Ignored" # Possible values are: Ignored, Single, Buffer, Window
                       # Ignored: Trigger messages are ignored. Same as triggers disabled
                       # Single: When trigger is received, sends last data point received
                       # Buffer: When trigger is received, sends all data recieved since last trigger
@@ -20,14 +21,14 @@ trigger_mode: ignored # Possible values are: Ignored, Single, Buffer, Window
 
 # Trigger Socket configuration
 trigger_port: 5001
-trigger_address: 227.128.12.26 # Multicast trigger address
+trigger_address: "227.128.12.26" # Multicast trigger address
 
 # Window Trigger configuration
 # For Window trigger, timestamp must be filled in Fragment. 
 # Timestamp is arbitrary, but must be a "clock" in that it is a monotonically-increasing number
 trigger_window_offset: 0 # Trigger message contains tzero. Window will be from tzero - offset to tz-o + width
 trigger_window_width: 0
-stale_trigger_timeout: 0xFFFFFFFF # How long to wait before discarding trigger messages that are outside the available data
+stale_trigger_timeout: "0xFFFFFFFF" # How long to wait before discarding trigger messages that are outside the available data
 trigger_windows_are_unique: true # If trigger windows are unique, avoids a copy operation, but the same data point cannot be used for two triggers. If this is not anticipated, leave set to "true"
 
 # Threading
@@ -35,3 +36,4 @@ separate_data_thread: false # MUST be true for triggers to be applied! If trigge
 separate_monitoring_thread: false # Whether a thread should be started which periodically calls checkHWStatus_, a user-defined function which should be used to check hardware status registers and report to MetricMan.
 poll_hardware_status: false # Whether checkHWStatus_ will be called, either through the thread or at the start of getNext
 hardware_poll_interval_us: 1000000 # If hardware monitoring thread is enabled, how often should it call checkHWStatus_
+
