@@ -501,19 +501,19 @@ size_t artdaq::AggregatorCore::process_fragments()
     if (senderSlot == (size_t) MPI_ANY_SOURCE) {
       if (endSubRunMsg != nullptr) {
         mf::LogInfo(name_)
-          << "The receiving of data has stopped - ending the run.";
+          << "There appears to be no more data to receive - ending the run.";
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
         bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
         if (! enqStatus) {
-          mf::LogError(name_) << "Failed to enqueue SubRun event.";
+          mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
+	    enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
         }
       }
       else {
         mf::LogError(name_)
-          << "The receiving of data has stopped, but no endSubRun message "
-          << "is available to send to art.";
+          << "There appears to be no more data to receive, but the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking";
       }
 
       process_fragments = false;
@@ -524,24 +524,24 @@ size_t artdaq::AggregatorCore::process_fragments()
           recvTimeout == endrun_recv_timeout_usec_) {
         if (endSubRunMsg != nullptr) {
           mf::LogWarning(name_)
-            << "Stop timeout expired - forcibly ending the run.";
+            << "Timeout occurred in attempt to receive data, but as a stop has been requested, will forcibly end the run.";
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
           bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
           if (! enqStatus) {
-            mf::LogError(name_) << "Failed to enqueue SubRun event.";
+	    mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
+	      enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
           }
         }
         else {
           if (event_count_in_subrun_ > 0) {
             mf::LogError(name_)
-              << "Timeout receiving fragments after stop, but no endSubRun message "
-              << "is available to send to art.";
+              << "Timeout receiving data after stop request, and the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking";
           }
           else {
-            std::string msg("Timeout receiving fragments after stop, but no ");
-            msg.append("endSubRun message is available to send to art.");
+            std::string msg("Timeout receiving data after stop request, and the EndOfSubRun fragment isn't available to send to art;");
+            msg.append("DAQ may need to be returned to the \"Stopped\" state before further datataking");
             logMessage_(msg);
           }
         }
@@ -551,19 +551,19 @@ size_t artdaq::AggregatorCore::process_fragments()
                recvTimeout == pause_recv_timeout_usec_) {
         if (endSubRunMsg != nullptr) {
           mf::LogWarning(name_)
-            << "Pause timeout expired - forcibly pausing the run.";
+	    << "Timeout occurred in attempt to receive data, but as a pause has been requested, will forcibly pause the run.";
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
           bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
           if (! enqStatus) {
-            mf::LogError(name_) << "Failed to enqueue SubRun event.";
+            mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
+	      enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
           }
         }
         else {
-          mf::LogError(name_)
-            << "Timeout receiving fragments after pause, but no endSubRun message "
-            << "is available to send to art.";
+          mf::LogError(name_) <<
+	    "Timeout receiving data after pause request, and the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking";
         }
         process_fragments = false;
       }
@@ -656,9 +656,12 @@ size_t artdaq::AggregatorCore::process_fragments()
         initEvent->insertFragment(std::move(fragmentPtr));
         bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout_);
         if (! enqStatus) {
-          mf::LogError(name_) << "Failed to enqueue INIT event.";
+          mf::LogError(name_) << "Attempt to send Init event to art timed out after " <<
+	    enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
         }
         art_initialized_ = true;
+      } else {
+	mf::LogError(name_) << "Didn't receive an Init event with which to initialize art; DAQ may need to be returned to the \"Stopped\" state before further datataking";
       }
     } else {
       /* Note that in the currently implementation of the NetMon output/input
@@ -792,9 +795,12 @@ size_t artdaq::AggregatorCore::process_fragments()
         subRunEvent->insertFragment(std::move(endSubRunMsg));
         bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
         if (! enqStatus) {
-          mf::LogError(name_) << "Failed to enqueue SubRun event.";
+          mf::LogError(name_) << "All data appears to have been received but attempt to send EndOfSubRun fragment to art timed out after " <<
+	    enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
         }
         process_fragments = false;
+      } else {
+	mf::LogWarning(name_) << "EndOfSubRun fragment and all EndOfData fragments received but more data expected";
       }
     }
   }
