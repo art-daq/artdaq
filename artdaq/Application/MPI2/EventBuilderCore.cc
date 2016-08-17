@@ -366,7 +366,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
                            (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
     if (senderSlot == (size_t) MPI_ANY_SOURCE) {
       mf::LogInfo(name_)
-        << "The receiving of data has stopped - ending the run.";
+	<< "There appears to be no more data to receive - ending the run.";
       event_store_ptr_->flushData();
       flush_mutex_.unlock();
       process_fragments = false;
@@ -375,16 +375,16 @@ size_t artdaq::EventBuilderCore::process_fragments()
     else if (senderSlot == artdaq::RHandles::RECV_TIMEOUT) {
       if (stop_requested_.load() &&
           recvTimeout == endrun_recv_timeout_usec_) {
-        mf::LogWarning(name_)
-          << "Stop timeout expired - forcibly ending the run.";
+	mf::LogWarning(name_)
+	  << "Timeout occurred in attempt to receive data, but as a stop has been requested, will forcibly end the run.";
 	event_store_ptr_->flushData();
 	flush_mutex_.unlock();
 	process_fragments = false;
       }
       else if (pause_requested_.load() &&
                recvTimeout == pause_recv_timeout_usec_) {
-        mf::LogWarning(name_)
-          << "Pause timeout expired - forcibly pausing the run.";
+	mf::LogWarning(name_)
+	  << "Timeout occurred in attempt to receive data, but as a pause has been requested, will forcibly pause the run.";
 	event_store_ptr_->flushData();
 	flush_mutex_.unlock();
 	process_fragments = false;
@@ -488,6 +488,8 @@ size_t artdaq::EventBuilderCore::process_fragments()
 	event_store_ptr_->flushData();
 	flush_mutex_.unlock();
 	process_fragments = false;
+      } else {
+	mf::LogWarning(name_) << "All EndOfData fragments received but more data expected";
       }
     }
   }
