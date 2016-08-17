@@ -11,6 +11,7 @@ art_make_library( LIBRARY_NAME artdaq_Application
   makeCommandableFragmentGenerator
   LIBRARIES
   artdaq_DAQrate
+  artdaq-core_Data
   artdaq-core_Utilities
   ${ART_UTILITIES}
   ${MF_MESSAGELOGGER}

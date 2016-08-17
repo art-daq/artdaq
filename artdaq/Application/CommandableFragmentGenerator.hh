@@ -88,13 +88,16 @@ namespace artdaq {
 		// If we're using the dataThread, this method looks for active triggers
 		// and returns matching data
 		virtual bool applyTriggers(FragmentPtrs & output) final;
-	  void setupTriggerListener();
+		void setupTriggerListener();
+		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, std::string desc);
 
 		void startDataThread();
 		void startMonitoringThread();
+		void startTriggerReceiverThread();
 
 		void getDataLoop();
 		void getMonitoringDataLoop();
+		void receiveTriggersLoop();
 
 		virtual std::vector<Fragment::fragment_id_t> fragmentIDs() {
 			return fragment_ids_;
@@ -203,14 +206,16 @@ namespace artdaq {
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
-	  bool listenForTriggers_;
+		bool listenForTriggers_;
 		int triggerport_;
 		std::string trigger_addr_;
 
 		//Socket parameters
 		struct sockaddr_in si_data_;
 		int triggersocket_;
-		std::queue< detail::TriggerMessage > triggerBuffer_;
+		std::list< detail::TriggerMessage > triggerBuffer_;
+		std::mutex triggerBufferMutex_;
+		std::thread triggerThread_;
 
 		TriggerMode mode_;
 		Fragment::timestamp_t windowOffset_;
@@ -226,8 +231,8 @@ namespace artdaq {
 		bool useMonitoringThread_;
 		bool collectMonitoringData_;
 		std::thread monitoringThread_;
-	  int64_t monitoringInterval_; // Microseconds
-	  std::chrono::steady_clock::time_point lastMonitoringCall_;
+		int64_t monitoringInterval_; // Microseconds
+		std::chrono::steady_clock::time_point lastMonitoringCall_;
 		bool isHardwareOK_;
 
 		FragmentPtrs dataBuffer_;

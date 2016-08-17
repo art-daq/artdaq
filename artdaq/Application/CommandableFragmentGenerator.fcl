@@ -20,7 +20,7 @@ trigger_mode: "Ignored" # Possible values are: Ignored, Single, Buffer, Window
                       # Window: When trigger is received, sends all data satisfying timestamp window defined below
 
 # Trigger Socket configuration
-trigger_port: 5001
+trigger_port: 3001
 trigger_address: "227.128.12.26" # Multicast trigger address
 
 # Window Trigger configuration
