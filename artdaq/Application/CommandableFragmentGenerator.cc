@@ -618,11 +618,13 @@ bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & 
 			Fragment::timestamp_t max = min + windowWidth_;
 			mf::LogDebug("CommandableFragmentGenerator") << "min is " << min << " and max is " << max << " and last point in buffer is " << (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0);
 			bool windowClosed = mode_ != TriggerMode::Window || (dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max);
-			if (windowClosed) {
+			if (windowClosed || should_stop()) {
 				mf::LogDebug("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-triggered Fragments";
 				frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
 				frags.back()->setTimestamp(trigger.timestamp());
 				ContainerFragmentLoader cfl(*frags.back());
+
+                if(mode_ == TriggerMode::Window && should_stop() && !windowClosed) cfl.set_missing_data(true);
 
 				// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
 				// Window mode TFGs must do a little bit more work to decide which fragments to send for a given trigger
@@ -651,12 +653,6 @@ bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & 
 					}
 				}
 				fragSent = true;
-			}
-			else if(should_stop())
-			{
-				//Poor lonely trigger, no data will ever satisfy it...
-				sendEmptyFragment(frags, ev_counter(), "No data and data-taking stopped for ");
-					fragSent = true;
 			}
 			else
 			{
