@@ -176,6 +176,10 @@ namespace artdaq {
 		uint64_t timestamp() const { return timestamp_; }
 		bool should_stop() const { return should_stop_.load(); }
 
+		// ELF: 8/18/16: If we're running in a threaded way, we should let the applyTriggers
+		// routine clear out the trigger buffer before stopping.
+		bool check_stop();
+
 		int board_id() const { return board_id_; }
 
 		int fragment_id() const;

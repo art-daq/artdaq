@@ -192,7 +192,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
 
 	bool result = true;
 
-	if (should_stop()) usleep(sleep_on_stop_us_);
+	if (check_stop()) usleep(sleep_on_stop_us_);
 	if (exception()) return false;
 
 	if (!useMonitoringThread_ && collectMonitoringData_) {
@@ -244,6 +244,17 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
 
 }
 
+bool artdaq::CommandableFragmentGenerator::check_stop()
+{
+	if (!should_stop()) return false;
+	if(!useDataThread_) return true;
+
+	triggerBufferMutex_.lock();
+	bool ready = triggerBuffer_.size() == 0;
+	triggerBufferMutex_.unlock();
+	return ready;
+}
+
 int artdaq::CommandableFragmentGenerator::fragment_id() const {
 
 	if (fragment_ids_.size() != 1) {
@@ -274,6 +285,8 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	run_number_ = run;
 	subrun_number_ = 1;
 	latest_exception_report_ = "none";
+	dataBuffer_.clear();
+	triggerBuffer_.clear();
 
 	start();
 
@@ -314,6 +327,9 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 
 	subrun_number_ += 1;
 	should_stop_ = false;
+
+	dataBuffer_.clear();
+	triggerBuffer_.clear();
 
 	// no lock required: thread not started yet
 	resume();
@@ -382,7 +398,7 @@ bool artdaq::CommandableFragmentGenerator::checkHWStatus_() {
 
 void artdaq::CommandableFragmentGenerator::startDataThread()
 {
-	if (dataThread_.joinable())  dataThread_.join();
+	if (dataThread_.joinable()) dataThread_.join();
 	mf::LogInfo("CommandableFragmentGenerator") << "Starting Data Receiver Thread" << std::endl;
 	dataThread_ = std::thread(&CommandableFragmentGenerator::getDataLoop, this);
 }
@@ -421,6 +437,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 {
 	while (true) {
 		if (should_stop() || !isHardwareOK_) {
+			mf::LogDebug("CommandableFragmentGenerator") << "should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_;
 			return;
 		}
 
@@ -469,6 +486,7 @@ void artdaq::CommandableFragmentGenerator::receiveTriggersLoop()
 	{
 		if (should_stop() || !isHardwareOK_)
 		{
+			mf::LogDebug("CommandableFragmentGenerator") << "should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_;
 			return;
 		}
 
@@ -491,8 +509,7 @@ void artdaq::CommandableFragmentGenerator::receiveTriggersLoop()
 					mf::LogDebug("CommandableFragmentGenerator") << "Recieved trigger for sequence ID " << buffer.sequence_id << " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
 					triggerBufferMutex_.lock();
 					triggerBuffer_.push_back(detail::TriggerMessage(buffer));
-					triggerBuffer_.sort([](const detail::TriggerMessage& a, const detail::TriggerMessage& b) { return a.sequence_id() < b.sequence_id(); });
-					while (triggerBuffer_.size() > 0 && triggerBuffer_.front().sequence_id() < ev_counter()) { triggerBuffer_.pop_front(); }
+					//triggerBuffer_.sort([](const detail::TriggerMessage& a, const detail::TriggerMessage& b) { return a.sequence_id() < b.sequence_id(); });
 					triggerBufferMutex_.unlock();
 				}
 			}
@@ -501,14 +518,14 @@ void artdaq::CommandableFragmentGenerator::receiveTriggersLoop()
 }
 
 bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & frags) {
-	if (should_stop()) {
+	if (check_stop()) {
 		return false;
 	}
 
 	bool triggerReady = false;
 	while ((!haveData_ && mode_ == TriggerMode::Ignored) || !triggerReady)
 	{
-		if (should_stop()) {
+		if (check_stop()) {
 			return false;
 		}
 
@@ -520,14 +537,16 @@ bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & 
 			{
 				dataBuffer_.erase(dataBuffer_.begin());
 			}
-			Fragment::timestamp_t last = dataBuffer_.back()->timestamp();
-			Fragment::timestamp_t min = last > staleTimeout_ ? last - staleTimeout_ : 0;
-			for (auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
-			{
-				if ((*it)->timestamp() < min) {
-					it = dataBuffer_.erase(it);
-					if (it == dataBuffer_.end()) break;
-					--it;
+			if (dataBuffer_.size() > 0) {
+				Fragment::timestamp_t last = dataBuffer_.back()->timestamp();
+				Fragment::timestamp_t min = last > staleTimeout_ ? last - staleTimeout_ : 0;
+				for (auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
+				{
+					if ((*it)->timestamp() < min) {
+						it = dataBuffer_.erase(it);
+						if (it == dataBuffer_.end()) break;
+						--it;
+					}
 				}
 			}
 		}
@@ -543,6 +562,7 @@ bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & 
 
 		triggerBufferMutex_.lock();
 		//mf::LogDebug("CommandableFragmentGenerator") << "Trigger buffer size is " << triggerBuffer_.size();
+		while (triggerBuffer_.size() > 0 && triggerBuffer_.front().sequence_id() < ev_counter()) { triggerBuffer_.pop_front(); }
 		triggerReady = triggerBuffer_.size() > 0;
 		triggerBufferMutex_.unlock();
 	}
@@ -632,6 +652,12 @@ bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & 
 				}
 				fragSent = true;
 			}
+			else if(should_stop())
+			{
+				//Poor lonely trigger, no data will ever satisfy it...
+				sendEmptyFragment(frags, ev_counter(), "No data and data-taking stopped for ");
+					fragSent = true;
+			}
 			else
 			{
 				// Put the trigger back for next time
@@ -654,7 +680,7 @@ bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & 
 		ev_counter_inc(1, true);
 	}
 
-	mf::LogInfo("CommandableFragmentGenerator") << "Finished Processing Event " << ev_counter() - 1 << " for fragment_id " << fragment_id() << ".";
+	if(frags.size() > 0 ) mf::LogInfo("CommandableFragmentGenerator") << "Finished Processing Event " << ev_counter() - 1 << " for fragment_id " << fragment_id() << ".";
 	return true;
 }
 

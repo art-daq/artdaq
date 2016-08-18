@@ -39,7 +39,7 @@ namespace artdaq {
 		events_(),
 		queue_(getGlobalQueue(max_queue_size_)),
 		reader_thread_(std::async(std::launch::async, reader, argc, argv)),
-		send_triggers_(pset.get<bool>("send_triggers", true)),
+		send_triggers_(pset.get<bool>("send_triggers", false)),
 		trigger_port_(pset.get<int>("trigger_port", 3001)),
 		trigger_delay_(pset.get<size_t>("trigger_delay", 10)),
 		seqIDModulus_(1),
@@ -70,7 +70,7 @@ namespace artdaq {
 		events_(),
 		queue_(getGlobalQueue(max_queue_size_)),
 		reader_thread_(std::async(std::launch::async, reader, configString)),
-		send_triggers_(pset.get<bool>("send_triggers", true)),
+		send_triggers_(pset.get<bool>("send_triggers", false)),
 		trigger_port_(pset.get<int>("trigger_port", 3001)),
 		trigger_delay_(pset.get<size_t>("trigger_delay", 10)),
 		seqIDModulus_(1),
@@ -112,13 +112,17 @@ namespace artdaq {
 		// continuous sequence IDs together.
 		if (pfrag->sequenceID() > highestSeqIDSeen_) {
 			highestSeqIDSeen_ = pfrag->sequenceID();
+
+			// Get the timestamp of this fragment, in experiment-defined clocks
+			Fragment::timestamp_t timestamp = pfrag->timestamp();
+
+			// Trigger the board readers!
+			if (send_triggers_) { send_trigger_(highestSeqIDSeen_, timestamp); }
 		}
 		Fragment::sequence_id_t sequence_id = ((pfrag->sequenceID() - (1 + lastFlushedSeqID_)) / seqIDModulus_) + 1;
 		TRACE(13, "EventStore::insert seq=%lu fragID=%d id=%d lastFlushed=%lu seqIDMod=%d seq=%lu"
 			, pfrag->sequenceID(), pfrag->fragmentID(), id_, lastFlushedSeqID_, seqIDModulus_, sequence_id);
 
-		// Get the timestamp of this fragment, in experiment-defined clocks
-		Fragment::timestamp_t timestamp = pfrag->timestamp();
 
 		// Find if the right event id is already known to events_ and, if so, where
 		// it is.
@@ -131,8 +135,6 @@ namespace artdaq {
 			loc =
 				events_.insert(loc, EventMap::value_type(sequence_id, newevent));
 
-			// Trigger the board readers!
-			if (send_triggers_) { send_trigger_(sequence_id, timestamp); }
 		}
 
 		// Now insert the fragment into the event we have located.
