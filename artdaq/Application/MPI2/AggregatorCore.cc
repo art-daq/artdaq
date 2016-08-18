@@ -187,6 +187,14 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     catch (...) {} // leave agtype_was_specified set to false
   }
   if (! agtype_was_specified) {
+    try {
+      is_dispatcher_ = agg_pset.get<bool>("is_dispatcher");
+      agtype_was_specified = true;
+    }
+    catch (...) {} // leave agtype_was_specified set to false
+  }
+
+  if (! agtype_was_specified) {
     if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
       is_data_logger_ = true;
     }
@@ -306,34 +314,22 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     }
   }
 
-  fhicl::ParameterSet transfer_pset;
-
   try {
-    transfer_pset = daq_pset.get<fhicl::ParameterSet>("monitoring_transfer");
-  }  catch (...) {
-    mf::LogError(name_)
-      << "Unable to find the transfer plugin parameters in the daq "
-      << "ParameterSet: \"" + transfer_pset.to_string() + "\".";
+
+    if (is_data_logger_) {
+      data_logger_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::send);
+    } else if (is_online_monitor_) {
+      data_logger_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
+    } else if (is_dispatcher_) {
+      data_logger_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
+      dispatcher_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_monitors", TransferInterface::Role::send);
+    }
+    
+  } catch(...) {
+    ExceptionHandler(ExceptionHandlerRethrow::no,
+  		     "Error creating transfer plugin in AggregatorCore::initialize()");
     return false;
   }
-
-  try {
-    static cet::BasicPluginFactory bpf("transfer", "make");
-
-    auto role = is_data_logger_ ? TransferInterface::Role::send : TransferInterface::Role::receive ;
-
-    transfer_ =  
-      bpf.makePlugin<std::unique_ptr<TransferInterface>,
-      const fhicl::ParameterSet&,
-      TransferInterface::Role>(
-			      transfer_pset.get<std::string>("transferPluginType"), 
-			      transfer_pset, 
-			      std::move(role));
-  } catch(...) {
-    ExceptionHandler(ExceptionHandlerRethrow::yes,
-		     "Error creating transfer plugin in AggregatorCore::initialize()");
-  }
-
 
   if (event_store_ptr_ == nullptr) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
@@ -485,14 +481,14 @@ size_t artdaq::AggregatorCore::process_fragments()
     else if (local_pause_requested_.load()) {recvTimeout = pause_recv_timeout_usec_;}
 
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
+
     if (is_data_logger_) {
       senderSlot = receiver_ptr_->recvFragment(*fragmentPtr, recvTimeout);
-    }
-    else if (is_online_monitor_) {
-
-      senderSlot = transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
-    }
-    else {
+    } else if (is_online_monitor_) {
+      senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
+    } else if (is_dispatcher_) {
+      senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
+    } else {
       usleep(recvTimeout);
       senderSlot = artdaq::RHandles::RECV_TIMEOUT;
     }
@@ -627,11 +623,15 @@ size_t artdaq::AggregatorCore::process_fragments()
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     bool fragmentWasCopied = false;
     if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0) {
-
-      transfer_->copyFragmentTo(fragmentWasCopied,
-				esrWasCopied, eodWasCopied,
-				*fragmentPtr, 0);
+      data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
+					    esrWasCopied, eodWasCopied,
+					    *fragmentPtr, 0);
+    } else if (is_dispatcher_) {
+      dispatcher_transfer_->copyFragmentTo(fragmentWasCopied,
+					    esrWasCopied, eodWasCopied,
+					    *fragmentPtr, 0);
     }
+
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
 
@@ -648,9 +648,9 @@ size_t artdaq::AggregatorCore::process_fragments()
         mf::LogDebug(name_) << "Init";
         if (is_data_logger_) {
 
-	  transfer_->copyFragmentTo(fragmentWasCopied,
-	   			   esrWasCopied, eodWasCopied,
-				    *fragmentPtr, 500000);
+	  data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
+						esrWasCopied, eodWasCopied,
+						*fragmentPtr, 500000);
         }
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
@@ -704,9 +704,9 @@ size_t artdaq::AggregatorCore::process_fragments()
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType) {
         if (is_data_logger_) {
 
-	  transfer_->copyFragmentTo(fragmentWasCopied,
-				    esrWasCopied, eodWasCopied,
-				    *fragmentPtr, 1000000);
+	  data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
+						esrWasCopied, eodWasCopied,
+						*fragmentPtr, 1000000);
         }
         /* We inject the EndSubrun fragment after all other data has been
            received.  The SHandles and RHandles classes do not guarantee that 
@@ -716,9 +716,9 @@ size_t artdaq::AggregatorCore::process_fragments()
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType) {
         if (is_data_logger_) {
 
-	  transfer_->copyFragmentTo(fragmentWasCopied,
-				    esrWasCopied, eodWasCopied,
-				    *fragmentPtr, 1000000);
+	  data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
+						esrWasCopied, eodWasCopied,
+						*fragmentPtr, 1000000);
         }
         eodFragmentsReceived++;
         /* We count the EOD fragment as a fragment received but the SHandles class
@@ -1128,4 +1128,34 @@ void artdaq::AggregatorCore::sendMetrics_()
                           (mqPtr->recentValueSum() / eventCount),
                           "seconds/event", 4);
   }
+}
+
+std::unique_ptr<artdaq::TransferInterface> 
+artdaq::AggregatorCore::makeTransferPlugin(const fhicl::ParameterSet& pset,
+					   std::string plugin_label,
+					   TransferInterface::Role role) {
+
+  static cet::BasicPluginFactory bpf("transfer", "make");
+
+  fhicl::ParameterSet transfer_pset;
+
+  try {
+    transfer_pset = pset.get<fhicl::ParameterSet>(plugin_label);
+  }  catch (...) {
+    std::stringstream errormsg;
+    errormsg
+      << "Unable to find the transfer plugin parameters in the daq "
+      << "ParameterSet: \"" + transfer_pset.to_string() + "\".";
+    ExceptionHandler(ExceptionHandlerRethrow::yes, errormsg.str());
+  }
+
+  std::unique_ptr<TransferInterface> transfer =  
+    bpf.makePlugin<std::unique_ptr<TransferInterface>,
+    const fhicl::ParameterSet&,
+    TransferInterface::Role>(
+			     transfer_pset.get<std::string>("transferPluginType"), 
+			     transfer_pset, 
+			     std::move(role));  
+
+  return std::move(transfer);
 }

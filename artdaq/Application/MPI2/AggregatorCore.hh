@@ -77,6 +77,7 @@ private:
   int32_t filesize_check_interval_events_;
   bool is_data_logger_;
   bool is_online_monitor_;
+  bool is_dispatcher_;
   daqrate::seconds enq_timeout_;
 
   std::unique_ptr<artdaq::RHandles> receiver_ptr_;
@@ -108,7 +109,11 @@ private:
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
 
-  std::unique_ptr<TransferInterface> transfer_;
+  std::unique_ptr<TransferInterface> makeTransferPlugin(const fhicl::ParameterSet& pset,
+							std::string plugin_label,
+							TransferInterface::Role role);
+  std::unique_ptr<TransferInterface> data_logger_transfer_;
+  std::unique_ptr<TransferInterface> dispatcher_transfer_;
 
 };
 

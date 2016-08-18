@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <limits>
+#include <sstream>
 
 namespace fhicl {
 class ParameterSet;
@@ -50,9 +51,12 @@ private:
   size_t send_timeout_usec_;
   int shm_segment_id_;
   ShmStruct* shm_ptr_;
+  const int shm_key_default_ = 0x40470000;
+  int shm_key_;
+
   size_t fragment_count_to_shm_;
   Role role_;
-  const std::string name_;
+  std::string name_;
 };
 
 }
@@ -63,40 +67,48 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
   first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank")),
   shm_segment_id_(-1),
   shm_ptr_(NULL),
+  shm_key_(pset.get<int>("shm_key", shm_key_default_)),
   fragment_count_to_shm_(0),
-  role_(role),
-  name_("shmemTransfer")
+  role_(role)
 {
-  
-  // Should there be a special function to be called inside of
-  // AggregatorCore::process_fragments() which contains these lines,
-  // or can we leave them in the constructor?
+  std::stringstream namestr;
+  static size_t cntr = 0;
+  namestr << "shmemTransfer_" << cntr++;
+  name_ = namestr.str();
 
-  int shmKey = 0x40470000;
   char* keyChars = getenv("ARTDAQ_SHM_KEY");
-  if (keyChars != NULL) {
+  if (keyChars != NULL && shm_key_ == shm_key_default_) {
     std::string keyString(keyChars);
     try {
-      shmKey = boost::lexical_cast<int>(keyString);
+      shm_key_ = boost::lexical_cast<int>(keyString);
     }
-    catch (...) {}
+    catch (...) {
+      std::stringstream errmsg;
+      errmsg << name_ << ": Problem performing lexical cast on " << keyString;
+      ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str()); 
+    }
   }
 
-  if (role_ == Role::send) {
+  // JCF, Aug-16-2016
+ 
+  // Note that there's a small but nonzero chance of a race condition
+  // here where another process creates the shared memory buffer
+  // between the first and second calls to shmget
+
+  shm_segment_id_ =
+    shmget(shm_key_, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
+	   0666);
+  
+  if (shm_segment_id_ == -1) {
     shm_segment_id_ =
-      shmget(shmKey, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
-			            IPC_CREAT | 0666);
-  } else {
-    shm_segment_id_ =
-      shmget(shmKey, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
-	     0666);
+      shmget(shm_key_, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
+	     IPC_CREAT | 0666);
   }
   
-  mf::LogDebug(name_) << "shmKey == " << shmKey << ", shm_segment_id == " << shm_segment_id_;
+  mf::LogInfo(name_) << "shm_key == " << shm_key_ << ", shm_segment_id == " << shm_segment_id_;
 
   if (shm_segment_id_ > -1) {
-    //    mf::LogDebug(name_)
-    mf::LogInfo(name_)
+    mf::LogDebug(name_)
       << "Created/fetched shared memory segment with ID = " << shm_segment_id_
       << " and size " << (max_fragment_size_words_ * sizeof(artdaq::RawDataType))
       << " bytes";
@@ -105,9 +117,8 @@ artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role)
       if (role_ == Role::receive) {
         shm_ptr_->hasFragment = 0;
       }
-      //mf::LogDebug(name_)
-      mf::LogInfo(name_)
-        << "Attached to shared memory segment at address 0x"
+      mf::LogDebug(name_)
+        << "Attached to shared memory segment at address "
         << std::hex << shm_ptr_ << std::dec;
     }
     else {
