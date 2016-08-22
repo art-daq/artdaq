@@ -487,7 +487,17 @@ size_t artdaq::AggregatorCore::process_fragments()
     } else if (is_online_monitor_) {
       senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
     } else if (is_dispatcher_) {
-      senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
+
+      // JCF, Aug-22-2016
+      // Avoid a hang if the subrun's already ended
+
+      if (!stop_requested_.load() && !local_pause_requested_.load()) {
+	senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
+      } else {
+	process_fragments = false;
+	continue;
+      }
+
     } else {
       usleep(recvTimeout);
       senderSlot = artdaq::RHandles::RECV_TIMEOUT;
@@ -623,13 +633,19 @@ size_t artdaq::AggregatorCore::process_fragments()
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     bool fragmentWasCopied = false;
     if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0) {
+
       data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
 					    esrWasCopied, eodWasCopied,
 					    *fragmentPtr, 0);
     } else if (is_dispatcher_) {
-      dispatcher_transfer_->copyFragmentTo(fragmentWasCopied,
-					    esrWasCopied, eodWasCopied,
-					    *fragmentPtr, 0);
+
+      if (fragmentPtr->type() != artdaq::Fragment::EndOfDataFragmentType) {
+	mf::LogInfo(name_) << "Dispatcher: copying seqID = " << fragmentPtr->sequenceID() << ", type = " <<
+	  static_cast<size_t>(fragmentPtr->type());
+	dispatcher_transfer_->copyFragmentTo(fragmentWasCopied,
+					     esrWasCopied, eodWasCopied,
+					     *fragmentPtr, 0);
+      }
     }
 
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
@@ -652,6 +668,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 						esrWasCopied, eodWasCopied,
 						*fragmentPtr, 500000);
         }
+
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
         bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout_);
@@ -708,6 +725,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 						esrWasCopied, eodWasCopied,
 						*fragmentPtr, 1000000);
         }
+
         /* We inject the EndSubrun fragment after all other data has been
            received.  The SHandles and RHandles classes do not guarantee that 
            data will be received in the same order it is sent.  We'll hold on to

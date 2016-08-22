@@ -65,6 +65,13 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) 
     ExceptionHandler(ExceptionHandlerRethrow::yes, 
 		     "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
   }
+
+  static size_t cntr = 1;
+
+  mf::LogInfo("TransferWrapper") << "Received " << cntr++ << "-th event, "
+				 << "seqID == " << frag.sequenceID() 
+				 << ", type == " << static_cast<int>(frag.type());
+  
 }
 
 
