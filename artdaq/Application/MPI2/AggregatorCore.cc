@@ -341,9 +341,11 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     if (is_online_monitor_) {
       desired_events_per_bunch = 1;
     }
+	TRACE(36, "Creating EventStore and Starting art thread");
     event_store_ptr_.reset(new artdaq::EventStore(agg_pset, desired_events_per_bunch, 1,
                                                   mpi_rank_, init_string_,
                                                   reader, &metricMan_));
+	TRACE(36, "Done Creating EventStore");
     event_store_ptr_->setSeqIDModulus(desired_events_per_bunch);
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
