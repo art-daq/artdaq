@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
 parent artdaq  v1_13_00
-defaultqual    e9:s21:eth
+defaultqual    e10:s35:eth
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -17,15 +17,15 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-artdaq_core 		v1_05_00
-artdaq_utilities        v1_00_07
+artdaq_core 		v1_05_06
+artdaq_utilities        v1_00_08
 mvapich2		v1_9_0
 mpich			v3_2_0
 xmlrpc_c		v1_39_07
-artdaq_ganglia_plugin   v1_01_00        -       optional
-artdaq_epics_plugin     v1_01_00        -       optional
-artdaq_mfextensions     v1_01_00        -       optional
-cetbuildtools		v5_04_01	-	only_for_build
+artdaq_ganglia_plugin   v1_01_01        -       optional
+artdaq_epics_plugin     v1_01_01        -       optional
+artdaq_mfextensions     v1_01_01        -       optional
+cetbuildtools		v5_04_03	-	only_for_build
 smc_compiler		v6_1_0		-nq-	only_for_build
 end_product_list
 
@@ -37,12 +37,18 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		artdaq_core    	   artdaq_utilities	mvapich2	mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin  	artdaq_mfextensions
+e10:s41:debug		e10:s41:debug	   e10:s41:debug	-		e10:debug	e10:debug	e10:g371:s41:debug	e10:s41:debug        	e10:s41:debug
+e10:s41:prof		e10:s41:prof 	   e10:s41:prof		-		e10:prof	e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
 e10:s35:debug		e10:s35:debug	   e10:s35:debug	-		e10:debug	e10:debug	e10:g371:s35:debug	e10:s35:debug        	e10:s35:debug
 e10:s35:prof		e10:s35:prof 	   e10:s35:prof		-		e10:prof	e10:prof	e10:g371:s35:prof	e10:s35:prof		e10:s35:prof
 e10:s34:debug		e10:s34:debug	   e10:s34:debug	-		e10:debug	e10:debug	e10:g371:s34:debug	e10:s34:debug		e10:s34:debug
 e10:s34:prof		e10:s34:prof 	   e10:s34:prof		-		e10:prof	e10:prof	e10:g371:s34:prof	e10:s34:prof		e10:s34:prof
 e9:s21:debug		e9:s21:debug	    e9:s21:debug	-		e9:debug	e9:debug	e9:g371:s21:debug	e9:s21:debug		e9:s21:debug
 e9:s21:prof		e9:s21:prof 	    e9:s21:prof		-		e9:prof		e9:prof		e9:g371:s21:prof	e9:s21:prof		e9:s21:prof
+e10:s41:ib:debug	e10:s41:debug	   e10:s41:debug	-nq-		-		e10:debug	e10:g371:s41:debug	e10:s41:debug		e10:s41:debug
+e10:s41:ib:prof		e10:s41:prof	   e10:s41:prof		-nq-		-		e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
+e10:s41:eth:debug	e10:s41:debug	   e10:s41:debug	-		e10:debug	e10:debug	e10:g371:s41:debug	e10:s41:debug		e10:s41:debug
+e10:s41:eth:prof	e10:s41:prof 	   e10:s41:prof		-		e10:prof	e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
 e10:s35:ib:debug	e10:s35:debug	   e10:s35:debug	-nq-		-		e10:debug	e10:g371:s35:debug	e10:s35:debug		e10:s35:debug
 e10:s35:ib:prof		e10:s35:prof	   e10:s35:prof		-nq-		-		e10:prof	e10:g371:s35:prof	e10:s35:prof		e10:s35:prof
 e10:s35:eth:debug	e10:s35:debug	   e10:s35:debug	-		e10:debug	e10:debug	e10:g371:s35:debug	e10:s35:debug		e10:s35:debug
