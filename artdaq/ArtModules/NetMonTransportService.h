@@ -28,6 +28,7 @@ public:
     void listen();
     void sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile &);
     void receiveMessage(TBufferFile *&);
+    size_t dataReceiverCount() {return data_receiver_count_;}
 private:
     size_t mpi_buffer_count_;
     uint64_t max_fragment_size_words_;

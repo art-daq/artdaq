@@ -1,4 +1,4 @@
-include_directories(${MPI_INCLUDE_PATH})
+include_directories(${MPI_INCLUDE_PATH} )
 
 art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   SOURCE
@@ -20,6 +20,7 @@ art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   ${CETLIB}
   ${XMLRPC_CLIENTPP}
   ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
   ${TRACE}
 )
 

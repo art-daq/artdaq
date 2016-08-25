@@ -2,7 +2,11 @@
 
 #include "artdaq/Application/GeneratorMacros.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
+#ifdef CANVAS
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/Exception.h"
+#endif
 #include "cetlib/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include <boost/algorithm/string.hpp>    
@@ -58,12 +62,23 @@ void artdaq::CompositeDriver::start()
   }
 }
 
-void artdaq::CompositeDriver::stop()
+void artdaq::CompositeDriver::stopNoMutex()
 {
   std::vector<std::unique_ptr<CommandableFragmentGenerator>>::reverse_iterator riter;
   for (riter = generator_list_.rbegin(); riter != generator_list_.rend(); ++riter) {
     (*riter)->StopCmd( timeout(), timestamp() );
   }
+}
+
+void artdaq::CompositeDriver::stop()
+{
+  // 02/17/16 ELF: This logic is now handled in stopNoMutex
+  /*
+  std::vector<std::unique_ptr<CommandableFragmentGenerator>>::reverse_iterator riter;
+  for (riter = generator_list_.rbegin(); riter != generator_list_.rend(); ++riter) {
+    (*riter)->StopCmd( timeout(), timestamp() );
+  }
+  */
 }
 
 void artdaq::CompositeDriver::pause()

@@ -4,10 +4,14 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/BranchType.h"
+#else
 #include "art/Persistency/Provenance/BranchType.h"
+#endif
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/Fragments.hh"
-#include "cpp0x/memory"
+#include <memory>
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
