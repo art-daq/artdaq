@@ -645,6 +645,20 @@ size_t artdaq::AggregatorCore::process_fragments()
 	dispatcher_transfer_->copyFragmentTo(fragmentWasCopied,
 					     esrWasCopied, eodWasCopied,
 					     *fragmentPtr, 0);
+
+	if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
+	  init_fragment_ptr_ = std::make_unique<artdaq::Fragment>( *fragmentPtr );
+	}
+
+	static size_t dispatcher_copies = 1;
+
+	if (dispatcher_copies++ % 10 == 0) {
+	  mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) << 
+	    ", size " << init_fragment_ptr_->sizeBytes();
+	  dispatcher_transfer_->copyFragmentTo(fragmentWasCopied,
+					       esrWasCopied, eodWasCopied,
+					       *init_fragment_ptr_, 0);
+	}
       }
     }
 

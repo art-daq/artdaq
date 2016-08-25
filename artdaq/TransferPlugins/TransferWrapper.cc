@@ -39,39 +39,52 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 
 void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) {
 
-  artdaq::Fragment frag;
+  std::unique_ptr<artdaq::Fragment> fragmentPtr;
+  bool receivedFragment = false;
+  static bool initialized = false;
 
   while (true) {
 
-    try { 
-      auto result = transfer_->receiveFragmentFrom(frag, timeoutInUsecs_);
-      
-      if (result != artdaq::RHandles::RECV_TIMEOUT) {
-	break;
-      } else {
-	mf::LogWarning("TransferWrapper") << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again";
-      }
+    fragmentPtr = std::make_unique<artdaq::Fragment>();
 
-    } catch (...) {
-      ExceptionHandler(ExceptionHandlerRethrow::yes, 
-		       "Problem receiving data in TransferWrapper::receiveMessage");
+    while (!receivedFragment) {
+
+      try { 
+	auto result = transfer_->receiveFragmentFrom(*fragmentPtr, timeoutInUsecs_);
+      
+	if (result != artdaq::RHandles::RECV_TIMEOUT) {
+	  receivedFragment = true;
+	  continue; 
+	} else {
+	  mf::LogWarning("TransferWrapper") << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again";
+	}
+
+      } catch (...) {
+	ExceptionHandler(ExceptionHandlerRethrow::yes, 
+			 "Problem receiving data in TransferWrapper::receiveMessage");
+      }
     }
 
-  }
+    try {
+      extractTBufferFile(*fragmentPtr, msg);
+    } catch (...) {
+      ExceptionHandler(ExceptionHandlerRethrow::yes, 
+		       "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
+    }
 
-  try {
-    extractTBufferFile(frag, msg);
-  } catch (...) {
-    ExceptionHandler(ExceptionHandlerRethrow::yes, 
-		     "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
+    if (initialized || fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
+      initialized = true;
+      break;
+    } else {
+      receivedFragment = false;
+    }
   }
 
   static size_t cntr = 1;
 
   mf::LogInfo("TransferWrapper") << "Received " << cntr++ << "-th event, "
-				 << "seqID == " << frag.sequenceID() 
-				 << ", type == " << static_cast<int>(frag.type());
-  
+				 << "seqID == " << fragmentPtr->sequenceID() 
+				 << ", type == " << static_cast<int>(fragmentPtr->type());
 }
 
 

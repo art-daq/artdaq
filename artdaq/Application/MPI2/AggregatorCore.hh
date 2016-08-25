@@ -115,6 +115,7 @@ private:
   std::unique_ptr<TransferInterface> data_logger_transfer_;
   std::unique_ptr<TransferInterface> dispatcher_transfer_;
 
+  std::unique_ptr<Fragment> init_fragment_ptr_;
 };
 
 #endif
