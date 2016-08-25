@@ -1,3 +1,10 @@
+
+# Make sure tests have correct environment settings.
+include(CetTest)
+# If you explicitly include CetTest in a subdirectory, you will need to
+# re-initialize the test environment.
+cet_test_env("FHICL_FILE_PATH=.")
+
 include_directories(${MPI_INCLUDE_PATH})
 
 # Make sure tests have correct environment settings.
@@ -19,6 +26,7 @@ art_make_exec(NAME artdaqDriver
     SOURCE
     driver.cc
   LIBRARIES
+  artdaq_Application # needed for messagefacility
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq-core_Utilities
@@ -26,6 +34,26 @@ art_make_exec(NAME artdaqDriver
   ${ART_FRAMEWORK_ART}
   ${FHICLCPP}
   ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
+art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
+  LIBRARIES
+  artdaq_TransferPlugins_multicast_transfer
+  artdaq_TransferPlugins_shmem_transfer
+  artdaq-core_Data
+  ${CETLIB}
+  ${FHICLCPP}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
+art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
+  LIBRARIES
+  artdaq_TransferPlugins_multicast_transfer
+  artdaq_TransferPlugins_shmem_transfer
+  artdaq-core_Data
+  ${CETLIB}
+  ${FHICLCPP}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -64,5 +92,5 @@ cet_test(config_with_art_t
   TEST_PROPERTIES ENVIRONMENT ARTDAQ_DAQRATE_USE_ART=1
   )
 
-install_fhicl(LIST daqrate_simdata_noart.fcl)
+install_fhicl(LIST daqrate_simdata_noart.fcl multicast.fcl shmem.fcl)
 install_source()

@@ -39,10 +39,17 @@ cet_test(daq_flow_t
   DATAFILES daq_flow_t.fcl
   )
 
+check_ups_version(art "$ENV{ART_VERSION}" v2_00_00 PRODUCT_OLDER_VAR NO_TEST_ARG_SEPARATER)
+if (NO_TEST_ARG_SEPARATER)
+   set(TEST_ARG -c)
+else (NO_TEST_ARG_SEPARATER)
+   set(TEST_ARG -- -c)
+endif()
+
 # Wait for an input for a second, then exit.
 cet_test(read_files_t HANDBUILT
   TEST_EXEC art_ut
-  TEST_ARGS -c read_files_t.fcl
+  TEST_ARGS ${TEST_ARG} read_files_t.fcl
   DATAFILES read_files_t.fcl
   )
 

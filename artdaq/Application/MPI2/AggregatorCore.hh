@@ -5,6 +5,10 @@
 #include <vector>
 #include <atomic>
 #include <thread>
+#include <functional>
+#include <iostream>
+#include <queue>
+
 
 #include "fhiclcpp/ParameterSet.h"
 #ifdef CANVAS
@@ -18,8 +22,7 @@
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
-
-#include <sys/shm.h> 
+#include "artdaq/TransferPlugins/TransferInterface.h"
 
 namespace artdaq
 {
@@ -105,33 +108,8 @@ private:
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
 
-  std::string EVENT_RATE_METRIC_NAME_;
-  std::string EVENT_SIZE_METRIC_NAME_;
-  std::string DATA_RATE_METRIC_NAME_;
-  std::string INPUT_WAIT_METRIC_NAME_;
-  std::string EVENT_STORE_WAIT_METRIC_NAME_;
-  std::string SHM_COPY_TIME_METRIC_NAME_;
-  std::string FILE_CHECK_TIME_METRIC_NAME_;
+  std::unique_ptr<TransferInterface> transfer_;
 
-  // *** Shared memory declarations ***
-  struct ShmStruct {
-    size_t hasFragment;
-    size_t fragmentSizeWords;
-    artdaq::RawDataType fragmentInnards[2];
-  };
-  int shm_segment_id_;
-  ShmStruct* shm_ptr_;
-  size_t fragment_count_to_shm_;
-
-  void attachToSharedMemory_(bool initialize);
-  void copyFragmentToSharedMemory_(bool& fragment_has_been_copied,
-                                   bool& esr_has_been_copied,
-                                   bool& eod_has_been_copied,
-                                   artdaq::Fragment& fragment,
-                                   size_t send_timeout_usec);
-  size_t receiveFragmentFromSharedMemory_(artdaq::Fragment& fragment,
-                                          size_t receiveTimeout);
-  void detachFromSharedMemory_(bool destroy);
 };
 
 #endif

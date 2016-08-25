@@ -154,7 +154,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   statsHelper_.createCollectors(evb_pset, 100, 20.0, 60.0, INPUT_FRAGMENTS_STAT_KEY);
 
   // initialize the MetricManager and the names of our metrics
-  std::string metricsReportingInstanceName = "EventBuilder " +
+  std::string metricsReportingInstanceName = "EventBuilder." +
     boost::lexical_cast<std::string>(1+mpi_rank_-first_data_sender_rank_-data_sender_count_);
   fhicl::ParameterSet metric_pset;
   try {
@@ -165,19 +165,12 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
     mf::LogInfo(name_) << "No metric plugins appear to be defined";
   } else {
     try {
-      metricMan_.initialize(metric_pset, metricsReportingInstanceName + " ");
+      metricMan_.initialize(metric_pset, metricsReportingInstanceName);
     } catch (...) {
       ExceptionHandler(ExceptionHandlerRethrow::no, 
 		       "Error loading metrics in EventBuilderCore::initialize()");
     }
   }
-
-  FRAGMENT_COUNT_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Count";
-  FRAGMENT_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Fragment Rate";
-  FRAGMENT_SIZE_METRIC_NAME_ = metricsReportingInstanceName + " Average Fragment Size";
-  DATA_RATE_METRIC_NAME_ = metricsReportingInstanceName + " Data Rate";
-  INPUT_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg Input Wait Time";
-  EVENT_STORE_WAIT_METRIC_NAME_ = metricsReportingInstanceName + " Avg art Queue Wait Time";
 
   /* Once art has been initialized we can't tear it down or change it's
      configuration.  We'll keep track of when we have initialized it.  Once it
@@ -373,7 +366,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
                            (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
     if (senderSlot == (size_t) MPI_ANY_SOURCE) {
       mf::LogInfo(name_)
-        << "The receiving of data has stopped - ending the run.";
+	<< "There appears to be no more data to receive - ending the run.";
       event_store_ptr_->flushData();
       flush_mutex_.unlock();
       process_fragments = false;
@@ -382,16 +375,16 @@ size_t artdaq::EventBuilderCore::process_fragments()
     else if (senderSlot == artdaq::RHandles::RECV_TIMEOUT) {
       if (stop_requested_.load() &&
           recvTimeout == endrun_recv_timeout_usec_) {
-        mf::LogWarning(name_)
-          << "Stop timeout expired - forcibly ending the run.";
+	mf::LogWarning(name_)
+	  << "Timeout occurred in attempt to receive data, but as a stop has been requested, will forcibly end the run.";
 	event_store_ptr_->flushData();
 	flush_mutex_.unlock();
 	process_fragments = false;
       }
       else if (pause_requested_.load() &&
                recvTimeout == pause_recv_timeout_usec_) {
-        mf::LogWarning(name_)
-          << "Pause timeout expired - forcibly pausing the run.";
+	mf::LogWarning(name_)
+	  << "Timeout occurred in attempt to receive data, but as a pause has been requested, will forcibly pause the run.";
 	event_store_ptr_->flushData();
 	flush_mutex_.unlock();
 	process_fragments = false;
@@ -495,6 +488,8 @@ size_t artdaq::EventBuilderCore::process_fragments()
 	event_store_ptr_->flushData();
 	flush_mutex_.unlock();
 	process_fragments = false;
+      } else {
+	mf::LogWarning(name_) << "All EndOfData fragments received but more data expected";
       }
     }
   }
@@ -595,17 +590,17 @@ void artdaq::EventBuilderCore::sendMetrics_()
     artdaq::MonitoredQuantity::Stats stats;
     mqPtr->getStats(stats);
     fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-    metricMan_.sendMetric(FRAGMENT_COUNT_METRIC_NAME_, 
+    metricMan_.sendMetric("Fragment Count", 
 			  static_cast<unsigned long>(stats.fullSampleCount), 
-                          "fragments", 1, false);
-    metricMan_.sendMetric(FRAGMENT_RATE_METRIC_NAME_, 
-                          stats.recentSampleRate, "fragments/sec", 1, false);
-    metricMan_.sendMetric(FRAGMENT_SIZE_METRIC_NAME_,
+                          "fragments", 1);
+    metricMan_.sendMetric("Fragment Rate", 
+                          stats.recentSampleRate, "fragments/sec", 1);
+    metricMan_.sendMetric("Average Fragment Size",
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/fragment", 2, false);
-    metricMan_.sendMetric(DATA_RATE_METRIC_NAME_,
+                          ), "bytes/fragment", 2);
+    metricMan_.sendMetric("Data Rate",
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2, false);
+                          ), "bytes/sec", 2);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "fragmentCount" in the
@@ -617,17 +612,17 @@ void artdaq::EventBuilderCore::sendMetrics_()
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(INPUT_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Average Input Wait Time",
                           (mqPtr->recentValueSum() / fragmentCount),
-                          "seconds/fragment", 3, false);
+                          "seconds/fragment", 3);
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(EVENT_STORE_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Avg art Queue Wait Time",
                           (mqPtr->recentValueSum() / fragmentCount),
-                          "seconds/fragment", 3, false);
+                          "seconds/fragment", 3);
   }
 }
 
