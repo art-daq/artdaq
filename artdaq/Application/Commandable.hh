@@ -6,7 +6,11 @@
 #include <mutex>
 
 #include "fhiclcpp/ParameterSet.h"
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/RunID.h"
+#else
 #include "art/Persistency/Provenance/RunID.h"
+#endif
 #include "artdaq/Application/Commandable_sm.h"  // must be included after others
 
 namespace artdaq

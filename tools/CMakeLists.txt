@@ -1,4 +1,12 @@
+# Make sure tests have correct environment settings.
+include(CetTest)
+# If you explicitly include CetTest in a subdirectory, you will need to
+# re-initialize the test environment.
+cet_test_env("FHICL_FILE_PATH=.")
+
 include_directories(${MPI_INCLUDE_PATH})
+
+install_scripts( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh )
 
 art_make_exec(StateResponder
   LIBRARIES

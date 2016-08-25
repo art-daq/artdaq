@@ -10,7 +10,11 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "art/Framework/Art/artapp.h"
+#ifdef CANVAS
+#include "canvas/Utilities/Exception.h"
+#else
 #include "art/Utilities/Exception.h"
+#endif
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragments.hh"

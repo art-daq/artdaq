@@ -18,8 +18,8 @@ cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
   art_Framework_Core
   art_Framework_Principal
   art_Persistency_Provenance
-  art_Persistency_Common_dict
-  art_Persistency_WrappedStdDictionaries_dict
+  ${CANVAS}_Persistency_Common_dict
+  ${CANVAS}_Persistency_WrappedStdDictionaries_dict
   art_Utilities
   ${ART_VERSION}
   )
@@ -39,10 +39,17 @@ cet_test(daq_flow_t
   DATAFILES daq_flow_t.fcl
   )
 
+check_ups_version(art "$ENV{ART_VERSION}" v2_00_00 PRODUCT_OLDER_VAR NO_TEST_ARG_SEPARATER)
+if (NO_TEST_ARG_SEPARATER)
+   set(TEST_ARG -c)
+else (NO_TEST_ARG_SEPARATER)
+   set(TEST_ARG -- -c)
+endif()
+
 # Wait for an input for a second, then exit.
 cet_test(read_files_t HANDBUILT
   TEST_EXEC art_ut
-  TEST_ARGS -c read_files_t.fcl
+  TEST_ARGS ${TEST_ARG} read_files_t.fcl
   DATAFILES read_files_t.fcl
   )
 
