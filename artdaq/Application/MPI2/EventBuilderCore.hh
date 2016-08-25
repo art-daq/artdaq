@@ -6,7 +6,11 @@
 #include <atomic>
 
 #include "fhiclcpp/ParameterSet.h"
+#ifdef CANVAS
+#include "canvas/Persistency/Provenance/RunID.h"
+#else
 #include "art/Persistency/Provenance/RunID.h"
+#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq/DAQrate/EventStore.hh"
@@ -90,13 +94,6 @@ private:
   std::string buildStatisticsString_();
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
-
-  std::string FRAGMENT_COUNT_METRIC_NAME_;
-  std::string FRAGMENT_RATE_METRIC_NAME_;
-  std::string FRAGMENT_SIZE_METRIC_NAME_;
-  std::string DATA_RATE_METRIC_NAME_;
-  std::string INPUT_WAIT_METRIC_NAME_;
-  std::string EVENT_STORE_WAIT_METRIC_NAME_;
 
   void logMessage_(std::string const& text);
 };

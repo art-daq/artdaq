@@ -33,15 +33,18 @@ cet_cmake_env()
 cet_set_compiler_flags(DIAGS VIGILANT
   WERROR
   NO_UNDEFINED
-  EXTRA_FLAGS -pedantic
+  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64
 )
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
-if( ${BTYPE_UC} MATCHES "DEBUG" )
-  cet_add_compiler_flags(-fsanitize=address)
-endif()
+#if( ${BTYPE_UC} MATCHES "DEBUG" )
+#  cet_add_compiler_flags(-fsanitize=address)
+#endif()
 
 cet_report_compiler_flags()
+
+# JCF, 7/8/15 - not sure this is actually doing anything...
+SET( CMAKE_EXE_LINKER_FLAGS_${BTYPE_UC}  " -m64 -static-libgcc")
 
 # these are minimum required versions, not the actual product versions
 find_ups_boost(v1_53_0)
@@ -64,21 +67,24 @@ find_ups_root( v5_34_20 )
 # everywhere.
 include(ProcessSmc)
 
-check_ups_version(art "$ENV{ART_VERSION}" v1_11_00 PRODUCT_OLDER_VAR have_old_art)
-if (have_old_art)
-  cmake_policy(SET CMP0046 OLD)
-endif()
-unset(have_old_art)
-
 check_ups_version(art "$ENV{ART_VERSION}" v1_14_00 PRODUCT_OLDER_VAR EVENTID_HAS_EXPLICIT_RUNID)
 if (EVENTID_HAS_EXPLICIT_RUNID)
   add_definitions(-DARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID)
 endif()
 
-string(REGEX MATCHALL "[0-9]+" ART_VERSION_LIST "$ENV{ART_VERSION}")
+check_ups_version(art "$ENV{ART_VERSION}" v2_00_00 PRODUCT_OLDER_VAR NO_CANVAS)
+if (NO_CANVAS)
+   set(CANVAS "art")
+else (NO_CANVAS)
+   add_definitions(-DCANVAS)
+   set(CANVAS "canvas")
+endif()
+
+string(REGEX MATCHALL "[1-9][0-9]?[0-9]?" ART_VERSION_LIST "$ENV{ART_VERSION}")
 list(GET ART_VERSION_LIST 0 ART_MAJOR_VERSION)
 list(GET ART_VERSION_LIST 1 ART_MINOR_VERSION)
 list(GET ART_VERSION_LIST 2 ART_PATCH_VERSION)
+message("-DART_MAJOR_VERSION=${ART_MAJOR_VERSION} -DART_MINOR_VERSION=${ART_MINOR_VERSION} -DART_PATCH_VERSION=${ART_PATCH_VERSION}")
 add_definitions(-DART_MAJOR_VERSION=${ART_MAJOR_VERSION} -DART_MINOR_VERSION=${ART_MINOR_VERSION} -DART_PATCH_VERSION=${ART_PATCH_VERSION})
 
 find_library( XMLRPC_SERVER_ABYSSPP NAMES xmlrpc_server_abyss++ PATHS $ENV{XMLRPC_C_LIBRARY} )
@@ -90,6 +96,11 @@ find_library( XMLRPC_CLIENTPP NAMES xmlrpc_client++ PATHS $ENV{XMLRPC_C_LIBRARY}
 find_library( XMLRPCPP NAMES xmlrpc++ PATHS $ENV{XMLRPC_C_LIBRARY} )
 find_library( XMLRPC NAMES xmlrpc PATHS $ENV{XMLRPC_C_LIBRARY} )
 find_library( XMLRPC_UTIL NAMES xmlrpc_util PATHS $ENV{XMLRPC_C_LIBRARY} )
+find_library( XMLRPC_UTILPP NAMES xmlrpc_util++ PATHS $ENV{XMLRPC_C_LIBRARY} )
+# XMLRPC_UTILPP is new to v1_39_07:
+if(NOT XMLRPC_UTILPP)
+    set(XMLRPC_UTILPP "")
+endif()
 find_library( XMLRPC_XMLPARSE NAMES xmlrpc_xmlparse PATHS $ENV{XMLRPC_C_LIBRARY} )
 find_library( XMLRPC_XMLTOK NAMES xmlrpc_xmltok PATHS $ENV{XMLRPC_C_LIBRARY} )
 find_library( TRACE trace PATHS $ENV{TRACE_LIB} )
@@ -102,13 +113,13 @@ endif()
 
 find_package(MPI QUIET)
 
-if(NOT ENV{TRACE_DIR})
-message( STATUS "WARNING: TRACE DOES NOT APPEAR TO BE SET UP!")
-else() 
-message( STATUS "TRACE_DIR appears to be: $ENV{TRACE_DIR}")
+if (DEFINED ENV{NDDSHOME})
+   set( USING_RTIDDS TRUE )
+   message("\"NDDSHOME\" environment variable defined; will build RTI-DDS code")
+else()
+   set( USING_RTIDDS FALSE )
+   message("\"NDDSHOME\" environment variable not defined; will ignore RTI-DDS code")
 endif()
-
-include_directories( "$ENV{TRACE_DIR}/include/" )
 
 # macros for artdaq_dictionary and simple_plugin
 include(ArtDictionary)
