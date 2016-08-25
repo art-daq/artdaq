@@ -33,7 +33,7 @@ cet_cmake_env()
 cet_set_compiler_flags(DIAGS VIGILANT
   WERROR
   NO_UNDEFINED
-  EXTRA_FLAGS -pedantic
+  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64
 )
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
@@ -42,6 +42,9 @@ string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
 #endif()
 
 cet_report_compiler_flags()
+
+# JCF, 7/8/15 - not sure this is actually doing anything...
+SET( CMAKE_EXE_LINKER_FLAGS_${BTYPE_UC}  " -m64 -static-libgcc")
 
 # these are minimum required versions, not the actual product versions
 find_ups_boost(v1_53_0)
@@ -109,6 +112,14 @@ if(BTYPE_UC STREQUAL DEBUG)
 endif()
 
 find_package(MPI QUIET)
+
+if (DEFINED ENV{NDDSHOME})
+   set( USING_RTIDDS TRUE )
+   message("\"NDDSHOME\" environment variable defined; will build RTI-DDS code")
+else()
+   set( USING_RTIDDS FALSE )
+   message("\"NDDSHOME\" environment variable not defined; will ignore RTI-DDS code")
+endif()
 
 # macros for artdaq_dictionary and simple_plugin
 include(ArtDictionary)

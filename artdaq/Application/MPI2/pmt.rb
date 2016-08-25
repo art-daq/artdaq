@@ -184,6 +184,8 @@ class MPIHandler
           end
         end
       }
+    elsif line == "Permission denied."
+      puts "ERROR: Unable to launch artdaq process; MPI process output \"Permission denied.\" may indicate that Secure Linux is enabled on the process's desired host"
     end
   end
 
