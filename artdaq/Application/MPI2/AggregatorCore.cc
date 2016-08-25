@@ -505,7 +505,9 @@ size_t artdaq::AggregatorCore::process_fragments()
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
+
         bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
+
         if (! enqStatus) {
           mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
 	    enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
@@ -528,6 +530,7 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
+
           bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
           if (! enqStatus) {
 	    mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
@@ -555,6 +558,7 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->flushData();
           artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
           subRunEvent->insertFragment(std::move(endSubRunMsg));
+
           bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
           if (! enqStatus) {
             mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
@@ -654,7 +658,9 @@ size_t artdaq::AggregatorCore::process_fragments()
         }
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
+
         bool enqStatus = event_queue_.enqTimedWait(initEvent, enq_timeout_);
+
         if (! enqStatus) {
           mf::LogError(name_) << "Attempt to send Init event to art timed out after " <<
 	    enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
@@ -793,7 +799,9 @@ size_t artdaq::AggregatorCore::process_fragments()
         event_store_ptr_->flushData();
         artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
         subRunEvent->insertFragment(std::move(endSubRunMsg));
+
         bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
+
         if (! enqStatus) {
           mf::LogError(name_) << "All data appears to have been received but attempt to send EndOfSubRun fragment to art timed out after " <<
 	    enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
