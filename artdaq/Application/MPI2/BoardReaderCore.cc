@@ -585,10 +585,10 @@ void artdaq::BoardReaderCore::sendMetrics_()
                           stats.recentSampleRate, "fragments/sec", 1);
     metricMan_.sendMetric("Average Fragment Size",
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/fragment", 2);
+                          ), "bytes/fragment", 2);
     metricMan_.sendMetric("Data Rate",
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2);
+                          ), "bytes/sec", 2);
   }
 
   // 31-Dec-2014, KAB - Just a reminder that using "fragmentCount" in the

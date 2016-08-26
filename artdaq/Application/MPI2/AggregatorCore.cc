@@ -1117,10 +1117,10 @@ void artdaq::AggregatorCore::sendMetrics_()
                           stats.recentSampleRate, "events/sec", 1);
     metricMan_.sendMetric("Average Event Size",
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/event", 2);
+                          ), "bytes/event", 2);
     metricMan_.sendMetric("Data Rate",
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                           / 1024.0 / 1024.0), "MB/sec", 2);
+                          ), "bytes/sec", 2);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "eventCount" in the
