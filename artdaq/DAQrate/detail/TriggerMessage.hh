@@ -5,7 +5,7 @@
 
 namespace artdaq {
   namespace detail {
-	struct TriggerPacket;
+    struct TriggerPacket;
 	class TriggerMessage;
   }
 }
@@ -23,7 +23,7 @@ class artdaq::detail::TriggerMessage
 public:
   TriggerMessage()
   {
-	packet_.header = 0;
+    packet_.header = 0;
 	packet_.sequence_id = Fragment::InvalidSequenceID;
 	packet_.timestamp = Fragment::InvalidTimestamp;
   }

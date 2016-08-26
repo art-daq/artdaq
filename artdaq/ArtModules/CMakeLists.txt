@@ -11,7 +11,6 @@ art_make( BASENAME_ONLY
   LIB_LIBRARIES
   artdaq_DAQrate
   artdaq_DAQdata
-  ${ARTDAQ-CORE_DATA}
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal
