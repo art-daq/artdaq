@@ -163,12 +163,16 @@ namespace artdaq {
 				if (printWarningWhenFragmentIsDropped) {
 					mf::LogWarning("EventStore") << "Enqueueing event " << sequence_id
 						<< " FAILED, queue size = "
-						<< queue_.size();
+						<< queue_.size() << 
+					  "; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
+								     << "-second timeout period";
 				}
 				else {
 					mf::LogDebug("EventStore") << "Enqueueing event " << sequence_id
 						<< " FAILED, queue size = "
-						<< queue_.size();
+						<< queue_.size() << 
+					  "; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
+								   << "-second timeout period";
 				}
 			}
 		}
