@@ -542,8 +542,9 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
   // denominator of the calculations below is important because the way that
   // the accumulation of these statistics is done is not fragment-by-fragment
   // but read-by-read (where each read can contain multiple fragments).
-  // 05-Dec-2015, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
-  // fragment, but we'll leave the calculation the same.
+  // 29-Aug-2016, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
+  // fragment, but we'll leave the calculation the same. (The alternative
+  // would be to use recentValueAverage().)
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
@@ -610,8 +611,9 @@ void artdaq::BoardReaderCore::sendMetrics_()
   // denominator of the calculations below is important because the way that
   // the accumulation of these statistics is done is not fragment-by-fragment
   // but read-by-read (where each read can contain multiple fragments).
-  // 05-Dec-2015, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
-  // fragment, but we'll leave the calculation the same.
+  // 29-Aug-2016, KAB - BRSYNC_WAIT and OUTPUT_WAIT are now done fragment-by-
+  // fragment, but we'll leave the calculation the same. (The alternative
+  // would be to use recentValueAverage().)
 
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
