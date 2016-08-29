@@ -158,23 +158,25 @@ namespace artdaq {
 			TRACE(14, "EventStore::insert seq=%lu enqTimedWait start", sequence_id);
 			bool enqSuccess = queue_.enqTimedWait(complete_event, enq_timeout_);
 			TRACE(enqSuccess ? 14 : 0, "EventStore::insert seq=%lu enqTimedWait complete", sequence_id);
+#if 1
 			if (!enqSuccess) {
 				//TRACE_CNTL( "modeM", 0 );
 				if (printWarningWhenFragmentIsDropped) {
 					mf::LogWarning("EventStore") << "Enqueueing event " << sequence_id
 						<< " FAILED, queue size = "
 						<< queue_.size() << 
-					  "; apparently no events were removed from this process's queue during the " << enq_timeout_
+					  "; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
 								     << "-second timeout period";
 				}
 				else {
 					mf::LogDebug("EventStore") << "Enqueueing event " << sequence_id
 						<< " FAILED, queue size = "
 						<< queue_.size() << 
-					  "; apparently no events were removed from this process's queue during the " << enq_timeout_
+					  "; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
 								   << "-second timeout period";
 				}
 			}
+#endif
 		}
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 			getMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY);
