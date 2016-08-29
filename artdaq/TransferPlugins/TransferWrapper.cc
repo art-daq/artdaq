@@ -5,10 +5,12 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
-
 #include "cetlib/BasicPluginFactory.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include <xmlrpc-c/girerr.hpp>
+#include <xmlrpc-c/base.hpp>
+#include <xmlrpc-c/client_simple.hpp>
 
 #include "TBufferFile.h"
 
@@ -35,6 +37,19 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
     ExceptionHandler(ExceptionHandlerRethrow::yes, 
 		     "Problem creating instance of TransferInterface in TransferWrapper");
   }
+
+  auto dispatcherHost = pset.get<std::string>("dispatcherHost");
+  auto dispatcherPort = pset.get<std::string>("dispatcherPort");
+  std::string serverUrl = "http://" + dispatcherHost + ":" + dispatcherPort + "/RPC2";
+
+  xmlrpc_c::clientSimple myClient;
+  xmlrpc_c::value result;
+        
+  myClient.call(serverUrl, "daq.register_monitor", "s", &result, "TransferWrapper passed argument to register_monitor");
+
+  const std::string status = xmlrpc_c::value_string(result);
+
+  mf::LogInfo("TransferWrapper") << "Response from dispatcher is " << status;
 }
 
 void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) {

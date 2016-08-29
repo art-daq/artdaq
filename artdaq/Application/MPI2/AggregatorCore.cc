@@ -66,7 +66,8 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   data_sender_count_(0), event_queue_(artdaq::getGlobalQueue(10)),
   stop_requested_(false), local_pause_requested_(false),
   processing_fragments_(false),
-  system_pause_requested_(false), previous_run_duration_(-1.0)
+  system_pause_requested_(false), previous_run_duration_(-1.0),
+  monitor_added_(false)
 {
   mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
@@ -650,14 +651,14 @@ size_t artdaq::AggregatorCore::process_fragments()
 	  init_fragment_ptr_ = std::make_unique<artdaq::Fragment>( *fragmentPtr );
 	}
 
-	static size_t dispatcher_copies = 1;
-
-	if (dispatcher_copies++ % 10 == 0) {
+	if (monitor_added_) {
+	  std::lock_guard<std::mutex> lock(register_monitor_mutex_);
 	  mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) << 
 	    ", size " << init_fragment_ptr_->sizeBytes();
 	  dispatcher_transfer_->copyFragmentTo(fragmentWasCopied,
 					       esrWasCopied, eodWasCopied,
 					       *init_fragment_ptr_, 0);
+	  monitor_added_ = false;
 	}
       }
     }
@@ -931,6 +932,13 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
   tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
   tmpString.append(". Command=\"" + which + "\" is not currently supported.");
   return tmpString;
+}
+
+std::string artdaq::AggregatorCore::register_monitor(std::string const& input) {
+  mf::LogInfo(name_) << "AggregatorCore::register_monitor called with argument \"" << input << "\"";
+  std::lock_guard<std::mutex> lock(register_monitor_mutex_);
+  monitor_added_ = true;
+  return "Success";
 }
 
 size_t artdaq::AggregatorCore::getLatestFileSize_() const

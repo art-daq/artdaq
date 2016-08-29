@@ -432,6 +432,27 @@ private:								\
     }
   };
 
+  class register_monitor_ : public cmd_ {
+
+  public:
+    register_monitor_ (xmlrpc_commander& c):
+      cmd_(c, "s:s", "Get notified of a new monitor") {}
+    
+  private:
+    bool execute_ (xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP ) {
+      
+      try {
+	getParam<std::string>(paramList, 0);
+      } catch (...) {
+	*retvalP = xmlrpc_c::value_string("The register_monitor command expects a string as an argument"); 
+	return true;
+      }									
+
+      *retvalP = xmlrpc_c::value_string( _c._commandable.register_monitor( getParam<std::string>(paramList, 0) ) );
+      return true;
+    }
+  };
+
 
 
 // JCF, 9/4/14
@@ -478,6 +499,7 @@ void xmlrpc_commander::run() try {
   register_method(pause);
   register_method(resume);
   register_method(reset_stats);
+  register_method(register_monitor);
   register_method(legal_commands);
 
   register_method(shutdown);

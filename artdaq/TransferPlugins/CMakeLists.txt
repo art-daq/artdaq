@@ -25,6 +25,9 @@ art_make( BASENAME_ONLY
   ${ROOT_CORE}
   ${ROOT_NET}
   ${ROOT_REFLEX}
+  ${XMLRPC_CLIENTPP}
+  ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
   )
 
 simple_plugin(TransferInput "source"
@@ -38,6 +41,20 @@ simple_plugin(TransferInput "source"
   MF_Utilities
   fhiclcpp
   cetlib
+  ${XMLRPC_SERVER_ABYSSPP}
+  ${XMLRPC_SERVER_ABYSS}
+  ${XMLRPC_SERVERPP}
+  ${XMLRPC_SERVER}
+  ${XMLRPC_ABYSS}
+  ${XMLRPCPP}
+  ${XMLRPC}
+  ${XMLRPC_UTIL}
+  ${XMLRPC_UTILPP}
+  ${XMLRPC_XMLPARSE}
+  ${XMLRPC_XMLTOK}
+  ${XMLRPC_CLIENTPP}
+#  ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
 )
 
 simple_plugin(shmem "transfer"

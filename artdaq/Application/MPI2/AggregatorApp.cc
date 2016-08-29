@@ -151,3 +151,21 @@ std::string artdaq::AggregatorApp::report(std::string const& which) const
 
   return resultString;
 }
+
+std::string artdaq::AggregatorApp::register_monitor(std::string const& info) {
+  mf::LogInfo(name_) << "AggregatorApp::register_monitor called with argument \"" << info << "\"";
+
+  if (aggregator_ptr_) {
+    
+    try {
+      return aggregator_ptr_->register_monitor(info);
+    } catch(...) {
+      ExceptionHandler(ExceptionHandlerRethrow::no,
+                       "Error in call to AggregatorCore's register_monitor function");
+
+      return "Error in artdaq::AggregatorApp::register_monitor: an exception was thrown in the call to AggregatorCore::register_monitor, possibly due to a problem with the argument";
+    }
+  } else {
+    return "Error in artdaq::AggregatorApp::register_monitor: AggregatorCore object wasn't initialized";
+  }
+}

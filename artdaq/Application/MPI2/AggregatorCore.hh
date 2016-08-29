@@ -55,6 +55,7 @@ public:
   size_t process_fragments();
 
   std::string report(std::string const& which) const;
+  std::string register_monitor(std::string const& ); 
 
 private:
   int mpi_rank_;
@@ -116,6 +117,9 @@ private:
   std::unique_ptr<TransferInterface> dispatcher_transfer_;
 
   std::unique_ptr<Fragment> init_fragment_ptr_;
+
+  bool monitor_added_;
+  std::mutex register_monitor_mutex_;
 };
 
 #endif
