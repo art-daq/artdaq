@@ -92,3 +92,5 @@ simple_plugin(RTIDDS "transfer"
 
 endif()
 
+install_headers()
+install_source()
