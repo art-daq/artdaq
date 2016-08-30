@@ -626,7 +626,7 @@ void artdaq::BoardReaderCore::sendMetrics_()
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric(BRSYNC_WAIT_METRIC_NAME_,
+    metricMan_.sendMetric("Avg BoardReader Sync Wait Time",
                           (mqPtr->recentValueSum() / fragmentCount),
                           "seconds/fragment", 3, false);
   }
