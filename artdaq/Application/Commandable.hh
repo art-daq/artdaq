@@ -53,7 +53,7 @@ public:
     }
   }
 
-  virtual std::string register_monitor(std::string const& ) {
+  virtual std::string register_monitor(fhicl::ParameterSet const& ) {
     return "This string is returned from Commandable::register_monitor; register_monitor should either be overridden in a derived class or this process should not have been sent the register_monitor call";
   }
 

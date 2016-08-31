@@ -66,8 +66,7 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   data_sender_count_(0), event_queue_(artdaq::getGlobalQueue(10)),
   stop_requested_(false), local_pause_requested_(false),
   processing_fragments_(false),
-  system_pause_requested_(false), previous_run_duration_(-1.0),
-  monitor_added_(false)
+  system_pause_requested_(false), previous_run_duration_(-1.0)
 {
   mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
@@ -323,7 +322,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
       data_logger_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
     } else if (is_dispatcher_) {
       data_logger_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
-      dispatcher_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_monitors", TransferInterface::Role::send);
     }
     
   } catch(...) {
@@ -647,24 +645,33 @@ size_t artdaq::AggregatorCore::process_fragments()
     } else if (is_dispatcher_) {
 
       if (fragmentPtr->type() != artdaq::Fragment::EndOfDataFragmentType) {
-	mf::LogInfo(name_) << "Dispatcher: copying seqID = " << fragmentPtr->sequenceID() << ", type = " <<
-	  static_cast<size_t>(fragmentPtr->type());
-	dispatcher_transfer_->copyFragmentTo(fragmentWasCopied,
-					     esrWasCopied, eodWasCopied,
-					     *fragmentPtr, 0);
+	mf::LogInfo(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
+	  static_cast<size_t>(fragmentPtr->type()) << " to " << dispatcher_transfers_.size() 
+			   << " registered monitors";
+
+	for (auto& transfer : dispatcher_transfers_) {
+	  transfer->copyFragmentTo(fragmentWasCopied,
+				   esrWasCopied, eodWasCopied,
+				   *fragmentPtr, 0);
+	}
 
 	if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
 	  init_fragment_ptr_ = std::make_unique<artdaq::Fragment>( *fragmentPtr );
 	}
 
-	if (monitor_added_) {
+	static size_t previous_queue_length = 0;
+
+	if (previous_queue_length < dispatcher_transfers_.size()) {
 	  std::lock_guard<std::mutex> lock(register_monitor_mutex_);
-	  mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) << 
-	    ", size " << init_fragment_ptr_->sizeBytes();
-	  dispatcher_transfer_->copyFragmentTo(fragmentWasCopied,
-					       esrWasCopied, eodWasCopied,
-					       *init_fragment_ptr_, 0);
-	  monitor_added_ = false;
+
+	  for (size_t i_q = previous_queue_length; i_q < dispatcher_transfers_.size(); ++i_q) {
+	      mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) << 
+		 ", size " << init_fragment_ptr_->sizeBytes();
+	       dispatcher_transfers_[i_q]->copyFragmentTo(fragmentWasCopied,
+							   esrWasCopied, eodWasCopied,
+							   *init_fragment_ptr_, 0);
+	       }
+	  previous_queue_length = dispatcher_transfers_.size();
 	}
       }
     }
@@ -747,7 +754,13 @@ size_t artdaq::AggregatorCore::process_fragments()
 	  data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
 						esrWasCopied, eodWasCopied,
 						*fragmentPtr, 1000000);
-        }
+        } else if (is_dispatcher_) {
+	  for (auto& transfer : dispatcher_transfers_) {
+	    transfer->copyFragmentTo(fragmentWasCopied,
+				     esrWasCopied, eodWasCopied,
+				     *fragmentPtr, 0);
+	  }
+	}
 
         /* We inject the EndSubrun fragment after all other data has been
            received.  The SHandles and RHandles classes do not guarantee that 
@@ -944,10 +957,21 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
   return tmpString;
 }
 
-std::string artdaq::AggregatorCore::register_monitor(std::string const& input) {
-  mf::LogInfo(name_) << "AggregatorCore::register_monitor called with argument \"" << input << "\"";
+std::string artdaq::AggregatorCore::register_monitor(fhicl::ParameterSet const& pset) {
+  mf::LogDebug(name_) << "AggregatorCore::register_monitor called with argument \"" << pset.to_string() << "\"";
   std::lock_guard<std::mutex> lock(register_monitor_mutex_);
-  monitor_added_ = true;
+
+  try {
+    
+    dispatcher_transfers_.emplace_back(
+					makeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::send) );
+
+  } catch(...) {
+    std::stringstream errmsg;
+    errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\"";
+    ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+  }
+
   return "Success";
 }
 
@@ -1192,11 +1216,11 @@ artdaq::AggregatorCore::makeTransferPlugin(const fhicl::ParameterSet& pset,
   try {
     transfer_pset = pset.get<fhicl::ParameterSet>(plugin_label);
   }  catch (...) {
-    std::stringstream errormsg;
-    errormsg
+    std::stringstream errmsg;
+    errmsg
       << "Unable to find the transfer plugin parameters in the daq "
       << "ParameterSet: \"" + transfer_pset.to_string() + "\".";
-    ExceptionHandler(ExceptionHandlerRethrow::yes, errormsg.str());
+    ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
   }
 
   std::unique_ptr<TransferInterface> transfer =  

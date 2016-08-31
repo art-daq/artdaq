@@ -442,13 +442,13 @@ private:								\
     bool execute_ (xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP ) {
       
       try {
-	getParam<std::string>(paramList, 0);
+	getParam<fhicl::ParameterSet>(paramList, 0);
       } catch (...) {
-	*retvalP = xmlrpc_c::value_string("The register_monitor command expects a string as an argument"); 
+	*retvalP = xmlrpc_c::value_string("The register_monitor command expects a string representing the FHiCL definition of a Transfer plugin"); 
 	return true;
       }									
 
-      *retvalP = xmlrpc_c::value_string( _c._commandable.register_monitor( getParam<std::string>(paramList, 0) ) );
+      *retvalP = xmlrpc_c::value_string( _c._commandable.register_monitor( getParam<fhicl::ParameterSet>(paramList, 0) ) );
       return true;
     }
   };

@@ -33,7 +33,7 @@ public:
   /* Report_ptr */
   std::string report(std::string const& which) const override;
 
-  std::string register_monitor(std::string const& ) override;
+  std::string register_monitor(fhicl::ParameterSet const& ) override;
 
 private:
   int mpi_rank_;

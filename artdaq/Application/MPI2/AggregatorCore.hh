@@ -55,7 +55,7 @@ public:
   size_t process_fragments();
 
   std::string report(std::string const& which) const;
-  std::string register_monitor(std::string const& ); 
+  std::string register_monitor(fhicl::ParameterSet const& ); 
 
 private:
   int mpi_rank_;
@@ -114,12 +114,12 @@ private:
 							std::string plugin_label,
 							TransferInterface::Role role);
   std::unique_ptr<TransferInterface> data_logger_transfer_;
-  std::unique_ptr<TransferInterface> dispatcher_transfer_;
 
   std::unique_ptr<Fragment> init_fragment_ptr_;
 
-  bool monitor_added_;
   std::mutex register_monitor_mutex_;
+  std::vector<std::unique_ptr<TransferInterface>> dispatcher_transfers_;
+
 };
 
 #endif

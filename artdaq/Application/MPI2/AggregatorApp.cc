@@ -152,8 +152,8 @@ std::string artdaq::AggregatorApp::report(std::string const& which) const
   return resultString;
 }
 
-std::string artdaq::AggregatorApp::register_monitor(std::string const& info) {
-  mf::LogInfo(name_) << "AggregatorApp::register_monitor called with argument \"" << info << "\"";
+std::string artdaq::AggregatorApp::register_monitor(fhicl::ParameterSet const& info) {
+  mf::LogDebug(name_) << "AggregatorApp::register_monitor called with argument \"" << info.to_string() << "\"";
 
   if (aggregator_ptr_) {
     

@@ -25,12 +25,14 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   static cet::BasicPluginFactory bpf("transfer", "make");
   
   try {
+    auto transfer_pset = pset.get<fhicl::ParameterSet>("transfer_plugin");
+
     transfer_ =  
       bpf.makePlugin<std::unique_ptr<TransferInterface>,
       const fhicl::ParameterSet&,
       TransferInterface::Role>(
-			       pset.get<std::string>("transferPluginType"), 
-			       pset, 
+			       transfer_pset.get<std::string>("transferPluginType"), 
+			       transfer_pset, 
 			       TransferInterface::Role::receive);
 
   } catch (...) {
@@ -45,7 +47,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   xmlrpc_c::clientSimple myClient;
   xmlrpc_c::value result;
         
-  myClient.call(serverUrl, "daq.register_monitor", "s", &result, "TransferWrapper passed argument to register_monitor");
+  myClient.call(serverUrl, "daq.register_monitor", "s", &result, pset.to_string().c_str());
 
   const std::string status = xmlrpc_c::value_string(result);
 
