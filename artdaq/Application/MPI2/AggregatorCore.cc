@@ -8,6 +8,7 @@
 #endif
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
+#include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
@@ -317,11 +318,11 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   try {
 
     if (is_data_logger_) {
-      data_logger_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::send);
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::send);
     } else if (is_online_monitor_) {
-      data_logger_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
     } else if (is_dispatcher_) {
-      data_logger_transfer_ = makeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
     }
     
   } catch(...) {
@@ -964,12 +965,12 @@ std::string artdaq::AggregatorCore::register_monitor(fhicl::ParameterSet const& 
   try {
     
     dispatcher_transfers_.emplace_back(
-					makeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::send) );
+					MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::send) );
 
   } catch(...) {
     std::stringstream errmsg;
     errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\"";
-    ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+    return errmsg.str().c_str();
   }
 
   return "Success";
@@ -1202,34 +1203,4 @@ void artdaq::AggregatorCore::sendMetrics_()
                           (mqPtr->recentValueSum() / eventCount),
                           "seconds/event", 4);
   }
-}
-
-std::unique_ptr<artdaq::TransferInterface> 
-artdaq::AggregatorCore::makeTransferPlugin(const fhicl::ParameterSet& pset,
-					   std::string plugin_label,
-					   TransferInterface::Role role) {
-
-  static cet::BasicPluginFactory bpf("transfer", "make");
-
-  fhicl::ParameterSet transfer_pset;
-
-  try {
-    transfer_pset = pset.get<fhicl::ParameterSet>(plugin_label);
-  }  catch (...) {
-    std::stringstream errmsg;
-    errmsg
-      << "Unable to find the transfer plugin parameters in the daq "
-      << "ParameterSet: \"" + transfer_pset.to_string() + "\".";
-    ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-  }
-
-  std::unique_ptr<TransferInterface> transfer =  
-    bpf.makePlugin<std::unique_ptr<TransferInterface>,
-    const fhicl::ParameterSet&,
-    TransferInterface::Role>(
-			     transfer_pset.get<std::string>("transferPluginType"), 
-			     transfer_pset, 
-			     std::move(role));  
-
-  return std::move(transfer);
 }

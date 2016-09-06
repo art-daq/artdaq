@@ -110,9 +110,6 @@ private:
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
 
-  std::unique_ptr<TransferInterface> makeTransferPlugin(const fhicl::ParameterSet& pset,
-							std::string plugin_label,
-							TransferInterface::Role role);
   std::unique_ptr<TransferInterface> data_logger_transfer_;
 
   std::unique_ptr<Fragment> init_fragment_ptr_;

@@ -1,5 +1,6 @@
 
 #include "artdaq/TransferPlugins/TransferWrapper.hh"
+#include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -22,22 +23,11 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
 {
 
-  static cet::BasicPluginFactory bpf("transfer", "make");
-  
   try {
-    auto transfer_pset = pset.get<fhicl::ParameterSet>("transfer_plugin");
-
-    transfer_ =  
-      bpf.makePlugin<std::unique_ptr<TransferInterface>,
-      const fhicl::ParameterSet&,
-      TransferInterface::Role>(
-			       transfer_pset.get<std::string>("transferPluginType"), 
-			       transfer_pset, 
-			       TransferInterface::Role::receive);
-
+    transfer_ = MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::receive);
   } catch (...) {
     ExceptionHandler(ExceptionHandlerRethrow::yes, 
-		     "Problem creating instance of TransferInterface in TransferWrapper");
+		     "TransferWrapper: failure in call to MakeTransferPlugin");
   }
 
   auto dispatcherHost = pset.get<std::string>("dispatcherHost");
@@ -46,12 +36,21 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 
   xmlrpc_c::clientSimple myClient;
   xmlrpc_c::value result;
-        
-  myClient.call(serverUrl, "daq.register_monitor", "s", &result, pset.to_string().c_str());
+      
+  try {
+    myClient.call(serverUrl, "daq.register_monitor", "s", &result, pset.to_string().c_str());
+  } catch (...) {
+    std::stringstream errmsg;
+    errmsg << "Problem attempting XML-RPC call on host " << dispatcherHost
+	   << ", port " << dispatcherPort << "; possible causes are malformed FHiCL or nonexistent process at requested port";
+    ExceptionHandler(ExceptionHandlerRethrow::yes, 
+   		     errmsg.str());
+  }
 
   const std::string status = xmlrpc_c::value_string(result);
 
-  mf::LogInfo("TransferWrapper") << "Response from dispatcher is " << status;
+  mf::LogInfo("TransferWrapper") << "Response from dispatcher is \"" 
+				 << status << "\"";
 }
 
 void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) {
