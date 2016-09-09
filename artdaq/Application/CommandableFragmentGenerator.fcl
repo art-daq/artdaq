@@ -19,6 +19,10 @@ trigger_mode: "Ignored" # Possible values are: Ignored, Single, Buffer, Window
                       # Buffer: When trigger is received, sends all data recieved since last trigger
                       # Window: When trigger is received, sends all data satisfying timestamp window defined below
 
+# Data Buffer configuration for Ignored, Buffer, and Window trigger modes
+data_buffer_depth_fragments: 1000
+data_buffer_depth_mb: 1000
+
 # Trigger Socket configuration
 trigger_port: 3001
 trigger_address: "227.128.12.26" # Multicast trigger address

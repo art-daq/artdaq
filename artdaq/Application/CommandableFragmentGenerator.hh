@@ -96,6 +96,8 @@ namespace artdaq {
 		void startTriggerReceiverThread();
 
 		void getDataLoop();
+	  bool dataBufferIsTooLarge();
+	  void getDataBufferStats();
 		void getMonitoringDataLoop();
 		void receiveTriggersLoop();
 
@@ -231,6 +233,11 @@ namespace artdaq {
 		bool useDataThread_;
 		std::thread dataThread_;
 		std::atomic<bool> haveData_;
+
+	  std::atomic<int> dataBufferDepthFragments_;
+	  std::atomic<size_t> dataBufferDepth_;
+	  int maxDataBufferDepthFragments_;
+	  size_t maxDataBufferDepth_;
 
 		bool useMonitoringThread_;
 		bool collectMonitoringData_;
