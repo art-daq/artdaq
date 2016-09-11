@@ -39,8 +39,7 @@ art_make_exec(NAME artdaqDriver
 
 art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
-  artdaq_TransferPlugins_multicast_transfer
-  artdaq_TransferPlugins_shmem_transfer
+  artdaq_TransferPlugins
   artdaq-core_Data
   ${CETLIB}
   ${FHICLCPP}
@@ -49,8 +48,7 @@ art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
 
 art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
   LIBRARIES
-  artdaq_TransferPlugins_multicast_transfer
-  artdaq_TransferPlugins_shmem_transfer
+  artdaq_TransferPlugins
   artdaq-core_Data
   ${CETLIB}
   ${FHICLCPP}
@@ -92,5 +90,5 @@ cet_test(config_with_art_t
   TEST_PROPERTIES ENVIRONMENT ARTDAQ_DAQRATE_USE_ART=1
   )
 
-install_fhicl(LIST daqrate_simdata_noart.fcl multicast.fcl shmem.fcl)
+install_fhicl(LIST daqrate_simdata_noart.fcl Multicast.fcl Shmem.fcl)
 install_source()

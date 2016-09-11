@@ -20,6 +20,9 @@ public:
   TransferInterface(const fhicl::ParameterSet& , Role role) :
     role_(role)
   {}
+
+  TransferInterface(const TransferInterface& ) = delete;
+  TransferInterface& operator=(const TransferInterface& ) = delete;
   
   virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
 				     size_t receiveTimeout) = 0;

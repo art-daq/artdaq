@@ -8,7 +8,7 @@ endif()
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_TransferPlugins
   NO_PLUGINS
-  EXCLUDE RTIDDS_transfer.cc shmem_transfer.cc multicast_transfer.cc
+  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
@@ -38,11 +38,11 @@ simple_plugin(TransferInput "source"
   artdaq_TransferPlugins
 )
 
-simple_plugin(shmem "transfer"
+simple_plugin(Shmem "transfer"
   artdaq_TransferPlugins
 )
 
-simple_plugin(multicast "transfer"
+simple_plugin(Multicast "transfer"
   artdaq_TransferPlugins
   ${Boost_SYSTEM_LIBRARY}
 )
