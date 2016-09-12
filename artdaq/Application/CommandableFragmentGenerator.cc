@@ -465,6 +465,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
           if(should_stop()) {
               mf::LogDebug("CommandaleFragmentGenerator") << "Run ended while waiting for buffer to shrink!";
+			  return;
           }
 		  auto waittime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startwait).count();
 		  
