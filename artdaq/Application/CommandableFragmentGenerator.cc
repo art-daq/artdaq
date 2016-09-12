@@ -494,11 +494,6 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 				std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_, dataBuffer_.end()));
 				break;
 			}
-			dataBufferDepthFragments_ = dataBuffer_.size();
-			size_t acc =0;
-			for(auto i = dataBuffer_.begin(); i != dataBuffer_.end(); ++i) {
-			  acc += (*i)->sizeBytes();
-			}
 			getDataBufferStats();
 			dataBufferMutex_.unlock();
 			newDataBuffer_.clear();
