@@ -462,6 +462,10 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		bool first = true;
 		auto lastwaittime = 0;
 		while(dataBufferIsTooLarge()) {
+
+          if(should_stop()) {
+              mf::LogDebug("CommandaleFragmentGenerator") << "Run ended while waiting for buffer to shrink!";
+          }
 		  auto waittime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startwait).count();
 		  
 		  if(first || (waittime != lastwaittime && waittime % 1000 == 0))
