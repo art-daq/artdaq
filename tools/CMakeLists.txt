@@ -24,7 +24,7 @@ art_make_exec(genToArt
   artdaq_DAQdata
   artdaq-core_Utilities
   artdaq-core_Generators
-  ${ART_FRAMEWORK_ART}
+  art_Framework_Art
   ${FHICLCPP}
   ${CETLIB}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}

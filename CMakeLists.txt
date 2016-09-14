@@ -23,9 +23,18 @@ IF (NOT CETBUILDTOOLS_VERSION)
     MESSAGE (FATAL_ERROR "ERROR: setup cetbuildtools to get the cmake modules")
 ENDIF()
 
-set(CMAKE_MODULE_PATH $ENV{ART_DIR}/Modules
-		      $ENV{CETBUILDTOOLS_DIR}/Modules
-		      ${CMAKE_MODULE_PATH})
+if( DEFINED ENV{CANVAS_DIR} )
+set(CMAKE_MODULE_PATH
+  $ENV{ART_DIR}/Modules
+  $ENV{CANVAS_DIR}/Modules
+	$ENV{CETBUILDTOOLS_DIR}/Modules
+	${CMAKE_MODULE_PATH})
+else()
+set(CMAKE_MODULE_PATH
+  $ENV{ART_DIR}/Modules
+	$ENV{CETBUILDTOOLS_DIR}/Modules
+	${CMAKE_MODULE_PATH})
+endif()
 
 include(CetCMakeEnv)
 cet_cmake_env()
@@ -76,8 +85,9 @@ check_ups_version(art "$ENV{ART_VERSION}" v2_00_00 PRODUCT_OLDER_VAR NO_CANVAS)
 if (NO_CANVAS)
    set(CANVAS "art")
 else (NO_CANVAS)
-   add_definitions(-DCANVAS)
+   find_ups_product( canvas v1_00_00 )
    set(CANVAS "canvas")
+   add_definitions(-DCANVAS)
 endif()
 
 string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" ART_VERSION_LIST "$ENV{ART_VERSION}")

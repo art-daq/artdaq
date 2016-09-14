@@ -469,7 +469,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		  
 		  if(first || (waittime != lastwaittime && waittime % 1000 == 0))
 			{
-			  mf::LogWarning("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders!";
+				//mf::LogWarning("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders!";
 			  first = false;
 			}
 		  if(waittime % 5 && waittime != lastwaittime) {
@@ -493,11 +493,6 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 				//dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
 				std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_, dataBuffer_.end()));
 				break;
-			}
-			dataBufferDepthFragments_ = dataBuffer_.size();
-			size_t acc =0;
-			for(auto i = dataBuffer_.begin(); i != dataBuffer_.end(); ++i) {
-			  acc += (*i)->sizeBytes();
 			}
 			getDataBufferStats();
 			dataBufferMutex_.unlock();
