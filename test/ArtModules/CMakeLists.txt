@@ -21,6 +21,7 @@ cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
   ${CANVAS}_Persistency_Common_dict
   ${CANVAS}_Persistency_WrappedStdDictionaries_dict
   art_Utilities
+  art_Version
   )
 
 cet_test(daq_flow_t
