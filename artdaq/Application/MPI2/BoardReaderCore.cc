@@ -371,6 +371,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
       // other BoardReaders haven't called Ibarrier, we wait.
       if (mpi_sync_fragment_interval_ > 0 && fragment_count_ > 0 &&
           (fragment_count_ % mpi_sync_fragment_interval_) == 0) {
+		  TRACE(4, "BoardReaderCore: Entering MPI Barrier");
         MPI_Ibarrier(local_group_comm_, &mpi_request);
         barrier_is_pending = true;
       }
