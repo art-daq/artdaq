@@ -21,12 +21,11 @@ cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
   ${CANVAS}_Persistency_Common_dict
   ${CANVAS}_Persistency_WrappedStdDictionaries_dict
   art_Utilities
-  ${ART_VERSION}
   )
 
 cet_test(daq_flow_t
   LIBRARIES
-  ${ART_FRAMEWORK_ART}
+  art_Framework_Art
   ${MPI_C_LIBRARIES}
   artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq_Application_MPI2

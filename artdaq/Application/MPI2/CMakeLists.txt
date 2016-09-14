@@ -13,7 +13,7 @@ art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   LIBRARIES
   artdaq_DAQrate
   artdaq_Application
-  ${ART_FRAMEWORK_ART}
+  art_Framework_Art
   ${MPI_C_LIBRARIES}
   ${MF_MESSAGELOGGER}
   ${FHICLCPP}

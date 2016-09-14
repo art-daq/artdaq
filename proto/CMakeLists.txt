@@ -31,7 +31,7 @@ art_make_exec(NAME artdaqDriver
   artdaq_DAQdata
   artdaq-core_Utilities
   artdaq-core_Generators
-  ${ART_FRAMEWORK_ART}
+  art_Framework_Art
   ${FHICLCPP}
   ${CETLIB}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -67,7 +67,7 @@ art_make_exec(NAME builder
   builder.cc
   Config.cc
   LIBRARIES
-  ${ART_FRAMEWORK_ART}
+  art_Framework_Art
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq-core_Utilities
