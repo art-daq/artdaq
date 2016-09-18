@@ -12,7 +12,7 @@
 
 // The send/receive role of the plugin
 
-#include "TransferInterface.h"
+#include "TransferInterface.hh"
 
 #include "fhiclcpp/fwd.h"
 

@@ -22,7 +22,7 @@
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
-#include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 namespace artdaq
 {
@@ -56,6 +56,7 @@ public:
 
   std::string report(std::string const& which) const;
   std::string register_monitor(fhicl::ParameterSet const& ); 
+  std::string unregister_monitor(std::string const& ); 
 
 private:
   int mpi_rank_;
@@ -114,8 +115,9 @@ private:
 
   std::unique_ptr<Fragment> init_fragment_ptr_;
 
-  std::mutex register_monitor_mutex_;
+  std::mutex dispatcher_transfers_mutex_;
   std::vector<std::unique_ptr<TransferInterface>> dispatcher_transfers_;
+  size_t new_transfers_;
 
 };
 

@@ -57,6 +57,10 @@ public:
     return "This string is returned from Commandable::register_monitor; register_monitor should either be overridden in a derived class or this process should not have been sent the register_monitor call";
   }
 
+  virtual std::string unregister_monitor(std::string const&  ) {
+    return "This string is returned from Commandable::unregister_monitor; unregister_monitor should either be overridden in a derived class or this process should not have been sent the unregister_monitor call";
+  }
+
   std::vector<std::string> legal_commands() const;
 
   // these methods provide the operations that are used by the state machine

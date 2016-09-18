@@ -169,3 +169,22 @@ std::string artdaq::AggregatorApp::register_monitor(fhicl::ParameterSet const& i
     return "Error in artdaq::AggregatorApp::register_monitor: AggregatorCore object wasn't initialized";
   }
 }
+
+
+std::string artdaq::AggregatorApp::unregister_monitor(std::string const& label) {
+  mf::LogDebug(name_) << "AggregatorApp::unregister_monitor called with argument \"" << label << "\"";
+
+  if (aggregator_ptr_) {
+    
+    try {
+      return aggregator_ptr_->unregister_monitor(label);
+    } catch(...) {
+      ExceptionHandler(ExceptionHandlerRethrow::no,
+                       "Error in call to AggregatorCore's unregister_monitor function");
+
+      return "Error in artdaq::AggregatorApp::unregister_monitor: an exception was thrown in the call to AggregatorCore::unregister_monitor, possibly due to a problem with the argument";
+    }
+  } else {
+    return "Error in artdaq::AggregatorApp::unregister_monitor: AggregatorCore object wasn't initialized";
+  }
+}

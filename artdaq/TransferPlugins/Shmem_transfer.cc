@@ -1,5 +1,5 @@
 
-#include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -56,7 +56,6 @@ private:
 
   size_t fragment_count_to_shm_;
   Role role_;
-  std::string name_;
 };
 
 }
@@ -71,10 +70,6 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
   fragment_count_to_shm_(0),
   role_(role)
 {
-  std::stringstream namestr;
-  static size_t cntr = 0;
-  namestr << "ShmemTransfer_" << cntr++;
-  name_ = namestr.str();
 
   char* keyChars = getenv("ARTDAQ_SHM_KEY");
   if (keyChars != NULL && shm_key_ == shm_key_default_) {
@@ -84,7 +79,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
     }
     catch (...) {
       std::stringstream errmsg;
-      errmsg << name_ << ": Problem performing lexical cast on " << keyString;
+      errmsg << uniqueLabel() << ": Problem performing lexical cast on " << keyString;
       ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str()); 
     }
   }
@@ -105,10 +100,10 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	     IPC_CREAT | 0666);
   }
   
-  mf::LogInfo(name_) << "shm_key == " << shm_key_ << ", shm_segment_id == " << shm_segment_id_;
+  mf::LogDebug(uniqueLabel()) << "shm_key == " << shm_key_ << ", shm_segment_id == " << shm_segment_id_;
 
   if (shm_segment_id_ > -1) {
-    mf::LogDebug(name_)
+    mf::LogDebug(uniqueLabel())
       << "Created/fetched shared memory segment with ID = " << shm_segment_id_
       << " and size " << (max_fragment_size_words_ * sizeof(artdaq::RawDataType))
       << " bytes";
@@ -117,17 +112,17 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
       if (role_ == Role::receive) {
         shm_ptr_->hasFragment = 0;
       }
-      mf::LogDebug(name_)
+      mf::LogDebug(uniqueLabel())
         << "Attached to shared memory segment at address "
         << std::hex << shm_ptr_ << std::dec;
     }
     else {
-      mf::LogError(name_) << "Failed to attach to shared memory segment "
+      mf::LogError(uniqueLabel()) << "Failed to attach to shared memory segment "
 			  << shm_segment_id_;
     }
   }
   else {
-    mf::LogError(name_) << "Failed to connect to shared memory segment"
+    mf::LogError(uniqueLabel()) << "Failed to connect to shared memory segment"
 			<< ", errno = " << errno << ".  Please check "
 			<< "if a stale shared memory segment needs to "
 			<< "be cleaned up. (ipcs, ipcrm -m <segId>)";
@@ -181,7 +176,7 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
       fragment.resize( shm_ptr_->fragmentSizeWords - wordsOfHeaderAndMetadata);
 
       if (fragment.type() != artdaq::Fragment::DataFragmentType) {
-	mf::LogInfo(name_)
+	mf::LogDebug(uniqueLabel())
           << "Received fragment from shared memory, type ="
           << ((int)fragment.type()) << ", sequenceID = "
           << fragment.sequenceID();
@@ -193,7 +188,7 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
     }
   } else {
 
-    mf::LogError(name_) << "Error in shared memory transfer plugin: pointer to shared memory segment is null, will sleep for " << receiveTimeout/1.0e9 << " seconds and then return a timeout";
+    mf::LogError(uniqueLabel()) << "Error in shared memory transfer plugin: pointer to shared memory segment is null, will sleep for " << receiveTimeout/1.0e9 << " seconds and then return a timeout";
     usleep(receiveTimeout);
     return artdaq::RHandles::RECV_TIMEOUT; // Should we EVER get shm_ptr_ == 0?
   }
@@ -221,7 +216,7 @@ void artdaq::ShmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
     int loopCount = 0;
     while (shm_ptr_->hasFragment == 1 && loopCount < 10) {
       if (fragmentType != artdaq::Fragment::DataFragmentType) {
-	mf::LogInfo(name_) << "Trying to copy fragment of type "
+	mf::LogDebug(uniqueLabel()) << "Trying to copy fragment of type "
 			    << fragmentType
 			    << ", loopCount = "
 			    << loopCount;
@@ -257,12 +252,12 @@ void artdaq::ShmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
 
       ++fragment_count_to_shm_;
       if ((fragment_count_to_shm_ % 250) == 0) {
-	mf::LogDebug(name_) << "Copied " << fragment_count_to_shm_
+	mf::LogDebug(uniqueLabel()) << "Copied " << fragment_count_to_shm_
 			    << " fragments to shared memory in this run.";
       }
     }
     else {
-      mf::LogWarning(name_) << "Fragment invalid for shared memory! "
+      mf::LogWarning(uniqueLabel()) << "Fragment invalid for shared memory! "
 			    << "fragment address and size = "
 			    << fragAddr << " " << fragSize << " "
 			    << "sequence ID, fragment ID, and type = "

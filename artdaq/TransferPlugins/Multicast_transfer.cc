@@ -1,6 +1,6 @@
 
 
-#include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -98,7 +98,6 @@ private:
   std::vector<byte_t> staging_memory_;
 
   std::vector<boost::asio::mutable_buffer> receive_buffers_;
-  const std::string name_;
 };
 
 }
@@ -114,8 +113,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
   subfragments_per_send_(pset.get<size_t>("subfragments_per_send")),
   max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType)),
   pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0)),
-  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank")),
-  name_("MulticastTransfer")
+  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank"))
 {
 
   try {
@@ -124,8 +122,8 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
     auto multicast_address = boost::asio::ip::address::from_string(pset.get<std::string>("multicast_address"));
     auto local_address = boost::asio::ip::address::from_string(pset.get<std::string>("local_address"));
 
-    mf::LogInfo(name_) << "multicast address is set to " << multicast_address;
-    mf::LogInfo(name_) << "local address is set to " << local_address;
+    mf::LogDebug(uniqueLabel()) << "multicast address is set to " << multicast_address;
+    mf::LogDebug(uniqueLabel()) << "local address is set to " << local_address;
 
     if (TransferInterface::role() == Role::send) {
 
@@ -178,8 +176,8 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
     book_container_of_buffers(receive_buffers_, max_fragment_size_, max_subfragments, 0, max_subfragments - 1);
   }
 
-  mf::LogDebug(name_) << "max_subfragments is " << max_subfragments;
-  mf::LogDebug(name_) << "Staging buffer size is " << staging_memory_.size();
+  mf::LogDebug(uniqueLabel()) << "max_subfragments is " << max_subfragments;
+  mf::LogDebug(uniqueLabel()) << "Staging buffer size is " << staging_memory_.size();
 }
 
 #pragma GCC diagnostic push
@@ -303,12 +301,11 @@ size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       // to be incomplete
 
       assert( !fragment_complete );
-      mf::LogWarning(name_) << "Got an incomplete fragment";
+      mf::LogWarning(uniqueLabel()) << "Got an incomplete fragment";
       return artdaq::RHandles::RECV_TIMEOUT;
     }
 
     if (fragment_complete) {
-      //      mf::LogDebug(name_) << "Got a complete fragment";
       return first_data_sender_rank_;
     }
   }
@@ -334,7 +331,6 @@ void artdaq::MulticastTransfer::copyFragmentTo(bool& fragmentWasCopied,
   static size_t ncalls = 1;
   auto num_subfragments = static_cast<size_t>(std::ceil( fragment.sizeBytes() / static_cast<float>(subfragment_size_ )));
 
-  //  mf::LogDebug(name_) << "Call #" << ncalls << ", fragment size is " << fragment.sizeBytes();
   ncalls++;
 
   fill_staging_memory(fragment);
@@ -366,7 +362,7 @@ void artdaq::MulticastTransfer::copyFragmentTo(bool& fragmentWasCopied,
 void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& fragment) {
 
   auto num_subfragments = static_cast<size_t>(std::ceil( fragment.sizeBytes() / static_cast<float>(subfragment_size_ )));
-  mf::LogDebug(name_) << "# of subfragments to use is " << num_subfragments;
+  mf::LogDebug(uniqueLabel()) << "# of subfragments to use is " << num_subfragments;
 
   for (auto i_s = 0; i_s < num_subfragments; ++i_s) {
 
@@ -456,7 +452,7 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size) {
   boost::asio::socket_base::receive_buffer_size actual_recv_buff_size;
   socket_->get_option(actual_recv_buff_size);
 
-  mf::LogInfo(name_) << "Receive buffer size is currently " << actual_recv_buff_size.value() << 
+  mf::LogDebug(uniqueLabel()) << "Receive buffer size is currently " << actual_recv_buff_size.value() << 
     " bytes, will try to change it to " << recv_buff_size;
 
   boost::asio::socket_base::receive_buffer_size recv_buff_option(recv_buff_size);
@@ -470,7 +466,7 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size) {
   }
 
   socket_->get_option(actual_recv_buff_size);
-  mf::LogInfo(name_) << "After attempted change, receive buffer size is now " << actual_recv_buff_size.value();
+  mf::LogDebug(uniqueLabel()) << "After attempted change, receive buffer size is now " << actual_recv_buff_size.value();
 }
 
 

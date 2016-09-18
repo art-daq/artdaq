@@ -67,7 +67,8 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   data_sender_count_(0), event_queue_(artdaq::getGlobalQueue(10)),
   stop_requested_(false), local_pause_requested_(false),
   processing_fragments_(false),
-  system_pause_requested_(false), previous_run_duration_(-1.0)
+  system_pause_requested_(false), previous_run_duration_(-1.0),
+  new_transfers_(0)
 {
   mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
@@ -646,33 +647,34 @@ size_t artdaq::AggregatorCore::process_fragments()
     } else if (is_dispatcher_) {
 
       if (fragmentPtr->type() != artdaq::Fragment::EndOfDataFragmentType) {
-	mf::LogInfo(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
-	  static_cast<size_t>(fragmentPtr->type()) << " to " << dispatcher_transfers_.size() 
-			   << " registered monitors";
-
-	for (auto& transfer : dispatcher_transfers_) {
-	  transfer->copyFragmentTo(fragmentWasCopied,
-				   esrWasCopied, eodWasCopied,
-				   *fragmentPtr, 0);
-	}
 
 	if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
 	  init_fragment_ptr_ = std::make_unique<artdaq::Fragment>( *fragmentPtr );
 	}
 
-	static size_t previous_queue_length = 0;
+	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 
-	if (previous_queue_length < dispatcher_transfers_.size()) {
-	  std::lock_guard<std::mutex> lock(register_monitor_mutex_);
+	if (new_transfers_ == 0) {
 
-	  for (size_t i_q = previous_queue_length; i_q < dispatcher_transfers_.size(); ++i_q) {
-	      mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) << 
-		 ", size " << init_fragment_ptr_->sizeBytes();
-	       dispatcher_transfers_[i_q]->copyFragmentTo(fragmentWasCopied,
-							   esrWasCopied, eodWasCopied,
-							   *init_fragment_ptr_, 0);
-	       }
-	  previous_queue_length = dispatcher_transfers_.size();
+	  mf::LogDebug(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
+	    static_cast<size_t>(fragmentPtr->type()) << " to " << dispatcher_transfers_.size() 
+			     << " registered monitors";
+
+	  for (auto& transfer : dispatcher_transfers_) {
+	    transfer->copyFragmentTo(fragmentWasCopied,
+				     esrWasCopied, eodWasCopied,
+				     *fragmentPtr, 0);
+	  }
+	} else {
+
+	  for (size_t i_q = dispatcher_transfers_.size() - new_transfers_; i_q < dispatcher_transfers_.size(); ++i_q) {
+	    mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) << 
+	      ", size " << init_fragment_ptr_->sizeBytes();
+	    dispatcher_transfers_[i_q]->copyFragmentTo(fragmentWasCopied,
+						       esrWasCopied, eodWasCopied,
+						       *init_fragment_ptr_, 500000);
+	  }
+	  new_transfers_ = 0;
 	}
       }
     }
@@ -960,21 +962,77 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
 
 std::string artdaq::AggregatorCore::register_monitor(fhicl::ParameterSet const& pset) {
   mf::LogDebug(name_) << "AggregatorCore::register_monitor called with argument \"" << pset.to_string() << "\"";
-  std::lock_guard<std::mutex> lock(register_monitor_mutex_);
+  std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 
   try {
     
-    dispatcher_transfers_.emplace_back(
-					MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::send) );
+    auto transfer = MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::send);
 
+    for (auto& existing_transfer_ : dispatcher_transfers_) {
+      
+      if (existing_transfer_->uniqueLabel() == transfer->uniqueLabel()) {
+    	std::stringstream errmsg;
+    	errmsg << "Attempt to register newly-created monitor with label \"" <<
+    	  transfer->uniqueLabel() << "\" failed; a monitor with that label already exists";
+    	return errmsg.str();
+      }
+    }
+
+    dispatcher_transfers_.emplace_back( std::move(transfer) );
+
+    mf::LogInfo(name_) << "Successfully registered monitor with label \"" << dispatcher_transfers_.back()->uniqueLabel() << "\"";
+
+    new_transfers_++;
   } catch(...) {
     std::stringstream errmsg;
-    errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\"";
-    return errmsg.str().c_str();
+    errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered";
+    return errmsg.str();
   }
 
   return "Success";
 }
+
+std::string artdaq::AggregatorCore::unregister_monitor(std::string const& label) {
+  mf::LogDebug(name_) << "AggregatorCore::unregister_monitor called with argument \"" << label << "\"";
+  std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+
+  try {
+  
+    auto r_i_end = std::remove_if(dispatcher_transfers_.begin(),
+				  dispatcher_transfers_.end(),
+				  [label](const std::unique_ptr<TransferInterface>& transfer) { 
+				    return transfer->uniqueLabel() == label; });
+
+    auto nfound = dispatcher_transfers_.end() - r_i_end;
+
+    mf::LogInfo(name_) << "Request from monitor with label \"" << label << "\" to unregister received";
+
+    if (nfound == 1) {
+      dispatcher_transfers_.pop_back();
+      return "Success";
+    } else if (nfound == 0) {
+      std::stringstream errmsg;
+      errmsg << "Warning in AggregatorCore::unregister_monitor: unable to find requested transfer plugin with "
+	     << "label \"" << label << "\"";
+      mf::LogWarning(name_) << errmsg.str();
+      return errmsg.str();
+    } else {
+      std::stringstream errmsg;
+      errmsg << "Warning in AggregatorCore::unregister_monitor: found more than one (" << nfound << 
+	") transfer plugins with label \"" << label << "\", will unregister all of them";
+      mf::LogWarning(name_) << errmsg.str();
+      dispatcher_transfers_.erase(r_i_end, dispatcher_transfers_.end());
+      return errmsg.str();
+    }
+  } catch(...) {
+    std::stringstream errmsg;
+    errmsg << "Unable to unregister transfer plugin with label \"" << label << "\"";
+    return errmsg.str();
+  }
+
+  return "Success";
+}
+
 
 size_t artdaq::AggregatorCore::getLatestFileSize_() const
 {
