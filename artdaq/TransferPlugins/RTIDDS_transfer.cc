@@ -1,5 +1,5 @@
 
-#include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq/RTIDDS/RTIDDS.hh"

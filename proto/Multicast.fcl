@@ -1,5 +1,5 @@
 
-transfer_plugin_type: "multicast"
+transfer_plugin_type: "Multicast"
  	   
 multicast_address: "224.0.0.1"
 multicast_port: 30001	   
