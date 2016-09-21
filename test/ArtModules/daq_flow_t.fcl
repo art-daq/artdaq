@@ -49,5 +49,4 @@ services:
     handleEmptySubRuns: true
     enableSigInt: true
   }
-  Timing: { }
 }

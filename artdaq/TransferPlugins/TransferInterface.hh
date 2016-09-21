@@ -1,14 +1,12 @@
-#ifndef artdaq_ArtModules_TransferInterface_h
-#define artdaq_ArtModules_TransferInterface_h
+#ifndef artdaq_ArtModules_TransferInterface_hh
+#define artdaq_ArtModules_TransferInterface_hh
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "fhiclcpp/fwd.h"
+#include "fhiclcpp/ParameterSet.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <limits>
-
-namespace fhicl {
-  class ParameterSet;
-}
+#include <iostream>
 
 namespace artdaq {
 
@@ -17,9 +15,15 @@ public:
 
   enum class Role { send, receive };
 
-  TransferInterface(const fhicl::ParameterSet& , Role role) :
-    role_(role)
-  {}
+  TransferInterface(const fhicl::ParameterSet& ps, Role role) :
+    role_(role),
+    unique_label_(ps.get<std::string>("unique_label", "unlabeled"))
+  {
+    mf::LogDebug( uniqueLabel() ) << "TransferInterface constructor has " << ps.to_string();
+  }
+
+  TransferInterface(const TransferInterface& ) = delete;
+  TransferInterface& operator=(const TransferInterface& ) = delete;
   
   virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
 				     size_t receiveTimeout) = 0;
@@ -30,11 +34,14 @@ public:
 			      artdaq::Fragment& fragment,
 			      size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
+  std::string uniqueLabel() const { return unique_label_; }
+
 protected:
-  Role role() { return role_; }
+  Role role() const { return role_; }
 
 private:
   const Role role_;
+  const std::string unique_label_;
 };
 
 }
@@ -46,7 +53,7 @@ private:
 }
 
 
-#endif /* artdaq_ArtModules_TransferInterface_h */
+#endif /* artdaq_ArtModules_TransferInterface.hh */
 
 // Local Variables:
 // mode: c++

@@ -41,9 +41,11 @@ void artdaq::EventBuilderCore::initializeEventStore(fhicl::ParameterSet pset)
 {
   if (use_art_) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
+	TRACE(36, "Creating EventStore and Starting art thread");
     event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
 						  mpi_rank_, init_string_,
 						  reader, &metricMan_));
+	TRACE(36, "Done Creating EventStore");
     art_initialized_ = true;
   }
   else {

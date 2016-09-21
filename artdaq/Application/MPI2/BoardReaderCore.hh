@@ -28,6 +28,7 @@ class artdaq::BoardReaderCore
 public:
   static const std::string FRAGMENTS_PROCESSED_STAT_KEY;
   static const std::string INPUT_WAIT_STAT_KEY;
+  static const std::string BRSYNC_WAIT_STAT_KEY;
   static const std::string OUTPUT_WAIT_STAT_KEY;
   static const std::string FRAGMENTS_PER_READ_STAT_KEY;
 

@@ -130,6 +130,7 @@ sendFragTo(Fragment && frag, size_t dest, bool force_async)
         << max_payload_size_
         << ").";
   }
+  TRACE(5, "sendFragTo finding available buffer");
   size_t buffer_idx = findAvailable();
   Fragment & curfrag = payload_[buffer_idx];
   curfrag = std::move(frag);
