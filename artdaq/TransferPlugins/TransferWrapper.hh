@@ -28,7 +28,6 @@ namespace artdaq {
   public:
 
     TransferWrapper(const fhicl::ParameterSet& );
-
     ~TransferWrapper();
 
     void receiveMessage(std::unique_ptr<TBufferFile>& msg);
@@ -39,6 +38,8 @@ namespace artdaq {
 
     void checkIntegrity(const artdaq::Fragment& ) const;
 
+    void unregisterMonitor();
+
     std::size_t timeoutInUsecs_;
     std::unique_ptr<TransferInterface> transfer_;
     const std::string dispatcherHost_;
@@ -48,6 +49,7 @@ namespace artdaq {
     const std::vector<int> allowedFragmentTypes_;
     const bool quitOnFragmentIntegrityProblem_;
     const size_t debugLevel_;
+    bool monitorRegistered_;
   };
 
 }

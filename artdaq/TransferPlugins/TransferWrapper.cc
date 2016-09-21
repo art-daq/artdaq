@@ -19,6 +19,17 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <csignal>
+
+namespace
+{
+  volatile std::sig_atomic_t gSignalStatus = 0;
+}
+ 
+void signal_handler(int signal)
+{
+  gSignalStatus = signal;
+}
 
 artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000)),
@@ -28,8 +39,11 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5)),
   allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229})),
   quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true)),
-  debugLevel_(pset.get<std::size_t>("debugLevel", 0))
+  debugLevel_(pset.get<std::size_t>("debugLevel", 0)),
+  monitorRegistered_(false)
 {
+
+  std::signal(SIGINT, signal_handler);
 
   try {
     transfer_ = MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::receive);
@@ -59,7 +73,9 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   mf::LogInfo("TransferWrapper") << "Response from dispatcher is \"" 
 				 << status << "\"";
 
-  if (status != "Success") {
+  if (status == "Success") {
+    monitorRegistered_ = true;
+  } else {
     throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to register with dispatcher did not result in the \"Success\" response";
   }
 }
@@ -71,11 +87,17 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) 
   static bool initialized = false;
   static size_t fragments_received = 0;
 
-  while (true) {
+  while (true && !gSignalStatus) {
 
     fragmentPtr = std::make_unique<artdaq::Fragment>();
 
     while (!receivedFragment) {
+
+      if (gSignalStatus) {
+	mf::LogInfo("TransferWrapper") << "Ctrl-C appears to have been hit" << std::endl;
+	unregisterMonitor();
+	return;
+      }
 
       try { 
 	auto result = transfer_->receiveFragmentFrom(*fragmentPtr, timeoutInUsecs_);
@@ -186,9 +208,16 @@ artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const 
   }
 }
 
-artdaq::TransferWrapper::~TransferWrapper() {
+void
+artdaq::TransferWrapper::unregisterMonitor() {
 
-  mf::LogInfo("TransferWrapper") << "Requesting that this monitor (" << transfer_->uniqueLabel() << ") be unregistered from the dispatcher aggregator" << std::endl;
+  if (!monitorRegistered_) {
+    throw cet::exception("TransferWrapper") << 
+      "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";  
+  }
+
+  mf::LogInfo("TransferWrapper") << "Requesting that this monitor (" << transfer_->uniqueLabel() 
+				 << ") be unregistered from the dispatcher aggregator" << std::endl;
 
   xmlrpc_c::clientSimple myClient;
   xmlrpc_c::value result;
@@ -210,4 +239,22 @@ artdaq::TransferWrapper::~TransferWrapper() {
   mf::LogInfo("TransferWrapper") << "Response from dispatcher is \"" 
 				 << status << "\"";
 
+  if (status == "Success") {
+    monitorRegistered_ = false;
+  } else {
+    throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to unregister with dispatcher did not result in the \"Success\" response";
+  }
+}
+
+
+artdaq::TransferWrapper::~TransferWrapper()
+{
+  if (monitorRegistered_) { 
+    try {
+      unregisterMonitor(); 
+    } catch (...) {
+      ExceptionHandler(ExceptionHandlerRethrow::no,
+		       "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
+    }
+  }
 }

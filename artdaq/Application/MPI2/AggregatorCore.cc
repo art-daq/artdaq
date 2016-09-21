@@ -173,6 +173,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   // data logger and the second is the online monitor.
   is_data_logger_ = false;
   is_online_monitor_ = false;
+  is_dispatcher_ = false;
   bool agtype_was_specified = false;
   if (! agtype_was_specified) {
     try {
@@ -206,7 +207,8 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   }
   mf::LogDebug(name_) << "Rank " << mpi_rank_
                       << ", is_data_logger  = " << is_data_logger_
-                      << ", is_online_monitor = " << is_online_monitor_;
+                      << ", is_online_monitor = " << is_online_monitor_
+                      << ", is_dispatcher = " << is_dispatcher_;
 
   disk_writing_directory_ = "";
   try {
@@ -335,7 +337,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   if (event_store_ptr_ == nullptr) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
     size_t desired_events_per_bunch = expected_events_per_bunch_;
-    if (is_online_monitor_) {
+    if (is_online_monitor_ || is_dispatcher_) {
       desired_events_per_bunch = 1;
     }
 	TRACE(36, "Creating EventStore and Starting art thread");
@@ -453,7 +455,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
   processing_fragments_.store(true);
   size_t true_data_sender_count = data_sender_count_;
-  if (is_online_monitor_) {
+  if (is_online_monitor_ || is_dispatcher_) {
     true_data_sender_count = 1;
   }
 
@@ -490,17 +492,7 @@ size_t artdaq::AggregatorCore::process_fragments()
     } else if (is_online_monitor_) {
       senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
     } else if (is_dispatcher_) {
-
-      // JCF, Aug-22-2016
-      // Avoid a hang if the subrun's already ended
-
-      if (!stop_requested_.load() && !local_pause_requested_.load()) {
 	senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
-      } else {
-	process_fragments = false;
-	continue;
-      }
-
     } else {
       usleep(recvTimeout);
       senderSlot = artdaq::RHandles::RECV_TIMEOUT;
