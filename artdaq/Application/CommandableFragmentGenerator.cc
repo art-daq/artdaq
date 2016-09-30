@@ -528,8 +528,11 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats()
 		acc += (*i)->sizeBytes();
 	}
 	dataBufferDepthBytes_ = acc;
-	metricMan_->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
-	metricMan_->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
+
+	if (metricMan_) {
+	  metricMan_->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
+	  metricMan_->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
+	}
 	TRACE(4, "CFG::getDataBufferStats: frags=%i/%i, sz=%zd/%zd", dataBufferDepthFragments_.load(), maxDataBufferDepthFragments_, dataBufferDepthBytes_.load(), maxDataBufferDepthBytes_);
 }
 
