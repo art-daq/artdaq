@@ -544,7 +544,7 @@ std::string artdaq::EventBuilderCore::buildStatisticsString_()
         << stats.recentSampleRate  << " fragments/sec, data rate = "
         << (stats.recentValueRate * sizeof(artdaq::RawDataType)
             / 1024.0 / 1024.0) << " MB/sec, monitor window = "
-        << stats.recentDuration << " sec, min::max event size = "
+        << stats.recentDuration << " sec, min::max fragment size = "
         << (stats.recentValueMin * sizeof(artdaq::RawDataType)
             / 1024.0 / 1024.0)
         << "::"
