@@ -304,10 +304,17 @@ bool artdaq::Commandable::do_soft_initialize(fhicl::ParameterSet const&, uint64_
 
 void artdaq::Commandable::badTransition(const std::string& trans)
 {
+  std::string currentState = this->current_state();
+  if (currentState == "InRunError") {
+    currentState = "Error";
+  }
+
   report_string_ = "An invalid transition (";
   report_string_.append(trans);
-  report_string_.append(") was requested.");
-
+  report_string_.append(") was requested; transition not allowed from this process's current state of \"");
+  report_string_.append(currentState);
+  report_string_.append("\"");
+  
   mf::LogWarning("CommandableInterface") << report_string_;
 
   external_request_status_ = false;

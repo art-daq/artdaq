@@ -13,7 +13,9 @@ namespace artdaq {
 class TransferInterface {
 public:
 
-  enum class Role { send, receive };
+  enum class Role { kSend, kReceive };
+
+  enum class CopyStatus { kSuccess, kTimeout, kErrorNotRequiringException };
 
   TransferInterface(const fhicl::ParameterSet& ps, Role role) :
     role_(role),
@@ -28,10 +30,7 @@ public:
   virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
 				     size_t receiveTimeout) = 0;
 
-  virtual void copyFragmentTo(bool& fragmentHasBeenCopied,
-			      bool& esrHasBeenCopied,
-			      bool& eodHasBeenCopied,
-			      artdaq::Fragment& fragment,
+  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
 			      size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
   std::string uniqueLabel() const { return unique_label_; }

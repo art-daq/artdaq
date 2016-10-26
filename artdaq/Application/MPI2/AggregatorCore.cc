@@ -321,11 +321,11 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   try {
 
     if (is_data_logger_) {
-      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::send);
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kSend);
     } else if (is_online_monitor_) {
-      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kReceive);
     } else if (is_dispatcher_) {
-      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::receive);
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kReceive);
     }
     
   } catch(...) {
@@ -465,8 +465,6 @@ size_t artdaq::AggregatorCore::process_fragments()
   std::vector<size_t> fragments_received(true_data_sender_count + first_data_sender_rank_, 0);
   std::vector<size_t> fragments_sent(true_data_sender_count + first_data_sender_rank_, 0);
   artdaq::FragmentPtr endSubRunMsg(nullptr);
-  bool eodWasCopied = false;
-  bool esrWasCopied = false;
   time_t last_filesize_check_time = subrun_start_time_;
 
   if (is_data_logger_) {
@@ -632,10 +630,18 @@ size_t artdaq::AggregatorCore::process_fragments()
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     bool fragmentWasCopied = false;
     if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0) {
+      try {
+	TransferInterface::CopyStatus result = 
+	  data_logger_transfer_->copyFragmentTo(*fragmentPtr, 0);
 
-      data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
-					    esrWasCopied, eodWasCopied,
-					    *fragmentPtr, 0);
+	if (result == TransferInterface::CopyStatus::kSuccess) {
+	  fragmentWasCopied = true;
+	}
+      } catch (...) {
+	ExceptionHandler(ExceptionHandlerRethrow::no,
+			 "Exception thrown during data logger copy of event to dispatcher");
+      }
+
     } else if (is_dispatcher_) {
 
       if (fragmentPtr->type() != artdaq::Fragment::EndOfDataFragmentType) {
@@ -653,18 +659,14 @@ size_t artdaq::AggregatorCore::process_fragments()
 			     << " registered monitors";
 
 	  for (auto& transfer : dispatcher_transfers_) {
-	    transfer->copyFragmentTo(fragmentWasCopied,
-				     esrWasCopied, eodWasCopied,
-				     *fragmentPtr, 0);
+	    transfer->copyFragmentTo(*fragmentPtr, 0);
 	  }
 	} else {
 
 	  for (size_t i_q = dispatcher_transfers_.size() - new_transfers_; i_q < dispatcher_transfers_.size(); ++i_q) {
 	    mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) << 
 	      ", size " << init_fragment_ptr_->sizeBytes();
-	    dispatcher_transfers_[i_q]->copyFragmentTo(fragmentWasCopied,
-						       esrWasCopied, eodWasCopied,
-						       *init_fragment_ptr_, 500000);
+	    dispatcher_transfers_[i_q]->copyFragmentTo(*init_fragment_ptr_, 500000);
 	  }
 	  new_transfers_ = 0;
 	}
@@ -685,11 +687,9 @@ size_t artdaq::AggregatorCore::process_fragments()
          EventBuilder. */
       if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
         mf::LogDebug(name_) << "Init";
-        if (is_data_logger_) {
+        if (is_data_logger_ && !fragmentWasCopied) {
 
-	  data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
-						esrWasCopied, eodWasCopied,
-						*fragmentPtr, 500000);
+	  data_logger_transfer_->copyFragmentTo(*fragmentPtr, 500000);
         }
 
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
@@ -744,16 +744,12 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->insert(std::move(fragmentPtr), false);
         }
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType) {
-        if (is_data_logger_) {
+        if (is_data_logger_ && !fragmentWasCopied) {
 
-	  data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
-						esrWasCopied, eodWasCopied,
-						*fragmentPtr, 1000000);
+	  data_logger_transfer_->copyFragmentTo(*fragmentPtr, 1000000);
         } else if (is_dispatcher_) {
 	  for (auto& transfer : dispatcher_transfers_) {
-	    transfer->copyFragmentTo(fragmentWasCopied,
-				     esrWasCopied, eodWasCopied,
-				     *fragmentPtr, 0);
+	    transfer->copyFragmentTo(*fragmentPtr, 0);
 	  }
 	}
 
@@ -763,11 +759,9 @@ size_t artdaq::AggregatorCore::process_fragments()
            this fragment and inject it once we've received all EOD fragments. */
         endSubRunMsg = std::move(fragmentPtr);
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType) {
-        if (is_data_logger_) {
+        if (is_data_logger_ && !fragmentWasCopied) {
 
-	  data_logger_transfer_->copyFragmentTo(fragmentWasCopied,
-						esrWasCopied, eodWasCopied,
-						*fragmentPtr, 1000000);
+	  data_logger_transfer_->copyFragmentTo(*fragmentPtr, 1000000);
         }
         eodFragmentsReceived++;
         /* We count the EOD fragment as a fragment received but the SHandles class
@@ -958,7 +952,7 @@ std::string artdaq::AggregatorCore::register_monitor(fhicl::ParameterSet const& 
 
   try {
     
-    auto transfer = MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::send);
+    auto transfer = MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::kSend);
 
     for (auto& existing_transfer_ : dispatcher_transfers_) {
       
