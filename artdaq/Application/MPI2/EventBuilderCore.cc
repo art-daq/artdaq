@@ -9,6 +9,7 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
+#define TRACE_NAME "EventBuilderCore"
 #include "trace.h"
 
 const std::string artdaq::EventBuilderCore::INPUT_FRAGMENTS_STAT_KEY("EventBuilderCoreInputFragments");
@@ -41,9 +42,11 @@ void artdaq::EventBuilderCore::initializeEventStore(fhicl::ParameterSet pset)
 {
   if (use_art_) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
+	TRACE(36, "Creating EventStore and Starting art thread");
     event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
 						  mpi_rank_, init_string_,
 						  reader, &metricMan_));
+	TRACE(36, "Done Creating EventStore");
     art_initialized_ = true;
   }
   else {
@@ -406,6 +409,8 @@ size_t artdaq::EventBuilderCore::process_fragments()
     }
 
     ++fragment_count_in_run_;
+	TRACE(  18, "process_fragments %lu=fragment_count_in_run_ %lu=pfragment->size()"
+	      , fragment_count_in_run_, pfragment->size() );
     statsHelper_.addSample(INPUT_FRAGMENTS_STAT_KEY, pfragment->size());
     if (statsHelper_.readyToReport(fragment_count_in_run_)) {
       std::string statString = buildStatisticsString_();
@@ -542,7 +547,7 @@ std::string artdaq::EventBuilderCore::buildStatisticsString_()
         << stats.recentSampleRate  << " fragments/sec, data rate = "
         << (stats.recentValueRate * sizeof(artdaq::RawDataType)
             / 1024.0 / 1024.0) << " MB/sec, monitor window = "
-        << stats.recentDuration << " sec, min::max event size = "
+        << stats.recentDuration << " sec, min::max fragment size = "
         << (stats.recentValueMin * sizeof(artdaq::RawDataType)
             / 1024.0 / 1024.0)
         << "::"

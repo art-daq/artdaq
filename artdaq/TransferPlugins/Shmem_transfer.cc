@@ -1,5 +1,5 @@
 
-#include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <limits>
+#include <sstream>
 
 namespace fhicl {
 class ParameterSet;
@@ -22,21 +23,18 @@ class ParameterSet;
 
 namespace artdaq {
 
-class shmemTransfer : public artdaq::TransferInterface {
+class ShmemTransfer : public artdaq::TransferInterface {
 
 public:
 
-  shmemTransfer(fhicl::ParameterSet const& , Role );
-  ~shmemTransfer();
+  ShmemTransfer(fhicl::ParameterSet const& , Role );
+  ~ShmemTransfer();
 
   virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
 				     size_t receiveTimeout);
 
-  virtual void copyFragmentTo(bool& fragmentHasBeenCopied,
-			      bool& esrHasBeenCopied,
-			      bool& eodHasBeenCopied,
-			      artdaq::Fragment& fragment,
-			      size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+				    size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 private:
 
   struct ShmStruct {
@@ -50,93 +48,98 @@ private:
   size_t send_timeout_usec_;
   int shm_segment_id_;
   ShmStruct* shm_ptr_;
+  const int shm_key_default_ = 0x40470000;
+  int shm_key_;
+
   size_t fragment_count_to_shm_;
   Role role_;
-  const std::string name_;
 };
 
 }
 
-artdaq::shmemTransfer::shmemTransfer(fhicl::ParameterSet const& pset, Role role) :
+artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role) :
   TransferInterface(pset, role),
   max_fragment_size_words_(pset.get<uint64_t>("max_fragment_size_words")),
   first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank")),
   shm_segment_id_(-1),
   shm_ptr_(NULL),
+  shm_key_(pset.get<int>("shm_key", shm_key_default_)),
   fragment_count_to_shm_(0),
-  role_(role),
-  name_("shmemTransfer")
+  role_(role)
 {
-  
-  // Should there be a special function to be called inside of
-  // AggregatorCore::process_fragments() which contains these lines,
-  // or can we leave them in the constructor?
 
-  int shmKey = 0x40470000;
   char* keyChars = getenv("ARTDAQ_SHM_KEY");
-  if (keyChars != NULL) {
+  if (keyChars != NULL && shm_key_ == shm_key_default_) {
     std::string keyString(keyChars);
     try {
-      shmKey = boost::lexical_cast<int>(keyString);
+      shm_key_ = boost::lexical_cast<int>(keyString);
     }
-    catch (...) {}
+    catch (...) {
+      std::stringstream errmsg;
+      errmsg << uniqueLabel() << ": Problem performing lexical cast on " << keyString;
+      ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str()); 
+    }
   }
 
-  if (role_ == Role::send) {
+  // JCF, Aug-16-2016
+ 
+  // Note that there's a small but nonzero chance of a race condition
+  // here where another process creates the shared memory buffer
+  // between the first and second calls to shmget
+
+  shm_segment_id_ =
+    shmget(shm_key_, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
+	   0666);
+  
+  if (shm_segment_id_ == -1) {
     shm_segment_id_ =
-      shmget(shmKey, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
-			            IPC_CREAT | 0666);
-  } else {
-    shm_segment_id_ =
-      shmget(shmKey, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
-	     0666);
+      shmget(shm_key_, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
+	     IPC_CREAT | 0666);
   }
   
-  mf::LogDebug(name_) << "shmKey == " << shmKey << ", shm_segment_id == " << shm_segment_id_;
+  mf::LogDebug(uniqueLabel()) << "shm_key == " << shm_key_ << ", shm_segment_id == " << shm_segment_id_;
 
   if (shm_segment_id_ > -1) {
-    //    mf::LogDebug(name_)
-    mf::LogInfo(name_)
+    mf::LogDebug(uniqueLabel())
       << "Created/fetched shared memory segment with ID = " << shm_segment_id_
       << " and size " << (max_fragment_size_words_ * sizeof(artdaq::RawDataType))
       << " bytes";
     shm_ptr_ = (ShmStruct*) shmat(shm_segment_id_, 0, 0);
     if (shm_ptr_ && shm_ptr_ != (void *) -1 ) {
-      if (role_ == Role::receive) {
+      if (role_ == Role::kReceive) {
         shm_ptr_->hasFragment = 0;
       }
-      //mf::LogDebug(name_)
-      mf::LogInfo(name_)
-        << "Attached to shared memory segment at address 0x"
+      mf::LogDebug(uniqueLabel())
+        << "Attached to shared memory segment at address "
         << std::hex << shm_ptr_ << std::dec;
     }
     else {
-      mf::LogError(name_) << "Failed to attach to shared memory segment "
+      mf::LogError(uniqueLabel()) << "Failed to attach to shared memory segment "
 			  << shm_segment_id_;
     }
   }
   else {
-    mf::LogError(name_) << "Failed to connect to shared memory segment"
+    mf::LogError(uniqueLabel()) << "Failed to connect to shared memory segment"
 			<< ", errno = " << errno << ".  Please check "
 			<< "if a stale shared memory segment needs to "
 			<< "be cleaned up. (ipcs, ipcrm -m <segId>)";
   }
 }
 
-artdaq::shmemTransfer::~shmemTransfer() {
+artdaq::ShmemTransfer::~ShmemTransfer() {
  
   if (shm_ptr_) {
     shmdt(shm_ptr_);
     shm_ptr_ = NULL;
   }
 
-  if (role_ == Role::receive && shm_segment_id_ > -1) {
+  if (role_ == Role::kReceive && shm_segment_id_ > -1) {
     shmctl(shm_segment_id_, IPC_RMID, NULL);
   }
 }
 
 
-size_t artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 					size_t receiveTimeout) {
 
   if (shm_ptr_) {
@@ -170,7 +173,7 @@ size_t artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
       fragment.resize( shm_ptr_->fragmentSizeWords - wordsOfHeaderAndMetadata);
 
       if (fragment.type() != artdaq::Fragment::DataFragmentType) {
-	mf::LogInfo(name_)
+	mf::LogDebug(uniqueLabel())
           << "Received fragment from shared memory, type ="
           << ((int)fragment.type()) << ", sequenceID = "
           << fragment.sequenceID();
@@ -182,26 +185,19 @@ size_t artdaq::shmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
     }
   } else {
 
+    mf::LogError(uniqueLabel()) << "Error in shared memory transfer plugin: pointer to shared memory segment is null, will sleep for " << receiveTimeout/1.0e9 << " seconds and then return a timeout";
     usleep(receiveTimeout);
     return artdaq::RHandles::RECV_TIMEOUT; // Should we EVER get shm_ptr_ == 0?
   }
 }
 
-void artdaq::shmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
-					   bool& esrWasCopied,
-					   bool& eodWasCopied,
-					   artdaq::Fragment& fragment,
-					   size_t send_timeout_usec) {
+artdaq::TransferInterface::CopyStatus
+artdaq::ShmemTransfer::copyFragmentTo(artdaq::Fragment& fragment,
+				      size_t send_timeout_usec) {
 
-  if (fragmentWasCopied) {return;}
-  
   size_t fragmentType = fragment.type();
-  if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType &&
-      esrWasCopied) {return;}
-  if (fragmentType == artdaq::Fragment::EndOfDataFragmentType &&
-      eodWasCopied) {return;}
 
-  if (!shm_ptr_) {return;}
+  if (!shm_ptr_) {return CopyStatus::kErrorNotRequiringException;}
 
   // wait for the shm to become free, if requested                                           
   if (send_timeout_usec > 0) {
@@ -209,7 +205,7 @@ void artdaq::shmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
     int loopCount = 0;
     while (shm_ptr_->hasFragment == 1 && loopCount < 10) {
       if (fragmentType != artdaq::Fragment::DataFragmentType) {
-	mf::LogInfo(name_) << "Trying to copy fragment of type "
+	mf::LogDebug(uniqueLabel()) << "Trying to copy fragment of type "
 			    << fragmentType
 			    << ", loopCount = "
 			    << loopCount;
@@ -233,35 +229,32 @@ void artdaq::shmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
       memcpy(&shm_ptr_->fragmentInnards[0], fragAddr, fragSize);
       shm_ptr_->fragmentSizeWords = fragment.size();
 
-      fragmentWasCopied = true;
-      if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType) {
-        esrWasCopied = true;
-      }
-      if (fragmentType == artdaq::Fragment::EndOfDataFragmentType) {
-        eodWasCopied = true;
-      }
-
       shm_ptr_->hasFragment = 1;
 
       ++fragment_count_to_shm_;
       if ((fragment_count_to_shm_ % 250) == 0) {
-	mf::LogDebug(name_) << "Copied " << fragment_count_to_shm_
+	mf::LogDebug(uniqueLabel()) << "Copied " << fragment_count_to_shm_
 			    << " fragments to shared memory in this run.";
       }
+
+      return CopyStatus::kSuccess;
     }
     else {
-      mf::LogWarning(name_) << "Fragment invalid for shared memory! "
+      mf::LogWarning(uniqueLabel()) << "Fragment invalid for shared memory! "
 			    << "fragment address and size = "
 			    << fragAddr << " " << fragSize << " "
 			    << "sequence ID, fragment ID, and type = "
 			    << fragment.sequenceID() << " "
 			    << fragment.fragmentID() << " "
 			    << ((int) fragment.type());
+      return CopyStatus::kErrorNotRequiringException;
     }
   }
+
+  return CopyStatus::kTimeout;
 }
 
-DEFINE_ARTDAQ_TRANSFER(artdaq::shmemTransfer)
+DEFINE_ARTDAQ_TRANSFER(artdaq::ShmemTransfer)
 
 // Local Variables:
 // mode: c++

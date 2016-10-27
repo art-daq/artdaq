@@ -13,7 +13,7 @@ art_make_library( LIBRARY_NAME artdaq_Application
   artdaq_DAQrate
   artdaq-core_Data
   artdaq-core_Utilities
-  ${ART_UTILITIES}
+  art_Utilities
   ${MF_MESSAGELOGGER}
   ${MF_UTILITIES}
   ${CETLIB}

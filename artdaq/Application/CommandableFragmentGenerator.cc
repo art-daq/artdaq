@@ -39,7 +39,10 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, maxFragmentCount_(std::numeric_limits<size_t>::max())
 	, uniqueWindows_(true)
 	, useDataThread_(false)
-	, haveData_(false)
+	, dataBufferDepthFragments_(0)
+	, dataBufferDepthBytes_(0)
+	, maxDataBufferDepthFragments_(1000)
+	, maxDataBufferDepthBytes_(1000)
 	, useMonitoringThread_(false)
 	, collectMonitoringData_(false)
 	, monitoringInterval_(1000000)
@@ -61,7 +64,6 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 {
 }
 
-
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet &ps)
 	: mutex_()
 	, metricMan_(nullptr)
@@ -74,7 +76,10 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_trigger_timeout", 0xFFFFFFFF))
 	, uniqueWindows_(ps.get<bool>("trigger_windows_are_unique", true))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
-	, haveData_(false)
+	, dataBufferDepthFragments_(0)
+	, dataBufferDepthBytes_(0)
+	, maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
+	, maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
 	, useMonitoringThread_(ps.get<bool>("separate_monitoring_thread", false))
 	, collectMonitoringData_(ps.get<bool>("poll_hardware_status", false))
 	, monitoringInterval_(ps.get<int64_t>("hardware_poll_interval_us", 1000000))
@@ -118,22 +123,22 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	std::string modeString = ps.get<std::string>("trigger_mode", "ignored");
 	if (modeString == "single" || modeString == "Single")
 	{
-		//mf::LogInfo("CommandableFragmentGenerator") << "Mode is set to SINGLE";
+		TRACE(3, "CommandableFragmentGenerator: TriggerMode set to SINGLE");
 		mode_ = TriggerMode::Single;
 	}
 	else if (modeString.find("buffer") != std::string::npos || modeString.find("Buffer") != std::string::npos)
 	{
-		//mf::LogInfo("CommandableFragmentGenerator") << "Mode is set to BUFFER";
+		TRACE(3, "CommandableFragmentGenerator: TriggerMode set to BUFFER");
 		mode_ = TriggerMode::Buffer;
 	}
 	else if (modeString == "window" || modeString == "Window")
 	{
-		//mf::LogInfo("CommandableFragmentGenerator") << "Mode is set to WINDOW";
+		TRACE(3, "CommandableFragmentGenerator: TriggerMode set to WINDOW");
 		mode_ = TriggerMode::Window;
 	}
 	else if (modeString.find("ignore") != std::string::npos || modeString.find("Ignore") != std::string::npos)
 	{
-		//mf::LogInfo("CommandableFragmentGenerator") << "Mode is set to IGNORE";
+		TRACE(3, "CommandableFragmentGenerator: TriggerMode set to IGNORE");
 		mode_ = TriggerMode::Ignored;
 	}
 	mf::LogDebug("CommandableFragmentGenerator") << "Trigger mode is " << printMode_();
@@ -183,8 +188,11 @@ void artdaq::CommandableFragmentGenerator::setupTriggerListener()
 
 artdaq::CommandableFragmentGenerator::~CommandableFragmentGenerator()
 {
+	mf::LogDebug("CommandableFragmentGenerator") << "Joining dataThread";
 	if (dataThread_.joinable()) dataThread_.join();
+	mf::LogDebug("CommandableFragmentGenerator") << "Joining monitoringThread";
 	if (monitoringThread_.joinable()) monitoringThread_.join();
+	mf::LogDebug("CommandableFragmentGenerator") << "Joining triggerThread";
 	if (triggerThread_.joinable()) triggerThread_.join();
 }
 
@@ -196,6 +204,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
 	if (exception()) return false;
 
 	if (!useMonitoringThread_ && collectMonitoringData_) {
+		TRACE(4, "CFG: Collecting Monitoring Data");
 		auto now = std::chrono::steady_clock::now();
 		if (std::chrono::duration_cast<std::chrono::microseconds>(now - lastMonitoringCall_).count() >= monitoringInterval_) {
 			isHardwareOK_ = checkHWStatus_();
@@ -205,8 +214,18 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
 
 	try {
 		std::lock_guard<std::mutex> lk(mutex_);
-		if (useDataThread_) result = applyTriggers(output);
-		else result = getNext_(output);
+		if (useDataThread_)
+		{
+			TRACE(4, "CFG: Calling applyTriggers");
+			result = applyTriggers(output);
+			TRACE(4, "CFG: Done with applyTriggers");
+		}
+		else
+		{
+			TRACE(4, "CFG: Calling getNext_");
+			result = getNext_(output);
+			TRACE(4, "CFG: Done with getNext_");
+		}
 	}
 	catch (const cet::exception &e) {
 		latest_exception_report_ = "cet::exception caught in getNext(): ";
@@ -237,6 +256,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
 	}
 
 	if (!result) {
+		TRACE(4, "CFG:getNext Stopped");
 		mf::LogDebug("getNext") << "stopped ";
 	}
 
@@ -246,13 +266,11 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
 
 bool artdaq::CommandableFragmentGenerator::check_stop()
 {
+	TRACE(4, "CFG::check_stop: should_stop=%i, useDataThread_=%i, triggerBuffer.size()=%zu", should_stop(), useDataThread_, triggerBuffer_.size());
 	if (!should_stop()) return false;
-	if(!useDataThread_) return true;
+	if (!useDataThread_ || mode_ == TriggerMode::Ignored) return true;
 
-	triggerBufferMutex_.lock();
-	bool ready = triggerBuffer_.size() == 0;
-	triggerBufferMutex_.unlock();
-	return ready;
+	return triggerBuffer_.size() == 0;
 }
 
 int artdaq::CommandableFragmentGenerator::fragment_id() const {
@@ -297,6 +315,8 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 }
 
 void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t timestamp) {
+	mf::LogDebug("CommandableFragmentGenerator") << "Stop Command received.";
+	TRACE(4, "CFG: Stop Command Received");
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
@@ -437,30 +457,120 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 {
 	while (true) {
 		if (should_stop() || !isHardwareOK_) {
-			mf::LogDebug("CommandableFragmentGenerator") << "should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_;
+			mf::LogDebug("CommandableFragmentGenerator") << "getDataLoop: should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_;
 			return;
 		}
 
-		//std::cout << "CommandableFragmentGenerator::getDataLoop: calling getNext_" << std::endl;
-		haveData_ = getNext_(newDataBuffer_);
-		if (haveData_) {
-			dataBufferMutex_.lock();
+		TRACE(4, "CommandableFragmentGenerator::getDataLoop: calling getNext_");
+		bool data = getNext_(newDataBuffer_);
+
+		auto startwait = std::chrono::steady_clock::now();
+		bool first = true;
+		auto lastwaittime = 0;
+		while (dataBufferIsTooLarge()) {
+
+			if (should_stop()) {
+				mf::LogDebug("CommandaleFragmentGenerator") << "Run ended while waiting for buffer to shrink!";
+				std::unique_lock<std::mutex> lock(dataBufferMutex_);
+				getDataBufferStats();
+				dataCondition_.notify_all();
+				return;
+			}
+			auto waittime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startwait).count();
+
+			if (first || (waittime != lastwaittime && waittime % 1000 == 0))
+			{
+				mf::LogWarning("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders!";
+				first = false;
+			}
+			if (waittime % 5 && waittime != lastwaittime) {
+				TRACE(4, "CFG::getDataLoop: Data Retreival paused for %lu ms waiting for data buffer to drain", waittime);
+			}
+			lastwaittime = waittime;
+			usleep(1000);
+		}
+
+		if (data) {
+			std::unique_lock<std::mutex> lock(dataBufferMutex_);
 			switch (mode_) {
-			case TriggerMode::Ignored:
 			case TriggerMode::Single:
-			default:
 				newDataBuffer_.swap(dataBuffer_);
 				break;
 			case TriggerMode::Buffer:
+			case TriggerMode::Ignored:
 			case TriggerMode::Window:
+			default:
 				//dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
 				std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_, dataBuffer_.end()));
 				break;
 			}
-			dataBufferMutex_.unlock();
+			getDataBufferStats();
 			newDataBuffer_.clear();
+			dataCondition_.notify_all();
 		}
-		//std::cout << "CommandableFragmentGenerator: end of getNextFragment_ call, haveData_ is " << haveData_ << std::endl;
+	}
+}
+
+bool artdaq::CommandableFragmentGenerator::dataBufferIsTooLarge()
+{
+	return (maxDataBufferDepthFragments_ > 0 && dataBufferDepthFragments_ >= maxDataBufferDepthFragments_) || (maxDataBufferDepthBytes_ > 0 && dataBufferDepthBytes_ >= maxDataBufferDepthBytes_);
+}
+
+/// <summary>
+/// Calculate the size of the dataBuffer and report appropriate metrics
+/// dataBufferMutex must be owned by the calling thread!
+/// </summary>
+void artdaq::CommandableFragmentGenerator::getDataBufferStats()
+{
+	dataBufferDepthFragments_ = dataBuffer_.size();
+	size_t acc = 0;
+	for (auto i = dataBuffer_.begin(); i != dataBuffer_.end(); ++i) {
+		acc += (*i)->sizeBytes();
+	}
+	dataBufferDepthBytes_ = acc;
+
+	if (metricMan_) {
+	  metricMan_->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
+	  metricMan_->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
+	}
+	TRACE(4, "CFG::getDataBufferStats: frags=%i/%i, sz=%zd/%zd", dataBufferDepthFragments_.load(), maxDataBufferDepthFragments_, dataBufferDepthBytes_.load(), maxDataBufferDepthBytes_);
+}
+
+void artdaq::CommandableFragmentGenerator::checkDataBuffer()
+{
+	std::unique_lock<std::mutex> lock(dataBufferMutex_);
+	dataCondition_.wait_for(lock, std::chrono::milliseconds(10));
+	if (dataBufferDepthFragments_ > 0) {
+		if ((mode_ == TriggerMode::Buffer || mode_ == TriggerMode::Window))
+		{
+			// Eliminate extra fragments
+			while (dataBufferIsTooLarge())
+			{
+				dataBuffer_.erase(dataBuffer_.begin());
+				getDataBufferStats();
+			}
+			if (dataBuffer_.size() > 0) {
+				Fragment::timestamp_t last = dataBuffer_.back()->timestamp();
+				Fragment::timestamp_t min = last > staleTimeout_ ? last - staleTimeout_ : 0;
+				for (auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
+				{
+					if ((*it)->timestamp() < min) {
+						it = dataBuffer_.erase(it);
+						if (it == dataBuffer_.end()) break;
+						--it;
+					}
+				}
+				getDataBufferStats();
+			}
+		}
+		else if (mode_ == TriggerMode::Single && dataBuffer_.size() > 1)
+		{
+			// Eliminate extra fragments
+			while (dataBuffer_.size() > 1)
+			{
+				dataBuffer_.erase(dataBuffer_.begin());
+			}
+		}
 	}
 }
 
@@ -468,8 +578,11 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 {
 	while (true) {
 		if (should_stop() || !collectMonitoringData_) {
+			mf::LogDebug("CommandableFragmentGenerator") << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop() 
+			<< " and collectMonitoringData is " << collectMonitoringData_;
 			return;
 		}
+		TRACE(4, "CFG::getMonitoringDataLoop Determining whether to call checkHWStatus_");
 
 		auto now = std::chrono::steady_clock::now();
 		if (std::chrono::duration_cast<std::chrono::microseconds>(now - lastMonitoringCall_).count() >= monitoringInterval_) {
@@ -486,9 +599,13 @@ void artdaq::CommandableFragmentGenerator::receiveTriggersLoop()
 	{
 		if (should_stop() || !isHardwareOK_)
 		{
-			mf::LogDebug("CommandableFragmentGenerator") << "should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_;
+			mf::LogDebug("CommandableFragmentGenerator") << "receiveTriggersLoop: should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_;
 			return;
 		}
+
+		// Don't listen for triggers when we're going to ignore them anyway
+		if (mode_ == TriggerMode::Ignored) return;
+		TRACE(4, "CFG::receiveTriggersLoop: Polling Trigger socket for new triggers");
 
 		int ms_to_wait = 1000;
 		struct pollfd ufds[1];
@@ -499,18 +616,18 @@ void artdaq::CommandableFragmentGenerator::receiveTriggersLoop()
 		{
 			if (ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
 			{
-				//std::cout << "Recieved packet on Trigger channel" << std::endl;
+				TRACE(4, "CFG: Recieved packet on Trigger channel");
 				detail::TriggerPacket buffer;
 				recv(triggersocket_, &buffer, sizeof(buffer), 0);
-				//std::cout << "Trigger header word: 0x" << std::hex << (int)buffer.header << std::dec << std::endl;
+				TRACE(4, "CFG: Trigger header word: 0x%x", (int)buffer.header);
 				if (buffer.header == 0x54524947 && buffer.sequence_id >= ev_counter() && buffer.sequence_id < ev_counter() + 100)
 				{
 					int delta = buffer.sequence_id - ev_counter();
 					mf::LogDebug("CommandableFragmentGenerator") << "Recieved trigger for sequence ID " << buffer.sequence_id << " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
-					triggerBufferMutex_.lock();
+					std::unique_lock<std::mutex> lock(triggerBufferMutex_);
 					triggerBuffer_.push_back(detail::TriggerMessage(buffer));
-					//triggerBuffer_.sort([](const detail::TriggerMessage& a, const detail::TriggerMessage& b) { return a.sequence_id() < b.sequence_id(); });
-					triggerBufferMutex_.unlock();
+					while (triggerBuffer_.size() > 0 && triggerBuffer_.front().sequence_id() < ev_counter()) { triggerBuffer_.pop_front(); }
+					triggerCondition_.notify_all();
 				}
 			}
 		}
@@ -522,161 +639,138 @@ bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & 
 		return false;
 	}
 
-	bool triggerReady = false;
-	while ((!haveData_ && mode_ == TriggerMode::Ignored) || !triggerReady)
-	{
-		if (check_stop()) {
-			return false;
-		}
-
-		dataBufferMutex_.lock();
-		if ((mode_ == TriggerMode::Buffer || mode_ == TriggerMode::Window))
-		{
-			// Eliminate extra fragments
-			while (dataBuffer_.size() > maxFragmentCount_)
-			{
-				dataBuffer_.erase(dataBuffer_.begin());
-			}
-			if (dataBuffer_.size() > 0) {
-				Fragment::timestamp_t last = dataBuffer_.back()->timestamp();
-				Fragment::timestamp_t min = last > staleTimeout_ ? last - staleTimeout_ : 0;
-				for (auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it)
-				{
-					if ((*it)->timestamp() < min) {
-						it = dataBuffer_.erase(it);
-						if (it == dataBuffer_.end()) break;
-						--it;
-					}
-				}
-			}
-		}
-		else if (mode_ == TriggerMode::Single && dataBuffer_.size() > 1)
-		{
-			// Eliminate extra fragments
-			while (dataBuffer_.size() > 1)
-			{
-				dataBuffer_.erase(dataBuffer_.begin());
-			}
-		}
-		dataBufferMutex_.unlock();
-
-		triggerBufferMutex_.lock();
-		//mf::LogDebug("CommandableFragmentGenerator") << "Trigger buffer size is " << triggerBuffer_.size();
-		while (triggerBuffer_.size() > 0 && triggerBuffer_.front().sequence_id() < ev_counter()) { triggerBuffer_.pop_front(); }
-		triggerReady = triggerBuffer_.size() > 0;
-		triggerBufferMutex_.unlock();
-	}
-
-	triggerBufferMutex_.lock();
-	detail::TriggerMessage trigger;
-	if (triggerBuffer_.size() > 0) {
-		if (triggerBuffer_.front().sequence_id() == ev_counter()) {
-			trigger = triggerBuffer_.front();
-			mf::LogDebug("CommandableFragmentGenerator") << "Received trigger #" << ev_counter() << ", sending data";
-			triggerBuffer_.pop_front();
-		}
-		else
-		{
-			mf::LogDebug("CommandableFragmentGenerator") << "First trigger in buffer is for sequence ID " << triggerBuffer_.front().sequence_id() << ", but I'm looking for " << ev_counter();
-			return true;
-		}
-	}
-	triggerBufferMutex_.unlock();
-
-	dataBufferMutex_.lock();
-
-	bool fragSent = false;
 	if (mode_ == TriggerMode::Ignored) {
-		// We just copy everything that's here into the output.
-		//mf::LogDebug("CommandableFragmentGenerator") << "Copying data to output";
-		std::move(dataBuffer_.begin(), dataBuffer_.end(), std::inserter(frags, frags.end()));
-	}
-	// Check that the current trigger is actually a valid trigger. If not, send an empty fragment. (We missed a trigger)
-	else if (trigger.isValid()) {
-		if (mode_ == TriggerMode::Single) {
-			if (dataBuffer_.size() > 0) {
-				//mf::LogDebug("CommandableFragmentGenerator") << "Sending copy of last data point";
-				// Return the latest data point
-				auto frag = dataBuffer_.front().get();
-				auto newfrag = std::unique_ptr<artdaq::Fragment>(
-					new Fragment(ev_counter(), frag->fragmentID()));
-				newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
-				memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
-				newfrag->setTimestamp(trigger.timestamp());
-				newfrag->setSequenceID(ev_counter());
-				frags.push_back(std::move(newfrag));
-			}
-			else
-			{
-				sendEmptyFragment(frags, ev_counter(), "No data for");
-			}
-			fragSent = true;
-		}
-		else {
-			mf::LogDebug("CommandableFragmentGenerator") << "Checking that data exists for trigger window (Buffered mode will always succeed)";
-			Fragment::timestamp_t min = trigger.timestamp() > windowOffset_ ? trigger.timestamp() - windowOffset_ : 0;
-			Fragment::timestamp_t max = min + windowWidth_;
-			mf::LogDebug("CommandableFragmentGenerator") << "min is " << min << " and max is " << max << " and last point in buffer is " << (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0);
-			bool windowClosed = mode_ != TriggerMode::Window || (dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max);
-			if (windowClosed || should_stop()) {
-				mf::LogDebug("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-triggered Fragments";
-				frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
-				frags.back()->setTimestamp(trigger.timestamp());
-				ContainerFragmentLoader cfl(*frags.back());
-
-                if(mode_ == TriggerMode::Window && should_stop() && !windowClosed) cfl.set_missing_data(true);
-
-				// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
-				// Window mode TFGs must do a little bit more work to decide which fragments to send for a given trigger
-				mf::LogDebug("CommandableFragmentGenerator") << "Memory Clobber Test 5";
-
-				for (auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it) {
-
-					if (mode_ == TriggerMode::Window) {
-
-						mf::LogDebug("CommandableFragmentGenerator") << "Memory Clobber Test 6";
-						Fragment::timestamp_t fragT = (*it)->timestamp();
-						if (fragT < min || fragT > max) {
-							continue;
-						}
-						mf::LogDebug("CommandableFragmentGenerator") << "Memory Clobber Test 7";
-					}
-
-					mf::LogDebug("CommandableFragmentGenerator") << "Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
-					cfl.addFragment(*it);
-					mf::LogDebug("CommandableFragmentGenerator") << "Memory Clobber Test 8";
-
-					if (mode_ == TriggerMode::Buffer || (mode_ == TriggerMode::Window && uniqueWindows_)) {
-						it = dataBuffer_.erase(it);
-						if (it == dataBuffer_.end()) break;
-						--it;
-					}
-				}
-				fragSent = true;
-			}
-			else
-			{
-				// Put the trigger back for next time
-				triggerBufferMutex_.lock();
-				triggerBuffer_.push_front(trigger);
-				triggerBufferMutex_.unlock();
-			}
+		while (dataBufferDepthFragments_ <= 0) {
+			std::unique_lock<std::mutex> lock(dataBufferMutex_);
+			dataCondition_.wait_for(lock, std::chrono::milliseconds(10), [this]() { return dataBufferDepthFragments_ > 0; });
+			if (check_stop()) return false;
 		}
 	}
 	else {
-		sendEmptyFragment(frags, ev_counter(), "Missing trigger message for");
-		fragSent = true;
+		while (triggerBuffer_.size() <= 0)
+		{
+			if (check_stop()) {
+				return false;
+			}
+
+			checkDataBuffer();
+
+			std::unique_lock<std::mutex> lock(triggerBufferMutex_);
+			triggerCondition_.wait_for(lock, std::chrono::milliseconds(10), [this]() { return triggerBuffer_.size() > 0; });
+		}
 	}
-	haveData_ = false;
-	dataBufferMutex_.unlock();
+
+	TRACE(4, "CFG::applyTriggers before getting trigger");
+	detail::TriggerMessage trigger;
+	{
+		std::unique_lock<std::mutex> tlk(triggerBufferMutex_);
+		while (triggerBuffer_.size() > 0 && triggerBuffer_.front().sequence_id() < ev_counter())
+		{
+			triggerBuffer_.pop_front();
+		}
+		if (triggerBuffer_.size() > 0) {
+			if (triggerBuffer_.front().sequence_id() == ev_counter()) {
+				trigger = triggerBuffer_.front();
+				mf::LogDebug("CommandableFragmentGenerator") << "Received trigger #" << ev_counter() << ", sending data";
+				triggerBuffer_.pop_front();
+			}
+			else
+			{
+				mf::LogDebug("CommandableFragmentGenerator") << "First trigger in buffer is for sequence ID " << triggerBuffer_.front().sequence_id() << ", but I'm looking for " << ev_counter();
+			}
+		}
+	}
+	TRACE(4, "CFG::applyTriggers after getting trigger isValid=%i", trigger.isValid());
+
+	bool fragSent = false;
+	{
+		std::unique_lock<std::mutex> dlk(dataBufferMutex_);
+
+		if (mode_ == TriggerMode::Ignored) {
+			// We just copy everything that's here into the output.
+			TRACE(4, "CFG: Mode is Ignored; Copying data to output");
+			std::move(dataBuffer_.begin(), dataBuffer_.end(), std::inserter(frags, frags.end()));
+			dataBuffer_.clear();
+		}
+		// Check that the current trigger is actually a valid trigger. If not, send an empty fragment. (We missed a trigger)
+		else if (trigger.isValid()) {
+			if (mode_ == TriggerMode::Single) {
+				if (dataBuffer_.size() > 0) {
+					TRACE(4, "CFG: Mode is Single; Sending copy of last data point");
+					// Return the latest data point
+					auto frag = dataBuffer_.front().get();
+					auto newfrag = std::unique_ptr<artdaq::Fragment>(
+						new Fragment(ev_counter(), frag->fragmentID()));
+					newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
+					memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
+					newfrag->setTimestamp(trigger.timestamp());
+					newfrag->setSequenceID(ev_counter());
+					frags.push_back(std::move(newfrag));
+				}
+				else
+				{
+					sendEmptyFragment(frags, ev_counter(), "No data for");
+				}
+				fragSent = true;
+			}
+			else {
+				mf::LogDebug("CommandableFragmentGenerator") << "Checking that data exists for trigger window (Buffered mode will always succeed)";
+				Fragment::timestamp_t min = trigger.timestamp() > windowOffset_ ? trigger.timestamp() - windowOffset_ : 0;
+				Fragment::timestamp_t max = min + windowWidth_;
+				mf::LogDebug("CommandableFragmentGenerator") << "min is " << min << " and max is " << max << " and last point in buffer is " << (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0);
+				bool windowClosed = mode_ != TriggerMode::Window || (dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max);
+				if (windowClosed || should_stop()) {
+					mf::LogDebug("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-triggered Fragments";
+					frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
+					frags.back()->setTimestamp(trigger.timestamp());
+					ContainerFragmentLoader cfl(*frags.back());
+
+					if (mode_ == TriggerMode::Window && should_stop() && !windowClosed) cfl.set_missing_data(true);
+
+					// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
+					// Window mode TFGs must do a little bit more work to decide which fragments to send for a given trigger
+					for (auto it = dataBuffer_.begin(); it != dataBuffer_.end(); ++it) {
+
+						if (mode_ == TriggerMode::Window) {
+							Fragment::timestamp_t fragT = (*it)->timestamp();
+							if (fragT < min || fragT > max) {
+								continue;
+							}
+						}
+
+						mf::LogDebug("CommandableFragmentGenerator") << "Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
+						cfl.addFragment(*it);
+
+						if (mode_ == TriggerMode::Buffer || (mode_ == TriggerMode::Window && uniqueWindows_)) {
+							it = dataBuffer_.erase(it);
+							if (it == dataBuffer_.end()) break;
+							--it;
+						}
+					}
+					fragSent = true;
+				}
+				else
+				{
+					// Put the trigger back for next time
+					std::unique_lock<std::mutex> lk(triggerBufferMutex_);
+					triggerBuffer_.push_front(trigger);
+				}
+			}
+		}
+		else {
+			sendEmptyFragment(frags, ev_counter(), "Missing trigger message for");
+			fragSent = true;
+		}
+		getDataBufferStats();
+	}
 
 	// Ignored mode TFGs rely on subclasses to handle the ev_counter for their fragments
 	if (mode_ != TriggerMode::Ignored && fragSent) {
-		//mf::LogDebug("CommandableFragmentGenerator") << "Incrementing Event Counter";
+		TRACE(4, "CommandableFragmentGenerator: Incrementing Event Counter");
 		ev_counter_inc(1, true);
 	}
 
-	if(frags.size() > 0 ) mf::LogInfo("CommandableFragmentGenerator") << "Finished Processing Event " << ev_counter() - 1 << " for fragment_id " << fragment_id() << ".";
+	if (frags.size() > 0) TRACE(4, "CFG: Finished Processing Event %lu for fragment_id %i.", ev_counter() + 1, fragment_id());
 	return true;
 }
 

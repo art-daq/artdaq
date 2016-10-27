@@ -34,6 +34,7 @@ int main(int argc, char * argv[])
     sim_config.put("fragments_per_event", NUM_FRAGS_PER_EVENT);
     sim_config.put("run_number", RUN_ID);
     sim_config.put("print_event_store_stats", true);
+	sim_config.put("event_store_wait_time", 10.0);
     // Eventually, this test should make a mixed-up streams of
     // Fragments; this has too clean a pattern to be an interesting
     // test of the EventStore's ability to deal with multiple events

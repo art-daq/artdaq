@@ -1,6 +1,6 @@
 
 
-#include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/RHandles.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -25,23 +25,20 @@
 
 namespace artdaq {
 
-class multicastTransfer : public TransferInterface {
+class MulticastTransfer : public TransferInterface {
 
 public:
 
   using byte_t = artdaq::Fragment::byte_t;
 
-  ~multicastTransfer() = default;
-  multicastTransfer(fhicl::ParameterSet const& ps, Role role);
+  ~MulticastTransfer() = default;
+  MulticastTransfer(fhicl::ParameterSet const& ps, Role role);
 
   virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
 				   size_t receiveTimeout);
 
-  virtual void copyFragmentTo(bool& fragmentHasBeenCopied,
-			      bool& esrHasBeenCopied,
-			      bool& eodHasBeenCopied,
-			      artdaq::Fragment& fragment,
-			      size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+				    size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 
 private:
 
@@ -98,12 +95,11 @@ private:
   std::vector<byte_t> staging_memory_;
 
   std::vector<boost::asio::mutable_buffer> receive_buffers_;
-  const std::string name_;
 };
 
 }
 
-artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Role role) :
+artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Role role) :
   TransferInterface(pset, role),
   io_service_(std::make_unique<std::remove_reference<decltype(*io_service_)>::type>()),
   local_endpoint_(nullptr),
@@ -114,8 +110,7 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
   subfragments_per_send_(pset.get<size_t>("subfragments_per_send")),
   max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType)),
   pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0)),
-  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank")),
-  name_("multicastTransfer")
+  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank"))
 {
 
   try {
@@ -124,10 +119,10 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
     auto multicast_address = boost::asio::ip::address::from_string(pset.get<std::string>("multicast_address"));
     auto local_address = boost::asio::ip::address::from_string(pset.get<std::string>("local_address"));
 
-    mf::LogInfo(name_) << "multicast address is set to " << multicast_address;
-    mf::LogInfo(name_) << "local address is set to " << local_address;
+    mf::LogDebug(uniqueLabel()) << "multicast address is set to " << multicast_address;
+    mf::LogDebug(uniqueLabel()) << "local address is set to " << local_address;
 
-    if (TransferInterface::role() == Role::send) {
+    if (TransferInterface::role() == Role::kSend) {
 
       local_endpoint_ = std::make_unique<std::remove_reference<decltype(*local_endpoint_)>::type>( local_address, 0 );
       multicast_endpoint_ = std::make_unique<std::remove_reference<decltype(*multicast_endpoint_)>::type>( multicast_address, port );
@@ -136,7 +131,7 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
 										   multicast_endpoint_->protocol());
       socket_->bind(*local_endpoint_);
 
-    } else {  // TransferInterface::role() == Role::receive
+    } else {  // TransferInterface::role() == Role::kReceive
 
       // Create the socket so that multiple may be bound to the same address.  
 
@@ -166,7 +161,7 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
     }
 
   } catch (...) {
-    ExceptionHandler(ExceptionHandlerRethrow::yes, "Problem setting up the socket in multicastTransfer");
+    ExceptionHandler(ExceptionHandlerRethrow::yes, "Problem setting up the socket in MulticastTransfer");
   }
 
   auto max_subfragments = 
@@ -174,31 +169,31 @@ artdaq::multicastTransfer::multicastTransfer(fhicl::ParameterSet const& pset, Ro
   
   staging_memory_.resize(max_subfragments * (sizeof(subfragment_identifier) + subfragment_size_));
 
-  if (TransferInterface::role() == Role::receive) {
+  if (TransferInterface::role() == Role::kReceive) {
     book_container_of_buffers(receive_buffers_, max_fragment_size_, max_subfragments, 0, max_subfragments - 1);
   }
 
-  mf::LogDebug(name_) << "max_subfragments is " << max_subfragments;
-  mf::LogDebug(name_) << "Staging buffer size is " << staging_memory_.size();
+  mf::LogDebug(uniqueLabel()) << "max_subfragments is " << max_subfragments;
+  mf::LogDebug(uniqueLabel()) << "Staging buffer size is " << staging_memory_.size();
 }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 						      size_t receiveTimeout) {
 
-  assert(TransferInterface::role() == Role::receive);
+  assert(TransferInterface::role() == Role::kReceive);
 
   if (fragment.dataSizeBytes() > 0) {
-    throw cet::exception("multicastTransfer") << "Error in multicastTransfer::receiveFragmentFrom: " <<
+    throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::receiveFragmentFrom: " <<
       "nonzero payload found in fragment passed as argument";
   }
 
   static bool print_warning = true;
   
   if (print_warning) {
-    std::cerr << "Please note that multicastTransfer::receiveFragmentFrom does not use its receiveTimeout argument" << std::endl;
+    std::cerr << "Please note that MulticastTransfer::receiveFragmentFrom does not use its receiveTimeout argument" << std::endl;
     print_warning = false;
   }
 
@@ -274,7 +269,7 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 	  fragment.resizeBytes( payload_size );
 
 	} else {
-	  throw cet::exception("multicastTransfer") << "Buffer size is too small to completely contain an artdaq::Fragment header; " << 
+	  throw cet::exception("MulticastTransfer") << "Buffer size is too small to completely contain an artdaq::Fragment header; " << 
 	    "please increase the default size";
 	} 
       }
@@ -303,12 +298,11 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
       // to be incomplete
 
       assert( !fragment_complete );
-      mf::LogWarning(name_) << "Got an incomplete fragment";
+      mf::LogWarning(uniqueLabel()) << "Got an incomplete fragment";
       return artdaq::RHandles::RECV_TIMEOUT;
     }
 
     if (fragment_complete) {
-      //      mf::LogDebug(name_) << "Got a complete fragment";
       return first_data_sender_rank_;
     }
   }
@@ -318,23 +312,20 @@ size_t artdaq::multicastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
 #pragma GCC diagnostic pop
 
-void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
-					       bool& esrWasCopied,
-					       bool& eodWasCopied,
-					       artdaq::Fragment& fragment,
-					       size_t send_timeout_usec) {
+artdaq::TransferInterface::CopyStatus
+artdaq::MulticastTransfer::copyFragmentTo(artdaq::Fragment& fragment,
+					  size_t send_timeout_usec) {
 
-  assert(TransferInterface::role() == Role::send);
+  assert(TransferInterface::role() == Role::kSend);
 
   if ( fragment.sizeBytes() > max_fragment_size_) {
-    throw cet::exception("multicastTransfer") << "Error in multicastTransfer::copyFragmentTo: " <<
+    throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::copyFragmentTo: " <<
       fragment.sizeBytes() << " byte fragment exceeds max_fragment_size of " << max_fragment_size_;
   }
 
   static size_t ncalls = 1;
   auto num_subfragments = static_cast<size_t>(std::ceil( fragment.sizeBytes() / static_cast<float>(subfragment_size_ )));
 
-  //  mf::LogDebug(name_) << "Call #" << ncalls << ", fragment size is " << fragment.sizeBytes();
   ncalls++;
 
   fill_staging_memory(fragment);
@@ -358,15 +349,16 @@ void artdaq::multicastTransfer::copyFragmentTo(bool& fragmentWasCopied,
       break;
     }
   }
+  return CopyStatus::kSuccess;
 }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 
-void artdaq::multicastTransfer::fill_staging_memory(const artdaq::Fragment& fragment) {
+void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& fragment) {
 
   auto num_subfragments = static_cast<size_t>(std::ceil( fragment.sizeBytes() / static_cast<float>(subfragment_size_ )));
-  mf::LogDebug(name_) << "# of subfragments to use is " << num_subfragments;
+  mf::LogDebug(uniqueLabel()) << "# of subfragments to use is " << num_subfragments;
 
   for (auto i_s = 0; i_s < num_subfragments; ++i_s) {
 
@@ -398,7 +390,7 @@ void artdaq::multicastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 // value for "first_subfragment_num" is 0, not 1.
 
 template <typename T>
-void artdaq::multicastTransfer::book_container_of_buffers(std::vector<T>& buffers,
+void artdaq::MulticastTransfer::book_container_of_buffers(std::vector<T>& buffers,
 							  const size_t fragment_size,
 							  const size_t total_subfragments,
 							  const size_t first_subfragment_num,
@@ -423,7 +415,7 @@ void artdaq::multicastTransfer::book_container_of_buffers(std::vector<T>& buffer
 #pragma GCC diagnostic push  // Needed since profile builds will ignore the assert
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& payload_size,
+void artdaq::MulticastTransfer::get_fragment_quantities( const boost::asio::mutable_buffer& buf, size_t& payload_size,
 							 size_t& fragment_size,
 							 size_t& expected_subfragments) {
 
@@ -451,12 +443,12 @@ void artdaq::multicastTransfer::get_fragment_quantities( const boost::asio::muta
 }
 #pragma GCC diagnostic pop
 
-void artdaq::multicastTransfer::set_receive_buffer_size(size_t recv_buff_size) {
+void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size) {
 
   boost::asio::socket_base::receive_buffer_size actual_recv_buff_size;
   socket_->get_option(actual_recv_buff_size);
 
-  mf::LogInfo(name_) << "Receive buffer size is currently " << actual_recv_buff_size.value() << 
+  mf::LogDebug(uniqueLabel()) << "Receive buffer size is currently " << actual_recv_buff_size.value() << 
     " bytes, will try to change it to " << recv_buff_size;
 
   boost::asio::socket_base::receive_buffer_size recv_buff_option(recv_buff_size);
@@ -470,10 +462,10 @@ void artdaq::multicastTransfer::set_receive_buffer_size(size_t recv_buff_size) {
   }
 
   socket_->get_option(actual_recv_buff_size);
-  mf::LogInfo(name_) << "After attempted change, receive buffer size is now " << actual_recv_buff_size.value();
+  mf::LogDebug(uniqueLabel()) << "After attempted change, receive buffer size is now " << actual_recv_buff_size.value();
 }
 
 
 #pragma GCC diagnostic pop
 
-DEFINE_ARTDAQ_TRANSFER(artdaq::multicastTransfer)
+DEFINE_ARTDAQ_TRANSFER(artdaq::MulticastTransfer)

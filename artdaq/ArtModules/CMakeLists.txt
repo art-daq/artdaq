@@ -11,7 +11,6 @@ art_make( BASENAME_ONLY
   LIB_LIBRARIES
   artdaq_DAQrate
   artdaq_DAQdata
-  ${ARTDAQ-CORE_DATA}
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal
@@ -100,10 +99,11 @@ simple_plugin(NetMonTransportService "service"
 _check_if_version_greater(art ${ART_VERSION} v1_08_00)
 if (NOT ${product_version_less})
   simple_plugin(InFlightConfiguration "service"
-    ${ART_FRAMEWORK_SERVICES_REGISTRY}
-    ${ART_FRAMEWORK_SERVICES_USERINTERACTION}
+ art_Framework_Services_Registry
+ art_Framework_Services_UserInteraction
     ${ART_FRAMEWORK_SERVICES_SYSTEM_PATHSELECTION_SERVICE}
     ${ART_UTILITIES}
+    ${CANVAS}_Utilities
     )
 endif()
 

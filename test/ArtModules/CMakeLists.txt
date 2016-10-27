@@ -21,23 +21,23 @@ cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
   ${CANVAS}_Persistency_Common_dict
   ${CANVAS}_Persistency_WrappedStdDictionaries_dict
   art_Utilities
-  ${ART_VERSION}
+  art_Version
   )
 
-cet_test(daq_flow_t
-  LIBRARIES
-  ${ART_FRAMEWORK_ART}
-  ${MPI_C_LIBRARIES}
-  artdaq_DAQdata_GenericFragmentSimulator_generator
-  artdaq_Application_MPI2
-  artdaq_DAQrate
-  artdaq_DAQdata
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  TEST_ARGS -c daq_flow_t.fcl
-  DATAFILES daq_flow_t.fcl
-  )
+#cet_test(daq_flow_t
+#  LIBRARIES
+#  art_Framework_Art
+#  ${MPI_C_LIBRARIES}
+#  artdaq_DAQdata_GenericFragmentSimulator_generator
+#  artdaq_Application_MPI2
+#  artdaq_DAQrate
+#  artdaq_DAQdata
+#  MF_MessageLogger
+#  fhiclcpp
+#  cetlib
+#  TEST_ARGS -c daq_flow_t.fcl
+#  DATAFILES daq_flow_t.fcl
+#  )
 
 check_ups_version(art "$ENV{ART_VERSION}" v2_00_00 PRODUCT_OLDER_VAR NO_TEST_ARG_SEPARATER)
 if (NO_TEST_ARG_SEPARATER)

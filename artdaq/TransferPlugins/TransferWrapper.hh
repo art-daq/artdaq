@@ -10,8 +10,9 @@
 
 #include <string>
 #include <memory>
+#include <iostream>
 
-#include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include "TBufferFile.h"
 
@@ -27,6 +28,7 @@ namespace artdaq {
   public:
 
     TransferWrapper(const fhicl::ParameterSet& );
+    ~TransferWrapper();
 
     void receiveMessage(std::unique_ptr<TBufferFile>& msg);
 
@@ -34,8 +36,20 @@ namespace artdaq {
 
     void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>& );
 
+    void checkIntegrity(const artdaq::Fragment& ) const;
+
+    void unregisterMonitor();
+
     std::size_t timeoutInUsecs_;
     std::unique_ptr<TransferInterface> transfer_;
+    const std::string dispatcherHost_;
+    const std::string dispatcherPort_;
+    const std::string serverUrl_;
+    const std::size_t maxEventsBeforeInit_;
+    const std::vector<int> allowedFragmentTypes_;
+    const bool quitOnFragmentIntegrityProblem_;
+    const size_t debugLevel_;
+    bool monitorRegistered_;
   };
 
 }

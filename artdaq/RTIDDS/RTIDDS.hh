@@ -26,10 +26,7 @@ public:
   // JCF, Apr-7-2016
   // Are copy constructor, assignment operators, etc., logical absurdities?
 
-  void copyFragmentToDDS_(bool& fragment_has_been_copied,
-			  bool& esr_has_been_copied,
-			  bool& eod_has_been_copied,
-			  artdaq::Fragment& fragment);
+  void copyFragmentToDDS_(artdaq::Fragment& fragment);
 
   class OctetsListener: public DDSDataReaderListener {
   public:

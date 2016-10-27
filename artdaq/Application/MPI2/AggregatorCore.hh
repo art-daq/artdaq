@@ -22,7 +22,7 @@
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
-#include "artdaq/TransferPlugins/TransferInterface.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 namespace artdaq
 {
@@ -55,6 +55,8 @@ public:
   size_t process_fragments();
 
   std::string report(std::string const& which) const;
+  std::string register_monitor(fhicl::ParameterSet const& ); 
+  std::string unregister_monitor(std::string const& ); 
 
 private:
   int mpi_rank_;
@@ -77,6 +79,7 @@ private:
   int32_t filesize_check_interval_events_;
   bool is_data_logger_;
   bool is_online_monitor_;
+  bool is_dispatcher_;
   daqrate::seconds enq_timeout_;
 
   std::unique_ptr<artdaq::RHandles> receiver_ptr_;
@@ -108,7 +111,13 @@ private:
   artdaq::MetricManager metricMan_;
   void sendMetrics_();
 
-  std::unique_ptr<TransferInterface> transfer_;
+  std::unique_ptr<TransferInterface> data_logger_transfer_;
+
+  std::unique_ptr<Fragment> init_fragment_ptr_;
+
+  std::mutex dispatcher_transfers_mutex_;
+  std::vector<std::unique_ptr<TransferInterface>> dispatcher_transfers_;
+  size_t new_transfers_;
 
 };
 

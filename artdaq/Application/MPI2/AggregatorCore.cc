@@ -8,6 +8,7 @@
 #endif
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
+#include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
@@ -66,7 +67,8 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   data_sender_count_(0), event_queue_(artdaq::getGlobalQueue(10)),
   stop_requested_(false), local_pause_requested_(false),
   processing_fragments_(false),
-  system_pause_requested_(false), previous_run_duration_(-1.0)
+  system_pause_requested_(false), previous_run_duration_(-1.0),
+  new_transfers_(0)
 {
   mf::LogDebug(name_) << "Constructor";
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
@@ -171,6 +173,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   // data logger and the second is the online monitor.
   is_data_logger_ = false;
   is_online_monitor_ = false;
+  is_dispatcher_ = false;
   bool agtype_was_specified = false;
   if (! agtype_was_specified) {
     try {
@@ -187,6 +190,14 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     catch (...) {} // leave agtype_was_specified set to false
   }
   if (! agtype_was_specified) {
+    try {
+      is_dispatcher_ = agg_pset.get<bool>("is_dispatcher");
+      agtype_was_specified = true;
+    }
+    catch (...) {} // leave agtype_was_specified set to false
+  }
+
+  if (! agtype_was_specified) {
     if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
       is_data_logger_ = true;
     }
@@ -196,7 +207,8 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   }
   mf::LogDebug(name_) << "Rank " << mpi_rank_
                       << ", is_data_logger  = " << is_data_logger_
-                      << ", is_online_monitor = " << is_online_monitor_;
+                      << ", is_online_monitor = " << is_online_monitor_
+                      << ", is_dispatcher = " << is_dispatcher_;
 
   disk_writing_directory_ = "";
   try {
@@ -306,44 +318,33 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
     }
   }
 
-  fhicl::ParameterSet transfer_pset;
-
   try {
-    transfer_pset = daq_pset.get<fhicl::ParameterSet>("monitoring_transfer");
-  }  catch (...) {
-    mf::LogError(name_)
-      << "Unable to find the transfer plugin parameters in the daq "
-      << "ParameterSet: \"" + transfer_pset.to_string() + "\".";
+
+    if (is_data_logger_) {
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kSend);
+    } else if (is_online_monitor_) {
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kReceive);
+    } else if (is_dispatcher_) {
+      data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kReceive);
+    }
+    
+  } catch(...) {
+    ExceptionHandler(ExceptionHandlerRethrow::no,
+  		     "Error creating transfer plugin in AggregatorCore::initialize()");
     return false;
   }
-
-  try {
-    static cet::BasicPluginFactory bpf("transfer", "make");
-
-    auto role = is_data_logger_ ? TransferInterface::Role::send : TransferInterface::Role::receive ;
-
-    transfer_ =  
-      bpf.makePlugin<std::unique_ptr<TransferInterface>,
-      const fhicl::ParameterSet&,
-      TransferInterface::Role>(
-			      transfer_pset.get<std::string>("transferPluginType"), 
-			      transfer_pset, 
-			      std::move(role));
-  } catch(...) {
-    ExceptionHandler(ExceptionHandlerRethrow::yes,
-		     "Error creating transfer plugin in AggregatorCore::initialize()");
-  }
-
 
   if (event_store_ptr_ == nullptr) {
     artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
     size_t desired_events_per_bunch = expected_events_per_bunch_;
-    if (is_online_monitor_) {
+    if (is_online_monitor_ || is_dispatcher_) {
       desired_events_per_bunch = 1;
     }
+	TRACE(36, "Creating EventStore and Starting art thread");
     event_store_ptr_.reset(new artdaq::EventStore(agg_pset, desired_events_per_bunch, 1,
                                                   mpi_rank_, init_string_,
                                                   reader, &metricMan_));
+	TRACE(36, "Done Creating EventStore");
     event_store_ptr_->setSeqIDModulus(desired_events_per_bunch);
     fhicl::ParameterSet tmp = pset;
     tmp.erase("daq");
@@ -454,7 +455,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
   processing_fragments_.store(true);
   size_t true_data_sender_count = data_sender_count_;
-  if (is_online_monitor_) {
+  if (is_online_monitor_ || is_dispatcher_) {
     true_data_sender_count = 1;
   }
 
@@ -464,8 +465,6 @@ size_t artdaq::AggregatorCore::process_fragments()
   std::vector<size_t> fragments_received(true_data_sender_count + first_data_sender_rank_, 0);
   std::vector<size_t> fragments_sent(true_data_sender_count + first_data_sender_rank_, 0);
   artdaq::FragmentPtr endSubRunMsg(nullptr);
-  bool eodWasCopied = false;
-  bool esrWasCopied = false;
   time_t last_filesize_check_time = subrun_start_time_;
 
   if (is_data_logger_) {
@@ -485,14 +484,14 @@ size_t artdaq::AggregatorCore::process_fragments()
     else if (local_pause_requested_.load()) {recvTimeout = pause_recv_timeout_usec_;}
 
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
+
     if (is_data_logger_) {
       senderSlot = receiver_ptr_->recvFragment(*fragmentPtr, recvTimeout);
-    }
-    else if (is_online_monitor_) {
-
-      senderSlot = transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
-    }
-    else {
+    } else if (is_online_monitor_) {
+      senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
+    } else if (is_dispatcher_) {
+	senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
+    } else {
       usleep(recvTimeout);
       senderSlot = artdaq::RHandles::RECV_TIMEOUT;
     }
@@ -631,11 +630,49 @@ size_t artdaq::AggregatorCore::process_fragments()
     startTime = artdaq::MonitoredQuantity::getCurrentTime();
     bool fragmentWasCopied = false;
     if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0) {
+      try {
+	TransferInterface::CopyStatus result = 
+	  data_logger_transfer_->copyFragmentTo(*fragmentPtr, 0);
 
-      transfer_->copyFragmentTo(fragmentWasCopied,
-				esrWasCopied, eodWasCopied,
-				*fragmentPtr, 0);
+	if (result == TransferInterface::CopyStatus::kSuccess) {
+	  fragmentWasCopied = true;
+	}
+      } catch (...) {
+	ExceptionHandler(ExceptionHandlerRethrow::no,
+			 "Exception thrown during data logger copy of event to dispatcher");
+      }
+
+    } else if (is_dispatcher_) {
+
+      if (fragmentPtr->type() != artdaq::Fragment::EndOfDataFragmentType) {
+
+	if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
+	  init_fragment_ptr_ = std::make_unique<artdaq::Fragment>( *fragmentPtr );
+	}
+
+	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+
+	if (new_transfers_ == 0) {
+
+	  mf::LogDebug(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
+	    static_cast<size_t>(fragmentPtr->type()) << " to " << dispatcher_transfers_.size() 
+			     << " registered monitors";
+
+	  for (auto& transfer : dispatcher_transfers_) {
+	    transfer->copyFragmentTo(*fragmentPtr, 0);
+	  }
+	} else {
+
+	  for (size_t i_q = dispatcher_transfers_.size() - new_transfers_; i_q < dispatcher_transfers_.size(); ++i_q) {
+	    mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) << 
+	      ", size " << init_fragment_ptr_->sizeBytes();
+	    dispatcher_transfers_[i_q]->copyFragmentTo(*init_fragment_ptr_, 500000);
+	  }
+	  new_transfers_ = 0;
+	}
+      }
     }
+
     stats_helper_.addSample(SHM_COPY_TIME_STAT_KEY,
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
 
@@ -650,12 +687,11 @@ size_t artdaq::AggregatorCore::process_fragments()
          EventBuilder. */
       if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType) {
         mf::LogDebug(name_) << "Init";
-        if (is_data_logger_) {
+        if (is_data_logger_ && !fragmentWasCopied) {
 
-	  transfer_->copyFragmentTo(fragmentWasCopied,
-	   			   esrWasCopied, eodWasCopied,
-				    *fragmentPtr, 500000);
+	  data_logger_transfer_->copyFragmentTo(*fragmentPtr, 500000);
         }
+
         artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
         initEvent->insertFragment(std::move(fragmentPtr));
 
@@ -708,23 +744,24 @@ size_t artdaq::AggregatorCore::process_fragments()
           event_store_ptr_->insert(std::move(fragmentPtr), false);
         }
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType) {
-        if (is_data_logger_) {
+        if (is_data_logger_ && !fragmentWasCopied) {
 
-	  transfer_->copyFragmentTo(fragmentWasCopied,
-				    esrWasCopied, eodWasCopied,
-				    *fragmentPtr, 1000000);
-        }
+	  data_logger_transfer_->copyFragmentTo(*fragmentPtr, 1000000);
+        } else if (is_dispatcher_) {
+	  for (auto& transfer : dispatcher_transfers_) {
+	    transfer->copyFragmentTo(*fragmentPtr, 0);
+	  }
+	}
+
         /* We inject the EndSubrun fragment after all other data has been
            received.  The SHandles and RHandles classes do not guarantee that 
            data will be received in the same order it is sent.  We'll hold on to
            this fragment and inject it once we've received all EOD fragments. */
         endSubRunMsg = std::move(fragmentPtr);
       } else if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType) {
-        if (is_data_logger_) {
+        if (is_data_logger_ && !fragmentWasCopied) {
 
-	  transfer_->copyFragmentTo(fragmentWasCopied,
-				    esrWasCopied, eodWasCopied,
-				    *fragmentPtr, 1000000);
+	  data_logger_transfer_->copyFragmentTo(*fragmentPtr, 1000000);
         }
         eodFragmentsReceived++;
         /* We count the EOD fragment as a fragment received but the SHandles class
@@ -908,6 +945,80 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
   tmpString.append(". Command=\"" + which + "\" is not currently supported.");
   return tmpString;
 }
+
+std::string artdaq::AggregatorCore::register_monitor(fhicl::ParameterSet const& pset) {
+  mf::LogDebug(name_) << "AggregatorCore::register_monitor called with argument \"" << pset.to_string() << "\"";
+  std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+
+  try {
+    
+    auto transfer = MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::kSend);
+
+    for (auto& existing_transfer_ : dispatcher_transfers_) {
+      
+      if (existing_transfer_->uniqueLabel() == transfer->uniqueLabel()) {
+    	std::stringstream errmsg;
+    	errmsg << "Attempt to register newly-created monitor with label \"" <<
+    	  transfer->uniqueLabel() << "\" failed; a monitor with that label already exists";
+    	return errmsg.str();
+      }
+    }
+
+    dispatcher_transfers_.emplace_back( std::move(transfer) );
+
+    mf::LogInfo(name_) << "Successfully registered monitor with label \"" << dispatcher_transfers_.back()->uniqueLabel() << "\"";
+
+    new_transfers_++;
+  } catch(...) {
+    std::stringstream errmsg;
+    errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered";
+    return errmsg.str();
+  }
+
+  return "Success";
+}
+
+std::string artdaq::AggregatorCore::unregister_monitor(std::string const& label) {
+  mf::LogDebug(name_) << "AggregatorCore::unregister_monitor called with argument \"" << label << "\"";
+  std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+
+  try {
+  
+    auto r_i_end = std::remove_if(dispatcher_transfers_.begin(),
+				  dispatcher_transfers_.end(),
+				  [label](const std::unique_ptr<TransferInterface>& transfer) { 
+				    return transfer->uniqueLabel() == label; });
+
+    auto nfound = dispatcher_transfers_.end() - r_i_end;
+
+    mf::LogInfo(name_) << "Request from monitor with label \"" << label << "\" to unregister received";
+
+    if (nfound == 1) {
+      dispatcher_transfers_.pop_back();
+      return "Success";
+    } else if (nfound == 0) {
+      std::stringstream errmsg;
+      errmsg << "Warning in AggregatorCore::unregister_monitor: unable to find requested transfer plugin with "
+	     << "label \"" << label << "\"";
+      mf::LogWarning(name_) << errmsg.str();
+      return errmsg.str();
+    } else {
+      std::stringstream errmsg;
+      errmsg << "Warning in AggregatorCore::unregister_monitor: found more than one (" << nfound << 
+	") transfer plugins with label \"" << label << "\", will unregister all of them";
+      mf::LogWarning(name_) << errmsg.str();
+      dispatcher_transfers_.erase(r_i_end, dispatcher_transfers_.end());
+      return errmsg.str();
+    }
+  } catch(...) {
+    std::stringstream errmsg;
+    errmsg << "Unable to unregister transfer plugin with label \"" << label << "\"";
+    return errmsg.str();
+  }
+
+  return "Success";
+}
+
 
 size_t artdaq::AggregatorCore::getLatestFileSize_() const
 {
@@ -1093,10 +1204,10 @@ void artdaq::AggregatorCore::sendMetrics_()
                           stats.recentSampleRate, "events/sec", 1);
     metricMan_.sendMetric("Average Event Size",
                           (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-                          ), "bytes/event", 2);
+			   ), "bytes/event", 2);
     metricMan_.sendMetric("Data Rate",
                           (stats.recentValueRate * sizeof(artdaq::RawDataType)
-                          ), "bytes/sec", 2);
+			   ), "bytes/sec", 2);
   }
 
   // 13-Jan-2015, KAB - Just a reminder that using "eventCount" in the
