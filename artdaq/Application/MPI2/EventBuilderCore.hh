@@ -12,7 +12,12 @@
 #include "art/Persistency/Provenance/RunID.h"
 #endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "artdaq/DAQrate/RHandles.hh"
+#ifdef DO_SOCKETS
+# include "artdaq/DAQrate/RSockets.hh"
+# define RHandles RSockets
+#else
+# include "artdaq/DAQrate/RHandles.hh"
+#endif
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq/DAQrate/MetricManager.hh"
