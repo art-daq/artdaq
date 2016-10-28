@@ -15,7 +15,7 @@
 #include <sys/socket.h>         // socket, socklen_t
 #include <sys/un.h>				// sockaddr_un
 #include "artdaq-core/Data/Fragment.hh"
-
+#include <arpa/inet.h>			// ntohl, ntohs
 
 const size_t artdaq::RSockets::RECV_TIMEOUT = 0xfedcba98;
 
@@ -112,7 +112,8 @@ void artdaq::RSockets::do_connect_() {
 	}
 
 	// check for "magic" and valid source_id(aka rank)
-	if (   mh.conn_magic != CONN_MAGIC
+	mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
+	if (   ntohl(mh.conn_magic) != CONN_MAGIC
 	    || !(  mh.source_id>=src_start_idx_
 		     &&mh.source_id<(src_start_idx_+src_count_))) {
 		close(fd);
@@ -216,6 +217,8 @@ ssize_t artdaq::RSockets::recvFragment( Fragment &outfrag, ssize_t timeout_usec,
 					conninfo_[conIdx].offset = 0;
 					if (conninfo_[conIdx].state == ConnInfo::metadata) {
 						conninfo_[conIdx].state = ConnInfo::data;
+						conninfo_[conIdx].mh.byte_count = ntohl(conninfo_[conIdx].mh.byte_count);
+						conninfo_[conIdx].mh.source_id  = ntohs(conninfo_[conIdx].mh.source_id);
 						conninfo_[conIdx].target_bytes = conninfo_[conIdx].mh.byte_count;
 					}
 					else {

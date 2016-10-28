@@ -17,6 +17,7 @@
 #include <string>
 #include <fstream>
 #include <assert.h>
+#include <arpa/inet.h>			// htonl, htons
 #include "artdaq-core/Data/Fragment.hh"
 
 
@@ -89,7 +90,7 @@ artdaq::SSockets::~SSockets()
 
 
     // close all open connections (send stop_v0) first
-	MessHead mh={0,MessHead::stop_v0,my_node_idx_,0};
+	MessHead mh={0,MessHead::stop_v0,htons(my_node_idx_),0};
 	for (size_t ii=0; ii<conninfo_.size(); ++ii) {
 		if (conninfo_[ii].fd != -1) {
 			// should be blocking with modest timeo
@@ -146,7 +147,7 @@ ssize_t artdaq::SSockets::sendFragment( const struct iovec *iov, int iovcnt, ssi
 		iov_in[ii+1] = iov[ii];
 		total_to_write_bytes+=iov[ii].iov_len;
 	}
-	MessHead mh={0,MessHead::data_v0,my_node_idx_,total_to_write_bytes};
+	MessHead mh={0,MessHead::data_v0,htons(my_node_idx_),htonl(total_to_write_bytes)};
 	iov_in[0].iov_base = &mh;
 	iov_in[0].iov_len  = sizeof(mh);
 	total_to_write_bytes += sizeof(mh);
@@ -339,7 +340,7 @@ void   artdaq::SSockets::connect_( int sndIdx )
 	      , conninfo_[ii].dst_port, conninfo_[ii].fd );
 	if (conninfo_[ii].fd != -1) {
 		// write connect msg
-		MessHead mh={0,MessHead::connect_v0,my_node_idx_,CONN_MAGIC};
+		MessHead mh={0,MessHead::connect_v0,htons(my_node_idx_),htonl(CONN_MAGIC)};
 		ssize_t sts=write(conninfo_[ii].fd,&mh,sizeof(mh));
 		if (sts==-1) {
 			// a write error here is completely unexpected!
