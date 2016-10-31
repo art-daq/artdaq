@@ -114,7 +114,6 @@ ssize_t artdaq::SSockets::sendFragment( Fragment &&frag, ssize_t* sts_out )
 			<< "EOD fragments should not be sent on as received: "
 			<< "use sendEODFrag() instead.";
 	}
-	return -1;
 	size_t sndIdx=frag.sequenceID() % dest_count_;
 	artdaq::Fragment grab_ownership_frag=std::move(frag);
 	iovec iov = { (void*)grab_ownership_frag.headerBegin(), grab_ownership_frag.sizeBytes() };
