@@ -46,7 +46,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
   std::signal(SIGINT, signal_handler);
 
   try {
-    transfer_ = MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::receive);
+    transfer_ = MakeTransferPlugin(pset, "transfer_plugin", TransferInterface::Role::kReceive);
   } catch (...) {
     ExceptionHandler(ExceptionHandlerRethrow::yes, 
 		     "TransferWrapper: failure in call to MakeTransferPlugin");

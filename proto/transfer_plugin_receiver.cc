@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
       artdaq::TransferInterface::Role>(
 				       pset.get<std::string>("transfer_plugin_type"), 
 				       pset, 
-				       artdaq::TransferInterface::Role::receive);
+				       artdaq::TransferInterface::Role::kReceive);
   } catch(...) {
     artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::yes,
 			     "Error creating transfer plugin");

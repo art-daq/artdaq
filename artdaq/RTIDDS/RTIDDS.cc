@@ -103,20 +103,11 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
   }
 }
 
-void artdaq::RTIDDS::copyFragmentToDDS_(bool& fragment_has_been_copied,
-					bool& esr_has_been_copied,
-					bool& eod_has_been_copied,
-					artdaq::Fragment& fragment)
+void artdaq::RTIDDS::copyFragmentToDDS_(artdaq::Fragment& fragment)
 {
-
-  if (fragment_has_been_copied) {return;}
 
   // check if a fragment of this type has already been copied
   size_t fragmentType = fragment.type();
-  if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType &&
-      esr_has_been_copied) {return;}
-  if (fragmentType == artdaq::Fragment::EndOfDataFragmentType &&
-      eod_has_been_copied) {return;}
 
   if (octets_writer_ == NULL) {return;}
 
@@ -149,16 +140,6 @@ void artdaq::RTIDDS::copyFragmentToDDS_(bool& fragment_has_been_copied,
                             << fragment.sequenceID() << " "
                             << fragment.fragmentID() << " "
                             << ((int) fragment.type());      
-    } else {
-
-      fragment_has_been_copied = true;
-
-      if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType) {
-        esr_has_been_copied = true;
-      }
-      if (fragmentType == artdaq::Fragment::EndOfDataFragmentType) {
-        eod_has_been_copied = true;
-      }
     }
   } else {
     mf::LogWarning(name_) << "Fragment invalid for shared memory! "

@@ -33,11 +33,8 @@ public:
   virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
 				     size_t receiveTimeout);
 
-  virtual void copyFragmentTo(bool& fragmentHasBeenCopied,
-			      bool& esrHasBeenCopied,
-			      bool& eodHasBeenCopied,
-			      artdaq::Fragment& fragment,
-			      size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+				    size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 private:
 
   struct ShmStruct {
@@ -109,7 +106,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
       << " bytes";
     shm_ptr_ = (ShmStruct*) shmat(shm_segment_id_, 0, 0);
     if (shm_ptr_ && shm_ptr_ != (void *) -1 ) {
-      if (role_ == Role::receive) {
+      if (role_ == Role::kReceive) {
         shm_ptr_->hasFragment = 0;
       }
       mf::LogDebug(uniqueLabel())
@@ -136,7 +133,7 @@ artdaq::ShmemTransfer::~ShmemTransfer() {
     shm_ptr_ = NULL;
   }
 
-  if (role_ == Role::receive && shm_segment_id_ > -1) {
+  if (role_ == Role::kReceive && shm_segment_id_ > -1) {
     shmctl(shm_segment_id_, IPC_RMID, NULL);
   }
 }
@@ -194,21 +191,13 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
   }
 }
 
-void artdaq::ShmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
-					   bool& esrWasCopied,
-					   bool& eodWasCopied,
-					   artdaq::Fragment& fragment,
-					   size_t send_timeout_usec) {
+artdaq::TransferInterface::CopyStatus
+artdaq::ShmemTransfer::copyFragmentTo(artdaq::Fragment& fragment,
+				      size_t send_timeout_usec) {
 
-  if (fragmentWasCopied) {return;}
-  
   size_t fragmentType = fragment.type();
-  if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType &&
-      esrWasCopied) {return;}
-  if (fragmentType == artdaq::Fragment::EndOfDataFragmentType &&
-      eodWasCopied) {return;}
 
-  if (!shm_ptr_) {return;}
+  if (!shm_ptr_) {return CopyStatus::kErrorNotRequiringException;}
 
   // wait for the shm to become free, if requested                                           
   if (send_timeout_usec > 0) {
@@ -240,14 +229,6 @@ void artdaq::ShmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
       memcpy(&shm_ptr_->fragmentInnards[0], fragAddr, fragSize);
       shm_ptr_->fragmentSizeWords = fragment.size();
 
-      fragmentWasCopied = true;
-      if (fragmentType == artdaq::Fragment::EndOfSubrunFragmentType) {
-        esrWasCopied = true;
-      }
-      if (fragmentType == artdaq::Fragment::EndOfDataFragmentType) {
-        eodWasCopied = true;
-      }
-
       shm_ptr_->hasFragment = 1;
 
       ++fragment_count_to_shm_;
@@ -255,6 +236,8 @@ void artdaq::ShmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
 	mf::LogDebug(uniqueLabel()) << "Copied " << fragment_count_to_shm_
 			    << " fragments to shared memory in this run.";
       }
+
+      return CopyStatus::kSuccess;
     }
     else {
       mf::LogWarning(uniqueLabel()) << "Fragment invalid for shared memory! "
@@ -264,8 +247,11 @@ void artdaq::ShmemTransfer::copyFragmentTo(bool& fragmentWasCopied,
 			    << fragment.sequenceID() << " "
 			    << fragment.fragmentID() << " "
 			    << ((int) fragment.type());
+      return CopyStatus::kErrorNotRequiringException;
     }
   }
+
+  return CopyStatus::kTimeout;
 }
 
 DEFINE_ARTDAQ_TRANSFER(artdaq::ShmemTransfer)

@@ -32,6 +32,7 @@ void do_sending(  int my_rank, int num_senders, int num_receivers
   
     std::vector<artdaq::Fragment> frags(SND_BUFFER_COUNT,artdaq::Fragment());
 	uint64_t start_us=gettimeofday_us();
+	uint64_t prev_us=start_us;
 	uint64_t tot_wrds=0;
 
     for (int ii=0; ii<sends_each_sender; ++ii)
@@ -55,10 +56,15 @@ void do_sending(  int my_rank, int num_senders, int num_receivers
 	sender.sendFragment( std::move(frags[ii%SND_BUFFER_COUNT]) );
 	//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
-	uint64_t delta_us=gettimeofday_us()-start_us;
+	uint64_t now_us=gettimeofday_us();
+	uint64_t delta_us=now_us-start_us;
+	uint64_t delt_inst_us=now_us-prev_us;
 	tot_wrds+=sndDatSz;
-	TRACE( 8, "sender rank %d #%u sent datSz=%u rate=%f MB/s"
-	      ,my_rank,ii,sndDatSz, delta_us?(double)tot_wrds*8/delta_us:0.0 );
+	TRACE( 8, "sender rank %d #%u sent datSz=%u rate(inst/ave)=%.1f/%.1f MB/s"
+	      ,my_rank,ii,sndDatSz
+	      , delt_inst_us?(double)sndDatSz*8/(now_us-prev_us):0.0
+	      , delta_us?(double)tot_wrds*8/delta_us:0.0 );
+	prev_us=now_us;
 	frags[ii%SND_BUFFER_COUNT] = artdaq::Fragment(); // replace/renew
 	TRACE( 9, "sender rank %d frag replaced",my_rank );
     }

@@ -37,11 +37,8 @@ public:
   virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
 				   size_t receiveTimeout);
 
-  virtual void copyFragmentTo(bool& fragmentHasBeenCopied,
-			      bool& esrHasBeenCopied,
-			      bool& eodHasBeenCopied,
-			      artdaq::Fragment& fragment,
-			      size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+				    size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 
 private:
 
@@ -125,7 +122,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
     mf::LogDebug(uniqueLabel()) << "multicast address is set to " << multicast_address;
     mf::LogDebug(uniqueLabel()) << "local address is set to " << local_address;
 
-    if (TransferInterface::role() == Role::send) {
+    if (TransferInterface::role() == Role::kSend) {
 
       local_endpoint_ = std::make_unique<std::remove_reference<decltype(*local_endpoint_)>::type>( local_address, 0 );
       multicast_endpoint_ = std::make_unique<std::remove_reference<decltype(*multicast_endpoint_)>::type>( multicast_address, port );
@@ -134,7 +131,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 										   multicast_endpoint_->protocol());
       socket_->bind(*local_endpoint_);
 
-    } else {  // TransferInterface::role() == Role::receive
+    } else {  // TransferInterface::role() == Role::kReceive
 
       // Create the socket so that multiple may be bound to the same address.  
 
@@ -172,7 +169,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
   
   staging_memory_.resize(max_subfragments * (sizeof(subfragment_identifier) + subfragment_size_));
 
-  if (TransferInterface::role() == Role::receive) {
+  if (TransferInterface::role() == Role::kReceive) {
     book_container_of_buffers(receive_buffers_, max_fragment_size_, max_subfragments, 0, max_subfragments - 1);
   }
 
@@ -186,7 +183,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 						      size_t receiveTimeout) {
 
-  assert(TransferInterface::role() == Role::receive);
+  assert(TransferInterface::role() == Role::kReceive);
 
   if (fragment.dataSizeBytes() > 0) {
     throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::receiveFragmentFrom: " <<
@@ -315,13 +312,11 @@ size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
 #pragma GCC diagnostic pop
 
-void artdaq::MulticastTransfer::copyFragmentTo(bool& fragmentWasCopied,
-					       bool& esrWasCopied,
-					       bool& eodWasCopied,
-					       artdaq::Fragment& fragment,
-					       size_t send_timeout_usec) {
+artdaq::TransferInterface::CopyStatus
+artdaq::MulticastTransfer::copyFragmentTo(artdaq::Fragment& fragment,
+					  size_t send_timeout_usec) {
 
-  assert(TransferInterface::role() == Role::send);
+  assert(TransferInterface::role() == Role::kSend);
 
   if ( fragment.sizeBytes() > max_fragment_size_) {
     throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::copyFragmentTo: " <<
@@ -354,6 +349,7 @@ void artdaq::MulticastTransfer::copyFragmentTo(bool& fragmentWasCopied,
       break;
     }
   }
+  return CopyStatus::kSuccess;
 }
 
 #pragma GCC diagnostic push

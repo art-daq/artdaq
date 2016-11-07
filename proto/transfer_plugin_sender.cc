@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
       artdaq::TransferInterface::Role>(
 				       pset.get<std::string>("transfer_plugin_type"), 
 				       pset, 
-				       artdaq::TransferInterface::Role::send);
+				       artdaq::TransferInterface::Role::kSend);
   } catch(...) {
     artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,
 			     "Error creating transfer plugin");
@@ -99,13 +99,11 @@ int main(int argc, char* argv[])
 
   for (size_t i_i = 0; i_i < num_sends; ++i_i) {
 
-    bool was_copied_bool = false;
-
     frag->setSequenceID(i_i + 1);
     frag->setFragmentID(0);
     frag->setUserType(artdaq::Fragment::FirstUserFragmentType);
     
-    transfer->copyFragmentTo(was_copied_bool, was_copied_bool, was_copied_bool, *frag, timeout);
+    transfer->copyFragmentTo(*frag, timeout);
   }
 
   std::cout << "# of sent fragments attempted == " << num_sends << std::endl;

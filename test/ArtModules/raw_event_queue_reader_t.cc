@@ -37,7 +37,6 @@
 #include "art/Version/GetReleaseVersion.h"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq-core/Data/Fragment.hh"
-#include "cetlib/make_unique.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
 #define BOOST_TEST_MODULE ( raw_event_queue_reader_t )
