@@ -339,7 +339,7 @@ void artdaq::Commandable::InRunExit()
  */
 std::string artdaq::Commandable::current_state() const
 {
-  std::string fullStateName = fsm_.getState().getName();
+  std::string fullStateName = (const_cast<Commandable*>(this))->fsm_.getState().getName();
   size_t pos = fullStateName.rfind("::");
   if (pos != std::string::npos) {
     return fullStateName.substr(pos+2);

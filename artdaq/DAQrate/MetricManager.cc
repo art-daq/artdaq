@@ -32,11 +32,7 @@ void artdaq::MetricManager::initialize(fhicl::ParameterSet const& pset, std::str
   }
   mf::LogDebug("MetricManager") << "Configuring metrics with parameter set:\n" << pset.to_string();
 
-#ifdef GET_PSET_KEYS_MSG
   std::vector<std::string> names  = pset.get_pset_names();
-#else
-  std::vector<std::string> names = pset.get_pset_keys();
-#endif
 
   for(auto name : names)
     {
