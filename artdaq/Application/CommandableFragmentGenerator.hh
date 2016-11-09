@@ -64,7 +64,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Data/Fragments.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
-#include "artdaq/DAQrate/MetricManager.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/detail/TriggerMessage.hh"
 
 namespace artdaq {

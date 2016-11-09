@@ -14,9 +14,14 @@
 #include "art/Persistency/Provenance/RunID.h"
 #endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
+#ifdef DO_SOCKETS
+# include "artdaq/DAQrate/SSockets.hh"
+# define SHandles SSockets
+#else
 #include "artdaq/DAQrate/SHandles.hh"
+#endif
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
-#include "artdaq/DAQrate/MetricManager.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq
 {

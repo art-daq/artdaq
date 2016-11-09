@@ -21,7 +21,7 @@
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
-#include "artdaq/DAQrate/MetricManager.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
 namespace artdaq

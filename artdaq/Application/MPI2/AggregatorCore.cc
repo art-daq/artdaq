@@ -11,6 +11,7 @@
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "cetlib/BasicPluginFactory.h"

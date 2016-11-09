@@ -1,6 +1,7 @@
 #include "artdaq/Application/MPI2/AggregatorApp.hh"
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq/Application/TaskType.hh"

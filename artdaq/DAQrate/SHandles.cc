@@ -58,12 +58,16 @@ size_t artdaq::SHandles::findAvailable()
 {
   size_t use_me = 0;
   int flag;
+  int loops=0;
+  TRACE(5, "findAvailable initial pos_=%zu", pos_);
   do {
     use_me = pos_;
     MPI_Test(&reqs_[use_me], &flag, MPI_STATUS_IGNORE);
     pos_ = (pos_ + 1) % buffer_count_;
+	++loops;
   }
   while (!flag);
+  TRACE(5, "findAvailable returning use_me=%zu loops=%d", use_me, loops );
   // pos_ is pointing at the next slot to check
   // use_me is pointing at the slot to use
   return use_me;
@@ -80,6 +84,7 @@ sendFragment(Fragment && frag)
         << "EOD fragments should not be sent on as received: "
         << "use sendEODFrag() instead.";
   }
+  TRACE( 13, "sendFragment start frag.fragmentHeader()=%p", (void*)(frag.headerBegin()) );
   size_t dest;
   if (broadcast_sends_) {
     size_t dest_end = dest_start_ + dest_count_;
@@ -94,7 +99,7 @@ sendFragment(Fragment && frag)
     sendFragTo(std::move(frag), dest);
     sent_frag_count_.incSlot(dest);
   }
-
+  TRACE( 13, "sendFragment end frag.fragmentHeader()=%p", (void*)(frag.headerBegin()) );
   return dest;
 }
 
@@ -130,11 +135,11 @@ sendFragTo(Fragment && frag, size_t dest, bool force_async)
         << max_payload_size_
         << ").";
   }
-  TRACE(5, "sendFragTo finding available buffer");
   size_t buffer_idx = findAvailable();
   Fragment & curfrag = payload_[buffer_idx];
   curfrag = std::move(frag);
-  TRACE( 5, "sendFragTo before send src=%i dest=%lu seqID=%lu", my_mpi_rank_ , dest, curfrag.sequenceID() );
+  TRACE( 5, "sendFragTo before send src=%i dest=%lu seqID=%lu found_idx=%zu"
+        , my_mpi_rank_ , dest, curfrag.sequenceID(), buffer_idx );
   if (! synchronous_sends_ || force_async) {
     // 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
     MPI_Isend(&*curfrag.headerBegin(),
