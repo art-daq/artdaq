@@ -3,7 +3,7 @@
 
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
-#include "artdaq/DAQrate/MetricManager.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include <fhiclcpp/ParameterSet.h>
 
 #include <map>

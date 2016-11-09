@@ -1,6 +1,7 @@
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Application/MPI2/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragments.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
 #ifdef CANVAS
 #include "canvas/Utilities/Exception.h"
