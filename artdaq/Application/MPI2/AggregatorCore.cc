@@ -1,11 +1,7 @@
 
 #include "xmlrpc-c/client_simple.hpp"
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
-#ifdef CANVAS
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/Exception.h"
-#endif
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
@@ -494,7 +490,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 	senderSlot = data_logger_transfer_->receiveFragmentFrom(*fragmentPtr, recvTimeout);
     } else {
       usleep(recvTimeout);
-      senderSlot = artdaq::RHandles::RECV_TIMEOUT;
+      senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
     }
     stats_helper_.addSample(INPUT_WAIT_STAT_KEY,
                             (artdaq::MonitoredQuantity::getCurrentTime() - startTime));
@@ -521,7 +517,7 @@ size_t artdaq::AggregatorCore::process_fragments()
       process_fragments = false;
       continue;
     }
-    else if (senderSlot == artdaq::RHandles::RECV_TIMEOUT) {
+    else if (senderSlot == artdaq::TransferInterface::RECV_TIMEOUT) {
       if (stop_requested_.load() &&
           recvTimeout == endrun_recv_timeout_usec_) {
         if (endSubRunMsg != nullptr) {

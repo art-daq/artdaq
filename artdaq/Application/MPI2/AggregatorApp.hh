@@ -5,7 +5,7 @@
 
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
 #include "artdaq/Application/Commandable.hh"
-#include "artdaq/DAQrate/RHandles.hh"
+#include "artdaq/DAQrate/quiet_mpi.hh"
 
 namespace artdaq
 {

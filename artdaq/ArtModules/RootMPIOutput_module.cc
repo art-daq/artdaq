@@ -10,7 +10,6 @@
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchIDList.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
@@ -25,22 +24,6 @@
 #include "canvas/Persistency/Provenance/SubRunAuxiliary.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Persistency/Provenance/BranchDescription.h"
-#include "art/Persistency/Provenance/BranchIDList.h"
-#include "art/Persistency/Provenance/BranchKey.h"
-#include "art/Persistency/Provenance/History.h"
-#include "art/Persistency/Provenance/ParentageRegistry.h"
-#include "art/Persistency/Provenance/ProcessConfiguration.h"
-#include "art/Persistency/Provenance/ProcessConfigurationID.h"
-#include "art/Persistency/Provenance/ProcessHistoryID.h"
-#include "art/Persistency/Provenance/ProductList.h"
-#include "art/Persistency/Provenance/ProductProvenance.h"
-#include "art/Persistency/Provenance/RunAuxiliary.h"
-#include "art/Persistency/Provenance/SubRunAuxiliary.h"
-#include "art/Utilities/DebugMacros.h"
-#include "art/Utilities/Exception.h"
-#endif
 #include "cetlib/column_width.h"
 #include "cetlib/lpad.h"
 #include "cetlib/rpad.h"
@@ -63,14 +46,10 @@
 #include "TClass.h"
 #include "TMessage.h"
 
-#if (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 16) || ART_MAJOR_VERSION > 1
 #  define CONST_WRITE
 struct Config {
 
 };
-#else
-#  define CONST_WRITE const
-#endif
 
 namespace art {
 class RootMPIOutput;

@@ -1,7 +1,6 @@
 
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQrate/RHandles.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -299,7 +298,7 @@ size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
       assert( !fragment_complete );
       mf::LogWarning(uniqueLabel()) << "Got an incomplete fragment";
-      return artdaq::RHandles::RECV_TIMEOUT;
+      return artdaq::TransferInterface::RECV_TIMEOUT;
     }
 
     if (fragment_complete) {
@@ -307,7 +306,7 @@ size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
     }
   }
   
-  return RHandles::RECV_TIMEOUT;
+  return TransferInterface::RECV_TIMEOUT;
 }
 
 #pragma GCC diagnostic pop

@@ -1,7 +1,6 @@
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
-#include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq/RTIDDS/RTIDDS.hh"
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -78,7 +77,7 @@ size_t artdaq::RTIDDSTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 
   //  return 0;
 
-    return receivedFragment ? first_data_sender_rank_ : RHandles::RECV_TIMEOUT ;
+    return receivedFragment ? first_data_sender_rank_ : TransferInterface::RECV_TIMEOUT ;
 }
 
 artdaq::TransferInterface::CopyStatus

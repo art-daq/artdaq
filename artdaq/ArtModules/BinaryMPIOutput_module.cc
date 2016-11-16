@@ -72,7 +72,7 @@ private:
   size_t evb_count_=0;
   int rt_priority_=0;
   bool synchronous_sends_=true;    
-  std::unique_ptr<artdaq::SHandles> sender_ptr_= {nullptr};
+  std::unique_ptr<artdaq::DataTransferManager> sender_ptr_= {nullptr};
 };
 
 art::BinaryMPIOutput::

@@ -6,18 +6,9 @@
 #include <atomic>
 
 #include "fhiclcpp/ParameterSet.h"
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/RunID.h"
-#else
-#include "art/Persistency/Provenance/RunID.h"
-#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#ifdef DO_SOCKETS
-# include "artdaq/DAQrate/RSockets.hh"
-# define RHandles RSockets
-#else
-# include "artdaq/DAQrate/RHandles.hh"
-#endif
+#include "artdaq/DAQrate/DataTransferManager.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
@@ -71,7 +62,7 @@ private:
   bool use_art_;
   art::RunID run_id_;
 
-  std::unique_ptr<artdaq::RHandles> receiver_ptr_;
+  std::unique_ptr<artdaq::DataTransferManager> receiver_ptr_;
   std::unique_ptr<artdaq::EventStore> event_store_ptr_;
   bool art_initialized_;
   std::atomic<bool> stop_requested_;

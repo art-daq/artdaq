@@ -4,7 +4,7 @@
 #include "art/Framework/Services/Registry/ServiceMacros.h"
 
 #include "artdaq/ArtModules/NetMonTransportServiceInterface.h"
-#include "artdaq/DAQrate/SHandles.hh"
+#include "artdaq/DAQrate/DataTransferWrapper.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 
 class TBufferFile;
@@ -37,7 +37,7 @@ private:
     bool broadcast_sends_;
     bool synchronous_sends_;
 
-    std::unique_ptr<artdaq::SHandles> sender_ptr_;
+    std::unique_ptr<artdaq::DataTransferWrapper> sender_ptr_;
     artdaq::RawEventQueue &incoming_events_;
     std::unique_ptr<std::vector<artdaq::Fragment> > recvd_fragments_;
 };

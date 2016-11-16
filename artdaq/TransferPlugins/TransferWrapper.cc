@@ -2,7 +2,6 @@
 #include "artdaq/TransferPlugins/TransferWrapper.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
-#include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
@@ -102,7 +101,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) 
       try { 
 	auto result = transfer_->receiveFragmentFrom(*fragmentPtr, timeoutInUsecs_);
       
-	if (result != artdaq::RHandles::RECV_TIMEOUT) {
+	if (result != artdaq::TransferInterface::RECV_TIMEOUT) {
 	  receivedFragment = true;
 	  fragments_received++;
 

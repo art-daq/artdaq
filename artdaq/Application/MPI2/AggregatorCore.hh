@@ -11,13 +11,9 @@
 
 
 #include "fhiclcpp/ParameterSet.h"
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/RunID.h"
-#else
-#include "art/Persistency/Provenance/RunID.h"
-#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "artdaq/DAQrate/RHandles.hh"
+#include "artdaq/DAQrate/DataTransferManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
@@ -82,7 +78,7 @@ private:
   bool is_dispatcher_;
   daqrate::seconds enq_timeout_;
 
-  std::unique_ptr<artdaq::RHandles> receiver_ptr_;
+  std::unique_ptr<artdaq::DataTransferManager> receiver_ptr_;
   std::unique_ptr<artdaq::EventStore> event_store_ptr_;
   artdaq::RawEventQueue &event_queue_;
   fhicl::ParameterSet previous_pset_;

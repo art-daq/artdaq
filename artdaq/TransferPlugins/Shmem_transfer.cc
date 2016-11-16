@@ -1,6 +1,5 @@
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQrate/RHandles.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
@@ -181,13 +180,13 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 
       return first_data_sender_rank_;
     } else {
-      return artdaq::RHandles::RECV_TIMEOUT;
+      return artdaq::TransferInterface::RECV_TIMEOUT;
     }
   } else {
 
     mf::LogError(uniqueLabel()) << "Error in shared memory transfer plugin: pointer to shared memory segment is null, will sleep for " << receiveTimeout/1.0e9 << " seconds and then return a timeout";
     usleep(receiveTimeout);
-    return artdaq::RHandles::RECV_TIMEOUT; // Should we EVER get shm_ptr_ == 0?
+    return artdaq::TransferInterface::RECV_TIMEOUT; // Should we EVER get shm_ptr_ == 0?
   }
 }
 

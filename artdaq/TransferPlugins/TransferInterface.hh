@@ -12,6 +12,7 @@ namespace artdaq {
 
 class TransferInterface {
 public:
+  static const size_t RECV_TIMEOUT = 0xfedcba98;
 
   enum class Role { kSend, kReceive };
 
