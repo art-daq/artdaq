@@ -69,7 +69,9 @@ size_t artdaq::DataTransferManager::recvFragment( Fragment& frag, size_t timeout
 {
   TRACE( 6,"recvFragment entered tmo=%lu us, frag.sizeofdata=%zu",timeout_usec, frag.size()  );
   size_t source = current_source_;
-  current_source_ = (*((sources_.find(source))++)).first;
+  auto next_iter = ++sources_.find(source);
+  if(next_iter == sources_.end()) next_iter = sources_.begin();
+  current_source_ = (*next_iter).first;
   sources_[source]->receiveFragmentFrom(frag, timeout_usec);
   return source;
 }
