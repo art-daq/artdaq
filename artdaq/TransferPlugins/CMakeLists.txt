@@ -8,7 +8,7 @@ endif()
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_TransferPlugins
   NO_PLUGINS
-  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc
+  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc MPI_transfer.cc TCPSocket_transfer.cc MPITranfer.hh TCPSocketTransfer.hh
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
@@ -46,6 +46,17 @@ simple_plugin(Multicast "transfer"
   artdaq_TransferPlugins
   ${Boost_SYSTEM_LIBRARY}
 )
+
+# simple_plugin(TCPSocket "transfer"
+#   artdaq_TransferPlugins
+#   ${TRACE}
+# )
+
+# simple_plugin(MPI "transfer"
+#   artdaq_TransferPlugins
+#   ${MPI_C_LIBRARIES}
+#   ${TRACE}
+# )
 
 if (${USING_RTIDDS})
 

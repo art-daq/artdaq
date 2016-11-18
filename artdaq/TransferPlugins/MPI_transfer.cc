@@ -30,14 +30,11 @@
 
 namespace artdaq {
 
-  class MPITransfer : TransferInterface {
+  class MPITransfer : public TransferInterface {
 public:
 
-  RHandles(size_t buffer_count,
-           uint64_t max_payload_size,
-           size_t src_count,
-           size_t src_start);
-  ~RHandles();
+  MPITransfer();
+  ~MPITransfer();
 
   // recvFragment() puts the next received fragment in frag, with the
   // source of that fragment as its return value.
@@ -62,21 +59,14 @@ public:
   // dest_start is the rank of the first receiver
   // broadcast_sends determines whether fragments will be sent to all
   // destinations or will use the round-robin algorithm
-  SHandles(size_t buffer_count,
+  MPITransfer(size_t buffer_count,
            uint64_t max_payload_size,
            size_t dest_count,
            size_t dest_start,
            bool broadcast_sends = false,
            bool synchronous_sends = true);
 
-  // Make sure we clean up and wait for in-flight sends.
-  ~SHandles();
-
-  // Send the given Fragment. Return the rank of the destination to which
-  // the Fragment was sent.
-  size_t sendFragment(Fragment &&);
-
-  // How many fragments have been sent using this SHandles object?
+  // How many fragments have been sent using this MPITransfer object?
   size_t count() const;
 
   // How many fragments have been sent to a particular destination.
@@ -136,7 +126,7 @@ private:
 
 inline
 size_t
-artdaq::RHandles::
+artdaq::MPITransfer::
 sourcesActive() const
 {
   return std::count_if(src_status_.begin(),
@@ -146,7 +136,7 @@ sourcesActive() const
 
 inline
 bool
-artdaq::RHandles::
+artdaq::MPITransfer::
 anySourceActive() const {
   return
     std::any_of(src_status_.begin(),
@@ -158,7 +148,7 @@ anySourceActive() const {
 
 inline
 size_t
-artdaq::RHandles::
+artdaq::MPITransfer::
 sourcesPending() const
 {
   return std::count(src_status_.begin(),
@@ -168,7 +158,7 @@ sourcesPending() const
 
 inline
 size_t
-artdaq::RHandles::
+artdaq::MPITransfer::
 indexFromSource_(size_t src) const
 {
   return src - src_start_;
@@ -176,7 +166,7 @@ indexFromSource_(size_t src) const
 
 inline
 size_t
-artdaq::SHandles::
+artdaq::MPITransfer::
 count() const
 {
   return sent_frag_count_.count();
@@ -184,14 +174,14 @@ count() const
 
 inline
 size_t
-artdaq::SHandles::
+artdaq::MPITransfer::
 slotCount(size_t rank) const
 {
   return sent_frag_count_.slotCount(rank);
 }
 
 
-artdaq::RHandles::RHandles(size_t buffer_count,
+artdaq::MPITransfer::MPITransfer(size_t buffer_count,
                            uint64_t max_payload_size,
                            size_t src_count,
                            size_t src_start):
@@ -211,7 +201,7 @@ artdaq::RHandles::RHandles(size_t buffer_count,
 
   {
     std::ostringstream debugstream;
-    debugstream << "RHandles construction: "
+    debugstream << "MPITransfer construction: "
                 << "rank " << my_mpi_rank_ << ", "
 		<< buffer_count << " buffers, "
 		<< src_count << " sources starting at rank "
@@ -220,11 +210,11 @@ artdaq::RHandles::RHandles(size_t buffer_count,
   }
 
   if (src_count == 0) {
-    throw art::Exception(art::errors::Configuration, "RHandles: ")
+    throw art::Exception(art::errors::Configuration, "MPITransfer: ")
       << "No sources configured.\n";
   }
   if (buffer_count == 0) {
-    throw art::Exception(art::errors::Configuration, "RHandles: ")
+    throw art::Exception(art::errors::Configuration, "MPITransfer: ")
       << "No buffers configured.\n";
   }
   // Post all the buffers.
@@ -238,14 +228,14 @@ artdaq::RHandles::RHandles(size_t buffer_count,
   }
 }
 
-artdaq::RHandles::
-~RHandles()
+artdaq::MPITransfer::
+~MPITransfer()
 {
   waitAll_();
 }
 
 size_t
-artdaq::RHandles::
+artdaq::MPITransfer::
 recvFragment(Fragment & output, size_t timeout_usec)
 {
   if (!anySourceActive()) {
@@ -313,10 +303,10 @@ recvFragment(Fragment & output, size_t timeout_usec)
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (which == MPI_UNDEFINED)
-  { throw art::Exception(art::errors::LogicError, "RHandles: ")
+  { throw art::Exception(art::errors::LogicError, "MPITransfer: ")
       << "MPI_UNDEFINED returned as on index value from Waitany.\n"; }
   if (reqs_[which] != MPI_REQUEST_NULL)
-  { throw art::Exception(art::errors::LogicError, "RHandles: ")
+  { throw art::Exception(art::errors::LogicError, "MPITransfer: ")
       << "INTERNAL ERROR: req is not MPI_REQUEST_NULL in recvFragment.\n"; }
   Fragment::sequence_id_t sequence_id = payload_[which].sequenceID();
 
@@ -342,12 +332,12 @@ recvFragment(Fragment & output, size_t timeout_usec)
     break;
   case MPI_ERR_IN_STATUS:
     MPI_Error_string(status.MPI_ERROR, err_buffer, &resultlen);
-    mf::LogError("RHandles_WaitError")
+    mf::LogError("MPITransfer_WaitError")
       << "Waitany ERROR: " << err_buffer << "\n";
     break;
   default:
     MPI_Error_string(wait_result, err_buffer, &resultlen);
-    mf::LogError("RHandles_WaitError")
+    mf::LogError("MPITransfer_WaitError")
       << "Waitany ERROR: " << err_buffer << "\n";
   }
   // The Fragment at index 'which' is now available.
@@ -397,14 +387,14 @@ recvFragment(Fragment & output, size_t timeout_usec)
     }
     break;
   case status_t::DONE:
-    throw art::Exception(art::errors::LogicError, "RHandles: ")
+    throw art::Exception(art::errors::LogicError, "MPITransfer: ")
       << "Received extra fragments from source "
       << status.MPI_SOURCE
       << ".\n";
   case status_t::SENDING:
     break;
   default:
-    throw art::Exception(art::errors::LogicError, "RHandles: ")
+    throw art::Exception(art::errors::LogicError, "MPITransfer: ")
       << "INTERNAL ERROR: Unrecognized status_t value "
       << static_cast<int>(src_status_[src_index])
       << ".\n";
@@ -427,7 +417,7 @@ recvFragment(Fragment & output, size_t timeout_usec)
 }
 
 void
-artdaq::RHandles::
+artdaq::MPITransfer::
 waitAll_()
 {
   // clean up the remaining buffers
@@ -439,7 +429,7 @@ waitAll_()
 }
 
 int
-artdaq::RHandles::
+artdaq::MPITransfer::
 nextSource_()
 {
   // Precondition: last_source_posted_ must be set. This is ensured
@@ -456,7 +446,7 @@ nextSource_()
 }
 
 void
-artdaq::RHandles::
+artdaq::MPITransfer::
 cancelReq_(size_t buf, bool blocking_wait)
 {
 
@@ -485,7 +475,7 @@ cancelReq_(size_t buf, bool blocking_wait)
           if (doneFlag) {break;}
         }
         if (! doneFlag) {
-          mf::LogError("RHandles")
+          mf::LogError("MPITransfer")
             << "Timeout waiting to cancel the request for MPI buffer "
             << buf;
         }
@@ -495,20 +485,20 @@ cancelReq_(size_t buf, bool blocking_wait)
   else {
     switch (result) {
     case MPI_ERR_REQUEST:
-      throw art::Exception(art::errors::LogicError, "RHandles: ")
+      throw art::Exception(art::errors::LogicError, "MPITransfer: ")
         << "MPI_Cancel returned MPI_ERR_REQUEST.\n";
     case MPI_ERR_ARG:
-      throw art::Exception(art::errors::LogicError, "RHandles: ")
+      throw art::Exception(art::errors::LogicError, "MPITransfer: ")
         << "MPI_Cancel returned MPI_ERR_ARG.\n";
     default:
-      throw art::Exception(art::errors::LogicError, "RHandles: ")
+      throw art::Exception(art::errors::LogicError, "MPITransfer: ")
         << "MPI_Cancel returned unknown error code.\n";
     }
   }
 }
 
 void
-artdaq::RHandles::
+artdaq::MPITransfer::
 post_(size_t buf, size_t src)
 {
 
@@ -533,7 +523,7 @@ post_(size_t buf, size_t src)
 }
 
 void
-artdaq::RHandles::
+artdaq::MPITransfer::
 cancelAndRepost_(size_t src)
 {
   for (size_t i = 0; i < buffer_count_; ++i) {
@@ -551,7 +541,7 @@ cancelAndRepost_(size_t src)
 }
 
 
-artdaq::SHandles::SHandles(size_t buffer_count,
+artdaq::MPITransfer::MPITransfer(size_t buffer_count,
                            uint64_t max_payload_size,
                            size_t dest_count,
                            size_t dest_start,
@@ -571,7 +561,7 @@ artdaq::SHandles::SHandles(size_t buffer_count,
   my_mpi_rank_([](){ auto rank=0; MPI_Comm_rank(MPI_COMM_WORLD, &rank);return rank;}())
 {
     std::ostringstream debugstream;
-    debugstream << "SHandles construction: "
+    debugstream << "MPITransfer construction: "
                 << "rank " << my_mpi_rank_ << ", "
 		<< buffer_count << " buffers, "
 		<< dest_count << " destination starting at rank "
@@ -580,7 +570,7 @@ artdaq::SHandles::SHandles(size_t buffer_count,
 }
 
 
-size_t artdaq::SHandles::findAvailable()
+size_t artdaq::MPITransfer::findAvailable()
 {
   size_t use_me = 0;
   int flag;
@@ -599,44 +589,15 @@ size_t artdaq::SHandles::findAvailable()
   return use_me;
 }
 
-size_t
-artdaq::SHandles::
-sendFragment(Fragment && frag)
-{
-  // Precondition: Fragment must be complete and consistent (including
-  // header information).
-  if (frag.type() == Fragment::EndOfDataFragmentType) {
-    throw cet::exception("LogicError")
-        << "EOD fragments should not be sent on as received: "
-        << "use sendEODFrag() instead.";
-  }
-  TRACE( 13, "sendFragment start frag.fragmentHeader()=%p", (void*)(frag.headerBegin()) );
-  size_t dest;
-  if (broadcast_sends_) {
-    size_t dest_end = dest_start_ + dest_count_;
-    for (dest = dest_start_; dest != dest_end; ++dest) {
-      // Gross, we have to copy.
-      Fragment fragCopy(frag);
-      sendFragTo(std::move(fragCopy), dest);
-      sent_frag_count_.incSlot(dest);
-    }
-  } else {
-    dest = calcDest(frag.sequenceID());
-    sendFragTo(std::move(frag), dest);
-    sent_frag_count_.incSlot(dest);
-  }
-  TRACE( 13, "sendFragment end frag.fragmentHeader()=%p", (void*)(frag.headerBegin()) );
-  return dest;
-}
 
 
-void artdaq::SHandles::waitAll()
+void artdaq::MPITransfer::waitAll()
 {
   MPI_Waitall(buffer_count_, &reqs_[0], MPI_STATUSES_IGNORE);
 }
 
 void
-artdaq::SHandles::
+artdaq::MPITransfer::
 sendFragTo(Fragment && frag, size_t dest, bool force_async)
 {
   if (frag.dataSize() > max_payload_size_) {

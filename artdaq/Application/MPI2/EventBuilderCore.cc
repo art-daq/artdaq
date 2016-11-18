@@ -349,10 +349,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
   std::vector<size_t> fragments_received(data_sender_count_ + first_data_sender_rank_, 0);
   std::vector<size_t> fragments_sent(data_sender_count_ + first_data_sender_rank_, 0);
 
-  receiver_ptr_.reset(new artdaq::RHandles(mpi_buffer_count_,
-                                           max_fragment_size_words_,
-                                           data_sender_count_,
-                                           first_data_sender_rank_));
+  receiver_ptr_.reset(new artdaq::DataTransferManager(data_pset_));
 
   MPI_Barrier(local_group_comm_);
 
@@ -376,7 +373,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
       process_fragments = false;
       continue;
     }
-    else if (senderSlot == artdaq::RHandles::RECV_TIMEOUT) {
+    else if (senderSlot == artdaq::TransferInterface::RECV_TIMEOUT) {
       if (stop_requested_.load() &&
           recvTimeout == endrun_recv_timeout_usec_) {
 	mf::LogWarning(name_)

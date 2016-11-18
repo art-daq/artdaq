@@ -61,6 +61,7 @@ private:
   art::RunID run_id_;
   bool art_initialized_;
 
+  fhicl::ParameterSet data_pset_;
   std::string init_string_;
   uint64_t max_fragment_size_words_;
   size_t mpi_buffer_count_;

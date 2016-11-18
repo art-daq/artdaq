@@ -5,11 +5,11 @@ if (EXISTS ${CPI_SOURCE})
   cet_test(cpi_t SOURCES ${CPI_SOURCE} LIBRARIES ${MPI_C_LIBRARIES})
 endif()
 
-art_make_exec(NAME s_r_handles # NO_INSTALL -- comment out to install
-  LIBRARIES
-  artdaq_DAQrate
-  artdaq_DAQdata
-  )
+# art_make_exec(NAME s_r_handles # NO_INSTALL -- comment out to install
+#   LIBRARIES
+#   artdaq_DAQrate
+#   artdaq_DAQdata
+#   )
 
 # This is an integration test that exercises SHandles and RHandles,
 # making sure they can communicate as expected.

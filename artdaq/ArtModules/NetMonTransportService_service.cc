@@ -1,5 +1,5 @@
 #include "artdaq/ArtModules/NetMonTransportService.h"
-#include "artdaq/DAQrate/SHandles.hh"
+#include "artdaq/DAQrate/DataTransferManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -41,12 +41,7 @@ NetMonTransportService::
 NetMonTransportService::
 NetMonTransportService(ParameterSet const& pset, art::ActivityRegistry&)
   : NetMonTransportServiceInterface(),
-    mpi_buffer_count_(pset.get<size_t>("mpi_buffer_count", 5)),
-    max_fragment_size_words_(pset.get<uint64_t>("max_fragment_size_words", 512 * 1024)),
-    first_data_receiver_rank_(pset.get<size_t>("first_data_receiver_rank", 0)),
-    data_receiver_count_(pset.get<size_t>("data_receiver_count", 1)),
-    broadcast_sends_(pset.get<bool>("broadcast_sends", false)),
-    synchronous_sends_(pset.get<bool>("synchronous_sends", true)),
+	data_pset_(pset),
     sender_ptr_(nullptr),
     incoming_events_(artdaq::getGlobalQueue()),
     recvd_fragments_(nullptr) { }
@@ -55,12 +50,7 @@ void
 NetMonTransportService::
 connect()
 {
-  sender_ptr_.reset(new artdaq::SHandles(mpi_buffer_count_,
-					 max_fragment_size_words_,
-					 data_receiver_count_,
-					 first_data_receiver_rank_,
-					 broadcast_sends_,
-                                         synchronous_sends_));
+  sender_ptr_.reset(new artdaq::DataTransferManager(data_pset_));
 }
 
 void
