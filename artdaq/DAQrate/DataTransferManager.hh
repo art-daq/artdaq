@@ -49,7 +49,8 @@ size_t calcDest(Fragment::sequence_id_t) const;
 private:
 
 std::unordered_map<size_t, std::unique_ptr<artdaq::TransferInterface>> destinations_;
-std::set<std::unique_ptr<artdaq::TransferInterface>> sources_;
+  std::unordered_map<size_t, std::unique_ptr<artdaq::TransferInterface>> sources_;
+  size_t current_source_;
 
   detail::FragCounter recv_frag_count_; // Number of frags received per source.
   detail::FragCounter sent_frag_count_;

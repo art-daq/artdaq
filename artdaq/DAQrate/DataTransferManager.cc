@@ -4,6 +4,7 @@
 artdaq::DataTransferManager::DataTransferManager(fhicl::ParameterSet pset)
   : destinations_()
   , sources_()
+  , current_source_(0)
   , recv_frag_count_(0)
   , sent_frag_count_(0)
   , broadcast_sends_(pset.get<bool>("broadcast_sends",false))
@@ -67,5 +68,8 @@ sendFragment(Fragment && frag)
 size_t artdaq::DataTransferManager::recvFragment( Fragment& frag, size_t timeout_usec)
 {
   TRACE( 6,"recvFragment entered tmo=%lu us, frag.sizeofdata=%zu",timeout_usec, frag.size()  );
-  return 0;
+  size_t source = current_source_;
+  current_source_ = (*((sources_.find(source))++)).first;
+  sources_[source]->receiveFragmentFrom(frag, timeout_usec);
+  return source;
 }
