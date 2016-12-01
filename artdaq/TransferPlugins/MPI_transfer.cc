@@ -15,6 +15,7 @@
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/DAQdata/Debug.hh"
 #include "artdaq/DAQrate/Utils.hh"
+#include "artdaq/TransferPlugins/MPITransfer.hh"
 
 #define TRACE_NAME "MPI_Transfer"
 #include "trace.h"		// TRACE
@@ -28,175 +29,20 @@
   There probably needs to be a common class that both use.
  */
 
-namespace artdaq {
-
-  class MPITransfer : public TransferInterface {
-public:
-
-  MPITransfer();
-  ~MPITransfer();
-
-  // recvFragment() puts the next received fragment in frag, with the
-  // source of that fragment as its return value.
-  //
-  // It is a precondition that a sources_sending() != 0.
-  size_t recvFragment(Fragment & frag, size_t timeout_usec = 0);
-
-  // Number of sources still not done.
-  size_t sourcesActive() const;
-
-  // Are any sources still active (faster)?
-  bool anySourceActive() const;
-
-  // Number of sources pending (last fragments still in-flight).
-  size_t sourcesPending() const;
-
-  typedef std::vector<MPI_Request> Requests;
-
-  // buffer_count is the number of MPI_Request objects that will be used.
-  // Fragments with dataSize() greater than max_payload_size will not be sent.
-  // dest_count is the number of receivers used in the round-robin algorithm
-  // dest_start is the rank of the first receiver
-  // broadcast_sends determines whether fragments will be sent to all
-  // destinations or will use the round-robin algorithm
-  MPITransfer(size_t buffer_count,
-           uint64_t max_payload_size,
-           size_t dest_count,
-           size_t dest_start,
-           bool broadcast_sends = false,
-           bool synchronous_sends = true);
-
-  // How many fragments have been sent using this MPITransfer object?
-  size_t count() const;
-
-  // How many fragments have been sent to a particular destination.
-  size_t slotCount(size_t rank) const;
-
-private:
-  enum class status_t { SENDING, PENDING, DONE };
-
-  void waitAll_();
-
-  size_t indexFromSource_(size_t src) const;
-
-  int nextSource_();
-
-  void cancelReq_(size_t buf, bool blocking_wait = true);
-  void post_(size_t buf, size_t src);
-  void cancelAndRepost_(size_t src);
-
-  size_t buffer_count_;
-  int max_payload_size_;
-  int src_count_;
-  int src_start_; // Start of the source ranks.
-  detail::FragCounter recv_frag_count_; // Number of frags received per source.
-  std::vector<status_t> src_status_; // Status of each sender.
-  std::vector<size_t> expected_count_; // After EOD received: expected frags.
-
-  std::vector<MPI_Request> reqs_; // Request to fill each buffer.
-  std::vector<int> req_sources_; // Source for each request.
-  int last_source_posted_;
-
-  Fragments payload_;
-
-  int saved_wait_result_;
-  std::vector<int> ready_indices_;
-  std::vector<MPI_Status> ready_statuses_;
-  int my_mpi_rank_;
-
-  // Identify an available buffer.
-  size_t findAvailable();
-
-  // Send the fragment to the specified destination.
-  void sendFragTo(Fragment && frag,
-                  size_t dest,
-				  bool force_async = false);
-
-  size_t const buffer_count_;
-  uint64_t const max_payload_size_;
-  size_t const dest_count_;
-  size_t const dest_start_;
-  size_t pos_; // next slot to check
-  detail::FragCounter sent_frag_count_;
-  bool broadcast_sends_;
-  bool synchronous_sends_;
-
-  Requests reqs_;
-};
-
-inline
-size_t
-artdaq::MPITransfer::
-sourcesActive() const
-{
-  return std::count_if(src_status_.begin(),
-                       src_status_.end(),
-  [](status_t const & s) { return s != status_t::DONE; });
-}
-
-inline
-bool
-artdaq::MPITransfer::
-anySourceActive() const {
-  return
-    std::any_of(src_status_.begin(),
-                src_status_.end(),
-                [](status_t const & s)
-                { return s != status_t::DONE; }
-               );
-}
-
-inline
-size_t
-artdaq::MPITransfer::
-sourcesPending() const
-{
-  return std::count(src_status_.begin(),
-                    src_status_.end(),
-                    status_t::PENDING);
-}
-
-inline
-size_t
-artdaq::MPITransfer::
-indexFromSource_(size_t src) const
-{
-  return src - src_start_;
-}
-
-inline
-size_t
-artdaq::MPITransfer::
-count() const
-{
-  return sent_frag_count_.count();
-}
-
-inline
-size_t
-artdaq::MPITransfer::
-slotCount(size_t rank) const
-{
-  return sent_frag_count_.slotCount(rank);
-}
-
-
-artdaq::MPITransfer::MPITransfer(size_t buffer_count,
-                           uint64_t max_payload_size,
-                           size_t src_count,
-                           size_t src_start):
-  buffer_count_(buffer_count),
-  max_payload_size_(max_payload_size),
-  src_count_(src_count),
-  src_start_(src_start),
-  recv_frag_count_(src_count, src_start),
-  src_status_(src_count, status_t::SENDING),
-  expected_count_(src_count, 0),
-  reqs_(buffer_count_, MPI_REQUEST_NULL),
-  req_sources_(buffer_count_, MPI_ANY_SOURCE),
-  last_source_posted_(-1),
-  payload_(buffer_count_),
-  my_mpi_rank_([](){ auto rank=0; MPI_Comm_rank(MPI_COMM_WORLD, &rank);return rank;}())
+artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Role role)
+  : TransferInterface(pset, role)
+  , buffer_count_(pset.get<size_t>("mpi_buffer_count", 1)
+  , max_payload_size_(pset.get<size_t>("max_fragment_size_words", 1024)
+  , src_status_(src_count, status_t::SENDING)
+  , expected_count_(src_count, 0)
+  , req_sources_(buffer_count_, MPI_ANY_SOURCE)
+  , last_source_posted_(-1)
+  , payload_(buffer_count_)
+  , my_mpi_rank_([](){ auto rank=0; MPI_Comm_rank(MPI_COMM_WORLD, &rank);return rank;}())
+  , pos_()
+  , broadcast_sends_(broadcast_sends)
+  , synchronous_sends_(synchronous_sends)
+  , reqs_(buffer_count_, MPI_REQUEST_NULL)
 {
 
   {
@@ -539,36 +385,6 @@ cancelAndRepost_(size_t src)
     }
   }
 }
-
-
-artdaq::MPITransfer::MPITransfer(size_t buffer_count,
-                           uint64_t max_payload_size,
-                           size_t dest_count,
-                           size_t dest_start,
-			   bool broadcast_sends,
-                           bool synchronous_sends)
-  :
-  buffer_count_(buffer_count),
-  max_payload_size_(max_payload_size),
-  dest_count_(dest_count),
-  dest_start_(dest_start),
-  pos_(),
-  sent_frag_count_(dest_count, dest_start),
-  broadcast_sends_(broadcast_sends),
-  synchronous_sends_(synchronous_sends),
-  reqs_(buffer_count_, MPI_REQUEST_NULL),
-  payload_(buffer_count_),
-  my_mpi_rank_([](){ auto rank=0; MPI_Comm_rank(MPI_COMM_WORLD, &rank);return rank;}())
-{
-    std::ostringstream debugstream;
-    debugstream << "MPITransfer construction: "
-                << "rank " << my_mpi_rank_ << ", "
-		<< buffer_count << " buffers, "
-		<< dest_count << " destination starting at rank "
-		<< dest_start << '\n';
-    TRACE(4, debugstream.str().c_str());
-}
-
 
 size_t artdaq::MPITransfer::findAvailable()
 {

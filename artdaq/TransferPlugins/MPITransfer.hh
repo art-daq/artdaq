@@ -15,6 +15,8 @@
 #include "artdaq/DAQdata/Debug.hh"
 #include "artdaq/DAQrate/Utils.hh"
 
+#include "artdaq/TransferPlugins/TransferInterface.hh"
+
 #define TRACE_NAME "MPI_Transfer"
 #include "trace.h"		// TRACE
 
@@ -34,7 +36,7 @@ public:
 
   typedef std::vector<MPI_Request> Requests;
 
-	MPITransfer(fhicl::ParameterSet);
+	MPITransfer(fhicl::ParameterSet, TransferInterface::Role);
   ~MPITransfer();
 
   // Number of sources still not done.
@@ -51,8 +53,6 @@ private:
 
   void waitAll_();
 
-  size_t indexFromSource_(size_t src) const;
-
   int nextSource_();
 
   void cancelReq_(size_t buf, bool blocking_wait = true);
@@ -67,8 +67,8 @@ private:
                   size_t dest,
 				  bool force_async = false);
 
-	size_t destination_;
-	size_t source_;
+  size_t destination_;
+  size_t source_;
   size_t buffer_count_;
   int max_payload_size_;
   std::vector<status_t> src_status_; // Status of each sender.
@@ -123,11 +123,4 @@ sourcesPending() const
                     status_t::PENDING);
 }
 
-inline
-size_t
-artdaq::MPITransfer::
-indexFromSource_(size_t src) const
-{
-  return src - src_start_;
-}
 
