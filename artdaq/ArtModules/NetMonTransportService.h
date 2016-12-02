@@ -4,7 +4,7 @@
 #include "art/Framework/Services/Registry/ServiceMacros.h"
 
 #include "artdaq/ArtModules/NetMonTransportServiceInterface.h"
-#include "artdaq/DAQrate/DataTransferManager.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 
 class TBufferFile;
@@ -32,7 +32,7 @@ public:
 private:
   fhicl::ParameterSet data_pset_;
 
-    std::unique_ptr<artdaq::DataTransferManager> sender_ptr_;
+    std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
     artdaq::RawEventQueue &incoming_events_;
     std::unique_ptr<std::vector<artdaq::Fragment> > recvd_fragments_;
 };

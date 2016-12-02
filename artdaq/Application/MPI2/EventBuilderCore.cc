@@ -349,7 +349,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
   std::vector<size_t> fragments_received(data_sender_count_ + first_data_sender_rank_, 0);
   std::vector<size_t> fragments_sent(data_sender_count_ + first_data_sender_rank_, 0);
 
-  receiver_ptr_.reset(new artdaq::DataTransferManager(data_pset_));
+  receiver_ptr_.reset(new artdaq::DataReceiverManager(data_pset_));
 
   MPI_Barrier(local_group_comm_);
 

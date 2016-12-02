@@ -10,7 +10,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "artdaq/DAQrate/DataTransferManager.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
@@ -70,7 +70,7 @@ private:
   int mpi_sync_wait_log_level_;
   int mpi_sync_wait_log_interval_sec_;
 
-  std::unique_ptr<artdaq::DataTransferManager> sender_ptr_;
+  std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 
   size_t fragment_count_;
   artdaq::Fragment::sequence_id_t prev_seq_id_;

@@ -465,7 +465,7 @@ size_t artdaq::AggregatorCore::process_fragments()
   time_t last_filesize_check_time = subrun_start_time_;
 
   if (is_data_logger_) {
-    receiver_ptr_.reset(new artdaq::DataTransferManager(data_pset_));
+    receiver_ptr_.reset(new artdaq::DataReceiverManager(data_pset_));
   }
 
   mf::LogDebug(name_) << "Waiting for first fragment.";

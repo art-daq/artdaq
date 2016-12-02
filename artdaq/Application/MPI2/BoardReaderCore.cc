@@ -306,7 +306,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 #pragma GCC diagnostic pop
   }
 
-  sender_ptr_.reset(new artdaq::DataTransferManager(data_pset_));
+  sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
 
   MPI_Barrier(local_group_comm_);
 

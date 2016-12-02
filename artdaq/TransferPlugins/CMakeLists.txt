@@ -13,7 +13,7 @@ art_make( BASENAME_ONLY
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
   artdaq-core_Utilities
-  artdaq_DAQrate
+  artdaq-core_Data
   artdaq_DAQdata
   art_Framework_Core
   art_Framework_IO_Sources
@@ -32,6 +32,8 @@ art_make( BASENAME_ONLY
   ${XMLRPC_CLIENTPP}
   ${XMLRPCPP}
   ${XMLRPC_UTILPP}
+  ${Boost_THREAD_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY} 
   )
 
 simple_plugin(TransferInput "source"

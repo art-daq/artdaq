@@ -8,7 +8,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "artdaq/DAQrate/DataTransferManager.hh"
+#include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
@@ -63,7 +63,7 @@ private:
   bool use_art_;
   art::RunID run_id_;
 
-  std::unique_ptr<artdaq::DataTransferManager> receiver_ptr_;
+  std::unique_ptr<artdaq::DataReceiverManager> receiver_ptr_;
   std::unique_ptr<artdaq::EventStore> event_store_ptr_;
   bool art_initialized_;
   std::atomic<bool> stop_requested_;

@@ -9,7 +9,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq/DAQrate/DataTransferManager.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Data/Fragments.hh"
 
 #define TRACE_NAME "BinaryMPIOutput"
@@ -68,7 +68,7 @@ private:
   size_t evb_count_=0;
   int rt_priority_=0;
   bool synchronous_sends_=true;    
-  std::unique_ptr<artdaq::DataTransferManager> sender_ptr_= {nullptr};
+  std::unique_ptr<artdaq::DataSenderManager> sender_ptr_= {nullptr};
 };
 
 art::BinaryMPIOutput::
@@ -132,7 +132,7 @@ initialize_MPI_(){
   TRACE( 3, "BinaryMPIOutput::initializeMPI(mpi_buffer_count=%lu max_fragment_size_words=%lu first_evb_rank=%lu evb_count=%lu synchronous_sends=%i )"\
 					    ,mpi_buffer_count_ ,  max_fragment_size_words_,   first_evb_rank_,   evb_count_, int(synchronous_sends_));
 
-  sender_ptr_=std::make_unique<artdaq::DataTransferManager>(data_pset_);
+  sender_ptr_=std::make_unique<artdaq::DataSenderManager>(data_pset_);
   assert(sender_ptr_);
 }
 

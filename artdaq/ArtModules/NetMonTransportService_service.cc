@@ -1,5 +1,5 @@
 #include "artdaq/ArtModules/NetMonTransportService.h"
-#include "artdaq/DAQrate/DataTransferManager.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -50,7 +50,7 @@ void
 NetMonTransportService::
 connect()
 {
-  sender_ptr_.reset(new artdaq::DataTransferManager(data_pset_));
+  sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
 }
 
 void

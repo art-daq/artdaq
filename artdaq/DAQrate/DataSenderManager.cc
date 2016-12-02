@@ -1,34 +1,46 @@
-#include "artdaq/DAQrate/DataTransferManager.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "trace.h"
 
-artdaq::DataTransferManager::DataTransferManager(fhicl::ParameterSet pset)
+artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
   : destinations_()
-  , sources_()
-  , current_source_(0)
-  , recv_frag_count_(0)
   , sent_frag_count_(0)
   , broadcast_sends_(pset.get<bool>("broadcast_sends",false))
 {
-
-  // recv_frag_count_ = detail::FragCounter(sources_.size());
-  // sent_frag_count_ = detail::FragCounter(destinations_.size());
+  mf::LogDebug("DataSenderManager") << "Received pset: " << pset.to_string();
+  auto dests = pset.get<fhicl::ParameterSet>("destinations");
+  for(auto& d : dests.get_pset_names()) {
+	try { 
+	  auto dd = std::stoi(d);
+      destinations_.emplace(dd, MakeTransferPlugin(dests.get<fhicl::ParameterSet>(d), d, TransferInterface::Role::kSend));
+	}
+	catch(std::invalid_argument) {
+	  TRACE(3, "Invalid destination specification: " + d);
+	}
+  }
 }
 
-artdaq::DataTransferManager::~DataTransferManager()
+artdaq::DataSenderManager::~DataSenderManager()
 {
   for (auto& dest : destinations_) {
     sendEODFrag(dest.first, sent_frag_count_.slotCount(dest.first));
   }
 }
 
-size_t artdaq::DataTransferManager::calcDest(Fragment::sequence_id_t sequence_id) const
+size_t artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) const
 {
   // Works if dest_count_ == 1
-  return sequence_id % destinations_.size();
+  auto index = sequence_id % destinations_.size();
+  auto it = destinations_.begin();
+  for(; index > 0; --index) {
+	++it;
+	if(it == destinations_.end()) it = destinations_.begin();
+  }
+  return (*it).first;
 }
 
 void
-artdaq::DataTransferManager::
+artdaq::DataSenderManager::
 sendEODFrag(size_t dest, size_t nFragments)
 {
   destinations_[dest]->copyFragmentTo(*Fragment::eodFrag(nFragments));
@@ -36,7 +48,7 @@ sendEODFrag(size_t dest, size_t nFragments)
 }
 
 size_t
-artdaq::DataTransferManager::
+artdaq::DataSenderManager::
 sendFragment(Fragment && frag)
 {
   // Precondition: Fragment must be complete and consistent (including
@@ -47,13 +59,13 @@ sendFragment(Fragment && frag)
         << "use sendEODFrag() instead.";
   }
   TRACE( 13, "sendFragment start frag.fragmentHeader()=%p", (void*)(frag.headerBegin()) );
-  size_t dest;
+  size_t dest = 0;
   if (broadcast_sends_) {
-    for (auto& dest : destinations_) {
+    for (auto& bdest : destinations_) {
       // Gross, we have to copy.
       Fragment fragCopy(frag);
-	  dest.second->copyFragmentTo(fragCopy);
-      sent_frag_count_.incSlot(dest.first);
+	  bdest.second->copyFragmentTo(fragCopy);
+      sent_frag_count_.incSlot(bdest.first);
     }
   } else {
     dest = calcDest(frag.sequenceID());
@@ -65,13 +77,3 @@ sendFragment(Fragment && frag)
   return dest;
 }
 
-size_t artdaq::DataTransferManager::recvFragment( Fragment& frag, size_t timeout_usec)
-{
-  TRACE( 6,"recvFragment entered tmo=%lu us, frag.sizeofdata=%zu",timeout_usec, frag.size()  );
-  size_t source = current_source_;
-  auto next_iter = ++sources_.find(source);
-  if(next_iter == sources_.end()) next_iter = sources_.begin();
-  current_source_ = (*next_iter).first;
-  sources_[source]->receiveFragmentFrom(frag, timeout_usec);
-  return source;
-}
