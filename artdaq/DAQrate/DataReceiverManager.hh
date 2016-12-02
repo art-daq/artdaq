@@ -26,6 +26,8 @@ public:
   // It is a precondition that a sources_sending() != 0.
   size_t recvFragment(Fragment & frag, size_t timeout_usec = 0);
 
+  size_t calcSource();
+
   // How many fragments have been received using this DataReceiverManager object?
   size_t count() const;
 

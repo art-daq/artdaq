@@ -4,11 +4,11 @@
 
 artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
   : destinations_()
-  , sent_frag_count_(0)
+  , sent_frag_count_()
   , broadcast_sends_(pset.get<bool>("broadcast_sends",false))
 {
   mf::LogDebug("DataSenderManager") << "Received pset: " << pset.to_string();
-  auto dests = pset.get<fhicl::ParameterSet>("destinations");
+  auto dests = pset.get<fhicl::ParameterSet>("destinations", fhicl::ParameterSet());
   for(auto& d : dests.get_pset_names()) {
 	try { 
 	  auto dd = std::stoi(d);
@@ -17,6 +17,9 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	catch(std::invalid_argument) {
 	  TRACE(3, "Invalid destination specification: " + d);
 	}
+  }
+  if(destinations_.size() == 0) {
+	mf::LogError("DataSenderManager") << "No destinations specified!";
   }
 }
 
@@ -29,7 +32,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 
 size_t artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) const
 {
-  // Works if dest_count_ == 1
+  if(destinations_.size() == 0) return 0; // No destinations configured.
   auto index = sequence_id % destinations_.size();
   auto it = destinations_.begin();
   for(; index > 0; --index) {
@@ -69,9 +72,11 @@ sendFragment(Fragment && frag)
     }
   } else {
     dest = calcDest(frag.sequenceID());
+	if(destinations_.count(dest)) {
 	destinations_[dest]->copyFragmentTo(frag);
     //sendFragTo(std::move(frag), dest);
     sent_frag_count_.incSlot(dest);
+	}
   }
   TRACE( 13, "sendFragment end frag.fragmentHeader()=%p", (void*)(frag.headerBegin()) );
   return dest;

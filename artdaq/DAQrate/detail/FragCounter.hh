@@ -1,10 +1,8 @@
 #ifndef artdaq_DAQrate_detail_FragCounter_hh
 #define artdaq_DAQrate_detail_FragCounter_hh
 
-#include <algorithm>
-#include <condition_variable>
-#include <mutex>
-#include <vector>
+#include <unordered_map>
+#include <atomic>
 
 namespace artdaq {
   namespace detail {
@@ -14,7 +12,7 @@ namespace artdaq {
 
 class artdaq::detail::FragCounter {
 public:
-  explicit FragCounter(size_t nSlots, size_t offset = 0);
+  explicit FragCounter();
   void incSlot(size_t slot);
   void incSlot(size_t slot, size_t inc);
 
@@ -23,40 +21,13 @@ public:
   size_t slotCount(size_t slot) const;
 
 private:
-  size_t computedSlot_(size_t slot) const;
-
-  typedef std::lock_guard<std::mutex> lock_t;
-  class SlotLock;
-
-  size_t offset_;
-  std::vector<size_t> receipts_;
-  mutable std::mutex protectTotal_;
-  mutable std::vector<std::mutex> protectSlots_;
-};
-
-class artdaq::detail::FragCounter::SlotLock {
-public:
-  SlotLock(size_t computed_slot,
-           std::mutex & protectTotal,
-           std::vector<std::mutex> & protectSlots)
-    :
-    total_lock_(protectTotal),
-    slot_lock_(protectSlots[computed_slot])
-    {
-    }
-private:
-  lock_t total_lock_;
-  lock_t slot_lock_;
+  std::unordered_map<size_t, std::atomic<size_t>> receipts_;
 };
 
 inline
 artdaq::detail::FragCounter::
-FragCounter(size_t nSlots, size_t offset)
-  :
-  offset_(offset),
-  receipts_(nSlots, 0),
-  protectTotal_(),
-  protectSlots_(nSlots)
+FragCounter()
+  : receipts_()
 {
 }
 
@@ -65,9 +36,7 @@ void
 artdaq::detail::FragCounter::
 incSlot(size_t slot)
 {
-  size_t cs(computedSlot_(slot));
-  SlotLock slot_lock(cs, protectTotal_, protectSlots_);
-  ++receipts_[cs];
+  incSlot(slot, 1);
 }
 
 inline
@@ -75,9 +44,7 @@ void
 artdaq::detail::FragCounter::
 incSlot(size_t slot, size_t inc)
 {
-  size_t cs(computedSlot_(slot));
-  SlotLock slot_lock(cs, protectTotal_, protectSlots_);
-  receipts_[cs] += inc;
+  receipts_[slot].fetch_add(inc);
 }
 
 inline
@@ -93,11 +60,11 @@ size_t
 artdaq::detail::FragCounter::
 count() const
 {
-  lock_t total_lock(protectTotal_);
-  return
-    std::accumulate(receipts_.begin(),
-                    receipts_.end(),
-                    0);
+  size_t acc = 0;
+  for(auto& it : receipts_) {
+	acc+=it.second;
+  }
+  return acc;
 }
 
 inline
@@ -105,9 +72,7 @@ size_t
 artdaq::detail::FragCounter::
 slotCount(size_t slot) const
 {
-  size_t cs(computedSlot_(slot));
-  SlotLock slot_lock(cs, protectTotal_, protectSlots_);
-  return receipts_[cs];
+  return receipts_.count(slot) ? receipts_.at(slot).load() : 0;
 }
 
 #endif /* artdaq_DAQrate_detail_FragCounter_hh */
