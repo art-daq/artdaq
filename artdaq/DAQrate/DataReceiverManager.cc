@@ -31,17 +31,19 @@ size_t artdaq::DataReceiverManager::calcSource() {
   size_t source = current_source_;
   auto next_iter = ++(sources_.find(source));
   if(next_iter == sources_.end()) next_iter = sources_.begin();
-  if(next_iter == sources_.end()) return 0;
+  if(next_iter == sources_.end()) return TransferInterface::RECV_TIMEOUT;
   return (*next_iter).first;
 }
 
 size_t artdaq::DataReceiverManager::recvFragment( Fragment& frag, size_t timeout_usec)
 {
-  TRACE( 6,"recvFragment entered tmo=%lu us, frag.sizeofdata=%zu",timeout_usec, frag.size()  );
+  mf::LogDebug("DataReceiverManager") << "recvFragment entered tmo=" << timeout_usec <<" us, frag.sizeofdata=" << frag.size();
   current_source_ = calcSource();
+  auto ret = current_source_;
   if(sources_.count(current_source_)) {
-	sources_[current_source_]->receiveFragmentFrom(frag, timeout_usec);
+	ret = sources_[current_source_]->receiveFragmentFrom(frag, timeout_usec);
 	recv_frag_count_.incSlot(current_source_);
   }
-  return current_source_;
+  mf::LogDebug("DataReceiverManager") << "Done with recvFragment, ret=" << ret << ", current_source_=" << current_source_;
+  return ret;
 }

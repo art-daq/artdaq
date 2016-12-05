@@ -37,10 +37,11 @@ private:
   const Role role_;
   const int source_rank_;
   const int destination_rank_;
+  const std::string unique_label_;
 
 protected:
   Role role() const { return role_; }
-  const std::string unique_label_;
+  int source_rank() const {return source_rank_; }
 };
 
 }

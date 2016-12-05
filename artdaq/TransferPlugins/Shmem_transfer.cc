@@ -43,7 +43,6 @@ private:
   };
 
   uint64_t max_fragment_size_words_;
-  size_t first_data_sender_rank_; // Only here to mimic AggregatorCore code
   size_t send_timeout_usec_;
   int shm_segment_id_;
   ShmStruct* shm_ptr_;
@@ -58,10 +57,9 @@ private:
 artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role) :
   TransferInterface(pset, role),
   max_fragment_size_words_(pset.get<uint64_t>("max_fragment_size_words")),
-  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank")),
   shm_segment_id_(-1),
   shm_ptr_(NULL),
-  shm_key_(pset.get<int>("shm_key", std::hash<std::string>()(unique_label_))),
+  shm_key_(pset.get<int>("shm_key", std::hash<std::string>()(uniqueLabel()))),
   fragment_count_to_shm_(0),
   role_(role)
 {
@@ -172,12 +170,12 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 
       if (fragment.type() != artdaq::Fragment::DataFragmentType) {
 	mf::LogDebug(uniqueLabel())
-          << "Received fragment from shared memory, type ="
-          << ((int)fragment.type()) << ", sequenceID = "
-          << fragment.sequenceID();
+          << "Received fragment from shared memory, type =" << ((int)fragment.type())
+          << ", sequenceID = " << fragment.sequenceID()
+		  << ", source_rank = " << source_rank();
       }
 
-      return first_data_sender_rank_;
+      return source_rank();
     } else {
       return artdaq::TransferInterface::RECV_TIMEOUT;
     }

@@ -480,7 +480,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 			if (first || (waittime != lastwaittime && waittime % 1000 == 0))
 			{
-				mf::LogWarning("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders!";
+			  mf::LogWarning("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")";
 				first = false;
 			}
 			if (waittime % 5 && waittime != lastwaittime) {
