@@ -10,8 +10,8 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
   auto srcs = pset.get<fhicl::ParameterSet>("sources", fhicl::ParameterSet());
   for(auto& s : srcs.get_pset_names()) {
 	try { 
-	  auto ss = std::stoi(s);
-      sources_.emplace(ss, MakeTransferPlugin(srcs.get<fhicl::ParameterSet>(s), s, TransferInterface::Role::kReceive));
+	  auto ss = std::stoi(s.substr(1));
+      sources_.emplace(ss, MakeTransferPlugin(srcs, s, TransferInterface::Role::kReceive));
 	}
 	catch(std::invalid_argument) {
 	  TRACE(3, "Invalid source specification: " + s);

@@ -68,6 +68,7 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
   new_transfers_(0)
 {
   mf::LogDebug(name_) << "Constructor";
+  TransferInterface::my_rank = mpi_rank;
   stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
   stats_helper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
   stats_helper_.addMonitoredQuantityName(STORE_EVENT_WAIT_STAT_KEY);
@@ -106,6 +107,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
   fhicl::ParameterSet agg_pset;
   try {
     agg_pset = daq_pset.get<fhicl::ParameterSet>("aggregator");
+	data_pset_ = agg_pset;
   }
   catch (...) {
     mf::LogError(name_)

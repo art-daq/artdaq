@@ -72,6 +72,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   fhicl::ParameterSet fr_pset;
   try {
     fr_pset = daq_pset.get<fhicl::ParameterSet>("fragment_receiver");
+	data_pset_ = fr_pset;
   }
   catch (...) {
     mf::LogError(name_)

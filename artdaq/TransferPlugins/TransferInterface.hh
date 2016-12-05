@@ -7,23 +7,20 @@
 
 #include <limits>
 #include <iostream>
+#include <sstream>
 
 namespace artdaq {
 
 class TransferInterface {
 public:
   static const size_t RECV_TIMEOUT = 0xfedcba98;
+  static int my_rank;
 
   enum class Role { kSend, kReceive };
 
   enum class CopyStatus { kSuccess, kTimeout, kErrorNotRequiringException };
 
-  TransferInterface(const fhicl::ParameterSet& ps, Role role) :
-    role_(role),
-    unique_label_(ps.get<std::string>("unique_label", "unlabeled"))
-  {
-    mf::LogDebug( uniqueLabel() ) << "TransferInterface constructor has " << ps.to_string();
-  }
+  TransferInterface(const fhicl::ParameterSet& ps, Role role);
 
   TransferInterface(const TransferInterface& ) = delete;
   TransferInterface& operator=(const TransferInterface& ) = delete;
@@ -36,11 +33,13 @@ public:
 
   std::string uniqueLabel() const { return unique_label_; }
 
-protected:
-  Role role() const { return role_; }
-
 private:
   const Role role_;
+  const int source_rank_;
+  const int destination_rank_;
+
+protected:
+  Role role() const { return role_; }
   const std::string unique_label_;
 };
 

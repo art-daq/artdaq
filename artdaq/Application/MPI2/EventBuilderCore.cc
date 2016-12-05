@@ -1,15 +1,12 @@
 #include "artdaq/Application/MPI2/EventBuilderCore.hh"
-#ifdef CANVAS
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/Exception.h"
-#endif
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #define TRACE_NAME "EventBuilderCore"
 #include "trace.h"
 
@@ -25,6 +22,7 @@ artdaq::EventBuilderCore::EventBuilderCore(int mpi_rank, MPI_Comm local_group_co
   data_sender_count_(0), art_initialized_(false),
   stop_requested_(false), pause_requested_(false), run_is_paused_(false), processing_fragments_(false)
 {
+  TransferInterface::my_rank = mpi_rank;
   mf::LogDebug(name_) << "Constructor";
   statsHelper_.addMonitoredQuantityName(INPUT_FRAGMENTS_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
@@ -85,6 +83,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
   fhicl::ParameterSet evb_pset;
   try {
     evb_pset = daq_pset.get<fhicl::ParameterSet>("event_builder");
+	data_pset_ = evb_pset;
   }
   catch (...) {
     mf::LogError(name_)

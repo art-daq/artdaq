@@ -11,8 +11,8 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
   auto dests = pset.get<fhicl::ParameterSet>("destinations", fhicl::ParameterSet());
   for(auto& d : dests.get_pset_names()) {
 	try { 
-	  auto dd = std::stoi(d);
-      destinations_.emplace(dd, MakeTransferPlugin(dests.get<fhicl::ParameterSet>(d), d, TransferInterface::Role::kSend));
+	  auto dd = std::stoi(d.substr(1));
+      destinations_.emplace(dd, MakeTransferPlugin(dests, d, TransferInterface::Role::kSend));
 	}
 	catch(std::invalid_argument) {
 	  TRACE(3, "Invalid destination specification: " + d);

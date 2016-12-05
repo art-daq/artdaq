@@ -47,7 +47,6 @@ private:
   size_t send_timeout_usec_;
   int shm_segment_id_;
   ShmStruct* shm_ptr_;
-  const int shm_key_default_ = 0x40470000;
   int shm_key_;
 
   size_t fragment_count_to_shm_;
@@ -62,23 +61,23 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
   first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank")),
   shm_segment_id_(-1),
   shm_ptr_(NULL),
-  shm_key_(pset.get<int>("shm_key", shm_key_default_)),
+  shm_key_(pset.get<int>("shm_key", std::hash<std::string>()(unique_label_))),
   fragment_count_to_shm_(0),
   role_(role)
 {
 
-  char* keyChars = getenv("ARTDAQ_SHM_KEY");
-  if (keyChars != NULL && shm_key_ == shm_key_default_) {
-    std::string keyString(keyChars);
-    try {
-      shm_key_ = boost::lexical_cast<int>(keyString);
-    }
-    catch (...) {
-      std::stringstream errmsg;
-      errmsg << uniqueLabel() << ": Problem performing lexical cast on " << keyString;
-      ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str()); 
-    }
-  }
+  // char* keyChars = getenv("ARTDAQ_SHM_KEY");
+  // if (keyChars != NULL && shm_key_ == static_cast<int>(std::hash<std::string>()(unique_label_))) {
+  //   std::string keyString(keyChars);
+  //   try {
+  //     shm_key_ = boost::lexical_cast<int>(keyString);
+  //   }
+  //   catch (...) {
+  //     std::stringstream errmsg;
+  //     errmsg << uniqueLabel() << ": Problem performing lexical cast on " << keyString;
+  //     ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str()); 
+  //   }
+  // }
 
   // JCF, Aug-16-2016
  
