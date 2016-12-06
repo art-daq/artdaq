@@ -89,7 +89,6 @@ private:
 
   size_t max_fragment_size_;
   size_t pause_on_copy_usecs_;
-  size_t first_data_sender_rank_;
 
   std::vector<byte_t> staging_memory_;
 
@@ -108,8 +107,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
   subfragment_size_(pset.get<size_t>("subfragment_size")),
   subfragments_per_send_(pset.get<size_t>("subfragments_per_send")),
   max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType)),
-  pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0)),
-  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank"))
+  pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0))
 {
 
   try {
@@ -302,7 +300,7 @@ size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
     }
 
     if (fragment_complete) {
-      return first_data_sender_rank_;
+      return source_rank();
     }
   }
   

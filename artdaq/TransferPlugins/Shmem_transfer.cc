@@ -181,7 +181,7 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
     }
   } else {
 
-    mf::LogError(uniqueLabel()) << "Error in shared memory transfer plugin: pointer to shared memory segment is null, will sleep for " << receiveTimeout/1.0e9 << " seconds and then return a timeout";
+    mf::LogError(uniqueLabel()) << "Error in shared memory transfer plugin: pointer to shared memory segment is null, will sleep for " << receiveTimeout/1.0e6 << " seconds and then return a timeout";
     usleep(receiveTimeout);
     return artdaq::TransferInterface::RECV_TIMEOUT; // Should we EVER get shm_ptr_ == 0?
   }
