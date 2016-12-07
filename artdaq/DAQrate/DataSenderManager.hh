@@ -1,7 +1,8 @@
 #ifndef ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 
-#include <unordered_map>
+#include <map>
+#include <set>
 #include <memory>
 
 #include <fhiclcpp/fwd.h>
@@ -31,6 +32,8 @@ public:
   size_t slotCount(size_t rank) const;
 
 size_t destinationCount() const { return destinations_.size(); }
+
+  std::set<size_t> enabled_destinations() const { return enabled_destinations_; }
 private:
   // Send an EOF Fragment to the receiver at rank dest;
   // the EOF Fragment will report that numFragmentsSent
@@ -43,6 +46,7 @@ size_t calcDest(Fragment::sequence_id_t) const;
 private:
 
   std::map<size_t, std::unique_ptr<artdaq::TransferInterface>> destinations_;
+  std::set<size_t> enabled_destinations_;
 
   detail::FragCounter sent_frag_count_;
 

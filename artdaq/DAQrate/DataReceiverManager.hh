@@ -1,7 +1,8 @@
 #ifndef ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 
-#include <unordered_map>
+#include <map>
+#include <set>
 #include <memory>
 
 #include <fhiclcpp/fwd.h>
@@ -34,9 +35,12 @@ public:
   // How many fragments have been received from a particular destination.
   size_t slotCount(size_t rank) const;
 
+  std::set<size_t> enabled_sources() const { return enabled_sources_; }
+
 private:
 
   std::map<size_t, std::unique_ptr<artdaq::TransferInterface>> sources_;
+  std::set<size_t> enabled_sources_;
   size_t current_source_;
 
   detail::FragCounter recv_frag_count_; // Number of frags received per source.

@@ -1,6 +1,6 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
-int artdaq::TransferInterface::my_rank = 0;
+size_t artdaq::TransferInterface::my_rank = 0;
 
 artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role role)
   : role_(role)

@@ -15,10 +15,13 @@ public:
   explicit FragCounter();
   void incSlot(size_t slot);
   void incSlot(size_t slot, size_t inc);
+  void setSlot(size_t slot, size_t val);
 
   size_t nSlots() const;
   size_t count() const;
   size_t slotCount(size_t slot) const;
+
+  size_t operator[](size_t slot) const { return slotCount(slot); }
 
 private:
   std::unordered_map<size_t, std::atomic<size_t>> receipts_;
@@ -45,6 +48,14 @@ artdaq::detail::FragCounter::
 incSlot(size_t slot, size_t inc)
 {
   receipts_[slot].fetch_add(inc);
+}
+
+inline
+void
+artdaq::detail::FragCounter::
+setSlot(size_t slot, size_t val)
+{
+  receipts_[slot] = val;
 }
 
 inline

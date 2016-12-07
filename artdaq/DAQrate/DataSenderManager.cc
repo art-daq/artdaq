@@ -4,6 +4,7 @@
 
 artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
   : destinations_()
+  , enabled_destinations_()
   , sent_frag_count_()
   , broadcast_sends_(pset.get<bool>("broadcast_sends",false))
 {
@@ -20,34 +21,49 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
   }
   if(destinations_.size() == 0) {
 	mf::LogError("DataSenderManager") << "No destinations specified!";
+  } else {
+	auto enabled_dests = pset.get<std::vector<size_t>>("enabled_destinations", std::vector<size_t>());
+	if(enabled_dests.size() == 0) {
+	  mf::LogInfo("DataReceiverManager") << "enabled_destinations not specified, assuming all destinations enabled.";
+	  for(auto& d : destinations_) {
+		enabled_destinations_.insert(d.first);
+	  }
+	} else {
+	  for(auto& d : enabled_dests) {
+		enabled_destinations_.insert(d);
+	  }
+	}
   }
 }
 
 artdaq::DataSenderManager::~DataSenderManager()
 {
-  for (auto& dest : destinations_) {
-    sendEODFrag(dest.first, sent_frag_count_.slotCount(dest.first));
+  for (auto& dest : enabled_destinations_) {
+    sendEODFrag(dest, sent_frag_count_.slotCount(dest));
   }
+  mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager. Sent " << count() << " fragments.";
 }
 
 size_t artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) const
 {
-  if(destinations_.size() == 0) return 0; // No destinations configured.
-  auto index = sequence_id % destinations_.size();
-  auto it = destinations_.begin();
+  if(enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
+  auto index = sequence_id % enabled_destinations_.size();
+  auto it = enabled_destinations_.begin();
   for(; index > 0; --index) {
 	++it;
-	if(it == destinations_.end()) it = destinations_.begin();
+	if(it == enabled_destinations_.end()) it = enabled_destinations_.begin();
   }
-  return (*it).first;
+  return *it;
 }
 
 void
 artdaq::DataSenderManager::
 sendEODFrag(size_t dest, size_t nFragments)
 {
+  if(destinations_.count(dest)) {
   destinations_[dest]->copyFragmentTo(*Fragment::eodFrag(nFragments));
   //  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
+  }
 }
 
 size_t
@@ -64,15 +80,15 @@ sendFragment(Fragment && frag)
   TRACE( 13, "sendFragment start frag.fragmentHeader()=%p", (void*)(frag.headerBegin()) );
   size_t dest = 0;
   if (broadcast_sends_) {
-    for (auto& bdest : destinations_) {
+    for (auto& bdest : enabled_destinations_) {
       // Gross, we have to copy.
       Fragment fragCopy(frag);
-	  bdest.second->copyFragmentTo(fragCopy);
-      sent_frag_count_.incSlot(bdest.first);
+	  destinations_[bdest]->copyFragmentTo(fragCopy);
+      sent_frag_count_.incSlot(bdest);
     }
   } else {
     dest = calcDest(frag.sequenceID());
-	if(destinations_.count(dest)) {
+	if(destinations_.count(dest) && enabled_destinations_.count(dest)) {
 	destinations_[dest]->copyFragmentTo(frag);
     //sendFragTo(std::move(frag), dest);
     sent_frag_count_.incSlot(dest);

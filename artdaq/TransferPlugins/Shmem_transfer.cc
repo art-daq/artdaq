@@ -82,7 +82,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	// Note that there's a small but nonzero chance of a race condition
 	// here where another process creates the shared memory buffer
 	// between the first and second calls to shmget
-
+	
 	shm_segment_id_ =
 		shmget(shm_key_, (max_fragment_size_words_ * sizeof(artdaq::RawDataType)),
 			0666);

@@ -4,6 +4,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
@@ -461,8 +462,8 @@ size_t artdaq::AggregatorCore::process_fragments()
   size_t eodFragmentsReceived = 0;
   bool process_fragments = true;
   size_t senderSlot;
-  std::vector<size_t> fragments_received(true_data_sender_count + first_data_sender_rank_, 0);
-  std::vector<size_t> fragments_sent(true_data_sender_count + first_data_sender_rank_, 0);
+  detail::FragCounter fragments_received;
+  detail::FragCounter fragments_sent;
   artdaq::FragmentPtr endSubRunMsg(nullptr);
   time_t last_filesize_check_time = subrun_start_time_;
 
@@ -569,13 +570,14 @@ size_t artdaq::AggregatorCore::process_fragments()
 
       continue;
     }
-    if (senderSlot >= fragments_received.size()) {
+    if ((is_data_logger_ && !receiver_ptr_->enabled_sources().count(senderSlot) )
+		|| (!is_data_logger_ && senderSlot != data_logger_transfer_->source_rank())) {
       mf::LogError(name_)
-        << "Invalid senderSlot received from RHandles::recvFragment: "
+        << "Invalid senderSlot received from recvFragment: "
         << senderSlot;
       continue;
     }
-    fragments_received[senderSlot] += 1;
+    fragments_received.incSlot(senderSlot);
     if (artdaq::Fragment::isSystemFragmentType(fragmentPtr->type()) &&
         fragmentPtr->type() != artdaq::Fragment::DataFragmentType) {
       mf::LogDebug(name_)
@@ -763,7 +765,7 @@ size_t artdaq::AggregatorCore::process_fragments()
         /* We count the EOD fragment as a fragment received but the SHandles class
            does not count it as a fragment sent which means we need to add one to
            the total expected fragments. */
-        fragments_sent[senderSlot] = *fragmentPtr->dataBegin() + 1;
+        fragments_sent.setSlot(senderSlot,*fragmentPtr->dataBegin() + 1);
       }
     }
     float delta=artdaq::MonitoredQuantity::getCurrentTime() - startTime;

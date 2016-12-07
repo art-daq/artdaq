@@ -14,7 +14,7 @@ namespace artdaq {
 	class TransferInterface {
 	public:
 		static const size_t RECV_TIMEOUT = 0xfedcba98;
-		static int my_rank;
+		static size_t my_rank;
 
 		enum class Role { kSend, kReceive };
 
@@ -33,15 +33,15 @@ namespace artdaq {
 
 		std::string uniqueLabel() const { return unique_label_; }
 
+		size_t source_rank() const { return source_rank_; }
 	private:
 		const Role role_;
-		const int source_rank_;
-		const int destination_rank_;
+		const size_t source_rank_;
+		const size_t destination_rank_;
 		const std::string unique_label_;
 
 	protected:
 		Role role() const { return role_; }
-		int source_rank() const { return source_rank_; }
 	};
 
 }
