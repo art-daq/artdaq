@@ -27,39 +27,30 @@
 
   This needs to be separated into a thing for sending and a thing for receiving.
   There probably needs to be a common class that both use.
- */
+*/
 
 artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Role role)
   : TransferInterface(pset, role)
-  , buffer_count_(pset.get<size_t>("mpi_buffer_count", 1)
-  , max_payload_size_(pset.get<size_t>("max_fragment_size_words", 1024)
-  , src_status_(src_count, status_t::SENDING)
-  , expected_count_(src_count, 0)
-  , req_sources_(buffer_count_, MPI_ANY_SOURCE)
-  , last_source_posted_(-1)
-  , payload_(buffer_count_)
-  , my_mpi_rank_([](){ auto rank=0; MPI_Comm_rank(MPI_COMM_WORLD, &rank);return rank;}())
+  , buffer_count_(pset.get<size_t>("mpi_buffer_count", 10))
+  , max_payload_size_(pset.get<size_t>("max_fragment_size_words", 1024))
+  , src_status_(status_t::SENDING)
+  , recvd_count_(0)
+  , expected_count_(0)
+  , payload_(pset.get<size_t>("mpi_buffer_count", 10))
+  , synchronous_sends_(pset.get<bool>("synchronous_sends", true))
+  , reqs_(pset.get<size_t>("mpi_buffer_count", 10), MPI_REQUEST_NULL)
   , pos_()
-  , broadcast_sends_(broadcast_sends)
-  , synchronous_sends_(synchronous_sends)
-  , reqs_(buffer_count_, MPI_REQUEST_NULL)
 {
-
   {
     std::ostringstream debugstream;
     debugstream << "MPITransfer construction: "
-                << "rank " << my_mpi_rank_ << ", "
-		<< buffer_count << " buffers, "
-		<< src_count << " sources starting at rank "
-		<< src_start << '\n';
+                << "source rank " << source_rank()  << ", "
+				<< "destination rank " << destination_rank() << ", "
+				<< buffer_count_ << " buffers. ";
     TRACE(4, debugstream.str().c_str());
   }
 
-  if (src_count == 0) {
-    throw art::Exception(art::errors::Configuration, "MPITransfer: ")
-      << "No sources configured.\n";
-  }
-  if (buffer_count == 0) {
+  if (buffer_count_ == 0) {
     throw art::Exception(art::errors::Configuration, "MPITransfer: ")
       << "No buffers configured.\n";
   }
@@ -70,7 +61,7 @@ artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Ro
     // Note that nextSource_() is not used here: it is not necessary to
     // check whether a source is DONE, and we avoid violating the
     // precondition of nextSource_().
-    post_(i, (i % src_count_) + src_start_);
+		if(role == TransferInterface::Role::kReceive) post_(i);
   }
 }
 
@@ -82,11 +73,8 @@ artdaq::MPITransfer::
 
 size_t
 artdaq::MPITransfer::
-recvFragment(Fragment & output, size_t timeout_usec)
+receiveFragmentFrom(Fragment & output, size_t timeout_usec)
 {
-  if (!anySourceActive()) {
-    return MPI_ANY_SOURCE; // Nothing to do.
-  }
   TRACE( 6,"recvFragment entered tmo=%lu us",timeout_usec  );
   int wait_result;
   int which;
@@ -145,30 +133,29 @@ recvFragment(Fragment & output, size_t timeout_usec)
   }
   TRACE( 8, "recvFragment recvd" );
 
-  size_t src_index(indexFromSource_(status.MPI_SOURCE));
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (which == MPI_UNDEFINED)
-  { throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-      << "MPI_UNDEFINED returned as on index value from Waitany.\n"; }
+	{ throw art::Exception(art::errors::LogicError, "MPITransfer: ")
+		<< "MPI_UNDEFINED returned as on index value from Waitany.\n"; }
   if (reqs_[which] != MPI_REQUEST_NULL)
-  { throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-      << "INTERNAL ERROR: req is not MPI_REQUEST_NULL in recvFragment.\n"; }
+	{ throw art::Exception(art::errors::LogicError, "MPITransfer: ")
+		<< "INTERNAL ERROR: req is not MPI_REQUEST_NULL in recvFragment.\n"; }
   Fragment::sequence_id_t sequence_id = payload_[which].sequenceID();
 
   {
     std::ostringstream debugstream;
     debugstream << "recv: " << rank
-		<< " idx=" << which
-		<< " Waitany_error=" << wait_result
-		<< " status_error=" << status.MPI_ERROR
-		<< " source=" << status.MPI_SOURCE
-		<< " tag=" << status.MPI_TAG
-		<< " Fragment_sequenceID=" << sequence_id
-		<< " Fragment_size=" << payload_[which].size()
-		<< " preAutoResize_Fragment_dataSize=" << payload_[which].dataSize()
-		<< " fragID=" << payload_[which].fragmentID()
-		<< '\n';
+				<< " idx=" << which
+				<< " Waitany_error=" << wait_result
+				<< " status_error=" << status.MPI_ERROR
+				<< " source=" << status.MPI_SOURCE
+				<< " tag=" << status.MPI_TAG
+				<< " Fragment_sequenceID=" << sequence_id
+				<< " Fragment_size=" << payload_[which].size()
+				<< " preAutoResize_Fragment_dataSize=" << payload_[which].dataSize()
+				<< " fragID=" << payload_[which].fragmentID()
+				<< '\n';
     TRACE(4, debugstream.str().c_str());
   }
   char err_buffer[MPI_MAX_ERROR_STRING];
@@ -192,8 +179,8 @@ recvFragment(Fragment & output, size_t timeout_usec)
   payload_[which].autoResize();
   output.swap(payload_[which]);
   TRACE( 7, "recvFragment after autoResize/swap seqID=%lu. "
-	"Reset our buffer. max=%d adr=%p"
-	, output.sequenceID(), max_payload_size_, (void*)output.headerAddress() );
+		 "Reset our buffer. max=%zu adr=%p"
+		 , output.sequenceID(), max_payload_size_, (void*)output.headerAddress() );
   // Reset our buffer.
   Fragment tmp(max_payload_size_);
   TRACE( 7, "recvFragment before payload_[which].swap(tmp) adr=%p", (void*)tmp.headerAddress() );
@@ -201,35 +188,33 @@ recvFragment(Fragment & output, size_t timeout_usec)
   TRACE( 7, "recvFragment after payload_[which].swap(tmp)" );
   // Fragment accounting.
   if (output.type() == Fragment::EndOfDataFragmentType) {
-    src_status_[src_index] = status_t::PENDING;
-    expected_count_[src_index] = *output.dataBegin();
+    src_status_ = status_t::PENDING;
+    expected_count_ = *output.dataBegin();
 
     {
       std::ostringstream debugstream;
       debugstream << "Received EOD from source " << status.MPI_SOURCE
-		  << " (index " << src_index << ") expecting total of "
-		  << *output.dataBegin() << " fragments" << '\n';
+				  << "  expecting total of "
+				  << *output.dataBegin() << " fragments" << '\n';
       TRACE(4, debugstream.str().c_str());
     }
   }
   else {
-    recv_frag_count_.incSlot(status.MPI_SOURCE);
+	recvd_count_++;
   }
-  switch (src_status_[src_index]) {
+  switch (src_status_) {
   case status_t::PENDING:
-
     {
       std::ostringstream debugstream;
       debugstream << "Checking received count "
-		  << recv_frag_count_.slotCount(status.MPI_SOURCE)
-		  << " against expected total "
-		  << expected_count_[src_index]
-		  << '\n';
+				  << recvd_count_
+				  << " against expected total "
+				  << expected_count_
+				  << '\n';
       TRACE(4, debugstream.str().c_str());
     }
-    if (recv_frag_count_.slotCount(status.MPI_SOURCE) ==
-        expected_count_[src_index]) {
-      src_status_[src_index] = status_t::DONE;
+    if (recvd_count_ == expected_count_) {
+      src_status_ = status_t::DONE;
     }
     break;
   case status_t::DONE:
@@ -242,22 +227,21 @@ recvFragment(Fragment & output, size_t timeout_usec)
   default:
     throw art::Exception(art::errors::LogicError, "MPITransfer: ")
       << "INTERNAL ERROR: Unrecognized status_t value "
-      << static_cast<int>(src_status_[src_index])
+      << static_cast<int>(src_status_)
       << ".\n";
   }
   // Repost to receive more data.
-  if (src_status_[src_index] == status_t::DONE) { // Just happened.
-    int nextSource = nextSource_();
-    if (nextSource == MPI_ANY_SOURCE) { // No active sources left.
+  if (src_status_ == status_t::DONE) { // Just happened.
+    if (nextSource_() == MPI_ANY_SOURCE) { // No active sources left.
       req_sources_[which] = MPI_ANY_SOURCE; // Done with this buffer.
     }
     else { // Post for input from a still-active source.
-      post_(which, nextSource); // This buffer doesn't need cancelling.
+      post_(which); // This buffer doesn't need cancelling.
     }
     cancelAndRepost_(status.MPI_SOURCE); // Cancel and possibly repost.
   }
   else {
-    post_(which, status.MPI_SOURCE);
+    post_(status.MPI_SOURCE);
   }
   return status.MPI_SOURCE;
 }
@@ -266,6 +250,7 @@ void
 artdaq::MPITransfer::
 waitAll_()
 {
+  MPI_Waitall(buffer_count_, &reqs_[0], MPI_STATUSES_IGNORE);
   // clean up the remaining buffers
   for (size_t i = 0; i < buffer_count_; ++i) {
     if (req_sources_[i] != MPI_ANY_SOURCE) {
@@ -280,13 +265,8 @@ nextSource_()
 {
   // Precondition: last_source_posted_ must be set. This is ensured
   // provided nextSource_() is never called from the constructor.
-  int last_index = indexFromSource_(last_source_posted_);
-  for (int result = (last_index + 1) % src_count_;
-       result != last_index;
-       result = (result + 1) % src_count_) {
-    if (src_status_[result] != status_t::DONE) {
-      return result + src_start_;
-    }
+  if (src_status_ != status_t::DONE) {
+	return source_rank();
   }
   return MPI_ANY_SOURCE;
 }
@@ -299,8 +279,8 @@ cancelReq_(size_t buf, bool blocking_wait)
   {
     std::ostringstream debugstream;
     debugstream << "Cancelling post for buffer "
-		<< buf
-		<< '\n';
+				<< buf
+				<< '\n';
     TRACE(4, debugstream.str().c_str());
   }
   int result = MPI_Cancel(&reqs_[buf]);
@@ -345,27 +325,24 @@ cancelReq_(size_t buf, bool blocking_wait)
 
 void
 artdaq::MPITransfer::
-post_(size_t buf, size_t src)
+post_(size_t buf)
 {
 
   {
     std::ostringstream debugstream;
     debugstream << "Posting buffer " << buf
-		<< " size=" << payload_[buf].size()
-		<< " for receive src=" << src
-		<< " header address=0x" << std::hex << payload_[buf].headerAddress() << std::dec
-		<< '\n';
+				<< " size=" << payload_[buf].size()
+				<< " header address=0x" << std::hex << payload_[buf].headerAddress() << std::dec
+				<< '\n';
     TRACE(4, debugstream.str().c_str());
   }
   MPI_Irecv(&*payload_[buf].headerBegin(),
             (payload_[buf].size() * sizeof(Fragment::value_type)),
             MPI_BYTE,
-            src,
+            source_rank(),
             MPI_ANY_TAG,
             MPI_COMM_WORLD,
             &reqs_[buf]);
-  req_sources_[buf] = src;
-  last_source_posted_ = src;
 }
 
 void
@@ -380,7 +357,7 @@ cancelAndRepost_(size_t src)
         req_sources_[i] = MPI_ANY_SOURCE;
       }
       else { // Still busy.
-        post_(i, nextSource);
+        post_(i);
       }
     }
   }
@@ -390,51 +367,63 @@ size_t artdaq::MPITransfer::findAvailable()
 {
   size_t use_me = 0;
   int flag;
-  int loops=0;
+  size_t loops=0;
   TRACE(5, "findAvailable initial pos_=%zu", pos_);
+  mf::LogDebug("MPITransfer") << "findAvailable: initial pos_ = " << pos_;
   do {
     use_me = pos_;
     MPI_Test(&reqs_[use_me], &flag, MPI_STATUS_IGNORE);
     pos_ = (pos_ + 1) % buffer_count_;
 	++loops;
   }
-  while (!flag);
-  TRACE(5, "findAvailable returning use_me=%zu loops=%d", use_me, loops );
+  while (!flag && loops < buffer_count_);
+  if(loops == buffer_count_) { return TransferInterface::RECV_TIMEOUT; }
+  mf::LogDebug("MPITransfer") << "findAvailable returning " << use_me << " after " << loops << " iterations.";
+  TRACE(5, "findAvailable returning use_me=%zu loops=%zu", use_me, loops );
   // pos_ is pointing at the next slot to check
   // use_me is pointing at the slot to use
   return use_me;
 }
 
-
-
-void artdaq::MPITransfer::waitAll()
-{
-  MPI_Waitall(buffer_count_, &reqs_[0], MPI_STATUSES_IGNORE);
-}
-
-void
+artdaq::TransferInterface::CopyStatus
 artdaq::MPITransfer::
-sendFragTo(Fragment && frag, size_t dest, bool force_async)
+copyFragmentTo(Fragment& frag, size_t send_timeout_usec)
 {
+  TRACE(5, "copyFragmentTo timeout unused: %zu", send_timeout_usec);
   if (frag.dataSize() > max_payload_size_) {
     throw cet::exception("Unimplemented")
-        << "Currently unable to deal with overlarge fragment payload ("
-        << frag.dataSize()
-        << " words > "
-        << max_payload_size_
-        << ").";
+	  << "Currently unable to deal with overlarge fragment payload ("
+	  << frag.dataSize()
+	  << " words > "
+	  << max_payload_size_
+	  << ").";
   }
+
+  mf::LogDebug("MPITransfer") << "Checking whether to force async mode...";
+  bool force_async = false;
+  if (frag.type() == Fragment::EndOfDataFragmentType) {
+	mf::LogDebug("MPITransfer") << "EndOfDataFragment detected. Forcing async mode";
+	force_async = true;
+  }
+  mf::LogDebug("MPITransfer") << "Finding available buffer";
   size_t buffer_idx = findAvailable();
+  if(buffer_idx == TransferInterface::RECV_TIMEOUT) {
+	mf::LogWarning("MPITransfer") << "No buffers available! Returning RECV_TIMEOUT!";
+	return CopyStatus::kTimeout;
+  }
+  mf::LogDebug("MPITransfer") << "Swapping in fragment to send to buffer " << buffer_idx;
   Fragment & curfrag = payload_[buffer_idx];
   curfrag = std::move(frag);
-  TRACE( 5, "sendFragTo before send src=%i dest=%lu seqID=%lu found_idx=%zu"
-        , my_mpi_rank_ , dest, curfrag.sequenceID(), buffer_idx );
+  mf::LogDebug("MPITransfer") << "Sending fragment from " << source_rank() << " to " << destination_rank() << " sequenceID " << curfrag.sequenceID() << " using buffer " << buffer_idx;
+  TRACE( 5, "sendFragTo before send src=%zu dest=%zu seqID=%lu found_idx=%zu"
+		 , source_rank() , destination_rank(), curfrag.sequenceID(), buffer_idx );
   if (! synchronous_sends_ || force_async) {
     // 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
+	mf::LogDebug("MPITransfer") << "Using MPI_Isend";
     MPI_Isend(&*curfrag.headerBegin(),
               curfrag.size() * sizeof(Fragment::value_type),
               MPI_BYTE,
-              dest,
+              destination_rank(),
               MPITag::FINAL,
               MPI_COMM_WORLD,
               &reqs_[buffer_idx]);
@@ -445,25 +434,30 @@ sendFragTo(Fragment && frag, size_t dest, bool force_async)
     // This change was made after we noticed that MPI buffering
     // downstream of RootMPIOutput was causing EventBuilder memory
     // usage to grow when using MPI_Send with MPICH 3.1.4 and 3.1.2a.
+	mf::LogDebug("MPITransfer") << "Using MPI_Ssend";
     MPI_Ssend(&*curfrag.headerBegin(),
               curfrag.size() * sizeof(Fragment::value_type),
               MPI_BYTE,
-              dest,
+              destination_rank(),
               MPITag::FINAL,
               MPI_COMM_WORLD );
   }
+  mf::LogDebug("MPITransfer") << "copyFragmentTo COMPLETE";
   TRACE( 5, "sendFragTo COMPLETE" );
   
   {
     std::ostringstream debugstream;
     debugstream << "send COMPLETE: "
-		<< " buffer_idx=" << buffer_idx
-		<< " send_size=" << curfrag.size()
-		<< " src=" << my_mpi_rank_
-		<< " dest=" << dest
-		<< " sequenceID=" << curfrag.sequenceID()
-		<< " fragID=" << curfrag.fragmentID()
-		<< '\n';
+				<< " buffer_idx=" << buffer_idx
+				<< " send_size=" << curfrag.size()
+				<< " src=" << source_rank()
+				<< " dest=" << destination_rank()
+				<< " sequenceID=" << curfrag.sequenceID()
+				<< " fragID=" << curfrag.fragmentID()
+				<< '\n';
     TRACE(11, debugstream.str().c_str());
   }
+  return CopyStatus::kSuccess;
 }
+
+DEFINE_ARTDAQ_TRANSFER(artdaq::MPITransfer)

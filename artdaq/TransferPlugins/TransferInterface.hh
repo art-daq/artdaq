@@ -34,6 +34,7 @@ namespace artdaq {
 		std::string uniqueLabel() const { return unique_label_; }
 
 		size_t source_rank() const { return source_rank_; }
+	  size_t destination_rank() const {return destination_rank_;}
 	private:
 		const Role role_;
 		const size_t source_rank_;

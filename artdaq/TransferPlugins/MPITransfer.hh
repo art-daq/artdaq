@@ -1,3 +1,5 @@
+#ifndef ARTDAQ_TRANSFERPLUGINS_MPITRANSFER_HH
+#define ARTDAQ_TRANSFERPLUGINS_MPITRANSFER_HH
 
 #include <algorithm>
 #include <vector>
@@ -27,102 +29,56 @@
 
   This needs to be separated into a thing for sending and a thing for receiving.
   There probably needs to be a common class that both use.
- */
+*/
 
 namespace artdaq {
 
-	class MPITransfer : public TransferInterface {
-	public:
+  class MPITransfer : public TransferInterface {
+  public:
 
-		typedef std::vector<MPI_Request> Requests;
+	typedef std::vector<MPI_Request> Requests;
 
-		MPITransfer(fhicl::ParameterSet, TransferInterface::Role);
-		~MPITransfer();
+	MPITransfer(fhicl::ParameterSet, TransferInterface::Role);
+	~MPITransfer();
 
-		// Number of sources still not done.
-		size_t sourcesActive() const;
+  private:
+	enum class status_t { SENDING, PENDING, DONE };
 
-		// Are any sources still active (faster)?
-		bool anySourceActive() const;
+	void waitAll_();
 
-		// Number of sources pending (last fragments still in-flight).
-		size_t sourcesPending() const;
+	void cancelReq_(size_t buf, bool blocking_wait = true);
+	void post_(size_t buf);
+	void cancelAndRepost_(size_t buf);
 
-	private:
-		enum class status_t { SENDING, PENDING, DONE };
+	// Identify an available buffer.
+	size_t findAvailable();
 
-		void waitAll_();
+	// Send the fragment to the specified destination.
+	TransferInterface::CopyStatus copyFragmentTo(Fragment & frag, size_t timeout_usec);
 
-		int nextSource_();
+	size_t receiveFragmentFrom(Fragment& frag, size_t timeout_usec);
 
-		void cancelReq_(size_t buf, bool blocking_wait = true);
-		void post_(size_t buf, size_t src);
-		void cancelAndRepost_(size_t src);
+	int nextSource_();
 
-		// Identify an available buffer.
-		size_t findAvailable();
+	size_t buffer_count_;
+	size_t max_payload_size_;
+	status_t src_status_; // Status of each sender.
+	size_t recvd_count_;
+	size_t expected_count_; // After EOD received: expected frags.
 
-		// Send the fragment to the specified destination.
-		void sendFragTo(Fragment && frag,
-			size_t dest,
-			bool force_async = false);
+	std::vector<int> req_sources_; // Source for each request.
 
-		size_t recvFragment(Fragment& frag, size_t timeout_usec);
+	Fragments payload_;
 
-		size_t destination_;
-		size_t source_;
-		size_t buffer_count_;
-		int max_payload_size_;
-		std::vector<status_t> src_status_; // Status of each sender.
-		std::vector<size_t> expected_count_; // After EOD received: expected frags.
+	int saved_wait_result_;
+	std::vector<int> ready_indices_;
+	std::vector<MPI_Status> ready_statuses_;
 
-		std::vector<int> req_sources_; // Source for each request.
-		int last_source_posted_;
+	bool synchronous_sends_;
 
-		Fragments payload_;
+	Requests reqs_;
+	size_t pos_;
+  };
+}
 
-		int saved_wait_result_;
-		std::vector<int> ready_indices_;
-		std::vector<MPI_Status> ready_statuses_;
-		int my_mpi_rank_;
-
-		size_t pos_; // next slot to check
-		bool broadcast_sends_;
-		bool synchronous_sends_;
-
-		Requests reqs_;
-	};
-
-	inline
-		size_t
-		artdaq::MPITransfer::
-		sourcesActive() const
-	{
-		return std::count_if(src_status_.begin(),
-			src_status_.end(),
-			[](status_t const & s) { return s != status_t::DONE; });
-	}
-
-	inline
-		bool
-		artdaq::MPITransfer::
-		anySourceActive() const {
-		return
-			std::any_of(src_status_.begin(),
-				src_status_.end(),
-				[](status_t const & s)
-		{ return s != status_t::DONE; }
-		);
-	}
-
-	inline
-		size_t
-		artdaq::MPITransfer::
-		sourcesPending() const
-	{
-		return std::count(src_status_.begin(),
-			src_status_.end(),
-			status_t::PENDING);
-	}
-
-
+#endif //define ARTDAQ_TRANSFERPLUGINS_MPITRANSFER_HH

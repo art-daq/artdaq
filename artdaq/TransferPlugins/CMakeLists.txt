@@ -49,16 +49,16 @@ simple_plugin(Multicast "transfer"
   ${Boost_SYSTEM_LIBRARY}
 )
 
-# simple_plugin(TCPSocket "transfer"
-#   artdaq_TransferPlugins
-#   ${TRACE}
-# )
+#simple_plugin(TCPSocket "transfer"
+#  artdaq_TransferPlugins
+#  ${TRACE}
+#)
 
-# simple_plugin(MPI "transfer"
-#   artdaq_TransferPlugins
-#   ${MPI_C_LIBRARIES}
-#   ${TRACE}
-# )
+simple_plugin(MPI "transfer"
+  artdaq_TransferPlugins
+  ${MPI_C_LIBRARIES}
+  ${TRACE}
+)
 
 if (${USING_RTIDDS})
 
