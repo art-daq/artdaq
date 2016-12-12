@@ -6,6 +6,7 @@
 #include <boost/throw_exception.hpp>
 
 #include <limits>
+#include <iterator>
 
 
 #ifdef CANVAS
@@ -494,18 +495,23 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			std::unique_lock<std::mutex> lock(dataBufferMutex_);
 			switch (mode_) {
 			case TriggerMode::Single:
-				newDataBuffer_.swap(dataBuffer_);
+				// While here, if for some strange reason more than one event's worth of data is returned from getNext_...
+				while (newDataBuffer_.size() >= fragment_ids_.size()) {
+					dataBuffer_.clear();
+					auto it = newDataBuffer_.begin();
+					std::advance(it, fragment_ids_.size());
+					dataBuffer_.splice(dataBuffer_.end(), newDataBuffer_, newDataBuffer_.begin(), it);
+				}
 				break;
 			case TriggerMode::Buffer:
 			case TriggerMode::Ignored:
 			case TriggerMode::Window:
 			default:
 				//dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
-				std::move(newDataBuffer_.begin(), newDataBuffer_.end(), std::inserter(dataBuffer_, dataBuffer_.end()));
+				dataBuffer_.splice(dataBuffer_.end(), newDataBuffer_);
 				break;
 			}
 			getDataBufferStats();
-			newDataBuffer_.clear();
 			dataCondition_.notify_all();
 		}
 	}
@@ -530,8 +536,8 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats()
 	dataBufferDepthBytes_ = acc;
 
 	if (metricMan_) {
-	  metricMan_->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
-	  metricMan_->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
+		metricMan_->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
+		metricMan_->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
 	}
 	TRACE(4, "CFG::getDataBufferStats: frags=%i/%i, sz=%zd/%zd", dataBufferDepthFragments_.load(), maxDataBufferDepthFragments_, dataBufferDepthBytes_.load(), maxDataBufferDepthBytes_);
 }
@@ -578,8 +584,8 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 {
 	while (true) {
 		if (should_stop() || !collectMonitoringData_) {
-			mf::LogDebug("CommandableFragmentGenerator") << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop() 
-			<< " and collectMonitoringData is " << collectMonitoringData_;
+			mf::LogDebug("CommandableFragmentGenerator") << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
+				<< " and collectMonitoringData is " << collectMonitoringData_;
 			return;
 		}
 		TRACE(4, "CFG::getMonitoringDataLoop Determining whether to call checkHWStatus_");
@@ -696,16 +702,17 @@ bool artdaq::CommandableFragmentGenerator::applyTriggers(artdaq::FragmentPtrs & 
 		else if (trigger.isValid()) {
 			if (mode_ == TriggerMode::Single) {
 				if (dataBuffer_.size() > 0) {
-					TRACE(4, "CFG: Mode is Single; Sending copy of last data point");
-					// Return the latest data point
-					auto frag = dataBuffer_.front().get();
-					auto newfrag = std::unique_ptr<artdaq::Fragment>(
-						new Fragment(ev_counter(), frag->fragmentID()));
-					newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
-					memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
-					newfrag->setTimestamp(trigger.timestamp());
-					newfrag->setSequenceID(ev_counter());
-					frags.push_back(std::move(newfrag));
+					TRACE(4, "CFG: Mode is Single; Sending copy of last event");
+					for (auto& fragptr : dataBuffer_) {
+						// Return the latest data point
+						auto frag = fragptr.get();
+						auto newfrag = std::unique_ptr<artdaq::Fragment>(new Fragment(ev_counter(), frag->fragmentID()));
+						newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
+						memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
+						newfrag->setTimestamp(trigger.timestamp());
+						newfrag->setSequenceID(ev_counter());
+						frags.push_back(std::move(newfrag));
+					}
 				}
 				else
 				{
