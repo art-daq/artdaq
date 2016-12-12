@@ -8,6 +8,7 @@ endif()
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_TransferPlugins
   NO_PLUGINS
+  SUBDIRS detail
   EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc MPI_transfer.cc TCPSocket_transfer.cc MPITranfer.hh TCPSocketTransfer.hh
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
@@ -49,10 +50,10 @@ simple_plugin(Multicast "transfer"
   ${Boost_SYSTEM_LIBRARY}
 )
 
-#simple_plugin(TCPSocket "transfer"
-#  artdaq_TransferPlugins
-#  ${TRACE}
-#)
+simple_plugin(TCPSocket "transfer"
+  artdaq_TransferPlugins
+  ${TRACE}
+)
 
 simple_plugin(MPI "transfer"
   artdaq_TransferPlugins
@@ -69,5 +70,5 @@ simple_plugin(RTIDDS "transfer"
 
 endif()
 
-install_headers()
-install_source()
+install_headers(SUBDIRS detail)
+install_source(SUBDIRS detail)

@@ -99,7 +99,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg) 
       }
 
       try { 
-	auto result = transfer_->receiveFragmentFrom(*fragmentPtr, timeoutInUsecs_);
+	auto result = transfer_->receiveFragment(*fragmentPtr, timeoutInUsecs_);
       
 	if (result != artdaq::TransferInterface::RECV_TIMEOUT) {
 	  receivedFragment = true;

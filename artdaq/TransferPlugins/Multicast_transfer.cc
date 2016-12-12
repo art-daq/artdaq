@@ -33,11 +33,13 @@ public:
   ~MulticastTransfer() = default;
   MulticastTransfer(fhicl::ParameterSet const& ps, Role role);
 
-  virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
+  virtual size_t receiveFragment(artdaq::Fragment& fragment,
 				   size_t receiveTimeout);
 
-  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+  virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
 				    size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+  virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
+	  size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 
 private:
 
@@ -177,7 +179,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+size_t artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 						      size_t receiveTimeout) {
 
   assert(TransferInterface::role() == Role::kReceive);
@@ -309,8 +311,14 @@ size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
 #pragma GCC diagnostic pop
 
+// Reliable transport is undefined for multicast; just use copy
 artdaq::TransferInterface::CopyStatus
-artdaq::MulticastTransfer::copyFragmentTo(artdaq::Fragment& fragment,
+artdaq::MulticastTransfer::moveFragment(artdaq::Fragment&& f, size_t tmo) {
+	return copyFragment(f, tmo);
+}
+
+artdaq::TransferInterface::CopyStatus
+artdaq::MulticastTransfer::copyFragment(artdaq::Fragment& fragment,
 					  size_t send_timeout_usec) {
 
   assert(TransferInterface::role() == Role::kSend);

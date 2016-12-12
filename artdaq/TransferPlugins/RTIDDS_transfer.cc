@@ -31,11 +31,13 @@ public:
   {
   }
 
-  virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
+  virtual size_t receiveFragment(artdaq::Fragment& fragment,
 				   size_t receiveTimeout);
 
-  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+  virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
 				    size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+  virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
+	  size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 private:
 
   const size_t first_data_sender_rank_;
@@ -46,7 +48,7 @@ private:
 
 }
 
-size_t artdaq::RTIDDSTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+size_t artdaq::RTIDDSTransfer::receiveFragment(artdaq::Fragment& fragment,
 						   size_t receiveTimeout) {
 
   bool receivedFragment = false;
@@ -81,7 +83,15 @@ size_t artdaq::RTIDDSTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::RTIDDSTransfer::copyFragmentTo(artdaq::Fragment& fragment,
+artdaq::RTIDDSTransfer::moveFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec)
+{
+	(void)&send_timeout_usec; // No-op to get the compiler not to complain about unused parameter
+
+	rtidds_writer_->moveFragmentToDDS_(std::move(fragment));
+	return CopyStatus::kSuccess;}
+
+artdaq::TransferInterface::CopyStatus
+artdaq::RTIDDSTransfer::copyFragment(artdaq::Fragment& fragment,
 				       size_t send_timeout_usec) {
 
   (void) &send_timeout_usec; // No-op to get the compiler not to complain about unused parameter

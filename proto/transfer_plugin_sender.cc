@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
     frag->setFragmentID(0);
     frag->setUserType(artdaq::Fragment::FirstUserFragmentType);
     
-    transfer->copyFragmentTo(*frag, timeout);
+    transfer->copyFragment(*frag, timeout);
   }
 
   std::cout << "# of sent fragments attempted == " << num_sends << std::endl;

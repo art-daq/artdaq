@@ -16,7 +16,7 @@ OR
 #include <stdlib.h>             // exit
 #include <list>
 using std::list;
-#include "Timeout.hh"
+#include "artdaq/TransferPlugins/detail/Timeout.hh"
 #include "trace.h"				// TRACE
 
 // public:

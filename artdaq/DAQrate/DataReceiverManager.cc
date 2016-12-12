@@ -56,7 +56,7 @@ size_t artdaq::DataReceiverManager::recvFragment( Fragment& frag, size_t timeout
   current_source_ = calcSource();
   auto ret = current_source_;
   if(enabled_sources_.count(current_source_) && sources_.count(current_source_)) {
-	ret = sources_[current_source_]->receiveFragmentFrom(frag, timeout_usec);
+	ret = sources_[current_source_]->receiveFragment(frag, timeout_usec);
 	recv_frag_count_.incSlot(current_source_);
   }
   mf::LogDebug("DataReceiverManager") << "Done with recvFragment, ret=" << ret << ", current_source_=" << current_source_;

@@ -41,6 +41,9 @@ namespace artdaq {
 	MPITransfer(fhicl::ParameterSet, TransferInterface::Role);
 	~MPITransfer();
 
+	// Send the fragment to the specified destination.
+	virtual TransferInterface::CopyStatus copyFragment(Fragment& frag, size_t timeout_usec);
+	virtual TransferInterface::CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec);
   private:
 	enum class status_t { SENDING, PENDING, DONE };
 
@@ -53,10 +56,9 @@ namespace artdaq {
 	// Identify an available buffer.
 	size_t findAvailable();
 
-	// Send the fragment to the specified destination.
-	TransferInterface::CopyStatus copyFragmentTo(Fragment & frag, size_t timeout_usec);
+	TransferInterface::CopyStatus sendFragment(Fragment&& frag, size_t timeout_usec, bool force_async);
 
-	size_t receiveFragmentFrom(Fragment& frag, size_t timeout_usec);
+	size_t receiveFragment(Fragment& frag, size_t timeout_usec);
 
 	int nextSource_();
 

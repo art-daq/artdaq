@@ -63,7 +63,7 @@ artdaq::DataSenderManager::
 sendEODFrag(size_t dest, size_t nFragments)
 {
 	if (destinations_.count(dest)) {
-		destinations_[dest]->copyFragmentTo(*Fragment::eodFrag(nFragments));
+		destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(nFragments)));
 		//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 	}
 }
@@ -84,10 +84,13 @@ sendFragment(Fragment && frag)
 	size_t dest = 0;
 	if (broadcast_sends_) {
 		for (auto& bdest : enabled_destinations_) {
-			/ f::LogDebug("DataSenderManager") << "Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
+			mf::LogDebug("DataSenderManager") << "Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
 			// Gross, we have to copy.
 			Fragment fragCopy(frag);
-			destinations_[bdest]->copyFragmentTo(fragCopy);
+			auto sts = destinations_[bdest]->copyFragment(fragCopy); 
+			while (sts == TransferInterface::CopyStatus::kTimeout) {
+				sts = destinations_[bdest]->copyFragment(fragCopy);
+			}
 			sent_frag_count_.incSlot(bdest);
 		}
 	}
@@ -95,7 +98,7 @@ sendFragment(Fragment && frag)
 		dest = calcDest(seqID);
 		if (destinations_.count(dest) && enabled_destinations_.count(dest)) {
 			mf::LogDebug("DataSenderManager") << "Sending fragment with seqId " << seqID << " to destination " << dest;
-			destinations_[dest]->copyFragmentTo(frag);
+			destinations_[dest]->moveFragment(std::move(frag));
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}

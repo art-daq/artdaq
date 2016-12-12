@@ -103,6 +103,7 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
   }
 }
 
+void artdaq::RTIDDS::moveFragmentToDDS_(artdaq::Fragment&& fragment) { copyFragmentToDDS_(fragment); }
 void artdaq::RTIDDS::copyFragmentToDDS_(artdaq::Fragment& fragment)
 {
 

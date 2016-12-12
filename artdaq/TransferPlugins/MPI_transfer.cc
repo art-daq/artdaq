@@ -31,14 +31,14 @@
 
 artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Role role)
   : TransferInterface(pset, role)
-  , buffer_count_(pset.get<size_t>("mpi_buffer_count", 10))
+  , buffer_count_(pset.get<size_t>("buffer_count", 10))
   , max_payload_size_(pset.get<size_t>("max_fragment_size_words", 1024))
   , src_status_(status_t::SENDING)
   , recvd_count_(0)
   , expected_count_(0)
-  , payload_(pset.get<size_t>("mpi_buffer_count", 10))
+  , payload_(buffer_count_)
   , synchronous_sends_(pset.get<bool>("synchronous_sends", true))
-  , reqs_(pset.get<size_t>("mpi_buffer_count", 10), MPI_REQUEST_NULL)
+  , reqs_(buffer_count_, MPI_REQUEST_NULL)
   , pos_()
 {
   {
@@ -73,7 +73,7 @@ artdaq::MPITransfer::
 
 size_t
 artdaq::MPITransfer::
-receiveFragmentFrom(Fragment & output, size_t timeout_usec)
+receiveFragment(Fragment & output, size_t timeout_usec)
 {
   TRACE( 6,"recvFragment entered tmo=%lu us",timeout_usec  );
   int wait_result;
@@ -387,7 +387,20 @@ size_t artdaq::MPITransfer::findAvailable()
 
 artdaq::TransferInterface::CopyStatus
 artdaq::MPITransfer::
-copyFragmentTo(Fragment& frag, size_t send_timeout_usec)
+moveFragment(Fragment&& frag, size_t send_timeout_usec) {
+	return sendFragment(std::move(frag), send_timeout_usec, false);
+}
+
+artdaq::TransferInterface::CopyStatus
+artdaq::MPITransfer::
+copyFragment(Fragment& frag, size_t send_timeout_usec) {
+	return sendFragment(std::move(frag), send_timeout_usec, true);
+}
+
+
+artdaq::TransferInterface::CopyStatus
+artdaq::MPITransfer::
+sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 {
   TRACE(5, "copyFragmentTo timeout unused: %zu", send_timeout_usec);
   if (frag.dataSize() > max_payload_size_) {
@@ -400,7 +413,6 @@ copyFragmentTo(Fragment& frag, size_t send_timeout_usec)
   }
 
   mf::LogDebug("MPITransfer") << "Checking whether to force async mode...";
-  bool force_async = false;
   if (frag.type() == Fragment::EndOfDataFragmentType) {
 	mf::LogDebug("MPITransfer") << "EndOfDataFragment detected. Forcing async mode";
 	force_async = true;

@@ -9,9 +9,9 @@
 
 struct MessHead {
 	uint8_t    endian;       // 0=little(intel), 1=big
-	enum { connect_v0, data_v0, data_more_v0, stop_v0, routing_v0 }; // only add to the end!
+	enum { connect_v0, data_v0, data_more_v0, stop_v0, routing_v0, token_v0 }; // only add to the end!
 	uint8_t    message_type; // 0=connect_v0, 1=data_v0
-	uint16_t   source_id;    // "rank"
+    uint64_t   source_id;    // "rank"
 	union {
 		uint32_t   conn_magic;   // unsigned first is better for MessHead initializer: {0,0,my_node_idx_,CONN_MAGIC}
 		int32_t    byte_count;   // use CONN_MAGIC for connect_v0, data that follow for data_v0 (and 0 lenght data)

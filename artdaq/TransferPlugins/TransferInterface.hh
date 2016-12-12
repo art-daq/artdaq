@@ -25,16 +25,21 @@ namespace artdaq {
 		TransferInterface(const TransferInterface&) = delete;
 		TransferInterface& operator=(const TransferInterface&) = delete;
 
-		virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
+		virtual size_t receiveFragment(artdaq::Fragment& fragment,
 			size_t receiveTimeout) = 0;
 
-		virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+		// Copy fragment (maybe not reliable)
+		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
+			size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+
+		// Move fragment (should be reliable)
+		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
 			size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
 		std::string uniqueLabel() const { return unique_label_; }
 
 		size_t source_rank() const { return source_rank_; }
-	  size_t destination_rank() const {return destination_rank_;}
+		size_t destination_rank() const { return destination_rank_; }
 	private:
 		const Role role_;
 		const size_t source_rank_;

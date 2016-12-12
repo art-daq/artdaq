@@ -29,12 +29,16 @@ namespace artdaq {
 		ShmemTransfer(fhicl::ParameterSet const&, Role);
 		~ShmemTransfer();
 
-		virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
+		virtual size_t receiveFragment(artdaq::Fragment& fragment,
 			size_t receiveTimeout);
 
-		virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
+			size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
 			size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 	private:
+		CopyStatus sendFragment(artdaq::Fragment&& fragment,
+			size_t send_timeout_usec, bool reliable = false);
 
 		struct ShmStruct {
 			size_t hasFragment;
@@ -135,7 +139,7 @@ artdaq::ShmemTransfer::~ShmemTransfer() {
 }
 
 
-size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+size_t artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 	size_t receiveTimeout) {
 
 	if (shm_ptr_) {
@@ -148,8 +152,8 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 			++loopCount;
 		}
 
-		if (shm_ptr_->hasFragment == 1) {
-
+		while (shm_ptr_->hasFragment >= 1) {
+			auto initialHF = shm_ptr_->hasFragment;
 			// JCF, Jul-7-2016
 
 			// Calling artdaq::Fragment::resize with the argument
@@ -163,7 +167,11 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 			artdaq::RawDataType* fragAddr = fragment.headerAddress();
 			size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 			memcpy(fragAddr, &shm_ptr_->fragmentInnards[0], fragSize);
-			shm_ptr_->hasFragment = 0;
+
+			auto diff = shm_ptr_->hasFragment - initialHF;
+			shm_ptr_->hasFragment--;
+
+			if (diff > 0) continue;
 
 			auto wordsOfHeaderAndMetadata = &*fragment.dataBegin() - &*fragment.headerBegin();
 			fragment.resize(shm_ptr_->fragmentSizeWords - wordsOfHeaderAndMetadata);
@@ -177,9 +185,8 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 
 			return source_rank();
 		}
-		else {
+
 			return artdaq::TransferInterface::RECV_TIMEOUT;
-		}
 	}
 	else {
 
@@ -190,9 +197,20 @@ size_t artdaq::ShmemTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::ShmemTransfer::copyFragmentTo(artdaq::Fragment& fragment,
-	size_t send_timeout_usec) {
+artdaq::ShmemTransfer::copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec)
+{
+	return sendFragment(std::move(fragment), send_timeout_usec, false);
+}
 
+artdaq::TransferInterface::CopyStatus
+artdaq::ShmemTransfer::moveFragment(artdaq::Fragment&& fragment,
+	size_t send_timeout_usec) {
+	return sendFragment(std::move(fragment), send_timeout_usec, true);
+}
+
+artdaq::TransferInterface::CopyStatus
+artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec, bool reliableMode)
+{
 	size_t fragmentType = fragment.type();
 
 	if (!shm_ptr_) { return CopyStatus::kErrorNotRequiringException; }
@@ -214,7 +232,7 @@ artdaq::ShmemTransfer::copyFragmentTo(artdaq::Fragment& fragment,
 	}
 
 	// copy the fragment if the shm is available                                               
-	if (shm_ptr_->hasFragment == 0) {
+	if (shm_ptr_->hasFragment == 0 && reliableMode) {
 		artdaq::RawDataType* fragAddr = fragment.headerAddress();
 		size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 
@@ -227,7 +245,7 @@ artdaq::ShmemTransfer::copyFragmentTo(artdaq::Fragment& fragment,
 			memcpy(&shm_ptr_->fragmentInnards[0], fragAddr, fragSize);
 			shm_ptr_->fragmentSizeWords = fragment.size();
 
-			shm_ptr_->hasFragment = 1;
+			shm_ptr_->hasFragment++;
 
 			++fragment_count_to_shm_;
 			if ((fragment_count_to_shm_ % 250) == 0) {

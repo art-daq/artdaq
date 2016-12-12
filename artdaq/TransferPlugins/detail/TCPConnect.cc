@@ -22,6 +22,8 @@
 
 #include "trace.h"				// TRACE
 
+#include "artdaq/TransferPlugins/detail/TCPConnect.hh"
+
 using namespace std;
 
 // return connection fd.
