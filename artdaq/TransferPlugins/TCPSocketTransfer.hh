@@ -68,8 +68,11 @@ private:
 	};
 	SocketState state_;
 
-	uint8_t *     buffer;
+	size_t const buffer_count_;
+	uint64_t const max_payload_lwrds_;
+
 	Fragment      frag;
+	uint8_t *     buffer;
 	size_t       offset;
 	int           target_bytes;
 
@@ -82,8 +85,6 @@ private:
 	volatile unsigned    connect_state : 1; // 0=not "connected" (initial msg not sent)
 	unsigned    blocking : 1;   // compatible with bool (true/false)
 
-	size_t const buffer_count_;
-	uint64_t const max_payload_lwrds_;
 
 	Timeout tmo_;
 	bool             stats_connect_stop_;
