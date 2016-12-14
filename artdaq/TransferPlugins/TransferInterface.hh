@@ -42,10 +42,14 @@ namespace artdaq {
 		size_t destination_rank() const { return destination_rank_; }
 	private:
 		const Role role_;
+		
 		const size_t source_rank_;
 		const size_t destination_rank_;
 		const std::string unique_label_;
 
+	protected:
+		size_t buffer_count_;
+		const size_t max_fragment_size_words_;
 	protected:
 		Role role() const { return role_; }
 	};

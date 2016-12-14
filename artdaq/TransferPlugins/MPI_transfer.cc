@@ -31,8 +31,6 @@
 
 artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Role role)
   : TransferInterface(pset, role)
-  , buffer_count_(pset.get<size_t>("buffer_count", 10))
-  , max_payload_size_(pset.get<size_t>("max_fragment_size_words", 1024))
   , src_status_(status_t::SENDING)
   , recvd_count_(0)
   , expected_count_(0)
