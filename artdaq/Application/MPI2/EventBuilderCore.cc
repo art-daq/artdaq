@@ -622,7 +622,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
   mqPtr = artdaq::StatisticsCollection::getInstance().
     getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
   if (mqPtr.get() != 0) {
-    metricMan_.sendMetric("Avg art Queue Wait Time",
+    metricMan_.sendMetric("Avg Event Store Wait Time",
                           (mqPtr->recentValueSum() / fragmentCount),
                           "seconds/fragment", 3);
   }
