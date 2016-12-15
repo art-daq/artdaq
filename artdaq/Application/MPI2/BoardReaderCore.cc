@@ -39,6 +39,7 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
   statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
+  metricMan = &metricMan_;
 }
 
 /**
@@ -110,7 +111,6 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
   try {
     generator_ptr_ = artdaq::makeCommandableFragmentGenerator(frag_gen_name, fr_pset);
-    generator_ptr_->SetMetricManager(&metricMan_);
   } catch (...) {
 
     std::stringstream exception_string;
@@ -125,41 +125,6 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   }
   metricMan_.setPrefix(generator_ptr_->metricsReportingInstanceName());
 
-  // determine the data sending parameters
-  try {
-    max_fragment_size_words_ = daq_pset.get<uint64_t>("max_fragment_size_words");
-  }
-  catch (...) {
-    mf::LogError(name_)
-      << "The max_fragment_size_words parameter was not specified "
-      << "in the DAQ initialization PSet: \""
-      << daq_pset.to_string() << "\".";
-    return false;
-  }
-  try {mpi_buffer_count_ = fr_pset.get<size_t>("mpi_buffer_count");}
-  catch (...) {
-    mf::LogError(name_)
-      << "The mpi_buffer_count parameter was not specified "
-      << "in the fragment_receiver initialization PSet: \""
-      << fr_pset.to_string() << "\".";
-    return false;
-  }
-  try {first_evb_rank_ = fr_pset.get<size_t>("first_event_builder_rank");}
-  catch (...) {
-    mf::LogError(name_)
-      << "The first_event_builder_rank parameter was not specified "
-      << "in the fragment_receiver initialization PSet: \""
-      << fr_pset.to_string() << "\".";
-    return false;
-  }
-  try {evb_count_ = fr_pset.get<size_t>("event_builder_count");}
-  catch (...) {
-    mf::LogError(name_)
-      << "The event_builder_count parameter was not specified "
-      << "in the fragment_receiver initialization PSet: \""
-      << fr_pset.to_string() << "\".";
-    return false;
-  }
   rt_priority_ = fr_pset.get<int>("rt_priority", 0);
   synchronous_sends_ = fr_pset.get<bool>("synchronous_sends", true);
 

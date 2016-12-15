@@ -46,7 +46,6 @@ public:
 private:
   void initializeEventStore(fhicl::ParameterSet pset);
 
-  int mpi_rank_;
   MPI_Comm local_group_comm_;
   std::string name_;
 
@@ -54,10 +53,6 @@ private:
   fhicl::ParameterSet previous_pset_;
 
   fhicl::ParameterSet data_pset_;
-  uint64_t max_fragment_size_words_;
-  size_t mpi_buffer_count_;
-  size_t first_data_sender_rank_;
-  size_t data_sender_count_;
   size_t expected_fragments_per_event_;
   size_t eod_fragments_received_;
   bool use_art_;

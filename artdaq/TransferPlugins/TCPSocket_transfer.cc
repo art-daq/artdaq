@@ -39,9 +39,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, sndbuf_(pset.get<size_t>("tcp_send_buffer_size", 1024))
 	, rcvbuf_(pset.get<size_t>("tcp_receive_buffer_size", 1024))
 	, state_(SocketState::Metadata)
-	, buffer_count_(pset.get<size_t>("buffer_count", 10))
-	, max_payload_lwrds_(pset.get<size_t>("max_fragment_size_words", 1024))
-	, frag(max_payload_lwrds_)
+	, frag(max_fragment_size_words_)
 	, buffer(frag.headerBeginBytes())
 	, offset(0)
 	, target_bytes(sizeof(MessHead))
@@ -136,8 +134,8 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(c
 	}
 	TRACE(12, "send_timeout_usec is %zu, currently unused. %d", send_timeout_usec, needToken);
 
-	//auto token = needToken ? -1 : 0;
-	//while (token != 0) token = getToken_();
+	auto token = needToken ? -1 : 0;
+	while (token != 0) token = getToken_();
 
 	//mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::sendFragment_: Determining write size";
 	uint32_t total_to_write_bytes = 0;
@@ -389,16 +387,16 @@ void artdaq::TCPSocketTransfer::listen_() {
 // source of that fragment as its return value.
 //
 // It is a precondition that a sources_sending() != 0.
-size_t artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout_usec)
+int artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout_usec)
 {
 	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: BEGIN";
-	size_t ret_rank = RECV_TIMEOUT;
+	int ret_rank = RECV_TIMEOUT;
 	if (fd_ == -1) {  // what if just listen_fd??? 
 		mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Receive socket not connected, returning RECV_TIMEOUT";
 		return RECV_TIMEOUT;
 	}
 	TRACE(7, "TCPSocketTransfer::recvFragment timeout_usec=%ld", timeout_usec);
-	//void* buff=alloca(max_payload_lwrds_*8);
+	//void* buff=alloca(max_fragment_size_words_*8);
 	uint8_t* buff;
 	size_t   byte_cnt = 0;
 	int      sts;
@@ -466,11 +464,11 @@ size_t artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t time
 					state_ = SocketState::Metadata;
 					target_bytes = sizeof(MessHead);
 					ret_rank = source_rank();
-					TRACE(9, "recvFragment done sts=%d src=%ld", sts, ret_rank);
+					TRACE(9, "recvFragment done sts=%d src=%d", sts, ret_rank);
 					mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done receiving fragment. Moving into output.";
 					frag.autoResize();
 					outfrag.swap(frag);
-					frag.reserve(max_payload_lwrds_);
+					frag.reserve(max_fragment_size_words_);
 					buffer = frag.headerBeginBytes();
 					done = true; // no more polls
 					break; // no more read of ready fds
@@ -495,7 +493,7 @@ size_t artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t time
 
 int artdaq::TCPSocketTransfer::getToken_()
 {
-	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::getToken_: Reading token from destination";
+	//mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::getToken_: Reading token from destination";
 	offset = 0;
 	bool done = false;
 	while (!done) {
@@ -509,12 +507,12 @@ int artdaq::TCPSocketTransfer::getToken_()
 
 void artdaq::TCPSocketTransfer::post_()
 {
-	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::post_: Sending token";
+	//mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::post_: Sending token";
 	if (fd_ == -1) return;
 
 	mh.message_type = MessHead::token_v0;
 
-	//write(fd_, &mha, sizeof(MessHead));
+	write(fd_, &mha, sizeof(MessHead));
 }
 
 void   artdaq::TCPSocketTransfer::stats_connect_()  // thread

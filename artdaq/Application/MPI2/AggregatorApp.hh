@@ -37,7 +37,7 @@ public:
   std::string unregister_monitor(std::string const& ) override;
 
 private:
-  int mpi_rank_;
+	int mpi_rank_;
   MPI_Comm local_group_comm_;
   std::string name_;
   std::unique_ptr<AggregatorCore> aggregator_ptr_;

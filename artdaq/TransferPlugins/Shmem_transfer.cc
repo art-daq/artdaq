@@ -29,7 +29,7 @@ namespace artdaq {
 		ShmemTransfer(fhicl::ParameterSet const&, Role);
 		~ShmemTransfer();
 
-		virtual size_t receiveFragment(artdaq::Fragment& fragment,
+		virtual int receiveFragment(artdaq::Fragment& fragment,
 			size_t receiveTimeout);
 
 		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
@@ -164,7 +164,7 @@ int artdaq::ShmemTransfer::delta_() {
 	return 1; // Write has buffers available
 }
 
-size_t artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
+int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 	size_t receiveTimeout) {
 
 	if (shm_ptr_) {

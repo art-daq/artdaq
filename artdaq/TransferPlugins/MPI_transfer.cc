@@ -55,7 +55,7 @@ artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Ro
   // Post all the buffers.
   for (size_t i = 0; i < buffer_count_; ++i) {
     // make sure all buffers are the correct size
-    payload_[i].resize(max_payload_size_);
+    payload_[i].resize(max_fragment_size_words_);
     // Note that nextSource_() is not used here: it is not necessary to
     // check whether a source is DONE, and we avoid violating the
     // precondition of nextSource_().
@@ -69,7 +69,7 @@ artdaq::MPITransfer::
   waitAll_();
 }
 
-size_t
+int
 artdaq::MPITransfer::
 receiveFragment(Fragment & output, size_t timeout_usec)
 {
@@ -178,9 +178,9 @@ receiveFragment(Fragment & output, size_t timeout_usec)
   output.swap(payload_[which]);
   TRACE( 7, "recvFragment after autoResize/swap seqID=%lu. "
 		 "Reset our buffer. max=%zu adr=%p"
-		 , output.sequenceID(), max_payload_size_, (void*)output.headerAddress() );
+		 , output.sequenceID(), max_fragment_size_words_, (void*)output.headerAddress() );
   // Reset our buffer.
-  Fragment tmp(max_payload_size_);
+  Fragment tmp(max_fragment_size_words_);
   TRACE( 7, "recvFragment before payload_[which].swap(tmp) adr=%p", (void*)tmp.headerAddress() );
   payload_[which].swap(tmp);
   TRACE( 7, "recvFragment after payload_[which].swap(tmp)" );
@@ -361,12 +361,12 @@ cancelAndRepost_(size_t src)
   }
 }
 
-size_t artdaq::MPITransfer::findAvailable()
+int artdaq::MPITransfer::findAvailable()
 {
-  size_t use_me = 0;
+	int use_me = 0;
   int flag;
   size_t loops=0;
-  TRACE(5, "findAvailable initial pos_=%zu", pos_);
+  TRACE(5, "findAvailable initial pos_=%d", pos_);
   mf::LogDebug("MPITransfer") << "findAvailable: initial pos_ = " << pos_;
   do {
     use_me = pos_;
@@ -377,7 +377,7 @@ size_t artdaq::MPITransfer::findAvailable()
   while (!flag && loops < buffer_count_);
   if(loops == buffer_count_) { return TransferInterface::RECV_TIMEOUT; }
   mf::LogDebug("MPITransfer") << "findAvailable returning " << use_me << " after " << loops << " iterations.";
-  TRACE(5, "findAvailable returning use_me=%zu loops=%zu", use_me, loops );
+  TRACE(5, "findAvailable returning use_me=%d loops=%zu", use_me, loops );
   // pos_ is pointing at the next slot to check
   // use_me is pointing at the slot to use
   return use_me;
@@ -401,12 +401,12 @@ artdaq::MPITransfer::
 sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 {
   TRACE(5, "copyFragmentTo timeout unused: %zu", send_timeout_usec);
-  if (frag.dataSize() > max_payload_size_) {
+  if (frag.dataSize() > max_fragment_size_words_) {
     throw cet::exception("Unimplemented")
 	  << "Currently unable to deal with overlarge fragment payload ("
 	  << frag.dataSize()
 	  << " words > "
-	  << max_payload_size_
+	  << max_fragment_size_words_
 	  << ").";
   }
 
@@ -416,7 +416,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 	force_async = true;
   }
   mf::LogDebug("MPITransfer") << "Finding available buffer";
-  size_t buffer_idx = findAvailable();
+  int buffer_idx = findAvailable();
   if(buffer_idx == TransferInterface::RECV_TIMEOUT) {
 	mf::LogWarning("MPITransfer") << "No buffers available! Returning RECV_TIMEOUT!";
 	return CopyStatus::kTimeout;
@@ -425,7 +425,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
   Fragment & curfrag = payload_[buffer_idx];
   curfrag = std::move(frag);
   mf::LogDebug("MPITransfer") << "Sending fragment from " << source_rank() << " to " << destination_rank() << " sequenceID " << curfrag.sequenceID() << " using buffer " << buffer_idx;
-  TRACE( 5, "sendFragTo before send src=%zu dest=%zu seqID=%lu found_idx=%zu"
+  TRACE( 5, "sendFragTo before send src=%d dest=%d seqID=%lu found_idx=%d"
 		 , source_rank() , destination_rank(), curfrag.sequenceID(), buffer_idx );
   if (! synchronous_sends_ || force_async) {
     // 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...

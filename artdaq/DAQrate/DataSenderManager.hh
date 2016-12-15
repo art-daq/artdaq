@@ -10,6 +10,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq {
   class DataSenderManager;
@@ -23,7 +24,7 @@ public:
 
   // Send the given Fragment. Return the rank of the destination to which
   // the Fragment was sent.
-  size_t sendFragment(Fragment &&);
+  int sendFragment(Fragment &&);
 
   // How many fragments have been sent using this DataSenderManager object?
   size_t count() const;
@@ -33,20 +34,20 @@ public:
 
 size_t destinationCount() const { return destinations_.size(); }
 
-  std::set<size_t> enabled_destinations() const { return enabled_destinations_; }
+  std::set<int> enabled_destinations() const { return enabled_destinations_; }
 private:
   // Send an EOF Fragment to the receiver at rank dest;
   // the EOF Fragment will report that numFragmentsSent
   // fragments have been sent before this one.
-  void sendEODFrag(size_t dest, size_t numFragmentsSent);
+  void sendEODFrag(int dest, size_t numFragmentsSent);
 
   // Calculate where the fragment with this sequenceID should go.
-size_t calcDest(Fragment::sequence_id_t) const;
+  int calcDest(Fragment::sequence_id_t) const;
 
 private:
 
-  std::map<size_t, std::unique_ptr<artdaq::TransferInterface>> destinations_;
-  std::set<size_t> enabled_destinations_;
+  std::map<int, std::unique_ptr<artdaq::TransferInterface>> destinations_;
+  std::set<int> enabled_destinations_;
 
   detail::FragCounter sent_frag_count_;
 

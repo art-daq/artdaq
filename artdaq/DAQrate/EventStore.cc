@@ -16,6 +16,7 @@
 #include "artdaq/DAQrate/detail/TriggerMessage.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracelib.h"
+#include "artdaq/DAQdata/Globals.hh"
 
 using namespace std;
 
@@ -26,12 +27,9 @@ namespace artdaq {
 	EventStore::EventStore(fhicl::ParameterSet pset,
 		size_t num_fragments_per_event,
 		run_id_t run,
-		int store_id,
 		int argc,
 		char * argv[],
-		ART_CMDLINE_FCN * reader,
-		MetricManager* metricMan) :
-		id_(store_id),
+		ART_CMDLINE_FCN * reader) :
 		num_fragments_per_event_(num_fragments_per_event),
 		max_queue_size_(pset.get<size_t>("event_queue_depth", 50)),
 		run_id_(run),
@@ -47,8 +45,7 @@ namespace artdaq {
 		highestSeqIDSeen_(0),
 		enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0)),
 		enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000)),
-		printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
-		metricMan_(metricMan)
+		printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 	{
 		initStatistics_();
 		setup_trigger_(pset.get<std::string>("trigger_address", "227.128.12.26"));
@@ -58,11 +55,8 @@ namespace artdaq {
 	EventStore::EventStore(fhicl::ParameterSet pset,
 		size_t num_fragments_per_event,
 		run_id_t run,
-		int store_id,
 		const std::string& configString,
-		ART_CFGSTRING_FCN * reader,
-		MetricManager* metricMan) :
-		id_(store_id),
+		ART_CFGSTRING_FCN * reader) :
 		num_fragments_per_event_(num_fragments_per_event),
 		max_queue_size_(pset.get<size_t>("event_queue_depth", 20)),
 		run_id_(run),
@@ -78,8 +72,7 @@ namespace artdaq {
 		highestSeqIDSeen_(0),
 		enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0)),
 		enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000)),
-		printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
-		metricMan_(metricMan)
+		printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 	{
 		initStatistics_();
 		setup_trigger_(pset.get<std::string>("trigger_address", "227.128.12.26"));
@@ -121,7 +114,7 @@ namespace artdaq {
 		}
 		Fragment::sequence_id_t sequence_id = ((pfrag->sequenceID() - (1 + lastFlushedSeqID_)) / seqIDModulus_) + 1;
 		TRACE(13, "EventStore::insert seq=%lu fragID=%d id=%d lastFlushed=%lu seqIDMod=%d seq=%lu"
-			, pfrag->sequenceID(), pfrag->fragmentID(), id_, lastFlushedSeqID_, seqIDModulus_, sequence_id);
+			, pfrag->sequenceID(), pfrag->fragmentID(), my_rank, lastFlushedSeqID_, seqIDModulus_, sequence_id);
 
 
 		// Find if the right event id is already known to events_ and, if so, where
@@ -274,18 +267,18 @@ namespace artdaq {
 			<< queue_.capacity()
 			<< ", queue size = "
 			<< queue_.size();
-		if (metricMan_) {
+		if (metricMan) {
 			double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-			metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
+			metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
 		}
 	}
 
 	void EventStore::startSubrun()
 	{
 		++subrun_id_;
-		if (metricMan_) {
+		if (metricMan) {
 			double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-			metricMan_->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
+			metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
 		}
 	}
 
@@ -295,11 +288,11 @@ namespace artdaq {
 		std::unique_ptr<artdaq::Fragment>
 			endOfRunFrag(new
 				Fragment(static_cast<size_t>
-				(ceil(sizeof(id_) /
+				(ceil(sizeof(my_rank) /
 					static_cast<double>(sizeof(Fragment::value_type))))));
 
 		endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
-		*endOfRunFrag->dataBegin() = id_;
+		*endOfRunFrag->dataBegin() = my_rank;
 		endOfRunEvent->insertFragment(std::move(endOfRunFrag));
 
 		return queue_.enqTimedWait(endOfRunEvent, enq_timeout_);
@@ -311,11 +304,11 @@ namespace artdaq {
 		std::unique_ptr<artdaq::Fragment>
 			endOfSubrunFrag(new
 				Fragment(static_cast<size_t>
-				(ceil(sizeof(id_) /
+				(ceil(sizeof(my_rank) /
 					static_cast<double>(sizeof(Fragment::value_type))))));
 
 		endOfSubrunFrag->setSystemType(Fragment::EndOfSubrunFragmentType);
-		*endOfSubrunFrag->dataBegin() = id_;
+		*endOfSubrunFrag->dataBegin() = my_rank;
 		endOfSubrunEvent->insertFragment(std::move(endOfSubrunFrag));
 
 		return queue_.enqTimedWait(endOfSubrunEvent, enq_timeout_);
@@ -351,13 +344,13 @@ namespace artdaq {
 		if (mqPtr.get() != 0) {
 			ostringstream oss;
 			oss << EVENT_RATE_STAT_KEY << "_" << setfill('0') << setw(4) << run_id_
-				<< "_" << setfill('0') << setw(4) << id_ << ".txt";
+				<< "_" << setfill('0') << setw(4) << my_rank << ".txt";
 			std::string filename = oss.str();
 			ofstream outStream(filename.c_str());
 			mqPtr->waitUntilAccumulatorsHaveBeenFlushed(3.0);
 			artdaq::MonitoredQuantity::Stats stats;
 			mqPtr->getStats(stats);
-			outStream << "EventStore rank " << id_ << ": events processed = "
+			outStream << "EventStore rank " << my_rank << ": events processed = "
 				<< stats.fullSampleCount << " at " << stats.fullSampleRate
 				<< " events/sec, data rate = "
 				<< (stats.fullValueRate * sizeof(RawDataType)
@@ -400,13 +393,13 @@ namespace artdaq {
 			ostringstream oss;
 			oss << INCOMPLETE_EVENT_STAT_KEY << "_" << setfill('0')
 				<< setw(4) << run_id_
-				<< "_" << setfill('0') << setw(4) << id_ << ".txt";
+				<< "_" << setfill('0') << setw(4) << my_rank << ".txt";
 			std::string filename = oss.str();
 			ofstream outStream(filename.c_str());
 			mqPtr->waitUntilAccumulatorsHaveBeenFlushed(3.0);
 			artdaq::MonitoredQuantity::Stats stats;
 			mqPtr->getStats(stats);
-			outStream << "EventStore rank " << id_ << ": fragments processed = "
+			outStream << "EventStore rank " << my_rank << ": fragments processed = "
 				<< stats.fullSampleCount << " at " << stats.fullSampleRate
 				<< " fragments/sec, average incomplete event count = "
 				<< stats.fullValueAverage << " duration = "
@@ -486,8 +479,8 @@ namespace artdaq {
 	void
 		EventStore::sendMetrics() const
 	{
-		if (metricMan_) {
-			metricMan_->sendMetric("Incomplete Event Count", events_.size(),
+		if (metricMan) {
+			metricMan->sendMetric("Incomplete Event Count", events_.size(),
 				"events", 1);
 		}
 	}

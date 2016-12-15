@@ -44,7 +44,7 @@ public:
 	// the source of that fragment as its return value.
 	// It is a precondition that a sources_sending() != 0.
 	// Returns -1 if tmo
-	size_t receiveFragment(Fragment &frag, size_t timeout_usec = 0);
+	int receiveFragment(Fragment &frag, size_t timeout_usec = 0);
 
 	// Send the given Fragment. Return the rank of the destination to which
 	// the Fragment was sent.
@@ -67,10 +67,7 @@ private:
 		Data
 	};
 	SocketState state_;
-
-	size_t const buffer_count_;
-	uint64_t const max_payload_lwrds_;
-
+	
 	Fragment      frag;
 	uint8_t *     buffer;
 	size_t       offset;

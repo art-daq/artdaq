@@ -33,7 +33,7 @@ public:
   ~MulticastTransfer() = default;
   MulticastTransfer(fhicl::ParameterSet const& ps, Role role);
 
-  virtual size_t receiveFragment(artdaq::Fragment& fragment,
+  virtual int receiveFragment(artdaq::Fragment& fragment,
 				   size_t receiveTimeout);
 
   virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
@@ -179,7 +179,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-size_t artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
+int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 						      size_t receiveTimeout) {
 
   assert(TransferInterface::role() == Role::kReceive);

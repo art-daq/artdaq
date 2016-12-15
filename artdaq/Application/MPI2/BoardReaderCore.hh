@@ -49,17 +49,12 @@ public:
 
 private:
   Commandable& parent_application_;
-  int mpi_rank_;
   MPI_Comm local_group_comm_;
   std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
   art::RunID run_id_;
   std::string name_;
 
   fhicl::ParameterSet data_pset_;
-  uint64_t max_fragment_size_words_;
-  size_t mpi_buffer_count_;
-  size_t first_evb_rank_;
-  size_t evb_count_;
   int rt_priority_;
   bool skip_seqId_test_;
   bool synchronous_sends_;

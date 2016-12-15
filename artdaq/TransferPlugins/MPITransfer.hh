@@ -44,6 +44,7 @@ namespace artdaq {
 	// Send the fragment to the specified destination.
 	virtual TransferInterface::CopyStatus copyFragment(Fragment& frag, size_t timeout_usec);
 	virtual TransferInterface::CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec);
+	virtual int receiveFragment(Fragment& frag, size_t timeout_usec);
   private:
 	enum class status_t { SENDING, PENDING, DONE };
 
@@ -54,16 +55,12 @@ namespace artdaq {
 	void cancelAndRepost_(size_t buf);
 
 	// Identify an available buffer.
-	size_t findAvailable();
+	int findAvailable();
 
 	TransferInterface::CopyStatus sendFragment(Fragment&& frag, size_t timeout_usec, bool force_async);
 
-	size_t receiveFragment(Fragment& frag, size_t timeout_usec);
-
 	int nextSource_();
 
-	size_t buffer_count_;
-	size_t max_payload_size_;
 	status_t src_status_; // Status of each sender.
 	size_t recvd_count_;
 	size_t expected_count_; // After EOD received: expected frags.
@@ -79,7 +76,7 @@ namespace artdaq {
 	bool synchronous_sends_;
 
 	Requests reqs_;
-	size_t pos_;
+	int pos_;
   };
 }
 

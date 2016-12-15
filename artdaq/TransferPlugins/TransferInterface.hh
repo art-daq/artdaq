@@ -13,8 +13,7 @@ namespace artdaq {
 
 	class TransferInterface {
 	public:
-		static const size_t RECV_TIMEOUT = 0xfedcba98;
-		static size_t my_rank;
+		static const int RECV_TIMEOUT = 0xfedcba98;
 
 		enum class Role { kSend, kReceive };
 
@@ -25,7 +24,7 @@ namespace artdaq {
 		TransferInterface(const TransferInterface&) = delete;
 		TransferInterface& operator=(const TransferInterface&) = delete;
 
-		virtual size_t receiveFragment(artdaq::Fragment& fragment,
+		virtual int receiveFragment(artdaq::Fragment& fragment,
 			size_t receiveTimeout) = 0;
 
 		// Copy fragment (maybe not reliable)
@@ -38,13 +37,13 @@ namespace artdaq {
 
 		std::string uniqueLabel() const { return unique_label_; }
 
-		size_t source_rank() const { return source_rank_; }
-		size_t destination_rank() const { return destination_rank_; }
+		int source_rank() const { return source_rank_; }
+		int destination_rank() const { return destination_rank_; }
 	private:
 		const Role role_;
 		
-		const size_t source_rank_;
-		const size_t destination_rank_;
+		const int source_rank_;
+		const int destination_rank_;
 		const std::string unique_label_;
 
 	protected:

@@ -57,14 +57,12 @@ namespace artdaq {
     // executed by the thread this EventStore will spawn.
     EventStore(fhicl::ParameterSet pset,
                size_t num_fragments_per_event, run_id_t run,
-               int store_id, int argc, char * argv[],
-               ART_CMDLINE_FCN * reader,
-               MetricManager* metricMan = nullptr);
+               int argc, char * argv[],
+               ART_CMDLINE_FCN * reader);
     EventStore(fhicl::ParameterSet pset,
                size_t num_fragments_per_event, run_id_t run,
-               int store_id, const std::string& configString,
-               ART_CFGSTRING_FCN * reader,
-	       MetricManager* metricMan = nullptr);
+               const std::string& configString,
+               ART_CFGSTRING_FCN * reader);
 
     ~EventStore();
 
@@ -118,7 +116,6 @@ namespace artdaq {
   private:
     // id_ is the unique identifier of this object; MPI programs will
     // use the MPI rank to fill in this value.
-    int const      id_;
     size_t  const  num_fragments_per_event_;
     size_t  const  max_queue_size_;
     run_id_t run_id_;
@@ -140,7 +137,6 @@ namespace artdaq {
     daqrate::seconds const enq_timeout_;
     size_t        enq_check_count_;
     bool const     printSummaryStats_;
-    MetricManager* metricMan_;
 
     void initStatistics_();
     void reportStatistics_();

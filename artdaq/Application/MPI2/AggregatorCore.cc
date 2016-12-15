@@ -10,6 +10,7 @@
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "cetlib/BasicPluginFactory.h"
 
@@ -60,21 +61,22 @@ namespace artdaq {
  */
  // TODO - make global queue size configurable
 artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, std::string name) :
-	mpi_rank_(mpi_rank), local_group_comm_(local_group_comm), name_(name),
+	local_group_comm_(local_group_comm), name_(name),
 	art_initialized_(false),
-	data_sender_count_(0), event_queue_(artdaq::getGlobalQueue(10)),
+	event_queue_(artdaq::getGlobalQueue(10)),
 	stop_requested_(false), local_pause_requested_(false),
 	processing_fragments_(false),
 	system_pause_requested_(false), previous_run_duration_(-1.0),
 	new_transfers_(0)
 {
 	mf::LogDebug(name_) << "Constructor";
-	TransferInterface::my_rank = mpi_rank;
 	stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
 	stats_helper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
 	stats_helper_.addMonitoredQuantityName(STORE_EVENT_WAIT_STAT_KEY);
 	stats_helper_.addMonitoredQuantityName(SHM_COPY_TIME_STAT_KEY);
 	stats_helper_.addMonitoredQuantityName(FILE_CHECK_TIME_STAT_KEY);
+	my_rank = mpi_rank;
+	metricMan = &metricMan_;
 }
 
 /**
@@ -114,44 +116,6 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 		mf::LogError(name_)
 			<< "Unable to find the aggregator parameters in the DAQ "
 			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
-		return false;
-	}
-
-	// determine the data receiver parameters
-	try {
-		max_fragment_size_words_ = daq_pset.get<uint64_t>("max_fragment_size_words");
-	}
-	catch (...) {
-		mf::LogError(name_)
-			<< "The max_fragment_size_words parameter was not specified "
-			<< "in the DAQ initialization PSet: \""
-			<< daq_pset.to_string() << "\".";
-		return false;
-	}
-	try { mpi_buffer_count_ = agg_pset.get<size_t>("mpi_buffer_count"); }
-	catch (...) {
-		mf::LogError(name_)
-			<< "The  mpi_buffer_count parameter was not specified "
-			<< "in the aggregator initialization PSet: \""
-			<< agg_pset.to_string() << "\".";
-		return false;
-	}
-	try {
-		first_data_sender_rank_ = agg_pset.get<size_t>("first_event_builder_rank");
-	}
-	catch (...) {
-		mf::LogError(name_)
-			<< "The first_event_builder_rank parameter was not specified "
-			<< "in the aggregator initialization PSet: \""
-			<< agg_pset.to_string() << "\".";
-		return false;
-	}
-	try { data_sender_count_ = agg_pset.get<size_t>("event_builder_count"); }
-	catch (...) {
-		mf::LogError(name_)
-			<< "The event_builder_count parameter was not specified "
-			<< "in the aggregator initialization PSet: \""
-			<< agg_pset.to_string() << "\".";
 		return false;
 	}
 	try {
@@ -199,14 +163,10 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 	}
 
 	if (!agtype_was_specified) {
-		if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_)) {
-			is_data_logger_ = true;
-		}
-		if (((size_t)mpi_rank_) == (first_data_sender_rank_ + data_sender_count_ + 1)) {
-			is_online_monitor_ = true;
-		}
+		throw cet::exception("ConfigurationException", "You must specify one of is_data_logger, is_online_monitor or is_dispatcher");
+		return false;
 	}
-	mf::LogDebug(name_) << "Rank " << mpi_rank_
+	mf::LogDebug(name_) << "Rank " << my_rank
 		<< ", is_data_logger  = " << is_data_logger_
 		<< ", is_online_monitor = " << is_online_monitor_
 		<< ", is_dispatcher = " << is_dispatcher_;
@@ -350,8 +310,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 		}
 		TRACE(36, "Creating EventStore and Starting art thread");
 		event_store_ptr_.reset(new artdaq::EventStore(agg_pset, desired_events_per_bunch, 1,
-			mpi_rank_, init_string_,
-			reader, &metricMan_));
+			init_string_, reader));
 		TRACE(36, "Done Creating EventStore");
 		event_store_ptr_->setSeqIDModulus(desired_events_per_bunch);
 		fhicl::ParameterSet tmp = pset;
@@ -463,14 +422,10 @@ size_t artdaq::AggregatorCore::process_fragments()
 {
 
 	processing_fragments_.store(true);
-	size_t true_data_sender_count = data_sender_count_;
-	if (is_online_monitor_ || is_dispatcher_) {
-		true_data_sender_count = 1;
-	}
 
 	size_t eodFragmentsReceived = 0;
 	bool process_fragments = true;
-	size_t senderSlot;
+	int senderSlot;
 	detail::FragCounter fragments_received;
 	detail::FragCounter fragments_sent;
 	artdaq::FragmentPtr endSubRunMsg(nullptr);
@@ -506,7 +461,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 		}
 		stats_helper_.addSample(INPUT_WAIT_STAT_KEY,
 			(artdaq::MonitoredQuantity::getCurrentTime() - startTime));
-		if (senderSlot == (size_t)MPI_ANY_SOURCE) {
+		if (senderSlot == MPI_ANY_SOURCE) {
 			if (endSubRunMsg != nullptr) {
 				mf::LogInfo(name_)
 					<< "There appears to be no more data to receive - ending the run.";
@@ -839,10 +794,15 @@ size_t artdaq::AggregatorCore::process_fragments()
 		   verify that we've also received every fragment that they have sent.  If
 		   all fragments are accounted for we can flush the EventStoreand exit out
 		   of this thread.*/
-		if (eodFragmentsReceived >= true_data_sender_count && endSubRunMsg != nullptr) {
+
+		size_t source_count = 0;
+		if (is_data_logger_) source_count = receiver_ptr_->enabled_sources().size();
+		else source_count = 1;
+
+		if (eodFragmentsReceived >= source_count && endSubRunMsg != nullptr) {
 			bool fragmentsOutstanding = false;
 			if (is_data_logger_) {
-				for (size_t i = 0; i < true_data_sender_count + first_data_sender_rank_; i++) {
+				for (auto& i : receiver_ptr_->enabled_sources()) {
 					if (fragments_received[i] != fragments_sent[i]) {
 						fragmentsOutstanding = true;
 						break;

@@ -1,6 +1,9 @@
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "trace.h"
+#include "artdaq/DAQdata/Globals.hh"
+
+#include <chrono>
 
 artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	: destinations_()
@@ -46,7 +49,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 	mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager. Sent " << count() << " fragments.";
 }
 
-size_t artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) const
+int artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) const
 {
 	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
 	auto index = sequence_id % enabled_destinations_.size();
@@ -60,7 +63,7 @@ size_t artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) 
 
 void
 artdaq::DataSenderManager::
-sendEODFrag(size_t dest, size_t nFragments)
+sendEODFrag(int dest, size_t nFragments)
 {
 	if (destinations_.count(dest)) {
 		destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(nFragments)));
@@ -68,20 +71,22 @@ sendEODFrag(size_t dest, size_t nFragments)
 	}
 }
 
-size_t
+int
 artdaq::DataSenderManager::
 sendFragment(Fragment && frag)
 {
 	// Precondition: Fragment must be complete and consistent (including
 	// header information).
+	auto start_time = std::chrono::steady_clock::now();
 	if (frag.type() == Fragment::EndOfDataFragmentType) {
 		throw cet::exception("LogicError")
 			<< "EOD fragments should not be sent on as received: "
 			<< "use sendEODFrag() instead.";
 	}
 	size_t seqID = frag.sequenceID();
+	size_t fragSize = frag.sizeBytes();
 	TRACE(13, "sendFragment start frag.fragmentHeader()=%p", (void*)(frag.headerBegin()));
-	size_t dest = 0;
+	int dest = 0;
 	if (broadcast_sends_) {
 		for (auto& bdest : enabled_destinations_) {
 			mf::LogDebug("DataSenderManager") << "Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
@@ -102,6 +107,12 @@ sendFragment(Fragment && frag)
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}
+	}
+	if (metricMan) {
+		auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
+		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 1);
+		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 1);
+		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 1);
 	}
 	mf::LogDebug("DataSenderManager") << "Done sending fragment " << seqID;
 	return dest;

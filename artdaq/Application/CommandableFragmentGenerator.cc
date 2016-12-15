@@ -8,11 +8,7 @@
 #include <limits>
 
 
-#ifdef CANVAS
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/Exception.h"
-#endif
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.h"
@@ -28,7 +24,6 @@
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	: mutex_()
-	, metricMan_(nullptr)
 	, listenForTriggers_(false)
 	, triggerport_(3001)
 	, trigger_addr_("227.128.12.26")
@@ -66,7 +61,6 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet &ps)
 	: mutex_()
-	, metricMan_(nullptr)
 	, listenForTriggers_(ps.get<bool>("triggers_enabled", false))
 	, triggerport_(ps.get<int>("trigger_port", 3001))
 	, trigger_addr_(ps.get<std::string>("trigger_address", "227.128.12.26"))
@@ -529,9 +523,9 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats()
 	}
 	dataBufferDepthBytes_ = acc;
 
-	if (metricMan_) {
-	  metricMan_->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
-	  metricMan_->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
+	if (metricMan) {
+	  metricMan->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
+	  metricMan->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
 	}
 	TRACE(4, "CFG::getDataBufferStats: frags=%i/%i, sz=%zd/%zd", dataBufferDepthFragments_.load(), maxDataBufferDepthFragments_, dataBufferDepthBytes_.load(), maxDataBufferDepthBytes_);
 }

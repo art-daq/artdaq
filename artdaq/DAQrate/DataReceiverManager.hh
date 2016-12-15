@@ -10,6 +10,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq {
   class DataReceiverManager;
@@ -25,9 +26,9 @@ public:
   // source of that fragment as its return value.
   //
   // It is a precondition that a sources_sending() != 0.
-  size_t recvFragment(Fragment & frag, size_t timeout_usec = 0);
+  int recvFragment(Fragment & frag, size_t timeout_usec = 0);
 
-  size_t calcSource();
+  int calcSource();
 
   // How many fragments have been received using this DataReceiverManager object?
   size_t count() const;
@@ -35,13 +36,13 @@ public:
   // How many fragments have been received from a particular destination.
   size_t slotCount(size_t rank) const;
 
-  std::set<size_t> enabled_sources() const { return enabled_sources_; }
+  std::set<int> enabled_sources() const { return enabled_sources_; }
 
 private:
 
-  std::map<size_t, std::unique_ptr<artdaq::TransferInterface>> sources_;
-  std::set<size_t> enabled_sources_;
-  size_t current_source_;
+  std::map<int, std::unique_ptr<artdaq::TransferInterface>> sources_;
+  std::set<int> enabled_sources_;
+  int current_source_;
 
   detail::FragCounter recv_frag_count_; // Number of frags received per source.
 };

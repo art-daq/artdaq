@@ -55,7 +55,6 @@ public:
   std::string unregister_monitor(std::string const& ); 
 
 private:
-  int mpi_rank_;
   MPI_Comm local_group_comm_;
   std::string name_;
   art::RunID run_id_;
@@ -63,10 +62,6 @@ private:
 
   fhicl::ParameterSet data_pset_;
   std::string init_string_;
-  uint64_t max_fragment_size_words_;
-  size_t mpi_buffer_count_;
-  size_t first_data_sender_rank_;
-  size_t data_sender_count_;
   size_t expected_events_per_bunch_;
   size_t inrun_recv_timeout_usec_;
   size_t endrun_recv_timeout_usec_;
