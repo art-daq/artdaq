@@ -102,19 +102,19 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer()
 // the Fragment was sent OR -1 if to none.
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment(Fragment &&frag, size_t send_timeout_usec, bool needToken)
 {
-	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::sendFragment begin";
+  TRACE(7, "TCPSocketTransfer::sendFragment begin");
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
 	iovec iov = { (void*)grab_ownership_frag.headerBegin(), grab_ownership_frag.sizeBytes() };
 	auto sts = sendFragment_(&iov, 1, send_timeout_usec, needToken);
 	while (needToken && sts != CopyStatus::kSuccess) {
-		mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::sendFragment: Timeout or Error sending fragment";
+	  TRACE(7,"TCPSocketTransfer::sendFragment: Timeout or Error sending fragment");
 		sts = sendFragment_(&iov, 1, send_timeout_usec, needToken);
 		usleep(1000);
 	}
 
-	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::sendFragment returning " 
-		<< (sts == TransferInterface::CopyStatus::kSuccess ? "kSuccess" : 
-		(sts == TransferInterface::CopyStatus::kTimeout ? "kTimeout" : "kErrorNotRequiringException"));
+	std::string result = (sts == TransferInterface::CopyStatus::kSuccess ? "kSuccess" : (sts == TransferInterface::CopyStatus::kTimeout ? "kTimeout" : "kErrorNotRequiringException"));
+
+    TRACE_(7, "TCPSocketTransfer::sendFragment returning " + result);
 	return sts;
 }
 
@@ -389,7 +389,7 @@ void artdaq::TCPSocketTransfer::listen_() {
 // It is a precondition that a sources_sending() != 0.
 int artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout_usec)
 {
-	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: BEGIN";
+  TRACE(7,"TCPSocketTransfer::receiveFragment: BEGIN");
 	int ret_rank = RECV_TIMEOUT;
 	if (fd_ == -1) {  // what if just listen_fd??? 
 		mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Receive socket not connected, returning RECV_TIMEOUT";
@@ -418,7 +418,7 @@ int artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout
 		int num_fds_ready = poll(&pollfd_s, 1, timeout_ms);
 		if (num_fds_ready <= 0) {
 			if (num_fds_ready == 0 && timeout_ms > 0)
-				mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: No data on receive socket, returning RECV_TIMEOUT";
+			  TRACE(7, "TCPSocketTransfer::receiveFragment: No data on receive socket, returning RECV_TIMEOUT");
 				return RECV_TIMEOUT;
 			break;
 		}
@@ -452,7 +452,7 @@ int artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout
 			// see if we're done (with this state)
 			sts = offset += sts;
 			if (sts == target_bytes) {
-				mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Target read bytes reached. Changing state";
+			  TRACE(7,"TCPSocketTransfer::receiveFragment: Target read bytes reached. Changing state");
 				offset = 0;
 				if (state_ == SocketState::Metadata) {
 					state_ = SocketState::Data;
@@ -465,7 +465,7 @@ int artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout
 					target_bytes = sizeof(MessHead);
 					ret_rank = source_rank();
 					TRACE(9, "recvFragment done sts=%d src=%d", sts, ret_rank);
-					mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done receiving fragment. Moving into output.";
+					TRACE(7,"TCPSocketTransfer::receiveFragment: Done receiving fragment. Moving into output.");
 					frag.autoResize();
 					outfrag.swap(frag);
 					frag.reserve(max_fragment_size_words_);
@@ -487,7 +487,7 @@ int artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout
 	//mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Posting new token";
 	if (ret_rank != RECV_TIMEOUT) post_();
 
-	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Returning " << ret_rank;
+	TRACE(7,"TCPSocketTransfer::receiveFragment: Returning %d", ret_rank);
 	return ret_rank;
 } // recvFragment
 

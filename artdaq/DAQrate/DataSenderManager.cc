@@ -89,7 +89,7 @@ sendFragment(Fragment && frag)
 	int dest = 0;
 	if (broadcast_sends_) {
 		for (auto& bdest : enabled_destinations_) {
-			mf::LogDebug("DataSenderManager") << "Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
+		  TRACE(5,"DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d (broadcast)",seqID,bdest);
 			// Gross, we have to copy.
 			Fragment fragCopy(frag);
 			auto sts = destinations_[bdest]->copyFragment(fragCopy); 
@@ -102,7 +102,7 @@ sendFragment(Fragment && frag)
 	else {
 		dest = calcDest(seqID);
 		if (destinations_.count(dest) && enabled_destinations_.count(dest)) {
-			mf::LogDebug("DataSenderManager") << "Sending fragment with seqId " << seqID << " to destination " << dest;
+		  TRACE(5,"DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d",seqID , dest);
 			destinations_[dest]->moveFragment(std::move(frag));
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
@@ -114,7 +114,7 @@ sendFragment(Fragment && frag)
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 1);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 1);
 	}
-	mf::LogDebug("DataSenderManager") << "Done sending fragment " << seqID;
+	TRACE(5,"DataSenderManager::sendFragment: Done sending fragment %zu", seqID);
 	return dest;
 }
 

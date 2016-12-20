@@ -56,7 +56,7 @@ int artdaq::DataReceiverManager::calcSource() {
 
 int artdaq::DataReceiverManager::recvFragment(Fragment& frag, size_t timeout_usec)
 {
-	mf::LogDebug("DataReceiverManager") << "recvFragment entered tmo=" << timeout_usec << " us, frag.sizeofdata=" << frag.size();
+  TRACE(5,"DataReceiverManager::recvFragment entered tmo=%zu us, frag.sizeofdata=%zu",timeout_usec,frag.size());
 	auto start_time = std::chrono::steady_clock::now();
 	current_source_ = calcSource();
 	auto ret = current_source_;
@@ -70,6 +70,6 @@ int artdaq::DataReceiverManager::recvFragment(Fragment& frag, size_t timeout_use
 		metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(current_source_), frag.size() * sizeof(RawDataType), "B", 1);
 		metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(current_source_), frag.size() * sizeof(RawDataType) / delta_t, "B/s", 1);
 	}
-	mf::LogDebug("DataReceiverManager") << "Done with recvFragment, ret=" << ret << ", current_source_=" << current_source_;
+	TRACE(5, "DataReceiverManager: Done with recvFragment, ret=%d, current_source_=%d",ret, current_source_);
 	return ret;
 }

@@ -620,11 +620,12 @@ size_t artdaq::AggregatorCore::process_fragments()
 				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 
 				if (new_transfers_ == 0) {
-
+				  // So as to not flood log files/viewers with messages...
+				  if(dispatcher_transfers_.size() > 0 && fragmentPtr->sequenceID() % 100 == 0) {
 					mf::LogDebug(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
 						static_cast<size_t>(fragmentPtr->type()) << " to " << dispatcher_transfers_.size()
 						<< " registered monitors";
-
+				  }
 					for (auto& transfer : dispatcher_transfers_) {
 						transfer->copyFragment(*fragmentPtr, 0);
 					}
