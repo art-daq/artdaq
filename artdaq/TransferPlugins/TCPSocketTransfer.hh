@@ -88,6 +88,8 @@ private:
 	std::thread      stats_connect_thread_;
 	std::condition_variable stopstatscv_;
 	std::mutex              stopstatscvm_; // protects 'stopcv'
+  
+  bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
 
 private: // methods
 	TransferInterface::CopyStatus sendFragment_(const void* buf, size_t bytes, size_t tmo, bool needToken);

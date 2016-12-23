@@ -10,7 +10,6 @@ source:
   module_type: RawInput
   waiting_time: 30 # waiting time, in seconds, for queue timeout
   resume_after_timeout: false
-  fragment_type_map: [[226, "ABC"]]
 }
 
 physics:
@@ -21,7 +20,7 @@ physics:
     {
       module_type: FragmentSniffer
       raw_label: "daq"
-      product_instance_name: "ABC"
+      product_instance_name: "Data"
       num_frags_per_event: @local::num_ds50_boards
       num_events_expected: @local::num_events
     }

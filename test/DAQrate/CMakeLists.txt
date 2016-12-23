@@ -5,20 +5,21 @@ if (EXISTS ${CPI_SOURCE})
   cet_test(cpi_t SOURCES ${CPI_SOURCE} LIBRARIES ${MPI_C_LIBRARIES})
 endif()
 
-# art_make_exec(NAME s_r_handles # NO_INSTALL -- comment out to install
-#   LIBRARIES
-#   artdaq_DAQrate
-#   artdaq_DAQdata
-#   )
+ art_make_exec(NAME s_r_transfer # NO_INSTALL -- comment out to install
+   LIBRARIES
+  artdaq_DAQrate
+   artdaq_DAQdata
+artdaq_TransferPlugins
+   )
 
 # This is an integration test that exercises SHandles and RHandles,
 # making sure they can communicate as expected.
 set(num_sending_ranks 2)
 set(total_ranks 5)
 # there will be (total_ranks - num_sending_ranks) receiving ranks
-cet_test(s_r_handles_t HANDBUILT
+cet_test(s_r_transfer_t HANDBUILT
   TEST_EXEC mpirun
-  TEST_ARGS -hosts localhost -np ${total_ranks} s_r_handles ${num_sending_ranks}
+  TEST_ARGS -hosts localhost -np ${total_ranks} s_r_transfer ${num_sending_ranks}
   )
 
 cet_test(daqrate_gen_test HANDBUILT

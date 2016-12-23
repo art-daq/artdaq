@@ -305,6 +305,9 @@ bool artdaq::EventBuilderCore::reinitialize(fhicl::ParameterSet const& pset)
 	mf::LogDebug(name_) << "reinitialize method called with DAQ "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\".";
+	event_store_ptr_.reset(nullptr);
+	art_initialized_ = false;
+	initialize(pset);
 	return true;
 }
 
@@ -317,30 +320,21 @@ size_t artdaq::EventBuilderCore::process_fragments()
 	detail::FragCounter fragments_sent;
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_pset_));
+	receiver_ptr_->start_threads();
 
 	MPI_Barrier(local_group_comm_);
 
 	mf::LogDebug(name_) << "Waiting for first fragment.";
 	artdaq::MonitoredQuantity::TIME_POINT_T startTime;
 	while (process_fragments) {
-		artdaq::FragmentPtr pfragment(new artdaq::Fragment);
-
 		size_t recvTimeout = inrun_recv_timeout_usec_;
 		if (stop_requested_.load()) { recvTimeout = endrun_recv_timeout_usec_; }
 		else if (pause_requested_.load()) { recvTimeout = pause_recv_timeout_usec_; }
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
-		senderSlot = receiver_ptr_->recvFragment(*pfragment, recvTimeout);
+		artdaq::FragmentPtr pfragment = receiver_ptr_->recvFragment(senderSlot, recvTimeout);
 		statsHelper_.addSample(INPUT_WAIT_STAT_KEY,
 			(artdaq::MonitoredQuantity::getCurrentTime() - startTime));
-		if (senderSlot == MPI_ANY_SOURCE) {
-			mf::LogInfo(name_)
-				<< "There appears to be no more data to receive - ending the run.";
-			event_store_ptr_->flushData();
-			flush_mutex_.unlock();
-			process_fragments = false;
-			continue;
-		}
-		else if (senderSlot == artdaq::TransferInterface::RECV_TIMEOUT) {
+		if (senderSlot == artdaq::TransferInterface::RECV_TIMEOUT) {
 			if (stop_requested_.load() &&
 				recvTimeout == endrun_recv_timeout_usec_) {
 				mf::LogWarning(name_)

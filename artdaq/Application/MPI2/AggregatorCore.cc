@@ -433,6 +433,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 	if (is_data_logger_) {
 		receiver_ptr_.reset(new artdaq::DataReceiverManager(data_pset_));
+		receiver_ptr_->start_threads();
 	}
 
 	mf::LogDebug(name_) << "Waiting for first fragment.";
@@ -447,7 +448,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
 		if (is_data_logger_) {
-			senderSlot = receiver_ptr_->recvFragment(*fragmentPtr, recvTimeout);
+		  fragmentPtr = receiver_ptr_->recvFragment(senderSlot, recvTimeout);
 		}
 		else if (is_online_monitor_) {
 			senderSlot = data_logger_transfer_->receiveFragment(*fragmentPtr, recvTimeout);

@@ -45,6 +45,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, target_bytes(sizeof(MessHead))
 	, stats_connect_stop_(false)
 	, stats_connect_thread_(std::bind(&TCPSocketTransfer::stats_connect_, this))
+	, timeoutMessageArmed_(true)
 {
 	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend");
 	auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
@@ -129,9 +130,11 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(c
 {
 	// check all connected??? -- currently just check fd!=-1
 	if (fd_ == -1) {
-		mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::sendFragment_: Send fd is not open. Returning kTimeout";
+	  if(timeoutMessageArmed_) { mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::sendFragment_: Send fd is not open. Returning kTimeout";
+		timeoutMessageArmed_ = false; }
 		return TransferInterface::CopyStatus::kTimeout;
 	}
+	timeoutMessageArmed_ = true;
 	TRACE(12, "send_timeout_usec is %zu, currently unused. %d", send_timeout_usec, needToken);
 
 	auto token = needToken ? -1 : 0;

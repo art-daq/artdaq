@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <atomic>
+#include <limits>
 
 namespace artdaq {
   namespace detail {
@@ -20,6 +21,7 @@ public:
   size_t nSlots() const;
   size_t count() const;
   size_t slotCount(size_t slot) const;
+  size_t minCount() const;
 
   size_t operator[](size_t slot) const { return slotCount(slot); }
 
@@ -84,6 +86,18 @@ artdaq::detail::FragCounter::
 slotCount(size_t slot) const
 {
   return receipts_.count(slot) ? receipts_.at(slot).load() : 0;
+}
+
+inline
+size_t
+artdaq::detail::FragCounter::
+minCount() const
+{
+  size_t min = std::numeric_limits<size_t>::max();
+  for(auto& it : receipts_) {
+	if(it.second < min) min = it.second;
+  }
+  return min;
 }
 
 #endif /* artdaq_DAQrate_detail_FragCounter_hh */

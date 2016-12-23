@@ -4,55 +4,80 @@
 #include <map>
 #include <set>
 #include <memory>
+#include <thread>
+#include <condition_variable>
 
 #include <fhiclcpp/fwd.h>
 
-#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Data/Fragments.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq {
-  class DataReceiverManager;
+	class DataReceiverManager;
 }
 
 class artdaq::DataReceiverManager {
 public:
 
-  DataReceiverManager(fhicl::ParameterSet);
-  ~DataReceiverManager();
+	DataReceiverManager(fhicl::ParameterSet);
+	~DataReceiverManager();
 
-  // recvFragment() puts the next received fragment in frag, with the
-  // source of that fragment as its return value.
-  //
-  // It is a precondition that a sources_sending() != 0.
-  int recvFragment(Fragment & frag, size_t timeout_usec = 0);
+	// recvFragment() puts the next received fragment in frag, with the
+	// source of that fragment as its return value.
+	//
+	// It is a precondition that a sources_sending() != 0.
+	FragmentPtr&& recvFragment(int& rank, size_t timeout_usec = 0);
 
-  int calcSource();
+	// How many fragments have been received using this DataReceiverManager object?
+	size_t count() const;
 
-  // How many fragments have been received using this DataReceiverManager object?
-  size_t count() const;
+	// How many fragments have been received from a particular destination.
+	size_t slotCount(size_t rank) const;
 
-  // How many fragments have been received from a particular destination.
-  size_t slotCount(size_t rank) const;
+	void start_threads();
 
-  std::set<int> enabled_sources() const { return enabled_sources_; }
+	std::set<int> enabled_sources() const { return enabled_sources_; }
 
 private:
+	struct SourceInfo {
+		FragmentPtr fragment;
+		std::thread thread;
+		std::string name;
+		fhicl::ParameterSet ps;
 
-  std::map<int, std::unique_ptr<artdaq::TransferInterface>> sources_;
-  std::set<int> enabled_sources_;
-  int current_source_;
+		SourceInfo(std::string n, fhicl::ParameterSet p) : fragment(new Fragment()), name(n), ps(p) {}
+		SourceInfo() {}
+	};
 
-  detail::FragCounter recv_frag_count_; // Number of frags received per source.
+	void runReceiver_(int);
+
+	std::atomic<bool> stop_requested_;
+
+	std::condition_variable fragment_requested_;
+	std::mutex req_mutex_;
+
+	std::condition_variable fragment_sent_;
+	std::mutex snt_mutex_;
+
+	std::map<int, SourceInfo> sources_;
+	std::set<int> enabled_sources_;
+	int current_source_;
+
+	detail::FragCounter recv_frag_count_; // Number of frags received per source.
+	size_t suppression_threshold_;
+
+	size_t receive_timeout_;
 };
+
 
 inline
 size_t
 artdaq::DataReceiverManager::
 count() const
 {
-  return recv_frag_count_.count();
+	return recv_frag_count_.count();
 }
 
 inline
@@ -60,6 +85,6 @@ size_t
 artdaq::DataReceiverManager::
 slotCount(size_t rank) const
 {
-  return recv_frag_count_.slotCount(rank);
+	return recv_frag_count_.slotCount(rank);
 }
 #endif //ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
