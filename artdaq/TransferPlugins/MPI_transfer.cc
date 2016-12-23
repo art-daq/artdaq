@@ -163,13 +163,13 @@ receiveFragment(Fragment & output, size_t timeout_usec)
     break;
   case MPI_ERR_IN_STATUS:
     MPI_Error_string(status.MPI_ERROR, err_buffer, &resultlen);
-    mf::LogError("MPITransfer_WaitError")
-      << "Waitany ERROR: " << err_buffer << "\n";
+    mf::LogError(uniqueLabel())
+      << "MPITransfer: Waitany ERROR: " << err_buffer << "\n";
     break;
   default:
     MPI_Error_string(wait_result, err_buffer, &resultlen);
-    mf::LogError("MPITransfer_WaitError")
-      << "Waitany ERROR: " << err_buffer << "\n";
+    mf::LogError(uniqueLabel())
+      << "MPITransfer: Waitany ERROR: " << err_buffer << "\n";
   }
   // The Fragment at index 'which' is now available.
   // Resize (down) to size to remove trailing garbage.
@@ -299,8 +299,8 @@ cancelReq_(size_t buf, bool blocking_wait)
           if (doneFlag) {break;}
         }
         if (! doneFlag) {
-          mf::LogError("MPITransfer")
-            << "Timeout waiting to cancel the request for MPI buffer "
+          mf::LogError(uniqueLabel())
+            << "MPITransfer::cancelReq_: Timeout waiting to cancel the request for MPI buffer "
             << buf;
         }
       }
@@ -367,7 +367,7 @@ int artdaq::MPITransfer::findAvailable()
   int flag;
   size_t loops=0;
   TRACE(5, "findAvailable initial pos_=%d", pos_);
-  mf::LogDebug("MPITransfer") << "findAvailable: initial pos_ = " << pos_;
+  mf::LogDebug(uniqueLabel()) << "MPITransfer::findAvailable: initial pos_ = " << pos_;
   do {
     use_me = pos_;
     MPI_Test(&reqs_[use_me], &flag, MPI_STATUS_IGNORE);
@@ -376,7 +376,7 @@ int artdaq::MPITransfer::findAvailable()
   }
   while (!flag && loops < buffer_count_);
   if(loops == buffer_count_) { return TransferInterface::RECV_TIMEOUT; }
-  mf::LogDebug("MPITransfer") << "findAvailable returning " << use_me << " after " << loops << " iterations.";
+  mf::LogDebug(uniqueLabel()) << "MPITransfer::findAvailable returning " << use_me << " after " << loops << " iterations.";
   TRACE(5, "findAvailable returning use_me=%d loops=%zu", use_me, loops );
   // pos_ is pointing at the next slot to check
   // use_me is pointing at the slot to use
@@ -410,26 +410,26 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 	  << ").";
   }
 
-  mf::LogDebug("MPITransfer") << "Checking whether to force async mode...";
+  mf::LogDebug(uniqueLabel()) << "MPITransfer::sendFragment: Checking whether to force async mode...";
   if (frag.type() == Fragment::EndOfDataFragmentType) {
-	mf::LogDebug("MPITransfer") << "EndOfDataFragment detected. Forcing async mode";
+	mf::LogDebug(uniqueLabel()) << "MPITransfer::sendFragment: EndOfDataFragment detected. Forcing async mode";
 	force_async = true;
   }
-  mf::LogDebug("MPITransfer") << "Finding available buffer";
+  mf::LogDebug(uniqueLabel()) << "MPITransfer::sendFragment: Finding available buffer";
   int buffer_idx = findAvailable();
   if(buffer_idx == TransferInterface::RECV_TIMEOUT) {
-	mf::LogWarning("MPITransfer") << "No buffers available! Returning RECV_TIMEOUT!";
+	mf::LogWarning(uniqueLabel()) << "MPITransfer::sendFragment: No buffers available! Returning RECV_TIMEOUT!";
 	return CopyStatus::kTimeout;
   }
-  mf::LogDebug("MPITransfer") << "Swapping in fragment to send to buffer " << buffer_idx;
+  mf::LogDebug(uniqueLabel()) << "MPITransfer::sendFragment: Swapping in fragment to send to buffer " << buffer_idx;
   Fragment & curfrag = payload_[buffer_idx];
   curfrag = std::move(frag);
-  mf::LogDebug("MPITransfer") << "Sending fragment from " << source_rank() << " to " << destination_rank() << " sequenceID " << curfrag.sequenceID() << " using buffer " << buffer_idx;
+  mf::LogDebug(uniqueLabel()) << "MPITransfer::sendFragment: Sending fragment from " << source_rank() << " to " << destination_rank() << " sequenceID " << curfrag.sequenceID() << " using buffer " << buffer_idx;
   TRACE( 5, "sendFragTo before send src=%d dest=%d seqID=%lu found_idx=%d"
 		 , source_rank() , destination_rank(), curfrag.sequenceID(), buffer_idx );
   if (! synchronous_sends_ || force_async) {
     // 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
-	mf::LogDebug("MPITransfer") << "Using MPI_Isend";
+	mf::LogDebug(uniqueLabel()) << "MPITransfer::sendFragment: Using MPI_Isend";
     MPI_Isend(&*curfrag.headerBegin(),
               curfrag.size() * sizeof(Fragment::value_type),
               MPI_BYTE,
@@ -444,7 +444,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
     // This change was made after we noticed that MPI buffering
     // downstream of RootMPIOutput was causing EventBuilder memory
     // usage to grow when using MPI_Send with MPICH 3.1.4 and 3.1.2a.
-	mf::LogDebug("MPITransfer") << "Using MPI_Ssend";
+	mf::LogDebug(uniqueLabel()) << "MPITransfer::sendFragment: Using MPI_Ssend";
     MPI_Ssend(&*curfrag.headerBegin(),
               curfrag.size() * sizeof(Fragment::value_type),
               MPI_BYTE,
@@ -452,7 +452,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
               MPITag::FINAL,
               MPI_COMM_WORLD );
   }
-  mf::LogDebug("MPITransfer") << "copyFragmentTo COMPLETE";
+  mf::LogDebug(uniqueLabel()) << "MPITransfer::sendFragment: COMPLETE";
   TRACE( 5, "sendFragTo COMPLETE" );
   
   {

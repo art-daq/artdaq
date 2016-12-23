@@ -42,12 +42,11 @@ public:
 
 private:
 	struct SourceInfo {
-		FragmentPtr fragment;
 		std::thread thread;
 		std::string name;
 		fhicl::ParameterSet ps;
 
-		SourceInfo(std::string n, fhicl::ParameterSet p) : fragment(new Fragment()), name(n), ps(p) {}
+		SourceInfo(std::string n, fhicl::ParameterSet p) : name(n), ps(p) {}
 		SourceInfo() {}
 	};
 
@@ -63,7 +62,9 @@ private:
 
 	std::map<int, SourceInfo> sources_;
 	std::set<int> enabled_sources_;
+
 	int current_source_;
+    FragmentPtr current_fragment_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
 	size_t suppression_threshold_;
