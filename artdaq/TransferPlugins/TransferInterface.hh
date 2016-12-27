@@ -23,6 +23,7 @@ namespace artdaq {
 
 		TransferInterface(const TransferInterface&) = delete;
 		TransferInterface& operator=(const TransferInterface&) = delete;
+		virtual ~TransferInterface() = default;
 
 		virtual int receiveFragment(artdaq::Fragment& fragment,
 			size_t receiveTimeout) = 0;

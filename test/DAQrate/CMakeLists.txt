@@ -10,12 +10,14 @@ endif()
   artdaq_DAQrate
    artdaq_DAQdata
 artdaq_TransferPlugins
+  ${FHICLCPP}
    )
  art_make_exec(NAME s_r_transfer_shmem # NO_INSTALL -- comment out to install
    LIBRARIES
   artdaq_DAQrate
    artdaq_DAQdata
 artdaq_TransferPlugins
+  ${FHICLCPP}
    )
 
 # This is an integration test that exercises SHandles and RHandles,
