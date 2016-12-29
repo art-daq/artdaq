@@ -10,6 +10,7 @@ SOURCE
 transfer_driver_mpi.cc
 TransferTest.cc
  LIBRARIES
+  artdaq_Application # needed for messagefacility
   artdaq_DAQrate
    artdaq_DAQdata
 artdaq_TransferPlugins
@@ -20,6 +21,7 @@ SOURCE
 transfer_driver.cc
 TransferTest.cc
    LIBRARIES
+  artdaq_Application # needed for messagefacility
   artdaq_DAQrate
    artdaq_DAQdata
 artdaq_TransferPlugins
@@ -30,7 +32,7 @@ artdaq_TransferPlugins
 # making sure they can communicate as expected.
 cet_test(transfer_driver_t HANDBUILT
   TEST_EXEC mpirun
-  TEST_ARGS -hosts localhost -np ${total_ranks} transfer_driver_mpi transfer_driver_mpi.fcl
+  TEST_ARGS -hosts localhost -np 5 transfer_driver_mpi transfer_driver_mpi.fcl
   DATAFILES transfer_driver_mpi.fcl
   )
 

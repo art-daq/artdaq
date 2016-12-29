@@ -8,7 +8,8 @@
 artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	: stop_requested_(false)
 	, fragment_ready_(0)
-	, sources_()
+	, source_threads_()
+	, source_plugins_()
 	, enabled_sources_()
 	, current_source_(-1)
 	, current_fragment_(new Fragment())
@@ -32,7 +33,7 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 		try {
 			auto ss = std::stoi(s.substr(1));
 			if (enabled_srcs_empty) enabled_sources_.insert(ss);
-			sources_[ss] = SourceInfo(s, srcs);
+			source_plugins_[ss] = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s, TransferInterface::Role::kReceive));
 		}
 		catch (std::invalid_argument) {
 			TRACE(3, "Invalid source specification: " + s);
@@ -52,8 +53,8 @@ artdaq::DataReceiverManager::~DataReceiverManager()
 	fragment_requested_.notify_all();
 
 	TRACE(5, "~DataReceiverManager: Joining all threads");
-	for (auto& s : sources_) {
-		auto& thread = s.second.thread;
+	for (auto& s : source_threads_) {
+		auto& thread = s.second;
 		if (thread.joinable()) thread.join();
 	}
 	TRACE(5, "~DataReceiverManager: DONE");
@@ -61,11 +62,10 @@ artdaq::DataReceiverManager::~DataReceiverManager()
 
 void artdaq::DataReceiverManager::start_threads()
 {
-	for (auto& source : sources_) {
+	for (auto& source : source_plugins_) {
 		auto& rank = source.first;
-		auto& info = source.second;
 		if (enabled_sources_.count(rank)) {
-			info.thread = std::thread(&DataReceiverManager::runReceiver_, this, rank);
+			source_threads_[rank] = std::thread(&DataReceiverManager::runReceiver_, this, rank);
 		}
 	}
 }
@@ -106,10 +106,6 @@ artdaq::FragmentPtr artdaq::DataReceiverManager::recvFragment(int& rank, size_t 
 
 void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
-	auto& info = sources_[source_rank];
-	TRACE(5, "DataReceiverManager::runReceiver_: Seting up receiver with rank %d and name " + info.name, source_rank);
-	std::unique_ptr<artdaq::TransferInterface> theSource(MakeTransferPlugin(info.ps, info.name, TransferInterface::Role::kReceive));
-
 	while (!stop_requested_ && enabled_sources_.count(source_rank)) {
 		TRACE(5, "DataReceiverManager::runReceiver_: Begin loop");
 		{
@@ -124,13 +120,15 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		auto start_time = std::chrono::steady_clock::now();
 		TRACE(5, "DataRecevierManager::runReceiver_: Calling receiveFragment");
 		auto fragment = std::unique_ptr<Fragment>(new Fragment());
-		auto ret = theSource->receiveFragment(*fragment, receive_timeout_);
+		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
 		TRACE(5, "DataReceiverManager::runReceiver_: Done with receiveFragment, ret=%d (should be %d)", ret, source_rank);
 
 		if (ret != source_rank) continue; // Receive timeout or other oddness
 
 		recv_frag_count_.incSlot(source_rank);
 		recv_frag_size_.incSlot(source_rank, fragment->size() * sizeof(RawDataType));
+
+		bool endOfData = fragment->type() == artdaq::Fragment::EndOfDataFragmentType;
 
 		if (metricMan && recv_frag_count_.slotCount(source_rank) % 100 == 0) {
 			TRACE(5, "DataReceiverManager::runReceiver_: Sending receive stats");
@@ -158,5 +156,9 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		current_source_ = source_rank;
 		current_fragment_ = std::move(fragment);
 		fragment_sent_.notify_all();
+
+		if (endOfData) {
+			return;
+		}
 	}
 }

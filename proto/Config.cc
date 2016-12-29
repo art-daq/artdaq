@@ -3,6 +3,8 @@
 #include "artdaq/DAQrate/Perf.hh"
 #include "artdaq/DAQrate/infoFilename.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include <fhiclcpp/ParameterSet.h>
+#include <fhiclcpp/make_ParameterSet.h>
 
 #include <cstring>
 #include <iostream>
@@ -61,7 +63,7 @@ static std::string getProcessorName()
 // remember rank starts at zero
 //run_time_(getArgRuntime(argc,argv)),
 
-Config::Config(int rank, int total_procs, int argc, char * argv[]):
+Config::Config(int rank, int total_procs,int buffer_count, size_t max_payload_size, int argc, char * argv[]):
   rank_(rank),
   total_procs_(total_procs),
 
@@ -75,6 +77,9 @@ Config::Config(int rank, int total_procs, int argc, char * argv[]):
 
   event_queue_size_(getArgQueueSize(argc, argv)),
   run_(getArgRun(argc, argv)),
+
+	buffer_count_(buffer_count),
+	max_payload_size_(max_payload_size),
 
   type_((rank_ < detectors_) ? TaskDetector : ((rank_ < (detectors_ + sources_)) ? TaskSource : TaskSink)),
   offset_(rank_ - ((type_ == TaskDetector) ? detector_start_ : (type_ == TaskSource) ? source_start_ : sink_start_)),
@@ -182,4 +187,33 @@ void Config::print(std::ostream & ost) const
       << offset_ << " "
       << node_name_ << " "
       << PerfGetStartTime();
+}
+
+fhicl::ParameterSet Config::makeParameterSet() const
+{
+	std::stringstream ss;
+	if (type_ != TaskDetector) {
+		ss << "sources: {";
+		int count = type_ == TaskSource ? detectors_ : sources_;
+		int start = type_ == TaskSource ? detector_start_ : source_start_;
+		for (int ii = 0; ii < count; ++ii) {
+			ss << "s" << ii + start << ": { transferPluginType: MPI source_rank: " << ii + start << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << "}";
+		}
+
+		ss << "}";
+	}
+	if (type_ != TaskSink) {
+		ss << " destinations: {";
+		int count = type_ == TaskDetector ? sources_ : sinks_;
+		int start = type_ == TaskDetector ? source_start_ : sink_start_;
+		for (int ii = 0; ii < count; ++ii) {
+			ss << "d" << ii + start << ": { transferPluginType: MPI destination_rank: " << ii + start << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << "}";
+		}
+
+		ss << "}";
+	}
+
+	fhicl::ParameterSet ps;
+	fhicl::make_ParameterSet(ss.str(), ps);
+	return ps;
 }

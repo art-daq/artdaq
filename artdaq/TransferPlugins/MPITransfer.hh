@@ -1,26 +1,11 @@
 #ifndef ARTDAQ_TRANSFERPLUGINS_MPITRANSFER_HH
 #define ARTDAQ_TRANSFERPLUGINS_MPITRANSFER_HH
 
-#include <algorithm>
 #include <vector>
 
-#include "canvas/Utilities/Exception.h"
-#include "cetlib/exception.h"
-#include "cetlib/container_algorithms.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Data/Fragments.hh"
-
-#include "artdaq/DAQrate/MPITag.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "artdaq/DAQdata/Debug.hh"
-#include "artdaq/DAQrate/Utils.hh"
-
+#include "artdaq-core/Data/Fragments.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-
-#define TRACE_NAME "MPI_Transfer"
-#include "trace.h"		// TRACE
 
 /*
   Protocol: want to do a send for each request object, then wait for for
@@ -33,51 +18,45 @@
 
 namespace artdaq {
 
-  class MPITransfer : public TransferInterface {
-  public:
+	class MPITransfer : public TransferInterface {
+	public:
+		MPITransfer(fhicl::ParameterSet, TransferInterface::Role);
+		~MPITransfer();
 
-	typedef std::vector<MPI_Request> Requests;
+		// Send the fragment to the specified destination.
+		virtual TransferInterface::CopyStatus copyFragment(Fragment& frag, size_t timeout_usec);
+		virtual TransferInterface::CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec);
+		virtual int receiveFragment(Fragment& frag, size_t timeout_usec);
+	private:
+		enum class status_t { SENDING, PENDING, DONE };
 
-	MPITransfer(fhicl::ParameterSet, TransferInterface::Role);
-	~MPITransfer();
+		void cancelReq_(size_t buf, bool blocking_wait = true);
+		void post_(size_t buf);
 
-	// Send the fragment to the specified destination.
-	virtual TransferInterface::CopyStatus copyFragment(Fragment& frag, size_t timeout_usec);
-	virtual TransferInterface::CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec);
-	virtual int receiveFragment(Fragment& frag, size_t timeout_usec);
-  private:
-	enum class status_t { SENDING, PENDING, DONE };
+		// Identify an available buffer.
+		int findAvailable();
 
-	void waitAll_();
+		TransferInterface::CopyStatus sendFragment(Fragment&& frag, size_t timeout_usec, bool force_async);
 
-	void cancelReq_(size_t buf, bool blocking_wait = true);
-	void post_(size_t buf);
-	void cancelAndRepost_(size_t buf);
+		int nextSource_();
 
-	// Identify an available buffer.
-	int findAvailable();
+		status_t src_status_; // Status of each sender.
+		size_t recvd_count_;
+		size_t expected_count_; // After EOD received: expected frags.
 
-	TransferInterface::CopyStatus sendFragment(Fragment&& frag, size_t timeout_usec, bool force_async);
+		Fragments payload_;
 
-	int nextSource_();
+#if USE_TESTSOME
+		int saved_wait_result_;
+		std::vector<int> ready_indices_;
+		std::vector<MPI_Status> ready_statuses_;
+#endif
 
-	status_t src_status_; // Status of each sender.
-	size_t recvd_count_;
-	size_t expected_count_; // After EOD received: expected frags.
+		bool synchronous_sends_;
 
-	std::vector<int> req_sources_; // Source for each request.
-
-	Fragments payload_;
-
-	int saved_wait_result_;
-	std::vector<int> ready_indices_;
-	std::vector<MPI_Status> ready_statuses_;
-
-	bool synchronous_sends_;
-
-	Requests reqs_;
-	int pos_;
-  };
+		std::vector<MPI_Request> reqs_;
+		int pos_;
+	};
 }
 
 #endif //define ARTDAQ_TRANSFERPLUGINS_MPITRANSFER_HH

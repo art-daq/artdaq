@@ -60,21 +60,21 @@ art_make_exec(perfdump
   artdaq_DAQrate
   )
 
-# art_make_exec(NAME builder
-#   SOURCE
-#   builder.cc
-#   Config.cc
-#   LIBRARIES
-#   art_Framework_Art
-#   artdaq_DAQrate
-#   artdaq_DAQdata
-#   artdaq-core_Utilities
-#   artdaq-core_Generators
-#   ${FHICLCPP}
-#   ${CETLIB}
-#   ${Boost_PROGRAM_OPTIONS_LIBRARY}
-#   ${MPI_C_LIBRARIES}
-#   )
+ art_make_exec(NAME builder
+   SOURCE
+   builder.cc
+   Config.cc
+   LIBRARIES
+   art_Framework_Art
+   artdaq_DAQrate
+   artdaq_DAQdata
+   artdaq-core_Utilities
+   artdaq-core_Generators
+   ${FHICLCPP}
+   ${CETLIB}
+   ${Boost_PROGRAM_OPTIONS_LIBRARY}
+   ${MPI_C_LIBRARIES}
+   )
 
 cet_test(config_t
   SOURCES

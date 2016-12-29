@@ -45,7 +45,7 @@ size_t artdaq::TransferTest::do_sending()
 		frags[ii%buffer_count_] = artdaq::Fragment(); // replace/renew
 		TRACE(9, "sender rank %d frag replaced", my_rank);
 	}
-
+	
 	return totalSize;
 } // do_sending
 
@@ -57,13 +57,15 @@ size_t artdaq::TransferTest::do_receiving()
 	int counter = receives_each_receiver_;
 	size_t totalSize = 0;
 	bool first = true;
-	while (counter > 0) {
-		TRACE(7, "Counter is %d, calling recvFragment", counter);
+	int activeSenders = senders_;
+	while (activeSenders > 0) {
+		TRACE(7, "TransferTest::do_receiving: Counter is %d, calling recvFragment", counter);
 		int senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
 		auto ignoreFragPtr = receiver.recvFragment(senderSlot);
 		if (senderSlot != artdaq::TransferInterface::RECV_TIMEOUT) {
 			if (ignoreFragPtr->type() == artdaq::Fragment::EndOfDataFragmentType) {
 				std::cout << "Receiver " << my_rank << " received EndOfData Fragment from Sender " << senderSlot << std::endl;
+				activeSenders--;
 			}
 			else {
 				if (first) {
@@ -71,12 +73,13 @@ size_t artdaq::TransferTest::do_receiving()
 					first = false;
 				}
 				counter--;
-				std::cout << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter << " with seqID " << ignoreFragPtr->sequenceID() << " from Sender " << senderSlot << std::endl;
+				std::cout << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter << " with seqID " << ignoreFragPtr->sequenceID() << " from Sender " << senderSlot << " (Expecting " << counter << " more)" << std::endl;
 				totalSize += ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
 			}
 		}
-		TRACE(7, "Recv Loop end, counter is %d", counter);
+		TRACE(7, "TransferTest::do_receiving: Recv Loop end, counter is %d", counter);
 	}
+	
 	return totalSize;
 }
 

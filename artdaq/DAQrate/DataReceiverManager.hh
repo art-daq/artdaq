@@ -44,15 +44,6 @@ public:
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
 private:
-	struct SourceInfo {
-		std::thread thread;
-		std::string name;
-		fhicl::ParameterSet ps;
-
-		SourceInfo(std::string n, fhicl::ParameterSet p) : name(n), ps(p) {}
-		SourceInfo() {}
-	};
-
 	void runReceiver_(int);
 
 	std::atomic<bool> stop_requested_;
@@ -67,7 +58,8 @@ private:
 	std::condition_variable fragment_sent_;
 	std::mutex snt_mutex_;
 
-	std::map<int, SourceInfo> sources_;
+	std::map<int, std::thread> source_threads_;
+	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
 
 	int current_source_;

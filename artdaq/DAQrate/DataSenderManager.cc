@@ -89,10 +89,10 @@ sendFragment(Fragment && frag)
 	int dest = 0;
 	if (broadcast_sends_) {
 		for (auto& bdest : enabled_destinations_) {
-		  TRACE(5,"DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d (broadcast)",seqID,bdest);
+			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d (broadcast)", seqID, bdest);
 			// Gross, we have to copy.
 			Fragment fragCopy(frag);
-			auto sts = destinations_[bdest]->copyFragment(fragCopy); 
+			auto sts = destinations_[bdest]->copyFragment(fragCopy);
 			while (sts == TransferInterface::CopyStatus::kTimeout) {
 				sts = destinations_[bdest]->copyFragment(fragCopy);
 			}
@@ -102,8 +102,16 @@ sendFragment(Fragment && frag)
 	else {
 		dest = calcDest(seqID);
 		if (destinations_.count(dest) && enabled_destinations_.count(dest)) {
-		  TRACE(5,"DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d",seqID , dest);
-			destinations_[dest]->moveFragment(std::move(frag));
+			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
+			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
+			bool first = true;
+			while (sts != TransferInterface::CopyStatus::kSuccess) {
+				sts = destinations_[dest]->moveFragment(std::move(frag));
+				if (sts != TransferInterface::CopyStatus::kSuccess && first) {
+					mf::LogError("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to " << dest << " failed! Retrying...";
+					first = false;
+				}
+			}
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}
@@ -114,7 +122,7 @@ sendFragment(Fragment && frag)
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 1);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 1);
 	}
-	TRACE(5,"DataSenderManager::sendFragment: Done sending fragment %zu", seqID);
+	TRACE(5, "DataSenderManager::sendFragment: Done sending fragment %zu", seqID);
 	return dest;
 }
 

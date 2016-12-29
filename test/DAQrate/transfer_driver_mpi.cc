@@ -1,15 +1,21 @@
 
+#define MPI_MODE 1
+
 #include "test/DAQrate/TransferTest.hh"
 #include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/Application/configureMessageFacility.hh"
 #include <fhiclcpp/make_ParameterSet.h>
 #include <mpi.h>
 #include <cstdlib>
 
+#include <sys/types.h>
+#include <unistd.h>
+
 int main(int argc, char * argv[])
 {
-  TRACE_CNTL("reset");
-  TRACE( 10, "s_r_handles main enter" );
+	artdaq::configureMessageFacility("transfer_driver_mpi");
+  TRACE(TLVL_TRACE, "s_r_handles main enter" );
   char envvar[] = "MV2_ENABLE_AFFINITY=0";
   assert(putenv(envvar) == 0);
   auto const requested_threading = MPI_THREAD_SERIALIZED;
@@ -18,6 +24,7 @@ int main(int argc, char * argv[])
   assert(rc == 0);
   assert(requested_threading == provided_threading);
   rc = MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
   assert(rc == 0);
 
   if (my_rank == 0) {
@@ -31,18 +38,25 @@ int main(int argc, char * argv[])
     std::cerr << argv[0] << " requires 1 argument, " << argc - 1 << " provided\n";
     return 1;
   }
-  
-  cet::filepath_maker maker;
+
+  cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
   fhicl::ParameterSet ps;
 
   auto fhicl = std::string(argv[1]);
-  make_ParameterSet(fhicl, maker, ps);
+  make_ParameterSet(fhicl, lookup_policy, ps);
 
   artdaq::TransferTest theTest(ps);
+
+  //std::cout << "Entering infinite loop to connect debugger. PID=" << std::to_string(getpid()) << std::endl;
+  // volatile bool loopForever = true;
+  // while (loopForever) {
+  // 	  usleep(1000);
+  // }
+
   theTest.runTest();
 
   rc = MPI_Finalize();
   assert(rc == 0);
-  TRACE( 11, "s_r_handles main return" );
+  TRACE(TLVL_TRACE, "s_r_handles main return" );
   return 0;
 }

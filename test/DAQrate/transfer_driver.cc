@@ -22,11 +22,11 @@ int main(int argc, char * argv[])
 
 	my_rank = atoi(argv[1]);
 
-	cet::filepath_maker maker;
+	cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
 	fhicl::ParameterSet ps;
 
 	auto fhicl = std::string(argv[2]);
-	make_ParameterSet(fhicl, maker, ps);
+	make_ParameterSet(fhicl, lookup_policy, ps);
 
 	artdaq::TransferTest theTest(ps);
 	theTest.runTest();
