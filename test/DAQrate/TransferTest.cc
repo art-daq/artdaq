@@ -107,15 +107,20 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 		}
 	}
 
+	std::string hostmap = "";
+	if(psi.has_key("hostmap")) {
+	  hostmap = " host_map: @local::hostmap";
+	}
+
 	std::stringstream ss;
 	ss << psi.to_string();
 	ss << " sources: {";
 	for (int ii = 0; ii < senders_; ++ii) {
-		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << "}";
+	  ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << hostmap << "}";
 	}
 	ss << "} destinations: {";
 	for (int jj = senders_; jj < senders_ + receivers_; ++jj) {
-		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << "}";
+	  ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << hostmap << "}";
 	}
 	ss << "}";
 

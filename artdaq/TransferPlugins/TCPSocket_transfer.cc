@@ -338,52 +338,64 @@ void artdaq::TCPSocketTransfer::listen_() {
 		return;
 	}
 
-	int sts;
-	sockaddr_un  un;
-	socklen_t    arglen = sizeof(un);
-	int          fd;
-	mf::LogDebug(uniqueLabel()) << "Calling accept";
-	fd = accept(listen_fd_, (sockaddr *)&un, &arglen);
-	mf::LogDebug(uniqueLabel()) << "Done with accept";
-
-		mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Reading connect message";
+   int res;
 	timeval tv = { 2,0 };   // maybe increase of some global "debugging" flag set???
-	socklen_t lenlen = sizeof(tv);
-	/*sts=*/setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen); // see man 7 socket.
-	MessHead mh;
-	uint64_t mark_us = gettimeofday_us();
-	sts = read(fd, &mh, sizeof(mh));
-	uint64_t delta_us = gettimeofday_us() - mark_us; 
-	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Read of connect message took " << delta_us << " microseconds.";
-	TRACE(10, "do_connect read of connect msg (after accept) took %lu microseconds", delta_us); // imperically, read take a couple hundred usecs.
-	if (sts != sizeof(mh)) {
-		mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Wrong message header length received!";
-		TRACE(0, "do_connect_ problem with connect msg sts(%d)!=sizeof(mh)(%ld)", sts, sizeof(mh));
-		close(fd);
-		return;
-	}
+   fd_set rfds;
+   FD_ZERO(&rfds);
+   FD_SET(listen_fd_, &rfds);
 
-	// check for "magic" and valid source_id(aka rank)
-	mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
-	if (ntohl(mh.conn_magic) != CONN_MAGIC || mh.source_id != source_rank()) {
-		mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Wrong magic bytes in header!";
-		close(fd);
-		return;
-	}
-	if (fd_ != -1) {
-		// close previous  dec connect_count_
-		close(fd_);
-	}
+   res = select(listen_fd_ + 1, &rfds, (fd_set *) 0, (fd_set *) 0, &tv);
+   if(res > 0) 
+     {
+       int sts;
+       sockaddr_un  un;
+       socklen_t    arglen = sizeof(un);
+       int          fd;
+       mf::LogDebug(uniqueLabel()) << "Calling accept";
+       fd = accept(listen_fd_, (sockaddr *)&un, &arglen);
+       mf::LogDebug(uniqueLabel()) << "Done with accept";
 
-	// now add (new) connection
-	fd_ = fd;
-	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: New fd is " << fd_;
+       mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Reading connect message";
+       socklen_t lenlen = sizeof(tv);
+       /*sts=*/setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen); // see man 7 socket.
+       MessHead mh;
+       uint64_t mark_us = gettimeofday_us();
+       sts = read(fd, &mh, sizeof(mh));
+       uint64_t delta_us = gettimeofday_us() - mark_us; 
+       mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Read of connect message took " << delta_us << " microseconds.";
+       TRACE(10, "do_connect read of connect msg (after accept) took %lu microseconds", delta_us); // imperically, read take a couple hundred usecs.
+       if (sts != sizeof(mh)) {
+	 mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Wrong message header length received!";
+	 TRACE(0, "do_connect_ problem with connect msg sts(%d)!=sizeof(mh)(%ld)", sts, sizeof(mh));
+	 close(fd);
+	 return;
+       }
 
-	for (size_t ii = 0; ii < buffer_count_; ++ii) {
-		post_();
-	}
+       // check for "magic" and valid source_id(aka rank)
+       mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
+       if (ntohl(mh.conn_magic) != CONN_MAGIC || mh.source_id != source_rank()) {
+	 mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Wrong magic bytes in header!";
+	 close(fd);
+	 return;
+       }
+       if (fd_ != -1) {
+	 // close previous  dec connect_count_
+	 close(fd_);
+       }
 
-	TRACE(3, "do_connect_ connection from sender_rank=%zu", mh.source_id);
+       // now add (new) connection
+       fd_ = fd;
+       mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: New fd is " << fd_;
+
+       for (size_t ii = 0; ii < buffer_count_; ++ii) {
+	 post_();
+       }
+
+       TRACE(3, "do_connect_ connection from sender_rank=%zu", mh.source_id);
+     }
+   else {
+     TRACE(10, "TCPSocketTransfer::do_connect_: No connections in timeout interval!");
+   }
 }  // do_connect_
 
 // recvFragment() puts the next received fragment in frag, with the
@@ -470,6 +482,10 @@ int artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout
 					TRACE(9, "recvFragment done sts=%d src=%d", sts, ret_rank);
 					TRACE(7,"TCPSocketTransfer::receiveFragment: Done receiving fragment. Moving into output.");
 					frag.autoResize();
+					if(frag.type() == artdaq::Fragment::EndOfDataFragmentType) {
+					  stats_connect_stop_ = true; // Don't reconnect if we're done receiving data...
+					  stopstatscv_.notify_all();
+					}
 					outfrag.swap(frag);
 					frag.reserve(max_fragment_size_words_);
 					buffer = frag.headerBeginBytes();
