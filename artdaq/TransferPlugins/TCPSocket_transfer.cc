@@ -92,6 +92,15 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer()
 			setsockopt(fd_, SOL_SOCKET, SO_SNDTIMEO, &tv, len);
 			write(fd_, &mh, sizeof(mh));
 		}
+		// Now, collect tokens until we're sure all the buffers have posted...
+		for(size_t ii = 0; ii < buffer_count_; ++ii) {
+		  getToken_();
+		}
+	}
+	else {
+	  for(size_t ii = 0; ii < buffer_count_; ++ii) {
+		post_();
+	  }
 	}
 	close(fd_);
 	mf::LogDebug(uniqueLabel()) << "End of TCPSocketTransfer Destructor";

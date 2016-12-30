@@ -8,7 +8,7 @@
 
 int main(int argc, char * argv[])
 {
-	artdaq::configureMessageFacility("transfer_driver_mpi");
+	artdaq::configureMessageFacility("transfer_driver");
 	TRACE(10, "s_r_handles main enter");
 
 	std::cout << "argc:" << argc << std::endl;
