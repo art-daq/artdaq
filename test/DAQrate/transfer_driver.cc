@@ -2,11 +2,13 @@
 #include "test/DAQrate/TransferTest.hh"
 #include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/Application/configureMessageFacility.hh"
 #include <fhiclcpp/make_ParameterSet.h>
 
 
 int main(int argc, char * argv[])
 {
+	artdaq::configureMessageFacility("transfer_driver_mpi");
 	TRACE(10, "s_r_handles main enter");
 
 	std::cout << "argc:" << argc << std::endl;
