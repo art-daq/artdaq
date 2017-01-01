@@ -65,10 +65,10 @@
 #include "artdaq-core/Data/Fragments.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQrate/detail/TriggerMessage.hh"
+#include "artdaq/DAQrate/detail/RequestMessage.hh"
 
 namespace artdaq {
-	enum class TriggerMode {
+	enum class RequestMode {
 		Single,
 		Buffer,
 		Window,
@@ -86,22 +86,23 @@ namespace artdaq {
 
 		virtual bool getNext(FragmentPtrs & output) final;
 
-		// If we're using the dataThread, this method looks for active triggers
+		// If we're using the dataThread, this method looks for active data requests
 		// and returns matching data
-		virtual bool applyTriggers(FragmentPtrs & output) final;
-		void setupTriggerListener();
+		virtual bool applyRequests(FragmentPtrs & output) final;
+		void setupRequestListener();
 		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, std::string desc);
+	  void sendEmptyFragments(FragmentPtrs& frags);
 
 		void startDataThread();
 		void startMonitoringThread();
-		void startTriggerReceiverThread();
+		void startRequestReceiverThread();
 
 		void getDataLoop();
 		bool dataBufferIsTooLarge();
 		void getDataBufferStats();
 		void checkDataBuffer();
 		void getMonitoringDataLoop();
-		void receiveTriggersLoop();
+		void receiveRequestsLoop();
 
 		virtual std::vector<Fragment::fragment_id_t> fragmentIDs() {
 			return fragment_ids_;
@@ -180,8 +181,8 @@ namespace artdaq {
 		uint64_t timestamp() const { return timestamp_; }
 		bool should_stop() const { return should_stop_.load(); }
 
-		// ELF: 8/18/16: If we're running in a threaded way, we should let the applyTriggers
-		// routine clear out the trigger buffer before stopping.
+		// ELF: 8/18/16: If we're running in a threaded way, we should let the applyRequests
+		// routine clear out the request buffer before stopping.
 		bool check_stop();
 
 		int board_id() const { return board_id_; }
@@ -214,18 +215,18 @@ namespace artdaq {
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
-		bool listenForTriggers_;
-		int triggerport_;
-		std::string trigger_addr_;
+		bool listenForRequests_;
+		int request_port_;
+		std::string request_addr_;
 
 		//Socket parameters
 		struct sockaddr_in si_data_;
-		int triggersocket_;
-		std::list< detail::TriggerMessage > triggerBuffer_;
-		std::mutex triggerBufferMutex_;
-		std::thread triggerThread_;
+		int request_socket_;
+	  std::map<Fragment::sequence_id_t, Fragment::timestamp_t > requests_;
+		std::mutex request_mutex_;
+		std::thread requestThread_;
 
-		TriggerMode mode_;
+		RequestMode mode_;
 		Fragment::timestamp_t windowOffset_;
 		Fragment::timestamp_t windowWidth_;
 		Fragment::timestamp_t staleTimeout_;
@@ -235,7 +236,7 @@ namespace artdaq {
 		bool useDataThread_;
 		std::thread dataThread_;
 
-		std::condition_variable triggerCondition_;
+		std::condition_variable requestCondition_;
 		std::condition_variable dataCondition_;
 		std::atomic<int> dataBufferDepthFragments_;
 		std::atomic<size_t> dataBufferDepthBytes_;

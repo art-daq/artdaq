@@ -127,11 +127,13 @@ namespace artdaq {
     RawEventQueue & queue_;
     std::future<int> reader_thread_;
 
-    bool send_triggers_;
-    int  trigger_port_;
-    size_t trigger_delay_;
-    int trigger_socket_;
-    struct sockaddr_in trigger_addr_;
+    bool send_requests_;
+	std::mutex request_mutex_;
+	std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_;
+    int  request_port_;
+    size_t request_delay_;
+    int request_socket_;
+    struct sockaddr_in request_addr_;
 
     unsigned int seqIDModulus_;
     sequence_id_t lastFlushedSeqID_;
@@ -144,9 +146,9 @@ namespace artdaq {
 
     void initStatistics_();
     void reportStatistics_();
-    void setup_trigger_(std::string trigger_addr);
-    void send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
-    void do_send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
+    void setup_requests_(std::string trigger_addr);
+    void send_request_();
+    void do_send_request_();
   };
 }
 #endif /* artdaq_DAQrate_EventStore_hh */

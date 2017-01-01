@@ -13,7 +13,7 @@
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQrate/Utils.hh"
-#include "artdaq/DAQrate/detail/TriggerMessage.hh"
+#include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracelib.h"
 
@@ -39,9 +39,10 @@ namespace artdaq {
 		events_(),
 		queue_(getGlobalQueue(max_queue_size_)),
 		reader_thread_(std::async(std::launch::async, reader, argc, argv)),
-		send_triggers_(pset.get<bool>("send_triggers", false)),
-		trigger_port_(pset.get<int>("trigger_port", 3001)),
-		trigger_delay_(pset.get<size_t>("trigger_delay", 10)),
+		send_requests_(pset.get<bool>("send_requests", false)),
+		active_requests_(),
+		request_port_(pset.get<int>("request_port", 3001)),
+		request_delay_(pset.get<size_t>("request_delay_ms", 10)),
 		seqIDModulus_(1),
 		lastFlushedSeqID_(0),
 		highestSeqIDSeen_(0),
@@ -51,7 +52,7 @@ namespace artdaq {
 		metricMan_(metricMan)
 	{
 		initStatistics_();
-		setup_trigger_(pset.get<std::string>("trigger_address", "227.128.12.26"));
+		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
 		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
 	}
 
@@ -70,9 +71,10 @@ namespace artdaq {
 		events_(),
 		queue_(getGlobalQueue(max_queue_size_)),
 		reader_thread_(std::async(std::launch::async, reader, configString)),
-		send_triggers_(pset.get<bool>("send_triggers", false)),
-		trigger_port_(pset.get<int>("trigger_port", 3001)),
-		trigger_delay_(pset.get<size_t>("trigger_delay", 10)),
+		send_requests_(pset.get<bool>("send_requests", false)),
+		active_requests_(),
+		request_port_(pset.get<int>("request_port", 3001)),
+		request_delay_(pset.get<size_t>("request_delay_ms", 10)),
 		seqIDModulus_(1),
 		lastFlushedSeqID_(0),
 		highestSeqIDSeen_(0),
@@ -82,7 +84,7 @@ namespace artdaq {
 		metricMan_(metricMan)
 	{
 		initStatistics_();
-		setup_trigger_(pset.get<std::string>("trigger_address", "227.128.12.26"));
+		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
 	}
 
 	EventStore::~EventStore()
@@ -90,8 +92,8 @@ namespace artdaq {
 		if (printSummaryStats_) {
 			reportStatistics_();
 		}
-		shutdown(trigger_socket_, 2);
-		close(trigger_socket_);
+		shutdown(request_socket_, 2);
+		close(request_socket_);
 	}
 
 	void EventStore::insert(FragmentPtr pfrag,
@@ -116,8 +118,12 @@ namespace artdaq {
 			// Get the timestamp of this fragment, in experiment-defined clocks
 			Fragment::timestamp_t timestamp = pfrag->timestamp();
 
-			// Trigger the board readers!
-			if (send_triggers_) { send_trigger_(highestSeqIDSeen_, timestamp); }
+			// Send a request to the board readers!
+			if (send_requests_) { 
+			  std::lock_guard<std::mutex> lk(request_mutex_);
+			  active_requests_[highestSeqIDSeen_] = timestamp;
+			  send_request_(); 
+			}
 		}
 		Fragment::sequence_id_t sequence_id = ((pfrag->sequenceID() - (1 + lastFlushedSeqID_)) / seqIDModulus_) + 1;
 		TRACE(13, "EventStore::insert seq=%lu fragID=%d id=%d lastFlushed=%lu seqIDMod=%d seq=%lu"
@@ -147,6 +153,12 @@ namespace artdaq {
 			complete_event->markComplete();
 
 			events_.erase(loc);
+
+			if(send_requests_)
+			{
+			  std::lock_guard<std::mutex> lk(request_mutex_);
+			  active_requests_.erase(sequence_id);
+			}
 			// 13-Dec-2012, KAB - this monitoring needs to come before
 			// the enqueueing of the event lest it be empty by the
 			// time that we ask for the word count.
@@ -440,47 +452,58 @@ namespace artdaq {
 	}
 
 	void
-		EventStore::setup_trigger_(std::string trigger_addr)
+		EventStore::setup_requests_(std::string request_address)
 	{
-		if (send_triggers_)
+		if (send_requests_)
 		{
-			trigger_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-			if (!trigger_socket_)
+			request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+			if (!request_socket_)
 			{
-				mf::LogError("EventStore") << "Trigger sending requested but I failed to create the socket!" << std::endl;
+				mf::LogError("EventStore") << "I failed to create the socket for sending Data Requests!" << std::endl;
 				exit(1);
 			}
-			trigger_addr_.sin_addr.s_addr = inet_addr(trigger_addr.c_str());
-			trigger_addr_.sin_port = htons(trigger_port_);
-			trigger_addr_.sin_family = AF_INET;
+			request_addr_.sin_addr.s_addr = inet_addr(request_address.c_str());
+			request_addr_.sin_port = htons(request_port_);
+			request_addr_.sin_family = AF_INET;
 
 			int yes = 1;
-			if (setsockopt(trigger_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
+			if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
 			{
-				mf::LogError("EventStore") << "Cannot set trigger socket to broadcast." << std::endl;
+				mf::LogError("EventStore") << "Cannot set request socket to broadcast." << std::endl;
 				exit(1);
 			}
 		}
 	}
 
-	void EventStore::do_send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp)
+	void EventStore::do_send_request_()
 	{
-		std::this_thread::sleep_for(std::chrono::microseconds(trigger_delay_));
-		detail::TriggerMessage message(seqNum, timestamp);
-		char str[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &(trigger_addr_.sin_addr), str, INET_ADDRSTRLEN);
-		mf::LogWarning("EventStore") << "Sending trigger with seqNum " << (int)seqNum << " and timestamp " << timestamp << " to multicast group " << str << std::endl;
-		if (sendto(trigger_socket_, message.buffer(), sizeof(detail::TriggerPacket), 0, (struct sockaddr *)&trigger_addr_, sizeof(trigger_addr_)) < 0)
+		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
+
+		detail::RequestMessage message;
 		{
-			mf::LogError("EventStore") << "Error sending trigger message" << std::endl;
+		  std::lock_guard<std::mutex> lk(request_mutex_);
+		  for(auto& req : active_requests_) {
+			message.addRequest(req.first,req.second);
+		  }
+		}
+		char str[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
+		mf::LogWarning("EventStore") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << std::endl;
+		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
+		{
+			mf::LogError("EventStore") << "Error sending request message header" << std::endl;
+		}
+		if (sendto(request_socket_, message.buffer(), sizeof(detail::RequestPacket) * message.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
+		{
+			mf::LogError("EventStore") << "Error sending request message data" << std::endl;
 		}
 	}
 
 	void
-		EventStore::send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp)
+		EventStore::send_request_()
 	{
-		std::thread trigger([=] {do_send_trigger_(seqNum, timestamp); });
-		trigger.detach();
+		std::thread request([=] {do_send_request_(); });
+		request.detach();
 	}
 
 	void

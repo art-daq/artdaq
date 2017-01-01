@@ -11,29 +11,30 @@ fragment_id: -99 # Please define only one of these
 sleep_on_stop_us: 0
 
 
-# Trigger configuration
-triggers_enabled: false # Whether to set up the socket for listening for trigger messages
-trigger_mode: "Ignored" # Possible values are: Ignored, Single, Buffer, Window
-                      # Ignored: Trigger messages are ignored. Same as triggers disabled
-                      # Single: When trigger is received, sends last data point received
-                      # Buffer: When trigger is received, sends all data recieved since last trigger
-                      # Window: When trigger is received, sends all data satisfying timestamp window defined below
+# Data Request configuration
+requests_enabled: false # Whether to set up the socket for listening for trigger messages
+request_mode: "Ignored" # Possible values are: Ignored, Single, Buffer, Window
+                      # Ignored: Request messages are ignored. Same as requests disabled
+                      # Single: When request is received, sends last data point received
+                      # Buffer: When request is received, sends all data recieved since last request
+                      # Window: When request is received, sends all data satisfying timestamp window defined below
+					  # Window mode will also check RequestMessage for additional requests that it may not have satisfied.
 
-# Data Buffer configuration for Ignored, Buffer, and Window trigger modes
+# Data Buffer configuration for Ignored, Buffer, and Window request modes
 data_buffer_depth_fragments: 1000
 data_buffer_depth_mb: 1000
 
-# Trigger Socket configuration
-trigger_port: 3001
-trigger_address: "227.128.12.26" # Multicast trigger address
+# Request Socket configuration
+request_port: 3001
+request_address: "227.128.12.26" # Multicast request address
 
-# Window Trigger configuration
-# For Window trigger, timestamp must be filled in Fragment. 
+# Window Mode configuration
+# For Window mode, timestamp must be filled in Fragment. 
 # Timestamp is arbitrary, but must be a "clock" in that it is a monotonically-increasing number
-trigger_window_offset: 0 # Trigger message contains tzero. Window will be from tzero - offset to tz-o + width
-trigger_window_width: 0
-stale_trigger_timeout: "0xFFFFFFFF" # How long to wait before discarding trigger messages that are outside the available data
-trigger_windows_are_unique: true # If trigger windows are unique, avoids a copy operation, but the same data point cannot be used for two triggers. If this is not anticipated, leave set to "true"
+request_window_offset: 0 # Request message contains tzero. Window will be from tzero - offset to tzero + width
+request_window_width: 0
+stale_request_timeout: "0xFFFFFFFF" # How long to wait before discarding request messages that are outside the available data
+request_windows_are_unique: true # If request windows are unique, avoids a copy operation, but the same data point cannot be used for two requests. If this is not anticipated, leave set to "true"
 
 # Threading
 separate_data_thread: false # MUST be true for triggers to be applied! If triggering is not desired, but a separate readout thread is, set this to true, triggers_enabled to false and trigger_mode to ignored.
