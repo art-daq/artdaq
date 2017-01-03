@@ -91,7 +91,7 @@ namespace artdaq {
 		virtual bool applyRequests(FragmentPtrs & output) final;
 		void setupRequestListener();
 		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, std::string desc);
-	  void sendEmptyFragments(FragmentPtrs& frags);
+		void sendEmptyFragments(FragmentPtrs& frags);
 
 		void startDataThread();
 		void startMonitoringThread();
@@ -222,7 +222,7 @@ namespace artdaq {
 		//Socket parameters
 		struct sockaddr_in si_data_;
 		int request_socket_;
-	  std::map<Fragment::sequence_id_t, Fragment::timestamp_t > requests_;
+		std::map<Fragment::sequence_id_t, Fragment::timestamp_t > requests_;
 		std::mutex request_mutex_;
 		std::thread requestThread_;
 

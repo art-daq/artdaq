@@ -488,7 +488,7 @@ namespace artdaq {
 		}
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-		mf::LogWarning("EventStore") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << std::endl;
+		mf::LogDebug("EventStore") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << std::endl;
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
 			mf::LogError("EventStore") << "Error sending request message header" << std::endl;
