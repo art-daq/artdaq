@@ -25,7 +25,7 @@
   There probably needs to be a common class that both use.
 */
 
-std::mutex artdaq::MPITransfer::mpi_test_mutex_;
+std::mutex artdaq::MPITransfer::mpi_mutex_;
 
 artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Role role)
 	: TransferInterface(pset, role)
@@ -96,7 +96,7 @@ artdaq::MPITransfer::
 receiveFragment(Fragment & output, size_t timeout_usec)
 {
 	TRACE(6, "MPITransfer::receiveFragment entered tmo=%lu us", timeout_usec);
-	mf::LogDebug(uniqueLabel()) << "Start of receiveFragment";
+	//mf::LogDebug(uniqueLabel()) << "Start of receiveFragment";
 	int wait_result;
 	int which;
 	MPI_Status status;
@@ -152,7 +152,7 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 		int flag = 0;
 		//mf::LogInfo(uniqueLabel()) << "Before first Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag;
 		{
-			std::unique_lock<std::mutex> lk(mpi_test_mutex_);
+			std::unique_lock<std::mutex> lk(mpi_mutex_);
 			wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which, &flag, &status);
 		}
 		if (!flag) {
@@ -166,7 +166,7 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 				usleep(sleep_time);
 				//mf::LogInfo(uniqueLabel()) << "Before second Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag;
 				{
-					std::unique_lock<std::mutex> lk(mpi_test_mutex_);
+					std::unique_lock<std::mutex> lk(mpi_mutex_);
 					wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which, &flag, &status);
 				}
 				if (flag) { break; }
@@ -449,6 +449,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 	curfrag = std::move(frag);
 	TRACE(5, "sendFragTo before send src=%d dest=%d seqID=%lu type=%d found_idx=%d"
 		, source_rank(), destination_rank(), curfrag.sequenceID(), curfrag.type(), buffer_idx);
+	std::unique_lock<std::mutex> lk(mpi_mutex_);
 	if (!synchronous_sends_ || force_async) {
 		// 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
 		TRACE(5, "MPITransfer::sendFragment: Using MPI_Isend");

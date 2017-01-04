@@ -66,6 +66,7 @@ art_make_exec(perfdump
    Config.cc
    LIBRARIES
    art_Framework_Art
+  artdaq_Application # needed for messagefacility
    artdaq_DAQrate
    artdaq_DAQdata
    artdaq-core_Utilities
@@ -80,13 +81,15 @@ cet_test(config_t
   SOURCES
   config_t.cc
   Config.cc
-  LIBRARIES artdaq_DAQrate )
+  LIBRARIES artdaq_DAQrate
+   ${Boost_PROGRAM_OPTIONS_LIBRARY} )
 
 cet_test(config_with_art_t
   SOURCES
   config_with_art_t.cc
   Config.cc
   LIBRARIES artdaq_DAQrate
+   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   TEST_PROPERTIES ENVIRONMENT ARTDAQ_DAQRATE_USE_ART=1
   )
 

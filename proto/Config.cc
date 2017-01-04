@@ -17,6 +17,9 @@
 #include <sys/types.h>
 #include <regex.h>
 
+#include "boost/program_options.hpp"
+namespace bpo = boost::program_options;
+
 using namespace std;
 
 static const char * usage = "DetectorsPerNode SinksPerNode Run";
@@ -215,5 +218,36 @@ fhicl::ParameterSet Config::makeParameterSet() const
 
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet(ss.str(), ps);
+	return ps;
+}
+
+fhicl::ParameterSet Config::getArtPset()
+{
+	std::ostringstream descstr;
+	descstr << "-- <-c <config-file>>";
+	bpo::options_description desc(descstr.str());
+	desc.add_options()
+		("config,c", bpo::value<std::string>(), "Configuration file.");
+	bpo::variables_map vm;
+	try {
+		bpo::store(bpo::command_line_parser(art_argc_, art_argv_).
+			options(desc).allow_unregistered().run(), vm);
+		bpo::notify(vm);
+	}
+	catch (bpo::error const & e) {
+		std::cerr << "Exception from command line processing in Config::getArtPset: " << e.what() << "\n";
+		throw "cmdline parsing error.";
+	}
+	if (!vm.count("config")) {
+		std::cerr << "Expected \"-- -c <config-file>\" fhicl file specification.\n";
+		throw "cmdline parsing error.";
+	}
+	fhicl::ParameterSet pset;
+	cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
+	fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+	auto ps = pset.get<fhicl::ParameterSet>("daq");
+	buffer_count_ = ps.get<int>("buffer_count", buffer_count_);
+	max_payload_size_ = ps.get<size_t>("max_fragment_size_words", max_payload_size_);
+
 	return ps;
 }

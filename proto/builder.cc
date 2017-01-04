@@ -10,6 +10,7 @@
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq/Application/configureMessageFacility.hh"
 #include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "cetlib/container_algorithms.h"
@@ -47,7 +48,6 @@ public:
 private:
 	enum Color_t : int { DETECTOR, SOURCE, SINK };
 
-	fhicl::ParameterSet getPset(char const * progname);
 	void printHost(const std::string & functionName) const;
 
 	Config conf_;
@@ -59,8 +59,8 @@ private:
 
 Program::Program(int argc, char * argv[]) :
 	MPIProg(argc, argv),
-	conf_(rank_, procs_,daq_pset_.get<int>("buffer_count", 10), daq_pset_.get<size_t>("max_fragment_payload_size", 0x1000000), argc, argv),
-	daq_pset_(getPset(argv[0])),
+	conf_(my_rank, procs_,10, 10240, argc, argv),
+	daq_pset_(conf_.getArtPset()),
 	want_sink_(daq_pset_.get<bool>("want_sink", true)),
 	want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false)),
 	local_group_comm_()
@@ -77,6 +77,7 @@ void Program::go()
 	MPI_Barrier(MPI_COMM_WORLD);
 	PerfSetStartTime();
 	PerfWriteJobStart();
+	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
 	MPI_Comm_split(MPI_COMM_WORLD, conf_.type_, 0, &local_group_comm_);
 	switch (conf_.type_) {
 	case Config::TaskSink:
@@ -108,11 +109,14 @@ void Program::source()
 	artdaq::FragmentPtr frag;
 	{ // Block to handle lifetime of to_r and from_d, below.
 		artdaq::DataReceiverManager from_d(conf_.makeParameterSet());
+		from_d.start_threads();
 		std::unique_ptr<artdaq::DataSenderManager> to_r(want_sink_ ? new artdaq::DataSenderManager(conf_.makeParameterSet()) : nullptr);
 		int senderCount = from_d.enabled_sources().size();
 		while (senderCount > 0) {
 			int ignoredSender;
 			frag = from_d.recvFragment(ignoredSender);
+			if (!frag || ignoredSender == artdaq::TransferInterface::RECV_TIMEOUT) continue;
+			std::cout << "Program::source: Received fragment " << frag->sequenceID() << " from sender " << ignoredSender << std::endl;
 			if (want_sink_ && frag->type() != artdaq::Fragment::EndOfDataFragmentType) {
 				to_r->sendFragment(std::move(*frag));
 			}
@@ -166,6 +170,7 @@ void Program::detector()
 				MPI_Barrier(local_group_comm_);
 			}
 			for (auto & fragPtr : frags) {
+				std::cout << "Program::detector: Sending fragment " << fragments_sent + 1 << " of " << fragments_per_source << std::endl;
 				h.sendFragment(std::move(*fragPtr));
 				if (++fragments_sent == fragments_per_source) { break; }
 				if (want_periodic_sync_ && (fragments_sent % 100) == 0) {
@@ -205,11 +210,14 @@ void Program::sink()
 			reader);
 		{ // Block to handle scope of h, below.
 			artdaq::DataReceiverManager h(conf_.makeParameterSet());
+			h.start_threads();
 			int senderCount = h.enabled_sources().size();
 			while (senderCount > 0) {
 				artdaq::FragmentPtr pfragment(new artdaq::Fragment);
 				int ignoredSource;
 				pfragment = h.recvFragment(ignoredSource);
+				if (!pfragment || ignoredSource == artdaq::TransferInterface::RECV_TIMEOUT) continue;
+				std::cout << "Program::sink: Received fragment " << pfragment->sequenceID() << " from sender " << ignoredSource << std::endl;
 				if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType) {
 					events.insert(std::move(pfragment));
 				}
@@ -242,37 +250,6 @@ void Program::sink()
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-fhicl::ParameterSet
-Program::getPset(char const * progname)
-{
-	std::ostringstream descstr;
-	descstr << progname
-		<< " <-c <config-file>>";
-	bpo::options_description desc(descstr.str());
-	desc.add_options()
-		("config,c", bpo::value<std::string>(), "Configuration file.");
-	bpo::variables_map vm;
-	try {
-		bpo::store(bpo::command_line_parser(conf_.art_argc_, conf_.art_argv_).
-			options(desc).allow_unregistered().run(), vm);
-		bpo::notify(vm);
-	}
-	catch (bpo::error const & e) {
-		std::cerr << "Exception from command line processing in " << progname
-			<< ": " << e.what() << "\n";
-		throw "cmdline parsing error.";
-	}
-	if (!vm.count("config")) {
-		std::cerr << "Expected \"-- -c <config-file>\" fhicl file specification.\n";
-		throw "cmdline parsing error.";
-	}
-	fhicl::ParameterSet pset;
-	cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
-	fhicl::make_ParameterSet(vm["config"].as<std::string>(),
-		lookup_policy, pset);
-	return pset.get<fhicl::ParameterSet>("daq");
-}
-
 void Program::printHost(const std::string & functionName) const
 {
 	char * doPrint = getenv("PRINT_HOST");
@@ -288,7 +265,7 @@ void Program::printHost(const std::string & functionName) const
 	}
 	Debug << "Running " << functionName
 		<< " on host " << hostString
-		<< " with rank " << rank_ << "."
+		<< " with rank " << my_rank << "."
 		<< flusher;
 }
 
@@ -305,10 +282,11 @@ void printUsage()
 
 int main(int argc, char * argv[])
 {
+	artdaq::configureMessageFacility("builder");
 	int rc = 1;
 	try {
 		Program p(argc, argv);
-		std::cerr << "Started process " << p.rank_ << " of " << p.procs_ << ".\n";
+		std::cerr << "Started process " << my_rank << " of " << p.procs_ << ".\n";
 		p.go();
 		rc = 0;
 	}

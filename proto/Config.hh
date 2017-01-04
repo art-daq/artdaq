@@ -59,6 +59,7 @@ enum TaskType : int { TaskSink = 0, TaskSource = 1, TaskDetector = 2 };
   void printHeader(std::ostream & ost) const;
 
   fhicl::ParameterSet makeParameterSet() const;
+  fhicl::ParameterSet getArtPset();
 };
 
 inline std::ostream & operator<<(std::ostream & ost, Config const & c)
