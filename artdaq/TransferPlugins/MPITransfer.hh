@@ -51,7 +51,7 @@ namespace artdaq {
 		std::vector<int> ready_indices_;
 		std::vector<MPI_Status> ready_statuses_;
 #endif
-
+		static std::mutex mpi_test_mutex_;
 		bool synchronous_sends_;
 
 		std::vector<MPI_Request> reqs_;

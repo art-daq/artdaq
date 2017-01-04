@@ -25,6 +25,8 @@
   There probably needs to be a common class that both use.
 */
 
+std::mutex artdaq::MPITransfer::mpi_test_mutex_;
+
 artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Role role)
 	: TransferInterface(pset, role)
 	, src_status_(status_t::SENDING)
@@ -94,6 +96,7 @@ artdaq::MPITransfer::
 receiveFragment(Fragment & output, size_t timeout_usec)
 {
 	TRACE(6, "MPITransfer::receiveFragment entered tmo=%lu us", timeout_usec);
+	mf::LogDebug(uniqueLabel()) << "Start of receiveFragment";
 	int wait_result;
 	int which;
 	MPI_Status status;
@@ -144,10 +147,14 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 		}
 		else {
 			return RECV_TIMEOUT;
-		}
+}
 #else
 		int flag = 0;
-		wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which, &flag, &status);
+		//mf::LogInfo(uniqueLabel()) << "Before first Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag;
+		{
+			std::unique_lock<std::mutex> lk(mpi_test_mutex_);
+			wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which, &flag, &status);
+		}
 		if (!flag) {
 			size_t sleep_loops = 10;
 			size_t sleep_time = timeout_usec / sleep_loops;
@@ -157,8 +164,11 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 			}
 			for (size_t idx = 0; idx < sleep_loops; ++idx) {
 				usleep(sleep_time);
-				wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which,
-					&flag, &status);
+				//mf::LogInfo(uniqueLabel()) << "Before second Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag;
+				{
+					std::unique_lock<std::mutex> lk(mpi_test_mutex_);
+					wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which, &flag, &status);
+				}
 				if (flag) { break; }
 			}
 			if (!flag) {
@@ -170,6 +180,7 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 	else {
 		wait_result = MPI_Waitany(buffer_count_, &reqs_[0], &which, &status);
 	}
+	//mf::LogInfo(uniqueLabel()) << "After testing/waiting res=" << wait_result;
 	TRACE(8, "recvFragment recvd");
 
 	if (which == MPI_UNDEFINED)
@@ -197,6 +208,7 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 			<< " preAutoResize_Fragment_dataSize=" << payload_[which].dataSize()
 			<< " fragID=" << payload_[which].fragmentID()
 			<< '\n';
+		//mf::LogInfo(uniqueLabel()) << debugstream.str();
 		TRACE(4, debugstream.str().c_str());
 	}
 	char err_buffer[MPI_MAX_ERROR_STRING];
@@ -217,6 +229,7 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 	// The Fragment at index 'which' is now available.
 	// Resize (down) to size to remove trailing garbage.
 	TRACE(7, "recvFragment before autoResize/swap");
+	//mf::LogInfo(uniqueLabel()) << "receiveFragment before resizing for output";
 	payload_[which].autoResize();
 	output.swap(payload_[which]);
 	TRACE(7, "recvFragment after autoResize/swap seqID=%lu. "
@@ -237,6 +250,7 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 			debugstream << "Received EOD from source " << status.MPI_SOURCE
 				<< "  expecting total of "
 				<< *output.dataBegin() << " fragments" << '\n';
+			//mf::LogInfo(uniqueLabel()) << debugstream.str();
 			TRACE(4, debugstream.str().c_str());
 		}
 	}
@@ -252,6 +266,7 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 			<< " against expected total "
 			<< expected_count_
 			<< '\n';
+		//mf::LogInfo(uniqueLabel()) << debugstream.str();
 		TRACE(4, debugstream.str().c_str());
 	}
 	if (recvd_count_ == expected_count_) {
@@ -280,6 +295,7 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 	else {
 		post_(which);
 	}
+	//mf::LogInfo(uniqueLabel()) << "End of receiveFragment";
 	return status.MPI_SOURCE;
 }
 
@@ -307,6 +323,7 @@ cancelReq_(size_t buf, bool blocking_wait)
 			<< buf
 			<< '\n';
 		TRACE(4, debugstream.str().c_str());
+		//mf::LogInfo(uniqueLabel()) << debugstream.str();
 	}
 	int result = MPI_Cancel(&reqs_[buf]);
 	if (result == MPI_SUCCESS) {
@@ -359,6 +376,7 @@ post_(size_t buf)
 			<< " header address=0x" << std::hex << payload_[buf].headerAddress() << std::dec
 			<< '\n';
 		TRACE(4, debugstream.str().c_str());
+		//mf::LogInfo(uniqueLabel()) << debugstream.str();
 	}
 	MPI_Irecv(&*payload_[buf].headerBegin(),
 		(payload_[buf].size() * sizeof(Fragment::value_type)),
@@ -375,7 +393,7 @@ int artdaq::MPITransfer::findAvailable()
 	int flag;
 	size_t loops = 0;
 	TRACE(5, "findAvailable initial pos_=%d", pos_);
-    do {
+	do {
 		use_me = pos_;
 		MPI_Test(&reqs_[use_me], &flag, MPI_STATUS_IGNORE);
 		pos_ = (pos_ + 1) % buffer_count_;
@@ -417,7 +435,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 
 	TRACE(5, "MPITransfer::sendFragment: Checking whether to force async mode...");
 	if (frag.type() == Fragment::EndOfDataFragmentType) {
-	  TRACE(5, "MPITransfer::sendFragment: EndOfDataFragment detected. Forcing async mode");
+		TRACE(5, "MPITransfer::sendFragment: EndOfDataFragment detected. Forcing async mode");
 		force_async = true;
 	}
 	TRACE(5, "MPITransfer::sendFragment: Finding available buffer");
@@ -426,14 +444,14 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 		mf::LogWarning(uniqueLabel()) << "MPITransfer::sendFragment: No buffers available! Returning RECV_TIMEOUT!";
 		return CopyStatus::kTimeout;
 	}
-    TRACE(5, "MPITransfer::sendFragment: Swapping in fragment to send to buffer %d",buffer_idx);
+	TRACE(5, "MPITransfer::sendFragment: Swapping in fragment to send to buffer %d", buffer_idx);
 	Fragment & curfrag = payload_[buffer_idx];
 	curfrag = std::move(frag);
 	TRACE(5, "sendFragTo before send src=%d dest=%d seqID=%lu type=%d found_idx=%d"
 		, source_rank(), destination_rank(), curfrag.sequenceID(), curfrag.type(), buffer_idx);
 	if (!synchronous_sends_ || force_async) {
 		// 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
-	  TRACE(5, "MPITransfer::sendFragment: Using MPI_Isend");
+		TRACE(5, "MPITransfer::sendFragment: Using MPI_Isend");
 		MPI_Isend(&*curfrag.headerBegin(),
 			curfrag.size() * sizeof(Fragment::value_type),
 			MPI_BYTE,
@@ -448,7 +466,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 		// This change was made after we noticed that MPI buffering
 		// downstream of RootMPIOutput was causing EventBuilder memory
 		// usage to grow when using MPI_Send with MPICH 3.1.4 and 3.1.2a.
-	  TRACE(5, "MPITransfer::sendFragment: Using MPI_Ssend");
+		TRACE(5, "MPITransfer::sendFragment: Using MPI_Ssend");
 		MPI_Ssend(&*curfrag.headerBegin(),
 			curfrag.size() * sizeof(Fragment::value_type),
 			MPI_BYTE,
