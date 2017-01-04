@@ -441,7 +441,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 	TRACE(5, "MPITransfer::sendFragment: Finding available buffer");
 	int buffer_idx = findAvailable();
 	if (buffer_idx == TransferInterface::RECV_TIMEOUT) {
-		mf::LogWarning(uniqueLabel()) << "MPITransfer::sendFragment: No buffers available! Returning RECV_TIMEOUT!";
+		TRACE(TLVL_WARNING, "MPITransfer::sendFragment: No buffers available! Returning RECV_TIMEOUT!");
 		return CopyStatus::kTimeout;
 	}
 	TRACE(5, "MPITransfer::sendFragment: Swapping in fragment to send to buffer %d", buffer_idx);

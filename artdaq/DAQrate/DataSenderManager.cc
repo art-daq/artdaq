@@ -104,12 +104,12 @@ sendFragment(Fragment && frag)
 		if (destinations_.count(dest) && enabled_destinations_.count(dest)) {
 			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
-			bool first = true;
+			auto lastWarnTime = std::chrono::steady_clock::now();
 			while (sts != TransferInterface::CopyStatus::kSuccess) {
 				sts = destinations_[dest]->moveFragment(std::move(frag));
-				if (sts != TransferInterface::CopyStatus::kSuccess && first) {
-					mf::LogError("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to " << dest << " failed! Retrying...";
-					first = false;
+				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1) {
+					mf::LogError("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
+					lastWarnTime = std::chrono::steady_clock::now();
 				}
 			}
 			//sendFragTo(std::move(frag), dest);
