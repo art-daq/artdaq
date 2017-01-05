@@ -9,7 +9,7 @@ art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_TransferPlugins
   NO_PLUGINS
   SUBDIRS detail
-  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc MPI_transfer.cc TCPSocket_transfer.cc MPITranfer.hh TCPSocketTransfer.hh
+  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc MPI_transfer.cc TCPSocket_transfer.cc Autodetect_transfer.cc
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
@@ -52,6 +52,13 @@ simple_plugin(Multicast "transfer"
 
 simple_plugin(TCPSocket "transfer"
   artdaq_TransferPlugins
+  ${TRACE}
+)
+
+simple_plugin(Autodetect "transfer"
+  artdaq_TransferPlugins
+  artdaq_TransferPlugins_Shmem_transfer
+  artdaq_TransferPlugins_TCPSocket_transfer
   ${TRACE}
 )
 
