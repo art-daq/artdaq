@@ -448,7 +448,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
 		if (is_data_logger_) {
-		  fragmentPtr = receiver_ptr_->recvFragment(senderSlot, recvTimeout);
+			fragmentPtr = receiver_ptr_->recvFragment(senderSlot, recvTimeout);
 		}
 		else if (is_online_monitor_) {
 			senderSlot = data_logger_transfer_->receiveFragment(*fragmentPtr, recvTimeout);
@@ -538,8 +538,11 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 			continue;
 		}
-		if ((is_data_logger_ && !receiver_ptr_->enabled_sources().count(senderSlot))
-			|| (!is_data_logger_ && senderSlot != data_logger_transfer_->source_rank())) {
+		else if (!fragmentPtr) {
+			mf::LogError(name_) << "Received invalid fragment from " << senderSlot << ". This is usually the case when a timeout has occurred, but sender was not set to RECV_TIMEOUT as expected.";
+			continue;
+		}
+		if ((is_data_logger_ && !receiver_ptr_->enabled_sources().count(senderSlot)) || (!is_data_logger_ && senderSlot != data_logger_transfer_->source_rank())) {
 			mf::LogError(name_)
 				<< "Invalid senderSlot received from recvFragment: "
 				<< senderSlot;
@@ -621,12 +624,12 @@ size_t artdaq::AggregatorCore::process_fragments()
 				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 
 				if (new_transfers_ == 0) {
-				  // So as to not flood log files/viewers with messages...
-				  if(dispatcher_transfers_.size() > 0 && fragmentPtr->sequenceID() % 100 == 0) {
-					mf::LogDebug(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
-						static_cast<size_t>(fragmentPtr->type()) << " to " << dispatcher_transfers_.size()
-						<< " registered monitors";
-				  }
+					// So as to not flood log files/viewers with messages...
+					if (dispatcher_transfers_.size() > 0 && fragmentPtr->sequenceID() % 100 == 0) {
+						mf::LogDebug(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
+							static_cast<size_t>(fragmentPtr->type()) << " to " << dispatcher_transfers_.size()
+							<< " registered monitors";
+					}
 					for (auto& transfer : dispatcher_transfers_) {
 						transfer->copyFragment(*fragmentPtr, 0);
 					}

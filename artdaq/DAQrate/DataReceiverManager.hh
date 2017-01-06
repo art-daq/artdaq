@@ -62,8 +62,9 @@ private:
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
 
-	int current_source_;
+	std::atomic<int> current_source_;
     FragmentPtr current_fragment_;
+	std::mutex fragment_mutex_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
 	detail::FragCounter recv_frag_size_; // Number of bytes received per source.

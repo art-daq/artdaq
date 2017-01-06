@@ -353,6 +353,10 @@ size_t artdaq::EventBuilderCore::process_fragments()
 			}
 			continue;
 		}
+		else if (!pfragment) {
+			mf::LogError(name_) << "Received invalid fragment from " << senderSlot << ". This is usually the case when a timeout has occurred, but sender was not set to RECV_TIMEOUT as expected.";
+			continue;
+		}
 		if (!receiver_ptr_->enabled_sources().count(senderSlot)) {
 			mf::LogError(name_)
 				<< "Invalid senderSlot received from recvFragment: "

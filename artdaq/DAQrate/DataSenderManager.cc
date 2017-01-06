@@ -86,7 +86,7 @@ sendFragment(Fragment && frag)
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
 	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBegin()), fragSize);
-	int dest = 0;
+	int dest = -1;
 	if (broadcast_sends_) {
 		for (auto& bdest : enabled_destinations_) {
 			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d (broadcast)", seqID, bdest);
@@ -116,7 +116,7 @@ sendFragment(Fragment && frag)
 			sent_frag_count_.incSlot(dest);
 		}
 	}
-	if (metricMan && seqID % 100 == 0) {
+	if (metricMan && sent_frag_count_.slotCount(dest) % 100 == 0) {
 		auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 1);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 1);

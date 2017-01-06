@@ -32,7 +32,7 @@ artdaq::AutodetectTransfer::AutodetectTransfer(const fhicl::ParameterSet& pset, 
   std::string srcHost, destHost;
  	auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 	for (auto& ps : hosts) {
-		auto rank = ps.get<int>("rank", RECV_TIMEOUT);
+		auto rank = ps.get<int>("rank", -1);
 		if(rank == source_rank()) {
 		  srcHost = ps.get<std::string>("host", "localhost");
 		}

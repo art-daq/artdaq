@@ -8,6 +8,7 @@
 
 #include <map>
 #include <memory>
+#include <chrono>
 //#include <thread>
 #include <future>
 #include <stdint.h>
@@ -110,7 +111,7 @@ namespace artdaq {
     bool endRun();
     bool endSubrun();
 
-    void sendMetrics() const;
+    void sendMetrics();
     size_t incompleteEventCount() const {return events_.size();}
 
   private:
@@ -140,10 +141,14 @@ namespace artdaq {
     size_t        enq_check_count_;
     bool const     printSummaryStats_;
 
+	int incomplete_event_report_interval_ms_;
+	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
+
+	private:
     void initStatistics_();
     void reportStatistics_();
     void setup_requests_(std::string trigger_addr);
-    void send_request_();
+    void send_request_() const;
     void do_send_request_();
   };
 }

@@ -46,7 +46,9 @@ namespace artdaq {
 		highestSeqIDSeen_(0),
 		enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0)),
 		enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000)),
-		printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
+		printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
+		incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1)),
+		last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
@@ -74,7 +76,9 @@ namespace artdaq {
 		highestSeqIDSeen_(0),
 		enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0)),
 		enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000)),
-		printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
+		printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
+		incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1)),
+		last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
@@ -493,18 +497,28 @@ namespace artdaq {
 	}
 
 	void
-		EventStore::send_request_()
+		EventStore::send_request_() const
 	{
 		std::thread request([=] {do_send_request_(); });
 		request.detach();
 	}
 
 	void
-		EventStore::sendMetrics() const
+		EventStore::sendMetrics()
 	{
 		if (metricMan) {
 			metricMan->sendMetric("Incomplete Event Count", events_.size(),
 				"events", 1);
+		}
+		if (incomplete_event_report_interval_ms_ > 0 && events_.size()) {
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_incomplete_event_report_time_).count() < incomplete_event_report_interval_ms_) return;
+			last_incomplete_event_report_time_ = std::chrono::steady_clock::now();
+			std::ostringstream oss;
+			oss << "Incomplete Events (" << num_fragments_per_event_ << "): ";
+			for (auto& ev : events_) {
+				oss << ev.first << " (" << ev.second->numFragments() << "), ";
+			}
+			mf::LogDebug("EventStore") << oss.str();
 		}
 	}
 }

@@ -178,7 +178,10 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 #endif
 	}
 	else {
+				{
+					std::unique_lock<std::mutex> lk(mpi_mutex_);
 		wait_result = MPI_Waitany(buffer_count_, &reqs_[0], &which, &status);
+				}
 	}
 	//mf::LogInfo(uniqueLabel()) << "After testing/waiting res=" << wait_result;
 	TRACE(8, "recvFragment recvd");
@@ -325,6 +328,8 @@ cancelReq_(size_t buf, bool blocking_wait)
 		TRACE(4, debugstream.str().c_str());
 		//mf::LogInfo(uniqueLabel()) << debugstream.str();
 	}
+	
+					std::unique_lock<std::mutex> lk(mpi_mutex_);
 	int result = MPI_Cancel(&reqs_[buf]);
 	if (result == MPI_SUCCESS) {
 		MPI_Status status;
@@ -378,6 +383,8 @@ post_(size_t buf)
 		TRACE(4, debugstream.str().c_str());
 		//mf::LogInfo(uniqueLabel()) << debugstream.str();
 	}
+				
+					std::unique_lock<std::mutex> lk(mpi_mutex_);
 	MPI_Irecv(&*payload_[buf].headerBegin(),
 		(payload_[buf].size() * sizeof(Fragment::value_type)),
 		MPI_BYTE,
@@ -395,6 +402,7 @@ int artdaq::MPITransfer::findAvailable()
 	TRACE(5, "findAvailable initial pos_=%d", pos_);
 	do {
 		use_me = pos_;
+					std::unique_lock<std::mutex> lk(mpi_mutex_);
 		MPI_Test(&reqs_[use_me], &flag, MPI_STATUS_IGNORE);
 		pos_ = (pos_ + 1) % buffer_count_;
 		++loops;

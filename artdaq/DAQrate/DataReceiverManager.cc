@@ -12,7 +12,7 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	, source_plugins_()
 	, enabled_sources_()
 	, current_source_(-1)
-	, current_fragment_(new Fragment())
+	, current_fragment_()
 	, recv_frag_count_()
 	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 1000))
@@ -97,9 +97,14 @@ artdaq::FragmentPtr artdaq::DataReceiverManager::recvFragment(int& rank, size_t 
 		fragment_sent_.wait_for(lck2, std::chrono::microseconds(10000));
 	}
 
+	// This function now holds ownership of current_fragment_
+	std::unique_lock<std::mutex> lk(fragment_mutex_);
 	rank = current_source_;
 	current_source_ = -1;
 	fragment_ready_--;
+
+	if (!current_fragment_) return nullptr;
+
 	TRACE(5, "DataReceiverManager::recvFragment: Done  rank=%d, fragment size=%zu words, seqId=%zu", rank, current_fragment_->size(), current_fragment_->sequenceID());
 	return std::move(current_fragment_);
 }
@@ -133,9 +138,9 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (metricMan && recv_frag_count_.slotCount(source_rank) % 100 == 0) {
 			TRACE(5, "DataReceiverManager::runReceiver_: Sending receive stats");
 			auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
-			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(current_source_), delta_t, "s", 1);
-			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(current_source_), fragment->size() * sizeof(RawDataType), "B", 1);
-			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(current_source_), fragment->size() * sizeof(RawDataType) / delta_t, "B/s", 1);
+			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1);
+			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), fragment->size() * sizeof(RawDataType), "B", 1);
+			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), fragment->size() * sizeof(RawDataType) / delta_t, "B/s", 1);
 		}
 
 		fragment_ready_++;
@@ -144,7 +149,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		{
 			TRACE(5, "DataReceiverManager::runReceiver_: Entering wait for condition variable");
 			auto sts = std::cv_status::timeout;
-			while (!stop_requested_ && sts == std::cv_status::timeout) {
+			while (!stop_requested_ && (sts == std::cv_status::timeout || current_source_ != -1 )) {
 				std::unique_lock<std::mutex> lck(req_mutex_);
 				sts = fragment_requested_.wait_for(lck, std::chrono::seconds(1));
 			}
@@ -154,7 +159,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		TRACE(5, "DataReceiverManager::runReceiver_: Notifying people waiting on fragment_sent_ and setting current_source_ to %d", source_rank);
 		current_source_ = source_rank;
-		current_fragment_ = std::move(fragment);
+		{
+			// This function now holds ownership of current_fragment_
+			std::unique_lock<std::mutex> fragLock(fragment_mutex_);
+			current_fragment_ = std::move(fragment);
+		}
 		fragment_sent_.notify_all();
 
 		if (endOfData) {
