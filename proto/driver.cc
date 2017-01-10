@@ -17,7 +17,6 @@
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
 #include "artdaq/DAQrate/EventStore.hh"
-#include "MPIProg.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "cetlib/container_algorithms.h"
 #include "cetlib/filepath_maker.h"
@@ -43,7 +42,6 @@ dynamic_unique_ptr_cast( std::unique_ptr<B>& p );
 
 int main(int argc, char * argv[]) try
 {
-  MPIProg mpiSentry(argc, argv);
   std::ostringstream descstr;
   descstr << argv[0]
           << " <-c <config-file>> <other-options> [<source-file>]+";
@@ -117,7 +115,6 @@ int main(int argc, char * argv[]) try
     es_fcn(want_artapp?&artapp:&artdaq::simpleQueueReaderApp);
   artdaq::EventStore store(event_builder_pset, event_builder_pset.get<size_t>("expected_fragments_per_event"),
 			   pset.get<artdaq::EventStore::run_id_t>("run_number"),
-                           1,
                            es_argc,
                            es_argv,
                            es_fcn);

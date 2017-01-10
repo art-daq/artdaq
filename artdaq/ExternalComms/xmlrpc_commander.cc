@@ -16,11 +16,7 @@
 #include <errno.h>
 #include <cstring>
 
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/RunID.h"
-#else
-#include "art/Persistency/Provenance/RunID.h"
-#endif
 
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "fhiclcpp/make_ParameterSet.h"

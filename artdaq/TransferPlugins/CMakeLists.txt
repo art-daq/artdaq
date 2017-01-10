@@ -8,12 +8,13 @@ endif()
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_TransferPlugins
   NO_PLUGINS
-  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc
+  SUBDIRS detail
+  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc MPI_transfer.cc TCPSocket_transfer.cc Autodetect_transfer.cc
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
   artdaq-core_Utilities
-  artdaq_DAQrate
+  artdaq-core_Data
   artdaq_DAQdata
   art_Framework_Core
   art_Framework_IO_Sources
@@ -32,6 +33,8 @@ art_make( BASENAME_ONLY
   ${XMLRPC_CLIENTPP}
   ${XMLRPCPP}
   ${XMLRPC_UTILPP}
+  ${Boost_THREAD_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY} 
   )
 
 simple_plugin(TransferInput "source"
@@ -47,6 +50,24 @@ simple_plugin(Multicast "transfer"
   ${Boost_SYSTEM_LIBRARY}
 )
 
+simple_plugin(TCPSocket "transfer"
+  artdaq_TransferPlugins
+  ${TRACE}
+)
+
+simple_plugin(Autodetect "transfer"
+  artdaq_TransferPlugins
+  artdaq_TransferPlugins_Shmem_transfer
+  artdaq_TransferPlugins_TCPSocket_transfer
+  ${TRACE}
+)
+
+simple_plugin(MPI "transfer"
+  artdaq_TransferPlugins
+  ${MPI_C_LIBRARIES}
+  ${TRACE}
+)
+
 if (${USING_RTIDDS})
 
 simple_plugin(RTIDDS "transfer"
@@ -56,5 +77,5 @@ simple_plugin(RTIDDS "transfer"
 
 endif()
 
-install_headers()
-install_source()
+install_headers(SUBDIRS detail)
+install_source(SUBDIRS detail)

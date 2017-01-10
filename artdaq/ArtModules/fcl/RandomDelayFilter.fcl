@@ -1,5 +1,6 @@
 
 randomDelay: {
+    module_type: RandomDelayFilter
 	# Configuration for the RandomDelayFilter_module
 
 	# Time distribution setup

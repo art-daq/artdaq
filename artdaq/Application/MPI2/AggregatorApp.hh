@@ -5,7 +5,7 @@
 
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
 #include "artdaq/Application/Commandable.hh"
-#include "artdaq/DAQrate/RHandles.hh"
+#include "artdaq/DAQrate/quiet_mpi.hh"
 
 namespace artdaq
 {
@@ -37,7 +37,7 @@ public:
   std::string unregister_monitor(std::string const& ) override;
 
 private:
-  int mpi_rank_;
+	int mpi_rank_;
   MPI_Comm local_group_comm_;
   std::string name_;
   std::unique_ptr<AggregatorCore> aggregator_ptr_;

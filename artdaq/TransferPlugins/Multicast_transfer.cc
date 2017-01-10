@@ -1,7 +1,6 @@
 
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQrate/RHandles.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -34,11 +33,13 @@ public:
   ~MulticastTransfer() = default;
   MulticastTransfer(fhicl::ParameterSet const& ps, Role role);
 
-  virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
+  virtual int receiveFragment(artdaq::Fragment& fragment,
 				   size_t receiveTimeout);
 
-  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
+  virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
 				    size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+  virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
+	  size_t send_timeout_usec = std::numeric_limits<size_t>::max());
 
 private:
 
@@ -90,7 +91,6 @@ private:
 
   size_t max_fragment_size_;
   size_t pause_on_copy_usecs_;
-  size_t first_data_sender_rank_;
 
   std::vector<byte_t> staging_memory_;
 
@@ -109,8 +109,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
   subfragment_size_(pset.get<size_t>("subfragment_size")),
   subfragments_per_send_(pset.get<size_t>("subfragments_per_send")),
   max_fragment_size_(pset.get<size_t>("max_fragment_size_words") * sizeof(artdaq::RawDataType)),
-  pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0)),
-  first_data_sender_rank_(pset.get<size_t>("first_event_builder_rank"))
+  pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0))
 {
 
   try {
@@ -180,7 +179,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment,
+int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 						      size_t receiveTimeout) {
 
   assert(TransferInterface::role() == Role::kReceive);
@@ -299,21 +298,27 @@ size_t artdaq::MulticastTransfer::receiveFragmentFrom(artdaq::Fragment& fragment
 
       assert( !fragment_complete );
       mf::LogWarning(uniqueLabel()) << "Got an incomplete fragment";
-      return artdaq::RHandles::RECV_TIMEOUT;
+      return artdaq::TransferInterface::RECV_TIMEOUT;
     }
 
     if (fragment_complete) {
-      return first_data_sender_rank_;
+      return source_rank();
     }
   }
   
-  return RHandles::RECV_TIMEOUT;
+  return TransferInterface::RECV_TIMEOUT;
 }
 
 #pragma GCC diagnostic pop
 
+// Reliable transport is undefined for multicast; just use copy
 artdaq::TransferInterface::CopyStatus
-artdaq::MulticastTransfer::copyFragmentTo(artdaq::Fragment& fragment,
+artdaq::MulticastTransfer::moveFragment(artdaq::Fragment&& f, size_t tmo) {
+	return copyFragment(f, tmo);
+}
+
+artdaq::TransferInterface::CopyStatus
+artdaq::MulticastTransfer::copyFragment(artdaq::Fragment& fragment,
 					  size_t send_timeout_usec) {
 
   assert(TransferInterface::role() == Role::kSend);

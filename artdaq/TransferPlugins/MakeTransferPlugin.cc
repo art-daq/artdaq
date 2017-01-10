@@ -12,7 +12,7 @@ namespace artdaq {
 std::unique_ptr<artdaq::TransferInterface> 
 MakeTransferPlugin(const fhicl::ParameterSet& pset,
 		   std::string plugin_label,
-		   TransferInterface::Role role) {
+				   TransferInterface::Role role) {
 
   static cet::BasicPluginFactory bpf("transfer", "make");
 
@@ -33,7 +33,7 @@ MakeTransferPlugin(const fhicl::ParameterSet& pset,
     auto transfer =  
       bpf.makePlugin<std::unique_ptr<TransferInterface>,
       const fhicl::ParameterSet&,
-      TransferInterface::Role>(
+					 TransferInterface::Role>(
 			       transfer_pset.get<std::string>("transferPluginType"), 
 			       transfer_pset, 
 			       std::move(role));  

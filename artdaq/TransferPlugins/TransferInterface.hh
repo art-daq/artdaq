@@ -7,41 +7,52 @@
 
 #include <limits>
 #include <iostream>
+#include <sstream>
 
 namespace artdaq {
 
-class TransferInterface {
-public:
+	class TransferInterface {
+	public:
+		static const int RECV_TIMEOUT = 0xfedcba98;
 
-  enum class Role { kSend, kReceive };
+		enum class Role { kSend, kReceive };
 
-  enum class CopyStatus { kSuccess, kTimeout, kErrorNotRequiringException };
+		enum class CopyStatus { kSuccess, kTimeout, kErrorNotRequiringException };
 
-  TransferInterface(const fhicl::ParameterSet& ps, Role role) :
-    role_(role),
-    unique_label_(ps.get<std::string>("unique_label", "unlabeled"))
-  {
-    mf::LogDebug( uniqueLabel() ) << "TransferInterface constructor has " << ps.to_string();
-  }
+		TransferInterface(const fhicl::ParameterSet& ps, Role role);
 
-  TransferInterface(const TransferInterface& ) = delete;
-  TransferInterface& operator=(const TransferInterface& ) = delete;
-  
-  virtual size_t receiveFragmentFrom(artdaq::Fragment& fragment,
-				     size_t receiveTimeout) = 0;
+		TransferInterface(const TransferInterface&) = delete;
+		TransferInterface& operator=(const TransferInterface&) = delete;
+		virtual ~TransferInterface() = default;
 
-  virtual CopyStatus copyFragmentTo(artdaq::Fragment& fragment,
-			      size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+		virtual int receiveFragment(artdaq::Fragment& fragment,
+			size_t receiveTimeout) = 0;
 
-  std::string uniqueLabel() const { return unique_label_; }
+		// Copy fragment (maybe not reliable)
+		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
+			size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
-protected:
-  Role role() const { return role_; }
+		// Move fragment (should be reliable)
+		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
+			size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
-private:
-  const Role role_;
-  const std::string unique_label_;
-};
+		std::string uniqueLabel() const { return unique_label_; }
+
+		int source_rank() const { return source_rank_; }
+		int destination_rank() const { return destination_rank_; }
+	private:
+		const Role role_;
+		
+		const int source_rank_;
+		const int destination_rank_;
+		const std::string unique_label_;
+
+	protected:
+		size_t buffer_count_;
+		const size_t max_fragment_size_words_;
+	protected:
+		Role role() const { return role_; }
+	};
 
 }
 

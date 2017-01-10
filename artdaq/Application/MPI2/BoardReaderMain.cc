@@ -5,6 +5,7 @@
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/exception.h"
 
@@ -27,6 +28,7 @@ int main(int argc, char *argv[])
   try {
 
     mpiSentry.reset( new artdaq::MPISentry(&argc, &argv, wanted_threading_level, artdaq::TaskType::BoardReaderTask, local_group_comm) );
+	my_rank = mpiSentry->rank();
 
   } catch (cet::exception& errormsg) {
     mf::LogError("BoardReaderMain") << errormsg ;

@@ -3,11 +3,12 @@
 
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
-#include "artdaq/DAQrate/MetricManager.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include <fhiclcpp/ParameterSet.h>
 
 #include <map>
 #include <memory>
+#include <chrono>
 //#include <thread>
 #include <future>
 #include <stdint.h>
@@ -57,14 +58,12 @@ namespace artdaq {
     // executed by the thread this EventStore will spawn.
     EventStore(fhicl::ParameterSet pset,
                size_t num_fragments_per_event, run_id_t run,
-               int store_id, int argc, char * argv[],
-               ART_CMDLINE_FCN * reader,
-               MetricManager* metricMan = nullptr);
+               int argc, char * argv[],
+               ART_CMDLINE_FCN * reader);
     EventStore(fhicl::ParameterSet pset,
                size_t num_fragments_per_event, run_id_t run,
-               int store_id, const std::string& configString,
-               ART_CFGSTRING_FCN * reader,
-	       MetricManager* metricMan = nullptr);
+               const std::string& configString,
+               ART_CFGSTRING_FCN * reader);
 
     ~EventStore();
 
@@ -112,13 +111,12 @@ namespace artdaq {
     bool endRun();
     bool endSubrun();
 
-    void sendMetrics() const;
+    void sendMetrics();
     size_t incompleteEventCount() const {return events_.size();}
 
   private:
     // id_ is the unique identifier of this object; MPI programs will
     // use the MPI rank to fill in this value.
-    int const      id_;
     size_t  const  num_fragments_per_event_;
     size_t  const  max_queue_size_;
     run_id_t run_id_;
@@ -127,11 +125,13 @@ namespace artdaq {
     RawEventQueue & queue_;
     std::future<int> reader_thread_;
 
-    bool send_triggers_;
-    int  trigger_port_;
-    size_t trigger_delay_;
-    int trigger_socket_;
-    struct sockaddr_in trigger_addr_;
+    bool send_requests_;
+	std::mutex request_mutex_;
+	std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_;
+    int  request_port_;
+    size_t request_delay_;
+    int request_socket_;
+    struct sockaddr_in request_addr_;
 
     unsigned int seqIDModulus_;
     sequence_id_t lastFlushedSeqID_;
@@ -140,13 +140,16 @@ namespace artdaq {
     daqrate::seconds const enq_timeout_;
     size_t        enq_check_count_;
     bool const     printSummaryStats_;
-    MetricManager* metricMan_;
 
+	int incomplete_event_report_interval_ms_;
+	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
+
+	private:
     void initStatistics_();
     void reportStatistics_();
-    void setup_trigger_(std::string trigger_addr);
-    void send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
-    void do_send_trigger_(Fragment::sequence_id_t seqNum, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
+    void setup_requests_(std::string trigger_addr);
+    void send_request_() const;
+    void do_send_request_();
   };
 }
 #endif /* artdaq_DAQrate_EventStore_hh */

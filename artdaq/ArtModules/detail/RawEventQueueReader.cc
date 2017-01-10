@@ -1,13 +1,8 @@
 #include "artdaq/ArtModules/detail/RawEventQueueReader.hh"
 
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Persistency/Provenance/FileFormatVersion.h"
-#include "art/Utilities/Exception.h"
-#endif
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/Fragments.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -25,44 +20,13 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 	pretend_module_name("daq"),
 	unidentified_instance_name("unidentified"),
 	shutdownMsgReceived(false), outputFileCloseNeeded(false),
-	fragment_type_map_(artdaq::Fragment::MakeSystemTypeMap())
+	fragment_type_map_(Fragment::MakeSystemTypeMap())
 {
 	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name,
 		unidentified_instance_name);
 	for(auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
-	}
-
-	// 18-Feb-2013, KAB: added support for mapping fragments into
-	// user-specified types.  Here is a sample FHICL parameter
-	// definition this functionality:
-	// fragment_type_map: [[17, \"V172X\"], [18, \"V1495\"]]
-	//
-	// Fetch the user-specified fragment mapping
-	std::vector<std::vector<std::string>> fragmentMapParams;
-	if (ps.get_if_present<std::vector<std::vector<std::string>>>
-		("fragment_type_map", fragmentMapParams)) {
-		for (int idx = 0; idx < (int)fragmentMapParams.size(); ++idx) {
-			std::vector<std::string> the_pair = fragmentMapParams[idx];
-			std::string type_id_string = the_pair[0];
-			std::string type_name = the_pair[1];
-			try {
-				// why doesn't this work??
-				//Fragment::type_t type_id =
-				//  boost::lexical_cast<Fragment::type_t>(type_id_string);
-				unsigned short type_id =
-					boost::lexical_cast<unsigned short>(type_id_string);
-				Fragment::type_t type_id2 = static_cast<Fragment::type_t>(type_id);
-				fragment_type_map_[type_id2] = type_name;
-				help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, type_name);
-			}
-			catch (...) {
-				mf::LogError("InvalidParameterValue")
-					<< "Invalid value for fragment type id: \""
-					<< type_id_string << "\"";
-			}
-		}
 	}
 }
 

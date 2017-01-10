@@ -1,12 +1,9 @@
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Application/MPI2/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragments.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
-#ifdef CANVAS
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/Exception.h"
-#endif
 #include "cetlib/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include <pthread.h>
@@ -42,6 +39,7 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
   statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
   statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
+  metricMan = &metricMan_;
 }
 
 /**
@@ -75,6 +73,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   fhicl::ParameterSet fr_pset;
   try {
     fr_pset = daq_pset.get<fhicl::ParameterSet>("fragment_receiver");
+	data_pset_ = fr_pset;
   }
   catch (...) {
     mf::LogError(name_)
@@ -112,7 +111,6 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
   try {
     generator_ptr_ = artdaq::makeCommandableFragmentGenerator(frag_gen_name, fr_pset);
-    generator_ptr_->SetMetricManager(&metricMan_);
   } catch (...) {
 
     std::stringstream exception_string;
@@ -127,41 +125,6 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
   }
   metricMan_.setPrefix(generator_ptr_->metricsReportingInstanceName());
 
-  // determine the data sending parameters
-  try {
-    max_fragment_size_words_ = daq_pset.get<uint64_t>("max_fragment_size_words");
-  }
-  catch (...) {
-    mf::LogError(name_)
-      << "The max_fragment_size_words parameter was not specified "
-      << "in the DAQ initialization PSet: \""
-      << daq_pset.to_string() << "\".";
-    return false;
-  }
-  try {mpi_buffer_count_ = fr_pset.get<size_t>("mpi_buffer_count");}
-  catch (...) {
-    mf::LogError(name_)
-      << "The mpi_buffer_count parameter was not specified "
-      << "in the fragment_receiver initialization PSet: \""
-      << fr_pset.to_string() << "\".";
-    return false;
-  }
-  try {first_evb_rank_ = fr_pset.get<size_t>("first_event_builder_rank");}
-  catch (...) {
-    mf::LogError(name_)
-      << "The first_event_builder_rank parameter was not specified "
-      << "in the fragment_receiver initialization PSet: \""
-      << fr_pset.to_string() << "\".";
-    return false;
-  }
-  try {evb_count_ = fr_pset.get<size_t>("event_builder_count");}
-  catch (...) {
-    mf::LogError(name_)
-      << "The event_builder_count parameter was not specified "
-      << "in the fragment_receiver initialization PSet: \""
-      << fr_pset.to_string() << "\".";
-    return false;
-  }
   rt_priority_ = fr_pset.get<int>("rt_priority", 0);
   synchronous_sends_ = fr_pset.get<bool>("synchronous_sends", true);
 
@@ -309,12 +272,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 #pragma GCC diagnostic pop
   }
 
-  sender_ptr_.reset(new artdaq::SHandles(mpi_buffer_count_,
-                                         max_fragment_size_words_,
-                                         evb_count_,
-                                         first_evb_rank_,
-                                         false,
-                                         synchronous_sends_));
+  sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
 
   MPI_Barrier(local_group_comm_);
 

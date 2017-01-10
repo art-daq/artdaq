@@ -14,6 +14,7 @@ art_make(BASENAME_ONLY
   SUBDIRS detail
   LIB_LIBRARIES
   artdaq_DAQdata
+  artdaq_TransferPlugins
   artdaq-utilities_Plugins
   artdaq-core_Core
   artdaq-core_Data
@@ -26,7 +27,7 @@ art_make(BASENAME_ONLY
   ${Boost_SYSTEM_LIBRARY} 
   ${MPI_C_LIBRARIES}
   ${TRACE}
-  ${CANVAS}_Utilities
+  canvas_Utilities
   )
 
 install_headers(SUBDIRS detail)

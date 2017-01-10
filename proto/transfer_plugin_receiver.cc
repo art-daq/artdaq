@@ -1,6 +1,5 @@
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQrate/RHandles.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -75,9 +74,9 @@ int main(int argc, char* argv[])
     artdaq::Fragment myfrag;
     size_t timeout = 10*1e6;
 
-    auto retval = transfer->receiveFragmentFrom(myfrag, timeout);
+    auto retval = transfer->receiveFragment(myfrag, timeout);
 
-    if (retval != artdaq::RHandles::RECV_TIMEOUT) {
+    if (retval != artdaq::TransferInterface::RECV_TIMEOUT) {
 
     std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment with seqID == " <<
       myfrag.sequenceID() << ", fragID == " << myfrag.fragmentID() << " has size " << 

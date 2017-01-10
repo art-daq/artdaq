@@ -11,7 +11,6 @@
 #include "art/Persistency/Provenance/BranchIDListHelper.h"
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/EventID.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Persistency/Provenance/ModuleDescription.h"
@@ -22,18 +21,6 @@
 #include "canvas/Persistency/Provenance/Timestamp.h"
 #include "canvas/Utilities/Exception.h"
 #include "canvas/Utilities/GetPassID.h"
-#else
-#include "art/Persistency/Provenance/EventID.h"
-#include "art/Persistency/Provenance/FileFormatVersion.h"
-#include "art/Persistency/Provenance/ModuleDescription.h"
-#include "art/Persistency/Provenance/Parentage.h"
-#include "art/Persistency/Provenance/ProcessConfiguration.h"
-#include "art/Persistency/Provenance/SubRunID.h"
-#include "art/Persistency/Provenance/Timestamp.h"
-#include "art/Persistency/Provenance/RunID.h"
-#include "art/Utilities/Exception.h"
-#include "art/Utilities/GetPassID.h"
-#endif
 #include "art/Version/GetReleaseVersion.h"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq-core/Data/Fragment.hh"
@@ -212,12 +199,17 @@ struct REQRTestFixture {
 
   RawEventQueueReader & reader() {
     fhicl::ParameterSet pset;
-    fhicl::make_ParameterSet("fragment_type_map: [[1, \"ABCDEF\"]]", pset);
     static RawEventQueueReader
     s_reader(pset,
              helper(),
              source_helper(),
        gf().productRegistry_);
+	static bool reader_initialized = false;
+	if (!reader_initialized) {
+		s_reader.fragment_type_map_[1] = "ABCDEF";
+		helper().reconstitutes<artdaq::Fragments, art::InEvent>("daq", "ABCDEF");
+		reader_initialized = true;
+	}
     return s_reader;
   }
 };
@@ -331,15 +323,6 @@ BOOST_AUTO_TEST_CASE(end_of_data)
   BOOST_CHECK(pFile->fileFormatVersion() == FileFormatVersion(1, "RawEvent2011"));
   BOOST_CHECK(pFile->tree() == nullptr);
   
-  // These members have been removed as of art v1_16
-  #if ART_MAJOR_VERSION <= 1 && ART_MINOR_VERSION < 16
-  BOOST_CHECK(pFile->metaTree() == nullptr);
-  BOOST_CHECK(pFile->subRunTree() == nullptr);
-  BOOST_CHECK(pFile->subRunMetaTree() == nullptr);
-  BOOST_CHECK(pFile->runTree() == nullptr);
-  BOOST_CHECK(pFile->runMetaTree() == nullptr);
-  #endif
-
   BOOST_CHECK(!pFile->fastClonable());
   // Test the end-of-data handling. Reading an end-of-data should result in readNext() returning false,
   // and should return null pointers for new-run, -subrun and -event.
