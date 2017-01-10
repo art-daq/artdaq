@@ -18,8 +18,8 @@ cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
   art_Framework_Core
   art_Framework_Principal
   art_Persistency_Provenance
-  ${CANVAS}_Persistency_Common_dict
-  ${CANVAS}_Persistency_WrappedStdDictionaries_dict
+  canvas_Persistency_Common_dict
+  canvas_Persistency_WrappedStdDictionaries_dict
   art_Utilities
   art_Version
   )

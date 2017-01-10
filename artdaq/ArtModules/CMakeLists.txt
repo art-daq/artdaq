@@ -15,10 +15,10 @@ art_make( BASENAME_ONLY
   art_Framework_IO_Sources
   art_Framework_Principal
   artdaq_ArtModules_NetMonTransportService_service
-  ${CANVAS}_Persistency_Common
+  canvas_Persistency_Common
   art_Persistency_Provenance
-  ${CANVAS}_Persistency_Provenance
-  ${CANVAS}_Utilities
+  canvas_Persistency_Provenance
+  canvas_Utilities
   MF_MessageLogger
   ${ROOT_CINTEX}
   ${ROOT_RIO}
@@ -96,16 +96,13 @@ simple_plugin(NetMonTransportService "service"
   ${ROOT_CORE}
 )
 
-_check_if_version_greater(art ${ART_VERSION} v1_08_00)
-if (NOT ${product_version_less})
   simple_plugin(InFlightConfiguration "service"
  art_Framework_Services_Registry
  art_Framework_Services_UserInteraction
     ${ART_FRAMEWORK_SERVICES_SYSTEM_PATHSELECTION_SERVICE}
     ${ART_UTILITIES}
-    ${CANVAS}_Utilities
+    canvas_Utilities
     )
-endif()
 
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
