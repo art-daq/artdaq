@@ -14,7 +14,6 @@
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 
-#ifdef CANVAS
 #include "canvas/Persistency/Common/EDProduct.h"
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
@@ -28,20 +27,6 @@
 #include "canvas/Persistency/Provenance/ProductList.h"
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
 #include "canvas/Utilities/DebugMacros.h"
-#else
-#include "art/Persistency/Common/EDProduct.h"
-#include "art/Persistency/Common/Wrapper.h"
-#include "art/Persistency/Provenance/BranchDescription.h"
-#include "art/Persistency/Provenance/BranchIDList.h"
-#include "art/Persistency/Provenance/BranchKey.h"
-#include "art/Persistency/Provenance/History.h"
-#include "art/Persistency/Provenance/ParentageRegistry.h"
-#include "art/Persistency/Provenance/ProcessConfiguration.h"
-#include "art/Persistency/Provenance/ProcessHistory.h"
-#include "art/Persistency/Provenance/ProcessHistoryID.h"
-#include "art/Persistency/Provenance/ProductList.h"
-#include "art/Persistency/Provenance/ProductProvenance.h"
-#endif
 
 #include "TBufferFile.h"
 

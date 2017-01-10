@@ -5,13 +5,8 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
-#ifdef CANVAS
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/DebugMacros.h"
-#include "art/Utilities/Exception.h"
-#endif
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragments.hh"
@@ -28,14 +23,9 @@
 #include <memory>
 #include "unistd.h"
 
-#if ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 16 || ART_MAJOR_VERSION > 1
-#  define CONST_WRITE
 struct Config {
   fhicl::Atom<std::string> fileName { fhicl::Name("fileName") };
 };
-#else
-#  define CONST_WRITE const
-#endif
 
 namespace art {
 class BinaryFileOutput;
@@ -51,9 +41,9 @@ public:
 private:
     void beginJob() override;
     void endJob() override;
-    void write(EventPrincipal CONST_WRITE&) override;
-    void writeRun(RunPrincipal CONST_WRITE &) override {};
-    void writeSubRun(SubRunPrincipal CONST_WRITE &) override {};
+    void write(EventPrincipal&) override;
+    void writeRun(RunPrincipal&) override {};
+    void writeSubRun(SubRunPrincipal&) override {};
 
     void initialize_FILE_();
     void deinitialize_FILE_();
@@ -67,13 +57,7 @@ private:
                                          
 art::BinaryFileOutput::
 BinaryFileOutput(ParameterSet const& ps)
-#if (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 18) || (ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION == 17 && ART_PATCH_VERSION >= 8) || ART_MAJOR_VERSION > 1
   : OutputModule(ps)
-#elif ART_MAJOR_VERSION == 1 && ART_MINOR_VERSION >= 16
-  : OutputModule(OutputModule::Table<Config>(ps))
-#else
-	: OutputModule(ps)
-#endif
 {
     FDEBUG(1) << "Begin: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";    
     readParameterSet_(ps); 
@@ -143,7 +127,7 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 
 void
 art::BinaryFileOutput::
-write(CONST_WRITE EventPrincipal& ep)
+write(EventPrincipal& ep)
 {
     using RawEvent  = artdaq::Fragments;
     using RawEvents = std::vector<RawEvent>;

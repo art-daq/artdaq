@@ -1,13 +1,8 @@
 #include "artdaq/ArtModules/detail/RawEventQueueReader.hh"
 
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Persistency/Provenance/FileFormatVersion.h"
-#include "art/Utilities/Exception.h"
-#endif
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/Fragments.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"

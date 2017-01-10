@@ -7,11 +7,7 @@
 #include "artdaq-core/Data/RawEvent.hh"
 
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
-#ifdef CANVAS
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/Exception.h"
-#endif
 #include "cetlib/container_algorithms.h"
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"

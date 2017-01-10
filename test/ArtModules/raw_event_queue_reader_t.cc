@@ -323,15 +323,6 @@ BOOST_AUTO_TEST_CASE(end_of_data)
   BOOST_CHECK(pFile->fileFormatVersion() == FileFormatVersion(1, "RawEvent2011"));
   BOOST_CHECK(pFile->tree() == nullptr);
   
-  // These members have been removed as of art v1_16
-  #if ART_MAJOR_VERSION <= 1 && ART_MINOR_VERSION < 16
-  BOOST_CHECK(pFile->metaTree() == nullptr);
-  BOOST_CHECK(pFile->subRunTree() == nullptr);
-  BOOST_CHECK(pFile->subRunMetaTree() == nullptr);
-  BOOST_CHECK(pFile->runTree() == nullptr);
-  BOOST_CHECK(pFile->runMetaTree() == nullptr);
-  #endif
-
   BOOST_CHECK(!pFile->fastClonable());
   // Test the end-of-data handling. Reading an end-of-data should result in readNext() returning false,
   // and should return null pointers for new-run, -subrun and -event.

@@ -1,9 +1,5 @@
 #include "artdaq/DAQrate/detail/FragCounter.hh"
-#ifdef CANVAS
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/Exception.h"
-#endif
 
 using artdaq::detail::FragCounter;
 
