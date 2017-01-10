@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <fhiclcpp/fwd.h>
 
 // sources are first, sinks are second
 // the offset_ is the index of the first sink
@@ -15,7 +16,7 @@ class Config {
 public:
 enum TaskType : int { TaskSink = 0, TaskSource = 1, TaskDetector = 2 };
 
-  Config(int rank, int nprocs, int argc, char * argv[]);
+  Config(int rank, int nprocs,int buffer_count, size_t max_payload_size, int argc, char * argv[]);
 
   int destCount() const;
   int destStart() const;
@@ -42,6 +43,9 @@ enum TaskType : int { TaskSink = 0, TaskSource = 1, TaskDetector = 2 };
   int event_queue_size_;
   int run_;
 
+  int buffer_count_;
+  size_t max_payload_size_;
+
   // calculated parameters
   TaskType type_;
   int offset_;
@@ -53,6 +57,9 @@ enum TaskType : int { TaskSink = 0, TaskSource = 1, TaskDetector = 2 };
 
   void print(std::ostream & ost) const;
   void printHeader(std::ostream & ost) const;
+
+  fhicl::ParameterSet makeParameterSet() const;
+  fhicl::ParameterSet getArtPset();
 };
 
 inline std::ostream & operator<<(std::ostream & ost, Config const & c)

@@ -66,6 +66,7 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
 namespace artdaq {
 	enum class RequestMode {
@@ -144,9 +145,7 @@ namespace artdaq {
 		virtual std::string metricsReportingInstanceName() const {
 			return instance_name_for_metrics_;
 		}
-
-		void SetMetricManager(MetricManager* metricMan) { metricMan_ = metricMan; }
-
+		
 		// The following functions are not yet implemented, and their
 		// signatures may be subject to change.
 
@@ -210,7 +209,6 @@ namespace artdaq {
 		// it's not worth breaking code by implementing this. 
 
 		std::mutex mutex_;
-		MetricManager* metricMan_;
 
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names

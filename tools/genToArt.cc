@@ -10,11 +10,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "art/Framework/Art/artapp.h"
-#ifdef CANVAS
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/Exception.h"
-#endif
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragments.hh"
@@ -176,7 +172,6 @@ namespace {
 
     artdaq::EventStore store(eb_pset, expected_frags_per_event,
                              gta_pset.get<artdaq::EventStore::run_id_t>("run_number"),
-                             1, // Store ID.
                              argc,
                              argv,
                              &artapp);

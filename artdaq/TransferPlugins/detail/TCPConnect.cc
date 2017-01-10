@@ -22,6 +22,9 @@
 
 #include "trace.h"				// TRACE
 
+#include "artdaq/TransferPlugins/detail/TCPConnect.hh"
+#include <messagefacility/MessageLogger/MessageLogger.h>
+
 using namespace std;
 
 // return connection fd.
@@ -56,6 +59,7 @@ int TCPConnect(  char const *host_in
 		host = std::string("127.0.0.1");
 		port = dflt_port;
     }
+	mf::LogInfo("TCPConnect") << "Connecting to host " << host << ", on port " << std::to_string(port);
 
     s_fd = socket( PF_INET, SOCK_STREAM/*|SOCK_NONBLOCK*/, 0 );	// man socket,man TCP(7P)
 

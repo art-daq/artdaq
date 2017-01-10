@@ -24,7 +24,6 @@
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	: mutex_()
-	, metricMan_(nullptr)
 	, listenForRequests_(false)
 	, request_port_(3001)
 	, request_addr_("227.128.12.26")
@@ -62,7 +61,6 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet &ps)
 	: mutex_()
-	, metricMan_(nullptr)
 	, listenForRequests_(ps.get<bool>("requests_enabled", false))
 	, request_port_(ps.get<int>("request_port", 3001))
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
@@ -476,7 +474,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 			if (first || (waittime != lastwaittime && waittime % 1000 == 0))
 			{
-				mf::LogWarning("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders!";
+			  mf::LogWarning("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")";
 				first = false;
 			}
 			if (waittime % 5 && waittime != lastwaittime) {
@@ -536,9 +534,9 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats()
 	}
 	dataBufferDepthBytes_ = acc;
 
-	if (metricMan_) {
-		metricMan_->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
-		metricMan_->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
+	if (metricMan) {
+	  metricMan->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
+	  metricMan->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
 	}
 	TRACE(4, "CFG::getDataBufferStats: frags=%i/%i, sz=%zd/%zd", dataBufferDepthFragments_.load(), maxDataBufferDepthFragments_, dataBufferDepthBytes_.load(), maxDataBufferDepthBytes_);
 }

@@ -8,18 +8,9 @@
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "fhiclcpp/ParameterSet.h"
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/RunID.h"
-#else
-#include "art/Persistency/Provenance/RunID.h"
-#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#ifdef DO_SOCKETS
-# include "artdaq/DAQrate/SSockets.hh"
-# define SHandles SSockets
-#else
-#include "artdaq/DAQrate/SHandles.hh"
-#endif
+#include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
@@ -58,16 +49,12 @@ public:
 
 private:
   Commandable& parent_application_;
-  int mpi_rank_;
   MPI_Comm local_group_comm_;
   std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
   art::RunID run_id_;
   std::string name_;
 
-  uint64_t max_fragment_size_words_;
-  size_t mpi_buffer_count_;
-  size_t first_evb_rank_;
-  size_t evb_count_;
+  fhicl::ParameterSet data_pset_;
   int rt_priority_;
   bool skip_seqId_test_;
   bool synchronous_sends_;
@@ -78,7 +65,7 @@ private:
   int mpi_sync_wait_log_level_;
   int mpi_sync_wait_log_interval_sec_;
 
-  std::unique_ptr<artdaq::SHandles> sender_ptr_;
+  std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 
   size_t fragment_count_;
   artdaq::Fragment::sequence_id_t prev_seq_id_;

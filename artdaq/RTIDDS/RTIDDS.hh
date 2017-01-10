@@ -27,6 +27,7 @@ public:
   // Are copy constructor, assignment operators, etc., logical absurdities?
 
   void copyFragmentToDDS_(artdaq::Fragment& fragment);
+  void moveFragmentToDDS_(artdaq::Fragment&& fragment);
 
   class OctetsListener: public DDSDataReaderListener {
   public:

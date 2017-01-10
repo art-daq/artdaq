@@ -27,7 +27,6 @@ int main(int argc, char * argv[])
     size_t const NUM_FRAGS_PER_EVENT = 5;
     EventStore::run_id_t const RUN_ID = 2112;
     size_t const NUM_EVENTS = 100;
-    int const STORE_ID = 1;
     // We may want to add ParameterSet parsing to this code, but right
     // now this will do...
     ParameterSet sim_config;
@@ -40,7 +39,7 @@ int main(int argc, char * argv[])
     // test of the EventStore's ability to deal with multiple events
     // simulatenously.
     GenericFragmentSimulator sim(sim_config);
-    EventStore events(sim_config,NUM_FRAGS_PER_EVENT, RUN_ID, STORE_ID, argc, argv, &artapp);
+    EventStore events(sim_config,NUM_FRAGS_PER_EVENT, RUN_ID, argc, argv, &artapp);
     FragmentPtrs frags;
     size_t event_count = 0;
     while (frags.clear(), event_count++ < NUM_EVENTS && sim.getNext(frags)) {

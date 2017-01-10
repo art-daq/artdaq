@@ -110,6 +110,7 @@ void
 art::BinaryFileOutput::
 initialize_FILE_(){
   file_ptr_= std::make_unique<std::ofstream>(file_name_,std::ofstream::binary);
+ file_ptr_->rdbuf()->pubsetbuf(0, 0);
 }
 
 void

@@ -5,16 +5,11 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
-#ifdef CANVAS
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
-#else
-#include "art/Utilities/DebugMacros.h"
-#include "art/Utilities/Exception.h"
-#endif
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq/DAQrate/SHandles.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Data/Fragments.hh"
 
 #define TRACE_NAME "BinaryMPIOutput"
@@ -65,6 +60,7 @@ private:
     void deinitialize_MPI_();
     bool readParameterSet_(fhicl::ParameterSet const& pset);
 private:
+	ParameterSet data_pset_;
   std::string name_="BinaryMPIOutput";
   uint64_t max_fragment_size_words_=0;
   size_t mpi_buffer_count_=0;
@@ -72,7 +68,7 @@ private:
   size_t evb_count_=0;
   int rt_priority_=0;
   bool synchronous_sends_=true;    
-  std::unique_ptr<artdaq::SHandles> sender_ptr_= {nullptr};
+  std::unique_ptr<artdaq::DataSenderManager> sender_ptr_= {nullptr};
 };
 
 art::BinaryMPIOutput::
@@ -136,12 +132,7 @@ initialize_MPI_(){
   TRACE( 3, "BinaryMPIOutput::initializeMPI(mpi_buffer_count=%lu max_fragment_size_words=%lu first_evb_rank=%lu evb_count=%lu synchronous_sends=%i )"\
 					    ,mpi_buffer_count_ ,  max_fragment_size_words_,   first_evb_rank_,   evb_count_, int(synchronous_sends_));
 
-  sender_ptr_=std::make_unique<artdaq::SHandles>(mpi_buffer_count_,
-                                         max_fragment_size_words_,
-                                         evb_count_,
-                                         first_evb_rank_,
-                                         false,
-                                         synchronous_sends_);
+  sender_ptr_=std::make_unique<artdaq::DataSenderManager>(data_pset_);
   assert(sender_ptr_);
 }
 

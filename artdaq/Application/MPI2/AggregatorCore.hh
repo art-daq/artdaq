@@ -11,13 +11,9 @@
 
 
 #include "fhiclcpp/ParameterSet.h"
-#ifdef CANVAS
 #include "canvas/Persistency/Provenance/RunID.h"
-#else
-#include "art/Persistency/Provenance/RunID.h"
-#endif
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "artdaq/DAQrate/RHandles.hh"
+#include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
@@ -59,17 +55,13 @@ public:
   std::string unregister_monitor(std::string const& ); 
 
 private:
-  int mpi_rank_;
   MPI_Comm local_group_comm_;
   std::string name_;
   art::RunID run_id_;
   bool art_initialized_;
 
+  fhicl::ParameterSet data_pset_;
   std::string init_string_;
-  uint64_t max_fragment_size_words_;
-  size_t mpi_buffer_count_;
-  size_t first_data_sender_rank_;
-  size_t data_sender_count_;
   size_t expected_events_per_bunch_;
   size_t inrun_recv_timeout_usec_;
   size_t endrun_recv_timeout_usec_;
@@ -82,7 +74,7 @@ private:
   bool is_dispatcher_;
   daqrate::seconds enq_timeout_;
 
-  std::unique_ptr<artdaq::RHandles> receiver_ptr_;
+  std::unique_ptr<artdaq::DataReceiverManager> receiver_ptr_;
   std::unique_ptr<artdaq::EventStore> event_store_ptr_;
   artdaq::RawEventQueue &event_queue_;
   fhicl::ParameterSet previous_pset_;

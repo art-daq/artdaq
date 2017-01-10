@@ -115,7 +115,6 @@ int main(int argc, char * argv[]) try
     es_fcn(want_artapp?&artapp:&artdaq::simpleQueueReaderApp);
   artdaq::EventStore store(event_builder_pset, event_builder_pset.get<size_t>("expected_fragments_per_event"),
 			   pset.get<artdaq::EventStore::run_id_t>("run_number"),
-                           1,
                            es_argc,
                            es_argv,
                            es_fcn);

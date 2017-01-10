@@ -5,20 +5,35 @@ if (EXISTS ${CPI_SOURCE})
   cet_test(cpi_t SOURCES ${CPI_SOURCE} LIBRARIES ${MPI_C_LIBRARIES})
 endif()
 
-art_make_exec(NAME s_r_handles # NO_INSTALL -- comment out to install
-  LIBRARIES
+ art_make_exec(NAME transfer_driver_mpi # NO_INSTALL -- comment out to install
+SOURCE
+transfer_driver_mpi.cc
+TransferTest.cc
+ LIBRARIES
+  artdaq_Application # needed for messagefacility
   artdaq_DAQrate
-  artdaq_DAQdata
-  )
+   artdaq_DAQdata
+artdaq_TransferPlugins
+  ${FHICLCPP}
+   )
+ art_make_exec(NAME transfer_driver # NO_INSTALL -- comment out to install
+SOURCE
+transfer_driver.cc
+TransferTest.cc
+   LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+   artdaq_DAQdata
+artdaq_TransferPlugins
+  ${FHICLCPP}
+   )
 
 # This is an integration test that exercises SHandles and RHandles,
 # making sure they can communicate as expected.
-set(num_sending_ranks 2)
-set(total_ranks 5)
-# there will be (total_ranks - num_sending_ranks) receiving ranks
-cet_test(s_r_handles_t HANDBUILT
+cet_test(transfer_driver_t HANDBUILT
   TEST_EXEC mpirun
-  TEST_ARGS -hosts localhost -np ${total_ranks} s_r_handles ${num_sending_ranks}
+  TEST_ARGS -hosts localhost -np 5 transfer_driver_mpi transfer_driver_mpi.fcl
+  DATAFILES transfer_driver_mpi.fcl
   )
 
 cet_test(daqrate_gen_test HANDBUILT
