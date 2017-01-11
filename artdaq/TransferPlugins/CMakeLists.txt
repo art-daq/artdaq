@@ -66,6 +66,7 @@ simple_plugin(MPI "transfer"
   artdaq_TransferPlugins
   ${MPI_C_LIBRARIES}
   ${TRACE}
+  canvas_Utilities
 )
 
 if (${USING_RTIDDS})
