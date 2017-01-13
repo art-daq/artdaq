@@ -86,16 +86,24 @@ void
 NetMonTransportService::
 receiveMessage(TBufferFile *&msg)
 {
-  if (recvd_fragments_ == nullptr) {
+  // Code suggested by Chris in #3886
+  if ((!recvd_fragments_) || frag_it_ == recvd_fragments_->end()) {
     std::shared_ptr<artdaq::RawEvent> popped_event;
-    incoming_events_.deqWait(popped_event);
+    do {
+      incoming_events_.deqWait(popped_event);
 
-    if (popped_event == nullptr) {
-      msg = nullptr;
-      return;
+      if (popped_event) {
+        recvd_fragments_ = popped_event->releaseProduct();
+        frag_it_ = recvd_fragments_->begin();
+      }
+      else { // Done.
+        msg = nullptr;
+        recvd_fragments_.reset();
+        return;
+      }
     }
+    while (popped_event->numFragments() == 0); // popped_event is always set..
 
-    recvd_fragments_ = popped_event->releaseProduct();
     /* Events coming out of the EventStore are not sorted but need to be
        sorted by sequence ID before they can be passed to art.
     */
@@ -103,13 +111,13 @@ receiveMessage(TBufferFile *&msg)
          artdaq::fragmentSequenceIDCompare);
   }
 
-  artdaq::Fragment topFrag = std::move(recvd_fragments_->at(0));
-  recvd_fragments_->erase(recvd_fragments_->begin());
+  artdaq::Fragment const & topFrag = *frag_it_++;
+
   if (recvd_fragments_->size() == 0) {
     recvd_fragments_.reset(nullptr);
   }
 
-  artdaq::NetMonHeader *header = topFrag.metadata<artdaq::NetMonHeader>();
+  const artdaq::NetMonHeader *header = topFrag.metadata<artdaq::NetMonHeader>();
   char *buffer = (char *)malloc(header->data_length);
   memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
   msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
