@@ -62,7 +62,7 @@ size_t artdaq::TransferTest::do_receiving()
 		TRACE(7, "TransferTest::do_receiving: Counter is %d, calling recvFragment", counter);
 		int senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
 		auto ignoreFragPtr = receiver.recvFragment(senderSlot);
-		if (senderSlot != artdaq::TransferInterface::RECV_TIMEOUT) {
+		if (senderSlot != artdaq::TransferInterface::RECV_TIMEOUT && ignoreFragPtr) {
 			if (ignoreFragPtr->type() == artdaq::Fragment::EndOfDataFragmentType) {
 				std::cout << "Receiver " << my_rank << " received EndOfData Fragment from Sender " << senderSlot << std::endl;
 				activeSenders--;
