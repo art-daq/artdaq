@@ -641,9 +641,9 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 						}
 						else if (!requests_.count(buffer.sequence_id)) {
 							int delta = buffer.sequence_id - ev_counter();
-							mf::LogDebug("CommandableFragmentGenerator") << "Recieved request for sequence ID " << buffer.sequence_id << " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
+							TRACE(4, "CFG: Recieved request for sequence ID %llu and timestamp %lu (delta: %d)", (unsigned long long)buffer.sequence_id, (unsigned long)buffer.timestamp, delta);
 							if (delta < 0) {
-								mf::LogDebug("CommandableFragmentGenerator") << "Already serviced this request! Ignoring...";
+								TRACE(4, "CFG: Already serviced this request! Ignoring...");
 							}
 							else {
 								std::unique_lock<std::mutex> tlk(request_mutex_);
@@ -732,10 +732,11 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs & 
 					++req; 
 					continue; // Will loop through all requests, means we're in Window mode and missing the correct one
 				}
-				mf::LogDebug("CommandableFragmentGenerator") << "Checking that data exists for request window " << req->first << " (Buffered mode will always succeed)";
+				TRACE(5, "CFG: ApplyRequestS: Checking that data exists for request window %llu (Buffered mode will always succeed)",(unsigned long long)req->first);
 				Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 				Fragment::timestamp_t max = min + windowWidth_;
-				mf::LogDebug("CommandableFragmentGenerator") << "min is " << min << " and max is " << max << " and last point in buffer is " << (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0) << " (sz=" << dataBuffer_.size() << ")";
+				TRACE(5, "CFG::ApplyRequests: min is %lu and max is %lu and last point in buffer is %lu (sz=%zu)",
+					(unsigned long)min,(unsigned long)max, (unsigned long)(dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0), dataBuffer_.size());
 				bool windowClosed = mode_ != RequestMode::Window || (dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max);
 				if (windowClosed || should_stop()) {
 					mf::LogDebug("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-requested Fragments";
@@ -761,7 +762,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs & 
 							}
 						}
 
-						mf::LogDebug("CommandableFragmentGenerator") << "Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
+						TRACE(5,"CFG::ApplyRequests: Adding Fragment with timestamp %llu to Container", (unsigned long long)(*it)->timestamp());
 						cfl.addFragment(*it);
 
 						if (mode_ == RequestMode::Buffer || (mode_ == RequestMode::Window && uniqueWindows_)) {
