@@ -26,7 +26,6 @@ art_make(BASENAME_ONLY
   ${Boost_THREAD_LIBRARY}
   ${Boost_SYSTEM_LIBRARY} 
   ${MPI_C_LIBRARIES}
-  ${TRACE}
   canvas_Utilities
   )
 

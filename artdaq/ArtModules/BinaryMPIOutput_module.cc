@@ -12,8 +12,8 @@
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Data/Fragments.hh"
 
+#include "trace.h"		// TRACE
 #define TRACE_NAME "BinaryMPIOutput"
-#include "tracelib.h"		// TRACE
 
 #include <iomanip>
 #include <iostream>

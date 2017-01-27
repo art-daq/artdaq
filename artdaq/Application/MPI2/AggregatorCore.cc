@@ -14,7 +14,7 @@
 #include "artdaq-core/Data/RawEvent.hh"
 #include "cetlib/BasicPluginFactory.h"
 
-#include "tracelib.h"		// TRACE
+#include "trace.h"		// TRACE
 #include <errno.h>
 
 #include <sstream>

@@ -111,7 +111,7 @@ if(NOT XMLRPC_UTILPP)
 endif()
 find_library( XMLRPC_XMLPARSE NAMES xmlrpc_xmlparse PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
 find_library( XMLRPC_XMLTOK NAMES xmlrpc_xmltok PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( TRACE trace PATHS $ENV{TRACE_LIB} )
+#find_library( TRACE trace PATHS $ENV{TRACE_LIB} )
 
 # Debug streamer.
 string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC)
