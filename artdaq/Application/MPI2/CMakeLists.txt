@@ -22,7 +22,6 @@ art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   ${XMLRPC_CLIENTPP}
   ${XMLRPCPP}
   ${XMLRPC_UTILPP}
-  ${TRACE}
 )
 
 art_make_exec(EventBuilderMain

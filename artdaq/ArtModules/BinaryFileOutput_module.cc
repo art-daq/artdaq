@@ -11,8 +11,8 @@
 
 #include "artdaq-core/Data/Fragments.hh"
 
+#include "trace.h"
 #define TRACE_NAME "BinaryFileOutput"
-#include "tracelib.h"		// TRACE
 
 #include <iomanip>
 #include <iostream>

@@ -1,6 +1,6 @@
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "tracelib.h"		// TRACE
+#include "trace.h"		// TRACE
 
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
@@ -24,7 +24,6 @@
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	: mutex_()
-	, listenForRequests_(false)
 	, request_port_(3001)
 	, request_addr_("227.128.12.26")
 	, requests_()
@@ -39,8 +38,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, maxDataBufferDepthFragments_(1000)
 	, maxDataBufferDepthBytes_(1000)
 	, useMonitoringThread_(false)
-	, collectMonitoringData_(false)
-	, monitoringInterval_(1000000)
+	, monitoringInterval_(0)
 	, lastMonitoringCall_(std::chrono::steady_clock::now())
 	, isHardwareOK_(true)
 	, dataBuffer_()
@@ -61,7 +59,6 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet &ps)
 	: mutex_()
-	, listenForRequests_(ps.get<bool>("requests_enabled", false))
 	, request_port_(ps.get<int>("request_port", 3001))
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
 	, requests_()
@@ -75,8 +72,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
 	, maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
 	, useMonitoringThread_(ps.get<bool>("separate_monitoring_thread", false))
-	, collectMonitoringData_(ps.get<bool>("poll_hardware_status", false))
-	, monitoringInterval_(ps.get<int64_t>("hardware_poll_interval_us", 1000000))
+	, monitoringInterval_(ps.get<int64_t>("hardware_poll_interval_us", 0))
 	, lastMonitoringCall_(std::chrono::steady_clock::now())
 	, isHardwareOK_(true)
 	, dataBuffer_()
@@ -137,12 +133,17 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	}
 	mf::LogDebug("CommandableFragmentGenerator") << "Request mode is " << printMode_();
 
-	if (listenForRequests_) setupRequestListener();
+	if (mode_ != RequestMode::Ignored) {
+		if (!useDataThread_) {
+			latest_exception_report_ = "Error in CommandableFragmentGenerator: use_data_thread must be true when request_mode is not \"Ignored\"!";
+			throw cet::exception(latest_exception_report_);
+		}
+		setupRequestListener();
+	}
 }
 
 void artdaq::CommandableFragmentGenerator::setupRequestListener()
 {
-	listenForRequests_ = true;
 	request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (!request_socket_)
 	{
@@ -197,7 +198,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs & output) {
 	if (check_stop()) usleep(sleep_on_stop_us_);
 	if (exception()) return false;
 
-	if (!useMonitoringThread_ && collectMonitoringData_) {
+	if (!useMonitoringThread_ && monitoringInterval_ > 0) {
 		TRACE(4, "CFG: Collecting Monitoring Data");
 		auto now = std::chrono::steady_clock::now();
 		if (std::chrono::duration_cast<std::chrono::microseconds>(now - lastMonitoringCall_).count() >= monitoringInterval_) {
@@ -305,7 +306,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	if (listenForRequests_) startRequestReceiverThread();
+	if (mode_ != RequestMode::Ignored) startRequestReceiverThread();
 }
 
 void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t timestamp) {
@@ -351,7 +352,7 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	if (listenForRequests_) startRequestReceiverThread();
+	if (mode_ != RequestMode::Ignored) startRequestReceiverThread();
 }
 
 std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& which)
@@ -583,9 +584,9 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer()
 void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 {
 	while (true) {
-		if (should_stop() || !collectMonitoringData_) {
+		if (should_stop() || monitoringInterval_ <= 0) {
 			mf::LogDebug("CommandableFragmentGenerator") << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
-				<< " and collectMonitoringData is " << collectMonitoringData_;
+				<< " and monitoringInterval is " << monitoringInterval_ << ", returning";
 			return;
 		}
 		TRACE(4, "CFG::getMonitoringDataLoop Determining whether to call checkHWStatus_");

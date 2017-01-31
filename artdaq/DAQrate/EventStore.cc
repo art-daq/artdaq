@@ -15,7 +15,7 @@
 #include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "tracelib.h"
+#include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
 
 using namespace std;

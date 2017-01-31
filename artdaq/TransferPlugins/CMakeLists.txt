@@ -52,20 +52,17 @@ simple_plugin(Multicast "transfer"
 
 simple_plugin(TCPSocket "transfer"
   artdaq_TransferPlugins
-  ${TRACE}
 )
 
 simple_plugin(Autodetect "transfer"
   artdaq_TransferPlugins
   artdaq_TransferPlugins_Shmem_transfer
   artdaq_TransferPlugins_TCPSocket_transfer
-  ${TRACE}
 )
 
 simple_plugin(MPI "transfer"
   artdaq_TransferPlugins
   ${MPI_C_LIBRARIES}
-  ${TRACE}
   canvas_Utilities
 )
 
