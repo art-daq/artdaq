@@ -114,7 +114,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment(Fr
 {
   TRACE(7, "TCPSocketTransfer::sendFragment begin");
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
-	iovec iov = { (void*)grab_ownership_frag.headerBegin(), grab_ownership_frag.sizeBytes() };
+	iovec iov = { (void*)grab_ownership_frag.headerBeginBytes(), grab_ownership_frag.sizeBytes() };
 	auto sts = sendFragment_(&iov, 1, send_timeout_usec, needToken);
 	while (needToken && sts != CopyStatus::kSuccess) {
 	  TRACE(7,"TCPSocketTransfer::sendFragment: Timeout or Error sending fragment");
