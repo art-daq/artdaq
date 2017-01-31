@@ -20,7 +20,12 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 		}
 		catch (std::invalid_argument) {
 			TRACE(3, "Invalid destination specification: " + d);
-		}
+		} catch (cet::exception ex) {
+            mf::LogWarning("DataSenderManager") << "Caught cet::exception: " << ex.what();
+        }
+        catch (...) {
+           mf::LogWarning("DataSenderManager") << "Non-cet exception while setting up TransferPlugin: " <<  d << ".";
+        }
 	}
 	if (destinations_.size() == 0) {
 		mf::LogError("DataSenderManager") << "No destinations specified!";

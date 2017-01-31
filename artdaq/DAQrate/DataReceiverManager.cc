@@ -37,7 +37,11 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 		}
 		catch (std::invalid_argument) {
 			TRACE(3, "Invalid source specification: " + s);
-		}
+		} catch(cet::exception ex) {
+    mf::LogWarning("DataReceiverManager") << "cet::exception caught while setting up source " << s << ": " << ex.what();
+        }catch (...) {
+    mf::LogWarning("DataReceiverManager") << "Non-cet exception caught while setting up source " << s << ".";
+        }
 	}
 	if (srcs.get_pset_names().size() == 0) {
 		mf::LogError("DataReceiverManager") << "No sources configured!";
