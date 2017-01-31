@@ -90,7 +90,7 @@ sendFragment(Fragment && frag)
 	}
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
-	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBegin()), fragSize);
+	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBeginBytes()), fragSize);
 	int dest = -1;
 	if (broadcast_sends_) {
 		for (auto& bdest : enabled_destinations_) {
