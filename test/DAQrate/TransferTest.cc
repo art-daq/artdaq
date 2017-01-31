@@ -39,7 +39,7 @@ size_t artdaq::TransferTest::do_sending()
 		*++it = sndDatSz;
 
 		sender.sendFragment(std::move(frags[ii%buffer_count_]));
-		std::cout << "Sender " << my_rank << " sent fragment " << ii << std::endl;
+		TRACE( 1,"Sender %d sent fragment %d", my_rank, ii );
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
 		frags[ii%buffer_count_] = artdaq::Fragment(); // replace/renew
@@ -73,7 +73,8 @@ size_t artdaq::TransferTest::do_receiving()
 					first = false;
 				}
 				counter--;
-				std::cout << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter << " with seqID " << ignoreFragPtr->sequenceID() << " from Sender " << senderSlot << " (Expecting " << counter << " more)" << std::endl;
+				TRACE( 1, "Receiver %d received fragment %d with seqID %lu from Sender %d (Expecting %d more)"
+				      , my_rank, receives_each_receiver_-counter, ignoreFragPtr->sequenceID(), senderSlot, counter );
 				totalSize += ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
 			}
 		}
