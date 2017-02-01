@@ -50,6 +50,7 @@ namespace artdaq {
 		incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1)),
 		last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
+		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
 		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
@@ -80,12 +81,14 @@ namespace artdaq {
 		incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1)),
 		last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
+		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
 	}
 
 	EventStore::~EventStore()
 	{
+		mf::LogDebug("EventStore") << "Shutting down EventStore";
 		if (printSummaryStats_) {
 			reportStatistics_();
 		}
@@ -221,6 +224,7 @@ namespace artdaq {
 	bool
 		EventStore::endOfData(int& readerReturnValue)
 	{
+		mf::LogDebug("EventStore") << "EventStore::endOfData";
 		RawEvent_ptr end_of_data(nullptr);
 		TRACE(4, "EventStore::endOfData: Enqueuing end_of_data event");
 		bool enqSuccess = queue_.enqTimedWait(end_of_data, enq_timeout_);

@@ -17,6 +17,7 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 1000))
 {
+    mf::LogDebug("DataReceiverManager") << "Contstructor";
 	auto enabled_srcs = pset.get<std::vector<size_t>>("enabled_sources", std::vector<size_t>());
 	auto enabled_srcs_empty = enabled_srcs.size() == 0;
 	if (enabled_srcs_empty) {
@@ -50,6 +51,7 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 
 artdaq::DataReceiverManager::~DataReceiverManager()
 {
+    mf::LogDebug("DataReceiverManager") << "Destructor";
 	TRACE(5, "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=%zu, bytes=%zu", count(), byteCount());
 	stop_requested_ = true;
 

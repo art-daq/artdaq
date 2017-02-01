@@ -33,7 +33,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	else {
 		auto enabled_dests = pset.get<std::vector<size_t>>("enabled_destinations", std::vector<size_t>());
 		if (enabled_dests.size() == 0) {
-			mf::LogInfo("DataReceiverManager") << "enabled_destinations not specified, assuming all destinations enabled.";
+			mf::LogInfo("DataSenderManager") << "enabled_destinations not specified, assuming all destinations enabled.";
 			for (auto& d : destinations_) {
 				enabled_destinations_.insert(d.first);
 			}

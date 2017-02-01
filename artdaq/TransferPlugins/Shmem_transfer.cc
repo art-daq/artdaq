@@ -220,8 +220,8 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		size_t nloops = send_timeout_usec / sleepTime;
 		
 		while (reliableMode && loopCount < nloops && delta_() == -1) {
-			if (fragmentType != artdaq::Fragment::DataFragmentType) {
-				mf::LogDebug(uniqueLabel()) << "Trying to copy fragment of type " << fragmentType << ", loopCount = " << loopCount;
+			if (fragmentType != artdaq::Fragment::DataFragmentType && loopCount % nloops/100 == 0) {
+				mf::LogDebug(uniqueLabel()) << "Trying to copy fragment of type " << fragmentType << ", loopCount = " << loopCount << ", send_timeout_usec = " << send_timeout_usec;
 			}
 			usleep(sleepTime);
 			++loopCount;
@@ -232,6 +232,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 
 	// copy the fragment if the shm is available                                               
 	if ((delta_() != -1 && reliableMode) || !reliableMode) {
+        mf::LogDebug(uniqueLabel()) << "Sending fragment with seqID " << fragment.sequenceID();
 		artdaq::RawDataType* fragAddr = fragment.headerAddress();
 		size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 

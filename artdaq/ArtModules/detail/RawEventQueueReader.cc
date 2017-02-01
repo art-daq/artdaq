@@ -46,10 +46,10 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 	art::SubRunPrincipal *& outSR,
 	art::EventPrincipal *& outE)
 {
-	if (outputFileCloseNeeded) {
+	/*if (outputFileCloseNeeded) {
 		outputFileCloseNeeded = false;
 		return false;
-	}
+	}*/
 	// Establish default 'results'
 	outR = 0;
 	outSR = 0;
@@ -141,7 +141,7 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 				}
 				outR = 0;
 			}
-			outputFileCloseNeeded = true;
+			//outputFileCloseNeeded = true;
 			return true;
 		}
 	}
