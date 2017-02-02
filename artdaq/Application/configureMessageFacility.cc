@@ -71,13 +71,13 @@ void artdaq::configureMessageFacility(char const* progname)
 	   << "  destinations : { ";
 
 	if (artdaqMfextensionsDir != nullptr) {
-		<< "    console : { "
+	ss	<< "    console : { "
 		<< "      type : \"ANSI\" threshold : \"INFO\" "
 		<< "      noTimeStamps : true "
 	    << "      bell_on_error: true "
 		<< "    } ";
 	} else {
-		<< "    console : { "
+	ss	<< "    console : { "
 		<< "      type : \"cout\" threshold : \"INFO\" "
 		<< "      noTimeStamps : true "
 		<< "    } ";
