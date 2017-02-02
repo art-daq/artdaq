@@ -68,12 +68,20 @@ void artdaq::configureMessageFacility(char const* progname)
 
 	std::ostringstream ss;
 	ss << "debugModules:[\"*\"]  statistics:[\"stats\"] "
-		<< "  destinations : { "
+	   << "  destinations : { ";
+
+	if (artdaqMfextensionsDir != nullptr) {
 		<< "    console : { "
 		<< "      type : \"ANSI\" threshold : \"INFO\" "
 		<< "      noTimeStamps : true "
 	    << "      bell_on_error: true "
 		<< "    } ";
+	} else {
+		<< "    console : { "
+		<< "      type : \"cout\" threshold : \"INFO\" "
+		<< "      noTimeStamps : true "
+		<< "    } ";
+	}
 
 	if (logfileName.length() > 0) {
 		ss << "    file : { "
