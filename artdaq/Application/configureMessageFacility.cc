@@ -70,7 +70,7 @@ void artdaq::configureMessageFacility(char const* progname)
 	ss << "debugModules:[\"*\"]  statistics:[\"stats\"] "
 		<< "  destinations : { "
 		<< "    console : { "
-		<< "      type : \"cout\" threshold : \"INFO\" "
+		<< "      type : \"ANSI\" threshold : \"INFO\" "
 		<< "      noTimeStamps : true "
 		<< "    } ";
 
