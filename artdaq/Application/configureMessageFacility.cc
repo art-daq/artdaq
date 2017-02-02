@@ -72,6 +72,7 @@ void artdaq::configureMessageFacility(char const* progname)
 		<< "    console : { "
 		<< "      type : \"ANSI\" threshold : \"INFO\" "
 		<< "      noTimeStamps : true "
+	    << "      bell_on_error: true "
 		<< "    } ";
 
 	if (logfileName.length() > 0) {
