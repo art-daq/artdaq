@@ -5,6 +5,8 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
+#include "art/Framework/IO/FileStatsCollector.h"
+#include "art/Framework/IO/PostCloseFileRenamer.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -56,11 +58,13 @@ private:
   bool do_direct_=false;
   int fd_=-1;					// Used for direct IO
   std::unique_ptr<std::ofstream> file_ptr_= {nullptr};
+  art::FileStatsCollector fstats_;
 };
                                          
 art::BinaryFileOutput::
 BinaryFileOutput(ParameterSet const& ps)
   : OutputModule(ps)
+	, fstats_{ name_, processName() }
 {
     FDEBUG(1) << "Begin: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";    
     readParameterSet_(ps); 
@@ -97,13 +101,15 @@ void
 art::BinaryFileOutput::
 initialize_FILE_()
 {
+	std::string file_name = PostCloseFileRenamer{ fstats_ }.applySubstitutions(file_name_);
 	if (do_direct_) {
-		fd_ = open( file_name_.c_str(), O_WRONLY|O_CREAT|O_DIRECT, 0660 );
+		fd_ = open( file_name.c_str(), O_WRONLY|O_CREAT|O_DIRECT, 0660 );
 		TRACE( 3, "BinaryFileOutput::initialize_FILE_ fd_=%d", fd_ );
 	} else {
-		file_ptr_= std::make_unique<std::ofstream>(file_name_,std::ofstream::binary);
+		file_ptr_= std::make_unique<std::ofstream>(file_name,std::ofstream::binary);
 		file_ptr_->rdbuf()->pubsetbuf(0, 0);
 	}
+	fstats_.recordFileOpen();
 }
 
 void
@@ -115,6 +121,7 @@ deinitialize_FILE_()
 		fd_=-1;
 	} else
 		file_ptr_.reset(nullptr);
+	fstats_.recordFileClose();
 }
 
 bool
@@ -173,7 +180,7 @@ write(EventPrincipal& ep)
 			}
 		}
     }
-    
+	fstats_.recordEvent(ep.id());
     return;
 }
 

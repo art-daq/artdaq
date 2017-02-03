@@ -78,6 +78,7 @@ simple_plugin(BinaryMPIOutput "module"
 
 simple_plugin(BinaryFileOutput "module"
   artdaq_ArtModules
+  art_Framework_IO
   art_Framework_Services_Registry
   art_Utilities
   MF_MessageLogger
