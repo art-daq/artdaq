@@ -289,6 +289,10 @@ namespace artdaq {
 				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(queue_.getReadyTime() - reader_thread_launch_time_).count();
 				mf::LogInfo("EventStore") << "art initialization took (roughly) " << std::setw(4) << std::to_string(dur) << " ms.";
 			}
+			else {
+				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count();
+				mf::LogError("EventStore") << "art thread still not ready after " << dur << " ms. Continuing to start...";
+			}
 		}
 		run_id_ = runID;
 		subrun_id_ = 1;
