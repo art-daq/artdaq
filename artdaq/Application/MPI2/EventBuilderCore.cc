@@ -11,6 +11,8 @@
 #define TRACE_NAME "EventBuilderCore"
 #include "trace.h"
 
+#include <iomanip>
+
 const std::string artdaq::EventBuilderCore::INPUT_FRAGMENTS_STAT_KEY("EventBuilderCoreInputFragments");
 const std::string artdaq::EventBuilderCore::INPUT_WAIT_STAT_KEY("EventBuilderCoreInputWaitTime");
 const std::string artdaq::EventBuilderCore::STORE_EVENT_WAIT_STAT_KEY("EventBuilderCoreStoreEventWaitTime");
@@ -483,6 +485,31 @@ std::string artdaq::EventBuilderCore::report(std::string const& which) const
 		else {
 			return "-1";
 		}
+	}
+	if (which == "event_count") {
+		artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
+			getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
+		if (mqPtr.get() != 0) {
+			return boost::lexical_cast<std::string>(mqPtr->fullSampleCount());
+		}
+		else {
+			return "-1";
+		}
+	}
+
+	if (which == "run_duration") {
+		// 03-Feb-2017, ELF: if we are not processing fragments, return 0 (not adding data members)
+		double duration = 0;
+		if (processing_fragments_.load()) {
+			artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
+				getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
+			if (mqPtr.get() != 0) {
+				duration = mqPtr->fullDuration();
+			}
+		}
+		std::ostringstream oss;
+		oss << std::fixed << std::setprecision(1) << duration;
+		return oss.str();
 	}
 
 	// lots of cool stuff that we can do here
