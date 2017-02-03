@@ -123,6 +123,7 @@ namespace artdaq {
     subrun_id_t subrun_id_;
     EventMap       events_;
     RawEventQueue & queue_;
+	std::chrono::steady_clock::time_point reader_thread_launch_time_;
     std::future<int> reader_thread_;
 
     bool send_requests_;

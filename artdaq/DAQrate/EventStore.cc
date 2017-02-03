@@ -36,6 +36,7 @@ namespace artdaq {
 		subrun_id_(0),
 		events_(),
 		queue_(getGlobalQueue(max_queue_size_)),
+		reader_thread_launch_time_(std::chrono::steady_clock::now()),
 		reader_thread_(std::async(std::launch::async, reader, argc, argv)),
 		send_requests_(pset.get<bool>("send_requests", false)),
 		active_requests_(),
@@ -53,6 +54,7 @@ namespace artdaq {
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+
 		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
 	}
 
@@ -67,6 +69,7 @@ namespace artdaq {
 		subrun_id_(0),
 		events_(),
 		queue_(getGlobalQueue(max_queue_size_)),
+		reader_thread_launch_time_(std::chrono::steady_clock::now()),
 		reader_thread_(std::async(std::launch::async, reader, configString)),
 		send_requests_(pset.get<bool>("send_requests", false)),
 		active_requests_(),
@@ -276,6 +279,17 @@ namespace artdaq {
 
 	void EventStore::startRun(run_id_t runID)
 	{
+		if (!queue_.queueReaderIsReady()) {
+			mf::LogWarning("EventStore") << "Run start requested, but the art thread is not yet ready, waiting up to 4 sec...";
+			while (!queue_.queueReaderIsReady() && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count() < 4000) 
+			{
+				usleep(1000);
+			}
+			if (queue_.queueReaderIsReady()) {
+				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(queue_.getReadyTime() - reader_thread_launch_time_).count();
+				mf::LogInfo("EventStore") << "art initialization took (roughly) " << std::setw(4) << std::to_string(dur) << " ms.";
+			}
+		}
 		run_id_ = runID;
 		subrun_id_ = 1;
 		lastFlushedSeqID_ = 0;

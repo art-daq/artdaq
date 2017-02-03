@@ -40,7 +40,10 @@ NetMonTransportService(ParameterSet const& pset, art::ActivityRegistry&)
 	data_pset_(pset),
     sender_ptr_(nullptr),
     incoming_events_(artdaq::getGlobalQueue()),
-    recvd_fragments_(nullptr) { }
+    recvd_fragments_(nullptr) 
+{
+	incoming_events_.setReaderIsReady();
+}
 
 void
 NetMonTransportService::
