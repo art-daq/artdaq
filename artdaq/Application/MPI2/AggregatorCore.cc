@@ -399,6 +399,9 @@ bool artdaq::AggregatorCore::shutdown()
 		endSucceeded = event_store_ptr_->endOfData(readerReturnValue);
 	}
 	metricMan_.shutdown();
+
+	data_logger_transfer_.reset();
+
 	return endSucceeded;
 }
 
