@@ -50,6 +50,8 @@ namespace artdaq {
     static const std::string EVENT_RATE_STAT_KEY;
     static const std::string INCOMPLETE_EVENT_STAT_KEY;
 
+	enum class EventStoreInsertResult : int { REJECT_QUEUEFULL, SUCCESS, SUCCESS_STOREFULL, REJECT_STOREFULL };
+
     EventStore() = delete;
     EventStore(EventStore const &) = delete;
     EventStore & operator=(EventStore const &) = delete;
@@ -81,7 +83,7 @@ namespace artdaq {
     //    and returns the fragment to the caller, if there is no
     //    room to push events onto the event queue, within the
     //    timeout that was specified at construction time.
-    bool insert(FragmentPtr pfrag, FragmentPtr& rejectedFragment);
+    EventStoreInsertResult insert(FragmentPtr pfrag, FragmentPtr& rejectedFragment);
 
     // Put the end-of-data marker onto the RawEvent queue (if possible),
     // wait for the reader function to exit, and fill in the reader return

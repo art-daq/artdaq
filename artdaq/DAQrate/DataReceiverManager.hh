@@ -43,6 +43,10 @@ public:
 
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
+	void suppressSource(int source) { suppressed_sources_.insert(source); }
+	void unsuppressAll() { suppressed_sources_.clear(); }
+void reject_fragment(int source_rank, FragmentPtr frag);
+
 private:
 	void runReceiver_(int);
 
@@ -61,9 +65,11 @@ private:
 	std::map<int, std::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
+	std::set<int> suppressed_sources_;
+
+	std::map<int, FragmentPtrs> fragment_store_;
 
 	std::atomic<int> current_source_;
-    FragmentPtr current_fragment_;
 	std::mutex fragment_mutex_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.

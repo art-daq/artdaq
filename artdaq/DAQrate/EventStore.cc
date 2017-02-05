@@ -198,7 +198,7 @@ namespace artdaq {
 		}
 	}
 
-	bool EventStore::insert(FragmentPtr pfrag, FragmentPtr& rejectedFragment)
+	EventStoreInsertResult EventStore::insert(FragmentPtr pfrag, FragmentPtr& rejectedFragment)
 	{
 		// Test whether this fragment can be safely accepted. If we accept
 		// it, and it completes an event, then we want to be sure that it
@@ -215,7 +215,7 @@ namespace artdaq {
 			}
 			if (queue_.full()) {
 				rejectedFragment = std::move(pfrag);
-				return false;
+				return EventStoreInsertResult::REJECT_QUEUEFULL;
 			}
 		}
 
