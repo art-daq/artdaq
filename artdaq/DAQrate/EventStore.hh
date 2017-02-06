@@ -121,6 +121,7 @@ namespace artdaq {
     // use the MPI rank to fill in this value.
     size_t  const  num_fragments_per_event_;
     size_t  const  max_queue_size_;
+	size_t  const  max_incomplete_count_;
     run_id_t run_id_;
     subrun_id_t subrun_id_;
     EventMap       events_;
