@@ -241,10 +241,10 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 			}
 		}
 	}
-	double fileSizeMB = agg_pset.get<double>("file_size_MB", 0);
+	double fileSizeMB = agg_pset.get<double>("subrun_size_MB", 0);
 	file_close_threshold_bytes_ = ((size_t)fileSizeMB * 1024.0 * 1024.0);
-	file_close_timeout_secs_ = agg_pset.get<time_t>("file_duration", 0);
-	file_close_event_count_ = agg_pset.get<size_t>("file_event_count", 0);
+	file_close_timeout_secs_ = agg_pset.get<time_t>("subrun_duration", 0);
+	file_close_event_count_ = agg_pset.get<size_t>("subrun_event_count", 0);
 
 	inrun_recv_timeout_usec_ = agg_pset.get<size_t>("inrun_recv_timeout_usec", 100000);
 	endrun_recv_timeout_usec_ = agg_pset.get<size_t>("endrun_recv_timeout_usec", 20000000);
