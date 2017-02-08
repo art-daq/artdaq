@@ -398,37 +398,53 @@ size_t artdaq::EventBuilderCore::process_fragments()
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 		if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType) {
 			artdaq::FragmentPtr rejectedFragment;
+			auto seqId = pfragment->sequenceID();
+			auto fragId = pfragment->fragmentID();
 			bool try_again = true;
 			while (try_again) {
-				if (event_store_ptr_->insert(std::move(pfragment), rejectedFragment)) {
+				auto ret = event_store_ptr_->insert(std::move(pfragment), rejectedFragment);
+				if (ret == EventStore::EventStoreInsertResult::SUCCESS) {
+					receiver_ptr_->unsuppressAll();
+					try_again = false;
+				}
+				else if (ret == EventStore::EventStoreInsertResult::SUCCESS_STOREFULL) {
 					try_again = false;
 				}
 				else if (stop_requested_.load()) {
 					try_again = false;
 					flush_mutex_.unlock();
 					process_fragments = false;
-					pfragment = std::move(rejectedFragment);
+					receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
 					mf::LogWarning(name_)
-						<< "Unable to process fragment " << pfragment->fragmentID()
-						<< " in event " << pfragment->sequenceID()
+						<< "Unable to process fragment " << fragId
+						<< " in event " << seqId
 						<< " because of back-pressure - forcibly ending the run.";
 				}
 				else if (pause_requested_.load()) {
 					try_again = false;
 					flush_mutex_.unlock();
 					process_fragments = false;
-					pfragment = std::move(rejectedFragment);
+					receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
 					mf::LogWarning(name_)
-						<< "Unable to process fragment " << pfragment->fragmentID()
-						<< " in event " << pfragment->sequenceID()
+						<< "Unable to process fragment " << fragId
+						<< " in event " << seqId
 						<< " because of back-pressure - forcibly pausing the run.";
 				}
-				else {
+				else if (ret == EventStore::EventStoreInsertResult::REJECT_QUEUEFULL) {
 					pfragment = std::move(rejectedFragment);
 					mf::LogWarning(name_)
-						<< "Unable to process fragment " << pfragment->fragmentID()
-						<< " in event " << pfragment->sequenceID()
-						<< " because of back-pressure - retrying...";
+						<< "Unable to process fragment " << fragId
+						<< " in event " << seqId
+						<< " because of back-pressure from art - retrying...";
+				}
+				else {
+					try_again = false;
+					receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
+					mf::LogWarning(name_)
+						<< "Unable to process fragment " << fragId
+						<< " in event " << seqId
+						<< " because the EventStore has reached the maximum number of incomplete events." << std::endl
+						<< " Will retry when the EventStore is ready for new events.";
 				}
 			}
 		}

@@ -32,6 +32,7 @@ namespace artdaq {
 		ART_CMDLINE_FCN * reader) :
 		num_fragments_per_event_(num_fragments_per_event),
 		max_queue_size_(pset.get<size_t>("event_queue_depth", 50)),
+		max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 50)),
 		run_id_(run),
 		subrun_id_(0),
 		events_(),
@@ -65,6 +66,7 @@ namespace artdaq {
 		ART_CFGSTRING_FCN * reader) :
 		num_fragments_per_event_(num_fragments_per_event),
 		max_queue_size_(pset.get<size_t>("event_queue_depth", 20)),
+		max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 20)),
 		run_id_(run),
 		subrun_id_(0),
 		events_(),
@@ -198,7 +200,7 @@ namespace artdaq {
 		}
 	}
 
-	bool EventStore::insert(FragmentPtr pfrag, FragmentPtr& rejectedFragment)
+	EventStore::EventStoreInsertResult EventStore::insert(FragmentPtr pfrag, FragmentPtr& rejectedFragment)
 	{
 		// Test whether this fragment can be safely accepted. If we accept
 		// it, and it completes an event, then we want to be sure that it
@@ -215,13 +217,24 @@ namespace artdaq {
 			}
 			if (queue_.full()) {
 				rejectedFragment = std::move(pfrag);
-				return false;
+				return EventStoreInsertResult::REJECT_QUEUEFULL;
+			}
+		}
+		TRACE(12, "EventStore: Testing if there's room in the EventStore");
+		auto incomplete_full = events_.size() >= max_incomplete_count_;
+		if (incomplete_full)
+		{
+			EventMap::iterator loc = events_.lower_bound(pfrag->sequenceID());
+
+			if (loc == events_.end() || events_.key_comp()(pfrag->sequenceID(), loc->first)) {
+				rejectedFragment = std::move(pfrag);
+				return EventStoreInsertResult::REJECT_STOREFULL;
 			}
 		}
 
 		TRACE(12, "EventStore: Performing insert");
 		insert(std::move(pfrag));
-		return true;
+		return incomplete_full ? EventStoreInsertResult::SUCCESS_STOREFULL : EventStoreInsertResult::SUCCESS;
 	}
 
 	bool
