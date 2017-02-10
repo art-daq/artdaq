@@ -40,7 +40,10 @@ NetMonTransportService(ParameterSet const& pset, art::ActivityRegistry&)
 	data_pset_(pset),
     sender_ptr_(nullptr),
     incoming_events_(artdaq::getGlobalQueue()),
-    recvd_fragments_(nullptr) { }
+    recvd_fragments_(nullptr) 
+{
+	incoming_events_.setReaderIsReady();
+}
 
 void
 NetMonTransportService::
@@ -68,9 +71,11 @@ NetMonTransportService::
 sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile & msg)
 {
   if (sender_ptr_ == nullptr) {
+	mf::LogDebug("NetMonTransportService") << "Reconnecting DataSenderManager";
     connect();
   }
 
+  mf::LogDebug("NetMonTransportService") << "Sending message";
   artdaq::NetMonHeader header;
   header.data_length = static_cast<uint64_t>(msg.Length());
   artdaq::Fragment

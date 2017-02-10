@@ -2,6 +2,7 @@
 #define ARTDAQ_DAQDATA_GLOBALS_HH
 
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "trace.h"
 
 #define my_rank artdaq::Globals::my_rank_
 #define metricMan artdaq::Globals::metricMan_

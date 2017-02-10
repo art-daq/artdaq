@@ -5,14 +5,16 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
+#include "art/Framework/IO/FileStatsCollector.h"
+#include "art/Framework/IO/PostCloseFileRenamer.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragments.hh"
 
+#include "trace.h"
 #define TRACE_NAME "BinaryFileOutput"
-#include "tracelib.h"		// TRACE
 
 #include <iomanip>
 #include <iostream>
@@ -22,6 +24,7 @@
 #include <vector>
 #include <memory>
 #include "unistd.h"
+#include <stdio.h>
 
 struct Config {
   fhicl::Atom<std::string> fileName { fhicl::Name("fileName") };
@@ -52,12 +55,16 @@ private:
 private:
   std::string name_="BinaryFileOutput";
   std::string file_name_="/tmp/artdaqdemo.binary";
+  bool do_direct_=false;
+  int fd_=-1;					// Used for direct IO
   std::unique_ptr<std::ofstream> file_ptr_= {nullptr};
+  art::FileStatsCollector fstats_;
 };
                                          
 art::BinaryFileOutput::
 BinaryFileOutput(ParameterSet const& ps)
   : OutputModule(ps)
+	, fstats_{ name_, processName() }
 {
     FDEBUG(1) << "Begin: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";    
     readParameterSet_(ps); 
@@ -92,15 +99,29 @@ endJob()
 
 void
 art::BinaryFileOutput::
-initialize_FILE_(){
-  file_ptr_= std::make_unique<std::ofstream>(file_name_,std::ofstream::binary);
- file_ptr_->rdbuf()->pubsetbuf(0, 0);
+initialize_FILE_()
+{
+	std::string file_name = PostCloseFileRenamer{ fstats_ }.applySubstitutions(file_name_);
+	if (do_direct_) {
+		fd_ = open( file_name.c_str(), O_WRONLY|O_CREAT|O_DIRECT, 0660 );
+		TRACE( 3, "BinaryFileOutput::initialize_FILE_ fd_=%d", fd_ );
+	} else {
+		file_ptr_= std::make_unique<std::ofstream>(file_name,std::ofstream::binary);
+		file_ptr_->rdbuf()->pubsetbuf(0, 0);
+	}
+	fstats_.recordFileOpen();
 }
 
 void
 art::BinaryFileOutput::
-deinitialize_FILE_() {
-  file_ptr_.reset(nullptr);
+deinitialize_FILE_()
+{
+	if (do_direct_) {
+		close(fd_);
+		fd_=-1;
+	} else
+		file_ptr_.reset(nullptr);
+	fstats_.recordFileClose();
 }
 
 bool
@@ -121,6 +142,7 @@ readParameterSet_(fhicl::ParameterSet const& pset)
       << pset.to_string() << "\".";
     return false;
   }
+  do_direct_ = pset.get<bool>("directIO",false);
   // determine the data sending parameters
   return true;
 }
@@ -138,20 +160,27 @@ write(EventPrincipal& ep)
     ep.getManyByType(art::TypeID(typeid(RawEvent)),result_handles);
 
     for(auto const& result_handle : result_handles){
-      auto const raw_event_handle= RawEventHandle(result_handle);
+		auto const raw_event_handle= RawEventHandle(result_handle);
 
-      if (!raw_event_handle.isValid())
-	  continue;
+		if (!raw_event_handle.isValid())
+			continue;
 
-      for(auto const& fragment: *raw_event_handle) {
-	auto sequence_id = fragment.sequenceID();
-	auto fragid_id = fragment.fragmentID();
-	TRACE( 1, "BinaryFileOutput::write seq=%lu frag=%i start",  sequence_id, fragid_id);
-	file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()),fragment.sizeBytes());
-	TRACE( 2, "BinaryFileOutput::write seq=%lu frag=%i done",   sequence_id, fragid_id);
-      }
+		for(auto const& fragment: *raw_event_handle) {
+			auto sequence_id = fragment.sequenceID();
+			auto fragid_id = fragment.fragmentID();
+			TRACE( 1, "BinaryFileOutput::write seq=%lu frag=%i %p bytes=0x%lx start"
+			      , sequence_id, fragid_id, fragment.headerBeginBytes(), fragment.sizeBytes() );
+			if (do_direct_) {
+				ssize_t sts=::write(fd_,reinterpret_cast<const char*>(fragment.headerBeginBytes()),fragment.sizeBytes());
+				TRACE( 2, "BinaryFileOutput::write seq=%lu frag=%i done sts=%ld errno=%d"
+				      , sequence_id, fragid_id, sts, errno );
+			} else {
+				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()),fragment.sizeBytes());
+				TRACE( 2, "BinaryFileOutput::write seq=%lu frag=%i done", sequence_id, fragid_id );
+			}
+		}
     }
-    
+	fstats_.recordEvent(ep.id());
     return;
 }
 

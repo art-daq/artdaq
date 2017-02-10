@@ -20,7 +20,12 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 		}
 		catch (std::invalid_argument) {
 			TRACE(3, "Invalid destination specification: " + d);
-		}
+		} catch (cet::exception ex) {
+            mf::LogWarning("DataSenderManager") << "Caught cet::exception: " << ex.what();
+        }
+        catch (...) {
+           mf::LogWarning("DataSenderManager") << "Non-cet exception while setting up TransferPlugin: " <<  d << ".";
+        }
 	}
 	if (destinations_.size() == 0) {
 		mf::LogError("DataSenderManager") << "No destinations specified!";
@@ -28,7 +33,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	else {
 		auto enabled_dests = pset.get<std::vector<size_t>>("enabled_destinations", std::vector<size_t>());
 		if (enabled_dests.size() == 0) {
-			mf::LogInfo("DataReceiverManager") << "enabled_destinations not specified, assuming all destinations enabled.";
+			mf::LogInfo("DataSenderManager") << "enabled_destinations not specified, assuming all destinations enabled.";
 			for (auto& d : destinations_) {
 				enabled_destinations_.insert(d.first);
 			}
@@ -85,7 +90,7 @@ sendFragment(Fragment && frag)
 	}
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
-	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBegin()), fragSize);
+	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBeginBytes()), fragSize);
 	int dest = -1;
 	if (broadcast_sends_) {
 		for (auto& bdest : enabled_destinations_) {

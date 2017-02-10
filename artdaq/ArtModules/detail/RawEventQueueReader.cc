@@ -28,6 +28,7 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 	}
+	incoming_events.setReaderIsReady();
 }
 
 void artdaq::detail::RawEventQueueReader::closeCurrentFile()
@@ -46,10 +47,10 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 	art::SubRunPrincipal *& outSR,
 	art::EventPrincipal *& outE)
 {
-	if (outputFileCloseNeeded) {
+	/*if (outputFileCloseNeeded) {
 		outputFileCloseNeeded = false;
 		return false;
-	}
+	}*/
 	// Establish default 'results'
 	outR = 0;
 	outSR = 0;
@@ -141,7 +142,7 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 				}
 				outR = 0;
 			}
-			outputFileCloseNeeded = true;
+			//outputFileCloseNeeded = true;
 			return true;
 		}
 	}

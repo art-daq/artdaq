@@ -15,7 +15,7 @@
 #include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "tracelib.h"
+#include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
 
 using namespace std;
@@ -32,10 +32,12 @@ namespace artdaq {
 		ART_CMDLINE_FCN * reader) :
 		num_fragments_per_event_(num_fragments_per_event),
 		max_queue_size_(pset.get<size_t>("event_queue_depth", 50)),
+		max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 50)),
 		run_id_(run),
 		subrun_id_(0),
 		events_(),
 		queue_(getGlobalQueue(max_queue_size_)),
+		reader_thread_launch_time_(std::chrono::steady_clock::now()),
 		reader_thread_(std::async(std::launch::async, reader, argc, argv)),
 		send_requests_(pset.get<bool>("send_requests", false)),
 		active_requests_(),
@@ -50,8 +52,10 @@ namespace artdaq {
 		incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1)),
 		last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
+		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+
 		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
 	}
 
@@ -62,10 +66,12 @@ namespace artdaq {
 		ART_CFGSTRING_FCN * reader) :
 		num_fragments_per_event_(num_fragments_per_event),
 		max_queue_size_(pset.get<size_t>("event_queue_depth", 20)),
+		max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 20)),
 		run_id_(run),
 		subrun_id_(0),
 		events_(),
 		queue_(getGlobalQueue(max_queue_size_)),
+		reader_thread_launch_time_(std::chrono::steady_clock::now()),
 		reader_thread_(std::async(std::launch::async, reader, configString)),
 		send_requests_(pset.get<bool>("send_requests", false)),
 		active_requests_(),
@@ -80,12 +86,14 @@ namespace artdaq {
 		incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1)),
 		last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
+		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
 	}
 
 	EventStore::~EventStore()
 	{
+		mf::LogDebug("EventStore") << "Shutting down EventStore";
 		if (printSummaryStats_) {
 			reportStatistics_();
 		}
@@ -192,7 +200,7 @@ namespace artdaq {
 		}
 	}
 
-	bool EventStore::insert(FragmentPtr pfrag, FragmentPtr& rejectedFragment)
+	EventStore::EventStoreInsertResult EventStore::insert(FragmentPtr pfrag, FragmentPtr& rejectedFragment)
 	{
 		// Test whether this fragment can be safely accepted. If we accept
 		// it, and it completes an event, then we want to be sure that it
@@ -209,18 +217,30 @@ namespace artdaq {
 			}
 			if (queue_.full()) {
 				rejectedFragment = std::move(pfrag);
-				return false;
+				return EventStoreInsertResult::REJECT_QUEUEFULL;
+			}
+		}
+		TRACE(12, "EventStore: Testing if there's room in the EventStore");
+		auto incomplete_full = events_.size() >= max_incomplete_count_;
+		if (incomplete_full)
+		{
+			EventMap::iterator loc = events_.lower_bound(pfrag->sequenceID());
+
+			if (loc == events_.end() || events_.key_comp()(pfrag->sequenceID(), loc->first)) {
+				rejectedFragment = std::move(pfrag);
+				return EventStoreInsertResult::REJECT_STOREFULL;
 			}
 		}
 
 		TRACE(12, "EventStore: Performing insert");
 		insert(std::move(pfrag));
-		return true;
+		return incomplete_full ? EventStoreInsertResult::SUCCESS_STOREFULL : EventStoreInsertResult::SUCCESS;
 	}
 
 	bool
 		EventStore::endOfData(int& readerReturnValue)
 	{
+		mf::LogDebug("EventStore") << "EventStore::endOfData";
 		RawEvent_ptr end_of_data(nullptr);
 		TRACE(4, "EventStore::endOfData: Enqueuing end_of_data event");
 		bool enqSuccess = queue_.enqTimedWait(end_of_data, enq_timeout_);
@@ -272,6 +292,21 @@ namespace artdaq {
 
 	void EventStore::startRun(run_id_t runID)
 	{
+		if (!queue_.queueReaderIsReady()) {
+			mf::LogWarning("EventStore") << "Run start requested, but the art thread is not yet ready, waiting up to 4 sec...";
+			while (!queue_.queueReaderIsReady() && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count() < 4000) 
+			{
+				usleep(1000);
+			}
+			if (queue_.queueReaderIsReady()) {
+				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(queue_.getReadyTime() - reader_thread_launch_time_).count();
+				mf::LogInfo("EventStore") << "art initialization took (roughly) " << std::setw(4) << std::to_string(dur) << " ms.";
+			}
+			else {
+				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count();
+				mf::LogError("EventStore") << "art thread still not ready after " << dur << " ms. Continuing to start...";
+			}
+		}
 		run_id_ = runID;
 		subrun_id_ = 1;
 		lastFlushedSeqID_ = 0;

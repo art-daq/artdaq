@@ -213,7 +213,6 @@ namespace artdaq {
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
-		bool listenForRequests_;
 		int request_port_;
 		std::string request_addr_;
 
@@ -242,7 +241,6 @@ namespace artdaq {
 		size_t maxDataBufferDepthBytes_;
 
 		bool useMonitoringThread_;
-		bool collectMonitoringData_;
 		std::thread monitoringThread_;
 		int64_t monitoringInterval_; // Microseconds
 		std::chrono::steady_clock::time_point lastMonitoringCall_;

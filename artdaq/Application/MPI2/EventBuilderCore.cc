@@ -11,6 +11,8 @@
 #define TRACE_NAME "EventBuilderCore"
 #include "trace.h"
 
+#include <iomanip>
+
 const std::string artdaq::EventBuilderCore::INPUT_FRAGMENTS_STAT_KEY("EventBuilderCoreInputFragments");
 const std::string artdaq::EventBuilderCore::INPUT_WAIT_STAT_KEY("EventBuilderCoreInputWaitTime");
 const std::string artdaq::EventBuilderCore::STORE_EVENT_WAIT_STAT_KEY("EventBuilderCoreStoreEventWaitTime");
@@ -396,37 +398,53 @@ size_t artdaq::EventBuilderCore::process_fragments()
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 		if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType) {
 			artdaq::FragmentPtr rejectedFragment;
+			auto seqId = pfragment->sequenceID();
+			auto fragId = pfragment->fragmentID();
 			bool try_again = true;
 			while (try_again) {
-				if (event_store_ptr_->insert(std::move(pfragment), rejectedFragment)) {
+				auto ret = event_store_ptr_->insert(std::move(pfragment), rejectedFragment);
+				if (ret == EventStore::EventStoreInsertResult::SUCCESS) {
+					receiver_ptr_->unsuppressAll();
+					try_again = false;
+				}
+				else if (ret == EventStore::EventStoreInsertResult::SUCCESS_STOREFULL) {
 					try_again = false;
 				}
 				else if (stop_requested_.load()) {
 					try_again = false;
 					flush_mutex_.unlock();
 					process_fragments = false;
-					pfragment = std::move(rejectedFragment);
+					receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
 					mf::LogWarning(name_)
-						<< "Unable to process fragment " << pfragment->fragmentID()
-						<< " in event " << pfragment->sequenceID()
+						<< "Unable to process fragment " << fragId
+						<< " in event " << seqId
 						<< " because of back-pressure - forcibly ending the run.";
 				}
 				else if (pause_requested_.load()) {
 					try_again = false;
 					flush_mutex_.unlock();
 					process_fragments = false;
-					pfragment = std::move(rejectedFragment);
+					receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
 					mf::LogWarning(name_)
-						<< "Unable to process fragment " << pfragment->fragmentID()
-						<< " in event " << pfragment->sequenceID()
+						<< "Unable to process fragment " << fragId
+						<< " in event " << seqId
 						<< " because of back-pressure - forcibly pausing the run.";
 				}
-				else {
+				else if (ret == EventStore::EventStoreInsertResult::REJECT_QUEUEFULL) {
 					pfragment = std::move(rejectedFragment);
 					mf::LogWarning(name_)
-						<< "Unable to process fragment " << pfragment->fragmentID()
-						<< " in event " << pfragment->sequenceID()
-						<< " because of back-pressure - retrying...";
+						<< "Unable to process fragment " << fragId
+						<< " in event " << seqId
+						<< " because of back-pressure from art - retrying...";
+				}
+				else {
+					try_again = false;
+					receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
+					mf::LogWarning(name_)
+						<< "Unable to process fragment " << fragId
+						<< " in event " << seqId
+						<< " because the EventStore has reached the maximum number of incomplete events." << std::endl
+						<< " Will retry when the EventStore is ready for new events.";
 				}
 			}
 		}
@@ -483,6 +501,31 @@ std::string artdaq::EventBuilderCore::report(std::string const& which) const
 		else {
 			return "-1";
 		}
+	}
+	if (which == "event_count") {
+		artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
+			getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
+		if (mqPtr.get() != 0) {
+			return boost::lexical_cast<std::string>(mqPtr->fullSampleCount());
+		}
+		else {
+			return "-1";
+		}
+	}
+
+	if (which == "run_duration") {
+		// 03-Feb-2017, ELF: if we are not processing fragments, return 0 (not adding data members)
+		double duration = 0;
+		if (processing_fragments_.load()) {
+			artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
+				getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
+			if (mqPtr.get() != 0) {
+				duration = mqPtr->fullDuration();
+			}
+		}
+		std::ostringstream oss;
+		oss << std::fixed << std::setprecision(1) << duration;
+		return oss.str();
 	}
 
 	// lots of cool stuff that we can do here

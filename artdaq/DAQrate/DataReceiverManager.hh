@@ -43,31 +43,31 @@ public:
 
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
+	void suppress_source(int source);
+	void unsuppressAll();
+	void reject_fragment(int source_rank, FragmentPtr frag);
+
 private:
 	void runReceiver_(int);
+	bool fragments_ready_();
+	int get_next_source_();
 
 	std::atomic<bool> stop_requested_;
-
-	std::atomic<size_t> fragment_ready_;
-	std::condition_variable fragment_ready_cv_;
-	std::mutex ready_mutex_;
-
-	std::condition_variable fragment_requested_;
-	std::mutex req_mutex_;
-
-	std::condition_variable fragment_sent_;
-	std::mutex snt_mutex_;
 
 	std::map<int, std::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
+	std::set<int> suppressed_sources_;
 
-	std::atomic<int> current_source_;
-    FragmentPtr current_fragment_;
-	std::mutex fragment_mutex_;
+	std::mutex fragment_store_mutex_;
+	std::map<int, FragmentPtrs> fragment_store_;
+
+	std::condition_variable input_cv_;
+	std::condition_variable output_cv_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
 	detail::FragCounter recv_frag_size_; // Number of bytes received per source.
+	detail::FragCounter recv_seq_count_; // For counting sequence IDs
 	size_t suppression_threshold_;
 
 	size_t receive_timeout_;
