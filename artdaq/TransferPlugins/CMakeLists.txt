@@ -45,6 +45,10 @@ simple_plugin(Shmem "transfer"
   artdaq_TransferPlugins
 )
 
+simple_plugin(Null "transfer"
+  artdaq_TransferPlugins
+  )
+
 simple_plugin(Multicast "transfer"
   artdaq_TransferPlugins
   ${Boost_SYSTEM_LIBRARY}
