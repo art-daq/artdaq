@@ -16,6 +16,7 @@
 
 namespace artdaq {
 	class DataReceiverManager;
+	class FragmentStoreElement;
 }
 
 class artdaq::DataReceiverManager {
@@ -49,8 +50,8 @@ public:
 
 private:
 	void runReceiver_(int);
-	bool fragments_ready_();
-	int get_next_source_();
+	bool fragments_ready_() const;
+	int get_next_source_() const;
 
 	std::atomic<bool> stop_requested_;
 
@@ -59,10 +60,11 @@ private:
 	std::set<int> enabled_sources_;
 	std::set<int> suppressed_sources_;
 
-	std::mutex fragment_store_mutex_;
-	std::map<int, FragmentPtrs> fragment_store_;
+	std::map<int, FragmentStoreElement> fragment_store_;
 
+	std::mutex input_cv_mutex_;
 	std::condition_variable input_cv_;
+	std::mutex output_cv_mutex_;
 	std::condition_variable output_cv_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
@@ -73,6 +75,36 @@ private:
 	size_t receive_timeout_;
 };
 
+class artdaq::FragmentStoreElement {
+public:
+	FragmentStoreElement() : frags_() {
+		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
+	}
+
+	bool empty() const {
+		return frags_.size() == 0; 
+	}
+
+	void emplace_front(FragmentPtr&& frag) {
+		std::unique_lock<std::mutex> lk(mutex_);
+		frags_.emplace_front(std::move(frag));
+	}
+
+	void emplace_back(FragmentPtr&& frag) {
+		std::unique_lock<std::mutex> lk(mutex_);
+		frags_.emplace_back(std::move(frag));
+	}
+
+	FragmentPtr front() {
+		std::unique_lock<std::mutex> lk(mutex_);
+		auto current_fragment = std::move(frags_.front());
+		frags_.pop_front();
+		return std::move(current_fragment);
+	}
+private:
+	std::mutex mutex_;
+	FragmentPtrs frags_;
+};
 
 inline
 size_t

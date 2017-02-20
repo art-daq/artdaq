@@ -5,11 +5,12 @@
 
 // #include "messagefacility/MessageLogger/MessageLogger.h"
 
- #include <trace.h>
+#include <trace.h>
 
+#include "artdaq/DAQdata/Globals.hh"
 // #include <boost/tokenizer.hpp>
 
- #include <sys/shm.h>
+#include <sys/shm.h>
 // #include <memory>
 // #include <iostream>
 // #include <string>
@@ -17,6 +18,7 @@
 // #include <sstream>
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
 
+#define SHMEM_SLEEP 0
 // ----------------------------------------------------------------------
 
 
@@ -78,7 +80,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 					mf::LogDebug(uniqueLabel()) << "Buffer " << ii << " is at 0x" << std::hex << offset << std::dec;
 					shm_ptr_->buffers[ii].fragmentSizeWords = 0;
 					shm_ptr_->buffers[ii].offset = offset;
-					shm_ptr_->buffers[ii].sem = bufsem::buffer_empty;
+					shm_ptr_->buffers[ii].sem = BUFFER_EMPTY;
 					offset += max_fragment_size_words_ * sizeof(artdaq::RawDataType);
 				}
 			}
@@ -109,34 +111,38 @@ artdaq::ShmemTransfer::~ShmemTransfer() {
 	TRACE(5, "ShmemTransfer::~ShmemTransfer done");
 }
 
-int artdaq::ShmemTransfer::delta_() {
-	size_t wp = shm_ptr_->write_pos;
-	size_t rp = shm_ptr_->read_pos;
-	size_t rpp = rp + buffer_count_;
-	if (buffer_count_ == 1) { // Special case, delta will always be 0!
-		return 1; // rely on buffer semaphore
-	}
-	if (wp == rp) return 0; // Equal, read suppressed
-	if (wp == rp - 1 || wp == rpp - 1) return -1; // Write has looped, write suppressed if reliable
-	return 1; // Write has buffers available
+bool artdaq::ShmemTransfer::readyForRead_()
+{
+	return shm_ptr_->buffers[shm_ptr_->read_pos].sem == FRAGMENT_READY;
+}
+
+bool artdaq::ShmemTransfer::readyForWrite_()
+{
+	return shm_ptr_->buffers[shm_ptr_->write_pos].sem == BUFFER_EMPTY;
 }
 
 int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 	size_t receiveTimeout) {
 
 	if (shm_ptr_) {
-		size_t loopCount = 0;
-		size_t sleepTime = 1000; // microseconds
-		size_t nloops = receiveTimeout / sleepTime;
+		auto waitStart = std::chrono::steady_clock::now();
+		while (!readyForRead_() && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - waitStart).count() < 1000) {
+			// BURN THAT CPU!
+		}
+		if (!readyForRead_()) {
+			int64_t loopCount = 0;
+			size_t sleepTime = 1000; // microseconds
+			int64_t nloops = (receiveTimeout - 1000) / sleepTime;
 
-		while (delta_() == 0 && loopCount < nloops) {
-			usleep(sleepTime);
-			++loopCount;
+			while (!readyForRead_() && loopCount < nloops) {
+				usleep(sleepTime);
+				++loopCount;
+			}
 		}
 
 		//mf::LogDebug(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops;
 
-		if (delta_() != 0) {
+		if (readyForRead_()) {
 			// JCF, Jul-7-2016
 
 			// Calling artdaq::Fragment::resize with the argument
@@ -146,12 +152,9 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 			// of its payload. We correct for this below.
 			auto buf = &shm_ptr_->buffers[shm_ptr_->read_pos];
 			auto initCount = buf->writeCount;
-			//mf::LogDebug(uniqueLabel()) << "Waiting for buffer " << (int)shm_ptr_->read_pos;
-			while (buf->sem != bufsem::fragment_ready || buf->fragmentSizeWords == 0) {
-				usleep(1000);
-			}
-			buf->sem = bufsem::reading_fragment;
-			//mf::LogDebug(uniqueLabel()) << "Done waiting, semaphore set";
+
+			TRACE(TRANSFER_RECEIVE1, "Setting semaphore on buf %u", shm_ptr_->read_pos.load());
+			buf->sem = READING_FRAGMENT;
 			RawDataType* bufPtr = offsetToPtr(buf->offset);
 			//mf::LogDebug(uniqueLabel()) << "Pointer is " << bufPtr;
 			fragment.resize(buf->fragmentSizeWords);
@@ -165,19 +168,17 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 			auto wordsOfHeaderAndMetadata = &*fragment.dataBegin() - &*fragment.headerBegin();
 			fragment.resize(buf->fragmentSizeWords - wordsOfHeaderAndMetadata);
 
-			if (buf->sem != bufsem::reading_fragment || buf->writeCount != initCount) { 
+			if (buf->sem != READING_FRAGMENT || buf->writeCount != initCount) {
 				//mf::LogWarning(uniqueLabel()) << "Semaphore was unset! This buffer has been clobbered!";
 				return RECV_TIMEOUT; // Buffer was clobbered by a non-reliable writer...
-			} 
+			}
 
-			shm_ptr_->read_pos = (shm_ptr_->read_pos + 1) % buffer_count_;
-			buf->sem = bufsem::buffer_empty;
+			shm_ptr_->read_pos++;
+			if (shm_ptr_->read_pos >= buffer_count_) shm_ptr_->read_pos = 0;
+			buf->sem = BUFFER_EMPTY;
 
 			if (fragment.type() != artdaq::Fragment::DataFragmentType) {
-				mf::LogDebug(uniqueLabel())
-					<< "Received fragment from shared memory, type =" << ((int)fragment.type())
-					<< ", sequenceID = " << fragment.sequenceID()
-					<< ", source_rank = " << source_rank();
+				TRACE(TRANSFER_RECEIVE2, "Recvd frag from shmem, type=%d, sequenceID=%zu, source_rank=%d", (int)fragment.type(), fragment.sequenceID(), source_rank());
 			}
 
 			return source_rank();
@@ -209,48 +210,53 @@ artdaq::ShmemTransfer::moveFragment(artdaq::Fragment&& fragment,
 artdaq::TransferInterface::CopyStatus
 artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec, bool reliableMode)
 {
-	size_t fragmentType = fragment.type();
-
 	if (!shm_ptr_) { return CopyStatus::kErrorNotRequiringException; }
+
 
 	// wait for the shm to become free, if requested     
 	if (send_timeout_usec > 0) {
-		size_t loopCount = 0;
-		size_t sleepTime = 1000; // microseconds
-		size_t nloops = send_timeout_usec / sleepTime;
-		
-		while (reliableMode && loopCount < nloops && delta_() == -1) {
-			if (fragmentType != artdaq::Fragment::DataFragmentType && loopCount % nloops/100 == 0) {
-				mf::LogDebug(uniqueLabel()) << "Trying to copy fragment of type " << fragmentType << ", loopCount = " << loopCount << ", send_timeout_usec = " << send_timeout_usec;
+		auto waitStart = std::chrono::steady_clock::now();
+		while (!readyForWrite_() && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - waitStart).count() < 1000) {
+			// BURN THAT CPU!
+		}
+		if (!readyForWrite_()) {
+			int64_t loopCount = 0;
+			size_t sleepTime = 1000; // microseconds
+			int64_t nloops = (send_timeout_usec - 1000) / sleepTime;
+
+			while (reliableMode && !readyForWrite_() && loopCount < nloops) {
+				usleep(sleepTime);
+				++loopCount;
 			}
-			usleep(sleepTime);
-			++loopCount;
 		}
 	}
 
 	//mf::LogDebug(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos;
 
 	// copy the fragment if the shm is available                                               
-	if ((delta_() != -1 && reliableMode) || !reliableMode) {
-        mf::LogDebug(uniqueLabel()) << "Sending fragment with seqID " << fragment.sequenceID();
+	if ((reliableMode && readyForWrite_()) || !reliableMode) {
+		TRACE(TRANSFER_SEND2, "Sending fragment with seqID=%zu", fragment.sequenceID());
 		artdaq::RawDataType* fragAddr = fragment.headerAddress();
 		size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 
 		// 10-Sep-2013, KAB - protect against large events and                                   
 		// invalid events (and large, invalid events)                                            
-		if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ *	sizeof(artdaq::RawDataType))) {
+		if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ * sizeof(artdaq::RawDataType))) {
 			auto buf = &shm_ptr_->buffers[shm_ptr_->write_pos];
 			//mf::LogDebug(uniqueLabel()) << "Waiting for buffer " << (int)shm_ptr_->write_pos;
-			while (buf->sem != bufsem::buffer_empty && reliableMode) { usleep(1000); }
-			buf->sem = bufsem::writing_fragment;
+			buf->sem = WRITING_FRAGMENT;
 			//mf::LogDebug(uniqueLabel()) << "Copying fragment with size " << fragSize << " into buffer " << (int)shm_ptr_->write_pos << " at 0x" << std::hex << buf->offset << std::dec;
 			memcpy(offsetToPtr(buf->offset), fragAddr, fragSize);
 			//mf::LogDebug(uniqueLabel()) << "Done with copy";
 			buf->fragmentSizeWords = fragment.size();
 
-			shm_ptr_->write_pos = (shm_ptr_->write_pos + 1) % buffer_count_;
-			if (delta_() == 0  && !reliableMode) shm_ptr_->read_pos = (shm_ptr_->read_pos + 1) % buffer_count_;
-			buf->sem = bufsem::fragment_ready;
+			shm_ptr_->write_pos++;
+			if (shm_ptr_->write_pos >= buffer_count_) shm_ptr_->write_pos = 0;
+			if (shm_ptr_->write_pos == shm_ptr_->read_pos && !reliableMode) {
+				shm_ptr_->read_pos++;
+				if (shm_ptr_->read_pos >= buffer_count_) shm_ptr_->read_pos = 0;
+			}
+			buf->sem = FRAGMENT_READY;
 
 			return CopyStatus::kSuccess;
 		}

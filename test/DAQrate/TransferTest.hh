@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include <fhiclcpp/ParameterSet.h>
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq {
 	class TransferTest {
@@ -29,6 +30,7 @@ namespace artdaq {
 		size_t max_payload_size_;
 		std::chrono::steady_clock::time_point start_time_;
 		fhicl::ParameterSet ps_;
+		artdaq::MetricManager metricMan_;
 	};
 
 	inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex) {
