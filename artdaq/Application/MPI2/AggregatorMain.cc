@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
   }
 
   if (!vm.count("port")) {
-    mf::LogError ("Option") << argv[0] << " port number not suplied" << std::endl << "For usage and an options list, please do '" << argv[0] <<  " --help'" << std::endl;
+    mf::LogError ("Option") << argv[0] << " port number not supplied" << std::endl << "For usage and an options list, please do '" << argv[0] <<  " --help'" << std::endl;
     return 1;
   }
 
