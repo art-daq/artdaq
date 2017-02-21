@@ -36,8 +36,8 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	: TransferInterface(pset, role)
 	, fd_(-1)
 	, listen_fd_(-1)
-	, sndbuf_(pset.get<size_t>("tcp_send_buffer_size", 1024))
-	, rcvbuf_(pset.get<size_t>("tcp_receive_buffer_size", 1024))
+	, sndbuf_(pset.get<size_t>("tcp_send_buffer_size", 0))
+	, rcvbuf_(pset.get<size_t>("tcp_receive_buffer_size", 0))
 	, state_(SocketState::Metadata)
 	, frag(max_fragment_size_words_)
 	, buffer(frag.headerBeginBytes())
@@ -151,7 +151,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(c
 
 	//mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::sendFragment_: Determining write size";
 	uint32_t total_to_write_bytes = 0;
-	std::vector<iovec> iov_in(iovcnt + 1); // need contigous (for the unlike case that only partial MH
+	std::vector<iovec> iov_in(iovcnt + 1); // need contiguous (for the unlike case that only partial MH
 	std::vector<iovec> iovv(iovcnt + 2); // 1 more for mh and another one for any partial
 	int ii;
 	for (ii = 0; ii < iovcnt; ++ii) {
@@ -187,7 +187,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(c
 			this_write_bytes = per_write_max_bytes;
 		}
 
-		// need to do blocking algorythm -- including throttled block notifications
+		// need to do blocking algorithm -- including throttled block notifications
 	do_again:
 		TRACE(7, "sendFragment b4 writev %7zu total_written_bytes fd=%d in_idx=%zu iovcnt=%zu 1st.len=%zu"
 			, total_written_bytes, fd_, in_iov_idx, out_iov_idx, iovv[0].iov_len);
@@ -297,7 +297,7 @@ void   artdaq::TCPSocketTransfer::connect_()
 	fd_ = TCPConnect(hostMap_[destination_rank()].hostname.c_str()
 		, calculate_port_()
 		, O_NONBLOCK
-		, &sndbuf_bytes);
+		, sndbuf_bytes);
 	connect_state = 0;
 	blocking = 0;
 	mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::connect_ " + hostMap_[destination_rank()].hostname + ":" << calculate_port_() << " fd_=" << fd_;
@@ -372,7 +372,7 @@ void artdaq::TCPSocketTransfer::listen_() {
        sts = read(fd, &mh, sizeof(mh));
        uint64_t delta_us = gettimeofday_us() - mark_us; 
        mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Read of connect message took " << delta_us << " microseconds.";
-       TRACE(10, "do_connect read of connect msg (after accept) took %lu microseconds", delta_us); // imperically, read take a couple hundred usecs.
+       TRACE(10, "do_connect read of connect msg (after accept) took %lu microseconds", delta_us); // emperically, read take a couple hundred usecs.
        if (sts != sizeof(mh)) {
 	 mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::listen_: Wrong message header length received!";
 	 TRACE(0, "do_connect_ problem with connect msg sts(%d)!=sizeof(mh)(%ld)", sts, sizeof(mh));

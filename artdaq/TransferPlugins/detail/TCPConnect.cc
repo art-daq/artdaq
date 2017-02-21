@@ -32,7 +32,7 @@ using namespace std;
 int TCPConnect(  char const *host_in
                , int	dflt_port
                , long   flags
-               , int    *sndbufsizptr )
+               , int    sndbufsiz )
 {
 	int			s_fd, sts;
 	int			port;
@@ -96,23 +96,22 @@ int TCPConnect(  char const *host_in
 		TRACE( 4, "TCPConnect fcntl(fd=%d,flags=0x%lx)=%d",s_fd,flags,sts );
 	}
 
-	if (sndbufsizptr) {
+	if (sndbufsizptr > 0) {
 		int len;
-		socklen_t lenlen=sizeof(len);
+		socklen_t lenlen = sizeof(len);
 		len = 0;
-		sts = getsockopt( s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen );
-		TRACE( 3,"TCPConnect SNDBUF initial: %d sts/errno=%d/%d lenlen=%d", len,sts,errno,lenlen );
-		len=*sndbufsizptr;
-		sts = setsockopt( s_fd, SOL_SOCKET, SO_SNDBUF, &len, lenlen );
-		if (sts == -1) TRACE( 0, "Error with setsockopt SNDBUF %d", errno );
+		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
+		TRACE(3, "TCPConnect SNDBUF initial: %d sts/errno=%d/%d lenlen=%d", len, sts, errno, lenlen);
+		len = sndbufsiz;
+		sts = setsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, lenlen);
+		if (sts == -1) TRACE(0, "Error with setsockopt SNDBUF %d", errno);
 		len = 0;
-		sts = getsockopt( s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen );
-		if (len < (*sndbufsizptr*2))
-			TRACE( 1,"SNDBUF %d not expected (%d) sts/errno=%d/%d"
-			      ,len,*sndbufsizptr,sts,errno);
+		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
+		if (len < (sndbufsiz * 2))
+			TRACE(1, "SNDBUF %d not expected (%d) sts/errno=%d/%d"
+				, len, *sndbufsizptr, sts, errno);
 		else
-			TRACE( 3,"SNDBUF %d sts/errno=%d/%d", len,sts,errno );
-		*sndbufsizptr = len;
+			TRACE(3, "SNDBUF %d sts/errno=%d/%d", len, sts, errno);
 	}
     return (s_fd);
 }

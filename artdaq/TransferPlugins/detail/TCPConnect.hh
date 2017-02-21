@@ -7,6 +7,6 @@
  // $RCSfile: .emacs.gnu,v $
  // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
-int TCPConnect( char const *host_in, int dflt_port, long flags=0, int *sndbufsizptr=NULL );
+int TCPConnect( char const *host_in, int dflt_port, long flags=0, int sndbufsiz=0 );
 
 #endif	// TCPConnect_hh
