@@ -96,7 +96,7 @@ int TCPConnect(  char const *host_in
 		TRACE( 4, "TCPConnect fcntl(fd=%d,flags=0x%lx)=%d",s_fd,flags,sts );
 	}
 
-	if (sndbufsizptr > 0) {
+	if (sndbufsiz > 0) {
 		int len;
 		socklen_t lenlen = sizeof(len);
 		len = 0;
@@ -109,7 +109,7 @@ int TCPConnect(  char const *host_in
 		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
 		if (len < (sndbufsiz * 2))
 			TRACE(1, "SNDBUF %d not expected (%d) sts/errno=%d/%d"
-				, len, *sndbufsizptr, sts, errno);
+				, len, sndbufsiz, sts, errno);
 		else
 			TRACE(3, "SNDBUF %d sts/errno=%d/%d", len, sts, errno);
 	}
