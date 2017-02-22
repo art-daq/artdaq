@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
 parent artdaq  v2_01_00
-defaultqual    e10:s41:eth
+defaultqual    e14:s46:eth
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -18,10 +18,10 @@ bindir      fq_dir      bin
 #
 product			version		optional
 artdaq_core 		v1_06_01
-artdaq_utilities        -
+artdaq_utilities        v1_01_01
 mvapich2		v1_9_0
-mpich			v3_2_0
-xmlrpc_c		v1_39_10
+mpich			v3_2_0b
+xmlrpc_c		v1_39_10a
 artdaq_ganglia_plugin   v1_02_01        -       optional
 artdaq_epics_plugin     v1_01_05        -       optional
 artdaq_mfextensions     v1_01_04        -       optional
@@ -36,25 +36,37 @@ end_product_list
 # s15 - with art v1_15_02
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
-qualifier		artdaq_core    	   artdaq_utilities	mvapich2	mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin  	artdaq_mfextensions
-e10:s44:debug		e10:s44:debug	   e10:s44:debug	-		e10:debug	e10:debug	e10:g371:s44:debug	e10:s44:debug        	e10:s44:debug
-e10:s44:prof		e10:s44:prof 	   e10:s44:prof		-		e10:prof	e10:prof	e10:g371:s44:prof	e10:s44:prof		e10:s44:prof
-e10:s43:debug		e10:s43:debug	   e10:s43:debug	-		e10:debug	e10:debug	e10:g371:s43:debug	e10:s43:debug        	e10:s43:debug
-e10:s43:prof		e10:s43:prof 	   e10:s43:prof		-		e10:prof	e10:prof	e10:g371:s43:prof	e10:s43:prof		e10:s43:prof
-e10:s41:debug		e10:s41:debug	   e10:s41:debug	-		e10:debug	e10:debug	e10:g371:s41:debug	e10:s41:debug        	e10:s41:debug
-e10:s41:prof		e10:s41:prof 	   e10:s41:prof		-		e10:prof	e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
-e10:s44:ib:debug	e10:s44:debug	   e10:s44:debug	-nq-		-		e10:debug	e10:g371:s44:debug	e10:s44:debug		e10:s44:debug
-e10:s44:ib:prof		e10:s44:prof	   e10:s44:prof		-nq-		-		e10:prof	e10:g371:s44:prof	e10:s44:prof		e10:s44:prof
-e10:s44:eth:debug	e10:s44:debug	   e10:s44:debug	-		e10:debug	e10:debug	e10:g371:s44:debug	e10:s44:debug		e10:s44:debug
-e10:s44:eth:prof	e10:s44:prof 	   e10:s44:prof		-		e10:prof	e10:prof	e10:g371:s44:prof	e10:s44:prof		e10:s44:prof
-e10:s43:ib:debug	e10:s43:debug	   e10:s43:debug	-nq-		-		e10:debug	e10:g371:s43:debug	e10:s43:debug		e10:s43:debug
-e10:s43:ib:prof		e10:s43:prof	   e10:s43:prof		-nq-		-		e10:prof	e10:g371:s43:prof	e10:s43:prof		e10:s43:prof
-e10:s43:eth:debug	e10:s43:debug	   e10:s43:debug	-		e10:debug	e10:debug	e10:g371:s43:debug	e10:s43:debug		e10:s43:debug
-e10:s43:eth:prof	e10:s43:prof 	   e10:s43:prof		-		e10:prof	e10:prof	e10:g371:s43:prof	e10:s43:prof		e10:s43:prof
-e10:s41:ib:debug	e10:s41:debug	   e10:s41:debug	-nq-		-		e10:debug	e10:g371:s41:debug	e10:s41:debug		e10:s41:debug
-e10:s41:ib:prof		e10:s41:prof	   e10:s41:prof		-nq-		-		e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
-e10:s41:eth:debug	e10:s41:debug	   e10:s41:debug	-		e10:debug	e10:debug	e10:g371:s41:debug	e10:s41:debug		e10:s41:debug
-e10:s41:eth:prof	e10:s41:prof 	   e10:s41:prof		-		e10:prof	e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
+qualifier		artdaq_core    	   artdaq_utilities	      	mvapich2	  mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin  	artdaq_mfextensions
+e14:s46:debug		e14:s46:debug	   a_u_intf_v1:e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug        	e14:s46:debug
+e14:s46:prof		e14:s46:prof 	   a_u_intf_v1:e14:s46:prof	-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+e10:s46:debug		e10:s46:debug	   a_u_intf_v1:e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug        	e10:s46:debug
+e10:s46:prof		e10:s46:prof 	   a_u_intf_v1:e10:s46:prof	-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+e10:s44:debug		e10:s44:debug	   a_u_intf_v1:e10:s44:debug	-		e10:debug	e10:debug	e10:g371:s44:debug	e10:s44:debug        	e10:s44:debug
+e10:s44:prof		e10:s44:prof 	   a_u_intf_v1:e10:s44:prof	-		e10:prof	e10:prof	e10:g371:s44:prof	e10:s44:prof		e10:s44:prof
+e10:s43:debug		e10:s43:debug	   a_u_intf_v1:e10:s43:debug	-		e10:debug	e10:debug	e10:g371:s43:debug	e10:s43:debug        	e10:s43:debug
+e10:s43:prof		e10:s43:prof 	   a_u_intf_v1:e10:s43:prof	-		e10:prof	e10:prof	e10:g371:s43:prof	e10:s43:prof		e10:s43:prof
+e10:s41:debug		e10:s41:debug	   a_u_intf_v1:e10:s41:debug	-		e10:debug	e10:debug	e10:g371:s41:debug	e10:s41:debug        	e10:s41:debug
+e10:s41:prof		e10:s41:prof 	   a_u_intf_v1:e10:s41:prof	-		e10:prof	e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
+e14:s46:ib:debug	e14:s46:debug	   a_u_intf_v1:e14:s46:debug	-nq-		-		e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
+e14:s46:ib:prof		e14:s46:prof	   a_u_intf_v1:e14:s46:prof	-nq-		-		e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+e14:s46:eth:debug	e14:s46:debug	   a_u_intf_v1:e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
+e14:s46:eth:prof	e14:s46:prof 	   a_u_intf_v1:e14:s46:prof	-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+e10:s46:ib:debug	e10:s46:debug	   a_u_intf_v1:e10:s46:debug	-nq-		-		e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
+e10:s46:ib:prof		e10:s46:prof	   a_u_intf_v1:e10:s46:prof	-nq-		-		e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+e10:s46:eth:debug	e10:s46:debug	   a_u_intf_v1:e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
+e10:s46:eth:prof	e10:s46:prof 	   a_u_intf_v1:e10:s46:prof	-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+e10:s44:ib:debug	e10:s44:debug	   a_u_intf_v1:e10:s44:debug	-nq-		-		e10:debug	e10:g371:s44:debug	e10:s44:debug		e10:s44:debug
+e10:s44:ib:prof		e10:s44:prof	   a_u_intf_v1:e10:s44:prof	-nq-		-		e10:prof	e10:g371:s44:prof	e10:s44:prof		e10:s44:prof
+e10:s44:eth:debug	e10:s44:debug	   a_u_intf_v1:e10:s44:debug	-		e10:debug	e10:debug	e10:g371:s44:debug	e10:s44:debug		e10:s44:debug
+e10:s44:eth:prof	e10:s44:prof 	   a_u_intf_v1:e10:s44:prof	-		e10:prof	e10:prof	e10:g371:s44:prof	e10:s44:prof		e10:s44:prof
+e10:s43:ib:debug	e10:s43:debug	   a_u_intf_v1:e10:s43:debug	-nq-		-		e10:debug	e10:g371:s43:debug	e10:s43:debug		e10:s43:debug
+e10:s43:ib:prof		e10:s43:prof	   a_u_intf_v1:e10:s43:prof	-nq-		-		e10:prof	e10:g371:s43:prof	e10:s43:prof		e10:s43:prof
+e10:s43:eth:debug	e10:s43:debug	   a_u_intf_v1:e10:s43:debug	-		e10:debug	e10:debug	e10:g371:s43:debug	e10:s43:debug		e10:s43:debug
+e10:s43:eth:prof	e10:s43:prof 	   a_u_intf_v1:e10:s43:prof	-		e10:prof	e10:prof	e10:g371:s43:prof	e10:s43:prof		e10:s43:prof
+e10:s41:ib:debug	e10:s41:debug	   a_u_intf_v1:e10:s41:debug	-nq-		-		e10:debug	e10:g371:s41:debug	e10:s41:debug		e10:s41:debug
+e10:s41:ib:prof		e10:s41:prof	   a_u_intf_v1:e10:s41:prof	-nq-		-		e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
+e10:s41:eth:debug	e10:s41:debug	   a_u_intf_v1:e10:s41:debug	-		e10:debug	e10:debug	e10:g371:s41:debug	e10:s41:debug		e10:s41:debug
+e10:s41:eth:prof	e10:s41:prof 	   a_u_intf_v1:e10:s41:prof	-		e10:prof	e10:prof	e10:g371:s41:prof	e10:s41:prof		e10:s41:prof
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:

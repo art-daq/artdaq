@@ -53,6 +53,7 @@ simple_plugin(NetMonInput "source"
   MF_Utilities
   fhiclcpp
   cetlib
+  ${CETLIB_EXCEPT}
 )
 
 simple_plugin(RootMPIOutput "module"
@@ -63,6 +64,7 @@ simple_plugin(RootMPIOutput "module"
   MF_MessageLogger
   fhiclcpp
   cetlib
+  ${CETLIB_EXCEPT}
   ${ROOT_RIO}
 )
 
@@ -73,6 +75,7 @@ simple_plugin(BinaryMPIOutput "module"
   MF_MessageLogger
   fhiclcpp
   cetlib
+  ${CETLIB_EXCEPT}
   ${ROOT_RIO}
 )
 
@@ -84,6 +87,7 @@ simple_plugin(BinaryFileOutput "module"
   MF_MessageLogger
   fhiclcpp
   cetlib
+  ${CETLIB_EXCEPT}
   ${ROOT_RIO}
 )
 
@@ -102,7 +106,7 @@ simple_plugin(NetMonTransportService "service"
  art_Framework_Services_UserInteraction
     ${ART_FRAMEWORK_SERVICES_SYSTEM_PATHSELECTION_SERVICE}
     ${ART_UTILITIES}
-    canvas_Utilities
+  ${CETLIB_EXCEPT}
     )
 
 simple_plugin(ArtdaqBuildInfo "module"
@@ -112,6 +116,7 @@ simple_plugin(ArtdaqBuildInfo "module"
   ${MF_MESSAGELOGGER}
   ${FHICLCPP}
   ${CETLIB}
+  ${CETLIB_EXCEPT}
 )
 
 

@@ -7,6 +7,8 @@ simple_plugin(FragmentSniffer "module"
   art_Persistency_Provenance
   MF_MessageLogger
   fhiclcpp
+  ${CETLIB}
+  ${CETLIB_EXCEPT}
   )
 
 cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
