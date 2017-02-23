@@ -467,7 +467,7 @@ int artdaq::TCPSocketTransfer::receiveFragment(Fragment &outfrag, size_t timeout
 		sts = read(fd_, buff, byte_cnt);
 		//mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done with read";
 
-		TRACE(9, "recvFragment state=%d read=%d (errno=%d)", state_, sts, errno);
+		TRACE(9, "recvFragment state=%d read=%d (errno=%d)", static_cast<int>(state_), sts, errno);
 		if (sts <= 0) {
 			mf::LogDebug(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Error on receive, closing socket";
 			close(fd_);
@@ -561,7 +561,7 @@ void   artdaq::TCPSocketTransfer::stats_connect_()  // thread
 		sts = stopstatscv_.wait_until(lck
 			, std::chrono::system_clock::now()
 			+ std::chrono::milliseconds(msdly));
-		TRACE(5, "thread1 after wait_until(msdly=%d) - sts=%d", msdly, sts);
+		TRACE(5, "thread1 after wait_until(msdly=%d) - sts=%d", msdly, static_cast<int>(sts));
 
 		if (sts == std::cv_status::no_timeout)
 			break;

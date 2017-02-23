@@ -15,10 +15,8 @@ art_make( BASENAME_ONLY
   art_Framework_IO_Sources
   art_Framework_Principal
   artdaq_ArtModules_NetMonTransportService_service
-  canvas_Persistency_Common
   art_Persistency_Provenance
-  canvas_Persistency_Provenance
-  canvas_Utilities
+  ${CANVAS_LIB_LIST}
   MF_MessageLogger
   ${ROOT_CINTEX}
   ${ROOT_RIO}

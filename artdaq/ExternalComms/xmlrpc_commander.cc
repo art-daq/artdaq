@@ -2,10 +2,14 @@
  * This file add the xmlrpc commander as a client to the SC
  * Author: Alessandro Razeto <Alessandro.Razeto@ge.infn.it>
  */
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <xmlrpc-c/base.hpp>
 #include <xmlrpc-c/registry.hpp>
 #include <xmlrpc-c/server_abyss.hpp>
 #include <xmlrpc-c/girerr.hpp>
+#pragma GCC diagnostic pop
 #include <stdexcept>
 #include <iostream>
 #include <limits>

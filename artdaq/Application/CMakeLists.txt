@@ -14,6 +14,7 @@ art_make_library( LIBRARY_NAME artdaq_Application
   artdaq-core_Data
   artdaq-core_Utilities
   art_Utilities
+  ${CANVAS_LIB_LIST}
   ${MF_MESSAGELOGGER}
   ${MF_UTILITIES}
   ${CETLIB}

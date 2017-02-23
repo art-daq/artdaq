@@ -16,6 +16,7 @@ simple_plugin(GenericFragmentSimulator "generator"
   artdaq_DAQdata 
   artdaq-core_Data
   ${ARTDAQ-CORE_GENERATORS}
+  ${CETLIB_EXCEPT}
   )
 
 install_headers()

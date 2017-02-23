@@ -152,7 +152,7 @@ namespace artdaq {
     void initStatistics_();
     void reportStatistics_();
     void setup_requests_(std::string trigger_addr);
-    void send_request_() const;
+    void send_request_();
     void do_send_request_();
   };
 }

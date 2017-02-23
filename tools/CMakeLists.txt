@@ -21,7 +21,7 @@ art_make_exec(genToArt
   LIBRARIES
   artdaq_Application_MPI2
   artdaq_DAQrate
-  artdaq_DAQdata
+  artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq-core_Utilities
   artdaq-core_Generators
   art_Framework_Art

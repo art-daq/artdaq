@@ -47,11 +47,11 @@ int main(int argc, char * argv[])
 
   artdaq::TransferTest theTest(ps);
 
-  //std::cout << "Entering infinite loop to connect debugger. PID=" << std::to_string(getpid()) << std::endl;
-  // volatile bool loopForever = true;
-  // while (loopForever) {
-  // 	  usleep(1000);
-  // }
+  std::cout << "Entering infinite loop to connect debugger. PID=" << std::to_string(getpid()) << std::endl;
+   volatile bool loopForever = true;
+   while (loopForever) {
+   	  usleep(1000);
+   }
 
   theTest.runTest();
 
