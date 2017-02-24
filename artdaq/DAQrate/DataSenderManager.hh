@@ -36,10 +36,6 @@ public:
 
 	std::set<int> enabled_destinations() const { return enabled_destinations_; }
 private:
-	// Send an EOF Fragment to the receiver at rank dest;
-	// the EOF Fragment will report that numFragmentsSent
-	// fragments have been sent before this one.
-	void sendEODFrag(int dest, size_t numFragmentsSent);
 
 	// Calculate where the fragment with this sequenceID should go.
 	int calcDest(Fragment::sequence_id_t) const;
