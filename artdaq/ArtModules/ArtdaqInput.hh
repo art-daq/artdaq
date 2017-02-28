@@ -538,7 +538,7 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 #endif
             iter = productList.find(*bk);
             if (iter == productList.end()) {
-                throw art::Exception(art::errors::InsertFailure)
+                throw art::Exception(art::errors::ProductNotFound)
                         << "No product is registered for\n"
                         << "  process name:                '"
                         << bk->processName_ << "'\n"

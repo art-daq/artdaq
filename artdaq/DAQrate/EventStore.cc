@@ -532,7 +532,7 @@ namespace artdaq {
 	}
 
 	void
-		EventStore::send_request_() const
+		EventStore::send_request_()
 	{
 		std::thread request([=] {do_send_request_(); });
 		request.detach();

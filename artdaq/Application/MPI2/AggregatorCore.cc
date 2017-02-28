@@ -1,5 +1,8 @@
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "xmlrpc-c/client_simple.hpp"
+#pragma GCC diagnostic pop
+
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
 #include "canvas/Utilities/Exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"

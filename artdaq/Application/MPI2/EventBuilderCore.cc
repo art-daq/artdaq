@@ -52,13 +52,10 @@ void artdaq::EventBuilderCore::initializeEventStore(fhicl::ParameterSet pset)
 		art_initialized_ = true;
 	}
 	else {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wwrite-strings"
-		char * dummyArgs[1]{ "SimpleQueueReader" };
-#pragma GCC diagnostic pop
+		const char * dummyArgs[1]{ "SimpleQueueReader" };
 		artdaq::EventStore::ART_CMDLINE_FCN * reader = &artdaq::simpleQueueReaderApp;
 		event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
-			1, dummyArgs, reader));
+			1, const_cast<char**>(dummyArgs), reader));
 	}
 }
 

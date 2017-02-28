@@ -15,8 +15,8 @@ namespace artdaq {
 		TransferTest(fhicl::ParameterSet psi);
 		int runTest();
 	private:
-		size_t do_sending();
-		size_t do_receiving();
+        std::pair<size_t,double> do_sending();
+        std::pair<size_t,double> do_receiving();
 
 		//Helper functions
 		const std::vector<std::string> suffixes{ " B", " KB", " MB", " GB", " TB" };

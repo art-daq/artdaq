@@ -105,12 +105,9 @@ int main(int argc, char * argv[]) try
     os << event_builder_pset.get<int>("events_expected_in_SimpleQueueReader");
   }
   std::string const oss(os.str());
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wwrite-strings"
-  char * args[2] {"SimpleQueueReader", const_cast<char *>(oss.c_str())};
-#pragma GCC diagnostic pop
+  const char * args[2] {"SimpleQueueReader", oss.c_str()};
   int es_argc(want_artapp?argc:2);
-  char **es_argv (want_artapp?argv:args);
+  char **es_argv (want_artapp?argv:const_cast<char**>(args));
   artdaq::EventStore::ART_CMDLINE_FCN *
     es_fcn(want_artapp?&artapp:&artdaq::simpleQueueReaderApp);
   artdaq::EventStore store(event_builder_pset, event_builder_pset.get<size_t>("expected_fragments_per_event"),

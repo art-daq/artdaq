@@ -82,6 +82,7 @@ public:
 	}
 
 	bool empty() const {
+		std::unique_lock<std::mutex> lk(mutex_);
 		return frags_.size() == 0; 
 	}
 
@@ -102,7 +103,7 @@ public:
 		return std::move(current_fragment);
 	}
 private:
-	std::mutex mutex_;
+	mutable std::mutex mutex_;
 	FragmentPtrs frags_;
 };
 
