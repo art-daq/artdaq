@@ -117,6 +117,12 @@ simple_plugin(ArtdaqBuildInfo "module"
   ${CETLIB_EXCEPT}
 )
 
+simple_plugin(PrintBuildInfo "module"
+  MF_MessageLogger
+  fhiclcpp
+  ${CETLIB_LIBS}
+  )
+
 
 install_headers(SUBDIRS detail)                                                         
 install_source(SUBDIRS detail)

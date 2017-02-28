@@ -1,4 +1,4 @@
-#include "artdaq-core/ArtModules/BuildInfo_module.hh"
+#include "artdaq/ArtModules/BuildInfo_module.hh"
 
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 #include "artdaq-core/BuildInfo/GetPackageBuildInfo.hh"
