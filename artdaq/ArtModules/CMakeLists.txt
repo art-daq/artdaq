@@ -122,7 +122,8 @@ simple_plugin(ArtdaqBuildInfo "module"
 simple_plugin(PrintBuildInfo "module"
   MF_MessageLogger
   fhiclcpp
-  ${CETLIB_LIBS}
+  ${CETLIB}
+  ${CETLIB_EXCEPT}
   )
 
 
