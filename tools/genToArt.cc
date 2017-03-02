@@ -139,12 +139,12 @@ namespace {
     return numFragIDs_;
   }
 
-  artdaq::FragmentGenerator &
-  ThrottledGenerator::
-  generator() const
-  {
-    return *generator_;
-  }
+//  artdaq::FragmentGenerator &
+//  ThrottledGenerator::
+//  generator() const
+//  {
+//    return *generator_;
+//  }
 
   int process_data(int argc, char ** argv,
                    fhicl::ParameterSet const & pset)

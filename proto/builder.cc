@@ -194,10 +194,7 @@ void Program::sink()
 		// This scope exists to control the lifetime of 'events'
 		int sink_rank;
 		bool useArt = daq_pset_.get<bool>("useArt", false);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wwrite-strings"
-		char * dummyArgs[1]{ "SimpleQueueReader" };
-#pragma GCC diagnostic pop
+		const char * dummyArgs[1]{ "SimpleQueueReader" };
 		MPI_Comm_rank(local_group_comm_, &sink_rank);
 		artdaq::EventStore::ART_CMDLINE_FCN * reader =
 			useArt ?
@@ -206,7 +203,7 @@ void Program::sink()
 		artdaq::EventStore events(daq_pset_, conf_.detectors_,
 			conf_.run_,
 			useArt ? conf_.art_argc_ : 1,
-			useArt ? conf_.art_argv_ : dummyArgs,
+								  useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
 			reader);
 		{ // Block to handle scope of h, below.
 			artdaq::DataReceiverManager h(conf_.makeParameterSet());

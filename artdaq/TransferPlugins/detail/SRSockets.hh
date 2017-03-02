@@ -9,7 +9,7 @@
 
 struct MessHead {
 	uint8_t    endian;       // 0=little(intel), 1=big
-	enum { connect_v0, data_v0, data_more_v0, stop_v0, routing_v0, token_v0 }; // only add to the end!
+	enum { connect_v0, data_v0, data_more_v0, stop_v0, routing_v0 }; // only add to the end!
 	uint8_t    message_type; // 0=connect_v0, 1=data_v0
     int64_t   source_id;    // "rank"
 	union {

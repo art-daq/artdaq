@@ -36,7 +36,7 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 			auto ss = std::stoi(s.substr(1));
 			if (enabled_srcs_empty) enabled_sources_.insert(ss);
 			source_plugins_[ss] = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s, TransferInterface::Role::kReceive));
-			fragment_store_[ss] = FragmentPtrs();
+			fragment_store_[ss];
 		}
 		catch (std::invalid_argument) {
 			TRACE(3, "Invalid source specification: " + s);
@@ -70,29 +70,24 @@ artdaq::DataReceiverManager::~DataReceiverManager()
 	TRACE(5, "~DataReceiverManager: DONE");
 }
 
-bool artdaq::DataReceiverManager::fragments_ready_()
+bool artdaq::DataReceiverManager::fragments_ready_() const
 {
-	std::unique_lock<std::mutex> lck(fragment_store_mutex_);
-	for (auto& it : fragment_store_) {
-		if (!enabled_sources_.count(it.first) || suppressed_sources_.count(it.first)) continue;
-		if (it.second.size() > 0) return true;
-	}
-	return false;
+	return get_next_source_() != -1;
 }
 
-int artdaq::DataReceiverManager::get_next_source_()
+int artdaq::DataReceiverManager::get_next_source_() const
 {
-	std::unique_lock<std::mutex> lck(fragment_store_mutex_);
+	//std::unique_lock<std::mutex> lck(fragment_store_mutex_);
 	for (auto& it : fragment_store_) {
 		if (!enabled_sources_.count(it.first) || suppressed_sources_.count(it.first)) continue;
-		if (it.second.size() > 0) return it.first;
+		if (!it.second.empty()) return it.first;
 	}
 	return -1;
 }
 
 void artdaq::DataReceiverManager::unsuppressAll() {
 	suppressed_sources_.clear();
-	input_cv_.notify_all();
+	output_cv_.notify_all();
 }
 
 void artdaq::DataReceiverManager::suppress_source(int source)
@@ -103,7 +98,6 @@ void artdaq::DataReceiverManager::suppress_source(int source)
 void artdaq::DataReceiverManager::reject_fragment(int source_rank, FragmentPtr frag)
 {
 	if (frag == nullptr) return;
-	std::unique_lock<std::mutex> lk(fragment_store_mutex_);
 	suppress_source(source_rank);
 	fragment_store_[source_rank].emplace_front(std::move(frag));
 }
@@ -125,13 +119,19 @@ artdaq::FragmentPtr artdaq::DataReceiverManager::recvFragment(int& rank, size_t 
 	if (timeout_usec == 0) timeout_usec = 1000000;
 
 	auto ready = fragments_ready_();
+	size_t waited = 0;
+	auto wait_amount = timeout_usec / 1000 > 1000 ? timeout_usec / 1000 : 1000;
 	TRACE(5, "DataReceiverManager::recvFragment fragment_ready_=%d before wait", ready);
-	if (!ready) {
-		std::unique_lock<std::mutex> lck(fragment_store_mutex_);
-		input_cv_.wait_for(lck, std::chrono::microseconds(timeout_usec));
+	while (!ready && waited < timeout_usec) {
+
+		{
+			std::unique_lock<std::mutex> lck(input_cv_mutex_);
+			input_cv_.wait_for(lck, std::chrono::microseconds(wait_amount));
+		}
+		waited += wait_amount;
+		ready = fragments_ready_();
 	}
-	ready = fragments_ready_();
-	TRACE(5, "DataReceiverManager::recvFragment fragment_ready_=%d after wait", ready);
+	TRACE(5, "DataReceiverManager::recvFragment fragment_ready_=%d after waited=%zu", ready, waited);
 	if (!ready) {
 		TRACE(5, "DataReceiverManager::recvFragment: No fragments ready, returning empty");
 		rank = TransferInterface::RECV_TIMEOUT;
@@ -139,13 +139,7 @@ artdaq::FragmentPtr artdaq::DataReceiverManager::recvFragment(int& rank, size_t 
 	}
 
 	int current_source = get_next_source_();
-	FragmentPtr current_fragment;
-
-	{
-		std::unique_lock<std::mutex> lk(fragment_store_mutex_);
-		current_fragment = std::move(fragment_store_[current_source].front());
-		fragment_store_[current_source].pop_front();
-	}
+	FragmentPtr current_fragment = fragment_store_[current_source].front();
 	output_cv_.notify_all();
 	rank = current_source;
 
@@ -157,16 +151,17 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
 	while (!stop_requested_ && enabled_sources_.count(source_rank)) {
 		TRACE(6, "DataReceiverManager::runReceiver_: Begin loop");
+		auto is_suppressed = recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount() || suppressed_sources_.count(source_rank) > 0;
+		while (!stop_requested_ &&
+			(is_suppressed || !fragment_store_[source_rank].empty()))
 		{
-			std::unique_lock<std::mutex> lck(fragment_store_mutex_);
-			while (!stop_requested_ &&
-				(recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()
-					|| suppressed_sources_.count(source_rank) > 0
-					|| fragment_store_[source_rank].size() > 0))
-			{
-				TRACE(6, "DataReceiverManager::runReceiver_: Suppressing receiver rank %d", source_rank);
+			TRACE(6, "DataReceiverManager::runReceiver_: Suppressing receiver rank %d", source_rank);
+			if (!is_suppressed) input_cv_.notify_all();
+			else {
+				std::unique_lock<std::mutex> lck(output_cv_mutex_);
 				output_cv_.wait_for(lck, std::chrono::seconds(1));
 			}
+			is_suppressed = recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount() || suppressed_sources_.count(source_rank) > 0;
 		}
 		if (stop_requested_) return;
 
@@ -184,7 +179,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		bool endOfData = fragment->type() == artdaq::Fragment::EndOfDataFragmentType;
 
-		if (metricMan && recv_frag_count_.slotCount(source_rank) % 100 == 0) {
+		if (metricMan) {//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
 			TRACE(6, "DataReceiverManager::runReceiver_: Sending receive stats");
 			auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
 			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1);
@@ -194,11 +189,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		if (stop_requested_) return;
 
-		{
-			// This function now holds ownership of current_fragment_
-			std::unique_lock<std::mutex> fragLock(fragment_store_mutex_);
-			fragment_store_[source_rank].emplace_back(std::move(fragment));
-		}
+		fragment_store_[source_rank].emplace_back(std::move(fragment));
 		input_cv_.notify_all();
 
 		if (endOfData) {

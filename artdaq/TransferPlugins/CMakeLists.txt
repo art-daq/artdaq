@@ -22,6 +22,7 @@ art_make( BASENAME_ONLY
   art_Persistency_Provenance
   art_Utilities
   cetlib
+  ${CETLIB_EXCEPT}
   fhiclcpp
   MF_MessageLogger
   MF_Utilities
@@ -45,6 +46,10 @@ simple_plugin(Shmem "transfer"
   artdaq_TransferPlugins
 )
 
+simple_plugin(Null "transfer"
+  artdaq_TransferPlugins
+  )
+
 simple_plugin(Multicast "transfer"
   artdaq_TransferPlugins
   ${Boost_SYSTEM_LIBRARY}
@@ -52,6 +57,7 @@ simple_plugin(Multicast "transfer"
 
 simple_plugin(TCPSocket "transfer"
   artdaq_TransferPlugins
+  pthread
 )
 
 simple_plugin(Autodetect "transfer"
@@ -62,8 +68,8 @@ simple_plugin(Autodetect "transfer"
 
 simple_plugin(MPI "transfer"
   artdaq_TransferPlugins
+  ${CANVAS_LIB_LIST}
   ${MPI_C_LIBRARIES}
-  canvas_Utilities
 )
 
 if (${USING_RTIDDS})

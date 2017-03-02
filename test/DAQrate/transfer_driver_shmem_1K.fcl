@@ -1,0 +1,19 @@
+num_senders: 1
+num_receivers: 1
+sends_per_sender: 1000000
+buffer_count: 10
+fragment_size: 1024
+transfer_plugin_type: Shmem
+
+metrics: {
+    ganglia: {
+       metricPluginType: "ganglia"
+       level: 5
+       reporting_interval: 15.0
+     
+       configFile: "/home/eflumerf/Desktop/artdaq-mrb-base/gmond.conf"
+       group: "ARTDAQ"
+    }
+
+}
+

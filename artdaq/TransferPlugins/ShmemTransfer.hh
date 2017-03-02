@@ -2,8 +2,14 @@
 #define artdaq_TransferPlugins_ShemmTransfer_hh
 
 #include <fhiclcpp/fwd.h>
+#include <atomic>
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+
+#define BUFFER_EMPTY 0UL
+#define WRITING_FRAGMENT 1UL
+#define FRAGMENT_READY 2UL
+#define READING_FRAGMENT 3UL
 
 namespace artdaq {
 
@@ -12,7 +18,7 @@ namespace artdaq {
 	public:
 
 		ShmemTransfer(fhicl::ParameterSet const&, Role);
-		~ShmemTransfer();
+		~ShmemTransfer() noexcept;
 
 		virtual int receiveFragment(artdaq::Fragment& fragment,
 			size_t receiveTimeout);
@@ -25,25 +31,20 @@ namespace artdaq {
 		CopyStatus sendFragment(artdaq::Fragment&& fragment,
 			size_t send_timeout_usec, bool reliable = false);
 
-		int delta_();
+	  bool readyForRead_();
+	  bool readyForWrite_();
+
 		RawDataType* offsetToPtr(size_t offset);
 
-		enum class bufsem : uint8_t {
-			buffer_empty = 0,
-			writing_fragment = 1,
-			fragment_ready = 2,
-			reading_fragment = 3
-		};
-
 		struct ShmBuffer {
-			uint64_t offset;
-			uint64_t fragmentSizeWords;
-			bufsem sem;
-			uint32_t writeCount;
+			size_t offset;
+			size_t fragmentSizeWords;
+			std::atomic<unsigned int> sem;
+			unsigned int writeCount;
 		};
 		struct ShmStruct {
-			uint8_t read_pos;
-			uint8_t write_pos;
+			std::atomic<unsigned int> read_pos;
+			std::atomic<unsigned int> write_pos;
 			ShmBuffer buffers[100];
 		};
 

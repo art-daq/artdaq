@@ -48,9 +48,12 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 
 artdaq::DataSenderManager::~DataSenderManager()
 {
-	for (auto& dest : enabled_destinations_) {
-		sendEODFrag(dest, sent_frag_count_.slotCount(dest));
+  for (auto& dest : enabled_destinations_) {
+	if (destinations_.count(dest)) {
+	  destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag( sent_frag_count_.slotCount(dest))));
+	  //  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 	}
+  }
 	mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager. Sent " << count() << " fragments.";
 }
 
@@ -64,16 +67,6 @@ int artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) con
 		if (it == enabled_destinations_.end()) it = enabled_destinations_.begin();
 	}
 	return *it;
-}
-
-void
-artdaq::DataSenderManager::
-sendEODFrag(int dest, size_t nFragments)
-{
-	if (destinations_.count(dest)) {
-		destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(nFragments)));
-		//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
-	}
 }
 
 int
@@ -121,7 +114,7 @@ sendFragment(Fragment && frag)
 			sent_frag_count_.incSlot(dest);
 		}
 	}
-	if (metricMan && sent_frag_count_.slotCount(dest) % 100 == 0) {
+	if (metricMan ){//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
 		auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 1);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 1);
