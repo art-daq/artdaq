@@ -77,34 +77,37 @@ private:
 
 class artdaq::FragmentStoreElement {
 public:
-	FragmentStoreElement() : frags_() {
+	FragmentStoreElement() : frags_(), empty_(true) {
 		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
 	}
 
 	bool empty() const {
-		std::unique_lock<std::mutex> lk(mutex_);
-		return frags_.size() == 0; 
+		return empty_; 
 	}
 
 	void emplace_front(FragmentPtr&& frag) {
 		std::unique_lock<std::mutex> lk(mutex_);
 		frags_.emplace_front(std::move(frag));
+		empty_ = false;
 	}
 
 	void emplace_back(FragmentPtr&& frag) {
 		std::unique_lock<std::mutex> lk(mutex_);
 		frags_.emplace_back(std::move(frag));
+		empty_ = false;
 	}
 
 	FragmentPtr front() {
 		std::unique_lock<std::mutex> lk(mutex_);
 		auto current_fragment = std::move(frags_.front());
 		frags_.pop_front();
+		empty_ = frags_.size() == 0;
 		return std::move(current_fragment);
 	}
 private:
 	mutable std::mutex mutex_;
 	FragmentPtrs frags_;
+	std::atomic<bool> empty_;
 };
 
 inline

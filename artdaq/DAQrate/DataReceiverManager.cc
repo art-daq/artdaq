@@ -152,8 +152,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	while (!stop_requested_ && enabled_sources_.count(source_rank)) {
 		TRACE(6, "DataReceiverManager::runReceiver_: Begin loop");
 		auto is_suppressed = recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount() || suppressed_sources_.count(source_rank) > 0;
-		while (!stop_requested_ &&
-			(is_suppressed || !fragment_store_[source_rank].empty()))
+		while (!stop_requested_ && is_suppressed )
 		{
 			TRACE(6, "DataReceiverManager::runReceiver_: Suppressing receiver rank %d", source_rank);
 			if (!is_suppressed) input_cv_.notify_all();
