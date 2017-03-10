@@ -9,13 +9,13 @@
 
 #include <fhiclcpp/make_ParameterSet.h>
 
-std::pair<size_t,double> artdaq::TransferTest::do_sending()
+std::pair<size_t, double> artdaq::TransferTest::do_sending()
 {
 	TRACE(7, "do_sending entered RawFragmentHeader::num_words()=%lu"
-		, artdaq::detail::RawFragmentHeader::num_words());
+		  , artdaq::detail::RawFragmentHeader::num_words());
 
 	size_t totalSize = 0;
-    double totalTime = 0;
+	double totalTime = 0;
 	artdaq::DataSenderManager sender(ps_);
 
 	unsigned data_size_wrds = max_payload_size_ / sizeof(artdaq::RawDataType) - artdaq::detail::RawFragmentHeader::num_words();
@@ -24,7 +24,7 @@ std::pair<size_t,double> artdaq::TransferTest::do_sending()
 
 	for (int ii = 0; ii < sends_each_sender_; ++ii)
 	{
-//		auto loop_start = std::chrono::steady_clock::now();
+		auto loop_start = std::chrono::steady_clock::now();
 		TRACE(7, "sender rank %d #%u resized bytes=%ld", my_rank, ii, frag.sizeBytes());
 		totalSize += frag.sizeBytes();
 
@@ -41,22 +41,22 @@ std::pair<size_t,double> artdaq::TransferTest::do_sending()
 		auto send_start = std::chrono::steady_clock::now();
 		sender.sendFragment(std::move(frag));
 		auto after_send = std::chrono::steady_clock::now();
-		TRACE( 1,"Sender %d sent fragment %d", my_rank, ii );
+		TRACE(1, "Sender %d sent fragment %d", my_rank, ii);
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
 		frag = artdaq::Fragment(data_size_wrds); // replace/renew
 		TRACE(9, "sender rank %d frag replaced", my_rank);
 
-			auto total_send_time = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_send - send_start).count();
-            totalTime += total_send_time;
-//		if (metricMan && ii % 100 == 0) {
-//			metricMan->sendMetric("send_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(send_start - loop_start).count(), "seconds", 3);
-//			metricMan->sendMetric("total_send_time", total_send_time , "seconds", 3);
-//			metricMan->sendMetric("after_send_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - after_send).count(), "seconds", 3);
-//			metricMan->sendMetric("send_rate", data_size_wrds * sizeof(artdaq::RawDataType) / total_send_time, "B/s", 3);
-//		}
+		auto total_send_time = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_send - send_start).count();
+		totalTime += total_send_time;
+				if (metricMan && ii % 100 == 0) {
+					metricMan->sendMetric("send_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(send_start - loop_start).count(), "seconds", 3);
+					metricMan->sendMetric("total_send_time", total_send_time , "seconds", 3);
+					metricMan->sendMetric("after_send_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - after_send).count(), "seconds", 3);
+					metricMan->sendMetric("send_rate", data_size_wrds * sizeof(artdaq::RawDataType) / total_send_time, "B/s", 3);
+				}
 	}
-	
+
 	return std::make_pair(totalSize, totalTime);
 } // do_sending
 
@@ -67,13 +67,13 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	receiver.start_threads();
 	int counter = receives_each_receiver_;
 	size_t totalSize = 0;
-    double totalTime = 0;
+	double totalTime = 0;
 	bool first = true;
 	int activeSenders = senders_;
 	auto last_receive = std::chrono::steady_clock::now();
 
 	while (activeSenders > 0) {
-//		auto start_loop = std::chrono::steady_clock::now();
+				auto start_loop = std::chrono::steady_clock::now();
 		TRACE(7, "TransferTest::do_receiving: Counter is %d, calling recvFragment", counter);
 		int senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
 		auto before_receive = std::chrono::steady_clock::now();
@@ -91,8 +91,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 					first = false;
 				}
 				counter--;
-				TRACE( 1, "Receiver %d received fragment %d with seqID %lu from Sender %d (Expecting %d more)"
-				      , my_rank, receives_each_receiver_-counter, ignoreFragPtr->sequenceID(), senderSlot, counter );
+				TRACE(1, "Receiver %d received fragment %d with seqID %lu from Sender %d (Expecting %d more)"
+					  , my_rank, receives_each_receiver_ - counter, ignoreFragPtr->sequenceID(), senderSlot, counter);
 				thisSize = ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
 				totalSize += thisSize;
 			}
@@ -103,12 +103,12 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 		}
 		TRACE(7, "TransferTest::do_receiving: Recv Loop end, counter is %d", counter);
 		auto total_recv_time = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_receive - before_receive).count();
-        totalTime += total_recv_time;
-	//	if (metricMan && counter % 100 == 0) {
-	//		metricMan->sendMetric("recv_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(before_receive - start_loop).count(), "seconds", 3);
-//			metricMan->sendMetric("total_recv_time", total_recv_time, "seconds", 3);
-//			metricMan->sendMetric("recv_rate", thisSize / total_recv_time, "B/s", 3);
-//		}
+		totalTime += total_recv_time;
+			if (metricMan && counter % 100 == 0) {
+				metricMan->sendMetric("recv_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(before_receive - start_loop).count(), "seconds", 3);
+				metricMan->sendMetric("total_recv_time", total_recv_time, "seconds", 3);
+				metricMan->sendMetric("recv_rate", thisSize / total_recv_time, "B/s", 3);
+			}
 	}
 
 	return std::make_pair(totalSize, totalTime);
@@ -133,15 +133,13 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	}
 	catch (...) {} // OK if there's no metrics table defined in the FHiCL                                    
 
-	if (!metric_pset.is_empty()) {
-		try {
-			std::string name = "TransferTest" + std::to_string(my_rank);
-			metricMan_.initialize(metric_pset, name);
-			metricMan_.do_start();
-		}
-		catch (...) {}
+	try {
+		std::string name = "TransferTest" + std::to_string(my_rank);
+		metricMan_.initialize(metric_pset, name);
+		metricMan_.do_start();
 	}
-	
+	catch (...) {}
+
 	std::string type(psi.get<std::string>("transfer_plugin_type", "Shmem"));
 
 	if (receivers_ > 0) {
@@ -157,19 +155,19 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	}
 
 	std::string hostmap = "";
-	if(psi.has_key("hostmap")) {
-	  hostmap = " host_map: @local::hostmap";
+	if (psi.has_key("hostmap")) {
+		hostmap = " host_map: @local::hostmap";
 	}
 
 	std::stringstream ss;
 	ss << psi.to_string();
 	ss << " sources: {";
 	for (int ii = 0; ii < senders_; ++ii) {
-	  ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << hostmap << "}";
+		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << hostmap << "}";
 	}
 	ss << "} destinations: {";
 	for (int jj = senders_; jj < senders_ + receivers_; ++jj) {
-	  ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << hostmap << "}";
+		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << hostmap << "}";
 	}
 	ss << "}";
 
@@ -182,7 +180,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 int artdaq::TransferTest::runTest() {
 	TRACE(11, "TransferTest::runTest BEGIN");
 	start_time_ = std::chrono::steady_clock::now();
-    std::pair<size_t, double> result;
+	std::pair<size_t, double> result;
 	if (my_rank < senders_) {
 		result = do_sending();
 	}
@@ -191,7 +189,7 @@ int artdaq::TransferTest::runTest() {
 	}
 	auto duration = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time_).count();
 	std::cout << (my_rank < senders_ ? "Sent " : "Received ") << result.first << " bytes in " << duration << " seconds ( " << formatBytes(result.first / duration) << "/s )." << std::endl;
-    std::cout << "Rate of " << (my_rank < senders_ ? "sending" : "receiving") << ": " << formatBytes(result.first / result.second)  << "/s." << std::endl;
+	std::cout << "Rate of " << (my_rank < senders_ ? "sending" : "receiving") << ": " << formatBytes(result.first / result.second) << "/s." << std::endl;
 	metricMan_.do_stop();
 	metricMan_.shutdown();
 	TRACE(11, "TransferTest::runTest DONE");
