@@ -276,14 +276,12 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 	if (metric_pset.is_empty()) {
 		mf::LogInfo(name_) << "No metric plugins appear to be defined";
 	}
-	else {
-		try {
-			metricMan_.initialize(metric_pset, metricsReportingInstanceName);
-		}
-		catch (...) {
-			ExceptionHandler(ExceptionHandlerRethrow::no,
-				"Error loading metrics in AggregatorCore::initialize()");
-		}
+	try {
+		metricMan_.initialize(metric_pset, metricsReportingInstanceName);
+	}
+	catch (...) {
+		ExceptionHandler(ExceptionHandlerRethrow::no,
+						 "Error loading metrics in AggregatorCore::initialize()");
 	}
 
 	try {
@@ -301,7 +299,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...) {
 		ExceptionHandler(ExceptionHandlerRethrow::no,
-			"Error creating transfer plugin in AggregatorCore::initialize()");
+						 "Error creating transfer plugin in AggregatorCore::initialize()");
 		return false;
 	}
 
@@ -313,7 +311,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 		}
 		TRACE(36, "Creating EventStore and Starting art thread");
 		event_store_ptr_.reset(new artdaq::EventStore(agg_pset, desired_events_per_bunch, 1,
-			init_string_, reader));
+													  init_string_, reader));
 		TRACE(36, "Done Creating EventStore");
 		event_store_ptr_->setSeqIDModulus(desired_events_per_bunch);
 		fhicl::ParameterSet tmp = pset;
@@ -355,8 +353,8 @@ bool artdaq::AggregatorCore::start(art::RunID id)
 bool artdaq::AggregatorCore::stop()
 {
 	logMessage_("Stopping run " + boost::lexical_cast<std::string>(run_id_.run()) +
-		", " + boost::lexical_cast<std::string>(event_count_in_run_) +
-		" events received so far.");
+				", " + boost::lexical_cast<std::string>(event_count_in_run_) +
+				" events received so far.");
 
 	/* Nothing to do here.  The aggregator we clean up after itself once it has
 	   received all of the EOD fragments it expects.  Higher level code will block
@@ -368,8 +366,8 @@ bool artdaq::AggregatorCore::stop()
 bool artdaq::AggregatorCore::pause()
 {
 	logMessage_("Pausing run " + boost::lexical_cast<std::string>(run_id_.run()) +
-		", " + boost::lexical_cast<std::string>(event_count_in_run_) +
-		" events received so far.");
+				", " + boost::lexical_cast<std::string>(event_count_in_run_) +
+				" events received so far.");
 
 	/* Nothing to do here.  The aggregator we clean up after itself once it has
 	   received all of the EOD fragments it expects.  Higher level code will block
@@ -521,7 +519,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 				process_fragments = false;
 			}
 			else if (local_pause_requested_.load() &&
-				recvTimeout == pause_recv_timeout_usec_) {
+					 recvTimeout == pause_recv_timeout_usec_) {
 				if (endSubRunMsg != nullptr) {
 					mf::LogWarning(name_)
 						<< "Timeout occurred in attempt to receive data, but as a pause has been requested, will forcibly pause the run.";
@@ -580,24 +578,24 @@ size_t artdaq::AggregatorCore::process_fragments()
 			++event_count_in_subrun_;
 			if (event_count_in_run_ == 1) {
 				logMessage_("Received event " +
-					boost::lexical_cast<std::string>(event_count_in_run_) +
-					" with sequence id " +
-					boost::lexical_cast<std::string>(fragmentPtr->sequenceID()) +
-					".");
+							boost::lexical_cast<std::string>(event_count_in_run_) +
+							" with sequence id " +
+							boost::lexical_cast<std::string>(fragmentPtr->sequenceID()) +
+							".");
 			}
 			stats_helper_.addSample(INPUT_EVENTS_STAT_KEY, fragmentPtr->size());
 			if (stats_helper_.readyToReport(event_count_in_run_)) {
 				std::string statString = buildStatisticsString_();
 				logMessage_(statString);
 				logMessage_("Received event " +
-					boost::lexical_cast<std::string>(event_count_in_run_) +
-					" with sequence id " +
-					boost::lexical_cast<std::string>(fragmentPtr->sequenceID()) +
-					" (run " +
-					boost::lexical_cast<std::string>(run_id_.run()) +
-					", subrun " +
-					boost::lexical_cast<std::string>(event_store_ptr_->subrunID()) +
-					").");
+							boost::lexical_cast<std::string>(event_count_in_run_) +
+							" with sequence id " +
+							boost::lexical_cast<std::string>(fragmentPtr->sequenceID()) +
+							" (run " +
+							boost::lexical_cast<std::string>(run_id_.run()) +
+							", subrun " +
+							boost::lexical_cast<std::string>(event_store_ptr_->subrunID()) +
+							").");
 			}
 		}
 		if (stats_helper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
@@ -615,7 +613,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 			}
 			catch (...) {
 				ExceptionHandler(ExceptionHandlerRethrow::no,
-					"Exception thrown during data logger copy of event to dispatcher");
+								 "Exception thrown during data logger copy of event to dispatcher");
 			}
 
 		}
@@ -659,7 +657,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 		artdaq::Fragment::sequence_id_t seq = fragmentPtr->sequenceID();
 		TRACE(21, "%s::process_fragments seq=%lu isLogger=%d type=%d"
-			, name_.c_str(), seq, is_data_logger_, fragmentPtr->type());
+			  , name_.c_str(), seq, is_data_logger_, fragmentPtr->type());
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 		if (!art_initialized_) {
 			/* The init fragment should always be the first fragment out of the
@@ -771,7 +769,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 		float delta = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 		stats_helper_.addSample(STORE_EVENT_WAIT_STAT_KEY, delta);
 		TRACE((delta > 3.0) ? 0 : 22, "%s::process_fragments seq=%lu isLogger=%d delta=%f start=%f"
-			, name_.c_str(), seq, is_data_logger_, delta, startTime);
+			  , name_.c_str(), seq, is_data_logger_, delta, startTime);
 
 		// 27-Sep-2013, KAB - added automatic file closing
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
@@ -855,13 +853,13 @@ size_t artdaq::AggregatorCore::process_fragments()
 	}
 
 	logMessage_("Subrun " +
-		boost::lexical_cast<std::string>(event_store_ptr_->subrunID()) +
-		" in run " + boost::lexical_cast<std::string>(run_id_.run()) +
-		" has ended.  There were " +
-		boost::lexical_cast<std::string>(event_count_in_subrun_) +
-		" events in this subrun, and there have been " +
-		boost::lexical_cast<std::string>(event_count_in_run_) +
-		" events so far in this run.");
+				boost::lexical_cast<std::string>(event_store_ptr_->subrunID()) +
+				" in run " + boost::lexical_cast<std::string>(run_id_.run()) +
+				" has ended.  There were " +
+				boost::lexical_cast<std::string>(event_count_in_subrun_) +
+				" events in this subrun, and there have been " +
+				boost::lexical_cast<std::string>(event_count_in_run_) +
+				" events so far in this run.");
 
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(INPUT_EVENTS_STAT_KEY);
@@ -990,8 +988,8 @@ std::string artdaq::AggregatorCore::unregister_monitor(std::string const& label)
 	try {
 
 		auto r_i_end = std::remove_if(dispatcher_transfers_.begin(),
-			dispatcher_transfers_.end(),
-			[label](const std::unique_ptr<TransferInterface>& transfer) {
+									  dispatcher_transfers_.end(),
+									  [label](const std::unique_ptr<TransferInterface>& transfer) {
 			return transfer->uniqueLabel() == label; });
 
 		auto nfound = dispatcher_transfers_.end() - r_i_end;
@@ -1209,13 +1207,13 @@ void artdaq::AggregatorCore::sendMetrics_()
 		mqPtr->getStats(stats);
 		eventCount = std::max(double(stats.recentSampleCount), 1.0);
 		metricMan_.sendMetric("Event Rate",
-			stats.recentSampleRate, "events/sec", 1);
+							  stats.recentSampleRate, "events/sec", 1);
 		metricMan_.sendMetric("Average Event Size",
 			(stats.recentValueAverage * sizeof(artdaq::RawDataType)
-				), "bytes/event", 2);
+			 ), "bytes/event", 2);
 		metricMan_.sendMetric("Data Rate",
 			(stats.recentValueRate * sizeof(artdaq::RawDataType)
-				), "bytes/sec", 2);
+			 ), "bytes/sec", 2);
 	}
 
 	// 13-Jan-2015, KAB - Just a reminder that using "eventCount" in the
@@ -1229,7 +1227,7 @@ void artdaq::AggregatorCore::sendMetrics_()
 	if (mqPtr.get() != 0) {
 		metricMan_.sendMetric("Average Input Wait Time",
 			(mqPtr->recentValueSum() / eventCount),
-			"seconds/event", 3);
+							  "seconds/event", 3);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1237,7 +1235,7 @@ void artdaq::AggregatorCore::sendMetrics_()
 	if (mqPtr.get() != 0) {
 		metricMan_.sendMetric("Avg art Queue Wait Time",
 			(mqPtr->recentValueSum() / eventCount),
-			"seconds/event", 3);
+							  "seconds/event", 3);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1245,7 +1243,7 @@ void artdaq::AggregatorCore::sendMetrics_()
 	if (mqPtr.get() != 0) {
 		metricMan_.sendMetric("Avg Shared Memory Copy Time",
 			(mqPtr->recentValueSum() / eventCount),
-			"seconds/event", 4);
+							  "seconds/event", 4);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -1253,6 +1251,6 @@ void artdaq::AggregatorCore::sendMetrics_()
 	if (mqPtr.get() != 0) {
 		metricMan_.sendMetric("Average File Check Time",
 			(mqPtr->recentValueSum() / eventCount),
-			"seconds/event", 4);
+							  "seconds/event", 4);
 	}
 }
