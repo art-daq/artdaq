@@ -20,12 +20,13 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 		}
 		catch (std::invalid_argument) {
 			TRACE(3, "Invalid destination specification: " + d);
-		} catch (cet::exception ex) {
-            mf::LogWarning("DataSenderManager") << "Caught cet::exception: " << ex.what();
-        }
-        catch (...) {
-           mf::LogWarning("DataSenderManager") << "Non-cet exception while setting up TransferPlugin: " <<  d << ".";
-        }
+		}
+		catch (cet::exception ex) {
+			mf::LogWarning("DataSenderManager") << "Caught cet::exception: " << ex.what();
+		}
+		catch (...) {
+			mf::LogWarning("DataSenderManager") << "Non-cet exception while setting up TransferPlugin: " << d << ".";
+		}
 	}
 	if (destinations_.size() == 0) {
 		mf::LogError("DataSenderManager") << "No destinations specified!";
@@ -48,12 +49,12 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 
 artdaq::DataSenderManager::~DataSenderManager()
 {
-  for (auto& dest : enabled_destinations_) {
-	if (destinations_.count(dest)) {
-	  destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag( sent_frag_count_.slotCount(dest))));
-	  //  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
+	for (auto& dest : enabled_destinations_) {
+		if (destinations_.count(dest)) {
+			destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(sent_frag_count_.slotCount(dest))));
+			//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
+		}
 	}
-  }
 	mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager. Sent " << count() << " fragments.";
 }
 
@@ -114,7 +115,7 @@ sendFragment(Fragment && frag)
 			sent_frag_count_.incSlot(dest);
 		}
 	}
-	if (metricMan ){//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
+	if (metricMan) {//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
 		auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 1);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 1);

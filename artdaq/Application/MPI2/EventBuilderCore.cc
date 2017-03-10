@@ -47,7 +47,7 @@ void artdaq::EventBuilderCore::initializeEventStore(fhicl::ParameterSet pset)
 		artdaq::EventStore::ART_CFGSTRING_FCN * reader = &artapp_string_config;
 		TRACE(36, "Creating EventStore and Starting art thread");
 		event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
-			init_string_, reader));
+													  init_string_, reader));
 		TRACE(36, "Done Creating EventStore");
 		art_initialized_ = true;
 	}
@@ -55,7 +55,7 @@ void artdaq::EventBuilderCore::initializeEventStore(fhicl::ParameterSet pset)
 		const char * dummyArgs[1]{ "SimpleQueueReader" };
 		artdaq::EventStore::ART_CMDLINE_FCN * reader = &artdaq::simpleQueueReaderApp;
 		event_store_ptr_.reset(new artdaq::EventStore(pset, expected_fragments_per_event_, 1,
-			1, const_cast<char**>(dummyArgs), reader));
+													  1, const_cast<char**>(dummyArgs), reader));
 	}
 }
 
@@ -131,14 +131,12 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	if (metric_pset.is_empty()) {
 		mf::LogInfo(name_) << "No metric plugins appear to be defined";
 	}
-	else {
-		try {
-			metricMan_.initialize(metric_pset, metricsReportingInstanceName);
-		}
-		catch (...) {
-			ExceptionHandler(ExceptionHandlerRethrow::no,
-				"Error loading metrics in EventBuilderCore::initialize()");
-		}
+	try {
+		metricMan_.initialize(metric_pset, metricsReportingInstanceName);
+	}
+	catch (...) {
+		ExceptionHandler(ExceptionHandlerRethrow::no,
+						 "Error loading metrics in EventBuilderCore::initialize()");
 	}
 
 	/* Once art has been initialized we can't tear it down or change it's
@@ -187,7 +185,7 @@ bool artdaq::EventBuilderCore::start(art::RunID id)
 bool artdaq::EventBuilderCore::stop()
 {
 	logMessage_("Stopping run " + boost::lexical_cast<std::string>(run_id_.run()) +
-		", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
+				", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
 	bool endSucceeded;
 	int attemptsToEnd;
 
@@ -234,7 +232,7 @@ bool artdaq::EventBuilderCore::stop()
 bool artdaq::EventBuilderCore::pause()
 {
 	logMessage_("Pausing run " + boost::lexical_cast<std::string>(run_id_.run()) +
-		", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
+				", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
 	pause_requested_.store(true);
 	flush_mutex_.lock();
 
@@ -343,7 +341,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
 				process_fragments = false;
 			}
 			else if (pause_requested_.load() &&
-				recvTimeout == pause_recv_timeout_usec_) {
+					 recvTimeout == pause_recv_timeout_usec_) {
 				mf::LogWarning(name_)
 					<< "Timeout occurred in attempt to receive data, but as a pause has been requested, will forcibly pause the run.";
 				event_store_ptr_->flushData();
@@ -372,20 +370,20 @@ size_t artdaq::EventBuilderCore::process_fragments()
 
 		++fragment_count_in_run_;
 		TRACE(18, "process_fragments %lu=fragment_count_in_run_ %lu=pfragment->size()"
-			, fragment_count_in_run_, pfragment->size());
+			  , fragment_count_in_run_, pfragment->size());
 		statsHelper_.addSample(INPUT_FRAGMENTS_STAT_KEY, pfragment->size());
 		if (statsHelper_.readyToReport(fragment_count_in_run_)) {
 			std::string statString = buildStatisticsString_();
 			logMessage_(statString);
 			logMessage_("Received fragment " +
-				boost::lexical_cast<std::string>(fragment_count_in_run_) +
-				" with sequence ID " +
-				boost::lexical_cast<std::string>(pfragment->sequenceID()) +
-				" (run " +
-				boost::lexical_cast<std::string>(run_id_.run()) +
-				", subrun " +
-				boost::lexical_cast<std::string>(event_store_ptr_->subrunID()) +
-				").");
+						boost::lexical_cast<std::string>(fragment_count_in_run_) +
+						" with sequence ID " +
+						boost::lexical_cast<std::string>(pfragment->sequenceID()) +
+						" (run " +
+						boost::lexical_cast<std::string>(run_id_.run()) +
+						", subrun " +
+						boost::lexical_cast<std::string>(event_store_ptr_->subrunID()) +
+						").");
 		}
 		if (statsHelper_.statsRollingWindowHasMoved()) {
 			sendMetrics_();
@@ -453,7 +451,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
 			fragments_sent.setSlot(senderSlot, *pfragment->dataBegin() + 1);
 		}
 		statsHelper_.addSample(STORE_EVENT_WAIT_STAT_KEY,
-			artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+							   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
 
 		/* If we've received EOD fragments from all of the BoardReaders we can
 		   verify that we've also received every fragment that they have sent.  If
@@ -601,16 +599,16 @@ void artdaq::EventBuilderCore::sendMetrics_()
 		mqPtr->getStats(stats);
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
 		metricMan_.sendMetric("Fragment Count",
-			static_cast<unsigned long>(stats.fullSampleCount),
-			"fragments", 1);
+							  static_cast<unsigned long>(stats.fullSampleCount),
+							  "fragments", 1);
 		metricMan_.sendMetric("Fragment Rate",
-			stats.recentSampleRate, "fragments/sec", 1);
+							  stats.recentSampleRate, "fragments/sec", 1);
 		metricMan_.sendMetric("Average Fragment Size",
 			(stats.recentValueAverage * sizeof(artdaq::RawDataType)
-				), "bytes/fragment", 2);
+			 ), "bytes/fragment", 2);
 		metricMan_.sendMetric("Data Rate",
 			(stats.recentValueRate * sizeof(artdaq::RawDataType)
-				), "bytes/sec", 2);
+			 ), "bytes/sec", 2);
 	}
 
 	// 13-Jan-2015, KAB - Just a reminder that using "fragmentCount" in the
@@ -624,7 +622,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
 	if (mqPtr.get() != 0) {
 		metricMan_.sendMetric("Average Input Wait Time",
 			(mqPtr->recentValueSum() / fragmentCount),
-			"seconds/fragment", 3);
+							  "seconds/fragment", 3);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -632,7 +630,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
 	if (mqPtr.get() != 0) {
 		metricMan_.sendMetric("Avg Event Store Wait Time",
 			(mqPtr->recentValueSum() / fragmentCount),
-			"seconds/fragment", 3);
+							  "seconds/fragment", 3);
 	}
 }
 
