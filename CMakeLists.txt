@@ -155,7 +155,7 @@ add_subdirectory(proto)
 add_subdirectory(tools)
 
 # doc - Documentation
-add_subdirectory(doc)
+#add_subdirectory(doc)
 
 # ups - table and config files
 add_subdirectory(ups)

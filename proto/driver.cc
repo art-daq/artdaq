@@ -14,8 +14,10 @@
 #include "artdaq-core/Data/Fragments.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "cetlib/container_algorithms.h"
@@ -93,6 +95,24 @@ int main(int argc, char * argv[]) try
   std::unique_ptr<artdaq::CommandableFragmentGenerator> commandable_gen = 
     dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>( gen );
 
+  artdaq::MetricManager metricMan_;
+  metricMan = &metricMan_;
+  my_rank = 0;
+	// pull out the Metric part of the ParameterSet
+	fhicl::ParameterSet metric_pset;
+	try {
+		metric_pset = pset.get<fhicl::ParameterSet>("metrics");
+	}
+	catch (...) {} // OK if there's no metrics table defined in the FHiCL 
+
+	if (metric_pset.is_empty()) {
+		mf::LogInfo("artdaqDriver") << "No metric plugins appear to be defined";
+	}
+	try {
+		metricMan_.initialize(metric_pset, "artdaqDriver");
+	}
+	catch (...) {
+	}
   artdaq::FragmentPtrs frags;
   //////////////////////////////////////////////////////////////////////
   // Note: we are constrained to doing all this here rather than
