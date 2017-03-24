@@ -21,178 +21,225 @@
 #define PERF_JOB_END 10
 #define PERF_ID_END 11
 
-const char * PerfGetName(int id);
+const char* PerfGetName(int id);
 
-struct Header {
-  Header(): id_(), len_() { }
-  Header(unsigned char id, unsigned char len): id_(id), len_(len - sizeof(Header)) { }
+struct Header
+{
+	Header(): id_()
+	        , len_() { }
 
-  unsigned char id_; // type
-  unsigned char len_; // not including the size of this header structure
+	Header(unsigned char id, unsigned char len): id_(id)
+	                                           , len_(len - sizeof(Header)) { }
+
+	unsigned char id_; // type
+	unsigned char len_; // not including the size of this header structure
 };
 
 template <typename T>
-struct HeaderMeas {
-  HeaderMeas(): head_(T::ID, sizeof(T)), call_(call_count++) { }
-  ~HeaderMeas() { }
+struct HeaderMeas
+{
+	HeaderMeas(): head_(T::ID, sizeof(T))
+	            , call_(call_count++) { }
 
-  const char * id() const { return PerfGetName(head_.id_); }
-  int len() const { return head_.len_; }
+	~HeaderMeas() { }
 
-  Header head_;
-  int call_;
+	const char* id() const { return PerfGetName(head_.id_); }
+	int len() const { return head_.len_; }
 
-  static int call_count;
+	Header head_;
+	int call_;
+
+	static int call_count;
 };
 
 template <typename T>
-inline std::ostream & operator<<(std::ostream & ost, HeaderMeas<T> const & h)
+inline std::ostream& operator<<(std::ostream& ost, HeaderMeas<T> const& h)
 {
-  ost << h.id() << " " << h.call_;
-  return ost;
+	ost << h.id() << " " << h.call_;
+	return ost;
 }
 
-template <typename T> int HeaderMeas<T>::call_count = 0;
+template <typename T>
+int HeaderMeas<T>::call_count = 0;
 
-struct CommonMeas {
-  CommonMeas();
-  ~CommonMeas();
+struct CommonMeas
+{
+	CommonMeas();
 
-  void set(int event, int buf) {
-    event_ = event;
-    buf_ = buf;
-  }
+	~CommonMeas();
 
-  void complete();
+	void set(int event, int buf)
+	{
+		event_ = event;
+		buf_ = buf;
+	}
 
-  int buf_; // use_me or which
-  int event_;
-  double enter_;
-  double exit_;
+	void complete();
+
+	int buf_; // use_me or which
+	int event_;
+	double enter_;
+	double exit_;
 };
 
-inline std::ostream & operator<<(std::ostream & ost, CommonMeas const & h)
+inline std::ostream& operator<<(std::ostream& ost, CommonMeas const& h)
 {
-  ost << h.buf_ << " " << h.event_ << " "
-      << std::setprecision(14) << h.enter_ << " " << std::setprecision(14) << h.exit_;
-  return ost;
+	ost << h.buf_ << " " << h.event_ << " "
+		<< std::setprecision(14) << h.enter_ << " " << std::setprecision(14) << h.exit_;
+	return ost;
 }
 
-struct SendMeas : HeaderMeas<SendMeas> {
-  enum { ID = PERF_SEND };
+struct SendMeas : HeaderMeas<SendMeas>
+{
+	enum
+	{
+		ID = PERF_SEND
+	};
 
-  SendMeas();
-  ~SendMeas();
+	SendMeas();
 
-  void print(std::ostream & ost) const {
-    ost << id() << " " << call_ << " " << com_ << " ";
-    ost << dest_ << " " << std::setprecision(14) << found_ << " ";
-  }
+	~SendMeas();
 
-  void found(int event, int buf, short dest);
+	void print(std::ostream& ost) const
+	{
+		ost << id() << " " << call_ << " " << com_ << " ";
+		ost << dest_ << " " << std::setprecision(14) << found_ << " ";
+	}
 
-  CommonMeas com_;
-  short dest_;
-  double found_;
+	void found(int event, int buf, short dest);
+
+	CommonMeas com_;
+	short dest_;
+	double found_;
 };
 
-inline std::ostream & operator<<(std::ostream & ost, SendMeas const & h)
+inline std::ostream& operator<<(std::ostream& ost, SendMeas const& h)
 {
-  h.print(ost);
-  return ost;
+	h.print(ost);
+	return ost;
 }
 
-struct RecvMeas : HeaderMeas<RecvMeas> {
-  enum { ID = PERF_RECV };
+struct RecvMeas : HeaderMeas<RecvMeas>
+{
+	enum
+	{
+		ID = PERF_RECV
+	};
 
-  RecvMeas();
-  ~RecvMeas();
+	RecvMeas();
 
-  void print(std::ostream & ost) const {
-    ost << id() << " " << call_ << " " << com_ << " ";
-    ost << from_ << " " << std::setprecision(14) << wake_;
-  }
+	~RecvMeas();
 
-  void woke(int event, int which_buf);
-  void post(int from) { from_ = from; }
+	void print(std::ostream& ost) const
+	{
+		ost << id() << " " << call_ << " " << com_ << " ";
+		ost << from_ << " " << std::setprecision(14) << wake_;
+	}
 
-  CommonMeas com_;
-  short from_;
-  double wake_;
+	void woke(int event, int which_buf);
+
+	void post(int from) { from_ = from; }
+
+	CommonMeas com_;
+	short from_;
+	double wake_;
 };
 
-inline std::ostream & operator<<(std::ostream & ost, RecvMeas const & h)
+inline std::ostream& operator<<(std::ostream& ost, RecvMeas const& h)
 {
-  h.print(ost);
-  return ost;
+	h.print(ost);
+	return ost;
 }
 
-struct JobStartMeas : HeaderMeas<JobStartMeas> {
-  enum { ID = PERF_JOB_START };
+struct JobStartMeas : HeaderMeas<JobStartMeas>
+{
+	enum
+	{
+		ID = PERF_JOB_START
+	};
 
-  JobStartMeas();
-  ~JobStartMeas();
+	JobStartMeas();
 
-  void print(std::ostream & ost) const {
-    ost << run_ << " " << rank_ << " ";
-    ost << id() << " " << call_ << " "
-        << "Type " << which_ << " "
-        << std::setprecision(14) << when_;
-  }
+	~JobStartMeas();
 
-  int run_;
-  int rank_;
-  int which_;
-  double when_;
+	void print(std::ostream& ost) const
+	{
+		ost << run_ << " " << rank_ << " ";
+		ost << id() << " " << call_ << " "
+			<< "Type " << which_ << " "
+			<< std::setprecision(14) << when_;
+	}
+
+	int run_;
+	int rank_;
+	int which_;
+	double when_;
 };
 
-inline std::ostream & operator<<(std::ostream & ost, JobStartMeas const & h)
+inline std::ostream& operator<<(std::ostream& ost, JobStartMeas const& h)
 {
-  h.print(ost);
-  return ost;
+	h.print(ost);
+	return ost;
 }
 
-struct JobEndMeas : HeaderMeas<JobEndMeas> {
-  enum { ID = PERF_JOB_END };
+struct JobEndMeas : HeaderMeas<JobEndMeas>
+{
+	enum
+	{
+		ID = PERF_JOB_END
+	};
 
-  void print(std::ostream & ost) const {
-    ost << id() << " " << call_ << " ";
-    ost << std::setprecision(14) << when_;
-  }
+	void print(std::ostream& ost) const
+	{
+		ost << id() << " " << call_ << " ";
+		ost << std::setprecision(14) << when_;
+	}
 
-  JobEndMeas();
-  ~JobEndMeas();
+	JobEndMeas();
 
-  double when_;
+	~JobEndMeas();
+
+	double when_;
 };
 
-inline std::ostream & operator<<(std::ostream & ost, JobEndMeas const & h)
+inline std::ostream& operator<<(std::ostream& ost, JobEndMeas const& h)
 {
-  h.print(ost);
-  return ost;
+	h.print(ost);
+	return ost;
 }
 
-struct EventMeas : HeaderMeas<EventMeas> {
-  enum { ID = PERF_EVENT };
-  enum Type { START = 0, END = 1 };
+struct EventMeas : HeaderMeas<EventMeas>
+{
+	enum
+	{
+		ID = PERF_EVENT
+	};
 
-  EventMeas(Type id, int event);
-  ~EventMeas();
+	enum Type
+	{
+		START = 0,
+		END = 1
+	};
 
-  void print(std::ostream & ost) const {
-    ost << id() << " " << call_ << " ";
-    ost << which_ << " " << event_ << " " << std::setprecision(14) << when_;
-  }
+	EventMeas(Type id, int event);
 
-  Type which_;
-  int event_;
-  double when_;
+	~EventMeas();
+
+	void print(std::ostream& ost) const
+	{
+		ost << id() << " " << call_ << " ";
+		ost << which_ << " " << event_ << " " << std::setprecision(14) << when_;
+	}
+
+	Type which_;
+	int event_;
+	double when_;
 };
 
-inline std::ostream & operator<<(std::ostream & ost, EventMeas const & h)
+inline std::ostream& operator<<(std::ostream& ost, EventMeas const& h)
 {
-  h.print(ost);
-  return ost;
+	h.print(ost);
+	return ost;
 }
 
 void PerfConfigure(int rank,
@@ -201,10 +248,15 @@ void PerfConfigure(int rank,
                    int num_senders = 0,
                    int num_receivers = 0,
                    size_t expected_events = 0);
+
 void PerfSetStartTime();
+
 double PerfGetStartTime();
+
 void PerfWriteJobStart();
+
 void PerfWriteJobEnd();
+
 void PerfWriteEvent(EventMeas::Type, int sequence_id);
 
 

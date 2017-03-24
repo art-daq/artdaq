@@ -9,32 +9,42 @@
 
 class TBufferFile;
 
-namespace art {
-class ActivityRegistry;
+namespace art
+{
+	class ActivityRegistry;
 }
 
-namespace fhicl {
-class ParameterSet;
+namespace fhicl
+{
+	class ParameterSet;
 }
 
 // ----------------------------------------------------------------------
 
-class NetMonTransportService : public NetMonTransportServiceInterface {
+class NetMonTransportService : public NetMonTransportServiceInterface
+{
 public:
-    ~NetMonTransportService();
-    NetMonTransportService(fhicl::ParameterSet const&, art::ActivityRegistry&);
-    void connect();
-    void disconnect();
-    void listen();
-    void sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile &);
-    void receiveMessage(TBufferFile *&);
-  size_t dataReceiverCount() {return sender_ptr_->destinationCount();}
-private:
-  fhicl::ParameterSet data_pset_;
+	~NetMonTransportService();
 
-    std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
-    artdaq::RawEventQueue &incoming_events_;
-    std::unique_ptr<std::vector<artdaq::Fragment> > recvd_fragments_;
+	NetMonTransportService(fhicl::ParameterSet const&, art::ActivityRegistry&);
+
+	void connect();
+
+	void disconnect();
+
+	void listen();
+
+	void sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile&);
+
+	void receiveMessage(TBufferFile*&);
+
+	size_t dataReceiverCount() { return sender_ptr_->destinationCount(); }
+private:
+	fhicl::ParameterSet data_pset_;
+
+	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
+	artdaq::RawEventQueue& incoming_events_;
+	std::unique_ptr<std::vector<artdaq::Fragment>> recvd_fragments_;
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService, NetMonTransportServiceInterface, LEGACY)

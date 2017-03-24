@@ -10,58 +10,64 @@
 #include <mutex>
 
 
-namespace artdaq {
-  class RTIDDS;
+namespace artdaq
+{
+	class RTIDDS;
 }
 
-class artdaq::RTIDDS {
-
+class artdaq::RTIDDS
+{
 public:
 
-  enum class IOType { reader, writer};
+	enum class IOType
+	{
+		reader,
+		writer
+	};
 
-  RTIDDS(std::string name, IOType iotype, std::string max_size = "1000000");
-  ~RTIDDS() = default;
+	RTIDDS(std::string name, IOType iotype, std::string max_size = "1000000");
 
-  // JCF, Apr-7-2016
-  // Are copy constructor, assignment operators, etc., logical absurdities?
+	~RTIDDS() = default;
 
-  void copyFragmentToDDS_(artdaq::Fragment& fragment);
-  void moveFragmentToDDS_(artdaq::Fragment&& fragment);
+	// JCF, Apr-7-2016
+	// Are copy constructor, assignment operators, etc., logical absurdities?
 
-  class OctetsListener: public DDSDataReaderListener {
-  public:
+	void copyFragmentToDDS_(artdaq::Fragment& fragment);
 
-    void on_data_available(DDSDataReader *reader);
+	void moveFragmentToDDS_(artdaq::Fragment&& fragment);
 
-    bool receiveFragmentFromDDS(artdaq::Fragment& fragment,
-				const size_t receiveTimeout);
+	class OctetsListener: public DDSDataReaderListener
+	{
+	public:
 
-  private:
+		void on_data_available(DDSDataReader* reader);
 
-    DDS_Octets dds_octets_;
-    std::queue<DDS_Octets> dds_octets_queue_;
+		bool receiveFragmentFromDDS(artdaq::Fragment& fragment,
+		                            const size_t receiveTimeout);
 
-    std::mutex queue_mutex_;
+	private:
 
-  };
+		DDS_Octets dds_octets_;
+		std::queue<DDS_Octets> dds_octets_queue_;
 
-  OctetsListener octets_listener_;
+		std::mutex queue_mutex_;
+	};
+
+	OctetsListener octets_listener_;
 
 private:
 
-  std::string name_;
-  IOType iotype_;
-  std::string max_size_;
+	std::string name_;
+	IOType iotype_;
+	std::string max_size_;
 
-  std::unique_ptr<DDSDomainParticipant, std::function<void(DDSDomainParticipant*)> >  participant_;
+	std::unique_ptr<DDSDomainParticipant, std::function<void(DDSDomainParticipant * )>> participant_;
 
-  DDSTopic* topic_octets_;
-  DDSOctetsDataWriter* octets_writer_;
-  DDSDataReader* octets_reader_;
+	DDSTopic* topic_octets_;
+	DDSOctetsDataWriter* octets_writer_;
+	DDSDataReader* octets_reader_;
 
-  static void participantDeleter(DDSDomainParticipant* participant);
-
+	static void participantDeleter(DDSDomainParticipant* participant);
 };
 
 #endif

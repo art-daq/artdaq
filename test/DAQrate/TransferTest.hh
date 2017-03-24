@@ -9,17 +9,23 @@
 #include <fhiclcpp/ParameterSet.h>
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
-namespace artdaq {
-	class TransferTest {
+namespace artdaq
+{
+	class TransferTest
+	{
 	public:
 		TransferTest(fhicl::ParameterSet psi);
+
 		int runTest();
+
 	private:
-        std::pair<size_t,double> do_sending();
-        std::pair<size_t,double> do_receiving();
+		std::pair<size_t, double> do_sending();
+
+		std::pair<size_t, double> do_receiving();
 
 		//Helper functions
-		const std::vector<std::string> suffixes{ " B", " KB", " MB", " GB", " TB" };
+		const std::vector<std::string> suffixes{" B", " KB", " MB", " GB", " TB"};
+
 		std::string formatBytes(double bytes, size_t suffixIndex = 0);
 
 		int senders_;
@@ -33,10 +39,12 @@ namespace artdaq {
 		artdaq::MetricManager metricMan_;
 	};
 
-	inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex) {
+	inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)
+	{
 		auto b = fabs(bytes);
 
-		if (b > 1024.0 && suffixIndex < suffixes.size()) {
+		if (b > 1024.0 && suffixIndex < suffixes.size())
+		{
 			return formatBytes(bytes / 1024.0, suffixIndex + 1);
 		}
 

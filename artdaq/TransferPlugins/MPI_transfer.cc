@@ -1,4 +1,3 @@
-
 #include "artdaq/TransferPlugins/MPITransfer.hh"
 #include <algorithm>
 
@@ -48,12 +47,14 @@ artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Ro
 		TRACE(TLVL_VERBOSE, debugstream.str().c_str());
 	}
 
-	if (buffer_count_ == 0) {
+	if (buffer_count_ == 0)
+	{
 		throw art::Exception(art::errors::Configuration, "MPITransfer: ")
-			<< "No buffers configured.\n";
+		      << "No buffers configured.\n";
 	}
 	// Post all the buffers.
-	for (size_t i = 0; i < buffer_count_; ++i) {
+	for (size_t i = 0; i < buffer_count_; ++i)
+	{
 		// make sure all buffers are the correct size
 		payload_[i].resize(max_fragment_size_words_);
 		// Note that nextSource_() is not used here: it is not necessary to
@@ -67,21 +68,26 @@ artdaq::MPITransfer::
 ~MPITransfer()
 {
 	TRACE(TLVL_TRACE, "MPITransfer::~MPITransfer: BEGIN");
-	if (role() == TransferInterface::Role::kReceive) {
+	if (role() == TransferInterface::Role::kReceive)
+	{
 		// clean up the remaining buffers
 		TRACE(TLVL_TRACE, "MPITransfer::~MPITransfer: Cancelling all reqs");
-		for (size_t i = 0; i < buffer_count_; ++i) {
+		for (size_t i = 0; i < buffer_count_; ++i)
+		{
 			cancelReq_(i, false);
 		}
 	}
 	TRACE(TLVL_TRACE, "MPITransfer::~MPITransfer: Collecting requests that need to be waited on");
 	std::vector<MPI_Request> reqs;
-	for (size_t ii = 0; ii < reqs_.size(); ++ii) {
-		if (reqs_[ii] != MPI_REQUEST_NULL) {
+	for (size_t ii = 0; ii < reqs_.size(); ++ii)
+	{
+		if (reqs_[ii] != MPI_REQUEST_NULL)
+		{
 			reqs.push_back(reqs_[ii]);
 		}
 	}
-	if (reqs.size() > 0) {
+	if (reqs.size() > 0)
+	{
 		TRACE(TLVL_TRACE, "MPITransfer::~MPITransfer: Waiting on %zu reqs.", reqs.size());
 		MPI_Waitall(reqs.size(), &reqs[0], MPI_STATUSES_IGNORE);
 	}/*
@@ -93,7 +99,7 @@ artdaq::MPITransfer::
 
 int
 artdaq::MPITransfer::
-receiveFragment(Fragment & output, size_t timeout_usec)
+receiveFragment(Fragment& output, size_t timeout_usec)
 {
 	TRACE(6, "MPITransfer::receiveFragment entered tmo=%lu us", timeout_usec);
 	//mf::LogDebug(uniqueLabel()) << "Start of receiveFragment";
@@ -101,7 +107,8 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 	int which;
 	MPI_Status status;
 
-	if (timeout_usec > 0) {
+	if (timeout_usec > 0)
+	{
 #if USE_TESTSOME
 		if (ready_indices_.size() == 0) {
 			ready_indices_.resize(buffer_count_, -1);
@@ -155,14 +162,17 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 			std::unique_lock<std::mutex> lk(mpi_mutex_);
 			wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which, &flag, &status);
 		}
-		if (!flag) {
+		if (!flag)
+		{
 			size_t sleep_loops = 10;
 			size_t sleep_time = timeout_usec / sleep_loops;
-			if (sleep_time > 250) {
+			if (sleep_time > 250)
+			{
 				sleep_time = 250;
 				sleep_loops = timeout_usec / sleep_time;
 			}
-			for (size_t idx = 0; idx < sleep_loops; ++idx) {
+			for (size_t idx = 0; idx < sleep_loops; ++idx)
+			{
 				usleep(sleep_time);
 				//mf::LogInfo(uniqueLabel()) << "Before second Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag;
 				{
@@ -171,17 +181,19 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 				}
 				if (flag) { break; }
 			}
-			if (!flag) {
+			if (!flag)
+			{
 				return RECV_TIMEOUT;
 			}
 		}
 #endif
 	}
-	else {
-				{
-					std::unique_lock<std::mutex> lk(mpi_mutex_);
-		wait_result = MPI_Waitany(buffer_count_, &reqs_[0], &which, &status);
-				}
+	else
+	{
+		{
+			std::unique_lock<std::mutex> lk(mpi_mutex_);
+			wait_result = MPI_Waitany(buffer_count_, &reqs_[0], &which, &status);
+		}
 	}
 	//mf::LogInfo(uniqueLabel()) << "After testing/waiting res=" << wait_result;
 	TRACE(8, "recvFragment recvd");
@@ -189,12 +201,12 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 	if (which == MPI_UNDEFINED)
 	{
 		throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-			<< "MPI_UNDEFINED returned as on index value from Waitany.\n";
+		      << "MPI_UNDEFINED returned as on index value from Waitany.\n";
 	}
 	if (reqs_[which] != MPI_REQUEST_NULL)
 	{
 		throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-			<< "INTERNAL ERROR: req is not MPI_REQUEST_NULL in recvFragment.\n";
+		      << "INTERNAL ERROR: req is not MPI_REQUEST_NULL in recvFragment.\n";
 	}
 	Fragment::sequence_id_t sequence_id = payload_[which].sequenceID();
 
@@ -216,7 +228,8 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 	}
 	char err_buffer[MPI_MAX_ERROR_STRING];
 	int resultlen;
-	switch (wait_result) {
+	switch (wait_result)
+	{
 	case MPI_SUCCESS:
 		break;
 	case MPI_ERR_IN_STATUS:
@@ -244,7 +257,8 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 	payload_[which].swap(tmp);
 	TRACE(7, "recvFragment after payload_[which].swap(tmp)");
 	// Fragment accounting.
-	if (output.type() == Fragment::EndOfDataFragmentType) {
+	if (output.type() == Fragment::EndOfDataFragmentType)
+	{
 		src_status_ = status_t::PENDING;
 		expected_count_ = *output.dataBegin();
 
@@ -257,45 +271,51 @@ receiveFragment(Fragment & output, size_t timeout_usec)
 			TRACE(4, debugstream.str().c_str());
 		}
 	}
-	else {
+	else
+	{
 		recvd_count_++;
 	}
-	switch (src_status_) {
-	case status_t::PENDING:
+	switch (src_status_)
 	{
-		std::ostringstream debugstream;
-		debugstream << "Checking received count "
-			<< recvd_count_
-			<< " against expected total "
-			<< expected_count_
-			<< '\n';
-		//mf::LogInfo(uniqueLabel()) << debugstream.str();
-		TRACE(4, debugstream.str().c_str());
-	}
-	if (recvd_count_ == expected_count_) {
-		src_status_ = status_t::DONE;
-	}
-	break;
+	case status_t::PENDING:
+		{
+			std::ostringstream debugstream;
+			debugstream << "Checking received count "
+				<< recvd_count_
+				<< " against expected total "
+				<< expected_count_
+				<< '\n';
+			//mf::LogInfo(uniqueLabel()) << debugstream.str();
+			TRACE(4, debugstream.str().c_str());
+		}
+		if (recvd_count_ == expected_count_)
+		{
+			src_status_ = status_t::DONE;
+		}
+		break;
 	case status_t::DONE:
 		throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-			<< "Received extra fragments from source "
-			<< status.MPI_SOURCE
-			<< ".\n";
+		      << "Received extra fragments from source "
+		      << status.MPI_SOURCE
+		      << ".\n";
 	case status_t::SENDING:
 		break;
 	default:
 		throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-			<< "INTERNAL ERROR: Unrecognized status_t value "
-			<< static_cast<int>(src_status_)
-			<< ".\n";
+		      << "INTERNAL ERROR: Unrecognized status_t value "
+		      << static_cast<int>(src_status_)
+		      << ".\n";
 	}
 	// Repost to receive more data.
-	if (src_status_ == status_t::DONE) { // Just happened.
-		if (nextSource_() != MPI_ANY_SOURCE) { // No active sources left.
+	if (src_status_ == status_t::DONE)
+	{ // Just happened.
+		if (nextSource_() != MPI_ANY_SOURCE)
+		{ // No active sources left.
 			post_(which); // This buffer doesn't need cancelling.
 		}
 	}
-	else {
+	else
+	{
 		post_(which);
 	}
 	//mf::LogInfo(uniqueLabel()) << "End of receiveFragment";
@@ -308,7 +328,8 @@ nextSource_()
 {
 	// Precondition: last_source_posted_ must be set. This is ensured
 	// provided nextSource_() is never called from the constructor.
-	if (src_status_ != status_t::DONE) {
+	if (src_status_ != status_t::DONE)
+	{
 		return source_rank();
 	}
 	return MPI_ANY_SOURCE;
@@ -328,26 +349,32 @@ cancelReq_(size_t buf, bool blocking_wait)
 		TRACE(4, debugstream.str().c_str());
 		//mf::LogInfo(uniqueLabel()) << debugstream.str();
 	}
-	
-					std::unique_lock<std::mutex> lk(mpi_mutex_);
+
+	std::unique_lock<std::mutex> lk(mpi_mutex_);
 	int result = MPI_Cancel(&reqs_[buf]);
-	if (result == MPI_SUCCESS) {
+	if (result == MPI_SUCCESS)
+	{
 		MPI_Status status;
-		if (blocking_wait) {
+		if (blocking_wait)
+		{
 			MPI_Wait(&reqs_[buf], &status);
 		}
-		else {
+		else
+		{
 			int doneFlag;
 			MPI_Test(&reqs_[buf], &doneFlag, &status);
-			if (!doneFlag) {
+			if (!doneFlag)
+			{
 				size_t sleep_loops = 10;
 				size_t sleep_time = 100000;
-				for (size_t idx = 0; idx < sleep_loops; ++idx) {
+				for (size_t idx = 0; idx < sleep_loops; ++idx)
+				{
 					usleep(sleep_time);
 					MPI_Test(&reqs_[buf], &doneFlag, &status);
 					if (doneFlag) { break; }
 				}
-				if (!doneFlag) {
+				if (!doneFlag)
+				{
 					mf::LogError(uniqueLabel())
 						<< "MPITransfer::cancelReq_: Timeout waiting to cancel the request for MPI buffer "
 						<< buf;
@@ -355,17 +382,19 @@ cancelReq_(size_t buf, bool blocking_wait)
 			}
 		}
 	}
-	else {
-		switch (result) {
+	else
+	{
+		switch (result)
+		{
 		case MPI_ERR_REQUEST:
 			throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-				<< "MPI_Cancel returned MPI_ERR_REQUEST.\n";
+			      << "MPI_Cancel returned MPI_ERR_REQUEST.\n";
 		case MPI_ERR_ARG:
 			throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-				<< "MPI_Cancel returned MPI_ERR_ARG.\n";
+			      << "MPI_Cancel returned MPI_ERR_ARG.\n";
 		default:
 			throw art::Exception(art::errors::LogicError, "MPITransfer: ")
-				<< "MPI_Cancel returned unknown error code.\n";
+			      << "MPI_Cancel returned unknown error code.\n";
 		}
 	}
 }
@@ -383,15 +412,15 @@ post_(size_t buf)
 		TRACE(4, debugstream.str().c_str());
 		//mf::LogInfo(uniqueLabel()) << debugstream.str();
 	}
-				
-					std::unique_lock<std::mutex> lk(mpi_mutex_);
+
+	std::unique_lock<std::mutex> lk(mpi_mutex_);
 	MPI_Irecv(&*payload_[buf].headerBegin(),
-		(payload_[buf].size() * sizeof(Fragment::value_type)),
-		MPI_BYTE,
-		source_rank(),
-		MPI_ANY_TAG,
-		MPI_COMM_WORLD,
-		&reqs_[buf]);
+	          (payload_[buf].size() * sizeof(Fragment::value_type)),
+	          MPI_BYTE,
+	          source_rank(),
+	          MPI_ANY_TAG,
+	          MPI_COMM_WORLD,
+	          &reqs_[buf]);
 }
 
 int artdaq::MPITransfer::findAvailable()
@@ -400,13 +429,15 @@ int artdaq::MPITransfer::findAvailable()
 	int flag;
 	size_t loops = 0;
 	TRACE(5, "findAvailable initial pos_=%d", pos_);
-	do {
+	do
+	{
 		use_me = pos_;
-					std::unique_lock<std::mutex> lk(mpi_mutex_);
+		std::unique_lock<std::mutex> lk(mpi_mutex_);
 		MPI_Test(&reqs_[use_me], &flag, MPI_STATUS_IGNORE);
 		pos_ = (pos_ + 1) % buffer_count_;
 		++loops;
-	} while (!flag && loops < buffer_count_);
+	}
+	while (!flag && loops < buffer_count_);
 	if (loops == buffer_count_) { return TransferInterface::RECV_TIMEOUT; }
 	TRACE(5, "findAvailable returning use_me=%d loops=%zu", use_me, loops);
 	// pos_ is pointing at the next slot to check
@@ -416,13 +447,15 @@ int artdaq::MPITransfer::findAvailable()
 
 artdaq::TransferInterface::CopyStatus
 artdaq::MPITransfer::
-moveFragment(Fragment&& frag, size_t send_timeout_usec) {
+moveFragment(Fragment&& frag, size_t send_timeout_usec)
+{
 	return sendFragment(std::move(frag), send_timeout_usec, false);
 }
 
 artdaq::TransferInterface::CopyStatus
 artdaq::MPITransfer::
-copyFragment(Fragment& frag, size_t send_timeout_usec) {
+copyFragment(Fragment& frag, size_t send_timeout_usec)
+{
 	return sendFragment(std::move(frag), send_timeout_usec, true);
 }
 
@@ -432,44 +465,49 @@ artdaq::MPITransfer::
 sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 {
 	TRACE(5, "copyFragmentTo timeout unused: %zu", send_timeout_usec);
-	if (frag.dataSize() > max_fragment_size_words_) {
+	if (frag.dataSize() > max_fragment_size_words_)
+	{
 		throw cet::exception("Unimplemented")
-			<< "Currently unable to deal with overlarge fragment payload ("
-			<< frag.dataSize()
-			<< " words > "
-			<< max_fragment_size_words_
-			<< ").";
+		      << "Currently unable to deal with overlarge fragment payload ("
+		      << frag.dataSize()
+		      << " words > "
+		      << max_fragment_size_words_
+		      << ").";
 	}
 
 	TRACE(5, "MPITransfer::sendFragment: Checking whether to force async mode...");
-	if (frag.type() == Fragment::EndOfDataFragmentType) {
+	if (frag.type() == Fragment::EndOfDataFragmentType)
+	{
 		TRACE(5, "MPITransfer::sendFragment: EndOfDataFragment detected. Forcing async mode");
 		force_async = true;
 	}
 	TRACE(5, "MPITransfer::sendFragment: Finding available buffer");
 	int buffer_idx = findAvailable();
-	if (buffer_idx == TransferInterface::RECV_TIMEOUT) {
+	if (buffer_idx == TransferInterface::RECV_TIMEOUT)
+	{
 		TRACE(TLVL_WARNING, "MPITransfer::sendFragment: No buffers available! Returning RECV_TIMEOUT!");
 		return CopyStatus::kTimeout;
 	}
 	TRACE(5, "MPITransfer::sendFragment: Swapping in fragment to send to buffer %d", buffer_idx);
-	Fragment & curfrag = payload_[buffer_idx];
+	Fragment& curfrag = payload_[buffer_idx];
 	curfrag = std::move(frag);
 	TRACE(5, "sendFragTo before send src=%d dest=%d seqID=%lu type=%d found_idx=%d"
 		, source_rank(), destination_rank(), curfrag.sequenceID(), curfrag.type(), buffer_idx);
 	std::unique_lock<std::mutex> lk(mpi_mutex_);
-	if (!synchronous_sends_ || force_async) {
+	if (!synchronous_sends_ || force_async)
+	{
 		// 14-Sep-2015, KAB: we should consider MPI_Issend here (see below)...
 		TRACE(5, "MPITransfer::sendFragment: Using MPI_Isend");
 		MPI_Isend(&*curfrag.headerBegin(),
-			curfrag.size() * sizeof(Fragment::value_type),
-			MPI_BYTE,
-			destination_rank(),
-			MPITag::FINAL,
-			MPI_COMM_WORLD,
-			&reqs_[buffer_idx]);
+		          curfrag.size() * sizeof(Fragment::value_type),
+		          MPI_BYTE,
+		          destination_rank(),
+		          MPITag::FINAL,
+		          MPI_COMM_WORLD,
+		          &reqs_[buffer_idx]);
 	}
-	else {
+	else
+	{
 		// 14-Sep-2015, KAB: switched from MPI_Send to MPI_Ssend based on
 		// http://www.mcs.anl.gov/research/projects/mpi/sendmode.html.
 		// This change was made after we noticed that MPI buffering
@@ -477,11 +515,11 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 		// usage to grow when using MPI_Send with MPICH 3.1.4 and 3.1.2a.
 		TRACE(5, "MPITransfer::sendFragment: Using MPI_Ssend");
 		MPI_Ssend(&*curfrag.headerBegin(),
-			curfrag.size() * sizeof(Fragment::value_type),
-			MPI_BYTE,
-			destination_rank(),
-			MPITag::FINAL,
-			MPI_COMM_WORLD);
+		          curfrag.size() * sizeof(Fragment::value_type),
+		          MPI_BYTE,
+		          destination_rank(),
+		          MPITag::FINAL,
+		          MPI_COMM_WORLD);
 	}
 	TRACE(5, "sendFragTo COMPLETE");
 

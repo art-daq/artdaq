@@ -9,22 +9,26 @@
 
 #include <vector>
 
-namespace artdaq {
-  class InFlightConfiguration;
+namespace artdaq
+{
+	class InFlightConfiguration;
 }
 
-class artdaq::InFlightConfiguration : public ui::UserInteraction {
+class artdaq::InFlightConfiguration : public ui::UserInteraction
+{
 public:
-  InFlightConfiguration(fhicl::ParameterSet const & ps,
-                        art::ActivityRegistry & areg);
+	InFlightConfiguration(fhicl::ParameterSet const& ps,
+	                      art::ActivityRegistry& areg);
 
-  void moduleList(std::vector<ModuleInfo> const & infos) override;
-  void pickModule() override;
-  UserInteraction::NextStep nextAction() override;
+	void moduleList(std::vector<ModuleInfo> const& infos) override;
+
+	void pickModule() override;
+
+	UserInteraction::NextStep nextAction() override;
 
 private:
-  std::vector<ModuleInfo> moduleInfos_;
-  art::ServiceHandle<art::PathSelection> pathSelectionService_;
+	std::vector<ModuleInfo> moduleInfos_;
+	art::ServiceHandle<art::PathSelection> pathSelectionService_;
 };
 
 DECLARE_ART_SERVICE(artdaq::InFlightConfiguration, LEGACY)

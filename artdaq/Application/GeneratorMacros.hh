@@ -6,9 +6,10 @@
 
 #include <memory>
 
-namespace artdaq {
-  typedef std::unique_ptr<artdaq::CommandableFragmentGenerator>
-  (makeFunc_t) (fhicl::ParameterSet const & ps);
+namespace artdaq
+{
+	typedef std::unique_ptr<artdaq::CommandableFragmentGenerator>
+	(makeFunc_t)(fhicl::ParameterSet const& ps);
 }
 
 #define DEFINE_ARTDAQ_COMMANDABLE_GENERATOR(klass)                    \

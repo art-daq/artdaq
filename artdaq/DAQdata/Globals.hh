@@ -21,8 +21,10 @@
 #define TRANSFER_RECEIVE1 10
 #define TRANSFER_RECEIVE2 11
 
-namespace artdaq {
-	class Globals {
+namespace artdaq
+{
+	class Globals
+	{
 	public:
 		static int my_rank_;
 		static MetricManager* metricMan_;

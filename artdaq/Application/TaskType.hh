@@ -3,11 +3,17 @@
 
 namespace artdaq
 {
-  namespace detail {
-    enum TaskType : int {BoardReaderTask=1, EventBuilderTask=2, AggregatorTask=3};
-  }
+	namespace detail
+	{
+		enum TaskType : int
+		{
+			BoardReaderTask=1,
+			EventBuilderTask=2,
+			AggregatorTask=3
+		};
+	}
 
-  using detail::TaskType; // Require C++2011 scoping, hide C++03 scoping.
+	using detail::TaskType; // Require C++2011 scoping, hide C++03 scoping.
 }
 
 #endif /* artdaq_Application_TaskType_hh */

@@ -30,76 +30,88 @@
 #include "artdaq/TransferPlugins/detail/Timeout.hh"	// Timeout
 #include "artdaq-core/Data/Fragment.hh"
 
-namespace artdaq {
+namespace artdaq
+{
 	class TCPSocketTransfer;
 }
 
-class artdaq::TCPSocketTransfer : public artdaq::TransferInterface {
+class artdaq::TCPSocketTransfer : public artdaq::TransferInterface
+{
 public:
 	// env.var used: NODE_LIST, MPI_RANK
 	TCPSocketTransfer(fhicl::ParameterSet const& ps, TransferInterface::Role role);
+
 	~TCPSocketTransfer();
 
 	// recvFragment() puts the next received fragment in frag (via swap), with
 	// the source of that fragment as its return value.
 	// It is a precondition that a sources_sending() != 0.
 	// Returns -1 if tmo
-	int receiveFragment(Fragment &frag, size_t timeout_usec = 0);
+	int receiveFragment(Fragment& frag, size_t timeout_usec = 0);
 
 	// Send the given Fragment. Return the rank of the destination to which
 	// the Fragment was sent. TCPSocketTransfer is always reliable, as TCP is reliable.
 	TransferInterface::CopyStatus copyFragment(Fragment& f, size_t tmo) { return sendFragment(std::move(f), tmo); }
 	TransferInterface::CopyStatus moveFragment(Fragment&& f, size_t tmo) { return sendFragment(std::move(f), tmo); }
-	TransferInterface::CopyStatus sendFragment(Fragment &&, size_t);
+
+	TransferInterface::CopyStatus sendFragment(Fragment&&, size_t);
 
 private:
-	int         fd_;
-	int		listen_fd_;
+	int fd_;
+	int listen_fd_;
 
-	union {
-		MessHead  mh;
-		uint8_t   mha[sizeof(MessHead)];
+	union
+	{
+		MessHead mh;
+		uint8_t mha[sizeof(MessHead)];
 	};
-	enum class SocketState {
+
+	enum class SocketState
+	{
 		Metadata,
 		Data
 	};
-	SocketState state_;
-	
-	Fragment      frag;
-	uint8_t *     buffer;
-	size_t       offset;
-	int           target_bytes;
-	size_t              rcvbuf_;
-	size_t              sndbuf_;
 
-	struct DestinationInfo {
+	SocketState state_;
+
+	Fragment frag;
+	uint8_t* buffer;
+	size_t offset;
+	int target_bytes;
+	size_t rcvbuf_;
+	size_t sndbuf_;
+
+	struct DestinationInfo
+	{
 		std::string hostname;
 		int portOffset;
 	};
+
 	std::unordered_map<size_t, DestinationInfo> hostMap_;
 
-	volatile unsigned    connect_state : 1; // 0=not "connected" (initial msg not sent)
-	unsigned    blocking : 1;   // compatible with bool (true/false)
+	volatile unsigned connect_state : 1; // 0=not "connected" (initial msg not sent)
+	unsigned blocking : 1; // compatible with bool (true/false)
 
 
 	Timeout tmo_;
-	bool             stats_connect_stop_;
-	std::thread      stats_connect_thread_;
+	bool stats_connect_stop_;
+	std::thread stats_connect_thread_;
 	std::condition_variable stopstatscv_;
-	std::mutex              stopstatscvm_; // protects 'stopcv'
-  
-  bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
+	std::mutex stopstatscvm_; // protects 'stopcv'
+
+	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
 
 private: // methods
 	TransferInterface::CopyStatus sendFragment_(const void* buf, size_t bytes, size_t tmo);
-	TransferInterface::CopyStatus sendFragment_(const struct iovec *iov, int iovcnt, size_t tmo);
+
+	TransferInterface::CopyStatus sendFragment_(const struct iovec* iov, int iovcnt, size_t tmo);
 
 	// Thread to drive reconnect_ requests
-	void   stats_connect_();
+	void stats_connect_();
 
 	// Sender is responsible for connecting to receiver
 	void connect_();
+
 	void reconnect_();
 
 	// Receiver should listen for connections

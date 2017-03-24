@@ -12,19 +12,22 @@
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
-namespace artdaq {
+namespace artdaq
+{
 	class DataSenderManager;
 }
 
-class artdaq::DataSenderManager {
+class artdaq::DataSenderManager
+{
 public:
 
 	DataSenderManager(fhicl::ParameterSet);
+
 	~DataSenderManager();
 
 	// Send the given Fragment. Return the rank of the destination to which
 	// the Fragment was sent.
-	int sendFragment(Fragment &&);
+	int sendFragment(Fragment&&);
 
 	// How many fragments have been sent using this DataSenderManager object?
 	size_t count() const;

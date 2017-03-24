@@ -29,74 +29,84 @@ using namespace std;
 
 // return connection fd.
 // 
-int TCPConnect(  char const *host_in
-               , int	dflt_port
-               , long   flags
-               , int    sndbufsiz )
+int TCPConnect(char const* host_in
+               , int dflt_port
+               , long flags
+               , int sndbufsiz)
 {
-	int			s_fd, sts;
-	int			port;
-	std::string             host;
-	struct sockaddr_in	sin;
-        struct hostent          *hostent_sp;
+	int s_fd, sts;
+	int port;
+	std::string host;
+	struct sockaddr_in sin;
+	struct hostent* hostent_sp;
 
-    cmatch  mm;
-    //  Note: the regex expression used by regex_match has an implied ^ and $
-    //        at the beginning and end respectively.
-    if      (regex_match( host_in, mm, regex("([^:]+):(\\d+)") )) {
+	cmatch mm;
+	//  Note: the regex expression used by regex_match has an implied ^ and $
+	//        at the beginning and end respectively.
+	if (regex_match(host_in, mm, regex("([^:]+):(\\d+)")))
+	{
 		host = mm[1].str();
-		port = strtoul( mm[2].str().c_str(), NULL, 0 );
-    }
-    else if (regex_match( host_in, mm, regex(":{0,1}(\\d+)") )) {
+		port = strtoul(mm[2].str().c_str(), NULL, 0);
+	}
+	else if (regex_match(host_in, mm, regex(":{0,1}(\\d+)")))
+	{
 		host = std::string("127.0.0.1");
-		port = strtoul( mm[1].str().c_str(), NULL, 0 );
-    }
-    else if (regex_match( host_in, mm, regex("([^:]+):{0,1}") )) {
+		port = strtoul(mm[1].str().c_str(), NULL, 0);
+	}
+	else if (regex_match(host_in, mm, regex("([^:]+):{0,1}")))
+	{
 		host = mm[1].str().c_str();
-        port = dflt_port;
-    }
-    else {
+		port = dflt_port;
+	}
+	else
+	{
 		host = std::string("127.0.0.1");
 		port = dflt_port;
-    }
+	}
 	mf::LogInfo("TCPConnect") << "Connecting to host " << host << ", on port " << std::to_string(port);
 
-    s_fd = socket( PF_INET, SOCK_STREAM/*|SOCK_NONBLOCK*/, 0 );	// man socket,man TCP(7P)
+	s_fd = socket(PF_INET, SOCK_STREAM/*|SOCK_NONBLOCK*/, 0); // man socket,man TCP(7P)
 
-    if (s_fd == -1) {
-		perror( "socket error" );
+	if (s_fd == -1)
+	{
+		perror("socket error");
 		return (-1);
-    }
+	}
 
-    bzero( (char *)&sin, sizeof(sin) );
-    sin.sin_family = AF_INET;
-    sin.sin_port = htons( port ); // just a guess at an open port
+	bzero((char *)&sin, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(port); // just a guess at an open port
 
-    if (regex_match( host.c_str(),mm,regex("\\d+(\\.\\d+){3}") ))
-		inet_aton( host.c_str(), &sin.sin_addr );
-    else {
-		hostent_sp = gethostbyname( host.c_str() );
-		if (!hostent_sp) {
-			perror( "gethostbyname" );
-			close( s_fd );
+	if (regex_match(host.c_str(), mm, regex("\\d+(\\.\\d+){3}")))
+		inet_aton(host.c_str(), &sin.sin_addr);
+	else
+	{
+		hostent_sp = gethostbyname(host.c_str());
+		if (!hostent_sp)
+		{
+			perror("gethostbyname");
+			close(s_fd);
 			return (-1);
 		}
 		sin.sin_addr = *(struct in_addr *)(hostent_sp->h_addr_list[0]);
-    }
+	}
 
-    sts = connect( s_fd, (struct sockaddr *)&sin, sizeof(sin) );
-    if (sts == -1) {
+	sts = connect(s_fd, (struct sockaddr *)&sin, sizeof(sin));
+	if (sts == -1)
+	{
 		//perror( "connect error" );
-        close( s_fd );
+		close(s_fd);
 		return (-1);
-    }
+	}
 
-	if (flags) {
-		sts = fcntl( s_fd, F_SETFL, flags );
+	if (flags)
+	{
+		sts = fcntl(s_fd, F_SETFL, flags);
 		TRACE( 4, "TCPConnect fcntl(fd=%d,flags=0x%lx)=%d",s_fd,flags,sts );
 	}
 
-	if (sndbufsiz > 0) {
+	if (sndbufsiz > 0)
+	{
 		int len;
 		socklen_t lenlen = sizeof(len);
 		len = 0;
@@ -104,14 +114,15 @@ int TCPConnect(  char const *host_in
 		TRACE(3, "TCPConnect SNDBUF initial: %d sts/errno=%d/%d lenlen=%d", len, sts, errno, lenlen);
 		len = sndbufsiz;
 		sts = setsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, lenlen);
-		if (sts == -1) TRACE(0, "Error with setsockopt SNDBUF %d", errno);
+		if (sts == -1)
+		TRACE(0, "Error with setsockopt SNDBUF %d", errno);
 		len = 0;
 		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
 		if (len < (sndbufsiz * 2))
-			TRACE(1, "SNDBUF %d not expected (%d) sts/errno=%d/%d"
-				, len, sndbufsiz, sts, errno);
+		TRACE(1, "SNDBUF %d not expected (%d) sts/errno=%d/%d"
+			, len, sndbufsiz, sts, errno);
 		else
-			TRACE(3, "SNDBUF %d sts/errno=%d/%d", len, sts, errno);
+		TRACE(3, "SNDBUF %d sts/errno=%d/%d", len, sts, errno);
 	}
-    return (s_fd);
+	return (s_fd);
 }

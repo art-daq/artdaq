@@ -9,10 +9,10 @@
 #include <memory>
 #include <string>
 
-namespace artdaq {
-
-  std::unique_ptr<CommandableFragmentGenerator>
-    makeCommandableFragmentGenerator(std::string const & generator_plugin_spec,
-                          fhicl::ParameterSet const & ps);
+namespace artdaq
+{
+	std::unique_ptr<CommandableFragmentGenerator>
+	makeCommandableFragmentGenerator(std::string const& generator_plugin_spec,
+	                                 fhicl::ParameterSet const& ps);
 }
 #endif /* artdaq_Application_makeCommandableFragmentGenerator_hh */

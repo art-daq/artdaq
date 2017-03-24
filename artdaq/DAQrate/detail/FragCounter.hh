@@ -6,22 +6,31 @@
 #include <limits>
 #include <mutex>
 
-namespace artdaq {
-	namespace detail {
+namespace artdaq
+{
+	namespace detail
+	{
 		class FragCounter;
 	}
 }
 
-class artdaq::detail::FragCounter {
+class artdaq::detail::FragCounter
+{
 public:
 	explicit FragCounter();
+
 	void incSlot(size_t slot);
+
 	void incSlot(size_t slot, size_t inc);
+
 	void setSlot(size_t slot, size_t val);
 
 	size_t nSlots() const;
+
 	size_t count() const;
+
 	size_t slotCount(size_t slot) const;
+
 	size_t minCount() const;
 
 	size_t operator[](size_t slot) const { return slotCount(slot); }
@@ -34,9 +43,7 @@ private:
 inline
 artdaq::detail::FragCounter::
 FragCounter()
-	: receipts_()
-{
-}
+	: receipts_() {}
 
 inline
 void
@@ -80,7 +87,8 @@ count() const
 {
 	std::unique_lock<std::mutex> lk(receipts_mutex_);
 	size_t acc = 0;
-	for (auto& it : receipts_) {
+	for (auto& it : receipts_)
+	{
 		acc += it.second;
 	}
 	return acc;
@@ -102,7 +110,8 @@ minCount() const
 {
 	std::unique_lock<std::mutex> lk(receipts_mutex_);
 	size_t min = std::numeric_limits<size_t>::max();
-	for (auto& it : receipts_) {
+	for (auto& it : receipts_)
+	{
 		if (it.second < min) min = it.second;
 	}
 	return min;

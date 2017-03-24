@@ -9,20 +9,23 @@
 
 #include <fhiclcpp/fwd.h>
 
-#include "artdaq-core/Data/Fragments.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
-namespace artdaq {
+namespace artdaq
+{
 	class DataReceiverManager;
 	class FragmentStoreElement;
 }
 
-class artdaq::DataReceiverManager {
+class artdaq::DataReceiverManager
+{
 public:
 
 	DataReceiverManager(fhicl::ParameterSet);
+
 	~DataReceiverManager();
 
 	// recvFragment() puts the next received fragment in frag, with the
@@ -45,12 +48,16 @@ public:
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
 	void suppress_source(int source);
+
 	void unsuppressAll();
+
 	void reject_fragment(int source_rank, FragmentPtr frag);
 
 private:
 	void runReceiver_(int);
+
 	bool fragments_ready_() const;
+
 	int get_next_source_() const;
 
 	std::atomic<bool> stop_requested_;
@@ -75,35 +82,43 @@ private:
 	size_t receive_timeout_;
 };
 
-class artdaq::FragmentStoreElement {
+class artdaq::FragmentStoreElement
+{
 public:
-	FragmentStoreElement() : frags_(), empty_(true) {
+	FragmentStoreElement() : frags_()
+	                       , empty_(true)
+	{
 		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
 	}
 
-	bool empty() const {
-		return empty_; 
+	bool empty() const
+	{
+		return empty_;
 	}
 
-	void emplace_front(FragmentPtr&& frag) {
+	void emplace_front(FragmentPtr&& frag)
+	{
 		std::unique_lock<std::mutex> lk(mutex_);
 		frags_.emplace_front(std::move(frag));
 		empty_ = false;
 	}
 
-	void emplace_back(FragmentPtr&& frag) {
+	void emplace_back(FragmentPtr&& frag)
+	{
 		std::unique_lock<std::mutex> lk(mutex_);
 		frags_.emplace_back(std::move(frag));
 		empty_ = false;
 	}
 
-	FragmentPtr front() {
+	FragmentPtr front()
+	{
 		std::unique_lock<std::mutex> lk(mutex_);
 		auto current_fragment = std::move(frags_.front());
 		frags_.pop_front();
 		empty_ = frags_.size() == 0;
 		return std::move(current_fragment);
 	}
+
 private:
 	mutable std::mutex mutex_;
 	FragmentPtrs frags_;

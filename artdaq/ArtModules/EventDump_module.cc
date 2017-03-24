@@ -11,7 +11,7 @@
 #include "art/Framework/Principal/Handle.h"
 #include "canvas/Utilities/Exception.h"
 
-#include "artdaq-core/Data/Fragments.hh"
+#include "artdaq-core/Data/Fragment.hh"
 
 #include <algorithm>
 #include <cassert>
@@ -21,34 +21,31 @@
 #include <vector>
 #include <iostream>
 
-namespace demo {
-  class EventDump;
+namespace demo
+{
+	class EventDump;
 }
 
-class demo::EventDump : public art::EDAnalyzer {
+class demo::EventDump : public art::EDAnalyzer
+{
 public:
-  explicit EventDump(fhicl::ParameterSet const & pset);
-  virtual ~EventDump();
+	explicit EventDump(fhicl::ParameterSet const& pset);
 
-  virtual void analyze(art::Event const & );
+	virtual ~EventDump();
+
+	virtual void analyze(art::Event const&);
 
 private:
-  std::string raw_data_label_;
+	std::string raw_data_label_;
 };
 
 
-demo::EventDump::EventDump(fhicl::ParameterSet const & pset)
-    : EDAnalyzer(pset),
-  raw_data_label_(pset.get<std::string>("raw_data_label"))
-{
-}
+demo::EventDump::EventDump(fhicl::ParameterSet const& pset)
+	: EDAnalyzer(pset)
+	, raw_data_label_(pset.get<std::string>("raw_data_label")) {}
 
-demo::EventDump::~EventDump()
-{
-}
+demo::EventDump::~EventDump() {}
 
-void demo::EventDump::analyze(art::Event const & )
-{
-}
+void demo::EventDump::analyze(art::Event const&) {}
 
 DEFINE_ART_MODULE(demo::EventDump)

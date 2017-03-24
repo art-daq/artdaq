@@ -19,13 +19,12 @@
 #include <memory>
 #include <string>
 
-namespace artdaq {
-
-  std::unique_ptr<TransferInterface> 
-  MakeTransferPlugin(const fhicl::ParameterSet& pset,
-		     std::string plugin_label,
-		     TransferInterface::Role role);
-
+namespace artdaq
+{
+	std::unique_ptr<TransferInterface>
+	MakeTransferPlugin(const fhicl::ParameterSet& pset,
+	                   std::string plugin_label,
+	                   TransferInterface::Role role);
 }
 
-#endif 
+#endif
