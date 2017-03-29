@@ -318,7 +318,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 
 	try
 	{
-		if (is_data_logger_)
+	        if (is_data_logger_ && daq_pset.has_key("transfer_to_dispatcher"))
 		{
 			data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kSend);
 		}
@@ -669,7 +669,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 		bool fragmentWasCopied = false;
-		if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0)
+		if (is_data_logger_ && data_logger_transfer_ && (event_count_in_run_ % onmon_event_prescale_) == 0)
 		{
 			try
 			{
@@ -741,7 +741,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 			if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType)
 			{
 				mf::LogDebug(name_) << "Init";
-				if (is_data_logger_ && !fragmentWasCopied)
+				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
 				{
 					data_logger_transfer_->copyFragment(*fragmentPtr, 500000);
 				}
@@ -829,7 +829,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 			}
 			else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType)
 			{
-				if (is_data_logger_ && !fragmentWasCopied)
+				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
 				{
 					data_logger_transfer_->copyFragment(*fragmentPtr, 1000000);
 				}
@@ -849,7 +849,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 			}
 			else if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 			{
-				if (is_data_logger_ && !fragmentWasCopied)
+				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
 				{
 					data_logger_transfer_->copyFragment(*fragmentPtr, 1000000);
 				}
