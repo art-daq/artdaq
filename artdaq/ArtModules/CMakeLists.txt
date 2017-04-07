@@ -101,14 +101,6 @@ simple_plugin(NetMonTransportService "service"
   ${ROOT_CORE}
 )
 
-  simple_plugin(InFlightConfiguration "service"
- art_Framework_Services_Registry
- art_Framework_Services_UserInteraction
-    ${ART_FRAMEWORK_SERVICES_SYSTEM_PATHSELECTION_SERVICE}
-    ${ART_UTILITIES}
-  ${CETLIB_EXCEPT}
-    )
-
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
   artdaq_BuildInfo
