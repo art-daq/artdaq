@@ -16,42 +16,44 @@
 
 #include "TBufferFile.h"
 
-namespace fhicl {
-  class ParameterSet;
+namespace fhicl
+{
+	class ParameterSet;
 }
 
-namespace artdaq {
+namespace artdaq
+{
+	class Fragment;
 
-  class Fragment;
+	class TransferWrapper
+	{
+	public:
 
-  class TransferWrapper {
-  public:
+		TransferWrapper(const fhicl::ParameterSet&);
 
-    TransferWrapper(const fhicl::ParameterSet& );
-    ~TransferWrapper();
+		~TransferWrapper();
 
-    void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+		void receiveMessage(std::unique_ptr<TBufferFile>& msg);
 
-  private:
+	private:
 
-    void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>& );
+		void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>&);
 
-    void checkIntegrity(const artdaq::Fragment& ) const;
+		void checkIntegrity(const artdaq::Fragment&) const;
 
-    void unregisterMonitor();
+		void unregisterMonitor();
 
-    std::size_t timeoutInUsecs_;
-    std::unique_ptr<TransferInterface> transfer_;
-    const std::string dispatcherHost_;
-    const std::string dispatcherPort_;
-    const std::string serverUrl_;
-    const std::size_t maxEventsBeforeInit_;
-    const std::vector<int> allowedFragmentTypes_;
-    const bool quitOnFragmentIntegrityProblem_;
-    const size_t debugLevel_;
-    bool monitorRegistered_;
-  };
-
+		std::size_t timeoutInUsecs_;
+		std::unique_ptr<TransferInterface> transfer_;
+		const std::string dispatcherHost_;
+		const std::string dispatcherPort_;
+		const std::string serverUrl_;
+		const std::size_t maxEventsBeforeInit_;
+		const std::vector<int> allowedFragmentTypes_;
+		const bool quitOnFragmentIntegrityProblem_;
+		const size_t debugLevel_;
+		bool monitorRegistered_;
+	};
 }
 
 #endif /* artdaq_ArtModules_TransferWrapper_hh */

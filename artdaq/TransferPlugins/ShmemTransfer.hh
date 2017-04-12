@@ -11,38 +11,45 @@
 #define FRAGMENT_READY 2UL
 #define READING_FRAGMENT 3UL
 
-namespace artdaq {
-
-	class ShmemTransfer : public artdaq::TransferInterface {
-
+namespace artdaq
+{
+	class ShmemTransfer : public artdaq::TransferInterface
+	{
 	public:
 
 		ShmemTransfer(fhicl::ParameterSet const&, Role);
+
 		~ShmemTransfer() noexcept;
 
 		virtual int receiveFragment(artdaq::Fragment& fragment,
-			size_t receiveTimeout);
+		                            size_t receiveTimeout);
 
 		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
-			size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+
 		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
-			size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+
 	private:
 		CopyStatus sendFragment(artdaq::Fragment&& fragment,
-			size_t send_timeout_usec, bool reliable = false);
+		                        size_t send_timeout_usec, bool reliable = false);
 
-	  bool readyForRead_();
-	  bool readyForWrite_();
+		bool readyForRead_();
+
+		bool readyForWrite_();
 
 		RawDataType* offsetToPtr(size_t offset);
 
-		struct ShmBuffer {
+		struct ShmBuffer
+		{
 			size_t offset;
 			size_t fragmentSizeWords;
 			std::atomic<unsigned int> sem;
 			unsigned int writeCount;
 		};
-		struct ShmStruct {
+
+		struct ShmStruct
+		{
 			std::atomic<unsigned int> read_pos;
 			std::atomic<unsigned int> write_pos;
 			ShmBuffer buffers[100];
@@ -56,7 +63,6 @@ namespace artdaq {
 
 		Role role_;
 	};
-
 }
 
 #endif // artdaq_TransferPlugins/ShmemTransfer_hh

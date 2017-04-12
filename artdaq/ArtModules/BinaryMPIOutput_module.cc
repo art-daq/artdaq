@@ -10,7 +10,7 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq-core/Data/Fragments.hh"
+#include "artdaq-core/Data/Fragment.hh"
 
 #include "trace.h"		// TRACE
 #define TRACE_NAME "BinaryMPIOutput"
@@ -23,47 +23,57 @@
 #include <memory>
 #include "unistd.h"
 
-struct Config {
-	fhicl::Atom<uint64_t> max_fragment_size_words{ fhicl::Name("max_fragment_size_words") };
-	fhicl::Atom<size_t>   mpi_buffer_count{ fhicl::Name("mpi_buffer_count") };
-	fhicl::Atom<size_t>   first_evb_rank{ fhicl::Name("first_event_builder_rank") };
-	fhicl::Atom<size_t>   evb_count{ fhicl::Name("event_builder_count") };
-	fhicl::Atom<int>      rt_priority{ fhicl::Name("rt_priority"), 0 };
-	fhicl::Atom<bool>     synchronous_sends{ fhicl::Name("synchronous_sends"), true };
-
+struct Config
+{
+	fhicl::Atom<uint64_t> max_fragment_size_words{fhicl::Name("max_fragment_size_words")};
+	fhicl::Atom<size_t> mpi_buffer_count{fhicl::Name("mpi_buffer_count")};
+	fhicl::Atom<size_t> first_evb_rank{fhicl::Name("first_event_builder_rank")};
+	fhicl::Atom<size_t> evb_count{fhicl::Name("event_builder_count")};
+	fhicl::Atom<int> rt_priority{fhicl::Name("rt_priority"), 0};
+	fhicl::Atom<bool> synchronous_sends{fhicl::Name("synchronous_sends"), true};
 };
 
-namespace art {
+namespace art
+{
 	class BinaryMPIOutput;
 }
 
 using art::BinaryMPIOutput;
 using fhicl::ParameterSet;
 
-class art::BinaryMPIOutput final: public OutputModule{
+class art::BinaryMPIOutput final: public OutputModule
+{
 public:
 	explicit BinaryMPIOutput(ParameterSet const&);
+
 	~BinaryMPIOutput();
+
 private:
 	void beginJob() override;
+
 	void endJob() override;
+
 	void write(EventPrincipal&) override;
+
 	void writeRun(RunPrincipal&) override {};
 	void writeSubRun(SubRunPrincipal&) override {};
 
 	void initialize_MPI_();
+
 	void deinitialize_MPI_();
+
 	bool readParameterSet_(fhicl::ParameterSet const& pset);
+
 private:
 	ParameterSet data_pset_;
-  std::string name_ = "BinaryMPIOutput";
-  uint64_t max_fragment_size_words_ = 0;
-  size_t mpi_buffer_count_ = 0;
-  size_t first_evb_rank_ = 0;
-  size_t evb_count_ = 0;
-  int rt_priority_ = 0;
-  bool synchronous_sends_ = true;
-  std::unique_ptr<artdaq::DataSenderManager> sender_ptr_ = {nullptr};
+	std::string name_ = "BinaryMPIOutput";
+	uint64_t max_fragment_size_words_ = 0;
+	size_t mpi_buffer_count_ = 0;
+	size_t first_evb_rank_ = 0;
+	size_t evb_count_ = 0;
+	int rt_priority_ = 0;
+	bool synchronous_sends_ = true;
+	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_ = {nullptr};
 };
 
 art::BinaryMPIOutput::
@@ -100,17 +110,19 @@ endJob()
 }
 
 
-
 void
 art::BinaryMPIOutput::
-initialize_MPI_() {
-	if (rt_priority_ > 0) {
+initialize_MPI_()
+{
+	if (rt_priority_ > 0)
+	{
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
-		if (status != 0) {
+		if (status != 0)
+		{
 			mf::LogError(name_)
 				<< "Failed to set realtime priority to " << rt_priority_
 				<< ", return code = " << status;
@@ -118,7 +130,7 @@ initialize_MPI_() {
 #pragma GCC diagnostic pop
 	}
 
-	TRACE(3, "BinaryMPIOutput::initializeMPI(mpi_buffer_count=%lu max_fragment_size_words=%lu first_evb_rank=%lu evb_count=%lu synchronous_sends=%i )"\
+	TRACE(3, "BinaryMPIOutput::initializeMPI(mpi_buffer_count=%lu max_fragment_size_words=%lu first_evb_rank=%lu evb_count=%lu synchronous_sends=%i )"
 		, mpi_buffer_count_, max_fragment_size_words_, first_evb_rank_, evb_count_, int(synchronous_sends_));
 
 	sender_ptr_ = std::make_unique<artdaq::DataSenderManager>(data_pset_);
@@ -127,7 +139,8 @@ initialize_MPI_() {
 
 void
 art::BinaryMPIOutput::
-deinitialize_MPI_() {
+deinitialize_MPI_()
+{
 	sender_ptr_.reset(nullptr);
 }
 
@@ -140,10 +153,12 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 		<< "\".";
 
 	// determine the data sending parameters
-	try {
+	try
+	{
 		max_fragment_size_words_ = pset.get<uint64_t>("max_fragment_size_words");
 	}
-	catch (...) {
+	catch (...)
+	{
 		mf::LogError(name_)
 			<< "The max_fragment_size_words parameter was not specified "
 			<< "in the BinaryMPIOutput initialization PSet: \""
@@ -151,7 +166,8 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 		return false;
 	}
 	try { mpi_buffer_count_ = pset.get<size_t>("mpi_buffer_count"); }
-	catch (...) {
+	catch (...)
+	{
 		mf::LogError(name_)
 			<< "The mpi_buffer_count parameter was not specified "
 			<< "in the fragment_receiver initialization PSet: \""
@@ -159,7 +175,8 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 		return false;
 	}
 	try { first_evb_rank_ = pset.get<size_t>("first_event_builder_rank"); }
-	catch (...) {
+	catch (...)
+	{
 		mf::LogError(name_)
 			<< "The first_event_builder_rank parameter was not specified "
 			<< "in the fragment_receiver initialization PSet: \""
@@ -167,7 +184,8 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 		return false;
 	}
 	try { evb_count_ = pset.get<size_t>("event_builder_count"); }
-	catch (...) {
+	catch (...)
+	{
 		mf::LogError(name_)
 			<< "The event_builder_count parameter was not specified "
 			<< "in the fragment_receiver initialization PSet: \""
@@ -196,13 +214,15 @@ write(EventPrincipal& ep)
 	auto result_handles = std::vector<art::GroupQueryResult>();
 	ep.getManyByType(art::TypeID(typeid(RawEvent)), result_handles);
 
-	for (auto const& result_handle : result_handles) {
+	for (auto const& result_handle : result_handles)
+	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
 
 		if (!raw_event_handle.isValid())
 			continue;
 
-		for (auto const& fragment : *raw_event_handle) {
+		for (auto const& fragment : *raw_event_handle)
+		{
 			auto fragment_copy = fragment;
 			auto fragid_id = fragment_copy.fragmentID();
 			auto sequence_id = fragment_copy.sequenceID();
@@ -216,4 +236,3 @@ write(EventPrincipal& ep)
 }
 
 DEFINE_ART_MODULE(art::BinaryMPIOutput)
-

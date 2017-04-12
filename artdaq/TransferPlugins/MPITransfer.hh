@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "artdaq-core/Data/Fragments.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
 /*
@@ -16,21 +16,32 @@
   There probably needs to be a common class that both use.
 */
 
-namespace artdaq {
-
-	class MPITransfer : public TransferInterface {
+namespace artdaq
+{
+	class MPITransfer : public TransferInterface
+	{
 	public:
 		MPITransfer(fhicl::ParameterSet, TransferInterface::Role);
+
 		~MPITransfer();
 
 		// Send the fragment to the specified destination.
 		virtual TransferInterface::CopyStatus copyFragment(Fragment& frag, size_t timeout_usec);
+
 		virtual TransferInterface::CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec);
+
 		virtual int receiveFragment(Fragment& frag, size_t timeout_usec);
+
 	private:
-		enum class status_t { SENDING, PENDING, DONE };
+		enum class status_t
+		{
+			SENDING,
+			PENDING,
+			DONE
+		};
 
 		void cancelReq_(size_t buf, bool blocking_wait = true);
+
 		void post_(size_t buf);
 
 		// Identify an available buffer.

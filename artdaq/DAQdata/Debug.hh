@@ -3,17 +3,20 @@
 
 #include <iostream>
 
-class Junker {
+class Junker
+{
 public:
-  template <class T>
-  Junker & operator<<(T const &) { return *this; }
-  template <class T>
-  Junker & operator<<(T &) { return *this; }
+	template <class T>
+	Junker& operator<<(T const&) { return *this; }
+
+	template <class T>
+	Junker& operator<<(T&) { return *this; }
 };
 
 extern Junker junker;
 
-std::ostream & PgetDebugStream();
+std::ostream& PgetDebugStream();
+
 void PconfigureDebugStream(int rank, int run);
 
 #ifdef DEBUGME

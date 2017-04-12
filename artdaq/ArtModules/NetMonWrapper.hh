@@ -15,35 +15,37 @@
 #include <string>
 #include <memory>
 
-namespace fhicl {
-  class ParameterSet;
+namespace fhicl
+{
+	class ParameterSet;
 }
 
-namespace art {
+namespace art
+{
+	class NetMonWrapper
+	{
+	public:
 
-  class NetMonWrapper {
-  public:
-  
-    // JCF, May-31-2016
+		// JCF, May-31-2016
 
-    // Parameter set constructor argument is unused for now, but
-    // needed for this class to implement the interface the
-    // ArtdaqInput templatized input source expects
+		// Parameter set constructor argument is unused for now, but
+		// needed for this class to implement the interface the
+		// ArtdaqInput templatized input source expects
 
-    NetMonWrapper(const fhicl::ParameterSet& ) {
-      ServiceHandle<NetMonTransportService> transport;
-      transport->listen();
-    }
+		NetMonWrapper(const fhicl::ParameterSet&)
+		{
+			ServiceHandle<NetMonTransportService> transport;
+			transport->listen();
+		}
 
-    ~NetMonWrapper() {
-      ServiceHandle<NetMonTransportService> transport;
-      transport->disconnect();
-    }
+		~NetMonWrapper()
+		{
+			ServiceHandle<NetMonTransportService> transport;
+			transport->disconnect();
+		}
 
-    void receiveMessage(std::unique_ptr<TBufferFile>& msg);
-
-  };
-
+		void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+	};
 }
 
 #endif /* artdaq_ArtModules_NetMonWrapper_hh */

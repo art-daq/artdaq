@@ -5,10 +5,10 @@
 
 #include <string>
 
-namespace artdaq {
+namespace artdaq
+{
+	static std::string instanceName = "ArtdaqBuildInfo";
+	typedef artdaq::BuildInfo<&instanceName, artdaqcore::GetPackageBuildInfo, artdaq::GetPackageBuildInfo> ArtdaqBuildInfo;
 
-  static std::string instanceName = "ArtdaqBuildInfo";
-  typedef artdaq::BuildInfo< &instanceName, artdaqcore::GetPackageBuildInfo, artdaq::GetPackageBuildInfo> ArtdaqBuildInfo;
-
-  DEFINE_ART_MODULE(ArtdaqBuildInfo)
+	DEFINE_ART_MODULE(ArtdaqBuildInfo)
 }

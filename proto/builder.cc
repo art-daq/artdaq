@@ -1,7 +1,7 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq/DAQdata/Debug.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
-#include "artdaq-core/Data/Fragments.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "Config.hh"
 #include "artdaq/DAQrate/EventStore.hh"
@@ -24,31 +24,45 @@ namespace bpo = boost::program_options;
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
-extern "C" {
+
+extern "C"
+{
 #include <unistd.h>
 }
+
 #include <iostream>
 #include <memory>
 #include <utility>
 
-extern "C" {
+extern "C"
+{
 #include <sys/time.h>
 #include <sys/resource.h>
 }
 
 // Class Program is our application object.
-class Program : public MPIProg {
+class Program : public MPIProg
+{
 public:
-	Program(int argc, char * argv[]);
+	Program(int argc, char* argv[]);
+
 	void go();
+
 	void source();
+
 	void sink();
+
 	void detector();
 
 private:
-	enum Color_t : int { DETECTOR, SOURCE, SINK };
+	enum Color_t : int
+	{
+		DETECTOR,
+		SOURCE,
+		SINK
+	};
 
-	void printHost(const std::string & functionName) const;
+	void printHost(const std::string& functionName) const;
 
 	Config conf_;
 	fhicl::ParameterSet const daq_pset_;
@@ -57,19 +71,19 @@ private:
 	MPI_Comm local_group_comm_;
 };
 
-Program::Program(int argc, char * argv[]) :
-	MPIProg(argc, argv),
-	conf_(my_rank, procs_,10, 10240, argc, argv),
-	daq_pset_(conf_.getArtPset()),
-	want_sink_(daq_pset_.get<bool>("want_sink", true)),
-	want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false)),
-	local_group_comm_()
+Program::Program(int argc, char* argv[]) :
+                                         MPIProg(argc, argv)
+                                         , conf_(my_rank, procs_, 10, 10240, argc, argv)
+                                         , daq_pset_(conf_.getArtPset())
+                                         , want_sink_(daq_pset_.get<bool>("want_sink", true))
+                                         , want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
+                                         , local_group_comm_()
 {
 	conf_.writeInfo();
 	configureDebugStream(conf_.rank_, conf_.run_);
 	PerfConfigure(conf_.rank_,
-		conf_.run_,
-		conf_.type_);
+	              conf_.run_,
+	              conf_.type_);
 }
 
 void Program::go()
@@ -79,12 +93,15 @@ void Program::go()
 	PerfWriteJobStart();
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
 	MPI_Comm_split(MPI_COMM_WORLD, conf_.type_, 0, &local_group_comm_);
-	switch (conf_.type_) {
+	switch (conf_.type_)
+	{
 	case Config::TaskSink:
-		if (want_sink_) {
+		if (want_sink_)
+		{
 			sink();
 		}
-		else {
+		else
+		{
 			std::string
 				msg("WARNING: a sink was instantiated despite want_sink being false:\n"
 					"set nsinks to 0 in invocation of daqrate?\n");
@@ -93,9 +110,11 @@ void Program::go()
 		}
 		break;
 	case Config::TaskSource:
-		source(); break;
+		source();
+		break;
 	case Config::TaskDetector:
-		detector(); break;
+		detector();
+		break;
 	default:
 		throw "No such node type";
 	}
@@ -112,15 +131,18 @@ void Program::source()
 		from_d.start_threads();
 		std::unique_ptr<artdaq::DataSenderManager> to_r(want_sink_ ? new artdaq::DataSenderManager(conf_.makeParameterSet()) : nullptr);
 		int senderCount = from_d.enabled_sources().size();
-		while (senderCount > 0) {
+		while (senderCount > 0)
+		{
 			int ignoredSender;
 			frag = from_d.recvFragment(ignoredSender);
 			if (!frag || ignoredSender == artdaq::TransferInterface::RECV_TIMEOUT) continue;
 			std::cout << "Program::source: Received fragment " << frag->sequenceID() << " from sender " << ignoredSender << std::endl;
-			if (want_sink_ && frag->type() != artdaq::Fragment::EndOfDataFragmentType) {
+			if (want_sink_ && frag->type() != artdaq::Fragment::EndOfDataFragmentType)
+			{
 				to_r->sendFragment(std::move(*frag));
 			}
-			else if (frag->type() == artdaq::Fragment::EndOfDataFragmentType) {
+			else if (frag->type() == artdaq::Fragment::EndOfDataFragmentType)
+			{
 				senderCount--;
 			}
 		}
@@ -140,20 +162,21 @@ void Program::detector()
 	std::vector<std::string> detectors;
 	size_t detectors_size = 0;
 	if (!(daq_pset_.get_if_present("detectors", detectors) &&
-		(detectors_size = detectors.size()))) {
+	      (detectors_size = detectors.size())))
+	{
 		throw cet::exception("Configuration")
-			<< "Unable to find required sequence of detector "
-			<< "parameter set names, \"detectors\".";
+		      << "Unable to find required sequence of detector "
+		      << "parameter set names, \"detectors\".";
 	}
 	fhicl::ParameterSet det_ps =
 		daq_pset_.get<fhicl::ParameterSet>
 		((detectors_size > static_cast<size_t>(detector_rank)) ?
-			detectors[detector_rank] :
-			detectors[0]);
+			 detectors[detector_rank] :
+			 detectors[0]);
 	std::unique_ptr<artdaq::FragmentGenerator> const
 		gen(artdaq::makeFragmentGenerator
 		(det_ps.get<std::string>("generator"),
-			det_ps));
+		 det_ps));
 	{ // Block to handle lifetime of h, below.
 		artdaq::DataSenderManager h(conf_.makeParameterSet());
 		MPI_Barrier(local_group_comm_);
@@ -163,17 +186,21 @@ void Program::detector()
 		daq_pset_.get_if_present("fragments_per_source", fragments_per_source);
 		artdaq::FragmentPtrs frags;
 		size_t fragments_sent = 0;
-		while (fragments_sent < fragments_per_source && gen->getNext(frags)) {
-			if (!fragments_sent) {
+		while (fragments_sent < fragments_per_source && gen->getNext(frags))
+		{
+			if (!fragments_sent)
+			{
 				// Get the detectors lined up first time before we start the
 				// firehoses.
 				MPI_Barrier(local_group_comm_);
 			}
-			for (auto & fragPtr : frags) {
+			for (auto& fragPtr : frags)
+			{
 				std::cout << "Program::detector: Sending fragment " << fragments_sent + 1 << " of " << fragments_per_source << std::endl;
 				h.sendFragment(std::move(*fragPtr));
 				if (++fragments_sent == fragments_per_source) { break; }
-				if (want_periodic_sync_ && (fragments_sent % 100) == 0) {
+				if (want_periodic_sync_ && (fragments_sent % 100) == 0)
+				{
 					// Don't get too far out of sync.
 					MPI_Barrier(local_group_comm_);
 				}
@@ -194,31 +221,34 @@ void Program::sink()
 		// This scope exists to control the lifetime of 'events'
 		int sink_rank;
 		bool useArt = daq_pset_.get<bool>("useArt", false);
-		const char * dummyArgs[1]{ "SimpleQueueReader" };
+		const char* dummyArgs[1]{"SimpleQueueReader"};
 		MPI_Comm_rank(local_group_comm_, &sink_rank);
-		artdaq::EventStore::ART_CMDLINE_FCN * reader =
+		artdaq::EventStore::ART_CMDLINE_FCN* reader =
 			useArt ?
-			&artapp :
-			&artdaq::simpleQueueReaderApp;
+				&artapp :
+				&artdaq::simpleQueueReaderApp;
 		artdaq::EventStore events(daq_pset_, conf_.detectors_,
-			conf_.run_,
-			useArt ? conf_.art_argc_ : 1,
-								  useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
-			reader);
+		                          conf_.run_,
+		                          useArt ? conf_.art_argc_ : 1,
+		                          useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
+		                          reader);
 		{ // Block to handle scope of h, below.
 			artdaq::DataReceiverManager h(conf_.makeParameterSet());
 			h.start_threads();
 			int senderCount = h.enabled_sources().size();
-			while (senderCount > 0) {
+			while (senderCount > 0)
+			{
 				artdaq::FragmentPtr pfragment(new artdaq::Fragment);
 				int ignoredSource;
 				pfragment = h.recvFragment(ignoredSource);
 				if (!pfragment || ignoredSource == artdaq::TransferInterface::RECV_TIMEOUT) continue;
 				std::cout << "Program::sink: Received fragment " << pfragment->sequenceID() << " from sender " << ignoredSource << std::endl;
-				if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType) {
+				if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType)
+				{
 					events.insert(std::move(pfragment));
 				}
-				else {
+				else
+				{
 					senderCount--;
 				}
 			}
@@ -229,41 +259,46 @@ void Program::sink()
 		bool endSucceeded = false;
 		int attemptsToEnd = 1;
 		endSucceeded = events.endOfData(readerReturnValue);
-		while (!endSucceeded && attemptsToEnd < 3) {
+		while (!endSucceeded && attemptsToEnd < 3)
+		{
 			++attemptsToEnd;
 			endSucceeded = events.endOfData(readerReturnValue);
 		}
-		if (endSucceeded) {
+		if (endSucceeded)
+		{
 			Debug << "Sink: reader is done, its exit status was: "
-				<< readerReturnValue << flusher;
+			     << readerReturnValue << flusher;
 		}
-		else {
+		else
+		{
 			Debug << "Sink: reader failed to complete because the "
-				<< "endOfData marker could not be pushed onto the queue."
-				<< flusher;
+			     << "endOfData marker could not be pushed onto the queue."
+			     << flusher;
 		}
 	} // end of lifetime of 'events'
 	Debug << "Sink done " << conf_.rank_ << flusher;
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Program::printHost(const std::string & functionName) const
+void Program::printHost(const std::string& functionName) const
 {
-	char * doPrint = getenv("PRINT_HOST");
+	char* doPrint = getenv("PRINT_HOST");
 	if (doPrint == 0) { return; }
 	const int ARRSIZE = 80;
 	char hostname[ARRSIZE];
 	std::string hostString;
-	if (!gethostname(hostname, ARRSIZE)) {
+	if (!gethostname(hostname, ARRSIZE))
+	{
 		hostString = hostname;
 	}
-	else {
+	else
+	{
 		hostString = "unknown";
 	}
 	Debug << "Running " << functionName
-		<< " on host " << hostString
-		<< " with rank " << my_rank << "."
-		<< flusher;
+	     << " on host " << hostString
+	     << " with rank " << my_rank << "."
+	     << flusher;
 }
 
 void printUsage()
@@ -277,23 +312,26 @@ void printUsage()
 		<< std::endl;
 }
 
-int main(int argc, char * argv[])
+int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("builder");
 	int rc = 1;
-	try {
+	try
+	{
 		Program p(argc, argv);
 		std::cerr << "Started process " << my_rank << " of " << p.procs_ << ".\n";
 		p.go();
 		rc = 0;
 	}
-	catch (std::string & x) {
+	catch (std::string& x)
+	{
 		std::cerr << "Exception (type string) caught in driver: "
 			<< x
 			<< '\n';
 		return 1;
 	}
-	catch (char const * m) {
+	catch (char const* m)
+	{
 		std::cerr << "Exception (type char const*) caught in driver: ";
 		if (m)
 		{

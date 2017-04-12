@@ -62,50 +62,65 @@
 
 #include "fhiclcpp/fwd.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "artdaq-core/Data/Fragments.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
-namespace artdaq {
-	enum class RequestMode {
+namespace artdaq
+{
+	enum class RequestMode
+	{
 		Single,
 		Buffer,
 		Window,
 		Ignored
 	};
 
-	class CommandableFragmentGenerator : public FragmentGenerator {
+	class CommandableFragmentGenerator : public FragmentGenerator
+	{
 	public:
 
 		CommandableFragmentGenerator();
-		CommandableFragmentGenerator(const fhicl::ParameterSet &);
+
+		CommandableFragmentGenerator(const fhicl::ParameterSet&);
 
 		// Destroy the CommandableFragmentGenerator.
 		virtual ~CommandableFragmentGenerator();
 
-		virtual bool getNext(FragmentPtrs & output) final;
+		virtual bool getNext(FragmentPtrs& output) final;
 
 		// If we're using the dataThread, this method looks for active data requests
 		// and returns matching data
-		virtual bool applyRequests(FragmentPtrs & output) final;
+		virtual bool applyRequests(FragmentPtrs& output) final;
+
 		void setupRequestListener();
+
 		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, std::string desc);
+
 		void sendEmptyFragments(FragmentPtrs& frags);
 
 		void startDataThread();
+
 		void startMonitoringThread();
+
 		void startRequestReceiverThread();
 
 		void getDataLoop();
+
 		bool dataBufferIsTooLarge();
+
 		void getDataBufferStats();
+
 		void checkDataBuffer();
+
 		void getMonitoringDataLoop();
+
 		void receiveRequestsLoop();
 
-		virtual std::vector<Fragment::fragment_id_t> fragmentIDs() {
+		virtual std::vector<Fragment::fragment_id_t> fragmentIDs()
+		{
 			return fragment_ids_;
 		}
 
@@ -142,10 +157,11 @@ namespace artdaq {
 		// to specify particular types of report information.
 		std::string ReportCmd(std::string const& which = "");
 
-		virtual std::string metricsReportingInstanceName() const {
+		virtual std::string metricsReportingInstanceName() const
+		{
 			return instance_name_for_metrics_;
 		}
-		
+
 		// The following functions are not yet implemented, and their
 		// signatures may be subject to change.
 
@@ -194,7 +210,8 @@ namespace artdaq {
 
 		void set_exception(bool exception) { exception_.store(exception); }
 
-		void metricsReportingInstanceName(std::string const& name) {
+		void metricsReportingInstanceName(std::string const& name)
+		{
 			instance_name_for_metrics_ = name;
 		}
 
@@ -219,7 +236,7 @@ namespace artdaq {
 		//Socket parameters
 		struct sockaddr_in si_data_;
 		int request_socket_;
-		std::map<Fragment::sequence_id_t, Fragment::timestamp_t > requests_;
+		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> requests_;
 		std::mutex request_mutex_;
 		std::thread requestThread_;
 
@@ -250,7 +267,7 @@ namespace artdaq {
 		FragmentPtrs newDataBuffer_;
 		std::mutex dataBufferMutex_;
 
-		std::vector< artdaq::Fragment::fragment_id_t > fragment_ids_;
+		std::vector<artdaq::Fragment::fragment_id_t> fragment_ids_;
 
 		// In order to support the state-machine related behavior, all
 		// CommandableFragmentGenerators must be able to remember a run number and a
@@ -286,7 +303,7 @@ namespace artdaq {
 		// false if no more data are available, if we are 'stopped', or if
 		// we are not running in state-machine mode. Note that getNext_()
 		// must return n of each fragmentID declared by fragmentIDs_().
-		virtual bool getNext_(FragmentPtrs & output) = 0;
+		virtual bool getNext_(FragmentPtrs& output) = 0;
 
 
 		// Check any relavent hardware status registers. Return false if
@@ -340,9 +357,9 @@ namespace artdaq {
 		// no arguments and add one that takes a "which" argument. In the 
 		// ReportCmd function, we'll call the more specific one first.
 		virtual std::string report();
+
 		virtual std::string reportSpecific(std::string const&);
 	};
-
 }
 
 #endif /* artdaq_Application_CommandableFragmentGenerator_hh */

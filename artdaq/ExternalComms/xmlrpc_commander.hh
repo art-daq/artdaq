@@ -8,20 +8,23 @@
 #include <mutex>
 #include "artdaq/Application/Commandable.hh"
 
-class xmlrpc_commander {
-  public:
-    xmlrpc_commander (int port, artdaq::Commandable& commandable);
-    void run();
+class xmlrpc_commander
+{
+public:
+	xmlrpc_commander(int port, artdaq::Commandable& commandable);
 
-  private:
-    xmlrpc_commander (const xmlrpc_commander&) = delete;
-    xmlrpc_commander (xmlrpc_commander&&) = delete;
+	void run();
 
-    int _port;
+private:
+	xmlrpc_commander(const xmlrpc_commander&) = delete;
 
-  public:
-    artdaq::Commandable& _commandable;
-    std::mutex mutex_;
+	xmlrpc_commander(xmlrpc_commander&&) = delete;
+
+	int _port;
+
+public:
+	artdaq::Commandable& _commandable;
+	std::mutex mutex_;
 };
 
 #endif /* artdaq_ExternalComms_xmlrpc_commander_hh */

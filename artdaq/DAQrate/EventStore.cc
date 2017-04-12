@@ -1,4 +1,3 @@
-
 #include "artdaq/DAQrate/EventStore.hh"
 #include <utility>
 #include <cstring>
@@ -20,37 +19,38 @@
 
 using namespace std;
 
-namespace artdaq {
+namespace artdaq
+{
 	const std::string EventStore::EVENT_RATE_STAT_KEY("EventStoreEventRate");
 	const std::string EventStore::INCOMPLETE_EVENT_STAT_KEY("EventStoreIncompleteEvents");
 
 	EventStore::EventStore(fhicl::ParameterSet pset,
-		size_t num_fragments_per_event,
-		run_id_t run,
-		int argc,
-		char * argv[],
-		ART_CMDLINE_FCN * reader) :
-		num_fragments_per_event_(num_fragments_per_event),
-		max_queue_size_(pset.get<size_t>("event_queue_depth", 50)),
-		max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 50)),
-		run_id_(run),
-		subrun_id_(0),
-		events_(),
-		queue_(getGlobalQueue(max_queue_size_)),
-		reader_thread_launch_time_(std::chrono::steady_clock::now()),
-		reader_thread_(std::async(std::launch::async, reader, argc, argv)),
-		send_requests_(pset.get<bool>("send_requests", false)),
-		active_requests_(),
-		request_port_(pset.get<int>("request_port", 3001)),
-		request_delay_(pset.get<size_t>("request_delay_ms", 10)),
-		seqIDModulus_(1),
-		lastFlushedSeqID_(0),
-		highestSeqIDSeen_(0),
-		enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0)),
-		enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000)),
-		printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
-		incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1)),
-		last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+	                       size_t num_fragments_per_event,
+	                       run_id_t run,
+	                       int argc,
+	                       char* argv[],
+	                       ART_CMDLINE_FCN* reader) :
+	                                                num_fragments_per_event_(num_fragments_per_event)
+	                                                , max_queue_size_(pset.get<size_t>("event_queue_depth", 50))
+	                                                , max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 50))
+	                                                , run_id_(run)
+	                                                , subrun_id_(0)
+	                                                , events_()
+	                                                , queue_(getGlobalQueue(max_queue_size_))
+	                                                , reader_thread_launch_time_(std::chrono::steady_clock::now())
+	                                                , reader_thread_(std::async(std::launch::async, reader, argc, argv))
+	                                                , send_requests_(pset.get<bool>("send_requests", false))
+	                                                , active_requests_()
+	                                                , request_port_(pset.get<int>("request_port", 3001))
+	                                                , request_delay_(pset.get<size_t>("request_delay_ms", 10))
+	                                                , seqIDModulus_(1)
+	                                                , lastFlushedSeqID_(0)
+	                                                , highestSeqIDSeen_(0)
+	                                                , enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
+	                                                , enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
+	                                                , printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
+	                                                , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
+	                                                , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
@@ -60,31 +60,31 @@ namespace artdaq {
 	}
 
 	EventStore::EventStore(fhicl::ParameterSet pset,
-		size_t num_fragments_per_event,
-		run_id_t run,
-		const std::string& configString,
-		ART_CFGSTRING_FCN * reader) :
-		num_fragments_per_event_(num_fragments_per_event),
-		max_queue_size_(pset.get<size_t>("event_queue_depth", 20)),
-		max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 20)),
-		run_id_(run),
-		subrun_id_(0),
-		events_(),
-		queue_(getGlobalQueue(max_queue_size_)),
-		reader_thread_launch_time_(std::chrono::steady_clock::now()),
-		reader_thread_(std::async(std::launch::async, reader, configString)),
-		send_requests_(pset.get<bool>("send_requests", false)),
-		active_requests_(),
-		request_port_(pset.get<int>("request_port", 3001)),
-		request_delay_(pset.get<size_t>("request_delay_ms", 10)),
-		seqIDModulus_(1),
-		lastFlushedSeqID_(0),
-		highestSeqIDSeen_(0),
-		enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0)),
-		enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000)),
-		printSummaryStats_(pset.get<bool>("print_event_store_stats", false)),
-		incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1)),
-		last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+	                       size_t num_fragments_per_event,
+	                       run_id_t run,
+	                       const std::string& configString,
+	                       ART_CFGSTRING_FCN* reader) :
+	                                                  num_fragments_per_event_(num_fragments_per_event)
+	                                                  , max_queue_size_(pset.get<size_t>("event_queue_depth", 20))
+	                                                  , max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 20))
+	                                                  , run_id_(run)
+	                                                  , subrun_id_(0)
+	                                                  , events_()
+	                                                  , queue_(getGlobalQueue(max_queue_size_))
+	                                                  , reader_thread_launch_time_(std::chrono::steady_clock::now())
+	                                                  , reader_thread_(std::async(std::launch::async, reader, configString))
+	                                                  , send_requests_(pset.get<bool>("send_requests", false))
+	                                                  , active_requests_()
+	                                                  , request_port_(pset.get<int>("request_port", 3001))
+	                                                  , request_delay_(pset.get<size_t>("request_delay_ms", 10))
+	                                                  , seqIDModulus_(1)
+	                                                  , lastFlushedSeqID_(0)
+	                                                  , highestSeqIDSeen_(0)
+	                                                  , enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
+	                                                  , enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
+	                                                  , printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
+	                                                  , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
+	                                                  , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
@@ -94,7 +94,8 @@ namespace artdaq {
 	EventStore::~EventStore()
 	{
 		mf::LogDebug("EventStore") << "Shutting down EventStore";
-		if (printSummaryStats_) {
+		if (printSummaryStats_)
+		{
 			reportStatistics_();
 		}
 		shutdown(request_socket_, 2);
@@ -102,7 +103,7 @@ namespace artdaq {
 	}
 
 	void EventStore::insert(FragmentPtr pfrag,
-		bool printWarningWhenFragmentIsDropped)
+	                        bool printWarningWhenFragmentIsDropped)
 	{
 		// We should never get a null pointer, nor should we get a
 		// Fragment without a good fragment ID.
@@ -117,17 +118,19 @@ namespace artdaq {
 		// The EventStore will divide it by the seqIDModulus to support the use case
 		// of the aggregator which needs to bunch groups of serialized events with
 		// continuous sequence IDs together.
-		if (pfrag->sequenceID() > highestSeqIDSeen_) {
+		if (pfrag->sequenceID() > highestSeqIDSeen_)
+		{
 			highestSeqIDSeen_ = pfrag->sequenceID();
 
 			// Get the timestamp of this fragment, in experiment-defined clocks
 			Fragment::timestamp_t timestamp = pfrag->timestamp();
 
 			// Send a request to the board readers!
-			if (send_requests_) { 
-			  std::lock_guard<std::mutex> lk(request_mutex_);
-			  active_requests_[highestSeqIDSeen_] = timestamp;
-			  send_request_(); 
+			if (send_requests_)
+			{
+				std::lock_guard<std::mutex> lk(request_mutex_);
+				active_requests_[highestSeqIDSeen_] = timestamp;
+				send_request_();
 			}
 		}
 		Fragment::sequence_id_t sequence_id = ((pfrag->sequenceID() - (1 + lastFlushedSeqID_)) / seqIDModulus_) + 1;
@@ -139,18 +142,19 @@ namespace artdaq {
 		// it is.
 		EventMap::iterator loc = events_.lower_bound(sequence_id);
 
-		if (loc == events_.end() || events_.key_comp()(sequence_id, loc->first)) {
+		if (loc == events_.end() || events_.key_comp()(sequence_id, loc->first))
+		{
 			// We don't have an event with this id; create one and insert it at loc,
 			// and ajust loc to point to the newly inserted event.
 			RawEvent_ptr newevent(new RawEvent(run_id_, subrun_id_, pfrag->sequenceID()));
 			loc =
 				events_.insert(loc, EventMap::value_type(sequence_id, newevent));
-
 		}
 
 		// Now insert the fragment into the event we have located.
 		loc->second->insertFragment(std::move(pfrag));
-		if (loc->second->numFragments() == num_fragments_per_event_) {
+		if (loc->second->numFragments() == num_fragments_per_event_)
+		{
 			// This RawEvent is complete; capture it, remove it from the
 			// map, report on statistics, and put the shared pointer onto
 			// the event queue.
@@ -159,43 +163,48 @@ namespace artdaq {
 
 			events_.erase(loc);
 
-			if(send_requests_)
+			if (send_requests_)
 			{
-			  std::lock_guard<std::mutex> lk(request_mutex_);
-			  active_requests_.erase(sequence_id);
+				std::lock_guard<std::mutex> lk(request_mutex_);
+				active_requests_.erase(sequence_id);
 			}
 			// 13-Dec-2012, KAB - this monitoring needs to come before
 			// the enqueueing of the event lest it be empty by the
 			// time that we ask for the word count.
 			MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 				getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-			if (mqPtr.get() != 0) {
+			if (mqPtr.get() != 0)
+			{
 				mqPtr->addSample(complete_event->wordCount());
 			}
 			TRACE(14, "EventStore::insert seq=%lu enqTimedWait start", sequence_id);
 			bool enqSuccess = queue_.enqTimedWait(complete_event, enq_timeout_);
 			TRACE(enqSuccess ? 14 : 0, "EventStore::insert seq=%lu enqTimedWait complete", sequence_id);
-			if (!enqSuccess) {
+			if (!enqSuccess)
+			{
 				//TRACE_CNTL( "modeM", 0 );
-				if (printWarningWhenFragmentIsDropped) {
+				if (printWarningWhenFragmentIsDropped)
+				{
 					mf::LogWarning("EventStore") << "Enqueueing event " << sequence_id
 						<< " FAILED, queue size = "
-						<< queue_.size() << 
-					  "; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
-								     << "-second timeout period";
+						<< queue_.size() <<
+						"; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
+						<< "-second timeout period";
 				}
-				else {
+				else
+				{
 					mf::LogDebug("EventStore") << "Enqueueing event " << sequence_id
 						<< " FAILED, queue size = "
-						<< queue_.size() << 
-					  "; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
-								   << "-second timeout period";
+						<< queue_.size() <<
+						"; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
+						<< "-second timeout period";
 				}
 			}
 		}
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 			getMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY);
-		if (mqPtr.get() != 0) {
+		if (mqPtr.get() != 0)
+		{
 			mqPtr->addSample(events_.size());
 		}
 	}
@@ -207,15 +216,18 @@ namespace artdaq {
 		// can be pushed onto the event queue.  If not, we return it and
 		// let the caller know that we didn't accept it.
 		TRACE(12, "EventStore: Testing if queue is full");
-		if (queue_.full()) {
+		if (queue_.full())
+		{
 			size_t sleepTime = 1000000 * (enq_timeout_.count() / enq_check_count_);
 			TRACE(12, "EventStore: sleepTime is %lu.", sleepTime);
 			size_t loopCount = 0;
-			while (loopCount < enq_check_count_ && queue_.full()) {
+			while (loopCount < enq_check_count_ && queue_.full())
+			{
 				++loopCount;
 				usleep(sleepTime);
 			}
-			if (queue_.full()) {
+			if (queue_.full())
+			{
 				rejectedFragment = std::move(pfrag);
 				return EventStoreInsertResult::REJECT_QUEUEFULL;
 			}
@@ -226,7 +238,8 @@ namespace artdaq {
 		{
 			EventMap::iterator loc = events_.lower_bound(pfrag->sequenceID());
 
-			if (loc == events_.end() || events_.key_comp()(pfrag->sequenceID(), loc->first)) {
+			if (loc == events_.end() || events_.key_comp()(pfrag->sequenceID(), loc->first))
+			{
 				rejectedFragment = std::move(pfrag);
 				return EventStoreInsertResult::REJECT_STOREFULL;
 			}
@@ -238,13 +251,14 @@ namespace artdaq {
 	}
 
 	bool
-		EventStore::endOfData(int& readerReturnValue)
+	EventStore::endOfData(int& readerReturnValue)
 	{
 		mf::LogDebug("EventStore") << "EventStore::endOfData";
 		RawEvent_ptr end_of_data(nullptr);
 		TRACE(4, "EventStore::endOfData: Enqueuing end_of_data event");
 		bool enqSuccess = queue_.enqTimedWait(end_of_data, enq_timeout_);
-		if (!enqSuccess) {
+		if (!enqSuccess)
+		{
 			return false;
 		}
 		TRACE(4, "EventStore::endOfData: Getting return code from art thread");
@@ -265,22 +279,27 @@ namespace artdaq {
 			<< " stale events from the EventStore.";
 		EventMap::iterator loc;
 		std::vector<sequence_id_t> flushList;
-		for (loc = events_.begin(); loc != events_.end(); ++loc) {
+		for (loc = events_.begin(); loc != events_.end(); ++loc)
+		{
 			RawEvent_ptr complete_event(loc->second);
 			MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 				getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-			if (mqPtr.get() != 0) {
+			if (mqPtr.get() != 0)
+			{
 				mqPtr->addSample(complete_event->wordCount());
 			}
 			enqSuccess = queue_.enqTimedWait(complete_event, enq_timeout_);
-			if (!enqSuccess) {
+			if (!enqSuccess)
+			{
 				break;
 			}
-			else {
+			else
+			{
 				flushList.push_back(loc->first);
 			}
 		}
-		for (size_t idx = 0; idx < flushList.size(); ++idx) {
+		for (size_t idx = 0; idx < flushList.size(); ++idx)
+		{
 			events_.erase(flushList[idx]);
 		}
 		mf::LogDebug("EventStore") << "Done flushing " << flushList.size()
@@ -292,17 +311,20 @@ namespace artdaq {
 
 	void EventStore::startRun(run_id_t runID)
 	{
-		if (!queue_.queueReaderIsReady()) {
+		if (!queue_.queueReaderIsReady())
+		{
 			mf::LogWarning("EventStore") << "Run start requested, but the art thread is not yet ready, waiting up to 4 sec...";
-			while (!queue_.queueReaderIsReady() && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count() < 4000) 
+			while (!queue_.queueReaderIsReady() && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count() < 4000)
 			{
 				usleep(1000);
 			}
-			if (queue_.queueReaderIsReady()) {
+			if (queue_.queueReaderIsReady())
+			{
 				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(queue_.getReadyTime() - reader_thread_launch_time_).count();
 				mf::LogInfo("EventStore") << "art initialization took (roughly) " << std::setw(4) << std::to_string(dur) << " ms.";
 			}
-			else {
+			else
+			{
 				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count();
 				mf::LogError("EventStore") << "art thread still not ready after " << dur << " ms. Continuing to start...";
 			}
@@ -318,7 +340,8 @@ namespace artdaq {
 			<< queue_.capacity()
 			<< ", queue size = "
 			<< queue_.size();
-		if (metricMan) {
+		if (metricMan)
+		{
 			double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
 			metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
 		}
@@ -327,7 +350,8 @@ namespace artdaq {
 	void EventStore::startSubrun()
 	{
 		++subrun_id_;
-		if (metricMan) {
+		if (metricMan)
+		{
 			double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
 			metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
 		}
@@ -340,7 +364,7 @@ namespace artdaq {
 			endOfRunFrag(new
 				Fragment(static_cast<size_t>
 				(ceil(sizeof(my_rank) /
-					static_cast<double>(sizeof(Fragment::value_type))))));
+				      static_cast<double>(sizeof(Fragment::value_type))))));
 
 		endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
 		*endOfRunFrag->dataBegin() = my_rank;
@@ -356,7 +380,7 @@ namespace artdaq {
 			endOfSubrunFrag(new
 				Fragment(static_cast<size_t>
 				(ceil(sizeof(my_rank) /
-					static_cast<double>(sizeof(Fragment::value_type))))));
+				      static_cast<double>(sizeof(Fragment::value_type))))));
 
 		endOfSubrunFrag->setSystemType(Fragment::EndOfSubrunFragmentType);
 		*endOfSubrunFrag->dataBegin() = my_rank;
@@ -366,11 +390,12 @@ namespace artdaq {
 	}
 
 	void
-		EventStore::initStatistics_()
+	EventStore::initStatistics_()
 	{
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 			getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-		if (mqPtr.get() == 0) {
+		if (mqPtr.get() == 0)
+		{
 			mqPtr.reset(new MonitoredQuantity(3.0, 300.0));
 			StatisticsCollection::getInstance().
 				addMonitoredQuantity(EVENT_RATE_STAT_KEY, mqPtr);
@@ -379,7 +404,8 @@ namespace artdaq {
 
 		mqPtr = StatisticsCollection::getInstance().
 			getMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY);
-		if (mqPtr.get() == 0) {
+		if (mqPtr.get() == 0)
+		{
 			mqPtr.reset(new MonitoredQuantity(3.0, 300.0));
 			StatisticsCollection::getInstance().
 				addMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY, mqPtr);
@@ -388,48 +414,52 @@ namespace artdaq {
 	}
 
 	void
-		EventStore::reportStatistics_()
+	EventStore::reportStatistics_()
 	{
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 			getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-		if (mqPtr.get() != 0) {
+		if (mqPtr.get() != 0)
+		{
 			ostringstream oss;
 			oss << EVENT_RATE_STAT_KEY << "_" << setfill('0') << setw(4) << run_id_
 				<< "_" << setfill('0') << setw(4) << my_rank << ".txt";
 			std::string filename = oss.str();
 			ofstream outStream(filename.c_str());
 			mqPtr->waitUntilAccumulatorsHaveBeenFlushed(3.0);
-			artdaq::MonitoredQuantity::Stats stats;
+			artdaq::MonitoredQuantityStats stats;
 			mqPtr->getStats(stats);
 			outStream << "EventStore rank " << my_rank << ": events processed = "
 				<< stats.fullSampleCount << " at " << stats.fullSampleRate
 				<< " events/sec, data rate = "
 				<< (stats.fullValueRate * sizeof(RawDataType)
-					/ 1024.0 / 1024.0) << " MB/sec, duration = "
+				    / 1024.0 / 1024.0) << " MB/sec, duration = "
 				<< stats.fullDuration << " sec" << std::endl
 				<< "    minimum event size = "
 				<< (stats.fullValueMin * sizeof(RawDataType)
-					/ 1024.0 / 1024.0)
+				    / 1024.0 / 1024.0)
 				<< " MB, maximum event size = "
 				<< (stats.fullValueMax * sizeof(RawDataType)
-					/ 1024.0 / 1024.0)
+				    / 1024.0 / 1024.0)
 				<< " MB" << std::endl;
 			bool foundTheStart = false;
-			for (int idx = 0; idx < (int)stats.recentBinnedDurations.size(); ++idx) {
-				if (stats.recentBinnedDurations[idx] > 0.0) {
+			for (int idx = 0; idx < (int)stats.recentBinnedDurations.size(); ++idx)
+			{
+				if (stats.recentBinnedDurations[idx] > 0.0)
+				{
 					foundTheStart = true;
 				}
-				if (foundTheStart) {
+				if (foundTheStart)
+				{
 					outStream << "  " << std::fixed << std::setprecision(3)
 						<< stats.recentBinnedEndTimes[idx]
 						<< ": " << stats.recentBinnedSampleCounts[idx]
 						<< " events at "
 						<< (stats.recentBinnedSampleCounts[idx] /
-							stats.recentBinnedDurations[idx])
+						    stats.recentBinnedDurations[idx])
 						<< " events/sec, data rate = "
 						<< (stats.recentBinnedValueSums[idx] *
-							sizeof(RawDataType) / 1024.0 / 1024.0 /
-							stats.recentBinnedDurations[idx])
+						    sizeof(RawDataType) / 1024.0 / 1024.0 /
+						    stats.recentBinnedDurations[idx])
 						<< " MB/sec, bin size = "
 						<< stats.recentBinnedDurations[idx]
 						<< " sec" << std::endl;
@@ -440,7 +470,8 @@ namespace artdaq {
 
 		mqPtr = StatisticsCollection::getInstance().
 			getMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY);
-		if (mqPtr.get() != 0) {
+		if (mqPtr.get() != 0)
+		{
 			ostringstream oss;
 			oss << INCOMPLETE_EVENT_STAT_KEY << "_" << setfill('0')
 				<< setw(4) << run_id_
@@ -448,7 +479,7 @@ namespace artdaq {
 			std::string filename = oss.str();
 			ofstream outStream(filename.c_str());
 			mqPtr->waitUntilAccumulatorsHaveBeenFlushed(3.0);
-			artdaq::MonitoredQuantity::Stats stats;
+			artdaq::MonitoredQuantityStats stats;
 			mqPtr->getStats(stats);
 			outStream << "EventStore rank " << my_rank << ": fragments processed = "
 				<< stats.fullSampleCount << " at " << stats.fullSampleRate
@@ -459,20 +490,23 @@ namespace artdaq {
 				<< stats.fullValueMin << ", maximum incomplete event count = "
 				<< stats.fullValueMax << std::endl;
 			bool foundTheStart = false;
-			for (int idx = 0; idx < (int)stats.recentBinnedDurations.size(); ++idx) {
-				if (stats.recentBinnedDurations[idx] > 0.0) {
+			for (int idx = 0; idx < (int)stats.recentBinnedDurations.size(); ++idx)
+			{
+				if (stats.recentBinnedDurations[idx] > 0.0)
+				{
 					foundTheStart = true;
 				}
-				if (foundTheStart && stats.recentBinnedSampleCounts[idx] > 0.0) {
+				if (foundTheStart && stats.recentBinnedSampleCounts[idx] > 0.0)
+				{
 					outStream << "  " << std::fixed << std::setprecision(3)
 						<< stats.recentBinnedEndTimes[idx]
 						<< ": " << stats.recentBinnedSampleCounts[idx]
 						<< " fragments at "
 						<< (stats.recentBinnedSampleCounts[idx] /
-							stats.recentBinnedDurations[idx])
+						    stats.recentBinnedDurations[idx])
 						<< " fragments/sec, average incomplete event count = "
 						<< (stats.recentBinnedValueSums[idx] /
-							stats.recentBinnedSampleCounts[idx])
+						    stats.recentBinnedSampleCounts[idx])
 						<< ", bin size = "
 						<< stats.recentBinnedDurations[idx]
 						<< " sec" << std::endl;
@@ -484,7 +518,7 @@ namespace artdaq {
 	}
 
 	void
-		EventStore::setup_requests_(std::string request_address)
+	EventStore::setup_requests_(std::string request_address)
 	{
 		if (send_requests_)
 		{
@@ -513,10 +547,11 @@ namespace artdaq {
 
 		detail::RequestMessage message;
 		{
-		  std::lock_guard<std::mutex> lk(request_mutex_);
-		  for(auto& req : active_requests_) {
-			message.addRequest(req.first,req.second);
-		  }
+			std::lock_guard<std::mutex> lk(request_mutex_);
+			for (auto& req : active_requests_)
+			{
+				message.addRequest(req.first, req.second);
+			}
 		}
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
@@ -532,25 +567,28 @@ namespace artdaq {
 	}
 
 	void
-		EventStore::send_request_()
+	EventStore::send_request_()
 	{
-		std::thread request([=] {do_send_request_(); });
+		std::thread request([=] { do_send_request_(); });
 		request.detach();
 	}
 
 	void
-		EventStore::sendMetrics()
+	EventStore::sendMetrics()
 	{
-		if (metricMan) {
+		if (metricMan)
+		{
 			metricMan->sendMetric("Incomplete Event Count", events_.size(),
-				"events", 1);
+			                      "events", 1);
 		}
-		if (incomplete_event_report_interval_ms_ > 0 && events_.size()) {
+		if (incomplete_event_report_interval_ms_ > 0 && events_.size())
+		{
 			if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_incomplete_event_report_time_).count() < incomplete_event_report_interval_ms_) return;
 			last_incomplete_event_report_time_ = std::chrono::steady_clock::now();
 			std::ostringstream oss;
 			oss << "Incomplete Events (" << num_fragments_per_event_ << "): ";
-			for (auto& ev : events_) {
+			for (auto& ev : events_)
+			{
 				oss << ev.first << " (" << ev.second->numFragments() << "), ";
 			}
 			mf::LogDebug("EventStore") << oss.str();

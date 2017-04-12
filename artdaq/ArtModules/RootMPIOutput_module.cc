@@ -50,40 +50,52 @@
 #include "trace.h"
 
 #  define CONST_WRITE
-struct Config {
 
-};
+struct Config {};
 
-namespace art {
+namespace art
+{
 	class RootMPIOutput;
 }
 
 using art::RootMPIOutput;
 using fhicl::ParameterSet;
 
-class art::RootMPIOutput : public OutputModule {
+class art::RootMPIOutput : public OutputModule
+{
 public:
 	explicit RootMPIOutput(ParameterSet const&);
+
 	~RootMPIOutput();
+
 private:
 	virtual void openFile(FileBlock const&);
+
 	virtual void closeFile();
+
 	virtual void respondToCloseInputFile(FileBlock const&);
+
 	virtual void respondToCloseOutputFiles(FileBlock const&);
+
 	virtual void endJob();
 
 	virtual void write(EventPrincipal CONST_WRITE&);
+
 	virtual void writeRun(RunPrincipal CONST_WRITE&);
+
 	virtual void writeSubRun(SubRunPrincipal CONST_WRITE&);
+
 	void writeDataProducts(TBufferFile&, const Principal&,
-						   std::vector<BranchKey*>&);
+	                       std::vector<BranchKey*>&);
+
 private:
 	bool initMsgSent_;
 };
 
 art::RootMPIOutput::
 RootMPIOutput(ParameterSet const& ps)
-	: OutputModule(ps), initMsgSent_(false)
+	: OutputModule(ps)
+	, initMsgSent_(false)
 {
 	mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::RootMPIOutput(ParameterSet const& ps)";
 	ServiceHandle<NetMonTransportService> transport;
@@ -119,7 +131,7 @@ art::RootMPIOutput::
 respondToCloseInputFile(FileBlock const&)
 {
 	TRACE(5, "RootMPIOutput: Begin/End: RootMPIOutput::"
-		  "respondToCloseOutputFiles(FileBlock const&)");
+		"respondToCloseOutputFiles(FileBlock const&)");
 }
 
 void
@@ -127,7 +139,7 @@ art::RootMPIOutput::
 respondToCloseOutputFiles(FileBlock const&)
 {
 	TRACE(5, "RootMPIOutput: Begin/End: RootMPIOutput::"
-		  "respondToCloseOutputFiles(FileBlock const&)");
+		"respondToCloseOutputFiles(FileBlock const&)");
 }
 
 static
@@ -197,11 +209,12 @@ send_init_message()
 	//}
 	static TClass* product_list_class = TClass::GetClass(
 		"std::map<art::BranchKey,art::BranchDescription>");
-	if (product_list_class == nullptr) {
+	if (product_list_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput static send_init_message(): "
-			"Could not get TClass for "
-			"map<art::BranchKey,art::BranchDescription>!";
+		      "RootMPIOutput static send_init_message(): "
+		      "Could not get TClass for "
+		      "map<art::BranchKey,art::BranchDescription>!";
 	}
 	//typedef std::map<const ProcessHistoryID,ProcessHistory> ProcessHistoryMap;
 	//TClass* process_history_map_class = TClass::GetClass(
@@ -209,22 +222,24 @@ send_init_message()
 	//FIXME: Replace the "2" here with a use of the proper enum value!
 	static TClass* process_history_map_class = TClass::GetClass(
 		"std::map<const art::Hash<2>,art::ProcessHistory>");
-	if (process_history_map_class == nullptr) {
+	if (process_history_map_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput static send_init_message(): "
-			"Could not get class for "
-			"std::map<const art::Hash<2>,art::ProcessHistory>!";
+		      "RootMPIOutput static send_init_message(): "
+		      "Could not get class for "
+		      "std::map<const art::Hash<2>,art::ProcessHistory>!";
 	}
 	//static TClass* parentage_map_class = TClass::GetClass(
 	//    "std::map<const art::ParentageID,art::Parentage>");
 	//FIXME: Replace the "5" here with a use of the proper enum value!
 	static TClass* parentage_map_class = TClass::GetClass(
 		"std::map<const art::Hash<5>,art::Parentage>");
-	if (parentage_map_class == nullptr) {
+	if (parentage_map_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput static send_init_message(): "
-			"Could not get class for "
-			"std::map<const art::Hash<5>,art::Parentage>!";
+		      "RootMPIOutput static send_init_message(): "
+		      "Could not get class for "
+		      "std::map<const art::Hash<5>,art::Parentage>!";
 	}
 	//
 	//  Construct and send the init message.
@@ -236,10 +251,10 @@ send_init_message()
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Streaming message type code ...");
+			"Streaming message type code ...");
 		msg.WriteULong(1);
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Finished streaming message type code.");
+			"Finished streaming message type code.");
 	}
 	//
 	//  Stream the ParameterSetRegistry.
@@ -250,7 +265,8 @@ send_init_message()
 		msg.WriteULong(ps_cnt);
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): Streaming parameter sets ...");
 		for (auto I = fhicl::ParameterSetRegistry::begin(),
-			 E = fhicl::ParameterSetRegistry::end(); I != E; ++I) {
+			     E = fhicl::ParameterSetRegistry::end(); I != E; ++I)
+		{
 			std::string pset_str = I->second.to_string();
 			//msg.WriteObjectAny(&pset_str, string_class);
 			msg.WriteStdString(pset_str);
@@ -270,47 +286,52 @@ send_init_message()
 	//
 	//  Dump The BranchIDListRegistry
 	//
-	if (art::debugit() >= 2) {
+	if (art::debugit() >= 2)
+	{
 		//typedef vector<BranchID::value_type> BranchIDList
 		//typedef vector<BranchIDList> BranchIDLists
 		//std::vector<std::vector<art::BranchID::value_type>>
 		art::BranchIDLists* bilr =
 			&art::BranchIDListRegistry::instance()->data();
 		FDEBUG(2) << "RootMPIOutput static send_init_message(): "
-			"Content of BranchIDLists\n";
+		         "Content of BranchIDLists\n";
 		int max_bli = bilr->size();
 		FDEBUG(2) << "RootMPIOutput static send_init_message(): "
-			"max_bli: " << max_bli << '\n';
-		for (int i = 0; i < max_bli; ++i) {
+		         "max_bli: " << max_bli << '\n';
+		for (int i = 0; i < max_bli; ++i)
+		{
 			int max_prdidx = (*bilr)[i].size();
 			FDEBUG(2) << "RootMPIOutput static send_init_message(): "
-				"max_prdidx: " << max_prdidx << '\n';
-			for (int j = 0; j < max_prdidx; ++j) {
+			         "max_prdidx: " << max_prdidx << '\n';
+			for (int j = 0; j < max_prdidx; ++j)
+			{
 				FDEBUG(2) << "RootMPIOutput static send_init_message(): "
-					"bli: " << i
-					<< " prdidx: " << j
-					<< " bid: 0x" << std::hex
-					<< static_cast<unsigned long>((*bilr)[i][j])
-					<< std::dec << '\n';
+				         "bli: " << i
+				         << " prdidx: " << j
+				         << " bid: 0x" << std::hex
+				         << static_cast<unsigned long>((*bilr)[i][j])
+				         << std::dec << '\n';
 			}
 		}
 	}
 	//
 	//  Dump the ProcessHistoryRegistry.
 	//
-	if (art::debugit() >= 1) {
+	if (art::debugit() >= 1)
+	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Dumping ProcessHistoryRegistry ...");
+			"Dumping ProcessHistoryRegistry ...");
 		//typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
 		art::ProcessHistoryMap const& phr = art::ProcessHistoryRegistry::get();
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "phr: size: " + std::to_string(phr.size()));
-		for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
+			"phr: size: " + std::to_string(phr.size()));
+		for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
+		{
 			std::ostringstream OS;
 			I->first.print(OS);
 			TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-				  "phr: id: '" + OS.str() + "'");
+				"phr: id: '" + OS.str() + "'");
 		}
 	}
 	//
@@ -318,27 +339,27 @@ send_init_message()
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Streaming ProcessHistoryRegistry ...");
+			"Streaming ProcessHistoryRegistry ...");
 		//typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
 		const art::ProcessHistoryMap& phm = art::ProcessHistoryRegistry::get();
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "phm: size: " + std::to_string(phm.size()));
+			"phm: size: " + std::to_string(phm.size()));
 		msg.WriteObjectAny(&phm, process_history_map_class);
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Finished streaming ProcessHistoryRegistry.");
+			"Finished streaming ProcessHistoryRegistry.");
 	}
 	//
 	//  Stream the ParentageRegistry.
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Streaming ParentageRegistry ...");
+			"Streaming ParentageRegistry ...");
 		//typedef std::map<const ParentageID,Parentage> ParentageMap
 		const art::ParentageMap& parentageMap = art::ParentageRegistry::get();
 		msg.WriteObjectAny(&parentageMap, parentage_map_class);
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Finished streaming ParentageRegistry.");
+			"Finished streaming ParentageRegistry.");
 	}
 	//
 	//
@@ -347,23 +368,25 @@ send_init_message()
 	{
 		art::ServiceHandle<NetMonTransportService> transport;
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Sending the init message to "
-			  + std::to_string(transport->dataReceiverCount()) +
-			  " data receivers ...");
-		for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx) {
+			"Sending the init message to "
+			+ std::to_string(transport->dataReceiverCount()) +
+			" data receivers ...");
+		for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx)
+		{
 			transport->sendMessage(idx, artdaq::Fragment::InitFragmentType, msg);
 		}
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			  "Init message(s) sent.");
+			"Init message(s) sent.");
 	}
 	TRACE(5, "RootMPIOutput: End:   RootMPIOutput static send_init_message()");
 }
+
 //#pragma GCC pop_options
 
 void
 art::RootMPIOutput::
 writeDataProducts(TBufferFile& msg, const Principal& principal,
-				  std::vector<BranchKey*>& bkv)
+                  std::vector<BranchKey*>& bkv)
 {
 	TRACE(5, "RootMPIOutput: Begin: RootMPIOutput::writeDataProducts(...)");
 	//
@@ -371,24 +394,28 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//  writing out the data products.
 	//
 	static TClass* branch_key_class = TClass::GetClass("art::BranchKey");
-	if (branch_key_class == nullptr) {
+	if (branch_key_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput::writeDataProducts(...): "
-			"Could not get TClass for art::BranchKey!";
+		      "RootMPIOutput::writeDataProducts(...): "
+		      "Could not get TClass for art::BranchKey!";
 	}
 	static TClass* prdprov_class = TClass::GetClass("art::ProductProvenance");
-	if (prdprov_class == nullptr) {
+	if (prdprov_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput::writeDataProducts(...): "
-			"Could not get TClass for art::ProductProvenance!";
+		      "RootMPIOutput::writeDataProducts(...): "
+		      "Could not get TClass for art::ProductProvenance!";
 	}
 	//
 	//  Calculate the data product count.
 	//
 	unsigned long prd_cnt = 0;
 	//std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
-	for (auto I = principal.begin(), E = principal.end(); I != E; ++I) {
-		if (I->second->productUnavailable() || !selected(I->second->productDescription())) {
+	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
+	{
+		if (I->second->productUnavailable() || !selected(I->second->productDescription()))
+		{
 			continue;
 		}
 		++prd_cnt;
@@ -398,10 +425,10 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeDataProducts(...): "
-			  "Streaming product count: " + std::to_string(prd_cnt));
+			"Streaming product count: " + std::to_string(prd_cnt));
 		msg.WriteULong(prd_cnt);
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeDataProducts(...): "
-			  "Finished streaming product count.");
+			"Finished streaming product count.");
 	}
 	//
 	//  Loop over the groups in the RunPrincipal and
@@ -415,63 +442,66 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//
 	bkv.reserve(prd_cnt);
 	//std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
-	for (auto I = principal.begin(), E = principal.end(); I != E; ++I) {
-		if (I->second->productUnavailable() || !selected(I->second->productDescription())) {
+	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
+	{
+		if (I->second->productUnavailable() || !selected(I->second->productDescription()))
+		{
 			continue;
 		}
 		const BranchDescription& bd(I->second->productDescription());
 		bkv.push_back(new BranchKey(bd));
-		if (art::debugit() >= 2) {
+		if (art::debugit() >= 2)
+		{
 			FDEBUG(2) << "RootMPIOutput::writeDataProducts(...): "
-				"Dumping branch key           of class: '"
-				<< bkv.back()->friendlyClassName_
-				<< "' modlbl: '"
-				<< bkv.back()->moduleLabel_
-				<< "' instnm: '"
-				<< bkv.back()->productInstanceName_
-				<< "' procnm: '"
-				<< bkv.back()->processName_
-				<< "'";
+			         "Dumping branch key           of class: '"
+			         << bkv.back()->friendlyClassName_
+			         << "' modlbl: '"
+			         << bkv.back()->moduleLabel_
+			         << "' instnm: '"
+			         << bkv.back()->productInstanceName_
+			         << "' procnm: '"
+			         << bkv.back()->processName_
+			         << "'";
 		}
 		{
 			TRACE(5, "RootMPIOutput: RootMPIOutput::writeDataProducts(...): "
-				  "Streaming branch key         of class: '"
-				  + bd.producedClassName()
-				  + "' modlbl: '"
-				  + bd.moduleLabel()
-				  + "' instnm: '"
-				  + bd.productInstanceName()
-				  + "' procnm: '"
-				  + bd.processName()
-				  + "'");
+				"Streaming branch key         of class: '"
+				+ bd.producedClassName()
+				+ "' modlbl: '"
+				+ bd.moduleLabel()
+				+ "' instnm: '"
+				+ bd.productInstanceName()
+				+ "' procnm: '"
+				+ bd.processName()
+				+ "'");
 			msg.WriteObjectAny(bkv.back(), branch_key_class);
 		}
 		{
 			TRACE(5, "RootMPIOutput: RootMPIOutput::writeDataProducts(...): "
-				  "Streaming product            of class: '"
-				  + bd.producedClassName()
-				  + "' modlbl: '"
-				  + bd.moduleLabel()
-				  + "' instnm: '"
-				  + bd.productInstanceName()
-				  + "' procnm: '"
-				  + bd.processName()
-				  + "'");
+				"Streaming product            of class: '"
+				+ bd.producedClassName()
+				+ "' modlbl: '"
+				+ bd.moduleLabel()
+				+ "' instnm: '"
+				+ bd.productInstanceName()
+				+ "' procnm: '"
+				+ bd.processName()
+				+ "'");
 			OutputHandle oh = principal.getForOutput(bd.branchID(), true);
 			const EDProduct* prd = oh.wrapper();
 			msg.WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
 		}
 		{
 			TRACE(5, "RootMPIOutput: RootMPIOutput::writeDataProducts(...): "
-				  "Streaming product provenance of class: '"
-				  + bd.producedClassName()
-				  + "' modlbl: '"
-				  + bd.moduleLabel()
-				  + "' instnm: '"
-				  + bd.productInstanceName()
-				  + "' procnm: '"
-				  + bd.processName()
-				  + "'");
+				"Streaming product provenance of class: '"
+				+ bd.producedClassName()
+				+ "' modlbl: '"
+				+ bd.moduleLabel()
+				+ "' instnm: '"
+				+ bd.productInstanceName()
+				+ "' procnm: '"
+				+ bd.processName()
+				+ "'");
 			const ProductProvenance* prdprov =
 				I->second->productProvenancePtr().get();
 			msg.WriteObjectAny(prdprov, prdprov_class);
@@ -488,8 +518,9 @@ write(CONST_WRITE EventPrincipal& ep)
 	//  Write an Event message.
 	//
 	TRACE(5, "RootMPIOutput: Begin: RootMPIOutput::"
-		  "write(const EventPrincipal& ep)");
-	if (!initMsgSent_) {
+		"write(const EventPrincipal& ep)");
+	if (!initMsgSent_)
+	{
 		send_init_message();
 		initMsgSent_ = true;
 	}
@@ -497,28 +528,32 @@ write(CONST_WRITE EventPrincipal& ep)
 	//  Get root classes needed for I/O.
 	//
 	static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
-	if (run_aux_class == nullptr) {
+	if (run_aux_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput::write(const EventPrincipal& ep): "
-			"Could not get TClass for art::RunAuxiliary!";
+		      "RootMPIOutput::write(const EventPrincipal& ep): "
+		      "Could not get TClass for art::RunAuxiliary!";
 	}
 	static TClass* subrun_aux_class = TClass::GetClass("art::SubRunAuxiliary");
-	if (subrun_aux_class == nullptr) {
+	if (subrun_aux_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput::write(const EventPrincipal& ep): "
-			"Could not get TClass for art::SubRunAuxiliary!";
+		      "RootMPIOutput::write(const EventPrincipal& ep): "
+		      "Could not get TClass for art::SubRunAuxiliary!";
 	}
 	static TClass* event_aux_class = TClass::GetClass("art::EventAuxiliary");
-	if (event_aux_class == nullptr) {
+	if (event_aux_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput::write(const EventPrincipal& ep): "
-			"Could not get TClass for art::EventAuxiliary!";
+		      "RootMPIOutput::write(const EventPrincipal& ep): "
+		      "Could not get TClass for art::EventAuxiliary!";
 	}
 	static TClass* history_class = TClass::GetClass("art::History");
-	if (history_class == nullptr) {
+	if (history_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput::write(const EventPrincipal& ep): "
-			"Could not get TClass for art::History!";
+		      "RootMPIOutput::write(const EventPrincipal& ep): "
+		      "Could not get TClass for art::History!";
 	}
 	//
 	//  Setup message buffer.
@@ -530,52 +565,52 @@ write(CONST_WRITE EventPrincipal& ep)
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Streaming message type code ...");
+			"Streaming message type code ...");
 		msg.WriteULong(4);
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Finished streaming message type code.");
+			"Finished streaming message type code.");
 	}
 	//
 	//  Write RunAuxiliary.
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Streaming RunAuxiliary ...");
+			"Streaming RunAuxiliary ...");
 		msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().aux(),
-						   run_aux_class);
+		                   run_aux_class);
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Finished streaming RunAuxiliary.");
+			"Finished streaming RunAuxiliary.");
 	}
 	//
 	//  Write SubRunAuxiliary.
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Streaming SubRunAuxiliary ...");
+			"Streaming SubRunAuxiliary ...");
 		msg.WriteObjectAny(&ep.subRunPrincipal().aux(),
-						   subrun_aux_class);
+		                   subrun_aux_class);
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Finished streaming SubRunAuxiliary.");
+			"Finished streaming SubRunAuxiliary.");
 	}
 	//
 	//  Write EventAuxiliary.
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Streaming EventAuxiliary ...");
+			"Streaming EventAuxiliary ...");
 		msg.WriteObjectAny(&ep.aux(), event_aux_class);
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Finished streaming EventAuxiliary.");
+			"Finished streaming EventAuxiliary.");
 	}
 	//
 	//  Write History.
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Streaming History ...");
+			"Streaming History ...");
 		msg.WriteObjectAny(&ep.history(), history_class);
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Finished streaming History.");
+			"Finished streaming History.");
 	}
 	//
 	//  Write data products.
@@ -588,15 +623,16 @@ write(CONST_WRITE EventPrincipal& ep)
 	{
 		ServiceHandle<NetMonTransportService> transport;
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Sending a message ...");
+			"Sending a message ...");
 		transport->sendMessage(ep.id().event(), artdaq::Fragment::DataFragmentType, msg);
 		TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
-			  "Message sent.");
+			"Message sent.");
 	}
 	//
 	//  Delete the branch keys we created for the message.
 	//
-	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I) {
+	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I)
+	{
 		delete *I;
 		*I = 0;
 	}
@@ -612,7 +648,8 @@ writeRun(CONST_WRITE RunPrincipal& rp)
 	//
 	TRACE(5, "RootMPIOutput: Begin: RootMPIOutput::writeRun(const RunPrincipal& rp)");
 	(void)rp;
-	if (!initMsgSent_) {
+	if (!initMsgSent_)
+	{
 		send_init_message();
 		initMsgSent_ = true;
 	}
@@ -644,8 +681,8 @@ writeRun(CONST_WRITE RunPrincipal& rp)
 		TRACE(5, "RootMPIOutput: writeRun: streaming RunAuxiliary ...");
 		if (art::debugit() >= 1) {
 			TRACE(5, "RootMPIOutput: writeRun: dumping ProcessHistoryRegistry ...");
-			//typedef std::map<const ProcessHistoryID,ProcessHistory>
-			//    ProcessHistoryMap;
+	//typedef std::map<const ProcessHistoryID,ProcessHistory>
+	//    ProcessHistoryMap;
 			art::ProcessHistoryMap const& phr =
 				art::ProcessHistoryRegistry::get();
 			TRACE(5, "RootMPIOutput: writeRun: phr: size: " << phr.size() << '\n';
@@ -674,7 +711,7 @@ writeRun(CONST_WRITE RunPrincipal& rp)
 				const ProcessHistory& processHistory =
 					ProcessHistoryRegistry::get(rp.aux().processHistoryID());
 				if (processHistory.data().size()) {
-					// FIXME: Print something special on invalid id() here!
+	// FIXME: Print something special on invalid id() here!
 					processHistory.data().back().id().print(OS);
 					TRACE(5, "RootMPIOutput: writeRun: ProcessConfigurationID: '"
 						  << OS.str() << "'");
@@ -719,8 +756,9 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 	//  Write an EndSubRun message.
 	//
 	TRACE(5, "RootMPIOutput: Begin: RootMPIOutput::"
-		  "writeSubRun(const SubRunPrincipal& srp)");
-	if (!initMsgSent_) {
+		"writeSubRun(const SubRunPrincipal& srp)");
+	if (!initMsgSent_)
+	{
 		send_init_message();
 		initMsgSent_ = true;
 	}
@@ -729,10 +767,11 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 	//  writing out the auxiliary information.
 	//
 	static TClass* subrun_aux_class = TClass::GetClass("art::SubRunAuxiliary");
-	if (subrun_aux_class == nullptr) {
+	if (subrun_aux_class == nullptr)
+	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
-			"RootMPIOutput::writeSubRun: "
-			"Could not get TClass for art::SubRunAuxiliary!";
+		      "RootMPIOutput::writeSubRun: "
+		      "Could not get TClass for art::SubRunAuxiliary!";
 	}
 	//
 	//  Begin preparing message.
@@ -744,65 +783,71 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-			  "streaming message type code ...");
+			"streaming message type code ...");
 		msg.WriteULong(3);
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-			  "finished streaming message type code.");
+			"finished streaming message type code.");
 	}
 	//
 	//  Write SubRunAuxiliary.
 	//
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-			  "streaming SubRunAuxiliary ...");
-		if (art::debugit() >= 1) {
+			"streaming SubRunAuxiliary ...");
+		if (art::debugit() >= 1)
+		{
 			TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-				  "dumping ProcessHistoryRegistry ...");
+				"dumping ProcessHistoryRegistry ...");
 			//typedef std::map<const ProcessHistoryID,ProcessHistory>
 			//    ProcessHistoryMap;
 			art::ProcessHistoryMap const& phr =
 				art::ProcessHistoryRegistry::get();
 			TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-				  "phr: size: " + std::to_string(phr.size()));
-			for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
+				"phr: size: " + std::to_string(phr.size()));
+			for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
+			{
 				std::ostringstream OS;
 				I->first.print(OS);
 				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-					  "phr: id: '" + OS.str() + "'");
+					"phr: id: '" + OS.str() + "'");
 				OS.str("");
 				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-					  "phr: data.size(): "
-					  + std::to_string(I->second.data().size()));
-				if (I->second.data().size()) {
+					"phr: data.size(): "
+					+ std::to_string(I->second.data().size()));
+				if (I->second.data().size())
+				{
 					I->second.data().back().id().print(OS);
 					TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-						  "phr: data.back().id(): '"
-						  + OS.str() + "'");
+						"phr: data.back().id(): '"
+						+ OS.str() + "'");
 				}
 			}
-			if (!srp.aux().processHistoryID().isValid()) {
+			if (!srp.aux().processHistoryID().isValid())
+			{
 				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-					  "ProcessHistoryID: 'INVALID'");
+					"ProcessHistoryID: 'INVALID'");
 			}
-			else {
+			else
+			{
 				std::ostringstream OS;
 				srp.aux().processHistoryID().print(OS);
 				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: ProcessHistoryID: '"
-					  + OS.str() + "'");
+					+ OS.str() + "'");
 				OS.str("");
 				const ProcessHistory& processHistory =
 					ProcessHistoryRegistry::get(srp.aux().processHistoryID());
-				if (processHistory.data().size()) {
+				if (processHistory.data().size())
+				{
 					// FIXME: Print something special on invalid id() here!
 					processHistory.data().back().id().print(OS);
 					TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-						  "ProcessConfigurationID: '"
-						  + OS.str() + "'");
+						"ProcessConfigurationID: '"
+						+ OS.str() + "'");
 					OS.str("");
 					OS << processHistory.data().back();
 					TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-						  "ProcessConfiguration: '"
-						  + OS.str());
+						"ProcessConfiguration: '"
+						+ OS.str());
 				}
 			}
 		}
@@ -820,14 +865,15 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 	{
 		ServiceHandle<NetMonTransportService> transport;
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-			  "Sending the EndOfSubrun message to "
-			  + std::to_string(transport->dataReceiverCount())
-			  + " data receivers ...");
-		for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx) {
+			"Sending the EndOfSubrun message to "
+			+ std::to_string(transport->dataReceiverCount())
+			+ " data receivers ...");
+		for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx)
+		{
 			transport->sendMessage(idx, artdaq::Fragment::EndOfSubrunFragmentType, msg);
 		}
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-			  "EndOfSubrun message(s) sent.");
+			"EndOfSubrun message(s) sent.");
 
 		// Disconnecting will cause EOD fragments to be generated which will
 		// allow components downstream to flush data and clean up.
@@ -836,7 +882,8 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 	//
 	//  Delete the branch keys we created for the message.
 	//
-	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I) {
+	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I)
+	{
 		delete *I;
 		*I = 0;
 	}
@@ -844,4 +891,3 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 }
 
 DEFINE_ART_MODULE(art::RootMPIOutput)
-

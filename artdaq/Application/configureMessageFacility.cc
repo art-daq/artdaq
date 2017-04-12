@@ -16,22 +16,27 @@ void artdaq::configureMessageFacility(char const* progname)
 	char* logFhiclCode = getenv("ARTDAQ_LOG_FHICL");
 	char* artdaqMfextensionsDir = getenv("ARTDAQ_MFEXTENSIONS_DIR");
 
-	if (logRootString != nullptr) {
-		if (!BFS::exists(logRootString)) {
+	if (logRootString != nullptr)
+	{
+		if (!BFS::exists(logRootString))
+		{
 			logPathProblem = "Log file root directory ";
 			logPathProblem.append(logRootString);
 			logPathProblem.append(" does not exist!");
 		}
-		else {
+		else
+		{
 			std::string logfileDir(logRootString);
 			logfileDir.append("/");
 			logfileDir.append(progname);
-			if (!BFS::exists(logfileDir)) {
+			if (!BFS::exists(logfileDir))
+			{
 				logPathProblem = "Log file directory ";
 				logPathProblem.append(logfileDir);
 				logPathProblem.append(" does not exist!");
 			}
-			else {
+			else
+			{
 				time_t rawtime;
 				struct tm* timeinfo;
 				char timeBuff[256];
@@ -41,11 +46,13 @@ void artdaq::configureMessageFacility(char const* progname)
 
 				char hostname[256];
 				std::string hostString = "";
-				if (gethostname(&hostname[0], 256) == 0) {
+				if (gethostname(&hostname[0], 256) == 0)
+				{
 					std::string tmpString(hostname);
 					hostString = tmpString;
 					size_t pos = hostString.find(".");
-					if (pos != std::string::npos && pos > 2) {
+					if (pos != std::string::npos && pos > 2)
+					{
 						hostString = hostString.substr(0, pos);
 					}
 				}
@@ -56,7 +63,8 @@ void artdaq::configureMessageFacility(char const* progname)
 				logfileName.append("-");
 				logfileName.append(timeBuff);
 				logfileName.append("-");
-				if (hostString.size() > 0) {
+				if (hostString.size() > 0)
+				{
 					logfileName.append(hostString);
 					logfileName.append("-");
 				}
@@ -68,22 +76,26 @@ void artdaq::configureMessageFacility(char const* progname)
 
 	std::ostringstream ss;
 	ss << "debugModules:[\"*\"]  statistics:[\"stats\"] "
-	   << "  destinations : { ";
+		<< "  destinations : { ";
 
-	if (artdaqMfextensionsDir != nullptr) {
-	ss	<< "    console : { "
-		<< "      type : \"ANSI\" threshold : \"INFO\" "
-		<< "      noTimeStamps : true "
-	    << "      bell_on_error: true "
-		<< "    } ";
-	} else {
-	ss	<< "    console : { "
-		<< "      type : \"cout\" threshold : \"INFO\" "
-		<< "      noTimeStamps : true "
-		<< "    } ";
+	if (artdaqMfextensionsDir != nullptr)
+	{
+		ss << "    console : { "
+			<< "      type : \"ANSI\" threshold : \"INFO\" "
+			<< "      noTimeStamps : true "
+			<< "      bell_on_error: true "
+			<< "    } ";
+	}
+	else
+	{
+		ss << "    console : { "
+			<< "      type : \"cout\" threshold : \"INFO\" "
+			<< "      noTimeStamps : true "
+			<< "    } ";
 	}
 
-	if (logfileName.length() > 0) {
+	if (logfileName.length() > 0)
+	{
 		ss << "    file : { "
 			<< "      type : \"file\" threshold : \"DEBUG\" "
 			<< "      filename : \"" << logfileName << "\" "
@@ -91,24 +103,28 @@ void artdaq::configureMessageFacility(char const* progname)
 			<< "    } ";
 	}
 
-	if (artdaqMfextensionsDir != nullptr) {
+	if (artdaqMfextensionsDir != nullptr)
+	{
 		ss << "    trace : { "
 			<< "       type : \"TRACE\" threshold : \"DEBUG\" "
 			<< "    }";
 	}
 
-	if (logFhiclCode != nullptr) {
+	if (logFhiclCode != nullptr)
+	{
 		std::ifstream logfhicl(logFhiclCode);
 
-		if (logfhicl.is_open()) {
+		if (logfhicl.is_open())
+		{
 			std::stringstream fhiclstream;
 			fhiclstream << logfhicl.rdbuf();
 			ss << fhiclstream.str();
 		}
-		else {
+		else
+		{
 			throw cet::exception("configureMessageFacility") <<
-				"Unable to open requested fhicl file \"" <<
-				logFhiclCode << "\".";
+			      "Unable to open requested fhicl file \"" <<
+			      logFhiclCode << "\".";
 		}
 	}
 
@@ -119,12 +135,13 @@ void artdaq::configureMessageFacility(char const* progname)
 	fhicl::make_ParameterSet(pstr, pset);
 
 	mf::StartMessageFacility(mf::MessageFacilityService::MultiThread,
-		pset);
+	                         pset);
 
 	mf::SetModuleName(progname);
 	mf::SetContext(progname);
 
-	if (logPathProblem.size() > 0) {
+	if (logPathProblem.size() > 0)
+	{
 		mf::LogError(progname) << logPathProblem;
 	}
 }
@@ -134,10 +151,12 @@ void artdaq::setMsgFacAppName(const std::string& appType, unsigned short port)
 	std::string appName(appType);
 
 	char hostname[256];
-	if (gethostname(&hostname[0], 256) == 0) {
+	if (gethostname(&hostname[0], 256) == 0)
+	{
 		std::string hostString(hostname);
 		size_t pos = hostString.find(".");
-		if (pos != std::string::npos && pos > 2) {
+		if (pos != std::string::npos && pos > 2)
+		{
 			hostString = hostString.substr(0, pos);
 		}
 		appName.append("-");

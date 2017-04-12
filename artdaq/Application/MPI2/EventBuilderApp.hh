@@ -15,18 +15,28 @@ class artdaq::EventBuilderApp : public artdaq::Commandable
 {
 public:
 	EventBuilderApp(int mpi_rank, MPI_Comm local_group_comm, std::string name);
+
 	EventBuilderApp(EventBuilderApp const&) = delete;
+
 	virtual ~EventBuilderApp() = default;
+
 	EventBuilderApp& operator=(EventBuilderApp const&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	bool do_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
+
 	bool do_start(art::RunID, uint64_t, uint64_t) override;
+
 	bool do_stop(uint64_t, uint64_t) override;
+
 	bool do_pause(uint64_t, uint64_t) override;
+
 	bool do_resume(uint64_t, uint64_t) override;
+
 	bool do_shutdown(uint64_t) override;
+
 	bool do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
+
 	bool do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
 
 	void BootedEnter() override;

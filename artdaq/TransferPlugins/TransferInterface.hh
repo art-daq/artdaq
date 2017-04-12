@@ -9,32 +9,44 @@
 #include <iostream>
 #include <sstream>
 
-namespace artdaq {
-
-	class TransferInterface {
+namespace artdaq
+{
+	class TransferInterface
+	{
 	public:
 		static const int RECV_TIMEOUT = 0xfedcba98;
 
-		enum class Role { kSend, kReceive };
+		enum class Role
+		{
+			kSend,
+			kReceive
+		};
 
-		enum class CopyStatus { kSuccess, kTimeout, kErrorNotRequiringException };
+		enum class CopyStatus
+		{
+			kSuccess,
+			kTimeout,
+			kErrorNotRequiringException
+		};
 
 		TransferInterface(const fhicl::ParameterSet& ps, Role role);
 
 		TransferInterface(const TransferInterface&) = delete;
+
 		TransferInterface& operator=(const TransferInterface&) = delete;
+
 		virtual ~TransferInterface() = default;
 
 		virtual int receiveFragment(artdaq::Fragment& fragment,
-			size_t receiveTimeout) = 0;
+		                            size_t receiveTimeout) = 0;
 
 		// Copy fragment (maybe not reliable)
 		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
-			size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
 		// Move fragment (should be reliable)
 		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
-			size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
 		std::string uniqueLabel() const { return unique_label_; }
 
@@ -42,7 +54,7 @@ namespace artdaq {
 		int destination_rank() const { return destination_rank_; }
 	private:
 		const Role role_;
-		
+
 		const int source_rank_;
 		const int destination_rank_;
 		const std::string unique_label_;
@@ -53,7 +65,6 @@ namespace artdaq {
 	protected:
 		Role role() const { return role_; }
 	};
-
 }
 
 #define DEFINE_ARTDAQ_TRANSFER(klass)                                \

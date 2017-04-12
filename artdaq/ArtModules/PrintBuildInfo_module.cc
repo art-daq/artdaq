@@ -8,7 +8,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 
-
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -22,80 +21,77 @@
 
 #include <iostream>
 
-namespace artdaq {
-  class PrintBuildInfo;
+namespace artdaq
+{
+	class PrintBuildInfo;
 }
 
-class artdaq::PrintBuildInfo : public art::EDAnalyzer {
+class artdaq::PrintBuildInfo : public art::EDAnalyzer
+{
 public:
-  explicit PrintBuildInfo(fhicl::ParameterSet const & p);
-  virtual ~PrintBuildInfo();
+	explicit PrintBuildInfo(fhicl::ParameterSet const& p);
 
-  void analyze(art::Event const & ) override { 
+	virtual ~PrintBuildInfo();
 
-  }
+	void analyze(art::Event const&) override { }
 
-  virtual void beginRun(art::Run const& r);
+	virtual void beginRun(art::Run const& r);
 
 private:
 
-  std::string buildinfo_module_label_;
-  std::string buildinfo_instance_label_;
-
+	std::string buildinfo_module_label_;
+	std::string buildinfo_instance_label_;
 };
 
 
-artdaq::PrintBuildInfo::PrintBuildInfo(fhicl::ParameterSet const & pset)
-  :
-  EDAnalyzer(pset),
-  buildinfo_module_label_(pset.get<std::string>("buildinfo_module_label")),
-  buildinfo_instance_label_(pset.get<std::string>("buildinfo_instance_label"))
-{}
+artdaq::PrintBuildInfo::PrintBuildInfo(fhicl::ParameterSet const& pset)
+	:
+	EDAnalyzer(pset)
+	, buildinfo_module_label_(pset.get<std::string>("buildinfo_module_label"))
+	, buildinfo_instance_label_(pset.get<std::string>("buildinfo_instance_label")) {}
 
 artdaq::PrintBuildInfo::~PrintBuildInfo()
 {
-  // Clean up dynamic memory and other resources here.
+	// Clean up dynamic memory and other resources here.
 }
 
 
 void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 {
+	art::Handle<std::vector<artdaq::PackageBuildInfo>> raw;
 
-  art::Handle<std::vector<artdaq::PackageBuildInfo> > raw;
+	run.getByLabel(buildinfo_module_label_, buildinfo_instance_label_, raw);
 
-  run.getByLabel(buildinfo_module_label_, buildinfo_instance_label_, raw);
+	if (raw.isValid())
+	{
+		std::cout << "--------------------------------------------------------------" << std::endl;
+		std::cout.width(20);
+		std::cout << std::left << "Package" << "|";
+		std::cout.width(20);
+		std::cout << std::left << "Version" << "|";
+		std::cout.width(20);
+		std::cout << std::left << "Timestamp" << std::endl;
 
-  if (raw.isValid()) {
-    
-    std::cout << "--------------------------------------------------------------" << std::endl;
-    std::cout.width(20);
-    std::cout << std::left << "Package" << "|";
-    std::cout.width(20);
-    std::cout << std::left << "Version" << "|";
-    std::cout.width(20);
-    std::cout << std::left << "Timestamp" << std::endl;
+		for (auto pkg : *raw)
+		{
+			std::cout.width(20);
+			std::cout << std::left << pkg.getPackageName() << "|";
+			std::cout.width(20);
+			std::cout << std::left << pkg.getPackageVersion() << "|";
+			std::cout.width(20);
+			std::cout << std::left << pkg.getBuildTimestamp() << std::endl;
+		}
 
-    for (auto pkg : *raw ) {
-      std::cout.width(20);
-      std::cout << std::left << pkg.getPackageName() << "|";
-      std::cout.width(20);
-      std::cout << std::left << pkg.getPackageVersion() << "|";
-      std::cout.width(20);
-      std::cout << std::left << pkg.getBuildTimestamp() << std::endl;
-    }
-
-    std::cout << "--------------------------------------------------------------" << std::endl;
-
-  } else {
-
-    std::cerr << "\n" << std::endl;
-    std::cerr << "Warning in artdaq::PrintBuildInfo module: Run " << run.run() << 
-      " appears not to have found product instance \"" << buildinfo_instance_label_ << 
-      "\" of module \"" << buildinfo_module_label_ << "\"" << std::endl;
-    std::cerr << "\n" << std::endl;
-
-  }
-
+		std::cout << "--------------------------------------------------------------" << std::endl;
+	}
+	else
+	{
+		std::cerr << "\n" << std::endl;
+		std::cerr << "Warning in artdaq::PrintBuildInfo module: Run " << run.run() <<
+			" appears not to have found product instance \"" << buildinfo_instance_label_ <<
+			"\" of module \"" << buildinfo_module_label_ << "\"" << std::endl;
+		std::cerr << "\n" << std::endl;
+	}
 }
 
 DEFINE_ART_MODULE(artdaq::PrintBuildInfo)

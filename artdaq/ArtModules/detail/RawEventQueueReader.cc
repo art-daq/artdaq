@@ -4,48 +4,46 @@
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Utilities/Exception.h"
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Data/Fragments.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include <sys/time.h>
 
 using std::string;
 
-artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet const & ps,
-	art::ProductRegistryHelper & help,
-	art::SourceHelper const & pm) :
-	pmaker(pm),
-	incoming_events(getGlobalQueue()),
-	waiting_time(ps.get<double>("waiting_time", 86400.0)),
-	resume_after_timeout(ps.get<bool>("resume_after_timeout", true)),
-	pretend_module_name("daq"),
-	unidentified_instance_name("unidentified"),
-	shutdownMsgReceived(false), outputFileCloseNeeded(false),
-	fragment_type_map_(Fragment::MakeSystemTypeMap())
+artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet const& ps,
+                                                         art::ProductRegistryHelper& help,
+                                                         art::SourceHelper const& pm) :
+                                                                                      pmaker(pm)
+                                                                                      , incoming_events(getGlobalQueue())
+                                                                                      , waiting_time(ps.get<double>("waiting_time", 86400.0))
+                                                                                      , resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
+                                                                                      , pretend_module_name("daq")
+                                                                                      , unidentified_instance_name("unidentified")
+                                                                                      , shutdownMsgReceived(false)
+                                                                                      , outputFileCloseNeeded(false)
+                                                                                      , fragment_type_map_(Fragment::MakeSystemTypeMap())
 {
 	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name,
-		unidentified_instance_name);
-	for(auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
+	                                            unidentified_instance_name);
+	for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 	}
 	incoming_events.setReaderIsReady();
 }
 
-void artdaq::detail::RawEventQueueReader::closeCurrentFile()
-{
-}
+void artdaq::detail::RawEventQueueReader::closeCurrentFile() {}
 
-void artdaq::detail::RawEventQueueReader::readFile(string const &,
-	art::FileBlock *& fb)
+void artdaq::detail::RawEventQueueReader::readFile(string const&,
+                                                   art::FileBlock*& fb)
 {
 	fb = new art::FileBlock(art::FileFormatVersion(1, "RawEvent2011"), "nothing");
 }
 
-bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & inR,
-	art::SubRunPrincipal * const & inSR,
-	art::RunPrincipal *& outR,
-	art::SubRunPrincipal *& outSR,
-	art::EventPrincipal *& outE)
+bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & inR,
+                                                   art::SubRunPrincipal* const & inSR,
+                                                   art::RunPrincipal*& outR,
+                                                   art::SubRunPrincipal*& outSR,
+                                                   art::EventPrincipal*& outE)
 {
 	/*if (outputFileCloseNeeded) {
 		outputFileCloseNeeded = false;
@@ -63,10 +61,12 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 	// In any case, if we time out, we emit an informational message.
 	bool keep_looping = true;
 	bool got_event = false;
-	while (keep_looping) {
+	while (keep_looping)
+	{
 		keep_looping = false;
 		got_event = incoming_events.deqTimedWait(popped_event, waiting_time);
-		if (!got_event) {
+		if (!got_event)
+		{
 			mf::LogInfo("InputFailure")
 				<< "Reading timed out in RawEventQueueReader::readNext()";
 			keep_looping = resume_after_timeout;
@@ -77,7 +77,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 	//      configured NOT to keep trying after a timeout, or
 	//   2) the event we read was the end-of-data marker: a null
 	//      pointer
-	if (!got_event || !popped_event) {
+	if (!got_event || !popped_event)
+	{
 		shutdownMsgReceived = true;
 		return false;
 	}
@@ -88,25 +89,30 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 	art::Timestamp currentTime = time(0);
 
 	// make new run if inR is 0 or if the run has changed
-	if (inR == 0 || inR->run() != popped_event->runID()) {
+	if (inR == 0 || inR->run() != popped_event->runID())
+	{
 		outR = pmaker.makeRunPrincipal(popped_event->runID(),
-			currentTime);
+		                               currentTime);
 	}
 
-	if (popped_event->numFragments() == 1) {
-		if (popped_event->releaseProduct(Fragment::EndOfRunFragmentType)->size() == 1) {
+	if (popped_event->numFragments() == 1)
+	{
+		if (popped_event->releaseProduct(Fragment::EndOfRunFragmentType)->size() == 1)
+		{
 			art::EventID const evid(art::EventID::flushEvent());
 			outR = pmaker.makeRunPrincipal(evid.runID(), currentTime);
 			outSR = pmaker.makeSubRunPrincipal(evid.subRunID(), currentTime);
 			outE = pmaker.makeEventPrincipal(evid, currentTime);
 			return true;
 		}
-		else if (popped_event->releaseProduct(Fragment::EndOfSubrunFragmentType)->size() == 1) {
+		else if (popped_event->releaseProduct(Fragment::EndOfSubrunFragmentType)->size() == 1)
+		{
 			// Check if inR == 0 or is a new run
-			if (inR == 0 || inR->run() != popped_event->runID()) {
+			if (inR == 0 || inR->run() != popped_event->runID())
+			{
 				outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
-					popped_event->subrunID(),
-					currentTime);
+				                                   popped_event->subrunID(),
+				                                   currentTime);
 #ifdef ARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID /* Old, error-prone interface. */
 				art::EventID const evid(art::EventID::flushEvent(outR->id(), outSR->id()));
 #else
@@ -114,12 +120,14 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 #endif
 				outE = pmaker.makeEventPrincipal(evid, currentTime);
 			}
-			else {
+			else
+			{
 				// If the previous subrun was neither 0 nor flush and was identical with the current
-		  // subrun, then it must have been associated with a data event.  In that case, we need
-		  // to generate a flush event with a valid run but flush subrun and event number in order
-		  // to end the subrun.
-				if (inSR != 0 && !inSR->id().isFlush() && inSR->subRun() == popped_event->subrunID()) {
+				// subrun, then it must have been associated with a data event.  In that case, we need
+				// to generate a flush event with a valid run but flush subrun and event number in order
+				// to end the subrun.
+				if (inSR != 0 && !inSR->id().isFlush() && inSR->subRun() == popped_event->subrunID())
+				{
 					art::EventID const evid(art::EventID::flushEvent(inR->id()));
 					outSR = pmaker.makeSubRunPrincipal(evid.subRunID(), currentTime);
 					outE = pmaker.makeEventPrincipal(evid, currentTime);
@@ -127,10 +135,11 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 					// valid run and subrun numbers but flush event number
 					//} else if(inSR==0 || inSR->id().isFlush()){
 				}
-				else {
+				else
+				{
 					outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
-						popped_event->subrunID(),
-						currentTime);
+					                                   popped_event->subrunID(),
+					                                   currentTime);
 #ifdef ARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID /* Old, error-prone interface. */
 					art::EventID const evid(art::EventID::flushEvent(inR->id(), outSR->id()));
 #else
@@ -149,35 +158,39 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal * const & i
 
 	// make new subrun if inSR is 0 or if the subrun has changed
 	art::SubRunID subrun_check(popped_event->runID(), popped_event->subrunID());
-	if (inSR == 0 || subrun_check != inSR->id()) {
+	if (inSR == 0 || subrun_check != inSR->id())
+	{
 		outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
-			popped_event->subrunID(),
-			currentTime);
+		                                   popped_event->subrunID(),
+		                                   currentTime);
 	}
 	outE = pmaker.makeEventPrincipal(popped_event->runID(),
-		popped_event->subrunID(),
-		popped_event->sequenceID(),
-		currentTime);
+	                                 popped_event->subrunID(),
+	                                 popped_event->sequenceID(),
+	                                 currentTime);
 	// get the list of fragment types that exist in the event
 	std::vector<Fragment::type_t> type_list;
 	popped_event->fragmentTypes(type_list);
 	// insert the Fragments of each type into the EventPrincipal
 	std::map<Fragment::type_t, std::string>::const_iterator iter_end =
 		fragment_type_map_.end();
-	for (size_t idx = 0; idx < type_list.size(); ++idx) {
+	for (size_t idx = 0; idx < type_list.size(); ++idx)
+	{
 		std::map<Fragment::type_t, std::string>::const_iterator iter =
 			fragment_type_map_.find(type_list[idx]);
-		if (iter != iter_end) {
+		if (iter != iter_end)
+		{
 			put_product_in_principal(popped_event->releaseProduct(type_list[idx]),
-				*outE,
-				pretend_module_name,
-				iter->second);
+			                         *outE,
+			                         pretend_module_name,
+			                         iter->second);
 		}
-		else {
+		else
+		{
 			put_product_in_principal(popped_event->releaseProduct(type_list[idx]),
-				*outE,
-				pretend_module_name,
-				unidentified_instance_name);
+			                         *outE,
+			                         pretend_module_name,
+			                         unidentified_instance_name);
 			mf::LogWarning("UnknownFragmentType")
 				<< "The product instance name mapping for fragment type \""
 				<< ((int)type_list[idx]) << "\" is not known. Fragments of this "
