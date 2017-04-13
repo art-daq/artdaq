@@ -25,9 +25,9 @@ artdaq_utilities        -
 mvapich2		v1_9_0
 mpich			v3_2_0b
 xmlrpc_c		v1_39_10a
-artdaq_ganglia_plugin   v1_02_03        -       optional
-artdaq_epics_plugin     v1_01_07        -       optional
-artdaq_mfextensions     v1_01_06        -       optional
+artdaq_ganglia_plugin   v1_02_04        -       optional
+artdaq_epics_plugin     v1_01_08        -       optional
+artdaq_mfextensions     v1_01_07        -       optional
 cetbuildtools		v5_06_07	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
