@@ -30,3 +30,4 @@ install_source()
 install_fhicl()
 
 add_subdirectory(MPI2)
+add_subdirectory(Routing)

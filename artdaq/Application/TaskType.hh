@@ -9,7 +9,8 @@ namespace artdaq
 		{
 			BoardReaderTask=1,
 			EventBuilderTask=2,
-			AggregatorTask=3
+			AggregatorTask=3,
+			RoutingMasterTask=4
 		};
 	}
 

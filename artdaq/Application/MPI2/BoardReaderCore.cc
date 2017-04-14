@@ -28,13 +28,13 @@ FRAGMENTS_PER_READ_STAT_KEY("BoardReaderCoreFragmentsPerRead");
  * Default constructor.
  */
 artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
-                                         MPI_Comm local_group_comm, std::string name) :
-                                                                                      parent_application_(parent_application)
-                                                                                      , local_group_comm_(local_group_comm)
-                                                                                      , generator_ptr_(nullptr)
-                                                                                      , name_(name)
-                                                                                      , stop_requested_(false)
-                                                                                      , pause_requested_(false)
+										 MPI_Comm local_group_comm, std::string name) :
+																					  parent_application_(parent_application)
+																					  , local_group_comm_(local_group_comm)
+																					  , generator_ptr_(nullptr)
+																					  , name_(name)
+																					  , stop_requested_(false)
+																					  , pause_requested_(false)
 {
 	mf::LogDebug(name_) << "Constructor";
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PROCESSED_STAT_KEY);
@@ -108,7 +108,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no,
-		                 "Error loading metrics in BoardReaderCore::initialize()");
+						 "Error loading metrics in BoardReaderCore::initialize()");
 	}
 
 	// create the requested CommandableFragmentGenerator
@@ -355,7 +355,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			// reached.  Once that threshold is reached, and one or more of the
 			// other BoardReaders haven't called Ibarrier, we wait.
 			if (mpi_sync_fragment_interval_ > 0 && fragment_count_ > 0 &&
-			    (fragment_count_ % mpi_sync_fragment_interval_) == 0)
+				(fragment_count_ % mpi_sync_fragment_interval_) == 0)
 			{
 				TRACE(4, "BoardReaderCore: Entering MPI Barrier");
 				MPI_Ibarrier(local_group_comm_, &mpi_request);
@@ -439,7 +439,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 				}
 			}
 			statsHelper_.addSample(BRSYNC_WAIT_STAT_KEY,
-			                       artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
 
 			// check for continous sequence IDs
 			if (!skip_seqId_test_ && abs(sequence_id - prev_seq_id_) > 1)
@@ -457,7 +457,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			TRACE(17, "%s::process_fragments seq=%lu sendFragment done", name_.c_str(), sequence_id);
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
-			                       artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
 
 			bool readyToReport = statsHelper_.readyToReport(fragment_count_);
 			if (readyToReport)
@@ -527,13 +527,13 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 			<< stats.recentSampleCount << " fragments received at "
 			<< stats.recentSampleRate << " fragments/sec, effective data rate = "
 			<< (stats.recentValueRate * sizeof(artdaq::RawDataType)
-			    / 1024.0 / 1024.0) << " MB/sec, monitor window = "
+				/ 1024.0 / 1024.0) << " MB/sec, monitor window = "
 			<< stats.recentDuration << " sec, min::max event size = "
 			<< (stats.recentValueMin * sizeof(artdaq::RawDataType)
-			    / 1024.0 / 1024.0)
+				/ 1024.0 / 1024.0)
 			<< "::"
 			<< (stats.recentValueMax * sizeof(artdaq::RawDataType)
-			    / 1024.0 / 1024.0)
+				/ 1024.0 / 1024.0)
 			<< " MB" << std::endl;
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
 		oss << "  Average times per fragment: ";
@@ -606,16 +606,16 @@ void artdaq::BoardReaderCore::sendMetrics_()
 		mqPtr->getStats(stats);
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
 		metricMan_.sendMetric("Fragment Count",
-		                      static_cast<unsigned long>(stats.fullSampleCount),
-		                      "fragments", 1);
+							  static_cast<unsigned long>(stats.fullSampleCount),
+							  "fragments", 1);
 		metricMan_.sendMetric("Fragment Rate",
-		                      stats.recentSampleRate, "fragments/sec", 1);
+							  stats.recentSampleRate, "fragments/sec", 1);
 		metricMan_.sendMetric("Average Fragment Size",
-		                      (stats.recentValueAverage * sizeof(artdaq::RawDataType)
-		                      ), "bytes/fragment", 2);
+							  (stats.recentValueAverage * sizeof(artdaq::RawDataType)
+							  ), "bytes/fragment", 2);
 		metricMan_.sendMetric("Data Rate",
-		                      (stats.recentValueRate * sizeof(artdaq::RawDataType)
-		                      ), "bytes/sec", 2);
+							  (stats.recentValueRate * sizeof(artdaq::RawDataType)
+							  ), "bytes/sec", 2);
 	}
 
 	// 31-Dec-2014, KAB - Just a reminder that using "fragmentCount" in the
@@ -631,8 +631,8 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	if (mqPtr.get() != 0)
 	{
 		metricMan_.sendMetric("Avg Input Wait Time",
-		                      (mqPtr->getRecentValueSum() / fragmentCount),
-		                      "seconds/fragment", 3, false);
+							  (mqPtr->getRecentValueSum() / fragmentCount),
+							  "seconds/fragment", 3, false);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -640,8 +640,8 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	if (mqPtr.get() != 0)
 	{
 		metricMan_.sendMetric("Avg BoardReader Sync Wait Time",
-		                      (mqPtr->getRecentValueSum() / fragmentCount),
-		                      "seconds/fragment", 3, false);
+							  (mqPtr->getRecentValueSum() / fragmentCount),
+							  "seconds/fragment", 3, false);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -649,8 +649,8 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	if (mqPtr.get() != 0)
 	{
 		metricMan_.sendMetric("Avg Output Wait Time",
-		                      (mqPtr->getRecentValueSum() / fragmentCount),
-		                      "seconds/fragment", 3, false);
+							  (mqPtr->getRecentValueSum() / fragmentCount),
+							  "seconds/fragment", 3, false);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -658,6 +658,6 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	if (mqPtr.get() != 0)
 	{
 		metricMan_.sendMetric("Avg Frags Per Read",
-		                      mqPtr->getRecentValueAverage(), "fragments/read", 4, false);
+							  mqPtr->getRecentValueAverage(), "fragments/read", 4, false);
 	}
 }
