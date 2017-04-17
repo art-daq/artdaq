@@ -9,6 +9,7 @@ namespace artdaq
 	{
 		struct RoutingPacketEntry;
 		typedef std::vector<RoutingPacketEntry> RoutingPacket;
+		struct RoutingPacketHeader;
 		struct RoutingAckPacket;
 		struct RoutingToken;
 	}
@@ -21,6 +22,16 @@ struct artdaq::detail::RoutingPacketEntry
 	int destination_rank;
 };
 
+#define ROUTING_MAGIC 0x1337beef
+struct artdaq::detail::RoutingPacketHeader
+{
+	uint32_t header;
+	size_t nEntries;
+
+	explicit RoutingPacketHeader(size_t n) : header(ROUTING_MAGIC), nEntries(n) {}
+	RoutingPacketHeader() : header(0), nEntries(0) {}
+};
+
 struct artdaq::detail::RoutingAckPacket
 {
 	int rank;
@@ -28,8 +39,10 @@ struct artdaq::detail::RoutingAckPacket
 	Fragment::sequence_id_t last_sequence_id;
 };
 
+#define TOKEN_MAGIC 0xbeefcafe
 struct artdaq::detail::RoutingToken
 {
+	uint32_t header;
 	int rank;
 	int new_slots_free;
 	Fragment::sequence_id_t minimum_incomplete_event_number;

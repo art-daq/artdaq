@@ -25,32 +25,33 @@ namespace artdaq
 	const std::string EventStore::INCOMPLETE_EVENT_STAT_KEY("EventStoreIncompleteEvents");
 
 	EventStore::EventStore(fhicl::ParameterSet pset,
-	                       size_t num_fragments_per_event,
-	                       run_id_t run,
-	                       int argc,
-	                       char* argv[],
-	                       ART_CMDLINE_FCN* reader) :
-	                                                num_fragments_per_event_(num_fragments_per_event)
-	                                                , max_queue_size_(pset.get<size_t>("event_queue_depth", 50))
-	                                                , max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 50))
-	                                                , run_id_(run)
-	                                                , subrun_id_(0)
-	                                                , events_()
-	                                                , queue_(getGlobalQueue(max_queue_size_))
-	                                                , reader_thread_launch_time_(std::chrono::steady_clock::now())
-	                                                , reader_thread_(std::async(std::launch::async, reader, argc, argv))
-	                                                , send_requests_(pset.get<bool>("send_requests", false))
-	                                                , active_requests_()
-	                                                , request_port_(pset.get<int>("request_port", 3001))
-	                                                , request_delay_(pset.get<size_t>("request_delay_ms", 10))
-	                                                , seqIDModulus_(1)
-	                                                , lastFlushedSeqID_(0)
-	                                                , highestSeqIDSeen_(0)
-	                                                , enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
-	                                                , enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
-	                                                , printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
-	                                                , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
-	                                                , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+						   size_t num_fragments_per_event,
+						   run_id_t run,
+						   int argc,
+						   char* argv[],
+						   ART_CMDLINE_FCN* reader) :
+		num_fragments_per_event_(num_fragments_per_event)
+		, max_queue_size_(pset.get<size_t>("event_queue_depth", 50))
+		, max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 50))
+		, run_id_(run)
+		, subrun_id_(0)
+		, events_()
+		, queue_(getGlobalQueue(max_queue_size_))
+		, reader_thread_launch_time_(std::chrono::steady_clock::now())
+		, reader_thread_(std::async(std::launch::async, reader, argc, argv))
+		, send_requests_(pset.get<bool>("send_requests", false))
+		, active_requests_()
+		, request_port_(pset.get<int>("request_port", 3001))
+		, request_delay_(pset.get<size_t>("request_delay_ms", 10))
+		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
+		, seqIDModulus_(1)
+		, lastFlushedSeqID_(0)
+		, highestSeqIDSeen_(0)
+		, enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
+		, enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
+		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
+		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
+		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
@@ -60,31 +61,32 @@ namespace artdaq
 	}
 
 	EventStore::EventStore(fhicl::ParameterSet pset,
-	                       size_t num_fragments_per_event,
-	                       run_id_t run,
-	                       const std::string& configString,
-	                       ART_CFGSTRING_FCN* reader) :
-	                                                  num_fragments_per_event_(num_fragments_per_event)
-	                                                  , max_queue_size_(pset.get<size_t>("event_queue_depth", 20))
-	                                                  , max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 20))
-	                                                  , run_id_(run)
-	                                                  , subrun_id_(0)
-	                                                  , events_()
-	                                                  , queue_(getGlobalQueue(max_queue_size_))
-	                                                  , reader_thread_launch_time_(std::chrono::steady_clock::now())
-	                                                  , reader_thread_(std::async(std::launch::async, reader, configString))
-	                                                  , send_requests_(pset.get<bool>("send_requests", false))
-	                                                  , active_requests_()
-	                                                  , request_port_(pset.get<int>("request_port", 3001))
-	                                                  , request_delay_(pset.get<size_t>("request_delay_ms", 10))
-	                                                  , seqIDModulus_(1)
-	                                                  , lastFlushedSeqID_(0)
-	                                                  , highestSeqIDSeen_(0)
-	                                                  , enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
-	                                                  , enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
-	                                                  , printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
-	                                                  , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
-	                                                  , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+						   size_t num_fragments_per_event,
+						   run_id_t run,
+						   const std::string& configString,
+						   ART_CFGSTRING_FCN* reader) :
+		num_fragments_per_event_(num_fragments_per_event)
+		, max_queue_size_(pset.get<size_t>("event_queue_depth", 20))
+		, max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 20))
+		, run_id_(run)
+		, subrun_id_(0)
+		, events_()
+		, queue_(getGlobalQueue(max_queue_size_))
+		, reader_thread_launch_time_(std::chrono::steady_clock::now())
+		, reader_thread_(std::async(std::launch::async, reader, configString))
+		, send_requests_(pset.get<bool>("send_requests", false))
+		, active_requests_()
+		, request_port_(pset.get<int>("request_port", 3001))
+		, request_delay_(pset.get<size_t>("request_delay_ms", 10))
+		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
+		, seqIDModulus_(1)
+		, lastFlushedSeqID_(0)
+		, highestSeqIDSeen_(0)
+		, enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
+		, enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
+		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
+		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
+		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
@@ -103,7 +105,7 @@ namespace artdaq
 	}
 
 	void EventStore::insert(FragmentPtr pfrag,
-	                        bool printWarningWhenFragmentIsDropped)
+							bool printWarningWhenFragmentIsDropped)
 	{
 		// We should never get a null pointer, nor should we get a
 		// Fragment without a good fragment ID.
@@ -135,7 +137,7 @@ namespace artdaq
 		}
 		Fragment::sequence_id_t sequence_id = ((pfrag->sequenceID() - (1 + lastFlushedSeqID_)) / seqIDModulus_) + 1;
 		TRACE(13, "EventStore::insert seq=%lu fragID=%d id=%d lastFlushed=%lu seqIDMod=%d seq=%lu"
-			, pfrag->sequenceID(), pfrag->fragmentID(), my_rank, lastFlushedSeqID_, seqIDModulus_, sequence_id);
+			  , pfrag->sequenceID(), pfrag->fragmentID(), my_rank, lastFlushedSeqID_, seqIDModulus_, sequence_id);
 
 
 		// Find if the right event id is already known to events_ and, if so, where
@@ -251,7 +253,7 @@ namespace artdaq
 	}
 
 	bool
-	EventStore::endOfData(int& readerReturnValue)
+		EventStore::endOfData(int& readerReturnValue)
 	{
 		mf::LogDebug("EventStore") << "EventStore::endOfData";
 		RawEvent_ptr end_of_data(nullptr);
@@ -362,9 +364,9 @@ namespace artdaq
 		RawEvent_ptr endOfRunEvent(new RawEvent(run_id_, subrun_id_, 0));
 		std::unique_ptr<artdaq::Fragment>
 			endOfRunFrag(new
-				Fragment(static_cast<size_t>
-				(ceil(sizeof(my_rank) /
-				      static_cast<double>(sizeof(Fragment::value_type))))));
+						 Fragment(static_cast<size_t>
+						 (ceil(sizeof(my_rank) /
+							   static_cast<double>(sizeof(Fragment::value_type))))));
 
 		endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
 		*endOfRunFrag->dataBegin() = my_rank;
@@ -378,9 +380,9 @@ namespace artdaq
 		RawEvent_ptr endOfSubrunEvent(new RawEvent(run_id_, subrun_id_, 0));
 		std::unique_ptr<artdaq::Fragment>
 			endOfSubrunFrag(new
-				Fragment(static_cast<size_t>
-				(ceil(sizeof(my_rank) /
-				      static_cast<double>(sizeof(Fragment::value_type))))));
+							Fragment(static_cast<size_t>
+							(ceil(sizeof(my_rank) /
+								  static_cast<double>(sizeof(Fragment::value_type))))));
 
 		endOfSubrunFrag->setSystemType(Fragment::EndOfSubrunFragmentType);
 		*endOfSubrunFrag->dataBegin() = my_rank;
@@ -390,7 +392,7 @@ namespace artdaq
 	}
 
 	void
-	EventStore::initStatistics_()
+		EventStore::initStatistics_()
 	{
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 			getMonitoredQuantity(EVENT_RATE_STAT_KEY);
@@ -414,7 +416,7 @@ namespace artdaq
 	}
 
 	void
-	EventStore::reportStatistics_()
+		EventStore::reportStatistics_()
 	{
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 			getMonitoredQuantity(EVENT_RATE_STAT_KEY);
@@ -432,14 +434,14 @@ namespace artdaq
 				<< stats.fullSampleCount << " at " << stats.fullSampleRate
 				<< " events/sec, data rate = "
 				<< (stats.fullValueRate * sizeof(RawDataType)
-				    / 1024.0 / 1024.0) << " MB/sec, duration = "
+					/ 1024.0 / 1024.0) << " MB/sec, duration = "
 				<< stats.fullDuration << " sec" << std::endl
 				<< "    minimum event size = "
 				<< (stats.fullValueMin * sizeof(RawDataType)
-				    / 1024.0 / 1024.0)
+					/ 1024.0 / 1024.0)
 				<< " MB, maximum event size = "
 				<< (stats.fullValueMax * sizeof(RawDataType)
-				    / 1024.0 / 1024.0)
+					/ 1024.0 / 1024.0)
 				<< " MB" << std::endl;
 			bool foundTheStart = false;
 			for (int idx = 0; idx < (int)stats.recentBinnedDurations.size(); ++idx)
@@ -455,11 +457,11 @@ namespace artdaq
 						<< ": " << stats.recentBinnedSampleCounts[idx]
 						<< " events at "
 						<< (stats.recentBinnedSampleCounts[idx] /
-						    stats.recentBinnedDurations[idx])
+							stats.recentBinnedDurations[idx])
 						<< " events/sec, data rate = "
 						<< (stats.recentBinnedValueSums[idx] *
-						    sizeof(RawDataType) / 1024.0 / 1024.0 /
-						    stats.recentBinnedDurations[idx])
+							sizeof(RawDataType) / 1024.0 / 1024.0 /
+							stats.recentBinnedDurations[idx])
 						<< " MB/sec, bin size = "
 						<< stats.recentBinnedDurations[idx]
 						<< " sec" << std::endl;
@@ -503,10 +505,10 @@ namespace artdaq
 						<< ": " << stats.recentBinnedSampleCounts[idx]
 						<< " fragments at "
 						<< (stats.recentBinnedSampleCounts[idx] /
-						    stats.recentBinnedDurations[idx])
+							stats.recentBinnedDurations[idx])
 						<< " fragments/sec, average incomplete event count = "
 						<< (stats.recentBinnedValueSums[idx] /
-						    stats.recentBinnedSampleCounts[idx])
+							stats.recentBinnedSampleCounts[idx])
 						<< ", bin size = "
 						<< stats.recentBinnedDurations[idx]
 						<< " sec" << std::endl;
@@ -518,7 +520,7 @@ namespace artdaq
 	}
 
 	void
-	EventStore::setup_requests_(std::string request_address)
+		EventStore::setup_requests_(std::string request_address)
 	{
 		if (send_requests_)
 		{
@@ -532,6 +534,16 @@ namespace artdaq
 			request_addr_.sin_port = htons(request_port_);
 			request_addr_.sin_family = AF_INET;
 
+			if (multicast_out_addr_ != "localhost") {
+				struct in_addr addr;
+				addr.s_addr = inet_addr(multicast_out_addr_.c_str());
+
+				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
+				{
+					mf::LogError("EventStore") << "Cannot set outgoing interface." << std::endl;
+					exit(1);
+				}
+			}
 			int yes = 1;
 			if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
 			{
@@ -567,19 +579,19 @@ namespace artdaq
 	}
 
 	void
-	EventStore::send_request_()
+		EventStore::send_request_()
 	{
 		std::thread request([=] { do_send_request_(); });
 		request.detach();
 	}
 
 	void
-	EventStore::sendMetrics()
+		EventStore::sendMetrics()
 	{
 		if (metricMan)
 		{
 			metricMan->sendMetric("Incomplete Event Count", events_.size(),
-			                      "events", 1);
+								  "events", 1);
 		}
 		if (incomplete_event_report_interval_ms_ > 0 && events_.size())
 		{

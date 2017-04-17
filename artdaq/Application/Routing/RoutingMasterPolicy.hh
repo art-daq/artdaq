@@ -6,6 +6,7 @@
 
 #include "fhiclcpp/fwd.h"
 #include <mutex>
+#include <deque>
 
 namespace artdaq
 {
@@ -16,16 +17,18 @@ namespace artdaq
 		virtual ~RoutingMasterPolicy() {};
 
 		virtual detail::RoutingPacket GetCurrentTable() = 0;
+		size_t GetEventBuilderCount() { return eb_count_; }
 		virtual void AddEventBuilderToken(int rank, int new_slots_free, Fragment::sequence_id_t min_seq_id) final;
 	protected:
 		Fragment::sequence_id_t next_sequence_id_;
 
-		std::unique_ptr<std::map<int, int>> getTableSnapshot();
-
+		std::unique_ptr<std::deque<int>> getTokensSnapshot();
+		void addUnusedTokens(std::unique_ptr<std::deque<int>> tokens);
 	private:
 		Fragment::sequence_id_t last_seq_id_seen_;
-		std::mutex table_mutex_;
-		std::map<int, int> table_;
+		std::mutex tokens_mutex_;
+		size_t eb_count_;
+		std::deque<int> tokens_;
 
 	};
 }

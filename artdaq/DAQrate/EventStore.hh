@@ -152,6 +152,7 @@ namespace artdaq
 		size_t request_delay_;
 		int request_socket_;
 		struct sockaddr_in request_addr_;
+		std::string multicast_out_addr_;
 
 		unsigned int seqIDModulus_;
 		sequence_id_t lastFlushedSeqID_;

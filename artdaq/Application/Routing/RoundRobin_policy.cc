@@ -16,23 +16,35 @@ namespace artdaq
 
 	detail::RoutingPacket RoundRobinPolicy::GetCurrentTable()
 	{
-		auto table = getTableSnapshot();
+		auto tokens = getTokensSnapshot();
+		std::map<int, int> table;
+		for (auto token : *tokens)
+		{
+			table[token]++;
+		}
+		tokens->clear();
+
 		detail::RoutingPacket output;
 		auto endCondition = false;
-		while(!endCondition)
+		while (!endCondition)
 		{
-			for(auto r : *table)
+			for (auto r : table)
 			{
-				if (r.second > 0) {
-					output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, r.first));
-					r.second--;
-				}
-				else
-				{
-					endCondition = true;
-				}
+				output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, r.first));
+				if(!endCondition) endCondition = r.second == 1;
+				table[r.first]--;
 			}
 		}
+
+		for(auto r : table)
+		{
+			for(auto i = 0;i < r.second; ++i)
+			{
+				tokens->push_back(r.first);
+			}
+		}
+		addUnusedTokens(std::move(tokens));
+
 		return output;
 	}
 }
