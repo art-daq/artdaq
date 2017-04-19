@@ -17,7 +17,7 @@ namespace artdaq
 		virtual ~RoutingMasterPolicy() {};
 
 		virtual detail::RoutingPacket GetCurrentTable() = 0;
-		size_t GetEventBuilderCount() { return eb_count_; }
+		size_t GetEventBuilderCount() const { return eb_count_; }
 		virtual void AddEventBuilderToken(int rank, int new_slots_free) final;
 		virtual void Reset() final { next_sequence_id_ = 0; }
 	protected:

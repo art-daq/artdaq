@@ -16,3 +16,6 @@ art_make( BASENAME_ONLY
 simple_plugin(RoundRobin "policy"
   artdaq_Application_Routing
 )
+simple_plugin(NoOp "policy"
+  artdaq_Application_Routing
+)
