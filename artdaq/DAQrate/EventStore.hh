@@ -165,6 +165,13 @@ namespace artdaq
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 
+		bool send_routing_tokens_;
+		int token_port_;
+		int token_socket_;
+		struct sockaddr_in token_addr_;
+		std::string token_address_;
+
+
 	private:
 		void initStatistics_();
 
@@ -175,6 +182,10 @@ namespace artdaq
 		void send_request_();
 
 		void do_send_request_();
+
+		void setup_tokens_();
+
+		void send_routing_token_(int nSlots);
 	};
 }
 #endif /* artdaq_DAQrate_EventStore_hh */

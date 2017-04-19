@@ -18,14 +18,14 @@ namespace artdaq
 
 		virtual detail::RoutingPacket GetCurrentTable() = 0;
 		size_t GetEventBuilderCount() { return eb_count_; }
-		virtual void AddEventBuilderToken(int rank, int new_slots_free, Fragment::sequence_id_t min_seq_id) final;
+		virtual void AddEventBuilderToken(int rank, int new_slots_free) final;
+		virtual void Reset() final { next_sequence_id_ = 0; }
 	protected:
 		Fragment::sequence_id_t next_sequence_id_;
 
 		std::unique_ptr<std::deque<int>> getTokensSnapshot();
 		void addUnusedTokens(std::unique_ptr<std::deque<int>> tokens);
 	private:
-		Fragment::sequence_id_t last_seq_id_seen_;
 		std::mutex tokens_mutex_;
 		size_t eb_count_;
 		std::deque<int> tokens_;

@@ -45,7 +45,6 @@ struct artdaq::detail::RoutingToken
 	uint32_t header;
 	int rank;
 	int new_slots_free;
-	Fragment::sequence_id_t minimum_incomplete_event_number;
 };
 
 #endif //artdaq_Application_Routing_RoutingPacket_hh

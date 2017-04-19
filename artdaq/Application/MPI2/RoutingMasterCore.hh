@@ -116,7 +116,7 @@ private:
 	int token_socket_;
 	int table_socket_;
 	int ack_socket_;
-	std::mutex request_mutex_;
+	mutable std::mutex request_mutex_;
 	std::thread ev_token_receive_thread_;
 
 };

@@ -142,6 +142,12 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	receive_token_events_ = std::vector<epoll_event>(num_ebs_);
 
 	table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
+	 table_ack_wait_time_ms_ = daq_pset.get<size_t>("table_ack_wait_time_ms",100);
+	 receive_token_port_ = daq_pset.get<int>("routing_token_port", 35555);
+	 send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
+	 receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port",35557);
+	 send_tables_address_ = daq_pset.get<std::string>("table_update_address", "227.128.12.28");
+	 receive_address_ = daq_pset.get<std::string>("routing_master_hostname", "localhost");
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelper_.createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
@@ -155,6 +161,7 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t timeout, uint64_t 
 	pause_requested_.store(false);
 
 	statsHelper_.resetStatistics();
+	policy_->Reset();
 
 	metricMan_.do_start();
 	run_id_ = id;
@@ -187,6 +194,7 @@ bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 {
 	mf::LogDebug(name_) << "Resuming run " << run_id_.run();
+	policy_->Reset();
 	pause_requested_.store(false);
 	metricMan_.do_start();
 	return true;
@@ -480,7 +488,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				}
 				else
 				{
-					policy_->AddEventBuilderToken(buff.rank, buff.new_slots_free, buff.minimum_incomplete_event_number);
+					policy_->AddEventBuilderToken(buff.rank, buff.new_slots_free);
 				}
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);

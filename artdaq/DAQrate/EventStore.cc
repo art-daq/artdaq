@@ -16,6 +16,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/Application/Routing/RoutingPacket.hh"
 
 using namespace std;
 
@@ -52,10 +53,15 @@ namespace artdaq
 		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+		, send_routing_tokens_(pset.get<bool>("send_routing_tokens", false))
+		, token_port_(pset.get<int>("routing_master_token_port", 35555))
+		, token_socket_(-1)
+		, token_address_(pset.get<std::string>("routing_master_hostname", "localhost"))
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+		setup_tokens_();
 
 		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
 	}
@@ -87,10 +93,15 @@ namespace artdaq
 		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+		, send_routing_tokens_(pset.get<bool>("send_routing_tokens", false))
+		, token_port_(pset.get<int>("routing_master_token_port", 35555))
+		, token_socket_(-1)
+		, token_address_(pset.get<std::string>("routing_master_hostname", "localhost"))
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+		setup_tokens_();
 	}
 
 	EventStore::~EventStore()
@@ -201,6 +212,10 @@ namespace artdaq
 						"; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
 						<< "-second timeout period";
 				}
+			}
+			else
+			{
+				if (send_routing_tokens_) send_routing_token_(1);
 			}
 		}
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
@@ -553,6 +568,23 @@ namespace artdaq
 		}
 	}
 
+	void
+		EventStore::setup_tokens_()
+	{
+		if (send_routing_tokens_)
+		{
+			token_socket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			if (!token_socket_)
+			{
+				mf::LogError("EventStore") << "I failed to create the socket for sending Routing Tokens!" << std::endl;
+				exit(1);
+			}
+			token_addr_.sin_addr.s_addr = inet_addr(token_address_.c_str());
+			token_addr_.sin_port = htons(token_port_);
+			token_addr_.sin_family = AF_INET;
+		}
+	}
+
 	void EventStore::do_send_request_()
 	{
 		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
@@ -576,6 +608,18 @@ namespace artdaq
 		{
 			mf::LogError("EventStore") << "Error sending request message data" << std::endl;
 		}
+	}
+
+	void EventStore::send_routing_token_(int nSlots)
+	{
+		detail::RoutingToken token;
+		token.header = TOKEN_MAGIC;
+		token.rank = my_rank;
+		token.new_slots_free = nSlots;
+
+		mf::LogDebug("EventStore") << "Sending RoutingToken to " << token_address_ << std::endl;
+		send(token_socket_, &token, sizeof(detail::RoutingToken), 0);
+
 	}
 
 	void

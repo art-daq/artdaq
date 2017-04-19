@@ -3,7 +3,6 @@
 
 artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
 	: next_sequence_id_(0)
-	, last_seq_id_seen_(0)
 	, tokens_()
 {
 	auto eb_ranks = ps.get<std::vector<int>>("event_builder_ranks");
@@ -15,14 +14,13 @@ artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
 	}
 }
 
-void artdaq::RoutingMasterPolicy::AddEventBuilderToken(int rank, int new_slots_free, Fragment::sequence_id_t min_seq_id)
+void artdaq::RoutingMasterPolicy::AddEventBuilderToken(int rank, int new_slots_free)
 {
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
 	for(auto i = 0; i < new_slots_free;++i)
 	{
 		tokens_.push_back(rank);
 	}
-	if (min_seq_id > last_seq_id_seen_) last_seq_id_seen_ = min_seq_id;
 }
 
 std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot()

@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <memory>
+#include <netinet/in.h>
 
 #include <fhiclcpp/fwd.h>
 
@@ -43,6 +44,11 @@ private:
 	// Calculate where the fragment with this sequenceID should go.
 	int calcDest(Fragment::sequence_id_t) const;
 
+	void setupTableListener();
+
+	void startTableReceiverThread();
+
+	void receiveTableUpdatesLoop();
 private:
 
 	std::map<int, std::unique_ptr<artdaq::TransferInterface>> destinations_;
@@ -51,6 +57,23 @@ private:
 	detail::FragCounter sent_frag_count_;
 
 	bool broadcast_sends_;
+
+	bool use_routing_master_;
+	std::atomic<bool> should_stop_;
+	int table_port_;
+	std::string table_address_;
+	struct sockaddr_in table_addr_;
+	int ack_port_;
+	std::string ack_address_;
+	struct sockaddr_in ack_addr_;
+	int ack_socket_;
+	int table_socket_;
+	int table_epoll_fd_;
+	std::map<Fragment::sequence_id_t, int> routing_table_;
+	mutable std::mutex routing_mutex_;
+	std::thread routing_thread_;
+
+	int routing_timeout_ms_;
 };
 
 inline
