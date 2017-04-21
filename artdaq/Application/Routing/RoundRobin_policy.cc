@@ -18,7 +18,7 @@ namespace artdaq
 	{
 		auto tokens = getTokensSnapshot();
 		std::map<int, int> table;
-		for (auto token : *tokens)
+		for (auto token : *tokens.get())
 		{
 			table[token]++;
 		}

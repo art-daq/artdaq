@@ -2,7 +2,7 @@
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_Application_Routing
   NO_PLUGINS
-  EXCLUDE RoundRobin_policy.cc
+  EXCLUDE RoundRobin_policy.cc NthEvent_policy.cc NoOp_policy.cc CapacityTest_policy.cc
   LIB_LIBRARIES
   artdaq-core_Utilities
   artdaq-core_Data
@@ -18,4 +18,10 @@ simple_plugin(RoundRobin "policy"
 )
 simple_plugin(NoOp "policy"
   artdaq_Application_Routing
+)
+simple_plugin(CapacityTest "policy"
+artdaq_Application_Routing
+)
+simple_plugin(NthEvent "policy"
+artdaq_Application_Routing
 )
