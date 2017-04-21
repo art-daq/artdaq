@@ -14,10 +14,10 @@ artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
 	}
 }
 
-void artdaq::RoutingMasterPolicy::AddEventBuilderToken(int rank, int new_slots_free)
+void artdaq::RoutingMasterPolicy::AddEventBuilderToken(int rank, unsigned new_slots_free)
 {
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
-	for(auto i = 0; i < new_slots_free;++i)
+	for(unsigned i = 0; i < new_slots_free;++i)
 	{
 		tokens_.push_back(rank);
 	}

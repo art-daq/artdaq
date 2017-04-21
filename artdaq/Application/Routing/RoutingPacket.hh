@@ -44,7 +44,7 @@ struct artdaq::detail::RoutingToken
 {
 	uint32_t header;
 	int rank;
-	int new_slots_free;
+	unsigned new_slots_free;
 };
 
 #endif //artdaq_Application_Routing_RoutingPacket_hh

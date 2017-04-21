@@ -60,6 +60,17 @@ art_make_exec(perfdump
   artdaq_DAQrate
   )
 
+  art_make_exec(NAME routing_master
+  SOURCE
+  routing_master.cc
+  LIBRARIES
+  artdaq_Application
+  artdaq_Application_MPI2
+  artdaq_Application_Routing
+  ${FHICLCPP}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+  
  art_make_exec(NAME builder
    SOURCE
    builder.cc

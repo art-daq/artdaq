@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "artdaq/Application/Routing/RoutingPacket.hh"
+#include <artdaq/DAQdata/TCPConnect.hh>
 
 artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	: destinations_()
@@ -119,7 +120,12 @@ void artdaq::DataSenderManager::setupTableListener()
 	}
 
 	struct ip_mreq mreq;
-	mreq.imr_multiaddr.s_addr = inet_addr(table_address_.c_str());
+	int sts = ResolveHost(table_address_.c_str(), mreq.imr_multiaddr);
+	if(sts == -1)
+	{
+		mf::LogError("DataSenderManager") << "Unable to resolve multicast address for table updates";
+		exit(1);
+	}
 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 	if (setsockopt(table_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 	{
@@ -148,17 +154,6 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 		{
 			mf::LogDebug("DataSenderManager") << "Opening token listener socket";
 			setupTableListener();
-
-			if (table_epoll_fd_ != -1) close(table_epoll_fd_);
-			struct epoll_event ev;
-			table_epoll_fd_ = epoll_create1(0);
-			ev.events = EPOLLIN | EPOLLPRI;
-			ev.data.fd = table_socket_;
-			if (epoll_ctl(table_epoll_fd_, EPOLL_CTL_ADD, table_socket_, &ev) == -1)
-			{
-				mf::LogError("DataSenderManager") << "Could not register listen socket to epoll fd";
-				exit(3);
-			}
 		}
 		if (table_socket_ == -1 || table_epoll_fd_ == -1)
 		{
@@ -166,48 +161,43 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 			return;
 		}
 
-		std::vector<epoll_event> table_events_(4);
-		auto nfds = epoll_wait(table_epoll_fd_, &table_events_[0], table_events_.size(), -1);
-		if (nfds == -1) {
-			perror("epoll_wait");
-			exit(EXIT_FAILURE);
-		}
-		for (auto n = 0; n < nfds; ++n) {
-			auto first = artdaq::Fragment::InvalidSequenceID;
-			auto last = artdaq::Fragment::InvalidSequenceID;
-			detail::RoutingPacketHeader hdr;
-			recv(table_events_[n].data.fd, &hdr, sizeof(detail::RoutingPacketHeader), 0);
-			if (hdr.header == ROUTING_MAGIC) {
-				detail::RoutingPacket buffer(hdr.nEntries);
-				recv(table_events_[n].data.fd, &buffer[0], sizeof(detail::RoutingPacketEntry) * hdr.nEntries, 0);
-				first = buffer[0].sequence_id;
-				last = buffer[buffer.size() - 1].sequence_id;
+		auto first = artdaq::Fragment::InvalidSequenceID;
+		auto last = artdaq::Fragment::InvalidSequenceID;
+		detail::RoutingPacketHeader hdr;
+		recv(table_socket_, &hdr, sizeof(detail::RoutingPacketHeader), 0);
+		if (hdr.header == ROUTING_MAGIC) {
+			detail::RoutingPacket buffer(hdr.nEntries);
+			recv(table_socket_, &buffer[0], sizeof(detail::RoutingPacketEntry) * hdr.nEntries, 0);
+			first = buffer[0].sequence_id;
+			last = buffer[buffer.size() - 1].sequence_id;
 
+			{
+				std::unique_lock<std::mutex> lck(routing_mutex_);
+				for (auto entry : buffer)
 				{
-					std::unique_lock<std::mutex> lck(routing_mutex_);
-					for (auto entry : buffer)
-					{
-						if (routing_table_.count(entry.sequence_id)) continue;
-						routing_table_[entry.sequence_id] = entry.destination_rank;
-					}
+					if (routing_table_.count(entry.sequence_id)) continue;
+					routing_table_[entry.sequence_id] = entry.destination_rank;
 				}
-
-				detail::RoutingAckPacket ack;
-				ack.rank = my_rank;
-				ack.first_sequence_id = first;
-				ack.last_sequence_id = last;
-
-				if (ack_socket_ == -1)
-				{
-					ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-					ack_addr_.sin_addr.s_addr = inet_addr(ack_address_.c_str());
-					ack_addr_.sin_port = htons(ack_port_);
-					ack_addr_.sin_family = AF_INET;
-				}
-
-				mf::LogDebug("DataSenderManager") << "Sending RoutingAckPacket to " << ack_address_ << std::endl;
-				sendto(ack_socket_, &ack, sizeof(detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 			}
+
+			detail::RoutingAckPacket ack;
+			ack.rank = my_rank;
+			ack.first_sequence_id = first;
+			ack.last_sequence_id = last;
+
+			if (ack_socket_ == -1)
+			{
+				ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+				int sts = ResolveHost(ack_address_.c_str(), ack_port_, ack_addr_);
+				if(sts == -1)
+				{
+					mf::LogError("DataSenderManager") << "Unable to resolve routing_master_address";
+					exit(1);
+				}
+			}
+
+			mf::LogDebug("DataSenderManager") << "Sending RoutingAckPacket to " << ack_address_ << std::endl;
+			sendto(ack_socket_, &ack, sizeof(detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 		}
 	}
 }

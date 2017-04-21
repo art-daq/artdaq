@@ -1,5 +1,6 @@
 #ifndef TCPConnect_hh
 #define TCPConnect_hh
+#include <netinet/in.h>
 
 // This file (TCPConnect.hh) was created by Ron Rechenmacher <ron@fnal.gov> on
 // Sep 15, 2016. "TERMS AND CONDITIONS" governing this file are in the README
@@ -8,6 +9,8 @@
 // $RCSfile: .emacs.gnu,v $
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
+int ResolveHost(char const* host_in, in_addr& addr);
+int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin);
 int TCPConnect(char const* host_in, int dflt_port, long flags = 0, int sndbufsiz = 0);
 
 #endif	// TCPConnect_hh

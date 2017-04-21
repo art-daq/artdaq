@@ -15,7 +15,7 @@
 #include <errno.h>				// errno
 #include "trace.h"				// TRACE
 
-#include "artdaq/TransferPlugins/detail/TCP_listen_fd.hh"
+#include "artdaq/DAQdata/TCP_listen_fd.hh"
 
 int
 TCP_listen_fd(int port, int rcvbuf)

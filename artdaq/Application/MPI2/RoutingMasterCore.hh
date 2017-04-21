@@ -58,7 +58,7 @@ public:
 	bool reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t);
 
 	size_t process_event_table();
-	void send_event_table(detail::RoutingPacket table, std::vector<bool> acks = std::vector<bool>(), int level = 0);
+	void send_event_table(detail::RoutingPacket table, std::vector<bool> acks, int level = 0);
 
 	std::string report(std::string const&) const;
 

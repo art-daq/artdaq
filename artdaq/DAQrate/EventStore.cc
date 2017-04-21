@@ -17,6 +17,7 @@
 #include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 
 using namespace std;
 
@@ -113,6 +114,8 @@ namespace artdaq
 		}
 		shutdown(request_socket_, 2);
 		close(request_socket_);
+		shutdown(token_socket_, 2);
+		close(token_socket_);
 	}
 
 	void EventStore::insert(FragmentPtr pfrag,
@@ -545,14 +548,28 @@ namespace artdaq
 				mf::LogError("EventStore") << "I failed to create the socket for sending Data Requests!" << std::endl;
 				exit(1);
 			}
-			request_addr_.sin_addr.s_addr = inet_addr(request_address.c_str());
-			request_addr_.sin_port = htons(request_port_);
-			request_addr_.sin_family = AF_INET;
+			int sts = ResolveHost(request_address.c_str(), request_port_, request_addr_);
+			if(sts == -1)
+			{
+				mf::LogError("EventStore") << "Unable to resolve Data Request address";
+				exit(1);
+			}
 
 			if (multicast_out_addr_ != "localhost") {
 				struct in_addr addr;
-				addr.s_addr = inet_addr(multicast_out_addr_.c_str());
+				int sts = ResolveHost(multicast_out_addr_.c_str(), addr);
+				if(sts == -1)
+				{
+					mf::LogError("EventStore") << "Unable to resolve multicast interface address";
+					exit(1);
+				}
 
+				int yes = 1;
+				if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
+				{
+					mf::LogError("EventStore") <<"Unable to enable port reuse on request socket" << std::endl;
+					exit(1);
+				}
 				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 				{
 					mf::LogError("EventStore") << "Cannot set outgoing interface." << std::endl;
@@ -573,15 +590,12 @@ namespace artdaq
 	{
 		if (send_routing_tokens_)
 		{
-			token_socket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			token_socket_ = TCPConnect(token_address_.c_str(), token_port_);
 			if (!token_socket_)
 			{
 				mf::LogError("EventStore") << "I failed to create the socket for sending Routing Tokens!" << std::endl;
 				exit(1);
 			}
-			token_addr_.sin_addr.s_addr = inet_addr(token_address_.c_str());
-			token_addr_.sin_port = htons(token_port_);
-			token_addr_.sin_family = AF_INET;
 		}
 	}
 
@@ -612,6 +626,7 @@ namespace artdaq
 
 	void EventStore::send_routing_token_(int nSlots)
 	{
+		if (token_socket_ == -1) setup_tokens_();
 		detail::RoutingToken token;
 		token.header = TOKEN_MAGIC;
 		token.rank = my_rank;

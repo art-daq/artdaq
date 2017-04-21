@@ -18,7 +18,7 @@ namespace artdaq
 
 		virtual detail::RoutingPacket GetCurrentTable() = 0;
 		size_t GetEventBuilderCount() const { return eb_count_; }
-		virtual void AddEventBuilderToken(int rank, int new_slots_free) final;
+		virtual void AddEventBuilderToken(int rank, unsigned new_slots_free) final;
 		virtual void Reset() final { next_sequence_id_ = 0; }
 	protected:
 		Fragment::sequence_id_t next_sequence_id_;

@@ -22,24 +22,60 @@
 
 #include "trace.h"				// TRACE
 
-#include "artdaq/TransferPlugins/detail/TCPConnect.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 #include <messagefacility/MessageLogger/MessageLogger.h>
 
 using namespace std;
 
-// return connection fd.
-// 
-int TCPConnect(char const* host_in
-               , int dflt_port
-               , long flags
-               , int sndbufsiz)
+// Return sts, put result in addr
+int ResolveHost(char const* host_in, in_addr& addr)
 {
-	int s_fd, sts;
+	std::string host;
+	struct hostent* hostent_sp;
+	cmatch mm;
+	//  Note: the regex expression used by regex_match has an implied ^ and $
+	//        at the beginning and end respectively.
+	if (regex_match(host_in, mm, regex("([^:]+):(\\d+)")))
+	{
+		host = mm[1].str();
+	}
+	else if (regex_match(host_in, mm, regex(":{0,1}(\\d+)")))
+	{
+		host = std::string("127.0.0.1");
+	}
+	else if (regex_match(host_in, mm, regex("([^:]+):{0,1}")))
+	{
+		host = mm[1].str().c_str();
+	}
+	else
+	{
+		host = std::string("127.0.0.1");
+	}
+	mf::LogInfo("TCPConnect") << "Resolving host " << host;
+
+	bzero((char *)&addr, sizeof(addr));
+
+	if (regex_match(host.c_str(), mm, regex("\\d+(\\.\\d+){3}")))
+		inet_aton(host.c_str(), &addr);
+	else
+	{
+		hostent_sp = gethostbyname(host.c_str());
+		if (!hostent_sp)
+		{
+			perror("gethostbyname");
+			return (-1);
+		}
+		addr = *(struct in_addr *)(hostent_sp->h_addr_list[0]);
+	}
+	return 0;
+}
+
+// Return sts, put result in sin
+int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
+{
 	int port;
 	std::string host;
-	struct sockaddr_in sin;
 	struct hostent* hostent_sp;
-
 	cmatch mm;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
 	//        at the beginning and end respectively.
@@ -63,15 +99,7 @@ int TCPConnect(char const* host_in
 		host = std::string("127.0.0.1");
 		port = dflt_port;
 	}
-	mf::LogInfo("TCPConnect") << "Connecting to host " << host << ", on port " << std::to_string(port);
-
-	s_fd = socket(PF_INET, SOCK_STREAM/*|SOCK_NONBLOCK*/, 0); // man socket,man TCP(7P)
-
-	if (s_fd == -1)
-	{
-		perror("socket error");
-		return (-1);
-	}
+	mf::LogInfo("TCPConnect") << "Resolving host " << host << ", on port " << std::to_string(port);
 
 	bzero((char *)&sin, sizeof(sin));
 	sin.sin_family = AF_INET;
@@ -85,10 +113,36 @@ int TCPConnect(char const* host_in
 		if (!hostent_sp)
 		{
 			perror("gethostbyname");
-			close(s_fd);
 			return (-1);
 		}
 		sin.sin_addr = *(struct in_addr *)(hostent_sp->h_addr_list[0]);
+	}
+	return 0;
+}
+// return connection fd.
+// 
+int TCPConnect(char const* host_in
+			   , int dflt_port
+			   , long flags
+			   , int sndbufsiz)
+{
+	int s_fd, sts;
+	struct sockaddr_in sin;
+
+
+	s_fd = socket(PF_INET, SOCK_STREAM/*|SOCK_NONBLOCK*/, 0); // man socket,man TCP(7P)
+
+	if (s_fd == -1)
+	{
+		perror("socket error");
+		return (-1);
+	}
+
+	sts = ResolveHost(host_in, dflt_port, sin);
+	if(sts == -1)
+	{
+		close(s_fd);
+		return -1;
 	}
 
 	sts = connect(s_fd, (struct sockaddr *)&sin, sizeof(sin));

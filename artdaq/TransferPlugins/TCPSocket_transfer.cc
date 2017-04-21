@@ -24,8 +24,8 @@
 
 // artdaq Includes
 #include "artdaq/TransferPlugins/TCPSocketTransfer.hh"
-#include "artdaq/TransferPlugins/detail/TCP_listen_fd.hh"
-#include "artdaq/TransferPlugins/detail/TCPConnect.hh"
+#include "artdaq/DAQdata/TCP_listen_fd.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/TransferPlugins/detail/Timeout.hh"
 #include "artdaq/TransferPlugins/detail/SRSockets.hh"
 #include "artdaq-core/Data/Fragment.hh"

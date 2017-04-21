@@ -25,7 +25,7 @@ namespace artdaq
 		tokens->clear();
 
 		detail::RoutingPacket output;
-		auto endCondition = false;
+		auto endCondition = table.size() < GetEventBuilderCount();
 		while (!endCondition)
 		{
 			for (auto r : table)

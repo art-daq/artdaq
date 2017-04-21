@@ -21,6 +21,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sys/poll.h>
+#include <artdaq/DAQdata/TCPConnect.hh>
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	: mutex_()
@@ -176,7 +177,12 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 	}
 
 	struct ip_mreq mreq;
-	mreq.imr_multiaddr.s_addr = inet_addr(request_addr_.c_str());
+	int sts = ResolveHost(request_addr_.c_str(), mreq.imr_multiaddr);
+	if(sts == -1)
+	{
+		throw art::Exception(art::errors::Configuration) << "Unable to resolve multicast request address" << std::endl;
+		exit(1);
+	}
 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 	if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 	{
