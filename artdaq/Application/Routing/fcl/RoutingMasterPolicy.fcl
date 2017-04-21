@@ -1,0 +1,2 @@
+# event_builder_ranks: # REQUIRED, no default! FHiCL sequence listing Event Builder ranks in the system
+# event_builder_buffer_count: # REQUIRED, no default! How many completed events can be held in the EventBuilder's queue

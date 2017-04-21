@@ -423,7 +423,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, s
 		auto currentTime = artdaq::MonitoredQuantity::getCurrentTime();
 		if (currentTime - startTime > table_ack_wait_time_ms_ / 1000)
 		{
-			if (level * table_ack_wait_time_ms_ > table_update_interval_ms_)
+			if (level * table_ack_wait_time_ms_ > table_update_interval_ms_ && table_update_count_ > 0)
 			{
 				mf::LogError(name_) << "Did not receive acks from all BRs after resending table " << std::to_string(level) << " times during the table_update_interval. Aborting";
 				exit(2);

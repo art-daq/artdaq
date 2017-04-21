@@ -54,8 +54,8 @@ namespace artdaq
 		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-		, send_routing_tokens_(pset.get<bool>("send_routing_tokens", false))
-		, token_port_(pset.get<int>("routing_master_token_port", 35555))
+		, send_routing_tokens_(pset.get<bool>("send_tokens", false))
+		, token_port_(pset.get<int>("routing_token_port", 35555))
 		, token_socket_(-1)
 		, token_address_(pset.get<std::string>("routing_master_hostname", "localhost"))
 	{
@@ -94,8 +94,8 @@ namespace artdaq
 		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-		, send_routing_tokens_(pset.get<bool>("send_routing_tokens", false))
-		, token_port_(pset.get<int>("routing_master_token_port", 35555))
+		, send_routing_tokens_(pset.get<bool>("send_tokens", false))
+		, token_port_(pset.get<int>("routing_token_port", 35555))
 		, token_socket_(-1)
 		, token_address_(pset.get<std::string>("routing_master_hostname", "localhost"))
 	{
