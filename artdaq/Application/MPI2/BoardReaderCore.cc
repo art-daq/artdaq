@@ -453,8 +453,8 @@ size_t artdaq::BoardReaderCore::process_fragments()
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
 			TRACE(17, "%s::process_fragments seq=%lu sendFragment start", name_.c_str(), sequence_id);
-			sender_ptr_->sendFragment(std::move(*fragPtr));
-			TRACE(17, "%s::process_fragments seq=%lu sendFragment done", name_.c_str(), sequence_id);
+			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
+			TRACE(17, "%s::process_fragments seq=%lu sendFragment done (res=%i)", name_.c_str(), sequence_id,res);
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);

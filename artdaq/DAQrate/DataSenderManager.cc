@@ -177,8 +177,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 		artdaq::detail::RoutingPacketHeader hdr;
 
 		mf::LogDebug("DataSenderManager") << "Going to receive RoutingPacketHeader";
-		auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0,NULL,NULL);
-		mf::LogDebug("DataSenderManager") << "Received " << std::to_string(stss) << "bytes. (sizeof(RoutingPacketHeader) == " << std::to_string(sizeof(detail::RoutingPacketHeader));
+		auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, NULL, NULL);
+		mf::LogDebug("DataSenderManager") << "Received " << std::to_string(stss) << " bytes. (sizeof(RoutingPacketHeader) == " << std::to_string(sizeof(detail::RoutingPacketHeader));
 
 		mf::LogDebug("DataSenderManager") << "Checking for valid header";
 		if (hdr.header == ROUTING_MAGIC) {
@@ -191,12 +191,31 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 			first = buffer[0].sequence_id;
 			last = buffer[buffer.size() - 1].sequence_id;
 
+			if (first + hdr.nEntries - 1 != last)
+			{
+				mf::LogError("DataSenderManager") << "Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
+				continue;
+			}
+			auto thisSeqID = first;
+
 			if (routing_table_.count(last) == 0) {
 				for (auto entry : buffer)
 				{
+					if (thisSeqID != entry.sequence_id)
+					{
+						mf::LogError("DataSenderManager") << "Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!";
+						last = thisSeqID - 1;
+						break;
+					}
+					thisSeqID++;
 					if (routing_table_.count(entry.sequence_id))
 					{
-						assert(routing_table_[entry.sequence_id] == entry.destination_rank);
+						if (routing_table_[entry.sequence_id] != entry.destination_rank)
+						{
+							mf::LogError("DataSenderManager") << "Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
+								<< " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
+								<< " I will use the original value!";
+						}
 						continue;
 					}
 					routing_table_[entry.sequence_id] = entry.destination_rank;
@@ -227,10 +246,14 @@ int artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) con
 		{
 			std::unique_lock<std::mutex> lck(routing_mutex_);
 			if (routing_table_.count(sequence_id)) {
+				routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
 				return routing_table_.at(sequence_id);
 			}
 			usleep(routing_timeout_ms_ * 10);
 		}
+		routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
+		mf::LogError("DataSenderManager") << "Bad Omen: I don't have routing information for seqID " << std::to_string(sequence_id)
+			<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!";
 	}
 	else {
 		auto index = sequence_id % enabled_destinations_.size();
@@ -261,7 +284,7 @@ sendFragment(Fragment&& frag)
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
 	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBeginBytes()), fragSize);
-	int dest = -1;
+	int dest = TransferInterface::RECV_TIMEOUT;
 	if (broadcast_sends_)
 	{
 		for (auto& bdest : enabled_destinations_)
@@ -279,7 +302,13 @@ sendFragment(Fragment&& frag)
 	}
 	else
 	{
-		dest = calcDest(seqID);
+		while (dest == TransferInterface::RECV_TIMEOUT) {
+			dest = calcDest(seqID);
+			if (dest == TransferInterface::RECV_TIMEOUT)
+			{
+				mf::LogWarning("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying.";
+			}
+		}
 		if (destinations_.count(dest) && enabled_destinations_.count(dest))
 		{
 			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
@@ -297,6 +326,10 @@ sendFragment(Fragment&& frag)
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}
+		else
+		{
+			mf::LogWarning("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID;
+		}
 	}
 	if (routing_table_.find(seqID - 1) != routing_table_.end())
 	{
@@ -309,6 +342,15 @@ sendFragment(Fragment&& frag)
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 1);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 1);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 1);
+		if (use_routing_master_) {
+			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 1);
+			if (routing_wait_time_ > 0)
+			{
+				size_t wttemp = routing_wait_time_;
+				routing_wait_time_ = 0;
+				metricMan->sendMetric("Routing Wait Time", wttemp / 1000000000, "s", 1);
+			}
+		}
 	}
 	TRACE(5, "DataSenderManager::sendFragment: Done sending fragment %zu", seqID);
 	return dest;

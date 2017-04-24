@@ -274,8 +274,7 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 		{
 			auto table = policy_->GetCurrentTable();
 			if (table.size() > 0) {
-				std::vector<bool> acks(br_ranks_.size(), false);
-				send_event_table(table, acks);
+				send_event_table(table);
 				++table_update_count_;
 				delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TABLE_UPDATES_STAT_KEY, delta_time);
@@ -300,7 +299,7 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 	return table_update_count_;
 }
 
-void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, std::vector<bool> acks, int level)
+void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 {
 	// Reconnect table socket, if necessary
 	if (table_socket_ == -1)
@@ -380,67 +379,71 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, s
 		mf::LogDebug(name_) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_;
 	}
 
-	// Send table update
-	auto header = detail::RoutingPacketHeader(packet.size());
-	auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
-
-	mf::LogDebug(name_) << "Sending table information for " << std::to_string(header.nEntries) << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_;
-	if (sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, (struct sockaddr *)&send_tables_addr_, sizeof(send_tables_addr_)) < 0)
-	{
-		mf::LogError(name_) << "Error sending request message header" << std::endl;
-	}
-	if (sendto(table_socket_, &packet[0], packetSize, 0, (struct sockaddr *)&send_tables_addr_, sizeof(send_tables_addr_)) < 0)
-	{
-		mf::LogError(name_) << "Error sending request message data" << std::endl;
-	}
-
-	// Collect acks
-
-	auto first = packet[0].sequence_id;
-	auto last = packet.rbegin()->sequence_id;
-	mf::LogDebug(name_) << "Expecting acks to have first= " << std::to_string(first) << ", and last= " << std::to_string(last);
-
-
-	auto startTime = std::chrono::steady_clock::now();
+	auto acks = std::vector<bool>(br_ranks_.size(), false);
+	auto counter = 0;
 	while (std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) > 0)
 	{
-		auto currentTime = std::chrono::steady_clock::now();
-		if (static_cast<size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) > table_ack_wait_time_ms_)
+		// Send table update
+		auto header = detail::RoutingPacketHeader(packet.size());
+		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
+
+		mf::LogDebug(name_) << "Sending table information for " << std::to_string(header.nEntries) << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_;
+		if (sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, (struct sockaddr *)&send_tables_addr_, sizeof(send_tables_addr_)) < 0)
 		{
-			if (level * table_ack_wait_time_ms_ > table_update_interval_ms_ && table_update_count_ > 0)
-			{
-				mf::LogError(name_) << "Did not receive acks from all BRs after resending table " << std::to_string(level) << " times during the table_update_interval. Aborting";
-				exit(2);
-			}
-			mf::LogWarning(name_) << "Did not receive acks from all BRs within the table_ack_wait_time. Resending table update";
-			send_event_table(packet, acks, ++level);
-			break;
+			mf::LogError(name_) << "Error sending request message header" << std::endl;
+		}
+		if (sendto(table_socket_, &packet[0], packetSize, 0, (struct sockaddr *)&send_tables_addr_, sizeof(send_tables_addr_)) < 0)
+		{
+			mf::LogError(name_) << "Error sending request message data" << std::endl;
 		}
 
-		TRACE(4, "CFG::receiveRequestsLoop: Polling Request socket for new requests");
-		bool ready = true;
-		while (ready) {
-			detail::RoutingAckPacket buffer;
-			if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT,NULL,NULL) < 0) 
+		// Collect acks
+
+		auto first = packet[0].sequence_id;
+		auto last = packet.rbegin()->sequence_id;
+		mf::LogDebug(name_) << "Expecting acks to have first= " << std::to_string(first) << ", and last= " << std::to_string(last);
+
+
+		auto startTime = std::chrono::steady_clock::now();
+		while (std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) > 0)
+		{
+			auto currentTime = std::chrono::steady_clock::now();
+			if (static_cast<size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) > table_ack_wait_time_ms_)
 			{
-				if (errno == EWOULDBLOCK || errno == EAGAIN) {
-					TRACE(20,"RoutingMasterCore::send_event_table: No more ack datagrams on ack socket.");
-					ready = false;
+				if (counter * table_ack_wait_time_ms_ > table_update_interval_ms_ && table_update_count_ > 0)
+				{
+					mf::LogError(name_) << "Did not receive acks from all BRs after resending table " << std::to_string(counter) << " times during the table_update_interval. Check the status of the Board Readers!";
+					break;
+				}
+				mf::LogWarning(name_) << "Did not receive acks from all BRs within the table_ack_wait_time. Resending table update";
+				break;
+			}
+
+			TRACE(4, "CFG::receiveRequestsLoop: Polling Request socket for new requests");
+			bool ready = true;
+			while (ready) {
+				detail::RoutingAckPacket buffer;
+				if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, NULL, NULL) < 0)
+				{
+					if (errno == EWOULDBLOCK || errno == EAGAIN) {
+						TRACE(20, "RoutingMasterCore::send_event_table: No more ack datagrams on ack socket.");
+						ready = false;
+					}
+					else
+					{
+						mf::LogError(name_) << "An unexpected error occurred during ack packet receive";
+						exit(2);
+					}
 				}
 				else
 				{
-					mf::LogError(name_) << "An unexpected error occurred during ack packet receive";
-					exit(2);
-				}
-			}
-			else 
-			{
-				mf::LogDebug(name_) << "Ack packet has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id);
-				if (buffer.first_sequence_id == first && buffer.last_sequence_id == last)
-				{
-					mf::LogDebug(name_) << "Received table update acknowledgement from BoardReader with rank " << std::to_string(buffer.rank) << ".";
-					acks[buffer.rank - br_ranks_[0]] = true;
-					mf::LogDebug(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) << " acks outstanding";
+					mf::LogDebug(name_) << "Ack packet has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id);
+					if (buffer.first_sequence_id == first && buffer.last_sequence_id == last)
+					{
+						mf::LogDebug(name_) << "Received table update acknowledgement from BoardReader with rank " << std::to_string(buffer.rank) << ".";
+						acks[buffer.rank - br_ranks_[0]] = true;
+						mf::LogDebug(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) << " acks outstanding";
+					}
 				}
 			}
 		}
