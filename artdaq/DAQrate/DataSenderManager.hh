@@ -68,7 +68,6 @@ private:
 	struct sockaddr_in ack_addr_;
 	int ack_socket_;
 	int table_socket_;
-	int table_epoll_fd_;
 	std::map<Fragment::sequence_id_t, int> routing_table_;
 	mutable std::mutex routing_mutex_;
 	std::thread routing_thread_;

@@ -312,7 +312,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, s
 			exit(1);
 		}
 		int sts = ResolveHost(send_tables_address_.c_str(), send_tables_port_, send_tables_addr_);
-		if(sts == -1)
+		if (sts == -1)
 		{
 			mf::LogError(name_) << "Unable to resolve table_update_address";
 			exit(1);
@@ -323,7 +323,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, s
 			mf::LogDebug(name_) << "Making sure that multicast sending uses the correct interface for hostname " << receive_address_;
 			struct in_addr addr;
 			int sts = ResolveHost(receive_address_.c_str(), addr);
-			if(sts == -1)
+			if (sts == -1)
 			{
 				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to resolve routing_master_address" << std::endl;;
 			}
@@ -364,7 +364,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, s
 		if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 		{
 			throw art::Exception(art::errors::Configuration) <<
-				"RoutingMasterCore: Unable to enable port reuse on request socket" << std::endl;
+				"RoutingMasterCore: Unable to enable port reuse on ack socket" << std::endl;
 			exit(1);
 		}
 		memset(&si_me_request, 0, sizeof(si_me_request));
@@ -378,22 +378,6 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, s
 			exit(1);
 		}
 		mf::LogDebug(name_) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_;
-
-		struct epoll_event ev;
-		if (ack_epoll_fd_ != -1) close(ack_epoll_fd_);
-		ack_epoll_fd_ = epoll_create1(0);
-		if (ack_epoll_fd_ == -1)
-		{
-			mf::LogError(name_) << "Could not create epoll fd";
-			exit(3);
-		}
-		ev.events = EPOLLIN | EPOLLPRI;
-		ev.data.fd = ack_socket_;
-		if (epoll_ctl(ack_epoll_fd_, EPOLL_CTL_ADD, ack_socket_, &ev) == -1)
-		{
-			mf::LogError(name_) << "Could not register listen socket to epoll fd";
-			exit(3);
-		}
 	}
 
 	// Send table update
@@ -417,11 +401,11 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, s
 	mf::LogDebug(name_) << "Expecting acks to have first= " << std::to_string(first) << ", and last= " << std::to_string(last);
 
 
-	auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
+	auto startTime = std::chrono::steady_clock::now();
 	while (std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) > 0)
 	{
-		auto currentTime = artdaq::MonitoredQuantity::getCurrentTime();
-		if (currentTime - startTime > table_ack_wait_time_ms_ / 1000)
+		auto currentTime = std::chrono::steady_clock::now();
+		if (static_cast<size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) > table_ack_wait_time_ms_)
 		{
 			if (level * table_ack_wait_time_ms_ > table_update_interval_ms_ && table_update_count_ > 0)
 			{
@@ -434,25 +418,30 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet, s
 		}
 
 		TRACE(4, "CFG::receiveRequestsLoop: Polling Request socket for new requests");
-		auto nfds = epoll_wait(ack_epoll_fd_, &receive_ack_events_[0], receive_ack_events_.size(), table_ack_wait_time_ms_);
-		if (nfds == -1)
-		{
-			mf::LogError(name_) << "Error in epoll_wait, aborting";
-			exit(3);
-		}
-
-		mf::LogDebug(name_) << "Received " << nfds << " ack packet(s)";
-		for (auto n = 0; n < nfds; ++n)
-		{
+		bool ready = true;
+		while (ready) {
 			detail::RoutingAckPacket buffer;
-			recv(receive_ack_events_[n].data.fd, &buffer, sizeof(detail::RoutingAckPacket), 0);
-
-			mf::LogDebug(name_) << "Ack packet has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id);
-			if (buffer.first_sequence_id == first && buffer.last_sequence_id == last)
+			if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT,NULL,NULL) < 0) 
 			{
-				mf::LogDebug(name_) << "Received table update acknowledgement from BoardReader with rank " << std::to_string(buffer.rank) << ".";
-				acks[buffer.rank - br_ranks_[0]] = true;
-				mf::LogDebug(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) << " acks outstanding";
+				if (errno == EWOULDBLOCK || errno == EAGAIN) {
+					TRACE(20,"RoutingMasterCore::send_event_table: No more ack datagrams on ack socket.");
+					ready = false;
+				}
+				else
+				{
+					mf::LogError(name_) << "An unexpected error occurred during ack packet receive";
+					exit(2);
+				}
+			}
+			else 
+			{
+				mf::LogDebug(name_) << "Ack packet has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id);
+				if (buffer.first_sequence_id == first && buffer.last_sequence_id == last)
+				{
+					mf::LogDebug(name_) << "Received table update acknowledgement from BoardReader with rank " << std::to_string(buffer.rank) << ".";
+					acks[buffer.rank - br_ranks_[0]] = true;
+					mf::LogDebug(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) << " acks outstanding";
+				}
 			}
 		}
 	}
@@ -492,7 +481,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 		mf::LogDebug(name_) << "Received " << nfds << " events";
 		for (auto n = 0; n < nfds; ++n) {
 			if (receive_token_events_[n].data.fd == token_socket_) {
-			  mf::LogDebug(name_) << "Accepting new connection on token_socket";
+				mf::LogDebug(name_) << "Accepting new connection on token_socket";
 				sockaddr_in addr;
 				socklen_t arglen = sizeof(addr);
 				auto conn_sock = accept(token_socket_, (struct sockaddr *)&addr, &arglen);
@@ -521,7 +510,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				}
 				else
 				{
-				  mf::LogDebug(name_) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free.";
+					mf::LogDebug(name_) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free.";
 					policy_->AddEventBuilderToken(buff.rank, buff.new_slots_free);
 					received_token_count_++;
 				}

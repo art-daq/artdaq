@@ -183,7 +183,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (stop_requested_) return;
 
 		auto start_time = std::chrono::steady_clock::now();
-		TRACE(6, "DataRecevierManager::runReceiver_: Calling receiveFragment");
+		TRACE(6, "DataReceiverManager::runReceiver_: Calling receiveFragment");
 		auto fragment = std::unique_ptr<Fragment>(new Fragment());
 		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
 		TRACE(6, "DataReceiverManager::runReceiver_: Done with receiveFragment, ret=%d (should be %d)", ret, source_rank);

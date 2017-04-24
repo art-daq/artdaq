@@ -26,7 +26,6 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	, ack_address_(pset.get<std::string>("routing_master_hostname", "localhost"))
 	, ack_socket_(-1)
 	, table_socket_(-1)
-	, table_epoll_fd_(-1)
 	, routing_timeout_ms_(pset.get<int>("routing_timeout_ms", 1000))
 {
 	mf::LogDebug("DataSenderManager") << "Received pset: " << pset.to_string();
@@ -74,7 +73,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 			}
 		}
 	}
-	if(use_routing_master_)	startTableReceiverThread();
+	if (use_routing_master_)	startTableReceiverThread();
 }
 
 artdaq::DataSenderManager::~DataSenderManager()
@@ -122,7 +121,7 @@ void artdaq::DataSenderManager::setupTableListener()
 
 	struct ip_mreq mreq;
 	int sts = ResolveHost(table_address_.c_str(), mreq.imr_multiaddr);
-	if(sts == -1)
+	if (sts == -1)
 	{
 		mf::LogError("DataSenderManager") << "Unable to resolve multicast address for table updates";
 		exit(1);
@@ -132,17 +131,6 @@ void artdaq::DataSenderManager::setupTableListener()
 	{
 		mf::LogError("DataSenderManager") << "Unable to join multicast group";
 		exit(1);
-	}
-
-	if (table_epoll_fd_ != -1) close(table_epoll_fd_);
-	struct epoll_event ev;
-	table_epoll_fd_ = epoll_create1(0);
-	ev.events = EPOLLIN | EPOLLPRI;
-	ev.data.fd = table_socket_;
-	if (epoll_ctl(table_epoll_fd_, EPOLL_CTL_ADD, table_socket_, &ev) == -1)
-	{
-		mf::LogError("table_receiver") << "Could not register listen socket to epoll fd";
-		exit(3);
 	}
 }
 void artdaq::DataSenderManager::startTableReceiverThread()
@@ -167,9 +155,9 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 			mf::LogDebug("DataSenderManager") << "Opening table listener socket";
 			setupTableListener();
 		}
-		if (table_socket_ == -1 || table_epoll_fd_ == -1)
+		if (table_socket_ == -1)
 		{
-			mf::LogDebug("DataSenderManager") << "One of the listen sockets was not opened successfully.";
+			mf::LogDebug("DataSenderManager") << "The listen socket was not opened successfully.";
 			return;
 		}
 		if (ack_socket_ == -1)
@@ -181,33 +169,29 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 				mf::LogError("DataSenderManager") << "Unable to resolve routing_master_address";
 				exit(1);
 			}
+			mf::LogDebug("DataSenderManager") << "Ack socket is fd " << ack_socket_;
 		}
 
-		std::vector<epoll_event> table_events_(4);
-		auto nfds = epoll_wait(table_epoll_fd_, &table_events_[0], table_events_.size(), -1);
-		if (nfds == -1) {
-			perror("epoll_wait");
-			exit(EXIT_FAILURE);
-		}
+		auto first = artdaq::Fragment::InvalidSequenceID;
+		auto last = artdaq::Fragment::InvalidSequenceID;
+		artdaq::detail::RoutingPacketHeader hdr;
 
-		mf::LogDebug("DataSenderManager") << "Received " << nfds << " table update(s)";
-		for (auto n = 0; n < nfds; ++n) {
-			auto first = artdaq::Fragment::InvalidSequenceID;
-			auto last = artdaq::Fragment::InvalidSequenceID;
-			artdaq::detail::RoutingPacketHeader hdr;
-			recv(table_events_[n].data.fd, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0);
+		mf::LogDebug("DataSenderManager") << "Going to receive RoutingPacketHeader";
+		auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0,NULL,NULL);
+		mf::LogDebug("DataSenderManager") << "Received " << std::to_string(stss) << "bytes. (sizeof(RoutingPacketHeader) == " << std::to_string(sizeof(detail::RoutingPacketHeader));
 
-			mf::LogDebug("DataSenderManager") << "Checking for valid header";
-			if (hdr.header == ROUTING_MAGIC) {
-				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
-				mf::LogDebug("DataSenderManager") << "Receiving data buffer";
-				auto sts = recv(table_events_[n].data.fd, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
-				assert(sts == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-				TRACE(6, "Received a packet of %zu bytes", sts);
+		mf::LogDebug("DataSenderManager") << "Checking for valid header";
+		if (hdr.header == ROUTING_MAGIC) {
+			artdaq::detail::RoutingPacket buffer(hdr.nEntries);
+			mf::LogDebug("DataSenderManager") << "Receiving data buffer";
+			auto sts = recv(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
+			assert(sts == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
+			TRACE(6, "Received a packet of %zu bytes", sts);
 
-				first = buffer[0].sequence_id;
-				last = buffer[buffer.size() - 1].sequence_id;
+			first = buffer[0].sequence_id;
+			last = buffer[buffer.size() - 1].sequence_id;
 
+			if (routing_table_.count(last) == 0) {
 				for (auto entry : buffer)
 				{
 					if (routing_table_.count(entry.sequence_id))
@@ -216,17 +200,18 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 						continue;
 					}
 					routing_table_[entry.sequence_id] = entry.destination_rank;
-					mf::LogDebug("DataSenderManager") << "DataSenderMAnager " << std::to_string(my_rank) << ": received update: SeqID " << std::to_string(entry.sequence_id) << " -> Rank " << std::to_string(entry.destination_rank) << std::endl;
+					mf::LogDebug("DataSenderManager") << "DataSenderManager " << std::to_string(my_rank) << ": received update: SeqID " << std::to_string(entry.sequence_id) << " -> Rank " << std::to_string(entry.destination_rank) << std::endl;
 				}
-
-				artdaq::detail::RoutingAckPacket ack;
-				ack.rank = my_rank;
-				ack.first_sequence_id = first;
-				ack.last_sequence_id = last;
-
-				mf::LogDebug("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_;
-				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 			}
+
+			artdaq::detail::RoutingAckPacket ack;
+			ack.rank = my_rank;
+			ack.first_sequence_id = first;
+			ack.last_sequence_id = last;
+
+			mf::LogDebug("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_;
+			mf::LogDebug("DataSenderManager") << "There are now " << routing_table_.size() << " entries in the Routing Table";
+			sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 		}
 	}
 }

@@ -110,7 +110,6 @@ private:
 	std::vector<epoll_event> receive_token_events_;
 	std::unordered_map<int, std::string> receive_token_addrs_;
 	int token_epoll_fd_;
-	int ack_epoll_fd_;
 
 	//Socket parameters
 	int token_socket_;
