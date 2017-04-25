@@ -110,6 +110,7 @@ int main(int argc, char * argv[]) try
 	}
 	try {
 		metricMan_.initialize(metric_pset, "artdaqDriver");
+		metricMan_.do_start();
 	}
 	catch (...) {
 	}
@@ -189,6 +190,7 @@ int main(int argc, char * argv[]) try
 			<< "onto the queue." << std::endl;
 	}
 
+	metricMan_.do_stop();
 	return readerReturnValue;
 }
 catch (std::string & x)
