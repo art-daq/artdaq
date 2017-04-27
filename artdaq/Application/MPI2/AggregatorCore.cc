@@ -474,11 +474,17 @@ size_t artdaq::AggregatorCore::process_fragments()
 	artdaq::FragmentPtr endSubRunMsg(nullptr);
 	time_t last_filesize_check_time = subrun_start_time_;
 
-	if (is_data_logger_)
+	//	if (is_data_logger_)
+	if (true)
 	{
 		receiver_ptr_.reset(new artdaq::DataReceiverManager(data_pset_));
 		receiver_ptr_->start_threads();
 	}
+
+	if (is_data_logger_) 
+	  {
+	    sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
+	  }
 
 	mf::LogDebug(name_) << "Waiting for first fragment.";
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
@@ -492,7 +498,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
-		if (is_data_logger_)
+		//		if (is_data_logger_)
+		if (true)
 		{
 			fragmentPtr = receiver_ptr_->recvFragment(senderSlot, recvTimeout);
 		}
@@ -607,7 +614,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 			mf::LogError(name_) << "Received invalid fragment from " << senderSlot << ". This is usually the case when a timeout has occurred, but sender was not set to RECV_TIMEOUT as expected.";
 			continue;
 		}
-		if ((is_data_logger_ && !receiver_ptr_->enabled_sources().count(senderSlot)) || (!is_data_logger_ && senderSlot != data_logger_transfer_->source_rank()))
+		//		if ((is_data_logger_ && !receiver_ptr_->enabled_sources().count(senderSlot)) || (!is_data_logger_ && senderSlot != data_logger_transfer_->source_rank()))
+		if (!receiver_ptr_->enabled_sources().count(senderSlot))
 		{
 			mf::LogError(name_)
 				<< "Invalid senderSlot received from recvFragment: "
@@ -669,17 +677,20 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 		bool fragmentWasCopied = false;
-		if (is_data_logger_ && data_logger_transfer_ && (event_count_in_run_ % onmon_event_prescale_) == 0)
+		//		if (is_data_logger_ && data_logger_transfer_ && (event_count_in_run_ % onmon_event_prescale_) == 0)
+		if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0)
 		{
 			try
 			{
-				TransferInterface::CopyStatus result =
-					data_logger_transfer_->copyFragment(*fragmentPtr, 0);
+			  auto fragCopy = *fragmentPtr;
+			  sender_ptr_->sendFragment(std::move(fragCopy));
+				// TransferInterface::CopyStatus result =
+				// 	data_logger_transfer_->copyFragment(*fragmentPtr, 0);
 
-				if (result == TransferInterface::CopyStatus::kSuccess)
-				{
-					fragmentWasCopied = true;
-				}
+				// if (result == TransferInterface::CopyStatus::kSuccess)
+				// {
+				// 	fragmentWasCopied = true;
+				// }
 			}
 			catch (...)
 			{
@@ -741,9 +752,12 @@ size_t artdaq::AggregatorCore::process_fragments()
 			if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType)
 			{
 				mf::LogDebug(name_) << "Init";
-				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
+				//				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
+				if (is_data_logger_ && !fragmentWasCopied)
 				{
-					data_logger_transfer_->copyFragment(*fragmentPtr, 500000);
+				  auto fragCopy = *fragmentPtr;
+				  sender_ptr_->sendFragment(std::move(fragCopy));
+				  //	data_logger_transfer_->copyFragment(*fragmentPtr, 500000);
 				}
 
 				artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
@@ -829,9 +843,12 @@ size_t artdaq::AggregatorCore::process_fragments()
 			}
 			else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType)
 			{
-				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
+			  //				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
+			  if (is_data_logger_ && !fragmentWasCopied)
 				{
-					data_logger_transfer_->copyFragment(*fragmentPtr, 1000000);
+				  auto fragCopy = *fragmentPtr;
+				  sender_ptr_->sendFragment(std::move(fragCopy));
+				  //					data_logger_transfer_->copyFragment(*fragmentPtr, 1000000);
 				}
 				else if (is_dispatcher_)
 				{
@@ -849,9 +866,12 @@ size_t artdaq::AggregatorCore::process_fragments()
 			}
 			else if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 			{
-				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
+			  //				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
+				if (is_data_logger_ && !fragmentWasCopied)
 				{
-					data_logger_transfer_->copyFragment(*fragmentPtr, 1000000);
+				  auto fragCopy = *fragmentPtr;
+				  sender_ptr_->sendFragment(std::move(fragCopy));
+				  //					data_logger_transfer_->copyFragment(*fragmentPtr, 1000000);
 				}
 				eodFragmentsReceived++;
 				/* We count the EOD fragment as a fragment received but the SHandles class
@@ -991,6 +1011,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 	metricMan_.do_stop();
 
 	receiver_ptr_.reset(nullptr);
+	sender_ptr_.reset(nullptr);
 
 	processing_fragments_.store(false);
 	return 0;

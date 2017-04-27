@@ -283,7 +283,7 @@ sendFragment(Fragment&& frag)
 	}
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
-	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBeginBytes()), fragSize);
+	//	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBeginBytes()), fragSize);
 	int dest = TransferInterface::RECV_TIMEOUT;
 	if (broadcast_sends_)
 	{

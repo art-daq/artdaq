@@ -13,12 +13,14 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/quiet_mpi.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/Application/MPI2/StatisticsHelper.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+
 
 namespace artdaq
 {
@@ -87,6 +89,7 @@ private:
     artdaq::detail::seconds enq_timeout_;
 
 	std::unique_ptr<artdaq::DataReceiverManager> receiver_ptr_;
+	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 	std::unique_ptr<artdaq::EventStore> event_store_ptr_;
 	artdaq::RawEventQueue& event_queue_;
 	fhicl::ParameterSet previous_pset_;
