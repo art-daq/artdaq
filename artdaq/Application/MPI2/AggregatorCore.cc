@@ -678,7 +678,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 		bool fragmentWasCopied = false;
 		//		if (is_data_logger_ && data_logger_transfer_ && (event_count_in_run_ % onmon_event_prescale_) == 0)
-		if (is_data_logger_ && (event_count_in_run_ % onmon_event_prescale_) == 0)
+		if (is_data_logger_ && fragmentPtr->type() == artdaq::Fragment::DataFragmentType 
+		    && (event_count_in_run_ % onmon_event_prescale_) == 0)
 		{
 			try
 			{
@@ -866,13 +867,6 @@ size_t artdaq::AggregatorCore::process_fragments()
 			}
 			else if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 			{
-			  //				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
-				if (is_data_logger_ && !fragmentWasCopied)
-				{
-				  auto fragCopy = *fragmentPtr;
-				  sender_ptr_->sendFragment(std::move(fragCopy));
-				  //					data_logger_transfer_->copyFragment(*fragmentPtr, 1000000);
-				}
 				eodFragmentsReceived++;
 				/* We count the EOD fragment as a fragment received but the SHandles class
 				   does not count it as a fragment sent which means we need to add one to
