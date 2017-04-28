@@ -19,7 +19,7 @@
 
 // product Includes
 #define TRACE_NAME "TCPSocketTransfer"
-#include "trace.h"				// TRACE
+#include "artdaq/DAQdata/Globals.hh"
 #include <messagefacility/MessageLogger/MessageLogger.h>
 
 // artdaq Includes

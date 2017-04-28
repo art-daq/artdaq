@@ -20,8 +20,7 @@
 #include <string>
 #include <regex>
 
-#include "trace.h"				// TRACE
-
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include <messagefacility/MessageLogger/MessageLogger.h>
 

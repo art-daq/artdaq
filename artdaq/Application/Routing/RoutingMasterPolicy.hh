@@ -1,12 +1,14 @@
 #ifndef artdaq_Application_Routing_RoutingMasterPolicy_hh
 #define artdaq_Application_Routing_RoutingMasterPolicy_hh
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
 #include "fhiclcpp/fwd.h"
 #include <mutex>
 #include <deque>
+#include <unordered_set>
 
 namespace artdaq
 {
@@ -17,8 +19,9 @@ namespace artdaq
 		virtual ~RoutingMasterPolicy() {};
 
 		virtual detail::RoutingPacket GetCurrentTable() = 0;
-		size_t GetEventBuilderCount() const { return eb_count_; }
-		virtual void AddEventBuilderToken(int rank, unsigned new_slots_free) final;
+		size_t GetReceiverCount() const { return receiver_ranks_.size(); }
+		size_t GetMaxNumberOfTokens() const { return token_count_; }
+		virtual void AddReceiverToken(int rank, unsigned new_slots_free) final;
 		virtual void Reset() final { next_sequence_id_ = 0; }
 	protected:
 		Fragment::sequence_id_t next_sequence_id_;
@@ -27,7 +30,8 @@ namespace artdaq
 		void addUnusedTokens(std::unique_ptr<std::deque<int>> tokens);
 	private:
 		std::mutex tokens_mutex_;
-		size_t eb_count_;
+		size_t token_count_;
+		std::unordered_set<int> receiver_ranks_;
 		std::deque<int> tokens_;
 
 	};

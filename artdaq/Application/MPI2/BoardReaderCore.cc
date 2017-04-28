@@ -9,7 +9,6 @@
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
-#include "trace.h"
 
 #define TRACE_NAME "BoardReaderCore"
 

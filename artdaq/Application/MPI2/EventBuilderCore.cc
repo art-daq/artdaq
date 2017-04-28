@@ -9,7 +9,6 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME "EventBuilderCore"
-#include "trace.h"
 
 #include <iomanip>
 

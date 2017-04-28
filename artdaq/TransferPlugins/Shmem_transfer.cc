@@ -4,8 +4,6 @@
 
 // #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include <trace.h>
-
 #include "artdaq/DAQdata/Globals.hh"
 // #include <boost/tokenizer.hpp>
 

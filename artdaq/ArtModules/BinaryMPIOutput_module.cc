@@ -10,9 +10,9 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
-#include "trace.h"		// TRACE
 #define TRACE_NAME "BinaryMPIOutput"
 
 #include <iomanip>

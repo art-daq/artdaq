@@ -13,7 +13,6 @@
 #include "artdaq/DAQdata/Debug.hh"
 #include "artdaq/DAQrate/Utils.hh"
 
-#include "trace.h"		// TRACE
 
 /*
   Protocol: want to do a send for each request object, then wait for for
@@ -44,7 +43,7 @@ artdaq::MPITransfer::MPITransfer(fhicl::ParameterSet pset, TransferInterface::Ro
 			<< "source rank " << source_rank() << ", "
 			<< "destination rank " << destination_rank() << ", "
 			<< buffer_count_ << " buffers. ";
-		TRACE(TLVL_VERBOSE, debugstream.str().c_str());
+		TRACE(TLVL_TRACE, debugstream.str().c_str());
 	}
 
 	if (buffer_count_ == 0)

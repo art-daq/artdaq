@@ -13,8 +13,8 @@
 #include <arpa/inet.h>          /* inet_aton */
 #include <netdb.h>              /* gethostbyname */
 #include <errno.h>				// errno
-#include "trace.h"				// TRACE
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 
 int

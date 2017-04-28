@@ -1,6 +1,5 @@
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "trace.h"		// TRACE
 
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>

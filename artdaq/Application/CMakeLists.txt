@@ -6,7 +6,6 @@ art_make_library( LIBRARY_NAME artdaq_Application
   SOURCE
   ${SMC_LIB_SOURCE}
   Commandable.cc
-  configureMessageFacility
   CommandableFragmentGenerator
   makeCommandableFragmentGenerator
   LIBRARIES
@@ -16,7 +15,6 @@ art_make_library( LIBRARY_NAME artdaq_Application
   art_Utilities
   ${CANVAS_LIB_LIST}
   ${MF_MESSAGELOGGER}
-  ${MF_UTILITIES}
   ${CETLIB}
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}

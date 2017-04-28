@@ -8,8 +8,11 @@ art_make( BASENAME_ONLY
   ${ART_UTILITIES}
   ${FHICLCPP}
   ${CETLIB}
+  ${CETLIB_EXCEPT}
   ${MF_MESSAGELOGGER}
   ${MF_UTILITIES}
+  ${Boost_FILESYSTEM_LIBRARY}
+  ${Boost_SYSTEM_LIBRARY}
   )
 
 simple_plugin(GenericFragmentSimulator "generator"

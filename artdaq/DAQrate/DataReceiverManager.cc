@@ -3,7 +3,6 @@
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "trace.h"
 
 artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	: stop_requested_(false)

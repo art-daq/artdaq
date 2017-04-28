@@ -3,7 +3,7 @@
 #include <boost/program_options.hpp>
 #include <boost/lexical_cast.hpp>
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "artdaq/Application/configureMessageFacility.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Application/MPI2/EventBuilderApp.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"

@@ -1,12 +1,10 @@
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
 
 #include <chrono>
 #include <canvas/Utilities/Exception.h>
 #include <arpa/inet.h>
-#include <sys/epoll.h>
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -18,17 +16,20 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	, enabled_destinations_()
 	, sent_frag_count_()
 	, broadcast_sends_(pset.get<bool>("broadcast_sends", false))
-	, use_routing_master_(pset.get<bool>("use_routing_master", false))
 	, should_stop_(false)
-	, table_port_(pset.get<int>("table_update_port", 35556))
-	, table_address_(pset.get<std::string>("table_update_address", "227.128.12.28"))
-	, ack_port_(pset.get<int>("table_acknowledge_port", 35557))
-	, ack_address_(pset.get<std::string>("routing_master_hostname", "localhost"))
 	, ack_socket_(-1)
 	, table_socket_(-1)
-	, routing_timeout_ms_(pset.get<int>("routing_timeout_ms", 1000))
 {
 	mf::LogDebug("DataSenderManager") << "Received pset: " << pset.to_string();
+	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_table_config", fhicl::ParameterSet());
+	use_routing_master_ = rmConfig.get<bool>("use_routing_master", false);
+	table_port_ = rmConfig.get<int>("table_update_port", 35556);
+	table_address_ = rmConfig.get<std::string>("table_update_address", "227.128.12.28");
+	ack_port_ = rmConfig.get<int>("table_acknowledge_port", 35557);
+	ack_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
+	routing_timeout_ms_ = (rmConfig.get<int>("routing_timeout_ms", 1000));
+
+
 	auto dests = pset.get<fhicl::ParameterSet>("destinations", fhicl::ParameterSet());
 	for (auto& d : dests.get_pset_names())
 	{
@@ -73,7 +74,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 			}
 		}
 	}
-	if (use_routing_master_)	startTableReceiverThread();
+	if (use_routing_master_) startTableReceiverThread();
 }
 
 artdaq::DataSenderManager::~DataSenderManager()
@@ -239,6 +240,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 int artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) const
 {
 	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
+	
 	if (use_routing_master_)
 	{
 		auto start = std::chrono::steady_clock::now();
@@ -285,7 +287,7 @@ sendFragment(Fragment&& frag)
 	size_t fragSize = frag.sizeBytes();
 	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBeginBytes()), fragSize);
 	int dest = TransferInterface::RECV_TIMEOUT;
-	if (broadcast_sends_)
+	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType)
 	{
 		for (auto& bdest : enabled_destinations_)
 		{

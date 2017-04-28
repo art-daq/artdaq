@@ -12,8 +12,8 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
-#include "trace.h"
 #define TRACE_NAME "BinaryFileOutput"
 
 #include <iomanip>

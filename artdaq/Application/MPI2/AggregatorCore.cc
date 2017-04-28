@@ -13,11 +13,9 @@
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "cetlib/BasicPluginFactory.h"
 
-#include "trace.h"		// TRACE
 #include <errno.h>
 
 #include <sstream>

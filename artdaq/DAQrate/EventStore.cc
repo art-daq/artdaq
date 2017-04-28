@@ -14,8 +14,6 @@
 #include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "trace.h"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
@@ -54,15 +52,18 @@ namespace artdaq
 		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-		, send_routing_tokens_(pset.get<bool>("send_tokens", false))
-		, token_port_(pset.get<int>("routing_token_port", 35555))
 		, token_socket_(-1)
-		, token_address_(pset.get<std::string>("routing_master_hostname", "localhost"))
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+
+		auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
+		send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
+		token_port_ = rmConfig.get<int>("routing_token_port", 35555);
+		token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
 		setup_tokens_();
+
 
 		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
 	}
@@ -94,14 +95,16 @@ namespace artdaq
 		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-		, send_routing_tokens_(pset.get<bool>("send_tokens", false))
-		, token_port_(pset.get<int>("routing_token_port", 35555))
 		, token_socket_(-1)
-		, token_address_(pset.get<std::string>("routing_master_hostname", "localhost"))
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+
+		auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
+		send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
+		token_port_ = rmConfig.get<int>("routing_token_port", 35555);
+		token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
 		setup_tokens_();
 	}
 
@@ -549,7 +552,7 @@ namespace artdaq
 				exit(1);
 			}
 			int sts = ResolveHost(request_address.c_str(), request_port_, request_addr_);
-			if(sts == -1)
+			if (sts == -1)
 			{
 				mf::LogError("EventStore") << "Unable to resolve Data Request address";
 				exit(1);
@@ -558,7 +561,7 @@ namespace artdaq
 			if (multicast_out_addr_ != "localhost") {
 				struct in_addr addr;
 				int sts = ResolveHost(multicast_out_addr_.c_str(), addr);
-				if(sts == -1)
+				if (sts == -1)
 				{
 					mf::LogError("EventStore") << "Unable to resolve multicast interface address";
 					exit(1);
@@ -567,7 +570,7 @@ namespace artdaq
 				int yes = 1;
 				if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 				{
-					mf::LogError("EventStore") <<"Unable to enable port reuse on request socket" << std::endl;
+					mf::LogError("EventStore") << "Unable to enable port reuse on request socket" << std::endl;
 					exit(1);
 				}
 				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)

@@ -11,11 +11,11 @@ BOOST_AUTO_TEST_SUITE(NoOp_policy_t)
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("event_builder_buffer_count: 10 event_builder_ranks: [1,2,3,4]", ps);
+	fhicl::make_ParameterSet("receiver_buffer_count: 10 receiver_ranks: [1,2,3,4]", ps);
 
 	auto noop = artdaq::makeRoutingMasterPolicy("NoOp", ps);
 
-	BOOST_REQUIRE_EQUAL(noop->GetEventBuilderCount(), 4);
+	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 4);
 
 	auto firstTable = noop->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(firstTable.size(), 40);
@@ -25,11 +25,11 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].sequence_id, 39);
 
 	noop->Reset();
-	noop->AddEventBuilderToken(1,1);
-	noop->AddEventBuilderToken(3, 1);
-	noop->AddEventBuilderToken(2, 1);
-	noop->AddEventBuilderToken(4, 1);
-	noop->AddEventBuilderToken(2, 1);
+	noop->AddReceiverToken(1,1);
+	noop->AddReceiverToken(3, 1);
+	noop->AddReceiverToken(2, 1);
+	noop->AddReceiverToken(4, 1);
+	noop->AddReceiverToken(2, 1);
 	auto secondTable = noop->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(secondTable.size(), 5);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 3);
 	BOOST_REQUIRE_EQUAL(secondTable[4].sequence_id, 4);
 
-	noop->AddEventBuilderToken(1, 0);
+	noop->AddReceiverToken(1, 0);
 
 	auto thirdTable = noop->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 0);
