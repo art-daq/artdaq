@@ -676,8 +676,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 		if (stats_helper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
 
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
-		bool fragmentWasCopied = false;
-		//		if (is_data_logger_ && data_logger_transfer_ && (event_count_in_run_ % onmon_event_prescale_) == 0)
+
 		if (is_data_logger_ && fragmentPtr->type() == artdaq::Fragment::DataFragmentType 
 		    && (event_count_in_run_ % onmon_event_prescale_) == 0)
 		{
@@ -685,13 +684,6 @@ size_t artdaq::AggregatorCore::process_fragments()
 			{
 			  auto fragCopy = *fragmentPtr;
 			  sender_ptr_->sendFragment(std::move(fragCopy));
-				// TransferInterface::CopyStatus result =
-				// 	data_logger_transfer_->copyFragment(*fragmentPtr, 0);
-
-				// if (result == TransferInterface::CopyStatus::kSuccess)
-				// {
-				// 	fragmentWasCopied = true;
-				// }
 			}
 			catch (...)
 			{
@@ -753,12 +745,12 @@ size_t artdaq::AggregatorCore::process_fragments()
 			if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType)
 			{
 				mf::LogDebug(name_) << "Init";
-				//				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
-				if (is_data_logger_ && !fragmentWasCopied)
+
+				if (is_data_logger_)
 				{
 				  auto fragCopy = *fragmentPtr;
 				  sender_ptr_->sendFragment(std::move(fragCopy));
-				  //	data_logger_transfer_->copyFragment(*fragmentPtr, 500000);
+
 				}
 
 				artdaq::RawEvent_ptr initEvent(new artdaq::RawEvent(run_id_.run(), 1, fragmentPtr->sequenceID()));
@@ -844,12 +836,10 @@ size_t artdaq::AggregatorCore::process_fragments()
 			}
 			else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType)
 			{
-			  //				if (is_data_logger_ && data_logger_transfer_ && !fragmentWasCopied)
 			  if (is_data_logger_ && !fragmentWasCopied)
 				{
 				  auto fragCopy = *fragmentPtr;
 				  sender_ptr_->sendFragment(std::move(fragCopy));
-				  //					data_logger_transfer_->copyFragment(*fragmentPtr, 1000000);
 				}
 				else if (is_dispatcher_)
 				{
