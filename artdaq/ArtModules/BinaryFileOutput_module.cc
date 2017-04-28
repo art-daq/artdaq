@@ -114,7 +114,7 @@ initialize_FILE_()
 	if (do_direct_)
 	{
 		fd_ = open(file_name.c_str(), O_WRONLY | O_CREAT | O_DIRECT, 0660);
-		TRACE( 3, "BinaryFileOutput::initialize_FILE_ fd_=%d", fd_ );
+		TRACE( 4, "BinaryFileOutput::initialize_FILE_ fd_=%d", fd_ );
 	}
 	else
 	{
@@ -186,18 +186,18 @@ write(EventPrincipal& ep)
 		{
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
-			TRACE( 1, "BinaryFileOutput::write seq=%lu frag=%i %p bytes=0x%lx start"
+			TRACE( 2, "BinaryFileOutput::write seq=%lu frag=%i %p bytes=0x%lx start"
 				, sequence_id, fragid_id, fragment.headerBeginBytes(), fragment.sizeBytes() );
 			if (do_direct_)
 			{
 				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
-				TRACE( 2, "BinaryFileOutput::write seq=%lu frag=%i done sts=%ld errno=%d"
+				TRACE( 3, "BinaryFileOutput::write seq=%lu frag=%i done sts=%ld errno=%d"
 					, sequence_id, fragid_id, sts, errno );
 			}
 			else
 			{
 				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
-				TRACE( 2, "BinaryFileOutput::write seq=%lu frag=%i done", sequence_id, fragid_id );
+				TRACE( 3, "BinaryFileOutput::write seq=%lu frag=%i done", sequence_id, fragid_id );
 			}
 		}
 	}
