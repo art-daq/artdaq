@@ -318,18 +318,16 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 
 	try
 	{
-	        if (is_data_logger_ && daq_pset.has_key("transfer_to_dispatcher"))
+	  if (daq_pset.has_key("transfer_to_dispatcher")) {
+	        if (is_data_logger_)
 		{
 			data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kSend);
 		}
-		else if (is_online_monitor_)
+		else if (is_dispatcher_ || is_online_monitor_)
 		{
 			data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kReceive);
 		}
-		else if (is_dispatcher_)
-		{
-			data_logger_transfer_ = MakeTransferPlugin(daq_pset, "transfer_to_dispatcher", TransferInterface::Role::kReceive);
-		}
+	  }
 	}
 	catch (...)
 	{
@@ -481,9 +479,13 @@ size_t artdaq::AggregatorCore::process_fragments()
 		receiver_ptr_->start_threads();
 	}
 
-	if (is_data_logger_) 
+	if (is_data_logger_ && data_pset_.has_key("destinations"))
 	  {
 	    sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
+	    
+	    if (sender_ptr_->destinationCount() == 0) {
+	      sender_ptr_.reset(nullptr);
+	    }
 	  }
 
 	mf::LogDebug(name_) << "Waiting for first fragment.";
@@ -678,7 +680,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
 		if (is_data_logger_ && fragmentPtr->type() == artdaq::Fragment::DataFragmentType 
-		    && (event_count_in_run_ % onmon_event_prescale_) == 0)
+		    && (event_count_in_run_ % onmon_event_prescale_) == 0 && sender_ptr_)
 		{
 			try
 			{
@@ -746,7 +748,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 			{
 				mf::LogDebug(name_) << "Init";
 
-				if (is_data_logger_)
+				if (is_data_logger_ && sender_ptr_)
 				{
 				  auto fragCopy = *fragmentPtr;
 				  sender_ptr_->sendFragment(std::move(fragCopy));
@@ -836,7 +838,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 			}
 			else if (fragmentPtr->type() == artdaq::Fragment::EndOfSubrunFragmentType)
 			{
-			  if (is_data_logger_ && !fragmentWasCopied)
+			  if (is_data_logger_ && sender_ptr_)
 				{
 				  auto fragCopy = *fragmentPtr;
 				  sender_ptr_->sendFragment(std::move(fragCopy));
