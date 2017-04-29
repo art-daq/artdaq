@@ -25,6 +25,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 #include "boost/program_options.hpp"
+#include "trace.h"		// TRACE
 
 #include <signal.h>
 #include <iostream>
@@ -145,6 +146,9 @@ int main(int argc, char * argv[]) try
 	if (commandable_gen) {
 		commandable_gen->StartCmd(run, timeout, timestamp);
 	}
+
+	TRACE( 50, "driver main before store.startRun" );
+	store.startRun( run );
 
 	// Read or generate fragments as rapidly as possible, and feed them
 	// into the EventStore. The throughput resulting from this design

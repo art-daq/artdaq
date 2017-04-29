@@ -6,6 +6,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include <sys/time.h>
+#include "trace.h"		// TRACE
 
 using std::string;
 
@@ -29,6 +30,7 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 	}
 	incoming_events.setReaderIsReady();
+	TRACE( 50, "RawEventQueueReader ctor done (after incoming_events.setReaderIsReady())" );
 }
 
 void artdaq::detail::RawEventQueueReader::closeCurrentFile() {}
