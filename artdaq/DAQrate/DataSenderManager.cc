@@ -16,6 +16,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	, enabled_destinations_()
 	, sent_frag_count_()
 	, broadcast_sends_(pset.get<bool>("broadcast_sends", false))
+, non_blocking_mode_(pset.get<bool>("nonblocking_sends",false))
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
@@ -79,6 +80,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 
 artdaq::DataSenderManager::~DataSenderManager()
 {
+	mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager BEGIN";
 	for (auto& dest : enabled_destinations_)
 	{
 		if (destinations_.count(dest))
@@ -89,7 +91,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 	}
 	should_stop_ = true;
 	if (routing_thread_.joinable()) routing_thread_.join();
-	mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager. Sent " << count() << " fragments.";
+	mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager END. Sent " << count() << " fragments.";
 }
 
 
@@ -240,7 +242,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 int artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) const
 {
 	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
-	
+	if (enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
+
 	if (use_routing_master_)
 	{
 		auto start = std::chrono::steady_clock::now();
@@ -285,9 +288,9 @@ sendFragment(Fragment&& frag)
 	}
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
-	TRACE(13, "sendFragment start frag.fragmentHeader()=%p, szB=%zu", (void*)(frag.headerBeginBytes()), fragSize);
+	TLOG_ARB(13, "DataSenderManager") << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << std::to_string(fragSize) << ", seqID=" << std::to_string(seqID) << TLOG_ENDL;
 	int dest = TransferInterface::RECV_TIMEOUT;
-	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType)
+	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType)
 	{
 		for (auto& bdest : enabled_destinations_)
 		{
@@ -300,6 +303,37 @@ sendFragment(Fragment&& frag)
 				sts = destinations_[bdest]->copyFragment(fragCopy);
 			}
 			sent_frag_count_.incSlot(bdest);
+		}
+	}
+	else if(non_blocking_mode_)
+	{
+		while (dest == TransferInterface::RECV_TIMEOUT) {
+			dest = calcDest(seqID);
+			if (dest == TransferInterface::RECV_TIMEOUT)
+			{
+				mf::LogWarning("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying.";
+			}
+		}
+		if (destinations_.count(dest) && enabled_destinations_.count(dest))
+		{
+			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
+			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
+			auto lastWarnTime = std::chrono::steady_clock::now();
+			while (sts != TransferInterface::CopyStatus::kSuccess)
+			{
+				sts = destinations_[dest]->copyFragment(frag);
+				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
+				{
+					mf::LogError("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
+					lastWarnTime = std::chrono::steady_clock::now();
+				}
+			}
+			//sendFragTo(std::move(frag), dest);
+			sent_frag_count_.incSlot(dest);
+		}
+		else
+		{
+			mf::LogWarning("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID;
 		}
 	}
 	else

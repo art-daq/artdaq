@@ -57,6 +57,7 @@ private:
 	detail::FragCounter sent_frag_count_;
 
 	bool broadcast_sends_;
+	bool non_blocking_mode_;
 
 	bool use_routing_master_;
 	std::atomic<bool> should_stop_;

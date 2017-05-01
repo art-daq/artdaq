@@ -4,15 +4,10 @@
 artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
 	: next_sequence_id_(0)
 	, tokens_()
+	, max_token_count_(0)
 {
 	auto receiver_ranks = ps.get<std::vector<int>>("receiver_ranks");
-	receiver_ranks_.insert(receiver_ranks.begin(),receiver_ranks.end());
-	auto receiver_buffers = ps.get<int>("receiver_buffer_count");
-	token_count_ = receiver_ranks_.size() * receiver_buffers;
-	for(auto i = 0; i < receiver_buffers;++i)
-	{
-		for (auto rank : receiver_ranks) { tokens_.push_back(rank); }
-	}
+	receiver_ranks_.insert(receiver_ranks.begin(), receiver_ranks.end());
 }
 
 void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_free)
@@ -20,10 +15,11 @@ void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_
 	if (!receiver_ranks_.count(rank)) return;
 	TRACE(10, "RoutingMasterPolicy::AddReceiverToken BEGIN");
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
-	for(unsigned i = 0; i < new_slots_free;++i)
+	for (unsigned i = 0; i < new_slots_free; ++i)
 	{
 		tokens_.push_back(rank);
 	}
+	if (tokens_.size() > max_token_count_) max_token_count_ = tokens_.size();
 	TRACE(10, "RoutingMasterPolicy::AddReceiverToken END");
 }
 
@@ -40,8 +36,9 @@ std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot(
 void artdaq::RoutingMasterPolicy::addUnusedTokens(std::unique_ptr<std::deque<int>> tokens)
 {
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
-	for(auto token = tokens.get()->rbegin();token != tokens.get()->rend();++token)
+	for (auto token = tokens.get()->rbegin(); token != tokens.get()->rend(); ++token)
 	{
 		tokens_.push_front(*token);
 	}
+	if (tokens_.size() > max_token_count_) max_token_count_ = tokens_.size();
 }

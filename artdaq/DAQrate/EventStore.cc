@@ -356,6 +356,7 @@ namespace artdaq
 		subrun_id_ = 1;
 		lastFlushedSeqID_ = 0;
 		highestSeqIDSeen_ = 0;
+		send_routing_token_(max_queue_size_);
 		mf::LogDebug("EventStore") << "Starting run " << run_id_
 			<< ", max queue size = "
 			<< max_queue_size_
@@ -629,15 +630,24 @@ namespace artdaq
 
 	void EventStore::send_routing_token_(int nSlots)
 	{
+		if (!send_routing_tokens_) return;
 		if (token_socket_ == -1) setup_tokens_();
 		detail::RoutingToken token;
 		token.header = TOKEN_MAGIC;
 		token.rank = my_rank;
 		token.new_slots_free = nSlots;
 
-		mf::LogDebug("EventStore") << "Sending RoutingToken to " << token_address_ << std::endl;
-		send(token_socket_, &token, sizeof(detail::RoutingToken), 0);
-
+		mf::LogDebug("EventStore") << "Sending RoutingToken to " << token_address_ << ":" << token_port_;
+		size_t sts = 0;
+		while (sts < sizeof(detail::RoutingToken)) {
+			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
+			if (res == -1) {
+				usleep(1000);
+				continue;
+			}
+			sts += res;
+		}
+		mf::LogDebug("EventStore") << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
 	}
 
 	void

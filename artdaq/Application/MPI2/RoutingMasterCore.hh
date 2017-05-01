@@ -82,7 +82,6 @@ private:
 
 	std::vector<int> sender_ranks_;
 	size_t num_receivers_;
-	size_t max_token_count_;
 
 	std::unique_ptr<RoutingMasterPolicy> policy_;
 

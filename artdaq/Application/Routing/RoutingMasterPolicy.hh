@@ -20,7 +20,7 @@ namespace artdaq
 
 		virtual detail::RoutingPacket GetCurrentTable() = 0;
 		size_t GetReceiverCount() const { return receiver_ranks_.size(); }
-		size_t GetMaxNumberOfTokens() const { return token_count_; }
+		size_t GetMaxNumberOfTokens() const { return max_token_count_; }
 		virtual void AddReceiverToken(int rank, unsigned new_slots_free) final;
 		virtual void Reset() final { next_sequence_id_ = 0; }
 	protected:
@@ -29,10 +29,10 @@ namespace artdaq
 		std::unique_ptr<std::deque<int>> getTokensSnapshot();
 		void addUnusedTokens(std::unique_ptr<std::deque<int>> tokens);
 	private:
-		std::mutex tokens_mutex_;
-		size_t token_count_;
+		mutable std::mutex tokens_mutex_;
 		std::unordered_set<int> receiver_ranks_;
 		std::deque<int> tokens_;
+		size_t max_token_count_;
 
 	};
 }

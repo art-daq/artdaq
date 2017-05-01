@@ -138,7 +138,6 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	rt_priority_ = daq_pset.get<int>("rt_priority", 0);
 	sender_ranks_ = daq_pset.get<std::vector<int>>("sender_ranks");
 	num_receivers_ = policy_->GetReceiverCount();
-	max_token_count_ = policy_->GetMaxNumberOfTokens();
 
 	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
 	receive_token_events_ = std::vector<epoll_event>(num_receivers_);
@@ -155,6 +154,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelper_.createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
 
+	start_recieve_token_thread_();
 	return true;
 }
 
@@ -258,8 +258,6 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 #pragma GCC diagnostic pop
 	}
 
-	start_recieve_token_thread_();
-
 	MPI_Barrier(local_group_comm_);
 
 	TLOG_DEBUG(name_) << "Sending initial table." << TLOG_ENDL;
@@ -285,10 +283,13 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 			{
 				TLOG_WARNING(name_) << "No tokens received in this update interval! This is most likely a Very Bad Thing!" << TLOG_ENDL;
 			}
-			auto frac = table.size() * 4 / 3.0 * max_token_count_;
-			current_table_interval_ms_ = frac * current_table_interval_ms_;
-			if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
-			if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
+			auto max_tokens = policy_->GetMaxNumberOfTokens();
+			if (max_tokens > 0) {
+				auto frac = table.size() * 4 / 3.0 * max_tokens;
+				current_table_interval_ms_ = frac * current_table_interval_ms_;
+				if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
+				if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
+			}
 			nextSendTime = startTime + current_table_interval_ms_ / 1000;
 			TLOG_DEBUG(name_) << "current_table_interval_ms is now " << current_table_interval_ms_ << TLOG_ENDL;
 		}
