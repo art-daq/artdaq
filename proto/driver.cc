@@ -14,6 +14,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
@@ -25,7 +26,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 #include "boost/program_options.hpp"
-#include "trace.h"		// TRACE
 
 #include <signal.h>
 #include <iostream>
@@ -96,6 +96,7 @@ int main(int argc, char * argv[]) try
 	std::unique_ptr<artdaq::CommandableFragmentGenerator> commandable_gen =
 		dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>(gen);
 
+	artdaq::configureMessageFacility("artdaqDriver");
 	artdaq::MetricManager metricMan_;
 	metricMan = &metricMan_;
 	my_rank = 0;
@@ -107,7 +108,7 @@ int main(int argc, char * argv[]) try
 	catch (...) {} // OK if there's no metrics table defined in the FHiCL 
 
 	if (metric_pset.is_empty()) {
-		mf::LogInfo("artdaqDriver") << "No metric plugins appear to be defined";
+		TLOG_INFO("artdaqDriver") << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try {
 		metricMan_.initialize(metric_pset, "artdaqDriver");

@@ -1,5 +1,4 @@
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
@@ -133,7 +132,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		TRACE(3, "CommandableFragmentGenerator: RequestMode set to IGNORE");
 		mode_ = RequestMode::Ignored;
 	}
-	mf::LogDebug("CommandableFragmentGenerator") << "Request mode is " << printMode_();
+	TLOG_DEBUG("CommandableFragmentGenerator") << "Request mode is " << printMode_() << TLOG_ENDL;
 
 	if (mode_ != RequestMode::Ignored)
 	{
@@ -193,11 +192,11 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 
 artdaq::CommandableFragmentGenerator::~CommandableFragmentGenerator()
 {
-	mf::LogDebug("CommandableFragmentGenerator") << "Joining dataThread";
+	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining dataThread" << TLOG_ENDL;
 	if (dataThread_.joinable()) dataThread_.join();
-	mf::LogDebug("CommandableFragmentGenerator") << "Joining monitoringThread";
+	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining monitoringThread" << TLOG_ENDL;
 	if (monitoringThread_.joinable()) monitoringThread_.join();
-	mf::LogDebug("CommandableFragmentGenerator") << "Joining requestThread";
+	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining requestThread" << TLOG_ENDL;
 	if (requestThread_.joinable()) requestThread_.join();
 }
 
@@ -239,7 +238,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	{
 		latest_exception_report_ = "cet::exception caught in getNext(): ";
 		latest_exception_report_.append(e.what());
-		mf::LogError("getNext") << "cet::exception caught: " << e;
+		TLOG_ERROR("getNext") << "cet::exception caught: " << e << TLOG_ENDL;
 		set_exception(true);
 		return false;
 	}
@@ -247,7 +246,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	{
 		latest_exception_report_ = "boost::exception caught in getNext(): ";
 		latest_exception_report_.append(boost::diagnostic_information(e));
-		mf::LogError("getNext") << "boost::exception caught: " << boost::diagnostic_information(e);
+		TLOG_ERROR("getNext") << "boost::exception caught: " << boost::diagnostic_information(e) << TLOG_ENDL;
 		set_exception(true);
 		return false;
 	}
@@ -255,14 +254,14 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	{
 		latest_exception_report_ = "std::exception caught in getNext(): ";
 		latest_exception_report_.append(e.what());
-		mf::LogError("getNext") << "std::exception caught: " << e.what();
+		TLOG_ERROR("getNext") << "std::exception caught: " << e.what() << TLOG_ENDL;
 		set_exception(true);
 		return false;
 	}
 	catch (...)
 	{
 		latest_exception_report_ = "Unknown exception caught in getNext().";
-		mf::LogError("getNext") << "unknown exception caught";
+		TLOG_ERROR("getNext") << "unknown exception caught" << TLOG_ENDL;
 		set_exception(true);
 		return false;
 	}
@@ -270,7 +269,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	if (!result)
 	{
 		TRACE(4, "CFG:getNext Stopped");
-		mf::LogDebug("getNext") << "stopped ";
+		TLOG_DEBUG("getNext") << "stopped " << TLOG_ENDL;
 	}
 
 	return result;
@@ -331,7 +330,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 
 void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t timestamp)
 {
-	mf::LogDebug("CommandableFragmentGenerator") << "Stop Command received.";
+	TLOG_DEBUG("CommandableFragmentGenerator") << "Stop Command received." << TLOG_ENDL;
 	TRACE(4, "CFG: Stop Command Received");
 
 	timeout_ = timeout;
@@ -443,21 +442,21 @@ bool artdaq::CommandableFragmentGenerator::checkHWStatus_()
 void artdaq::CommandableFragmentGenerator::startDataThread()
 {
 	if (dataThread_.joinable()) dataThread_.join();
-	mf::LogInfo("CommandableFragmentGenerator") << "Starting Data Receiver Thread" << std::endl;
+	TLOG_INFO("CommandableFragmentGenerator") << "Starting Data Receiver Thread" << TLOG_ENDL;
 	dataThread_ = std::thread(&CommandableFragmentGenerator::getDataLoop, this);
 }
 
 void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 {
 	if (monitoringThread_.joinable()) monitoringThread_.join();
-	mf::LogInfo("CommandableFragmentGenerator") << "Starting Hardware Monitoring Thread" << std::endl;
+	TLOG_INFO("CommandableFragmentGenerator") << "Starting Hardware Monitoring Thread" << TLOG_ENDL;
 	monitoringThread_ = std::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
 }
 
 void artdaq::CommandableFragmentGenerator::startRequestReceiverThread()
 {
 	if (requestThread_.joinable()) requestThread_.join();
-	mf::LogInfo("CommandableFragmentGenerator") << "Starting Request Reception Thread" << std::endl;
+	TLOG_INFO("CommandableFragmentGenerator") << "Starting Request Reception Thread" << TLOG_ENDL;
 	requestThread_ = std::thread(&CommandableFragmentGenerator::receiveRequestsLoop, this);
 }
 
@@ -484,7 +483,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 	{
 		if (should_stop() || !isHardwareOK_)
 		{
-			mf::LogDebug("CommandableFragmentGenerator") << "getDataLoop: should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_;
+			TLOG_DEBUG("CommandableFragmentGenerator") << "getDataLoop: should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_ << TLOG_ENDL;
 			return;
 		}
 
@@ -498,7 +497,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		{
 			if (should_stop())
 			{
-				mf::LogDebug("CommandaleFragmentGenerator") << "Run ended while waiting for buffer to shrink!";
+				TLOG_DEBUG("CommandaleFragmentGenerator") << "Run ended while waiting for buffer to shrink!" << TLOG_ENDL;
 				std::unique_lock<std::mutex> lock(dataBufferMutex_);
 				getDataBufferStats();
 				dataCondition_.notify_all();
@@ -508,7 +507,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 			if (first || (waittime != lastwaittime && waittime % 1000 == 0))
 			{
-				mf::LogWarning("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")";
+				TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")" << TLOG_ENDL;
 				first = false;
 			}
 			if (waittime % 5 && waittime != lastwaittime)
@@ -631,8 +630,8 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 	{
 		if (should_stop() || monitoringInterval_ <= 0)
 		{
-			mf::LogDebug("CommandableFragmentGenerator") << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
-				<< " and monitoringInterval is " << monitoringInterval_ << ", returning";
+			TLOG_DEBUG("CommandableFragmentGenerator") << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
+				<< " and monitoringInterval is " << monitoringInterval_ << ", returning" << TLOG_ENDL;
 			return;
 		}
 		TRACE(4, "CFG::getMonitoringDataLoop Determining whether to call checkHWStatus_");
@@ -653,7 +652,7 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 	{
 		if (should_stop() || !isHardwareOK_)
 		{
-			mf::LogDebug("CommandableFragmentGenerator") << "receiveRequestsLoop: should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_;
+			TLOG_DEBUG("CommandableFragmentGenerator") << "receiveRequestsLoop: should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_ << TLOG_ENDL;
 			return;
 		}
 
@@ -684,10 +683,10 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 						if (!buffer.isValid()) continue;
 						if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
 						{
-							mf::LogError("CommandableFragmentGenerator") << "Received conflicting request for SeqID "
+							TLOG_ERROR("CommandableFragmentGenerator") << "Received conflicting request for SeqID "
 								<< std::to_string(buffer.sequence_id) << "!"
 								<< " Old ts=" << std::to_string(requests_[buffer.sequence_id])
-								<< ", new ts=" << std::to_string(buffer.timestamp) << ". Keeping OLD!";
+								<< ", new ts=" << std::to_string(buffer.timestamp) << ". Keeping OLD!" << TLOG_ENDL;
 						}
 						else if (!requests_.count(buffer.sequence_id))
 						{
@@ -810,7 +809,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 				bool windowClosed = mode_ != RequestMode::Window || (dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max);
 				if (windowClosed || should_stop())
 				{
-					mf::LogDebug("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-requested Fragments";
+					TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-requested Fragments" << TLOG_ENDL;
 					frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
 					frags.back()->setTimestamp(ts);
 					ContainerFragmentLoader cfl(*frags.back());
@@ -818,7 +817,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 					if (mode_ == RequestMode::Window && should_stop() && !windowClosed) cfl.set_missing_data(true);
 					if (mode_ == RequestMode::Window && dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() < min)
 					{
-						mf::LogDebug("CommandableFragmentGenerator") << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer";
+						TLOG_DEBUG("CommandableFragmentGenerator") << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer" << TLOG_ENDL;
 						cfl.set_missing_data(true);
 					}
 
@@ -868,7 +867,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 
 bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtrs& frags, size_t seqId, std::string desc)
 {
-	mf::LogWarning("CommandableFragmentGenerator") << desc << " request " << seqId << ", sending empty fragment";
+	TLOG_WARNING("CommandableFragmentGenerator") << desc << " request " << seqId << ", sending empty fragment" << TLOG_ENDL;
 	auto frag = new Fragment();
 	frag->setSequenceID(seqId);
 	frag->setSystemType(Fragment::EmptyFragmentType);

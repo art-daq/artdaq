@@ -4,7 +4,6 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/exception.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
@@ -32,6 +31,7 @@ artdaq::RoutingMasterCore::RoutingMasterCore(Commandable& parent_application,
 	parent_application_(parent_application)
 	, local_group_comm_(local_group_comm)
 	, name_(name)
+, shutdown_requested_(false)
 	, stop_requested_(false)
 	, pause_requested_(false)
 	, token_socket_(-1)
@@ -154,6 +154,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelper_.createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
 
+	shutdown_requested_.store(false);
 	start_recieve_token_thread_();
 	return true;
 }
@@ -207,6 +208,7 @@ bool artdaq::RoutingMasterCore::shutdown(uint64_t)
 {
 	policy_.reset(nullptr);
 	metricMan_.shutdown();
+	shutdown_requested_.store(true);
 	return true;
 }
 
@@ -285,12 +287,13 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 			}
 			auto max_tokens = policy_->GetMaxNumberOfTokens();
 			if (max_tokens > 0) {
-				auto frac = table.size() * 4 / 3.0 * max_tokens;
-				current_table_interval_ms_ = frac * current_table_interval_ms_;
+				auto frac = table.size() / static_cast<double>(max_tokens);
+				if (frac > 0.75) current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
+				if (frac < 0.5) current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
 				if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
 				if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
 			}
-			nextSendTime = startTime + current_table_interval_ms_ / 1000;
+			nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
 			TLOG_DEBUG(name_) << "current_table_interval_ms is now " << current_table_interval_ms_ << TLOG_ENDL;
 		}
 		else
@@ -299,7 +302,6 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 		}
 	}
 
-	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 	metricMan_.do_stop();
 
 	policy_.reset(nullptr);
@@ -421,10 +423,10 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			{
 				if (counter > max_ack_cycle_count_ && table_update_count_ > 0)
 				{
-					TLOG_ERROR(name_) << "Did not receive acks from all BRs after resending table " << std::to_string(counter) << " times during the table_update_interval. Check the status of the Board Readers!" << TLOG_ENDL;
+					TLOG_ERROR(name_) << "Did not receive acks from all senders after resending table " << std::to_string(counter) << " times during the table_update_interval. Check the status of the senders!" << TLOG_ENDL;
 					break;
 				}
-				TLOG_WARNING(name_) << "Did not receive acks from all BRs within the table_ack_wait_time. Resending table update" << TLOG_ENDL;
+				TLOG_WARNING(name_) << "Did not receive acks from all senders within the table_ack_wait_time. Resending table update" << TLOG_ENDL;
 				break;
 			}
 
@@ -449,12 +451,13 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 					TLOG_DEBUG(name_) << "Ack packet has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id) << TLOG_ENDL;
 					if (buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 					{
-						TLOG_DEBUG(name_) << "Received table update acknowledgement from BoardReader with rank " << std::to_string(buffer.rank) << "." << TLOG_ENDL;
+						TLOG_DEBUG(name_) << "Received table update acknowledgement from sender with rank " << std::to_string(buffer.rank) << "." << TLOG_ENDL;
 						acks[buffer.rank - sender_ranks_[0]] = true;
 						TLOG_DEBUG(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) << " acks outstanding" << TLOG_ENDL;
 					}
 				}
 			}
+			usleep(table_ack_wait_time_ms * 1000 / 10);
 		}
 	}
 	if (metricMan)
@@ -466,7 +469,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 
 void artdaq::RoutingMasterCore::receive_tokens_()
 {
-	while (!(stop_requested_ || pause_requested_)) {
+	while (!shutdown_requested_) {
+		TLOG_DEBUG(name_) << "Receive Token loop start" << TLOG_ENDL;
 		if (token_socket_ == -1)
 		{
 			TLOG_DEBUG(name_) << "Opening token listener socket" << TLOG_ENDL;
@@ -553,7 +557,7 @@ std::string artdaq::RoutingMasterCore::report(std::string const&) const
 	// if we haven't been able to come up with any report so far, say so
 	auto tmpString = name_ + " run number = " + std::to_string(run_id_.run())
 		+ ", table updates sent = " + std::to_string(table_update_count_)
-		+ ", EventBuilder tokens received = " + std::to_string(received_token_count_);
+		+ ", Receiver tokens received = " + std::to_string(received_token_count_);
 	return tmpString;
 }
 
@@ -616,7 +620,7 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 		metricMan_.sendMetric("Table Update Rate",
 							  stats.recentSampleRate, "updates/sec", 1);
 
-		metricMan_.sendMetric("Average BoardReader Acknowledgement Time",
+		metricMan_.sendMetric("Average Sender Acknowledgement Time",
 			(mqPtr->getRecentValueSum() / sender_ranks_.size()),
 							  "seconds", 3, false);
 	}
@@ -626,12 +630,12 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
-		metricMan_.sendMetric("EventBuilder Token Count",
+		metricMan_.sendMetric("Receiver Token Count",
 							  static_cast<unsigned long>(stats.fullSampleCount),
 							  "updates", 1);
-		metricMan_.sendMetric("EventBuilder Token Rate",
+		metricMan_.sendMetric("Receiver Token Rate",
 							  stats.recentSampleRate, "updates/sec", 1);
-		metricMan_.sendMetric("Total EventBuilder Token Wait Time",
+		metricMan_.sendMetric("Total Receiver Token Wait Time",
 							  mqPtr->getRecentValueSum(),
 							  "seconds", 3, false);
 	}

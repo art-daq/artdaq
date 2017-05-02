@@ -16,12 +16,12 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	, enabled_destinations_()
 	, sent_frag_count_()
 	, broadcast_sends_(pset.get<bool>("broadcast_sends", false))
-, non_blocking_mode_(pset.get<bool>("nonblocking_sends",false))
+	, non_blocking_mode_(pset.get<bool>("nonblocking_sends", false))
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
 {
-	mf::LogDebug("DataSenderManager") << "Received pset: " << pset.to_string();
+	TLOG_DEBUG("DataSenderManager") << "Received pset: " << pset.to_string() << TLOG_ENDL;
 	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_table_config", fhicl::ParameterSet());
 	use_routing_master_ = rmConfig.get<bool>("use_routing_master", false);
 	table_port_ = rmConfig.get<int>("table_update_port", 35556);
@@ -45,23 +45,23 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 		}
 		catch (cet::exception ex)
 		{
-			mf::LogWarning("DataSenderManager") << "Caught cet::exception: " << ex.what();
+			TLOG_WARNING("DataSenderManager") << "Caught cet::exception: " << ex.what() << TLOG_ENDL;
 		}
 		catch (...)
 		{
-			mf::LogWarning("DataSenderManager") << "Non-cet exception while setting up TransferPlugin: " << d << ".";
+			TLOG_WARNING("DataSenderManager") << "Non-cet exception while setting up TransferPlugin: " << d << "." << TLOG_ENDL;
 		}
 	}
 	if (destinations_.size() == 0)
 	{
-		mf::LogError("DataSenderManager") << "No destinations specified!";
+		TLOG_ERROR("DataSenderManager") << "No destinations specified!" << TLOG_ENDL;
 	}
 	else
 	{
 		auto enabled_dests = pset.get<std::vector<size_t>>("enabled_destinations", std::vector<size_t>());
 		if (enabled_dests.size() == 0)
 		{
-			mf::LogInfo("DataSenderManager") << "enabled_destinations not specified, assuming all destinations enabled.";
+			TLOG_INFO("DataSenderManager") << "enabled_destinations not specified, assuming all destinations enabled." << TLOG_ENDL;
 			for (auto& d : destinations_)
 			{
 				enabled_destinations_.insert(d.first);
@@ -80,7 +80,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 
 artdaq::DataSenderManager::~DataSenderManager()
 {
-	mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager BEGIN";
+	TLOG_DEBUG("DataSenderManager") << "Shutting down DataSenderManager BEGIN" << TLOG_ENDL;
 	for (auto& dest : enabled_destinations_)
 	{
 		if (destinations_.count(dest))
@@ -91,7 +91,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 	}
 	should_stop_ = true;
 	if (routing_thread_.joinable()) routing_thread_.join();
-	mf::LogDebug("DataSenderManager") << "Shutting down DataSenderManager END. Sent " << count() << " fragments.";
+	TLOG_DEBUG("DataSenderManager") << "Shutting down DataSenderManager END. Sent " << count() << " fragments." << TLOG_ENDL;
 }
 
 
@@ -100,7 +100,7 @@ void artdaq::DataSenderManager::setupTableListener()
 	table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (!table_socket_)
 	{
-		mf::LogError("DataSenderManager") << "Error creating socket for receiving table updates!";
+		TLOG_ERROR("DataSenderManager") << "Error creating socket for receiving table updates!" << TLOG_ENDL;
 		exit(1);
 	}
 
@@ -109,7 +109,7 @@ void artdaq::DataSenderManager::setupTableListener()
 	int yes = 1;
 	if (setsockopt(table_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 	{
-		mf::LogError("DataSenderManager") << " Unable to enable port reuse on request socket";
+		TLOG_ERROR("DataSenderManager") << " Unable to enable port reuse on request socket" << TLOG_ENDL;
 		exit(1);
 	}
 	memset(&si_me_request, 0, sizeof(si_me_request));
@@ -118,7 +118,7 @@ void artdaq::DataSenderManager::setupTableListener()
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind(table_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
-		mf::LogError("DataSenderManager") << "Cannot bind request socket to port " << table_port_;
+		TLOG_ERROR("DataSenderManager") << "Cannot bind request socket to port " << table_port_ << TLOG_ENDL;
 		exit(1);
 	}
 
@@ -126,20 +126,20 @@ void artdaq::DataSenderManager::setupTableListener()
 	int sts = ResolveHost(table_address_.c_str(), mreq.imr_multiaddr);
 	if (sts == -1)
 	{
-		mf::LogError("DataSenderManager") << "Unable to resolve multicast address for table updates";
+		TLOG_ERROR("DataSenderManager") << "Unable to resolve multicast address for table updates" << TLOG_ENDL;
 		exit(1);
 	}
 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 	if (setsockopt(table_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 	{
-		mf::LogError("DataSenderManager") << "Unable to join multicast group";
+		TLOG_ERROR("DataSenderManager") << "Unable to join multicast group" << TLOG_ENDL;
 		exit(1);
 	}
 }
 void artdaq::DataSenderManager::startTableReceiverThread()
 {
 	if (routing_thread_.joinable()) routing_thread_.join();
-	mf::LogInfo("DataSenderManager") << "Starting Routing Thread" << std::endl;
+	TLOG_INFO("DataSenderManager") << "Starting Routing Thread" << TLOG_ENDL;
 	routing_thread_ = std::thread(&DataSenderManager::receiveTableUpdatesLoop, this);
 }
 void artdaq::DataSenderManager::receiveTableUpdatesLoop()
@@ -148,45 +148,45 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 	{
 		if (should_stop_)
 		{
-			mf::LogDebug("DataSenderManager") << "receiveTableUpdatesLoop: should_stop is " << std::boolalpha << should_stop_;
+			TLOG_DEBUG("DataSenderManager") << "receiveTableUpdatesLoop: should_stop is " << std::boolalpha << should_stop_ << TLOG_ENDL;
 			return;
 		}
 
 		TRACE(4, "DataSenderManager::receiveTableUpdatesLoop: Polling Request socket for new requests");
 		if (table_socket_ == -1)
 		{
-			mf::LogDebug("DataSenderManager") << "Opening table listener socket";
+			TLOG_DEBUG("DataSenderManager") << "Opening table listener socket" << TLOG_ENDL;
 			setupTableListener();
 		}
 		if (table_socket_ == -1)
 		{
-			mf::LogDebug("DataSenderManager") << "The listen socket was not opened successfully.";
+			TLOG_DEBUG("DataSenderManager") << "The listen socket was not opened successfully." << TLOG_ENDL;
 			return;
 		}
 		if (ack_socket_ == -1)
 		{
 			ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-			int sts = ResolveHost(ack_address_.c_str(), ack_port_, ack_addr_);
+			auto sts = ResolveHost(ack_address_.c_str(), ack_port_, ack_addr_);
 			if (sts == -1)
 			{
-				mf::LogError("DataSenderManager") << "Unable to resolve routing_master_address";
+				TLOG_ERROR("DataSenderManager") << "Unable to resolve routing_master_address" << TLOG_ENDL;
 				exit(1);
 			}
-			mf::LogDebug("DataSenderManager") << "Ack socket is fd " << ack_socket_;
+			TLOG_DEBUG("DataSenderManager") << "Ack socket is fd " << ack_socket_ << TLOG_ENDL;
 		}
 
 		auto first = artdaq::Fragment::InvalidSequenceID;
 		auto last = artdaq::Fragment::InvalidSequenceID;
 		artdaq::detail::RoutingPacketHeader hdr;
 
-		mf::LogDebug("DataSenderManager") << "Going to receive RoutingPacketHeader";
+		TLOG_DEBUG("DataSenderManager") << "Going to receive RoutingPacketHeader" << TLOG_ENDL;
 		auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, NULL, NULL);
-		mf::LogDebug("DataSenderManager") << "Received " << std::to_string(stss) << " bytes. (sizeof(RoutingPacketHeader) == " << std::to_string(sizeof(detail::RoutingPacketHeader));
+		TLOG_DEBUG("DataSenderManager") << "Received " << std::to_string(stss) << " bytes. (sizeof(RoutingPacketHeader) == " << std::to_string(sizeof(detail::RoutingPacketHeader)) << TLOG_ENDL;
 
-		mf::LogDebug("DataSenderManager") << "Checking for valid header";
+		TLOG_DEBUG("DataSenderManager") << "Checking for valid header" << TLOG_ENDL;
 		if (hdr.header == ROUTING_MAGIC) {
 			artdaq::detail::RoutingPacket buffer(hdr.nEntries);
-			mf::LogDebug("DataSenderManager") << "Receiving data buffer";
+			TLOG_DEBUG("DataSenderManager") << "Receiving data buffer" << TLOG_ENDL;
 			auto sts = recv(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
 			assert(sts == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
 			TRACE(6, "Received a packet of %zu bytes", sts);
@@ -196,7 +196,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 
 			if (first + hdr.nEntries - 1 != last)
 			{
-				mf::LogError("DataSenderManager") << "Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
+				TLOG_ERROR("DataSenderManager") << "Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!" << TLOG_ENDL;
 				continue;
 			}
 			auto thisSeqID = first;
@@ -206,7 +206,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 				{
 					if (thisSeqID != entry.sequence_id)
 					{
-						mf::LogError("DataSenderManager") << "Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!";
+						TLOG_ERROR("DataSenderManager") << "Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!" << TLOG_ENDL;
 						last = thisSeqID - 1;
 						break;
 					}
@@ -215,14 +215,14 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 					{
 						if (routing_table_[entry.sequence_id] != entry.destination_rank)
 						{
-							mf::LogError("DataSenderManager") << "Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
+							TLOG_ERROR("DataSenderManager") << "Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
 								<< " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
-								<< " I will use the original value!";
+								<< " I will use the original value!" << TLOG_ENDL;
 						}
 						continue;
 					}
 					routing_table_[entry.sequence_id] = entry.destination_rank;
-					mf::LogDebug("DataSenderManager") << "DataSenderManager " << std::to_string(my_rank) << ": received update: SeqID " << std::to_string(entry.sequence_id) << " -> Rank " << std::to_string(entry.destination_rank) << std::endl;
+					TLOG_DEBUG("DataSenderManager") << "DataSenderManager " << std::to_string(my_rank) << ": received update: SeqID " << std::to_string(entry.sequence_id) << " -> Rank " << std::to_string(entry.destination_rank) << TLOG_ENDL;
 				}
 			}
 
@@ -231,8 +231,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 			ack.first_sequence_id = first;
 			ack.last_sequence_id = last;
 
-			mf::LogDebug("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_;
-			mf::LogDebug("DataSenderManager") << "There are now " << routing_table_.size() << " entries in the Routing Table";
+			TLOG_DEBUG("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << TLOG_ENDL;
+			TLOG_DEBUG("DataSenderManager") << "There are now " << routing_table_.size() << " entries in the Routing Table" << TLOG_ENDL;
 			sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 		}
 	}
@@ -257,8 +257,8 @@ int artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) con
 			usleep(routing_timeout_ms_ * 10);
 		}
 		routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
-		mf::LogError("DataSenderManager") << "Bad Omen: I don't have routing information for seqID " << std::to_string(sequence_id)
-			<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!";
+		TLOG_ERROR("DataSenderManager") << "Bad Omen: I don't have routing information for seqID " << std::to_string(sequence_id)
+			<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!" << TLOG_ENDL;
 	}
 	else {
 		auto index = sequence_id % enabled_destinations_.size();
@@ -305,13 +305,13 @@ sendFragment(Fragment&& frag)
 			sent_frag_count_.incSlot(bdest);
 		}
 	}
-	else if(non_blocking_mode_)
+	else if (non_blocking_mode_)
 	{
 		while (dest == TransferInterface::RECV_TIMEOUT) {
 			dest = calcDest(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
 			{
-				mf::LogWarning("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying.";
+				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying." << TLOG_ENDL;
 			}
 		}
 		if (destinations_.count(dest) && enabled_destinations_.count(dest))
@@ -324,7 +324,7 @@ sendFragment(Fragment&& frag)
 				sts = destinations_[dest]->copyFragment(frag);
 				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
 				{
-					mf::LogError("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
+					TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying..." << TLOG_ENDL;
 					lastWarnTime = std::chrono::steady_clock::now();
 				}
 			}
@@ -333,7 +333,7 @@ sendFragment(Fragment&& frag)
 		}
 		else
 		{
-			mf::LogWarning("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID;
+			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID << TLOG_ENDL;
 		}
 	}
 	else
@@ -342,7 +342,7 @@ sendFragment(Fragment&& frag)
 			dest = calcDest(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
 			{
-				mf::LogWarning("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying.";
+				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying." << TLOG_ENDL;
 			}
 		}
 		if (destinations_.count(dest) && enabled_destinations_.count(dest))
@@ -355,7 +355,7 @@ sendFragment(Fragment&& frag)
 				sts = destinations_[dest]->moveFragment(std::move(frag));
 				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
 				{
-					mf::LogError("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
+					TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying..." << TLOG_ENDL;
 					lastWarnTime = std::chrono::steady_clock::now();
 				}
 			}
@@ -364,7 +364,7 @@ sendFragment(Fragment&& frag)
 		}
 		else
 		{
-			mf::LogWarning("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID;
+			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID << TLOG_ENDL;
 		}
 	}
 	if (routing_table_.find(seqID - 1) != routing_table_.end())

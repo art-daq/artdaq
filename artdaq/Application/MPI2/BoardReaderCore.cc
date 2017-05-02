@@ -5,7 +5,6 @@
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/exception.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
@@ -35,7 +34,7 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
 																					  , stop_requested_(false)
 																					  , pause_requested_(false)
 {
-	mf::LogDebug(name_) << "Constructor";
+	TLOG_DEBUG(name_) << "Constructor" << TLOG_ENDL;
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PROCESSED_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
@@ -49,7 +48,7 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
  */
 artdaq::BoardReaderCore::~BoardReaderCore()
 {
-	mf::LogDebug(name_) << "Destructor";
+	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
 }
 
 /**
@@ -57,9 +56,9 @@ artdaq::BoardReaderCore::~BoardReaderCore()
  */
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	mf::LogDebug(name_) << "initialize method called with "
+	TLOG_DEBUG(name_) << "initialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -69,9 +68,9 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\".";
+			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 	fhicl::ParameterSet fr_pset;
@@ -82,9 +81,9 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "Unable to find the fragment_receiver parameters in the DAQ "
-			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
+			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 
@@ -98,7 +97,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 	if (metric_pset.is_empty())
 	{
-		mf::LogInfo(name_) << "No metric plugins appear to be defined";
+		TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try
 	{
@@ -114,10 +113,10 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "No fragment generator (parameter name = \"generator\") was "
 			<< "specified in the fragment_receiver ParameterSet.  The "
-			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\".";
+			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 
@@ -133,7 +132,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
 
-		mf::LogDebug(name_) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string();
+		TLOG_DEBUG(name_) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string() << TLOG_ENDL;
 
 		return false;
 	}
@@ -149,17 +148,17 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		mpi_sync_wait_threshold_count_ = mpi_sync_fragment_interval_ * mpi_sync_wait_threshold_fraction_;
 		if (mpi_sync_wait_threshold_count_ >= mpi_sync_fragment_interval_)
 		{
-			mf::LogWarning(name_) << "The calculated mpi_sync wait threshold "
+			TLOG_WARNING(name_) << "The calculated mpi_sync wait threshold "
 				<< "(" << mpi_sync_wait_threshold_count_ << " fragments) "
 				<< "is too large, setting it to "
-				<< (mpi_sync_fragment_interval_ - 1) << ".";
+				<< (mpi_sync_fragment_interval_ - 1) << "." << TLOG_ENDL;
 			mpi_sync_wait_threshold_count_ = mpi_sync_fragment_interval_ - 1;
 		}
 		if (mpi_sync_wait_threshold_count_ < 0)
 		{
-			mf::LogWarning(name_) << "The calculated mpi_sync wait threshold "
+			TLOG_WARNING(name_) << "The calculated mpi_sync wait threshold "
 				<< "(" << mpi_sync_wait_threshold_count_ << " fragments) "
-				<< "is too small, setting it to zero.";
+				<< "is too small, setting it to zero." << TLOG_ENDL;
 			mpi_sync_wait_threshold_count_ = 0;
 		}
 		mpi_sync_wait_interval_usec_ = fr_pset.get<size_t>("mpi_sync_wait_interval_usec", 100);
@@ -174,13 +173,13 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		mpi_sync_wait_log_level_ = 0;
 		mpi_sync_wait_log_interval_sec_ = 10;
 	}
-	mf::LogDebug(name_)
+	TLOG_DEBUG(name_)
 		<< "mpi_sync_fragment_interval is " << mpi_sync_fragment_interval_
 		<< ", mpi_sync_wait_threshold_fraction is " << mpi_sync_wait_threshold_fraction_
 		<< ", mpi_sync_wait_threshold_count is " << mpi_sync_wait_threshold_count_
 		<< ", mpi_sync_wait_interval_usec is " << mpi_sync_wait_interval_usec_
 		<< ", mpi_sync_wait_log_level is " << mpi_sync_wait_log_level_
-		<< ", mpi_sync_wait_log_interval_sec is " << mpi_sync_wait_log_interval_sec_;
+		<< ", mpi_sync_wait_log_interval_sec is " << mpi_sync_wait_log_interval_sec_ << TLOG_ENDL;
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
@@ -204,16 +203,16 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	generator_ptr_->StartCmd(id.run(), timeout, timestamp);
 	run_id_ = id;
 
-	mf::LogDebug(name_) << "Started run " << run_id_.run() <<
-		", timeout = " << timeout << ", timestamp = " << timestamp << std::endl;
+	TLOG_DEBUG(name_) << "Started run " << run_id_.run() <<
+		", timeout = " << timeout << ", timestamp = " << timestamp << TLOG_ENDL;
 	return true;
 }
 
 bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 {
-	mf::LogDebug(name_) << "Stopping run " << run_id_.run()
+	TLOG_DEBUG(name_) << "Stopping run " << run_id_.run()
 		<< " after " << fragment_count_
-		<< " fragments.";
+		<< " fragments." << TLOG_ENDL;
 	stop_requested_.store(true);
 	generator_ptr_->StopCmd(timeout, timestamp);
 	return true;
@@ -221,9 +220,9 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 
 bool artdaq::BoardReaderCore::pause(uint64_t timeout, uint64_t timestamp)
 {
-	mf::LogDebug(name_) << "Pausing run " << run_id_.run()
+	TLOG_DEBUG(name_) << "Pausing run " << run_id_.run()
 		<< " after " << fragment_count_
-		<< " fragments.";
+		<< " fragments." << TLOG_ENDL;
 	pause_requested_.store(true);
 	generator_ptr_->PauseCmd(timeout, timestamp);
 	return true;
@@ -231,7 +230,7 @@ bool artdaq::BoardReaderCore::pause(uint64_t timeout, uint64_t timestamp)
 
 bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 {
-	mf::LogDebug(name_) << "Resuming run " << run_id_.run();
+	TLOG_DEBUG(name_) << "Resuming run " << run_id_.run() << TLOG_ENDL;
 	pause_requested_.store(false);
 	metricMan_.do_start();
 	generator_ptr_->ResumeCmd(timeout, timestamp);
@@ -247,17 +246,17 @@ bool artdaq::BoardReaderCore::shutdown(uint64_t)
 
 bool artdaq::BoardReaderCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	mf::LogDebug(name_) << "soft_initialize method called with "
+	TLOG_DEBUG(name_) << "soft_initialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 	return true;
 }
 
 bool artdaq::BoardReaderCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	mf::LogDebug(name_) << "reinitialize method called with "
+	TLOG_DEBUG(name_) << "reinitialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 	return true;
 }
 
@@ -270,7 +269,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
 		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param))
-			mf::LogWarning(name_) << "setting realtime priority failed";
+			TLOG_WARNING(name_) << "setting realtime priority failed" << TLOG_ENDL;
 #pragma GCC diagnostic pop
 	}
 
@@ -286,9 +285,9 @@ size_t artdaq::BoardReaderCore::process_fragments()
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
 		if (status != 0)
 		{
-			mf::LogError(name_)
+			TLOG_ERROR(name_)
 				<< "Failed to set realtime priority to " << rt_priority_
-				<< ", return code = " << status;
+				<< ", return code = " << status << TLOG_ENDL;
 		}
 #pragma GCC diagnostic pop
 	}
@@ -297,7 +296,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 
 	MPI_Barrier(local_group_comm_);
 
-	mf::LogDebug(name_) << "Waiting for first fragment.";
+	TLOG_DEBUG(name_) << "Waiting for first fragment." << TLOG_ENDL;
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
 	artdaq::FragmentPtrs frags;
@@ -332,8 +331,8 @@ size_t artdaq::BoardReaderCore::process_fragments()
 		{
 			if (!fragPtr.get())
 			{
-				mf::LogWarning(name_) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
-					<< "This is most likely caused by a problem with the Fragment Generator!";
+				TLOG_WARNING(name_) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
+					<< "This is most likely caused by a problem with the Fragment Generator!" << TLOG_ENDL;
 				continue;
 			}
 			artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
@@ -341,9 +340,9 @@ size_t artdaq::BoardReaderCore::process_fragments()
 
 			if ((fragment_count_ % 250) == 0)
 			{
-				mf::LogDebug(name_)
+				TLOG_DEBUG(name_)
 					<< "Sending fragment " << fragment_count_
-					<< " with sequence id " << sequence_id << ".";
+					<< " with sequence id " << sequence_id << "." << TLOG_ENDL;
 			}
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
@@ -367,9 +366,9 @@ size_t artdaq::BoardReaderCore::process_fragments()
 				int retcode = MPI_Test(&mpi_request, &test_flag, &mpi_status);
 				if (retcode != MPI_SUCCESS)
 				{
-					mf::LogError(name_)
+					TLOG_ERROR(name_)
 						<< "MPI_Test for Ibarrier completion failed with return code "
-						<< retcode;
+						<< retcode << TLOG_ENDL;
 				}
 
 				if (test_flag != 0)
@@ -394,15 +393,15 @@ size_t artdaq::BoardReaderCore::process_fragments()
 								{
 									if (retcode != MPI_SUCCESS)
 									{
-										mf::LogError(name_)
+										TLOG_ERROR(name_)
 											<< "MPI_Test for Ibarrier completion failed with return code "
-											<< retcode;
+											<< retcode << TLOG_ENDL;
 									}
 									else
 									{
 										if (mpi_sync_wait_log_level_ == 2)
 										{
-											mf::LogWarning(name_)
+											TLOG_WARNING(name_)
 												<< "Waiting for one or more BoardReaders to catch up "
 												<< "so that the sending of data fragments is reasonably "
 												<< "well synchronized (fragment count is currently "
@@ -410,11 +409,11 @@ size_t artdaq::BoardReaderCore::process_fragments()
 												<< "). If this situation persists, it may indicate that "
 												<< "the data flow from one or more BoardReaders has "
 												<< "stopped, possibly because of a problem reading out "
-												<< "the associated hardware component(s).";
+												<< "the associated hardware component(s)." << TLOG_ENDL;
 										}
 										else if (mpi_sync_wait_log_level_ == 3)
 										{
-											mf::LogError(name_)
+											TLOG_ERROR(name_)
 												<< "Waiting for one or more BoardReaders to catch up "
 												<< "so that the sending of data fragments is reasonably "
 												<< "well synchronized (fragment count is currently "
@@ -422,7 +421,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 												<< "). If this situation persists, it may indicate that "
 												<< "the data flow from one or more BoardReaders has "
 												<< "stopped, possibly because of a problem reading out "
-												<< "the associated hardware component(s).";
+												<< "the associated hardware component(s)." << TLOG_ENDL;
 										}
 									}
 									last_report_time = now;
@@ -443,10 +442,10 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			// check for continous sequence IDs
 			if (!skip_seqId_test_ && abs(sequence_id - prev_seq_id_) > 1)
 			{
-				mf::LogWarning(name_)
+				TLOG_WARNING(name_)
 					<< "Missing sequence IDs: current sequence ID = "
 					<< sequence_id << ", previous sequence ID = "
-					<< prev_seq_id_ << ".";
+					<< prev_seq_id_ << "." << TLOG_ENDL;
 			}
 			prev_seq_id_ = sequence_id;
 
@@ -462,13 +461,13 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			if (readyToReport)
 			{
 				std::string statString = buildStatisticsString_();
-				mf::LogDebug(name_) << statString;
+				TLOG_DEBUG(name_) << statString << TLOG_ENDL;
 			}
 			if (fragment_count_ == 1 || readyToReport)
 			{
-				mf::LogDebug(name_)
+				TLOG_DEBUG(name_)
 					<< "Sending fragment " << fragment_count_
-					<< " with sequence id " << sequence_id << ".";
+					<< " with sequence id " << sequence_id << "." << TLOG_ENDL;
 			}
 		}
 		if (statsHelper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
@@ -595,7 +594,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 
 void artdaq::BoardReaderCore::sendMetrics_()
 {
-	//mf::LogDebug("BoardReaderCore") << "Sending metrics " << __LINE__;
+	//TLOG_DEBUG("BoardReaderCore") << "Sending metrics " << __LINE__ << TLOG_ENDL;
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);

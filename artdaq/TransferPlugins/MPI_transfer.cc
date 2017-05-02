@@ -4,12 +4,10 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/exception.h"
 #include "cetlib/container_algorithms.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "artdaq-core/Data/Fragment.hh"
 
 #include "artdaq/DAQrate/MPITag.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/Debug.hh"
 #include "artdaq/DAQrate/Utils.hh"
 
@@ -101,7 +99,7 @@ artdaq::MPITransfer::
 receiveFragment(Fragment& output, size_t timeout_usec)
 {
 	TRACE(6, "MPITransfer::receiveFragment entered tmo=%lu us", timeout_usec);
-	//mf::LogDebug(uniqueLabel()) << "Start of receiveFragment";
+	//TLOG_DEBUG(uniqueLabel()) << "Start of receiveFragment" << TLOG_ENDL;
 	int wait_result;
 	int which;
 	MPI_Status status;
@@ -156,7 +154,7 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 }
 #else
 		int flag = 0;
-		//mf::LogInfo(uniqueLabel()) << "Before first Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag;
+		//TLOG_INFO(uniqueLabel()) << "Before first Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag << TLOG_ENDL;
 		{
 			std::unique_lock<std::mutex> lk(mpi_mutex_);
 			wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which, &flag, &status);
@@ -173,7 +171,7 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 			for (size_t idx = 0; idx < sleep_loops; ++idx)
 			{
 				usleep(sleep_time);
-				//mf::LogInfo(uniqueLabel()) << "Before second Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag;
+				//TLOG_INFO(uniqueLabel()) << "Before second Testany buffer_count_=" << buffer_count_ << ", reqs_.size()=" << reqs_.size() << ", &reqs_[0]=" << &reqs_[0] << ", which=" << which << ", flag=" << flag << TLOG_ENDL;
 				{
 					std::unique_lock<std::mutex> lk(mpi_mutex_);
 					wait_result = MPI_Testany(buffer_count_, &reqs_[0], &which, &flag, &status);
@@ -194,7 +192,7 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 			wait_result = MPI_Waitany(buffer_count_, &reqs_[0], &which, &status);
 		}
 	}
-	//mf::LogInfo(uniqueLabel()) << "After testing/waiting res=" << wait_result;
+	//TLOG_INFO(uniqueLabel()) << "After testing/waiting res=" << wait_result << TLOG_ENDL;
 	TRACE(8, "recvFragment recvd");
 
 	if (which == MPI_UNDEFINED)
@@ -222,7 +220,7 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 			<< " preAutoResize_Fragment_dataSize=" << payload_[which].dataSize()
 			<< " fragID=" << payload_[which].fragmentID()
 			<< '\n';
-		//mf::LogInfo(uniqueLabel()) << debugstream.str();
+		//TLOG_INFO(uniqueLabel()) << debugstream.str() << TLOG_ENDL;
 		TRACE(4, debugstream.str().c_str());
 	}
 	char err_buffer[MPI_MAX_ERROR_STRING];
@@ -233,18 +231,18 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 		break;
 	case MPI_ERR_IN_STATUS:
 		MPI_Error_string(status.MPI_ERROR, err_buffer, &resultlen);
-		mf::LogError(uniqueLabel())
-			<< "MPITransfer: Waitany ERROR: " << err_buffer << "\n";
+		TLOG_ERROR(uniqueLabel())
+			<< "MPITransfer: Waitany ERROR: " << err_buffer << "\n" << TLOG_ENDL;
 		break;
 	default:
 		MPI_Error_string(wait_result, err_buffer, &resultlen);
-		mf::LogError(uniqueLabel())
-			<< "MPITransfer: Waitany ERROR: " << err_buffer << "\n";
+		TLOG_ERROR(uniqueLabel())
+			<< "MPITransfer: Waitany ERROR: " << err_buffer << "\n" << TLOG_ENDL;
 	}
 	// The Fragment at index 'which' is now available.
 	// Resize (down) to size to remove trailing garbage.
 	TRACE(7, "recvFragment before autoResize/swap");
-	//mf::LogInfo(uniqueLabel()) << "receiveFragment before resizing for output";
+	//TLOG_INFO(uniqueLabel()) << "receiveFragment before resizing for output" << TLOG_ENDL;
 	payload_[which].autoResize();
 	output.swap(payload_[which]);
 	TRACE(7, "recvFragment after autoResize/swap seqID=%lu. "
@@ -266,7 +264,7 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 			debugstream << "Received EOD from source " << status.MPI_SOURCE
 				<< "  expecting total of "
 				<< *output.dataBegin() << " fragments" << '\n';
-			//mf::LogInfo(uniqueLabel()) << debugstream.str();
+			//TLOG_INFO(uniqueLabel()) << debugstream.str() << TLOG_ENDL;
 			TRACE(4, debugstream.str().c_str());
 		}
 	}
@@ -284,7 +282,7 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 				<< " against expected total "
 				<< expected_count_
 				<< '\n';
-			//mf::LogInfo(uniqueLabel()) << debugstream.str();
+			//TLOG_INFO(uniqueLabel()) << debugstream.str() << TLOG_ENDL;
 			TRACE(4, debugstream.str().c_str());
 		}
 		if (recvd_count_ == expected_count_)
@@ -317,7 +315,7 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 	{
 		post_(which);
 	}
-	//mf::LogInfo(uniqueLabel()) << "End of receiveFragment";
+	//TLOG_INFO(uniqueLabel()) << "End of receiveFragment" << TLOG_ENDL;
 	return status.MPI_SOURCE;
 }
 
@@ -346,7 +344,7 @@ cancelReq_(size_t buf, bool blocking_wait)
 			<< buf
 			<< '\n';
 		TRACE(4, debugstream.str().c_str());
-		//mf::LogInfo(uniqueLabel()) << debugstream.str();
+		//TLOG_INFO(uniqueLabel()) << debugstream.str() << TLOG_ENDL;
 	}
 
 	std::unique_lock<std::mutex> lk(mpi_mutex_);
@@ -374,9 +372,9 @@ cancelReq_(size_t buf, bool blocking_wait)
 				}
 				if (!doneFlag)
 				{
-					mf::LogError(uniqueLabel())
+					TLOG_ERROR(uniqueLabel())
 						<< "MPITransfer::cancelReq_: Timeout waiting to cancel the request for MPI buffer "
-						<< buf;
+						<< buf << TLOG_ENDL;
 				}
 			}
 		}
@@ -409,7 +407,7 @@ post_(size_t buf)
 			<< " header address=0x" << std::hex << payload_[buf].headerAddress() << std::dec
 			<< '\n';
 		TRACE(4, debugstream.str().c_str());
-		//mf::LogInfo(uniqueLabel()) << debugstream.str();
+		//TLOG_INFO(uniqueLabel()) << debugstream.str() << TLOG_ENDL;
 	}
 
 	std::unique_lock<std::mutex> lk(mpi_mutex_);

@@ -142,9 +142,9 @@ bool
 art::BinaryFileOutput::
 readParameterSet_(fhicl::ParameterSet const& pset)
 {
-	mf::LogDebug(name_) << "BinaryFileOutput::readParameterSet_ method called with "
+	TLOG_DEBUG(name_) << "BinaryFileOutput::readParameterSet_ method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 	// determine the data sending parameters
 	try
 	{
@@ -152,10 +152,10 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "The fileName parameter was not specified "
 			<< "in the BinaryMPIOutput initialization PSet: \""
-			<< pset.to_string() << "\".";
+			<< pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 	do_direct_ = pset.get<bool>("directIO", false);

@@ -1,3 +1,4 @@
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
@@ -12,7 +13,6 @@
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "TClass.h"
 #include "TBufferFile.h"
@@ -72,11 +72,11 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 {
 	if (sender_ptr_ == nullptr)
 	{
-		mf::LogDebug("NetMonTransportService") << "Reconnecting DataSenderManager";
+		TLOG_DEBUG("NetMonTransportService") << "Reconnecting DataSenderManager" << TLOG_ENDL;
 		connect();
 	}
 
-	mf::LogDebug("NetMonTransportService") << "Sending message";
+	TLOG_DEBUG("NetMonTransportService") << "Sending message" << TLOG_ENDL;
 	artdaq::NetMonHeader header;
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment

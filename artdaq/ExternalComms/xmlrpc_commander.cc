@@ -23,8 +23,8 @@
 #include "canvas/Persistency/Provenance/RunID.h"
 
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/make_ParameterSet.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 namespace
 {
@@ -227,22 +227,22 @@ namespace
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				mf::LogError("XMLRPC_Commander") << msg;
+				TLOG_ERROR("XMLRPC_Commander") << msg << TLOG_ENDL;
 			} catch (art::Exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				mf::LogError("XMLRPC_Commander") << msg;
+				TLOG_ERROR("XMLRPC_Commander") << msg << TLOG_ENDL;
 			} catch (cet::exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				mf::LogError("XMLRPC_Commander") << msg;
+				TLOG_ERROR("XMLRPC_Commander") << msg << TLOG_ENDL;
 			} catch (...)
 			{
 				std::string msg = exception_msg("Unknown exception", _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				mf::LogError("XMLRPC_Commander") << msg;
+				TLOG_ERROR("XMLRPC_Commander") << msg << TLOG_ENDL;
 			}
 		}
 		else
@@ -535,9 +535,9 @@ private:								\
       shutdown_ (xmlrpc_c::serverAbyss *server): _server(server) {}
 
       virtual void doit (const std::string& paramString, void*) const {
-        mf::LogInfo("XMLRPC_Commander") << "A shutdown command was sent "
+        TLOG_INFO("XMLRPC_Commander") << "A shutdown command was sent "
                                         << "with parameter "
-                                        << paramString << "\"";
+                                        << paramString << "\"" << TLOG_ENDL;
 	_server->terminate ();
       }
     private:
@@ -642,7 +642,7 @@ void xmlrpc_commander::run() try
   registry.setShutdown (&shutdown_obj);
 #endif
 
-	mf::LogDebug("XMLRPC_Commander") << "running server" << std::endl;
+	TLOG_DEBUG("XMLRPC_Commander") << "running server" << TLOG_ENDL;
 
 	// JCF, 6/3/15
 
@@ -656,13 +656,13 @@ void xmlrpc_commander::run() try
 	}
 	catch (...)
 	{
-		mf::LogWarning("XMLRPC_Commander") << "server threw an exception; closing the socket and rethrowing" << std::endl;
+		TLOG_WARNING("XMLRPC_Commander") << "server threw an exception; closing the socket and rethrowing" << TLOG_ENDL;
 		close(socket_file_descriptor);
 		throw;
 	}
 
 	close(socket_file_descriptor);
-	mf::LogDebug("XMLRPC_Commander") << "server terminated" << std::endl;
+	TLOG_DEBUG("XMLRPC_Commander") << "server terminated" << TLOG_ENDL;
 }
 catch (...)
 {

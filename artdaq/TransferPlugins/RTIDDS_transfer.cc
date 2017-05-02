@@ -3,9 +3,6 @@
 #include "artdaq/RTIDDS/RTIDDS.hh"
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
-
-#include "messagefacility/MessageLogger/MessageLogger.h"
-
 #include <memory>
 #include <iostream>
 
@@ -71,8 +68,8 @@ size_t artdaq::RTIDDSTransfer::receiveFragment(artdaq::Fragment& fragment,
 	//      consecutive_timeouts++;
 
 	//      if (consecutive_timeouts % message_after_N_timeouts == 0) {
-	//	mf::LogInfo("RTIDDSTransfer") << consecutive_timeouts << " consecutive " << 
-	//	  static_cast<float>(receiveTimeout)/1e6 << "-second timeouts calling OctetsListener::receiveFragmentFromDDS, will continue trying...";
+	//	TLOG_INFO("RTIDDSTransfer") << consecutive_timeouts << " consecutive " << 
+	//	  static_cast<float>(receiveTimeout)/1e6 << "-second timeouts calling OctetsListener::receiveFragmentFromDDS, will continue trying..." << TLOG_ENDL;
 	//      }
 	//    } else {
 	//      consecutive_timeouts = 0;

@@ -108,7 +108,7 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	if (artdaqMfextensionsDir != nullptr)
 	{
 		ss << "    trace : { "
-			<< "       type : \"TRACE\" threshold : \"DEBUG\" format:{noLineBreaks: true} lvls: 0x7 lvlm: 0"
+			<< "       type : \"TRACE\" threshold : \"DEBUG\" format:{noLineBreaks: true} lvls: 0x7 lvlm: 0xF"
 			<< "    }";
 	}
 

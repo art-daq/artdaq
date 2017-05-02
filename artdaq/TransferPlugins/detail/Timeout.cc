@@ -17,7 +17,7 @@ OR
 #include <list>
 using std::list;
 #include "artdaq/TransferPlugins/detail/Timeout.hh"
-#include "trace.h"				// TRACE
+#include "artdaq/DAQdata/Globals.hh"				// TRACE
 
 // public:
 

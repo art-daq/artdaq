@@ -1,4 +1,4 @@
-#include "messagefacility/MessageLogger/MessageLogger.h"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "cetlib/exception.h"
@@ -33,15 +33,15 @@ MPISentry(int* argc_ptr,
 		<< threading_level << ", actual support level = "
 		<< threading_level_ << ".";
 
-	mf::LogDebug("MPISentry") << threadresult.str();
+	TLOG_DEBUG("MPISentry") << threadresult.str() << TLOG_ENDL;
 
 	if (threading_level != threading_level_) throw cet::exception("MPISentry") << threadresult.str();
 
-	mf::LogDebug("MPISentry")
+	TLOG_DEBUG("MPISentry")
 		<< "size = "
 		<< procs_
 		<< ", rank = "
-		<< rank_;
+		<< rank_ << TLOG_ENDL;
 }
 
 artdaq::MPISentry::
@@ -61,15 +61,15 @@ MPISentry(int* argc_ptr,
 		<< threading_level << ", actual support level = "
 		<< threading_level_ << ".";
 
-	mf::LogDebug("MPISentry") << threadresult.str();
+	TLOG_DEBUG("MPISentry") << threadresult.str() << TLOG_ENDL;
 
 	if (threading_level != threading_level_) throw cet::exception("MPISentry") << threadresult.str();
 
-	mf::LogDebug("MPISentry")
+	TLOG_DEBUG("MPISentry")
 		<< "size = "
 		<< procs_
 		<< ", rank = "
-		<< rank_;
+		<< rank_ << TLOG_ENDL;
 
 	std::ostringstream groupcommresult;
 
@@ -85,7 +85,7 @@ MPISentry(int* argc_ptr,
 			<< std::hex << local_group_comm << std::dec
 			<< ", rank = " << temp_rank << ".";
 
-		mf::LogDebug("MPISentry") << groupcommresult.str();
+		TLOG_DEBUG("MPISentry") << groupcommresult.str() << TLOG_ENDL;
 	}
 	else
 	{

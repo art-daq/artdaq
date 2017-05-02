@@ -85,6 +85,7 @@ private:
 
 	std::unique_ptr<RoutingMasterPolicy> policy_;
 
+	std::atomic<bool> shutdown_requested_;
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;
 

@@ -1,6 +1,5 @@
 #include "artdaq/Application/MPI2/AggregatorApp.hh"
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/TaskType.hh"
@@ -167,7 +166,7 @@ std::string artdaq::AggregatorApp::report(std::string const& which) const
 
 std::string artdaq::AggregatorApp::register_monitor(fhicl::ParameterSet const& info)
 {
-	mf::LogDebug(name_) << "AggregatorApp::register_monitor called with argument \"" << info.to_string() << "\"";
+	TLOG_DEBUG(name_) << "AggregatorApp::register_monitor called with argument \"" << info.to_string() << "\"" << TLOG_ENDL;
 
 	if (aggregator_ptr_)
 	{
@@ -192,7 +191,7 @@ std::string artdaq::AggregatorApp::register_monitor(fhicl::ParameterSet const& i
 
 std::string artdaq::AggregatorApp::unregister_monitor(std::string const& label)
 {
-	mf::LogDebug(name_) << "AggregatorApp::unregister_monitor called with argument \"" << label << "\"";
+	TLOG_DEBUG(name_) << "AggregatorApp::unregister_monitor called with argument \"" << label << "\"" << TLOG_ENDL;
 
 	if (aggregator_ptr_)
 	{

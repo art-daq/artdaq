@@ -5,7 +5,6 @@
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/exception.h"
 
 #include "boost/program_options.hpp"
@@ -31,8 +30,8 @@ int main(int argc, char* argv[])
 	}
 	catch (cet::exception& errormsg)
 	{
-		mf::LogError("BoardReaderMain") << errormsg;
-		mf::LogError("BoardReaderMain") << "MPISentry error encountered in BoardReaderMain; exiting...";
+		TLOG_ERROR("BoardReaderMain") << errormsg << TLOG_ENDL;
+		TLOG_ERROR("BoardReaderMain") << "MPISentry error encountered in BoardReaderMain; exiting..." << TLOG_ENDL;
 		throw errormsg;
 	}
 
@@ -54,7 +53,7 @@ int main(int argc, char* argv[])
 	}
 	catch (boost::program_options::error const& e)
 	{
-		mf::LogError("Option") << "exception from command line processing in " << argv[0] << ": " << e.what() << std::endl;
+		TLOG_ERROR("Option") << "exception from command line processing in " << argv[0] << ": " << e.what() << TLOG_ENDL;
 		return 1;
 	}
 
@@ -66,7 +65,7 @@ int main(int argc, char* argv[])
 
 	if (!vm.count("port"))
 	{
-		mf::LogError("Option") << argv[0] << " port number not suplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << std::endl;
+		TLOG_ERROR("Option") << argv[0] << " port number not suplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << TLOG_ENDL;
 		return 1;
 	}
 
@@ -74,14 +73,14 @@ int main(int argc, char* argv[])
 	if (vm.count("name"))
 	{
 		name = vm["name"].as<std::string>();
-		mf::LogDebug(name + "Main") << "Setting application name to " << name << std::endl;
+		TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
 	}
 
 	artdaq::setMsgFacAppName(name, vm["port"].as<unsigned short>());
-	mf::LogDebug(name + "Main") << "artdaq version " <<
+	TLOG_DEBUG(name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
-		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp();
+		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the BoardReaderApp
 	artdaq::BoardReaderApp br_app(local_group_comm, name);

@@ -13,7 +13,6 @@
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
@@ -55,7 +54,7 @@ namespace artdaq
 		, token_socket_(-1)
 		, art_thread_wait_ms_(pset.get<int>("art_thread_wait_ms",4000))
 	{
-		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
+		TLOG_DEBUG("EventStore") << "EventStore CONSTRUCTOR" << TLOG_ENDL;
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
 
@@ -98,7 +97,7 @@ namespace artdaq
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 		, token_socket_(-1)
 	{
-		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
+		TLOG_DEBUG("EventStore") << "EventStore CONSTRUCTOR" << TLOG_ENDL;
 		initStatistics_();
 		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
 
@@ -111,7 +110,7 @@ namespace artdaq
 
 	EventStore::~EventStore()
 	{
-		mf::LogDebug("EventStore") << "Shutting down EventStore";
+		TLOG_DEBUG("EventStore") << "Shutting down EventStore" << TLOG_ENDL;
 		if (printSummaryStats_)
 		{
 			reportStatistics_();
@@ -205,24 +204,24 @@ namespace artdaq
 				//TRACE_CNTL( "modeM", 0 );
 				if (printWarningWhenFragmentIsDropped)
 				{
-					mf::LogWarning("EventStore") << "Enqueueing event " << sequence_id
+					TLOG_WARNING("EventStore") << "Enqueueing event " << sequence_id
 						<< " FAILED, queue size = "
 						<< queue_.size() <<
 						"; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
-						<< "-second timeout period";
+						<< "-second timeout period" << TLOG_ENDL;
 				}
 				else
 				{
-					mf::LogDebug("EventStore") << "Enqueueing event " << sequence_id
+					TLOG_DEBUG("EventStore") << "Enqueueing event " << sequence_id
 						<< " FAILED, queue size = "
 						<< queue_.size() <<
 						"; apparently no events were removed from this process's queue during the " << std::to_string(enq_timeout_.count())
-						<< "-second timeout period";
+						<< "-second timeout period" << TLOG_ENDL;
 				}
 			}
 			else
 			{
-				if (send_routing_tokens_) send_routing_token_(1);
+				send_routing_token_(1);
 			}
 		}
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
@@ -277,7 +276,7 @@ namespace artdaq
 	bool
 		EventStore::endOfData(int& readerReturnValue)
 	{
-		mf::LogDebug("EventStore") << "EventStore::endOfData";
+		TLOG_DEBUG("EventStore") << "EventStore::endOfData" << TLOG_ENDL;
 		RawEvent_ptr end_of_data(nullptr);
 		TRACE(4, "EventStore::endOfData: Enqueuing end_of_data event");
 		bool enqSuccess = queue_.enqTimedWait(end_of_data, enq_timeout_);
@@ -299,8 +298,8 @@ namespace artdaq
 	{
 		bool enqSuccess;
 		size_t initialStoreSize = events_.size();
-		mf::LogDebug("EventStore") << "Flushing " << initialStoreSize
-			<< " stale events from the EventStore.";
+		TLOG_DEBUG("EventStore") << "Flushing " << initialStoreSize
+			<< " stale events from the EventStore." << TLOG_ENDL;
 		EventMap::iterator loc;
 		std::vector<sequence_id_t> flushList;
 		for (loc = events_.begin(); loc != events_.end(); ++loc)
@@ -326,8 +325,8 @@ namespace artdaq
 		{
 			events_.erase(flushList[idx]);
 		}
-		mf::LogDebug("EventStore") << "Done flushing " << flushList.size()
-			<< " stale events from the EventStore.";
+		TLOG_DEBUG("EventStore") << "Done flushing " << flushList.size()
+			<< " stale events from the EventStore." << TLOG_ENDL;
 
 		lastFlushedSeqID_ = highestSeqIDSeen_;
 		return (flushList.size() >= initialStoreSize);
@@ -337,22 +336,21 @@ namespace artdaq
 	{
 		if (!queue_.queueReaderIsReady())
 		{
-		  mf::LogWarning("EventStore") << "Run start requested, but the art thread is not yet ready, waiting up to "<<art_thread_wait_ms_<<" msec...";
-			while (!queue_.queueReaderIsReady() \
-			       && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()
-											- reader_thread_launch_time_).count() < art_thread_wait_ms_)
+			TLOG_WARNING("EventStore") << "Run start requested, but the art thread is not yet ready, waiting up to " << art_thread_wait_ms_ << " msec..." << TLOG_ENDL;
+			while (!queue_.queueReaderIsReady() && 
+                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count() < art_thread_wait_ms_)
 			{
 				usleep(1000); // wait 1 ms
 			}
 			if (queue_.queueReaderIsReady())
 			{
 				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(queue_.getReadyTime() - reader_thread_launch_time_).count();
-				mf::LogInfo("EventStore") << "art initialization took (roughly) " << std::setw(4) << std::to_string(dur) << " ms.";
+				TLOG_INFO("EventStore") << "art initialization took (roughly) " << std::setw(4) << std::to_string(dur) << " ms." << TLOG_ENDL;
 			}
 			else
 			{
 				auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count();
-				mf::LogError("EventStore") << "art thread still not ready after " << dur << " ms. Continuing to start...";
+				TLOG_ERROR("EventStore") << "art thread still not ready after " << dur << " ms. Continuing to start..." << TLOG_ENDL;
 			}
 		}
 		run_id_ = runID;
@@ -360,13 +358,13 @@ namespace artdaq
 		lastFlushedSeqID_ = 0;
 		highestSeqIDSeen_ = 0;
 		send_routing_token_(max_queue_size_);
-		mf::LogDebug("EventStore") << "Starting run " << run_id_
+		TLOG_DEBUG("EventStore") << "Starting run " << run_id_
 			<< ", max queue size = "
 			<< max_queue_size_
 			<< ", queue capacity = "
 			<< queue_.capacity()
 			<< ", queue size = "
-			<< queue_.size();
+			<< queue_.size() << TLOG_ENDL;
 		if (metricMan)
 		{
 			double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
@@ -552,13 +550,13 @@ namespace artdaq
 			request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 			if (!request_socket_)
 			{
-				mf::LogError("EventStore") << "I failed to create the socket for sending Data Requests!" << std::endl;
+				TLOG_ERROR("EventStore") << "I failed to create the socket for sending Data Requests!" << TLOG_ENDL;
 				exit(1);
 			}
 			int sts = ResolveHost(request_address.c_str(), request_port_, request_addr_);
 			if (sts == -1)
 			{
-				mf::LogError("EventStore") << "Unable to resolve Data Request address";
+				TLOG_ERROR("EventStore") << "Unable to resolve Data Request address" << TLOG_ENDL;
 				exit(1);
 			}
 
@@ -567,26 +565,26 @@ namespace artdaq
 				int sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 				if (sts == -1)
 				{
-					mf::LogError("EventStore") << "Unable to resolve multicast interface address";
+					TLOG_ERROR("EventStore") << "Unable to resolve multicast interface address" << TLOG_ENDL;
 					exit(1);
 				}
 
 				int yes = 1;
 				if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 				{
-					mf::LogError("EventStore") << "Unable to enable port reuse on request socket" << std::endl;
+					TLOG_ERROR("EventStore") << "Unable to enable port reuse on request socket" << TLOG_ENDL;
 					exit(1);
 				}
 				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 				{
-					mf::LogError("EventStore") << "Cannot set outgoing interface." << std::endl;
+					TLOG_ERROR("EventStore") << "Cannot set outgoing interface." << TLOG_ENDL;
 					exit(1);
 				}
 			}
 			int yes = 1;
 			if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
 			{
-				mf::LogError("EventStore") << "Cannot set request socket to broadcast." << std::endl;
+				TLOG_ERROR("EventStore") << "Cannot set request socket to broadcast." << TLOG_ENDL;
 				exit(1);
 			}
 		}
@@ -597,10 +595,11 @@ namespace artdaq
 	{
 		if (send_routing_tokens_)
 		{
+			TLOG_DEBUG("EventStore") << "Creating Routing Token sending socket" << TLOG_ENDL;
 			token_socket_ = TCPConnect(token_address_.c_str(), token_port_);
 			if (!token_socket_)
 			{
-				mf::LogError("EventStore") << "I failed to create the socket for sending Routing Tokens!" << std::endl;
+				TLOG_ERROR("EventStore") << "I failed to create the socket for sending Routing Tokens!" << TLOG_ENDL;
 				exit(1);
 			}
 		}
@@ -620,19 +619,20 @@ namespace artdaq
 		}
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-		mf::LogDebug("EventStore") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << std::endl;
+		TLOG_DEBUG("EventStore") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << TLOG_ENDL;
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
-			mf::LogError("EventStore") << "Error sending request message header" << std::endl;
+			TLOG_ERROR("EventStore") << "Error sending request message header" << TLOG_ENDL;
 		}
 		if (sendto(request_socket_, message.buffer(), sizeof(detail::RequestPacket) * message.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
-			mf::LogError("EventStore") << "Error sending request message data" << std::endl;
+			TLOG_ERROR("EventStore") << "Error sending request message data" << TLOG_ENDL;
 		}
 	}
 
 	void EventStore::send_routing_token_(int nSlots)
 	{
+		TLOG_DEBUG("EventStore") << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_ << TLOG_ENDL;
 		if (!send_routing_tokens_) return;
 		if (token_socket_ == -1) setup_tokens_();
 		detail::RoutingToken token;
@@ -640,7 +640,7 @@ namespace artdaq
 		token.rank = my_rank;
 		token.new_slots_free = nSlots;
 
-		mf::LogDebug("EventStore") << "Sending RoutingToken to " << token_address_ << ":" << token_port_;
+		TLOG_DEBUG("EventStore") << "Sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
 		size_t sts = 0;
 		while (sts < sizeof(detail::RoutingToken)) {
 			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
@@ -650,7 +650,7 @@ namespace artdaq
 			}
 			sts += res;
 		}
-		mf::LogDebug("EventStore") << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
+		TLOG_DEBUG("EventStore") << "Done sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
 	}
 
 	void
@@ -678,7 +678,7 @@ namespace artdaq
 			{
 				oss << ev.first << " (" << ev.second->numFragments() << "), ";
 			}
-			mf::LogDebug("EventStore") << oss.str();
+			TLOG_DEBUG("EventStore") << oss.str() << TLOG_ENDL;
 		}
 	}
 }
