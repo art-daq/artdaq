@@ -57,6 +57,7 @@ namespace artdaq
 			              art::EventPrincipal*& outE);
 
 			std::map<Fragment::type_t, std::string> fragment_type_map_;
+		  unsigned readNext_calls_;
 		};
 	} // detail
 } // artdaq

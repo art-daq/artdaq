@@ -53,6 +53,7 @@ namespace artdaq
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 		, token_socket_(-1)
+		, art_thread_wait_ms_(pset.get<int>("art_thread_wait_ms",4000))
 	{
 		mf::LogDebug("EventStore") << "EventStore CONSTRUCTOR";
 		initStatistics_();
@@ -336,10 +337,12 @@ namespace artdaq
 	{
 		if (!queue_.queueReaderIsReady())
 		{
-			mf::LogWarning("EventStore") << "Run start requested, but the art thread is not yet ready, waiting up to 4 sec...";
-			while (!queue_.queueReaderIsReady() && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count() < 4000)
+		  mf::LogWarning("EventStore") << "Run start requested, but the art thread is not yet ready, waiting up to "<<art_thread_wait_ms_<<" msec...";
+			while (!queue_.queueReaderIsReady() \
+			       && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()
+											- reader_thread_launch_time_).count() < art_thread_wait_ms_)
 			{
-				usleep(1000);
+				usleep(1000); // wait 1 ms
 			}
 			if (queue_.queueReaderIsReady())
 			{

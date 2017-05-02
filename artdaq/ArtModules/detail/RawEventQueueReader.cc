@@ -22,6 +22,7 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
                                                                                       , shutdownMsgReceived(false)
                                                                                       , outputFileCloseNeeded(false)
                                                                                       , fragment_type_map_(Fragment::MakeSystemTypeMap())
+										      , readNext_calls_(0)
 {
 	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name,
 	                                            unidentified_instance_name);
@@ -29,8 +30,6 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 	}
-	incoming_events.setReaderIsReady();
-	TRACE( 50, "RawEventQueueReader ctor done (after incoming_events.setReaderIsReady())" );
 }
 
 void artdaq::detail::RawEventQueueReader::closeCurrentFile() {}
@@ -51,6 +50,10 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 		outputFileCloseNeeded = false;
 		return false;
 	}*/
+        if (readNext_calls_++ == 0)
+	{    incoming_events.setReaderIsReady();
+             TRACE( 50, "RawEventQueueReader::readNext after incoming_events.setReaderIsReady()" );
+	}
 	// Establish default 'results'
 	outR = 0;
 	outSR = 0;

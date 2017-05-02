@@ -172,6 +172,7 @@ namespace artdaq
 		struct sockaddr_in token_addr_;
 		std::string token_address_;
 
+                int art_thread_wait_ms_;
 
 	private:
 		void initStatistics_();

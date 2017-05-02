@@ -156,6 +156,8 @@ int main(int argc, char * argv[]) try
 	// speed as the limiting factor
 	while ((commandable_gen && commandable_gen->getNext(frags)) ||
 		(gen && gen->getNext(frags))) {
+		TRACE( 50, "driver main: getNext returned frags.size()=%zd current event_count=%d"
+		       ,frags.size(),event_count );
 		for (auto & val : frags) {
 			if (val->sequenceID() != previous_sequence_id) {
 				++event_count;
