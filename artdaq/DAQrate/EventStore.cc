@@ -337,8 +337,7 @@ namespace artdaq
 		if (!queue_.queueReaderIsReady())
 		{
 			TLOG_WARNING("EventStore") << "Run start requested, but the art thread is not yet ready, waiting up to " << art_thread_wait_ms_ << " msec..." << TLOG_ENDL;
-			while (!queue_.queueReaderIsReady() && 
-                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count() < art_thread_wait_ms_)
+			while (!queue_.queueReaderIsReady() && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - reader_thread_launch_time_).count() < art_thread_wait_ms_)
 			{
 				usleep(1000); // wait 1 ms
 			}
