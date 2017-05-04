@@ -71,7 +71,7 @@ bool artdaq::RoutingMasterApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	if (routing_master_future_.valid())
 	{
 		int number_of_table_entries_sent = routing_master_future_.get();
-		TLOG_DEBUG(name_ + "App::do_stop(uint64_t, uint64_t)")
+		TLOG_DEBUG(name_ + "App") << "do_stop(uint64_t, uint64_t): "
 			<< "Number of table entries sent = " << number_of_table_entries_sent
 			<< "." << TLOG_ENDL;
 	}
@@ -92,7 +92,7 @@ bool artdaq::RoutingMasterApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (routing_master_future_.valid())
 	{
 		int number_of_table_entries_sent = routing_master_future_.get();
-		TLOG_DEBUG(name_ + "App::do_pause(uint64_t, uint64_t)")
+		TLOG_DEBUG(name_ + "App") << "do_pause(uint64_t, uint64_t): "
 			<< "Number of table entries sent = " << number_of_table_entries_sent
 			<< "." << TLOG_ENDL;
 	}

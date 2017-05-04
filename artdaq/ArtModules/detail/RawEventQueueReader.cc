@@ -72,8 +72,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 		got_event = incoming_events.deqTimedWait(popped_event, waiting_time);
 		if (!got_event)
 		{
-			TLOG_INFO("InputFailure")
-				<< "Reading timed out in RawEventQueueReader::readNext()" << TLOG_ENDL;
+			TLOG_INFO("RawEventQueueReader")
+				<< "InputFailure: Reading timed out in RawEventQueueReader::readNext()" << TLOG_ENDL;
 			keep_looping = resume_after_timeout;
 		}
 	}
@@ -84,6 +84,7 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 	//      pointer
 	if (!got_event || !popped_event)
 	{
+		TLOG_DEBUG("RawEventQueueReader") << "Received shutdown message, returning false" << TLOG_ENDL;
 		shutdownMsgReceived = true;
 		return false;
 	}
@@ -196,8 +197,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 			                         *outE,
 			                         pretend_module_name,
 			                         unidentified_instance_name);
-			TLOG_WARNING("UnknownFragmentType")
-				<< "The product instance name mapping for fragment type \""
+			TLOG_WARNING("RawEventQueueReader")
+				<< "UnknownFragmentType: The product instance name mapping for fragment type \""
 				<< ((int)type_list[idx]) << "\" is not known. Fragments of this "
 				<< "type will be stored in the event with an instance name of \""
 				<< unidentified_instance_name << "\"." << TLOG_ENDL;

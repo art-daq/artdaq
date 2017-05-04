@@ -71,7 +71,7 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	if (fragment_processing_future_.valid())
 	{
 		int number_of_fragments_sent = fragment_processing_future_.get();
-		TLOG_DEBUG(name_ + "App::do_stop(uint64_t, uint64_t)")
+		TLOG_DEBUG(name_ + "App") << "do_stop(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
 			<< "." << TLOG_ENDL;
 	}
@@ -92,7 +92,7 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (fragment_processing_future_.valid())
 	{
 		int number_of_fragments_sent = fragment_processing_future_.get();
-		TLOG_DEBUG(name_ + "App::do_pause(uint64_t, uint64_t)")
+		TLOG_DEBUG(name_ + "App") << "do_pause(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
 			<< "." << TLOG_ENDL;
 	}

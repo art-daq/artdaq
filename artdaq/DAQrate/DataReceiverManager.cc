@@ -14,6 +14,7 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	, recv_frag_count_()
 	, recv_frag_size_()
 	, recv_seq_count_()
+    , suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled",true))
 	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 1000))
 {
@@ -167,7 +168,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
 		TRACE(16, "DataReceiverManager::runReceiver_: Begin loop");
-		auto is_suppressed = recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount() || suppressed_sources_.count(source_rank) > 0;
+		auto is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
 		while (!stop_requested_ && is_suppressed)
 		{
 			TRACE(6, "DataReceiverManager::runReceiver_: Suppressing receiver rank %d", source_rank);
@@ -177,7 +178,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				std::unique_lock<std::mutex> lck(output_cv_mutex_);
 				output_cv_.wait_for(lck, std::chrono::seconds(1));
 			}
-			is_suppressed = recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount() || suppressed_sources_.count(source_rank) > 0;
+			is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
 		}
 		if (stop_requested_) return;
 

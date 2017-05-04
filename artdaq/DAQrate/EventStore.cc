@@ -1,3 +1,4 @@
+#include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #include "artdaq/DAQrate/EventStore.hh"
 #include <utility>
 #include <cstring>

@@ -77,6 +77,7 @@ private:
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
 	detail::FragCounter recv_frag_size_; // Number of bytes received per source.
 	detail::FragCounter recv_seq_count_; // For counting sequence IDs
+	bool suppress_noisy_senders_;
 	size_t suppression_threshold_;
 
 	size_t receive_timeout_;

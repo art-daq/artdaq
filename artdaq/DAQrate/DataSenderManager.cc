@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/types.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include <artdaq/DAQdata/TCPConnect.hh>
@@ -81,6 +82,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 artdaq::DataSenderManager::~DataSenderManager()
 {
 	TLOG_DEBUG("DataSenderManager") << "Shutting down DataSenderManager BEGIN" << TLOG_ENDL;
+	should_stop_ = true;
 	for (auto& dest : enabled_destinations_)
 	{
 		if (destinations_.count(dest))
@@ -89,7 +91,6 @@ artdaq::DataSenderManager::~DataSenderManager()
 			//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 		}
 	}
-	should_stop_ = true;
 	if (routing_thread_.joinable()) routing_thread_.join();
 	TLOG_DEBUG("DataSenderManager") << "Shutting down DataSenderManager END. Sent " << count() << " fragments." << TLOG_ENDL;
 }
@@ -148,7 +149,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 	{
 		if (should_stop_)
 		{
-			TLOG_DEBUG("DataSenderManager") << "receiveTableUpdatesLoop: should_stop is " << std::boolalpha << should_stop_ << TLOG_ENDL;
+			TLOG_DEBUG("DataSenderManager") << "receiveTableUpdatesLoop: should_stop is " << std::boolalpha << should_stop_ << ", stopping" << TLOG_ENDL;
 			return;
 		}
 
@@ -175,65 +176,72 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 			TLOG_DEBUG("DataSenderManager") << "Ack socket is fd " << ack_socket_ << TLOG_ENDL;
 		}
 
-		auto first = artdaq::Fragment::InvalidSequenceID;
-		auto last = artdaq::Fragment::InvalidSequenceID;
-		artdaq::detail::RoutingPacketHeader hdr;
+		struct pollfd fd;
+		fd.fd = table_socket_;
+		fd.events = POLLIN | POLLPRI;
 
-		TLOG_DEBUG("DataSenderManager") << "Going to receive RoutingPacketHeader" << TLOG_ENDL;
-		auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, NULL, NULL);
-		TLOG_DEBUG("DataSenderManager") << "Received " << std::to_string(stss) << " bytes. (sizeof(RoutingPacketHeader) == " << std::to_string(sizeof(detail::RoutingPacketHeader)) << TLOG_ENDL;
+		auto res = poll(&fd, 1, 1000);
+		if (res > 0) {
+			auto first = artdaq::Fragment::InvalidSequenceID;
+			auto last = artdaq::Fragment::InvalidSequenceID;
+			artdaq::detail::RoutingPacketHeader hdr;
 
-		TLOG_DEBUG("DataSenderManager") << "Checking for valid header" << TLOG_ENDL;
-		if (hdr.header == ROUTING_MAGIC) {
-			artdaq::detail::RoutingPacket buffer(hdr.nEntries);
-			TLOG_DEBUG("DataSenderManager") << "Receiving data buffer" << TLOG_ENDL;
-			auto sts = recv(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
-			assert(sts == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-			TRACE(6, "Received a packet of %zu bytes", sts);
+			TLOG_DEBUG("DataSenderManager") << "Going to receive RoutingPacketHeader" << TLOG_ENDL;
+			auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, NULL, NULL);
+			TLOG_DEBUG("DataSenderManager") << "Received " << std::to_string(stss) << " bytes. (sizeof(RoutingPacketHeader) == " << std::to_string(sizeof(detail::RoutingPacketHeader)) << TLOG_ENDL;
 
-			first = buffer[0].sequence_id;
-			last = buffer[buffer.size() - 1].sequence_id;
+			TLOG_DEBUG("DataSenderManager") << "Checking for valid header" << TLOG_ENDL;
+			if (hdr.header == ROUTING_MAGIC) {
+				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
+				TLOG_DEBUG("DataSenderManager") << "Receiving data buffer" << TLOG_ENDL;
+				auto sts = recv(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
+				assert(sts == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
+				TRACE(6, "Received a packet of %zu bytes", sts);
 
-			if (first + hdr.nEntries - 1 != last)
-			{
-				TLOG_ERROR("DataSenderManager") << "Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!" << TLOG_ENDL;
-				continue;
-			}
-			auto thisSeqID = first;
+				first = buffer[0].sequence_id;
+				last = buffer[buffer.size() - 1].sequence_id;
 
-			if (routing_table_.count(last) == 0) {
-				for (auto entry : buffer)
+				if (first + hdr.nEntries - 1 != last)
 				{
-					if (thisSeqID != entry.sequence_id)
-					{
-						TLOG_ERROR("DataSenderManager") << "Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!" << TLOG_ENDL;
-						last = thisSeqID - 1;
-						break;
-					}
-					thisSeqID++;
-					if (routing_table_.count(entry.sequence_id))
-					{
-						if (routing_table_[entry.sequence_id] != entry.destination_rank)
-						{
-							TLOG_ERROR("DataSenderManager") << "Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
-								<< " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
-								<< " I will use the original value!" << TLOG_ENDL;
-						}
-						continue;
-					}
-					routing_table_[entry.sequence_id] = entry.destination_rank;
-					TLOG_DEBUG("DataSenderManager") << "DataSenderManager " << std::to_string(my_rank) << ": received update: SeqID " << std::to_string(entry.sequence_id) << " -> Rank " << std::to_string(entry.destination_rank) << TLOG_ENDL;
+					TLOG_ERROR("DataSenderManager") << "Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!" << TLOG_ENDL;
+					continue;
 				}
+				auto thisSeqID = first;
+
+				if (routing_table_.count(last) == 0) {
+					for (auto entry : buffer)
+					{
+						if (thisSeqID != entry.sequence_id)
+						{
+							TLOG_ERROR("DataSenderManager") << "Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!" << TLOG_ENDL;
+							last = thisSeqID - 1;
+							break;
+						}
+						thisSeqID++;
+						if (routing_table_.count(entry.sequence_id))
+						{
+							if (routing_table_[entry.sequence_id] != entry.destination_rank)
+							{
+								TLOG_ERROR("DataSenderManager") << "Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
+									<< " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
+									<< " I will use the original value!" << TLOG_ENDL;
+							}
+							continue;
+						}
+						routing_table_[entry.sequence_id] = entry.destination_rank;
+						TLOG_DEBUG("DataSenderManager") << "DataSenderManager " << std::to_string(my_rank) << ": received update: SeqID " << std::to_string(entry.sequence_id) << " -> Rank " << std::to_string(entry.destination_rank) << TLOG_ENDL;
+					}
+				}
+
+				artdaq::detail::RoutingAckPacket ack;
+				ack.rank = my_rank;
+				ack.first_sequence_id = first;
+				ack.last_sequence_id = last;
+
+				TLOG_DEBUG("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << TLOG_ENDL;
+				TLOG_DEBUG("DataSenderManager") << "There are now " << routing_table_.size() << " entries in the Routing Table" << TLOG_ENDL;
+				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 			}
-
-			artdaq::detail::RoutingAckPacket ack;
-			ack.rank = my_rank;
-			ack.first_sequence_id = first;
-			ack.last_sequence_id = last;
-
-			TLOG_DEBUG("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << TLOG_ENDL;
-			TLOG_DEBUG("DataSenderManager") << "There are now " << routing_table_.size() << " entries in the Routing Table" << TLOG_ENDL;
-			sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 		}
 	}
 }
