@@ -229,9 +229,9 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		}
 		else
 		{
-			TRACE(4, "CFG: Calling getNext_");
+			TRACE(4, "CFG: Calling getNext_ %zu", ev_counter() );
 			result = getNext_(output);
-			TRACE(4, "CFG: Done with getNext_");
+			TRACE(4, "CFG: Done with getNext_ %zu", ev_counter() );
 		}
 	}
 	catch (const cet::exception& e)

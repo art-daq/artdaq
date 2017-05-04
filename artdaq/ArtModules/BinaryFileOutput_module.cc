@@ -163,6 +163,11 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 	return true;
 }
 
+#define USE_STATIC_BUFFER 0
+#if USE_STATIC_BUFFER == 1
+static unsigned char static_buffer[0xa00000];
+#endif
+
 void
 art::BinaryFileOutput::
 write(EventPrincipal& ep)
@@ -196,8 +201,13 @@ write(EventPrincipal& ep)
 			}
 			else
 			{
-				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
-				TRACE( 3, "BinaryFileOutput::write seq=%lu frag=%i done", sequence_id, fragid_id );
+#          if USE_STATIC_BUFFER == 1
+			  file_ptr_->write((char*)static_buffer, fragment.sizeBytes());
+#          else
+			  file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
+#          endif
+				TRACE( 3, "BinaryFileOutput::write seq=%lu frag=%i done errno=%d"
+				       , sequence_id, fragid_id, errno );
 			}
 		}
 	}
