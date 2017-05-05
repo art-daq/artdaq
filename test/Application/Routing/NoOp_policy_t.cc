@@ -11,19 +11,12 @@ BOOST_AUTO_TEST_SUITE(NoOp_policy_t)
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_buffer_count: 10 receiver_ranks: [1,2,3,4]", ps);
+	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps);
 
 	auto noop = artdaq::makeRoutingMasterPolicy("NoOp", ps);
 
 	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 4);
-
-	auto firstTable = noop->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(firstTable.size(), 40);
-	BOOST_REQUIRE_EQUAL(firstTable[0].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(firstTable[0].sequence_id, 0);
-	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].destination_rank, 4);
-	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].sequence_id, 39);
-
+	
 	noop->Reset();
 	noop->AddReceiverToken(1,1);
 	noop->AddReceiverToken(3, 1);

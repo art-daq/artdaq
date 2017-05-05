@@ -11,18 +11,11 @@ BOOST_AUTO_TEST_SUITE(CapacityTest_policy_t)
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_buffer_count: 10 receiver_ranks: [1,2,3,4] tokens_used_per_table_percent: 50", ps);
+	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4] tokens_used_per_table_percent: 50", ps);
 
 	auto ct = artdaq::makeRoutingMasterPolicy("CapacityTest", ps);
 
 	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 4);
-
-	auto firstTable = ct->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(firstTable.size(), 20);
-	BOOST_REQUIRE_EQUAL(firstTable[0].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(firstTable[0].sequence_id, 0);
-	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].sequence_id, 19);
 
 	ct->Reset();
 	ct->AddReceiverToken(1, 1);
