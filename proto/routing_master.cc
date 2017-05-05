@@ -76,7 +76,6 @@ private:
 	int table_port_;
 	int ack_port_;
 	std::vector<int> eb_ranks_;
-	int eb_buffers_;
 	int token_count_;
 	size_t token_interval_us_;
 };
@@ -112,7 +111,6 @@ Program::Program(int argc, char* argv[]) :
 				  1,
 				  my_rank);
 	auto policy_pset = daq_pset_.get<fhicl::ParameterSet>("policy");
-	eb_buffers_ = policy_pset.get<int>("receiver_buffer_count");
 	eb_ranks_ = policy_pset.get<std::vector<int>>("receiver_ranks");
 
 }
@@ -307,7 +305,7 @@ void Program::table_receiver()
 		TLOG_DEBUG("table_receiver") << "One of the listen sockets was not opened successfully." << TLOG_ENDL;
 		exit(4);
 	}
-	artdaq::Fragment::sequence_id_t max_sequence_id = eb_ranks_.size() * eb_buffers_ + token_count_;
+	artdaq::Fragment::sequence_id_t max_sequence_id = token_count_;
 	artdaq::Fragment::sequence_id_t current_sequence_id = 0;
 	std::map<artdaq::Fragment::sequence_id_t, int> routing_table;
 	TLOG_INFO("table_receiver") << "Expecting " << std::to_string(max_sequence_id) << " as the last Sequence ID in this run" << TLOG_ENDL;
@@ -381,7 +379,9 @@ void Program::routing_master()
 	MPI_Barrier(MPI_COMM_WORLD);
 	TLOG_INFO("routing_master") << "Done with MPI_Barrier, calling RoutingMasterCore::stop" << TLOG_ENDL;
 	app->do_stop(0, 0);
-	TLOG_INFO("routing_master") << "Done with RoutingMasterCore::stop" << TLOG_ENDL;
+	TLOG_INFO("routing_master") << "Done with RoutingMasterCore::stop, calling shutdown" << TLOG_ENDL;
+	app->do_shutdown(0);
+	TLOG_INFO("routing_master") << "Done with RoutingMasterCore::shutdown" << TLOG_ENDL;
 	Debug << "routing_master done " << my_rank << flusher;
 	MPI_Comm_free(&local_group_comm_);
 }
