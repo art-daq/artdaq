@@ -27,6 +27,11 @@ namespace artdaq
 	class RandomDelayFilter;
 }
 
+/**
+ * \brief A filter which delays for a random amount of time, then
+ * drops a random fraction of events. Used to simulate the delays
+ * and efficiency of real filters.
+ */
 class artdaq::RandomDelayFilter : public art::EDFilter
 {
 public:
