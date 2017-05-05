@@ -13,8 +13,8 @@ namespace bpo = boost::program_options;
 std::string formatTime(double time)
 {
 	std::ostringstream o;
-	o << std::setprecision(3);
-	if (time > 60) o << static_cast<int>(time / 60) << " m " << static_cast<int>(time) % 60 << std::to_string(time - std::floor(time)).c_str()[1] << " s";
+	o << std::fixed << std::setprecision(3);
+	if (time > 60) o << static_cast<int>(time / 60) << " m " << time - 60 * static_cast<int>(time / 60) << " s";
 	else if (time > 1) o << time << " s";
 	else
 	{
