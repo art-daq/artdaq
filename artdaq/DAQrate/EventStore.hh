@@ -1,6 +1,7 @@
 #ifndef artdaq_DAQrate_EventStore_hh
 #define artdaq_DAQrate_EventStore_hh
 
+#include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
@@ -171,6 +172,7 @@ namespace artdaq
 		struct sockaddr_in token_addr_;
 		std::string token_address_;
 
+                int art_thread_wait_ms_;
 
 	private:
 		void initStatistics_();

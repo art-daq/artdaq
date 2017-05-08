@@ -10,9 +10,9 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
-#include "trace.h"		// TRACE
 #define TRACE_NAME "BinaryMPIOutput"
 
 #include <iomanip>
@@ -123,9 +123,9 @@ initialize_MPI_()
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
 		if (status != 0)
 		{
-			mf::LogError(name_)
+			TLOG_ERROR(name_)
 				<< "Failed to set realtime priority to " << rt_priority_
-				<< ", return code = " << status;
+				<< ", return code = " << status << TLOG_ENDL;
 		}
 #pragma GCC diagnostic pop
 	}
@@ -148,9 +148,9 @@ bool
 art::BinaryMPIOutput::
 readParameterSet_(fhicl::ParameterSet const& pset)
 {
-	mf::LogDebug(name_) << "BinaryMPIOutput::readParameterSet_ method called with "
+	TLOG_DEBUG(name_) << "BinaryMPIOutput::readParameterSet_ method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 
 	// determine the data sending parameters
 	try
@@ -159,37 +159,37 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "The max_fragment_size_words parameter was not specified "
 			<< "in the BinaryMPIOutput initialization PSet: \""
-			<< pset.to_string() << "\".";
+			<< pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 	try { mpi_buffer_count_ = pset.get<size_t>("mpi_buffer_count"); }
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "The mpi_buffer_count parameter was not specified "
 			<< "in the fragment_receiver initialization PSet: \""
-			<< pset.to_string() << "\".";
+			<< pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 	try { first_evb_rank_ = pset.get<size_t>("first_event_builder_rank"); }
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "The first_event_builder_rank parameter was not specified "
 			<< "in the fragment_receiver initialization PSet: \""
-			<< pset.to_string() << "\".";
+			<< pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 	try { evb_count_ = pset.get<size_t>("event_builder_count"); }
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "The event_builder_count parameter was not specified "
 			<< "in the fragment_receiver initialization PSet: \""
-			<< pset.to_string() << "\".";
+			<< pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 	rt_priority_ = pset.get<int>("rt_priority", 0);

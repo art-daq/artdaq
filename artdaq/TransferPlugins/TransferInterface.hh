@@ -1,9 +1,9 @@
 #ifndef artdaq_ArtModules_TransferInterface_hh
 #define artdaq_ArtModules_TransferInterface_hh
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "fhiclcpp/ParameterSet.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <limits>
 #include <iostream>

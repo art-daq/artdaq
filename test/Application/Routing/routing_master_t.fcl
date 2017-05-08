@@ -1,15 +1,15 @@
 
 # Configuration parameters for routing master test
-token_count: 500
-token_interval_us: 50000
+token_count: 1000
+token_interval_us: 5000
 
 # Routing master configuration
 daq: {
 
 rt_priority: 0
-boardreader_ranks: [2]
+sender_ranks: [2]
 table_update_interval_ms: 3000
-table_ack_wait_time_ms: 500
+table_ack_retry_count: 5
 routing_token_port: 35555
 table_update_port: 35556
 table_acknowledge_port: 35557
@@ -18,8 +18,8 @@ routing_master_hostname: "localhost"
 
 policy: {
 policy: "RoundRobin"
-event_builder_buffer_count: 10
-event_builder_ranks: [3,4,5,6]
+receiver_buffer_count: 10
+receiver_ranks: [3,4,5,6]
 }
 
 

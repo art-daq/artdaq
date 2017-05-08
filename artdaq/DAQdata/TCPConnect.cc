@@ -20,10 +20,8 @@
 #include <string>
 #include <regex>
 
-#include "trace.h"				// TRACE
-
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
-#include <messagefacility/MessageLogger/MessageLogger.h>
 
 using namespace std;
 
@@ -51,7 +49,7 @@ int ResolveHost(char const* host_in, in_addr& addr)
 	{
 		host = std::string("127.0.0.1");
 	}
-	mf::LogInfo("TCPConnect") << "Resolving host " << host;
+	TLOG_INFO("TCPConnect") << "Resolving host " << host << TLOG_ENDL;
 
 	bzero((char *)&addr, sizeof(addr));
 
@@ -99,7 +97,7 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 		host = std::string("127.0.0.1");
 		port = dflt_port;
 	}
-	mf::LogInfo("TCPConnect") << "Resolving host " << host << ", on port " << std::to_string(port);
+	TLOG_INFO("TCPConnect") << "Resolving host " << host << ", on port " << std::to_string(port) << TLOG_ENDL;
 
 	bzero((char *)&sin, sizeof(sin));
 	sin.sin_family = AF_INET;

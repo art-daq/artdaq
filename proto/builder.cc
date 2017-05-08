@@ -10,7 +10,6 @@
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
-#include "artdaq/Application/configureMessageFacility.hh"
 #include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "cetlib/container_algorithms.h"

@@ -7,7 +7,7 @@ namespace artdaq
 {
 	// Configure and start the message facility. Provide the program
 	// name so that messages will be appropriately tagged.
-	void configureMessageFacility(char const* progname);
+	void configureMessageFacility(char const* progname, bool useConsole = true);
 
 	// Set the message facility application name using the specified
 	// application type and port number

@@ -4,7 +4,6 @@
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/exception.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include <boost/algorithm/string.hpp>
 
 using fhicl::ParameterSet;
@@ -47,9 +46,9 @@ artdaq::CompositeDriver::~CompositeDriver() noexcept
 		}
 		catch (...)
 		{
-			mf::LogError("CompositeDriver")
+			TLOG_ERROR("CompositeDriver")
 				<< "Unknown exception when destructing the generator at index "
-				<< (listSize + 1);
+				<< (listSize + 1) << TLOG_ENDL;
 		}
 	}
 }
@@ -172,9 +171,9 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	}
 	catch (...)
 	{
-		mf::LogError("CompositeDriver::makeChildGenerator_")
+		TLOG_ERROR("CompositeDriver::makeChildGenerator_")
 			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\".";
+			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 	fhicl::ParameterSet fr_pset;
@@ -184,9 +183,9 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	}
 	catch (...)
 	{
-		mf::LogError("CompositeDriver::makeChildGenerator_")
+		TLOG_ERROR("CompositeDriver::makeChildGenerator_")
 			<< "Unable to find the fragment_receiver parameters in the DAQ "
-			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
+			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 
@@ -194,10 +193,10 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)
 	{
-		mf::LogError("CompositeDriver::makeChildGenerator_")
+		TLOG_ERROR("CompositeDriver::makeChildGenerator_")
 			<< "No fragment generator (parameter name = \"generator\") was "
 			<< "specified in the fragment_receiver ParameterSet.  The "
-			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\".";
+			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 
@@ -208,26 +207,26 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	}
 	catch (art::Exception& excpt)
 	{
-		mf::LogError("CompositeDriver::makeChildGenerator_")
+		TLOG_ERROR("CompositeDriver::makeChildGenerator_")
 			<< "Exception creating a FragmentGenerator of type \""
 			<< frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-			<< "\", exception = " << excpt;
+			<< "\", exception = " << excpt << TLOG_ENDL;
 		return false;
 	}
 	catch (cet::exception& excpt)
 	{
-		mf::LogError("CompositeDriver::makeChildGenerator_")
+		TLOG_ERROR("CompositeDriver::makeChildGenerator_")
 			<< "Exception creating a FragmentGenerator of type \""
 			<< frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-			<< "\", exception = " << excpt;
+			<< "\", exception = " << excpt << TLOG_ENDL;
 		return false;
 	}
 	catch (...)
 	{
-		mf::LogError("CompositeDriver::makeChildGenerator_")
+		TLOG_ERROR("CompositeDriver::makeChildGenerator_")
 			<< "Unknown exception creating a FragmentGenerator of type \""
 			<< frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-			<< "\".";
+			<< "\"." << TLOG_ENDL;
 		return false;
 	}
 
@@ -246,10 +245,10 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	catch (...) {}
 	if (! generator_ptr)
 	{
-		mf::LogError("CompositeDriver::makeChildGenerator_")
+		TLOG_ERROR("CompositeDriver::makeChildGenerator_")
 			<< "Error: The requested fragment generator type (" << frag_gen_name
 			<< ") is not a CommandableFragmentGenerator, and only "
-			<< "CommandableFragmentGenerators are currently supported.";
+			<< "CommandableFragmentGenerators are currently supported." << TLOG_ENDL;
 		return false;
 	}
 

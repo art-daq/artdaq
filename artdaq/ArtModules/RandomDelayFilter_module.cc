@@ -15,7 +15,8 @@
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
+
+#include "artdaq/DAQdata/Globals.hh"
 
 #include <memory>
 #include <random>
@@ -26,6 +27,11 @@ namespace artdaq
 	class RandomDelayFilter;
 }
 
+/**
+ * \brief A filter which delays for a random amount of time, then
+ * drops a random fraction of events. Used to simulate the delays
+ * and efficiency of real filters.
+ */
 class artdaq::RandomDelayFilter : public art::EDFilter
 {
 public:
@@ -95,7 +101,7 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 bool artdaq::RandomDelayFilter::filter(art::Event& e)
 {
 	double delay = isNormal_ ? (*normal_distn_)(engine_) : (*uniform_distn_)(engine_);
-	mf::LogDebug("RandomDelayFilter") << "Simulating processing of event " << e.event() << " by delaying " << std::to_string(delay) << "ms.";
+	TLOG_DEBUG("RandomDelayFilter") << "Simulating processing of event " << e.event() << " by delaying " << std::to_string(delay) << "ms." << TLOG_ENDL;
 
 	usleep(1000 * (1 - load_factor_) * delay);
 

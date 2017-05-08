@@ -1,4 +1,4 @@
-#include "artdaq/Application/configureMessageFacility.hh"
+#include "artdaq/DAQdata/configureMessageFacility.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "fhiclcpp/make_ParameterSet.h"
 #include <boost/filesystem.hpp>
@@ -8,7 +8,7 @@
 
 namespace BFS = boost::filesystem;
 
-void artdaq::configureMessageFacility(char const* progname)
+void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 {
 	std::string logPathProblem = "";
 	std::string logfileName = "";
@@ -78,20 +78,22 @@ void artdaq::configureMessageFacility(char const* progname)
 	ss << "debugModules:[\"*\"]  statistics:[\"stats\"] "
 		<< "  destinations : { ";
 
-	if (artdaqMfextensionsDir != nullptr)
-	{
-		ss << "    console : { "
-			<< "      type : \"ANSI\" threshold : \"INFO\" "
-			<< "      noTimeStamps : true "
-			<< "      bell_on_error: true "
-			<< "    } ";
-	}
-	else
-	{
-		ss << "    console : { "
-			<< "      type : \"cout\" threshold : \"INFO\" "
-			<< "      noTimeStamps : true "
-			<< "    } ";
+	if (useConsole) {
+		if (artdaqMfextensionsDir != nullptr)
+		{
+			ss << "    console : { "
+				<< "      type : \"ANSI\" threshold : \"INFO\" "
+				<< "      noTimeStamps : true "
+				<< "      bell_on_error: true "
+				<< "    } ";
+		}
+		else
+		{
+			ss << "    console : { "
+				<< "      type : \"cout\" threshold : \"INFO\" "
+				<< "      noTimeStamps : true "
+				<< "    } ";
+		}
 	}
 
 	if (logfileName.length() > 0)
@@ -106,7 +108,7 @@ void artdaq::configureMessageFacility(char const* progname)
 	if (artdaqMfextensionsDir != nullptr)
 	{
 		ss << "    trace : { "
-			<< "       type : \"TRACE\" threshold : \"DEBUG\" "
+			<< "       type : \"TRACE\" threshold : \"DEBUG\" format:{noLineBreaks: true} lvls: 0x7 lvlm: 0xF"
 			<< "    }";
 	}
 
@@ -132,6 +134,7 @@ void artdaq::configureMessageFacility(char const* progname)
 
 	fhicl::ParameterSet pset;
 	std::string pstr(ss.str());
+	//std::cout << "Message Facility Config is: " << pstr << std::endl;
 	fhicl::make_ParameterSet(pstr, pset);
 
 	mf::StartMessageFacility(mf::MessageFacilityService::MultiThread,

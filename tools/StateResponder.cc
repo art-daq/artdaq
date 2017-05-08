@@ -1,9 +1,9 @@
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
-#include "artdaq/Application/configureMessageFacility.hh"
+#include "artdaq/DAQdata/configureMessageFacility.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "boost/program_options.hpp"
 #include "boost/lexical_cast.hpp"
@@ -16,15 +16,15 @@ int main(int argc, char* argv[])
 	int const wanted_threading_level{MPI_THREAD_FUNNELED};
 	artdaq::MPISentry mpiSentry(&argc, &argv, wanted_threading_level);
 	artdaq::configureMessageFacility("commandable");
-	mf::LogDebug("Commandable::main")
+	TLOG_DEBUG("Commandable::main")
 		<< "MPI initialized with requested thread support level of "
 		<< wanted_threading_level << ", actual support level = "
-		<< mpiSentry.threading_level() << ".";
-	mf::LogDebug("Commandable::main")
+		<< mpiSentry.threading_level() << "." << TLOG_ENDL;
+	TLOG_DEBUG("Commandable::main")
 		<< "size = "
 		<< mpiSentry.procs()
 		<< ", rank = "
-		<< mpiSentry.rank();
+		<< mpiSentry.rank() << TLOG_ENDL;
 
 	// handle the command-line arguments
 	std::string usage = std::string(argv[0]) + " -p port_number <other-options>";
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 	}
 	catch (boost::program_options::error const& e)
 	{
-		mf::LogError("Option") << "exception from command line processing in " << argv[0] << ": " << e.what() << std::endl;
+		TLOG_ERROR("Option") << "exception from command line processing in " << argv[0] << ": " << e.what() << TLOG_ENDL;
 		return 1;
 	}
 
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 
 	if (!vm.count("port"))
 	{
-		mf::LogError("Option") << argv[0] << " port number not suplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << std::endl;
+		TLOG_ERROR("Option") << argv[0] << " port number not suplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << TLOG_ENDL;
 		return 1;
 	}
 

@@ -46,6 +46,9 @@ demo::EventDump::EventDump(fhicl::ParameterSet const& pset)
 
 demo::EventDump::~EventDump() {}
 
-void demo::EventDump::analyze(art::Event const&) {}
+void demo::EventDump::analyze(art::Event const& e)
+{
+	mf::LogDebug("EventDump") << "Dumping Event " << e.event();
+}
 
 DEFINE_ART_MODULE(demo::EventDump)

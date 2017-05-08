@@ -22,9 +22,6 @@ simple_plugin(NoOp "policy"
 simple_plugin(CapacityTest "policy"
 artdaq_Application_Routing
 )
-simple_plugin(NthEvent "policy"
-artdaq_Application_Routing
-)
 
 install_headers()
 install_fhicl(SUBDIRS fcl)

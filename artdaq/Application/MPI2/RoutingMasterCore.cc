@@ -4,11 +4,9 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/exception.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
-#include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
 #include <sys/un.h>
@@ -33,13 +31,14 @@ artdaq::RoutingMasterCore::RoutingMasterCore(Commandable& parent_application,
 	parent_application_(parent_application)
 	, local_group_comm_(local_group_comm)
 	, name_(name)
+, shutdown_requested_(false)
 	, stop_requested_(false)
 	, pause_requested_(false)
 	, token_socket_(-1)
 	, table_socket_(-1)
 	, ack_socket_(-1)
 {
-	mf::LogDebug(name_) << "Constructor";
+	TLOG_DEBUG(name_) << "Constructor" << TLOG_ENDL;
 	statsHelper_.addMonitoredQuantityName(TABLE_UPDATES_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(TOKENS_RECEIVED_STAT_KEY);
 	metricMan = &metricMan_;
@@ -50,7 +49,7 @@ artdaq::RoutingMasterCore::RoutingMasterCore(Commandable& parent_application,
 */
 artdaq::RoutingMasterCore::~RoutingMasterCore()
 {
-	mf::LogDebug(name_) << "Destructor";
+	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 }
 
@@ -59,9 +58,9 @@ artdaq::RoutingMasterCore::~RoutingMasterCore()
 */
 bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	mf::LogDebug(name_) << "initialize method called with "
+	TLOG_DEBUG(name_) << "initialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -71,9 +70,9 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\".";
+			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 	try
@@ -82,8 +81,8 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
-			<< "Unable to find the policy parameters in the DAQ initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
+		TLOG_ERROR(name_)
+			<< "Unable to find the policy parameters in the DAQ initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 
@@ -97,7 +96,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 
 	if (metric_pset.is_empty())
 	{
-		mf::LogInfo(name_) << "No metric plugins appear to be defined";
+		TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try
 	{
@@ -113,10 +112,10 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	auto policy_plugin_spec = policy_pset_.get<std::string>("policy", "");
 	if (policy_plugin_spec.length() == 0)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "No fragment generator (parameter name = \"policy\") was "
 			<< "specified in the policy ParameterSet.  The "
-			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\".";
+			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 	try
@@ -131,20 +130,21 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 
 		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
 
-		mf::LogDebug(name_) << "FHiCL parameter set used to initialize the policy which threw an exception: " << policy_pset_.to_string();
+		TLOG_DEBUG(name_) << "FHiCL parameter set used to initialize the policy which threw an exception: " << policy_pset_.to_string() << TLOG_ENDL;
 
 		return false;
 	}
 
 	rt_priority_ = daq_pset.get<int>("rt_priority", 0);
-	br_ranks_ = daq_pset.get<std::vector<int>>("boardreader_ranks");
-	num_ebs_ = policy_->GetEventBuilderCount();
+	sender_ranks_ = daq_pset.get<std::vector<int>>("sender_ranks");
+	num_receivers_ = policy_->GetReceiverCount();
 
-	receive_ack_events_ = std::vector<epoll_event>(br_ranks_.size());
-	receive_token_events_ = std::vector<epoll_event>(num_ebs_);
+	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
+	receive_token_events_ = std::vector<epoll_event>(num_receivers_);
 
-	table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
-	table_ack_wait_time_ms_ = daq_pset.get<size_t>("table_ack_wait_time_ms", 100);
+	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
+	current_table_interval_ms_ = max_table_update_interval_ms_;
+	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
 	receive_token_port_ = daq_pset.get<int>("routing_token_port", 35555);
 	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
 	receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port", 35557);
@@ -154,6 +154,8 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelper_.createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
 
+	shutdown_requested_.store(false);
+	start_recieve_token_thread_();
 	return true;
 }
 
@@ -170,32 +172,32 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t timeout, uint64_t 
 	table_update_count_ = 0;
 	received_token_count_ = 0;
 
-	mf::LogDebug(name_) << "Started run " << run_id_.run() <<
-		", timeout = " << timeout << ", timestamp = " << timestamp << std::endl;
+	TLOG_DEBUG(name_) << "Started run " << std::to_string(run_id_.run()) <<
+		", timeout = " << timeout << ", timestamp = " << timestamp << TLOG_ENDL;
 	return true;
 }
 
 bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 {
-	mf::LogDebug(name_) << "Stopping run " << run_id_.run()
-		<< " after " << table_update_count_ << " table updates."
-		<< " and " << received_token_count_ << " received tokens.";
+	TLOG_DEBUG(name_) << "Stopping run " << std::to_string(run_id_.run())
+		<< " after " << std::to_string(table_update_count_) << " table updates."
+		<< " and " << received_token_count_ << " received tokens." << TLOG_ENDL;
 	stop_requested_.store(true);
 	return true;
 }
 
 bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 {
-	mf::LogDebug(name_) << "Pausing run " << run_id_.run()
+	TLOG_DEBUG(name_) << "Pausing run " << std::to_string(run_id_.run())
 		<< " after " << table_update_count_ << " table updates."
-		<< " and " << received_token_count_ << " received tokens.";
+		<< " and " << received_token_count_ << " received tokens." << TLOG_ENDL;
 	pause_requested_.store(true);
 	return true;
 }
 
 bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 {
-	mf::LogDebug(name_) << "Resuming run " << run_id_.run();
+	TLOG_DEBUG(name_) << "Resuming run " << run_id_.run() << TLOG_ENDL;
 	policy_->Reset();
 	pause_requested_.store(false);
 	metricMan_.do_start();
@@ -206,22 +208,23 @@ bool artdaq::RoutingMasterCore::shutdown(uint64_t)
 {
 	policy_.reset(nullptr);
 	metricMan_.shutdown();
+	shutdown_requested_.store(true);
 	return true;
 }
 
 bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
-	mf::LogDebug(name_) << "soft_initialize method called with "
+	TLOG_DEBUG(name_) << "soft_initialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 	return initialize(pset, e, f);
 }
 
 bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
-	mf::LogDebug(name_) << "reinitialize method called with "
+	TLOG_DEBUG(name_) << "reinitialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 	return initialize(pset, e, f);
 }
 
@@ -234,7 +237,7 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
 		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param))
-			mf::LogWarning(name_) << "setting realtime priority failed";
+			TLOG_WARNING(name_) << "setting realtime priority failed" << TLOG_ENDL;
 #pragma GCC diagnostic pop
 	}
 
@@ -250,18 +253,16 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
 		if (status != 0)
 		{
-			mf::LogError(name_)
-				<< "Failed to set realtime priority to " << rt_priority_
-				<< ", return code = " << status;
+			TLOG_ERROR(name_)
+				<< "Failed to set realtime priority to " << std::to_string(rt_priority_)
+				<< ", return code = " << status << TLOG_ENDL;
 		}
 #pragma GCC diagnostic pop
 	}
 
-	start_recieve_token_thread_();
-
 	MPI_Barrier(local_group_comm_);
 
-	mf::LogDebug(name_) << "Sending initial table.";
+	TLOG_DEBUG(name_) << "Sending initial table." << TLOG_ENDL;
 	auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
 	auto nextSendTime = startTime;
 	double delta_time;
@@ -282,17 +283,25 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 			}
 			else
 			{
-				mf::LogWarning(name_) << "No tokens received in this update interval! This is most likely a Very Bad Thing!";
+				TLOG_WARNING(name_) << "No tokens received in this update interval! This is most likely a Very Bad Thing!" << TLOG_ENDL;
 			}
-			nextSendTime = startTime + table_update_interval_ms_ / 1000;
+			auto max_tokens = policy_->GetMaxNumberOfTokens();
+			if (max_tokens > 0) {
+				auto frac = table.size() / static_cast<double>(max_tokens);
+				if (frac > 0.75) current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
+				if (frac < 0.5) current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
+				if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
+				if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
+			}
+			nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
+			TLOG_DEBUG(name_) << "current_table_interval_ms is now " << current_table_interval_ms_ << TLOG_ENDL;
 		}
 		else
 		{
-			usleep(table_update_interval_ms_ * 10); // 1/100 of the table update interval
+			usleep(current_table_interval_ms_ * 10); // 1/100 of the table update interval
 		}
 	}
 
-	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 	metricMan_.do_stop();
 
 	policy_.reset(nullptr);
@@ -307,21 +316,21 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (!table_socket_)
 		{
-			mf::LogError(name_) << "I failed to create the socket for sending Data Requests! Errno: " << std::to_string(errno) << std::endl;
+			TLOG_ERROR(name_) << "I failed to create the socket for sending Data Requests! Errno: " << std::to_string(errno) << TLOG_ENDL;
 			exit(1);
 		}
-		int sts = ResolveHost(send_tables_address_.c_str(), send_tables_port_, send_tables_addr_);
+		auto sts = ResolveHost(send_tables_address_.c_str(), send_tables_port_, send_tables_addr_);
 		if (sts == -1)
 		{
-			mf::LogError(name_) << "Unable to resolve table_update_address";
+			TLOG_ERROR(name_) << "Unable to resolve table_update_address" << TLOG_ENDL;
 			exit(1);
 		}
 
-		int yes = 1;
+		auto yes = 1;
 		if (receive_address_ != "localhost") {
-			mf::LogDebug(name_) << "Making sure that multicast sending uses the correct interface for hostname " << receive_address_;
+			TLOG_DEBUG(name_) << "Making sure that multicast sending uses the correct interface for hostname " << receive_address_ << TLOG_ENDL;
 			struct in_addr addr;
-			int sts = ResolveHost(receive_address_.c_str(), addr);
+			sts = ResolveHost(receive_address_.c_str(), addr);
 			if (sts == -1)
 			{
 				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to resolve routing_master_address" << std::endl;;
@@ -336,13 +345,13 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 
 			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 			{
-				mf::LogError(name_) << "Cannot set outgoing interface. Errno: " << std::to_string(errno) << std::endl;
+				TLOG_ERROR(name_) << "Cannot set outgoing interface. Errno: " << std::to_string(errno) << TLOG_ENDL;
 				exit(1);
 			}
 		}
 		if (setsockopt(table_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
 		{
-			mf::LogError(name_) << "Cannot set request socket to broadcast. Errno: " << std::to_string(errno) << std::endl;
+			TLOG_ERROR(name_) << "Cannot set request socket to broadcast. Errno: " << std::to_string(errno) << TLOG_ENDL;
 			exit(1);
 		}
 	}
@@ -359,7 +368,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 
 		struct sockaddr_in si_me_request;
 
-		int yes = 1;
+		auto yes = 1;
 		if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 		{
 			throw art::Exception(art::errors::Configuration) <<
@@ -370,92 +379,101 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		si_me_request.sin_family = AF_INET;
 		si_me_request.sin_port = htons(receive_acks_port_);
 		si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-		if (bind(ack_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
+		if (bind(ack_socket_, reinterpret_cast<struct sockaddr *>(&si_me_request), sizeof(si_me_request)) == -1)
 		{
 			throw art::Exception(art::errors::Configuration) <<
 				"RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;
 			exit(1);
 		}
-		mf::LogDebug(name_) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_;
+		TLOG_DEBUG(name_) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_ << TLOG_ENDL;
 	}
 
-	auto acks = std::vector<bool>(br_ranks_.size(), false);
-	auto counter = 0;
+	auto acks = std::vector<bool>(sender_ranks_.size(), false);
+	auto counter = 0U;
+	auto start_time = std::chrono::steady_clock::now();
 	while (std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) > 0)
 	{
 		// Send table update
 		auto header = detail::RoutingPacketHeader(packet.size());
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
-		mf::LogDebug(name_) << "Sending table information for " << std::to_string(header.nEntries) << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_;
-		if (sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, (struct sockaddr *)&send_tables_addr_, sizeof(send_tables_addr_)) < 0)
+		TLOG_DEBUG(name_) << "Sending table information for " << std::to_string(header.nEntries) << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << TLOG_ENDL;
+		if (sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_)) < 0)
 		{
-			mf::LogError(name_) << "Error sending request message header" << std::endl;
+			TLOG_ERROR(name_) << "Error sending request message header" << TLOG_ENDL;
 		}
-		if (sendto(table_socket_, &packet[0], packetSize, 0, (struct sockaddr *)&send_tables_addr_, sizeof(send_tables_addr_)) < 0)
+		if (sendto(table_socket_, &packet[0], packetSize, 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_)) < 0)
 		{
-			mf::LogError(name_) << "Error sending request message data" << std::endl;
+			TLOG_ERROR(name_) << "Error sending request message data" << TLOG_ENDL;
 		}
 
 		// Collect acks
 
 		auto first = packet[0].sequence_id;
 		auto last = packet.rbegin()->sequence_id;
-		mf::LogDebug(name_) << "Expecting acks to have first= " << std::to_string(first) << ", and last= " << std::to_string(last);
+		TLOG_DEBUG(name_) << "Expecting acks to have first= " << std::to_string(first) << ", and last= " << std::to_string(last) << TLOG_ENDL;
 
 
 		auto startTime = std::chrono::steady_clock::now();
 		while (std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) > 0)
 		{
 			auto currentTime = std::chrono::steady_clock::now();
-			if (static_cast<size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) > table_ack_wait_time_ms_)
+			auto table_ack_wait_time_ms = current_table_interval_ms_ / max_ack_cycle_count_;
+			if (static_cast<size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) > table_ack_wait_time_ms)
 			{
-				if (counter * table_ack_wait_time_ms_ > table_update_interval_ms_ && table_update_count_ > 0)
+				if (counter > max_ack_cycle_count_ && table_update_count_ > 0)
 				{
-					mf::LogError(name_) << "Did not receive acks from all BRs after resending table " << std::to_string(counter) << " times during the table_update_interval. Check the status of the Board Readers!";
+					TLOG_ERROR(name_) << "Did not receive acks from all senders after resending table " << std::to_string(counter) << " times during the table_update_interval. Check the status of the senders!" << TLOG_ENDL;
 					break;
 				}
-				mf::LogWarning(name_) << "Did not receive acks from all BRs within the table_ack_wait_time. Resending table update";
+				TLOG_WARNING(name_) << "Did not receive acks from all senders within the table_ack_wait_time. Resending table update" << TLOG_ENDL;
 				break;
 			}
 
-			TRACE(4, "CFG::receiveRequestsLoop: Polling Request socket for new requests");
-			bool ready = true;
+			TLOG_ARB(20, name_) << "send_event_table: Polling Request socket for new requests" << TLOG_ENDL;
+			auto ready = true;
 			while (ready) {
 				detail::RoutingAckPacket buffer;
 				if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, NULL, NULL) < 0)
 				{
 					if (errno == EWOULDBLOCK || errno == EAGAIN) {
-						TRACE(20, "RoutingMasterCore::send_event_table: No more ack datagrams on ack socket.");
+						TLOG_ARB(20, name_) << "send_event_table: No more ack datagrams on ack socket." << TLOG_ENDL;
 						ready = false;
 					}
 					else
 					{
-						mf::LogError(name_) << "An unexpected error occurred during ack packet receive";
+						TLOG_ERROR(name_) << "An unexpected error occurred during ack packet receive" << TLOG_ENDL;
 						exit(2);
 					}
 				}
 				else
 				{
-					mf::LogDebug(name_) << "Ack packet has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id);
+					TLOG_DEBUG(name_) << "Ack packet has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id) << TLOG_ENDL;
 					if (buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 					{
-						mf::LogDebug(name_) << "Received table update acknowledgement from BoardReader with rank " << std::to_string(buffer.rank) << ".";
-						acks[buffer.rank - br_ranks_[0]] = true;
-						mf::LogDebug(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) << " acks outstanding";
+						TLOG_DEBUG(name_) << "Received table update acknowledgement from sender with rank " << std::to_string(buffer.rank) << "." << TLOG_ENDL;
+						acks[buffer.rank - sender_ranks_[0]] = true;
+						TLOG_DEBUG(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) << " acks outstanding" << TLOG_ENDL;
 					}
 				}
 			}
+			usleep(table_ack_wait_time_ms * 1000 / 10);
 		}
+	}
+	if (metricMan)
+	{
+		std::chrono::duration<double, std::ratio<1>> delta = std::chrono::steady_clock::now() - start_time;
+		metricMan->sendMetric("Table Acknowledge Time", delta.count(), "seconds", 3);
 	}
 }
 
 void artdaq::RoutingMasterCore::receive_tokens_()
 {
-	while (!(stop_requested_ || pause_requested_)) {
+	while (!shutdown_requested_) {
+		TLOG_DEBUG(name_) << "Receive Token loop start" << TLOG_ENDL;
 		if (token_socket_ == -1)
 		{
-			mf::LogDebug(name_) << "Opening token listener socket";
+			TLOG_DEBUG(name_) << "Opening token listener socket" << TLOG_ENDL;
 			token_socket_ = TCP_listen_fd(receive_token_port_, 3 * sizeof(detail::RoutingToken));
 
 			if (token_epoll_fd_ != -1) close(token_epoll_fd_);
@@ -465,26 +483,26 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			ev.data.fd = token_socket_;
 			if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, token_socket_, &ev) == -1)
 			{
-				mf::LogError(name_) << "Could not register listen socket to epoll fd";
+				TLOG_ERROR(name_) << "Could not register listen socket to epoll fd" << TLOG_ENDL;
 				exit(3);
 			}
 		}
 		if (token_socket_ == -1 || token_epoll_fd_ == -1)
 		{
-			mf::LogDebug(name_) << "One of the listen sockets was not opened successfully.";
+			TLOG_DEBUG(name_) << "One of the listen sockets was not opened successfully." << TLOG_ENDL;
 			return;
 		}
 
-		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), table_update_interval_ms_);
+		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), current_table_interval_ms_);
 		if (nfds == -1) {
 			perror("epoll_wait");
 			exit(EXIT_FAILURE);
 		}
 
-		mf::LogDebug(name_) << "Received " << nfds << " events";
+		TLOG_DEBUG(name_) << "Received " << std::to_string(nfds) << " events" << TLOG_ENDL;
 		for (auto n = 0; n < nfds; ++n) {
 			if (receive_token_events_[n].data.fd == token_socket_) {
-				mf::LogDebug(name_) << "Accepting new connection on token_socket";
+				TLOG_DEBUG(name_) << "Accepting new connection on token_socket" << TLOG_ENDL;
 				sockaddr_in addr;
 				socklen_t arglen = sizeof(addr);
 				auto conn_sock = accept(token_socket_, (struct sockaddr *)&addr, &arglen);
@@ -509,13 +527,13 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				auto sts = read(receive_token_events_[n].data.fd, &buff, sizeof(detail::RoutingToken));
 				if (sts != sizeof(detail::RoutingToken) || buff.header != TOKEN_MAGIC)
 				{
-					mf::LogError(name_) << "Received invalid token from " << receive_token_addrs_[receive_token_events_[n].data.fd];
+					TLOG_ERROR(name_) << "Received invalid token from " << receive_token_addrs_[receive_token_events_[n].data.fd] << TLOG_ENDL;
 				}
 				else
 				{
-					mf::LogDebug(name_) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free.";
-					policy_->AddEventBuilderToken(buff.rank, buff.new_slots_free);
-					received_token_count_++;
+					TLOG_DEBUG(name_) << "Received token from " << std::to_string(buff.rank) << " indicating " << buff.new_slots_free << " slots are free." << TLOG_ENDL;
+					policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
+					++received_token_count_;
 				}
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
@@ -528,7 +546,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 void artdaq::RoutingMasterCore::start_recieve_token_thread_()
 {
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
-	mf::LogInfo(name_) << "Starting Token Reception Thread" << std::endl;
+	TLOG_INFO(name_) << "Starting Token Reception Thread" << TLOG_ENDL;
 	ev_token_receive_thread_ = std::thread(&RoutingMasterCore::receive_tokens_, this);
 }
 
@@ -539,7 +557,7 @@ std::string artdaq::RoutingMasterCore::report(std::string const&) const
 	// if we haven't been able to come up with any report so far, say so
 	auto tmpString = name_ + " run number = " + std::to_string(run_id_.run())
 		+ ", table updates sent = " + std::to_string(table_update_count_)
-		+ ", EventBuilder tokens received = " + std::to_string(received_token_count_);
+		+ ", Receiver tokens received = " + std::to_string(received_token_count_);
 	return tmpString;
 }
 
@@ -564,7 +582,7 @@ std::string artdaq::RoutingMasterCore::buildStatisticsString_() const
 				<< (1.0 / stats.recentSampleRate) << " sec";
 		}
 		oss << ", avg table acknowledgement wait time = "
-			<< (mqPtr->getRecentValueSum() / br_ranks_.size()) << " sec" << std::endl;
+			<< (mqPtr->getRecentValueSum() / sender_ranks_.size()) << " sec" << std::endl;
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TOKENS_RECEIVED_STAT_KEY);
@@ -602,8 +620,8 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 		metricMan_.sendMetric("Table Update Rate",
 							  stats.recentSampleRate, "updates/sec", 1);
 
-		metricMan_.sendMetric("Average BoardReader Acknowledgement Time",
-			(mqPtr->getRecentValueSum() / br_ranks_.size()),
+		metricMan_.sendMetric("Average Sender Acknowledgement Time",
+			(mqPtr->getRecentValueSum() / sender_ranks_.size()),
 							  "seconds", 3, false);
 	}
 
@@ -612,12 +630,12 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
-		metricMan_.sendMetric("EventBuilder Token Count",
+		metricMan_.sendMetric("Receiver Token Count",
 							  static_cast<unsigned long>(stats.fullSampleCount),
 							  "updates", 1);
-		metricMan_.sendMetric("EventBuilder Token Rate",
+		metricMan_.sendMetric("Receiver Token Rate",
 							  stats.recentSampleRate, "updates/sec", 1);
-		metricMan_.sendMetric("Total EventBuilder Token Wait Time",
+		metricMan_.sendMetric("Total Receiver Token Wait Time",
 							  mqPtr->getRecentValueSum(),
 							  "seconds", 3, false);
 	}

@@ -32,6 +32,7 @@
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 
@@ -47,7 +48,6 @@
 #include "TMessage.h"
 
 #define TRACE_NAME "RootMPIOutput"
-#include "trace.h"
 
 #  define CONST_WRITE
 
@@ -97,19 +97,19 @@ RootMPIOutput(ParameterSet const& ps)
 	: OutputModule(ps)
 	, initMsgSent_(false)
 {
-	mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::RootMPIOutput(ParameterSet const& ps)";
+	TLOG_DEBUG("RootMPIOutput") << "Begin: RootMPIOutput::RootMPIOutput(ParameterSet const& ps)" << TLOG_ENDL;
 	ServiceHandle<NetMonTransportService> transport;
 	transport->connect();
-	mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::RootMPIOutput(ParameterSet const& ps)";
+	TLOG_DEBUG("RootMPIOutput") << "End:   RootMPIOutput::RootMPIOutput(ParameterSet const& ps)" << TLOG_ENDL;
 }
 
 art::RootMPIOutput::
 ~RootMPIOutput()
 {
-	mf::LogDebug("RootMPIOutput") << "Begin: RootMPIOutput::~RootMPIOutput()";
+	TLOG_DEBUG("RootMPIOutput") << "Begin: RootMPIOutput::~RootMPIOutput()" << TLOG_ENDL;
 	ServiceHandle<NetMonTransportService> transport;
 	transport->disconnect();
-	mf::LogDebug("RootMPIOutput") << "End:   RootMPIOutput::~RootMPIOutput()";
+	TLOG_DEBUG("RootMPIOutput") << "End:   RootMPIOutput::~RootMPIOutput()" << TLOG_ENDL;
 }
 
 void

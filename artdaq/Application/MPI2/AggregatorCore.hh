@@ -9,7 +9,7 @@
 #include <iostream>
 #include <queue>
 
-
+#include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/quiet_mpi.hh"

@@ -88,6 +88,14 @@ art_make_exec(perfdump
    ${MPI_C_LIBRARIES}
    )
 
+art_make_exec(NAME tracemf
+    SOURCE
+    tracemf.cc
+    LIBRARIES
+    artdaq_DAQdata
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    )
+
 cet_test(config_t
   SOURCES
   config_t.cc

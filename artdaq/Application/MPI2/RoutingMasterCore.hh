@@ -74,16 +74,18 @@ private:
 	fhicl::ParameterSet policy_pset_;
 	int rt_priority_;
 
-	size_t table_update_interval_ms_;
-	size_t table_ack_wait_time_ms_;
+	size_t max_table_update_interval_ms_;
+	size_t max_ack_cycle_count_;
+	size_t current_table_interval_ms_;
 	std::atomic<size_t> table_update_count_;
 	std::atomic<size_t> received_token_count_;
 
-	std::vector<int> br_ranks_;
-	size_t num_ebs_;
+	std::vector<int> sender_ranks_;
+	size_t num_receivers_;
 
 	std::unique_ptr<RoutingMasterPolicy> policy_;
 
+	std::atomic<bool> shutdown_requested_;
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;
 

@@ -1,5 +1,4 @@
 #include "artdaq/Application/MPI2/RoutingMasterApp.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 /**
 * Default constructor.
@@ -72,9 +71,9 @@ bool artdaq::RoutingMasterApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	if (routing_master_future_.valid())
 	{
 		int number_of_table_entries_sent = routing_master_future_.get();
-		mf::LogDebug(name_ + "App::do_stop(uint64_t, uint64_t)")
+		TLOG_DEBUG(name_ + "App") << "do_stop(uint64_t, uint64_t): "
 			<< "Number of table entries sent = " << number_of_table_entries_sent
-			<< ".";
+			<< "." << TLOG_ENDL;
 	}
 
 	return external_request_status_;
@@ -93,9 +92,9 @@ bool artdaq::RoutingMasterApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (routing_master_future_.valid())
 	{
 		int number_of_table_entries_sent = routing_master_future_.get();
-		mf::LogDebug(name_ + "App::do_pause(uint64_t, uint64_t)")
+		TLOG_DEBUG(name_ + "App") << "do_pause(uint64_t, uint64_t): "
 			<< "Number of table entries sent = " << number_of_table_entries_sent
-			<< ".";
+			<< "." << TLOG_ENDL;
 	}
 
 	return external_request_status_;
@@ -157,7 +156,7 @@ bool artdaq::RoutingMasterApp::do_reinitialize(fhicl::ParameterSet const& pset, 
 
 void artdaq::RoutingMasterApp::BootedEnter()
 {
-	mf::LogDebug(name_ + "App") << "Booted state entry action called.";
+	TLOG_DEBUG(name_ + "App") << "Booted state entry action called." << TLOG_ENDL;
 
 	// the destruction of any existing RoutingMasterCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

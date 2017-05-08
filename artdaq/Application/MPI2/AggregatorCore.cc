@@ -5,7 +5,6 @@
 
 #include "artdaq/Application/MPI2/AggregatorCore.hh"
 #include "canvas/Utilities/Exception.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
@@ -13,11 +12,9 @@
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "cetlib/BasicPluginFactory.h"
 
-#include "trace.h"		// TRACE
 #include <errno.h>
 
 #include <sstream>
@@ -53,7 +50,7 @@ namespace artdaq
 			bitstr << std::bitset<8>(*((reinterpret_cast<uint8_t*>(memstart)) + i)) << " ";
 		}
 
-		mf::LogDebug(sourcename.c_str()) << bitstr.str();
+		TLOG_DEBUG(sourcename.c_str()) << bitstr.str() << TLOG_ENDL;
 	}
 }
 
@@ -74,7 +71,7 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
 	, previous_run_duration_(-1.0)
 	, new_transfers_(0)
 {
-	mf::LogDebug(name_) << "Constructor";
+	TLOG_DEBUG(name_) << "Constructor" << TLOG_ENDL;
 	stats_helper_.addMonitoredQuantityName(INPUT_EVENTS_STAT_KEY);
 	stats_helper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
 	stats_helper_.addMonitoredQuantityName(STORE_EVENT_WAIT_STAT_KEY);
@@ -89,7 +86,7 @@ artdaq::AggregatorCore::AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, 
  */
 artdaq::AggregatorCore::~AggregatorCore()
 {
-	mf::LogDebug(name_) << "Destructor";
+	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
 }
 
 /**
@@ -98,8 +95,7 @@ artdaq::AggregatorCore::~AggregatorCore()
 bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 {
 	init_string_ = pset.to_string();
-	mf::LogDebug(name_) << "initialize method called with DAQ "
-		<< "ParameterSet = \"" << init_string_ << "\".";
+	TLOG_DEBUG(name_) << "initialize method called with DAQ " << "ParameterSet = \"" << init_string_ << "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -109,9 +105,9 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\".";
+			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 	fhicl::ParameterSet agg_pset;
@@ -122,9 +118,9 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "Unable to find the aggregator parameters in the DAQ "
-			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
+			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 	try
@@ -134,10 +130,10 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "The expected_events_per_bunch parameter was not specified "
 			<< "in the aggregator initialization PSet: \"" << pset.to_string()
-			<< "\".";
+			<< "\"." << TLOG_ENDL;
 		return false;
 	}
 
@@ -184,10 +180,10 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 		throw cet::exception("ConfigurationException", "You must specify one of is_data_logger, is_online_monitor or is_dispatcher");
 		return false;
 	}
-	mf::LogDebug(name_) << "Rank " << my_rank
+	TLOG_DEBUG(name_) << "Rank " << my_rank
 		<< ", is_data_logger  = " << is_data_logger_
 		<< ", is_online_monitor = " << is_online_monitor_
-		<< ", is_dispatcher = " << is_dispatcher_;
+		<< ", is_dispatcher = " << is_dispatcher_ << TLOG_ENDL;
 
 	disk_writing_directory_ = "";
 	try
@@ -210,7 +206,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 			}
 			else
 			{
-				mf::LogWarning(name_) << "Problem finding \"fileName\" parameter in \"normalOutput\" RootOutput module FHiCL code";
+				TLOG_WARNING(name_) << "Problem finding \"fileName\" parameter in \"normalOutput\" RootOutput module FHiCL code" << TLOG_ENDL;
 			}
 		}
 	}
@@ -253,9 +249,9 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 					catch (...) {}
 					break;
 				default:
-					mf::LogWarning(name_)
+					TLOG_WARNING(name_)
 						<< "Unexpected XMLRPC client list element, index = "
-						<< loopCount << ", value = \"" << *iter2 << "\"";
+						<< loopCount << ", value = \"" << *iter2 << "\"" << TLOG_ENDL;
 				}
 				++loopCount;
 			}
@@ -304,7 +300,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 
 	if (metric_pset.is_empty())
 	{
-		mf::LogInfo(name_) << "No metric plugins appear to be defined";
+		TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try
 	{
@@ -359,9 +355,9 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 		tmp.erase("daq");
 		if (tmp != previous_pset_)
 		{
-			mf::LogError(name_)
+			TLOG_ERROR(name_)
 				<< "The art configuration can not be altered after art "
-				<< "has been configured.";
+				<< "has been configured." << TLOG_ENDL;
 			return false;
 		}
 	}
@@ -434,7 +430,7 @@ bool artdaq::AggregatorCore::shutdown()
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		mf::LogDebug(name_) << "Retrying EventStore::endOfData()";
+		TLOG_DEBUG(name_) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
 		endSucceeded = event_store_ptr_->endOfData(readerReturnValue);
 	}
 	metricMan_.shutdown();
@@ -446,17 +442,17 @@ bool artdaq::AggregatorCore::shutdown()
 
 bool artdaq::AggregatorCore::soft_initialize(fhicl::ParameterSet const& pset)
 {
-	mf::LogDebug(name_) << "soft_initialize method called with DAQ "
+	TLOG_DEBUG(name_) << "soft_initialize method called with DAQ "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 	return true;
 }
 
 bool artdaq::AggregatorCore::reinitialize(fhicl::ParameterSet const& pset)
 {
-	mf::LogDebug(name_) << "reinitialize method called with DAQ "
+	TLOG_DEBUG(name_) << "reinitialize method called with DAQ "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 	return true;
 }
 
@@ -488,7 +484,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 	    }
 	  }
 
-	mf::LogDebug(name_) << "Waiting for first fragment.";
+	TLOG_DEBUG(name_) << "Waiting for first fragment." << TLOG_ENDL;
+
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	while (process_fragments)
 	{
@@ -524,8 +521,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 		{
 			if (endSubRunMsg != nullptr)
 			{
-				mf::LogInfo(name_)
-					<< "There appears to be no more data to receive - ending the run.";
+				TLOG_INFO(name_)
+					<< "There appears to be no more data to receive - ending the run." << TLOG_ENDL;
 				event_store_ptr_->flushData();
 				artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
 				subRunEvent->insertFragment(std::move(endSubRunMsg));
@@ -534,14 +531,14 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 				if (!enqStatus)
 				{
-					mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
-						enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+					TLOG_ERROR(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
+						enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 				}
 			}
 			else
 			{
-				mf::LogError(name_)
-					<< "There appears to be no more data to receive, but the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+				TLOG_ERROR(name_)
+					<< "There appears to be no more data to receive, but the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 			}
 
 			process_fragments = false;
@@ -554,8 +551,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 			{
 				if (endSubRunMsg != nullptr)
 				{
-					mf::LogWarning(name_)
-						<< "Timeout occurred in attempt to receive data, but as a stop has been requested, will forcibly end the run.";
+					TLOG_WARNING(name_)
+						<< "Timeout occurred in attempt to receive data, but as a stop has been requested, will forcibly end the run." << TLOG_ENDL;
 					event_store_ptr_->flushData();
 					artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
 					subRunEvent->insertFragment(std::move(endSubRunMsg));
@@ -563,16 +560,16 @@ size_t artdaq::AggregatorCore::process_fragments()
 					bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
 					if (!enqStatus)
 					{
-						mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
-							enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+						TLOG_ERROR(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
+							enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 					}
 				}
 				else
 				{
 					if (event_count_in_subrun_ > 0)
 					{
-						mf::LogError(name_)
-							<< "Timeout receiving data after stop request, and the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+						TLOG_ERROR(name_)
+							<< "Timeout receiving data after stop request, and the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 					}
 					else
 					{
@@ -588,8 +585,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 			{
 				if (endSubRunMsg != nullptr)
 				{
-					mf::LogWarning(name_)
-						<< "Timeout occurred in attempt to receive data, but as a pause has been requested, will forcibly pause the run.";
+					TLOG_WARNING(name_)
+						<< "Timeout occurred in attempt to receive data, but as a pause has been requested, will forcibly pause the run." << TLOG_ENDL;
 					event_store_ptr_->flushData();
 					artdaq::RawEvent_ptr subRunEvent(new artdaq::RawEvent(run_id_.run(), 1, 0));
 					subRunEvent->insertFragment(std::move(endSubRunMsg));
@@ -597,14 +594,14 @@ size_t artdaq::AggregatorCore::process_fragments()
 					bool enqStatus = event_queue_.enqTimedWait(subRunEvent, enq_timeout_);
 					if (!enqStatus)
 					{
-						mf::LogError(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
-							enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+						TLOG_ERROR(name_) << "Attempt to send EndOfSubRun fragment to art timed out after " <<
+							enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 					}
 				}
 				else
 				{
-					mf::LogError(name_) <<
-						"Timeout receiving data after pause request, and the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+					TLOG_ERROR(name_) <<
+						"Timeout receiving data after pause request, and the EndOfSubRun fragment isn't available to send to art; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 				}
 				process_fragments = false;
 			}
@@ -613,36 +610,36 @@ size_t artdaq::AggregatorCore::process_fragments()
 		}
 		else if (!fragmentPtr)
 		{
-			mf::LogError(name_) << "Received invalid fragment from " << senderSlot << ". This is usually the case when a timeout has occurred, but sender was not set to RECV_TIMEOUT as expected.";
+			TLOG_ERROR(name_) << "Received invalid fragment from " << senderSlot << ". This is usually the case when a timeout has occurred, but sender was not set to RECV_TIMEOUT as expected." << TLOG_ENDL;
 			continue;
 		}
 		//		if ((is_data_logger_ && !receiver_ptr_->enabled_sources().count(senderSlot)) || (!is_data_logger_ && senderSlot != data_logger_transfer_->source_rank()))
 		if (!receiver_ptr_->enabled_sources().count(senderSlot))
 		{
-			mf::LogError(name_)
+			TLOG_ERROR(name_)
 				<< "Invalid senderSlot received from recvFragment: "
-				<< senderSlot;
+				<< senderSlot << TLOG_ENDL;
 			continue;
 		}
 		fragments_received.incSlot(senderSlot);
 		if (artdaq::Fragment::isSystemFragmentType(fragmentPtr->type()) &&
 			fragmentPtr->type() != artdaq::Fragment::DataFragmentType)
 		{
-			mf::LogDebug(name_)
+			TLOG_DEBUG(name_)
 				<< "Sender slot = " << senderSlot
 				<< ", fragment type = " << ((int)fragmentPtr->type())
-				<< ", sequence ID = " << fragmentPtr->sequenceID();
+				<< ", sequence ID = " << fragmentPtr->sequenceID() << TLOG_ENDL;
 		}
 
 		// 11-Sep-2013, KAB - protect against invalid fragments
 		if (fragmentPtr->type() == artdaq::Fragment::InvalidFragmentType)
 		{
 			size_t fragSize = fragmentPtr->size() * sizeof(artdaq::RawDataType);
-			mf::LogError(name_) << "Fragment received with type of "
+			TLOG_ERROR(name_) << "Fragment received with type of "
 				<< "INVALID.  Size = " << fragSize
 				<< ", sequence ID = " << fragmentPtr->sequenceID()
 				<< ", fragment ID = " << fragmentPtr->fragmentID()
-				<< ", and type = " << ((int)fragmentPtr->type());
+				<< ", and type = " << ((int)fragmentPtr->type()) << TLOG_ENDL;
 			continue;
 		}
 
@@ -709,9 +706,9 @@ size_t artdaq::AggregatorCore::process_fragments()
 					// So as to not flood log files/viewers with messages...
 					if (dispatcher_transfers_.size() > 0 && fragmentPtr->sequenceID() % 100 == 0)
 					{
-						mf::LogDebug(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
+						TLOG_DEBUG(name_) << "Dispatcher: broadcasting seqID = " << fragmentPtr->sequenceID() << ", type = " <<
 							static_cast<size_t>(fragmentPtr->type()) << " to " << dispatcher_transfers_.size()
-							<< " registered monitors";
+							<< " registered monitors" << TLOG_ENDL;
 					}
 					for (auto& transfer : dispatcher_transfers_)
 					{
@@ -722,8 +719,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 				{
 					for (size_t i_q = dispatcher_transfers_.size() - new_transfers_; i_q < dispatcher_transfers_.size(); ++i_q)
 					{
-						mf::LogInfo(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) <<
-							", size " << init_fragment_ptr_->sizeBytes();
+						TLOG_INFO(name_) << "Copying out init fragment, type " << static_cast<int>(init_fragment_ptr_->type()) <<
+							", size " << init_fragment_ptr_->sizeBytes() << TLOG_ENDL;
 						dispatcher_transfers_[i_q]->copyFragment(*init_fragment_ptr_, 500000);
 					}
 					new_transfers_ = 0;
@@ -746,7 +743,7 @@ size_t artdaq::AggregatorCore::process_fragments()
 			   EventBuilder. */
 			if (fragmentPtr->type() == artdaq::Fragment::InitFragmentType)
 			{
-				mf::LogDebug(name_) << "Init";
+				TLOG_DEBUG(name_) << "Init" << TLOG_ENDL;
 
 				if (is_data_logger_ && sender_ptr_)
 				{
@@ -762,14 +759,14 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 				if (!enqStatus)
 				{
-					mf::LogError(name_) << "Attempt to send Init event to art timed out after " <<
-						enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+					TLOG_ERROR(name_) << "Attempt to send Init event to art timed out after " <<
+						enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 				}
 				art_initialized_ = true;
 			}
 			else
 			{
-				mf::LogError(name_) << "Didn't receive an Init event with which to initialize art; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+				TLOG_ERROR(name_) << "Didn't receive an Init event with which to initialize art; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 			}
 		}
 		else
@@ -800,34 +797,34 @@ size_t artdaq::AggregatorCore::process_fragments()
 							try_again = false;
 							process_fragments = false;
 							receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
-							mf::LogWarning(name_)
+							TLOG_WARNING(name_)
 								<< "Unable to process event " << seqId
-								<< " because of back-pressure - forcibly ending the run.";
+								<< " because of back-pressure - forcibly ending the run." << TLOG_ENDL;
 						}
 						else if (local_pause_requested_.load())
 						{
 							try_again = false;
 							process_fragments = false;
 							receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
-							mf::LogWarning(name_)
+							TLOG_WARNING(name_)
 								<< "Unable to process event " << seqId
-								<< " because of back-pressure - forcibly pausing the run.";
+								<< " because of back-pressure - forcibly pausing the run." << TLOG_ENDL;
 						}
 						else if (ret == EventStore::EventStoreInsertResult::REJECT_QUEUEFULL)
 						{
 							fragmentPtr = std::move(rejectedFragment);
-							mf::LogWarning(name_)
+							TLOG_WARNING(name_)
 								<< "Unable to process event " << seqId
-								<< " because of back-pressure from art - retrying...";
+								<< " because of back-pressure from art - retrying..." << TLOG_ENDL;
 						}
 						else
 						{
 							try_again = false;
 							receiver_ptr_->reject_fragment(senderSlot, std::move(rejectedFragment));
-							mf::LogWarning(name_)
+							TLOG_WARNING(name_)
 								<< "Unable to process event " << seqId
 								<< " because the EventStore has reached the maximum number of incomplete bunches." << std::endl
-								<< " Will retry when the EventStore is ready for new events.";
+								<< " Will retry when the EventStore is ready for new events." << TLOG_ENDL;
 						}
 					}
 				}
@@ -913,9 +910,9 @@ size_t artdaq::AggregatorCore::process_fragments()
 				{
 					pause_thread_->join();
 				}
-				mf::LogDebug(name_) << "Starting sendPauseAndResume thread "
+				TLOG_DEBUG(name_) << "Starting sendPauseAndResume thread "
 					<< ", event count in subrun = "
-					<< event_count_in_subrun_;
+					<< event_count_in_subrun_ << TLOG_ENDL;
 				pause_thread_.reset(new std::thread(&AggregatorCore::sendPauseAndResume_, this));
 			}
 		}
@@ -956,14 +953,14 @@ size_t artdaq::AggregatorCore::process_fragments()
 
 				if (!enqStatus)
 				{
-					mf::LogError(name_) << "All data appears to have been received but attempt to send EndOfSubRun fragment to art timed out after " <<
-						enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking";
+					TLOG_ERROR(name_) << "All data appears to have been received but attempt to send EndOfSubRun fragment to art timed out after " <<
+						enq_timeout_.count() << " seconds; DAQ may need to be returned to the \"Stopped\" state before further datataking" << TLOG_ENDL;
 				}
 				process_fragments = false;
 			}
 			else
 			{
-				mf::LogWarning(name_) << "EndOfSubRun fragment and all EndOfData fragments received but more data expected";
+				TLOG_WARNING(name_) << "EndOfSubRun fragment and all EndOfData fragments received but more data expected" << TLOG_ENDL;
 			}
 		}
 	}
@@ -1081,7 +1078,7 @@ std::string artdaq::AggregatorCore::report(std::string const& which) const
 
 std::string artdaq::AggregatorCore::register_monitor(fhicl::ParameterSet const& pset)
 {
-	mf::LogDebug(name_) << "AggregatorCore::register_monitor called with argument \"" << pset.to_string() << "\"";
+	TLOG_DEBUG(name_) << "AggregatorCore::register_monitor called with argument \"" << pset.to_string() << "\"" << TLOG_ENDL;
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 
 	try
@@ -1101,7 +1098,7 @@ std::string artdaq::AggregatorCore::register_monitor(fhicl::ParameterSet const& 
 
 		dispatcher_transfers_.emplace_back(std::move(transfer));
 
-		mf::LogInfo(name_) << "Successfully registered monitor with label \"" << dispatcher_transfers_.back()->uniqueLabel() << "\"";
+		TLOG_INFO(name_) << "Successfully registered monitor with label \"" << dispatcher_transfers_.back()->uniqueLabel() << "\"" << TLOG_ENDL;
 
 		new_transfers_++;
 	}
@@ -1117,7 +1114,7 @@ std::string artdaq::AggregatorCore::register_monitor(fhicl::ParameterSet const& 
 
 std::string artdaq::AggregatorCore::unregister_monitor(std::string const& label)
 {
-	mf::LogDebug(name_) << "AggregatorCore::unregister_monitor called with argument \"" << label << "\"";
+	TLOG_DEBUG(name_) << "AggregatorCore::unregister_monitor called with argument \"" << label << "\"" << TLOG_ENDL;
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 
 	try
@@ -1131,7 +1128,7 @@ std::string artdaq::AggregatorCore::unregister_monitor(std::string const& label)
 
 		auto nfound = dispatcher_transfers_.end() - r_i_end;
 
-		mf::LogInfo(name_) << "Request from monitor with label \"" << label << "\" to unregister received";
+		TLOG_INFO(name_) << "Request from monitor with label \"" << label << "\" to unregister received" << TLOG_ENDL;
 
 		if (nfound == 1)
 		{
@@ -1143,7 +1140,7 @@ std::string artdaq::AggregatorCore::unregister_monitor(std::string const& label)
 			std::stringstream errmsg;
 			errmsg << "Warning in AggregatorCore::unregister_monitor: unable to find requested transfer plugin with "
 				<< "label \"" << label << "\"";
-			mf::LogWarning(name_) << errmsg.str();
+			TLOG_WARNING(name_) << errmsg.str() << TLOG_ENDL;
 			return errmsg.str();
 		}
 		else
@@ -1151,7 +1148,7 @@ std::string artdaq::AggregatorCore::unregister_monitor(std::string const& label)
 			std::stringstream errmsg;
 			errmsg << "Warning in AggregatorCore::unregister_monitor: found more than one (" << nfound <<
 				") transfer plugins with label \"" << label << "\", will unregister all of them";
-			mf::LogWarning(name_) << errmsg.str();
+			TLOG_WARNING(name_) << errmsg.str() << TLOG_ENDL;
 			dispatcher_transfers_.erase(r_i_end, dispatcher_transfers_.end());
 			return errmsg.str();
 		}
@@ -1171,7 +1168,7 @@ size_t artdaq::AggregatorCore::getLatestFileSize_() const
 {
 	if (disk_writing_directory_.size() == 0)
 	{
-		mf::LogDebug(name_) << "Latest file size = 0 (no directory)";
+		TLOG_DEBUG(name_) << "Latest file size = 0 (no directory)" << TLOG_ENDL;
 		return 0;
 	}
 	BFS::path outputDir(disk_writing_directory_);
@@ -1198,13 +1195,13 @@ size_t artdaq::AggregatorCore::getLatestFileSize_() const
 	time_t now = time(0);
 	if ((now - latestFileTime) < 60)
 	{
-		mf::LogDebug(name_) << "Latest file size = "
-			<< latestFileSize;
+		TLOG_DEBUG(name_) << "Latest file size = "
+			<< latestFileSize << TLOG_ENDL;
 		return latestFileSize;
 	}
 	else
 	{
-		mf::LogDebug(name_) << "Latest file size = 0 (too old)";
+		TLOG_DEBUG(name_) << "Latest file size = 0 (too old)" << TLOG_ENDL;
 		return 0;
 	}
 }
@@ -1212,7 +1209,7 @@ size_t artdaq::AggregatorCore::getLatestFileSize_() const
 bool artdaq::AggregatorCore::sendPauseAndResume_()
 {
 	xmlrpc_c::clientSimple myClient;
-	mf::LogInfo(name_) << "Starting automatic pause...";
+	TLOG_INFO(name_) << "Starting automatic pause..." << TLOG_ENDL;
 	for (size_t igrp = 0; igrp < xmlrpc_client_lists_.size(); ++igrp)
 	{
 		for (size_t idx = 0; idx < xmlrpc_client_lists_[igrp].size(); ++idx)
@@ -1222,9 +1219,9 @@ bool artdaq::AggregatorCore::sendPauseAndResume_()
 				xmlrpc_c::value result;
 				myClient.call((xmlrpc_client_lists_[igrp])[idx], "daq.pause", &result);
 				std::string const resultString = xmlrpc_c::value_string(result);
-				mf::LogDebug(name_) << "Pause: "
+				TLOG_DEBUG(name_) << "Pause: "
 					<< (xmlrpc_client_lists_[igrp])[idx]
-					<< " " << resultString;
+					<< " " << resultString << TLOG_ENDL;
 				if (std::string::npos !=
 					boost::algorithm::to_lower_copy(resultString).find("success"))
 				{
@@ -1233,14 +1230,14 @@ bool artdaq::AggregatorCore::sendPauseAndResume_()
 				else
 				{
 					sleep(2);
-					mf::LogWarning(name_) << "Retrying pause command to "
+					TLOG_WARNING(name_) << "Retrying pause command to "
 						<< (xmlrpc_client_lists_[igrp])[idx]
-						<< " (" << resultString << ")";
+						<< " (" << resultString << ")" << TLOG_ENDL;
 				}
 			}
 		}
 	}
-	mf::LogInfo(name_) << "Starting automatic resume...";
+	TLOG_INFO(name_) << "Starting automatic resume..." << TLOG_ENDL;
 	for (int igrp = (xmlrpc_client_lists_.size() - 1); igrp >= 0; --igrp)
 	{
 		for (size_t idx = 0; idx < xmlrpc_client_lists_[igrp].size(); ++idx)
@@ -1250,9 +1247,9 @@ bool artdaq::AggregatorCore::sendPauseAndResume_()
 				xmlrpc_c::value result;
 				myClient.call((xmlrpc_client_lists_[igrp])[idx], "daq.resume", &result);
 				std::string const resultString = xmlrpc_c::value_string(result);
-				mf::LogDebug(name_) << "Resume: "
+				TLOG_DEBUG(name_) << "Resume: "
 					<< (xmlrpc_client_lists_[igrp])[idx]
-					<< " " << resultString;
+					<< " " << resultString << TLOG_ENDL;
 				if (std::string::npos !=
 					boost::algorithm::to_lower_copy(resultString).find("success"))
 				{
@@ -1261,14 +1258,14 @@ bool artdaq::AggregatorCore::sendPauseAndResume_()
 				else
 				{
 					sleep(2);
-					mf::LogWarning(name_) << "Retrying resume command to "
+					TLOG_WARNING(name_) << "Retrying resume command to "
 						<< (xmlrpc_client_lists_[igrp])[idx]
-						<< " (" << resultString << ")";
+						<< " (" << resultString << ")" << TLOG_ENDL;
 				}
 			}
 		}
 	}
-	mf::LogInfo(name_) << "Done with automatic resume...";
+	TLOG_INFO(name_) << "Done with automatic resume..." << TLOG_ENDL;
 	system_pause_requested_.store(false);
 	return true;
 }
@@ -1277,11 +1274,11 @@ void artdaq::AggregatorCore::logMessage_(std::string const& text)
 {
 	if (is_data_logger_)
 	{
-		mf::LogInfo(name_) << text;
+		TLOG_INFO(name_) << text << TLOG_ENDL;
 	}
 	else
 	{
-		mf::LogDebug(name_) << text;
+		TLOG_DEBUG(name_) << text << TLOG_ENDL;
 	}
 }
 
@@ -1364,7 +1361,7 @@ std::string artdaq::AggregatorCore::buildStatisticsString_()
 
 void artdaq::AggregatorCore::sendMetrics_()
 {
-	//mf::LogDebug("AggregatorCore") << "Sending metrics ";
+	//TLOG_DEBUG("AggregatorCore") << "Sending metrics " << TLOG_ENDL;
 	double eventCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(INPUT_EVENTS_STAT_KEY);

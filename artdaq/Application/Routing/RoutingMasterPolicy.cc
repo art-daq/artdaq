@@ -1,29 +1,26 @@
 #include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
 #include <fhiclcpp/ParameterSet.h>
-#include "trace.h"
 
 artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
 	: next_sequence_id_(0)
 	, tokens_()
+	, max_token_count_(0)
 {
-	auto eb_ranks = ps.get<std::vector<int>>("event_builder_ranks");
-	eb_count_ = eb_ranks.size();
-	auto eb_buffers = ps.get<int>("event_builder_buffer_count");
-	for(auto i = 0; i < eb_buffers;++i)
-	{
-		for (auto rank : eb_ranks) { tokens_.push_back(rank); }
-	}
+	auto receiver_ranks = ps.get<std::vector<int>>("receiver_ranks");
+	receiver_ranks_.insert(receiver_ranks.begin(), receiver_ranks.end());
 }
 
-void artdaq::RoutingMasterPolicy::AddEventBuilderToken(int rank, unsigned new_slots_free)
+void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_free)
 {
-	TRACE(10, "RoutingMasterPolicy::AddEventBuilderToken BEGIN");
+	if (!receiver_ranks_.count(rank)) return;
+	TRACE(10, "RoutingMasterPolicy::AddReceiverToken BEGIN");
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
-	for(unsigned i = 0; i < new_slots_free;++i)
+	for (unsigned i = 0; i < new_slots_free; ++i)
 	{
 		tokens_.push_back(rank);
 	}
-	TRACE(10, "RoutingMasterPolicy::AddEventBuilderToken END");
+	if (tokens_.size() > max_token_count_) max_token_count_ = tokens_.size();
+	TRACE(10, "RoutingMasterPolicy::AddReceiverToken END");
 }
 
 std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot()
@@ -39,8 +36,9 @@ std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot(
 void artdaq::RoutingMasterPolicy::addUnusedTokens(std::unique_ptr<std::deque<int>> tokens)
 {
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
-	for(auto token = tokens.get()->rbegin();token != tokens.get()->rend();++token)
+	for (auto token = tokens.get()->rbegin(); token != tokens.get()->rend(); ++token)
 	{
 		tokens_.push_front(*token);
 	}
+	if (tokens_.size() > max_token_count_) max_token_count_ = tokens_.size();
 }

@@ -1,5 +1,4 @@
 #include "artdaq/Application/MPI2/BoardReaderApp.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 /**
  * Default constructor.
@@ -72,9 +71,9 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	if (fragment_processing_future_.valid())
 	{
 		int number_of_fragments_sent = fragment_processing_future_.get();
-		mf::LogDebug(name_ + "App::do_stop(uint64_t, uint64_t)")
+		TLOG_DEBUG(name_ + "App") << "do_stop(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
-			<< ".";
+			<< "." << TLOG_ENDL;
 	}
 
 	return external_request_status_;
@@ -93,9 +92,9 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (fragment_processing_future_.valid())
 	{
 		int number_of_fragments_sent = fragment_processing_future_.get();
-		mf::LogDebug(name_ + "App::do_pause(uint64_t, uint64_t)")
+		TLOG_DEBUG(name_ + "App") << "do_pause(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
-			<< ".";
+			<< "." << TLOG_ENDL;
 	}
 
 	return external_request_status_;
@@ -157,7 +156,7 @@ bool artdaq::BoardReaderApp::do_reinitialize(fhicl::ParameterSet const& pset, ui
 
 void artdaq::BoardReaderApp::BootedEnter()
 {
-	mf::LogDebug(name_ + "App") << "Booted state entry action called.";
+	TLOG_DEBUG(name_ + "App") << "Booted state entry action called." << TLOG_ENDL;
 
 	// the destruction of any existing BoardReaderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

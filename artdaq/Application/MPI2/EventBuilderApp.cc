@@ -1,5 +1,4 @@
 #include "artdaq/Application/MPI2/EventBuilderApp.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 /**
  * Constructor.
@@ -149,7 +148,7 @@ bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, u
 
 void artdaq::EventBuilderApp::BootedEnter()
 {
-	mf::LogDebug(name_ + "App") << "Booted state entry action called.";
+	TLOG_DEBUG(name_ + "App") << "Booted state entry action called." << TLOG_ENDL;
 
 	// the destruction of any existing EventBuilderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

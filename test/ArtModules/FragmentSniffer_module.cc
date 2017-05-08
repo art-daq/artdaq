@@ -6,10 +6,10 @@
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include <memory>
 #include "fhiclcpp/ParameterSet.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <string>
 
@@ -60,10 +60,10 @@ namespace artdaq
 
 	void FragmentSniffer::endJob()
 	{
-		mf::LogInfo("Progress") << "events processed: "
+		TLOG_INFO("Progress") << "events processed: "
 			<< num_events_processed_
 			<< "\nevents expected:  "
-			<< num_events_expected_;
+			<< num_events_expected_ << TLOG_ENDL;
 		assert(num_events_processed_ == num_events_expected_);
 	}
 

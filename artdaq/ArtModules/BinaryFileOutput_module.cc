@@ -12,8 +12,8 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
-#include "trace.h"
 #define TRACE_NAME "BinaryFileOutput"
 
 #include <iomanip>
@@ -142,9 +142,9 @@ bool
 art::BinaryFileOutput::
 readParameterSet_(fhicl::ParameterSet const& pset)
 {
-	mf::LogDebug(name_) << "BinaryFileOutput::readParameterSet_ method called with "
+	TLOG_DEBUG(name_) << "BinaryFileOutput::readParameterSet_ method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 	// determine the data sending parameters
 	try
 	{
@@ -152,16 +152,21 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		mf::LogError(name_)
+		TLOG_ERROR(name_)
 			<< "The fileName parameter was not specified "
 			<< "in the BinaryMPIOutput initialization PSet: \""
-			<< pset.to_string() << "\".";
+			<< pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
 	do_direct_ = pset.get<bool>("directIO", false);
 	// determine the data sending parameters
 	return true;
 }
+
+#define USE_STATIC_BUFFER 0
+#if USE_STATIC_BUFFER == 1
+static unsigned char static_buffer[0xa00000];
+#endif
 
 void
 art::BinaryFileOutput::
@@ -196,8 +201,13 @@ write(EventPrincipal& ep)
 			}
 			else
 			{
-				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
-				TRACE( 3, "BinaryFileOutput::write seq=%lu frag=%i done", sequence_id, fragid_id );
+#          if USE_STATIC_BUFFER == 1
+			  file_ptr_->write((char*)static_buffer, fragment.sizeBytes());
+#          else
+			  file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
+#          endif
+				TRACE( 3, "BinaryFileOutput::write seq=%lu frag=%i done errno=%d"
+				       , sequence_id, fragid_id, errno );
 			}
 		}
 	}

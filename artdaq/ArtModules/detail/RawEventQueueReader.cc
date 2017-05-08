@@ -1,10 +1,11 @@
+
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/detail/RawEventQueueReader.hh"
 
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Utilities/Exception.h"
 #include "artdaq-core/Data/Fragment.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include <sys/time.h>
 
 using std::string;
@@ -21,6 +22,7 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
                                                                                       , shutdownMsgReceived(false)
                                                                                       , outputFileCloseNeeded(false)
                                                                                       , fragment_type_map_(Fragment::MakeSystemTypeMap())
+										      , readNext_calls_(0)
 {
 	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name,
 	                                            unidentified_instance_name);
@@ -28,7 +30,6 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 	}
-	incoming_events.setReaderIsReady();
 }
 
 void artdaq::detail::RawEventQueueReader::closeCurrentFile() {}
@@ -49,6 +50,10 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 		outputFileCloseNeeded = false;
 		return false;
 	}*/
+        if (readNext_calls_++ == 0)
+	{    incoming_events.setReaderIsReady();
+             TRACE( 50, "RawEventQueueReader::readNext after incoming_events.setReaderIsReady()" );
+	}
 	// Establish default 'results'
 	outR = 0;
 	outSR = 0;
@@ -67,8 +72,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 		got_event = incoming_events.deqTimedWait(popped_event, waiting_time);
 		if (!got_event)
 		{
-			mf::LogInfo("InputFailure")
-				<< "Reading timed out in RawEventQueueReader::readNext()";
+			TLOG_INFO("RawEventQueueReader")
+				<< "InputFailure: Reading timed out in RawEventQueueReader::readNext()" << TLOG_ENDL;
 			keep_looping = resume_after_timeout;
 		}
 	}
@@ -79,6 +84,7 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 	//      pointer
 	if (!got_event || !popped_event)
 	{
+		TLOG_DEBUG("RawEventQueueReader") << "Received shutdown message, returning false" << TLOG_ENDL;
 		shutdownMsgReceived = true;
 		return false;
 	}
@@ -191,11 +197,11 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 			                         *outE,
 			                         pretend_module_name,
 			                         unidentified_instance_name);
-			mf::LogWarning("UnknownFragmentType")
-				<< "The product instance name mapping for fragment type \""
+			TLOG_WARNING("RawEventQueueReader")
+				<< "UnknownFragmentType: The product instance name mapping for fragment type \""
 				<< ((int)type_list[idx]) << "\" is not known. Fragments of this "
 				<< "type will be stored in the event with an instance name of \""
-				<< unidentified_instance_name << "\".";
+				<< unidentified_instance_name << "\"." << TLOG_ENDL;
 		}
 	}
 

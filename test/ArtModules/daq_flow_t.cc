@@ -5,7 +5,6 @@
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <cstddef>
 #include <iostream>

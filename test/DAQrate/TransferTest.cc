@@ -5,7 +5,6 @@
 #include "artdaq/DAQrate/DataSenderManager.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
-#include "trace.h"
 
 #include <fhiclcpp/make_ParameterSet.h>
 
