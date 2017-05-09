@@ -97,6 +97,7 @@ namespace artdaq
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 		, token_socket_(-1)
+		, art_thread_wait_ms_(pset.get<int>("art_thread_wait_ms",4000))
 	{
 		TLOG_DEBUG("EventStore") << "EventStore CONSTRUCTOR" << TLOG_ENDL;
 		initStatistics_();

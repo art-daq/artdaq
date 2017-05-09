@@ -42,6 +42,7 @@ NetMonTransportService(ParameterSet const& pset, art::ActivityRegistry&)
 	, incoming_events_(artdaq::getGlobalQueue())
 	, recvd_fragments_(nullptr)
 {
+    if(pset.has_key("rank")) my_rank = pset.get<int>("rank");
 	incoming_events_.setReaderIsReady();
 }
 

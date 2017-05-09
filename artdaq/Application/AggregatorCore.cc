@@ -472,8 +472,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
 		//Removed if statement on different Aggregator types as they all go through DataReceiverManager now
-		fragmentPtr = receiver_ptr_->recvFragment(senderSlot, recvTimeout); senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
-
+		fragmentPtr = receiver_ptr_->recvFragment(senderSlot, recvTimeout); 
+		
 		stats_helper_.addSample(INPUT_WAIT_STAT_KEY,
 			(artdaq::MonitoredQuantity::getCurrentTime() - startTime));
 		/*if (senderSlot == MPI_ANY_SOURCE) // Use RECV_TIMEOUT now to indicate that no senders have sent anything

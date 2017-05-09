@@ -61,12 +61,12 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
-	auto rank = -1;
 	if (!vm.count("rank"))
 	{
 		TLOG_ERROR("Option") << argv[0] << " rank not supplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << TLOG_ENDL;
 		return 2;
 	}
+	auto rank = vm["rank"].as<int>();
 
 	std::string name = "Aggregator";
 	if (vm.count("name"))
@@ -94,16 +94,16 @@ int main(int argc, char * argv[])
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
 		make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
 
-		int run = pset.get<int>("run_number", 1);
+		int run = pset.get<int>("run_number", 101);
 		uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
 		uint64_t timestamp = 0;
 
-		agg_app.do_initialize(pset.get<fhicl::ParameterSet>("daq"), timeout, timestamp);
+		agg_app.do_initialize(pset, timeout, timestamp);
 		agg_app.do_start(art::RunID(run), timeout, timestamp);
 
 		TLOG_INFO(name) << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
-			<< "xmlrpc `hostname`:" << vm["port"].as<unsigned short>() << "/RPC2 daq.stop" << std::endl
-			<< "xmlrpc `hostname`:" << vm["port"].as<unsigned short>() << "/RPC2 daq.shutdown" << TLOG_ENDL;
+			<< "xmlrpc http://`hostname`:" << vm["port"].as<unsigned short>() << "/RPC2 daq.stop" << std::endl
+			<< "xmlrpc http://`hostname`:" << vm["port"].as<unsigned short>() << "/RPC2 daq.shutdown" << TLOG_ENDL;
 	}
 
 	// create the xmlrpc_commander and run it

@@ -1,0 +1,35 @@
+services: {
+  scheduler: {
+    fileMode: NOMERGE
+    errorOnFailureToPut: false
+  }
+  NetMonTransportServiceInterface: {
+    service_provider: NetMonTransportService
+    rank: 0
+     #broadcast_sends: true
+	destinations: {	
+	  d1: { transferPluginType: Shmem destination_rank: 1 max_fragment_size_words: 20971520 }
+    }
+  }
+  #SimpleMemoryCheck: { }
+}
+
+outputs: {
+  rootMPIOutput: {
+    module_type: RootMPIOutput
+  }
+}
+
+physics: {
+  analyzers: {
+  }
+
+  producers: {
+  }
+
+  filters: {
+  }
+
+  my_output_modules: [ rootMPIOutput ]
+}
+process_name: DAQFileSource
