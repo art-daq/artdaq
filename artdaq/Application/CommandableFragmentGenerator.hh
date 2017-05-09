@@ -119,7 +119,7 @@ namespace artdaq
 
 		void receiveRequestsLoop();
 
-		virtual std::vector<Fragment::fragment_id_t> fragmentIDs()
+		std::vector<Fragment::fragment_id_t> fragmentIDs() override
 		{
 			return fragment_ids_;
 		}

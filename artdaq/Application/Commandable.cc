@@ -12,7 +12,11 @@ artdaq::Commandable::Commandable() : fsm_(*this)
 // **********************************************************************
 
 /**
- * Processes the initialize request.
+ * \brief Processes the initialize request
+ * \param pset ParameterSet used to configure the Commandable
+ * \param timeout Timeout for init step
+ * \param timestamp Timestamp of init step
+ * \return Whether the transition was successful
  */
 bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {

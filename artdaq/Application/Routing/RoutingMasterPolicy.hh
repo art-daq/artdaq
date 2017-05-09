@@ -21,8 +21,8 @@ namespace artdaq
 		virtual detail::RoutingPacket GetCurrentTable() = 0;
 		size_t GetReceiverCount() const { return receiver_ranks_.size(); }
 		size_t GetMaxNumberOfTokens() const { return max_token_count_; }
-		virtual void AddReceiverToken(int rank, unsigned new_slots_free) final;
-		virtual void Reset() final { next_sequence_id_ = 0; }
+		void AddReceiverToken(int rank, unsigned new_slots_free);
+		void Reset() { next_sequence_id_ = 0; }
 	protected:
 		Fragment::sequence_id_t next_sequence_id_;
 

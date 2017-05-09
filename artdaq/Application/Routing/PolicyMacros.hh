@@ -8,8 +8,12 @@
 
 namespace artdaq
 {
-	typedef std::unique_ptr<artdaq::RoutingMasterPolicy>
-		(makeFunc_t)(fhicl::ParameterSet const& ps);
+/**
+* \brief Constructs a RoutingMasterPolicy instance, and returns a pointer to it
+* \param ps Parameter set for initializing the RoutingMasterPolicy
+* \return A smart pointer to the RoutingMasterPolicy
+*/
+	typedef std::unique_ptr<artdaq::RoutingMasterPolicy> makeFunc_t(fhicl::ParameterSet const& ps);
 }
 
 #define DEFINE_ARTDAQ_ROUTING_POLICY(klass)                    \

@@ -8,8 +8,12 @@
 
 namespace artdaq
 {
-	typedef std::unique_ptr<artdaq::CommandableFragmentGenerator>
-	(makeFunc_t)(fhicl::ParameterSet const& ps);
+	/**
+	* \brief Constructs a CommandableFragmentGenerator instance, and returns a pointer to it
+	* \param ps Parameter set for initializing the CommandableFragmentGenerator
+	* \return A smart pointer to the CommandableFragmentGenerator
+	*/
+	typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::ParameterSet const& ps);
 }
 
 #define DEFINE_ARTDAQ_COMMANDABLE_GENERATOR(klass)                    \
