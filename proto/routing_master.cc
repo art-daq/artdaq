@@ -11,8 +11,8 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include "boost/program_options.hpp"
-#include <artdaq/Application/MPI2/RoutingMasterCore.hh>
-#include <artdaq/Application/MPI2/RoutingMasterApp.hh>
+#include <artdaq/Application/RoutingMasterCore.hh>
+#include <artdaq/Application/RoutingMasterApp.hh>
 #include <netdb.h>
 namespace bpo = boost::program_options;
 

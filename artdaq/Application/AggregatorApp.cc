@@ -1,17 +1,13 @@
-#include "artdaq/Application/MPI2/AggregatorApp.hh"
-#include "artdaq/Application/MPI2/AggregatorCore.hh"
+#include "artdaq/Application/AggregatorApp.hh"
+#include "artdaq/Application/AggregatorCore.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
-
-#include "artdaq/Application/TaskType.hh"
-
-#include "art/Framework/Art/artapp.h"
 
 #include <iostream>
 
-artdaq::AggregatorApp::AggregatorApp(int mpi_rank, MPI_Comm local_group_comm, std::string name) :
-                                                                                                mpi_rank_(mpi_rank)
-                                                                                                , local_group_comm_(local_group_comm)
-                                                                                                , name_(name) { }
+artdaq::AggregatorApp::AggregatorApp(int rank, std::string name) :
+	rank_(rank)
+	, name_(name)
+{}
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -24,7 +20,7 @@ bool artdaq::AggregatorApp::do_initialize(fhicl::ParameterSet const& pset, uint6
 	//aggregator_ptr_.reset(nullptr);
 	if (aggregator_ptr_.get() == 0)
 	{
-		aggregator_ptr_.reset(new AggregatorCore(mpi_rank_, local_group_comm_, name_));
+		aggregator_ptr_.reset(new AggregatorCore(rank_, name_));
 	}
 	external_request_status_ = aggregator_ptr_->initialize(pset);
 	if (!external_request_status_)
@@ -52,7 +48,7 @@ bool artdaq::AggregatorApp::do_start(art::RunID id, uint64_t, uint64_t)
 
 	aggregator_future_ =
 		std::async(std::launch::async, &AggregatorCore::process_fragments,
-		           aggregator_ptr_.get());
+				   aggregator_ptr_.get());
 
 	return external_request_status_;
 }
@@ -103,7 +99,7 @@ bool artdaq::AggregatorApp::do_resume(uint64_t, uint64_t)
 
 	aggregator_future_ =
 		std::async(std::launch::async, &AggregatorCore::process_fragments,
-		           aggregator_ptr_.get());
+				   aggregator_ptr_.get());
 
 	return external_request_status_;
 }
@@ -177,7 +173,7 @@ std::string artdaq::AggregatorApp::register_monitor(fhicl::ParameterSet const& i
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-			                 "Error in call to AggregatorCore's register_monitor function");
+							 "Error in call to AggregatorCore's register_monitor function");
 
 			return "Error in artdaq::AggregatorApp::register_monitor: an exception was thrown in the call to AggregatorCore::register_monitor, possibly due to a problem with the argument";
 		}
@@ -202,7 +198,7 @@ std::string artdaq::AggregatorApp::unregister_monitor(std::string const& label)
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-			                 "Error in call to AggregatorCore's unregister_monitor function");
+							 "Error in call to AggregatorCore's unregister_monitor function");
 
 			return "Error in artdaq::AggregatorApp::unregister_monitor: an exception was thrown in the call to AggregatorCore::unregister_monitor, possibly due to a problem with the argument";
 		}

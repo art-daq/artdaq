@@ -2,10 +2,9 @@
 #define artdaq_Application_MPI2_RoutingMasterApp_hh
 
 #include <future>
-#include <thread>
 
 #include "artdaq/Application/Commandable.hh"
-#include "artdaq/Application/MPI2/RoutingMasterCore.hh"
+#include "artdaq/Application/RoutingMasterCore.hh"
 
 namespace artdaq
 {
@@ -15,7 +14,7 @@ namespace artdaq
 class artdaq::RoutingMasterApp : public artdaq::Commandable
 {
 public:
-	RoutingMasterApp(MPI_Comm local_group_comm, std::string name);
+	RoutingMasterApp(int rank, std::string name);
 
 	RoutingMasterApp(RoutingMasterApp const&) = delete;
 
@@ -46,7 +45,7 @@ public:
 	std::string report(std::string const&) const override;
 
 private:
-	MPI_Comm local_group_comm_;
+	int rank_;
 	std::unique_ptr<artdaq::RoutingMasterCore> routing_master_ptr_;
 	std::string name_;
 	std::future<size_t> routing_master_future_;

@@ -3,7 +3,7 @@
 #include <boost/lexical_cast.hpp>
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Application/MPI2/AggregatorApp.hh"
+#include "artdaq/Application/AggregatorApp.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the AggregatorApp
-	artdaq::AggregatorApp agg_app(mpiSentry->rank(), local_group_comm, name);
+	artdaq::AggregatorApp agg_app(mpiSentry->rank(), name);
 
 	// create the xmlrpc_commander and run it
 	xmlrpc_commander commander(vm["port"].as<unsigned short>(), agg_app);

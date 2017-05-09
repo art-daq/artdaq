@@ -1,20 +1,23 @@
-#include "artdaq/Application/TaskType.hh"
-#include "artdaq/Application/MPI2/RoutingMasterCore.hh"
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "canvas/Utilities/Exception.h"
-#include "cetlib/exception.h"
-#include <pthread.h>
-#include <sched.h>
-#include <algorithm>
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
 #include <sys/un.h>
 #include <sys/time.h>
 #include <sys/epoll.h>
-#include "artdaq/DAQdata/TCP_listen_fd.hh"
+#include <arpa/inet.h>
 #include <netdb.h>
-#include <artdaq/DAQdata/TCPConnect.hh>
+#include <pthread.h>
+#include <sched.h>
+#include <algorithm>
+
+#include "canvas/Utilities/Exception.h"
+#include "cetlib/exception.h"
+
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+
+#include "artdaq/Application/RoutingMasterCore.hh"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
+#include "artdaq/DAQdata/TCP_listen_fd.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 
 #define TRACE_NAME "RoutingMasterCore"
 
@@ -26,11 +29,8 @@ TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
 /**
 * Default constructor.
 */
-artdaq::RoutingMasterCore::RoutingMasterCore(Commandable& parent_application,
-											 MPI_Comm local_group_comm, std::string name) :
-	parent_application_(parent_application)
-	, local_group_comm_(local_group_comm)
-	, name_(name)
+artdaq::RoutingMasterCore::RoutingMasterCore(int rank, std::string name) :
+	 name_(name)
 , shutdown_requested_(false)
 	, stop_requested_(false)
 	, pause_requested_(false)
@@ -42,6 +42,7 @@ artdaq::RoutingMasterCore::RoutingMasterCore(Commandable& parent_application,
 	statsHelper_.addMonitoredQuantityName(TABLE_UPDATES_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(TOKENS_RECEIVED_STAT_KEY);
 	metricMan = &metricMan_;
+	my_rank = rank;
 }
 
 /**
@@ -260,7 +261,7 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 #pragma GCC diagnostic pop
 	}
 
-	MPI_Barrier(local_group_comm_);
+	//MPI_Barrier(local_group_comm_);
 
 	TLOG_DEBUG(name_) << "Sending initial table." << TLOG_ENDL;
 	auto startTime = artdaq::MonitoredQuantity::getCurrentTime();

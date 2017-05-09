@@ -5,20 +5,17 @@
 #include <vector>
 #include <atomic>
 #include <thread>
-#include <functional>
-#include <iostream>
-#include <queue>
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
-#include "artdaq/DAQrate/quiet_mpi.hh"
+
+#include "artdaq-core/Core/GlobalQueue.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
+
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
-#include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq/DAQrate/EventStore.hh"
-#include "artdaq/Application/MPI2/StatisticsHelper.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/Application/StatisticsHelper.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
 
@@ -36,7 +33,7 @@ public:
 	static const std::string SHM_COPY_TIME_STAT_KEY;
 	static const std::string FILE_CHECK_TIME_STAT_KEY;
 
-	AggregatorCore(int mpi_rank, MPI_Comm local_group_comm, std::string name);
+	AggregatorCore(int rank, std::string name);
 
 	AggregatorCore(AggregatorCore const&) = delete;
 
@@ -69,7 +66,6 @@ public:
 	std::string unregister_monitor(std::string const&);
 
 private:
-	MPI_Comm local_group_comm_;
 	std::string name_;
 	art::RunID run_id_;
 	bool art_initialized_;
@@ -124,13 +120,11 @@ private:
 	artdaq::MetricManager metricMan_;
 
 	void sendMetrics_();
-
-	std::unique_ptr<TransferInterface> data_logger_transfer_;
-
+	
 	std::unique_ptr<Fragment> init_fragment_ptr_;
 
 	std::mutex dispatcher_transfers_mutex_;
-	std::vector<std::unique_ptr<TransferInterface>> dispatcher_transfers_;
+	std::deque<std::unique_ptr<TransferInterface>> dispatcher_transfers_;
 	size_t new_transfers_;
 };
 

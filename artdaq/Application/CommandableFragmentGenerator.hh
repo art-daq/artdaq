@@ -89,11 +89,11 @@ namespace artdaq
 		// Destroy the CommandableFragmentGenerator.
 		virtual ~CommandableFragmentGenerator();
 
-		virtual bool getNext(FragmentPtrs& output) final;
+		bool getNext(FragmentPtrs& output) override final;
 
 		// If we're using the dataThread, this method looks for active data requests
 		// and returns matching data
-		virtual bool applyRequests(FragmentPtrs& output) final;
+		bool applyRequests(FragmentPtrs& output);
 
 		void setupRequestListener();
 

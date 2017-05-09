@@ -4,7 +4,7 @@
 #include <boost/lexical_cast.hpp>
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/TaskType.hh"
-#include "artdaq/Application/MPI2/EventBuilderApp.hh"
+#include "artdaq/Application/EventBuilderApp.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the EventBuilderApp
-	artdaq::EventBuilderApp evb_app(mpiSentry->rank(), local_group_comm, name);
+	artdaq::EventBuilderApp evb_app(mpiSentry->rank(), name);
 
 	// create the xmlrpc_commander and run it
 	xmlrpc_commander commander(vm["port"].as<unsigned short>(), evb_app);

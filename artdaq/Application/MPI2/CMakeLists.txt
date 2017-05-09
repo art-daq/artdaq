@@ -2,22 +2,13 @@ include_directories(${MPI_INCLUDE_PATH} )
 
 art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   SOURCE
-  BoardReaderApp.cc
-  EventBuilderCore.cc
-  EventBuilderApp.cc
-  BoardReaderCore.cc
-  AggregatorApp.cc
-  AggregatorCore.cc
-  RoutingMasterApp.cc
-  RoutingMasterCore.cc
-  StatisticsHelper.cc
   MPISentry.cc
+  BoardReaderApp.cc
+  BoardReaderCore.cc
   LIBRARIES
   artdaq_DAQrate
   artdaq_Application
-  artdaq_Application_Routing
   artdaq_TransferPlugins
-  art_Framework_Art
   ${MPI_C_LIBRARIES}
   ${MF_MESSAGELOGGER}
   ${FHICLCPP}

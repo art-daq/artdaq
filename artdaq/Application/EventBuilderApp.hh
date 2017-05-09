@@ -4,7 +4,7 @@
 #include <future>
 
 #include "artdaq/Application/Commandable.hh"
-#include "artdaq/Application/MPI2/EventBuilderCore.hh"
+#include "artdaq/Application/EventBuilderCore.hh"
 
 namespace artdaq
 {
@@ -14,7 +14,7 @@ namespace artdaq
 class artdaq::EventBuilderApp : public artdaq::Commandable
 {
 public:
-	EventBuilderApp(int mpi_rank, MPI_Comm local_group_comm, std::string name);
+	EventBuilderApp(int rank, std::string name);
 
 	EventBuilderApp(EventBuilderApp const&) = delete;
 
@@ -45,8 +45,7 @@ public:
 	std::string report(std::string const&) const override;
 
 private:
-	int mpi_rank_;
-	MPI_Comm local_group_comm_;
+	int rank_;
 	std::string name_;
 	std::unique_ptr<artdaq::EventBuilderCore> event_builder_ptr_;
 	std::future<size_t> event_building_future_;

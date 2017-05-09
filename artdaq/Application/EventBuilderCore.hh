@@ -2,16 +2,16 @@
 #define artdaq_Application_MPI2_EventBuilderCore_hh
 
 #include <string>
-#include <vector>
 #include <atomic>
 
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
-#include "artdaq/DAQrate/quiet_mpi.hh"
+
+#include "artdaq-utilities/Plugins/MetricManager.hh"
+
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/DAQrate/EventStore.hh"
-#include "artdaq/Application/MPI2/StatisticsHelper.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/Application/StatisticsHelper.hh"
 
 namespace artdaq
 {
@@ -25,7 +25,7 @@ public:
 	static const std::string INPUT_WAIT_STAT_KEY;
 	static const std::string STORE_EVENT_WAIT_STAT_KEY;
 
-	EventBuilderCore(int mpi_rank, MPI_Comm local_group_comm, std::string name);
+	EventBuilderCore(int rank, std::string name);
 
 	EventBuilderCore(EventBuilderCore const&) = delete;
 
@@ -56,7 +56,6 @@ public:
 private:
 	void initializeEventStore(fhicl::ParameterSet pset);
 
-	MPI_Comm local_group_comm_;
 	std::string name_;
 
 	std::string init_string_;

@@ -8,10 +8,19 @@ art_make_library( LIBRARY_NAME artdaq_Application
   Commandable.cc
   CommandableFragmentGenerator
   makeCommandableFragmentGenerator
+  EventBuilderCore.cc
+  EventBuilderApp.cc
+  AggregatorApp.cc
+  AggregatorCore.cc
+  RoutingMasterApp.cc
+  RoutingMasterCore.cc
+  StatisticsHelper.cc
   LIBRARIES
   artdaq_DAQrate
   artdaq-core_Data
   artdaq-core_Utilities
+  artdaq_Application_Routing
+  art_Framework_Art
   art_Utilities
   ${CANVAS_LIB_LIST}
   ${MF_MESSAGELOGGER}

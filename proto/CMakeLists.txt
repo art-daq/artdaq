@@ -37,6 +37,26 @@ art_make_exec(NAME artdaqDriver
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+  art_make_exec(NAME aggregator
+    SOURCE
+    aggregator.cc
+  LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+  artdaq_DAQdata
+  artdaq_BuildInfo
+  artdaq-core_Utilities
+  artdaq-core_Generators
+  art_Framework_Art
+  artdaq_ExternalComms
+  ${FHICLCPP}
+  ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${XMLRPC_CLIENTPP}
+  ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
+  )
+
 art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins

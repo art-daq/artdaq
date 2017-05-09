@@ -2,7 +2,7 @@
 #include <boost/program_options.hpp>
 #include <boost/lexical_cast.hpp>
 #include "artdaq/Application/TaskType.hh"
-#include "artdaq/Application/MPI2/RoutingMasterApp.hh"
+#include "artdaq/Application/RoutingMasterApp.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"

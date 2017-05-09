@@ -1,11 +1,10 @@
-#include "artdaq/Application/MPI2/EventBuilderApp.hh"
+#include "artdaq/Application/EventBuilderApp.hh"
 
 /**
  * Constructor.
  */
-artdaq::EventBuilderApp::EventBuilderApp(int mpi_rank, MPI_Comm local_group_comm, std::string name) :
-                                                                                                    mpi_rank_(mpi_rank)
-                                                                                                    , local_group_comm_(local_group_comm)
+artdaq::EventBuilderApp::EventBuilderApp(int rank, std::string name) :
+                                                                                                    rank_(rank)
                                                                                                     , name_(name) {}
 
 // *******************************************************************
@@ -24,7 +23,7 @@ bool artdaq::EventBuilderApp::do_initialize(fhicl::ParameterSet const& pset, uin
 	//event_builder_ptr_.reset(nullptr);
 	if (event_builder_ptr_.get() == 0)
 	{
-		event_builder_ptr_.reset(new EventBuilderCore(mpi_rank_, local_group_comm_, name_));
+		event_builder_ptr_.reset(new EventBuilderCore(rank_, name_));
 		external_request_status_ = event_builder_ptr_->initialize(pset);
 	}
 	if (! external_request_status_)

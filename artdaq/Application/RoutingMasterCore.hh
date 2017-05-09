@@ -3,22 +3,17 @@
 
 #include <string>
 #include <vector>
-#include <iostream>
 
 // Socket Includes
-#include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/epoll.h>
-#include <unistd.h>
 
-#include "artdaq/Application/Commandable.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
-#include "artdaq/DAQrate/quiet_mpi.hh"
-#include "artdaq/Application/MPI2/StatisticsHelper.hh"
+
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+
+#include "artdaq/Application/StatisticsHelper.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
 
@@ -33,7 +28,7 @@ public:
 	static const std::string TABLE_UPDATES_STAT_KEY;
 	static const std::string TOKENS_RECEIVED_STAT_KEY;
 
-	RoutingMasterCore(Commandable& parent_application, MPI_Comm local_group_comm, std::string name);
+	RoutingMasterCore(int rank, std::string name);
 
 	RoutingMasterCore(RoutingMasterCore const&) = delete;
 
@@ -66,8 +61,6 @@ private:
 	void receive_tokens_();
 	void start_recieve_token_thread_();
 
-	Commandable& parent_application_;
-	MPI_Comm local_group_comm_;
 	art::RunID run_id_;
 	std::string name_;
 

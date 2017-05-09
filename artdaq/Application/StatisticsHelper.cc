@@ -1,4 +1,4 @@
-#include "artdaq/Application/MPI2/StatisticsHelper.hh"
+#include "artdaq/Application/StatisticsHelper.hh"
 
 // This class is really nothing more than a collection of code that
 // would be repeated throughout artdaq "application" classes if it

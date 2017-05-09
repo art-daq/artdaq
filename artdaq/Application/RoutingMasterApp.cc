@@ -1,11 +1,10 @@
-#include "artdaq/Application/MPI2/RoutingMasterApp.hh"
+#include "artdaq/Application/RoutingMasterApp.hh"
 
 /**
 * Default constructor.
 */
-artdaq::RoutingMasterApp::RoutingMasterApp(MPI_Comm local_group_comm, std::string name) 
-: local_group_comm_(local_group_comm)
-	, name_(name) {}
+artdaq::RoutingMasterApp::RoutingMasterApp(int rank, std::string name) 
+: rank_(rank), name_(name) {}
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -21,7 +20,7 @@ bool artdaq::RoutingMasterApp::do_initialize(fhicl::ParameterSet const& pset, ui
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
 	routing_master_ptr_.reset(nullptr);
-	routing_master_ptr_.reset(new RoutingMasterCore(*this, local_group_comm_, name_));
+	routing_master_ptr_.reset(new RoutingMasterCore(rank_, name_));
 	external_request_status_ = routing_master_ptr_->initialize(pset, timeout, timestamp);
 	if (!external_request_status_)
 	{

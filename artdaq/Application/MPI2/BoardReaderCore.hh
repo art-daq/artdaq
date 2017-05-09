@@ -11,7 +11,7 @@
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/Application/MPI2/StatisticsHelper.hh"
+#include "artdaq/Application/StatisticsHelper.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq
