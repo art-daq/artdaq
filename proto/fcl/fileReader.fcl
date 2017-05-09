@@ -17,6 +17,7 @@ services: {
 outputs: {
   rootMPIOutput: {
     module_type: RootMPIOutput
+SelectEvents: { SelectEvents: [rdf] }
   }
 }
 
@@ -28,8 +29,15 @@ physics: {
   }
 
   filters: {
+   RandomDelay: {
+module_type: RandomDelayFilter
+minimum_delay_ms: 500
+maximum_delay_ms: 1000
+mean_delay_ms: 750
+cpu_load_ratio: 0.0
+   }
   }
-
+rdf: [ RandomDelay ]
   my_output_modules: [ rootMPIOutput ]
 }
 process_name: DAQFileSource

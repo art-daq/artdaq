@@ -17,7 +17,6 @@ daq: {
     event_queue_depth: 20
     event_queue_wait_time: 5
     onmon_event_prescale: 1
-    xmlrpc_client_list: ";http://ironwork.fnal.gov:5205/RPC2,3;http://ironwork.fnal.gov:5206/RPC2,3;http://ironwork.fnal.gov:5235/RPC2,4;http://ironwork.fnal.gov:5236/RPC2,4;http://ironwork.fnal.gov:5265/RPC2,5;http://ironwork.fnal.gov:5266/RPC2,5"
     subrun_size_MB: -1
     subrun_duration: -1
     subrun_event_count: 0
