@@ -66,24 +66,24 @@ static std::string getProcessorName()
 //run_time_(getArgRuntime(argc,argv)),
 
 Config::Config(int rank, int total_procs, int buffer_count, size_t max_payload_size, int argc, char* argv[]):
-                                                                                                            rank_(rank)
-                                                                                                            , total_procs_(total_procs)
-                                                                                                            , detectors_(getArgDetectors(argc, argv))
-                                                                                                            , sources_(detectors_)
-                                                                                                            , sinks_(getArgSinks(argc, argv))
-                                                                                                            , detector_start_(0)
-                                                                                                            , source_start_(detectors_)
-                                                                                                            , sink_start_(detectors_ + sources_)
-                                                                                                            , event_queue_size_(getArgQueueSize(argc, argv))
-                                                                                                            , run_(getArgRun(argc, argv))
-                                                                                                            , buffer_count_(buffer_count)
-                                                                                                            , max_payload_size_(max_payload_size)
-                                                                                                            , type_((rank_ < detectors_) ? TaskDetector : ((rank_ < (detectors_ + sources_)) ? TaskSource : TaskSink))
-                                                                                                            , offset_(rank_ - ((type_ == TaskDetector) ? detector_start_ : (type_ == TaskSource) ? source_start_ : sink_start_))
-                                                                                                            , node_name_(getProcessorName())
-                                                                                                            , art_argc_(getArtArgc(argc, argv))
-                                                                                                            , art_argv_(getArtArgv(argc - art_argc_, argv))
-                                                                                                            , use_artapp_(getenv("ARTDAQ_DAQRATE_USE_ART") != 0)
+																											rank_(rank)
+																											, total_procs_(total_procs)
+																											, detectors_(getArgDetectors(argc, argv))
+																											, sources_(detectors_)
+																											, sinks_(getArgSinks(argc, argv))
+																											, detector_start_(0)
+																											, source_start_(detectors_)
+																											, sink_start_(detectors_ + sources_)
+																											, event_queue_size_(getArgQueueSize(argc, argv))
+																											, run_(getArgRun(argc, argv))
+																											, buffer_count_(buffer_count)
+																											, max_payload_size_(max_payload_size)
+																											, type_((rank_ < detectors_) ? TaskDetector : ((rank_ < (detectors_ + sources_)) ? TaskSource : TaskSink))
+																											, offset_(rank_ - ((type_ == TaskDetector) ? detector_start_ : (type_ == TaskSource) ? source_start_ : sink_start_))
+																											, node_name_(getProcessorName())
+																											, art_argc_(getArtArgc(argc, argv))
+																											, art_argv_(getArtArgv(argc - art_argc_, argv))
+																											, use_artapp_(getenv("ARTDAQ_DAQRATE_USE_ART") != 0)
 {
 	int total_workers = (detectors_ + sinks_ + sources_);
 	if (total_procs_ != total_workers)
@@ -232,7 +232,7 @@ fhicl::ParameterSet Config::getArtPset()
 	try
 	{
 		bpo::store(bpo::command_line_parser(art_argc_, art_argv_).
-		           options(desc).allow_unregistered().run(), vm);
+				   options(desc).allow_unregistered().run(), vm);
 		bpo::notify(vm);
 	}
 	catch (bpo::error const& e)

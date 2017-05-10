@@ -27,18 +27,18 @@ namespace artdaq
 
 		using byte_t = artdaq::Fragment::byte_t;
 
-		~MulticastTransfer() = default;
+		virtual ~MulticastTransfer() = default;
 
 		MulticastTransfer(fhicl::ParameterSet const& ps, Role role);
 
-		virtual int receiveFragment(artdaq::Fragment& fragment,
-		                            size_t receiveTimeout);
+		int receiveFragment(artdaq::Fragment& fragment,
+		                            size_t receiveTimeout) override;
 
-		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+		CopyStatus copyFragment(artdaq::Fragment& fragment,
+		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
-		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+		CopyStatus moveFragment(artdaq::Fragment&& fragment,
+		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
 	private:
 

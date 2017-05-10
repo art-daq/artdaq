@@ -38,15 +38,15 @@ namespace artdaq
 		virtual ~TransferInterface() = default;
 
 		virtual int receiveFragment(artdaq::Fragment& fragment,
-		                            size_t receiveTimeout) = 0;
+									size_t receiveTimeout) = 0;
 
 		// Copy fragment (maybe not reliable)
 		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
 		// Move fragment (should be reliable)
 		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
 
 		std::string uniqueLabel() const { return unique_label_; }
 
@@ -69,8 +69,8 @@ namespace artdaq
 
 #define DEFINE_ARTDAQ_TRANSFER(klass)                                \
   extern "C" std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const & ps, \
-							     artdaq::TransferInterface::Role role) { \
-    return std::unique_ptr<artdaq::TransferInterface>(new klass(ps, role)); \
+								 artdaq::TransferInterface::Role role) { \
+	return std::unique_ptr<artdaq::TransferInterface>(new klass(ps, role)); \
 }
 
 

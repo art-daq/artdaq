@@ -1,0 +1,134 @@
+#ifndef artdaq_Application_MPI2_BoardReaderApp_hh
+#define artdaq_Application_MPI2_BoardReaderApp_hh
+
+#include <future>
+#include <thread>
+
+#include "artdaq/Application/Commandable.hh"
+#include "artdaq/Application/BoardReaderCore.hh"
+
+namespace artdaq
+{
+	class BoardReaderApp;
+}
+
+/**
+ * \brief BoardReaderApp handles the XMLRPC commands and passes them to the BoardReaderCore state machine
+ */
+class artdaq::BoardReaderApp : public artdaq::Commandable
+{
+public:
+	/**
+	 * \brief BoardReaderApp Constructor
+	 * \param rank Rank of this BoardReader
+	 * \param name Friendly name of this application instance (MessageFacility Category)
+	 */
+	BoardReaderApp(int rank, std::string name);
+
+	/**
+	 * \brief Copy Constructor is deleted
+	 */
+	BoardReaderApp(BoardReaderApp const&) = delete;
+
+	/**
+	 * \brief Default Destructor
+	 */
+	virtual ~BoardReaderApp() = default;
+
+	/**
+	 * \brief Copy Assignment Operator is deleted
+	 * \return BoardReaderApp copy
+	 */
+	BoardReaderApp& operator=(BoardReaderApp const&) = delete;
+
+	// these methods provide the operations that are used by the state machine
+	/**
+	 * \brief Initialize the BoardReaderCore
+	 * \param pset ParameterSet used to configure the BoardReaderCore
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return Whether the transition succeeded
+	 */
+	bool do_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp) override;
+
+	/**
+	 * \brief Start the BoardReaderCore
+	 * \param id Run ID of new run
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return Whether the transition succeeded
+	 */
+	bool do_start(art::RunID id, uint64_t timeout, uint64_t timestamp) override;
+
+	/**
+	 * \brief Stop the BoardReaderCore
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return Whether the transition succeeded
+	 */
+	bool do_stop(uint64_t timeout, uint64_t timestamp) override;
+
+	/**
+	* \brief Pause the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
+	* \return Whether the transition succeeded
+	*/
+	bool do_pause(uint64_t timeout, uint64_t timestamp) override;
+
+	/**
+	* \brief Resume the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
+	* \return Whether the transition succeeded
+	*/
+	bool do_resume(uint64_t timeout, uint64_t timestamp) override;
+
+	/**
+	* \brief Shutdown the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \return Whether the transition succeeded
+	*/
+	bool do_shutdown(uint64_t timeout) override;
+
+	/**
+	* \brief Soft-Initialize the BoardReaderCore
+	* \param pset ParameterSet used to configure the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
+	* \return Whether the transition succeeded
+	*/
+	bool do_soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp) override;
+
+	/**
+	* \brief Reinitialize the BoardReaderCore
+	* \param pset ParameterSet used to configure the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
+	* \return Whether the transition succeeded
+	*/
+	bool do_reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp) override;
+
+	/**
+	 * \brief Action taken upon entering the "Booted" state
+	 * 
+	 * This resets the BoardReaderCore pointer
+	 */
+	void BootedEnter() override;
+
+	/* Report_ptr */
+	/**
+	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to AggregatorCore
+	 * \param which What to report on
+	 * \return Report string. Empty for unknown "which" parameter
+	 */
+	std::string report(std::string const& which) const override;
+
+private:
+	std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;
+	std::future<size_t> fragment_processing_future_;
+	int rank_;
+	std::string name_;
+};
+
+#endif /* artdaq_Application_MPI2_BoardReaderApp_hh */

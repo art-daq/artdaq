@@ -58,56 +58,94 @@
 // artdaq/ArtModules/InputUtilities.hh, so the statements there also
 // get printed
 
-
-// JCF, May-27-2016
-
-// ArtdaqInput is a template class which takes, as a parameter, a
-// class which it uses to receive data; the instance of this class is
-// called "communicationWrapper_". As of this writing, this wrapper
-// class is implemented by NetMonWrapper (for reading data into the
-// aggregator from the eventbuilder) and TransferWrapper (for reading
-// data into an art process). This class presents a unified approach
-// to handling art provenance, regardless of the communication
-// protocol used to read data in.
-
 namespace art
 {
 	template <typename U>
 	class ArtdaqInput;
 }
 
+/**
+ * \brief This template class provides a unified interface for reading data into art
+ * \tparam U The class responsible for delivering data
+ * 
+ * JCF, May-27-2016
+ * ArtdaqInput is a template class which takes, as a parameter, a
+ * class which it uses to receive data; the instance of this class is
+ * called "communicationWrapper_". As of this writing, this wrapper
+ * class is implemented by NetMonWrapper (for reading data into the
+ * aggregator from the eventbuilder) and TransferWrapper (for reading
+ * data into an art process). This class presents a unified approach
+ * to handling art provenance, regardless of the communication
+ * protocol used to read data in.
+ */
 template <typename U>
 class art::ArtdaqInput
 {
 public:
+	/**
+	 * \brief Copy Constructor is deleted
+	 */
 	ArtdaqInput(const ArtdaqInput&) = delete;
 
+	/**
+	 * \brief Copy Assignment operator is deleted
+	 * \return ArtdaqInput copy
+	 */
 	ArtdaqInput& operator=(const ArtdaqInput&) = delete;
 
+	/**
+	 * \brief ArtdaqInput Destructor
+	 */
 	~ArtdaqInput();
 
-	ArtdaqInput(const fhicl::ParameterSet&, art::ProductRegistryHelper&,
-	            const art::SourceHelper&);
+	/**
+	 * \brief ArtdaqInput Constructor
+	 * \param ps ParameterSet used to confiugre communication wrapper class
+	 * \param helper An art::ProductRegistryHelper for registering products
+	 * \param pm An art::SourceHelper for handling provenance
+	 */
+	ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegistryHelper& helper,
+				const art::SourceHelper& pm);
 
+	/**
+	 * \brief Called by art to close the input source. No-Op
+	 */
 	void closeCurrentFile();
 
-	void readFile(const std::string&, art::FileBlock*&);
+	/**
+	 * \brief Emulate reading a file
+	 * \param fb Output art::FileBlock object
+	 */
+	void readFile(const std::string&, art::FileBlock*& fb);
 
+	/**
+	 * \brief Whether additional events are expected from the source
+	 * \return True if ArtdaqInput has not been shut down
+	 */
 	bool hasMoreData() const;
 
+	/**
+	 * \brief Read the next event from the communication wrapper
+	 * \param inR RunPrincipal input pointer
+	 * \param inSR SubRunPrincipal input pointer
+	 * \param outR RunPrincipal output pointer
+	 * \param outSR SubRunPrincipal output pointer
+	 * \param outE EventPrincipal output pointer
+	 * \return Whether an event was successfully read from the communication wrapper
+	 */
 	bool readNext(art::RunPrincipal* const inR,
-	              art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR,
-	              art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
+				  art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR,
+				  art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
 
 private:
 	void
 	readAndConstructPrincipal(std::unique_ptr<TBufferFile>&,
-	                          unsigned long,
-	                          art::RunPrincipal* const,
-	                          art::SubRunPrincipal* const,
-	                          art::RunPrincipal*&,
-	                          art::SubRunPrincipal*&,
-	                          art::EventPrincipal*&);
+							  unsigned long,
+							  art::RunPrincipal* const,
+							  art::SubRunPrincipal* const,
+							  art::RunPrincipal*&,
+							  art::SubRunPrincipal*&,
+							  art::EventPrincipal*&);
 
 	template <class T>
 	void readDataProducts(std::unique_ptr<TBufferFile>&, T*&);
@@ -129,8 +167,8 @@ private:
 template <typename U>
 art::ArtdaqInput<U>::
 ArtdaqInput(const fhicl::ParameterSet& ps,
-            art::ProductRegistryHelper& helper,
-            const art::SourceHelper& pm)
+			art::ProductRegistryHelper& helper,
+			const art::SourceHelper& pm)
 	: shutdownMsgReceived_(false)
 	, outputFileCloseNeeded_(false)
 	, pm_(pm)
@@ -156,7 +194,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	if (!msg)
 	{
 		throw art::Exception(art::errors::DataCorruption) <<
-		      "ArtdaqInput: Could not receive message!";
+			  "ArtdaqInput: Could not receive message!";
 	}
 
 	// This first unsigned long is the message type code, ignored here in the constructor
@@ -280,15 +318,14 @@ closeCurrentFile()
 template <typename U>
 void
 art::ArtdaqInput<U>::
-readFile(const std::string& name, art::FileBlock*& fb)
+readFile(const std::string&, art::FileBlock*& fb)
 {
 #ifdef LOGDEBUG
 	TLOG_DEBUG("ArtdaqInput") << "Begin: ArtdaqInput::"
 		"readFile(const std::string& name, art::FileBlock*& fb)\n";
 #endif
-	(void)name;
 	fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInput2013"),
-	                        "nothing");
+							"nothing");
 #ifdef LOGDEBUG
 	TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::"
 		"readFile(const std::string& name, art::FileBlock*& fb)\n";
@@ -324,12 +361,12 @@ template <typename U>
 void
 art::ArtdaqInput<U>::
 readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
-                          unsigned long msg_type_code,
-                          art::RunPrincipal* const inR,
-                          art::SubRunPrincipal* const inSR,
-                          art::RunPrincipal*& outR,
-                          art::SubRunPrincipal*& outSR,
-                          art::EventPrincipal*& outE)
+						  unsigned long msg_type_code,
+						  art::RunPrincipal* const inR,
+						  art::SubRunPrincipal* const inSR,
+						  art::RunPrincipal*& outR,
+						  art::SubRunPrincipal*& outSR,
+						  art::EventPrincipal*& outE)
 {
 	//
 	//  Process the message.
@@ -348,7 +385,7 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 #endif
 
 		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary",
-		                                               "ArtdaqInput::readAndConstructPrincipal"));
+													   "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
 
 #ifdef LOGDEBUG
@@ -362,15 +399,15 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 			"making flush SubRunPrincipal ...\n";
 #endif
 		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(),
-		                                run_aux->beginTime());
+										run_aux->beginTime());
 
 #ifdef LOGDEBUG
 		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"making flush EventPrincipal ...\n";
 #endif
 		outE = pm_.makeEventPrincipal(EventID::flushEvent(),
-		                              run_aux->endTime(), true,
-		                              EventAuxiliary::Any);
+									  run_aux->endTime(), true,
+									  EventAuxiliary::Any);
 
 #ifdef LOGDEBUG
 		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
@@ -386,7 +423,7 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 #endif
 
 		subrun_aux.reset(ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary",
-		                                                     "ArtdaqInput::readAndConstructPrincipal"));
+															 "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 
 #ifdef LOGDEBUG
@@ -419,15 +456,15 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 			"making flush SubRunPrincipal ...\n";
 #endif
 		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(),
-		                                subrun_aux->beginTime());
+										subrun_aux->beginTime());
 
 #ifdef LOGDEBUG
 		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"making flush EventPrincipal ...\n";
 #endif
 		outE = pm_.makeEventPrincipal(EventID::flushEvent(),
-		                              subrun_aux->endTime(), true,
-		                              EventAuxiliary::Any);
+									  subrun_aux->endTime(), true,
+									  EventAuxiliary::Any);
 
 #ifdef LOGDEBUG
 		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
@@ -443,30 +480,30 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 #endif
 
 		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary",
-		                                               "ArtdaqInput::readAndConstructPrincipal"));
+													   "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
 
 		subrun_aux.reset(ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary",
-		                                                     "ArtdaqInput::readAndConstructPrincipal"));
+															 "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 
 		event_aux.reset(ReadObjectAny<art::EventAuxiliary>(msg, "art::EventAuxiliary",
-		                                                   "ArtdaqInput::readAndConstructPrincipal"));
+														   "ArtdaqInput::readAndConstructPrincipal"));
 
 		history.reset(ReadObjectAny<art::History>(msg, "art::History",
-		                                          "ArtdaqInput::readAndConstructPrincipal"));
+												  "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", history.get());
 
 		// Can probably improve on error choice of "art::errors:Unknown"
 		if (!history->processHistoryID().isValid())
 		{
 			throw art::Exception(art::errors::Unknown) <<
-			      "readAndConstructPrincipal: processHistoryID of history in "
-			      "Event message is invalid!";
+				  "readAndConstructPrincipal: processHistoryID of history in "
+				  "Event message is invalid!";
 		}
 
 		if ((inR == nullptr) || !inR->id().isValid() ||
-		    (inR->run() != event_aux->run()))
+			(inR->run() != event_aux->run()))
 		{
 			// New run, either we have no input RunPrincipal, or the
 			// input run number does not match the event run number.
@@ -476,7 +513,7 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 			outR = pm_.makeRunPrincipal(*run_aux.get());
 		}
 		if ((inSR == nullptr) || !inSR->id().isValid() ||
-		    (inSR->subRun() != event_aux->subRun()))
+			(inSR->subRun() != event_aux->subRun()))
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the event subRun number.
@@ -528,7 +565,7 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 			TLOG_DEBUG("ArtdaqInput") << "readDataProducts: Reading branch key.\n";
 #endif
 			bk.reset(ReadObjectAny<BranchKey>(msg, "art::BranchKey",
-			                                  "ArtdaqInput::readDataProducts"));
+											  "ArtdaqInput::readDataProducts"));
 		}
 
 		if (art::debugit() >= 1)
@@ -554,15 +591,15 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 			if (iter == productList.end())
 			{
 				throw art::Exception(art::errors::ProductNotFound)
-				      << "No product is registered for\n"
-				      << "  process name:                '"
-				      << bk->processName_ << "'\n"
-				      << "  module label:                '"
-				      << bk->moduleLabel_ << "'\n"
-				      << "  product friendly class name: '"
-				      << bk->friendlyClassName_ << "'\n"
-				      << "  product instance name:       '"
-				      << bk->productInstanceName_ << "'\n";
+					  << "No product is registered for\n"
+					  << "  process name:                '"
+					  << bk->processName_ << "'\n"
+					  << "  module label:                '"
+					  << bk->moduleLabel_ << "'\n"
+					  << "  product friendly class name: '"
+					  << bk->friendlyClassName_ << "'\n"
+					  << "  product instance name:       '"
+					  << bk->productInstanceName_ << "'\n";
 			}
 		}
 		// Note: This must be a reference to the unique copy in
@@ -590,8 +627,8 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 			TLOG_DEBUG("ArtdaqInput") << "readDataProducts: Reading product provenance.\n";
 #endif
 			prdprov.reset(ReadObjectAny<ProductProvenance>(msg,
-			                                               "art::ProductProvenance",
-			                                               "ArtdaqInput::readDataProducts"));
+														   "art::ProductProvenance",
+														   "ArtdaqInput::readDataProducts"));
 		}
 		{
 #ifdef LOGDEBUG
@@ -639,8 +676,8 @@ template <typename U>
 bool
 art::ArtdaqInput<U>::
 readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
-         art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
-         art::EventPrincipal*& outE)
+		 art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
+		 art::EventPrincipal*& outE)
 {
 #ifdef LOGDEBUG
 	TLOG_DEBUG("ArtdaqInput") << "Begin: ArtdaqInput::readNext\n";
@@ -695,7 +732,7 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 	}
 
 	readAndConstructPrincipal(msg, msg_type_code, inR, inSR, outR,
-	                          outSR, outE);
+							  outSR, outE);
 	//
 	//  Read per-event metadata needed to construct principal.
 	//
@@ -726,7 +763,7 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 		if (inR != 0 && inSR != 0 && outR != 0 && outSR != 0)
 		{
 			if (inR->id().isFlush() && inSR->id().isFlush() &&
-			    outR->id().isFlush() && outSR->id().isFlush())
+				outR->id().isFlush() && outSR->id().isFlush())
 			{
 				outR = 0;
 				outSR = 0;

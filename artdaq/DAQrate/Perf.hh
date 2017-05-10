@@ -1,11 +1,8 @@
 #ifndef artdaq_DAQrate_Perf_hh
 #define artdaq_DAQrate_Perf_hh
 
-#include <vector>
-#include <string>
 #include <ostream>
 #include <iomanip>
-#include <string>
 
 // for handles use - sendFragment and recvFragment
 #define PERF_SEND 1
@@ -26,10 +23,10 @@ const char* PerfGetName(int id);
 struct Header
 {
 	Header(): id_()
-	        , len_() { }
+			, len_() { }
 
 	Header(unsigned char id, unsigned char len): id_(id)
-	                                           , len_(len - sizeof(Header)) { }
+											   , len_(len - sizeof(Header)) { }
 
 	unsigned char id_; // type
 	unsigned char len_; // not including the size of this header structure
@@ -39,7 +36,7 @@ template <typename T>
 struct HeaderMeas
 {
 	HeaderMeas(): head_(T::ID, sizeof(T))
-	            , call_(call_count++) { }
+				, call_(call_count++) { }
 
 	~HeaderMeas() { }
 
@@ -243,11 +240,11 @@ inline std::ostream& operator<<(std::ostream& ost, EventMeas const& h)
 }
 
 void PerfConfigure(int rank,
-                   int run,
-                   int type,
-                   int num_senders = 0,
-                   int num_receivers = 0,
-                   size_t expected_events = 0);
+				   int run,
+				   int type,
+				   int num_senders = 0,
+				   int num_receivers = 0,
+				   size_t expected_events = 0);
 
 void PerfSetStartTime();
 

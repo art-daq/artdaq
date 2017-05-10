@@ -34,6 +34,12 @@ const std::string artdaq::AggregatorCore::FILE_CHECK_TIME_STAT_KEY("AggregatorCo
 
 namespace artdaq
 {
+	/**
+	 * \brief Write out memory, for debugging purposes
+	 * \param memstart Where to start writing out
+	 * \param nbytes Number of bytes to write
+	 * \param sourcename Category to log bytes under
+	 */
 	void display_bits(void* memstart, size_t nbytes, std::string sourcename)
 	{
 		std::stringstream bitstr;
@@ -49,15 +55,11 @@ namespace artdaq
 			bitstr << std::bitset<8>(*((reinterpret_cast<uint8_t*>(memstart)) + i)) << " ";
 		}
 
-		TLOG_DEBUG(sourcename.c_str()) << bitstr.str() << TLOG_ENDL;
+		TLOG_DEBUG(sourcename) << bitstr.str() << TLOG_ENDL;
 	}
 }
 
 
-/**
- * Constructor.
- */
- // TODO - make global queue size configurable
 artdaq::AggregatorCore::AggregatorCore(int rank, std::string name)
 	: name_(name)
 	, art_initialized_(false)
@@ -79,17 +81,11 @@ artdaq::AggregatorCore::AggregatorCore(int rank, std::string name)
 	my_rank = rank;
 }
 
-/**
- * Destructor.
- */
 artdaq::AggregatorCore::~AggregatorCore()
 {
 	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
 }
 
-/**
- * Processes the initialize request.
- */
 bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 {
 	init_string_ = pset.to_string();

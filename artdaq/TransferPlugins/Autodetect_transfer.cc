@@ -4,27 +4,59 @@
 
 namespace artdaq
 {
+	/**
+	 * \brief The AutodetectTransfer TransferInterface plugin sets up a
+	 * Shmem_transfer plugin or TCPSocket_transfer plugin depending if
+	 * the source and destination are on the same host, to maximize
+	 * throughput.
+	 */
 	class AutodetectTransfer : public TransferInterface
 	{
 	public:
-		AutodetectTransfer(const fhicl::ParameterSet&, Role);
+		/**
+		 * \brief AutodetectTransfer Constructor
+		 * \param pset ParameterSet used to configure AutodetectTransfer
+		 * \param role Role of this TransferInterface, either kReceive or kSend
+		 */
+		AutodetectTransfer(const fhicl::ParameterSet& pset, Role role);
 
-		~AutodetectTransfer() = default;
+		/**
+		 * \brief AutodetectTransfer default Destructor
+		 */
+		virtual ~AutodetectTransfer() = default;
 
-		virtual int receiveFragment(artdaq::Fragment& fragment,
-		                            size_t receiveTimeout)
+		/**
+		 * \brief Receive a Fragment, using the underlying transfer plugin
+		 * \param fragment Output Fragment
+		 * \param receiveTimeout Time to wait before returning TransferInterface::RECV_TIMEOUT
+		 * \return Rank of sender
+		 */
+		int receiveFragment(artdaq::Fragment& fragment,
+		                            size_t receiveTimeout) override
 		{
 			return theTransfer_->receiveFragment(fragment, receiveTimeout);
 		}
 
-		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max())
+		/**
+		 * \brief Send a Fragment in non-reliable mode, using the underlying transfer plugin
+		 * \param fragment The Fragment to send
+		 * \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
+		 * \return A TransferInterface::CopyStatus result variable
+		 */
+		CopyStatus copyFragment(artdaq::Fragment& fragment,
+		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override
 		{
 			return theTransfer_->copyFragment(fragment, send_timeout_usec);
 		}
 
-		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max())
+		/**
+		* \brief Send a Fragment in reliable mode, using the underlying transfer plugin
+		* \param fragment The Fragment to send
+		* \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
+		* \return A TransferInterface::CopyStatus result variable
+		*/
+		CopyStatus moveFragment(artdaq::Fragment&& fragment,
+		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override
 		{
 			return theTransfer_->moveFragment(std::move(fragment), send_timeout_usec);
 		}

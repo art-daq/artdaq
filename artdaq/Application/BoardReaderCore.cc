@@ -1,5 +1,5 @@
 #include "artdaq/Application/TaskType.hh"
-#include "artdaq/Application/MPI2/BoardReaderCore.hh"
+#include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
@@ -22,13 +22,10 @@ OUTPUT_WAIT_STAT_KEY("BoardReaderCoreOutputWaitTime");
 const std::string artdaq::BoardReaderCore::
 FRAGMENTS_PER_READ_STAT_KEY("BoardReaderCoreFragmentsPerRead");
 
-/**
- * Default constructor.
- */
 artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
-										 MPI_Comm local_group_comm, std::string name) :
+										 int rank, std::string name) :
 																					  parent_application_(parent_application)
-																					  , local_group_comm_(local_group_comm)
+																					  /*, local_group_comm_(local_group_comm)*/
 																					  , generator_ptr_(nullptr)
 																					  , name_(name)
 																					  , stop_requested_(false)
@@ -41,19 +38,14 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
 	statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
 	metricMan = &metricMan_;
+	my_rank = rank;
 }
 
-/**
- * Destructor.
- */
 artdaq::BoardReaderCore::~BoardReaderCore()
 {
 	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
 }
 
-/**
- * Processes the initialize request.
- */
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
 	TLOG_DEBUG(name_) << "initialize method called with "
@@ -139,8 +131,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	metricMan_.setPrefix(generator_ptr_->metricsReportingInstanceName());
 
 	rt_priority_ = fr_pset.get<int>("rt_priority", 0);
-	synchronous_sends_ = fr_pset.get<bool>("synchronous_sends", true);
-
+	/* ELF 5/10/2017 Removing in favor of DataReceiverManager source suppression logic
 	mpi_sync_fragment_interval_ = fr_pset.get<int>("mpi_sync_interval", 0);
 	if (mpi_sync_fragment_interval_ > 0)
 	{
@@ -180,7 +171,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		<< ", mpi_sync_wait_interval_usec is " << mpi_sync_wait_interval_usec_
 		<< ", mpi_sync_wait_log_level is " << mpi_sync_wait_log_level_
 		<< ", mpi_sync_wait_log_interval_sec is " << mpi_sync_wait_log_interval_sec_ << TLOG_ENDL;
-
+		*/
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
 
@@ -294,15 +285,15 @@ size_t artdaq::BoardReaderCore::process_fragments()
 
 	sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
 
-	MPI_Barrier(local_group_comm_);
+	//MPI_Barrier(local_group_comm_);
 
 	TLOG_DEBUG(name_) << "Waiting for first fragment." << TLOG_ENDL;
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
 	artdaq::FragmentPtrs frags;
 	bool active = true;
-	MPI_Request mpi_request;
-	bool barrier_is_pending = false;
+	//MPI_Request mpi_request;
+	//bool barrier_is_pending = false;
 	while (active)
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
@@ -345,6 +336,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 					<< " with sequence id " << sequence_id << "." << TLOG_ENDL;
 			}
 
+			/* ELF 5/10/2017 Removing in favor of DataReceiverManager source suppression logic
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
 			// 10-Sep-2015, KAB - added non-blocking synchronization between
 			// BoardReader processes.  Ibarrier is called every N fragments
@@ -438,6 +430,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			}
 			statsHelper_.addSample(BRSYNC_WAIT_STAT_KEY,
 								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+			*/
 
 			// check for continous sequence IDs
 			if (!skip_seqId_test_ && abs(sequence_id - prev_seq_id_) > 1)

@@ -1,5 +1,6 @@
 #ifndef SRSockets_hh
 #define SRSockets_hh
+#include <cstdint>
 
 // This file (SRSockets.hh) was created by Ron Rechenmacher <ron@fnal.gov> on
 // Sep 14, 2016. "TERMS AND CONDITIONS" governing this file are in the README

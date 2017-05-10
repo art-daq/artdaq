@@ -9,7 +9,7 @@
 using fhicl::ParameterSet;
 
 artdaq::CompositeDriver::CompositeDriver(ParameterSet const& ps):
-                                                                CommandableFragmentGenerator(ps)
+																CommandableFragmentGenerator(ps)
 {
 	std::vector<ParameterSet> psetList =
 		ps.get<std::vector<ParameterSet>>("generator_config_list");
@@ -18,8 +18,8 @@ artdaq::CompositeDriver::CompositeDriver(ParameterSet const& ps):
 		if (! makeChildGenerator_(pset))
 		{
 			throw cet::exception("CompositeDriver")
-			      << "Unable to create child generator for PSet= \""
-			      << pset.to_string() << "\"";
+				  << "Unable to create child generator for PSet= \""
+				  << pset.to_string() << "\"";
 		}
 	}
 
@@ -139,19 +139,19 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
 				std::string reportString =
 					generator_list_[idx]->ReportCmd("latest_exception");
 				if (std::string::npos !=
-				    boost::algorithm::to_lower_copy(reportString).find("exception"))
+					boost::algorithm::to_lower_copy(reportString).find("exception"))
 				{
 					throw cet::exception("CompositeDriver_generator")
-					      << "The FragmentGenerator for "
-					      << generator_list_[idx]->metricsReportingInstanceName()
-					      << " threw an exception: " << reportString;
+						  << "The FragmentGenerator for "
+						  << generator_list_[idx]->metricsReportingInstanceName()
+						  << " threw an exception: " << reportString;
 				}
 				else
 				{
 					throw cet::exception("CompositeDriver_generator")
-					      << "The FragmentGenerator for "
-					      << generator_list_[idx]->metricsReportingInstanceName()
-					      << " threw an exception.";
+						  << "The FragmentGenerator for "
+						  << generator_list_[idx]->metricsReportingInstanceName()
+						  << " threw an exception.";
 				}
 			}
 			generator_active_list_[idx] = status;

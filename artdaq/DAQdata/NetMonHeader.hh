@@ -1,6 +1,8 @@
 #ifndef artdaq_DAQdata_NetMonHeader_hh
 #define artdaq_DAQdata_NetMonHeader_hh
 
+#include <cstdint>
+
 namespace artdaq
 {
 	struct NetMonHeader;

@@ -18,8 +18,8 @@ MPISentry(int* argc_ptr, char*** argv_ptr)
 
 artdaq::MPISentry::
 MPISentry(int* argc_ptr,
-          char*** argv_ptr,
-          int threading_level)
+		  char*** argv_ptr,
+		  int threading_level)
 	:
 	threading_level_(0)
 	, rank_(-1)
@@ -46,8 +46,8 @@ MPISentry(int* argc_ptr,
 
 artdaq::MPISentry::
 MPISentry(int* argc_ptr,
-          char*** argv_ptr,
-          int threading_level, artdaq::TaskType type, MPI_Comm& local_group_comm)
+		  char*** argv_ptr,
+		  int threading_level, artdaq::TaskType type, MPI_Comm& local_group_comm)
 	:
 	threading_level_(0)
 	, rank_(-1)

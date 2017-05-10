@@ -8,6 +8,8 @@ class TBufferFile;
 class NetMonTransportServiceInterface
 {
 public:
+	virtual ~NetMonTransportServiceInterface() = default;
+
 	virtual void connect() = 0;
 
 	virtual void disconnect() = 0;

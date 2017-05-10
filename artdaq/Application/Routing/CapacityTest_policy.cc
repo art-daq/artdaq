@@ -5,13 +5,36 @@
 
 namespace artdaq
 {
+	/**
+	 * \brief A RoutingMasterPolicy which tries to fully load the first receiver, then the second, and so on
+	 */
 	class CapacityTestPolicy : public RoutingMasterPolicy
 	{
 	public:
+		/**
+		 * \brief CapacityTestPolicy Constructor
+		 * \param ps ParameterSet used to configure the CapacityTestPolicy
+		 * 
+		 * CapacityTestPolicy accepts the following Parameters:
+		 * "tokens_used_per_table_percent" (Default: 50): Percentage of available tokens to be used on each iteration.
+		 */
 		explicit CapacityTestPolicy(fhicl::ParameterSet ps);
 
-		virtual ~CapacityTestPolicy() { }
+		/**
+		 * \brief Default virtual Destructor
+		 */
+		virtual ~CapacityTestPolicy() = default;
 
+		/**
+		 * \brief Apply the policy to the current tokens
+		 * \return A detail::RoutingPacket containing the Routing Table
+		 * 
+		 * CapacityTestPolicy will assign available tokens from the first receiver, then the second, and so on
+		 * until it has assigned tokens equal to the inital_token_count * tokens_used_per_table_percent / 100.
+		 * The idea is that in steady-state, the load on the receivers should reflect the workload relative to
+		 * the capacity of the system. (i.e. if you have 5 receivers, and 3 of them are 100% busy, then your load
+		 * factor is approximately 60%.)
+		 */
 		detail::RoutingPacket GetCurrentTable() override;
 	private:
 		int tokenUsagePercent_;

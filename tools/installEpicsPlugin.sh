@@ -12,14 +12,14 @@ function setup() {
 
 # Check the environment
 if [ -e "./setups" ] && [ -d "ups" ]; then
-    echo "UPS area detected!"
-    if [ -z "${ARTDAQ_FQ_DIR-}" ]; then
+	echo "UPS area detected!"
+	if [ -z "${ARTDAQ_FQ_DIR-}" ]; then
 	echo "Please have the desired version of ARTDAQ set up before running this script!"
-        exit 1
-    fi
+		exit 1
+	fi
 else
-    echo "This script must be run from a UPS product directory!"
-    exit 1
+	echo "This script must be run from a UPS product directory!"
+	exit 1
 fi
 
 equal=`echo $ARTDAQ_FQ_DIR|sed 's/.*\(e[0-9]\+\).*/\1/'`

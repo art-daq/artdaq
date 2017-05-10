@@ -4,9 +4,12 @@
 
 namespace
 {
+	/**
+	 * \brief Contains information needed by art for reconstructing artdaq objects
+	 */
 	struct dictionary
 	{
-		std::pair<const art::ParentageID, art::Parentage> pp;
-		art::ParentageMap pm;
+		std::pair<const art::ParentageID, art::Parentage> pp; ///< A pair relating a ParentageID to a Parentage
+		art::ParentageMap pm; ///< A art::ParentageMap
 	};
 }

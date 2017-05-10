@@ -1,5 +1,5 @@
 #include "artdaq/Application/TaskType.hh"
-#include "artdaq/Application/MPI2/BoardReaderApp.hh"
+#include "artdaq/Application/BoardReaderApp.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"

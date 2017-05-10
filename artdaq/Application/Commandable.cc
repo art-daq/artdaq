@@ -5,7 +5,7 @@
  * Default constructor.
  */
 artdaq::Commandable::Commandable() : fsm_(*this)
-                                   , primary_mutex_() {}
+								   , primary_mutex_() {}
 
 // **********************************************************************
 // *** The following methods implement the externally available commands.

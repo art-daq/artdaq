@@ -29,7 +29,7 @@ namespace artdaq
 	{
 	public:
 
-		TransferWrapper(const fhicl::ParameterSet&);
+		explicit TransferWrapper(const fhicl::ParameterSet&);
 
 		~TransferWrapper();
 

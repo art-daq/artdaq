@@ -26,11 +26,6 @@
 #include "unistd.h"
 #include <stdio.h>
 
-struct Config
-{
-	fhicl::Atom<std::string> fileName{fhicl::Name("fileName")};
-};
-
 namespace art
 {
 	class BinaryFileOutput;
@@ -39,12 +34,29 @@ namespace art
 using art::BinaryFileOutput;
 using fhicl::ParameterSet;
 
+/**
+ * \brief The BinaryFileOutput module streams art Events to a binary file, bypassing ROOT
+ */
 class art::BinaryFileOutput final: public OutputModule
 {
 public:
-	explicit BinaryFileOutput(ParameterSet const&);
+	/**
+	 * \brief BinaryFileOutput Constructor
+	 * \param ps ParameterSet used to configure BinaryFileOutput
+	 * 
+	 * BinaryFileOutput accepts the same configuration parameters as art::OutputModule.
+	 * It has the same name substitution code that RootOutput uses to uniquify names.
+	 * 
+	 * BinaryFileOutput also expects the following Parameters:
+	 * "fileName" (REQUIRED): Name of the file to write
+	 * "directIO" (Default: false): Whether to use O_DIRECT
+	 */
+	explicit BinaryFileOutput(ParameterSet const& ps);
 
-	~BinaryFileOutput();
+	/**
+	 * \brief BinaryFileOutput Destructor
+	 */
+	virtual ~BinaryFileOutput();
 
 private:
 	void beginJob() override;

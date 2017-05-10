@@ -24,21 +24,21 @@ namespace fhicl
 class NetMonTransportService : public NetMonTransportServiceInterface
 {
 public:
-	~NetMonTransportService();
+	virtual ~NetMonTransportService();
 
 	NetMonTransportService(fhicl::ParameterSet const&, art::ActivityRegistry&);
 
-	void connect();
+	void connect() override;
 
-	void disconnect();
+	void disconnect() override;
 
-	void listen();
+	void listen() override;
 
-	void sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile&);
+	void sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile&) override;
 
-	void receiveMessage(TBufferFile*&);
+	void receiveMessage(TBufferFile*&) override;
 
-	size_t dataReceiverCount() { return sender_ptr_->destinationCount(); }
+	size_t dataReceiverCount() const { return sender_ptr_->destinationCount(); }
 private:
 	fhicl::ParameterSet data_pset_;
 

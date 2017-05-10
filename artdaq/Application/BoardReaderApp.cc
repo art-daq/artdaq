@@ -1,10 +1,7 @@
-#include "artdaq/Application/MPI2/BoardReaderApp.hh"
+#include "artdaq/Application/BoardReaderApp.hh"
 
-/**
- * Default constructor.
- */
-artdaq::BoardReaderApp::BoardReaderApp(MPI_Comm local_group_comm, std::string name) :
-																					local_group_comm_(local_group_comm)
+artdaq::BoardReaderApp::BoardReaderApp(int rank, std::string name) :
+																					rank_(rank)
 																					, name_(name) {}
 
 // *******************************************************************
@@ -21,7 +18,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
 	fragment_receiver_ptr_.reset(nullptr);
-	fragment_receiver_ptr_.reset(new BoardReaderCore(*this, local_group_comm_, name_));
+	fragment_receiver_ptr_.reset(new BoardReaderCore(*this, rank_, name_));
 	external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
 	if (! external_request_status_)
 	{

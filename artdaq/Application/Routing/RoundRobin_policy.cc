@@ -4,13 +4,34 @@
 
 namespace artdaq
 {
+	/**
+	 * \brief A RoutingMasterPolicy which evenly distributes Sequence IDs to all receivers.
+	 * If an uneven number of tokens have been received, extra tokens are stored for the next table update.
+	 */
 	class RoundRobinPolicy : public RoutingMasterPolicy
 	{
 	public:
+		/**
+		 * \brief RoundRobinPolicy Constructor
+		 * \param ps ParameterSet used to configure RoundRobinPolicy
+		 * 
+		 * RoundRobinPolicy accepts no Parameters at this time.
+		 */
 		explicit RoundRobinPolicy(fhicl::ParameterSet ps) : RoutingMasterPolicy(ps) {}
 
-		virtual ~RoundRobinPolicy() { }
+		/**
+		 * \brief Default virtual Destructor
+		 */
+		virtual ~RoundRobinPolicy() = default;
 
+		/**
+		 * \brief Create a Routing Table using the tokens that have been received
+		 * \return A detail::RoutingPacket containing the table update
+		 * 
+		 * RoundRobinPolicy will go through the list of receivers as many times
+		 * as it can, until one or more receivers have no tokens. It always does full
+		 * "turns" through the recevier list.
+		 */
 		detail::RoutingPacket GetCurrentTable() override;
 	};
 

@@ -11,6 +11,12 @@
 
 namespace artdaq
 {
+	/**
+	 * \brief Load a RoutingMasterPolicy plugin
+	 * \param policy_plugin_spec Name of the RoutingMasterPolicy
+	 * \param ps ParameterSet used to configure the RoutingMasterPolicy
+	 * \return std::unique_ptr<RoutingMasterPolicy> to the new RoutingMasterPolicy instance
+	 */
 	std::unique_ptr<RoutingMasterPolicy>
 		makeRoutingMasterPolicy(std::string const& policy_plugin_spec,
 										 fhicl::ParameterSet const& ps);

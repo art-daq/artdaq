@@ -8,6 +8,8 @@ art_make_library( LIBRARY_NAME artdaq_Application
   Commandable.cc
   CommandableFragmentGenerator
   makeCommandableFragmentGenerator
+  BoardReaderApp.cc
+  BoardReaderCore.cc
   EventBuilderCore.cc
   EventBuilderApp.cc
   AggregatorApp.cc

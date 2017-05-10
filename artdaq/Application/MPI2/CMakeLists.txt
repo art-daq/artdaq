@@ -3,8 +3,6 @@ include_directories(${MPI_INCLUDE_PATH} )
 art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   SOURCE
   MPISentry.cc
-  BoardReaderApp.cc
-  BoardReaderCore.cc
   LIBRARIES
   artdaq_DAQrate
   artdaq_Application

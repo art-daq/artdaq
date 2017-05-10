@@ -17,13 +17,19 @@
 #define TRANSFER_RECEIVE1 9
 #define TRANSFER_RECEIVE2 10
 
+/**
+ * \brief The artdaq namespace
+ */
 namespace artdaq
 {
+	/**
+	 * \brief The artdaq::Globals class contains several variables which are useful across the entire artdaq system
+	 */
 	class Globals
 	{
 	public:
-		static int my_rank_;
-		static MetricManager* metricMan_;
+		static int my_rank_; ///< The rank of the current application
+		static MetricManager* metricMan_; ///< A handle to MetricManager
 	};
 }
 

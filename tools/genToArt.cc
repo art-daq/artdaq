@@ -76,8 +76,10 @@ namespace
 		return 0;
 	}
 
-	// ThrottledGenerator: ensure that we only get one fragment per type
-	// at a time from the generator.
+	/**
+	 * \brief ThrottledGenerator: ensure that we only get one fragment per type
+	 * at a time from the generator.
+	 */
 	class ThrottledGenerator
 	{
 	public:

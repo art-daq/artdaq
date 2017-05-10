@@ -31,7 +31,7 @@ static ParameterSet empty_pset;
 NetMonTransportService::
 ~NetMonTransportService()
 {
-	disconnect();
+	NetMonTransportService::disconnect();
 }
 
 NetMonTransportService::
@@ -119,11 +119,10 @@ receiveMessage(TBufferFile*& msg)
 		recvd_fragments_.reset(nullptr);
 	}
 
-	artdaq::NetMonHeader* header = topFrag.metadata<artdaq::NetMonHeader>();
-	char* buffer = (char *)malloc(header->data_length);
+	auto header = topFrag.metadata<artdaq::NetMonHeader>();
+	auto buffer = static_cast<char *>(malloc(header->data_length));
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 	msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
 }
 
-DEFINE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService,
-	NetMonTransportServiceInterface)
+DEFINE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService, NetMonTransportServiceInterface)

@@ -4,8 +4,8 @@
  * Constructor.
  */
 artdaq::EventBuilderApp::EventBuilderApp(int rank, std::string name) :
-                                                                                                    rank_(rank)
-                                                                                                    , name_(name) {}
+																									rank_(rank)
+																									, name_(name) {}
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -51,7 +51,7 @@ bool artdaq::EventBuilderApp::do_start(art::RunID id, uint64_t, uint64_t)
 
 	event_building_future_ =
 		std::async(std::launch::async, &EventBuilderCore::process_fragments,
-		           event_builder_ptr_.get());
+				   event_builder_ptr_.get());
 
 	return external_request_status_;
 }
@@ -102,7 +102,7 @@ bool artdaq::EventBuilderApp::do_resume(uint64_t, uint64_t)
 
 	event_building_future_ =
 		std::async(std::launch::async, &EventBuilderCore::process_fragments,
-		           event_builder_ptr_.get());
+				   event_builder_ptr_.get());
 
 	return external_request_status_;
 }
