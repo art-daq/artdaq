@@ -64,6 +64,6 @@ int main(int argc, char* argv[])
 	artdaq::Commandable commandable;
 
 	// create the xmlrpc_commander and run it
-	xmlrpc_commander commander(vm["port"].as<unsigned short>(), commandable);
+	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), commandable);
 	commander.run();
 }

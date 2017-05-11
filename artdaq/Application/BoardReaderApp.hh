@@ -13,7 +13,7 @@ namespace artdaq
 }
 
 /**
- * \brief BoardReaderApp handles the XMLRPC commands and passes them to the BoardReaderCore state machine
+ * \brief BoardReaderApp is an artdaq::Commandable derived class which controls the BoardReaderCore state machine
  */
 class artdaq::BoardReaderApp : public artdaq::Commandable
 {
@@ -118,7 +118,7 @@ public:
 
 	/* Report_ptr */
 	/**
-	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to AggregatorCore
+	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to BoardReaderCore
 	 * \param which What to report on
 	 * \return Report string. Empty for unknown "which" parameter
 	 */

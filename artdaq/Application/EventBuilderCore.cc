@@ -16,9 +16,6 @@ const std::string artdaq::EventBuilderCore::INPUT_FRAGMENTS_STAT_KEY("EventBuild
 const std::string artdaq::EventBuilderCore::INPUT_WAIT_STAT_KEY("EventBuilderCoreInputWaitTime");
 const std::string artdaq::EventBuilderCore::STORE_EVENT_WAIT_STAT_KEY("EventBuilderCoreStoreEventWaitTime");
 
-/**
- * Constructor.
- */
 artdaq::EventBuilderCore::EventBuilderCore(int rank, std::string name)
 	: name_(name)
 	, art_initialized_(false)
@@ -35,9 +32,6 @@ artdaq::EventBuilderCore::EventBuilderCore(int rank, std::string name)
 	metricMan = &metricMan_;
 }
 
-/**
- * Destructor.
- */
 artdaq::EventBuilderCore::~EventBuilderCore()
 {
 	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
@@ -63,9 +57,6 @@ void artdaq::EventBuilderCore::initializeEventStore(fhicl::ParameterSet pset)
 	}
 }
 
-/**
- * Processes the initialize request.
- */
 bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 {
 	init_string_ = pset.to_string();
@@ -330,8 +321,7 @@ bool artdaq::EventBuilderCore::reinitialize(fhicl::ParameterSet const& pset)
 		<< "\"." << TLOG_ENDL;
 	event_store_ptr_.reset(nullptr);
 	art_initialized_ = false;
-	initialize(pset);
-	return true;
+	return initialize(pset);
 }
 
 size_t artdaq::EventBuilderCore::process_fragments()

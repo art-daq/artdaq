@@ -11,8 +11,6 @@ StatisticsHelper() : monitored_quantity_name_list_(0)
 , previous_reporting_index_(0)
 , previous_stats_calc_time_(0.0) {}
 
-artdaq::StatisticsHelper::~StatisticsHelper() {}
-
 void artdaq::StatisticsHelper::
 addMonitoredQuantityName(std::string const& statKey)
 {
@@ -40,7 +38,7 @@ createCollectors(fhicl::ParameterSet const& pset, int defaultReportIntervalFragm
 	double monitorWindow = pset.get<double>("monitor_window", defaultMonitorWindow);
 	double monitorBinSize =
 		pset.get<double>("monitor_binsize",
-						 1.0 + ((int)((monitorWindow - 1) / 100.0)));
+						 1.0 + static_cast<int>((monitorWindow - 1) / 100.0));
 
 	if (monitorBinSize < 1.0) { monitorBinSize = 1.0; }
 	if (monitorWindow >= 1.0)
@@ -68,7 +66,7 @@ void artdaq::StatisticsHelper::resetStatistics()
 	{
 		artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
 			getMonitoredQuantity(monitored_quantity_name_list_[idx]);
-		if (mqPtr.get() != 0) { mqPtr->reset(); }
+		if (mqPtr.get() != nullptr) { mqPtr->reset(); }
 	}
 }
 

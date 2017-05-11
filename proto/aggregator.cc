@@ -107,7 +107,7 @@ int main(int argc, char * argv[])
 	}
 
 	// create the xmlrpc_commander and run it
-	xmlrpc_commander commander(vm["port"].as<unsigned short>(), agg_app);
+	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), agg_app);
 	commander.run();
 
 }

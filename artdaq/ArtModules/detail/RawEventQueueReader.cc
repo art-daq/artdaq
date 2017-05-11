@@ -11,21 +11,21 @@
 using std::string;
 
 artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet const& ps,
-                                                         art::ProductRegistryHelper& help,
-                                                         art::SourceHelper const& pm) :
-                                                                                      pmaker(pm)
-                                                                                      , incoming_events(getGlobalQueue())
-                                                                                      , waiting_time(ps.get<double>("waiting_time", 86400.0))
-                                                                                      , resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
-                                                                                      , pretend_module_name("daq")
-                                                                                      , unidentified_instance_name("unidentified")
-                                                                                      , shutdownMsgReceived(false)
-                                                                                      , outputFileCloseNeeded(false)
-                                                                                      , fragment_type_map_(Fragment::MakeSystemTypeMap())
-										      , readNext_calls_(0)
+														 art::ProductRegistryHelper& help,
+														 art::SourceHelper const& pm) :
+	pmaker(pm)
+	, incoming_events(getGlobalQueue())
+	, waiting_time(ps.get<double>("waiting_time", 86400.0))
+	, resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
+	, pretend_module_name(ps.get<std::string>("raw_data_label","daq"))
+	, unidentified_instance_name("unidentified")
+	, shutdownMsgReceived(false)
+	, outputFileCloseNeeded(false)
+	, fragment_type_map_(Fragment::MakeSystemTypeMap())
+	, readNext_calls_(0)
 {
 	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name,
-	                                            unidentified_instance_name);
+												unidentified_instance_name);
 	for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
@@ -35,24 +35,25 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 void artdaq::detail::RawEventQueueReader::closeCurrentFile() {}
 
 void artdaq::detail::RawEventQueueReader::readFile(string const&,
-                                                   art::FileBlock*& fb)
+												   art::FileBlock*& fb)
 {
 	fb = new art::FileBlock(art::FileFormatVersion(1, "RawEvent2011"), "nothing");
 }
 
 bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & inR,
-                                                   art::SubRunPrincipal* const & inSR,
-                                                   art::RunPrincipal*& outR,
-                                                   art::SubRunPrincipal*& outSR,
-                                                   art::EventPrincipal*& outE)
+												   art::SubRunPrincipal* const & inSR,
+												   art::RunPrincipal*& outR,
+												   art::SubRunPrincipal*& outSR,
+												   art::EventPrincipal*& outE)
 {
 	/*if (outputFileCloseNeeded) {
 		outputFileCloseNeeded = false;
 		return false;
 	}*/
-        if (readNext_calls_++ == 0)
-	{    incoming_events.setReaderIsReady();
-             TRACE( 50, "RawEventQueueReader::readNext after incoming_events.setReaderIsReady()" );
+	if (readNext_calls_++ == 0)
+	{
+		incoming_events.setReaderIsReady();
+		TRACE(50, "RawEventQueueReader::readNext after incoming_events.setReaderIsReady()");
 	}
 	// Establish default 'results'
 	outR = 0;
@@ -98,7 +99,7 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 	if (inR == 0 || inR->run() != popped_event->runID())
 	{
 		outR = pmaker.makeRunPrincipal(popped_event->runID(),
-		                               currentTime);
+									   currentTime);
 	}
 
 	if (popped_event->numFragments() == 1)
@@ -117,8 +118,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 			if (inR == 0 || inR->run() != popped_event->runID())
 			{
 				outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
-				                                   popped_event->subrunID(),
-				                                   currentTime);
+												   popped_event->subrunID(),
+												   currentTime);
 #ifdef ARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID /* Old, error-prone interface. */
 				art::EventID const evid(art::EventID::flushEvent(outR->id(), outSR->id()));
 #else
@@ -144,8 +145,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 				else
 				{
 					outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
-					                                   popped_event->subrunID(),
-					                                   currentTime);
+													   popped_event->subrunID(),
+													   currentTime);
 #ifdef ARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID /* Old, error-prone interface. */
 					art::EventID const evid(art::EventID::flushEvent(inR->id(), outSR->id()));
 #else
@@ -167,13 +168,13 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 	if (inSR == 0 || subrun_check != inSR->id())
 	{
 		outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
-		                                   popped_event->subrunID(),
-		                                   currentTime);
+										   popped_event->subrunID(),
+										   currentTime);
 	}
 	outE = pmaker.makeEventPrincipal(popped_event->runID(),
-	                                 popped_event->subrunID(),
-	                                 popped_event->sequenceID(),
-	                                 currentTime);
+									 popped_event->subrunID(),
+									 popped_event->sequenceID(),
+									 currentTime);
 	// get the list of fragment types that exist in the event
 	std::vector<Fragment::type_t> type_list;
 	popped_event->fragmentTypes(type_list);
@@ -187,16 +188,16 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 		if (iter != iter_end)
 		{
 			put_product_in_principal(popped_event->releaseProduct(type_list[idx]),
-			                         *outE,
-			                         pretend_module_name,
-			                         iter->second);
+									 *outE,
+									 pretend_module_name,
+									 iter->second);
 		}
 		else
 		{
 			put_product_in_principal(popped_event->releaseProduct(type_list[idx]),
-			                         *outE,
-			                         pretend_module_name,
-			                         unidentified_instance_name);
+									 *outE,
+									 pretend_module_name,
+									 unidentified_instance_name);
 			TLOG_WARNING("RawEventQueueReader")
 				<< "UnknownFragmentType: The product instance name mapping for fragment type \""
 				<< ((int)type_list[idx]) << "\" is not known. Fragments of this "

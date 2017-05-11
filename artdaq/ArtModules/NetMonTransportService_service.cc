@@ -42,7 +42,7 @@ NetMonTransportService(ParameterSet const& pset, art::ActivityRegistry&)
 	, incoming_events_(artdaq::getGlobalQueue())
 	, recvd_fragments_(nullptr)
 {
-    if(pset.has_key("rank")) my_rank = pset.get<int>("rank");
+	if(pset.has_key("rank")) my_rank = pset.get<int>("rank");
 	incoming_events_.setReaderIsReady();
 }
 
@@ -82,8 +82,8 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment
 		fragment(std::ceil(msg.Length() /
-		                   static_cast<double>(sizeof(artdaq::RawDataType))),
-		         sequenceId, 0, messageType, header);
+						   static_cast<double>(sizeof(artdaq::RawDataType))),
+				 sequenceId, 0, messageType, header);
 
 	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
 	sender_ptr_->sendFragment(std::move(fragment));
@@ -109,7 +109,7 @@ receiveMessage(TBufferFile*& msg)
 		   sorted by sequence ID before they can be passed to art.
 		*/
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(),
-		          artdaq::fragmentSequenceIDCompare);
+				  artdaq::fragmentSequenceIDCompare);
 	}
 
 	artdaq::Fragment topFrag = std::move(recvd_fragments_->at(0));

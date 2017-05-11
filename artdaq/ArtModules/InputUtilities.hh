@@ -44,6 +44,14 @@
 
 namespace art
 {
+	/**
+	 * \brief ReadObjectAny reads data from a TBufferFile and casts it to the given type
+	 * \tparam T The type of the data being read
+	 * \param infile A pointer to the TBufferFile being read
+	 * \param className Name of the class to retrieve (must be in ROOT dictionary)
+	 * \param callerName Name of the calling class, for logging purposes
+	 * \return Pointer to object of type T
+	 */
 	template <typename T>
 	T* ReadObjectAny(const std::unique_ptr<TBufferFile>& infile, const std::string& className, const std::string& callerName)
 	{
@@ -74,6 +82,12 @@ namespace art
 		return ptr;
 	}
 
+	/**
+	 * \brief Print the processHistoryID from the object
+	 * \tparam T Type of the object
+	 * \param label Label for the object
+	 * \param object Object to print processHistoryID from
+	 */
 	template <typename T>
 	void printProcessHistoryID(const std::string& label, const T& object)
 	{
@@ -101,6 +115,12 @@ namespace art
 		}
 	}
 
+	/**
+	 * \brief Print data from a map-like class
+	 * \tparam T Type of the class
+	 * \param mappable Map-like class to print
+	 * \param description Description of the map-like class
+	 */
 	template <typename T>
 	void printProcessMap(const T& mappable, const std::string description)
 	{

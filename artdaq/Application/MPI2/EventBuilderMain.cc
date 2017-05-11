@@ -82,6 +82,6 @@ int main(int argc, char* argv[])
 	artdaq::EventBuilderApp evb_app(mpiSentry->rank(), name);
 
 	// create the xmlrpc_commander and run it
-	xmlrpc_commander commander(vm["port"].as<unsigned short>(), evb_app);
+	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), evb_app);
 	commander.run();
 }

@@ -7,6 +7,9 @@ using std::string;
 
 namespace artdaq
 {
+	/**
+	 * \brief RawInput is a typedef of art::Source<detail::RawEventQueueReader>
+	 */
 	typedef art::Source<detail::RawEventQueueReader> RawInput;
 }
 

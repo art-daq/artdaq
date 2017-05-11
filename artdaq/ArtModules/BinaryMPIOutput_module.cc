@@ -32,7 +32,7 @@ using art::BinaryMPIOutput;
 using fhicl::ParameterSet;
 
 /**
- * \brief A art::OutputModule which sends Fragments using DataSenderManager.
+ * \brief An art::OutputModule which sends Fragments using DataSenderManager.
  * This module produces output identical to that of a BoardReader, for use in
  * systems which have multiple layers of EventBuilders.
  */

@@ -25,7 +25,7 @@ namespace artdaq
 }
 
 /**
- * \brief AggregatorCore contains the state machine for the Aggregator artdaq application.
+ * \brief AggregatorCore implements the state machine for the Aggregator artdaq application.
  * AggregatorCore processes incoming events in one of three roles: Data Logger, Online Monitor, or Dispatcher.
  */
 class artdaq::AggregatorCore

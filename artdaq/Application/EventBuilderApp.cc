@@ -1,8 +1,5 @@
 #include "artdaq/Application/EventBuilderApp.hh"
 
-/**
- * Constructor.
- */
 artdaq::EventBuilderApp::EventBuilderApp(int rank, std::string name) :
 																									rank_(rank)
 																									, name_(name) {}

@@ -12,7 +12,7 @@ namespace artdaq
 }
 
 /**
- * \brief AggregatorApp contains the XMLRPC endpoints which control the AggregatorCore
+ * \brief AggregatorApp is an artdaq::Commandable derived class which controls the AggregatorCore
  */
 class artdaq::AggregatorApp : public artdaq::Commandable
 {

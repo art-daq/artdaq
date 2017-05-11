@@ -1,9 +1,6 @@
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
-/**
- * Default constructor.
- */
 artdaq::Commandable::Commandable() : fsm_(*this)
 								   , primary_mutex_() {}
 
@@ -11,13 +8,6 @@ artdaq::Commandable::Commandable() : fsm_(*this)
 // *** The following methods implement the externally available commands.
 // **********************************************************************
 
-/**
- * \brief Processes the initialize request
- * \param pset ParameterSet used to configure the Commandable
- * \param timeout Timeout for init step
- * \param timestamp Timestamp of init step
- * \return Whether the transition was successful
- */
 bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -37,9 +27,6 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	return (external_request_status_);
 }
 
-/**
- * Processes the start request.
- */
 bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timestamp)
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -59,9 +46,6 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 	return (external_request_status_);
 }
 
-/**
- * Processes the stop request.
- */
 bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -81,9 +65,6 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 	return (external_request_status_);
 }
 
-/**
- * Processes the pause request.
- */
 bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -103,9 +84,6 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 	return (external_request_status_);
 }
 
-/**
- * Processes the resume request.
- */
 bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -125,9 +103,6 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 	return (external_request_status_);
 }
 
-/**
- * Processes the shutdown request.
- */
 bool artdaq::Commandable::shutdown(uint64_t timeout)
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -147,9 +122,6 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 	return (external_request_status_);
 }
 
-/**
- * Processes the soft_initialize request.
- */
 bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -169,9 +141,6 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 	return (external_request_status_);
 }
 
-/**
- * Processes the reinitialize request.
- */
 bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -191,9 +160,6 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 	return (external_request_status_);
 }
 
-/**
- * Processes the in_run_failure request.
- */
 bool artdaq::Commandable::in_run_failure()
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -213,9 +179,6 @@ bool artdaq::Commandable::in_run_failure()
 	return (external_request_status_);
 }
 
-/**
- * Returns the current state.
- */
 std::string artdaq::Commandable::status() const
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -228,9 +191,6 @@ std::string artdaq::Commandable::status() const
 	return currentState;
 }
 
-/**
- * Returns the current list of legal commands.
- */
 std::vector<std::string> artdaq::Commandable::legal_commands() const
 {
 	std::lock_guard<std::mutex> lk(primary_mutex_);
@@ -352,9 +312,6 @@ void artdaq::Commandable::InRunExit()
 // *** Utility methods. 
 // *********************
 
-/**
- * Returns the current state name.
- */
 std::string artdaq::Commandable::current_state() const
 {
 	std::string fullStateName = (const_cast<Commandable*>(this))->fsm_.getState().getName();

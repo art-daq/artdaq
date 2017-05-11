@@ -26,9 +26,6 @@ TABLE_UPDATES_STAT_KEY("RoutingMasterCoreTableUpdates");
 const std::string artdaq::RoutingMasterCore::
 TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
 
-/**
-* Default constructor.
-*/
 artdaq::RoutingMasterCore::RoutingMasterCore(int rank, std::string name) :
 	 name_(name)
 , shutdown_requested_(false)
@@ -45,18 +42,12 @@ artdaq::RoutingMasterCore::RoutingMasterCore(int rank, std::string name) :
 	my_rank = rank;
 }
 
-/**
-* Destructor.
-*/
 artdaq::RoutingMasterCore::~RoutingMasterCore()
 {
 	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 }
 
-/**
-* Processes the initialize request.
-*/
 bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
 	TLOG_DEBUG(name_) << "initialize method called with "
@@ -160,7 +151,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t timeout, uint64_t timestamp)
+bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 {
 	stop_requested_.store(false);
 	pause_requested_.store(false);
@@ -173,8 +164,7 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t timeout, uint64_t 
 	table_update_count_ = 0;
 	received_token_count_ = 0;
 
-	TLOG_DEBUG(name_) << "Started run " << std::to_string(run_id_.run()) <<
-		", timeout = " << timeout << ", timestamp = " << timestamp << TLOG_ENDL;
+	TLOG_DEBUG(name_) << "Started run " << std::to_string(run_id_.run()) << TLOG_ENDL;
 	return true;
 }
 

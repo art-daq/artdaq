@@ -16,6 +16,10 @@ namespace artdaq
 	class BoardReaderCore;
 }
 
+/**
+ * \brief BoardReaderCore implements the state machine for the BoardReader artdaq application.
+ * It contains a CommandableFragmentGenerator, which generates Fragments which are then sent to a DataSenderManager by BoardReaderCore.
+ */
 class artdaq::BoardReaderCore
 {
 public:
@@ -25,6 +29,12 @@ public:
 	static const std::string OUTPUT_WAIT_STAT_KEY; ///< Key for the Output Wait MonitoredQuantity
 	static const std::string FRAGMENTS_PER_READ_STAT_KEY; ///< Key for the Fragments Per Read MonitoredQuantity
 
+	/**
+	 * \brief BoardReaderCore Constructor
+	 * \param parent_application Reference to parent Commandable object, for in_run_failure notification
+	 * \param rank Rank of the BoardReader
+	 * \param name Friendly name for the BoardReader
+	 */
 	BoardReaderCore(Commandable& parent_application, int rank,
 	                std::string name);
 
@@ -61,23 +71,76 @@ public:
 	 */
 	bool initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
 
-	bool start(art::RunID, uint64_t, uint64_t);
+	/**
+	 * \brief Start the BoardReader, and the CommandableFragmentGenerator
+	 * \param id Run ID of new run
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return True unless exception occurred
+	 */
+	bool start(art::RunID id, uint64_t timeout, uint64_t timestamp);
 
-	bool stop(uint64_t, uint64_t);
+	/**
+	* \brief Stop the BoardReader, and the CommandableFragmentGenerator
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
+	* \return True unless exception occurred
+	*/
+	bool stop(uint64_t timeout, uint64_t timestamp);
 
-	bool pause(uint64_t, uint64_t);
+	/**
+	* \brief Pause the BoardReader, and the CommandableFragmentGenerator
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
+	* \return True unless exception occurred
+	*/
+	bool pause(uint64_t timeout, uint64_t timestamp);
 
-	bool resume(uint64_t, uint64_t);
+	/**
+	* \brief Resume the BoardReader, and the CommandableFragmentGenerator
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
+	* \return True unless exception occurred
+	*/
+	bool resume(uint64_t timeout, uint64_t timestamp);
 
+	/**
+	* \brief Shutdown the BoardReader, and the CommandableFragmentGenerator
+	* \return True unless exception occurred
+	*/
 	bool shutdown(uint64_t);
 
-	bool soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t);
+	/**
+	* \brief Soft-Initialize the BoardReader. No-Op
+	 * \param pset ParameterSet used to configure the BoardReaderCore
+	* \return True unless exception occurred
+	*/
+	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
 
-	bool reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t);
+	/**
+	* \brief Reinitialize the BoardReader. No-Op
+	 * \param pset ParameterSet used to configure the BoardReaderCore
+	* \return True unless exception occurred
+	*/
+	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
 
+	/**
+	 * \brief Main working loop of the BoardReaderCore
+	 * \return Number of Fragments generated
+	 * 
+	 * This loop calls the CommandableFragmentGenerator::getNext method, then sends each Fragment using DataSenderManager.
+	 */
 	size_t process_fragments();
 
-	std::string report(std::string const&) const;
+	/**
+	 * \brief Send a report on a given run-time quantity
+	 * \param which Which quantity to report
+	 * \return A string containing the requested quantity.
+	 * 
+	 * If the CommandableFragmentGenerator has been initialized, CommandableFragmentGenerator::report(std::string const& which) will be called.
+	 * Otherwise, the BoardReaderCore will return the current run number and an error message.
+	 */
+	std::string report(std::string const& which) const;
 
 private:
 	Commandable& parent_application_;

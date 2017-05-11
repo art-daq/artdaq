@@ -84,6 +84,6 @@ int main(int argc, char* argv[])
 	artdaq::RoutingMasterApp rm_app(local_group_comm, name);
 
 	// create the xmlrpc_commander and run it
-	xmlrpc_commander commander(vm["port"].as<unsigned short>(), rm_app);
+	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), rm_app);
 	commander.run();
 }

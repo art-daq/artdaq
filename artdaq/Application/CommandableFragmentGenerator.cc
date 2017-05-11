@@ -559,12 +559,9 @@ bool artdaq::CommandableFragmentGenerator::dataBufferIsTooLarge()
 	return (maxDataBufferDepthFragments_ > 0 && dataBufferDepthFragments_ >= maxDataBufferDepthFragments_) || (maxDataBufferDepthBytes_ > 0 && dataBufferDepthBytes_ >= maxDataBufferDepthBytes_);
 }
 
-/// <summary>
-/// Calculate the size of the dataBuffer and report appropriate metrics
-/// dataBufferMutex must be owned by the calling thread!
-/// </summary>
 void artdaq::CommandableFragmentGenerator::getDataBufferStats()
 {
+	/// dataBufferMutex must be owned by the calling thread!
 	dataBufferDepthFragments_ = dataBuffer_.size();
 	size_t acc = 0;
 	for (auto i = dataBuffer_.begin(); i != dataBuffer_.end(); ++i)
@@ -875,8 +872,6 @@ bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtr
 	return true;
 }
 
-// This function is for Buffered and Single trigger modes, as they can only respond to one data request at a time
-// If the request message seqID > ev_counter, simply send empties until they're equal
 void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPtrs& frags)
 {
 	auto sequence_id = Fragment::InvalidSequenceID;

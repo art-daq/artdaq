@@ -8,11 +8,27 @@
 #include <mutex>
 #include "artdaq/Application/Commandable.hh"
 
-class xmlrpc_commander
+namespace artdaq
+{
+	class xmlrpc_commander;
+}
+
+/**
+ * \brief The xmlrpc_commander class serves as the XMLRPC server run in each artdaq application
+ */
+class artdaq::xmlrpc_commander
 {
 public:
+	/**
+	 * \brief xmlrpc_commander Constructor
+	 * \param port Port to listen on
+	 * \param commandable artdaq::Commandable object to send transition commands to
+	 */
 	xmlrpc_commander(int port, artdaq::Commandable& commandable);
 
+	/**
+	 * \brief Run the XMLRPC server
+	 */
 	void run();
 
 private:
@@ -23,8 +39,8 @@ private:
 	int _port;
 
 public:
-	artdaq::Commandable& _commandable;
-	std::mutex mutex_;
+	artdaq::Commandable& _commandable; ///< The artdaq::Commandable object that this xmlrpc_commander sends commands to
+	std::mutex mutex_; ///< XMLRPC mutex
 };
 
 #endif /* artdaq_ExternalComms_xmlrpc_commander_hh */

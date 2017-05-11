@@ -39,18 +39,37 @@ extern "C"
 #include <sys/resource.h>
 }
 
-// Class Program is our application object.
-class Program : public MPIProg
+/**
+ * \brief The Builder class runs the builder test
+ */
+class Builder : public MPIProg
 {
 public:
-	Program(int argc, char* argv[]);
+	/**
+	 * \brief Builder Constructor
+	 * \param argc Argument Count
+	 * \param argv Argument Array
+	 */
+	Builder(int argc, char* argv[]);
 
+	/**
+	 * \brief Start the Builder application, using the type configuration to select which method to run
+	 */
 	void go();
 
+	/**
+	 * \brief Receive data from detector via DataReceiverManager, and send to a sink using DataSenderManager
+	 */
 	void source();
 
+	/**
+	 * \brief Receive data from source via DataReceiverManager, send it to the EventStore (and art, if configured)
+	 */
 	void sink();
 
+	/**
+	 * \brief Generate data, and send it using DataSenderManager
+	 */
 	void detector();
 
 private:
@@ -70,22 +89,22 @@ private:
 	MPI_Comm local_group_comm_;
 };
 
-Program::Program(int argc, char* argv[]) :
-                                         MPIProg(argc, argv)
-                                         , conf_(my_rank, procs_, 10, 10240, argc, argv)
-                                         , daq_pset_(conf_.getArtPset())
-                                         , want_sink_(daq_pset_.get<bool>("want_sink", true))
-                                         , want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
-                                         , local_group_comm_()
+Builder::Builder(int argc, char* argv[]) :
+										 MPIProg(argc, argv)
+										 , conf_(my_rank, procs_, 10, 10240, argc, argv)
+										 , daq_pset_(conf_.getArtPset())
+										 , want_sink_(daq_pset_.get<bool>("want_sink", true))
+										 , want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
+										 , local_group_comm_()
 {
 	conf_.writeInfo();
 	configureDebugStream(conf_.rank_, conf_.run_);
 	PerfConfigure(conf_.rank_,
-	              conf_.run_,
-	              conf_.type_);
+				  conf_.run_,
+				  conf_.type_);
 }
 
-void Program::go()
+void Builder::go()
 {
 	MPI_Barrier(MPI_COMM_WORLD);
 	PerfSetStartTime();
@@ -120,7 +139,7 @@ void Program::go()
 	PerfWriteJobEnd();
 }
 
-void Program::source()
+void Builder::source()
 {
 	printHost("source");
 	// needs to get data from the detectors and send it to the sinks
@@ -150,7 +169,7 @@ void Program::source()
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Program::detector()
+void Builder::detector()
 {
 	printHost("detector");
 	int detector_rank;
@@ -161,11 +180,11 @@ void Program::detector()
 	std::vector<std::string> detectors;
 	size_t detectors_size = 0;
 	if (!(daq_pset_.get_if_present("detectors", detectors) &&
-	      (detectors_size = detectors.size())))
+		  (detectors_size = detectors.size())))
 	{
 		throw cet::exception("Configuration")
-		      << "Unable to find required sequence of detector "
-		      << "parameter set names, \"detectors\".";
+			  << "Unable to find required sequence of detector "
+			  << "parameter set names, \"detectors\".";
 	}
 	fhicl::ParameterSet det_ps =
 		daq_pset_.get<fhicl::ParameterSet>
@@ -213,7 +232,7 @@ void Program::detector()
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Program::sink()
+void Builder::sink()
 {
 	printHost("sink");
 	{
@@ -227,10 +246,10 @@ void Program::sink()
 				&artapp :
 				&artdaq::simpleQueueReaderApp;
 		artdaq::EventStore events(daq_pset_, conf_.detectors_,
-		                          conf_.run_,
-		                          useArt ? conf_.art_argc_ : 1,
-		                          useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
-		                          reader);
+								  conf_.run_,
+								  useArt ? conf_.art_argc_ : 1,
+								  useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
+								  reader);
 		{ // Block to handle scope of h, below.
 			artdaq::DataReceiverManager h(conf_.makeParameterSet());
 			h.start_threads();
@@ -266,20 +285,20 @@ void Program::sink()
 		if (endSucceeded)
 		{
 			Debug << "Sink: reader is done, its exit status was: "
-			     << readerReturnValue << flusher;
+				 << readerReturnValue << flusher;
 		}
 		else
 		{
 			Debug << "Sink: reader failed to complete because the "
-			     << "endOfData marker could not be pushed onto the queue."
-			     << flusher;
+				 << "endOfData marker could not be pushed onto the queue."
+				 << flusher;
 		}
 	} // end of lifetime of 'events'
 	Debug << "Sink done " << conf_.rank_ << flusher;
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Program::printHost(const std::string& functionName) const
+void Builder::printHost(const std::string& functionName) const
 {
 	char* doPrint = getenv("PRINT_HOST");
 	if (doPrint == 0) { return; }
@@ -295,9 +314,9 @@ void Program::printHost(const std::string& functionName) const
 		hostString = "unknown";
 	}
 	Debug << "Running " << functionName
-	     << " on host " << hostString
-	     << " with rank " << my_rank << "."
-	     << flusher;
+		 << " on host " << hostString
+		 << " with rank " << my_rank << "."
+		 << flusher;
 }
 
 void printUsage()
@@ -317,7 +336,7 @@ int main(int argc, char* argv[])
 	int rc = 1;
 	try
 	{
-		Program p(argc, argv);
+		Builder p(argc, argv);
 		std::cerr << "Started process " << my_rank << " of " << p.procs_ << ".\n";
 		p.go();
 		rc = 0;
