@@ -4,7 +4,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
-artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
+artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset)
 	: stop_requested_(false)
 	, source_threads_()
 	, source_plugins_()
@@ -14,12 +14,12 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	, recv_frag_count_()
 	, recv_frag_size_()
 	, recv_seq_count_()
-    , suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled",true))
+	, suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled",true))
 	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
-	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 1000))
+	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
 {
 	TLOG_DEBUG("DataReceiverManager") << "Constructor" << TLOG_ENDL;
-	auto enabled_srcs = pset.get<std::vector<size_t>>("enabled_sources", std::vector<size_t>());
+	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
 	auto enabled_srcs_empty = enabled_srcs.size() == 0;
 	if (enabled_srcs_empty)
 	{
@@ -38,18 +38,18 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	{
 		try
 		{
-			auto ss = std::stoi(s.substr(1));
+			auto ss = srcs.get<fhicl::ParameterSet>(s).get<int>("source_rank");
 			if (enabled_srcs_empty) enabled_sources_.insert(ss);
 			source_plugins_[ss] = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s, TransferInterface::Role::kReceive));
 			fragment_store_[ss];
 		}
-		catch (std::invalid_argument)
-		{
-			TRACE(3, "Invalid source specification: " + s);
-		}
 		catch (cet::exception ex)
 		{
 			TLOG_WARNING("DataReceiverManager") << "cet::exception caught while setting up source " << s << ": " << ex.what() << TLOG_ENDL;
+		}
+		catch (std::exception ex)
+		{
+			TLOG_WARNING("DataReceiverManager") << "std::exception caught while setting up source " << s << ": " << ex.what() << TLOG_ENDL;
 		}
 		catch (...)
 		{

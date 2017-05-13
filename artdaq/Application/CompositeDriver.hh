@@ -21,9 +21,11 @@ namespace artdaq
 		 * \brief CompositeDriver Constructor
 		 * \param ps ParameterSet used to configure CompositeDriver
 		 * 
+		 * \verbatim
 		 * CompositeDriver accepts the following Parameters:
 		 * "generator_config_list" (REQUIRED): A FHiCL sequence of FHiCL tables, each one configuring
 		 * a CommandableFragmentGenerator instance.
+		 * \endverbatim
 		 */
 		explicit CompositeDriver(fhicl::ParameterSet const& ps);
 

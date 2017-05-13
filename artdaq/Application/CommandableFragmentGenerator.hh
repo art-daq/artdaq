@@ -95,6 +95,7 @@ namespace artdaq
 		 * \brief CommandableFragmentGenerator Constructor
 		 * \param ps ParameterSet used to configure CommandableFragmentGenerator
 		 * 
+		 * \verbatim
 		 * CommandableFragmentGenerator accepts the following Parameters:
 		 * "request_port" (Default: 3001): Port on which data requests will be received
 		 * "request_address" (Default: "227.128.12.26"): Address which CommandableFragmentGenerator will listen for requests on
@@ -117,6 +118,7 @@ namespace artdaq
 		 *    Single: The CommandableFragmentGenerator responds to each request with the latest Fragment it has received
 		 *    Buffer: The CommandableFragmentGenerator responds to each request with all Fragments it has received since the last request
 		 *    Window: The CommandableFragmentGenerator searches its data buffer for all Fragments whose timestamp falls within the request window
+		 * \endverbatim
 		 */
 		explicit CommandableFragmentGenerator(const fhicl::ParameterSet& ps);
 

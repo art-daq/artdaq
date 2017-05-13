@@ -12,7 +12,7 @@
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include <artdaq/DAQdata/TCPConnect.hh>
 
-artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
+artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	: destinations_()
 	, enabled_destinations_()
 	, sent_frag_count_()
@@ -37,7 +37,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 	{
 		try
 		{
-			auto dd = std::stoi(d.substr(1));
+			auto dd = dests.get<fhicl::ParameterSet>(d).get<int>("destination_rank");
 			destinations_.emplace(dd, MakeTransferPlugin(dests, d, TransferInterface::Role::kSend));
 		}
 		catch (std::invalid_argument)
@@ -76,7 +76,7 @@ artdaq::DataSenderManager::DataSenderManager(fhicl::ParameterSet pset)
 			}
 		}
 	}
-	if (use_routing_master_) startTableReceiverThread();
+	if (use_routing_master_) startTableReceiverThread_();
 }
 
 artdaq::DataSenderManager::~DataSenderManager()
@@ -96,7 +96,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 }
 
 
-void artdaq::DataSenderManager::setupTableListener()
+void artdaq::DataSenderManager::setupTableListener_()
 {
 	table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (!table_socket_)
@@ -137,13 +137,13 @@ void artdaq::DataSenderManager::setupTableListener()
 		exit(1);
 	}
 }
-void artdaq::DataSenderManager::startTableReceiverThread()
+void artdaq::DataSenderManager::startTableReceiverThread_()
 {
 	if (routing_thread_.joinable()) routing_thread_.join();
 	TLOG_INFO("DataSenderManager") << "Starting Routing Thread" << TLOG_ENDL;
-	routing_thread_ = std::thread(&DataSenderManager::receiveTableUpdatesLoop, this);
+	routing_thread_ = std::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
 }
-void artdaq::DataSenderManager::receiveTableUpdatesLoop()
+void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 {
 	while (true)
 	{
@@ -157,7 +157,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 		if (table_socket_ == -1)
 		{
 			TLOG_DEBUG("DataSenderManager") << "Opening table listener socket" << TLOG_ENDL;
-			setupTableListener();
+			setupTableListener_();
 		}
 		if (table_socket_ == -1)
 		{
@@ -247,7 +247,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop()
 }
 
 
-int artdaq::DataSenderManager::calcDest(Fragment::sequence_id_t sequence_id) const
+int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
 {
 	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
 	if (enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
@@ -316,7 +316,7 @@ sendFragment(Fragment&& frag)
 	else if (non_blocking_mode_)
 	{
 		while (dest == TransferInterface::RECV_TIMEOUT) {
-			dest = calcDest(seqID);
+			dest = calcDest_(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
 			{
 				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying." << TLOG_ENDL;
@@ -347,7 +347,7 @@ sendFragment(Fragment&& frag)
 	else
 	{
 		while (dest == TransferInterface::RECV_TIMEOUT) {
-			dest = calcDest(seqID);
+			dest = calcDest_(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
 			{
 				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying." << TLOG_ENDL;

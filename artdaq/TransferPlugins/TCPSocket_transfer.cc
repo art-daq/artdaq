@@ -105,7 +105,7 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer()
 
 // Send the given Fragment. Return the rank of the destination to which
 // the Fragment was sent OR -1 if to none.
-artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment(Fragment&& frag, size_t send_timeout_usec)
+artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(Fragment&& frag, size_t send_timeout_usec)
 {
 	TRACE(7, "TCPSocketTransfer::sendFragment begin");
 	artdaq::Fragment grab_ownership_frag = std::move(frag);

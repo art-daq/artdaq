@@ -35,28 +35,59 @@ namespace artdaq
 	class TCPSocketTransfer;
 }
 
-class artdaq::TCPSocketTransfer : public artdaq::TransferInterface
+/**
+ * \brief TransferInterface implementation plugin that sends data using TCP sockets
+ */
+class artdaq::TCPSocketTransfer : public TransferInterface
 {
 public:
-	// env.var used: NODE_LIST, MPI_RANK
-	TCPSocketTransfer(fhicl::ParameterSet const& ps, TransferInterface::Role role);
+	/**
+	 * \brief TCPSocketTransfer Constructor
+	 * \param ps ParameterSet used to configure TCPSocketTransfer
+	 * \param role Role of this TCPSocketTransfer instance (kSend or kReceive)
+	 * 
+	 * \verbatim
+	 * TCPSocketTransfer accepts the following Parameters:
+	 * "tcp_receive_buffer_size" (Default: 0): The TCP buffer size on the receive socket
+	 * "host_map" (REQUIRED): List of FHiCL tables containing information about other hosts in the system.
+	 *   Each table should contain:
+	 *   "rank" (Default: RECV_TIMEOUT): Rank of this host
+	 *   "host" (Default: "localhost"): Hostname of this host
+	 *   "portOffset" (Default: 5500): To avoid collisions, each destination should specify its own port offset.
+	 *     All TCPSocketTransfers sending to that destination will add their own rank to make a unique port number.
+	 * \endverbatim
+	 * TCPSocketTransfer also requires all Parameters for configuring a TransferInterface
+	 */
+	TCPSocketTransfer(fhicl::ParameterSet const& ps, Role role);
 
-	~TCPSocketTransfer();
+	virtual ~TCPSocketTransfer();
 
-	// recvFragment() puts the next received fragment in frag (via swap), with
-	// the source of that fragment as its return value.
-	// It is a precondition that a sources_sending() != 0.
-	// Returns -1 if tmo
-	int receiveFragment(Fragment& frag, size_t timeout_usec = 0);
+	/**
+	* \brief Receive a Fragment using TCP
+	* \param[out] frag Received Fragment
+	* \param timeout_usec Timeout for receive, in microseconds
+	* \return Rank of sender or RECV_TIMEOUT
+	*/
+	int receiveFragment(Fragment& frag, size_t timeout_usec = 0) override;
 
-	// Send the given Fragment. Return the rank of the destination to which
-	// the Fragment was sent. TCPSocketTransfer is always reliable, as TCP is reliable.
-	TransferInterface::CopyStatus copyFragment(Fragment& f, size_t tmo) { return sendFragment(std::move(f), tmo); }
-	TransferInterface::CopyStatus moveFragment(Fragment&& f, size_t tmo) { return sendFragment(std::move(f), tmo); }
+	/**
+	* \brief Copy a Fragment to the destination. Same implementation as moveFragment, as TCP is always reliable
+	* \param frag Fragment to copy
+	* \param timeout_usec Timeout for send, in microseconds
+	* \return CopyStatus detailing result of copy
+	*/
+	CopyStatus copyFragment(Fragment& frag, size_t timeout_usec) override { return sendFragment_(std::move(frag), timeout_usec); }
 
-	TransferInterface::CopyStatus sendFragment(Fragment&&, size_t);
+	/**
+	* \brief Move a Fragment to the destination.
+	* \param frag Fragment to move
+	* \param timeout_usec Timeout for send, in microseconds
+	* \return CopyStatus detailing result of copy
+	*/
+	CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec) override { return sendFragment_(std::move(frag), timeout_usec); }
 
 private:
+
 	int fd_;
 	int listen_fd_;
 
@@ -102,9 +133,11 @@ private:
 	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
 
 private: // methods
-	TransferInterface::CopyStatus sendFragment_(const void* buf, size_t bytes, size_t tmo);
+	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
 
-	TransferInterface::CopyStatus sendFragment_(const struct iovec* iov, int iovcnt, size_t tmo);
+	CopyStatus sendFragment_(const void* buf, size_t bytes, size_t tmo);
+
+	CopyStatus sendFragment_(const struct iovec* iov, int iovcnt, size_t tmo);
 
 	// Thread to drive reconnect_ requests
 	void stats_connect_();

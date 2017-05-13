@@ -15,8 +15,10 @@ namespace artdaq
 		 * \brief CapacityTestPolicy Constructor
 		 * \param ps ParameterSet used to configure the CapacityTestPolicy
 		 * 
+		 * \verbatim
 		 * CapacityTestPolicy accepts the following Parameters:
 		 * "tokens_used_per_table_percent" (Default: 50): Percentage of available tokens to be used on each iteration.
+		 * \endverbatim
 		 */
 		explicit CapacityTestPolicy(fhicl::ParameterSet ps);
 

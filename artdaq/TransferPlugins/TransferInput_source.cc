@@ -3,14 +3,18 @@
 
 namespace art
 {
-	// Trait definition (must precede source typedef).
+	/**
+	 * \brief Trait definition (must precede source typedef).
+	 */
 	template <>
 	struct Source_generator<ArtdaqInput<artdaq::TransferWrapper>>
 	{
-		static constexpr bool value = true;
+		static constexpr bool value = true; ///< Dummy variable
 	};
 
-	// Source declaration.
+	/**
+	 * \brief TransferInput is an art::Source using the artdaq::TransferWrapper class as the data source
+	 */
 	typedef art::Source<ArtdaqInput<artdaq::TransferWrapper>> TransferInput;
 } // namespace art
 

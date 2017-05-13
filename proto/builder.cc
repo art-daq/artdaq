@@ -1,21 +1,15 @@
 #include "art/Framework/Art/artapp.h"
-#include "artdaq/DAQdata/Debug.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "Config.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "MPIProg.hh"
-#include "artdaq/DAQrate/Perf.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
-#include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "cetlib/container_algorithms.h"
-#include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
 
 #include "boost/program_options.hpp"
 namespace bpo = boost::program_options;
@@ -82,7 +76,7 @@ private:
 
 	void printHost(const std::string& functionName) const;
 
-	Config conf_;
+	artdaq::Config conf_;
 	fhicl::ParameterSet const daq_pset_;
 	bool const want_sink_;
 	bool const want_periodic_sync_;
@@ -98,22 +92,16 @@ Builder::Builder(int argc, char* argv[]) :
 										 , local_group_comm_()
 {
 	conf_.writeInfo();
-	configureDebugStream(conf_.rank_, conf_.run_);
-	PerfConfigure(conf_.rank_,
-				  conf_.run_,
-				  conf_.type_);
 }
 
 void Builder::go()
 {
 	MPI_Barrier(MPI_COMM_WORLD);
-	PerfSetStartTime();
-	PerfWriteJobStart();
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
 	MPI_Comm_split(MPI_COMM_WORLD, conf_.type_, 0, &local_group_comm_);
 	switch (conf_.type_)
 	{
-	case Config::TaskSink:
+	case artdaq::Config::TaskSink:
 		if (want_sink_)
 		{
 			sink();
@@ -127,16 +115,15 @@ void Builder::go()
 			MPI_Barrier(MPI_COMM_WORLD);
 		}
 		break;
-	case Config::TaskSource:
+	case artdaq::Config::TaskSource:
 		source();
 		break;
-	case Config::TaskDetector:
+	case artdaq::Config::TaskDetector:
 		detector();
 		break;
 	default:
 		throw "No such node type";
 	}
-	PerfWriteJobEnd();
 }
 
 void Builder::source()
@@ -165,7 +152,7 @@ void Builder::source()
 			}
 		}
 	}
-	Debug << "source done " << conf_.rank_ << flusher;
+	TLOG_DEBUG("builder") << "source done " << conf_.rank_ << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -225,9 +212,9 @@ void Builder::detector()
 			}
 			frags.clear();
 		}
-		Debug << "detector waiting " << conf_.rank_ << flusher;
+		TLOG_DEBUG("builder") << "detector waiting " << conf_.rank_ << TLOG_ENDL;
 	}
-	Debug << "detector done " << conf_.rank_ << flusher;
+	TLOG_DEBUG("builder") << "detector done " << conf_.rank_ << TLOG_ENDL;
 	MPI_Comm_free(&local_group_comm_);
 	MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -284,17 +271,17 @@ void Builder::sink()
 		}
 		if (endSucceeded)
 		{
-			Debug << "Sink: reader is done, its exit status was: "
-				 << readerReturnValue << flusher;
+			TLOG_DEBUG("builder") << "Sink: reader is done, its exit status was: "
+				 << readerReturnValue << TLOG_ENDL;
 		}
 		else
 		{
-			Debug << "Sink: reader failed to complete because the "
+			TLOG_DEBUG("builder") << "Sink: reader failed to complete because the "
 				 << "endOfData marker could not be pushed onto the queue."
-				 << flusher;
+				 << TLOG_ENDL;
 		}
 	} // end of lifetime of 'events'
-	Debug << "Sink done " << conf_.rank_ << flusher;
+	TLOG_DEBUG("builder") << "Sink done " << conf_.rank_ << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -313,10 +300,10 @@ void Builder::printHost(const std::string& functionName) const
 	{
 		hostString = "unknown";
 	}
-	Debug << "Running " << functionName
+	TLOG_DEBUG("builder") << "Running " << functionName
 		 << " on host " << hostString
 		 << " with rank " << my_rank << "."
-		 << flusher;
+		 << TLOG_ENDL;
 }
 
 void printUsage()
@@ -325,8 +312,8 @@ void printUsage()
 	struct rusage usage;
 	getrusage(RUSAGE_SELF, &usage);
 	std::cout << myid << ":"
-		<< " user=" << asDouble(usage.ru_utime)
-		<< " sys=" << asDouble(usage.ru_stime)
+		<< " user=" << artdaq::Globals::timevalAsDouble(usage.ru_utime)
+		<< " sys=" << artdaq::Globals::timevalAsDouble(usage.ru_stime)
 		<< std::endl;
 }
 

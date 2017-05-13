@@ -51,10 +51,12 @@ namespace artdaq
 			 * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
 			 * \param pm art::SourceHelper used to initalize the SourceHelper member
 			 *
+			 * \verbatim
 			 * RawEventQueueReader accepts the following Parameters:
 			 * "waiting_time" (Default: 86400.0): The maximum amount of time to wait for an event from the queue
 			 * "resume_after_timeout" (Default: true): Whether to continue receiving data after a timeout
 			 * "raw_data_label" (Default: "daq"): The label to use for all raw data
+			 * \endverbatim
 			 */
 			RawEventQueueReader(fhicl::ParameterSet const& ps,
 								art::ProductRegistryHelper& help,

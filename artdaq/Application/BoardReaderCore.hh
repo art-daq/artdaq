@@ -36,7 +36,7 @@ public:
 	 * \param name Friendly name for the BoardReader
 	 */
 	BoardReaderCore(Commandable& parent_application, int rank,
-	                std::string name);
+					std::string name);
 
 	/**
 	 * \brief Copy Constructor is Deleted
@@ -59,6 +59,7 @@ public:
 	 * \param pset ParameterSet used to configure the BoardReaderCore
 	 * \return True if the initialize attempt succeeded
 	 * 
+	 * \verbatim
 	 * BoardReaderCore accepts the following Parameters:
 	 * "daq" (REQUIRED): FHiCL table containing DAQ configuration.
 	 *   "fragment_receiver" (REQUIRED): FHiCL table containing Fragment Receiver configruation.
@@ -67,6 +68,7 @@ public:
 	 *     "rt_priority" (Default: 0): The unix priority to attempt to assign to the process
 	 *   "metrics": FHiCL table containing MetricManager configuration.
 	 *     See MetricManager for configuration options.
+	 * \endverbatim
 	 *   
 	 */
 	bool initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);

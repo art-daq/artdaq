@@ -16,36 +16,64 @@ namespace fhicl
 
 namespace artdaq
 {
+	/**
+	* \brief RTIDDSTransfer is a TransferInterface implementation plugin that transfers data using RTI DDS
+	*/
 	class RTIDDSTransfer : public TransferInterface
 	{
 	public:
-		~RTIDDSTransfer() = default;
+		/**
+		 * \brief RTIDDSTransfer default Destructor
+		 */
+		virtual ~RTIDDSTransfer() = default;
 
+		/**
+		* \brief RTIDDSTransfer Constructor
+		* \param ps ParameterSet used to configure RTIDDSTransfer
+		* \param role Role of this RTIDDSTransfer instance (kSend or kReceive)
+		*
+		* RTIDDSTransfer only requires the Parameters for configuring a TransferInterface
+		*/
 		RTIDDSTransfer(fhicl::ParameterSet const& ps, Role role) :
-		                                                         TransferInterface(ps, role)
-		                                                         , first_data_sender_rank_(ps.get<size_t>("first_event_builder_rank"))
-		                                                         , rtidds_reader_(std::make_unique<artdaq::RTIDDS>("RTIDDSTransfer_reader", artdaq::RTIDDS::IOType::reader))
-		                                                         , rtidds_writer_(std::make_unique<artdaq::RTIDDS>("RTIDDSTransfer_writer", artdaq::RTIDDS::IOType::writer)) { }
+																 TransferInterface(ps, role)
+																 , rtidds_reader_(std::make_unique<artdaq::RTIDDS>("RTIDDSTransfer_reader", artdaq::RTIDDS::IOType::reader))
+																 , rtidds_writer_(std::make_unique<artdaq::RTIDDS>("RTIDDSTransfer_writer", artdaq::RTIDDS::IOType::writer)) { }
 
-		virtual size_t receiveFragment(artdaq::Fragment& fragment,
-		                               size_t receiveTimeout);
+		/**
+		* \brief Receive a Fragment using DDS
+		* \param[out] fragment Received Fragment
+		* \param receiveTimeout Timeout for receive, in microseconds
+		* \return Rank of sender or RECV_TIMEOUT
+		*/
+		int receiveFragment(artdaq::Fragment& fragment,
+									   size_t receiveTimeout) override;
 
-		virtual CopyStatus copyFragment(artdaq::Fragment& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+		/**
+		* \brief Copy a Fragment to the destination.
+		* \param fragment Fragment to copy
+		* \param send_timeout_usec Timeout for send, in microseconds. Default size_t::MAX_VALUE
+		* \return CopyStatus detailing result of copy
+		*/
+		CopyStatus copyFragment(artdaq::Fragment& fragment,
+										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
-		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max());
+		/**
+		* \brief Move a Fragment to the destination.
+		* \param fragment Fragment to move
+		* \param send_timeout_usec Timeout for send, in microseconds. Default size_t::MAX_VALUE
+		* \return CopyStatus detailing result of copy
+		*/
+		CopyStatus moveFragment(artdaq::Fragment&& fragment,
+										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
 	private:
-
-		const size_t first_data_sender_rank_;
 		std::unique_ptr<artdaq::RTIDDS> rtidds_reader_;
 		std::unique_ptr<artdaq::RTIDDS> rtidds_writer_;
 	};
 }
 
-size_t artdaq::RTIDDSTransfer::receiveFragment(artdaq::Fragment& fragment,
-                                               size_t receiveTimeout)
+int artdaq::RTIDDSTransfer::receiveFragment(artdaq::Fragment& fragment,
+											   size_t receiveTimeout)
 {
 	bool receivedFragment = false;
 	//  static std::size_t consecutive_timeouts = 0;
@@ -60,7 +88,7 @@ size_t artdaq::RTIDDSTransfer::receiveFragment(artdaq::Fragment& fragment,
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::yes,
-		                 "Error in RTIDDS transfer plugin: caught exception in call to OctetsListener::receiveFragmentFromDDS, rethrowing");
+						 "Error in RTIDDS transfer plugin: caught exception in call to OctetsListener::receiveFragmentFromDDS, rethrowing");
 	}
 
 	//    if (!receivedFragment) {
@@ -78,7 +106,7 @@ size_t artdaq::RTIDDSTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 	//  return 0;
 
-	return receivedFragment ? first_data_sender_rank_ : TransferInterface::RECV_TIMEOUT;
+	return receivedFragment ? source_rank() : TransferInterface::RECV_TIMEOUT;
 }
 
 artdaq::TransferInterface::CopyStatus
@@ -92,7 +120,7 @@ artdaq::RTIDDSTransfer::moveFragment(artdaq::Fragment&& fragment, size_t send_ti
 
 artdaq::TransferInterface::CopyStatus
 artdaq::RTIDDSTransfer::copyFragment(artdaq::Fragment& fragment,
-                                     size_t send_timeout_usec)
+									 size_t send_timeout_usec)
 {
 	(void) &send_timeout_usec; // No-op to get the compiler not to complain about unused parameter
 

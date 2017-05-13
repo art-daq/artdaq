@@ -57,6 +57,7 @@ public:
 	* \param pset ParameterSet used to configure the EventBuilderCore
 	* \return Whether the initialize attempt succeeded
 	*
+	* \verbatim
 	* EventBuilderCore accepts the following Parameters:
 	* "daq" (REQUIRED): FHiCL table containing DAQ configuration
 	*   "event_builder" (REQUIRED): FHiCL table containing Aggregator paramters
@@ -67,6 +68,7 @@ public:
 	*     "pause_recv_timeout_usec" (Default: 3000000): Amount of time to wait for additional Fragment objects at PauseRun
 	*     "verbose" (Default: false): Whether to print more verbose status information
 	*   "metrics": FHiCL table containing configuration for MetricManager
+	* \endverbatim
 	*
 	*  Note that the "event_builder" ParameterSet is also used to configure the EventStore. See that class' documentation for more information.
 	*/

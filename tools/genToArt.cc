@@ -38,6 +38,13 @@ namespace bpo = boost::program_options;
 
 namespace
 {
+	/**
+	 * \brief Process the command line
+	 * \param argc Number of arguments
+	 * \param argv Array of arguments as strings
+	 * \param[out] vm Output boost::program_options::variables_map
+	 * \return 0 if success, -1 if excpetion, 1 if help was requested, and 2 if missing required arguments
+	 */
 	int process_cmd_line(int argc, char** argv,
 	                     bpo::variables_map& vm)
 	{
@@ -83,15 +90,27 @@ namespace
 	class ThrottledGenerator
 	{
 	public:
+		/**
+		 * \brief ThrottledGenerator Constructor
+		 * \param generator Name of the generator plugin to load
+		 * \param ps ParameterSet for configuring the FragmentGenerator
+		 */
 		ThrottledGenerator(std::string const& generator,
 		                   fhicl::ParameterSet const& ps);
 
+		/**
+		 * \brief Get the next fragment from the generator
+		 * \param[out] newFrags New Fragment objects are added to this list
+		 * \return Whether there is more data forthcoming
+		 */
 		bool getNext(artdaq::FragmentPtrs& newFrags);
 
+		/**
+		 * \brief Get the number of Fragment IDs handled by this generator
+		 * \return 
+		 */
 		size_t numFragIDs() const;
-
-		artdaq::FragmentGenerator& generator() const;
-
+		
 	private:
 		bool generateFragments_();
 
@@ -161,6 +180,25 @@ namespace
 	//    return *generator_;
 	//  }
 
+	/**
+	 * \brief Run the test, instantiating configured generators and an EventStore
+	 * \param argc Argument count, passed to EventStore for art initialization
+	 * \param argv Arguments, passed to EventStore for art initialization
+	 * \param pset ParameterSet used to configure genToArt
+	 * \return Art return code, of 15 if EventStore::endOfData fails
+	 * 
+	 * \verbatim
+	 * genToArt accepts the following Parameters:
+	 * "reset_sequenceID" (Default: true): Set the sequence IDs on generated Fragment objects to the expected value
+	 * "genToArt" (REQUIRED): FHiCL table containing genToArt parameters
+	 *   "fragment_receivers" (REQUIRED): List of FHiCL tables configuring the Fragment receivers
+	 *     Each table should contain parameter "generator", the FragmentGenerator plugin to load, and any other parameters that generator requires
+	 *   "event_builder" (Default: {}): ParameterSet for EventStore. See documentation for configuration parameters.
+	 *   "run_number" (REQUIRED): Run number to use
+	 *   "events_to_generate" (Default: -1): Number of events to generate
+	 * 
+	 * \endverbatim
+	 */
 	int process_data(int argc, char** argv,
 	                 fhicl::ParameterSet const& pset)
 	{
@@ -169,12 +207,9 @@ namespace
 		// Make the generators based on the configuration.
 		std::vector<ThrottledGenerator> generators;
 
-		auto const fr_pset = gta_pset.get<ParameterSet>("fragment_receiver");
-		std::vector<std::string> const gen_psets =
-			fr_pset.get<std::vector<std::string>>("generators", {});
-		for (auto const& gen_ps_name : gen_psets)
+		auto const fr_pset = gta_pset.get<std::vector<ParameterSet>>("fragment_receivers");
+		for (auto const& gen_ps : fr_pset)
 		{
-			auto const gen_ps = fr_pset.get<fhicl::ParameterSet>(gen_ps_name);
 			generators.emplace_back(gen_ps.get<std::string>("generator"),
 			                        gen_ps);
 		}

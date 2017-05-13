@@ -66,6 +66,7 @@ public:
 	* \param pset ParameterSet used to configure the AggregatorCore
 	* \return Whether the initialize attempt succeeded
 	* 
+	* \verbatim
 	* AggregatorCore accepts the following Parameters:
 	* "daq" (REQUIRED): FHiCL table containing DAQ configuration
 	*   "aggregator" (REQUIRED): FHiCL table containing Aggregator paramters
@@ -89,7 +90,7 @@ public:
 	* "outputs" (REQUIRED): FHiCL table containing output parameters
 	*   "normalOutput" (REQUIRED): FHiCL table containing default output parameters
 	*     "fileName" (Default: ""): Name template of the output file. Used to determine output directory
-	*     
+	* \endverbatim
 	*  Note that the "aggregator" ParameterSet is also used to configure the EventStore. See that class' documentation for more information.
 	*/
 	bool initialize(fhicl::ParameterSet const& pset);

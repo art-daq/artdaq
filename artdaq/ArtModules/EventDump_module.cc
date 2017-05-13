@@ -36,8 +36,10 @@ public:
 	 * \brief EventDump Constructor
 	 * \param pset ParameterSet used to configure EventDump
 	 * 
+	 * \verbatim
 	 * EventDump accepts the following Parameters:
 	 * "raw_data_label" (Default: "daq"): The label used to store artdaq data
+	 * \endverbatim
 	 */
 	explicit EventDump(fhicl::ParameterSet const& pset);
 

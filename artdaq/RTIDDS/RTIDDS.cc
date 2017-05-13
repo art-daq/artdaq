@@ -7,9 +7,9 @@
 
 
 artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
-                                                                              name_(name)
-                                                                              , iotype_(iotype)
-                                                                              , max_size_(max_size)
+																			  name_(name)
+																			  , iotype_(iotype)
+																			  , max_size_(max_size)
 {
 	DDS_ReturnCode_t retcode = DDS_RETCODE_ERROR;
 	DDS_DomainParticipantQos participant_qos;
@@ -122,10 +122,10 @@ void artdaq::RTIDDS::copyFragmentToDDS_(artdaq::Fragment& fragment)
 	// copyFragmentToSharedMemory_() function
 
 	size_t max_fragment_size = boost::lexical_cast<size_t>(max_size_) -
-	                           detail::RawFragmentHeader::num_words() * sizeof(RawDataType);
+							   detail::RawFragmentHeader::num_words() * sizeof(RawDataType);
 
 	if (fragment.type() != artdaq::Fragment::InvalidFragmentType &&
-	    fragment.sizeBytes() < max_fragment_size)
+		fragment.sizeBytes() < max_fragment_size)
 	{
 		if (fragment.type() == artdaq::Fragment::InitFragmentType)
 		{
@@ -133,8 +133,8 @@ void artdaq::RTIDDS::copyFragmentToDDS_(artdaq::Fragment& fragment)
 		}
 
 		DDS_ReturnCode_t retcode = octets_writer_->write(reinterpret_cast<unsigned char*>(fragment.headerBeginBytes()),
-		                                                 fragment.sizeBytes(),
-		                                                 DDS_HANDLE_NIL);
+														 fragment.sizeBytes(),
+														 DDS_HANDLE_NIL);
 
 		if (retcode != DDS_RETCODE_OK)
 		{
@@ -214,7 +214,7 @@ void artdaq::RTIDDS::OctetsListener::on_data_available(DDSDataReader* reader)
 // it) in there's no timeout; if there is, returns false
 
 bool artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fragment,
-                                                            const size_t receiveTimeout)
+															const size_t receiveTimeout)
 {
 	int loopCount = 0;
 	size_t sleepTime = 1000; // microseconds

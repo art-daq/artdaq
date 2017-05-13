@@ -14,7 +14,7 @@ int main()
 	MPIProg mpiSentry(argc, const_cast<char **>(argv));
 	int rank = 1;
 	int nprocs = 15;
-	Config cfg(rank, nprocs, 10, 0x100000, argc, const_cast<char **>(argv));
+	artdaq::Config cfg(rank, nprocs, 10, 0x100000, argc, const_cast<char **>(argv));
 	assert(cfg.art_argc_ == 4);
 	assert(strcmp(cfg.art_argv_[0], "--") == 0);
 	assert(strcmp(cfg.art_argv_[1], "a") == 0);

@@ -14,25 +14,67 @@ namespace artdaq
 	}
 }
 
+/**
+ * \brief Keep track of the count of Fragments received from a set of sources
+ */
 class artdaq::detail::FragCounter
 {
 public:
+	/**
+	 * \brief Default Constructor
+	 */
 	explicit FragCounter();
 
+	/**
+	 * \brief Increment the given slot by one
+	 * \param slot Slot to increment
+	 */
 	void incSlot(size_t slot);
 
+	/**
+	 * \brief Increment the given slot by the given amount
+	 * \param slot Slot to increment
+	 * \param inc Amount to increment
+	 */
 	void incSlot(size_t slot, size_t inc);
 
+	/**
+	 * \brief Set the given slot to the given value
+	 * \param slot Slot to set
+	 * \param val Value to set
+	 */
 	void setSlot(size_t slot, size_t val);
 
+	/**
+	 * \brief Get the number of slots this FragCounter instance is tracking
+	 * \return The number of slots in this FragCounter instance
+	 */
 	size_t nSlots() const;
 
+	/**
+	 * \brief Get the total number of Fragments received
+	 * \return The total number of Fragments received
+	 */
 	size_t count() const;
 
+	/**
+	 * \brief Get the current count for the requested slot
+	 * \param slot Slot to get count for
+	 * \return The current count for the requested slot
+	 */
 	size_t slotCount(size_t slot) const;
 
+	/**
+	 * \brief Get the minimum slot count
+	 * \return The minimum slot count
+	 */
 	size_t minCount() const;
 
+	/**
+	* \brief Get the current count for the requested slot
+	* \param slot Slot to get count for
+	* \return The current count for the requested slot
+	*/
 	size_t operator[](size_t slot) const { return slotCount(slot); }
 
 private:

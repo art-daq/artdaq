@@ -12,7 +12,6 @@
 #include "cetlib/exception.h"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
-#include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
@@ -24,91 +23,60 @@ namespace artdaq
 	const std::string EventStore::EVENT_RATE_STAT_KEY("EventStoreEventRate");
 	const std::string EventStore::INCOMPLETE_EVENT_STAT_KEY("EventStoreIncompleteEvents");
 
-	EventStore::EventStore(fhicl::ParameterSet pset,
+	EventStore::EventStore(const fhicl::ParameterSet& pset, size_t num_fragments_per_event, run_id_t run,
+						   size_t event_queue_depth, size_t max_incomplete_event_count)
+		: num_fragments_per_event_(num_fragments_per_event)
+		, max_queue_size_(pset.get<size_t>("event_queue_depth", event_queue_depth))
+		, max_incomplete_count_(pset.get<size_t>("max_incomplete_events", max_incomplete_event_count))
+		, run_id_(run)
+		, subrun_id_(0)
+		, events_()
+		, queue_(getGlobalQueue(max_queue_size_))
+		, reader_thread_launch_time_(std::chrono::steady_clock::now())
+		, send_requests_(pset.get<bool>("send_requests", false))
+		, active_requests_()
+		, request_port_(pset.get<int>("request_port", 3001))
+		, request_delay_(pset.get<size_t>("request_delay_ms", 10))
+		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
+		, seqIDModulus_(1)
+		, lastFlushedSeqID_(0)
+		, highestSeqIDSeen_(0)
+		, enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
+		, enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
+		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
+		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
+		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+		, token_socket_(-1)
+		, art_thread_wait_ms_(pset.get<int>("art_thread_wait_ms", 4000))
+	{
+		TLOG_DEBUG("EventStore") << "EventStore CONSTRUCTOR" << TLOG_ENDL;
+		initStatistics_();
+		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+
+		auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
+		send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
+		token_port_ = rmConfig.get<int>("routing_token_port", 35555);
+		token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
+		setup_tokens_();
+		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
+	}
+
+	EventStore::EventStore(const fhicl::ParameterSet& pset,
 						   size_t num_fragments_per_event,
 						   run_id_t run,
 						   int argc,
 						   char* argv[],
-						   ART_CMDLINE_FCN* reader) :
-		num_fragments_per_event_(num_fragments_per_event)
-		, max_queue_size_(pset.get<size_t>("event_queue_depth", 50))
-		, max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 50))
-		, run_id_(run)
-		, subrun_id_(0)
-		, events_()
-		, queue_(getGlobalQueue(max_queue_size_))
-		, reader_thread_launch_time_(std::chrono::steady_clock::now())
-		, reader_thread_(std::async(std::launch::async, reader, argc, argv))
-		, send_requests_(pset.get<bool>("send_requests", false))
-		, active_requests_()
-		, request_port_(pset.get<int>("request_port", 3001))
-		, request_delay_(pset.get<size_t>("request_delay_ms", 10))
-		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
-		, seqIDModulus_(1)
-		, lastFlushedSeqID_(0)
-		, highestSeqIDSeen_(0)
-		, enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
-		, enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
-		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
-		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
-		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-		, token_socket_(-1)
-		, art_thread_wait_ms_(pset.get<int>("art_thread_wait_ms",4000))
-	{
-		TLOG_DEBUG("EventStore") << "EventStore CONSTRUCTOR" << TLOG_ENDL;
-		initStatistics_();
-		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+						   ART_CMDLINE_FCN* reader) 
+	    : EventStore(pset, num_fragments_per_event, run, 50, 50)
+		{ reader_thread_ = (std::async(std::launch::async, reader, argc, argv)); }
 
-		auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
-		send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
-		token_port_ = rmConfig.get<int>("routing_token_port", 35555);
-		token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
-		setup_tokens_();
-
-
-		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
-	}
-
-	EventStore::EventStore(fhicl::ParameterSet pset,
+	EventStore::EventStore(const fhicl::ParameterSet& pset,
 						   size_t num_fragments_per_event,
 						   run_id_t run,
 						   const std::string& configString,
-						   ART_CFGSTRING_FCN* reader) :
-		num_fragments_per_event_(num_fragments_per_event)
-		, max_queue_size_(pset.get<size_t>("event_queue_depth", 20))
-		, max_incomplete_count_(pset.get<size_t>("max_incomplete_events", 20))
-		, run_id_(run)
-		, subrun_id_(0)
-		, events_()
-		, queue_(getGlobalQueue(max_queue_size_))
-		, reader_thread_launch_time_(std::chrono::steady_clock::now())
-		, reader_thread_(std::async(std::launch::async, reader, configString))
-		, send_requests_(pset.get<bool>("send_requests", false))
-		, active_requests_()
-		, request_port_(pset.get<int>("request_port", 3001))
-		, request_delay_(pset.get<size_t>("request_delay_ms", 10))
-		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
-		, seqIDModulus_(1)
-		, lastFlushedSeqID_(0)
-		, highestSeqIDSeen_(0)
-		, enq_timeout_(pset.get<double>("event_queue_wait_time", 5.0))
-		, enq_check_count_(pset.get<size_t>("event_queue_check_count", 5000))
-		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
-		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
-		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-		, token_socket_(-1)
-		, art_thread_wait_ms_(pset.get<int>("art_thread_wait_ms",4000))
-	{
-		TLOG_DEBUG("EventStore") << "EventStore CONSTRUCTOR" << TLOG_ENDL;
-		initStatistics_();
-		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
-
-		auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
-		send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
-		token_port_ = rmConfig.get<int>("routing_token_port", 35555);
-		token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
-		setup_tokens_();
-	}
+						   ART_CFGSTRING_FCN* reader) 
+	    : EventStore(pset, num_fragments_per_event, run, 20, 20)
+		{ reader_thread_ = (std::async(std::launch::async, reader, configString)); }
 
 	EventStore::~EventStore()
 	{

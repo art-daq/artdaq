@@ -1,11 +1,7 @@
-#include "artdaq/DAQdata/Debug.hh"
 #include "MPIProg.hh"
-#include "artdaq/DAQrate/Perf.hh"
-#include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "cetlib/container_algorithms.h"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -18,7 +14,6 @@ namespace bpo = boost::program_options;
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 
 extern "C"
 {
@@ -39,20 +34,54 @@ extern "C"
 #include <sys/resource.h>
 }
 
-// Class Program is our application object.
-class Program : public MPIProg
+/**
+ * \brief The RoutingMasterTest class runs the routing_master test
+ */
+class RoutingMasterTest : public MPIProg
 {
 public:
-	Program(int argc, char* argv[]);
+	/**
+	 * \brief RoutingMasterTest Constructor
+	 * \param argc Number of arguments
+	 * \param argv Array of argument strings
+	 * 
+	 * The configuration file should contains the following Parameters:
+	 * "daq" (REQUIRED): DAQ configuration
+	 *   "policy" (REQUIRED): The RoutingMasterPolicy configuration
+	 *     "receiver_ranks" (REQUIRED): Ranks of the Table Receivers
+	 * "token_count" (Default: 1000): Number of tokens to generate
+	 * "token_interval_us" (Default: 5000): Delay between tokens
+	 * 
+	 * The configuration file is also passed to RoutingMasterCore, see that class for required configuration parameters
+	 */
+	RoutingMasterTest(int argc, char* argv[]);
 
+	/**
+	 * \brief Start the test, using the role assigned
+	 */
 	void go();
 
+	/**
+	 * \brief Generate tokens and send them to the Routing Master
+	 */
 	void generate_tokens();
 
+	/**
+	 * \brief Load a RoutingMasterCore instance, receive tokens from the token generators, and send table updates to the table receivers
+	 */
 	void routing_master();
 
+	/**
+	 * \brief Receive Routing Tables from the Routing Master and send acknowledgement packets back
+	 */
 	void table_receiver();
 
+	/**
+	 * \brief Parse the command line arguments and load a configuration FHiCL file
+	 * \param argc Number of arguments
+	 * \param argv Array of argument strings
+	 * \return ParameterSet used to configure the test
+	 */
 	fhicl::ParameterSet getPset(int argc, char* argv[]) const;
 
 private:
@@ -80,7 +109,7 @@ private:
 	size_t token_interval_us_;
 };
 
-Program::Program(int argc, char* argv[]) :
+RoutingMasterTest::RoutingMasterTest(int argc, char* argv[]) :
 	MPIProg(argc, argv)
 	, pset_(getPset(argc, argv))
 	, daq_pset_(pset_.get<fhicl::ParameterSet>("daq"))
@@ -106,16 +135,12 @@ Program::Program(int argc, char* argv[]) :
 		role_ = TestRole_t::TABLE_RECEIVER;
 		break;
 	}
-	configureDebugStream(my_rank, 1);
-	PerfConfigure(my_rank,
-				  1,
-				  my_rank);
 	auto policy_pset = daq_pset_.get<fhicl::ParameterSet>("policy");
 	eb_ranks_ = policy_pset.get<std::vector<int>>("receiver_ranks");
 
 }
 
-fhicl::ParameterSet Program::getPset(int argc, char* argv[]) const
+fhicl::ParameterSet RoutingMasterTest::getPset(int argc, char* argv[]) const
 {
 	std::ostringstream descstr;
 	descstr << "-- <-c <config-file>>";
@@ -146,11 +171,9 @@ fhicl::ParameterSet Program::getPset(int argc, char* argv[]) const
 	return pset;
 }
 
-void Program::go()
+void RoutingMasterTest::go()
 {
 	MPI_Barrier(MPI_COMM_WORLD);
-	PerfSetStartTime();
-	PerfWriteJobStart();
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
 	MPI_Comm_split(MPI_COMM_WORLD, static_cast<int>(role_), 0, &local_group_comm_);
 	switch (role_)
@@ -167,12 +190,10 @@ void Program::go()
 	default:
 		throw "No such node type";
 	}
-	TLOG_DEBUG("Program") << "Calling PerfWriteJobEnd for rank " << my_rank << TLOG_ENDL;
-	PerfWriteJobEnd();
-	TLOG_DEBUG("Program") << "Rank " << my_rank << " complete." << TLOG_ENDL;
+	TLOG_DEBUG("routing_master") << "Rank " << my_rank << " complete." << TLOG_ENDL;
 }
 
-void Program::generate_tokens()
+void RoutingMasterTest::generate_tokens()
 {
 	TLOG_DEBUG("generate_tokens") << "Init" << TLOG_ENDL;
 	printHost("generate_tokens");
@@ -229,14 +250,13 @@ void Program::generate_tokens()
 		
 	}
 
-	Debug << "generate_tokens done " << my_rank << flusher;
 	MPI_Comm_free(&local_group_comm_);
 	TLOG_INFO("generate_tokens") << "Waiting at MPI_Barrier" << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 	TLOG_INFO("generate_tokens") << "Done with MPI_Barrier" << TLOG_ENDL;
 }
 
-void Program::table_receiver()
+void RoutingMasterTest::table_receiver()
 {
 	TLOG_DEBUG("table_receiver") << "Init" << TLOG_ENDL;
 	printHost("table_receiver");
@@ -359,14 +379,13 @@ void Program::table_receiver()
 		}
 	}
 
-	Debug << "table_receiver done " << my_rank << flusher;
 	MPI_Comm_free(&local_group_comm_);
 	TLOG_INFO("table_receiver") << "Waiting at MPI_Barrier" << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 	TLOG_INFO("table_receiver") << "Done with MPI_Barrier" << TLOG_ENDL;
 }
 
-void Program::routing_master()
+void RoutingMasterTest::routing_master()
 {
 	TLOG_DEBUG("routing_master") << "Init" << TLOG_ENDL;
 	printHost("routing_master");
@@ -382,11 +401,10 @@ void Program::routing_master()
 	TLOG_INFO("routing_master") << "Done with RoutingMasterCore::stop, calling shutdown" << TLOG_ENDL;
 	app->do_shutdown(0);
 	TLOG_INFO("routing_master") << "Done with RoutingMasterCore::shutdown" << TLOG_ENDL;
-	Debug << "routing_master done " << my_rank << flusher;
 	MPI_Comm_free(&local_group_comm_);
 }
 
-void Program::printHost(const std::string& functionName) const
+void RoutingMasterTest::printHost(const std::string& functionName) const
 {
 	char* doPrint = getenv("PRINT_HOST");
 	if (doPrint == 0) { return; }
@@ -401,10 +419,10 @@ void Program::printHost(const std::string& functionName) const
 	{
 		hostString = "unknown";
 	}
-	Debug << "Running " << functionName
+	TLOG_DEBUG("routing_master") << "Running " << functionName
 		<< " on host " << hostString
 		<< " with rank " << my_rank << "."
-		<< flusher;
+		<< TLOG_ENDL;
 }
 
 void printUsage()
@@ -413,8 +431,8 @@ void printUsage()
 	struct rusage usage;
 	getrusage(RUSAGE_SELF, &usage);
 	std::cout << myid << ":"
-		<< " user=" << asDouble(usage.ru_utime)
-		<< " sys=" << asDouble(usage.ru_stime)
+		<< " user=" << artdaq::Globals::timevalAsDouble(usage.ru_utime)
+		<< " sys=" << artdaq::Globals::timevalAsDouble(usage.ru_stime)
 		<< std::endl;
 }
 
@@ -424,7 +442,7 @@ int main(int argc, char* argv[])
 	int rc = 1;
 	try
 	{
-		Program p(argc, argv);
+		RoutingMasterTest p(argc, argv);
 		std::cerr << "Started process " << my_rank << " of " << p.procs_ << ".\n";
 		p.go();
 		rc = 0;

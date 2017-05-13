@@ -22,8 +22,10 @@ namespace artdaq
 		 * \brief RoutingMasterPolicy Constructor
 		 * \param ps ParameterSet used to configure the RoutingMasterPolicy
 		 * 
+		 * \verbatim
 		 * RoutingMasterPolicy accepts the following Parameters:
 		 * "receiver_ranks" (REQUIRED): A list of integers indicating the ranks that the RoutingMasterPolicy should expect tokens from
+		 * \endverbatim
 		 */
 		explicit RoutingMasterPolicy(fhicl::ParameterSet ps);
 		/**

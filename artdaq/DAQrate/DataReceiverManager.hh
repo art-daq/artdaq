@@ -20,37 +20,92 @@ namespace artdaq
 	class FragmentStoreElement;
 }
 
+/**
+ * \brief Receives Fragment objects from one or more DataSenderManager instances using TransferInterface plugins
+ * DataReceiverMaanger runs a reception thread for each source, and can automatically suppress reception from
+ * sources which are going faster than the others.
+ */
 class artdaq::DataReceiverManager
 {
 public:
 
-	DataReceiverManager(fhicl::ParameterSet);
+	/**
+	 * \brief DataReceiverManager Constructor
+	 * \param ps ParameterSet used to configure the DataReceiverManager
+	 * 
+	 * \verbatim
+	 * DataReceiverManager accepts the following Parameters:
+	 * "auto_suppression_enabled" (Default: true): Whether to suppress a source that gets too far ahead
+	 * "max_receive_difference" (Default: 50): Threshold (in sequence ID) for suppressing a source
+	 * "receive_timeout_usec" (Default: 100000): The timeout for receive operations
+	 * "enabled_sources" (OPTIONAL): List of sources which are enabled. If not specified, all sources are assumed enabled
+	 * "sources" (Default: blank table): FHiCL table containing TransferInterface configurations for each source. 
+	 *   NOTE: "source_rank" MUST be specified (and unique) for each source!
+	 * \endverbatim
+	 */
+	explicit DataReceiverManager(const fhicl::ParameterSet& ps);
 
-	~DataReceiverManager();
+	/**
+	 * \brief DataReceiverManager Destructor
+	 */
+	virtual ~DataReceiverManager();
 
-	// recvFragment() puts the next received fragment in frag, with the
-	// source of that fragment as its return value.
-	//
-	// It is a precondition that a sources_sending() != 0.
+	/**
+	 * \brief Receive a Fragment
+	 * \param[out] rank Rank of sender that sent the Fragment, or RECV_TIMEOUT
+	 * \param timeout_usec Timeout to wait for a Fragment to become ready
+	 * \return Pointer to received Fragment. May be nullptr if no Fragments are ready
+	 */
 	FragmentPtr recvFragment(int& rank, size_t timeout_usec = 0);
 
-	// How many fragments have been received using this DataReceiverManager object?
+	/**
+	 * \brief Return the count of Fragment objects received by this DataReceiverManager
+	 * \return The count of Fragment objects received by this DataReceiverManager
+	 */
 	size_t count() const;
 
-	// How many fragments have been received from a particular destination.
+	/**
+	 * \brief Get the count of Fragment objects received by this DataReceiverManager from a given source
+	 * \param rank Source rank to get count for
+	 * \return The  count of Fragment objects received by this DataReceiverManager from the source
+	 */
 	size_t slotCount(size_t rank) const;
 
-	// Total size received using this DataReceiverManager object
+	/**
+	 * \brief Get the total size of all data recieved by this DataReceiverManager
+	 * \return The total size of all data received by this DataReceiverManager
+	 */
 	size_t byteCount() const;
 
+	/**
+	 * \brief Start receiver threads for all enabled sources
+	 */
 	void start_threads();
 
+	/**
+	 * \brief Get the list of enabled sources
+	 * \return The list of enabled sources
+	 */
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
+	/**
+	 * \brief Suppress the given source
+	 * \param source Source rank to suppress
+	 */
 	void suppress_source(int source);
 
+	/**
+	 * \brief Re-enable all sources
+	 */
 	void unsuppressAll();
 
+	/**
+	 * \brief Place the given Fragment back in the FragmentStore (Called when the EventStore is full)
+	 * \param source_rank Rank from which the rejected Fragment came
+	 * \param frag Fragment to return to the store
+	 * 
+	 * This function will automatically suppress source_rank
+	 */
 	void reject_fragment(int source_rank, FragmentPtr frag);
 
 private:
@@ -83,20 +138,38 @@ private:
 	size_t receive_timeout_;
 };
 
+/**
+ * \brief This class contains tracking information for all Fragment objects which have been received from a specific source
+ * 
+ * This class was designed so that there could be a mutex for each source, instead of locking all sources whenever a
+ * Fragment had to be retrieved. FragmentStoreElement is itself a container type, sorted by Fragment arrival time. It is a
+ * modified queue, with only the first element accessible, but it allows elements to be added to either end (for rejected Fragments).
+ */
 class artdaq::FragmentStoreElement
 {
 public:
+	/**
+	 * \brief FragmentStoreElement Constructor
+	 */
 	FragmentStoreElement() : frags_()
 	                       , empty_(true)
 	{
 		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
 	}
 
+	/**
+	 * \brief Are any Fragment objects contained in this FragmentStoreElement?
+	 * \return Whether any Fragment objects are contained in this FragmentStoreElement
+	 */
 	bool empty() const
 	{
 		return empty_;
 	}
 
+	/**
+	 * \brief Add a Fragment to the front of the FragmentStoreElement
+	 * \param frag Fragment to add
+	 */
 	void emplace_front(FragmentPtr&& frag)
 	{
 		std::unique_lock<std::mutex> lk(mutex_);
@@ -104,6 +177,10 @@ public:
 		empty_ = false;
 	}
 
+	/**
+	 * \brief Add a Fragment to the end of the FragmentStoreElement
+	 * \param frag Fragment to add
+	 */
 	void emplace_back(FragmentPtr&& frag)
 	{
 		std::unique_lock<std::mutex> lk(mutex_);
@@ -111,6 +188,10 @@ public:
 		empty_ = false;
 	}
 
+	/**
+	 * \brief Remove the first Fragment from the FragmentStoreElement and return it
+	 * \return The first Fragment in the FragmentStoreElement
+	 */
 	FragmentPtr front()
 	{
 		std::unique_lock<std::mutex> lk(mutex_);

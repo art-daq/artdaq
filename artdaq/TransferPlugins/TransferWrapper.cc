@@ -24,24 +24,28 @@
 
 namespace
 {
-	volatile std::sig_atomic_t gSignalStatus = 0;
+	volatile std::sig_atomic_t gSignalStatus = 0; ///< Stores singal from signal handler
 }
 
+/**
+ * \brief Handle a Unix signal
+ * \param signal Signal to handle
+ */
 void signal_handler(int signal)
 {
 	gSignalStatus = signal;
 }
 
 artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
-                                                                          timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
-                                                                          , dispatcherHost_(pset.get<std::string>("dispatcherHost"))
-                                                                          , dispatcherPort_(pset.get<std::string>("dispatcherPort"))
-                                                                          , serverUrl_("http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2")
-                                                                          , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
-                                                                          , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
-                                                                          , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
-                                                                          , debugLevel_(pset.get<std::size_t>("debugLevel", 0))
-                                                                          , monitorRegistered_(false)
+																		  timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
+																		  , dispatcherHost_(pset.get<std::string>("dispatcherHost"))
+																		  , dispatcherPort_(pset.get<std::string>("dispatcherPort"))
+																		  , serverUrl_("http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2")
+																		  , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
+																		  , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
+																		  , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
+																		  , debugLevel_(pset.get<std::size_t>("debugLevel", 0))
+																		  , monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
 
@@ -52,7 +56,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::yes,
-		                 "TransferWrapper: failure in call to MakeTransferPlugin");
+						 "TransferWrapper: failure in call to MakeTransferPlugin");
 	}
 
 	xmlrpc_c::clientSimple myClient;
@@ -71,7 +75,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 		errmsg << "Problem attempting XML-RPC call on host " << dispatcherHost_
 			<< ", port " << dispatcherPort_ << "; possible causes are malformed FHiCL or nonexistent process at requested port";
 		ExceptionHandler(ExceptionHandlerRethrow::yes,
-		                 errmsg.str());
+						 errmsg.str());
 	}
 
 	const std::string status = xmlrpc_c::value_string(result);
@@ -139,7 +143,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			catch (...)
 			{
 				ExceptionHandler(ExceptionHandlerRethrow::yes,
-				                 "Problem receiving data in TransferWrapper::receiveMessage");
+								 "Problem receiving data in TransferWrapper::receiveMessage");
 			}
 		}
 
@@ -150,7 +154,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::yes,
-			                 "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
+							 "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
 		}
 
 		checkIntegrity(*fragmentPtr);
@@ -167,7 +171,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			if (fragments_received > maxEventsBeforeInit_)
 			{
 				throw cet::exception("TransferWrapper") << "First " << maxEventsBeforeInit_ <<
-				      " events received did not include the \"Init\" event containing necessary info for art; exiting...";
+					  " events received did not include the \"Init\" event containing necessary info for art; exiting...";
 			}
 		}
 	}
@@ -176,7 +180,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 
 void
 artdaq::TransferWrapper::extractTBufferFile(const artdaq::Fragment& fragment,
-                                            std::unique_ptr<TBufferFile>& tbuffer)
+											std::unique_ptr<TBufferFile>& tbuffer)
 {
 	const artdaq::NetMonHeader* header = fragment.metadata<artdaq::NetMonHeader>();
 	char* buffer = (char *)malloc(header->data_length);
@@ -190,7 +194,7 @@ void
 artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 {
 	const size_t artdaqheader = artdaq::detail::RawFragmentHeader::num_words() *
-	                            sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
+								sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
 	const size_t payload = static_cast<size_t>(fragment.dataEndBytes() - fragment.dataBeginBytes());
 	const size_t metadata = sizeof(artdaq::NetMonHeader);
 	const size_t totalsize = fragment.sizeBytes();
@@ -245,7 +249,7 @@ artdaq::TransferWrapper::unregisterMonitor()
 	if (!monitorRegistered_)
 	{
 		throw cet::exception("TransferWrapper") <<
-		      "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
+			  "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
 	}
 
 	TLOG_INFO("TransferWrapper") << "Requesting that this monitor (" << transfer_->uniqueLabel()
@@ -266,7 +270,7 @@ artdaq::TransferWrapper::unregisterMonitor()
 			<< transfer_->uniqueLabel()
 			<< "\" is unrecognized by contacted process or process at requested port doesn't exist";
 		ExceptionHandler(ExceptionHandlerRethrow::no,
-		                 errmsg.str());
+						 errmsg.str());
 	}
 
 	const std::string status = xmlrpc_c::value_string(result);
@@ -296,7 +300,7 @@ artdaq::TransferWrapper::~TransferWrapper()
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-			                 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
+							 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
 		}
 	}
 }

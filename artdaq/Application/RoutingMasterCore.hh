@@ -61,6 +61,7 @@ public:
 	* \param pset ParameterSet used to configure the RoutingMasterCore
 	* \return Whether the initialize attempt succeeded
 	*
+	* \verbatim
 	* RoutingMasterCore accepts the following Parameters:
 	* "daq" (REQUIRED): FHiCL table containing DAQ configuration
 	*   "policy" (REQUIRED): FHiCL table containing the RoutingMasterPolicy configuration
@@ -75,6 +76,7 @@ public:
 	*   "table_update_address" (Default: "227.128.12.28"): Multicast address to send table updates to
 	*   "routing_master_hostname" (Default: "localhost"): Hostname to send table updates from
 	*   "metrics": FHiCL table containing configuration for MetricManager
+	* \endverbatim
 	*/
 	bool initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
 

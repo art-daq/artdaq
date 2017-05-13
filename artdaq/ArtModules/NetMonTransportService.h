@@ -25,8 +25,10 @@ public:
 	 * \brief NetMonTransportService Constructor
 	 * \param pset ParameterSet used to configure NetMonTransportService and DataSenderManager
 	 * 
+	 * \verbatim
 	 * NetMonTransportService accepts the following Parameters
 	 * "rank" (OPTIONAL): The rank of this applicaiton, for use by non-artdaq applications running NetMonTransportService
+	 * \endverbatim
 	 */
 	NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&);
 

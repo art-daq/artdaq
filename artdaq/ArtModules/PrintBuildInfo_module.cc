@@ -36,9 +36,11 @@ public:
 	 * \brief PrintBuildInfo Constructor
 	 * \param p ParameterSet used to configure PrintBuildInfo
 	 * 
+	 * \verbatim
 	 * PrintBuildInfo accepts the following Parameters:
 	 * "buildinfo_module_label" (REQUIRED): The module label for the BuildInfo objects
 	 * "buildinfo_instance_label" (REQUIRED): The instance label for the BuildInfo objects
+	 * \endverbatim
 	 * 
 	 * These parameters should match those given to the BuildInfo module
 	 */

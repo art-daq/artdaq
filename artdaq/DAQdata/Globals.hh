@@ -30,6 +30,13 @@ namespace artdaq
 	public:
 		static int my_rank_; ///< The rank of the current application
 		static MetricManager* metricMan_; ///< A handle to MetricManager
+
+		/**
+		 * \brief Convert a timeval value to a double
+		 * \param tv Timeval to convert
+		 * \return timeval represented as a double
+		 */
+		static double timevalAsDouble(struct timeval tv);
 	};
 }
 

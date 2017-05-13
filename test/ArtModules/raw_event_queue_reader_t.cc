@@ -33,37 +33,34 @@
 #include <memory>
 #include <string>
 
-using std::string;
-
-using art::EventID;
-using art::EventPrincipal;
-using art::FileBlock;
-using art::FileFormatVersion;
-using art::ModuleDescription;
-using art::SourceHelper;
-using art::ProcessConfiguration;
-using art::ProductRegistryHelper;
-using art::RunID;
-using art::RunPrincipal;
-using art::SubRunID;
-using art::SubRunPrincipal;
-using art::Timestamp;
-using artdaq::Fragment;
-using artdaq::RawEvent;
-using artdaq::RawEvent_ptr;
-using artdaq::detail::RawEventQueueReader;
-using fhicl::ParameterSet;
-
+/**
+ * \brief MasterProductRegistry Test Fixture
+ */
 class MPRGlobalTestFixture
 {
 public:
+	/**
+	 * \brief MPRGlobalTestFixture Constructor
+	 */
 	MPRGlobalTestFixture();
 
+	/**
+	 * \brief BKmap_t associates a string with a art::BranchKey
+	 */
 	typedef std::map<std::string, art::BranchKey> BKmap_t;
 
-	BKmap_t branchKeys_;
-	std::map<std::string, std::unique_ptr<art::ProcessConfiguration>> processConfigurations_;
+	BKmap_t branchKeys_; ///< Keys in this test fixture
+	std::map<std::string, std::unique_ptr<art::ProcessConfiguration>> processConfigurations_; ///< Configurations
 
+	/**
+	 * \brief Create the ProcessConfiguration for a single module art process
+	 * \param tag Tag for the ProcessConfiguraiton
+	 * \param processName Name of the process
+	 * \param moduleParams ParameterSet for the single module
+	 * \param release See art::ProcessConfiguration
+	 * \param pass See art::ProcessConfiguration
+	 * \return Pointer to created art::ProcessConfiguration object
+	 */
 	art::ProcessConfiguration*
 		fake_single_module_process(std::string const& tag,
 								   std::string const& processName,
@@ -71,14 +68,24 @@ public:
 								   std::string const& release = art::getReleaseVersion(),
 								   std::string const& pass = art::getPassID());
 
+	/**
+	 * \brief Create a BranchDescription for a process
+	 * \param tag Tag for the module_process
+	 * \param processName Name of the process
+	 * \param productInstanceName Name of the product
+	 * \return Pointer to created art::BranchDescription object
+	 */
 	std::unique_ptr<art::BranchDescription>
 		fake_single_process_branch(std::string const& tag,
 								   std::string const& processName,
 								   std::string const& productInstanceName = std::string());
 
+	/**
+	 * \brief Finalizes the ProductRegistry
+	 */
 	void finalize();
 
-	art::MasterProductRegistry productRegistry_;
+	art::MasterProductRegistry productRegistry_; ///< MasterProductRegistry instance
 	//art::RootDictionaryManager rdm_;
 };
 
@@ -150,15 +157,21 @@ fake_single_process_branch(std::string const& tag,
 	return std::unique_ptr<art::BranchDescription>(result);
 }
 
+/**
+ * \brief RawEventQueueReader Test Fixture
+ */
 struct REQRTestFixture
 {
+	/**
+	 * \brief REQRTestFixture Constructor
+	 */
 	REQRTestFixture()
 	{
 		static bool once(true);
 		if (once)
 		{
 			(void)reader(); // Force initialization.
-			ModuleDescription md(ParameterSet().id(),
+			art::ModuleDescription md(fhicl::ParameterSet().id(),
 								 "_NAMEERROR_",
 								 "_LABELERROR_",
 								 *gf().processConfigurations_["daq"]);
@@ -170,25 +183,37 @@ struct REQRTestFixture
 		}
 	}
 
+	/**
+	 * \brief Get a MPRGlobalTestFixture, creating a static instance if necessary
+	 * \return MPRGlobalTestFixture object
+	 */
 	MPRGlobalTestFixture& gf()
 	{
 		static MPRGlobalTestFixture mpr;
 		return mpr;
 	}
 
-	ProductRegistryHelper& helper()
+	/**
+	 * \brief Get an art::ProductRegistryHelper, creating a static instance if necessary
+	 * \return art::ProductRegistryHelper object
+	 */
+	art::ProductRegistryHelper& helper()
 	{
-		static ProductRegistryHelper s_helper;
+		static art::ProductRegistryHelper s_helper;
 		return s_helper;
 	}
 
+	/**
+	 * \brief Get an art::SourceHelper object, creating a static instance if necessary
+	 * \return art::SourceHelper object
+	 */
 	art::SourceHelper& source_helper()
 	{
 		static std::unique_ptr<art::SourceHelper>
 			s_source_helper;
 		if (!s_source_helper)
 		{
-			ParameterSet sourceParams;
+			fhicl::ParameterSet sourceParams;
 			std::string moduleType{ "DummySource" };
 			std::string moduleLabel{ "daq" };
 			sourceParams.put<std::string>("module_type", moduleType);
@@ -205,10 +230,14 @@ struct REQRTestFixture
 		return *s_source_helper;
 	}
 
-	RawEventQueueReader& reader()
+	/**
+	 * \brief Get an artdaq::detail::RawEventQueueReader object, creating a static instance if necessary
+	 * \return artdaq::detail::RawEventQueueReader object
+	 */
+	artdaq::detail::RawEventQueueReader& reader()
 	{
 		fhicl::ParameterSet pset;
-		static RawEventQueueReader
+		static artdaq::detail::RawEventQueueReader
 			s_reader(pset,
 					 helper(),
 					 source_helper(),
@@ -228,16 +257,23 @@ BOOST_FIXTURE_TEST_SUITE(raw_event_queue_reader_t, REQRTestFixture)
 
 namespace
 {
-	void basic_test(RawEventQueueReader& reader,
-					std::unique_ptr<RunPrincipal>&& run,
-					std::unique_ptr<SubRunPrincipal>&& subrun,
-					EventID const& eventid)
+	/**
+	 * \brief Run a basic checkout of the RawEventQueueReader
+	 * \param reader RawEventQueueReader instance
+	 * \param run Run principal pointer
+	 * \param subrun Subrun principal pointer
+	 * \param eventid ID of event
+	 */
+	void basic_test(artdaq::detail::RawEventQueueReader& reader,
+					std::unique_ptr<art::RunPrincipal>&& run,
+					std::unique_ptr<art::SubRunPrincipal>&& subrun,
+					art::EventID const& eventid)
 	{
 		BOOST_REQUIRE(run || subrun == nullptr); // Sanity check.
-		std::shared_ptr<RawEvent> event(new RawEvent(eventid.run(), eventid.subRun(), eventid.event()));
-		std::vector<Fragment::value_type> fakeData{ 1, 2, 3, 4 };
+		std::shared_ptr<artdaq::RawEvent> event(new artdaq::RawEvent(eventid.run(), eventid.subRun(), eventid.event()));
+		std::vector<artdaq::Fragment::value_type> fakeData{ 1, 2, 3, 4 };
 		artdaq::FragmentPtr
-			tmpFrag(Fragment::dataFrag(eventid.event(),
+			tmpFrag(artdaq::Fragment::dataFrag(eventid.event(),
 															  0,
 															  fakeData.begin(),
 															  fakeData.end()));
@@ -245,9 +281,9 @@ namespace
 		event->insertFragment(std::move(tmpFrag));
 		event->markComplete();
 		artdaq::getGlobalQueue().enqNowait(event);
-		EventPrincipal* newevent = nullptr;
-		SubRunPrincipal* newsubrun = nullptr;
-		RunPrincipal* newrun = nullptr;
+		art::EventPrincipal* newevent = nullptr;
+		art::SubRunPrincipal* newsubrun = nullptr;
+		art::RunPrincipal* newrun = nullptr;
 		bool rc = reader.readNext(run.get(), subrun.get(), newrun, newsubrun, newevent);
 		BOOST_REQUIRE(rc);
 		if (run.get() && run->run() == eventid.run())
@@ -270,8 +306,8 @@ namespace
 		}
 		BOOST_CHECK(newevent);
 		BOOST_CHECK(newevent->id() == eventid);
-		art::Event e(*newevent, ModuleDescription());
-		art::Handle<std::vector<Fragment>> h;
+		art::Event e(*newevent, art::ModuleDescription());
+		art::Handle<std::vector<artdaq::Fragment>> h;
 		e.getByLabel("daq", "ABCDEF", h);
 		BOOST_CHECK(h.isValid());
 		BOOST_CHECK(h->size() == 1);
@@ -286,18 +322,18 @@ namespace
 
 BOOST_AUTO_TEST_CASE(nonempty_event)
 {
-	EventID eventid(2112, 1, 3);
-	Timestamp now;
+	art::EventID eventid(2112, 1, 3);
+	art::Timestamp now;
 	basic_test(reader(),
-			   std::unique_ptr<RunPrincipal>(source_helper().makeRunPrincipal(eventid.run(), now)),
-			   std::unique_ptr<SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run(), eventid.subRun(), now)),
+			   std::unique_ptr<art::RunPrincipal>(source_helper().makeRunPrincipal(eventid.run(), now)),
+			   std::unique_ptr<art::SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run(), eventid.subRun(), now)),
 			   eventid);
 }
 
 BOOST_AUTO_TEST_CASE(first_event)
 {
-	EventID eventid(2112, 1, 3);
-	Timestamp now;
+	art::EventID eventid(2112, 1, 3);
+	art::Timestamp now;
 	basic_test(reader(),
 			   nullptr,
 			   nullptr,
@@ -306,21 +342,21 @@ BOOST_AUTO_TEST_CASE(first_event)
 
 BOOST_AUTO_TEST_CASE(new_subrun)
 {
-	EventID eventid(2112, 1, 3);
-	Timestamp now;
+	art::EventID eventid(2112, 1, 3);
+	art::Timestamp now;
 	basic_test(reader(),
-			   std::unique_ptr<RunPrincipal>(source_helper().makeRunPrincipal(eventid.run(), now)),
-			   std::unique_ptr<SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run(), 0, now)),
+			   std::unique_ptr<art::RunPrincipal>(source_helper().makeRunPrincipal(eventid.run(), now)),
+			   std::unique_ptr<art::SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run(), 0, now)),
 			   eventid);
 }
 
 BOOST_AUTO_TEST_CASE(new_run)
 {
-	EventID eventid(2112, 1, 3);
-	Timestamp now;
+	art::EventID eventid(2112, 1, 3);
+	art::Timestamp now;
 	basic_test(reader(),
-			   std::unique_ptr<RunPrincipal>(source_helper().makeRunPrincipal(eventid.run() - 1, now)),
-			   std::unique_ptr<SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run() - 1,
+			   std::unique_ptr<art::RunPrincipal>(source_helper().makeRunPrincipal(eventid.run() - 1, now)),
+			   std::unique_ptr<art::SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run() - 1,
 																					eventid.subRun(),
 																					now)),
 			   eventid);
@@ -331,31 +367,31 @@ BOOST_AUTO_TEST_CASE(end_of_data)
 	// Tell 'reader' the name of the file we are to read. This is pretty
 	// much irrelevant for RawEventQueueReader, but we'll stick to the
 	// interface demanded by Source<T>...
-	string const fakeFileName("no such file exists");
-	FileBlock* pFile = nullptr;
+	std::string const fakeFileName("no such file exists");
+	art::FileBlock* pFile = nullptr;
 	reader().readFile(fakeFileName, pFile);
 	BOOST_CHECK(pFile);
-	BOOST_CHECK(pFile->fileFormatVersion() == FileFormatVersion(1, "RawEvent2011"));
+	BOOST_CHECK(pFile->fileFormatVersion() == art::FileFormatVersion(1, "RawEvent2011"));
 	BOOST_CHECK(pFile->tree() == nullptr);
 
 	BOOST_CHECK(!pFile->fastClonable());
 	// Test the end-of-data handling. Reading an end-of-data should result in readNext() returning false,
 	// and should return null pointers for new-run, -subrun and -event.
 	// Prepare our 'previous run/subrun/event'..
-	RunID runid(2112);
-	SubRunID subrunid(2112, 1);
-	EventID eventid(2112, 1, 3);
-	Timestamp now;
-	std::unique_ptr<RunPrincipal> run(source_helper().makeRunPrincipal(runid.run(), now));
-	std::unique_ptr<SubRunPrincipal> subrun(source_helper().makeSubRunPrincipal(runid.run(), subrunid.subRun(), now));
-	std::unique_ptr<EventPrincipal> event(source_helper().makeEventPrincipal(runid.run(),
+	art::RunID runid(2112);
+	art::SubRunID subrunid(2112, 1);
+	art::EventID eventid(2112, 1, 3);
+	art::Timestamp now;
+	std::unique_ptr<art::RunPrincipal> run(source_helper().makeRunPrincipal(runid.run(), now));
+	std::unique_ptr<art::SubRunPrincipal> subrun(source_helper().makeSubRunPrincipal(runid.run(), subrunid.subRun(), now));
+	std::unique_ptr<art::EventPrincipal> event(source_helper().makeEventPrincipal(runid.run(),
 																			 subrunid.subRun(),
 																			 eventid.event(),
 																			 now));
-	artdaq::getGlobalQueue().enqNowait(std::shared_ptr<RawEvent>(nullptr)); // insert end-of-data marker
-	EventPrincipal* newevent = nullptr;
-	SubRunPrincipal* newsubrun = nullptr;
-	RunPrincipal* newrun = nullptr;
+	artdaq::getGlobalQueue().enqNowait(std::shared_ptr<artdaq::RawEvent>(nullptr)); // insert end-of-data marker
+	art::EventPrincipal* newevent = nullptr;
+	art::SubRunPrincipal* newsubrun = nullptr;
+	art::RunPrincipal* newrun = nullptr;
 	bool rc = reader().readNext(run.get(), subrun.get(), newrun, newsubrun, newevent);
 	BOOST_CHECK(!rc);
 	BOOST_CHECK(newrun == nullptr);

@@ -6,11 +6,11 @@
 
 
 artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role) :
-                                                                                 TransferInterface(pset, role)
-                                                                                 , shm_segment_id_(-1)
-                                                                                 , shm_ptr_(NULL)
-                                                                                 , shm_key_(pset.get<int>("shm_key", std::hash<std::string>()(uniqueLabel())))
-                                                                                 , role_(role)
+																				 TransferInterface(pset, role)
+																				 , shm_segment_id_(-1)
+																				 , shm_ptr_(NULL)
+																				 , shm_key_(pset.get<int>("shm_key", std::hash<std::string>()(uniqueLabel())))
+																				 , role_(role)
 {
 	// char* keyChars = getenv("ARTDAQ_SHM_KEY");
 	// if (keyChars != NULL && shm_key_ == static_cast<int>(std::hash<std::string>()(unique_label_))) {
@@ -116,7 +116,7 @@ bool artdaq::ShmemTransfer::readyForWrite_()
 }
 
 int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
-                                           size_t receiveTimeout)
+										   size_t receiveTimeout)
 {
 	if (shm_ptr_)
 	{
@@ -204,7 +204,7 @@ artdaq::ShmemTransfer::copyFragment(artdaq::Fragment& fragment, size_t send_time
 
 artdaq::TransferInterface::CopyStatus
 artdaq::ShmemTransfer::moveFragment(artdaq::Fragment&& fragment,
-                                    size_t send_timeout_usec)
+									size_t send_timeout_usec)
 {
 	return sendFragment(std::move(fragment), send_timeout_usec, true);
 }

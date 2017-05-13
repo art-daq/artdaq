@@ -75,11 +75,6 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-art_make_exec(perfdump
-  LIBRARIES
-  artdaq_DAQrate
-  )
-
   art_make_exec(NAME routing_master
   SOURCE
   routing_master.cc

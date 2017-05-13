@@ -3,13 +3,8 @@
 
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/exception.h"
-#include "cetlib/container_algorithms.h"
 
 #include "artdaq-core/Data/Fragment.hh"
-
-#include "artdaq/DAQrate/MPITag.hh"
-#include "artdaq/DAQdata/Debug.hh"
-#include "artdaq/DAQrate/Utils.hh"
 
 
 /*
@@ -420,7 +415,7 @@ post_(size_t buf)
 
 int artdaq::MPITransfer::findAvailable()
 {
-	int use_me = 0;
+	int use_me;
 	int flag;
 	size_t loops = 0;
 	TRACE(5, "findAvailable initial pos_=%d", pos_);
@@ -496,7 +491,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 				  curfrag.size() * sizeof(Fragment::value_type),
 				  MPI_BYTE,
 				  destination_rank(),
-				  MPITag::FINAL,
+				  1,
 				  MPI_COMM_WORLD,
 				  &reqs_[buffer_idx]);
 	}
@@ -512,7 +507,7 @@ sendFragment(Fragment&& frag, size_t send_timeout_usec, bool force_async)
 				  curfrag.size() * sizeof(Fragment::value_type),
 				  MPI_BYTE,
 				  destination_rank(),
-				  MPITag::FINAL,
+				  1,
 				  MPI_COMM_WORLD);
 	}
 	TRACE(5, "sendFragTo COMPLETE");
