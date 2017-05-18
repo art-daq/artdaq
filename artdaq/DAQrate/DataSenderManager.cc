@@ -195,7 +195,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
 				TLOG_DEBUG("DataSenderManager") << "Receiving data buffer" << TLOG_ENDL;
 				auto sts = recv(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
-				assert(sts == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
+				assert(static_cast<size_t>(sts) == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
 				TRACE(6, "Received a packet of %zu bytes", sts);
 
 				first = buffer[0].sequence_id;

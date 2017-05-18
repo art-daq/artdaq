@@ -351,7 +351,7 @@ void RoutingMasterTest::table_receiver()
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
 				TLOG_DEBUG("table_receiver") << "Receiving data buffer" << TLOG_ENDL;
 				sts = recv(table_events_[n].data.fd, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
-				assert(sts == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
+				assert(static_cast<size_t>(sts) == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
 
 				first = buffer[0].sequence_id;
 				last = buffer[buffer.size() - 1].sequence_id;
