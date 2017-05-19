@@ -12,6 +12,7 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "../Application/Routing/RoutingPacket.hh"
 
 namespace artdaq
 {
@@ -85,6 +86,12 @@ public:
 	 * \return The list of enabled destiantion ranks
 	 */
 	std::set<int> enabled_destinations() const { return enabled_destinations_; }
+
+	/**
+	 * \brief Gets the current size of the Routing Table, in case other parts of the system want to use this information
+	 * \return The current size of the Routing Table. Note that the Routing Table is trimmed after each successful send.
+	 */
+	size_t GetRoutingTableEntryCount() const;
 private:
 
 	// Calculate where the fragment with this sequenceID should go.
@@ -106,6 +113,7 @@ private:
 	bool non_blocking_mode_;
 
 	bool use_routing_master_;
+	detail::RoutingMasterMode routing_master_mode_;
 	std::atomic<bool> should_stop_;
 	int table_port_;
 	std::string table_address_;

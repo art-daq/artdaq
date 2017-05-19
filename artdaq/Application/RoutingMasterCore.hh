@@ -16,6 +16,7 @@
 #include "artdaq/Application/StatisticsHelper.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
 
 namespace artdaq
 {
@@ -69,6 +70,7 @@ public:
 	*   "rt_priority" (Default: 0): Unix process priority to assign to RoutingMasterCore
 	*   "sender_ranks" (REQUIRED): List of ranks (integers) for the senders (that receive table updates)
 	*   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
+	*   "senders_send_by_send_count" (Default: false): If true, senders will use the current send count to lookup routing information in the table, instead of sequence ID.
 	*   "table_ack_retry_count" (Default: 5): The number of times the table will be resent while waiting for acknowledements
 	*   "routing_token_port" (Default: 35555): The port on which to listen for RoutingToken packets
 	*   "table_update_port" (Default: 35556): The port on which to send table updates
@@ -167,9 +169,11 @@ private:
 
 	size_t max_table_update_interval_ms_;
 	size_t max_ack_cycle_count_;
+	detail::RoutingMasterMode routing_mode_;
 	size_t current_table_interval_ms_;
 	std::atomic<size_t> table_update_count_;
 	std::atomic<size_t> received_token_count_;
+	std::unordered_map<int,size_t> received_token_counter_;
 
 	std::vector<int> sender_ranks_;
 	size_t num_receivers_;

@@ -26,7 +26,6 @@ int main(int argc, char* argv[])
 	try
 	{
 		mpiSentry.reset(new artdaq::MPISentry(&argc, &argv, wanted_threading_level, artdaq::TaskType::BoardReaderTask, local_group_comm));
-		my_rank = mpiSentry->rank();
 	}
 	catch (cet::exception& errormsg)
 	{
@@ -83,7 +82,7 @@ int main(int argc, char* argv[])
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the BoardReaderApp
-	artdaq::BoardReaderApp br_app(local_group_comm, name);
+	artdaq::BoardReaderApp br_app(mpiSentry->rank(), name);
 
 	// create the xmlrpc_commander and run it
 	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), br_app);

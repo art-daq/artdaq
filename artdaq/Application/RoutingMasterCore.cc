@@ -27,8 +27,9 @@ const std::string artdaq::RoutingMasterCore::
 TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
 
 artdaq::RoutingMasterCore::RoutingMasterCore(int rank, std::string name) :
-	 name_(name)
-, shutdown_requested_(false)
+	name_(name)
+	, received_token_counter_()
+	, shutdown_requested_(false)
 	, stop_requested_(false)
 	, pause_requested_(false)
 	, token_socket_(-1)
@@ -134,6 +135,8 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
 	receive_token_events_ = std::vector<epoll_event>(num_receivers_);
 
+	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
+	routing_mode_ = mode ? detail::RoutingMasterMode::RouteBySendCount : detail::RoutingMasterMode::RouteBySequenceID;
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
 	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
@@ -379,13 +382,17 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		TLOG_DEBUG(name_) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_ << TLOG_ENDL;
 	}
 
-	auto acks = std::vector<bool>(sender_ranks_.size(), false);
+	auto acks = std::unordered_map<int, bool>();
+	for (auto& r : sender_ranks_)
+	{
+		acks[r] = false;
+	}
 	auto counter = 0U;
 	auto start_time = std::chrono::steady_clock::now();
-	while (std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) > 0)
+	while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0)
 	{
 		// Send table update
-		auto header = detail::RoutingPacketHeader(packet.size());
+		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
 		TLOG_DEBUG(name_) << "Sending table information for " << std::to_string(header.nEntries) << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << TLOG_ENDL;
@@ -406,7 +413,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 
 
 		auto startTime = std::chrono::steady_clock::now();
-		while (std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) > 0)
+		while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0)
 		{
 			auto currentTime = std::chrono::steady_clock::now();
 			auto table_ack_wait_time_ms = current_table_interval_ms_ / max_ack_cycle_count_;
@@ -439,12 +446,17 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				}
 				else
 				{
-					TLOG_DEBUG(name_) << "Ack packet has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id) << TLOG_ENDL;
-					if (buffer.first_sequence_id == first && buffer.last_sequence_id == last)
+					TLOG_DEBUG(name_) << "Ack packet from rank " << buffer.rank << " has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id) << TLOG_ENDL;
+					if (acks.count(buffer.rank) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 					{
 						TLOG_DEBUG(name_) << "Received table update acknowledgement from sender with rank " << std::to_string(buffer.rank) << "." << TLOG_ENDL;
-						acks[buffer.rank - sender_ranks_[0]] = true;
-						TLOG_DEBUG(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](bool e) {return !e; }) << " acks outstanding" << TLOG_ENDL;
+						acks[buffer.rank] = true;
+						TLOG_DEBUG(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) << " acks outstanding" << TLOG_ENDL;
+					}
+					else
+					{
+						if (!acks.count(buffer.rank)) { TLOG_ERROR(name_) << "Received acknowledgement from invalid rank " << buffer.rank << "! Cross-talk between RoutingMasters means there's a configuration error!" << TLOG_ENDL; }
+						else { TLOG_WARNING(name_) << "Received acknowledgement from rank " << buffer.rank << " that had incorrect sequence ID information. Discarding." << TLOG_ENDL; }
 					}
 				}
 			}
@@ -523,8 +535,22 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				else
 				{
 					TLOG_DEBUG(name_) << "Received token from " << std::to_string(buff.rank) << " indicating " << buff.new_slots_free << " slots are free." << TLOG_ENDL;
-					policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
-					++received_token_count_;
+					received_token_count_ += buff.new_slots_free;
+					if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID) {
+						policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
+					}
+					else if (routing_mode_ == detail::RoutingMasterMode::RouteBySendCount)
+					{
+						if (!received_token_counter_.count(buff.rank)) received_token_counter_[buff.rank] = 0;
+						received_token_counter_[buff.rank] += buff.new_slots_free;
+						TLOG_DEBUG(name_) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size() << "." << TLOG_ENDL;
+						while (received_token_counter_[buff.rank] >= sender_ranks_.size()) {
+							TLOG_DEBUG(name_) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size()
+								<< "... Sending token to policy" << TLOG_ENDL;
+							policy_->AddReceiverToken(buff.rank, 1);
+							received_token_counter_[buff.rank] -= sender_ranks_.size();
+						}
+					}
 				}
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);

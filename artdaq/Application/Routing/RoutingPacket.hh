@@ -17,6 +17,13 @@ namespace artdaq
 		struct RoutingPacketHeader;
 		struct RoutingAckPacket;
 		struct RoutingToken;
+
+		enum class RoutingMasterMode : uint8_t
+		{
+			RouteBySequenceID,
+			RouteBySendCount,
+			INVALID
+		};
 	}
 }
 /**
@@ -50,17 +57,19 @@ struct artdaq::detail::RoutingPacketEntry
 struct artdaq::detail::RoutingPacketHeader
 {
 	uint32_t header; ///< Magic bytes to make sure the packet wasn't garbled
+	RoutingMasterMode mode;
 	size_t nEntries; ///< The number of RoutingPacketEntries in the RoutingPacket
 
 	/**
 	 * \brief Construct a RoutingPacketHeader declaring a given number of entries
+	 * \param m The RoutingMasterMode that senders are supposed to be operating in
 	 * \param n The number of RoutingPacketEntries in the associated RoutingPacket
 	 */
-	explicit RoutingPacketHeader(size_t n) : header(ROUTING_MAGIC), nEntries(n) {}
+	explicit RoutingPacketHeader(RoutingMasterMode m, size_t n) : header(ROUTING_MAGIC), mode(m), nEntries(n) {}
 	/**
 	 * \brief Default Constructor
 	 */
-	RoutingPacketHeader() : header(0), nEntries(0) {}
+	RoutingPacketHeader() : header(0), mode(RoutingMasterMode::INVALID), nEntries(0) {}
 };
 
 /**

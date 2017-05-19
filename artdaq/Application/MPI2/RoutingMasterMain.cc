@@ -24,7 +24,6 @@ int main(int argc, char* argv[])
 	try
 	{
 		mpiSentry.reset(new artdaq::MPISentry(&argc, &argv, wanted_threading_level, artdaq::TaskType::RoutingMasterTask, local_group_comm));
-		my_rank = mpiSentry->rank();
 	}
 	catch (cet::exception& errormsg)
 	{
@@ -81,7 +80,7 @@ int main(int argc, char* argv[])
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the AggregatorApp
-	artdaq::RoutingMasterApp rm_app(local_group_comm, name);
+	artdaq::RoutingMasterApp rm_app(mpiSentry->rank(), name);
 
 	// create the xmlrpc_commander and run it
 	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), rm_app);

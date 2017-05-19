@@ -22,6 +22,8 @@ OUTPUT_WAIT_STAT_KEY("BoardReaderCoreOutputWaitTime");
 const std::string artdaq::BoardReaderCore::
 FRAGMENTS_PER_READ_STAT_KEY("BoardReaderCoreFragmentsPerRead");
 
+std::unique_ptr<artdaq::DataSenderManager> artdaq::BoardReaderCore::sender_ptr_ = nullptr;
+
 artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
 										 int rank, std::string name) :
 																					  parent_application_(parent_application)
@@ -283,6 +285,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 #pragma GCC diagnostic pop
 	}
 
+	TLOG_DEBUG(name_) << "Initializing DataSenderManager. my_rank=" << my_rank << TLOG_ENDL;
 	sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
 
 	//MPI_Barrier(local_group_comm_);

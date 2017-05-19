@@ -18,6 +18,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, sent_frag_count_()
 	, broadcast_sends_(pset.get<bool>("broadcast_sends", false))
 	, non_blocking_mode_(pset.get<bool>("nonblocking_sends", false))
+	, routing_master_mode_(detail::RoutingMasterMode::INVALID)
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
@@ -192,6 +193,13 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 
 			TLOG_DEBUG("DataSenderManager") << "Checking for valid header" << TLOG_ENDL;
 			if (hdr.header == ROUTING_MAGIC) {
+				if(routing_master_mode_ != detail::RoutingMasterMode::INVALID && routing_master_mode_ != hdr.mode)
+				{
+					TLOG_ERROR("DataSenderManager") << "Received table has different RoutingMasterMode than expected!" << TLOG_ENDL;
+					exit(1);
+				}
+				routing_master_mode_ = hdr.mode;
+
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
 				TLOG_DEBUG("DataSenderManager") << "Receiving data buffer" << TLOG_ENDL;
 				auto sts = recv(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
@@ -238,7 +246,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				ack.first_sequence_id = first;
 				ack.last_sequence_id = last;
 
-				TLOG_DEBUG("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << TLOG_ENDL;
+				TLOG_DEBUG("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")"<< TLOG_ENDL;
 				TLOG_DEBUG("DataSenderManager") << "There are now " << routing_table_.size() << " entries in the Routing Table" << TLOG_ENDL;
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 			}
@@ -246,6 +254,11 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 	}
 }
 
+size_t artdaq::DataSenderManager::GetRoutingTableEntryCount() const
+{
+	std::unique_lock<std::mutex> lck(routing_mutex_);
+	return routing_table_.size();
+}
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
 {
@@ -258,15 +271,27 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 		while (routing_timeout_ms_ <= 0 || std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() < routing_timeout_ms_)
 		{
 			std::unique_lock<std::mutex> lck(routing_mutex_);
-			if (routing_table_.count(sequence_id)) {
+			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id)) {
 				routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
 				return routing_table_.at(sequence_id);
+			}
+			else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count()))
+			{
+				routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
+				return routing_table_.at(sent_frag_count_.count());
 			}
 			usleep(routing_timeout_ms_ * 10);
 		}
 		routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
-		TLOG_ERROR("DataSenderManager") << "Bad Omen: I don't have routing information for seqID " << std::to_string(sequence_id)
-			<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!" << TLOG_ENDL;
+		if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID) {
+			TLOG_ERROR("DataSenderManager") << "Bad Omen: I don't have routing information for seqID " << std::to_string(sequence_id)
+				<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!" << TLOG_ENDL;
+		}
+		else
+		{
+			TLOG_ERROR("DataSenderManager") << "Bad Omen: I don't have routing information for send number " << std::to_string(sent_frag_count_.count())
+				<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!" << TLOG_ENDL;
+		}
 	}
 	else {
 		auto index = sequence_id % enabled_destinations_.size();
@@ -350,7 +375,7 @@ sendFragment(Fragment&& frag)
 			dest = calcDest_(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
 			{
-				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", retrying." << TLOG_ENDL;
+				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", send number " << sent_frag_count_.count() << ", retrying." << TLOG_ENDL;
 			}
 		}
 		if (destinations_.count(dest) && enabled_destinations_.count(dest))
@@ -375,10 +400,15 @@ sendFragment(Fragment&& frag)
 			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID << TLOG_ENDL;
 		}
 	}
-	if (routing_table_.find(seqID - 1) != routing_table_.end())
+	if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.find(seqID - 1) != routing_table_.end())
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(seqID - 1));
+	}
+	else if(routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount)
+	{
+		std::unique_lock<std::mutex> lck(routing_mutex_);
+		routing_table_.erase(routing_table_.begin(), routing_table_.find(sent_frag_count_.count()));
 	}
 	if (metricMan)
 	{//&& sent_frag_count_.slotCount(dest) % 100 == 0) {

@@ -144,6 +144,11 @@ public:
 	 */
 	std::string report(std::string const& which) const;
 
+	/**
+	 * \brief Gets a handle to the DataSenderManager
+	 * \return Pointer to the DataSenderManager
+	 */
+	static DataSenderManager* GetDataSenderManagerPtr() { return sender_ptr_.get(); }
 private:
 	Commandable& parent_application_;
 	//MPI_Comm local_group_comm_;
@@ -163,7 +168,7 @@ private:
 	int mpi_sync_wait_log_level_;
 	int mpi_sync_wait_log_interval_sec_;
 	*/
-	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
+	static std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 
 	size_t fragment_count_;
 	artdaq::Fragment::sequence_id_t prev_seq_id_;
