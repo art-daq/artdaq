@@ -7,6 +7,7 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include "boost/program_options.hpp"
+#include "boost/filesystem.hpp"
 #include <artdaq/Application/RoutingMasterCore.hh>
 #include <artdaq/Application/RoutingMasterApp.hh>
 #include <netdb.h>
@@ -14,6 +15,7 @@ namespace bpo = boost::program_options;
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 extern "C"
 {
@@ -33,6 +35,27 @@ extern "C"
 #include <sys/time.h>
 #include <sys/resource.h>
 }
+
+class LockFile
+{
+public:
+	explicit LockFile(std::string path) : fileName_(path)
+	{
+		std::ofstream fstream(fileName_);
+		fstream << "Locked" << std::endl;
+	}
+	~LockFile()
+	{
+		if(IsLocked(fileName_))	remove(fileName_.c_str());
+	}
+	static bool IsLocked(std::string path)
+	{
+		return boost::filesystem::exists(path);
+	}
+
+private:
+	std::string fileName_;
+};
 
 /**
  * \brief The RoutingMasterTest class runs the routing_master test
@@ -173,7 +196,12 @@ fhicl::ParameterSet RoutingMasterTest::getPset(int argc, char* argv[]) const
 
 void RoutingMasterTest::go()
 {
+	if (LockFile::IsLocked("/tmp/routing_master_t.lock")) return;
 	MPI_Barrier(MPI_COMM_WORLD);
+	std::unique_ptr<LockFile> lock;
+	if (my_rank == 0) {
+		lock = std::make_unique<LockFile>("/tmp/routing_master_t.lock");
+	}
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
 	MPI_Comm_split(MPI_COMM_WORLD, static_cast<int>(role_), 0, &local_group_comm_);
 	switch (role_)
