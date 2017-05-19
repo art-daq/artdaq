@@ -2,15 +2,13 @@ genToArt:
 {
   run_number: 10
   events_to_generate: 5
-  fragment_receiver:
-  {
-    generators: [ gen ]
-    gen:
+  fragment_receivers:
+  [
     {
       generator: GenericFragmentSimulator
       content_selection: 3 
    }
-  }
+  ]
 
   event_builder:
   {

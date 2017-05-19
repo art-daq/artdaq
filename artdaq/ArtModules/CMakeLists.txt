@@ -38,6 +38,7 @@ simple_plugin(RawInput "source"
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
 
 simple_plugin(EventDump "module"
+MF_MessageLogger
   ${CETLIB_EXCEPT})
 
 simple_plugin(NetMonInput "source"

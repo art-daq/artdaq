@@ -1,22 +1,15 @@
 #include "art/Framework/Art/artapp.h"
-#include "artdaq/DAQdata/Debug.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "Config.hh"
 #include "artdaq/DAQrate/EventStore.hh"
 #include "MPIProg.hh"
-#include "artdaq/DAQrate/Perf.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
-#include "artdaq/Application/configureMessageFacility.hh"
-#include "artdaq/DAQrate/Utils.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "cetlib/container_algorithms.h"
-#include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
 
 #include "boost/program_options.hpp"
 namespace bpo = boost::program_options;
@@ -40,18 +33,37 @@ extern "C"
 #include <sys/resource.h>
 }
 
-// Class Program is our application object.
-class Program : public MPIProg
+/**
+ * \brief The Builder class runs the builder test
+ */
+class Builder : public MPIProg
 {
 public:
-	Program(int argc, char* argv[]);
+	/**
+	 * \brief Builder Constructor
+	 * \param argc Argument Count
+	 * \param argv Argument Array
+	 */
+	Builder(int argc, char* argv[]);
 
+	/**
+	 * \brief Start the Builder application, using the type configuration to select which method to run
+	 */
 	void go();
 
+	/**
+	 * \brief Receive data from detector via DataReceiverManager, and send to a sink using DataSenderManager
+	 */
 	void source();
 
+	/**
+	 * \brief Receive data from source via DataReceiverManager, send it to the EventStore (and art, if configured)
+	 */
 	void sink();
 
+	/**
+	 * \brief Generate data, and send it using DataSenderManager
+	 */
 	void detector();
 
 private:
@@ -64,38 +76,32 @@ private:
 
 	void printHost(const std::string& functionName) const;
 
-	Config conf_;
+	artdaq::Config conf_;
 	fhicl::ParameterSet const daq_pset_;
 	bool const want_sink_;
 	bool const want_periodic_sync_;
 	MPI_Comm local_group_comm_;
 };
 
-Program::Program(int argc, char* argv[]) :
-                                         MPIProg(argc, argv)
-                                         , conf_(my_rank, procs_, 10, 10240, argc, argv)
-                                         , daq_pset_(conf_.getArtPset())
-                                         , want_sink_(daq_pset_.get<bool>("want_sink", true))
-                                         , want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
-                                         , local_group_comm_()
+Builder::Builder(int argc, char* argv[]) :
+										 MPIProg(argc, argv)
+										 , conf_(my_rank, procs_, 10, 10240, argc, argv)
+										 , daq_pset_(conf_.getArtPset())
+										 , want_sink_(daq_pset_.get<bool>("want_sink", true))
+										 , want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
+										 , local_group_comm_()
 {
 	conf_.writeInfo();
-	configureDebugStream(conf_.rank_, conf_.run_);
-	PerfConfigure(conf_.rank_,
-	              conf_.run_,
-	              conf_.type_);
 }
 
-void Program::go()
+void Builder::go()
 {
 	MPI_Barrier(MPI_COMM_WORLD);
-	PerfSetStartTime();
-	PerfWriteJobStart();
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
 	MPI_Comm_split(MPI_COMM_WORLD, conf_.type_, 0, &local_group_comm_);
 	switch (conf_.type_)
 	{
-	case Config::TaskSink:
+	case artdaq::Config::TaskSink:
 		if (want_sink_)
 		{
 			sink();
@@ -109,19 +115,18 @@ void Program::go()
 			MPI_Barrier(MPI_COMM_WORLD);
 		}
 		break;
-	case Config::TaskSource:
+	case artdaq::Config::TaskSource:
 		source();
 		break;
-	case Config::TaskDetector:
+	case artdaq::Config::TaskDetector:
 		detector();
 		break;
 	default:
 		throw "No such node type";
 	}
-	PerfWriteJobEnd();
 }
 
-void Program::source()
+void Builder::source()
 {
 	printHost("source");
 	// needs to get data from the detectors and send it to the sinks
@@ -147,11 +152,11 @@ void Program::source()
 			}
 		}
 	}
-	Debug << "source done " << conf_.rank_ << flusher;
+	TLOG_DEBUG("builder") << "source done " << conf_.rank_ << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Program::detector()
+void Builder::detector()
 {
 	printHost("detector");
 	int detector_rank;
@@ -162,11 +167,11 @@ void Program::detector()
 	std::vector<std::string> detectors;
 	size_t detectors_size = 0;
 	if (!(daq_pset_.get_if_present("detectors", detectors) &&
-	      (detectors_size = detectors.size())))
+		  (detectors_size = detectors.size())))
 	{
 		throw cet::exception("Configuration")
-		      << "Unable to find required sequence of detector "
-		      << "parameter set names, \"detectors\".";
+			  << "Unable to find required sequence of detector "
+			  << "parameter set names, \"detectors\".";
 	}
 	fhicl::ParameterSet det_ps =
 		daq_pset_.get<fhicl::ParameterSet>
@@ -207,14 +212,14 @@ void Program::detector()
 			}
 			frags.clear();
 		}
-		Debug << "detector waiting " << conf_.rank_ << flusher;
+		TLOG_DEBUG("builder") << "detector waiting " << conf_.rank_ << TLOG_ENDL;
 	}
-	Debug << "detector done " << conf_.rank_ << flusher;
+	TLOG_DEBUG("builder") << "detector done " << conf_.rank_ << TLOG_ENDL;
 	MPI_Comm_free(&local_group_comm_);
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Program::sink()
+void Builder::sink()
 {
 	printHost("sink");
 	{
@@ -228,10 +233,10 @@ void Program::sink()
 				&artapp :
 				&artdaq::simpleQueueReaderApp;
 		artdaq::EventStore events(daq_pset_, conf_.detectors_,
-		                          conf_.run_,
-		                          useArt ? conf_.art_argc_ : 1,
-		                          useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
-		                          reader);
+								  conf_.run_,
+								  useArt ? conf_.art_argc_ : 1,
+								  useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
+								  reader);
 		{ // Block to handle scope of h, below.
 			artdaq::DataReceiverManager h(conf_.makeParameterSet());
 			h.start_threads();
@@ -266,21 +271,21 @@ void Program::sink()
 		}
 		if (endSucceeded)
 		{
-			Debug << "Sink: reader is done, its exit status was: "
-			     << readerReturnValue << flusher;
+			TLOG_DEBUG("builder") << "Sink: reader is done, its exit status was: "
+				 << readerReturnValue << TLOG_ENDL;
 		}
 		else
 		{
-			Debug << "Sink: reader failed to complete because the "
-			     << "endOfData marker could not be pushed onto the queue."
-			     << flusher;
+			TLOG_DEBUG("builder") << "Sink: reader failed to complete because the "
+				 << "endOfData marker could not be pushed onto the queue."
+				 << TLOG_ENDL;
 		}
 	} // end of lifetime of 'events'
-	Debug << "Sink done " << conf_.rank_ << flusher;
+	TLOG_DEBUG("builder") << "Sink done " << conf_.rank_ << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void Program::printHost(const std::string& functionName) const
+void Builder::printHost(const std::string& functionName) const
 {
 	char* doPrint = getenv("PRINT_HOST");
 	if (doPrint == 0) { return; }
@@ -295,10 +300,10 @@ void Program::printHost(const std::string& functionName) const
 	{
 		hostString = "unknown";
 	}
-	Debug << "Running " << functionName
-	     << " on host " << hostString
-	     << " with rank " << my_rank << "."
-	     << flusher;
+	TLOG_DEBUG("builder") << "Running " << functionName
+		 << " on host " << hostString
+		 << " with rank " << my_rank << "."
+		 << TLOG_ENDL;
 }
 
 void printUsage()
@@ -307,8 +312,8 @@ void printUsage()
 	struct rusage usage;
 	getrusage(RUSAGE_SELF, &usage);
 	std::cout << myid << ":"
-		<< " user=" << asDouble(usage.ru_utime)
-		<< " sys=" << asDouble(usage.ru_stime)
+		<< " user=" << artdaq::Globals::timevalAsDouble(usage.ru_utime)
+		<< " sys=" << artdaq::Globals::timevalAsDouble(usage.ru_stime)
 		<< std::endl;
 }
 
@@ -318,7 +323,7 @@ int main(int argc, char* argv[])
 	int rc = 1;
 	try
 	{
-		Program p(argc, argv);
+		Builder p(argc, argv);
 		std::cerr << "Started process " << my_rank << " of " << p.procs_ << ".\n";
 		p.go();
 		rc = 0;

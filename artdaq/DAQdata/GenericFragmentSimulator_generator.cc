@@ -8,21 +8,21 @@
 #include <functional>
 
 artdaq::GenericFragmentSimulator::GenericFragmentSimulator(fhicl::ParameterSet const& ps) :
-                                                                                          content_selection_(static_cast<content_selector_t>
-	                                                                                          (ps.get<size_t>("content_selection", 0)))
-                                                                                          , payload_size_spec_(ps.get<size_t>("payload_size", 10240))
-                                                                                          , fragment_ids_()
-                                                                                          , want_random_payload_size_(ps.get<bool>("want_random_payload_size", false))
-                                                                                          , current_event_num_(0)
-                                                                                          , engine_(ps.get<int64_t>("random_seed", 314159))
-                                                                                          , payload_size_generator_(payload_size_spec_)
-                                                                                          , fragment_content_generator_()
+																						  content_selection_(static_cast<content_selector_t>
+																							  (ps.get<size_t>("content_selection", 0)))
+																						  , payload_size_spec_(ps.get<size_t>("payload_size", 10240))
+																						  , fragment_ids_()
+																						  , want_random_payload_size_(ps.get<bool>("want_random_payload_size", false))
+																						  , current_event_num_(0)
+																						  , engine_(ps.get<int64_t>("random_seed", 314159))
+																						  , payload_size_generator_(payload_size_spec_)
+																						  , fragment_content_generator_()
 {
 	fragment_ids_.resize(ps.get<size_t>("fragments_per_event", 5));
 	auto current_id = ps.get<Fragment::fragment_id_t>("starting_fragment_id", 0);
 	std::generate(fragment_ids_.begin(),
-	              fragment_ids_.end(),
-	              [&current_id]() { return current_id++; });
+				  fragment_ids_.end(),
+				  [&current_id]() { return current_id++; });
 }
 
 bool
@@ -43,8 +43,8 @@ artdaq::GenericFragmentSimulator::getNext_(FragmentPtrs& frags)
 bool
 artdaq::GenericFragmentSimulator::
 getNext(Fragment::sequence_id_t sequence_id,
-        Fragment::fragment_id_t fragment_id,
-        FragmentPtr& frag_ptr)
+		Fragment::fragment_id_t fragment_id,
+		FragmentPtr& frag_ptr)
 {
 	frag_ptr.reset(new Fragment(sequence_id, fragment_id));
 	size_t payload_size = generateFragmentSize_();
@@ -58,23 +58,23 @@ getNext(Fragment::sequence_id_t sequence_id,
 		break;
 	case content_selector_t::RANDOM:
 		std::generate_n(frag_ptr->dataBegin(),
-		                payload_size,
-		                [&]() -> long
-		                {
-			                return
-				                fragment_content_generator_(engine_);
-		                }
+						payload_size,
+						[&]() -> long
+						{
+							return
+								fragment_content_generator_(engine_);
+						}
 		);
 		break;
 	case content_selector_t::DEAD_BEEF:
 		std::fill_n(frag_ptr->dataBegin(),
-		            payload_size,
-		            0xDEADBEEFDEADBEEF);
+					payload_size,
+					0xDEADBEEFDEADBEEF);
 		break;
 	default:
 		throw cet::exception("UnknownContentSelection")
-		      << "Unknown content selection: "
-		      << static_cast<uint8_t>(content_selection_);
+			  << "Unknown content selection: "
+			  << static_cast<uint8_t>(content_selection_);
 	}
 	assert(frag_ptr != nullptr);
 	return true;
@@ -92,8 +92,8 @@ artdaq::GenericFragmentSimulator::
 generateFragmentSize_()
 {
 	return want_random_payload_size_ ?
-		       payload_size_generator_(engine_) :
-		       payload_size_spec_;
+			   payload_size_generator_(engine_) :
+			   payload_size_spec_;
 }
 
 DEFINE_ARTDAQ_GENERATOR(artdaq::GenericFragmentSimulator)

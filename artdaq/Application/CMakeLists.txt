@@ -6,17 +6,26 @@ art_make_library( LIBRARY_NAME artdaq_Application
   SOURCE
   ${SMC_LIB_SOURCE}
   Commandable.cc
-  configureMessageFacility
   CommandableFragmentGenerator
   makeCommandableFragmentGenerator
+  BoardReaderApp.cc
+  BoardReaderCore.cc
+  EventBuilderCore.cc
+  EventBuilderApp.cc
+  AggregatorApp.cc
+  AggregatorCore.cc
+  RoutingMasterApp.cc
+  RoutingMasterCore.cc
+  StatisticsHelper.cc
   LIBRARIES
   artdaq_DAQrate
   artdaq-core_Data
   artdaq-core_Utilities
+  artdaq_Application_Routing
+  art_Framework_Art
   art_Utilities
   ${CANVAS_LIB_LIST}
   ${MF_MESSAGELOGGER}
-  ${MF_UTILITIES}
   ${CETLIB}
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
@@ -30,3 +39,4 @@ install_source()
 install_fhicl()
 
 add_subdirectory(MPI2)
+add_subdirectory(Routing)

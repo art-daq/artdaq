@@ -15,33 +15,74 @@ namespace artdaq
 	class RTIDDS;
 }
 
+/**
+ * \brief DDS Transport Implementation
+ */
 class artdaq::RTIDDS
 {
 public:
 
+	/**
+	 * \brief Whether this DDS instance is a reader or a writer
+	 */
 	enum class IOType
 	{
 		reader,
 		writer
 	};
 
+	/**
+	 * \brief Construct a RTIDDS transmitter
+	 * \param name Name of the module
+	 * \param iotype Direction of transmission
+	 * \param max_size Maximum size to transmit
+	 */
 	RTIDDS(std::string name, IOType iotype, std::string max_size = "1000000");
 
-	~RTIDDS() = default;
+	/**
+	 * \brief Default virtrual Destructor
+	 */
+	virtual ~RTIDDS() = default;
 
 	// JCF, Apr-7-2016
 	// Are copy constructor, assignment operators, etc., logical absurdities?
 
+	/**
+	 * \brief Copy a Fragment to DDS
+	 * \param fragment Fragment to copy
+	 * 
+	 * This function may be non-reliable, and induces a memcpy of the Fragment
+	 */
 	void copyFragmentToDDS_(artdaq::Fragment& fragment);
 
+	/**
+	 * \brief Move a Fragment to DDS
+	 * \param fragment Fragment to move
+	 * 
+	 * This function should be reliable, and minimize copies.
+	 * Currently implemented via copyFragmentToDDS_
+	 */
 	void moveFragmentToDDS_(artdaq::Fragment&& fragment);
 
+	/**
+	 * \brief A class that reads data from DDS
+	 */
 	class OctetsListener: public DDSDataReaderListener
 	{
 	public:
 
+		/**
+		 * \brief Action to perform when data is available
+		 * \param reader Reader reference to read data from
+		 */
 		void on_data_available(DDSDataReader* reader);
 
+		/**
+		 * \brief Receive a Fragment from DDS
+		 * \param[out] fragment Received Fragment
+		 * \param receiveTimeout Timeout for receive operation
+		 * \return Whether the receive succeeded in receiveTimeout
+		 */
 		bool receiveFragmentFromDDS(artdaq::Fragment& fragment,
 		                            const size_t receiveTimeout);
 
@@ -53,7 +94,7 @@ public:
 		std::mutex queue_mutex_;
 	};
 
-	OctetsListener octets_listener_;
+	OctetsListener octets_listener_; ///< The receiver
 
 private:
 

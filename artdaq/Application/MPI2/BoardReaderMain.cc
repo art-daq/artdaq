@@ -1,12 +1,10 @@
 #include "artdaq/Application/TaskType.hh"
-#include "artdaq/Application/MPI2/BoardReaderApp.hh"
+#include "artdaq/Application/BoardReaderApp.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
-#include "artdaq/Application/configureMessageFacility.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/exception.h"
 
 #include "boost/program_options.hpp"
@@ -28,12 +26,11 @@ int main(int argc, char* argv[])
 	try
 	{
 		mpiSentry.reset(new artdaq::MPISentry(&argc, &argv, wanted_threading_level, artdaq::TaskType::BoardReaderTask, local_group_comm));
-		my_rank = mpiSentry->rank();
 	}
 	catch (cet::exception& errormsg)
 	{
-		mf::LogError("BoardReaderMain") << errormsg;
-		mf::LogError("BoardReaderMain") << "MPISentry error encountered in BoardReaderMain; exiting...";
+		TLOG_ERROR("BoardReaderMain") << errormsg << TLOG_ENDL;
+		TLOG_ERROR("BoardReaderMain") << "MPISentry error encountered in BoardReaderMain; exiting..." << TLOG_ENDL;
 		throw errormsg;
 	}
 
@@ -55,7 +52,7 @@ int main(int argc, char* argv[])
 	}
 	catch (boost::program_options::error const& e)
 	{
-		mf::LogError("Option") << "exception from command line processing in " << argv[0] << ": " << e.what() << std::endl;
+		TLOG_ERROR("Option") << "exception from command line processing in " << argv[0] << ": " << e.what() << TLOG_ENDL;
 		return 1;
 	}
 
@@ -67,7 +64,7 @@ int main(int argc, char* argv[])
 
 	if (!vm.count("port"))
 	{
-		mf::LogError("Option") << argv[0] << " port number not suplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << std::endl;
+		TLOG_ERROR("Option") << argv[0] << " port number not suplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << TLOG_ENDL;
 		return 1;
 	}
 
@@ -75,19 +72,19 @@ int main(int argc, char* argv[])
 	if (vm.count("name"))
 	{
 		name = vm["name"].as<std::string>();
-		mf::LogDebug(name + "Main") << "Setting application name to " << name << std::endl;
+		TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
 	}
 
 	artdaq::setMsgFacAppName(name, vm["port"].as<unsigned short>());
-	mf::LogDebug(name + "Main") << "artdaq version " <<
+	TLOG_DEBUG(name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
-		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp();
+		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the BoardReaderApp
-	artdaq::BoardReaderApp br_app(local_group_comm, name);
+	artdaq::BoardReaderApp br_app(mpiSentry->rank(), name);
 
 	// create the xmlrpc_commander and run it
-	xmlrpc_commander commander(vm["port"].as<unsigned short>(), br_app);
+	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), br_app);
 	commander.run();
 }

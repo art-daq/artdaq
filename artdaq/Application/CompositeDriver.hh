@@ -8,22 +8,55 @@
 
 namespace artdaq
 {
-	// CompositeDriver handles a set of lower-level generators
+	/**
+	 * \brief CompositeDriver handles a set of lower-level generators
+	 * 
+	 * When multiple CommandableFragmentGenerators are needed by a single BoardReader, CompositeDriver may be used to provide
+	 * a single interface to all of them.
+	 */
 	class CompositeDriver : public CommandableFragmentGenerator
 	{
 	public:
-		explicit CompositeDriver(fhicl::ParameterSet const&);
+		/**
+		 * \brief CompositeDriver Constructor
+		 * \param ps ParameterSet used to configure CompositeDriver
+		 * 
+		 * \verbatim
+		 * CompositeDriver accepts the following Parameters:
+		 * "generator_config_list" (REQUIRED): A FHiCL sequence of FHiCL tables, each one configuring
+		 * a CommandableFragmentGenerator instance.
+		 * \endverbatim
+		 */
+		explicit CompositeDriver(fhicl::ParameterSet const& ps);
 
+		/**
+		 * \brief Destructor. Calls the destructors for each configured CommandableFragmentGenerator
+		 */
 		virtual ~CompositeDriver() noexcept;
 
+		/**
+		 * \brief Start all configured CommandableFragmentGenerators
+		 */
 		void start() override;
 
+		/**
+		 * \brief Call non-locked stop methods for all configured CommandableFragmentGenerators
+		 */
 		void stopNoMutex() override;
 
+		/**
+		 * \brief Call stop methods for all configured CommandableFragmentGenerators. Currently handled by stopNoMutex
+		 */
 		void stop() override;
 
+		/**
+		 * \brief Pause all configured CommandableFragmentGenerators
+		 */
 		void pause() override;
 
+		/**
+		 * \brief Resume all configured CommandableFragmentGenerators
+		 */
 		void resume() override;
 
 	private:

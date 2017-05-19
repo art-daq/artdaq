@@ -2,9 +2,8 @@
 #include <boost/program_options.hpp>
 #include <boost/lexical_cast.hpp>
 #include "artdaq/Application/TaskType.hh"
-#include "messagefacility/MessageLogger/MessageLogger.h"
-#include "artdaq/Application/configureMessageFacility.hh"
-#include "artdaq/Application/MPI2/AggregatorApp.hh"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/Application/AggregatorApp.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
@@ -28,8 +27,8 @@ int main(int argc, char* argv[])
 	}
 	catch (cet::exception& errormsg)
 	{
-		mf::LogError("AggregatorMain") << errormsg;
-		mf::LogError("AggregatorMain") << "MPISentry error encountered in AggregatorMain; exiting...";
+		TLOG_ERROR("AggregatorMain") << errormsg << TLOG_ENDL;
+		TLOG_ERROR("AggregatorMain") << "MPISentry error encountered in AggregatorMain; exiting..." << TLOG_ENDL;
 		throw errormsg;
 	}
 
@@ -51,7 +50,7 @@ int main(int argc, char* argv[])
 	}
 	catch (boost::program_options::error const& e)
 	{
-		mf::LogError("Option") << "exception from command line processing in " << argv[0] << ": " << e.what() << std::endl;
+		TLOG_ERROR("Option") << "exception from command line processing in " << argv[0] << ": " << e.what() << TLOG_ENDL;
 		return 1;
 	}
 
@@ -63,7 +62,7 @@ int main(int argc, char* argv[])
 
 	if (!vm.count("port"))
 	{
-		mf::LogError("Option") << argv[0] << " port number not supplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << std::endl;
+		TLOG_ERROR("Option") << argv[0] << " port number not supplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << TLOG_ENDL;
 		return 1;
 	}
 
@@ -71,19 +70,19 @@ int main(int argc, char* argv[])
 	if (vm.count("name"))
 	{
 		name = vm["name"].as<std::string>();
-		mf::LogDebug(name + "Main") << "Setting application name to " << name << std::endl;
+		TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
 	}
 
 	artdaq::setMsgFacAppName(name, vm["port"].as<unsigned short>());
-	mf::LogDebug(name + "Main") << "artdaq version " <<
+	TLOG_DEBUG(name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
-		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp();
+		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the AggregatorApp
-	artdaq::AggregatorApp agg_app(mpiSentry->rank(), local_group_comm, name);
+	artdaq::AggregatorApp agg_app(mpiSentry->rank(), name);
 
 	// create the xmlrpc_commander and run it
-	xmlrpc_commander commander(vm["port"].as<unsigned short>(), agg_app);
+	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), agg_app);
 	commander.run();
 }

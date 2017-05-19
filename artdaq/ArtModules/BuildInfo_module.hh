@@ -3,7 +3,6 @@
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Run.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #include "artdaq-core/Data/PackageBuildInfo.hh"
 
 #include <iostream>
@@ -11,16 +10,44 @@
 
 namespace artdaq
 {
+	/**
+	 * \brief BuildInfo is an art::EDProducer which saves information about package builds to the data file
+	 * \tparam instanceName Tag which the BuildInfo objects will be saved under
+	 * \tparam Pkgs List of package BuildInfo types
+	 */
 	template <std::string* instanceName, typename... Pkgs>
 	class BuildInfo : public art::EDProducer
 	{
 	public:
+		/**
+		 * \brief BuildInfo module Constructor
+		 * \param p ParameterSet used to configure BuildInfo module
+		 * 
+		 * BuildInfo_module expects the following Parameters:
+		 * "instance_name": Name which the BuildInfo information will be saved under
+		 */
 		explicit BuildInfo(fhicl::ParameterSet const& p);
 
-		virtual ~BuildInfo() {}
+		/**
+		 * \brief Default Destructor
+		 */
+		virtual ~BuildInfo() = default;
 
+		/**
+		 * \brief Perform actions at the beginning of the Run
+		 * \param r art::Run object
+		 * 
+		 * The BuildInfo information is stored in the Run-level provenance, so this
+		 * method performs most of the "work" for this module.
+		 */
 		void beginRun(art::Run& r) override;
 
+		/**
+		 * \brief Perform actions for each event
+		 * \param e art::Event object
+		 * 
+		 * This function is a required override for EDProducer, and is a No-Op in BuildInfo_module.
+		 */
 		void produce(art::Event& e) override;
 
 	private:

@@ -30,7 +30,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "TClass.h"
 #include "TMessage.h"
@@ -50,7 +49,7 @@
 
 // JCF, Jul-18-2016
 
-// If LOGDEBUG is defined, the mf::LogDebug calls will print into the
+// If LOGDEBUG is defined, the TLOG_DEBUG calls will print into the
 // aggregator logfiles using artdaq v1_13_00; this creates HUGE files
 // and slows things down considerably, so only define this if you're
 // troubleshooting
@@ -59,56 +58,94 @@
 // artdaq/ArtModules/InputUtilities.hh, so the statements there also
 // get printed
 
-
-// JCF, May-27-2016
-
-// ArtdaqInput is a template class which takes, as a parameter, a
-// class which it uses to receive data; the instance of this class is
-// called "communicationWrapper_". As of this writing, this wrapper
-// class is implemented by NetMonWrapper (for reading data into the
-// aggregator from the eventbuilder) and TransferWrapper (for reading
-// data into an art process). This class presents a unified approach
-// to handling art provenance, regardless of the communication
-// protocol used to read data in.
-
 namespace art
 {
 	template <typename U>
 	class ArtdaqInput;
 }
 
+/**
+ * \brief This template class provides a unified interface for reading data into art
+ * \tparam U The class responsible for delivering data
+ * 
+ * JCF, May-27-2016
+ * ArtdaqInput is a template class which takes, as a parameter, a
+ * class which it uses to receive data; the instance of this class is
+ * called "communicationWrapper_". As of this writing, this wrapper
+ * class is implemented by NetMonWrapper (for reading data into the
+ * aggregator from the eventbuilder) and TransferWrapper (for reading
+ * data into an art process). This class presents a unified approach
+ * to handling art provenance, regardless of the communication
+ * protocol used to read data in.
+ */
 template <typename U>
 class art::ArtdaqInput
 {
 public:
+	/**
+	 * \brief Copy Constructor is deleted
+	 */
 	ArtdaqInput(const ArtdaqInput&) = delete;
 
+	/**
+	 * \brief Copy Assignment operator is deleted
+	 * \return ArtdaqInput copy
+	 */
 	ArtdaqInput& operator=(const ArtdaqInput&) = delete;
 
+	/**
+	 * \brief ArtdaqInput Destructor
+	 */
 	~ArtdaqInput();
 
-	ArtdaqInput(const fhicl::ParameterSet&, art::ProductRegistryHelper&,
-	            const art::SourceHelper&);
+	/**
+	 * \brief ArtdaqInput Constructor
+	 * \param ps ParameterSet used to confiugre communication wrapper class
+	 * \param helper An art::ProductRegistryHelper for registering products
+	 * \param pm An art::SourceHelper for handling provenance
+	 */
+	ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegistryHelper& helper,
+				const art::SourceHelper& pm);
 
+	/**
+	 * \brief Called by art to close the input source. No-Op
+	 */
 	void closeCurrentFile();
 
-	void readFile(const std::string&, art::FileBlock*&);
+	/**
+	 * \brief Emulate reading a file
+	 * \param fb Output art::FileBlock object
+	 */
+	void readFile(const std::string&, art::FileBlock*& fb);
 
+	/**
+	 * \brief Whether additional events are expected from the source
+	 * \return True if ArtdaqInput has not been shut down
+	 */
 	bool hasMoreData() const;
 
+	/**
+	 * \brief Read the next event from the communication wrapper
+	 * \param inR RunPrincipal input pointer
+	 * \param inSR SubRunPrincipal input pointer
+	 * \param outR RunPrincipal output pointer
+	 * \param outSR SubRunPrincipal output pointer
+	 * \param outE EventPrincipal output pointer
+	 * \return Whether an event was successfully read from the communication wrapper
+	 */
 	bool readNext(art::RunPrincipal* const inR,
-	              art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR,
-	              art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
+				  art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR,
+				  art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
 
 private:
 	void
 	readAndConstructPrincipal(std::unique_ptr<TBufferFile>&,
-	                          unsigned long,
-	                          art::RunPrincipal* const,
-	                          art::SubRunPrincipal* const,
-	                          art::RunPrincipal*&,
-	                          art::SubRunPrincipal*&,
-	                          art::EventPrincipal*&);
+							  unsigned long,
+							  art::RunPrincipal* const,
+							  art::SubRunPrincipal* const,
+							  art::RunPrincipal*&,
+							  art::SubRunPrincipal*&,
+							  art::EventPrincipal*&);
 
 	template <class T>
 	void readDataProducts(std::unique_ptr<TBufferFile>&, T*&);
@@ -130,8 +167,8 @@ private:
 template <typename U>
 art::ArtdaqInput<U>::
 ArtdaqInput(const fhicl::ParameterSet& ps,
-            art::ProductRegistryHelper& helper,
-            const art::SourceHelper& pm)
+			art::ProductRegistryHelper& helper,
+			const art::SourceHelper& pm)
 	: shutdownMsgReceived_(false)
 	, outputFileCloseNeeded_(false)
 	, pm_(pm)
@@ -144,7 +181,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	// specific instantiation when it comes to messages
 
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "Begin: ArtdaqInput::ArtdaqInput(" \
+	TLOG_DEBUG("ArtdaqInput") << "Begin: ArtdaqInput::ArtdaqInput(" \
 		"const fhicl::ParameterSet& ps, " \
 		"art::ProductRegistryHelper& helper, " \
 		"const art::SourceHelper& pm)\n";
@@ -157,7 +194,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	if (!msg)
 	{
 		throw art::Exception(art::errors::DataCorruption) <<
-		      "ArtdaqInput: Could not receive message!";
+			  "ArtdaqInput: Could not receive message!";
 	}
 
 	// This first unsigned long is the message type code, ignored here in the constructor
@@ -170,8 +207,8 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	unsigned long ps_cnt = 0;
 	msg->ReadULong(ps_cnt);
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "ArtdaqInput: parameter set count: " << ps_cnt;
-	mf::LogDebug("ArtdaqInput") << "ArtdaqInput: reading parameter sets ...";
+	TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: parameter set count: " << ps_cnt;
+	TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: reading parameter sets ...";
 #endif
 	for (unsigned long I = 0; I < ps_cnt; ++I)
 	{
@@ -179,7 +216,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 		msg->ReadStdString(pset_str);
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput: parameter set: " << pset_str;
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: parameter set: " << pset_str;
 #endif
 
 		fhicl::ParameterSet pset;
@@ -189,7 +226,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 		fhicl::ParameterSetRegistry::put(pset);
 	}
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "ArtdaqInput: finished reading parameter sets.\n";
+	TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: finished reading parameter sets.\n";
 #endif
 	//
 	//  Read the MasterProductRegistry.
@@ -199,29 +236,29 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	helper.productList(productlist);
 
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "ArtdaqInput: got product list\n";
+	TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: got product list\n";
 #endif
 	if (art::debugit() >= 1)
 	{
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput: before BranchIDLists\n";
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: before BranchIDLists\n";
 #endif
 		BranchIDLists* bil = &BranchIDListRegistry::instance()->data();
 		int max_bli = bil->size();
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput: max_bli: " << max_bli << '\n';
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: max_bli: " << max_bli << '\n';
 #endif
 		for (int i = 0; i < max_bli; ++i)
 		{
 			int max_prdidx = (*bil)[i].size();
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "ArtdaqInput: max_prdidx: "
+			TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: max_prdidx: "
 				<< max_prdidx << '\n';
 #endif
 			for (int j = 0; j < max_prdidx; ++j)
 			{
 #ifdef LOGDEBUG
-				mf::LogDebug("ArtdaqInput") << "ArtdaqInput:"
+				TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput:"
 					<< " bli: "
 					<< i
 					<< " prdidx: "
@@ -250,14 +287,14 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	art::ParentageMap* parentageMap = ReadObjectAny<art::ParentageMap>(msg, "std::map<const art::Hash<5>,art::Parentage>", "ArtdaqInput::ArtdaqInput");
 
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "ArtdaqInput: got ParentageMap\n";
+	TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput: got ParentageMap\n";
 #endif
 	ParentageRegistry::put(*parentageMap);
 	//
 	//  Finished with init message.
 	//
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::ArtdaqInput("
+	TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::ArtdaqInput("
 		"const fhicl::ParameterSet& ps, "
 		"art::ProductRegistryHelper& helper, "
 		"const art::SourceHelper& pm)\n";
@@ -274,24 +311,23 @@ art::ArtdaqInput<U>::
 closeCurrentFile()
 {
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "Begin/End: ArtdaqInput::closeCurrentFile()\n";
+	TLOG_DEBUG("ArtdaqInput") << "Begin/End: ArtdaqInput::closeCurrentFile()\n";
 #endif
 }
 
 template <typename U>
 void
 art::ArtdaqInput<U>::
-readFile(const std::string& name, art::FileBlock*& fb)
+readFile(const std::string&, art::FileBlock*& fb)
 {
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "Begin: ArtdaqInput::"
+	TLOG_DEBUG("ArtdaqInput") << "Begin: ArtdaqInput::"
 		"readFile(const std::string& name, art::FileBlock*& fb)\n";
 #endif
-	(void)name;
 	fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInput2013"),
-	                        "nothing");
+							"nothing");
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::"
+	TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::"
 		"readFile(const std::string& name, art::FileBlock*& fb)\n";
 #endif
 }
@@ -302,21 +338,21 @@ art::ArtdaqInput<U>::
 hasMoreData() const
 {
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "Begin: ArtdaqInput::hasMoreData()\n";
+	TLOG_DEBUG("ArtdaqInput") << "Begin: ArtdaqInput::hasMoreData()\n";
 #endif
 	if (shutdownMsgReceived_)
 	{
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
 			"returning false on shutdownMsgReceived_.\n";
-		mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()\n";
+		TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()\n";
 #endif
 		return false;
 	}
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
+	TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
 		"returning true on not shutdownMsgReceived_.\n";
-	mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()\n";
+	TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()\n";
 #endif
 	return true;
 }
@@ -325,12 +361,12 @@ template <typename U>
 void
 art::ArtdaqInput<U>::
 readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
-                          unsigned long msg_type_code,
-                          art::RunPrincipal* const inR,
-                          art::SubRunPrincipal* const inSR,
-                          art::RunPrincipal*& outR,
-                          art::SubRunPrincipal*& outSR,
-                          art::EventPrincipal*& outE)
+						  unsigned long msg_type_code,
+						  art::RunPrincipal* const inR,
+						  art::SubRunPrincipal* const inSR,
+						  art::RunPrincipal*& outR,
+						  art::SubRunPrincipal*& outSR,
+						  art::EventPrincipal*& outE)
 {
 	//
 	//  Process the message.
@@ -344,37 +380,37 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 	{ // EndRun message.
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"processing EndRun message ...\n";
 #endif
 
 		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary",
-		                                               "ArtdaqInput::readAndConstructPrincipal"));
+													   "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"making flush RunPrincipal ...\n";
 #endif
 		outR = pm_.makeRunPrincipal(RunID::flushRun(), run_aux->beginTime());
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"making flush SubRunPrincipal ...\n";
 #endif
 		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(),
-		                                run_aux->beginTime());
+										run_aux->beginTime());
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"making flush EventPrincipal ...\n";
 #endif
 		outE = pm_.makeEventPrincipal(EventID::flushEvent(),
-		                              run_aux->endTime(), true,
-		                              EventAuxiliary::Any);
+									  run_aux->endTime(), true,
+									  EventAuxiliary::Any);
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"finished processing EndRun message.\n";
 #endif
 	}
@@ -382,16 +418,16 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 	{ // EndSubRun message.
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"processing EndSubRun message ...\n";
 #endif
 
 		subrun_aux.reset(ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary",
-		                                                     "ArtdaqInput::readAndConstructPrincipal"));
+															 "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"making flush RunPrincipal ...\n";
 #endif
 		outR = pm_.makeRunPrincipal(RunID::flushRun(), subrun_aux->beginTime());
@@ -416,22 +452,22 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 		if (inSR != nullptr) { inSR->setEndTime(currentTime); }
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"making flush SubRunPrincipal ...\n";
 #endif
 		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(),
-		                                subrun_aux->beginTime());
+										subrun_aux->beginTime());
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"making flush EventPrincipal ...\n";
 #endif
 		outE = pm_.makeEventPrincipal(EventID::flushEvent(),
-		                              subrun_aux->endTime(), true,
-		                              EventAuxiliary::Any);
+									  subrun_aux->endTime(), true,
+									  EventAuxiliary::Any);
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"finished processing EndSubRun message.\n";
 #endif
 	}
@@ -439,61 +475,61 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 	{ // Event message.
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"processing Event message ...\n";
 #endif
 
 		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary",
-		                                               "ArtdaqInput::readAndConstructPrincipal"));
+													   "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
 
 		subrun_aux.reset(ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary",
-		                                                     "ArtdaqInput::readAndConstructPrincipal"));
+															 "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 
 		event_aux.reset(ReadObjectAny<art::EventAuxiliary>(msg, "art::EventAuxiliary",
-		                                                   "ArtdaqInput::readAndConstructPrincipal"));
+														   "ArtdaqInput::readAndConstructPrincipal"));
 
 		history.reset(ReadObjectAny<art::History>(msg, "art::History",
-		                                          "ArtdaqInput::readAndConstructPrincipal"));
+												  "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", history.get());
 
 		// Can probably improve on error choice of "art::errors:Unknown"
 		if (!history->processHistoryID().isValid())
 		{
 			throw art::Exception(art::errors::Unknown) <<
-			      "readAndConstructPrincipal: processHistoryID of history in "
-			      "Event message is invalid!";
+				  "readAndConstructPrincipal: processHistoryID of history in "
+				  "Event message is invalid!";
 		}
 
 		if ((inR == nullptr) || !inR->id().isValid() ||
-		    (inR->run() != event_aux->run()))
+			(inR->run() != event_aux->run()))
 		{
 			// New run, either we have no input RunPrincipal, or the
 			// input run number does not match the event run number.
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: making RunPrincipal ...\n";
+			TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: making RunPrincipal ...\n";
 #endif
 			outR = pm_.makeRunPrincipal(*run_aux.get());
 		}
 		if ((inSR == nullptr) || !inSR->id().isValid() ||
-		    (inSR->subRun() != event_aux->subRun()))
+			(inSR->subRun() != event_aux->subRun()))
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the event subRun number.
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+			TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 				"making SubRunPrincipal ...\n";
 #endif
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux.get());
 		}
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: making EventPrincipal ...\n";
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: making EventPrincipal ...\n";
 #endif
 		outE = pm_.makeEventPrincipal(*event_aux.get(), std::move(history));
 
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readAndConstructPrincipal: "
+		TLOG_DEBUG("ArtdaqInput") << "readAndConstructPrincipal: "
 			"finished processing Event message.\n";
 #endif
 	}
@@ -508,11 +544,11 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 	unsigned long prd_cnt = 0;
 	{
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readDataProducts: reading data product count ...\n";
+		TLOG_DEBUG("ArtdaqInput") << "readDataProducts: reading data product count ...\n";
 #endif
 		msg->ReadULong(prd_cnt);
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readDataProducts: product count: " << prd_cnt << '\n';
+		TLOG_DEBUG("ArtdaqInput") << "readDataProducts: product count: " << prd_cnt << '\n';
 #endif
 	}
 	//
@@ -526,16 +562,16 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 
 		{
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "readDataProducts: Reading branch key.\n";
+			TLOG_DEBUG("ArtdaqInput") << "readDataProducts: Reading branch key.\n";
 #endif
 			bk.reset(ReadObjectAny<BranchKey>(msg, "art::BranchKey",
-			                                  "ArtdaqInput::readDataProducts"));
+											  "ArtdaqInput::readDataProducts"));
 		}
 
 		if (art::debugit() >= 1)
 		{
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "readDataProducts: got product class: '"
+			TLOG_DEBUG("ArtdaqInput") << "readDataProducts: got product class: '"
 				<< bk->friendlyClassName_
 				<< "' modlbl: '"
 				<< bk->moduleLabel_
@@ -549,21 +585,21 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 		ProductList::const_iterator iter;
 		{
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "readDataProducts: looking up product ...\n";
+			TLOG_DEBUG("ArtdaqInput") << "readDataProducts: looking up product ...\n";
 #endif
 			iter = productList.find(*bk);
 			if (iter == productList.end())
 			{
 				throw art::Exception(art::errors::ProductNotFound)
-				      << "No product is registered for\n"
-				      << "  process name:                '"
-				      << bk->processName_ << "'\n"
-				      << "  module label:                '"
-				      << bk->moduleLabel_ << "'\n"
-				      << "  product friendly class name: '"
-				      << bk->friendlyClassName_ << "'\n"
-				      << "  product instance name:       '"
-				      << bk->productInstanceName_ << "'\n";
+					  << "No product is registered for\n"
+					  << "  process name:                '"
+					  << bk->processName_ << "'\n"
+					  << "  module label:                '"
+					  << bk->moduleLabel_ << "'\n"
+					  << "  product friendly class name: '"
+					  << bk->friendlyClassName_ << "'\n"
+					  << "  product instance name:       '"
+					  << bk->productInstanceName_ << "'\n";
 			}
 		}
 		// Note: This must be a reference to the unique copy in
@@ -572,7 +608,7 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 		std::unique_ptr<EDProduct> prd;
 		{
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "readDataProducts: Reading product.\n";
+			TLOG_DEBUG("ArtdaqInput") << "readDataProducts: Reading product.\n";
 #endif
 
 			// JCF, May-25-2016
@@ -588,15 +624,15 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 		std::unique_ptr<const ProductProvenance> prdprov;
 		{
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "readDataProducts: Reading product provenance.\n";
+			TLOG_DEBUG("ArtdaqInput") << "readDataProducts: Reading product provenance.\n";
 #endif
 			prdprov.reset(ReadObjectAny<ProductProvenance>(msg,
-			                                               "art::ProductProvenance",
-			                                               "ArtdaqInput::readDataProducts"));
+														   "art::ProductProvenance",
+														   "ArtdaqInput::readDataProducts"));
 		}
 		{
 #ifdef LOGDEBUG
-			mf::LogDebug("ArtdaqInput") << "readDataProducts: inserting product: class: '"
+			TLOG_DEBUG("ArtdaqInput") << "readDataProducts: inserting product: class: '"
 				<< bd.friendlyClassName()
 				<< "' modlbl: '"
 				<< bd.moduleLabel()
@@ -640,11 +676,11 @@ template <typename U>
 bool
 art::ArtdaqInput<U>::
 readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
-         art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
-         art::EventPrincipal*& outE)
+		 art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
+		 art::EventPrincipal*& outE)
 {
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "Begin: ArtdaqInput::readNext\n";
+	TLOG_DEBUG("ArtdaqInput") << "Begin: ArtdaqInput::readNext\n";
 #endif
 	if (outputFileCloseNeeded_)
 	{
@@ -652,9 +688,9 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 		// Signal that we need the output file closed by returning false,
 		// but answering true to the hasMoreData() query.
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput::readNext: "
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput::readNext: "
 			"returning false on outputFileCloseNeeded_\n";
-		mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
+		TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
 #endif
 		return false;
 	}
@@ -674,12 +710,12 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 	unsigned long msg_type_code = 0;
 	{
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput::readNext: "
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput::readNext: "
 			"getting message type code ...\n";
 #endif
 		msg->ReadULong(msg_type_code);
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput::readNext: "
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput::readNext: "
 			"message type: " << msg_type_code << '\n';
 #endif
 	}
@@ -688,15 +724,15 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 		// Shutdown message.
 		shutdownMsgReceived_ = true;
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput::readNext: "
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput::readNext: "
 			"returning false on Shutdown message.\n";
-		mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
+		TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
 #endif
 		return false;
 	}
 
 	readAndConstructPrincipal(msg, msg_type_code, inR, inSR, outR,
-	                          outSR, outE);
+							  outSR, outE);
 	//
 	//  Read per-event metadata needed to construct principal.
 	//
@@ -707,9 +743,9 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 		readDataProducts(msg, outR);
 		// Signal that we should close the input and output file.
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "ArtdaqInput::readNext: "
+		TLOG_DEBUG("ArtdaqInput") << "ArtdaqInput::readNext: "
 			"returning false on EndRun message.\n";
-		mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
+		TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
 #endif
 		return false;
 	}
@@ -727,7 +763,7 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 		if (inR != 0 && inSR != 0 && outR != 0 && outSR != 0)
 		{
 			if (inR->id().isFlush() && inSR->id().isFlush() &&
-			    outR->id().isFlush() && outSR->id().isFlush())
+				outR->id().isFlush() && outSR->id().isFlush())
 			{
 				outR = 0;
 				outSR = 0;
@@ -741,8 +777,8 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 		// we are called.
 		outputFileCloseNeeded_ = true;
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readNext: returning true on EndSubRun message.\n";
-		mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
+		TLOG_DEBUG("ArtdaqInput") << "readNext: returning true on EndSubRun message.\n";
+		TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
 #endif
 		return true;
 	}
@@ -751,16 +787,16 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 		// Event message.
 		readDataProducts(msg, outE);
 #ifdef LOGDEBUG
-		mf::LogDebug("ArtdaqInput") << "readNext: returning true on Event message.\n";
-		mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
+		TLOG_DEBUG("ArtdaqInput") << "readNext: returning true on Event message.\n";
+		TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
 #endif
 		return true;
 	}
 	// Unknown message.
 	// FIXME: What do we throw here for invalid message code?
 #ifdef LOGDEBUG
-	mf::LogDebug("ArtdaqInput") << "readNext: returning false on unknown msg_type_code!\n";
-	mf::LogDebug("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
+	TLOG_DEBUG("ArtdaqInput") << "readNext: returning false on unknown msg_type_code!\n";
+	TLOG_DEBUG("ArtdaqInput") << "End:   ArtdaqInput::readNext\n";
 #endif
 	return false;
 }

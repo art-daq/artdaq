@@ -5,9 +5,10 @@
 #include "artdaq/DAQrate/DataSenderManager.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
-#include "trace.h"
 
 #include <fhiclcpp/make_ParameterSet.h>
+
+#define TRACE_NAME "TransferTest"
 
 std::pair<size_t, double> artdaq::TransferTest::do_sending()
 {

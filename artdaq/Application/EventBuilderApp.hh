@@ -1,0 +1,118 @@
+#ifndef artdaq_Application_MPI2_EventBuilderApp_hh
+#define artdaq_Application_MPI2_EventBuilderApp_hh
+
+#include <future>
+
+#include "artdaq/Application/Commandable.hh"
+#include "artdaq/Application/EventBuilderCore.hh"
+
+namespace artdaq
+{
+	class EventBuilderApp;
+}
+
+/**
+ * \brief EventBuilderApp is an artdaq::Commandable derived class which controls the EventBuilderCore
+ */
+class artdaq::EventBuilderApp : public artdaq::Commandable
+{
+public:
+	/**
+	* \brief EventBuilderApp Constructor
+	* \param rank Rank of this EventBuilder
+	* \param name Friendly name of this application instance (MessageFacility Category)
+	*/
+	EventBuilderApp(int rank, std::string name);
+
+	/**
+	* \brief Copy Constructor is deleted
+	*/
+	EventBuilderApp(EventBuilderApp const&) = delete;
+
+	/**
+	* \brief Default Destructor
+	*/
+	virtual ~EventBuilderApp() = default;
+
+	/**
+	* \brief Copy Assignment Operator is deleted
+	* \return EventBuilderApp copy
+	*/
+	EventBuilderApp& operator=(EventBuilderApp const&) = delete;
+
+	// these methods provide the operations that are used by the state machine
+	/**
+	* \brief Initialize the EventBuilderCore
+	* \param pset ParameterSet used to configure the EventBuilderCore
+	* \return Whether the transition succeeded
+	*/
+	bool do_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t) override;
+
+	/**
+	* \brief Start the EventBuilderCore
+	* \param id Run ID of new run
+	* \return Whether the transition succeeded
+	*/
+	bool do_start(art::RunID id, uint64_t, uint64_t) override;
+
+	/**
+	* \brief Stop the EventBuilderCore
+	* \return Whether the transition succeeded
+	*/
+	bool do_stop(uint64_t, uint64_t) override;
+
+	/**
+	* \brief Pause the EventBuilderCore
+	* \return Whether the transition succeeded
+	*/
+	bool do_pause(uint64_t, uint64_t) override;
+
+	/**
+	* \brief Resume the EventBuilderCore
+	* \return Whether the transition succeeded
+	*/
+	bool do_resume(uint64_t, uint64_t) override;
+
+	/**
+	* \brief Shutdown the EventBuilderCore
+	* \return Whether the transition succeeded
+	*/
+	bool do_shutdown(uint64_t) override;
+
+	/**
+	* \brief Soft-Initialize the EventBuilderCore
+	* \param pset ParameterSet used to configure the EventBuilderCore
+	* \return Whether the transition succeeded
+	*/
+	bool do_soft_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t) override;
+
+	/**
+	* \brief Reinitialize the EventBuilderCore
+	* \param pset ParameterSet used to configure the EventBuilderCore
+	* \return Whether the transition succeeded
+	*/
+	bool do_reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t) override;
+
+	/**
+	* \brief Action taken upon entering the "Booted" state
+	*
+	* This is a No-Op
+	*/
+	void BootedEnter() override;
+
+	/* Report_ptr */
+	/**
+	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to EventBuilderCore
+	 * \param which What to report on
+	 * \return Report string. Empty for unknown "which" parameter
+	 */
+	std::string report(std::string const& which) const override;
+
+private:
+	int rank_;
+	std::string name_;
+	std::unique_ptr<artdaq::EventBuilderCore> event_builder_ptr_;
+	std::future<size_t> event_building_future_;
+};
+
+#endif /* artdaq_Application_MPI2_EventBuilderApp_hh */

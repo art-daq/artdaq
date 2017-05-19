@@ -1,20 +1,4 @@
-// #include "artdaq/TransferPlugins/TransferInterface.hh"
-// #include "artdaq-core/Data/Fragment.hh"
-// #include "artdaq-core/Utilities/ExceptionHandler.hh"
-
-// #include "messagefacility/MessageLogger/MessageLogger.h"
-
-#include <trace.h>
-
-#include "artdaq/DAQdata/Globals.hh"
-// #include <boost/tokenizer.hpp>
-
 #include <sys/shm.h>
-// #include <memory>
-// #include <iostream>
-// #include <string>
-// #include <limits>
-// #include <sstream>
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
 
 #define SHMEM_SLEEP 0
@@ -22,11 +6,11 @@
 
 
 artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role) :
-                                                                                 TransferInterface(pset, role)
-                                                                                 , shm_segment_id_(-1)
-                                                                                 , shm_ptr_(NULL)
-                                                                                 , shm_key_(pset.get<int>("shm_key", std::hash<std::string>()(uniqueLabel())))
-                                                                                 , role_(role)
+																				 TransferInterface(pset, role)
+																				 , shm_segment_id_(-1)
+																				 , shm_ptr_(NULL)
+																				 , shm_key_(pset.get<int>("shm_key", std::hash<std::string>()(uniqueLabel())))
+																				 , role_(role)
 {
 	// char* keyChars = getenv("ARTDAQ_SHM_KEY");
 	// if (keyChars != NULL && shm_key_ == static_cast<int>(std::hash<std::string>()(unique_label_))) {
@@ -61,18 +45,18 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 		shm_segment_id_ = shmget(shm_key_, shmSize, IPC_CREAT | 0666);
 	}
 
-	mf::LogDebug(uniqueLabel()) << "shm_key == " << shm_key_ << ", shm_segment_id == " << shm_segment_id_;
+	TLOG_DEBUG(uniqueLabel()) << "shm_key == " << shm_key_ << ", shm_segment_id == " << shm_segment_id_ << TLOG_ENDL;
 
 	if (shm_segment_id_ > -1)
 	{
-		mf::LogDebug(uniqueLabel())
+		TLOG_DEBUG(uniqueLabel())
 			<< "Created/fetched shared memory segment with ID = " << shm_segment_id_
 			<< " and size " << shmSize
-			<< " bytes";
+			<< " bytes" << TLOG_ENDL;
 		shm_ptr_ = (ShmStruct*)shmat(shm_segment_id_, 0, 0);
-		mf::LogDebug(uniqueLabel())
+		TLOG_DEBUG(uniqueLabel())
 			<< "Attached to shared memory segment at address "
-			<< std::hex << shm_ptr_ << std::dec;
+			<< std::hex << shm_ptr_ << std::dec << TLOG_ENDL;
 		if (shm_ptr_ && shm_ptr_ != (void *)-1)
 		{
 			if (role_ == Role::kReceive)
@@ -82,7 +66,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 				size_t offset = sizeof(ShmStruct);
 				for (size_t ii = 0; ii < buffer_count_; ++ii)
 				{
-					mf::LogDebug(uniqueLabel()) << "Buffer " << ii << " is at 0x" << std::hex << offset << std::dec;
+					TLOG_DEBUG(uniqueLabel()) << "Buffer " << ii << " is at 0x" << std::hex << offset << std::dec << TLOG_ENDL;
 					shm_ptr_->buffers[ii].fragmentSizeWords = 0;
 					shm_ptr_->buffers[ii].offset = offset;
 					shm_ptr_->buffers[ii].sem = BUFFER_EMPTY;
@@ -92,16 +76,16 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 		}
 		else
 		{
-			mf::LogError(uniqueLabel()) << "Failed to attach to shared memory segment "
-				<< shm_segment_id_;
+			TLOG_ERROR(uniqueLabel()) << "Failed to attach to shared memory segment "
+				<< shm_segment_id_ << TLOG_ENDL;
 		}
 	}
 	else
 	{
-		mf::LogError(uniqueLabel()) << "Failed to connect to shared memory segment"
+		TLOG_ERROR(uniqueLabel()) << "Failed to connect to shared memory segment"
 			<< ", errno = " << errno << ".  Please check "
 			<< "if a stale shared memory segment needs to "
-			<< "be cleaned up. (ipcs, ipcrm -m <segId>)";
+			<< "be cleaned up. (ipcs, ipcrm -m <segId>)" << TLOG_ENDL;
 	}
 }
 
@@ -132,7 +116,7 @@ bool artdaq::ShmemTransfer::readyForWrite_()
 }
 
 int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
-                                           size_t receiveTimeout)
+										   size_t receiveTimeout)
 {
 	if (shm_ptr_)
 	{
@@ -154,7 +138,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 			}
 		}
 
-		//mf::LogDebug(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops;
+		//TLOG_DEBUG(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops << TLOG_ENDL;
 
 		if (readyForRead_())
 		{
@@ -171,21 +155,21 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 			TRACE(TRANSFER_RECEIVE1, "Setting semaphore on buf %u", shm_ptr_->read_pos.load());
 			buf->sem = READING_FRAGMENT;
 			RawDataType* bufPtr = offsetToPtr(buf->offset);
-			//mf::LogDebug(uniqueLabel()) << "Pointer is " << bufPtr;
+			//TLOG_DEBUG(uniqueLabel()) << "Pointer is " << bufPtr << TLOG_ENDL;
 			fragment.resize(buf->fragmentSizeWords);
 
 			artdaq::RawDataType* fragAddr = fragment.headerAddress();
 			size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
-			//mf::LogDebug(uniqueLabel()) << "Copying fragment of size " << fragSize << " from buffer " << (int)shm_ptr_->read_pos << " at 0x" << std::hex << buf->offset << std::dec;
+			//TLOG_DEBUG(uniqueLabel()) << "Copying fragment of size " << fragSize << " from buffer " << (int)shm_ptr_->read_pos << " at 0x" << std::hex << buf->offset << std::dec << TLOG_ENDL;
 			memcpy(fragAddr, bufPtr, fragSize);
-			//mf::LogDebug(uniqueLabel()) << "Done with copy";
+			//TLOG_DEBUG(uniqueLabel()) << "Done with copy" << TLOG_ENDL;
 
 			auto wordsOfHeaderAndMetadata = &*fragment.dataBegin() - &*fragment.headerBegin();
 			fragment.resize(buf->fragmentSizeWords - wordsOfHeaderAndMetadata);
 
 			if (buf->sem != READING_FRAGMENT || buf->writeCount != initCount)
 			{
-				//mf::LogWarning(uniqueLabel()) << "Semaphore was unset! This buffer has been clobbered!";
+				//TLOG_WARNING(uniqueLabel()) << "Semaphore was unset! This buffer has been clobbered!" << TLOG_ENDL;
 				return RECV_TIMEOUT; // Buffer was clobbered by a non-reliable writer...
 			}
 
@@ -205,8 +189,8 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 	}
 	else
 	{
-		mf::LogError(uniqueLabel()) << "Error in shared memory transfer plugin: pointer to shared memory segment is null, will sleep for "
-			<< receiveTimeout / 1.0e6 << " seconds and then return a timeout";
+		TLOG_ERROR(uniqueLabel()) << "Error in shared memory transfer plugin: pointer to shared memory segment is null, will sleep for "
+			<< receiveTimeout / 1.0e6 << " seconds and then return a timeout" << TLOG_ENDL;
 		usleep(receiveTimeout);
 		return artdaq::TransferInterface::RECV_TIMEOUT; // Should we EVER get shm_ptr_ == 0?
 	}
@@ -220,7 +204,7 @@ artdaq::ShmemTransfer::copyFragment(artdaq::Fragment& fragment, size_t send_time
 
 artdaq::TransferInterface::CopyStatus
 artdaq::ShmemTransfer::moveFragment(artdaq::Fragment&& fragment,
-                                    size_t send_timeout_usec)
+									size_t send_timeout_usec)
 {
 	return sendFragment(std::move(fragment), send_timeout_usec, true);
 }
@@ -253,7 +237,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		}
 	}
 
-	//mf::LogDebug(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos;
+	//TLOG_DEBUG(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << TLOG_ENDL;
 
 	// copy the fragment if the shm is available                                               
 	if ((reliableMode && readyForWrite_()) || !reliableMode)
@@ -267,11 +251,11 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
 		{
 			auto buf = &shm_ptr_->buffers[shm_ptr_->write_pos];
-			//mf::LogDebug(uniqueLabel()) << "Waiting for buffer " << (int)shm_ptr_->write_pos;
+			//TLOG_DEBUG(uniqueLabel()) << "Waiting for buffer " << (int)shm_ptr_->write_pos << TLOG_ENDL;
 			buf->sem = WRITING_FRAGMENT;
-			//mf::LogDebug(uniqueLabel()) << "Copying fragment with size " << fragSize << " into buffer " << (int)shm_ptr_->write_pos << " at 0x" << std::hex << buf->offset << std::dec;
+			//TLOG_DEBUG(uniqueLabel()) << "Copying fragment with size " << fragSize << " into buffer " << (int)shm_ptr_->write_pos << " at 0x" << std::hex << buf->offset << std::dec << TLOG_ENDL;
 			memcpy(offsetToPtr(buf->offset), fragAddr, fragSize);
-			//mf::LogDebug(uniqueLabel()) << "Done with copy";
+			//TLOG_DEBUG(uniqueLabel()) << "Done with copy" << TLOG_ENDL;
 			buf->fragmentSizeWords = fragment.size();
 
 			shm_ptr_->write_pos++;
@@ -287,13 +271,13 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		}
 		else
 		{
-			mf::LogWarning(uniqueLabel()) << "Fragment invalid for shared memory! "
+			TLOG_WARNING(uniqueLabel()) << "Fragment invalid for shared memory! "
 				<< "fragment address and size = "
 				<< fragAddr << " " << fragSize << " "
 				<< "sequence ID, fragment ID, and type = "
 				<< fragment.sequenceID() << " "
 				<< fragment.fragmentID() << " "
-				<< ((int)fragment.type());
+				<< ((int)fragment.type()) << TLOG_ENDL;
 			return CopyStatus::kErrorNotRequiringException;
 		}
 	}
@@ -304,7 +288,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 artdaq::RawDataType* artdaq::ShmemTransfer::offsetToPtr(size_t offset)
 {
 	auto res = reinterpret_cast<RawDataType*>(reinterpret_cast<uint8_t*>(shm_ptr_) + offset);
-	//mf::LogDebug(uniqueLabel()) << std::hex << "base=" << shm_ptr_ << ", offset=0x" << offset << ", res=" << res << std::dec;
+	//TLOG_DEBUG(uniqueLabel()) << std::hex << "base=" << shm_ptr_ << ", offset=0x" << offset << ", res=" << res << std::dec << TLOG_ENDL;
 	return res;
 }
 

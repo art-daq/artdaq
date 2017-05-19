@@ -1,9 +1,7 @@
 #define MPI_MODE 1
 
-#include "test/DAQrate/TransferTest.hh"
-#include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Application/configureMessageFacility.hh"
+#include "test/DAQrate/TransferTest.hh"
 #include <fhiclcpp/make_ParameterSet.h>
 #include <mpi.h>
 #include <cstdlib>

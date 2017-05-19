@@ -10,9 +10,9 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
-#include "trace.h"		// TRACE
 #define TRACE_NAME "BinaryMPIOutput"
 
 #include <iomanip>
@@ -23,16 +23,6 @@
 #include <memory>
 #include "unistd.h"
 
-struct Config
-{
-	fhicl::Atom<uint64_t> max_fragment_size_words{fhicl::Name("max_fragment_size_words")};
-	fhicl::Atom<size_t> mpi_buffer_count{fhicl::Name("mpi_buffer_count")};
-	fhicl::Atom<size_t> first_evb_rank{fhicl::Name("first_event_builder_rank")};
-	fhicl::Atom<size_t> evb_count{fhicl::Name("event_builder_count")};
-	fhicl::Atom<int> rt_priority{fhicl::Name("rt_priority"), 0};
-	fhicl::Atom<bool> synchronous_sends{fhicl::Name("synchronous_sends"), true};
-};
-
 namespace art
 {
 	class BinaryMPIOutput;
@@ -41,12 +31,32 @@ namespace art
 using art::BinaryMPIOutput;
 using fhicl::ParameterSet;
 
+/**
+ * \brief An art::OutputModule which sends Fragments using DataSenderManager.
+ * This module produces output identical to that of a BoardReader, for use in
+ * systems which have multiple layers of EventBuilders.
+ */
 class art::BinaryMPIOutput final: public OutputModule
 {
 public:
-	explicit BinaryMPIOutput(ParameterSet const&);
+	/**
+	 * \brief BinaryMPIOutput Constructor
+	 * \param ps ParameterSet used to configure BinaryMPIOutput
+	 * 
+	 * BinaryMPIOutput forwards its ParameterSet to art::OutputModule, 
+	 * so any Parameters it requires are also required by BinaryMPIOutput.
+	 * BinaryMPIOutput also forwards its ParameterSet to DataSenderManager,
+	 * so any Parameters *it* requires are *also* required by BinaryMPIOuptut.
+	 * Finally, BinaryMPIOutput accpets the following parameters:
+	 * "rt_priority" (Default: 0): Priority for this thread
+	 * "module_name" (Default: BinaryMPIOutput): Friendly name for this module (MessageFacility Category)
+	 */
+	explicit BinaryMPIOutput(ParameterSet const& ps);
 
-	~BinaryMPIOutput();
+	/**
+	 * \brief BinaryMPIOutput Destructor
+	 */
+	virtual ~BinaryMPIOutput();
 
 private:
 	void beginJob() override;
@@ -67,12 +77,7 @@ private:
 private:
 	ParameterSet data_pset_;
 	std::string name_ = "BinaryMPIOutput";
-	uint64_t max_fragment_size_words_ = 0;
-	size_t mpi_buffer_count_ = 0;
-	size_t first_evb_rank_ = 0;
-	size_t evb_count_ = 0;
 	int rt_priority_ = 0;
-	bool synchronous_sends_ = true;
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_ = {nullptr};
 };
 
@@ -123,15 +128,12 @@ initialize_MPI_()
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
 		if (status != 0)
 		{
-			mf::LogError(name_)
+			TLOG_ERROR(name_)
 				<< "Failed to set realtime priority to " << rt_priority_
-				<< ", return code = " << status;
+				<< ", return code = " << status << TLOG_ENDL;
 		}
 #pragma GCC diagnostic pop
 	}
-
-	TRACE(3, "BinaryMPIOutput::initializeMPI(mpi_buffer_count=%lu max_fragment_size_words=%lu first_evb_rank=%lu evb_count=%lu synchronous_sends=%i )"
-		, mpi_buffer_count_, max_fragment_size_words_, first_evb_rank_, evb_count_, int(synchronous_sends_));
 
 	sender_ptr_ = std::make_unique<artdaq::DataSenderManager>(data_pset_);
 	assert(sender_ptr_);
@@ -148,52 +150,14 @@ bool
 art::BinaryMPIOutput::
 readParameterSet_(fhicl::ParameterSet const& pset)
 {
-	mf::LogDebug(name_) << "BinaryMPIOutput::readParameterSet_ method called with "
+	TLOG_DEBUG(name_) << "BinaryMPIOutput::readParameterSet_ method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+		<< "\"." << TLOG_ENDL;
 
 	// determine the data sending parameters
-	try
-	{
-		max_fragment_size_words_ = pset.get<uint64_t>("max_fragment_size_words");
-	}
-	catch (...)
-	{
-		mf::LogError(name_)
-			<< "The max_fragment_size_words parameter was not specified "
-			<< "in the BinaryMPIOutput initialization PSet: \""
-			<< pset.to_string() << "\".";
-		return false;
-	}
-	try { mpi_buffer_count_ = pset.get<size_t>("mpi_buffer_count"); }
-	catch (...)
-	{
-		mf::LogError(name_)
-			<< "The mpi_buffer_count parameter was not specified "
-			<< "in the fragment_receiver initialization PSet: \""
-			<< pset.to_string() << "\".";
-		return false;
-	}
-	try { first_evb_rank_ = pset.get<size_t>("first_event_builder_rank"); }
-	catch (...)
-	{
-		mf::LogError(name_)
-			<< "The first_event_builder_rank parameter was not specified "
-			<< "in the fragment_receiver initialization PSet: \""
-			<< pset.to_string() << "\".";
-		return false;
-	}
-	try { evb_count_ = pset.get<size_t>("event_builder_count"); }
-	catch (...)
-	{
-		mf::LogError(name_)
-			<< "The event_builder_count parameter was not specified "
-			<< "in the fragment_receiver initialization PSet: \""
-			<< pset.to_string() << "\".";
-		return false;
-	}
+	data_pset_ = pset;
+	name_ = pset.get<std::string>("module_name", "BinaryMPIOutput");
 	rt_priority_ = pset.get<int>("rt_priority", 0);
-	synchronous_sends_ = pset.get<bool>("synchronous_sends", true);
 
 	TRACE(4, "BinaryMPIOutput::readParameterSet()");
 

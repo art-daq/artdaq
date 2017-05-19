@@ -7,38 +7,69 @@
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 
-class TBufferFile;
-
-namespace art
-{
-	class ActivityRegistry;
-}
-
-namespace fhicl
-{
-	class ParameterSet;
-}
-
 // ----------------------------------------------------------------------
 
+/**
+ * \brief NetMonTransportService extends NetMonTransportServiceInterface.
+ * It sends events using DataSenderManager and receives events from the GlobalQueue
+ */
 class NetMonTransportService : public NetMonTransportServiceInterface
 {
 public:
-	~NetMonTransportService();
+	/**
+	 * \brief NetMonTransportService Destructor. Calls disconnect().
+	 */
+	virtual ~NetMonTransportService();
 
-	NetMonTransportService(fhicl::ParameterSet const&, art::ActivityRegistry&);
+	/**
+	 * \brief NetMonTransportService Constructor
+	 * \param pset ParameterSet used to configure NetMonTransportService and DataSenderManager
+	 * 
+	 * \verbatim
+	 * NetMonTransportService accepts the following Parameters
+	 * "rank" (OPTIONAL): The rank of this applicaiton, for use by non-artdaq applications running NetMonTransportService
+	 * \endverbatim
+	 */
+	NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&);
 
-	void connect();
+	/**
+	 * \brief Reconnect the NetMonTransportService.
+	 * 
+	 * Creates a new instance of DataSenderManager using the stored ParameterSet
+	 */
+	void connect() override;
 
-	void disconnect();
+	/**
+	 * \brief Disconnects the NetMonTranportService
+	 * 
+	 * Destructs the DataSenderManager
+	 */
+	void disconnect() override;
 
-	void listen();
+	/**
+	 * \brief Listen for connections. This method is a No-Op.
+	 */
+	void listen() override;
 
-	void sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile&);
+	/**
+	 * \brief Send ROOT data, wrapped in an artdaq::Fragment object
+	 * \param sequenceId The sequence id of the Fragment which will wrap the ROOT data
+	 * \param messageType The type id of the Fragment which will wrap the ROOT data
+	 * \param msg The ROOT data to send
+	 */
+	void sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg) override;
 
-	void receiveMessage(TBufferFile*&);
+	/**
+	 * \brief Receive data from the ConcurrentQueue
+	 * \param[out] msg Received data
+	 */
+	void receiveMessage(TBufferFile*& msg) override;
 
-	size_t dataReceiverCount() { return sender_ptr_->destinationCount(); }
+	/**
+	 * \brief Get the number of data receivers
+	 * \return The number of data receivers
+	 */
+	size_t dataReceiverCount() const { return sender_ptr_->destinationCount(); }
 private:
 	fhicl::ParameterSet data_pset_;
 

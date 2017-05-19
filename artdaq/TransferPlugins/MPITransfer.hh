@@ -18,19 +18,53 @@
 
 namespace artdaq
 {
+	/**
+	 * \brief MPITransfer is a TransferInterface implementation plugin that transfers data using MPI
+	 */
 	class MPITransfer : public TransferInterface
 	{
 	public:
-		MPITransfer(fhicl::ParameterSet, TransferInterface::Role);
+		/**
+		 * \brief MPITransfer Constructor
+		 * \param pset ParameterSet used to configure MPITransfer
+		 * \param role Role of this MPITransfer instance (kSend or kReceive)
+		 * 
+		 * \verbatim
+		 * MPITransfer accepts the following Parameters:
+		 * "synchronous_sends" (Default: true): When false, use MPI_ISend, otherwise, use MPI_SSend
+		 * \endverbatim
+		 * MPITransfer also requires all Parameters for configuring a TransferInterface
+		 */
+		MPITransfer(fhicl::ParameterSet pset, Role role);
 
-		~MPITransfer();
+		/**
+		 * \brief MPITransfer Destructor
+		 */
+		virtual ~MPITransfer();
 
-		// Send the fragment to the specified destination.
-		virtual TransferInterface::CopyStatus copyFragment(Fragment& frag, size_t timeout_usec);
+		/**
+		 * \brief Copy a Fragment to the destination. Forces asynchronous send
+		 * \param frag Fragment to copy
+		 * \param timeout_usec Timeout for send, in microseconds
+		 * \return CopyStatus detailing result of copy
+		 */
+		CopyStatus copyFragment(Fragment& frag, size_t timeout_usec) override;
 
-		virtual TransferInterface::CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec);
+		/**
+		 * \brief Move a Fragment to the destination.
+		 * \param frag Fragment to move
+		 * \param timeout_usec Timeout for send, in microseconds
+		 * \return CopyStatus detailing result of copy
+		 */
+		CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec) override;
 
-		virtual int receiveFragment(Fragment& frag, size_t timeout_usec);
+		/**
+		 * \brief Receive a Fragment using MPI
+		 * \param[out] frag Received Fragment
+		 * \param timeout_usec Timeout for receive, in microseconds
+		 * \return Rank of sender or RECV_TIMEOUT
+		 */
+		int receiveFragment(Fragment& frag, size_t timeout_usec) override;
 
 	private:
 		enum class status_t

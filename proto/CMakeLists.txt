@@ -37,6 +37,26 @@ art_make_exec(NAME artdaqDriver
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+  art_make_exec(NAME aggregator
+    SOURCE
+    aggregator.cc
+  LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+  artdaq_DAQdata
+  artdaq_BuildInfo
+  artdaq-core_Utilities
+  artdaq-core_Generators
+  art_Framework_Art
+  artdaq_ExternalComms
+  ${FHICLCPP}
+  ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${XMLRPC_CLIENTPP}
+  ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
+  )
+
 art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins
@@ -55,11 +75,17 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-art_make_exec(perfdump
+  art_make_exec(NAME routing_master
+  SOURCE
+  routing_master.cc
   LIBRARIES
-  artdaq_DAQrate
+  artdaq_Application
+  artdaq_Application_MPI2
+  artdaq_Application_Routing
+  ${FHICLCPP}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
-
+  
  art_make_exec(NAME builder
    SOURCE
    builder.cc
@@ -76,6 +102,14 @@ art_make_exec(perfdump
    ${Boost_PROGRAM_OPTIONS_LIBRARY}
    ${MPI_C_LIBRARIES}
    )
+
+art_make_exec(NAME tracemf
+    SOURCE
+    tracemf.cc
+    LIBRARIES
+    artdaq_DAQdata
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    )
 
 cet_test(config_t
   SOURCES

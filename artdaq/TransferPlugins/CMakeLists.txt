@@ -82,4 +82,5 @@ simple_plugin(RTIDDS "transfer"
 endif()
 
 install_headers(SUBDIRS detail)
+install_fhicl(SUBDIRS fcl)
 install_source(SUBDIRS detail)

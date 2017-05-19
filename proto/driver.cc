@@ -14,6 +14,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
@@ -95,6 +96,7 @@ int main(int argc, char * argv[]) try
 	std::unique_ptr<artdaq::CommandableFragmentGenerator> commandable_gen =
 		dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>(gen);
 
+	artdaq::configureMessageFacility("artdaqDriver");
 	artdaq::MetricManager metricMan_;
 	metricMan = &metricMan_;
 	my_rank = 0;
@@ -106,10 +108,11 @@ int main(int argc, char * argv[]) try
 	catch (...) {} // OK if there's no metrics table defined in the FHiCL 
 
 	if (metric_pset.is_empty()) {
-		mf::LogInfo("artdaqDriver") << "No metric plugins appear to be defined";
+		TLOG_INFO("artdaqDriver") << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try {
 		metricMan_.initialize(metric_pset, "artdaqDriver");
+		metricMan_.do_start();
 	}
 	catch (...) {
 	}
@@ -145,12 +148,17 @@ int main(int argc, char * argv[]) try
 		commandable_gen->StartCmd(run, timeout, timestamp);
 	}
 
+	TRACE( 50, "driver main before store.startRun" );
+	store.startRun( run );
+
 	// Read or generate fragments as rapidly as possible, and feed them
 	// into the EventStore. The throughput resulting from this design
 	// choice is likely to have the fragment reading (or generation)
 	// speed as the limiting factor
 	while ((commandable_gen && commandable_gen->getNext(frags)) ||
 		(gen && gen->getNext(frags))) {
+		TRACE( 50, "driver main: getNext returned frags.size()=%zd current event_count=%d"
+		       ,frags.size(),event_count );
 		for (auto & val : frags) {
 			if (val->sequenceID() != previous_sequence_id) {
 				++event_count;
@@ -189,6 +197,7 @@ int main(int argc, char * argv[]) try
 			<< "onto the queue." << std::endl;
 	}
 
+	metricMan_.do_stop();
 	return readerReturnValue;
 }
 catch (std::string & x)

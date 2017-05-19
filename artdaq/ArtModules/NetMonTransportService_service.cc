@@ -1,3 +1,4 @@
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
@@ -12,7 +13,6 @@
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "TClass.h"
 #include "TBufferFile.h"
@@ -31,7 +31,7 @@ static ParameterSet empty_pset;
 NetMonTransportService::
 ~NetMonTransportService()
 {
-	disconnect();
+	NetMonTransportService::disconnect();
 }
 
 NetMonTransportService::
@@ -42,6 +42,7 @@ NetMonTransportService(ParameterSet const& pset, art::ActivityRegistry&)
 	, incoming_events_(artdaq::getGlobalQueue())
 	, recvd_fragments_(nullptr)
 {
+	if(pset.has_key("rank")) my_rank = pset.get<int>("rank");
 	incoming_events_.setReaderIsReady();
 }
 
@@ -72,17 +73,17 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 {
 	if (sender_ptr_ == nullptr)
 	{
-		mf::LogDebug("NetMonTransportService") << "Reconnecting DataSenderManager";
+		TLOG_DEBUG("NetMonTransportService") << "Reconnecting DataSenderManager" << TLOG_ENDL;
 		connect();
 	}
 
-	mf::LogDebug("NetMonTransportService") << "Sending message";
+	TLOG_DEBUG("NetMonTransportService") << "Sending message" << TLOG_ENDL;
 	artdaq::NetMonHeader header;
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment
 		fragment(std::ceil(msg.Length() /
-		                   static_cast<double>(sizeof(artdaq::RawDataType))),
-		         sequenceId, 0, messageType, header);
+						   static_cast<double>(sizeof(artdaq::RawDataType))),
+				 sequenceId, 0, messageType, header);
 
 	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
 	sender_ptr_->sendFragment(std::move(fragment));
@@ -108,7 +109,7 @@ receiveMessage(TBufferFile*& msg)
 		   sorted by sequence ID before they can be passed to art.
 		*/
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(),
-		          artdaq::fragmentSequenceIDCompare);
+				  artdaq::fragmentSequenceIDCompare);
 	}
 
 	artdaq::Fragment topFrag = std::move(recvd_fragments_->at(0));
@@ -118,11 +119,10 @@ receiveMessage(TBufferFile*& msg)
 		recvd_fragments_.reset(nullptr);
 	}
 
-	artdaq::NetMonHeader* header = topFrag.metadata<artdaq::NetMonHeader>();
-	char* buffer = (char *)malloc(header->data_length);
+	auto header = topFrag.metadata<artdaq::NetMonHeader>();
+	auto buffer = static_cast<char *>(malloc(header->data_length));
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 	msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
 }
 
-DEFINE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService,
-	NetMonTransportServiceInterface)
+DEFINE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService, NetMonTransportServiceInterface)

@@ -5,9 +5,9 @@
 //  $RCSfile: Timeout.cxx,v $
 //  rev="$Revision: 1.13 $$Date: 2016/10/12 21:00:13 $";
 /*
-    g++ -Wall -g -std=c++0x -c Timeout.cxx
+	g++ -Wall -g -std=c++0x -c Timeout.cxx
 OR
-    g++ -Wall -g -std=c++0x -shared -fPIC -o Timeout.so Timeout.cxx -lrt
+	g++ -Wall -g -std=c++0x -shared -fPIC -o Timeout.so Timeout.cxx -lrt
 */
 #include <stdio.h>				// printf
 #include <sys/time.h>           /* struct timeval */
@@ -17,7 +17,7 @@ OR
 #include <list>
 using std::list;
 #include "artdaq/TransferPlugins/detail/Timeout.hh"
-#include "trace.h"				// TRACE
+#include "artdaq/DAQdata/Globals.hh"				// TRACE
 
 // public:
 
@@ -38,7 +38,7 @@ Timeout::timeoutspec & Timeout::timeoutspec::operator=( const Timeout::timeoutsp
 {   TRACE( 18, "Timeout::timeoutspec copy assignment (operator=) other.desc="+other.desc );
 	desc = other.desc;
 	tag=other.tag;
-    function=other.function;
+	function=other.function;
 	ts=other.ts;
 	period=other.period;
 	missed_periods=other.missed_periods;
@@ -58,8 +58,8 @@ Timeout::Timeout(int max_tmos)
 
 void
 Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& function
-                      , uint64_t period_us
-                      , uint64_t start_us)
+					  , uint64_t period_us
+					  , uint64_t start_us)
 {
 	timeoutspec tmo;
 	tmo.desc = desc;
@@ -73,7 +73,7 @@ Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& functi
 
 void
 Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& function
-                      , int rel_ms)
+					  , int rel_ms)
 {
 	timeoutspec tmo;
 	tmo.desc = desc;
@@ -87,8 +87,8 @@ Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& functi
 
 void
 Timeout::add_periodic(const char* desc
-                      , uint64_t period_us
-                      , uint64_t start_us)
+					  , uint64_t period_us
+					  , uint64_t start_us)
 {
 	TRACE( 19, "add_periodic - desc="+std::string(desc)+" period_us=%lu start_us=%lu"
 		, period_us, start_us );
@@ -104,7 +104,7 @@ Timeout::add_periodic(const char* desc
 
 void
 Timeout::add_relative(const char* desc, void* tag, std::function<void()>& function
-                      , int rel_ms)
+					  , int rel_ms)
 {
 	timeoutspec tmo;
 	tmo.desc = desc;
@@ -118,7 +118,7 @@ Timeout::add_relative(const char* desc, void* tag, std::function<void()>& functi
 
 void
 Timeout::add_relative(std::string desc
-                      , int rel_ms)
+					  , int rel_ms)
 {
 	timeoutspec tmo;
 	tmo.desc = desc.c_str();
@@ -132,7 +132,7 @@ Timeout::add_relative(std::string desc
 
 int // tmo_tod_us is an output
 Timeout::get_next_expired_timeout(std::string& desc, void** tag, std::function<void()>& function
-                                  , uint64_t* tmo_tod_us)
+								  , uint64_t* tmo_tod_us)
 {
 	int skipped = 0;
 	timeoutspec tmo;
@@ -228,7 +228,7 @@ Timeout::timeoutlist_init()
 
 
 int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo
-                                            , uint64_t tod_now_us)
+											, uint64_t tod_now_us)
 {
 	int skipped = 0;
 	if (active_time_.size() == 0)
@@ -326,7 +326,7 @@ Timeout::copy_in_timeout(timeoutspec& tmo)
 
 bool
 Timeout::cancel_timeout(void* tag
-                        , std::string desc)
+						, std::string desc)
 {
 	bool retsts = false;
 	std::unordered_multimap<std::string, size_t>::iterator ii, ee;

@@ -3,9 +3,8 @@
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "trace.h"
 
-artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
+artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset)
 	: stop_requested_(false)
 	, source_threads_()
 	, source_plugins_()
@@ -15,15 +14,16 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	, recv_frag_count_()
 	, recv_frag_size_()
 	, recv_seq_count_()
+	, suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled",true))
 	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
-	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 1000))
+	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
 {
-	mf::LogDebug("DataReceiverManager") << "Constructor";
-	auto enabled_srcs = pset.get<std::vector<size_t>>("enabled_sources", std::vector<size_t>());
+	TLOG_DEBUG("DataReceiverManager") << "Constructor" << TLOG_ENDL;
+	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
 	auto enabled_srcs_empty = enabled_srcs.size() == 0;
 	if (enabled_srcs_empty)
 	{
-		mf::LogInfo("DataReceiverManager") << "enabled_sources not specified, assuming all sources enabled.";
+		TLOG_INFO("DataReceiverManager") << "enabled_sources not specified, assuming all sources enabled." << TLOG_ENDL;
 	}
 	else
 	{
@@ -38,33 +38,33 @@ artdaq::DataReceiverManager::DataReceiverManager(fhicl::ParameterSet pset)
 	{
 		try
 		{
-			auto ss = std::stoi(s.substr(1));
+			auto ss = srcs.get<fhicl::ParameterSet>(s).get<int>("source_rank");
 			if (enabled_srcs_empty) enabled_sources_.insert(ss);
 			source_plugins_[ss] = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s, TransferInterface::Role::kReceive));
 			fragment_store_[ss];
 		}
-		catch (std::invalid_argument)
-		{
-			TRACE(3, "Invalid source specification: " + s);
-		}
 		catch (cet::exception ex)
 		{
-			mf::LogWarning("DataReceiverManager") << "cet::exception caught while setting up source " << s << ": " << ex.what();
+			TLOG_WARNING("DataReceiverManager") << "cet::exception caught while setting up source " << s << ": " << ex.what() << TLOG_ENDL;
+		}
+		catch (std::exception ex)
+		{
+			TLOG_WARNING("DataReceiverManager") << "std::exception caught while setting up source " << s << ": " << ex.what() << TLOG_ENDL;
 		}
 		catch (...)
 		{
-			mf::LogWarning("DataReceiverManager") << "Non-cet exception caught while setting up source " << s << ".";
+			TLOG_WARNING("DataReceiverManager") << "Non-cet exception caught while setting up source " << s << "." << TLOG_ENDL;
 		}
 	}
 	if (srcs.get_pset_names().size() == 0)
 	{
-		mf::LogError("DataReceiverManager") << "No sources configured!";
+		TLOG_ERROR("DataReceiverManager") << "No sources configured!" << TLOG_ENDL;
 	}
 }
 
 artdaq::DataReceiverManager::~DataReceiverManager()
 {
-	mf::LogDebug("DataReceiverManager") << "Destructor";
+	TLOG_DEBUG("DataReceiverManager") << "Destructor" << TLOG_ENDL;
 	TRACE(5, "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=%zu, bytes=%zu", count(), byteCount());
 	stop_requested_ = true;
 
@@ -167,8 +167,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
-		TRACE(6, "DataReceiverManager::runReceiver_: Begin loop");
-		auto is_suppressed = recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount() || suppressed_sources_.count(source_rank) > 0;
+		TRACE(16, "DataReceiverManager::runReceiver_: Begin loop");
+		auto is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
 		while (!stop_requested_ && is_suppressed)
 		{
 			TRACE(6, "DataReceiverManager::runReceiver_: Suppressing receiver rank %d", source_rank);
@@ -178,15 +178,15 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				std::unique_lock<std::mutex> lck(output_cv_mutex_);
 				output_cv_.wait_for(lck, std::chrono::seconds(1));
 			}
-			is_suppressed = recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount() || suppressed_sources_.count(source_rank) > 0;
+			is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
 		}
 		if (stop_requested_) return;
 
 		auto start_time = std::chrono::steady_clock::now();
-		TRACE(6, "DataRecevierManager::runReceiver_: Calling receiveFragment");
+		TRACE(16, "DataReceiverManager::runReceiver_: Calling receiveFragment");
 		auto fragment = std::unique_ptr<Fragment>(new Fragment());
 		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
-		TRACE(6, "DataReceiverManager::runReceiver_: Done with receiveFragment, ret=%d (should be %d)", ret, source_rank);
+		TRACE(16, "DataReceiverManager::runReceiver_: Done with receiveFragment, ret=%d (should be %d)", ret, source_rank);
 
 		if (ret != source_rank) continue; // Receive timeout or other oddness
 

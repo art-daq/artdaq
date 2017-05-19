@@ -1,7 +1,5 @@
 #include "test/DAQrate/TransferTest.hh"
-#include "trace.h"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Application/configureMessageFacility.hh"
 #include <fhiclcpp/make_ParameterSet.h>
 
 

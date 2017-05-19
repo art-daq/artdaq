@@ -26,16 +26,44 @@ namespace artdaq
 	class PrintBuildInfo;
 }
 
+/**
+ * \brief An art::EDAnalyzer which prints any artdaq::BuildInfo objects stored in the run
+ */
 class artdaq::PrintBuildInfo : public art::EDAnalyzer
 {
 public:
+	/**
+	 * \brief PrintBuildInfo Constructor
+	 * \param p ParameterSet used to configure PrintBuildInfo
+	 * 
+	 * \verbatim
+	 * PrintBuildInfo accepts the following Parameters:
+	 * "buildinfo_module_label" (REQUIRED): The module label for the BuildInfo objects
+	 * "buildinfo_instance_label" (REQUIRED): The instance label for the BuildInfo objects
+	 * \endverbatim
+	 * 
+	 * These parameters should match those given to the BuildInfo module
+	 */
 	explicit PrintBuildInfo(fhicl::ParameterSet const& p);
 
-	virtual ~PrintBuildInfo();
+	/**
+	 * \brief Default virtual Destructor
+	 */
+	virtual ~PrintBuildInfo() = default;
 
+	/**
+	 * \brief Called for each event. Required overload for art::EDAnalyzer, No-Op here.
+	 */
 	void analyze(art::Event const&) override { }
 
-	virtual void beginRun(art::Run const& r);
+	/**
+	 * \brief Perform actions at the beginning of the run
+	 * \param run art::Run object
+	 * 
+	 * This function pretty-prints the BuildInfo information form the run object with the
+	 * configured module label and instance label.
+	 */
+	void beginRun(art::Run const& run) override;
 
 private:
 
@@ -50,10 +78,6 @@ artdaq::PrintBuildInfo::PrintBuildInfo(fhicl::ParameterSet const& pset)
 	, buildinfo_module_label_(pset.get<std::string>("buildinfo_module_label"))
 	, buildinfo_instance_label_(pset.get<std::string>("buildinfo_instance_label")) {}
 
-artdaq::PrintBuildInfo::~PrintBuildInfo()
-{
-	// Clean up dynamic memory and other resources here.
-}
 
 
 void artdaq::PrintBuildInfo::beginRun(art::Run const& run)

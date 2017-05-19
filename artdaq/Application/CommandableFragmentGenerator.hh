@@ -1,49 +1,6 @@
 #ifndef artdaq_Application_CommandableFragmentGenerator_hh
 #define artdaq_Application_CommandableFragmentGenerator_hh
 
-////////////////////////////////////////////////////////////////////////
-// CommandableFragmentGenerator is a FragmentGenerator-derived
-// abstract class that defines the interface for a FragmentGenerator
-// designed as a state machine with start, stop, etc., transition
-// commands. Users of classes derived from
-// CommandableFragmentGenerator will call these transitions via the
-// publically defined StartCmd(), StopCmd(), etc.; these public
-// functions contain functionality considered properly universal to
-// all CommandableFragmentGenerator-derived classes, including calls
-// to private virtual functions meant to be overridden in derived
-// classes. The same applies to this class's implementation of the
-// FragmentGenerator::getNext() pure virtual function, which is
-// declared final (i.e., non-overridable in derived classes) and which
-// itself calls a pure virtual getNext_() function to be implemented
-// in derived classes.
-
-// State-machine related interface functions will be called only from a
-// single thread. getNext() will be called only from a single
-// thread. The thread from which state-machine interfaces functions are
-// called may be a different thread from the one that calls getNext().
-
-// John F., 3/24/14
-
-// After some discussion with Kurt, CommandableFragmentGenerator has
-// been updated such that it now contains a member vector
-// fragment_ids_ ; if "fragment_id" is set in the FHiCL document
-// controlling a class derived from CommandableFragmentGenerator,
-// fragment_ids_ will be booked as a length-1 vector, and the value in
-// this vector will be returned by fragment_id(). fragment_id() will
-// throw an exception if the length of the vector isn't 1. If
-// "fragment_ids" is set in the FHiCL document, then fragment_ids_ is
-// filled with the values in the list which "fragment_ids" refers to,
-// otherwise it is set to the empty vector (this is what should happen
-// if the user sets the "fragment_id" variable in the FHiCL document,
-// otherwise exceptions will end up thrown due to the logical
-// conflict). If neither "fragment_id" nor "fragment_ids" is set in
-// the FHiCL document, writers of classes derived from this one will
-// be expected to override the virtual fragmentIDs() function with
-// their own code (the CompositeDriver class is an example of this)
-
-
-////////////////////////////////////////////////////////////////////////
-
 // Socket Includes
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -70,6 +27,9 @@
 
 namespace artdaq
 {
+	/**
+	 * \brief The RequestMode enumeration contains the possible ways which CommandableFragmentGenerator responds to data requests.
+	 */
 	enum class RequestMode
 	{
 		Single,
@@ -78,48 +38,186 @@ namespace artdaq
 		Ignored
 	};
 
+	/**
+	 * \brief CommandableFragmentGenerator is a FragmentGenerator-derived
+	 * abstract class that defines the interface for a FragmentGenerator
+	 * designed as a state machine with start, stop, etc., transition
+	 * commands.
+	 *
+	 * Users of classes derived from
+	 * CommandableFragmentGenerator will call these transitions via the
+	 * publically defined StartCmd(), StopCmd(), etc.; these public
+	 * functions contain functionality considered properly universal to
+	 * all CommandableFragmentGenerator-derived classes, including calls
+	 * to private virtual functions meant to be overridden in derived
+	 * classes. The same applies to this class's implementation of the
+	 * FragmentGenerator::getNext() pure virtual function, which is
+	 * declared final (i.e., non-overridable in derived classes) and which
+	 * itself calls a pure virtual getNext_() function to be implemented
+	 * in derived classes.
+	 *
+	 * State-machine related interface functions will be called only from a
+	 * single thread. getNext() will be called only from a single
+	 * thread. The thread from which state-machine interfaces functions are
+	 * called may be a different thread from the one that calls getNext().
+	 *
+	 * John F., 3/24/14
+	 *
+	 * After some discussion with Kurt, CommandableFragmentGenerator has
+	 * been updated such that it now contains a member vector
+	 * fragment_ids_ ; if "fragment_id" is set in the FHiCL document
+	 * controlling a class derived from CommandableFragmentGenerator,
+	 * fragment_ids_ will be booked as a length-1 vector, and the value in
+	 * this vector will be returned by fragment_id(). fragment_id() will
+	 * throw an exception if the length of the vector isn't 1. If
+	 * "fragment_ids" is set in the FHiCL document, then fragment_ids_ is
+	 * filled with the values in the list which "fragment_ids" refers to,
+	 * otherwise it is set to the empty vector (this is what should happen
+	 * if the user sets the "fragment_id" variable in the FHiCL document,
+	 * otherwise exceptions will end up thrown due to the logical
+	 * conflict). If neither "fragment_id" nor "fragment_ids" is set in
+	 * the FHiCL document, writers of classes derived from this one will
+	 * be expected to override the virtual fragmentIDs() function with
+	 * their own code (the CompositeDriver class is an example of this)
+	 */
 	class CommandableFragmentGenerator : public FragmentGenerator
 	{
 	public:
 
+		/**
+		 * \brief CommandableFragmentGenerator default constructor
+		 * 
+		 * This constructor defalt-initializes all parameters
+		 */
 		CommandableFragmentGenerator();
 
-		CommandableFragmentGenerator(const fhicl::ParameterSet&);
+		/**
+		 * \brief CommandableFragmentGenerator Constructor
+		 * \param ps ParameterSet used to configure CommandableFragmentGenerator
+		 * 
+		 * \verbatim
+		 * CommandableFragmentGenerator accepts the following Parameters:
+		 * "request_port" (Default: 3001): Port on which data requests will be received
+		 * "request_address" (Default: "227.128.12.26"): Address which CommandableFragmentGenerator will listen for requests on
+		 * "request_window_offset" (Default: 0): Request messages contain a timestamp. For Window request mode, start the window this far before the timestamp in the request
+		 * "request_window_width" (Default: 0): For Window request mode, the window will be timestamp - offset to timestamp - offset + width
+		 * "stale_request_timeout" (Default: -1): How long should request messages be retained
+		 * "request_windows_are_unique" (Default: true): Whether Fragments should be removed from the buffer when matched to a request window
+		 * "separate_data_thread" (Default: false): Whether data collection should proceed on its own thread. Required for all data request processing
+		 * "data_buffer_depth_fragments" (Default: 1000): How many Fragments to store in the buffer
+		 * "data_buffer_depth_mb" (Default: 1000): The maximum size of the data buffer in MB
+		 * "separate_monitoring_thread" (Default: false): Whether a thread that calls the checkHWStatus_ method should be created
+		 * "hardware_poll_interval_us" (Default: 0): If a separate monitoring thread is used, how often should it call checkHWStatus_
+		 * "board_id" (REQUIRED): The identification number for this CommandableFragmentGenerator
+		 * "fragment_ids" (Default: empty vector): A list of Fragment IDs created by this CommandableFragmentGenerator
+		 * "fragment_id" (Default: -99): The Fragment ID created by this CommandableFragmentGenerator
+		 *    Note that only one of fragment_ids and fragment_id should be specified in the configuration
+		 *  "sleep_on_stop_us" (Default: 0): How long to sleep before returning when stop transition is called
+		 *  "request_mode" (Deafult: Ignored): The mode by which the CommandableFragmentGenerator will process reqeusts
+		 *    Ignored: Request messages are ignored. This is a "push" CommandableFragmentGenerator
+		 *    Single: The CommandableFragmentGenerator responds to each request with the latest Fragment it has received
+		 *    Buffer: The CommandableFragmentGenerator responds to each request with all Fragments it has received since the last request
+		 *    Window: The CommandableFragmentGenerator searches its data buffer for all Fragments whose timestamp falls within the request window
+		 * \endverbatim
+		 */
+		explicit CommandableFragmentGenerator(const fhicl::ParameterSet& ps);
 
-		// Destroy the CommandableFragmentGenerator.
+		/**
+		 * \brief CommandableFragmentGenerator Destructor
+		 * 
+		 * Joins all threads before returning
+		 */
 		virtual ~CommandableFragmentGenerator();
 
-		virtual bool getNext(FragmentPtrs& output) final;
+		/**
+		 * \brief getNext calls either applyRequests or getNext_ to get any data that is ready to be sent to the EventBuilders
+		 * \param output FragmentPtrs object containing Fragments ready for transmission
+		 * \return Whether getNext completed without exceptions
+		 */
+		bool getNext(FragmentPtrs& output) override final;
 
-		// If we're using the dataThread, this method looks for active data requests
-		// and returns matching data
-		virtual bool applyRequests(FragmentPtrs& output) final;
+		/**
+		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
+		 * \param[out] output list of FragmentPtr objects ready for transmission
+		 * \return True if not stopped
+		 */
+		bool applyRequests(FragmentPtrs& output);
 
+		/**
+		 * \brief Opens the socket used to listen for data requests
+		 */
 		void setupRequestListener();
 
+		/**
+		 * \brief Send an EmptyFragmentType Fragment
+		 * \param[out] frags Output list to append EmptyFragmentType to
+		 * \param sequenceId Sequence ID of Empty Fragment
+		 * \param desc Message to log with reasoning for sending Empty Fragment
+		 * \return True if no exceptions
+		 */
 		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, std::string desc);
 
+		/**
+		 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
+		 * If the request message seqID > ev_counter, simply send empties until they're equal
+		 * \param[out] frags Output list to append EmptyFragmentType to
+		 */
 		void sendEmptyFragments(FragmentPtrs& frags);
 
+		/**
+		 * \brief Function that launches the data thread (getDataLoop())
+		 */
 		void startDataThread();
 
+		/**
+		 * \brief Function that launches the monitoring thread (getMonitoringDataLoop())
+		 */
 		void startMonitoringThread();
 
+		/**
+		 * \brief Function that launches the data request receiver thread (receiveRequestsLoop())
+		 */
 		void startRequestReceiverThread();
 
+		/**
+		 * \brief When separate_data_thread is set to true, this loop repeatedly calls getNext_ and adds returned Fragment
+		 * objects to the data buffer, blocking when the data buffer is full.
+		 */
 		void getDataLoop();
 
+		/**
+		 * \brief Test the configured constraints on the data buffer
+		 * \return Whether the data buffer is full
+		 */
 		bool dataBufferIsTooLarge();
 
+		/**
+		 * \brief Calculate the size of the dataBuffer and report appropriate metrics
+		 */
 		void getDataBufferStats();
 
+		/**
+		 * \brief Perform data buffer pruning operations. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
+		 * In Window and Buffer RequestModes, this function discards the oldest Fragment objects until the data buffer is below its size constraints,
+		 * then also checks for stale Fragments, based on the timestamp of the most recent Fragment.
+		 */
 		void checkDataBuffer();
 
+		/**
+		 * \brief This function regularly calls checkHWStatus_(), and sets the isHardwareOK flag accordingly.
+		 */
 		void getMonitoringDataLoop();
 
+		/**
+		 * \brief This function receives data request packets, adding new requests to the request list
+		 */
 		void receiveRequestsLoop();
 
-		virtual std::vector<Fragment::fragment_id_t> fragmentIDs()
+		/**
+		 * \brief Get the list of Fragment IDs handled by this CommandableFragmentGenerator
+		 * \return A std::vector<Fragment::fragment_id_t> containing the Fragment IDs handled by this CommandableFragmentGenerator
+		 */
+		std::vector<Fragment::fragment_id_t> fragmentIDs() override
 		{
 			return fragment_ids_;
 		}
@@ -128,35 +226,70 @@ namespace artdaq
 		// State-machine related interface below.
 		//
 
-
-		// After a call to 'StartCmd', all Fragments returned by getNext()
-		// will be marked as part of a Run with the given run number, and
-		// with subrun number 1. Calling StartCmd also resets the event
-		// number to 1.  After a call to StartCmd(), and until a call to
-		// StopCmd, getNext() -- and hence the virtual function it calls,
-		// getNext_() -- should return true as long as datataking is meant
-		// to take place, even if a particular call returns no fragments.
-
+		/**
+		 * \brief Start the CommandableFragmentGenerator
+		 * \param run Run ID of the new run
+		 * \param timeout Timeout for transition
+		 * \param timestamp Timestamp of transition
+		 * 
+		 * After a call to 'StartCmd', all Fragments returned by getNext()
+		 * will be marked as part of a Run with the given run number, and
+		 * with subrun number 1. Calling StartCmd also resets the event
+		 * number to 1.  After a call to StartCmd(), and until a call to
+		 * StopCmd, getNext() -- and hence the virtual function it calls,
+		 * getNext_() -- should return true as long as datataking is meant
+		 * to take place, even if a particular call returns no fragments.
+		 */
 		void StartCmd(int run, uint64_t timeout, uint64_t timestamp);
 
-		// After a call to StopCmd(), getNext() will eventually return
-		// false. This may not happen for several calls, if the
-		// implementation has data to be 'drained' from the system.
+		/**
+		 * \brief Stop the CommandableFragmentGenerator
+		 * \param timeout Timeout for transition
+		 * \param timestamp Timestamp of transition
+		 * 
+		 * After a call to StopCmd(), getNext() will eventually return
+		 * false. This may not happen for several calls, if the
+		 * implementation has data to be 'drained' from the system.
+		 */
 		void StopCmd(uint64_t timeout, uint64_t timestamp);
 
-		// A call to PauseCmd() is advisory. It is an indication that the
-		// BoardReader should stop the incoming flow of data, if it can do
-		// so.
+		/**
+		 * \brief Pause the CommandableFragmentGenerator
+		 * \param timeout Timeout for transition
+		 * \param timestamp Timestamp of transition
+		 * 
+		 * A call to PauseCmd() is advisory. It is an indication that the
+		 * BoardReader should stop the incoming flow of data, if it can do
+		 * so.
+		 */
 		void PauseCmd(uint64_t timeout, uint64_t timestamp);
 
-		// After a call to ResumeCmd(), the next Fragments returned from
-		// getNext() will be part of a new SubRun.
+		/**
+		 * \brief Resume the CommandableFragmentGenerator
+		 * \param timeout Timeout for transition
+		 * \param timestamp Timestamp of transition
+		 * 
+		 * After a call to ResumeCmd(), the next Fragments returned from
+		 * getNext() will be part of a new SubRun.
+		 */
 		void ResumeCmd(uint64_t timeout, uint64_t timestamp);
 
-		// 14-May-2015, KAB: added a "which" argument to allow callers
-		// to specify particular types of report information.
+		/**
+		 * \brief Get a report about a user-specified run-time quantity
+		 * \param which Which quantity to report
+		 * \return The report about the specified quantity
+		 * 
+		 * CommandableFragmentGenerator only implements "latest_exception",
+		 * a report on the last exception received. However, child classes
+		 * can override the reportSpecific function to provide additional
+		 * reports.
+		 */
 		std::string ReportCmd(std::string const& which = "");
 
+		/**
+		 * \brief Get the name used when reporting metrics
+		 * \return The name used when reporting metrics
+		 */
 		virtual std::string metricsReportingInstanceName() const
 		{
 			return instance_name_for_metrics_;
@@ -178,6 +311,10 @@ namespace artdaq
 		//    virtual void ResetCmd() final {}
 		//    virtual void ShutdownCmd() final {}
 
+		/**
+		 * \brief Get the current value of the exception flag
+		 * \return The current value of the exception flag
+		 */
 		bool exception() const { return exception_.load(); }
 
 	protected:
@@ -190,31 +327,85 @@ namespace artdaq
 		// class hasn't allowed its users to access these quantities, so
 		// they're probably fine as is
 
+		/**
+		 * \brief Get the current Run number
+		 * \return The current Run number
+		 */
 		int run_number() const { return run_number_; }
+		/**
+		 * \brief Get the current Subrun number
+		 * \return The current Subrun number
+		 */
 		int subrun_number() const { return subrun_number_; }
+		/**
+		 * \brief Timeout of last command
+		 * \return Timeout of last command
+		 */
 		uint64_t timeout() const { return timeout_; }
+		/**
+		 * \brief Timestamp of last command
+		 * \return Timestamp of last command
+		 */
 		uint64_t timestamp() const { return timestamp_; }
+
+		/**
+		 * \brief Get the current value of the should_stop flag
+		 * \return The current value of the should_stop flag
+		 */
 		bool should_stop() const { return should_stop_.load(); }
 
-		// ELF: 8/18/16: If we're running in a threaded way, we should let the applyRequests
-		// routine clear out the request buffer before stopping.
+		/**
+		 * \brief Routine used by applyRequests to make sure that all outstanding requests have been fulfilled before returning
+		 * \return The logical AND of should_stop, mode is not Ignored, and requests list size equal to 0
+		 */
 		bool check_stop();
 
+		/**
+		 * \brief Gets the current board_id
+		 * \return The current board_id
+		 */
 		int board_id() const { return board_id_; }
 
+		/**
+		 * \brief Get the current Fragment ID, if there is only one
+		 * \return The current fragment ID, if the re is only one
+		 * \exception cet::exception if the Fragment IDs list has more than one member
+		 */
 		int fragment_id() const;
 
+		/**
+		 * \brief Get the current value of the event counter
+		 * \return The current value of the event counter
+		 */
 		size_t ev_counter() const { return ev_counter_.load(); }
 
+		/**
+		 * \brief Increment the event counter, if the current RequestMode allows it
+		 * \param step Amount to increment the event counter by
+		 * \param force Force incrementing the event Counter
+		 * \return The previous value of the event counter
+		 */
 		size_t ev_counter_inc(size_t step = 1, bool force = false); // returns the prev value
 
+		/**
+		 * \brief Control the exception flag
+		 * \param exception Whether an excpetion has occurred
+		 */
 		void set_exception(bool exception) { exception_.store(exception); }
 
+		/**
+		 * \brief Sets the name for metrics reporting
+		 * \param name The new name for metrics reporting
+		 */
 		void metricsReportingInstanceName(std::string const& name)
 		{
 			instance_name_for_metrics_ = name;
 		}
 
+		/**
+		 * \brief Return the string representation of the current RequestMode
+		 * \return The string representation of the current RequestMode
+		 */
 		std::string printMode_();
 
 		// John F., 12/10/13 
@@ -225,7 +416,7 @@ namespace artdaq
 		// accessible via a getter function". Probably, but at this point
 		// it's not worth breaking code by implementing this. 
 
-		std::mutex mutex_;
+		std::mutex mutex_; ///< Mutex used to ensure that multiple transition commands do not run at the same time
 
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names

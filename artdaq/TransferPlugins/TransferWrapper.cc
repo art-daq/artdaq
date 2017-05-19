@@ -1,12 +1,12 @@
 #include "artdaq/TransferPlugins/TransferWrapper.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
 #include "cetlib/BasicPluginFactory.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "messagefacility/MessageLogger/MessageLogger.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <xmlrpc-c/girerr.hpp>
@@ -24,24 +24,28 @@
 
 namespace
 {
-	volatile std::sig_atomic_t gSignalStatus = 0;
+	volatile std::sig_atomic_t gSignalStatus = 0; ///< Stores singal from signal handler
 }
 
+/**
+ * \brief Handle a Unix signal
+ * \param signal Signal to handle
+ */
 void signal_handler(int signal)
 {
 	gSignalStatus = signal;
 }
 
 artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
-                                                                          timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
-                                                                          , dispatcherHost_(pset.get<std::string>("dispatcherHost"))
-                                                                          , dispatcherPort_(pset.get<std::string>("dispatcherPort"))
-                                                                          , serverUrl_("http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2")
-                                                                          , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
-                                                                          , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
-                                                                          , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
-                                                                          , debugLevel_(pset.get<std::size_t>("debugLevel", 0))
-                                                                          , monitorRegistered_(false)
+																		  timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
+																		  , dispatcherHost_(pset.get<std::string>("dispatcherHost"))
+																		  , dispatcherPort_(pset.get<std::string>("dispatcherPort"))
+																		  , serverUrl_("http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2")
+																		  , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
+																		  , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
+																		  , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
+																		  , debugLevel_(pset.get<std::size_t>("debugLevel", 0))
+																		  , monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
 
@@ -52,14 +56,14 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::yes,
-		                 "TransferWrapper: failure in call to MakeTransferPlugin");
+						 "TransferWrapper: failure in call to MakeTransferPlugin");
 	}
 
 	xmlrpc_c::clientSimple myClient;
 	xmlrpc_c::value result;
 
-	mf::LogInfo("TransferWrapper") << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
-		<< "\") with the dispatcher aggregator";
+	TLOG_INFO("TransferWrapper") << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
+		<< "\") with the dispatcher aggregator" << TLOG_ENDL;
 
 	try
 	{
@@ -71,13 +75,13 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 		errmsg << "Problem attempting XML-RPC call on host " << dispatcherHost_
 			<< ", port " << dispatcherPort_ << "; possible causes are malformed FHiCL or nonexistent process at requested port";
 		ExceptionHandler(ExceptionHandlerRethrow::yes,
-		                 errmsg.str());
+						 errmsg.str());
 	}
 
 	const std::string status = xmlrpc_c::value_string(result);
 
-	mf::LogInfo("TransferWrapper") << "Response from dispatcher is \""
-		<< status << "\"";
+	TLOG_INFO("TransferWrapper") << "Response from dispatcher is \""
+		<< status << "\"" << TLOG_ENDL;
 
 	if (status == "Success")
 	{
@@ -104,7 +108,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 		{
 			if (gSignalStatus)
 			{
-				mf::LogInfo("TransferWrapper") << "Ctrl-C appears to have been hit" << std::endl;
+				TLOG_INFO("TransferWrapper") << "Ctrl-C appears to have been hit" << TLOG_ENDL;
 				unregisterMonitor();
 				return;
 			}
@@ -122,9 +126,9 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 
 					if (debugLevel_ > 1)
 					{
-						mf::LogInfo("TransferWrapper") << "Received " << cntr++ << "-th event, "
+						TLOG_INFO("TransferWrapper") << "Received " << cntr++ << "-th event, "
 							<< "seqID == " << fragmentPtr->sequenceID()
-							<< ", type == " << static_cast<int>(fragmentPtr->type());
+							<< ", type == " << static_cast<int>(fragmentPtr->type()) << TLOG_ENDL;
 					}
 					continue;
 				}
@@ -132,14 +136,14 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 				{
 					if (debugLevel_ > 0)
 					{
-						mf::LogWarning("TransferWrapper") << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again";
+						TLOG_WARNING("TransferWrapper") << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again" << TLOG_ENDL;
 					}
 				}
 			}
 			catch (...)
 			{
 				ExceptionHandler(ExceptionHandlerRethrow::yes,
-				                 "Problem receiving data in TransferWrapper::receiveMessage");
+								 "Problem receiving data in TransferWrapper::receiveMessage");
 			}
 		}
 
@@ -150,7 +154,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::yes,
-			                 "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
+							 "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
 		}
 
 		checkIntegrity(*fragmentPtr);
@@ -167,7 +171,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			if (fragments_received > maxEventsBeforeInit_)
 			{
 				throw cet::exception("TransferWrapper") << "First " << maxEventsBeforeInit_ <<
-				      " events received did not include the \"Init\" event containing necessary info for art; exiting...";
+					  " events received did not include the \"Init\" event containing necessary info for art; exiting...";
 			}
 		}
 	}
@@ -176,7 +180,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 
 void
 artdaq::TransferWrapper::extractTBufferFile(const artdaq::Fragment& fragment,
-                                            std::unique_ptr<TBufferFile>& tbuffer)
+											std::unique_ptr<TBufferFile>& tbuffer)
 {
 	const artdaq::NetMonHeader* header = fragment.metadata<artdaq::NetMonHeader>();
 	char* buffer = (char *)malloc(header->data_length);
@@ -190,7 +194,7 @@ void
 artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 {
 	const size_t artdaqheader = artdaq::detail::RawFragmentHeader::num_words() *
-	                            sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
+								sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
 	const size_t payload = static_cast<size_t>(fragment.dataEndBytes() - fragment.dataBeginBytes());
 	const size_t metadata = sizeof(artdaq::NetMonHeader);
 	const size_t totalsize = fragment.sizeBytes();
@@ -207,7 +211,7 @@ artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 			" total size = " << totalsize << ", artdaq fragment header = " << artdaqheader <<
 			", metadata = " << metadata << ", payload = " << payload;
 
-		mf::LogError("TransferWrapper") << errmsg.str();
+		TLOG_ERROR("TransferWrapper") << errmsg.str() << TLOG_ENDL;
 
 		if (quitOnFragmentIntegrityProblem_)
 		{
@@ -227,7 +231,7 @@ artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 		errmsg << "Error: artdaq fragment appears to have type "
 			<< type << ", not found in the allowed fragment types list";
 
-		mf::LogError("TransferWrapper") << errmsg.str();
+		TLOG_ERROR("TransferWrapper") << errmsg.str() << TLOG_ENDL;
 		if (quitOnFragmentIntegrityProblem_)
 		{
 			throw cet::exception("TransferWrapper") << errmsg.str();
@@ -245,11 +249,11 @@ artdaq::TransferWrapper::unregisterMonitor()
 	if (!monitorRegistered_)
 	{
 		throw cet::exception("TransferWrapper") <<
-		      "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
+			  "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
 	}
 
-	mf::LogInfo("TransferWrapper") << "Requesting that this monitor (" << transfer_->uniqueLabel()
-		<< ") be unregistered from the dispatcher aggregator" << std::endl;
+	TLOG_INFO("TransferWrapper") << "Requesting that this monitor (" << transfer_->uniqueLabel()
+		<< ") be unregistered from the dispatcher aggregator" << TLOG_ENDL;
 
 	xmlrpc_c::clientSimple myClient;
 	xmlrpc_c::value result;
@@ -266,13 +270,13 @@ artdaq::TransferWrapper::unregisterMonitor()
 			<< transfer_->uniqueLabel()
 			<< "\" is unrecognized by contacted process or process at requested port doesn't exist";
 		ExceptionHandler(ExceptionHandlerRethrow::no,
-		                 errmsg.str());
+						 errmsg.str());
 	}
 
 	const std::string status = xmlrpc_c::value_string(result);
 
-	mf::LogInfo("TransferWrapper") << "Response from dispatcher is \""
-		<< status << "\"";
+	TLOG_INFO("TransferWrapper") << "Response from dispatcher is \""
+		<< status << "\"" << TLOG_ENDL;
 
 	if (status == "Success")
 	{
@@ -296,7 +300,7 @@ artdaq::TransferWrapper::~TransferWrapper()
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-			                 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
+							 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
 		}
 	}
 }

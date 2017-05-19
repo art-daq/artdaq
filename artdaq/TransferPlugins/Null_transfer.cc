@@ -2,33 +2,55 @@
 
 namespace artdaq
 {
+	/**
+	 * \brief NullTransfer does not send or receive data, but acts as if it did
+	 */
 	class NullTransfer : public TransferInterface
 	{
 	public:
-		NullTransfer(const fhicl::ParameterSet&, Role);
+		/**
+		 * \brief NullTransfer constructor
+		 * \param pset ParameterSet used to configure TransferInterface
+		 * \param role Role of this NullTransfer instance (kSend or kReceive)
+		 * 
+		 * NullTransfer only requires the Parameters for configuring a TransferInterface
+		 */
+		NullTransfer(const fhicl::ParameterSet& pset, Role role);
 
-		~NullTransfer() = default;
+		/**
+		 * \brief NullTransfer default Destructor
+		 */
+		virtual ~NullTransfer() = default;
 
-		virtual int receiveFragment(artdaq::Fragment&,
-		                            size_t)
+		/**
+		 * \brief Pretend to receive a Fragment
+		 * \return Source Rank (Success code)
+		 * 
+		 * WARNING: This function may create unintended side-effets. NullTransfer should
+		 * only really be used in Role::kSend!
+		 */
+		int receiveFragment(artdaq::Fragment&, size_t) override
 		{
 			return source_rank();
 		}
 
-		virtual CopyStatus copyFragment(artdaq::Fragment&,
-		                                size_t = std::numeric_limits<size_t>::max())
+		/**
+		 * \brief Pretend to copy a Fragment to a destination
+		 * \return CopyStatus::kSuccess (No-Op)
+		 */
+		CopyStatus copyFragment(artdaq::Fragment&, size_t) override
 		{
 			return CopyStatus::kSuccess;
 		}
 
-		virtual CopyStatus moveFragment(artdaq::Fragment&&,
-		                                size_t = std::numeric_limits<size_t>::max())
+		/**
+		* \brief Pretend to move a Fragment to a destination
+		* \return CopyStatus::kSuccess (No-Op)
+		*/
+		CopyStatus moveFragment(artdaq::Fragment&&, size_t) override
 		{
 			return CopyStatus::kSuccess;
 		}
-
-	private:
-		std::unique_ptr<TransferInterface> theTransfer_;
 	};
 }
 

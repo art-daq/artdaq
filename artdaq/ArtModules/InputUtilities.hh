@@ -36,7 +36,7 @@
 
 // JCF, Jul-18-2016
 
-// If LOGDEBUG is defined, the mf::LogDebug calls will print into the
+// If LOGDEBUG is defined, the TLOG_DEBUG calls will print into the
 // aggregator logfiles using artdaq v1_13_00; this creates HUGE files
 // and slows things down considerably, so only define this if you're
 // troubleshooting
@@ -44,6 +44,14 @@
 
 namespace art
 {
+	/**
+	 * \brief ReadObjectAny reads data from a TBufferFile and casts it to the given type
+	 * \tparam T The type of the data being read
+	 * \param infile A pointer to the TBufferFile being read
+	 * \param className Name of the class to retrieve (must be in ROOT dictionary)
+	 * \param callerName Name of the calling class, for logging purposes
+	 * \return Pointer to object of type T
+	 */
 	template <typename T>
 	T* ReadObjectAny(const std::unique_ptr<TBufferFile>& infile, const std::string& className, const std::string& callerName)
 	{
@@ -67,13 +75,19 @@ namespace art
 
 		T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr));
 #ifdef LOGDEBUG
-	mf::LogDebug(callerName) << "ReadObjectAny: Got object of class " << className << 
+	TLOG_DEBUG(callerName) << "ReadObjectAny: Got object of class " << className << 
 	  ", located at " << static_cast<void*>(ptr);
 #endif
 
 		return ptr;
 	}
 
+	/**
+	 * \brief Print the processHistoryID from the object
+	 * \tparam T Type of the object
+	 * \param label Label for the object
+	 * \param object Object to print processHistoryID from
+	 */
 	template <typename T>
 	void printProcessHistoryID(const std::string& label, const T& object)
 	{
@@ -86,7 +100,7 @@ namespace art
 				std::ostringstream OS;
 				object->processHistoryID().print(OS);
 #ifdef LOGDEBUG
-	mf::LogDebug("printProcessHistoryID") << label << ": "
+	TLOG_DEBUG("printProcessHistoryID") << label << ": "
 		  << "ProcessHistoryID: '"
 		  << OS.str() << "'\n";
 #endif
@@ -94,27 +108,33 @@ namespace art
 			else
 			{
 #ifdef LOGDEBUG
-	mf::LogDebug("printProcessHistoryID") << label << ": "
+	TLOG_DEBUG("printProcessHistoryID") << label << ": "
 		   << "ProcessHistoryID: 'INVALID'\n";
 #endif
 			}
 		}
 	}
 
+	/**
+	 * \brief Print data from a map-like class
+	 * \tparam T Type of the class
+	 * \param mappable Map-like class to print
+	 * \param description Description of the map-like class
+	 */
 	template <typename T>
 	void printProcessMap(const T& mappable, const std::string description)
 	{
 		(void) description; // Otherwise we get an error if LOGDEBUG isn't defined, since description won't be used
 
 #ifdef LOGDEBUG
-	mf::LogDebug("printProcessMap") << "Got " << description << "\n";
+	TLOG_DEBUG("printProcessMap") << "Got " << description << "\n";
 #endif
 
 		if (art::debugit() >= 1)
 		{
 #ifdef LOGDEBUG
-	  mf::LogDebug("printProcessMap") << "Dumping " << description << "...\n";
-	  mf::LogDebug("printProcessMap") << "Size: "
+	  TLOG_DEBUG("printProcessMap") << "Dumping " << description << "...\n";
+	  TLOG_DEBUG("printProcessMap") << "Size: "
 		<< (unsigned long) mappable.size() << '\n';
 #endif
 			for (auto I = mappable.begin(), E = mappable.end(); I != E; ++I)
@@ -122,17 +142,17 @@ namespace art
 				std::ostringstream OS;
 				I->first.print(OS);
 #ifdef LOGDEBUG
-	mf::LogDebug("printProcessMap") << description << ": id: '" << OS.str() << "'\n";
+	TLOG_DEBUG("printProcessMap") << description << ": id: '" << OS.str() << "'\n";
 #endif
 				OS.str("");
 #ifdef LOGDEBUG
-	mf::LogDebug("printProcessMap") << description << ": data.size(): "
+	TLOG_DEBUG("printProcessMap") << description << ": data.size(): "
 		  << I->second.data().size() << '\n';
 #endif
 				I->second.data().back().id().print(OS);
 
 #ifdef LOGDEBUG
-	mf::LogDebug("printProcessMap") << description << ": data.back().id(): '"
+	TLOG_DEBUG("printProcessMap") << description << ": data.back().id(): '"
 		  << OS.str() << "'\n";
 #endif
 			}
