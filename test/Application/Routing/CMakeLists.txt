@@ -8,8 +8,8 @@ cet_test(NoOp_policy_t USE_BOOST_UNIT
 cet_test(CapacityTest_policy_t USE_BOOST_UNIT
 LIBRARIES artdaq_Application_Routing
 )
-cet_test(routing_master_t HANDBUILT
-  TEST_EXEC mpirun
-  TEST_ARGS -hosts localhost -np 4 routing_master -c routing_master_t.fcl
-  DATAFILES routing_master_t.fcl
-  )
+#cet_test(routing_master_t HANDBUILT
+#  TEST_EXEC mpirun
+#  TEST_ARGS -hosts localhost -np 4 routing_master -c routing_master_t.fcl
+#  DATAFILES routing_master_t.fcl
+#  )
