@@ -7,6 +7,8 @@
 #include "canvas/Utilities/Exception.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include <sys/time.h>
+#define TRACE_NAME "RawEventQueueReader"
+#include "trace.h"
 
 using std::string;
 
@@ -21,6 +23,7 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 	, unidentified_instance_name("unidentified")
 	, shutdownMsgReceived(false)
 	, outputFileCloseNeeded(false)
+	, bytesRead(0)
 	, fragment_type_map_(Fragment::MakeSystemTypeMap())
 	, readNext_calls_(0)
 {
@@ -185,16 +188,19 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 	{
 		std::map<Fragment::type_t, std::string>::const_iterator iter =
 			fragment_type_map_.find(type_list[idx]);
+		auto product = popped_event->releaseProduct(type_list[idx]);
+		for (auto &frag : *product)
+			bytesRead += frag.sizeBytes();
 		if (iter != iter_end)
 		{
-			put_product_in_principal(popped_event->releaseProduct(type_list[idx]),
+			put_product_in_principal(std::move(product),
 									 *outE,
 									 pretend_module_name,
 									 iter->second);
 		}
 		else
 		{
-			put_product_in_principal(popped_event->releaseProduct(type_list[idx]),
+			put_product_in_principal(std::move(product),
 									 *outE,
 									 pretend_module_name,
 									 unidentified_instance_name);
@@ -205,6 +211,9 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 				<< unidentified_instance_name << "\"." << TLOG_ENDL;
 		}
 	}
+	TRACE( 10, "readNext: bytesRead=%lu metricMan=%p", bytesRead, (void*)metricMan );
+	if (metricMan)
+		metricMan->sendMetric( "bytesRead", bytesRead>>20, "MB", 5, false, "", true );
 
 	return true;
 }
