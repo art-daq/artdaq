@@ -44,6 +44,7 @@ namespace artdaq
 			std::string unidentified_instance_name; ///< The name to use for unknown Fragment types
 			bool shutdownMsgReceived; ///< Whether a shutdown message has been received
 			bool outputFileCloseNeeded; ///< If an explicit output file close message is needed
+			size_t bytesRead; ///< running total of number of bytes dequeued
 
 			/**
 			 * \brief RawEventQueueReader Constructor

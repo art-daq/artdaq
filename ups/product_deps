@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v2_02_03
+parent artdaq  v2_03_00
 defaultqual    e10:s46
 
 # These optional lines define the installed directories where
@@ -28,7 +28,7 @@ xmlrpc_c		v1_39_10a
 artdaq_ganglia_plugin   v1_02_05        -       optional
 artdaq_epics_plugin     v1_01_08        -       optional
 artdaq_mfextensions     v1_01_08        -       optional
-cetbuildtools		v5_06_07	-	only_for_build
+cetbuildtools		v5_08_01	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
 

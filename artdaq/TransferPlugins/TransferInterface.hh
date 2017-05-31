@@ -113,12 +113,12 @@ namespace artdaq
 		 * \brief Get the source rank for this TransferInterface instance
 		 * \return The source rank for this Transferinterface instance
 		 */
-		int source_rank() const { return source_rank_; }
+	        virtual int source_rank() const { return source_rank_; }
 		/**
 		 * \brief Get the destination rank for this TransferInterface instance
 		 * \return The destination rank for this TransferInterface instance
 		 */
-		int destination_rank() const { return destination_rank_; }
+		virtual int destination_rank() const { return destination_rank_; }
 	private:
 		const Role role_;
 
