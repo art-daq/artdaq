@@ -38,10 +38,12 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	{
 		try
 		{
-			auto ss = srcs.get<fhicl::ParameterSet>(s).get<int>("source_rank");
-			if (enabled_srcs_empty) enabled_sources_.insert(ss);
-			source_plugins_[ss] = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s, TransferInterface::Role::kReceive));
-			fragment_store_[ss];
+		  auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s, 
+											TransferInterface::Role::kReceive));
+		  auto source_rank = transfer->source_rank();
+		  if (enabled_srcs_empty) enabled_sources_.insert( source_rank );
+		  source_plugins_[ source_rank ] = std::move(transfer);
+		  fragment_store_[ source_rank ];
 		}
 		catch (cet::exception ex)
 		{
