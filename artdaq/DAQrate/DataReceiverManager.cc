@@ -14,7 +14,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	, recv_frag_count_()
 	, recv_frag_size_()
 	, recv_seq_count_()
-	, suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled",true))
+	, suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled", true))
 	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
 {
@@ -38,12 +38,12 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	{
 		try
 		{
-		  auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s, 
-											TransferInterface::Role::kReceive));
-		  auto source_rank = transfer->source_rank();
-		  if (enabled_srcs_empty) enabled_sources_.insert( source_rank );
-		  source_plugins_[ source_rank ] = std::move(transfer);
-		  fragment_store_[ source_rank ];
+			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s,
+																				  TransferInterface::Role::kReceive));
+			auto source_rank = transfer->source_rank();
+			if (enabled_srcs_empty) enabled_sources_.insert(source_rank);
+			source_plugins_[source_rank] = std::move(transfer);
+			fragment_store_[source_rank];
 		}
 		catch (cet::exception ex)
 		{
@@ -161,7 +161,7 @@ artdaq::FragmentPtr artdaq::DataReceiverManager::recvFragment(int& rank, size_t 
 	rank = current_source;
 
 	if (current_fragment != nullptr)
-	TRACE(5, "DataReceiverManager::recvFragment: Done  rank=%d, fragment size=%zu words, seqId=%zu", rank, current_fragment->size(), current_fragment->sequenceID());
+		TRACE(5, "DataReceiverManager::recvFragment: Done  rank=%d, fragment size=%zu words, seqId=%zu", rank, current_fragment->size(), current_fragment->sequenceID());
 	return std::move(current_fragment);
 }
 
@@ -192,11 +192,18 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		if (ret != source_rank) continue; // Receive timeout or other oddness
 
-		recv_frag_count_.incSlot(source_rank);
-		recv_frag_size_.incSlot(source_rank, fragment->size() * sizeof(RawDataType));
-		recv_seq_count_.setSlot(source_rank, fragment->sequenceID());
+		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType) 
+		{
+			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));
+		}
+		else 
+		{
+			recv_frag_count_.incSlot(source_rank);
+			recv_frag_size_.incSlot(source_rank, fragment->size() * sizeof(RawDataType));
+			recv_seq_count_.setSlot(source_rank, fragment->sequenceID());
+		}
 
-		bool endOfData = fragment->type() == artdaq::Fragment::EndOfDataFragmentType;
+
 
 		if (metricMan)
 		{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
@@ -207,12 +214,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), fragment->size() * sizeof(RawDataType) / delta_t, "B/s", 1);
 		}
 
-		if (stop_requested_) return;
 
 		fragment_store_[source_rank].emplace_back(std::move(fragment));
 		input_cv_.notify_all();
 
-		if (endOfData)
+		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank))
 		{
 			return;
 		}

@@ -32,14 +32,14 @@ public:
 	/**
 	 * \brief DataReceiverManager Constructor
 	 * \param ps ParameterSet used to configure the DataReceiverManager
-	 * 
+	 *
 	 * \verbatim
 	 * DataReceiverManager accepts the following Parameters:
 	 * "auto_suppression_enabled" (Default: true): Whether to suppress a source that gets too far ahead
 	 * "max_receive_difference" (Default: 50): Threshold (in sequence ID) for suppressing a source
 	 * "receive_timeout_usec" (Default: 100000): The timeout for receive operations
 	 * "enabled_sources" (OPTIONAL): List of sources which are enabled. If not specified, all sources are assumed enabled
-	 * "sources" (Default: blank table): FHiCL table containing TransferInterface configurations for each source. 
+	 * "sources" (Default: blank table): FHiCL table containing TransferInterface configurations for each source.
 	 *   NOTE: "source_rank" MUST be specified (and unique) for each source!
 	 * \endverbatim
 	 */
@@ -103,7 +103,7 @@ public:
 	 * \brief Place the given Fragment back in the FragmentStore (Called when the EventStore is full)
 	 * \param source_rank Rank from which the rejected Fragment came
 	 * \param frag Fragment to return to the store
-	 * 
+	 *
 	 * This function will automatically suppress source_rank
 	 */
 	void reject_fragment(int source_rank, FragmentPtr frag);
@@ -140,7 +140,7 @@ private:
 
 /**
  * \brief This class contains tracking information for all Fragment objects which have been received from a specific source
- * 
+ *
  * This class was designed so that there could be a mutex for each source, instead of locking all sources whenever a
  * Fragment had to be retrieved. FragmentStoreElement is itself a container type, sorted by Fragment arrival time. It is a
  * modified queue, with only the first element accessible, but it allows elements to be added to either end (for rejected Fragments).
@@ -151,8 +151,10 @@ public:
 	/**
 	 * \brief FragmentStoreElement Constructor
 	 */
-	FragmentStoreElement() : frags_()
-	                       , empty_(true)
+	FragmentStoreElement()
+		: frags_()
+		, empty_(true)
+		, eod_marker_(-1)
 	{
 		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
 	}
@@ -201,10 +203,14 @@ public:
 		return std::move(current_fragment);
 	}
 
+	void SetEndOfData(size_t eod) { eod_marker_ = eod; }
+	size_t GetEndOfData() const { return eod_marker_; }
+
 private:
 	mutable std::mutex mutex_;
 	FragmentPtrs frags_;
 	std::atomic<bool> empty_;
+	size_t eod_marker_;
 };
 
 inline
