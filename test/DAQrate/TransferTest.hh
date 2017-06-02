@@ -6,7 +6,7 @@
 #include <chrono>
 #include <cmath>
 
-#include <fhiclcpp/ParameterSet.h>
+#include "fhiclcpp/ParameterSet.h"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq

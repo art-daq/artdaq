@@ -479,6 +479,7 @@ size_t artdaq::EventBuilderCore::process_fragments()
 		else
 		{
 			eod_fragments_received_++;
+			event_store_ptr_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 			/* We count the EOD fragment as a fragment received but the SHandles class
 		   does not count it as a fragment sent which means we need to add one to
 		   the total expected fragments. */

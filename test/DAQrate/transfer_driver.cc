@@ -1,6 +1,6 @@
 #include "test/DAQrate/TransferTest.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include <fhiclcpp/make_ParameterSet.h>
+#include "fhiclcpp/make_ParameterSet.h"
 
 
 int main(int argc, char* argv[])

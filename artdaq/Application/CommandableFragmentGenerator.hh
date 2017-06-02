@@ -428,6 +428,8 @@ namespace artdaq
 		struct sockaddr_in si_data_;
 		int request_socket_;
 		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> requests_;
+		std::atomic<bool> request_stop_requested_;
+		std::chrono::steady_clock::time_point request_stop_timeout_;
 		std::mutex request_mutex_;
 		std::thread requestThread_;
 
@@ -439,6 +441,7 @@ namespace artdaq
 		bool uniqueWindows_;
 
 		bool useDataThread_;
+		std::atomic<bool> data_thread_running_;
 		std::thread dataThread_;
 
 		std::condition_variable requestCondition_;

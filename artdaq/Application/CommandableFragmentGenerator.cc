@@ -19,19 +19,21 @@
 #include <iostream>
 #include <iomanip>
 #include <sys/poll.h>
-#include <artdaq/DAQdata/TCPConnect.hh>
+#include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	: mutex_()
 	, request_port_(3001)
 	, request_addr_("227.128.12.26")
 	, requests_()
+	, request_stop_requested_(false)
 	, windowOffset_(0)
 	, windowWidth_(0)
 	, staleTimeout_(Fragment::InvalidTimestamp)
 	, maxFragmentCount_(std::numeric_limits<size_t>::max())
 	, uniqueWindows_(true)
 	, useDataThread_(false)
+	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
 	, dataBufferDepthBytes_(0)
 	, maxDataBufferDepthFragments_(1000)
@@ -59,11 +61,13 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, request_port_(ps.get<int>("request_port", 3001))
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
 	, requests_()
+	, request_stop_requested_(false)
 	, windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
 	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
 	, uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
+	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
 	, dataBufferDepthBytes_(0)
 	, maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
@@ -160,7 +164,7 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 	if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 	{
 		throw art::Exception(art::errors::Configuration) <<
-		      "RequestedFragmentGenrator: Unable to enable port reuse on request socket" << std::endl;
+			"RequestedFragmentGenrator: Unable to enable port reuse on request socket" << std::endl;
 		exit(1);
 	}
 	memset(&si_me_request, 0, sizeof(si_me_request));
@@ -170,13 +174,13 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 	if (bind(request_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
 		throw art::Exception(art::errors::Configuration) <<
-		      "CommandableFragmentGenerator: Cannot bind request socket to port " << request_port_ << std::endl;
+			"CommandableFragmentGenerator: Cannot bind request socket to port " << request_port_ << std::endl;
 		exit(1);
 	}
 
 	struct ip_mreq mreq;
 	int sts = ResolveHost(request_addr_.c_str(), mreq.imr_multiaddr);
-	if(sts == -1)
+	if (sts == -1)
 	{
 		throw art::Exception(art::errors::Configuration) << "Unable to resolve multicast request address" << std::endl;
 		exit(1);
@@ -185,7 +189,7 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 	if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 	{
 		throw art::Exception(art::errors::Configuration) <<
-		      "CommandableFragmentGenerator: Unable to join multicast group" << std::endl;
+			"CommandableFragmentGenerator: Unable to join multicast group" << std::endl;
 		exit(1);
 	}
 }
@@ -229,9 +233,9 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		}
 		else
 		{
-			TRACE(4, "CFG: Calling getNext_ %zu", ev_counter() );
+			TRACE(4, "CFG: Calling getNext_ %zu", ev_counter());
 			result = getNext_(output);
-			TRACE(4, "CFG: Done with getNext_ %zu", ev_counter() );
+			TRACE(4, "CFG: Done with getNext_ %zu", ev_counter());
 		}
 	}
 	catch (const cet::exception& e)
@@ -280,8 +284,10 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	TRACE(4, "CFG::check_stop: should_stop=%i, useDataThread_=%i, requests_.size()=%zu", should_stop(), useDataThread_, requests_.size());
 	if (!should_stop()) return false;
 	if (!useDataThread_ || mode_ == RequestMode::Ignored) return true;
+	if (!request_stop_requested_) return false;
 
-	return requests_.size() == 0;
+	auto dur = std::chrono::steady_clock::now() - request_stop_timeout_;
+	return  std::chrono::duration_cast<std::chrono::seconds>(dur).count() > 1 && requests_.size() == 0;
 }
 
 int artdaq::CommandableFragmentGenerator::fragment_id() const
@@ -479,28 +485,31 @@ std::string artdaq::CommandableFragmentGenerator::printMode_()
 
 void artdaq::CommandableFragmentGenerator::getDataLoop()
 {
+	data_thread_running_ = true;
 	while (true)
 	{
-		if (should_stop() || !isHardwareOK_)
+		if (!isHardwareOK_)
 		{
-			TLOG_DEBUG("CommandableFragmentGenerator") << "getDataLoop: should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_ << TLOG_ENDL;
+			TLOG_DEBUG("CommandableFragmentGenerator") << "getDataLoop: isHardwareOK is " << isHardwareOK_ << ", aborting data thread" << TLOG_ENDL;
+			data_thread_running_ = false;
 			return;
 		}
 
 		TRACE(4, "CommandableFragmentGenerator::getDataLoop: calling getNext_");
-		bool data = getNext_(newDataBuffer_);
+		auto data = getNext_(newDataBuffer_);
 
 		auto startwait = std::chrono::steady_clock::now();
-		bool first = true;
+		auto first = true;
 		auto lastwaittime = 0;
 		while (dataBufferIsTooLarge())
 		{
 			if (should_stop())
 			{
-				TLOG_DEBUG("CommandaleFragmentGenerator") << "Run ended while waiting for buffer to shrink!" << TLOG_ENDL;
+				TLOG_DEBUG("CommandableFragmentGenerator") << "Run ended while waiting for buffer to shrink!" << TLOG_ENDL;
 				std::unique_lock<std::mutex> lock(dataBufferMutex_);
 				getDataBufferStats();
 				dataCondition_.notify_all();
+				data_thread_running_ = false;
 				return;
 			}
 			auto waittime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startwait).count();
@@ -550,6 +559,12 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			{
 				dataCondition_.notify_all();
 			}
+		}
+		if (!data)
+		{
+			TLOG_INFO("CommandableFragmentGenerator") << "Data flow has stopped. Ending data collection thread" << TLOG_ENDL;
+			data_thread_running_ = false;
+			return;
 		}
 	}
 }
@@ -647,9 +662,10 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 {
 	while (true)
 	{
-		if (should_stop() || !isHardwareOK_)
+		if (check_stop() || !isHardwareOK_)
 		{
-			TLOG_DEBUG("CommandableFragmentGenerator") << "receiveRequestsLoop: should_stop is " << std::boolalpha << should_stop() << ", and isHardwareOK is " << isHardwareOK_ << TLOG_ENDL;
+			TLOG_DEBUG("CommandableFragmentGenerator") << "receiveRequestsLoop: check_stop is " << std::boolalpha << check_stop()
+				<< ", and isHardwareOK_ is " << isHardwareOK_ << ", aborting request reception thread." << TLOG_ENDL;
 			return;
 		}
 
@@ -672,6 +688,12 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 				TRACE(4, "CFG: Request header word: 0x%x", (int)hdr_buffer.header);
 				if (hdr_buffer.isValid())
 				{
+					if (hdr_buffer.mode == detail::RequestMessageMode::EndOfRun)
+					{
+						TLOG_INFO("CommandableFragmentGenerator") << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests..." << TLOG_ENDL;
+						request_stop_timeout_ = std::chrono::steady_clock::now();
+						request_stop_requested_ = true;
+					}
 					std::vector<detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
 					recv(request_socket_, &pkt_buffer[0], sizeof(detail::RequestPacket) * hdr_buffer.packet_count, 0);
 					bool anyNew = false;
@@ -793,25 +815,30 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 					req = requests_.erase(req);
 					continue;
 				}
+				while (req->first > ev_counter() && request_stop_requested_ && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - request_stop_timeout_).count() > 1)
+				{
+					sendEmptyFragment(frags,ev_counter(), "Missing request for");
+					ev_counter_inc(1, true);
+				}
 				if (req->first > ev_counter())
 				{
 					++req;
 					continue; // Will loop through all requests, means we're in Window mode and missing the correct one
 				}
-				TRACE(5, "CFG: ApplyRequestS: Checking that data exists for request window %llu (Buffered mode will always succeed)",(unsigned long long)req->first);
+				TRACE(5, "CFG: ApplyRequestS: Checking that data exists for request window %llu (Buffered mode will always succeed)", (unsigned long long)req->first);
 				Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 				Fragment::timestamp_t max = min + windowWidth_;
 				TRACE(5, "CFG::ApplyRequests: min is %lu and max is %lu and last point in buffer is %lu (sz=%zu)",
-					(unsigned long)min,(unsigned long)max, (unsigned long)(dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0), dataBuffer_.size());
+					(unsigned long)min, (unsigned long)max, (unsigned long)(dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0), dataBuffer_.size());
 				bool windowClosed = mode_ != RequestMode::Window || (dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max);
-				if (windowClosed || should_stop())
+				if (windowClosed || !data_thread_running_)
 				{
 					TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-requested Fragments" << TLOG_ENDL;
 					frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
 					frags.back()->setTimestamp(ts);
 					ContainerFragmentLoader cfl(*frags.back());
 
-					if (mode_ == RequestMode::Window && should_stop() && !windowClosed) cfl.set_missing_data(true);
+					if (mode_ == RequestMode::Window && !data_thread_running_ && !windowClosed) cfl.set_missing_data(true);
 					if (mode_ == RequestMode::Window && dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() < min)
 					{
 						TLOG_DEBUG("CommandableFragmentGenerator") << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer" << TLOG_ENDL;
@@ -832,7 +859,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 							}
 						}
 
-						TRACE(5,"CFG::ApplyRequests: Adding Fragment with timestamp %llu to Container", (unsigned long long)(*it)->timestamp());
+						TRACE(5, "CFG::ApplyRequests: Adding Fragment with timestamp %llu to Container", (unsigned long long)(*it)->timestamp());
 						cfl.addFragment(*it);
 
 						if (mode_ == RequestMode::Buffer || (mode_ == RequestMode::Window && uniqueWindows_))
@@ -858,7 +885,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	}
 
 	if (frags.size() > 0)
-	TRACE(4, "CFG: Finished Processing Event %lu for fragment_id %i.", ev_counter() + 1, fragment_id());
+		TRACE(4, "CFG: Finished Processing Event %lu for fragment_id %i.", ev_counter() + 1, fragment_id());
 	return true;
 }
 

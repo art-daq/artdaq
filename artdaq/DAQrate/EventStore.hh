@@ -5,7 +5,8 @@
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include <fhiclcpp/ParameterSet.h>
+#include "artdaq/DAQrate/detail/RequestMessage.hh"
+#include "fhiclcpp/ParameterSet.h"
 
 #include <map>
 #include <memory>
@@ -272,6 +273,12 @@ namespace artdaq
 		 */
 		size_t incompleteEventCount() const { return events_.size(); }
 
+		/**
+		 * \brief Set the mode for RequestMessages. Used to indicate when EventStore should enter "EndOfRun" mode
+		 * \param mode Mode to set
+		 */
+		void setRequestMode(detail::RequestMessageMode mode) { request_mode_ = mode; }
+
 	private:
 		// id_ is the unique identifier of this object; MPI programs will
 		// use the MPI rank to fill in this value.
@@ -293,6 +300,7 @@ namespace artdaq
 		int request_socket_;
 		struct sockaddr_in request_addr_;
 		std::string multicast_out_addr_;
+		detail::RequestMessageMode request_mode_;
 
 		unsigned int seqIDModulus_;
 		sequence_id_t lastFlushedSeqID_;

@@ -1,6 +1,6 @@
 #include "artdaq/ArtModules/NetMonWrapper.hh"
 
-#include "TBufferFile.h"
+#include <TBufferFile.h>
 
 void art::NetMonWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 {

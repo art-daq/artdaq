@@ -28,7 +28,7 @@
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
 #include "canvas/Utilities/DebugMacros.h"
 
-#include "TBufferFile.h"
+#include <TBufferFile.h>
 
 #include <memory>
 #include <string>

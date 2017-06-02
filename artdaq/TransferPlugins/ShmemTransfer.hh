@@ -1,7 +1,7 @@
 #ifndef artdaq_TransferPlugins_ShmemTransfer_hh
 #define artdaq_TransferPlugins_ShemmTransfer_hh
 
-#include <fhiclcpp/fwd.h>
+#include "fhiclcpp/fwd.h"
 #include <atomic>
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"

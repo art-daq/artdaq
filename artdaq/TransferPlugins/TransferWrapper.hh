@@ -8,7 +8,7 @@
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
-#include "TBufferFile.h"
+#include <TBufferFile.h>
 
 namespace fhicl
 {

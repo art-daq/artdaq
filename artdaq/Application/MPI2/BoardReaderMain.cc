@@ -7,8 +7,8 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "cetlib/exception.h"
 
-#include "boost/program_options.hpp"
-#include "boost/lexical_cast.hpp"
+#include <boost/program_options.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <iostream>
 #include <memory>

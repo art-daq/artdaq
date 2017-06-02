@@ -3,8 +3,8 @@
 
 #include <iostream>
 #include <string>
-#include <fhiclcpp/fwd.h>
-#include <artdaq/DAQrate/quiet_mpi.hh>
+#include "fhiclcpp/fwd.h"
+#include "artdaq/DAQrate/quiet_mpi.hh"
 
 // sources are first, sinks are second
 // the offset_ is the index of the first sink

@@ -9,7 +9,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "mpi.h"
+#include <mpi.h>
 #pragma GCC diagnostic pop
 
 #endif /* artdaq_DAQrate_quiet_mpi_hh */

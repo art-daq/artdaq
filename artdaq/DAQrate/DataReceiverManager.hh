@@ -7,7 +7,7 @@
 #include <thread>
 #include <condition_variable>
 
-#include <fhiclcpp/fwd.h>
+#include "fhiclcpp/fwd.h"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
@@ -203,7 +203,15 @@ public:
 		return std::move(current_fragment);
 	}
 
+	/**
+	 * \brief Set the End-Of-Data marker value for this Receiver
+	 * \param eod Number of Receives expected for this receiver
+	 */
 	void SetEndOfData(size_t eod) { eod_marker_ = eod; }
+	/**
+	 * \brief Get the value of the End-Of-Data marker for this Receiver
+	 * \return The value of the End-Of-Data marker. Returns -1 (0xFFFFFFFFFFFFFFFF) if no EndOfData Fragments received
+	 */
 	size_t GetEndOfData() const { return eod_marker_; }
 
 private:

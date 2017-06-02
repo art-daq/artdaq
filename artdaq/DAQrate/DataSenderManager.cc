@@ -3,14 +3,14 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 #include <chrono>
-#include <canvas/Utilities/Exception.h>
+#include "canvas/Utilities/Exception.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include "artdaq/Application/Routing/RoutingPacket.hh"
-#include <artdaq/DAQdata/TCPConnect.hh>
+#include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	: destinations_()

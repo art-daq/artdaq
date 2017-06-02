@@ -23,7 +23,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 
 #include <deque>
 #include <iostream>

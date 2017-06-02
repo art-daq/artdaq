@@ -6,13 +6,13 @@
 #include <memory>
 #include <netinet/in.h>
 
-#include <fhiclcpp/fwd.h>
+#include "fhiclcpp/fwd.h"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "../Application/Routing/RoutingPacket.hh"
+#include "artdaq/Application/Routing/RoutingPacket.hh"
 
 namespace artdaq
 {

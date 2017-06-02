@@ -18,6 +18,9 @@ namespace artdaq
 		struct RoutingAckPacket;
 		struct RoutingToken;
 
+		/**
+		 * \brief Mode indicating whether the RoutingMaster is routing events by Sequence ID or by Send Count
+		 */
 		enum class RoutingMasterMode : uint8_t
 		{
 			RouteBySequenceID,

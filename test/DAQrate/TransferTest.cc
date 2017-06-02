@@ -6,7 +6,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 
-#include <fhiclcpp/make_ParameterSet.h>
+#include "fhiclcpp/make_ParameterSet.h"
 
 #define TRACE_NAME "TransferTest"
 

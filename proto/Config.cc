@@ -1,8 +1,8 @@
 #include "Config.hh"
 #include "artdaq/DAQrate/infoFilename.hh"
 #include "artdaq-core/Data/Fragment.hh"
-#include <fhiclcpp/ParameterSet.h>
-#include <fhiclcpp/make_ParameterSet.h>
+#include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/make_ParameterSet.h"
 
 #include <cstring>
 #include <iostream>
@@ -13,7 +13,7 @@
 #include <sys/types.h>
 #include <regex.h>
 
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 namespace bpo = boost::program_options;
 
 const char* artdaq::Config::usage = "DetectorsPerNode SinksPerNode Run";

@@ -31,9 +31,9 @@
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
 
-#include "TClass.h"
-#include "TMessage.h"
-#include "TBufferFile.h"
+#include <TClass.h>
+#include <TMessage.h>
+#include <TBufferFile.h>
 
 #include "artdaq/ArtModules/InputUtilities.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"

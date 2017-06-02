@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE ( CapacityTest_policy_t )
-#include "boost/test/auto_unit_test.hpp"
+#include <boost/test/auto_unit_test.hpp>
 
 #include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"

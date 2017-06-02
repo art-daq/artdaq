@@ -12,7 +12,6 @@
 #include "cetlib/exception.h"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
-#include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
@@ -38,6 +37,7 @@ namespace artdaq
 		, request_port_(pset.get<int>("request_port", 3001))
 		, request_delay_(pset.get<size_t>("request_delay_ms", 10))
 		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
+		, request_mode_(detail::RequestMessageMode::Normal)
 		, seqIDModulus_(1)
 		, lastFlushedSeqID_(0)
 		, highestSeqIDSeen_(0)
@@ -66,17 +66,21 @@ namespace artdaq
 						   run_id_t run,
 						   int argc,
 						   char* argv[],
-						   ART_CMDLINE_FCN* reader) 
-	    : EventStore(pset, num_fragments_per_event, run, 50, 50)
-		{ reader_thread_ = (std::async(std::launch::async, reader, argc, argv)); }
+						   ART_CMDLINE_FCN* reader)
+		: EventStore(pset, num_fragments_per_event, run, 50, 50)
+	{
+		reader_thread_ = (std::async(std::launch::async, reader, argc, argv));
+	}
 
 	EventStore::EventStore(const fhicl::ParameterSet& pset,
 						   size_t num_fragments_per_event,
 						   run_id_t run,
 						   const std::string& configString,
-						   ART_CFGSTRING_FCN* reader) 
-	    : EventStore(pset, num_fragments_per_event, run, 20, 20)
-		{ reader_thread_ = (std::async(std::launch::async, reader, configString)); }
+						   ART_CFGSTRING_FCN* reader)
+		: EventStore(pset, num_fragments_per_event, run, 20, 20)
+	{
+		reader_thread_ = (std::async(std::launch::async, reader, configString));
+	}
 
 	EventStore::~EventStore()
 	{
@@ -121,6 +125,14 @@ namespace artdaq
 				active_requests_[highestSeqIDSeen_] = timestamp;
 				send_request_();
 			}
+		}
+
+		// When we're in the "EndOfRun" condition, send requests for EVERY fragment inserted!
+		// This helps to make sure that all BoardReaders get the EndOfRun request and send all their data.
+		if (send_requests_ && request_mode_ == detail::RequestMessageMode::EndOfRun)
+		{
+			std::lock_guard<std::mutex> lk(request_mutex_);
+			send_request_();
 		}
 		Fragment::sequence_id_t sequence_id = ((pfrag->sequenceID() - (1 + lastFlushedSeqID_)) / seqIDModulus_) + 1;
 		TRACE(13, "EventStore::insert seq=%lu fragID=%d id=%d lastFlushed=%lu seqIDMod=%d seq=%lu"
@@ -586,6 +598,7 @@ namespace artdaq
 				message.addRequest(req.first, req.second);
 			}
 		}
+		message.header()->mode = request_mode_;
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		TLOG_DEBUG("EventStore") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << TLOG_ENDL;

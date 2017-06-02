@@ -1,6 +1,6 @@
 #include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
 #include "artdaq/Application/Routing/PolicyMacros.hh"
-#include <fhiclcpp/ParameterSet.h>
+#include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq
 {
