@@ -93,6 +93,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 		return false;
 	}
 
+	size_t qsize=incoming_events.size(); // save the qsize at this point
+
 	// Check the number of fragments in the RawEvent.  If we have a single
 	// fragment and that fragment is marked as EndRun or EndSubrun we'll create
 	// the special principals for that.
@@ -211,9 +213,11 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 				<< unidentified_instance_name << "\"." << TLOG_ENDL;
 		}
 	}
-	TRACE( 10, "readNext: bytesRead=%lu metricMan=%p", bytesRead, (void*)metricMan );
-	if (metricMan)
+	TRACE( 10, "readNext: bytesRead=%lu qsize=%zu cap=%zu metricMan=%p", bytesRead, qsize, incoming_events.capacity(), (void*)metricMan );
+	if (metricMan) {
 		metricMan->sendMetric( "bytesRead", bytesRead>>20, "MB", 5, false, "", true );
+		metricMan->sendMetric( "queue%Used", static_cast<unsigned long int>(qsize*100/incoming_events.capacity()), "%", 5, false, "", true );
+	}
 
 	return true;
 }
