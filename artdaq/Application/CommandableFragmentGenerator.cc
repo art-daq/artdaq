@@ -27,6 +27,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, request_addr_("227.128.12.26")
 	, requests_()
 	, request_stop_requested_(false)
+, end_of_run_timeout_ms_(1000)
 	, windowOffset_(0)
 	, windowWidth_(0)
 	, staleTimeout_(Fragment::InvalidTimestamp)
@@ -62,6 +63,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
 	, requests_()
 	, request_stop_requested_(false)
+	, end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
 	, windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
 	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
@@ -287,7 +289,7 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	if (!request_stop_requested_) return false;
 
 	auto dur = std::chrono::steady_clock::now() - request_stop_timeout_;
-	return  std::chrono::duration_cast<std::chrono::seconds>(dur).count() > 1 && requests_.size() == 0;
+	return  std::chrono::duration_cast<std::chrono::milliseconds>(dur).count() > static_cast<int>(end_of_run_timeout_ms_);// && requests_.size() == 0;
 }
 
 int artdaq::CommandableFragmentGenerator::fragment_id() const

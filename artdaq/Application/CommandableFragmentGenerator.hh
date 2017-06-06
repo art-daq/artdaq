@@ -99,6 +99,7 @@ namespace artdaq
 		 * CommandableFragmentGenerator accepts the following Parameters:
 		 * "request_port" (Default: 3001): Port on which data requests will be received
 		 * "request_address" (Default: "227.128.12.26"): Address which CommandableFragmentGenerator will listen for requests on
+		 * "end_of_run_quiet_timeout_ms" (Default: 1000): Time, in milliseconds, that the entire system must be quiet for check_stop to return true in request mode. **DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING!**
 		 * "request_window_offset" (Default: 0): Request messages contain a timestamp. For Window request mode, start the window this far before the timestamp in the request
 		 * "request_window_width" (Default: 0): For Window request mode, the window will be timestamp - offset to timestamp - offset + width
 		 * "stale_request_timeout" (Default: -1): How long should request messages be retained
@@ -430,6 +431,7 @@ namespace artdaq
 		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> requests_;
 		std::atomic<bool> request_stop_requested_;
 		std::chrono::steady_clock::time_point request_stop_timeout_;
+		size_t end_of_run_timeout_ms_;
 		std::mutex request_mutex_;
 		std::thread requestThread_;
 
