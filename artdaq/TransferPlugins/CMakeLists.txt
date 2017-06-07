@@ -44,6 +44,7 @@ simple_plugin(TransferInput "source"
 
 simple_plugin(Shmem "transfer"
   artdaq_TransferPlugins
+  artdaq-core_Core
 )
 
 simple_plugin(Null "transfer"

@@ -67,7 +67,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 	{
 		auto sts = shm_manager_->ReadFragment(fragment);
 
-		if (sts) return RECV_TIMEOUT;
+		if (sts != 0) return RECV_TIMEOUT;
 
 		if (fragment.type() != artdaq::Fragment::DataFragmentType)
 		{
@@ -118,10 +118,10 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		}
 	}
 
-	//TLOG_DEBUG(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << TLOG_ENDL;
+	TLOG_TRACE("ShmemTransfer") << "Either write has timed out or buffer ready" << TLOG_ENDL;
 
 	// copy the fragment if the shm is available                                               
-	if (!shm_manager_->ReadyForWrite(!reliableMode))
+	if (shm_manager_->ReadyForWrite(!reliableMode))
 	{
 		TRACE(TRANSFER_SEND2, "Sending fragment with seqID=%zu", fragment.sequenceID());
 		artdaq::RawDataType* fragAddr = fragment.headerAddress();
@@ -131,7 +131,8 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		// invalid events (and large, invalid events)                                            
 		if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
 		{
-			shm_manager_->WriteFragment(std::move(fragment));
+			auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode);
+			if (sts != 0) return CopyStatus::kErrorNotRequiringException;
 
 			return CopyStatus::kSuccess;
 		}
