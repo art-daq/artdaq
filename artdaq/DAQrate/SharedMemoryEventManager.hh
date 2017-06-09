@@ -22,16 +22,20 @@ namespace artdaq {
 		
 		SharedMemoryEventManager(fhicl::ParameterSet pset, size_t num_fragments_per_event, run_id_t run,
 								 size_t event_queue_depth, std::string art_fhicl);
-		virtual ~SharedMemoryEventManager() = default;
+		virtual ~SharedMemoryEventManager();
 
 		void AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
 		bool CheckSpace(Fragment::sequence_id_t seqID);
 		size_t GetOpenEventCount();
 		size_t GetFragmentCount(int buffer, Fragment::type_t type = Fragment::InvalidFragmentType);
 
+		void RunArt();
+		void StartArt();
+		void ReconfigureArt(std::string art_fhicl);
+
 		/**
-		* \brief Indicate that the end of input has been reached to the art thread.
-		* \param[out] readerReturnValue Exit status code of the art thread
+		* \brief Indicate that the end of input has been reached to the art processes.
+		* \param[out] readerReturnValues Exit status codes of the art processes
 		* \return True if the end proceeded correctly
 		*
 		* Put the end-of-data marker onto the RawEvent queue (if possible),
@@ -39,7 +43,7 @@ namespace artdaq {
 		* value.  This scenario returns true.  If the end-of-data marker
 		* can not be pushed onto the RawEvent queue, false is returned.
 		*/
-		bool endOfData(int& readerReturnValue);
+		bool endOfData(std::vector<int>& readerReturnValues);
 
 		/**
 		* \brief Set the parameter that will be used to determine which sequence IDs get
@@ -96,7 +100,9 @@ namespace artdaq {
 		void sendMetrics();
 		
 	private:
+		size_t const num_art_processes_;
 		size_t const num_fragments_per_event_;
+		size_t const queue_size_;
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
 
@@ -107,12 +113,20 @@ namespace artdaq {
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 
-		std::FILE* config_file_;
-		std::list<std::thread> art_processes_;
+		std::string config_file_name_;
+		std::vector<std::thread> art_processes_;
+		std::vector<int> art_process_return_codes_;
+		std::atomic<bool> restart_art_;
 
 		RequestSender requests_;
 
+		void broadcastFragment_(FragmentPtr frag);
+
 		int getBufferForSequenceID_(Fragment::sequence_id_t seqID);
+
+		void initStatistics_();
+
+		void reportStatistics_();
 	};
 }
 
