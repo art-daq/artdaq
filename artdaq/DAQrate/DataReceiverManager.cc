@@ -3,6 +3,7 @@
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+#include "cetlib_except/exception.h"
 
 artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset)
 	: stop_requested_(false)
@@ -167,10 +168,17 @@ artdaq::FragmentPtr artdaq::DataReceiverManager::recvFragment(int& rank, size_t 
 
 void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
+	// Probably handled by the compiler, but declare all variables outside loop scope
+	bool is_suppressed;
+	std::chrono::steady_clock::time_point start_time;
+	FragmentPtr fragment;
+	int ret;
+	double delta_t;
+
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
 		TRACE(16, "DataReceiverManager::runReceiver_: Begin loop");
-		auto is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
+		is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
 		while (!stop_requested_ && is_suppressed)
 		{
 			TRACE(6, "DataReceiverManager::runReceiver_: Suppressing receiver rank %d", source_rank);
@@ -184,10 +192,10 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		}
 		if (stop_requested_) return;
 
-		auto start_time = std::chrono::steady_clock::now();
+		start_time = std::chrono::steady_clock::now();
 		TRACE(16, "DataReceiverManager::runReceiver_: Calling receiveFragment");
-		auto fragment = std::unique_ptr<Fragment>(new Fragment());
-		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
+		fragment = std::make_unique<Fragment>();
+		ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
 		TRACE(16, "DataReceiverManager::runReceiver_: Done with receiveFragment, ret=%d (should be %d)", ret, source_rank);
 
 		if (ret != source_rank) continue; // Receive timeout or other oddness
@@ -208,10 +216,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (metricMan)
 		{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
 			TRACE(6, "DataReceiverManager::runReceiver_: Sending receive stats");
-			auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
+			delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
 			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1);
 			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(fragment->size() * sizeof(RawDataType)), "B", 1);
 			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), fragment->size() * sizeof(RawDataType) / delta_t, "B/s", 1);
+			TRACE(6, "DataReceiverManager::runReceiver_: Done sending receive stats");
 		}
 
 

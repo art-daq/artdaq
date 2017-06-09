@@ -32,8 +32,6 @@
 #include <string>
 #include <utility>
 
-using namespace std;
-using namespace fhicl;
 namespace bpo = boost::program_options;
 
 namespace
@@ -202,12 +200,12 @@ namespace
 	int process_data(int argc, char** argv,
 	                 fhicl::ParameterSet const& pset)
 	{
-		auto const gta_pset = pset.get<ParameterSet>("genToArt");
+		auto const gta_pset = pset.get<fhicl::ParameterSet>("genToArt");
 
 		// Make the generators based on the configuration.
 		std::vector<ThrottledGenerator> generators;
 
-		auto const fr_pset = gta_pset.get<std::vector<ParameterSet>>("fragment_receivers");
+		auto const fr_pset = gta_pset.get<std::vector<fhicl::ParameterSet>>("fragment_receivers");
 		for (auto const& gen_ps : fr_pset)
 		{
 			generators.emplace_back(gen_ps.get<std::string>("generator"),
@@ -215,7 +213,7 @@ namespace
 		}
 
 		artdaq::FragmentPtrs frags;
-		auto const eb_pset = gta_pset.get<ParameterSet>("event_builder", {});
+		auto const eb_pset = gta_pset.get<fhicl::ParameterSet>("event_builder", {});
 		size_t expected_frags_per_event = 0;
 		for (auto& gen : generators)
 		{
@@ -293,7 +291,7 @@ int main(int argc, char* argv[]) try
 		return (result);
 	}
 	// Read FHiCL configuration file.
-	ParameterSet pset;
+	fhicl::ParameterSet pset;
 	if (getenv("FHICL_FILE_PATH") == nullptr)
 	{
 		std::cerr
@@ -306,19 +304,19 @@ int main(int argc, char* argv[]) try
 }
 catch (std::string& x)
 {
-	cerr << "Exception (type string) caught in genToArt: " << x << '\n';
+	std::cerr << "Exception (type string) caught in genToArt: " << x << '\n';
 	return 1;
 }
 catch (char const* m)
 {
-	cerr << "Exception (type char const*) caught in genToArt: ";
+	std::cerr << "Exception (type char const*) caught in genToArt: ";
 	if (m)
 	{
-		cerr << m;
+		std::cerr << m;
 	}
 	else
 	{
-		cerr << "[the value was a null pointer, so no message is available]";
+		std::cerr << "[the value was a null pointer, so no message is available]";
 	}
-	cerr << '\n';
+	std::cerr << '\n';
 }

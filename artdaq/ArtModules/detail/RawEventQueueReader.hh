@@ -38,7 +38,7 @@ namespace artdaq
 
 			art::SourceHelper const pmaker; ///< An art::SourceHelper instance
 			RawEventQueue& incoming_events; ///< The events from the EventStore
-			artdaq::detail::seconds waiting_time; ///< The amount of time to wait for an event from the queue
+			artdaq::TimeUtils::seconds waiting_time; ///< The amount of time to wait for an event from the queue
 			bool resume_after_timeout; ///< Whether to resume if the dequeue action times out
 			std::string pretend_module_name; ///< The module name to store data under
 			std::string unidentified_instance_name; ///< The name to use for unknown Fragment types

@@ -3,7 +3,7 @@
 #include "artdaq/Application/GeneratorMacros.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 #include <boost/algorithm/string.hpp>
 
 using fhicl::ParameterSet;

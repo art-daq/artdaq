@@ -6,6 +6,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 
 #include "cetlib/BasicPluginFactory.h"
+#include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"

@@ -5,7 +5,7 @@
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 
 #include <boost/program_options.hpp>
 #include <boost/lexical_cast.hpp>

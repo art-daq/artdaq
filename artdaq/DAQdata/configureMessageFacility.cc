@@ -1,6 +1,7 @@
 #include "artdaq/DAQdata/configureMessageFacility.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "fhiclcpp/make_ParameterSet.h"
+#include "cetlib_except/exception.h"
 #include <boost/filesystem.hpp>
 #include <unistd.h>
 #include <fstream>

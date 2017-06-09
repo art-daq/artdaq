@@ -23,25 +23,23 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
-using namespace std;
-
 // Return sts, put result in addr
 int ResolveHost(char const* host_in, in_addr& addr)
 {
 	std::string host;
 	struct hostent* hostent_sp;
-	cmatch mm;
+std::cmatch mm;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
 	//        at the beginning and end respectively.
-	if (regex_match(host_in, mm, regex("([^:]+):(\\d+)")))
+	if (regex_match(host_in, mm, std::regex("([^:]+):(\\d+)")))
 	{
 		host = mm[1].str();
 	}
-	else if (regex_match(host_in, mm, regex(":{0,1}(\\d+)")))
+	else if (regex_match(host_in, mm, std::regex(":{0,1}(\\d+)")))
 	{
 		host = std::string("127.0.0.1");
 	}
-	else if (regex_match(host_in, mm, regex("([^:]+):{0,1}")))
+	else if (regex_match(host_in, mm, std::regex("([^:]+):{0,1}")))
 	{
 		host = mm[1].str().c_str();
 	}
@@ -53,7 +51,7 @@ int ResolveHost(char const* host_in, in_addr& addr)
 
 	bzero((char *)&addr, sizeof(addr));
 
-	if (regex_match(host.c_str(), mm, regex("\\d+(\\.\\d+){3}")))
+	if (regex_match(host.c_str(), mm, std::regex("\\d+(\\.\\d+){3}")))
 		inet_aton(host.c_str(), &addr);
 	else
 	{
@@ -74,20 +72,20 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 	int port;
 	std::string host;
 	struct hostent* hostent_sp;
-	cmatch mm;
+	std::cmatch mm;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
 	//        at the beginning and end respectively.
-	if (regex_match(host_in, mm, regex("([^:]+):(\\d+)")))
+	if (regex_match(host_in, mm, std::regex("([^:]+):(\\d+)")))
 	{
 		host = mm[1].str();
 		port = strtoul(mm[2].str().c_str(), NULL, 0);
 	}
-	else if (regex_match(host_in, mm, regex(":{0,1}(\\d+)")))
+	else if (regex_match(host_in, mm, std::regex(":{0,1}(\\d+)")))
 	{
 		host = std::string("127.0.0.1");
 		port = strtoul(mm[1].str().c_str(), NULL, 0);
 	}
-	else if (regex_match(host_in, mm, regex("([^:]+):{0,1}")))
+	else if (regex_match(host_in, mm, std::regex("([^:]+):{0,1}")))
 	{
 		host = mm[1].str().c_str();
 		port = dflt_port;
@@ -103,7 +101,7 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port); // just a guess at an open port
 
-	if (regex_match(host.c_str(), mm, regex("\\d+(\\.\\d+){3}")))
+	if (regex_match(host.c_str(), mm, std::regex("\\d+(\\.\\d+){3}")))
 		inet_aton(host.c_str(), &sin.sin_addr);
 	else
 	{

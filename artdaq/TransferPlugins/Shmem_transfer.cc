@@ -118,7 +118,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		}
 	}
 
-	TLOG_TRACE("ShmemTransfer") << "Either write has timed out or buffer ready" << TLOG_ENDL;
+	TLOG_ARB(TRANSFER_SEND2, "ShmemTransfer") << "Either write has timed out or buffer ready" << TLOG_ENDL;
 
 	// copy the fragment if the shm is available                                               
 	if (shm_manager_->ReadyForWrite(!reliableMode))

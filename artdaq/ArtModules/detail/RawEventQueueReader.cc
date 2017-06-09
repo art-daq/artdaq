@@ -125,11 +125,7 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 				outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
 												   popped_event->subrunID(),
 												   currentTime);
-#ifdef ARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID /* Old, error-prone interface. */
-				art::EventID const evid(art::EventID::flushEvent(outR->id(), outSR->id()));
-#else
 				art::EventID const evid(art::EventID::flushEvent(outSR->id()));
-#endif
 				outE = pmaker.makeEventPrincipal(evid, currentTime);
 			}
 			else
@@ -152,11 +148,7 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 					outSR = pmaker.makeSubRunPrincipal(popped_event->runID(),
 													   popped_event->subrunID(),
 													   currentTime);
-#ifdef ARTDAQ_ART_EVENTID_HAS_EXPLICIT_RUNID /* Old, error-prone interface. */
-					art::EventID const evid(art::EventID::flushEvent(inR->id(), outSR->id()));
-#else
 					art::EventID const evid(art::EventID::flushEvent(outSR->id()));
-#endif
 					outE = pmaker.makeEventPrincipal(evid, currentTime);
 					// Possible error condition
 					//} else {

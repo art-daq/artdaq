@@ -306,7 +306,7 @@ namespace artdaq
 		sequence_id_t lastFlushedSeqID_;
 		sequence_id_t highestSeqIDSeen_;
 
-		artdaq::detail::seconds const enq_timeout_;
+		artdaq::TimeUtils::seconds const enq_timeout_;
 		size_t enq_check_count_;
 		bool const printSummaryStats_;
 

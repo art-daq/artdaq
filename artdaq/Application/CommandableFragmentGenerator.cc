@@ -7,7 +7,7 @@
 #include <iterator>
 
 #include "canvas/Utilities/Exception.h"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Data/Fragment.hh"

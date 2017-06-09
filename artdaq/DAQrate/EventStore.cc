@@ -9,13 +9,11 @@
 #include <thread>
 #include <chrono>
 
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
-
-using namespace std;
 
 namespace artdaq
 {
@@ -426,11 +424,11 @@ namespace artdaq
 			getMonitoredQuantity(EVENT_RATE_STAT_KEY);
 		if (mqPtr.get() != 0)
 		{
-			ostringstream oss;
-			oss << EVENT_RATE_STAT_KEY << "_" << setfill('0') << setw(4) << run_id_
-				<< "_" << setfill('0') << setw(4) << my_rank << ".txt";
+			std::ostringstream oss;
+			oss << EVENT_RATE_STAT_KEY << "_" << std::setfill('0') << std::setw(4) << run_id_
+				<< "_" << std::setfill('0') << std::setw(4) << my_rank << ".txt";
 			std::string filename = oss.str();
-			ofstream outStream(filename.c_str());
+			std::ofstream outStream(filename.c_str());
 			mqPtr->waitUntilAccumulatorsHaveBeenFlushed(3.0);
 			artdaq::MonitoredQuantityStats stats;
 			mqPtr->getStats(stats);
@@ -478,12 +476,12 @@ namespace artdaq
 			getMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY);
 		if (mqPtr.get() != 0)
 		{
-			ostringstream oss;
-			oss << INCOMPLETE_EVENT_STAT_KEY << "_" << setfill('0')
-				<< setw(4) << run_id_
-				<< "_" << setfill('0') << setw(4) << my_rank << ".txt";
+			std::ostringstream oss;
+			oss << INCOMPLETE_EVENT_STAT_KEY << "_" << std::setfill('0')
+				<< std::setw(4) << run_id_
+				<< "_" << std::setfill('0') << std::setw(4) << my_rank << ".txt";
 			std::string filename = oss.str();
-			ofstream outStream(filename.c_str());
+			std::ofstream outStream(filename.c_str());
 			mqPtr->waitUntilAccumulatorsHaveBeenFlushed(3.0);
 			artdaq::MonitoredQuantityStats stats;
 			mqPtr->getStats(stats);

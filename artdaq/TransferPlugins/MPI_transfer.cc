@@ -200,21 +200,17 @@ receiveFragment(Fragment& output, size_t timeout_usec)
 	}
 	Fragment::sequence_id_t sequence_id = payload_[which].sequenceID();
 
-	{
-		std::ostringstream debugstream;
-		debugstream << "recv: " << my_rank
-			<< " idx=" << which
-			<< " Waitany_error=" << wait_result
-			<< " status_error=" << status.MPI_ERROR
-			<< " source=" << status.MPI_SOURCE
-			<< " tag=" << status.MPI_TAG
-			<< " Fragment_sequenceID=" << sequence_id
-			<< " Fragment_size=" << payload_[which].size()
-			<< " preAutoResize_Fragment_dataSize=" << payload_[which].dataSize()
-			<< " fragID=" << payload_[which].fragmentID()
-			<< '\n';
-		//TLOG_INFO(uniqueLabel()) << debugstream.str() << TLOG_ENDL;
-		TRACE(4, debugstream.str().c_str());
+
+	{TLOG_ARB(TRANSFER_RECEIVE2, "MPITransfer") << "recv: " << my_rank
+		<< " idx=" << which
+		<< " Waitany_error=" << wait_result
+		<< " status_error=" << status.MPI_ERROR
+		<< " source=" << status.MPI_SOURCE
+		<< " tag=" << status.MPI_TAG
+		<< " Fragment_sequenceID=" << sequence_id
+		<< " Fragment_size=" << payload_[which].size()
+		<< " preAutoResize_Fragment_dataSize=" << payload_[which].dataSize()
+		<< " fragID=" << payload_[which].fragmentID() << TLOG_ENDL;
 	}
 	char err_buffer[MPI_MAX_ERROR_STRING];
 	int resultlen;
@@ -331,14 +327,7 @@ cancelReq_(size_t buf, bool blocking_wait)
 {
 	if (reqs_[buf] == MPI_REQUEST_NULL) return;
 
-	{
-		std::ostringstream debugstream;
-		debugstream << "Cancelling post for buffer "
-			<< buf
-			<< '\n';
-		TRACE(4, debugstream.str().c_str());
-		//TLOG_INFO(uniqueLabel()) << debugstream.str() << TLOG_ENDL;
-	}
+	TLOG_ARB(TRANSFER_RECEIVE2, "MPITransfer") << "Cancelling post for buffer " << buf << TLOG_ENDL;
 
 	std::unique_lock<std::mutex> lk(mpi_mutex_);
 	int result = MPI_Cancel(&reqs_[buf]);
@@ -393,15 +382,9 @@ void
 artdaq::MPITransfer::
 post_(size_t buf)
 {
-	{
-		std::ostringstream debugstream;
-		debugstream << "Posting buffer " << buf
-			<< " size=" << payload_[buf].size()
-			<< " header address=0x" << std::hex << payload_[buf].headerAddress() << std::dec
-			<< '\n';
-		TRACE(4, debugstream.str().c_str());
-		//TLOG_INFO(uniqueLabel()) << debugstream.str() << TLOG_ENDL;
-	}
+	TLOG_ARB(TRANSFER_RECEIVE2, "MPITransfer") << "Posting buffer " << buf
+		<< " size=" << payload_[buf].size()
+		<< " header address=0x" << std::hex << payload_[buf].headerAddress() << std::dec << TLOG_ENDL;
 
 	std::unique_lock<std::mutex> lk(mpi_mutex_);
 	MPI_Irecv(&*payload_[buf].headerBegin(),

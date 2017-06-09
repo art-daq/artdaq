@@ -32,8 +32,6 @@
 #include <memory>
 #include <utility>
 
-using namespace std;
-using namespace fhicl;
 namespace  bpo = boost::program_options;
 
 volatile int events_to_generate;
@@ -74,7 +72,7 @@ int main(int argc, char * argv[]) try
 			<< "'.\n";
 		return 2;
 	}
-	ParameterSet pset;
+	fhicl::ParameterSet pset;
 	if (getenv("FHICL_FILE_PATH") == nullptr) {
 		std::cerr
 			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
@@ -87,7 +85,7 @@ int main(int argc, char * argv[]) try
 	uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
 	uint64_t timestamp = 0;
 
-	ParameterSet fragment_receiver_pset = pset.get<ParameterSet>("fragment_receiver");
+	fhicl::ParameterSet fragment_receiver_pset = pset.get<fhicl::ParameterSet>("fragment_receiver");
 
 	std::unique_ptr<artdaq::FragmentGenerator>
 		gen(artdaq::makeFragmentGenerator(fragment_receiver_pset.get<std::string>("generator"),
@@ -121,7 +119,7 @@ int main(int argc, char * argv[]) try
 	// Note: we are constrained to doing all this here rather than
 	// encapsulated neatly in a function due to the lieftime issues
 	// associated with async threads and std::string::c_str().
-	ParameterSet event_builder_pset = pset.get<ParameterSet>("event_builder");
+	fhicl::ParameterSet event_builder_pset = pset.get<fhicl::ParameterSet>("event_builder");
 	bool const want_artapp(event_builder_pset.get<bool>("use_art", false));
 	std::ostringstream os;
 	if (!want_artapp) {
@@ -202,21 +200,21 @@ int main(int argc, char * argv[]) try
 }
 catch (std::string & x)
 {
-	cerr << "Exception (type string) caught in artdaqDriver: " << x << '\n';
+	std::cerr << "Exception (type string) caught in artdaqDriver: " << x << '\n';
 	return 1;
 }
 catch (char const * m)
 {
-	cerr << "Exception (type char const*) caught in artdaqDriver: ";
+	std::cerr << "Exception (type char const*) caught in artdaqDriver: ";
 	if (m)
 	{
-		cerr << m;
+		std::cerr << m;
 	}
 	else
 	{
-		cerr << "[the value was a null pointer, so no message is available]";
+		std::cerr << "[the value was a null pointer, so no message is available]";
 	}
-	cerr << '\n';
+	std::cerr << '\n';
 }
 catch (...) {
 	artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,

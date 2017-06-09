@@ -203,7 +203,7 @@ private:
 	bool is_data_logger_;
 	bool is_online_monitor_;
 	bool is_dispatcher_;
-	artdaq::detail::seconds enq_timeout_;
+	artdaq::TimeUtils::seconds enq_timeout_;
 
 	std::unique_ptr<artdaq::DataReceiverManager> receiver_ptr_;
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;

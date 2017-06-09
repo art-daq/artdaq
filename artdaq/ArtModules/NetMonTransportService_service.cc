@@ -22,11 +22,7 @@
 #include <string>
 #include <vector>
 
-using namespace cet;
-using namespace fhicl;
-using namespace std;
-
-static ParameterSet empty_pset;
+static fhicl::ParameterSet empty_pset;
 
 NetMonTransportService::
 ~NetMonTransportService()
@@ -35,7 +31,7 @@ NetMonTransportService::
 }
 
 NetMonTransportService::
-NetMonTransportService(ParameterSet const& pset, art::ActivityRegistry&)
+NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
 	: NetMonTransportServiceInterface()
 	, data_pset_(pset)
 	, sender_ptr_(nullptr)

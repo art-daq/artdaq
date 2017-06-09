@@ -13,7 +13,7 @@
 std::pair<size_t, double> artdaq::TransferTest::do_sending()
 {
 	TRACE(7, "do_sending entered RawFragmentHeader::num_words()=%lu"
-		, artdaq::detail::RawFragmentHeader::num_words());
+		  , artdaq::detail::RawFragmentHeader::num_words());
 
 	size_t totalSize = 0;
 	double totalTime = 0;
@@ -42,7 +42,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 		auto send_start = std::chrono::steady_clock::now();
 		sender.sendFragment(std::move(frag));
 		auto after_send = std::chrono::steady_clock::now();
-		TRACE(1, "Sender %d sent fragment %d", my_rank, ii);
+		if (ii % (1 + (sends_each_sender_ / 100)) == 0)
+			TRACE(1, "Sender %d sent fragment %d", my_rank, ii);
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
 		frag = artdaq::Fragment(data_size_wrds); // replace/renew
@@ -98,8 +99,9 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 					first = false;
 				}
 				counter--;
-				TRACE(1, "Receiver %d received fragment %d with seqID %lu from Sender %d (Expecting %d more)"
-					, my_rank, receives_each_receiver_ - counter, ignoreFragPtr->sequenceID(), senderSlot, counter);
+				if (counter % (receives_each_receiver_ / 100) == 0)
+					TRACE(1, "Receiver %d received fragment %d with seqID %lu from Sender %d (Expecting %d more)"
+						  , my_rank, receives_each_receiver_ - counter, ignoreFragPtr->sequenceID(), senderSlot, counter);
 				thisSize = ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
 				totalSize += thisSize;
 			}
