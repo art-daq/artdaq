@@ -12,14 +12,78 @@
 
 using std::string;
 
+artdaq::detail::SharedMemoryEventReceiver::SharedMemoryEventReceiver(int shm_key, size_t buffer_count, size_t max_buffer_size)
+	: SharedMemoryManager(shm_key, buffer_count, max_buffer_size)
+	, current_read_buffer_(-1)
+{
+
+}
+std::shared_ptr<artdaq::detail::RawEventHeader> artdaq::detail::SharedMemoryEventReceiver::ReadHeader()
+{
+	if (current_header_) return current_header_;
+	auto buf = GetBufferForReading();
+	if (buf == -1) throw cet::exception("OutOfEvents") << "ReadHeader called but no events are ready! (Did you check ReadyForRead()?)";
+	current_read_buffer_ = buf;
+	ResetReadPos(current_read_buffer_);
+	current_header_ = std::shared_ptr<detail::RawEventHeader>(reinterpret_cast<detail::RawEventHeader*>(GetReadPos(buf)));
+	return current_header_;
+}
+std::set<artdaq::Fragment::type_t> artdaq::detail::SharedMemoryEventReceiver::GetFragmentTypes()
+{
+	if (current_read_buffer_ == -1) throw cet::exception("AccessViolation") << "Cannot call GetFragmentTypes when not currently reading a buffer! Call ReadHeader() first!";
+	ResetReadPos(current_read_buffer_);
+	IncrementReadPos(current_read_buffer_, sizeof(detail::RawEventHeader));
+
+	auto output = std::set<Fragment::type_t>();
+
+	while (MoreDataInBuffer(current_read_buffer_))
+	{
+		auto fragHdr = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(GetReadPos(current_read_buffer_));
+		output.insert(fragHdr->type);
+		IncrementReadPos(current_read_buffer_, fragHdr->word_count * sizeof(RawDataType));
+	}
+
+	return output;
+}
+
+std::unique_ptr<artdaq::Fragments> artdaq::detail::SharedMemoryEventReceiver::GetFragmentsByType(Fragment::type_t type)
+{
+	if (current_read_buffer_ == -1) throw cet::exception("AccessViolation") << "Cannot call GetFragmentsByType when not currently reading a buffer! Call ReadHeader() first!";
+	ResetReadPos(current_read_buffer_);
+	IncrementReadPos(current_read_buffer_, sizeof(detail::RawEventHeader));
+
+	Fragments output;
+
+	while (MoreDataInBuffer(current_read_buffer_))
+	{
+		auto fragHdr = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(GetReadPos(current_read_buffer_));
+		if (fragHdr->type != type) continue;
+
+		output.emplace_back(fragHdr->word_count - detail::RawFragmentHeader::num_words());
+		Read(current_read_buffer_, output.back().headerAddress(), fragHdr->word_count * sizeof(RawDataType));
+
+		IncrementReadPos(current_read_buffer_, fragHdr->word_count * sizeof(RawDataType));
+	}
+
+	return std::unique_ptr<Fragments>(&output);
+}
+
+void artdaq::detail::SharedMemoryEventReceiver::ReleaseBuffer()
+{
+	SharedMemoryManager::ReleaseBuffer(current_read_buffer_);
+	current_read_buffer_ = -1;
+	current_header_.reset();
+}
+
+
+
 artdaq::detail::SharedMemoryReader::SharedMemoryReader(fhicl::ParameterSet const& ps,
 													   art::ProductRegistryHelper& help,
 													   art::SourceHelper const& pm)
 	: pmaker(pm)
-	, incoming_events(new SharedMemoryEventManager(ps.get<int>("shared_memory_key", 0xBEE7),
+	, incoming_events(new SharedMemoryEventReceiver(ps.get<int>("shared_memory_key", 0xBEE7),
 												   ps.get<size_t>("buffer_count", 20), 
-												   ps.get<size_t>("max_buffer_size", 1024), 
-												   0))
+												   ps.get<size_t>("max_buffer_size", 1024)))
 	, waiting_time(ps.get<double>("waiting_time", 86400.0))
 	, resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
 	, pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))
@@ -83,6 +147,7 @@ bool artdaq::detail::SharedMemoryReader::readNext(art::RunPrincipal* const & inR
 	if (fragmentTypes.size() == 0)
 	{
 		TLOG_ERROR("SharedMemoryReader") << "Event has no Fragments! Aborting!" << TLOG_ENDL;
+		incoming_events->ReleaseBuffer();
 		return false;
 	}
 	auto firstFragmentType = *fragmentTypes.begin();
@@ -96,6 +161,7 @@ bool artdaq::detail::SharedMemoryReader::readNext(art::RunPrincipal* const & inR
 	{
 		TLOG_DEBUG("SharedMemoryReader") << "Received shutdown message, returning false" << TLOG_ENDL;
 		shutdownMsgReceived = true;
+		incoming_events->ReleaseBuffer();
 		return false;
 	}
 
@@ -119,6 +185,7 @@ bool artdaq::detail::SharedMemoryReader::readNext(art::RunPrincipal* const & inR
 		outR = pmaker.makeRunPrincipal(evid.runID(), currentTime);
 		outSR = pmaker.makeSubRunPrincipal(evid.subRunID(), currentTime);
 		outE = pmaker.makeEventPrincipal(evid, currentTime);
+		incoming_events->ReleaseBuffer();
 		return true;
 	}
 	else if (firstFragmentType == Fragment::EndOfSubrunFragmentType)
@@ -160,6 +227,7 @@ bool artdaq::detail::SharedMemoryReader::readNext(art::RunPrincipal* const & inR
 			outR = 0;
 		}
 		//outputFileCloseNeeded = true;
+		incoming_events->ReleaseBuffer();
 		return true;
 	}
 

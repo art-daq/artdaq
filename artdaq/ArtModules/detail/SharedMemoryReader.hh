@@ -10,17 +10,38 @@
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-#include "artdaq-core/Core/SharedMemoryEventManager.hh"
+#include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include "fhiclcpp/ParameterSet.h"
+#include "artdaq-core/Data/Fragment.hh"
 
 #include <string>
 #include <map>
+#include "artdaq-core/Data/RawEvent.hh"
 
 namespace artdaq
 {
 	namespace detail
 	{
+		/**
+		 * \brief SharedMemoryEventReceiver is a SharedMemoryManager which can receive events (as written by SharedMemoryEventManager) from Shared Memory
+		 */
+		class SharedMemoryEventReceiver : public SharedMemoryManager
+		{
+		public:
+			SharedMemoryEventReceiver(int shm_key, size_t buffer_count, size_t max_buffer_size);
+			virtual ~SharedMemoryEventReceiver() = default;
+
+			std::shared_ptr<detail::RawEventHeader> ReadHeader();
+			std::set<Fragment::type_t> GetFragmentTypes();
+			std::unique_ptr<Fragments> GetFragmentsByType(Fragment::type_t type);
+			void ReleaseBuffer();
+
+		private:
+			int current_read_buffer_;
+			std::shared_ptr<detail::RawEventHeader> current_header_;
+		};
+
 		/**
 		 * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
 		 */
@@ -38,7 +59,7 @@ namespace artdaq
 			SharedMemoryReader& operator=(SharedMemoryReader const&) = delete;
 
 			art::SourceHelper const pmaker; ///< An art::SourceHelper instance
-			std::unique_ptr<SharedMemoryEventManager> incoming_events; ///< The events from the EventStore
+			std::unique_ptr<SharedMemoryEventReceiver> incoming_events; ///< The events from the EventStore
 			artdaq::TimeUtils::seconds waiting_time; ///< The amount of time to wait for an event from the queue
 			bool resume_after_timeout; ///< Whether to resume if the dequeue action times out
 			std::string pretend_module_name; ///< The module name to store data under
@@ -61,8 +82,8 @@ namespace artdaq
 			 * \endverbatim
 			 */
 			SharedMemoryReader(fhicl::ParameterSet const& ps,
-								art::ProductRegistryHelper& help,
-								art::SourceHelper const& pm);
+							   art::ProductRegistryHelper& help,
+							   art::SourceHelper const& pm);
 
 			/**
 			 * \brief SharedMemoryReader Constructor
@@ -73,9 +94,9 @@ namespace artdaq
 			 * This constructor calls the three-parameter constructor, the art::MasterProductRegistry parameter is discarded.
 			 */
 			SharedMemoryReader(fhicl::ParameterSet const& ps,
-								art::ProductRegistryHelper& help,
-								art::SourceHelper const& pm,
-								art::MasterProductRegistry&) : SharedMemoryReader(ps, help, pm) {}
+							   art::ProductRegistryHelper& help,
+							   art::SourceHelper const& pm,
+							   art::MasterProductRegistry&) : SharedMemoryReader(ps, help, pm) {}
 
 			/**
 			 * \brief SharedMemoryReader destructor

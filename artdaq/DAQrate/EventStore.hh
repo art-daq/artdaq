@@ -5,7 +5,7 @@
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQrate/detail/RequestMessage.hh"
+#include "artdaq/DAQrate/RequestSender.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 #include <map>
@@ -111,21 +111,15 @@ namespace artdaq
 		 * EventStore accepts the following Parameters:
 		 * "event_queue_depth" (Default: event_queue_depth): The size of the ConcurrentQueue to allocate
 		 * "max_incomplete_events" (Default: max_incomplete_events): The maximum size of the EventStore
-		 * "send_requests" (Default: false): Whether to send DataRequests when new sequence IDs are seen
-		 * "request_port" (Default: 3001): Port to send DataRequests on
-		 * "request_delay_ms" (Default: 10): How long to wait before sending new DataRequests
 		 * "output_address" (Default: "localhost"): Use this hostname for multicast output (to assign to the proper NIC)
 		 * "event_queue_wait_time" (Default: 5.0): 
 		 * "event_queue_check_count" (Default: 5000):
 		 * "print_event_store_stats" (Default: false):
 		 * "incomplete_event_report_interval_ms" (Default: -1):
 		 * "art_thread_wait_ms" (Default: 4000): Amount of time to wait for the art thread to start dequeuing events
-		 * "request_address" (Default: "227.128.12.26"): Multicast address to send DataRequests to
-		 * "routing_token_config" (Default: Empty table): FHiCL table containing RoutingToken configuration
-		 *   "use_routing_master" (Default: false): Whether to send tokens to a RoutingMaster
-		 *   "routing_token_port" (Default: 35555): Port to send tokens on
-		 *   "routing_master_hostname" (Default: "localhost"): Hostname or IP of RoutingMaster
 		 * \endverbatim
+		 * 
+		 * The configuration ParameterSet should also contain the configuration for the RequestSender class.
 		 */
 		EventStore(const fhicl::ParameterSet& pset,
 				   size_t num_fragments_per_event, run_id_t run,
@@ -273,11 +267,7 @@ namespace artdaq
 		 */
 		size_t incompleteEventCount() const { return events_.size(); }
 
-		/**
-		 * \brief Set the mode for RequestMessages. Used to indicate when EventStore should enter "EndOfRun" mode
-		 * \param mode Mode to set
-		 */
-		void setRequestMode(detail::RequestMessageMode mode) { request_mode_ = mode; }
+		void setRequestMode(detail::RequestMessageMode mode) { requests_.SetRequestMode(mode); }
 
 	private:
 		// id_ is the unique identifier of this object; MPI programs will
@@ -289,19 +279,10 @@ namespace artdaq
 		subrun_id_t subrun_id_;
 		EventMap events_;
 		RawEventQueue& queue_;
+		RequestSender requests_;
 		std::chrono::steady_clock::time_point reader_thread_launch_time_;
 		std::future<int> reader_thread_;
-
-		bool send_requests_;
-		std::mutex request_mutex_;
-		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_;
-		int request_port_;
-		size_t request_delay_;
-		int request_socket_;
-		struct sockaddr_in request_addr_;
-		std::string multicast_out_addr_;
-		detail::RequestMessageMode request_mode_;
-
+		
 		unsigned int seqIDModulus_;
 		sequence_id_t lastFlushedSeqID_;
 		sequence_id_t highestSeqIDSeen_;
@@ -312,29 +293,13 @@ namespace artdaq
 
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
-
-		bool send_routing_tokens_;
-		int token_port_;
-		int token_socket_;
-		struct sockaddr_in token_addr_;
-		std::string token_address_;
-
-				int art_thread_wait_ms_;
+		
+		int art_thread_wait_ms_;
 
 	private:
 		void initStatistics_();
 
 		void reportStatistics_();
-
-		void setup_requests_(std::string trigger_addr);
-
-		void send_request_();
-
-		void do_send_request_();
-
-		void setup_tokens_();
-
-		void send_routing_token_(int nSlots);
 	};
 }
 #endif /* artdaq_DAQrate_EventStore_hh */

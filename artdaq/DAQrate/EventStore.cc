@@ -29,13 +29,8 @@ namespace artdaq
 		, subrun_id_(0)
 		, events_()
 		, queue_(getGlobalQueue(max_queue_size_))
+		, requests_(pset)
 		, reader_thread_launch_time_(std::chrono::steady_clock::now())
-		, send_requests_(pset.get<bool>("send_requests", false))
-		, active_requests_()
-		, request_port_(pset.get<int>("request_port", 3001))
-		, request_delay_(pset.get<size_t>("request_delay_ms", 10))
-		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
-		, request_mode_(detail::RequestMessageMode::Normal)
 		, seqIDModulus_(1)
 		, lastFlushedSeqID_(0)
 		, highestSeqIDSeen_(0)
@@ -44,18 +39,10 @@ namespace artdaq
 		, printSummaryStats_(pset.get<bool>("print_event_store_stats", false))
 		, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 		, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-		, token_socket_(-1)
 		, art_thread_wait_ms_(pset.get<int>("art_thread_wait_ms", 4000))
 	{
 		TLOG_DEBUG("EventStore") << "EventStore CONSTRUCTOR" << TLOG_ENDL;
 		initStatistics_();
-		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
-
-		auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
-		send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
-		token_port_ = rmConfig.get<int>("routing_token_port", 35555);
-		token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
-		setup_tokens_();
 		TRACE(12, "artdaq::EventStore::EventStore ctor - reader_thread_ initialized");
 	}
 
@@ -87,10 +74,6 @@ namespace artdaq
 		{
 			reportStatistics_();
 		}
-		shutdown(request_socket_, 2);
-		close(request_socket_);
-		shutdown(token_socket_, 2);
-		close(token_socket_);
 	}
 
 	void EventStore::insert(FragmentPtr pfrag,
@@ -117,20 +100,14 @@ namespace artdaq
 			Fragment::timestamp_t timestamp = pfrag->timestamp();
 
 			// Send a request to the board readers!
-			if (send_requests_)
-			{
-				std::lock_guard<std::mutex> lk(request_mutex_);
-				active_requests_[highestSeqIDSeen_] = timestamp;
-				send_request_();
-			}
+			requests_.AddRequest(highestSeqIDSeen_, timestamp);
 		}
 
 		// When we're in the "EndOfRun" condition, send requests for EVERY fragment inserted!
 		// This helps to make sure that all BoardReaders get the EndOfRun request and send all their data.
-		if (send_requests_ && request_mode_ == detail::RequestMessageMode::EndOfRun)
+		if (requests_.GetRequestMode() == detail::RequestMessageMode::EndOfRun)
 		{
-			std::lock_guard<std::mutex> lk(request_mutex_);
-			send_request_();
+			requests_.SendRequest();
 		}
 		Fragment::sequence_id_t sequence_id = ((pfrag->sequenceID() - (1 + lastFlushedSeqID_)) / seqIDModulus_) + 1;
 		TRACE(13, "EventStore::insert seq=%lu fragID=%d id=%d lastFlushed=%lu seqIDMod=%d seq=%lu"
@@ -162,11 +139,8 @@ namespace artdaq
 
 			events_.erase(loc);
 
-			if (send_requests_)
-			{
-				std::lock_guard<std::mutex> lk(request_mutex_);
-				active_requests_.erase(sequence_id);
-			}
+			requests_.RemoveRequest(sequence_id);
+			
 			// 13-Dec-2012, KAB - this monitoring needs to come before
 			// the enqueueing of the event lest it be empty by the
 			// time that we ask for the word count.
@@ -201,7 +175,7 @@ namespace artdaq
 			}
 			else
 			{
-				send_routing_token_(1);
+				requests_.SendRoutingToken(1);
 			}
 		}
 		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
@@ -336,7 +310,7 @@ namespace artdaq
 		subrun_id_ = 1;
 		lastFlushedSeqID_ = 0;
 		highestSeqIDSeen_ = 0;
-		send_routing_token_(max_queue_size_);
+		requests_.SendRoutingToken(max_queue_size_);
 		TLOG_DEBUG("EventStore") << "Starting run " << run_id_
 			<< ", max queue size = "
 			<< max_queue_size_
@@ -520,126 +494,7 @@ namespace artdaq
 			outStream.close();
 		}
 	}
-
-	void
-		EventStore::setup_requests_(std::string request_address)
-	{
-		if (send_requests_)
-		{
-			request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-			if (!request_socket_)
-			{
-				TLOG_ERROR("EventStore") << "I failed to create the socket for sending Data Requests!" << TLOG_ENDL;
-				exit(1);
-			}
-			int sts = ResolveHost(request_address.c_str(), request_port_, request_addr_);
-			if (sts == -1)
-			{
-				TLOG_ERROR("EventStore") << "Unable to resolve Data Request address" << TLOG_ENDL;
-				exit(1);
-			}
-
-			if (multicast_out_addr_ != "localhost") {
-				struct in_addr addr;
-				int sts = ResolveHost(multicast_out_addr_.c_str(), addr);
-				if (sts == -1)
-				{
-					TLOG_ERROR("EventStore") << "Unable to resolve multicast interface address" << TLOG_ENDL;
-					exit(1);
-				}
-
-				int yes = 1;
-				if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
-				{
-					TLOG_ERROR("EventStore") << "Unable to enable port reuse on request socket" << TLOG_ENDL;
-					exit(1);
-				}
-				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
-				{
-					TLOG_ERROR("EventStore") << "Cannot set outgoing interface." << TLOG_ENDL;
-					exit(1);
-				}
-			}
-			int yes = 1;
-			if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
-			{
-				TLOG_ERROR("EventStore") << "Cannot set request socket to broadcast." << TLOG_ENDL;
-				exit(1);
-			}
-		}
-	}
-
-	void
-		EventStore::setup_tokens_()
-	{
-		if (send_routing_tokens_)
-		{
-			TLOG_DEBUG("EventStore") << "Creating Routing Token sending socket" << TLOG_ENDL;
-			token_socket_ = TCPConnect(token_address_.c_str(), token_port_);
-			if (!token_socket_)
-			{
-				TLOG_ERROR("EventStore") << "I failed to create the socket for sending Routing Tokens!" << TLOG_ENDL;
-				exit(1);
-			}
-		}
-	}
-
-	void EventStore::do_send_request_()
-	{
-		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
-
-		detail::RequestMessage message;
-		{
-			std::lock_guard<std::mutex> lk(request_mutex_);
-			for (auto& req : active_requests_)
-			{
-				message.addRequest(req.first, req.second);
-			}
-		}
-		message.header()->mode = request_mode_;
-		char str[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-		TLOG_DEBUG("EventStore") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << TLOG_ENDL;
-		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
-		{
-			TLOG_ERROR("EventStore") << "Error sending request message header" << TLOG_ENDL;
-		}
-		if (sendto(request_socket_, message.buffer(), sizeof(detail::RequestPacket) * message.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
-		{
-			TLOG_ERROR("EventStore") << "Error sending request message data" << TLOG_ENDL;
-		}
-	}
-
-	void EventStore::send_routing_token_(int nSlots)
-	{
-		TLOG_DEBUG("EventStore") << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_ << TLOG_ENDL;
-		if (!send_routing_tokens_) return;
-		if (token_socket_ == -1) setup_tokens_();
-		detail::RoutingToken token;
-		token.header = TOKEN_MAGIC;
-		token.rank = my_rank;
-		token.new_slots_free = nSlots;
-
-		TLOG_DEBUG("EventStore") << "Sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
-		size_t sts = 0;
-		while (sts < sizeof(detail::RoutingToken)) {
-			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
-			if (res == -1) {
-				usleep(1000);
-				continue;
-			}
-			sts += res;
-		}
-		TLOG_DEBUG("EventStore") << "Done sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
-	}
-
-	void
-		EventStore::send_request_()
-	{
-		std::thread request([=] { do_send_request_(); });
-		request.detach();
-	}
-
+	
 	void
 		EventStore::sendMetrics()
 	{
