@@ -18,8 +18,13 @@ artdaq::detail::SharedMemoryEventReceiver::SharedMemoryEventReceiver(int shm_key
 {
 
 }
-std::shared_ptr<artdaq::detail::RawEventHeader> artdaq::detail::SharedMemoryEventReceiver::ReadHeader()
+
+std::shared_ptr<artdaq::detail::RawEventHeader> artdaq::detail::SharedMemoryEventReceiver::ReadHeader(bool& err)
 {
+	if (current_read_buffer_ != -1) {
+		err = !CheckBuffer(current_read_buffer_, BufferSemaphoreFlags::Reading);
+		if (err) return nullptr;
+	}
 	if (current_header_) return current_header_;
 	auto buf = GetBufferForReading();
 	if (buf == -1) throw cet::exception("OutOfEvents") << "ReadHeader called but no events are ready! (Did you check ReadyForRead()?)";
@@ -28,16 +33,22 @@ std::shared_ptr<artdaq::detail::RawEventHeader> artdaq::detail::SharedMemoryEven
 	current_header_ = std::shared_ptr<detail::RawEventHeader>(reinterpret_cast<detail::RawEventHeader*>(GetReadPos(buf)));
 	return current_header_;
 }
-std::set<artdaq::Fragment::type_t> artdaq::detail::SharedMemoryEventReceiver::GetFragmentTypes()
+
+std::set<artdaq::Fragment::type_t> artdaq::detail::SharedMemoryEventReceiver::GetFragmentTypes(bool& err)
 {
 	if (current_read_buffer_ == -1) throw cet::exception("AccessViolation") << "Cannot call GetFragmentTypes when not currently reading a buffer! Call ReadHeader() first!";
+
+	err = !CheckBuffer(current_read_buffer_, BufferSemaphoreFlags::Reading);
+	if (err) return std::set<Fragment::type_t>();
+
 	ResetReadPos(current_read_buffer_);
 	IncrementReadPos(current_read_buffer_, sizeof(detail::RawEventHeader));
-
 	auto output = std::set<Fragment::type_t>();
 
 	while (MoreDataInBuffer(current_read_buffer_))
 	{
+		err = !CheckBuffer(current_read_buffer_, BufferSemaphoreFlags::Reading);
+		if (err) return std::set<Fragment::type_t>();
 		auto fragHdr = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(GetReadPos(current_read_buffer_));
 		output.insert(fragHdr->type);
 		IncrementReadPos(current_read_buffer_, fragHdr->word_count * sizeof(RawDataType));
@@ -46,9 +57,12 @@ std::set<artdaq::Fragment::type_t> artdaq::detail::SharedMemoryEventReceiver::Ge
 	return output;
 }
 
-std::unique_ptr<artdaq::Fragments> artdaq::detail::SharedMemoryEventReceiver::GetFragmentsByType(Fragment::type_t type)
+std::unique_ptr<artdaq::Fragments> artdaq::detail::SharedMemoryEventReceiver::GetFragmentsByType(bool& err, Fragment::type_t type)
 {
 	if (current_read_buffer_ == -1) throw cet::exception("AccessViolation") << "Cannot call GetFragmentsByType when not currently reading a buffer! Call ReadHeader() first!";
+	err = !CheckBuffer(current_read_buffer_, BufferSemaphoreFlags::Reading);
+	if (err) return nullptr;
+
 	ResetReadPos(current_read_buffer_);
 	IncrementReadPos(current_read_buffer_, sizeof(detail::RawEventHeader));
 
@@ -56,12 +70,13 @@ std::unique_ptr<artdaq::Fragments> artdaq::detail::SharedMemoryEventReceiver::Ge
 
 	while (MoreDataInBuffer(current_read_buffer_))
 	{
+		err = !CheckBuffer(current_read_buffer_, BufferSemaphoreFlags::Reading);
+		if (err) return nullptr;
 		auto fragHdr = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(GetReadPos(current_read_buffer_));
-		if (fragHdr->type != type) continue;
-
-		output.emplace_back(fragHdr->word_count - detail::RawFragmentHeader::num_words());
-		Read(current_read_buffer_, output.back().headerAddress(), fragHdr->word_count * sizeof(RawDataType));
-
+		if (fragHdr->type == type) {
+			output.emplace_back(fragHdr->word_count - detail::RawFragmentHeader::num_words());
+			Read(current_read_buffer_, output.back().headerAddress(), fragHdr->word_count * sizeof(RawDataType));
+		}
 		IncrementReadPos(current_read_buffer_, fragHdr->word_count * sizeof(RawDataType));
 	}
 
@@ -70,7 +85,13 @@ std::unique_ptr<artdaq::Fragments> artdaq::detail::SharedMemoryEventReceiver::Ge
 
 void artdaq::detail::SharedMemoryEventReceiver::ReleaseBuffer()
 {
-	SharedMemoryManager::ReleaseBuffer(current_read_buffer_);
+	try {
+		MarkBufferEmpty(current_read_buffer_);
+	}
+	catch (cet::exception e)
+	{
+		mf::LogWarning("SharedMemoryEventReceiver") << "A cet::exception occured while trying to release the buffer: " << e;
+	}
 	current_read_buffer_ = -1;
 	current_header_.reset();
 }
@@ -82,8 +103,8 @@ artdaq::detail::SharedMemoryReader::SharedMemoryReader(fhicl::ParameterSet const
 													   art::SourceHelper const& pm)
 	: pmaker(pm)
 	, incoming_events(new SharedMemoryEventReceiver(ps.get<int>("shared_memory_key", 0xBEE7),
-												   ps.get<size_t>("buffer_count", 20), 
-												   ps.get<size_t>("max_buffer_size", 1024)))
+													ps.get<size_t>("buffer_count", 20),
+													ps.get<size_t>("max_buffer_size", 1024)))
 	, waiting_time(ps.get<double>("waiting_time", 86400.0))
 	, resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
 	, pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))
@@ -142,8 +163,11 @@ bool artdaq::detail::SharedMemoryReader::readNext(art::RunPrincipal* const & inR
 		}
 	}
 
-	auto evtHeader = incoming_events->ReadHeader();
-	auto fragmentTypes = incoming_events->GetFragmentTypes();
+	auto errflag = false;
+	auto evtHeader = incoming_events->ReadHeader(errflag);
+	if (errflag) return true; // Buffer was changed out from under reader!
+	auto fragmentTypes = incoming_events->GetFragmentTypes(errflag);
+	if (errflag) return true; // Buffer was changed out from under reader!
 	if (fragmentTypes.size() == 0)
 	{
 		TLOG_ERROR("SharedMemoryReader") << "Event has no Fragments! Aborting!" << TLOG_ENDL;
@@ -251,7 +275,8 @@ bool artdaq::detail::SharedMemoryReader::readNext(art::RunPrincipal* const & inR
 	{
 		std::map<Fragment::type_t, std::string>::const_iterator iter =
 			fragment_type_map_.find(type_code);
-		auto product = incoming_events->GetFragmentsByType(type_code);
+		auto product = incoming_events->GetFragmentsByType(errflag, type_code);
+		if (errflag) return true; // Buffer was changed out from under reader!
 		for (auto &frag : *product)
 			bytesRead += frag.sizeBytes();
 		if (iter != iter_end)

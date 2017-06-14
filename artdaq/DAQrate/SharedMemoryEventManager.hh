@@ -105,6 +105,7 @@ namespace artdaq {
 		size_t const queue_size_;
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
+		bool update_run_ids_;
 
 		unsigned int seqIDModulus_;
 		sequence_id_t lastFlushedSeqID_;

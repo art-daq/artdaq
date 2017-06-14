@@ -32,9 +32,9 @@ namespace artdaq
 			SharedMemoryEventReceiver(int shm_key, size_t buffer_count, size_t max_buffer_size);
 			virtual ~SharedMemoryEventReceiver() = default;
 
-			std::shared_ptr<detail::RawEventHeader> ReadHeader();
-			std::set<Fragment::type_t> GetFragmentTypes();
-			std::unique_ptr<Fragments> GetFragmentsByType(Fragment::type_t type);
+			std::shared_ptr<detail::RawEventHeader> ReadHeader(bool& err);
+			std::set<Fragment::type_t> GetFragmentTypes(bool& err);
+			std::unique_ptr<Fragments> GetFragmentsByType(bool& err, Fragment::type_t type);
 			void ReleaseBuffer();
 
 		private:

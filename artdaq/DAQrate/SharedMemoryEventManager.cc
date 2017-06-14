@@ -10,12 +10,14 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 														   size_t event_queue_depth, std::string art_fhicl)
 	: SharedMemoryManager(pset.get<int>("shm_key", 0xBEE7),
 						  pset.get<size_t>("event_queue_depth", event_queue_depth),
-						  pset.get<size_t>("max_event_size_bytes"))
+						  pset.get<size_t>("max_event_size_bytes"),
+						  pset.get<size_t>("stale_buffer_touch_count",0x10000))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
 	, num_fragments_per_event_(pset.get<size_t>("fragment_count", num_fragments_per_event))
 	, queue_size_(pset.get<size_t>("event_queue_depth", event_queue_depth))
 	, run_id_(run)
 	, subrun_id_(0)
+	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
 	, seqIDModulus_(1)
 	, lastFlushedSeqID_(0)
 	, highestSeqIDSeen_(0)
@@ -42,8 +44,10 @@ void artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 
 	ResetReadPos(buffer);
 	auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetReadPos(buffer));
-	hdr->run_id = run_id_;
-	hdr->subrun_id = subrun_id_;
+	if (update_run_ids_) {
+		hdr->run_id = run_id_;
+		hdr->subrun_id = subrun_id_;
+	}
 
 	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
 
@@ -58,7 +62,7 @@ void artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 		{
 			mqPtr->addSample(BufferDataSize(buffer));
 		}
-		ReleaseBuffer(buffer);
+		MarkBufferFull(buffer);
 	}
 }
 
@@ -127,7 +131,7 @@ void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag)
 			buffer = getBufferForSequenceID_(hdr.sequence_id);
 		}
 		AddFragment(hdr, frag->headerAddress());
-		SetBufferDestination(buffer, ii);
+		MarkBufferFull(buffer, ii);
 	}
 }
 
@@ -141,10 +145,10 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		if (hdr->sequence_id == seqID) return buf;
 	}
 	auto new_buffer = GetBufferForWriting(false);
-	auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetNextWritePos(new_buffer));
+	auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetWritePos(new_buffer));
 	hdr->is_complete = false;
-	hdr->run_id = 0;
-	hdr->subrun_id = 0;
+	hdr->run_id = run_id_;
+	hdr->subrun_id = subrun_id_;
 	hdr->sequence_id = seqID;
 	return new_buffer;
 }
@@ -196,7 +200,7 @@ bool artdaq::SharedMemoryEventManager::flushData()
 		{
 			mqPtr->addSample(BufferDataSize(buf));
 		}
-		ReleaseBuffer(buf);
+		MarkBufferFull(buf);
 	}
 	TLOG_DEBUG("SharedMemoryEventManager") << "Done flushing " << flushList.size()
 		<< " stale events from the SharedMemoryEventManager." << TLOG_ENDL;
