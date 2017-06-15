@@ -1,4 +1,4 @@
-#include "test/DAQrate/TransferTest.hh"
+#include "proto/TransferTest.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/make_ParameterSet.h"
 
