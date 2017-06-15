@@ -257,4 +257,3 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 
 	return std::make_pair(totalSize, totalTime);
 }
-

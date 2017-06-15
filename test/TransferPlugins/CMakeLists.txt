@@ -7,3 +7,8 @@ cet_test(transfer_driver_t HANDBUILT
   DATAFILES fcl/transfer_driver_mpi.fcl
   )
 
+cet_test(transfer_driver_validate_t HANDBUILT
+  TEST_EXEC mpirun
+  TEST_ARGS -hosts localhost -np 5 transfer_driver_mpi transfer_driver_mpi_validate.fcl
+  DATAFILES fcl/transfer_driver_mpi_validate.fcl
+  )
