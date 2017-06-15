@@ -11,10 +11,13 @@ namespace artdaq
 		struct RequestHeader;
 		class RequestMessage;
 
+		/**
+		 * \brief Mode used to indicate current run conditions to the request receiver
+		 */
 		enum class RequestMessageMode
 		{
-			Normal = 0,
-			EndOfRun = 1,
+			Normal = 0, ///< Normal running
+			EndOfRun = 1, ///< End of Run mode (Used to end request processing on receiver)
 		};
 	}
 }

@@ -267,6 +267,10 @@ namespace artdaq
 		 */
 		size_t incompleteEventCount() const { return events_.size(); }
 
+		/**
+		 * \brief Set the RequestMessageMode for the RequestSender
+		 * \param mode Mode to set
+		 */
 		void setRequestMode(detail::RequestMessageMode mode) { requests_.SetRequestMode(mode); }
 
 	private:

@@ -11,7 +11,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	: SharedMemoryManager(pset.get<int>("shm_key", 0xBEE7),
 						  pset.get<size_t>("event_queue_depth", event_queue_depth),
 						  pset.get<size_t>("max_event_size_bytes"),
-						  pset.get<size_t>("stale_buffer_touch_count",0x10000))
+						  pset.get<size_t>("stale_buffer_touch_count", 0x10000))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
 	, num_fragments_per_event_(pset.get<size_t>("fragment_count", num_fragments_per_event))
 	, queue_size_(pset.get<size_t>("event_queue_depth", event_queue_depth))
@@ -106,13 +106,17 @@ void artdaq::SharedMemoryEventManager::RunArt()
 	}
 }
 
-void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl)
+void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, int n_art_processes)
 {
 	std::vector<int> ignored;
 	endOfData(ignored);
 	std::ofstream of(config_file_name_, std::ofstream::trunc);
 	of << art_fhicl << std::endl;
 	of.close();
+	if (n_art_processes != -1)
+	{
+		num_art_processes_ = n_art_processes;
+	}
 	StartArt();
 }
 

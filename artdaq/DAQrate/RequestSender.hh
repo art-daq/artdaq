@@ -22,28 +22,7 @@ namespace artdaq
 {
 
 	/**
-	 * \brief The RequestSender class collects Fragment objects, until it receives a complete
-	 * event, at which point the event is handed over to the art thread
-	 * \todo Make the art thread a separate process
-	 * 
-	 * An RequestSender is given Fragments, which it collects until it
-	 * finds it has a complete RawEvent. When a complete RawEvent is
-	 * assembled, the RequestSender puts it onto the global RawEvent queue.
-	 * There should be only one RequestSender per process; an MPI program
-	 * can thus have multiple RequestSenders. By construction, each
-	 * RequestSender will only deal with events (and fragments) from a
-	 * single run.
-	 *
-	 * The RequestSender is also responsible for starting the thread that
-	 * will be popping events off the global queue. This is so that the
-	 * RequestSender is guaranteed to live long enough to allow the global
-	 * queue to be drained. The current implementation uses only a free
-	 * function as the 'thread function' for this thread.
-	 *
-	 * A future enhancement of RequestSender may make it be able to move
-	 * from handling run X to handling run Y; such an enhancement will
-	 * have to include how to deal with any incomplete events in storage
-	 * at the time of the introduction of the new run.
+	 * \brief The RequestSender contains methods used to send data requests and Routing tokens
 	 */
 	class RequestSender
 	{
@@ -94,14 +73,34 @@ namespace artdaq
 		 */
 		void SetRequestMode(detail::RequestMessageMode mode) { request_mode_ = mode; }
 
-		detail::RequestMessageMode GetRequestMode() { return request_mode_; }
+		/**
+		 * \brief Get the mode for RequestMessages.
+		 * \return Current RequestMessageMode of the RequestSender
+		 */
+		detail::RequestMessageMode GetRequestMode() const { return request_mode_; }
 
+		/**
+		 * \brief Send a request message containing all current requests
+		 */
 		void SendRequest();
 
+		/**
+		 * \brief Add a request to the request list
+		 * \param seqID Sequence ID for request
+		 * \param timestamp Timestamp to request
+		 */
 		void AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp);
 
+		/**
+		 * \brief Remove a request from the request list
+		 * \param seqID Sequence ID of request
+		 */
 		void RemoveRequest(Fragment::sequence_id_t seqID);
 
+		/**
+		 * \brief Send a RoutingToken message indicating that slots are available
+		 * \param nSlots Number of slots available
+		 */
 		void SendRoutingToken(int nSlots);
 	private:
 		
