@@ -56,8 +56,23 @@ namespace artdaq {
 		 * \brief Add a Fragment to the SharedMemoryEventManager
 		 * \param frag Header of the Fragment (seq ID and size info)
 		 * \param dataPtr Pointer to the fragment's data (i.e. Fragment::headerAddress())
+		 * \return Whether the Fragment was successfully added
 		 */
-		void AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
+		bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
+
+		/**
+		 * \brief Get a pointer to a reserved memory area for the given Fragment header
+		 * \param frag Fragment header (contains sequence ID and size information)
+		 * \return Pointer to memory location for Fragment body (Header is copied into buffer here)
+		 */
+		RawDataType* GetFragmentLocation(detail::RawFragmentHeader frag);
+
+		/**
+		 * \brief Used to indicate that the given Fragment is now completely in the buffer. Will check for buffer completeness, and unset the pending flag.
+		 * \param frag Fragment that is now completely in the buffer.
+		 */
+		void DoneWritingFragment(detail::RawFragmentHeader frag);
+
 		/**
 		 * \brief Check if there is space for a Fragment with the given sequence ID
 		 * \param seqID Sequence ID to check
@@ -165,6 +180,9 @@ namespace artdaq {
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
 		bool update_run_ids_;
+
+		std::unordered_map<int,int> buffer_writes_pending_;
+		std::unordered_map<int, std::mutex> buffer_write_mutexes_;
 
 		unsigned int seqIDModulus_;
 		sequence_id_t lastFlushedSeqID_;
