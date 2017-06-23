@@ -4,6 +4,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "fhiclcpp/ParameterSet.h"
+#include "cetlib_except/exception.h"
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -39,7 +40,7 @@ namespace artdaq
 		 * \brief MulticastTransfer Constructor
 		 * \param ps ParameterSet used to configure MulticastTransfer
 		 * \param role Role of this MulticastTransfer instance (kSend or kReceive)
-		 * 
+		 *
 		 * \verbatim
 		 * MulticastTransfer accepts the following Parameters:
 		 * "subfragment_size" (REQUIRED): Size of the sub-Fragments
@@ -61,7 +62,24 @@ namespace artdaq
 		* \return Rank of sender or RECV_TIMEOUT
 		*/
 		int receiveFragment(artdaq::Fragment& fragment,
-									size_t receiveTimeout) override;
+							size_t receiveTimeout) override;
+
+		/**
+		* \brief Receive a Fragment Header from the transport mechanism
+		* \param[out] header Received Fragment Header
+		* \param receiveTimeout Timeout for receive
+		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		*/
+		int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
+
+		/**
+		* \brief Receive the body of a Fragment to the given destination pointer
+		* \param destination Pointer to memory region where Fragment data should be stored
+		 * \param wordCount Number of words of Fragment data to receive
+		* \param receiveTimeout Timeout for receive
+		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		*/
+		int receiveFragmentData(RawDataType* destination, size_t wordCount, size_t receiveTimeout) override;
 
 		/**
 		* \brief Copy a Fragment to the destination. Multicast is always unreliable
@@ -70,7 +88,7 @@ namespace artdaq
 		* \return CopyStatus detailing result of copy
 		*/
 		CopyStatus copyFragment(artdaq::Fragment& fragment,
-										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
+								size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
 		/**
 		* \brief Move a Fragment to the destination. Multicast is always unreliable
@@ -79,7 +97,7 @@ namespace artdaq
 		* \return CopyStatus detailing result of copy
 		*/
 		CopyStatus moveFragment(artdaq::Fragment&& fragment,
-										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
+								size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
 	private:
 
@@ -102,9 +120,9 @@ namespace artdaq
 		public:
 
 			subfragment_identifier(size_t sequenceID, size_t fragmentID, size_t subfragment_number) :
-																									sequenceID_(sequenceID)
-																									, fragmentID_(fragmentID)
-																									, subfragment_number_(subfragment_number) { }
+				sequenceID_(sequenceID)
+				, fragmentID_(fragmentID)
+				, subfragment_number_(subfragment_number) { }
 
 			size_t sequenceID() const { return sequenceID_; }
 			size_t fragmentID() const { return fragmentID_; }
@@ -128,6 +146,7 @@ namespace artdaq
 		size_t subfragments_per_send_;
 
 		size_t pause_on_copy_usecs_;
+		Fragment fragment_buffer_;
 
 		std::vector<byte_t> staging_memory_;
 
@@ -136,15 +155,15 @@ namespace artdaq
 }
 
 artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Role role) :
-																						 TransferInterface(pset, role)
-																						 , io_service_(std::make_unique<std::remove_reference<decltype(*io_service_)>::type>())
-																						 , local_endpoint_(nullptr)
-																						 , multicast_endpoint_(nullptr)
-																						 , opposite_endpoint_(std::make_unique<std::remove_reference<decltype(*opposite_endpoint_)>::type>())
-																						 , socket_(nullptr)
-																						 , subfragment_size_(pset.get<size_t>("subfragment_size"))
-																						 , subfragments_per_send_(pset.get<size_t>("subfragments_per_send"))
-																						 , pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0))
+	TransferInterface(pset, role)
+	, io_service_(std::make_unique<std::remove_reference<decltype(*io_service_)>::type>())
+	, local_endpoint_(nullptr)
+	, multicast_endpoint_(nullptr)
+	, opposite_endpoint_(std::make_unique<std::remove_reference<decltype(*opposite_endpoint_)>::type>())
+	, socket_(nullptr)
+	, subfragment_size_(pset.get<size_t>("subfragment_size"))
+	, subfragments_per_send_(pset.get<size_t>("subfragments_per_send"))
+	, pause_on_copy_usecs_(pset.get<size_t>("pause_on_copy_usecs", 0))
 {
 	try
 	{
@@ -226,7 +245,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 	if (fragment.dataSizeBytes() > 0)
 	{
 		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::receiveFragmentFrom: " <<
-			  "nonzero payload found in fragment passed as argument";
+			"nonzero payload found in fragment passed as argument";
 	}
 
 	static bool print_warning = true;
@@ -314,7 +333,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 				else
 				{
 					throw cet::exception("MulticastTransfer") << "Buffer size is too small to completely contain an artdaq::Fragment header; " <<
-						  "please increase the default size";
+						"please increase the default size";
 				}
 			}
 
@@ -342,7 +361,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 			// its own complete fragment, but we know the previous fragment
 			// to be incomplete
 
-			assert( !fragment_complete );
+			assert(!fragment_complete);
 			TLOG_WARNING(uniqueLabel()) << "Got an incomplete fragment" << TLOG_ENDL;
 			return artdaq::TransferInterface::RECV_TIMEOUT;
 		}
@@ -357,6 +376,28 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 }
 
 #pragma GCC diagnostic pop
+
+int artdaq::MulticastTransfer::receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout)
+{
+	auto ret = receiveFragment(fragment_buffer_, receiveTimeout);
+	if (ret == source_rank())
+	{
+		header = *reinterpret_cast<detail::RawFragmentHeader*>(fragment_buffer_.headerAddress());
+		return source_rank();
+	}
+	return ret;
+}
+
+int artdaq::MulticastTransfer::receiveFragmentData(RawDataType* destination, size_t wordCount, size_t)
+{
+	if (fragment_buffer_.size() > detail::RawFragmentHeader::num_words()) {
+		auto dataSize = (fragment_buffer_.size() - detail::RawFragmentHeader::num_words()) * sizeof(RawDataType);
+		memcpy(destination, fragment_buffer_.headerAddress() + detail::RawFragmentHeader::num_words(), dataSize);
+		return source_rank();
+	}
+	return RECV_TIMEOUT;
+}
+
 
 // Reliable transport is undefined for multicast; just use copy
 artdaq::TransferInterface::CopyStatus
@@ -374,7 +415,7 @@ artdaq::MulticastTransfer::copyFragment(artdaq::Fragment& fragment,
 	if (fragment.sizeBytes() > max_fragment_size_words_)
 	{
 		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::copyFragmentTo: " <<
-			  fragment.sizeBytes() << " byte fragment exceeds max_fragment_size of " << max_fragment_size_words_;
+			fragment.sizeBytes() << " byte fragment exceeds max_fragment_size of " << max_fragment_size_words_;
 	}
 
 	static size_t ncalls = 1;
@@ -388,8 +429,8 @@ artdaq::MulticastTransfer::copyFragment(artdaq::Fragment& fragment,
 	{
 		auto first_subfragment = batch_index * subfragments_per_send_;
 		auto last_subfragment = (batch_index + 1) * subfragments_per_send_ >= num_subfragments ?
-									num_subfragments - 1 :
-									(batch_index + 1) * subfragments_per_send_ - 1;
+			num_subfragments - 1 :
+			(batch_index + 1) * subfragments_per_send_ - 1;
 
 		std::vector<boost::asio::const_buffer> buffers;
 
@@ -428,8 +469,8 @@ void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 		auto low_ptr_into_fragment = fragment.headerBeginBytes() + subfragment_size_ * i_s;
 
 		auto high_ptr_into_fragment = (i_s == num_subfragments - 1) ?
-										  fragment.dataEndBytes() :
-										  fragment.headerBeginBytes() + subfragment_size_ * (i_s + 1);
+			fragment.dataEndBytes() :
+			fragment.headerBeginBytes() + subfragment_size_ * (i_s + 1);
 
 		std::copy(low_ptr_into_fragment,
 				  high_ptr_into_fragment,
@@ -451,15 +492,15 @@ void artdaq::MulticastTransfer::book_container_of_buffers(std::vector<T>& buffer
 														  const size_t first_subfragment_num,
 														  const size_t last_subfragment_num)
 {
-	assert(staging_memory_.size() >= total_subfragments * (sizeof(subfragment_identifier) + subfragment_size_) );
+	assert(staging_memory_.size() >= total_subfragments * (sizeof(subfragment_identifier) + subfragment_size_));
 	assert(buffers.size() == 0);
 	assert(last_subfragment_num < total_subfragments);
 
 	for (auto i_f = first_subfragment_num; i_f <= last_subfragment_num; ++i_f)
 	{
 		auto bytes_to_store = (i_f == total_subfragments - 1) ?
-								  sizeof(subfragment_identifier) + (fragment_size - (total_subfragments - 1) * subfragment_size_) :
-								  sizeof(subfragment_identifier) + subfragment_size_;
+			sizeof(subfragment_identifier) + (fragment_size - (total_subfragments - 1) * subfragment_size_) :
+			sizeof(subfragment_identifier) + subfragment_size_;
 
 		buffers.emplace_back(&staging_memory_.at(i_f * (sizeof(subfragment_identifier) + subfragment_size_)),
 							 bytes_to_store);
@@ -478,7 +519,7 @@ void artdaq::MulticastTransfer::get_fragment_quantities(const boost::asio::mutab
 
 	auto subfragment_num = *(reinterpret_cast<size_t*>(buffer_ptr) + 2);
 
-	assert( subfragment_num == 0 );
+	assert(subfragment_num == 0);
 
 	artdaq::detail::RawFragmentHeader* header =
 		reinterpret_cast<artdaq::detail::RawFragmentHeader*>(buffer_ptr + sizeof(subfragment_identifier));
@@ -487,12 +528,12 @@ void artdaq::MulticastTransfer::get_fragment_quantities(const boost::asio::mutab
 
 	auto metadata_size = header->metadata_word_count * sizeof(artdaq::RawDataType);
 	payload_size = fragment_size - metadata_size - artdaq::detail::RawFragmentHeader::num_words() *
-				   sizeof(artdaq::RawDataType);
+		sizeof(artdaq::RawDataType);
 
 	assert(fragment_size ==
-		artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType) +
-		metadata_size +
-		payload_size);
+		   artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType) +
+		   metadata_size +
+		   payload_size);
 
 	expected_subfragments = static_cast<size_t>(std::ceil(fragment_size / static_cast<float>(subfragment_size_)));
 }

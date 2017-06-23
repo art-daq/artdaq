@@ -7,6 +7,7 @@
 #include <set>
 #include <deque>
 #include "fhiclcpp/fwd.h"
+#include "artdaq/Application/StatisticsHelper.hh"
 
 namespace artdaq {
 	/**
@@ -19,34 +20,27 @@ namespace artdaq {
 		typedef RawEvent::subrun_id_t subrun_id_t; ///< Copy RawEvent::subrun_id_t into local scope
 		typedef Fragment::sequence_id_t sequence_id_t; ///< Copy Fragment::sequence_id_t into local scope
 		typedef std::map<sequence_id_t, RawEvent_ptr> EventMap; ///< An EventMap is a map of RawEvent_ptr objects, keyed by sequence ID
-
-		static const std::string EVENT_RATE_STAT_KEY; ///< Key for the Event Rate MonitoredQuantity
-		static const std::string INCOMPLETE_EVENT_STAT_KEY; ///< Key for the Incomplete Events MonitoredQuantity
-		
+				
 		/**
 		 * \brief SharedMemoryEventManager Constructor
 		 * \param pset ParameterSet used to configure SharedMemoryEventManager
-		 * \param num_fragments_per_event Number of Fragments to expect per event
-		 * \param run Run number
-		 * \param event_queue_depth Number of events in the Shared Memory (incomplete + pending art)
 		 * \param art_fhicl FHiCL string used to configure art
 		 * 
 		 * \verbatim
 		 * SharedMemoryEventManager accepts the following Parameters:
 		 * 
 		 * "shm_key" (Default: 0xBEE7): Key used to connect to shared memory
-		 * "event_queue_depth" (Default: event_queue_depth, above): Number of events in the Shared Memory (incomplete + pending art)
+		 * "event_queue_depth" (Default: 40): Number of events in the Shared Memory (incomplete + pending art)
 		 * "max_event_size_bytes" REQUIRED: Maximum event size (all Fragments), in bytes
 		 * "stale_buffer_touch_count" (Default: 0x10000): Maximum number of times a buffer may be queried before being marked as abandoned. 
 		 * Owner resets this counter every time it touches the buffer.
 		 * "art_analyzer_count" (Default: 1): Number of art procceses to start
-		 * "fragment_count" (Default: num_fragments_per_event, above): Number of Fragments to expect per event
+		 * "fragment_count" (REQUIRED): Number of Fragments to expect per event
 		 * "update_run_ids_on_new_fragment" (Default: true): Whether the run and subrun ID of an event should be updated whenever a Fragment is added.
 		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
 		 * \endverbatim
 		 */
-		SharedMemoryEventManager(fhicl::ParameterSet pset, size_t num_fragments_per_event, run_id_t run,
-								 size_t event_queue_depth, std::string art_fhicl);
+		SharedMemoryEventManager(fhicl::ParameterSet pset, std::string art_fhicl);
 		/**
 		 * \brief SharedMemoryEventManager Destructor
 		 */
@@ -74,11 +68,11 @@ namespace artdaq {
 		void DoneWritingFragment(detail::RawFragmentHeader frag);
 
 		/**
-		 * \brief Check if there is space for a Fragment with the given sequence ID
-		 * \param seqID Sequence ID to check
+		 * \brief Check if there is space for a Fragment with the given header
+		 * \param frag Header to check
 		 * \return Whether there is space (either in a new buffer or an incomplete event) for a Fragment with the given sequence ID.
 		 */
-		bool CheckSpace(Fragment::sequence_id_t seqID);
+		bool CheckSpace(detail::RawFragmentHeader frag);
 		/**
 		 * \brief Get the number of incomplete events in the SharedMemoryEventManager
 		 * \return The number of incomplete events in the SharedMemoryEventManager
@@ -150,6 +144,8 @@ namespace artdaq {
 		*/
 		void startSubrun();
 
+		run_id_t runID() const { return run_id_; }
+
 		/**
 		* \brief Get the current subrun number
 		* \return The current subrun number
@@ -172,7 +168,11 @@ namespace artdaq {
 		* \brief Send metrics to the MetricManager, if one has been instantiated in the application
 		*/
 		void sendMetrics();
+
+		void setRequestMode(detail::RequestMessageMode mode) { requests_.SetRequestMode(mode); }
 		
+		void setOverwrite(bool overwrite) { overwrite_mode_ = overwrite; }
+
 	private:
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;
@@ -180,6 +180,7 @@ namespace artdaq {
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
 		bool update_run_ids_;
+		bool overwrite_mode_;
 
 		std::unordered_map<int,int> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_write_mutexes_;
@@ -197,14 +198,12 @@ namespace artdaq {
 		std::atomic<bool> restart_art_;
 
 		RequestSender requests_;
+		
+		FragmentPtr init_fragment_;
 
 		void broadcastFragment_(FragmentPtr frag);
 
-		int getBufferForSequenceID_(Fragment::sequence_id_t seqID);
-
-		void initStatistics_();
-
-		void reportStatistics_();
+		int getBufferForSequenceID_(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
 	};
 }
 

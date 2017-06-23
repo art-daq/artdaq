@@ -32,7 +32,6 @@ namespace artdaq {
 		enum TaskType : int
 		{
 			TaskSink = 0, ///< This Builder is a "Sink"
-			TaskSource = 1, ///< This Builder is a "Source"
 			TaskDetector = 2 ///< This Builder is a "Detector"
 		};
 
@@ -115,10 +114,8 @@ namespace artdaq {
 		int total_procs_; ///< Total number of processes
 
 		int detectors_; ///< Count of detectors
-		int sources_; ///< Count of source
 		int sinks_; ///< Count of sinks
 		int detector_start_; ///< Rank of first detector
-		int source_start_; ///< Rank of first source
 		int sink_start_; ///< Rank of first sink
 
 		int event_queue_size_; ///< Size of the Event Queue

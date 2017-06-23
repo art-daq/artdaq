@@ -112,7 +112,6 @@ private:
 	int rank_;
 	std::string name_;
 	std::unique_ptr<artdaq::EventBuilderCore> event_builder_ptr_;
-	std::future<size_t> event_building_future_;
 };
 
 #endif /* artdaq_Application_MPI2_EventBuilderApp_hh */

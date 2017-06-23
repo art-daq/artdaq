@@ -80,6 +80,79 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 	return artdaq::TransferInterface::RECV_TIMEOUT;
 }
 
+int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout)
+{
+	auto waitStart = std::chrono::steady_clock::now();
+	while (!shm_manager_->ReadyForRead() && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - waitStart).count() < 1000)
+	{
+		// BURN THAT CPU!
+	}
+	if (!shm_manager_->ReadyForRead())
+	{
+		int64_t loopCount = 0;
+		size_t sleepTime = 1000; // microseconds
+		int64_t nloops = (receiveTimeout - 1000) / sleepTime;
+
+		while (!shm_manager_->ReadyForRead() && loopCount < nloops)
+		{
+			usleep(sleepTime);
+			++loopCount;
+		}
+	}
+
+	//TLOG_DEBUG(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops << TLOG_ENDL;
+
+	if (shm_manager_->ReadyForRead())
+	{
+		auto sts = shm_manager_->ReadFragmentHeader(header);
+
+		if (sts != 0) return RECV_TIMEOUT;
+
+		if (header.type != artdaq::Fragment::DataFragmentType)
+		{
+			TRACE(TRANSFER_RECEIVE2, "Recvd frag from shmem, type=%d, sequenceID=%llu, source_rank=%d", (int)header.type, header.sequence_id, source_rank());
+		}
+
+		return source_rank();
+	}
+
+	return artdaq::TransferInterface::RECV_TIMEOUT;
+}
+
+int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t word_count, size_t receiveTimeout)
+{
+	auto waitStart = std::chrono::steady_clock::now();
+	while (!shm_manager_->ReadyForRead() && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - waitStart).count() < 1000)
+	{
+		// BURN THAT CPU!
+	}
+	if (!shm_manager_->ReadyForRead())
+	{
+		int64_t loopCount = 0;
+		size_t sleepTime = 1000; // microseconds
+		int64_t nloops = (receiveTimeout - 1000) / sleepTime;
+
+		while (!shm_manager_->ReadyForRead() && loopCount < nloops)
+		{
+			usleep(sleepTime);
+			++loopCount;
+		}
+	}
+
+	//TLOG_DEBUG(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops << TLOG_ENDL;
+
+	if (shm_manager_->ReadyForRead())
+	{
+		auto sts = shm_manager_->ReadFragmentData(destination, word_count);
+
+		if (sts != 0) return RECV_TIMEOUT;
+		
+		return source_rank();
+	}
+
+	return artdaq::TransferInterface::RECV_TIMEOUT;
+}
+
 artdaq::TransferInterface::CopyStatus
 artdaq::ShmemTransfer::copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec)
 {

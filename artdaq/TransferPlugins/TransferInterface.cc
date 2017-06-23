@@ -1,4 +1,5 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "cetlib_except/exception.h"
 
 artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role role)
 	: role_(role)
@@ -9,4 +10,20 @@ artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role
 	, max_fragment_size_words_(ps.get<size_t>("max_fragment_size_words", 1024))
 {
 	TLOG_DEBUG(uniqueLabel()) << "TransferInterface constructor has " << ps.to_string() << TLOG_ENDL;
+}
+
+int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t receive_timeout)
+{
+	auto ret = RECV_TIMEOUT;
+
+	ret = receiveFragmentHeader(*reinterpret_cast<detail::RawFragmentHeader*>(frag.headerAddress()), receive_timeout);
+	
+	if (ret == RECV_TIMEOUT) return ret;
+
+	frag.autoResize();
+	
+	auto bodyret = receiveFragmentData(frag.headerAddress() + detail::RawFragmentHeader::num_words(), frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType), receive_timeout);
+	if (bodyret != ret) throw cet::exception("TransferInterface") << "Got different return codes from receiveFragmentHeader and receiveFragmentData!";
+
+	return ret;
 }

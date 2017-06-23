@@ -43,6 +43,23 @@ namespace artdaq
 		                            size_t receiveTimeout) override;
 
 		/**
+		* \brief Receive a Fragment Header from the transport mechanism
+		* \param[out] header Received Fragment Header
+		* \param receiveTimeout Timeout for receive
+		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		*/
+		int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
+
+		/**
+		* \brief Receive the body of a Fragment to the given destination pointer
+		* \param destination Pointer to memory region where Fragment data should be stored
+		 * \param wordCount Number of words of Fragment data to receive
+		* \param receiveTimeout Timeout for receive
+		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		*/
+		int receiveFragmentData(RawDataType* destination,size_t wordCount, size_t receiveTimeout) override;
+
+		/**
 		* \brief Copy a Fragment to the destination. May be unreliable
 		* \param fragment Fragment to copy
 		* \param send_timeout_usec Timeout for send, in microseconds (default size_t::MAX_VALUE)

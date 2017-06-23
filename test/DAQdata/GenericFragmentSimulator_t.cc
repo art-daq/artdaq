@@ -4,7 +4,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
-#include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 
 #include <cstddef>

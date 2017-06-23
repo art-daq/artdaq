@@ -4,20 +4,18 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "cetlib_except/exception.h"
+#include <iomanip>
 
-artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset)
+artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset, std::shared_ptr<SharedMemoryEventManager> shm)
 	: stop_requested_(false)
 	, source_threads_()
 	, source_plugins_()
 	, enabled_sources_()
-	, suppressed_sources_()
-	, fragment_store_()
 	, recv_frag_count_()
 	, recv_frag_size_()
 	, recv_seq_count_()
-	, suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled", true))
-	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
+	, shm_manager_(shm)
 {
 	TLOG_DEBUG("DataReceiverManager") << "Constructor" << TLOG_ENDL;
 	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
@@ -44,7 +42,6 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 			auto source_rank = transfer->source_rank();
 			if (enabled_srcs_empty) enabled_sources_.insert(source_rank);
 			source_plugins_[source_rank] = std::move(transfer);
-			fragment_store_[source_rank];
 		}
 		catch (cet::exception ex)
 		{
@@ -71,9 +68,6 @@ artdaq::DataReceiverManager::~DataReceiverManager()
 	TRACE(5, "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=%zu, bytes=%zu", count(), byteCount());
 	stop_requested_ = true;
 
-	TRACE(5, "~DataReceiverManager: Notifying all threads");
-	output_cv_.notify_all();
-
 	TRACE(5, "~DataReceiverManager: Joining all threads");
 	for (auto& s : source_threads_)
 	{
@@ -83,39 +77,6 @@ artdaq::DataReceiverManager::~DataReceiverManager()
 	TRACE(5, "~DataReceiverManager: DONE");
 }
 
-bool artdaq::DataReceiverManager::fragments_ready_() const
-{
-	return get_next_source_() != -1;
-}
-
-int artdaq::DataReceiverManager::get_next_source_() const
-{
-	//std::unique_lock<std::mutex> lck(fragment_store_mutex_);
-	for (auto& it : fragment_store_)
-	{
-		if (!enabled_sources_.count(it.first) || suppressed_sources_.count(it.first)) continue;
-		if (!it.second.empty()) return it.first;
-	}
-	return -1;
-}
-
-void artdaq::DataReceiverManager::unsuppressAll()
-{
-	suppressed_sources_.clear();
-	output_cv_.notify_all();
-}
-
-void artdaq::DataReceiverManager::suppress_source(int source)
-{
-	suppressed_sources_.insert(source);
-}
-
-void artdaq::DataReceiverManager::reject_fragment(int source_rank, FragmentPtr frag)
-{
-	if (frag == nullptr) return;
-	suppress_source(source_rank);
-	fragment_store_[source_rank].emplace_front(std::move(frag));
-}
 
 void artdaq::DataReceiverManager::start_threads()
 {
@@ -129,105 +90,88 @@ void artdaq::DataReceiverManager::start_threads()
 	}
 }
 
-artdaq::FragmentPtr artdaq::DataReceiverManager::recvFragment(int& rank, size_t timeout_usec)
-{
-	TRACE(5, "DataReceiverManager::recvFragment entered tmo=%zu us", timeout_usec);
-
-	if (timeout_usec == 0) timeout_usec = 1000000;
-
-	auto ready = fragments_ready_();
-	size_t waited = 0;
-	auto wait_amount = timeout_usec / 1000 > 1000 ? timeout_usec / 1000 : 1000;
-	TRACE(5, "DataReceiverManager::recvFragment fragment_ready_=%d before wait", ready);
-	while (!ready && waited < timeout_usec)
-	{
-		{
-			std::unique_lock<std::mutex> lck(input_cv_mutex_);
-			input_cv_.wait_for(lck, std::chrono::microseconds(wait_amount));
-		}
-		waited += wait_amount;
-		ready = fragments_ready_();
-	}
-	TRACE(5, "DataReceiverManager::recvFragment fragment_ready_=%d after waited=%zu", ready, waited);
-	if (!ready)
-	{
-		TRACE(5, "DataReceiverManager::recvFragment: No fragments ready, returning empty");
-		rank = TransferInterface::RECV_TIMEOUT;
-		return std::unique_ptr<Fragment>{};
-	}
-
-	int current_source = get_next_source_();
-	FragmentPtr current_fragment = fragment_store_[current_source].front();
-	output_cv_.notify_all();
-	rank = current_source;
-
-	if (current_fragment != nullptr)
-		TRACE(5, "DataReceiverManager::recvFragment: Done  rank=%d, fragment size=%zu words, seqId=%zu", rank, current_fragment->size(), current_fragment->sequenceID());
-	return std::move(current_fragment);
-}
-
 void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
-	// Probably handled by the compiler, but declare all variables outside loop scope
-	bool is_suppressed;
-	std::chrono::steady_clock::time_point start_time;
-	FragmentPtr fragment;
+	std::chrono::steady_clock::time_point start_time, after_header, before_body;
 	int ret;
-	double delta_t;
+	double delta_t,hdr_delta_t,store_delta_t,data_delta_t;
+	detail::RawFragmentHeader header;
+	size_t endOfDataCount = -1;
 
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
 		TRACE(16, "DataReceiverManager::runReceiver_: Begin loop");
-		is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
-		while (!stop_requested_ && is_suppressed)
-		{
-			TRACE(6, "DataReceiverManager::runReceiver_: Suppressing receiver rank %d", source_rank);
-			if (!is_suppressed) input_cv_.notify_all();
-			else
-			{
-				std::unique_lock<std::mutex> lck(output_cv_mutex_);
-				output_cv_.wait_for(lck, std::chrono::seconds(1));
-			}
-			is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
-		}
 		if (stop_requested_) return;
 
 		start_time = std::chrono::steady_clock::now();
-		TRACE(16, "DataReceiverManager::runReceiver_: Calling receiveFragment");
-		fragment = std::make_unique<Fragment>();
-		ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
-		TRACE(16, "DataReceiverManager::runReceiver_: Done with receiveFragment, ret=%d (should be %d)", ret, source_rank);
 
+		TRACE(16, "DataReceiverManager::runReceiver_: Calling receiveFragmentHeader");
+		ret = source_plugins_[source_rank]->receiveFragmentHeader(header, receive_timeout_);
+		TRACE(16, "DataReceiverManager::runReceiver_: Done with receiveFragmentHeader, ret=%d (should be %d)", ret, source_rank);
 		if (ret != source_rank) continue; // Receive timeout or other oddness
 
-		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType) 
-		{
-			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));
-		}
-		else 
-		{
+		after_header = std::chrono::steady_clock::now();
+
+		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType) {
+			RawDataType* loc = nullptr;
+			while (loc == nullptr) {
+				loc = shm_manager_->GetFragmentLocation(header);
+				if (loc == nullptr) usleep(receive_timeout_ / 100);
+				if (stop_requested_) return;
+			}
+			before_body = std::chrono::steady_clock::now();
+		
+			TRACE(16, "DataReceiverManager::runReceiver_: Calling receiveFragmentData");
+			auto ret2 = source_plugins_[source_rank]->receiveFragmentData(loc, header.word_count - header.num_words(), receive_timeout_);
+			TRACE(16, "DataReceiverManager::runReceiver_: Done with receiveFragmentData, ret2=%d (should be %d)", ret2, source_rank);
+
+			if (ret != ret2) throw cet::exception("DataReceiverManager") << "TransferInterface::receiveFragmentData returned different that receiveFragmentHeader!";
+
+			shm_manager_->DoneWritingFragment(header);
 			recv_frag_count_.incSlot(source_rank);
-			recv_frag_size_.incSlot(source_rank, fragment->size() * sizeof(RawDataType));
-			recv_seq_count_.setSlot(source_rank, fragment->sequenceID());
+			recv_frag_size_.incSlot(source_rank, header.word_count * sizeof(RawDataType));
+			recv_seq_count_.setSlot(source_rank, header.sequence_id);
+
+			if (metricMan)
+			{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
+				TRACE(6, "DataReceiverManager::runReceiver_: Sending receive stats");
+				delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
+				hdr_delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_header - start_time).count();
+				store_delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(before_body - after_header).count();
+				data_delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - before_body).count();
+				metricMan->sendMetric("Total Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1);
+				metricMan->sendMetric("Total Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(header.word_count * sizeof(RawDataType)), "B", 1);
+				metricMan->sendMetric("Total Receive Rate From Rank " + std::to_string(source_rank), header.word_count * sizeof(RawDataType) / delta_t, "B/s", 1);
+
+				metricMan->sendMetric("Header Receive Time From Rank " + std::to_string(source_rank), hdr_delta_t, "s", 1);
+				metricMan->sendMetric("Header Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(header.num_words() * sizeof(RawDataType)), "B", 1);
+				metricMan->sendMetric("Header Receive Rate From Rank " + std::to_string(source_rank), header.num_words() * sizeof(RawDataType) / hdr_delta_t, "B/s", 1);
+
+				metricMan->sendMetric("Shared Memory Wait Time From Rank " + std::to_string(source_rank), store_delta_t, "s", 1);
+
+				metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), data_delta_t, "s", 1);
+				metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>((header.word_count - header.num_words()) * sizeof(RawDataType)), "B", 1);
+				metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), (header.word_count - header.num_words()) * sizeof(RawDataType) / data_delta_t, "B/s", 1);
+				TRACE(6, "DataReceiverManager::runReceiver_: Done sending receive stats");
+			}
+		}
+		else if (header.type == Fragment::EndOfDataFragmentType)
+		{
+			shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
+			Fragment frag(header.word_count - header.num_words());
+			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag.headerAddress() + header.num_words(), 1, receive_timeout_);
+			if (ret3 == source_rank)
+			{
+				endOfDataCount = *frag.dataBegin();
+			}
+			else
+			{
+				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader!";
+			}
 		}
 
 
-
-		if (metricMan)
-		{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
-			TRACE(6, "DataReceiverManager::runReceiver_: Sending receive stats");
-			delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
-			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1);
-			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(fragment->size() * sizeof(RawDataType)), "B", 1);
-			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), fragment->size() * sizeof(RawDataType) / delta_t, "B/s", 1);
-			TRACE(6, "DataReceiverManager::runReceiver_: Done sending receive stats");
-		}
-
-
-		fragment_store_[source_rank].emplace_back(std::move(fragment));
-		input_cv_.notify_all();
-
-		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank))
+		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank))
 		{
 			return;
 		}

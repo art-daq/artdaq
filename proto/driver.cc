@@ -19,9 +19,7 @@
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
-#include "cetlib/container_algorithms.h"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -31,6 +29,7 @@
 #include <iostream>
 #include <memory>
 #include <utility>
+#include <artdaq/DAQrate/SharedMemoryEventManager.hh>
 
 namespace  bpo = boost::program_options;
 
@@ -120,22 +119,8 @@ int main(int argc, char * argv[]) try
 	// encapsulated neatly in a function due to the lieftime issues
 	// associated with async threads and std::string::c_str().
 	fhicl::ParameterSet event_builder_pset = pset.get<fhicl::ParameterSet>("event_builder");
-	bool const want_artapp(event_builder_pset.get<bool>("use_art", false));
-	std::ostringstream os;
-	if (!want_artapp) {
-		os << event_builder_pset.get<int>("events_expected_in_SimpleQueueReader");
-	}
-	std::string const oss(os.str());
-	const char * args[2]{ "SimpleQueueReader", oss.c_str() };
-	int es_argc(want_artapp ? argc : 2);
-	char **es_argv(want_artapp ? argv : const_cast<char**>(args));
-	artdaq::EventStore::ART_CMDLINE_FCN *
-		es_fcn(want_artapp ? &artapp : &artdaq::simpleQueueReaderApp);
-	artdaq::EventStore store(event_builder_pset, event_builder_pset.get<size_t>("expected_fragments_per_event"),
-							 pset.get<artdaq::EventStore::run_id_t>("run_number"),
-							 es_argc,
-							 es_argv,
-							 es_fcn);
+
+	artdaq::SharedMemoryEventManager store(event_builder_pset, pset.to_string());
 	//////////////////////////////////////////////////////////////////////
 
 	int events_to_generate = pset.get<int>("events_to_generate", 0);
@@ -168,7 +153,8 @@ int main(int argc, char * argv[]) try
 				}
 				break;
 			}
-			store.insert(std::move(val));
+			auto header = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(val->headerAddress());
+			store.AddFragment(header, val->headerAddress() + header.num_words());
 		}
 		frags.clear();
 
@@ -181,13 +167,13 @@ int main(int argc, char * argv[]) try
 	}
 
 
-	int readerReturnValue;
+	std::vector<int> readerReturnValues;
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
-	endSucceeded = store.endOfData(readerReturnValue);
+	endSucceeded = store.endOfData(readerReturnValues);
 	while (!endSucceeded && attemptsToEnd < 3) {
 		++attemptsToEnd;
-		endSucceeded = store.endOfData(readerReturnValue);
+		endSucceeded = store.endOfData(readerReturnValues);
 	}
 	if (!endSucceeded) {
 		std::cerr << "Failed to shut down the reader and the event store "
@@ -196,7 +182,7 @@ int main(int argc, char * argv[]) try
 	}
 
 	metricMan_.do_stop();
-	return readerReturnValue;
+	return 0;
 }
 catch (std::string & x)
 {

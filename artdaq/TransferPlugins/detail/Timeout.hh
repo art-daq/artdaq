@@ -147,12 +147,6 @@ public:
 	int get_next_timeout_msdly();
 
 	/**
-	 * \brief Get the current time of day in microseconds (from gettimeofday system call)
-	 * \return The current time of day in microseconds
-	 */
-	uint64_t gettimeofday_us();
-
-	/**
 	 * \brief Run a consistency check on all confiugured timeouts
 	 * \return True if all timeouts pass check
 	 */

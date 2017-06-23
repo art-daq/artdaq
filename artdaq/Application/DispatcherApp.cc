@@ -1,10 +1,10 @@
-#include "artdaq/Application/AggregatorApp.hh"
-#include "artdaq/Application/AggregatorCore.hh"
+#include "artdaq/Application/DispatcherApp.hh"
+#include "artdaq/Application/DispatcherCore.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include <iostream>
 
-artdaq::AggregatorApp::AggregatorApp(int rank, std::string name) :
+artdaq::DispatcherApp::DispatcherApp(int rank, std::string name) :
 	rank_(rank)
 	, name_(name)
 {}
@@ -13,16 +13,16 @@ artdaq::AggregatorApp::AggregatorApp(int rank, std::string name) :
 // *** The following methods implement the state machine operations.
 // *******************************************************************
 
-bool artdaq::AggregatorApp::do_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
 	report_string_ = "";
 
-	//aggregator_ptr_.reset(nullptr);
-	if (aggregator_ptr_.get() == 0)
+	//Dispatcher_ptr_.reset(nullptr);
+	if (Dispatcher_ptr_.get() == 0)
 	{
-		aggregator_ptr_.reset(new AggregatorCore(rank_, name_));
+		Dispatcher_ptr_.reset(new DispatcherCore(rank_, name_));
 	}
-	external_request_status_ = aggregator_ptr_->initialize(pset);
+	external_request_status_ = Dispatcher_ptr_->initialize(pset);
 	if (!external_request_status_)
 	{
 		report_string_ = "Error initializing ";
@@ -33,10 +33,10 @@ bool artdaq::AggregatorApp::do_initialize(fhicl::ParameterSet const& pset, uint6
 	return external_request_status_;
 }
 
-bool artdaq::AggregatorApp::do_start(art::RunID id, uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_start(art::RunID id, uint64_t, uint64_t)
 {
 	report_string_ = "";
-	external_request_status_ = aggregator_ptr_->start(id);
+	external_request_status_ = Dispatcher_ptr_->start(id);
 	if (!external_request_status_)
 	{
 		report_string_ = "Error starting ";
@@ -45,69 +45,52 @@ bool artdaq::AggregatorApp::do_start(art::RunID id, uint64_t, uint64_t)
 		report_string_.append(boost::lexical_cast<std::string>(id.run()));
 		report_string_.append(".");
 	}
-
-	aggregator_future_ =
-		std::async(std::launch::async, &AggregatorCore::process_fragments,
-				   aggregator_ptr_.get());
-
+	
 	return external_request_status_;
 }
 
-bool artdaq::AggregatorApp::do_stop(uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_stop(uint64_t, uint64_t)
 {
 	report_string_ = "";
-	external_request_status_ = aggregator_ptr_->stop();
+	external_request_status_ = Dispatcher_ptr_->stop();
 	if (!external_request_status_)
 	{
 		report_string_ = "Error stopping ";
 		report_string_.append(name_ + ".");
 	}
 
-	if (aggregator_future_.valid())
-	{
-		aggregator_future_.get();
-	}
 	return external_request_status_;
 }
 
-bool artdaq::AggregatorApp::do_pause(uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_pause(uint64_t, uint64_t)
 {
 	report_string_ = "";
-	external_request_status_ = aggregator_ptr_->pause();
+	external_request_status_ = Dispatcher_ptr_->pause();
 	if (!external_request_status_)
 	{
 		report_string_ = "Error pausing ";
 		report_string_.append(name_ + ".");
 	}
-
-	if (aggregator_future_.valid())
-	{
-		aggregator_future_.get();
-	}
 	return external_request_status_;
 }
 
-bool artdaq::AggregatorApp::do_resume(uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_resume(uint64_t, uint64_t)
 {
 	report_string_ = "";
-	external_request_status_ = aggregator_ptr_->resume();
+	external_request_status_ = Dispatcher_ptr_->resume();
 	if (!external_request_status_)
 	{
 		report_string_ = "Error resuming ";
 		report_string_.append(name_ + ".");
 	}
 
-	aggregator_future_ =
-		std::async(std::launch::async, &AggregatorCore::process_fragments,
-				   aggregator_ptr_.get());
-
 	return external_request_status_;
 }
 
-bool artdaq::AggregatorApp::do_shutdown(uint64_t)
+bool artdaq::DispatcherApp::do_shutdown(uint64_t)
 {
 	report_string_ = "";
-	external_request_status_ = aggregator_ptr_->shutdown();
+	external_request_status_ = Dispatcher_ptr_->shutdown();
 	if (!external_request_status_)
 	{
 		report_string_ = "Error shutting down ";
@@ -117,17 +100,17 @@ bool artdaq::AggregatorApp::do_shutdown(uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::AggregatorApp::do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t)
 {
 	return true;
 }
 
-bool artdaq::AggregatorApp::do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t)
 {
 	return true;
 }
 
-std::string artdaq::AggregatorApp::report(std::string const& which) const
+std::string artdaq::DispatcherApp::report(std::string const& which) const
 {
 	std::string resultString;
 
@@ -146,65 +129,65 @@ std::string artdaq::AggregatorApp::report(std::string const& which) const
 	//  resultString.append("*** Requested report response:\r\n");
 	//}
 
-	// pass the request to the AggregatorCore instance, if it's available
-	if (aggregator_ptr_.get() != 0)
+	// pass the request to the DispatcherCore instance, if it's available
+	if (Dispatcher_ptr_.get() != 0)
 	{
-		resultString.append(aggregator_ptr_->report(which));
+		resultString.append(Dispatcher_ptr_->report(which));
 	}
 	else
 	{
-		resultString.append("This Aggregator has not yet been initialized and ");
+		resultString.append("This Dispatcher has not yet been initialized and ");
 		resultString.append("therefore can not provide reporting.");
 	}
 
 	return resultString;
 }
 
-std::string artdaq::AggregatorApp::register_monitor(fhicl::ParameterSet const& info)
+std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& info)
 {
-	TLOG_DEBUG(name_) << "AggregatorApp::register_monitor called with argument \"" << info.to_string() << "\"" << TLOG_ENDL;
+	TLOG_DEBUG(name_) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"" << TLOG_ENDL;
 
-	if (aggregator_ptr_)
+	if (Dispatcher_ptr_)
 	{
 		try
 		{
-			return aggregator_ptr_->register_monitor(info);
+			return Dispatcher_ptr_->register_monitor(info);
 		}
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Error in call to AggregatorCore's register_monitor function");
+							 "Error in call to DispatcherCore's register_monitor function");
 
-			return "Error in artdaq::AggregatorApp::register_monitor: an exception was thrown in the call to AggregatorCore::register_monitor, possibly due to a problem with the argument";
+			return "Error in artdaq::DispatcherApp::register_monitor: an exception was thrown in the call to DispatcherCore::register_monitor, possibly due to a problem with the argument";
 		}
 	}
 	else
 	{
-		return "Error in artdaq::AggregatorApp::register_monitor: AggregatorCore object wasn't initialized";
+		return "Error in artdaq::DispatcherApp::register_monitor: DispatcherCore object wasn't initialized";
 	}
 }
 
 
-std::string artdaq::AggregatorApp::unregister_monitor(std::string const& label)
+std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 {
-	TLOG_DEBUG(name_) << "AggregatorApp::unregister_monitor called with argument \"" << label << "\"" << TLOG_ENDL;
+	TLOG_DEBUG(name_) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"" << TLOG_ENDL;
 
-	if (aggregator_ptr_)
+	if (Dispatcher_ptr_)
 	{
 		try
 		{
-			return aggregator_ptr_->unregister_monitor(label);
+			return Dispatcher_ptr_->unregister_monitor(label);
 		}
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Error in call to AggregatorCore's unregister_monitor function");
+							 "Error in call to DispatcherCore's unregister_monitor function");
 
-			return "Error in artdaq::AggregatorApp::unregister_monitor: an exception was thrown in the call to AggregatorCore::unregister_monitor, possibly due to a problem with the argument";
+			return "Error in artdaq::DispatcherApp::unregister_monitor: an exception was thrown in the call to DispatcherCore::unregister_monitor, possibly due to a problem with the argument";
 		}
 	}
 	else
 	{
-		return "Error in artdaq::AggregatorApp::unregister_monitor: AggregatorCore object wasn't initialized";
+		return "Error in artdaq::DispatcherApp::unregister_monitor: DispatcherCore object wasn't initialized";
 	}
 }

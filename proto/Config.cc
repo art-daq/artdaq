@@ -27,23 +27,21 @@ artdaq::Config::Config(int rank, int total_procs, int buffer_count, size_t max_p
 																											rank_(rank)
 																											, total_procs_(total_procs)
 																											, detectors_(getArgDetectors(argc, argv))
-																											, sources_(detectors_)
 																											, sinks_(getArgSinks(argc, argv))
 																											, detector_start_(0)
-																											, source_start_(detectors_)
-																											, sink_start_(detectors_ + sources_)
+																											, sink_start_(detectors_)
 																											, event_queue_size_(getArgQueueSize(argc, argv))
 																											, run_(getArgRun(argc, argv))
 																											, buffer_count_(buffer_count)
 																											, max_payload_size_(max_payload_size)
-																											, type_((rank_ < detectors_) ? TaskDetector : ((rank_ < (detectors_ + sources_)) ? TaskSource : TaskSink))
-																											, offset_(rank_ - ((type_ == TaskDetector) ? detector_start_ : (type_ == TaskSource) ? source_start_ : sink_start_))
+																											, type_((rank_ < detectors_) ? TaskDetector : TaskSink)
+																											, offset_(rank_ - ((type_ == TaskDetector) ? detector_start_ : sink_start_))
 																											, node_name_(getProcessorName())
 																											, art_argc_(getArtArgc(argc, argv))
 																											, art_argv_(getArtArgv(argc - art_argc_, argv))
 																											, use_artapp_(getenv("ARTDAQ_DAQRATE_USE_ART") != 0)
 {
-	int total_workers = (detectors_ + sinks_ + sources_);
+	int total_workers = (detectors_ + sinks_);
 	if (total_procs_ != total_workers)
 	{
 		std::cerr << "total_procs " << total_procs_ << " != "
@@ -63,25 +61,25 @@ void artdaq::Config::writeInfo() const
 int artdaq::Config::destCount() const
 {
 	if (type_ == TaskSink) { throw "No destCount for a sink"; }
-	return type_ == TaskDetector ? sources_ : sinks_;
+	return sinks_;
 }
 
 int artdaq::Config::destStart() const
 {
 	if (type_ == TaskSink) { throw "No destStart for a sink"; }
-	return type_ == TaskDetector ? source_start_ : sink_start_;
+	return sink_start_;
 }
 
 int artdaq::Config::srcCount() const
 {
 	if (type_ == TaskDetector) { throw "No srcCount for a detector"; }
-	return type_ == TaskSink ? sources_ : detectors_;
+	return detectors_;
 }
 
 int artdaq::Config::srcStart() const
 {
 	if (type_ == TaskDetector) { throw "No srcStart for a detector"; }
-	return type_ == TaskSink ? source_start_ : detector_start_;
+	return detector_start_;
 }
 
 std::string artdaq::Config::typeName() const
@@ -132,11 +130,9 @@ void artdaq::Config::printHeader(std::ostream& ost) const
 void artdaq::Config::print(std::ostream& ost) const
 {
 	ost << rank_ << " "
-		<< sources_ << " "
 		<< sinks_ << " "
 		<< detectors_ << " "
 		<< detector_start_ << " "
-		<< source_start_ << " "
 		<< sink_start_ << " "
 		<< event_queue_size_ << " "
 		<< run_ << " "
@@ -151,8 +147,8 @@ fhicl::ParameterSet artdaq::Config::makeParameterSet() const
 	if (type_ != TaskDetector)
 	{
 		ss << "sources: {";
-		int count = type_ == TaskSource ? detectors_ : sources_;
-		int start = type_ == TaskSource ? detector_start_ : source_start_;
+		int count = detectors_;
+		int start = detector_start_ ;
 		for (int ii = 0; ii < count; ++ii)
 		{
 			ss << "s" << ii + start << ": { transferPluginType: MPI source_rank: " << ii + start << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << "}";
@@ -163,8 +159,8 @@ fhicl::ParameterSet artdaq::Config::makeParameterSet() const
 	if (type_ != TaskSink)
 	{
 		ss << " destinations: {";
-		int count = type_ == TaskDetector ? sources_ : sinks_;
-		int start = type_ == TaskDetector ? source_start_ : sink_start_;
+		int count = sinks_;
+		int start = sink_start_;
 		for (int ii = 0; ii < count; ++ii)
 		{
 			ss << "d" << ii + start << ": { transferPluginType: MPI destination_rank: " << ii + start << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << "}";

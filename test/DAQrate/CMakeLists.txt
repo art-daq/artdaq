@@ -14,7 +14,3 @@ cet_test(daqrate_gen_test HANDBUILT
 
 cet_test(FragCounter_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate)
-
-cet_test(EventStore_t USE_BOOST_UNIT
-  LIBRARIES artdaq_DAQdata artdaq_DAQrate
-  )

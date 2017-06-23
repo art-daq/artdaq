@@ -1,7 +1,7 @@
 #include "proto/TransferTest.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQrate/DataReceiverManager.hh"
+#include "proto/FragmentReceiverManager.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
@@ -189,7 +189,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 {
 	TRACE(7, "do_receiving entered");
-	artdaq::DataReceiverManager receiver(ps_);
+
+	artdaq::FragmentReceiverManager receiver(ps_);
 	receiver.start_threads();
 	int counter = receives_each_receiver_;
 	size_t totalSize = 0;

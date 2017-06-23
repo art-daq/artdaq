@@ -3,21 +3,18 @@
 #include <iomanip>
 #include <fstream>
 
-const std::string artdaq::SharedMemoryEventManager::EVENT_RATE_STAT_KEY("SharedMemoryEventRate");
-const std::string artdaq::SharedMemoryEventManager::INCOMPLETE_EVENT_STAT_KEY("SharedMemoryIncompleteEvents");
-
-artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, size_t num_fragments_per_event, run_id_t run,
-														   size_t event_queue_depth, std::string art_fhicl)
+artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, std::string art_fhicl)
 	: SharedMemoryManager(pset.get<int>("shm_key", 0xBEE7),
-						  pset.get<size_t>("event_queue_depth", event_queue_depth),
+						  pset.get<size_t>("event_queue_depth", 40),
 						  pset.get<size_t>("max_event_size_bytes"),
 						  pset.get<size_t>("stale_buffer_touch_count", 0x10000))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
-	, num_fragments_per_event_(pset.get<size_t>("fragment_count", num_fragments_per_event))
-	, queue_size_(pset.get<size_t>("event_queue_depth", event_queue_depth))
-	, run_id_(run)
+	, num_fragments_per_event_(pset.get<size_t>("fragment_count"))
+	, queue_size_(pset.get<size_t>("event_queue_depth", 40))
+	, run_id_(0)
 	, subrun_id_(0)
 	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
+	, overwrite_mode_(false)
 	, buffer_writes_pending_()
 	, buffer_write_mutexes_()
 	, seqIDModulus_(1)
@@ -33,10 +30,11 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	of << art_fhicl << std::endl;
 	of.close();
 
-	for(size_t ii = 0; ii < size(); ++ii)
+	for (size_t ii = 0; ii < size(); ++ii)
 	{
 		buffer_writes_pending_[ii] = 0;
 	}
+	requests_.SendRoutingToken(size());
 }
 
 artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
@@ -47,7 +45,7 @@ artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
 
 bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader frag, void* dataPtr)
 {
-	auto buffer = getBufferForSequenceID_(frag.sequence_id);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
 	if (buffer == -1) return false;
 
 	ResetReadPos(buffer);
@@ -66,13 +64,9 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 
 	if (hdr->is_complete)
 	{
-		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
-			getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-		if (mqPtr.get() != 0)
-		{
-			mqPtr->addSample(BufferDataSize(buffer));
-		}
 		MarkBufferFull(buffer);
+		requests_.RemoveRequest(frag.sequence_id);
+		requests_.SendRoutingToken(1);
 	}
 
 	return true;
@@ -80,7 +74,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 
 artdaq::RawDataType* artdaq::SharedMemoryEventManager::GetFragmentLocation(detail::RawFragmentHeader frag)
 {
-	auto buffer = getBufferForSequenceID_(frag.sequence_id);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
 
 	if (buffer == -1) return nullptr;
 
@@ -98,7 +92,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::GetFragmentLocation(detai
 void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHeader frag)
 {
 
-	auto buffer = getBufferForSequenceID_(frag.sequence_id);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
 	if (buffer == -1) throw cet::exception("SharedMemoryEventManager") << "getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!";
 	buffer_writes_pending_[buffer]--;
 	ResetReadPos(buffer);
@@ -112,21 +106,17 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 
 	if (hdr->is_complete)
 	{
-		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
-			getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-		if (mqPtr.get() != 0)
-		{
-			mqPtr->addSample(BufferDataSize(buffer));
-		}
 		MarkBufferFull(buffer);
+		requests_.RemoveRequest(frag.sequence_id);
+		requests_.SendRoutingToken(1);
 	}
 }
 
-bool artdaq::SharedMemoryEventManager::CheckSpace(Fragment::sequence_id_t seqID)
+bool artdaq::SharedMemoryEventManager::CheckSpace(detail::RawFragmentHeader frag)
 {
 	if (ReadyForWrite(false)) return true;
 
-	auto buffer = getBufferForSequenceID_(seqID);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
 
 	return buffer != -1;
 }
@@ -216,12 +206,6 @@ bool artdaq::SharedMemoryEventManager::flushData()
 	auto buffers = GetBuffersOwnedByManager();
 	for (auto& buf : buffers)
 	{
-		MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
-			getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-		if (mqPtr.get() != 0)
-		{
-			mqPtr->addSample(BufferDataSize(buf));
-		}
 		MarkBufferFull(buf);
 	}
 	TLOG_DEBUG("SharedMemoryEventManager") << "Done flushing " << flushList.size()
@@ -332,7 +316,7 @@ void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag)
 	}
 }
 
-int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID)
+int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
 {
 	auto buffers = GetBuffersOwnedByManager();
 	for (auto& buf : buffers)
@@ -341,7 +325,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetReadPos(buf));
 		if (hdr->sequence_id == seqID) return buf;
 	}
-	auto new_buffer = GetBufferForWriting(false);
+	auto new_buffer = GetBufferForWriting(overwrite_mode_);
 	if (new_buffer == -1) return -1;
 	auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetWritePos(new_buffer));
 	hdr->is_complete = false;
@@ -349,132 +333,9 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	hdr->subrun_id = subrun_id_;
 	hdr->sequence_id = seqID;
 	buffer_writes_pending_[new_buffer] = 0;
+	if (timestamp != Fragment::InvalidTimestamp) {
+		requests_.AddRequest(seqID, timestamp);
+	}
+	requests_.SendRequest();
 	return new_buffer;
-}
-
-
-void artdaq::SharedMemoryEventManager::initStatistics_()
-{
-	MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
-		getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-	if (mqPtr.get() == 0)
-	{
-		mqPtr.reset(new MonitoredQuantity(3.0, 300.0));
-		StatisticsCollection::getInstance().
-			addMonitoredQuantity(EVENT_RATE_STAT_KEY, mqPtr);
-	}
-	mqPtr->reset();
-
-	mqPtr = StatisticsCollection::getInstance().
-		getMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY);
-	if (mqPtr.get() == 0)
-	{
-		mqPtr.reset(new MonitoredQuantity(3.0, 300.0));
-		StatisticsCollection::getInstance().
-			addMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY, mqPtr);
-	}
-	mqPtr->reset();
-}
-
-void artdaq::SharedMemoryEventManager::reportStatistics_()
-{
-	MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
-		getMonitoredQuantity(EVENT_RATE_STAT_KEY);
-	if (mqPtr.get() != 0)
-	{
-		std::ostringstream oss;
-		oss << EVENT_RATE_STAT_KEY << "_" << std::setfill('0') << std::setw(4) << run_id_
-			<< "_" << std::setfill('0') << std::setw(4) << my_rank << ".txt";
-		std::string filename = oss.str();
-		std::ofstream outStream(filename.c_str());
-		mqPtr->waitUntilAccumulatorsHaveBeenFlushed(3.0);
-		artdaq::MonitoredQuantityStats stats;
-		mqPtr->getStats(stats);
-		outStream << "SharedMemoryEventManager rank " << my_rank << ": events processed = "
-			<< stats.fullSampleCount << " at " << stats.fullSampleRate
-			<< " events/sec, data rate = "
-			<< (stats.fullValueRate * sizeof(RawDataType)
-				/ 1024.0 / 1024.0) << " MB/sec, duration = "
-			<< stats.fullDuration << " sec" << std::endl
-			<< "    minimum event size = "
-			<< (stats.fullValueMin * sizeof(RawDataType)
-				/ 1024.0 / 1024.0)
-			<< " MB, maximum event size = "
-			<< (stats.fullValueMax * sizeof(RawDataType)
-				/ 1024.0 / 1024.0)
-			<< " MB" << std::endl;
-		bool foundTheStart = false;
-		for (int idx = 0; idx < (int)stats.recentBinnedDurations.size(); ++idx)
-		{
-			if (stats.recentBinnedDurations[idx] > 0.0)
-			{
-				foundTheStart = true;
-			}
-			if (foundTheStart)
-			{
-				outStream << "  " << std::fixed << std::setprecision(3)
-					<< stats.recentBinnedEndTimes[idx]
-					<< ": " << stats.recentBinnedSampleCounts[idx]
-					<< " events at "
-					<< (stats.recentBinnedSampleCounts[idx] /
-						stats.recentBinnedDurations[idx])
-					<< " events/sec, data rate = "
-					<< (stats.recentBinnedValueSums[idx] *
-						sizeof(RawDataType) / 1024.0 / 1024.0 /
-						stats.recentBinnedDurations[idx])
-					<< " MB/sec, bin size = "
-					<< stats.recentBinnedDurations[idx]
-					<< " sec" << std::endl;
-			}
-		}
-		outStream.close();
-	}
-
-	mqPtr = StatisticsCollection::getInstance().
-		getMonitoredQuantity(INCOMPLETE_EVENT_STAT_KEY);
-	if (mqPtr.get() != 0)
-	{
-		std::ostringstream oss;
-		oss << INCOMPLETE_EVENT_STAT_KEY << "_" << std::setfill('0')
-			<< std::setw(4) << run_id_
-			<< "_" << std::setfill('0') << std::setw(4) << my_rank << ".txt";
-		std::string filename = oss.str();
-		std::ofstream outStream(filename.c_str());
-		mqPtr->waitUntilAccumulatorsHaveBeenFlushed(3.0);
-		artdaq::MonitoredQuantityStats stats;
-		mqPtr->getStats(stats);
-		outStream << "SharedMemoryEventManager rank " << my_rank << ": fragments processed = "
-			<< stats.fullSampleCount << " at " << stats.fullSampleRate
-			<< " fragments/sec, average incomplete event count = "
-			<< stats.fullValueAverage << " duration = "
-			<< stats.fullDuration << " sec" << std::endl
-			<< "    minimum incomplete event count = "
-			<< stats.fullValueMin << ", maximum incomplete event count = "
-			<< stats.fullValueMax << std::endl;
-		bool foundTheStart = false;
-		for (int idx = 0; idx < (int)stats.recentBinnedDurations.size(); ++idx)
-		{
-			if (stats.recentBinnedDurations[idx] > 0.0)
-			{
-				foundTheStart = true;
-			}
-			if (foundTheStart && stats.recentBinnedSampleCounts[idx] > 0.0)
-			{
-				outStream << "  " << std::fixed << std::setprecision(3)
-					<< stats.recentBinnedEndTimes[idx]
-					<< ": " << stats.recentBinnedSampleCounts[idx]
-					<< " fragments at "
-					<< (stats.recentBinnedSampleCounts[idx] /
-						stats.recentBinnedDurations[idx])
-					<< " fragments/sec, average incomplete event count = "
-					<< (stats.recentBinnedValueSums[idx] /
-						stats.recentBinnedSampleCounts[idx])
-					<< ", bin size = "
-					<< stats.recentBinnedDurations[idx]
-					<< " sec" << std::endl;
-			}
-		}
-		outStream << "Incomplete count now = " << GetOpenEventCount() << std::endl;
-		outStream.close();
-	}
 }

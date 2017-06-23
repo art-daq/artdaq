@@ -1,112 +1,112 @@
-#ifndef artdaq_Application_MPI2_AggregatorApp_hh
-#define artdaq_Application_MPI2_AggregatorApp_hh
+#ifndef artdaq_Application_MPI2_DispatcherApp_hh
+#define artdaq_Application_MPI2_DispatcherApp_hh
 
 #include <future>
 
-#include "artdaq/Application/AggregatorCore.hh"
+#include "artdaq/Application/DispatcherCore.hh"
 #include "artdaq/Application/Commandable.hh"
 
 namespace artdaq
 {
-	class AggregatorApp;
+	class DispatcherApp;
 }
 
 /**
- * \brief AggregatorApp is an artdaq::Commandable derived class which controls the AggregatorCore
+ * \brief DispatcherApp is an artdaq::Commandable derived class which controls the DispatcherCore
  */
-class artdaq::AggregatorApp : public artdaq::Commandable
+class artdaq::DispatcherApp : public artdaq::Commandable
 {
 public:
 	/**
-	 * \brief AggregatorApp Constructor
-	 * \param rank The rank of the Aggregator
-	 * \param name The nickname of the Aggregator
+	 * \brief DispatcherApp Constructor
+	 * \param rank The rank of the Dispatcher
+	 * \param name The nickname of the Dispatcher
 	 */
-	AggregatorApp(int rank, std::string name);
+	DispatcherApp(int rank, std::string name);
 
 	/**
 	 * \brief Copy Constructor is Deleted
 	 */
-	AggregatorApp(AggregatorApp const&) = delete;
+	DispatcherApp(DispatcherApp const&) = delete;
 
 	/**
 	 * \brief Default virtual destructor
 	 */
-	virtual ~AggregatorApp() = default;
+	virtual ~DispatcherApp() = default;
 
 	/**
 	 * \brief Copy Assignment operator is Deleted
-	 * \return AggregatorApp copy
+	 * \return DispatcherApp copy
 	 */
-	AggregatorApp& operator=(AggregatorApp const&) = delete;
+	DispatcherApp& operator=(DispatcherApp const&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**
-	 * \brief Initialize the AggregatorCore
-	 * \param pset ParameterSet used to initialize the AggregatorCore
+	 * \brief Initialize the DispatcherCore
+	 * \param pset ParameterSet used to initialize the DispatcherCore
 	 * \return Whether the initialize transition succeeded
 	 */
 	bool do_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t) override;
 
 	/**
-	 * \brief Start the AggregatorCore
+	 * \brief Start the DispatcherCore
 	 * \param id Run number of the new run
 	 * \return Whether the start transition succeeded
 	 */
 	bool do_start(art::RunID id, uint64_t, uint64_t) override;
 
 	/**
-	 * \brief Stop the AggregatorCore
+	 * \brief Stop the DispatcherCore
 	 * \return Whether the stop transition succeeded
 	 */
 	bool do_stop(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Pause the AggregatorCore
+	* \brief Pause the DispatcherCore
 	* \return Whether the pause transition succeeded
 	*/
 	bool do_pause(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Resume the AggregatorCore
+	* \brief Resume the DispatcherCore
 	* \return Whether the resume transition succeeded
 	*/
 	bool do_resume(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Shutdown the AggregatorCore
+	* \brief Shutdown the DispatcherCore
 	* \return Whether the shutdown transition succeeded
 	*/
 	bool do_shutdown(uint64_t) override;
 
 	/**
-	 * \brief Soft-initialize the AggregatorCore. No-Op
+	 * \brief Soft-initialize the DispatcherCore. No-Op
 	 * \return This function always returns true
 	 */
 	bool do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
 
 	/**
-	* \brief Reinitialize the AggregatorCore. No-Op
+	* \brief Reinitialize the DispatcherCore. No-Op
 	* \return This function always returns true
 	*/
 	bool do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
 
 	/**
-	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to AggregatorCore
+	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to DispatcherCore
 	 * \param which What to report on
 	 * \return Report string. Empty for unknown "which" parameter
 	 */
 	std::string report(std::string const& which) const override;
 
 	/**
-	 * \brief Register an art Online Monitor to the AggregatorCore
+	 * \brief Register an art Online Monitor to the DispatcherCore
 	 * \param info ParameterSet containing information about the monitor
 	 * \return String detailing result status
 	 */
 	std::string register_monitor(fhicl::ParameterSet const& info) override;
 
 	/**
-	 * \brief Remove an art Online Monitor from the AggregatorCore
+	 * \brief Remove an art Online Monitor from the DispatcherCore
 	 * \param label Name of the monitor to remove
 	 * \return String detailing result status
 	 */
@@ -115,8 +115,7 @@ public:
 private:
 	int rank_;
 	std::string name_;
-	std::unique_ptr<AggregatorCore> aggregator_ptr_;
-	std::future<size_t> aggregator_future_;
+	std::unique_ptr<DispatcherCore> Dispatcher_ptr_;
 };
 
 #endif

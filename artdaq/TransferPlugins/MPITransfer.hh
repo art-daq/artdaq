@@ -28,7 +28,7 @@ namespace artdaq
 		 * \brief MPITransfer Constructor
 		 * \param pset ParameterSet used to configure MPITransfer
 		 * \param role Role of this MPITransfer instance (kSend or kReceive)
-		 * 
+		 *
 		 * \verbatim
 		 * MPITransfer accepts the following Parameters:
 		 * "synchronous_sends" (Default: true): When false, use MPI_ISend, otherwise, use MPI_SSend
@@ -59,47 +59,33 @@ namespace artdaq
 		CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec) override;
 
 		/**
-		 * \brief Receive a Fragment using MPI
-		 * \param[out] frag Received Fragment
-		 * \param timeout_usec Timeout for receive, in microseconds
-		 * \return Rank of sender or RECV_TIMEOUT
-		 */
-		int receiveFragment(Fragment& frag, size_t timeout_usec) override;
+		* \brief Receive a Fragment Header from the transport mechanism
+		* \param[out] header Received Fragment Header
+		* \param receiveTimeout Timeout for receive
+		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		*/
+		int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
+
+		/**
+		* \brief Receive the body of a Fragment to the given destination pointer
+		* \param destination Pointer to memory region where Fragment data should be stored
+		* \param wordCount Number of words of Fragment data to receive
+		* \param receiveTimeout Timeout for receive
+		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		*/
+		int receiveFragmentData(RawDataType* destination, size_t wordCount, size_t receiveTimeout) override;
 
 	private:
-		enum class status_t
-		{
-			SENDING,
-			PENDING,
-			DONE
-		};
 
-		void cancelReq_(size_t buf, bool blocking_wait = true);
-
-		void post_(size_t buf);
-
+		void cancelReq_(MPI_Request req) const;
+		
 		// Identify an available buffer.
 		int findAvailable();
-
-		TransferInterface::CopyStatus sendFragment(Fragment&& frag, size_t timeout_usec, bool force_async);
-
-		int nextSource_();
-
-		status_t src_status_; // Status of each sender.
-		size_t recvd_count_;
-		size_t expected_count_; // After EOD received: expected frags.
-
-		Fragments payload_;
-
-#if USE_TESTSOME
-		int saved_wait_result_;
-		std::vector<int> ready_indices_;
-		std::vector<MPI_Status> ready_statuses_;
-#endif
+						
 		static std::mutex mpi_mutex_;
-		bool synchronous_sends_;
 
 		std::vector<MPI_Request> reqs_;
+		std::vector<uint8_t> buffer_;
 		int pos_;
 	};
 }

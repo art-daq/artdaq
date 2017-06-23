@@ -3,7 +3,6 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "Config.hh"
-#include "artdaq/DAQrate/EventStore.hh"
 #include "MPIProg.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
@@ -50,12 +49,7 @@ public:
 	 * \brief Start the Builder application, using the type configuration to select which method to run
 	 */
 	void go();
-
-	/**
-	 * \brief Receive data from detector via DataReceiverManager, and send to a sink using DataSenderManager
-	 */
-	void source();
-
+	
 	/**
 	 * \brief Receive data from source via DataReceiverManager, send it to the EventStore (and art, if configured)
 	 */
@@ -70,7 +64,6 @@ private:
 	enum Color_t : int
 	{
 		DETECTOR,
-		SOURCE,
 		SINK
 	};
 
@@ -115,45 +108,12 @@ void Builder::go()
 			MPI_Barrier(MPI_COMM_WORLD);
 		}
 		break;
-	case artdaq::Config::TaskSource:
-		source();
-		break;
 	case artdaq::Config::TaskDetector:
 		detector();
 		break;
 	default:
 		throw "No such node type";
 	}
-}
-
-void Builder::source()
-{
-	printHost("source");
-	// needs to get data from the detectors and send it to the sinks
-	artdaq::FragmentPtr frag;
-	{ // Block to handle lifetime of to_r and from_d, below.
-		artdaq::DataReceiverManager from_d(conf_.makeParameterSet());
-		from_d.start_threads();
-		std::unique_ptr<artdaq::DataSenderManager> to_r(want_sink_ ? new artdaq::DataSenderManager(conf_.makeParameterSet()) : nullptr);
-		int senderCount = from_d.enabled_sources().size();
-		while (senderCount > 0)
-		{
-			int ignoredSender;
-			frag = from_d.recvFragment(ignoredSender);
-			if (!frag || ignoredSender == artdaq::TransferInterface::RECV_TIMEOUT) continue;
-			std::cout << "Program::source: Received fragment " << frag->sequenceID() << " from sender " << ignoredSender << std::endl;
-			if (want_sink_ && frag->type() != artdaq::Fragment::EndOfDataFragmentType)
-			{
-				to_r->sendFragment(std::move(*frag));
-			}
-			else if (frag->type() == artdaq::Fragment::EndOfDataFragmentType)
-			{
-				senderCount--;
-			}
-		}
-	}
-	TLOG_DEBUG("builder") << "source done " << conf_.rank_ << TLOG_ENDL;
-	MPI_Barrier(MPI_COMM_WORLD);
 }
 
 void Builder::detector()
