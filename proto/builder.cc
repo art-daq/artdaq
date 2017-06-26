@@ -49,7 +49,7 @@ public:
 	 * \brief Start the Builder application, using the type configuration to select which method to run
 	 */
 	void go();
-	
+
 	/**
 	 * \brief Receive data from source via DataReceiverManager, send it to the EventStore (and art, if configured)
 	 */
@@ -77,12 +77,12 @@ private:
 };
 
 Builder::Builder(int argc, char* argv[]) :
-										 MPIProg(argc, argv)
-										 , conf_(my_rank, procs_, 10, 10240, argc, argv)
-										 , daq_pset_(conf_.getArtPset())
-										 , want_sink_(daq_pset_.get<bool>("want_sink", true))
-										 , want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
-										 , local_group_comm_()
+	MPIProg(argc, argv)
+	, conf_(my_rank, procs_, 10, 10240, argc, argv)
+	, daq_pset_(conf_.getArtPset())
+	, want_sink_(daq_pset_.get<bool>("want_sink", true))
+	, want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
+	, local_group_comm_()
 {
 	conf_.writeInfo();
 }
@@ -127,17 +127,14 @@ void Builder::detector()
 	std::vector<std::string> detectors;
 	size_t detectors_size = 0;
 	if (!(daq_pset_.get_if_present("detectors", detectors) &&
-		  (detectors_size = detectors.size())))
+		(detectors_size = detectors.size())))
 	{
 		throw cet::exception("Configuration")
-			  << "Unable to find required sequence of detector "
-			  << "parameter set names, \"detectors\".";
+			<< "Unable to find required sequence of detector "
+			<< "parameter set names, \"detectors\".";
 	}
 	fhicl::ParameterSet det_ps =
-		daq_pset_.get<fhicl::ParameterSet>
-		((detectors_size > static_cast<size_t>(detector_rank)) ?
-			 detectors[detector_rank] :
-			 detectors[0]);
+		daq_pset_.get<fhicl::ParameterSet>(((detectors_size > static_cast<size_t>(detector_rank)) ? detectors[detector_rank] : detectors[0]));
 	std::unique_ptr<artdaq::FragmentGenerator> const
 		gen(artdaq::makeFragmentGenerator
 		(det_ps.get<std::string>("generator"),
@@ -184,61 +181,36 @@ void Builder::sink()
 	printHost("sink");
 	{
 		// This scope exists to control the lifetime of 'events'
-		int sink_rank;
-		bool useArt = daq_pset_.get<bool>("useArt", false);
-		const char* dummyArgs[1]{"SimpleQueueReader"};
-		MPI_Comm_rank(local_group_comm_, &sink_rank);
-		artdaq::EventStore::ART_CMDLINE_FCN* reader =
-			useArt ?
-				&artapp :
-				&artdaq::simpleQueueReaderApp;
-		artdaq::EventStore events(daq_pset_, conf_.detectors_,
-								  conf_.run_,
-								  useArt ? conf_.art_argc_ : 1,
-								  useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
-								  reader);
+			auto events = std::make_shared<artdaq::SharedMemoryEventManager>(conf_.makeParameterSet(), conf_.getArtPset().to_string());
 		{ // Block to handle scope of h, below.
-			artdaq::DataReceiverManager h(conf_.makeParameterSet());
+			artdaq::DataReceiverManager h(conf_.makeParameterSet(), events);
 			h.start_threads();
-			int senderCount = h.enabled_sources().size();
-			while (senderCount > 0)
+			while (h.running_sources().size() > 0)
 			{
-				artdaq::FragmentPtr pfragment(new artdaq::Fragment);
-				int ignoredSource;
-				pfragment = h.recvFragment(ignoredSource);
-				if (!pfragment || ignoredSource == artdaq::TransferInterface::RECV_TIMEOUT) continue;
-				std::cout << "Program::sink: Received fragment " << pfragment->sequenceID() << " from sender " << ignoredSource << std::endl;
-				if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType)
-				{
-					events.insert(std::move(pfragment));
-				}
-				else
-				{
-					senderCount--;
-				}
+				usleep(10000);
 			}
 		}
 		// Make the reader application finish, and capture its return
 		// status.
-		int readerReturnValue;
+		std::vector<int> readerReturnValues;
 		bool endSucceeded = false;
 		int attemptsToEnd = 1;
-		endSucceeded = events.endOfData(readerReturnValue);
+		endSucceeded = events->endOfData(readerReturnValues);
 		while (!endSucceeded && attemptsToEnd < 3)
 		{
 			++attemptsToEnd;
-			endSucceeded = events.endOfData(readerReturnValue);
+			endSucceeded = events->endOfData(readerReturnValues);
 		}
 		if (endSucceeded)
 		{
 			TLOG_DEBUG("builder") << "Sink: reader is done, its exit status was: "
-				 << readerReturnValue << TLOG_ENDL;
+				<< readerReturnValues[0] << TLOG_ENDL;
 		}
 		else
 		{
 			TLOG_DEBUG("builder") << "Sink: reader failed to complete because the "
-				 << "endOfData marker could not be pushed onto the queue."
-				 << TLOG_ENDL;
+				<< "endOfData marker could not be pushed onto the queue."
+				<< TLOG_ENDL;
 		}
 	} // end of lifetime of 'events'
 	TLOG_DEBUG("builder") << "Sink done " << conf_.rank_ << TLOG_ENDL;
@@ -261,9 +233,9 @@ void Builder::printHost(const std::string& functionName) const
 		hostString = "unknown";
 	}
 	TLOG_DEBUG("builder") << "Running " << functionName
-		 << " on host " << hostString
-		 << " with rank " << my_rank << "."
-		 << TLOG_ENDL;
+		<< " on host " << hostString
+		<< " with rank " << my_rank << "."
+		<< TLOG_ENDL;
 }
 
 void printUsage()

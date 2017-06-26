@@ -1,7 +1,7 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
-#include "artdaq/DAQrate/EventStore.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-using artdaq::EventStore;
 using artdaq::FragmentPtrs;
 using artdaq::GenericFragmentSimulator;
+using artdaq::SharedMemoryEventManager;
 using fhicl::ParameterSet;
 using std::size_t;
 
@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 	try
 	{
 		size_t const NUM_FRAGS_PER_EVENT = 5;
-		EventStore::run_id_t const RUN_ID = 2112;
+		SharedMemoryEventManager::run_id_t const RUN_ID = 2112;
 		size_t const NUM_EVENTS = 100;
 		// We may want to add ParameterSet parsing to this code, but right
 		// now this will do...
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 		// test of the EventStore's ability to deal with multiple events
 		// simulatenously.
 		GenericFragmentSimulator sim(sim_config);
-		EventStore events(sim_config, NUM_FRAGS_PER_EVENT, RUN_ID, argc, argv, &artapp);
+		SharedMemoryEventManager events(sim_config, sim_config.to_string());
 		FragmentPtrs frags;
 		size_t event_count = 0;
 		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
@@ -49,15 +49,15 @@ int main(int argc, char* argv[])
 			for (auto&& frag : frags)
 			{
 				assert(frag != nullptr);
-				events.insert(std::move(frag));
+				events.AddFragment(std::move(frag));
 			}
 		}
 
-		int readerReturnValue;
-		bool endSucceeded = events.endOfData(readerReturnValue);
+		std::vector<int> readerReturnValues;
+		bool endSucceeded = events.endOfData(readerReturnValues);
 		if (endSucceeded)
 		{
-			rc = readerReturnValue;
+			rc = *std::max_element(readerReturnValues.begin(), readerReturnValues.end());
 		}
 		else
 		{

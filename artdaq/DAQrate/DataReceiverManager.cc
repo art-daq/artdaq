@@ -85,6 +85,7 @@ void artdaq::DataReceiverManager::start_threads()
 		auto& rank = source.first;
 		if (enabled_sources_.count(rank))
 		{
+			running_sources_.insert(rank);
 			source_threads_[rank] = std::thread(&DataReceiverManager::runReceiver_, this, rank);
 		}
 	}
@@ -173,6 +174,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank))
 		{
+			running_sources_.erase(source_rank);
 			return;
 		}
 	}

@@ -72,6 +72,14 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	return true;
 }
 
+bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag)
+{
+	auto hdr = *reinterpret_cast<detail::RawFragmentHeader*>(frag->headerAddress());
+	auto data = frag->headerAddress() + hdr.num_words();
+
+	return AddFragment(hdr, data);
+}
+
 artdaq::RawDataType* artdaq::SharedMemoryEventManager::GetFragmentLocation(detail::RawFragmentHeader frag)
 {
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);

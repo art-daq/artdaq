@@ -153,8 +153,7 @@ int main(int argc, char * argv[]) try
 				}
 				break;
 			}
-			auto header = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(val->headerAddress());
-			store.AddFragment(header, val->headerAddress() + header.num_words());
+			store.AddFragment(std::move(val));
 		}
 		frags.clear();
 

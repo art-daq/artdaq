@@ -15,8 +15,8 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
-#include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "cetlib/container_algorithms.h"
@@ -36,6 +36,11 @@ namespace bpo = boost::program_options;
 
 namespace
 {
+	static bool abs_compare(int a, int b)
+	{
+		return (std::abs(a) < std::abs(b));
+	}
+
 	/**
 	 * \brief Process the command line
 	 * \param argc Number of arguments
@@ -180,8 +185,6 @@ namespace
 
 	/**
 	 * \brief Run the test, instantiating configured generators and an EventStore
-	 * \param argc Argument count, passed to EventStore for art initialization
-	 * \param argv Arguments, passed to EventStore for art initialization
 	 * \param pset ParameterSet used to configure genToArt
 	 * \return Art return code, of 15 if EventStore::endOfData fails
 	 * 
@@ -197,8 +200,7 @@ namespace
 	 * 
 	 * \endverbatim
 	 */
-	int process_data(int argc, char** argv,
-	                 fhicl::ParameterSet const& pset)
+	int process_data(fhicl::ParameterSet const& pset)
 	{
 		auto const gta_pset = pset.get<fhicl::ParameterSet>("genToArt");
 
@@ -220,11 +222,7 @@ namespace
 			expected_frags_per_event += gen.numFragIDs();
 		}
 
-		artdaq::EventStore store(eb_pset, expected_frags_per_event,
-		                         gta_pset.get<artdaq::EventStore::run_id_t>("run_number"),
-		                         argc,
-		                         argv,
-		                         &artapp);
+		artdaq::SharedMemoryEventManager store(eb_pset, eb_pset.to_string());
 
 		auto const events_to_generate =
 			gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", -1);
@@ -261,16 +259,17 @@ namespace
 					      << current_sequence_id
 					      << ".\n";
 				}
-				store.insert(std::move(val));
+				store.AddFragment(std::move(val));
 			}
 			frags.clear();
 		}
 
-		int readerReturnValue;
-		bool endSucceeded = store.endOfData(readerReturnValue);
+		std::vector<int> readerReturnValues;
+		bool endSucceeded = store.endOfData(readerReturnValues);
 		if (endSucceeded)
 		{
-			return readerReturnValue;
+			
+			return *std::max_element(readerReturnValues.begin(), readerReturnValues.end(), abs_compare);
 		}
 		else
 		{
@@ -300,7 +299,7 @@ int main(int argc, char* argv[]) try
 	}
 	artdaq::SimpleLookupPolicy lookup_policy("FHICL_FILE_PATH");
 	make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
-	return process_data(argc, argv, pset);
+	return process_data(pset);
 }
 catch (std::string& x)
 {

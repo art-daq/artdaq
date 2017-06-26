@@ -24,7 +24,7 @@
 #include <iostream>
 #include <memory>
 #include <utility>
-#include "artdaq/Application/AggregatorApp.hh"
+#include "artdaq/Application/DispatcherApp.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 
@@ -68,7 +68,7 @@ int main(int argc, char * argv[])
 	}
 	auto rank = vm["rank"].as<int>();
 
-	std::string name = "Aggregator";
+	std::string name = "Dispatcher";
 	if (vm.count("name"))
 	{
 		name = vm["name"].as<std::string>();
@@ -82,7 +82,7 @@ int main(int argc, char * argv[])
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the AggregatorApp
-	artdaq::AggregatorApp agg_app(rank, name);
+	artdaq::DispatcherApp agg_app(rank, name);
 
 	if (vm.count("config")) {
 		fhicl::ParameterSet pset;

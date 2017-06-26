@@ -3,7 +3,7 @@
 #include <boost/lexical_cast.hpp>
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Application/AggregatorApp.hh"
+#include "artdaq/Application/DispatcherApp.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
@@ -12,7 +12,7 @@
 
 int main(int argc, char* argv[])
 {
-	artdaq::configureMessageFacility("aggregator");
+	artdaq::configureMessageFacility("Dispatcher");
 
 	// initialization
 
@@ -27,8 +27,8 @@ int main(int argc, char* argv[])
 	}
 	catch (cet::exception& errormsg)
 	{
-		TLOG_ERROR("AggregatorMain") << errormsg << TLOG_ENDL;
-		TLOG_ERROR("AggregatorMain") << "MPISentry error encountered in AggregatorMain; exiting..." << TLOG_ENDL;
+		TLOG_ERROR("DispatcherMain") << errormsg << TLOG_ENDL;
+		TLOG_ERROR("DispatcherMain") << "MPISentry error encountered in DispatcherMain; exiting..." << TLOG_ENDL;
 		throw errormsg;
 	}
 
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	std::string name = "Aggregator";
+	std::string name = "Dispatcher";
 	if (vm.count("name"))
 	{
 		name = vm["name"].as<std::string>();
@@ -79,8 +79,8 @@ int main(int argc, char* argv[])
 		<< ", built " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
-	// create the AggregatorApp
-	artdaq::AggregatorApp agg_app(mpiSentry->rank(), name);
+	// create the DispatcherApp
+	artdaq::DispatcherApp agg_app(mpiSentry->rank(), name);
 
 	// create the xmlrpc_commander and run it
 	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), agg_app);

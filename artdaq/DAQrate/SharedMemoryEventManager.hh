@@ -55,6 +55,13 @@ namespace artdaq {
 		bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
 
 		/**
+		* \brief Copy a Fragment into the SharedMemoryEventManager
+		* \param frag FragmentPtr object
+		* \return Whether the Fragment was successfully added
+		*/
+		bool AddFragment(FragmentPtr frag);
+
+		/**
 		 * \brief Get a pointer to a reserved memory area for the given Fragment header
 		 * \param frag Fragment header (contains sequence ID and size information)
 		 * \return Pointer to memory location for Fragment body (Header is copied into buffer here)

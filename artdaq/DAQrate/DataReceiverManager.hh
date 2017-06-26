@@ -80,6 +80,8 @@ public:
 	 */
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
+	std::set<int> running_sources() const { return running_sources_; }
+
 	/**
 	 * \brief Get a handle to the SharedMemoryEventManager connected to this DataReceiverManager
 	 * \return shared_ptr to SharedMemoryEventManager instance
@@ -97,6 +99,7 @@ private:
 	std::map<int, std::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
+	std::set<int> running_sources_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
 	detail::FragCounter recv_frag_size_; // Number of bytes received per source.
