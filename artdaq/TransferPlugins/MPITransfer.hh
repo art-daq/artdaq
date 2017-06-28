@@ -37,6 +37,10 @@ namespace artdaq
 		 */
 		MPITransfer(fhicl::ParameterSet pset, Role role);
 
+		MPITransfer(const MPITransfer&) = delete;
+
+		MPITransfer& operator=(const MPITransfer&) = delete;
+
 		/**
 		 * \brief MPITransfer Destructor
 		 */
@@ -48,7 +52,7 @@ namespace artdaq
 		 * \param timeout_usec Timeout for send, in microseconds
 		 * \return CopyStatus detailing result of copy
 		 */
-		CopyStatus copyFragment(Fragment& frag, size_t timeout_usec) override;
+		CopyStatus copyFragment(Fragment& frag, size_t timeout_usec = std::numeric_limits<size_t>::max()) override;
 
 		/**
 		 * \brief Move a Fragment to the destination.
@@ -56,7 +60,7 @@ namespace artdaq
 		 * \param timeout_usec Timeout for send, in microseconds
 		 * \return CopyStatus detailing result of copy
 		 */
-		CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec) override;
+		CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec = std::numeric_limits<size_t>::max()) override;
 
 		/**
 		* \brief Receive a Fragment Header from the transport mechanism
@@ -85,7 +89,7 @@ namespace artdaq
 		static std::mutex mpi_mutex_;
 
 		std::vector<MPI_Request> reqs_;
-		std::vector<uint8_t> buffer_;
+		Fragments payload_;
 		int pos_;
 	};
 }

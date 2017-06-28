@@ -89,7 +89,8 @@ artdaq::DataSenderManager::~DataSenderManager()
 	{
 		if (destinations_.count(dest))
 		{
-			destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(sent_frag_count_.slotCount(dest))));
+			auto sts = destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(sent_frag_count_.slotCount(dest))));
+			if (sts != TransferInterface::CopyStatus::kSuccess) TLOG_ERROR("DataSenderManager") << "Error sending EOD Fragment to sender rank " << dest << TLOG_ENDL;
 			//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 		}
 	}
@@ -383,14 +384,12 @@ sendFragment(Fragment&& frag)
 		{
 			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
-			auto lastWarnTime = std::chrono::steady_clock::now();
 			while (sts != TransferInterface::CopyStatus::kSuccess)
 			{
 				sts = destinations_[dest]->moveFragment(std::move(frag));
-				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
+				if (sts != TransferInterface::CopyStatus::kSuccess)
 				{
-					TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying..." << TLOG_ENDL;
-					lastWarnTime = std::chrono::steady_clock::now();
+					TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Data has been lost!" << TLOG_ENDL;
 				}
 			}
 			//sendFragTo(std::move(frag), dest);

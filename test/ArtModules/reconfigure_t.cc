@@ -1,7 +1,7 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
-#include "artdaq/DAQrate/EventStore.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-using artdaq::EventStore;
+using artdaq::SharedMemoryEventManager;
 using artdaq::FragmentPtrs;
 using artdaq::GenericFragmentSimulator;
 using fhicl::ParameterSet;
@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 	try
 	{
 		size_t const NUM_FRAGS_PER_EVENT = 5;
-		EventStore::run_id_t const RUN_ID = 2112;
+		SharedMemoryEventManager::run_id_t const RUN_ID = 2112;
 		size_t const NUM_EVENTS = 100;
 		// We may want to add ParameterSet parsing to this code, but right
 		// now this will do...
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 		// test of the EventStore's ability to deal with multiple events
 		// simulatenously.
 		GenericFragmentSimulator sim(sim_config);
-		std::unique_ptr<EventStore> events(new EventStore(sim_config, NUM_FRAGS_PER_EVENT, RUN_ID, argc, argv, &artapp));
+		std::unique_ptr<SharedMemoryEventManager> events(new SharedMemoryEventManager(sim_config, sim_config.to_string()));
 		FragmentPtrs frags;
 		size_t event_count = 0;
 		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
@@ -50,23 +50,22 @@ int main(int argc, char* argv[])
 			for (auto&& frag : frags)
 			{
 				assert(frag != nullptr);
-				events->insert(std::move(frag));
+				events->AddFragment(std::move(frag));
 			}
 		}
 
-		int readerReturnValue;
-		bool endSucceeded = events->endOfData(readerReturnValue);
+		std::vector<int> readerReturnValues;
+		bool endSucceeded = events->endOfData(readerReturnValues);
 		if (endSucceeded)
 		{
-			rc = readerReturnValue;
+			rc = *std::max_element(readerReturnValues.begin(), readerReturnValues.end());
 
-			EventStore::run_id_t const RUN_ID2 = 2113;
 			size_t const NUM_EVENTS2 = 200;
 			auto temp = sim_config.to_string() + " physics.analyzers.frags.num_events_expected: " + std::to_string(NUM_EVENTS2);
 			fhicl::ParameterSet sim_config2;
 			fhicl::make_ParameterSet(temp, sim_config2);
 			GenericFragmentSimulator sim2(sim_config2);
-			events.reset(new EventStore(sim_config2, NUM_FRAGS_PER_EVENT, RUN_ID2, argc, argv, &artapp));
+			events->ReconfigureArt(temp);
 			event_count = 0;
 			while (frags.clear() , event_count++ < NUM_EVENTS && sim2.getNext(frags))
 			{
@@ -75,15 +74,14 @@ int main(int argc, char* argv[])
 				for (auto&& frag : frags)
 				{
 					assert(frag != nullptr);
-					events->insert(std::move(frag));
+					events->AddFragment(std::move(frag));
 				}
 			}
 
-			int readerReturnValue;
-			bool endSucceeded2 = events->endOfData(readerReturnValue);
+			bool endSucceeded2 = events->endOfData(readerReturnValues);
 			if (endSucceeded2)
 			{
-				rc = readerReturnValue;
+				rc = *std::max_element(readerReturnValues.begin(), readerReturnValues.end());
 			}
 			else
 			{

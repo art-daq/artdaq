@@ -12,9 +12,9 @@
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("transfer_driver_mpi");
-	TRACE(TLVL_TRACE, "s_r_handles main enter" );
+	TRACE(TLVL_TRACE, "s_r_handles main enter");
 	char envvar[] = "MV2_ENABLE_AFFINITY=0";
-	if(putenv(envvar) != 0)
+	if (putenv(envvar) != 0)
 	{
 		std::cerr << "Unable to set MV2_ENABLE_AFFINITY environment variable!";
 		return 1;
@@ -54,15 +54,15 @@ int main(int argc, char* argv[])
 	artdaq::TransferTest theTest(ps);
 
 	//std::cout << "Entering infinite loop to connect debugger. PID=" << std::to_string(getpid()) << std::endl;
-	// volatile bool loopForever = true;
-	// while (loopForever) {
-	// 	  usleep(1000);
-	// }
+	//volatile bool loopForever = true;
+	//while (loopForever) {
+	//	usleep(1000);
+	//}
 
 	theTest.runTest();
 
 	rc = MPI_Finalize();
 	assert(rc == 0);
-	TRACE(TLVL_TRACE, "s_r_handles main return" );
+	TRACE(TLVL_TRACE, "s_r_handles main return");
 	return 0;
 }

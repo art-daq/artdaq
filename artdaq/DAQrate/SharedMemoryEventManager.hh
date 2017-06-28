@@ -106,7 +106,7 @@ namespace artdaq {
 		 * \param n_art_processes Number of art processes to start, -1 (default) leaves the number unchanged
 		 * \param art_fhicl Fhicl string used to configure art
 		 */
-		void ReconfigureArt(std::string art_fhicl, int n_art_processes = -1);
+		void ReconfigureArt(std::string art_fhicl, int n_art_processes = -1, run_id_t newRun = 0);
 
 		/**
 		* \brief Indicate that the end of input has been reached to the art processes.

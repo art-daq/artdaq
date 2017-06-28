@@ -100,6 +100,7 @@ int artdaq::FragmentReceiverManager::get_next_source_() const
 
 void artdaq::FragmentReceiverManager::unsuppressAll()
 {
+	TRACE(5, "FragmentReceiverManager::unsuppressAll called");
 	suppressed_sources_.clear();
 	output_cv_.notify_all();
 }
@@ -169,7 +170,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 {
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
-		TRACE(16, "FragmentReceiverManager::runReceiver_: Begin loop");
+		TRACE(16, "FragmentReceiverManager::runReceiver_ %d: Begin loop", source_rank);
 		auto is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
 		while (!stop_requested_ && is_suppressed)
 		{

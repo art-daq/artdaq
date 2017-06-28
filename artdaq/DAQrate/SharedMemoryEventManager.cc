@@ -169,10 +169,12 @@ void artdaq::SharedMemoryEventManager::StartArt()
 	}
 }
 
-void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, int n_art_processes)
+void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, int n_art_processes, run_id_t newRun)
 {
 	std::vector<int> ignored;
 	endOfData(ignored);
+	if (newRun == 0) newRun = run_id_ + 1;
+	run_id_ = newRun;
 	std::ofstream of(config_file_name_, std::ofstream::trunc);
 	of << art_fhicl << std::endl;
 	of.close();

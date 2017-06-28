@@ -87,11 +87,12 @@ int artdaq::TransferTest::runTest()
 	TRACE(11, "TransferTest::runTest BEGIN");
 	start_time_ = std::chrono::steady_clock::now();
 	std::pair<size_t, double> result;
+	if (my_rank >= senders_ + receivers_) return 0;
 	if (my_rank < senders_)
 	{
 		result = do_sending();
 	}
-	else
+	else 
 	{
 		result = do_receiving();
 	}
@@ -142,30 +143,30 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 		frag.setSequenceID(ii);
 		frag.setFragmentID(my_rank);
 		frag.setSystemType(artdaq::Fragment::DataFragmentType);
-/*
-		artdaq::Fragment::iterator it = frag.dataBegin();
-		*it = my_rank;
-		*++it = ii;
-		*++it = sndDatSz;*/
+		/*
+				artdaq::Fragment::iterator it = frag.dataBegin();
+				*it = my_rank;
+				*++it = ii;
+				*++it = sndDatSz;*/
 
 		auto send_start = std::chrono::steady_clock::now();
 		sender.sendFragment(std::move(frag));
 		auto after_send = std::chrono::steady_clock::now();
-		if (ii % (1 + (sends_each_sender_ / 100)) == 0)
+		if (ii % (sends_each_sender_ / 100) == 0)
 			TRACE(1, "Sender %d sent fragment %d", my_rank, ii);
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
 		frag = artdaq::Fragment(data_size_wrds); // replace/renew
 		if (validate_mode_)
 		{
-			artdaq::RawDataType gen_seed = 0;
+			artdaq::RawDataType gen_seed = ii + 1;
 
 			std::generate_n(frag.dataBegin(), data_size_wrds, [&]() {	return ++gen_seed; });
-			for (size_t ii = 0; ii < frag.dataSize(); ++ii)
+			for (size_t jj = 0; jj < frag.dataSize(); ++jj)
 			{
-				if (*(frag.dataBegin() + ii) != ii + 1)
+				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
 				{
-					TLOG_ERROR("TransferTest") << "Data corruption detected! (" << std::to_string(*(frag.dataBegin() + ii)) << " != " << std::to_string(ii + 1) << ") Aborting!" << TLOG_ENDL;
+					TLOG_ERROR("TransferTest") << "Input Data corruption detected! (" << std::to_string(*(frag.dataBegin() + jj)) << " != " << std::to_string(ii + jj + 2) << " at position " << ii << ") Aborting!" << TLOG_ENDL;
 					exit(1);
 				}
 			}
@@ -223,7 +224,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 					first = false;
 				}
 				counter--;
-				if (counter % (receives_each_receiver_ / 100) == 0)
+				if (counter % (receives_each_receiver_ / 100) == 0 || counter < 10 || receives_each_receiver_ - counter < 10)
 					TRACE(1, "Receiver %d received fragment %d with seqID %lu from Sender %d (Expecting %d more)"
 						  , my_rank, receives_each_receiver_ - counter, ignoreFragPtr->sequenceID(), senderSlot, counter);
 				thisSize = ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
@@ -232,9 +233,9 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 				{
 					for (size_t ii = 0; ii < ignoreFragPtr->dataSize(); ++ii)
 					{
-						if (*(ignoreFragPtr->dataBegin() + ii) != ii + 1)
+						if (*(ignoreFragPtr->dataBegin() + ii) != ignoreFragPtr->sequenceID() + ii + 1)
 						{
-							TLOG_ERROR("TransferTest") << "Data corruption detected! (" << std::to_string(*(ignoreFragPtr->dataBegin() + ii)) << " != " << std::to_string(ii + 1) << ") Aborting!" << TLOG_ENDL;
+							TLOG_ERROR("TransferTest") << "Output Data corruption detected! (" << std::to_string(*(ignoreFragPtr->dataBegin() + ii)) << " != " << std::to_string(ignoreFragPtr->sequenceID() + ii + 1) << " at position " << ii << ") Aborting!" << TLOG_ENDL;
 							exit(1);
 						}
 					}
