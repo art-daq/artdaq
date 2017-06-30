@@ -128,18 +128,24 @@ public:
 	std::string report(std::string const& which) const;
 
 protected:
+	/**
+	 * \brief Initialize the DataReceiverCore (should be called from initialize() overrides
+	 * \param pset ParameterSet for DataReceiverManager and SharedMemoryEventManager
+	 * \param metric_pset ParameterSet for MetricManager
+	 * \return Whether the initialize succeeded
+	 */
 	bool initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& metric_pset);
 
-	std::string name_;
+	std::string name_; ///< Name of this DataReceiverCore instance
 
-	std::unique_ptr<DataReceiverManager> receiver_ptr_;
-	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_;
-	std::atomic<bool> stop_requested_;
-	std::atomic<bool> pause_requested_;
-	std::atomic<bool> run_is_paused_;
-	bool verbose_;
+	std::unique_ptr<DataReceiverManager> receiver_ptr_; ///< Pointer to the DataReceiverManager
+	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_; ///< Pointer to the SharedMemoryEventManager (art)
+	std::atomic<bool> stop_requested_; ///< Stop has been requested?
+	std::atomic<bool> pause_requested_; ///< Pause has been requested?
+	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
+	bool verbose_; ///< Whether to log verbosely
 	
-	/* This is used for syncronization between the thread running
+	/** This is used for syncronization between the thread running
 	   process_fragments() and XMLRPC calls.  This will be locked before data
 	   readout begins by the start() and resume() methods in the event builder.
 	   It will be unlocked by the process_fragments() thread once EOD fragments
@@ -148,8 +154,12 @@ protected:
 	   been clocked into the DataReceiverCore. */
 	std::mutex flush_mutex_;
 
-	MetricManager metricMan_;
+	MetricManager metricMan_; ///< MetricManager concrete instance (for Globals.hh::metricMan)
 	
+	/**
+	 * \brief Log a message, setting severity based on verbosity flag
+	 * \param text Message to log
+	 */
 	void logMessage_(std::string const& text);
 };
 
