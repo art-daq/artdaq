@@ -15,6 +15,7 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq/Application/CommandableFragmentGenerator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
@@ -36,6 +37,12 @@ namespace bpo = boost::program_options;
 
 namespace
 {
+	/**
+	 * \brief Compare two integers magnitudes
+	 * \param a First integer
+	 * \param b Second integer
+	 * \return Result of |a| < |b|
+	 */
 	static bool abs_compare(int a, int b)
 	{
 		return (std::abs(a) < std::abs(b));
@@ -113,6 +120,28 @@ namespace
 		 * \return 
 		 */
 		size_t numFragIDs() const;
+
+		/**
+		 * \brief Send start signal to FragmentGenerator, if it's a CommandableFragmentGenerator
+		 * \param run Run number  to pass to StartCmd
+		 * \param timeout Timeout to pass to StartCmd
+		 * \param timestamp Timestamp to pass to StartCmd
+		 */
+		void start(int run, uint64_t timeout, uint64_t timestamp) const
+		{
+			auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
+			if(gen_ptr != nullptr) gen_ptr->StartCmd(run,timeout,timestamp);
+		}
+		/**
+		 * \brief Send stop signal to FragmentGenerator, if it's a CommandableFragmentGenerator
+		 * \param timeout Timeout to pass to StopCmd
+		 * \param timestamp Timestamp to pass to StopCmd
+		 */
+		void stop(uint64_t timeout, uint64_t timestamp) const
+		{
+			auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
+			if (gen_ptr != nullptr) gen_ptr->StopCmd(timeout,timestamp);
+		}
 		
 	private:
 		bool generateFragments_();
@@ -219,6 +248,7 @@ namespace
 		size_t expected_frags_per_event = 0;
 		for (auto& gen : generators)
 		{
+			gen.start(1000, 0, 0);
 			expected_frags_per_event += gen.numFragIDs();
 		}
 
@@ -263,13 +293,21 @@ namespace
 			}
 			frags.clear();
 		}
+		for(auto& gen : generators)
+		{
+			gen.stop(0, 0);
+		}
 
 		std::vector<int> readerReturnValues;
 		bool endSucceeded = store.endOfData(readerReturnValues);
-		if (endSucceeded)
+		if (endSucceeded && readerReturnValues.size() > 0)
 		{
 			
 			return *std::max_element(readerReturnValues.begin(), readerReturnValues.end(), abs_compare);
+		}
+		else if(endSucceeded)
+		{
+			return 0;
 		}
 		else
 		{

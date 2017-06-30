@@ -15,6 +15,9 @@ genToArt:
     event_queue_depth: 20
     event_queue_wait_time: 5.0
     print_event_store_stats: false
+	fragment_count: 1
+	max_event_size_bytes: 0x100000
+	shm_key: 0x6E2A57
   }
 }
 

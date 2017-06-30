@@ -27,6 +27,7 @@ art_make( BASENAME_ONLY
 
 simple_plugin(RawInput "source"
   artdaq_ArtModules
+  artdaq-core_Data
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal

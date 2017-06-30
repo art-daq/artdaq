@@ -6,7 +6,7 @@ include(CetTest)
 # re-initialize the test environment.
 cet_test_env("FHICL_FILE_PATH=.")
 
-#add_subdirectory(DAQdata)
+add_subdirectory(DAQdata)
 #add_subdirectory(DAQrate)
 #add_subdirectory(ArtModules)
 #add_subdirectory(Application)

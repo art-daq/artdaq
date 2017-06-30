@@ -37,8 +37,15 @@ namespace artdaq
 		 */
 		MPITransfer(fhicl::ParameterSet pset, Role role);
 
+		/**
+		 * \brief Copy Constructor is deleted
+		 */
 		MPITransfer(const MPITransfer&) = delete;
 
+		/**
+		 * \brief Copy Assignment operator is deleted
+		 * \return MPITransfer reference
+		 */
 		MPITransfer& operator=(const MPITransfer&) = delete;
 
 		/**

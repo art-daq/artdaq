@@ -19,6 +19,9 @@ genToArt:
     fragment_receiver_count: 1
     use_art: true
     verbose: false
+	fragment_count: 1
+	max_event_size_bytes: 10000
+	shm_key: 0x6E2A57BF
   }
 }
 

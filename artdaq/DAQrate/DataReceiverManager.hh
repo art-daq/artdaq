@@ -32,6 +32,7 @@ public:
 	/**
 	 * \brief DataReceiverManager Constructor
 	 * \param ps ParameterSet used to configure the DataReceiverManager
+	 * \param shm Pointer to SharedMemoryEventManager instance (destination for received data)
 	 *
 	 * \verbatim
 	 * DataReceiverManager accepts the following Parameters:
@@ -80,6 +81,10 @@ public:
 	 */
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
+	/**
+	 * \brief Get the list of sources which are still receiving data
+	 * \return std::set containing ranks of sources which are still receiving data
+	 */
 	std::set<int> running_sources() const { return running_sources_; }
 
 	/**
@@ -89,6 +94,10 @@ public:
 	std::shared_ptr<SharedMemoryEventManager> getSharedMemoryEventManager() const { return shm_manager_; }
 
 
+	/**
+	 * \brief Get a pointer to the FragCounter instance tracking the number of received Fragments
+	 * \return Pointer to the FragCounter instance tracking the number of recevied Fragments
+	 */
 	std::shared_ptr<detail::FragCounter> GetReceivedFragmentCount() { return std::shared_ptr<detail::FragCounter>(&recv_frag_count_); }
 
 private:

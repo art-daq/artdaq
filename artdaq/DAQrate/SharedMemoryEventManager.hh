@@ -105,6 +105,7 @@ namespace artdaq {
 		 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
 		 * \param n_art_processes Number of art processes to start, -1 (default) leaves the number unchanged
 		 * \param art_fhicl Fhicl string used to configure art
+		 * \param newRun New Run number for reconfigured art
 		 */
 		void ReconfigureArt(std::string art_fhicl, int n_art_processes = -1, run_id_t newRun = 0);
 
@@ -151,6 +152,10 @@ namespace artdaq {
 		*/
 		void startSubrun();
 
+		/**
+		 * \brief Get the current Run number
+		 * \return The current Run number
+		 */
 		run_id_t runID() const { return run_id_; }
 
 		/**
@@ -176,8 +181,16 @@ namespace artdaq {
 		*/
 		void sendMetrics();
 
+		/**
+		 * \brief Set the RequestMessageMode for all outgoing data requests
+		 * \param mode Mode to set
+		 */
 		void setRequestMode(detail::RequestMessageMode mode) { requests_.SetRequestMode(mode); }
 		
+		/**
+		 * \brief Set the overwrite flag (non-reliable data transfer) for the Shared Memory
+		 * \param overwrite Whether to allow the writer to overwrite data that has not yet been read
+		 */
 		void setOverwrite(bool overwrite) { overwrite_mode_ = overwrite; }
 
 	private:
