@@ -4,7 +4,7 @@
 #include <fstream>
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, std::string art_fhicl)
-	: SharedMemoryManager(pset.get<int>("shm_key", 0xBEE7),
+	: SharedMemoryManager(pset.get<int>("shared_memory_key"),
 						  pset.get<size_t>("event_queue_depth", 40),
 						  pset.get<size_t>("max_event_size_bytes"),
 						  pset.get<size_t>("stale_buffer_touch_count", 0x10000))
@@ -35,6 +35,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 		buffer_writes_pending_[ii] = 0;
 	}
 	requests_.SendRoutingToken(size());
+
+	if (!IsValid()) throw cet::exception("SharedMemoryEventManager") << "Unable to attach to Shared Memory!";
 	SetRank(my_rank);
 }
 

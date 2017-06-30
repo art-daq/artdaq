@@ -30,10 +30,12 @@ int main(int argc, char* argv[])
 		// We may want to add ParameterSet parsing to this code, but right
 		// now this will do...
 		ParameterSet sim_config;
-		sim_config.put("fragments_per_event", NUM_FRAGS_PER_EVENT);
+		sim_config.put("fragment_count", NUM_FRAGS_PER_EVENT);
 		sim_config.put("run_number", RUN_ID);
 		sim_config.put("print_event_store_stats", true);
 		sim_config.put("event_queue_wait_time", 10.0);
+		sim_config.put("max_event_size_bytes", 0x100000);
+		sim_config.put("shared_memory_key", 0xDA8F10E);
 		// Eventually, this test should make a mixed-up streams of
 		// Fragments; this has too clean a pattern to be an interesting
 		// test of the EventStore's ability to deal with multiple events

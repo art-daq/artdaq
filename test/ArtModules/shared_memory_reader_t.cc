@@ -1,4 +1,5 @@
-#include "artdaq/ArtModules/detail/RawEventQueueReader.hh"
+#include "artdaq/ArtModules/detail/SharedMemoryReader.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
 #include "art/Framework/Core/FileBlock.h"
 //#include "art/Framework/Core/RootDictionaryManager.h"
@@ -22,7 +23,6 @@
 #include "canvas/Utilities/Exception.h"
 #include "canvas/Utilities/GetPassID.h"
 #include "art/Version/GetReleaseVersion.h"
-#include "artdaq-core/Core/GlobalQueue.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "fhiclcpp/make_ParameterSet.h"
 
@@ -158,14 +158,14 @@ fake_single_process_branch(std::string const& tag,
 }
 
 /**
- * \brief RawEventQueueReader Test Fixture
+ * \brief SharedMemoryReader Test Fixture
  */
-struct REQRTestFixture
+struct ShmRTestFixture
 {
 	/**
-	 * \brief REQRTestFixture Constructor
+	 * \brief ShmRTestFixture Constructor
 	 */
-	REQRTestFixture()
+	ShmRTestFixture()
 	{
 		static bool once(true);
 		if (once)
@@ -231,13 +231,15 @@ struct REQRTestFixture
 	}
 
 	/**
-	 * \brief Get an artdaq::detail::RawEventQueueReader object, creating a static instance if necessary
-	 * \return artdaq::detail::RawEventQueueReader object
+	 * \brief Get an artdaq::detail::SharedMemoryReader object, creating a static instance if necessary
+	 * \return artdaq::detail::SharedMemoryReader object
 	 */
-	artdaq::detail::RawEventQueueReader& reader()
+	artdaq::detail::SharedMemoryReader<>& reader()
 	{
 		fhicl::ParameterSet pset;
-		static artdaq::detail::RawEventQueueReader
+		pset.put("shared_memory_key", static_cast<int>(std::hash<std::string>()("shared_memory_reader_t")));
+		pset.put("max_event_size_bytes", 0x100000);
+		static artdaq::detail::SharedMemoryReader<>
 			s_reader(pset,
 					 helper(),
 					 source_helper(),
@@ -251,26 +253,39 @@ struct REQRTestFixture
 		}
 		return s_reader;
 	}
+
+	artdaq::SharedMemoryEventManager& writer()
+	{
+		fhicl::ParameterSet pset;
+		pset.put("shared_memory_key", static_cast<int>(std::hash<std::string>()("shared_memory_reader_t")));
+		pset.put("max_event_size_bytes", 0x100000);
+		pset.put("art_analyzer_count", 0);
+		pset.put("fragment_count", 1);
+		static artdaq::SharedMemoryEventManager
+			s_writer(pset,pset.to_string());
+		return s_writer;
+		
+	}
 };
 
-BOOST_FIXTURE_TEST_SUITE(raw_event_queue_reader_t, REQRTestFixture)
+BOOST_FIXTURE_TEST_SUITE(raw_event_queue_reader_t, ShmRTestFixture)
 
 namespace
 {
 	/**
-	 * \brief Run a basic checkout of the RawEventQueueReader
-	 * \param reader RawEventQueueReader instance
+	 * \brief Run a basic checkout of the SharedMemoryReader
+	 * \param reader SharedMemoryReader instance
 	 * \param run Run principal pointer
 	 * \param subrun Subrun principal pointer
 	 * \param eventid ID of event
 	 */
-	void basic_test(artdaq::detail::RawEventQueueReader& reader,
+	void basic_test(artdaq::detail::SharedMemoryReader<>& reader,
+					artdaq::SharedMemoryEventManager& writer,
 					std::unique_ptr<art::RunPrincipal>&& run,
 					std::unique_ptr<art::SubRunPrincipal>&& subrun,
 					art::EventID const& eventid)
 	{
 		BOOST_REQUIRE(run || subrun == nullptr); // Sanity check.
-		std::shared_ptr<artdaq::RawEvent> event(new artdaq::RawEvent(eventid.run(), eventid.subRun(), eventid.event()));
 		std::vector<artdaq::Fragment::value_type> fakeData{ 1, 2, 3, 4 };
 		artdaq::FragmentPtr
 			tmpFrag(artdaq::Fragment::dataFrag(eventid.event(),
@@ -278,9 +293,11 @@ namespace
 															  fakeData.begin(),
 															  fakeData.end()));
 		tmpFrag->setUserType(1);
-		event->insertFragment(std::move(tmpFrag));
-		event->markComplete();
-		artdaq::getGlobalQueue().enqNowait(event);
+
+		writer.startRun(eventid.run());
+		
+
+		writer.AddFragment(std::move(tmpFrag));
 		art::EventPrincipal* newevent = nullptr;
 		art::SubRunPrincipal* newsubrun = nullptr;
 		art::RunPrincipal* newrun = nullptr;
@@ -324,7 +341,7 @@ BOOST_AUTO_TEST_CASE(nonempty_event)
 {
 	art::EventID eventid(2112, 1, 3);
 	art::Timestamp now;
-	basic_test(reader(),
+	basic_test(reader(),writer(),
 			   std::unique_ptr<art::RunPrincipal>(source_helper().makeRunPrincipal(eventid.run(), now)),
 			   std::unique_ptr<art::SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run(), eventid.subRun(), now)),
 			   eventid);
@@ -334,7 +351,7 @@ BOOST_AUTO_TEST_CASE(first_event)
 {
 	art::EventID eventid(2112, 1, 3);
 	art::Timestamp now;
-	basic_test(reader(),
+	basic_test(reader(), writer(),
 			   nullptr,
 			   nullptr,
 			   eventid);
@@ -344,7 +361,7 @@ BOOST_AUTO_TEST_CASE(new_subrun)
 {
 	art::EventID eventid(2112, 1, 3);
 	art::Timestamp now;
-	basic_test(reader(),
+	basic_test(reader(), writer(),
 			   std::unique_ptr<art::RunPrincipal>(source_helper().makeRunPrincipal(eventid.run(), now)),
 			   std::unique_ptr<art::SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run(), 0, now)),
 			   eventid);
@@ -354,7 +371,7 @@ BOOST_AUTO_TEST_CASE(new_run)
 {
 	art::EventID eventid(2112, 1, 3);
 	art::Timestamp now;
-	basic_test(reader(),
+	basic_test(reader(), writer(),
 			   std::unique_ptr<art::RunPrincipal>(source_helper().makeRunPrincipal(eventid.run() - 1, now)),
 			   std::unique_ptr<art::SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run() - 1,
 																					eventid.subRun(),
@@ -365,7 +382,7 @@ BOOST_AUTO_TEST_CASE(new_run)
 BOOST_AUTO_TEST_CASE(end_of_data)
 {
 	// Tell 'reader' the name of the file we are to read. This is pretty
-	// much irrelevant for RawEventQueueReader, but we'll stick to the
+	// much irrelevant for SharedMemoryReader, but we'll stick to the
 	// interface demanded by Source<T>...
 	std::string const fakeFileName("no such file exists");
 	art::FileBlock* pFile = nullptr;
@@ -388,7 +405,8 @@ BOOST_AUTO_TEST_CASE(end_of_data)
 																			 subrunid.subRun(),
 																			 eventid.event(),
 																			 now));
-	artdaq::getGlobalQueue().enqNowait(std::shared_ptr<artdaq::RawEvent>(nullptr)); // insert end-of-data marker
+	std::vector<int> readerReturnValues;
+	writer().endOfData(readerReturnValues);
 	art::EventPrincipal* newevent = nullptr;
 	art::SubRunPrincipal* newsubrun = nullptr;
 	art::RunPrincipal* newrun = nullptr;

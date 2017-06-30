@@ -9,7 +9,7 @@
 #include "art/Framework/Art/artapp.h"
 #include "cetlib/BasicPluginFactory.h"
 
-#include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 

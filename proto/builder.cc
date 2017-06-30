@@ -5,7 +5,7 @@
 #include "MPIProg.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
-#include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 
 #include <boost/program_options.hpp>

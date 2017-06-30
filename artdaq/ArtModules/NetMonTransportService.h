@@ -5,7 +5,7 @@
 
 #include "artdaq/ArtModules/NetMonTransportServiceInterface.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/DAQrate/SharedMemoryEventReceiver.hh"
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 
 // ----------------------------------------------------------------------
 

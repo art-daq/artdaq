@@ -18,7 +18,7 @@
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
-#include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "cetlib/container_algorithms.h"
 #include "fhiclcpp/ParameterSet.h"

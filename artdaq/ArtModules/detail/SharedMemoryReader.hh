@@ -14,7 +14,7 @@
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQrate/SharedMemoryEventReceiver.hh"
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include <sys/time.h>
@@ -76,7 +76,7 @@ namespace artdaq
 							   art::ProductRegistryHelper& help,
 							   art::SourceHelper const& pm)
 				: pmaker(pm)
-				, incoming_events(new SharedMemoryEventReceiver(ps.get<int>("shared_memory_key", 0xBEE7),
+				, incoming_events(new SharedMemoryEventReceiver(ps.get<int>("shared_memory_key"),
 																ps.get<size_t>("buffer_count", 20),
 																ps.get<size_t>("max_buffer_size", 1024)))
 				, waiting_time(ps.get<double>("waiting_time", 86400.0))
@@ -181,6 +181,8 @@ namespace artdaq
 						keep_looping = resume_after_timeout;
 					}
 				}
+
+				if (!got_event) return false;
 
 				auto errflag = false;
 				auto evtHeader = incoming_events->ReadHeader(errflag);

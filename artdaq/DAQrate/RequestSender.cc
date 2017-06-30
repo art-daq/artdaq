@@ -11,7 +11,7 @@
 
 #include "cetlib_except/exception.h"
 #include "artdaq-core/Core/StatisticsCollection.hh"
-#include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
@@ -42,10 +42,14 @@ namespace artdaq
 	RequestSender::~RequestSender()
 	{
 		TLOG_DEBUG("RequestSender") << "Shutting down RequestSender" << TLOG_ENDL;
-		shutdown(request_socket_, 2);
-		close(request_socket_);
-		shutdown(token_socket_, 2);
-		close(token_socket_);
+		if (request_socket_) {
+			shutdown(request_socket_, 2);
+			close(request_socket_);
+		}
+		if (token_socket_) {
+			shutdown(token_socket_, 2);
+			close(token_socket_);
+		}
 	}
 
 	void

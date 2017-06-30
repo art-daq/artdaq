@@ -19,7 +19,7 @@
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"

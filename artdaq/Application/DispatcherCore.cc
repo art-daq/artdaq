@@ -7,7 +7,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 
 #include "artdaq/Application/DispatcherCore.hh"

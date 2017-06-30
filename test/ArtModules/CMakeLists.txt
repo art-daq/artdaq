@@ -11,7 +11,7 @@ simple_plugin(FragmentSniffer "module"
   ${CETLIB_EXCEPT}
   )
 
-cet_test(raw_event_queue_reader_t USE_BOOST_UNIT
+cet_test(shared_memory_reader_t USE_BOOST_UNIT
   LIBRARIES
   artdaq_ArtModules
   artdaq_DAQrate

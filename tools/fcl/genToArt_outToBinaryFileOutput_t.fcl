@@ -21,7 +21,7 @@ genToArt:
     verbose: false
 	fragment_count: 1
 	max_event_size_bytes: 10000
-	shm_key: 0x6E2A57BF
+	shared_memory_key: 0x6E2A57BF
   }
 }
 

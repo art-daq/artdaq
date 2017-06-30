@@ -1,7 +1,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
 
-#include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/EventBuilderCore.hh"

@@ -1,7 +1,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq-core/Core/GlobalQueue.hh"
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
