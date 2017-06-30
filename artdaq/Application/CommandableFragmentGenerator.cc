@@ -767,6 +767,8 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 
 	{
 		std::unique_lock<std::mutex> dlk(dataBufferMutex_);
+		std::unique_lock<std::mutex> rlk(request_mutex_);
+
 
 		if (mode_ == RequestMode::Ignored)
 		{
