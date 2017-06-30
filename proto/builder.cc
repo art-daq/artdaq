@@ -2,15 +2,14 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
-#include "Config.hh"
 #include "MPIProg.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq-core/Core/SimpleQueueReader.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "fhiclcpp/ParameterSet.h"
 
 #include <boost/program_options.hpp>
+#include "fhiclcpp/make_ParameterSet.h"
 namespace bpo = boost::program_options;
 
 #include <algorithm>
@@ -42,8 +41,9 @@ public:
 	 * \brief Builder Constructor
 	 * \param argc Argument Count
 	 * \param argv Argument Array
+	 * \param pset fhicl::ParameterSet used to configure builder
 	 */
-	Builder(int argc, char* argv[]);
+	Builder(int argc, char* argv[], fhicl::ParameterSet pset);
 
 	/**
 	 * \brief Start the Builder application, using the type configuration to select which method to run
@@ -61,7 +61,7 @@ public:
 	void detector();
 
 private:
-	enum Color_t : int
+	enum class Role : int
 	{
 		DETECTOR,
 		SINK
@@ -69,32 +69,70 @@ private:
 
 	void printHost(const std::string& functionName) const;
 
-	artdaq::Config conf_;
-	fhicl::ParameterSet const daq_pset_;
+	fhicl::ParameterSet daq_pset_;
 	bool const want_sink_;
 	bool const want_periodic_sync_;
 	MPI_Comm local_group_comm_;
+	Role builder_role_;
 };
 
-Builder::Builder(int argc, char* argv[]) :
+Builder::Builder(int argc, char* argv[], fhicl::ParameterSet pset) :
 	MPIProg(argc, argv)
-	, conf_(my_rank, procs_, 10, 10240, argc, argv)
-	, daq_pset_(conf_.getArtPset())
+	, daq_pset_(pset)
 	, want_sink_(daq_pset_.get<bool>("want_sink", true))
 	, want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
 	, local_group_comm_()
 {
-	conf_.writeInfo();
+	std::vector<std::string> detectors;
+	daq_pset_.get_if_present("detectors", detectors);
+	if (static_cast<size_t>(my_rank) >= detectors.size())
+	{
+		builder_role_ = Role::SINK;
+	}
+	else
+	{
+		builder_role_ = Role::DETECTOR;
+	}
+	std::string type(pset.get<std::string>("transfer_plugin_type", "Shmem"));
+
+	int senders = pset.get<int>("num_senders");
+	int receivers = pset.get<int>("num_receivers");
+	int buffer_count = pset.get<int>("buffer_count", 10);
+	int max_payload_size = pset.get<size_t>("fragment_size", 0x100000);
+
+	std::string hostmap = "";
+	if (pset.has_key("hostmap"))
+	{
+		hostmap = " host_map: @local::hostmap";
+	}
+
+	std::stringstream ss;
+	ss << pset.to_string();
+	ss << " sources: {";
+	for (int ii = 0; ii < senders; ++ii)
+	{
+		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size << " buffer_count: " << buffer_count << hostmap << "}";
+	}
+	ss << "} destinations: {";
+	for (int jj = senders; jj < senders + receivers; ++jj)
+	{
+		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size << " buffer_count: " << buffer_count << hostmap << "}";
+	}
+	ss << "}";
+
+	make_ParameterSet(ss.str(), daq_pset_);
+
+
 }
 
 void Builder::go()
 {
 	MPI_Barrier(MPI_COMM_WORLD);
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
-	MPI_Comm_split(MPI_COMM_WORLD, conf_.type_, 0, &local_group_comm_);
-	switch (conf_.type_)
+	MPI_Comm_split(MPI_COMM_WORLD, static_cast<int>(builder_role_), 0, &local_group_comm_);
+	switch (builder_role_)
 	{
-	case artdaq::Config::TaskSink:
+	case Role::SINK:
 		if (want_sink_)
 		{
 			sink();
@@ -108,7 +146,7 @@ void Builder::go()
 			MPI_Barrier(MPI_COMM_WORLD);
 		}
 		break;
-	case artdaq::Config::TaskDetector:
+	case Role::DETECTOR:
 		detector();
 		break;
 	default:
@@ -125,9 +163,9 @@ void Builder::detector()
 	assert(!(detector_rank < 0));
 	std::ostringstream det_ps_name_loc;
 	std::vector<std::string> detectors;
-	size_t detectors_size = 0;
-	if (!(daq_pset_.get_if_present("detectors", detectors) &&
-		(detectors_size = detectors.size())))
+	bool detectors_present = daq_pset_.get_if_present("detectors", detectors);
+	size_t detectors_size = detectors.size();
+	if (!(detectors_present && detectors_size))
 	{
 		throw cet::exception("Configuration")
 			<< "Unable to find required sequence of detector "
@@ -140,7 +178,7 @@ void Builder::detector()
 		(det_ps.get<std::string>("generator"),
 		 det_ps));
 	{ // Block to handle lifetime of h, below.
-		artdaq::DataSenderManager h(conf_.makeParameterSet());
+		artdaq::DataSenderManager h(daq_pset_);
 		MPI_Barrier(local_group_comm_);
 		// not using the run time method
 		// TimedLoop tl(conf_.run_time_);
@@ -169,9 +207,9 @@ void Builder::detector()
 			}
 			frags.clear();
 		}
-		TLOG_DEBUG("builder") << "detector waiting " << conf_.rank_ << TLOG_ENDL;
+		TLOG_DEBUG("builder") << "detector waiting " << my_rank << TLOG_ENDL;
 	}
-	TLOG_DEBUG("builder") << "detector done " << conf_.rank_ << TLOG_ENDL;
+	TLOG_DEBUG("builder") << "detector done " << my_rank << TLOG_ENDL;
 	MPI_Comm_free(&local_group_comm_);
 	MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -181,9 +219,9 @@ void Builder::sink()
 	printHost("sink");
 	{
 		// This scope exists to control the lifetime of 'events'
-			auto events = std::make_shared<artdaq::SharedMemoryEventManager>(conf_.makeParameterSet(), conf_.getArtPset().to_string());
+		auto events = std::make_shared<artdaq::SharedMemoryEventManager>(daq_pset_, daq_pset_.to_string());
 		{ // Block to handle scope of h, below.
-			artdaq::DataReceiverManager h(conf_.makeParameterSet(), events);
+			artdaq::DataReceiverManager h(daq_pset_, events);
 			h.start_threads();
 			while (h.running_sources().size() > 0)
 			{
@@ -213,7 +251,7 @@ void Builder::sink()
 				<< TLOG_ENDL;
 		}
 	} // end of lifetime of 'events'
-	TLOG_DEBUG("builder") << "Sink done " << conf_.rank_ << TLOG_ENDL;
+	TLOG_DEBUG("builder") << "Sink done " << my_rank << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -252,10 +290,49 @@ void printUsage()
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("builder");
+
+	std::ostringstream descstr;
+	descstr << argv[0]
+		<< " <-c <config-file>> <other-options> [<source-file>]+";
+	bpo::options_description desc(descstr.str());
+	desc.add_options()
+		("config,c", bpo::value<std::string>(), "Configuration file.")
+		("help,h", "produce help message");
+	bpo::variables_map vm;
+	try {
+		bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
+		bpo::notify(vm);
+	}
+	catch (bpo::error const & e) {
+		std::cerr << "Exception from command line processing in " << argv[0]
+			<< ": " << e.what() << "\n";
+		return -1;
+	}
+	if (vm.count("help")) {
+		std::cout << desc << std::endl;
+		return 1;
+	}
+	if (!vm.count("config")) {
+		std::cerr << "Exception from command line processing in " << argv[0]
+			<< ": no configuration file given.\n"
+			<< "For usage and an options list, please do '"
+			<< argv[0] << " --help"
+			<< "'.\n";
+		return 2;
+	}
+	fhicl::ParameterSet pset;
+	if (getenv("FHICL_FILE_PATH") == nullptr) {
+		std::cerr
+			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+		setenv("FHICL_FILE_PATH", ".", 0);
+	}
+	cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
+	fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+
 	int rc = 1;
 	try
 	{
-		Builder p(argc, argv);
+		Builder p(argc, argv, pset);
 		std::cerr << "Started process " << my_rank << " of " << p.procs_ << ".\n";
 		p.go();
 		rc = 0;

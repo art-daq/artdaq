@@ -136,7 +136,6 @@ artdaq_TransferPlugins
  art_make_exec(NAME builder
    SOURCE
    builder.cc
-   Config.cc
    LIBRARIES
    art_Framework_Art
   artdaq_Application # needed for messagefacility
@@ -157,22 +156,6 @@ art_make_exec(NAME tracemf
     artdaq_DAQdata
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     )
-
-cet_test(config_t
-  SOURCES
-  config_t.cc
-  Config.cc
-  LIBRARIES artdaq_DAQrate
-   ${Boost_PROGRAM_OPTIONS_LIBRARY} )
-
-cet_test(config_with_art_t
-  SOURCES
-  config_with_art_t.cc
-  Config.cc
-  LIBRARIES artdaq_DAQrate
-   ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  TEST_PROPERTIES ENVIRONMENT ARTDAQ_DAQRATE_USE_ART=1
-  )
-
+	
 install_fhicl(LIST daqrate_simdata_noart.fcl Multicast.fcl Shmem.fcl)
 install_source()
