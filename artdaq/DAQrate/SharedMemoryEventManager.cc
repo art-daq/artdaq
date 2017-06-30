@@ -35,6 +35,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 		buffer_writes_pending_[ii] = 0;
 	}
 	requests_.SendRoutingToken(size());
+	SetRank(my_rank);
 }
 
 artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
