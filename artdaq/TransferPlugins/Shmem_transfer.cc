@@ -35,9 +35,9 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 
 artdaq::ShmemTransfer::~ShmemTransfer()
 {
-	TRACE(5, "ShmemTransfer::~ShmemTransfer called");
+	TLOG_ARB(5, uniqueLabel()) << "~ShmemTransfer called" << TLOG_ENDL;
 	shm_manager_.reset(nullptr);
-	TRACE(5, "ShmemTransfer::~ShmemTransfer done");
+	TLOG_ARB(5, uniqueLabel()) << "~ShmemTransfer done" << TLOG_ENDL;
 }
 
 int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
@@ -71,7 +71,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 		if (fragment.type() != artdaq::Fragment::DataFragmentType)
 		{
-			TRACE(TRANSFER_RECEIVE2, "Recvd frag from shmem, type=%d, sequenceID=%zu, source_rank=%d", (int)fragment.type(), fragment.sequenceID(), source_rank());
+			TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Recvd frag from shmem, type=" << (int)fragment.type() << ", sequenceID=" << std::to_string(fragment.sequenceID()) << ", source_rank=" << source_rank() << TLOG_ENDL;
 		}
 
 		return source_rank();
@@ -110,7 +110,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
-			TRACE(TRANSFER_RECEIVE2, "Recvd frag from shmem, type=%d, sequenceID=%llu, source_rank=%d", (int)header.type, header.sequence_id, source_rank());
+			TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Recvd fragment header from shmem, type=" <<(int)header.type << ", sequenceID="<< std::to_string(header.sequence_id)<< ", source_rank=" << source_rank() << TLOG_ENDL;
 		}
 
 		return source_rank();
@@ -119,36 +119,15 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 	return artdaq::TransferInterface::RECV_TIMEOUT;
 }
 
-int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t word_count, size_t receiveTimeout)
+int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t word_count, size_t)
 {
-	auto waitStart = std::chrono::steady_clock::now();
-	while (!shm_manager_->ReadyForRead() && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - waitStart).count() < 1000)
-	{
-		// BURN THAT CPU!
-	}
-	if (!shm_manager_->ReadyForRead())
-	{
-		int64_t loopCount = 0;
-		size_t sleepTime = 1000; // microseconds
-		int64_t nloops = (receiveTimeout - 1000) / sleepTime;
-
-		while (!shm_manager_->ReadyForRead() && loopCount < nloops)
-		{
-			usleep(sleepTime);
-			++loopCount;
-		}
-	}
-
-	//TLOG_DEBUG(uniqueLabel()) << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops << TLOG_ENDL;
-
-	if (shm_manager_->ReadyForRead())
-	{
 		auto sts = shm_manager_->ReadFragmentData(destination, word_count);
 
+		TLOG_TRACE(uniqueLabel()) << "Return status from ReadFragmentData is " << sts << TLOG_ENDL;
+
 		if (sts != 0) return RECV_TIMEOUT;
-		
+
 		return source_rank();
-	}
 
 	return artdaq::TransferInterface::RECV_TIMEOUT;
 }
@@ -191,12 +170,12 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		}
 	}
 
-	TLOG_ARB(TRANSFER_SEND2, "ShmemTransfer") << "Either write has timed out or buffer ready" << TLOG_ENDL;
+	TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) << "Either write has timed out or buffer ready" << TLOG_ENDL;
 
 	// copy the fragment if the shm is available                                               
 	if (shm_manager_->ReadyForWrite(!reliableMode))
 	{
-		TRACE(TRANSFER_SEND2, "Sending fragment with seqID=%zu", fragment.sequenceID());
+		TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) <<  "Sending fragment with seqID=" << std::to_string(fragment.sequenceID()) << TLOG_ENDL;
 		artdaq::RawDataType* fragAddr = fragment.headerAddress();
 		size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 

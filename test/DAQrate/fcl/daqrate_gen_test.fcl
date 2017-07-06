@@ -1,19 +1,27 @@
 BEGIN_PROLOG
 payload_size: 10240
+payload_size_bytes: 102400
+event_size: 512000
 det:
 {
   generator: GenericFragmentSimulator
-  max_fragment_payload_size: @local::payload_size
+  payload_size: @local::payload_size
   run_number: 11
   fragments_per_event: 1
   events_to_generate: 25
 }
 END_PROLOG
 
-daq:
-{
+num_senders: 5 
+num_receivers: 1
+buffer_count: 4
+run_number: 11
+  max_event_size_bytes: @local::event_size
+  fragment_size: @local::payload_size_bytes
+  shared_memory_key: 0xBEE7
+  fragment_count: 5
   use_art: false
-  max_fragment_payload_size: @local::payload_size
+  
   detectors: [ det0, det1, det2, det3, det4 ]
   fragments_per_source: 10
   det0: @local::det
@@ -21,7 +29,6 @@ daq:
   det2: @local::det
   det3: @local::det
   det4: @local::det
-}
 
 det0.starting_fragment_id: 0
 det1.starting_fragment_id: 1

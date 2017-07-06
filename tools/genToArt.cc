@@ -56,7 +56,7 @@ namespace
 	 * \return 0 if success, -1 if excpetion, 1 if help was requested, and 2 if missing required arguments
 	 */
 	int process_cmd_line(int argc, char** argv,
-	                     bpo::variables_map& vm)
+						 bpo::variables_map& vm)
 	{
 		std::ostringstream descstr;
 		descstr << argv[0]
@@ -106,7 +106,7 @@ namespace
 		 * \param ps ParameterSet for configuring the FragmentGenerator
 		 */
 		ThrottledGenerator(std::string const& generator,
-		                   fhicl::ParameterSet const& ps);
+						   fhicl::ParameterSet const& ps);
 
 		/**
 		 * \brief Get the next fragment from the generator
@@ -117,7 +117,7 @@ namespace
 
 		/**
 		 * \brief Get the number of Fragment IDs handled by this generator
-		 * \return 
+		 * \return
 		 */
 		size_t numFragIDs() const;
 
@@ -130,7 +130,7 @@ namespace
 		void start(int run, uint64_t timeout, uint64_t timestamp) const
 		{
 			auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
-			if(gen_ptr != nullptr) gen_ptr->StartCmd(run,timeout,timestamp);
+			if (gen_ptr != nullptr) gen_ptr->StartCmd(run, timeout, timestamp);
 		}
 		/**
 		 * \brief Send stop signal to FragmentGenerator, if it's a CommandableFragmentGenerator
@@ -140,21 +140,21 @@ namespace
 		void stop(uint64_t timeout, uint64_t timestamp) const
 		{
 			auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
-			if (gen_ptr != nullptr) gen_ptr->StopCmd(timeout,timestamp);
+			if (gen_ptr != nullptr) gen_ptr->StopCmd(timeout, timestamp);
 		}
-		
+
 	private:
 		bool generateFragments_();
 
 		std::unique_ptr<artdaq::FragmentGenerator> generator_;
 		size_t const numFragIDs_;
 		std::map<artdaq::Fragment::fragment_id_t,
-		         std::deque<artdaq::FragmentPtr>> frags_;
+			std::deque<artdaq::FragmentPtr>> frags_;
 	};
 
 	ThrottledGenerator::
-	ThrottledGenerator(std::string const& generator,
-	                   fhicl::ParameterSet const& ps)
+		ThrottledGenerator(std::string const& generator,
+						   fhicl::ParameterSet const& ps)
 		:
 		generator_(artdaq::makeFragmentGenerator(generator, ps))
 		, numFragIDs_(generator_->fragmentIDs().size())
@@ -164,8 +164,8 @@ namespace
 	}
 
 	bool
-	ThrottledGenerator::
-	getNext(artdaq::FragmentPtrs& newFrags)
+		ThrottledGenerator::
+		getNext(artdaq::FragmentPtrs& newFrags)
 	{
 		if (frags_.size() && frags_.begin()->second.size())
 		{ // Something stored.
@@ -184,13 +184,14 @@ namespace
 	}
 
 	bool
-	ThrottledGenerator::
-	generateFragments_()
+		ThrottledGenerator::
+		generateFragments_()
 	{
 		artdaq::FragmentPtrs incomingFrags;
-		bool result{false};
+		bool result{ false };
 		while ((result = generator_->getNext(incomingFrags)) &&
-		       incomingFrags.empty()) { }
+			   incomingFrags.empty()) {
+		}
 		for (auto&& frag : incomingFrags)
 		{
 			frags_[frag->fragmentID()].emplace_back(std::move(frag));
@@ -199,8 +200,8 @@ namespace
 	}
 
 	size_t
-	ThrottledGenerator::
-	numFragIDs() const
+		ThrottledGenerator::
+		numFragIDs() const
 	{
 		return numFragIDs_;
 	}
@@ -216,7 +217,7 @@ namespace
 	 * \brief Run the test, instantiating configured generators and an EventStore
 	 * \param pset ParameterSet used to configure genToArt
 	 * \return Art return code, of 15 if EventStore::endOfData fails
-	 * 
+	 *
 	 * \verbatim
 	 * genToArt accepts the following Parameters:
 	 * "reset_sequenceID" (Default: true): Set the sequence IDs on generated Fragment objects to the expected value
@@ -226,7 +227,7 @@ namespace
 	 *   "event_builder" (Default: {}): ParameterSet for EventStore. See documentation for configuration parameters.
 	 *   "run_number" (REQUIRED): Run number to use
 	 *   "events_to_generate" (Default: -1): Number of events to generate
-	 * 
+	 *
 	 * \endverbatim
 	 */
 	int process_data(fhicl::ParameterSet const& pset)
@@ -240,7 +241,7 @@ namespace
 		for (auto const& gen_ps : fr_pset)
 		{
 			generators.emplace_back(gen_ps.get<std::string>("generator"),
-			                        gen_ps);
+									gen_ps);
 		}
 
 		artdaq::FragmentPtrs frags;
@@ -252,16 +253,17 @@ namespace
 			expected_frags_per_event += gen.numFragIDs();
 		}
 
-		artdaq::SharedMemoryEventManager store(eb_pset, eb_pset.to_string());
+		artdaq::SharedMemoryEventManager store(eb_pset, pset.to_string());
+		store.startRun(gta_pset.get<int>("run_number", 1000));
 
 		auto const events_to_generate =
 			gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", -1);
 		auto const reset_sequenceID = pset.get<bool>("reset_sequenceID", true);
 		bool done = false;
 		for (artdaq::Fragment::sequence_id_t event_count = 1;
-		     (events_to_generate == static_cast<decltype(events_to_generate)>(-1)
-		      || event_count <= events_to_generate) && (!done);
-		     ++event_count)
+			(events_to_generate == static_cast<decltype(events_to_generate)>(-1)
+			 || event_count <= events_to_generate) && (!done);
+			 ++event_count)
 		{
 			for (auto& gen : generators)
 			{
@@ -275,25 +277,31 @@ namespace
 					val->setSequenceID(event_count);
 				}
 				if (current_sequence_id ==
-				    static_cast<artdaq::Fragment::sequence_id_t>(-1))
+					static_cast<artdaq::Fragment::sequence_id_t>(-1))
 				{
 					current_sequence_id = val->sequenceID();
 				}
 				else if (val->sequenceID() != current_sequence_id)
 				{
 					throw art::Exception(art::errors::DataCorruption)
-					      << "Data corruption: apparently related fragments have "
-					      << " different sequence IDs: "
-					      << val->sequenceID()
-					      << " and "
-					      << current_sequence_id
-					      << ".\n";
+						<< "Data corruption: apparently related fragments have "
+						<< " different sequence IDs: "
+						<< val->sequenceID()
+						<< " and "
+						<< current_sequence_id
+						<< ".\n";
 				}
-				store.AddFragment(std::move(val));
+				artdaq::FragmentPtr tempFrag;
+				auto sts = store.AddFragment(std::move(val), 1000000, tempFrag);
+				if (!sts)
+				{
+					TLOG_ERROR("genToArt") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+					exit(1);
+				}
 			}
 			frags.clear();
 		}
-		for(auto& gen : generators)
+		for (auto& gen : generators)
 		{
 			gen.stop(0, 0);
 		}
@@ -302,10 +310,10 @@ namespace
 		bool endSucceeded = store.endOfData(readerReturnValues);
 		if (endSucceeded && readerReturnValues.size() > 0)
 		{
-			
+
 			return *std::max_element(readerReturnValues.begin(), readerReturnValues.end(), abs_compare);
 		}
-		else if(endSucceeded)
+		else if (endSucceeded)
 		{
 			return 0;
 		}
@@ -318,6 +326,7 @@ namespace
 
 int main(int argc, char* argv[]) try
 {
+	artdaq::configureMessageFacility("genToArt");
 	// Needed in case plugins use eg MPI timing for performance.
 	artdaq::MPISentry sentry(&argc, &argv);
 	// Command line handling.

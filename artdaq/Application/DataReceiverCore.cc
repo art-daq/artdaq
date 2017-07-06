@@ -31,7 +31,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 {
 	// other parameters
 	verbose_ = pset.get<bool>("verbose", false);
-	
+
 	if (metric_pset.is_empty())
 	{
 		TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
@@ -45,14 +45,14 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		ExceptionHandler(ExceptionHandlerRethrow::no,
 						 "Error loading metrics in DataReceiverCore::initialize()");
 	}
-	
+
 	fhicl::ParameterSet tmp = pset;
 	tmp.erase("daq");
 
-	event_store_ptr_ = std::shared_ptr<SharedMemoryEventManager>(new SharedMemoryEventManager(pset,tmp.to_string()));
+	event_store_ptr_ = std::shared_ptr<SharedMemoryEventManager>(new SharedMemoryEventManager(pset, tmp.to_string()));
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(pset, event_store_ptr_));
-	
+
 	return true;
 }
 
@@ -168,19 +168,18 @@ bool artdaq::DataReceiverCore::shutdown()
 	   it can wrap up whatever it needs to do. */
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
-	TRACE(4, "DataReceiverCore::shutdown: Calling EventStore::endOfData");
+	TLOG_ARB(4, "DataReceiverCore") << "shutdown: Calling EventStore::endOfData" << TLOG_ENDL;
 	std::vector<int> readerReturnValues;
 	endSucceeded = event_store_ptr_->endOfData(readerReturnValues);
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TRACE(4, "DataReceiverCore::shutdown: Retrying endOfData call");
 		TLOG_DEBUG(name_) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
 		endSucceeded = event_store_ptr_->endOfData(readerReturnValues);
 	}
-	TRACE(4, "DataReceiverCore::shutdown: Shutting down MetricManager");
+	TLOG_ARB(4, "DataReceiverCore") << "shutdown: Shutting down MetricManager" << TLOG_ENDL;
 	metricMan_.shutdown();
-	TRACE(4, "DataReceiverCore::shutdown: Complete");
+	TLOG_ARB(4, "DataReceiverCore") << "shutdown: Complete" << TLOG_ENDL;
 	return endSucceeded;
 }
 
@@ -221,14 +220,14 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 
 		return "0";
 	}
-	
+
 	// lots of cool stuff that we can do here
 	// - report on the number of fragments received and the number
 	//   of events built (in the current or previous run
 	// - report on the number of incomplete events in the EventStore
 	//   (if running)
 	std::string tmpString;
-	if(event_store_ptr_ != nullptr)	tmpString.append(name_ + " run number = " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) + ".\n");
+	if (event_store_ptr_ != nullptr)	tmpString.append(name_ + " run number = " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) + ".\n");
 	tmpString.append("Command \"" + which + "\" is not currently supported.");
 	return tmpString;
 }

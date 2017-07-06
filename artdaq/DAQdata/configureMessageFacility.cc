@@ -83,7 +83,7 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 		if (artdaqMfextensionsDir != nullptr)
 		{
 			ss << "    console : { "
-				<< "      type : \"ANSI\" threshold : \"INFO\" "
+				<< "      type : \"ANSI\" threshold : \"DEBUG\" "
 				<< "      noTimeStamps : true "
 				<< "      bell_on_error: true "
 				<< "    } ";
@@ -91,7 +91,7 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 		else
 		{
 			ss << "    console : { "
-				<< "      type : \"cout\" threshold : \"INFO\" "
+				<< "      type : \"cout\" threshold : \"DEBUG\" "
 				<< "      noTimeStamps : true "
 				<< "    } ";
 		}

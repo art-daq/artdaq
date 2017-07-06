@@ -106,7 +106,7 @@ receiveMessage(TBufferFile*& msg)
 		}
 
 		auto errflag = false;
-		auto evtHeader = incoming_events_->ReadHeader(errflag);
+		incoming_events_->ReadHeader(errflag);
 		if (errflag) return; // Buffer was changed out from under reader!
 		auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
 		if (errflag) return; // Buffer was changed out from under reader!

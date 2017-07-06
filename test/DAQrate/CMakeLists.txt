@@ -6,9 +6,9 @@ if (EXISTS ${CPI_SOURCE})
 endif()
 
 cet_test(daqrate_gen_test HANDBUILT
-  TEST_EXEC daqrate
+  TEST_EXEC daqrate.py
   DATAFILES fcl/daqrate_gen_test.fcl
-  TEST_ARGS 5 1 4 11 -- -c daqrate_gen_test.fcl
+  TEST_ARGS 5 1 -- -c daqrate_gen_test.fcl
   TEST_PROPERTIES RUN_SERIAL true
   )
 

@@ -13,7 +13,7 @@ include(CetTest)
 # re-initialize the test environment.
 cet_test_env("FHICL_FILE_PATH=.")
 
-cet_test(daqrate PREBUILT NO_AUTO INSTALL_BIN)
+cet_test(daqrate.py PREBUILT NO_AUTO INSTALL_BIN)
 cet_test(builder.sh PREBUILT NO_AUTO INSTALL_BIN)
 
 cet_script(numawrap)

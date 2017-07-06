@@ -88,26 +88,6 @@ public:
 	 */
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
-	/**
-	 * \brief Suppress the given source
-	 * \param source Source rank to suppress
-	 */
-	void suppress_source(int source);
-
-	/**
-	 * \brief Re-enable all sources
-	 */
-	void unsuppressAll();
-
-	/**
-	 * \brief Place the given Fragment back in the FragmentStore (Called when the EventStore is full)
-	 * \param source_rank Rank from which the rejected Fragment came
-	 * \param frag Fragment to return to the store
-	 *
-	 * This function will automatically suppress source_rank
-	 */
-	void reject_fragment(int source_rank, FragmentPtr frag);
-
 private:
 	void runReceiver_(int);
 
@@ -120,7 +100,6 @@ private:
 	std::map<int, std::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
-	std::set<int> suppressed_sources_;
 
 	std::map<int, FragmentStoreElement> fragment_store_;
 

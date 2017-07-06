@@ -120,6 +120,7 @@ Builder::Builder(int argc, char* argv[], fhicl::ParameterSet pset) :
 	}
 	ss << "}";
 
+	daq_pset_ = fhicl::ParameterSet();
 	make_ParameterSet(ss.str(), daq_pset_);
 
 
@@ -127,6 +128,13 @@ Builder::Builder(int argc, char* argv[], fhicl::ParameterSet pset) :
 
 void Builder::go()
 {
+	//volatile bool loopForever = true;
+	//while(loopForever)
+	//{
+	//	usleep(1000000);
+	//}
+
+
 	MPI_Barrier(MPI_COMM_WORLD);
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
 	MPI_Comm_split(MPI_COMM_WORLD, static_cast<int>(builder_role_), 0, &local_group_comm_);
@@ -220,6 +228,7 @@ void Builder::sink()
 	{
 		// This scope exists to control the lifetime of 'events'
 		auto events = std::make_shared<artdaq::SharedMemoryEventManager>(daq_pset_, daq_pset_.to_string());
+		events->startRun(daq_pset_.get<int>("run_number", 100));
 		{ // Block to handle scope of h, below.
 			artdaq::DataReceiverManager h(daq_pset_, events);
 			h.start_threads();
@@ -228,17 +237,13 @@ void Builder::sink()
 				usleep(10000);
 			}
 		}
+
+		TLOG_DEBUG("builder") << "All detectors are done, Sending endOfData Fragment" << TLOG_ENDL;
 		// Make the reader application finish, and capture its return
 		// status.
 		std::vector<int> readerReturnValues;
 		bool endSucceeded = false;
-		int attemptsToEnd = 1;
 		endSucceeded = events->endOfData(readerReturnValues);
-		while (!endSucceeded && attemptsToEnd < 3)
-		{
-			++attemptsToEnd;
-			endSucceeded = events->endOfData(readerReturnValues);
-		}
 		if (endSucceeded)
 		{
 			TLOG_DEBUG("builder") << "Sink: reader is done, its exit status was: "

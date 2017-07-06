@@ -77,8 +77,8 @@ namespace artdaq
 							   art::SourceHelper const& pm)
 				: pmaker(pm)
 				, incoming_events(new SharedMemoryEventReceiver(ps.get<int>("shared_memory_key"),
-																ps.get<size_t>("buffer_count", 20),
-																ps.get<size_t>("max_buffer_size", 1024)))
+																ps.get<size_t>("buffer_count"),
+																ps.get<size_t>("max_event_size_bytes")))
 				, waiting_time(ps.get<double>("waiting_time", 86400.0))
 				, resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
 				, pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))
@@ -99,6 +99,7 @@ namespace artdaq
 					fragment_type_map_[it->first] = it->second;
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 				}
+				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string() << TLOG_ENDL;
 			}
 
 			/**
@@ -155,6 +156,7 @@ namespace artdaq
 						  art::SubRunPrincipal*& outSR,
 						  art::EventPrincipal*& outE)
 			{
+				TLOG_DEBUG("SharedMemoryReader") << "readNext BEGIN" << TLOG_ENDL;
 				/*if (outputFileCloseNeeded) {
 				outputFileCloseNeeded = false;
 				return false;
@@ -168,12 +170,19 @@ namespace artdaq
 				//   2) we have timed out, AND we are told the when we timeout we
 				//      should stop.
 				// In any case, if we time out, we emit an informational message.
+
 				bool keep_looping = true;
 				bool got_event = false;
+				auto sleepTimeUsec = std::chrono::duration_cast<std::chrono::microseconds>(waiting_time / 1000).count();
+				if (sleepTimeUsec > 1000000) sleepTimeUsec = 1000000;
 				while (keep_looping)
 				{
 					keep_looping = false;
-					got_event = incoming_events->ReadyForRead();
+					auto start = std::chrono::steady_clock::now();
+					while (!got_event && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start) < waiting_time) {
+						got_event = incoming_events->ReadyForRead();
+						if (!got_event) usleep(sleepTimeUsec);
+					}
 					if (!got_event)
 					{
 						TLOG_INFO("SharedMemoryReader")
@@ -182,7 +191,12 @@ namespace artdaq
 					}
 				}
 
-				if (!got_event) return false;
+				if (!got_event) {
+					TLOG_INFO("SharedMemoryReader") << "Did not receive an event from Shared Memory, returning false" << TLOG_ENDL;
+					shutdownMsgReceived = true;
+					return false;
+				}
+				TLOG_DEBUG("SharedMemoryReader") << "Got Event!" << TLOG_ENDL;
 
 				auto errflag = false;
 				auto evtHeader = incoming_events->ReadHeader(errflag);
@@ -196,6 +210,7 @@ namespace artdaq
 					return false;
 				}
 				auto firstFragmentType = *fragmentTypes.begin();
+				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << std::to_string(firstFragmentType) << TLOG_ENDL;
 
 				// We return false, indicating we're done reading, if:
 				//   1) we did not obtain an event, because we timed out and were
@@ -321,7 +336,7 @@ namespace artdaq
 					}
 				}
 				incoming_events->ReleaseBuffer();
-				TRACE(10, "readNext: bytesRead=%lu qsize=%zu cap=%zu metricMan=%p", bytesRead, qsize, incoming_events->size(), (void*)metricMan);
+				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << std::to_string(bytesRead) << " qsize=" << std::to_string(qsize) << " cap=" << std::to_string(incoming_events->size()) << " metricMan=" << (void*)metricMan << TLOG_ENDL;
 				if (metricMan) {
 					metricMan->sendMetric("bytesRead", bytesRead >> 20, "MB", 5, false, "", true);
 					metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / incoming_events->size()), "%", 5, false, "", true);

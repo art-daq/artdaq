@@ -5,4 +5,6 @@ source: {
   waiting_time: 1.0         // waiting time in seconds
   resume_after_timeout: false
   shared_memory_key: 0xEDF1E5
+  buffer_count: 10
+  max_event_size_bytes: 1024
 }

@@ -29,7 +29,8 @@
 #include <iostream>
 #include <memory>
 #include <utility>
-#include <artdaq/DAQrate/SharedMemoryEventManager.hh>
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "LoadParameterSet.hh"
 
 namespace  bpo = boost::program_options;
 
@@ -42,43 +43,7 @@ dynamic_unique_ptr_cast(std::unique_ptr<B>& p);
 
 int main(int argc, char * argv[]) try
 {
-	std::ostringstream descstr;
-	descstr << argv[0]
-		<< " <-c <config-file>> <other-options> [<source-file>]+";
-	bpo::options_description desc(descstr.str());
-	desc.add_options()
-		("config,c", bpo::value<std::string>(), "Configuration file.")
-		("help,h", "produce help message");
-	bpo::variables_map vm;
-	try {
-		bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
-		bpo::notify(vm);
-	}
-	catch (bpo::error const & e) {
-		std::cerr << "Exception from command line processing in " << argv[0]
-			<< ": " << e.what() << "\n";
-		return -1;
-	}
-	if (vm.count("help")) {
-		std::cout << desc << std::endl;
-		return 1;
-	}
-	if (!vm.count("config")) {
-		std::cerr << "Exception from command line processing in " << argv[0]
-			<< ": no configuration file given.\n"
-			<< "For usage and an options list, please do '"
-			<< argv[0] << " --help"
-			<< "'.\n";
-		return 2;
-	}
-	fhicl::ParameterSet pset;
-	if (getenv("FHICL_FILE_PATH") == nullptr) {
-		std::cerr
-			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
-		setenv("FHICL_FILE_PATH", ".", 0);
-	}
-	cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-	make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+	auto pset = LoadParameterSet(argc, argv);
 
 	int run = pset.get<int>("run_number", 1);
 	uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
@@ -131,8 +96,8 @@ int main(int argc, char * argv[]) try
 		commandable_gen->StartCmd(run, timeout, timestamp);
 	}
 
-	TRACE( 50, "driver main before store.startRun" );
-	store.startRun( run );
+	TLOG_ARB(50, "artdaqDriver") << "driver main before store.startRun" << TLOG_ENDL;
+	store.startRun(run);
 
 	// Read or generate fragments as rapidly as possible, and feed them
 	// into the EventStore. The throughput resulting from this design
@@ -140,8 +105,7 @@ int main(int argc, char * argv[]) try
 	// speed as the limiting factor
 	while ((commandable_gen && commandable_gen->getNext(frags)) ||
 		(gen && gen->getNext(frags))) {
-		TRACE( 50, "driver main: getNext returned frags.size()=%zd current event_count=%d"
-		       ,frags.size(),event_count );
+		TLOG_ARB(50, "artdaqDriver") << "driver main: getNext returned frags.size()=" << std::to_string(frags.size()) << " current event_count=" << event_count << TLOG_ENDL;
 		for (auto & val : frags) {
 			if (val->sequenceID() != previous_sequence_id) {
 				++event_count;
@@ -153,7 +117,13 @@ int main(int argc, char * argv[]) try
 				}
 				break;
 			}
-			store.AddFragment(std::move(val));
+			artdaq::FragmentPtr tempFrag;
+			auto sts = store.AddFragment(std::move(val), 1000000, tempFrag);
+			if (!sts)
+			{
+				TLOG_ERROR("artdaqDriver") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+				exit(1);
+			}
 		}
 		frags.clear();
 

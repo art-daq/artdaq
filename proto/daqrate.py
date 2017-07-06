@@ -170,7 +170,7 @@ def main():
     import getopt
     art_args=''
     if sys.argv.count('--'):
-	art_args = build_quoted_str( sys.argv[sys.argv.index('--'):] )
+	art_args = build_quoted_str( sys.argv[sys.argv.index('--' ) + 1:] )
 	pass
     long_opt_spec=["help","ddnodes=","nodes="]
     try:
@@ -197,10 +197,7 @@ def main():
     if len(args) < 4: print(USAGE); sys.exit()    
 
     num_det    = int( args[0],0 )
-    num_src    = int( args[0],0 )
     num_sink   = int( args[1],0 )
-    queue_size = int( args[2],0 )
-    run_number = int( args[3],0 )
 
     builder=os.popen("which builder 2>/dev/null").readline()
     if not builder:
@@ -229,13 +226,7 @@ def main():
 	if ddnodes: nodes=nodes[ddnodes:]
 
 	node_idx=0   # dect and src get paired up
-
-	# next set of ranks is for "src" nodes
-	for xx in range(num_src):
-	    fo.write( "%s\n"%(nodes[node_idx],) ); node_idx += 1
-	    if node_idx == len(nodes): node_idx=0
-	    pass
-
+	
 	# last set of ranks is for "sink" nodes
 	for xx in range(num_sink):
 	    fo.write( "%s\n"%(nodes[node_idx],) ); node_idx += 1
@@ -248,19 +239,15 @@ def main():
 	#os.remove( nodes_file )
 
 	cmd ="mpirun_rsh -rsh -hostfile %s "%(nodes_file,)
-	cmd+="-n %d "%(num_det+num_src+num_sink,)
+	cmd+="-n %d "%(num_det+num_sink,)
         cmd+=" FHICL_FILE_PATH=\"$FHICL_FILE_PATH\" "
 	cmd+=builder[:-1]
-	cmd+=" %d %d "%(num_det,num_sink)
-	cmd+="%d %d"%(queue_size, run_number)
 	if art_args: cmd+=" %s"%(art_args,)
 	print( "executing cmd: %s"%(cmd,) )
 	os.system(cmd)
     else:
-	cmd ="mpirun -n %d "%(num_det+num_src+num_sink,)
+	cmd ="mpirun -n %d "%(num_det+num_sink,)
 	cmd+=builder[:-1]
-	cmd+=" %d %d "%(num_det,num_sink)
-	cmd+="%d %d"%(queue_size, run_number)
 	if art_args: cmd+=" %s"%(art_args,)
 	print( "executing cmd: %s"%(cmd,) )
 	rc = (os.system( cmd ) >> 8)

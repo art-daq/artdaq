@@ -5,16 +5,16 @@
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, std::string art_fhicl)
 	: SharedMemoryManager(pset.get<int>("shared_memory_key"),
-						  pset.get<size_t>("event_queue_depth", 40),
+						  pset.get<size_t>("buffer_count"),
 						  pset.get<size_t>("max_event_size_bytes"),
-						  pset.get<size_t>("stale_buffer_touch_count", 0x10000))
+						  pset.get<size_t>("stale_buffer_timeout_usec", 1000000))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
 	, num_fragments_per_event_(pset.get<size_t>("fragment_count"))
-	, queue_size_(pset.get<size_t>("event_queue_depth", 40))
+	, queue_size_(pset.get<size_t>("buffer_count"))
 	, run_id_(0)
 	, subrun_id_(0)
 	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
-	, overwrite_mode_(false)
+	, overwrite_mode_(!pset.get<bool>("use_art", true))
 	, buffer_writes_pending_()
 	, buffer_write_mutexes_()
 	, seqIDModulus_(1)
@@ -24,11 +24,15 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	, config_file_name_(std::tmpnam(nullptr))
 	, art_processes_()
+	, restart_art_(false)
 	, requests_(pset)
 {
+	TLOG_DEBUG("SharedMemoryEventManager") << "BEGIN CONSTRUCTOR" << TLOG_ENDL;
 	std::ofstream of(config_file_name_);
 	of << art_fhicl << std::endl;
 	of.close();
+
+	if (pset.get<bool>("use_art", true) == false) num_art_processes_ = 0;
 
 	for (size_t ii = 0; ii < size(); ++ii)
 	{
@@ -38,76 +42,102 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 
 	if (!IsValid()) throw cet::exception("SharedMemoryEventManager") << "Unable to attach to Shared Memory!";
 	SetRank(my_rank);
+	TLOG_DEBUG("SharedMemoryEventManager") << "END CONSTRUCTOR" << TLOG_ENDL;
 }
 
 artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
 {
+	TLOG_DEBUG("SharedMemoryEventManager") << "DESTRUCTOR" << TLOG_ENDL;
 	std::vector<int> ignored;
 	endOfData(ignored);
 }
 
-bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader frag, void* dataPtr)
+bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader frag, void* dataPtr, bool skipCheck)
 {
+	TLOG_DEBUG("SharedMemoryEventManager") << "AddFragment(Header, ptr) BEGIN frag.word_count=" << std::to_string(frag.word_count)
+		<< ", sequence_id=" << std::to_string(frag.sequence_id) << TLOG_ENDL;
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
+	TLOG_DEBUG("SharedMemoryEventManager") << "Using buffer " << std::to_string(buffer) << TLOG_ENDL;
 	if (buffer == -1) return false;
 
-	ResetReadPos(buffer);
-	auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetReadPos(buffer));
+	std::unique_lock<std::mutex> lk(buffer_write_mutexes_[buffer]);
+	auto hdr = getEventHeader_(buffer);
 	if (update_run_ids_) {
 		hdr->run_id = run_id_;
 		hdr->subrun_id = subrun_id_;
 	}
 
-	{
-		std::unique_lock<std::mutex>(buffer_write_mutexes_[buffer]);
-		Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
+	TLOG_DEBUG("SharedMemoryEventManager") << "AddFragment before Write calls" << TLOG_ENDL;
+	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
+
+	if (!skipCheck) {
+		TLOG_DEBUG("SharedMemoryEventManager") << "Checking for complete event" << TLOG_ENDL;
+		auto fragmentCount = GetFragmentCount(buffer);
+		hdr->is_complete = fragmentCount == num_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
+		TLOG_DEBUG("SharedMemoryEventManager") << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
+			<< ", fragmentCount=" << std::to_string(fragmentCount)
+			<< ", num_fragments_per_event=" << std::to_string(num_fragments_per_event_)
+			<< ", buffer_writes_pending_[buffer]=" << std::to_string(buffer_writes_pending_[buffer]) << TLOG_ENDL;
+
+		if (hdr->is_complete)
+		{
+			TLOG_DEBUG("SharedMemoryEventManager") << "Closing event" << TLOG_ENDL;
+			MarkBufferFull(buffer);
+			requests_.RemoveRequest(frag.sequence_id);
+			requests_.SendRoutingToken(1);
+		}
 	}
-	hdr->is_complete = GetFragmentCount(buffer) == num_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
 
-
-	if (hdr->is_complete)
-	{
-		MarkBufferFull(buffer);
-		requests_.RemoveRequest(frag.sequence_id);
-		requests_.SendRoutingToken(1);
-	}
-
+	TLOG_DEBUG("SharedMemoryEventManager") << "AddFragment END" << TLOG_ENDL;
 	return true;
 }
 
-bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag)
+bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag, int64_t timeout_usec, FragmentPtr& outfrag)
 {
+	TLOG_DEBUG("SharedMemoryEventManager") << "AddFragment(FragmentPtr) BEGIN" << TLOG_ENDL;
 	auto hdr = *reinterpret_cast<detail::RawFragmentHeader*>(frag->headerAddress());
-	auto data = frag->headerAddress() + hdr.num_words();
-
-	return AddFragment(hdr, data);
+	auto data = frag->headerAddress();
+	auto start = std::chrono::steady_clock::now();
+	bool sts = false;
+	while (!sts && std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count() < timeout_usec)
+	{
+		sts = AddFragment(hdr, data);
+		if (!sts) usleep(1000);
+	}
+	if(!sts)
+	{
+		outfrag = std::move(frag);
+	}
+	return sts;
 }
 
-artdaq::RawDataType* artdaq::SharedMemoryEventManager::GetFragmentLocation(detail::RawFragmentHeader frag)
+artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detail::RawFragmentHeader frag)
 {
+	TLOG_DEBUG("SharedMemoryEventManager") << "WriteFragmentHeader BEGIN" << TLOG_ENDL;
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
 
 	if (buffer == -1) return nullptr;
 
 	buffer_writes_pending_[buffer]++;
-	std::unique_lock<std::mutex>(buffer_write_mutexes_[buffer]);
+	std::unique_lock<std::mutex> lk(buffer_write_mutexes_[buffer]);
 	Write(buffer, &frag, frag.num_words() * sizeof(RawDataType));
 
 	auto pos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));
 	IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
 
+	TLOG_DEBUG("SharedMemoryEventManager") << "WriteFragmentHeader END" << TLOG_ENDL;
 	return pos;
 
 }
 
 void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHeader frag)
 {
-
+	TLOG_DEBUG("SharedMemoryEventManager") << "DoneWritingFragment BEGIN" << TLOG_ENDL;
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
 	if (buffer == -1) throw cet::exception("SharedMemoryEventManager") << "getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!";
 	buffer_writes_pending_[buffer]--;
-	ResetReadPos(buffer);
-	auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetReadPos(buffer));
+	std::unique_lock<std::mutex> lk(buffer_write_mutexes_[buffer]);
+	auto hdr = getEventHeader_(buffer);
 	if (update_run_ids_) {
 		hdr->run_id = run_id_;
 		hdr->subrun_id = subrun_id_;
@@ -121,6 +151,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		requests_.RemoveRequest(frag.sequence_id);
 		requests_.SendRoutingToken(1);
 	}
+	TLOG_DEBUG("SharedMemoryEventManager") << "DoneWritingFragment END" << TLOG_ENDL;
 }
 
 bool artdaq::SharedMemoryEventManager::CheckSpace(detail::RawFragmentHeader frag)
@@ -149,6 +180,7 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCount(int buffer, Fragment::
 		auto fragHdr = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(GetReadPos(buffer));
 		IncrementReadPos(buffer, fragHdr->word_count * sizeof(RawDataType));
 		if (type != Fragment::InvalidFragmentType && fragHdr->type != type) continue;
+		TLOG_DEBUG("GetFragmentCount") << "Adding Fragment with size=" << std::to_string(fragHdr->word_count) << " to Fragment count" << TLOG_ENDL;
 		++count;
 	}
 
@@ -159,6 +191,7 @@ void artdaq::SharedMemoryEventManager::RunArt()
 {
 	while (restart_art_)
 	{
+		TLOG_INFO("SharedMemoryEventManager") << "Starting art process with config file " << config_file_name_ << TLOG_ENDL;
 		art_process_return_codes_.push_back(system(("art -c " + config_file_name_).c_str()));
 	}
 }
@@ -172,36 +205,60 @@ void artdaq::SharedMemoryEventManager::StartArt()
 	}
 }
 
-void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, int n_art_processes, run_id_t newRun)
+void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, run_id_t newRun, int n_art_processes)
 {
-	std::vector<int> ignored;
-	endOfData(ignored);
+	TLOG_DEBUG("SharedMemoryEventManager") << "ReconfigureArt BEGIN" << TLOG_ENDL;
+	if (restart_art_) // Art is running
+	{
+		std::vector<int> ignored;
+		endOfData(ignored);
+	}
 	if (newRun == 0) newRun = run_id_ + 1;
-	run_id_ = newRun;
 	std::ofstream of(config_file_name_, std::ofstream::trunc);
 	of << art_fhicl << std::endl;
 	of.close();
 	if (n_art_processes != -1)
 	{
+		TLOG_INFO("SharedMemoryEventManager") << "Setting number of art processes to " << n_art_processes << TLOG_ENDL;
 		num_art_processes_ = n_art_processes;
 	}
-	StartArt();
+	startRun(newRun);
+	TLOG_DEBUG("SharedMemoryEventManager") << "ReconfigureArt END" << TLOG_ENDL;
 }
 
 bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnValues)
 {
 	restart_art_ = false;
+
+	TLOG_INFO("SharedMemoryEventManager") << "Waiting for outstanding buffers..." << TLOG_ENDL;
+	auto start = std::chrono::steady_clock::now();
+	auto lastReadCount = ReadReadyCount();
+
+	// We will wait until no buffer has been read for 1 second.
+	while(lastReadCount > 0 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() < 1000) 
+	{
+		auto temp = ReadReadyCount();
+		if(temp != lastReadCount)
+		{
+			lastReadCount = temp;
+			start = std::chrono::steady_clock::now();
+		}
+		if (lastReadCount > 0) usleep(1000);
+	}
+
 	TLOG_DEBUG("SharedMemoryEventManager") << "SharedMemoryEventManager::endOfData" << TLOG_ENDL;
 	broadcastFragment_(std::move(Fragment::eodFrag(0)));
 
-	TRACE(4, "SharedMemoryEventManager::endOfData: Getting return codes from art processes");
+	TLOG_ARB(4, "SharedMemoryEventManager") << "endOfData: Getting return codes from art processes" << TLOG_ENDL;
 
 	for (auto& proc : art_processes_)
 	{
 		if (proc.joinable()) proc.join();
 	}
 	readerReturnValues = art_process_return_codes_;
+	if (readerReturnValues.size() == 0) readerReturnValues.push_back(0);
 
+	TLOG_DEBUG("SharedMemoryEventManager") << "endOfData END" << TLOG_ENDL;
 	return true;
 }
 
@@ -302,8 +359,7 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 		oss << "Incomplete Events (" << num_fragments_per_event_ << "): ";
 		for (auto& ev : events)
 		{
-			ResetReadPos(ev);
-			auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetReadPos(ev));
+			auto hdr = getEventHeader_(ev);
 			oss << hdr->sequence_id << " (" << GetFragmentCount(ev) << "), ";
 		}
 		TLOG_DEBUG("SharedMemoryEventManager") << oss.str() << TLOG_ENDL;
@@ -314,33 +370,46 @@ void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag)
 {
 	auto hdr = *reinterpret_cast<detail::RawFragmentHeader*>(frag->headerAddress());
 
-	for (auto ii = 0; ii < GetMaxId(); ++ii)
+	for (auto ii = 0; ii <= GetMaxId(); ++ii)
 	{
 		if (ii == GetMyId()) continue;
-		hdr.sequence_id = 0xFFFFFFFFFF00 + 1 + ii;
+		hdr.sequence_id = 0xFFFFFFFFF000 + 1 + ii;
 		auto buffer = getBufferForSequenceID_(hdr.sequence_id);
 		while (buffer == -1)
 		{
 			usleep(10000);
 			buffer = getBufferForSequenceID_(hdr.sequence_id);
 		}
-		AddFragment(hdr, frag->headerAddress());
+		AddFragment(hdr, frag->headerAddress(), true);
 		MarkBufferFull(buffer, ii);
+		requests_.RemoveRequest(hdr.sequence_id);
 	}
+}
+
+artdaq::detail::RawEventHeader* artdaq::SharedMemoryEventManager::getEventHeader_(int buffer)
+{
+	return reinterpret_cast<detail::RawEventHeader*>(GetBufferStart(buffer));
 }
 
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
 {
+	TLOG_TRACE("SharedMemoryEventManager") << "getBufferForSequenceID " << std::to_string(seqID) << " BEGIN" << TLOG_ENDL;
+	std::unique_lock<std::mutex> lk(seq_id_buffer_mutex_);
+	TLOG_TRACE("SharedMemoryEventManager") << "getBufferForSequenceID " << std::to_string(seqID) << " AFTER MUTEX" << TLOG_ENDL;
 	auto buffers = GetBuffersOwnedByManager();
 	for (auto& buf : buffers)
 	{
-		ResetReadPos(buf);
-		auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetReadPos(buf));
-		if (hdr->sequence_id == seqID) return buf;
+		std::unique_lock<std::mutex> lk2(buffer_write_mutexes_[buf]);
+		auto hdr = getEventHeader_(buf);
+		if (hdr->sequence_id == seqID) {
+			TLOG_TRACE("SharedMemoryEventManager") << "getBufferForSequenceID " << std::to_string(seqID) << " returning " << buf << TLOG_ENDL;
+			return buf;
+		}
 	}
 	auto new_buffer = GetBufferForWriting(overwrite_mode_);
 	if (new_buffer == -1) return -1;
-	auto hdr = reinterpret_cast<detail::RawEventHeader*>(GetWritePos(new_buffer));
+	std::unique_lock<std::mutex> lk3(buffer_write_mutexes_[new_buffer]);
+	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
 	hdr->subrun_id = subrun_id_;
@@ -350,5 +419,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		requests_.AddRequest(seqID, timestamp);
 	}
 	requests_.SendRequest();
+	IncrementWritePos(new_buffer, sizeof(detail::RawEventHeader));
+	TLOG_TRACE("SharedMemoryEventManager") << "getBufferForSequenceID " << std::to_string(seqID) << " returning newly initialized buffer " << new_buffer << TLOG_ENDL;
 	return new_buffer;
 }

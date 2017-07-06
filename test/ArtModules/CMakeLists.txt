@@ -30,6 +30,7 @@ cet_test(daq_flow_t
   LIBRARIES
   art_Framework_Art
   ${MPI_C_LIBRARIES}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq_Application_MPI2
   artdaq_DAQrate
@@ -45,6 +46,7 @@ cet_test(daq_flow_t
    LIBRARIES
   art_Framework_Art
   ${MPI_C_LIBRARIES}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq_Application_MPI2
   artdaq_DAQrate

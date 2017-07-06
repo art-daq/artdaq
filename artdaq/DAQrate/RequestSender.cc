@@ -130,7 +130,7 @@ namespace artdaq
 		message.header()->mode = request_mode_;
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-		TLOG_DEBUG("RequestSender") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << TLOG_ENDL;
+		TLOG_TRACE("RequestSender") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << TLOG_ENDL;
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
 			TLOG_ERROR("RequestSender") << "Error sending request message header" << TLOG_ENDL;
@@ -143,7 +143,7 @@ namespace artdaq
 
 	void RequestSender::send_routing_token_(int nSlots)
 	{
-		TLOG_DEBUG("RequestSender") << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_ << TLOG_ENDL;
+		TLOG_TRACE("RequestSender") << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_ << TLOG_ENDL;
 		if (!send_routing_tokens_) return;
 		if (token_socket_ == -1) setup_tokens_();
 		detail::RoutingToken token;
@@ -151,7 +151,7 @@ namespace artdaq
 		token.rank = my_rank;
 		token.new_slots_free = nSlots;
 
-		TLOG_DEBUG("RequestSender") << "Sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
+		TLOG_TRACE("RequestSender") << "Sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
 		size_t sts = 0;
 		while (sts < sizeof(detail::RoutingToken)) {
 			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
@@ -161,7 +161,7 @@ namespace artdaq
 			}
 			sts += res;
 		}
-		TLOG_DEBUG("RequestSender") << "Done sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
+		TLOG_TRACE("RequestSender") << "Done sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
 	}
 
 	void RequestSender::SendRoutingToken(int nSlots)

@@ -273,7 +273,7 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 				++table_update_count_;
 				delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TABLE_UPDATES_STAT_KEY, delta_time);
-				TRACE(16, "%s::process_fragments TABLE_UPDATES_STAT_KEY=%f", name_.c_str(), delta_time);
+				TLOG_ARB(16, name_) << "process_fragments TABLE_UPDATES_STAT_KEY=" << std::to_string(delta_time) << TLOG_ENDL;
 			}
 			else
 			{

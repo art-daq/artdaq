@@ -24,9 +24,10 @@
 #include "canvas/Utilities/GetPassID.h"
 #include "art/Version/GetReleaseVersion.h"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQdata/configureMessageFacility.hh"
 #include "fhiclcpp/make_ParameterSet.h"
 
-#define BOOST_TEST_MODULE ( raw_event_queue_reader_t )
+#define BOOST_TEST_MODULE ( shared_memory_reader_t )
 #include <boost/test/auto_unit_test.hpp>
 
 #include <iostream>
@@ -170,6 +171,7 @@ struct ShmRTestFixture
 		static bool once(true);
 		if (once)
 		{
+			artdaq::configureMessageFacility("shared_memory_reader_t");
 			(void)reader(); // Force initialization.
 			art::ModuleDescription md(fhicl::ParameterSet().id(),
 								 "_NAMEERROR_",
@@ -230,15 +232,23 @@ struct ShmRTestFixture
 		return *s_source_helper;
 	}
 
+	int getKey()
+	{
+		static int key = static_cast<int>(std::hash<std::string>()("shared_memory_reader_t"));
+		return key;
+	}
+
 	/**
 	 * \brief Get an artdaq::detail::SharedMemoryReader object, creating a static instance if necessary
 	 * \return artdaq::detail::SharedMemoryReader object
 	 */
 	artdaq::detail::SharedMemoryReader<>& reader()
 	{
+		writer();
 		fhicl::ParameterSet pset;
-		pset.put("shared_memory_key", static_cast<int>(std::hash<std::string>()("shared_memory_reader_t")));
+		pset.put("shared_memory_key", getKey());
 		pset.put("max_event_size_bytes", 0x100000);
+		pset.put("buffer_count", 10);
 		static artdaq::detail::SharedMemoryReader<>
 			s_reader(pset,
 					 helper(),
@@ -257,10 +267,11 @@ struct ShmRTestFixture
 	artdaq::SharedMemoryEventManager& writer()
 	{
 		fhicl::ParameterSet pset;
-		pset.put("shared_memory_key", static_cast<int>(std::hash<std::string>()("shared_memory_reader_t")));
+		pset.put("shared_memory_key", getKey());
 		pset.put("max_event_size_bytes", 0x100000);
 		pset.put("art_analyzer_count", 0);
 		pset.put("fragment_count", 1);
+		pset.put("buffer_count", 10);
 		static artdaq::SharedMemoryEventManager
 			s_writer(pset,pset.to_string());
 		return s_writer;
@@ -268,7 +279,7 @@ struct ShmRTestFixture
 	}
 };
 
-BOOST_FIXTURE_TEST_SUITE(raw_event_queue_reader_t, ShmRTestFixture)
+BOOST_FIXTURE_TEST_SUITE(shared_memory_reader_t, ShmRTestFixture)
 
 namespace
 {
@@ -295,9 +306,24 @@ namespace
 		tmpFrag->setUserType(1);
 
 		writer.startRun(eventid.run());
+
+
+		auto iter = tmpFrag->dataBegin();
+		std::ostringstream str;
+		str << "{";
+		while (iter != tmpFrag->dataEnd())
+		{
+			str << std::to_string(*iter) << ", ";
+			++iter;
+
+		}
+		str << "}";
+		TLOG_DEBUG("shared_memory_reader_t") <<"Fragment to art: "<< str.str() << TLOG_ENDL;
 		
 
-		writer.AddFragment(std::move(tmpFrag));
+		artdaq::FragmentPtr tempFrag;
+		auto sts = writer.AddFragment(std::move(tmpFrag), 1000000, tempFrag);
+		BOOST_REQUIRE_EQUAL(sts, true);
 		art::EventPrincipal* newevent = nullptr;
 		art::SubRunPrincipal* newsubrun = nullptr;
 		art::RunPrincipal* newrun = nullptr;
@@ -328,6 +354,19 @@ namespace
 		e.getByLabel("daq", "ABCDEF", h);
 		BOOST_CHECK(h.isValid());
 		BOOST_CHECK(h->size() == 1);
+
+		auto iter2 = h->front().dataBegin();
+		std::ostringstream str2;
+		str2 << "{";
+		while(iter2 != h->front().dataEnd())
+		{
+			str2 << std::to_string(*iter2) << ", ";
+			++iter2;
+			
+		}
+		str2 << "}";
+		TLOG_DEBUG("shared_memory_reader_t") << "Fragment from art: " << str2.str() << TLOG_ENDL;
+
 		BOOST_CHECK(std::equal(fakeData.begin(),
 							   fakeData.end(),
 							   h->front().dataBegin()));

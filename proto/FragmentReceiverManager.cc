@@ -3,13 +3,13 @@
 #include "proto/FragmentReceiverManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+#include "cetlib_except/exception.h"
 
 artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterSet& pset)
 	: stop_requested_(false)
 	, source_threads_()
 	, source_plugins_()
 	, enabled_sources_()
-	, suppressed_sources_()
 	, fragment_store_()
 	, recv_frag_count_()
 	, recv_frag_size_()
@@ -67,19 +67,19 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 artdaq::FragmentReceiverManager::~FragmentReceiverManager()
 {
 	TLOG_DEBUG("FragmentReceiverManager") << "Destructor" << TLOG_ENDL;
-	TRACE(5, "~FragmentReceiverManager: BEGIN: Setting stop_requested to true, frags=%zu, bytes=%zu", count(), byteCount());
+	TLOG_ARB(5, "FragmentReceiverManager") << "~FragmentReceiverManager: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount()) << TLOG_ENDL;
 	stop_requested_ = true;
 
-	TRACE(5, "~FragmentReceiverManager: Notifying all threads");
+	TLOG_ARB(5, "FragmentReceiverManager") << "~FragmentReceiverManager: Notifying all threads" << TLOG_ENDL;
 	output_cv_.notify_all();
 
-	TRACE(5, "~FragmentReceiverManager: Joining all threads");
+	TLOG_ARB(5, "FragmentReceiverManager") << "~FragmentReceiverManager: Joining all threads" << TLOG_ENDL;
 	for (auto& s : source_threads_)
 	{
 		auto& thread = s.second;
 		if (thread.joinable()) thread.join();
 	}
-	TRACE(5, "~FragmentReceiverManager: DONE");
+	TLOG_ARB(5, "FragmentReceiverManager") << "~FragmentReceiverManager: DONE" << TLOG_ENDL;
 }
 
 bool artdaq::FragmentReceiverManager::fragments_ready_() const
@@ -92,29 +92,10 @@ int artdaq::FragmentReceiverManager::get_next_source_() const
 	//std::unique_lock<std::mutex> lck(fragment_store_mutex_);
 	for (auto& it : fragment_store_)
 	{
-		if (!enabled_sources_.count(it.first) || suppressed_sources_.count(it.first)) continue;
+		if (!enabled_sources_.count(it.first)) continue;
 		if (!it.second.empty()) return it.first;
 	}
 	return -1;
-}
-
-void artdaq::FragmentReceiverManager::unsuppressAll()
-{
-	TRACE(5, "FragmentReceiverManager::unsuppressAll called");
-	suppressed_sources_.clear();
-	output_cv_.notify_all();
-}
-
-void artdaq::FragmentReceiverManager::suppress_source(int source)
-{
-	suppressed_sources_.insert(source);
-}
-
-void artdaq::FragmentReceiverManager::reject_fragment(int source_rank, FragmentPtr frag)
-{
-	if (frag == nullptr) return;
-	suppress_source(source_rank);
-	fragment_store_[source_rank].emplace_front(std::move(frag));
 }
 
 void artdaq::FragmentReceiverManager::start_threads()
@@ -131,14 +112,14 @@ void artdaq::FragmentReceiverManager::start_threads()
 
 artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, size_t timeout_usec)
 {
-	TRACE(5, "FragmentReceiverManager::recvFragment entered tmo=%zu us", timeout_usec);
+	TLOG_ARB(5, "FragmentReceiverManager") <<"recvFragment entered tmo=" << std::to_string(timeout_usec) << " us" << TLOG_ENDL;
 
 	if (timeout_usec == 0) timeout_usec = 1000000;
 
 	auto ready = fragments_ready_();
 	size_t waited = 0;
 	auto wait_amount = timeout_usec / 1000 > 1000 ? timeout_usec / 1000 : 1000;
-	TRACE(5, "FragmentReceiverManager::recvFragment fragment_ready_=%d before wait", ready);
+	TLOG_ARB(5, "FragmentReceiverManager") << "recvFragment fragment_ready_=" << ready << " before wait" << TLOG_ENDL;
 	while (!ready && waited < timeout_usec)
 	{
 		{
@@ -148,10 +129,10 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 		waited += wait_amount;
 		ready = fragments_ready_();
 	}
-	TRACE(5, "FragmentReceiverManager::recvFragment fragment_ready_=%d after waited=%zu", ready, waited);
+	TLOG_ARB(5, "FragmentReceiverManager") << "recvFragment fragment_ready_=" << ready << " after waited=" << std::to_string( waited) << TLOG_ENDL;
 	if (!ready)
 	{
-		TRACE(5, "FragmentReceiverManager::recvFragment: No fragments ready, returning empty");
+		TLOG_ARB(5, "FragmentReceiverManager")  << "recvFragment: No fragments ready, returning empty" << TLOG_ENDL;
 		rank = TransferInterface::RECV_TIMEOUT;
 		return std::unique_ptr<Fragment>{};
 	}
@@ -162,7 +143,7 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 	rank = current_source;
 
 	if (current_fragment != nullptr)
-		TRACE(5, "FragmentReceiverManager::recvFragment: Done  rank=%d, fragment size=%zu words, seqId=%zu", rank, current_fragment->size(), current_fragment->sequenceID());
+		TLOG_ARB(5, "FragmentReceiverManager") << "recvFragment: Done  rank="<< rank <<", fragment size="<<std::to_string(current_fragment->size()) << " words, seqId="  << std::to_string( current_fragment->sequenceID()) << TLOG_ENDL;
 	return std::move(current_fragment);
 }
 
@@ -170,34 +151,34 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 {
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
-		TRACE(16, "FragmentReceiverManager::runReceiver_ %d: Begin loop", source_rank);
-		auto is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
+		TLOG_ARB(16, "FragmentReceiverManager") << "runReceiver_ "<< source_rank << ": Begin loop" << TLOG_ENDL;
+		auto is_suppressed = suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount();
 		while (!stop_requested_ && is_suppressed)
 		{
-			TRACE(6, "FragmentReceiverManager::runReceiver_: Suppressing receiver rank %d", source_rank);
+			TLOG_ARB(6, "FragmentReceiverManager") << "runReceiver_: Suppressing receiver rank " <<  source_rank << TLOG_ENDL;
 			if (!is_suppressed) input_cv_.notify_all();
 			else
 			{
 				std::unique_lock<std::mutex> lck(output_cv_mutex_);
 				output_cv_.wait_for(lck, std::chrono::seconds(1));
 			}
-			is_suppressed = (suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount()) || suppressed_sources_.count(source_rank) > 0;
+			is_suppressed = suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount();
 		}
 		if (stop_requested_) return;
 
 		auto start_time = std::chrono::steady_clock::now();
-		TRACE(16, "FragmentReceiverManager::runReceiver_: Calling receiveFragment");
+		TLOG_ARB(16, "FragmentReceiverManager") << "runReceiver_: Calling receiveFragment" << TLOG_ENDL;
 		auto fragment = std::unique_ptr<Fragment>(new Fragment());
 		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
-		TRACE(16, "FragmentReceiverManager::runReceiver_: Done with receiveFragment, ret=%d (should be %d)", ret, source_rank);
+		TLOG_ARB(16, "FragmentReceiverManager") << "runReceiver_: Done with receiveFragment, ret="<< ret << " (should be " << source_rank << ")" << TLOG_ENDL;
 
 		if (ret != source_rank) continue; // Receive timeout or other oddness
 
-		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType) 
+		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
 			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));
 		}
-		else 
+		else
 		{
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, fragment->size() * sizeof(RawDataType));
@@ -208,7 +189,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 		if (metricMan)
 		{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
-			TRACE(6, "FragmentReceiverManager::runReceiver_: Sending receive stats");
+			TLOG_ARB(6, "FragmentReceiverManager") << "runReceiver_: Sending receive stats" << TLOG_ENDL;
 			auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
 			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1);
 			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(fragment->size() * sizeof(RawDataType)), "B", 1);

@@ -46,27 +46,32 @@ namespace artdaq {
 		 */
 		virtual ~SharedMemoryEventManager();
 
+	private:
 		/**
 		 * \brief Add a Fragment to the SharedMemoryEventManager
 		 * \param frag Header of the Fragment (seq ID and size info)
 		 * \param dataPtr Pointer to the fragment's data (i.e. Fragment::headerAddress())
+		 * \param skipCheck (Default: false): Whether to skip checking for event completion (i.e. broadcastFragment_)
 		 * \return Whether the Fragment was successfully added
 		 */
-		bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
+		bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr, bool skipCheck = false);
 
+	public:
 		/**
 		* \brief Copy a Fragment into the SharedMemoryEventManager
 		* \param frag FragmentPtr object
+		* \param timeout_usec Timeout for adding Fragment to the Shared Memory
+		* \param [out] outfrag Rejected Fragment if timeout occurs
 		* \return Whether the Fragment was successfully added
 		*/
-		bool AddFragment(FragmentPtr frag);
+		bool AddFragment(FragmentPtr frag, int64_t timeout_usec, FragmentPtr& outfrag);
 
 		/**
 		 * \brief Get a pointer to a reserved memory area for the given Fragment header
 		 * \param frag Fragment header (contains sequence ID and size information)
 		 * \return Pointer to memory location for Fragment body (Header is copied into buffer here)
 		 */
-		RawDataType* GetFragmentLocation(detail::RawFragmentHeader frag);
+		RawDataType* WriteFragmentHeader(detail::RawFragmentHeader frag);
 
 		/**
 		 * \brief Used to indicate that the given Fragment is now completely in the buffer. Will check for buffer completeness, and unset the pending flag.
@@ -103,11 +108,11 @@ namespace artdaq {
 		void StartArt();
 		/**
 		 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
-		 * \param n_art_processes Number of art processes to start, -1 (default) leaves the number unchanged
 		 * \param art_fhicl Fhicl string used to configure art
 		 * \param newRun New Run number for reconfigured art
+		 * \param n_art_processes Number of art processes to start, -1 (default) leaves the number unchanged
 		 */
-		void ReconfigureArt(std::string art_fhicl, int n_art_processes = -1, run_id_t newRun = 0);
+		void ReconfigureArt(std::string art_fhicl, run_id_t newRun = 0, int n_art_processes = -1);
 
 		/**
 		* \brief Indicate that the end of input has been reached to the art processes.
@@ -202,8 +207,9 @@ namespace artdaq {
 		bool update_run_ids_;
 		bool overwrite_mode_;
 
-		std::unordered_map<int,int> buffer_writes_pending_;
+		std::unordered_map<int,std::atomic<int>> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_write_mutexes_;
+		std::mutex seq_id_buffer_mutex_;
 
 		unsigned int seqIDModulus_;
 		sequence_id_t lastFlushedSeqID_;
@@ -222,6 +228,8 @@ namespace artdaq {
 		FragmentPtr init_fragment_;
 
 		void broadcastFragment_(FragmentPtr frag);
+
+		detail::RawEventHeader* getEventHeader_(int buffer);
 
 		int getBufferForSequenceID_(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
 	};

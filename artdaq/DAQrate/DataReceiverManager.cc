@@ -95,7 +95,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
 	std::chrono::steady_clock::time_point start_time, after_header, before_body;
 	int ret;
-	double delta_t,hdr_delta_t,store_delta_t,data_delta_t;
+	double delta_t, hdr_delta_t, store_delta_t, data_delta_t;
 	detail::RawFragmentHeader header;
 	size_t endOfDataCount = -1;
 
@@ -116,17 +116,20 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType) {
 			RawDataType* loc = nullptr;
 			while (loc == nullptr) {
-				loc = shm_manager_->GetFragmentLocation(header);
+				loc = shm_manager_->WriteFragmentHeader(header);
 				if (loc == nullptr) usleep(receive_timeout_ / 100);
 				if (stop_requested_) return;
 			}
 			before_body = std::chrono::steady_clock::now();
-		
+
 			TRACE(16, "DataReceiverManager::runReceiver_: Calling receiveFragmentData");
 			auto ret2 = source_plugins_[source_rank]->receiveFragmentData(loc, header.word_count - header.num_words(), receive_timeout_);
 			TRACE(16, "DataReceiverManager::runReceiver_: Done with receiveFragmentData, ret2=%d (should be %d)", ret2, source_rank);
 
-			if (ret != ret2) throw cet::exception("DataReceiverManager") << "TransferInterface::receiveFragmentData returned different that receiveFragmentHeader!";
+			if (ret != ret2) {
+				TLOG_ERROR("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")" << TLOG_ENDL;
+				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
+			}
 
 			shm_manager_->DoneWritingFragment(header);
 			recv_frag_count_.incSlot(source_rank);
@@ -167,7 +170,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 			else
 			{
-				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader!";
+				TLOG_ERROR("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving EndOfData Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")" << TLOG_ENDL;
+				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving EndOfData Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
 			}
 		}
 
