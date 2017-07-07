@@ -145,15 +145,6 @@ protected:
 	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
 	bool verbose_; ///< Whether to log verbosely
 	
-	/** This is used for syncronization between the thread running
-	   process_fragments() and XMLRPC calls.  This will be locked before data
-	   readout begins by the start() and resume() methods in the event builder.
-	   It will be unlocked by the process_fragments() thread once EOD fragments
-	   and all data has been received.  The stop() and pause() methods will
-	   attempt to lock the mutex as well and will be blocked until all data has
-	   been clocked into the DataReceiverCore. */
-	std::mutex flush_mutex_;
-
 	MetricManager metricMan_; ///< MetricManager concrete instance (for Globals.hh::metricMan)
 	
 	/**

@@ -84,7 +84,7 @@ namespace artdaq {
 		 * \param frag Header to check
 		 * \return Whether there is space (either in a new buffer or an incomplete event) for a Fragment with the given sequence ID.
 		 */
-		bool CheckSpace(detail::RawFragmentHeader frag);
+		//bool CheckSpace(detail::RawFragmentHeader frag);
 		/**
 		 * \brief Get the number of incomplete events in the SharedMemoryEventManager
 		 * \return The number of incomplete events in the SharedMemoryEventManager
@@ -125,27 +125,7 @@ namespace artdaq {
 		* can not be pushed onto the RawEvent queue, false is returned.
 		*/
 		bool endOfData(std::vector<int>& readerReturnValues);
-
-		/**
-		* \brief Set the parameter that will be used to determine which sequence IDs get
-		* grouped together into events.
-		* \param seqIDModulus Sequence ID grouping parameter
-		*
-		* Set the parameter that will be used to determine which sequence IDs get
-		* grouped together into events.  This defaults to 1 which is the case where
-		* fragments with the same sequence ID will get grouped together.  The other
-		* use case is for the aggregator which will group together fragments with
-		* different sequence IDs.
-		*/
-		void setSeqIDModulus(unsigned int seqIDModulus);
-
-		/**
-		* \brief Push any incomplete events onto the queue.
-		* \return Returns true if all stale events were flushed, false if one or more events
-		* could not be flushed because the queue was full.
-		*/
-		bool flushData();
-
+				
 		/**
 		* \brief Start a Run
 		* \param runID Run number of the new run
@@ -210,11 +190,7 @@ namespace artdaq {
 		std::unordered_map<int,std::atomic<int>> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_write_mutexes_;
 		std::mutex seq_id_buffer_mutex_;
-
-		unsigned int seqIDModulus_;
-		sequence_id_t lastFlushedSeqID_;
-		sequence_id_t highestSeqIDSeen_;
-
+		
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 

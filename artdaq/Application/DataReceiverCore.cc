@@ -61,7 +61,6 @@ bool artdaq::DataReceiverCore::start(art::RunID id)
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 	run_is_paused_.store(false);
-	flush_mutex_.lock();
 	metricMan_.do_start();
 	event_store_ptr_->startRun(id.run());
 	receiver_ptr_->start_threads();
@@ -83,7 +82,6 @@ bool artdaq::DataReceiverCore::stop()
 	// processFragments method), and this method can continue.
 	stop_requested_.store(true);
 
-	flush_mutex_.lock();
 	if (!run_is_paused_.load())
 	{
 		endSucceeded = false;
@@ -117,7 +115,6 @@ bool artdaq::DataReceiverCore::stop()
 			<< "EventStore::endRun in stop method failed after three tries." << TLOG_ENDL;
 	}
 
-	flush_mutex_.unlock();
 	run_is_paused_.store(false);
 	return true;
 }
@@ -127,7 +124,6 @@ bool artdaq::DataReceiverCore::pause()
 	logMessage_("Pausing run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) +
 				", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
 	pause_requested_.store(true);
-	flush_mutex_.lock();
 
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
@@ -144,7 +140,6 @@ bool artdaq::DataReceiverCore::pause()
 			<< "EventStore::endSubrun in pause method failed after three tries." << TLOG_ENDL;
 	}
 
-	flush_mutex_.unlock();
 	run_is_paused_.store(true);
 	return true;
 }
@@ -153,7 +148,6 @@ bool artdaq::DataReceiverCore::resume()
 {
 	logMessage_("Resuming run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	pause_requested_.store(false);
-	flush_mutex_.lock();
 	metricMan_.do_start();
 	event_store_ptr_->startSubrun();
 	run_is_paused_.store(false);
