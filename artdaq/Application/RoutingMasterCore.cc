@@ -133,7 +133,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	num_receivers_ = policy_->GetReceiverCount();
 
 	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
-	receive_token_events_ = std::vector<epoll_event>(num_receivers_);
+	receive_token_events_ = std::vector<epoll_event>(num_receivers_ + 1);
 
 	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
 	routing_mode_ = mode ? detail::RoutingMasterMode::RouteBySendCount : detail::RoutingMasterMode::RouteBySequenceID;

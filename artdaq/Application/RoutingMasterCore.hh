@@ -14,7 +14,7 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 #include "artdaq/Application/StatisticsHelper.hh"
-#include "artdaq/Application/Routing/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 

@@ -14,7 +14,7 @@ namespace artdaq
 		/**
 		 * \brief Mode used to indicate current run conditions to the request receiver
 		 */
-		enum class RequestMessageMode
+		enum class RequestMessageMode : uint8_t
 		{
 			Normal = 0, ///< Normal running
 			EndOfRun = 1, ///< End of Run mode (Used to end request processing on receiver)

@@ -12,7 +12,7 @@
 #include "cetlib_except/exception.h"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
-#include "artdaq/Application/Routing/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 namespace artdaq
@@ -22,7 +22,7 @@ namespace artdaq
 		: send_requests_(pset.get<bool>("send_requests", false))
 		, active_requests_()
 		, request_port_(pset.get<int>("request_port", 3001))
-		, request_delay_(pset.get<size_t>("request_delay_ms", 10))
+		, request_delay_(pset.get<size_t>("request_delay_ms", 10) * 1000)
 		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
@@ -117,8 +117,10 @@ namespace artdaq
 
 	void RequestSender::do_send_request_()
 	{
+		TLOG_TRACE("RequestSender") << "Waiting for " << request_delay_ << " microseconds." << TLOG_ENDL;
 		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
 
+		TLOG_TRACE("RequestSender") << "Creating RequestMessage" << TLOG_ENDL;
 		detail::RequestMessage message;
 		{
 			std::lock_guard<std::mutex> lk(request_mutex_);
@@ -127,6 +129,7 @@ namespace artdaq
 				message.addRequest(req.first, req.second);
 			}
 		}
+		TLOG_TRACE("RequestSender") << "Setting mode flag in Message Header" << TLOG_ENDL;
 		message.header()->mode = request_mode_;
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
@@ -168,6 +171,7 @@ namespace artdaq
 	{
 		std::thread token([=] {send_routing_token_(nSlots); });
 		token.detach();
+		usleep(0); // Give up time slice
 	}
 
 	void RequestSender::SendRequest()
@@ -176,6 +180,7 @@ namespace artdaq
 		if (!send_requests_) return;
 		std::thread request([=] { do_send_request_(); });
 		request.detach();
+		usleep(0); // Give up time slice
 	}
 
 	void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)

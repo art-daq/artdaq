@@ -12,7 +12,7 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/Application/Routing/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
 
 namespace artdaq
 {

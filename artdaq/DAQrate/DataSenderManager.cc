@@ -9,7 +9,6 @@
 #include <sys/types.h>
 #include <poll.h>
 #include <sys/socket.h>
-#include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)

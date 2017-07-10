@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_Routing_RoutingPacket_hh
-#define artdaq_Application_Routing_RoutingPacket_hh
+#ifndef artdaq_DAQrate_detail_RoutingPacket_hh
+#define artdaq_DAQrate_detail_RoutingPacket_hh
 
 #include "artdaq-core/Data/Fragment.hh"
 

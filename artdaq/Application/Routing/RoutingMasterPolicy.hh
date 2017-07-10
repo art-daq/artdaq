@@ -2,7 +2,7 @@
 #define artdaq_Application_Routing_RoutingMasterPolicy_hh
 
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Application/Routing/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq-core/Data/Fragment.hh"
 
 #include "fhiclcpp/fwd.h"
