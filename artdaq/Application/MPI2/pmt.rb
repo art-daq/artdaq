@@ -144,8 +144,16 @@ class MPIHandler
 	if @logFhicl != ""
 	  logString += " -genv ARTDAQ_LOG_FHICL " + @logFhicl
 	end
-	mpiCmd = "mpirun %s %s -genv ARTDAQ_SHM_KEY %d -launcher rsh -configfile %s -f %s" %
-	  [displayString, logString, @shmKey, configFileHandle.path, hostsFileHandle.path]
+
+        launcherArg = ""
+        if system("which rsh 2>/dev/null")
+          launcherArg = "-launcher rsh"
+        else
+          print "Unable to find rsh on this host (%s); hopefully another method, such as ssh, works for password-free MPI communication\n" % [ ENV["HOSTNAME"] ] 
+        end
+
+	mpiCmd = "mpirun %s %s -genv ARTDAQ_SHM_KEY %d %s -configfile %s -f %s" %
+	  [displayString, logString, @shmKey, launcherArg, configFileHandle.path, hostsFileHandle.path]
 	configFileHandle.rewind
 	hostsFileHandle.rewind
 	return mpiEnvironmentSetup + mpiCmd
