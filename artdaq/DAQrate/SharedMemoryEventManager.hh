@@ -178,6 +178,12 @@ namespace artdaq {
 		 */
 		void setOverwrite(bool overwrite) { overwrite_mode_ = overwrite; }
 
+		/**
+		 * \brief Write out information about the Shared Memory to a string
+		 * \return String containing information about the current Shared Memory buffers
+		 */
+		std::string toString() override;
+
 	private:
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;

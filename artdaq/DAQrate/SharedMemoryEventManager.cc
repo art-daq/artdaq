@@ -369,6 +369,19 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 	}
 }
 
+std::string artdaq::SharedMemoryEventManager::toString()
+{
+	std::ostringstream ostr;
+	ostr << SharedMemoryManager::toString() << std::endl;
+
+	ostr << "Buffer Fragment Counts: " << std::endl;
+	for(size_t ii = 0; ii < size(); ++ii)
+	{
+		ostr << "Buffer " << std::to_string(ii) << ": " << std::to_string(GetFragmentCount(ii)) << std::endl;
+	}
+	return ostr.str();
+}
+
 void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag)
 {
 	auto hdr = *reinterpret_cast<detail::RawFragmentHeader*>(frag->headerAddress());

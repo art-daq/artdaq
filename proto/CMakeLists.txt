@@ -156,6 +156,14 @@ art_make_exec(NAME tracemf
     artdaq_DAQdata
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     )
+
+	art_make_exec(NAME PrintSharedMemory
+	SOURCE PrintSharedMemory.cc
+	LIBRARIES
+	artdaq_DAQrate
+	artdaq-core_Core
+	${Boost_PROGRAM_OPTIONS_LIBRARY}
+	)
 	
 install_fhicl(LIST daqrate_simdata_noart.fcl Multicast.fcl Shmem.fcl)
 install_source()
