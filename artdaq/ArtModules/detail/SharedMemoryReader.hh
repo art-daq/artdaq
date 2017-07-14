@@ -131,6 +131,7 @@ namespace artdaq
 			 */
 			void readFile(std::string const&, art::FileBlock*& fb)
 			{
+				TRACE( 5, "SharedMemoryReader::readFile enter/start" );
 				fb = new art::FileBlock(art::FileFormatVersion(1, "RawEvent2011"), "nothing");
 			}
 
@@ -156,7 +157,8 @@ namespace artdaq
 						  art::SubRunPrincipal*& outSR,
 						  art::EventPrincipal*& outE)
 			{
-				TLOG_DEBUG("SharedMemoryReader") << "readNext BEGIN" << TLOG_ENDL;
+				TLOG_INFO("SharedMemoryReader") << "readNext BEGIN" << TLOG_ENDL;
+				TRACE( 5, "readNext BEGIN" );
 				/*if (outputFileCloseNeeded) {
 				outputFileCloseNeeded = false;
 				return false;
