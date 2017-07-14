@@ -6,7 +6,6 @@
 #include "art/Framework/Core/FileBlock.h"
 #include "art/Framework/Core/ProductRegistryHelper.h"
 #include "art/Framework/IO/Sources/SourceHelper.h"
-#include "art/Framework/IO/Sources/SourceTraits.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
@@ -100,6 +99,10 @@ namespace artdaq
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 				}
 				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string() << TLOG_ENDL;
+				for(auto& type : fragment_type_map_)
+				{
+					TLOG_INFO("SharedMemoryReader") << "Fragment Type " << type.second << " has typeid " << std::to_string(type.first) << TLOG_ENDL;
+				}
 			}
 
 			/**
@@ -352,17 +355,5 @@ namespace artdaq
 	} // detail
 } // artdaq
 
-namespace art
-{
-	/**
-	* \brief  Specialize an art source trait to tell art that we don't care about
-	* source.fileNames and don't want the files services to be used.
-	*/
-	template <>
-	struct Source_generator<artdaq::detail::SharedMemoryReader<>>
-	{
-		static constexpr bool value = true; ///< Used to suppress use of file services on art Source
-	};
-}
 
 #endif /* artdaq_ArtModules_detail_SharedMemoryReader_hh */

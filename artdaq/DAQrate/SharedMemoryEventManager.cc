@@ -245,6 +245,7 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, run
 
 bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnValues)
 {
+	restart_art_ = false;
 
 	size_t initialStoreSize = GetOpenEventCount();
 	TLOG_DEBUG("SharedMemoryEventManager") << "endOfData: Flushing " << initialStoreSize
@@ -258,7 +259,6 @@ bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnV
 	TLOG_DEBUG("SharedMemoryEventManager") << "endOfData: Done flushing " << flushList.size()
 		<< " stale events from the SharedMemoryEventManager." << TLOG_ENDL;
 
-	restart_art_ = false;
 
 	TLOG_INFO("SharedMemoryEventManager") << "Waiting for outstanding buffers..." << TLOG_ENDL;
 	auto start = std::chrono::steady_clock::now();
