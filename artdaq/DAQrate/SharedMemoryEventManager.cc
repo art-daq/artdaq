@@ -19,6 +19,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, buffer_write_mutexes_()
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
 	, config_file_name_(std::tmpnam(nullptr))
 	, art_processes_()
 	, restart_art_(false)
@@ -375,7 +376,7 @@ std::string artdaq::SharedMemoryEventManager::toString()
 	ostr << SharedMemoryManager::toString() << std::endl;
 
 	ostr << "Buffer Fragment Counts: " << std::endl;
-	for(size_t ii = 0; ii < size(); ++ii)
+	for (size_t ii = 0; ii < size(); ++ii)
 	{
 		ostr << "Buffer " << std::to_string(ii) << ": " << std::to_string(GetFragmentCount(ii)) << std::endl;
 	}
@@ -391,7 +392,8 @@ void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag)
 		if (ii == GetMyId()) continue;
 		hdr.sequence_id = 0xFFFFFFFFF000 + 1 + ii;
 		auto buffer = getBufferForSequenceID_(hdr.sequence_id);
-		while (buffer == -1)
+		auto start_time = std::chrono::steady_clock::now();
+		while (buffer == -1 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() < broadcast_timeout_ms_)
 		{
 			usleep(10000);
 			buffer = getBufferForSequenceID_(hdr.sequence_id);
