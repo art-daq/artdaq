@@ -18,6 +18,7 @@ int main(int argc, char* argv[])
 	bpo::options_description desc(descstr.str());
 	desc.add_options()
 		("config,c", bpo::value<std::string>(), "Configuration file.")
+	("key,M", bpo::value<std::string>(), "Shared Memory to attach to")
 		("help,h", "produce help message");
 	bpo::variables_map vm;
 	try {
@@ -33,7 +34,7 @@ int main(int argc, char* argv[])
 		std::cout << desc << std::endl;
 		return 1;
 	}
-	if (!vm.count("config")) {
+	if (!vm.count("config") && !vm.count("key")) {
 		std::cerr << "Exception from command line processing in " << argv[0]
 			<< ": no configuration file given.\n"
 			<< "For usage and an options list, please do '"
@@ -41,14 +42,23 @@ int main(int argc, char* argv[])
 			<< "'.\n";
 		return 2;
 	}
+
 	fhicl::ParameterSet pset;
-	if (getenv("FHICL_FILE_PATH") == nullptr) {
-		std::cerr
-			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
-		setenv("FHICL_FILE_PATH", ".", 0);
+	if(vm.count("key"))
+	{
+		pset.put("shared_memory_key", vm["key"].as<std::string>());
+		pset.put("buffer_count", 1);
+		pset.put("max_event_size_bytes", 1024);
 	}
-	cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-	fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+	else {
+		if (getenv("FHICL_FILE_PATH") == nullptr) {
+			std::cerr
+				<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+			setenv("FHICL_FILE_PATH", ".", 0);
+		}
+		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
+		fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+	}
 
 	if(pset.get<bool>("ReadEventInfo", false))
 	{
@@ -57,7 +67,7 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		artdaq::SharedMemoryManager t(pset.get<int>("shared_memory_key"),
+		artdaq::SharedMemoryManager t(pset.get<uint32_t>("shared_memory_key"),
 									   pset.get<size_t>("buffer_count"),
 									   pset.get<size_t>("max_event_size_bytes"),
 									   pset.get<size_t>("stale_buffer_timeout_usec", 1000000));
