@@ -232,9 +232,9 @@ struct ShmRTestFixture
 		return *s_source_helper;
 	}
 
-	int getKey()
+	uint32_t getKey()
 	{
-		static int key = static_cast<int>(std::hash<std::string>()("shared_memory_reader_t"));
+		static uint32_t key = static_cast<uint32_t>(std::hash<std::string>()("shared_memory_reader_t"));
 		return key;
 	}
 

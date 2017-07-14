@@ -12,10 +12,10 @@ simple_plugin(FragmentSniffer "module"
   )
 
   
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
 
 cet_test(shared_memory_reader_t USE_BOOST_UNIT
   LIBRARIES

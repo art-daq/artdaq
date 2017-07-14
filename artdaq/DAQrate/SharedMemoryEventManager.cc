@@ -197,21 +197,21 @@ void artdaq::SharedMemoryEventManager::RunArt()
 void artdaq::SharedMemoryEventManager::StartArt()
 {
 	restart_art_ = true;
-	auto initialCount = GetMaxId();
+	auto initialCount = GetAttachedCount();
 	auto startTime = std::chrono::steady_clock::now();
 	for (size_t ii = 0; ii < num_art_processes_; ++ii)
 	{
 		art_processes_.emplace_back([=] {RunArt(); });
 	}
 
-	while (static_cast<uint16_t>(GetMaxId() - initialCount) < num_art_processes_ &&
+	while (static_cast<uint16_t>(GetAttachedCount() - initialCount) < num_art_processes_ &&
 		   std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - startTime).count() < 5)
 	{
 		usleep(1000);
 	}
-	if (static_cast<uint16_t>(GetMaxId() - initialCount) < num_art_processes_)
+	if (static_cast<uint16_t>(GetAttachedCount() - initialCount) < num_art_processes_)
 	{
-		TLOG_WARNING("SharedMemoryEventManager") << std::to_string(GetMaxId() - initialCount - num_art_processes_)
+		TLOG_WARNING("SharedMemoryEventManager") << std::to_string(GetAttachedCount() - initialCount - num_art_processes_)
 			<< " art processes have not started after 5s. Check art configuration!" << TLOG_ENDL;
 	}
 	else
@@ -387,7 +387,7 @@ void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag)
 {
 	auto hdr = *reinterpret_cast<detail::RawFragmentHeader*>(frag->headerAddress());
 
-	for (auto ii = 0; ii <= GetMaxId(); ++ii)
+	for (auto ii = 0; ii <= GetAttachedCount(); ++ii)
 	{
 		if (ii == GetMyId()) continue;
 		hdr.sequence_id = 0xFFFFFFFFF000 + 1 + ii;
