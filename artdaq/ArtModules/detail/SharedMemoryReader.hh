@@ -76,7 +76,7 @@ namespace artdaq
 							   art::ProductRegistryHelper& help,
 							   art::SourceHelper const& pm)
 				: pmaker(pm)
-				, incoming_events(new SharedMemoryEventReceiver(ps.get<int>("shared_memory_key"),
+				, incoming_events(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key"),
 																ps.get<size_t>("buffer_count"),
 																ps.get<size_t>("max_event_size_bytes")))
 				, waiting_time(ps.get<double>("waiting_time", 86400.0))

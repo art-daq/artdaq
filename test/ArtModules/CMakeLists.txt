@@ -11,6 +11,12 @@ simple_plugin(FragmentSniffer "module"
   ${CETLIB_EXCEPT}
   )
 
+  
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+
 cet_test(shared_memory_reader_t USE_BOOST_UNIT
   LIBRARIES
   artdaq_ArtModules
@@ -23,7 +29,7 @@ cet_test(shared_memory_reader_t USE_BOOST_UNIT
   canvas_Persistency_Common_dict
   canvas_Persistency_WrappedStdDictionaries_dict
   art_Utilities
-#  art_Version
+  $ENV{ART_LIB}/libart_Version.so
   )
 
 cet_test(daq_flow_t

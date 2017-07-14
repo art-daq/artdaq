@@ -4,7 +4,7 @@
 #include <fstream>
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, std::string art_fhicl)
-	: SharedMemoryManager(pset.get<int>("shared_memory_key"),
+	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key"),
 						  pset.get<size_t>("buffer_count"),
 						  pset.get<size_t>("max_event_size_bytes"),
 						  pset.get<size_t>("stale_buffer_timeout_usec", 1000000))
