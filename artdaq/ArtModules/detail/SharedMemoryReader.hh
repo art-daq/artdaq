@@ -99,10 +99,10 @@ namespace artdaq
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 				}
 				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string() << TLOG_ENDL;
-				for(auto& type : fragment_type_map_)
-				{
-					TLOG_INFO("SharedMemoryReader") << "Fragment Type " << type.second << " has typeid " << std::to_string(type.first) << TLOG_ENDL;
-				}
+				//for(auto& type : fragment_type_map_)
+				//{
+				//	TLOG_INFO("SharedMemoryReader") << "Fragment Type " << type.second << " has typeid " << std::to_string(type.first) << TLOG_ENDL;
+				//}
 			}
 
 			/**
