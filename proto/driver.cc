@@ -118,10 +118,10 @@ int main(int argc, char * argv[]) try
 				break;
 			}
 			artdaq::FragmentPtr tempFrag;
-			auto sts = store.AddFragment(std::move(val), 5000000, tempFrag);
+			auto sts = store.AddFragment(std::move(val), 1000000, tempFrag);
 			if (!sts)
 			{
-				TLOG_ERROR("artdaqDriver") << "Fragment was not added after 5s. Check art thread status!" << TLOG_ENDL;
+				TLOG_ERROR("artdaqDriver") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
 				exit(1);
 			}
 		}

@@ -157,8 +157,7 @@ namespace artdaq
 						  art::SubRunPrincipal*& outSR,
 						  art::EventPrincipal*& outE)
 			{
-				TLOG_INFO("SharedMemoryReader") << "readNext BEGIN" << TLOG_ENDL;
-				TRACE( 5, "readNext BEGIN" );
+				TLOG_DEBUG("SharedMemoryReader") << "readNext BEGIN" << TLOG_ENDL;
 				/*if (outputFileCloseNeeded) {
 				outputFileCloseNeeded = false;
 				return false;
