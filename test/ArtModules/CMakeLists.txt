@@ -17,6 +17,11 @@ simple_plugin(FragmentSniffer "module"
 #    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
+if(${art_not_in_ups})
+else(${art_not_in_ups})
+ set(artVersionLib $ENV{ART_LIB}/libart_Version.so)
+endif(${art_not_in_ups})
+
 cet_test(shared_memory_reader_t USE_BOOST_UNIT
   LIBRARIES
   artdaq_ArtModules
@@ -29,7 +34,7 @@ cet_test(shared_memory_reader_t USE_BOOST_UNIT
   canvas_Persistency_Common_dict
   canvas_Persistency_WrappedStdDictionaries_dict
   art_Utilities
-  $ENV{ART_LIB}/libart_Version.so
+  ${artVersionLib}
   )
 
 cet_test(daq_flow_t
