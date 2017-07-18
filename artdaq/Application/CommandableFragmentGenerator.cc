@@ -843,7 +843,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 					ContainerFragmentLoader cfl(*frags.back());
 
 					if (mode_ == RequestMode::Window && !data_thread_running_ && !windowClosed) cfl.set_missing_data(true);
-					if (mode_ == RequestMode::Window && dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() < min)
+					if (mode_ == RequestMode::Window && dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min)
 					{
 						TLOG_DEBUG("CommandableFragmentGenerator") << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer" << TLOG_ENDL;
 						cfl.set_missing_data(true);
