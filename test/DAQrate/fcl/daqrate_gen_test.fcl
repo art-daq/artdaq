@@ -18,8 +18,7 @@ buffer_count: 4
 run_number: 11
   max_event_size_bytes: @local::event_size
   fragment_size: @local::payload_size_bytes
-  shared_memory_key: 0xBEE7
-  fragment_count: 5
+  expected_fragments_per_event: 5
   use_art: false
   
   detectors: [ det0, det1, det2, det3, det4 ]

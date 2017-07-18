@@ -48,7 +48,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	fhicl::ParameterSet tmp = pset;
 	tmp.erase("daq");
-
+	
 	event_store_ptr_ = std::shared_ptr<SharedMemoryEventManager>(new SharedMemoryEventManager(pset, tmp.to_string()));
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(pset, event_store_ptr_));

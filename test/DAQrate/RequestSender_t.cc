@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE(Construct) {
 BOOST_AUTO_TEST_CASE(Tokens)
 {
 	artdaq::configureMessageFacility("RequestSender_t");
-	const int TOKEN_PORT = rand() % 60000 + 1024;
+	const int TOKEN_PORT = seedAndRandom() % 60000 + 1024;
 	TLOG_DEBUG("RequestSender_t") << "Opening token listener socket" << TLOG_ENDL;
 	auto token_socket = TCP_listen_fd(TOKEN_PORT, 3 * sizeof(artdaq::detail::RoutingToken));
 
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 BOOST_AUTO_TEST_CASE(Requests)
 {
 	artdaq::configureMessageFacility("RequestSender_t");
-	const int REQUEST_PORT = rand() % 60000 + 1024;
+	const int REQUEST_PORT = seedAndRandom() % 60000 + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet pset;
 	pset.put("request_port", REQUEST_PORT);

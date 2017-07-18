@@ -263,7 +263,7 @@ void RoutingMasterTest::generate_tokens()
 		token_counter[rank] = 0;
 	}
 	while (sent_tokens < token_count_) {
-		int this_rank = eb_ranks_[rand() % eb_ranks_.size()];
+		int this_rank = eb_ranks_[seedAndRandom() % eb_ranks_.size()];
 		token_counter[this_rank]++;
 		artdaq::detail::RoutingToken token;
 		token.header = TOKEN_MAGIC;

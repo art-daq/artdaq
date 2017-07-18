@@ -28,15 +28,14 @@ int main(int argc, char* argv[])
 		size_t const NUM_FRAGS_PER_EVENT = 5;
 		SharedMemoryEventManager::run_id_t const RUN_ID = 2112;
 		size_t const NUM_EVENTS = 100;
-		pset.put("fragment_count", NUM_FRAGS_PER_EVENT);
+		pset.put("expected_fragments_per_event", NUM_FRAGS_PER_EVENT);
 		pset.put("run_number", RUN_ID);
 		pset.put("print_event_store_stats", true);
 		pset.put("event_queue_wait_time", 10.0);
 		pset.put("max_event_size_bytes", 0x100000);
-		pset.put("shared_memory_key", 0xDA8F10E);
 		pset.put("buffer_count", 10);
 
-		auto temp = pset.to_string() + " source.waiting_time: 10 source.buffer_count: 10 source.shared_memory_key: 0xDA8F10E source.fragment_count: " + std::to_string(NUM_FRAGS_PER_EVENT);
+		auto temp = pset.to_string() + " source.waiting_time: 10";
 		pset = fhicl::ParameterSet();
 		fhicl::make_ParameterSet(temp, pset);
 		// Eventually, this test should make a mixed-up streams of

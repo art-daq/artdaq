@@ -29,13 +29,13 @@ namespace artdaq {
 		 * \verbatim
 		 * SharedMemoryEventManager accepts the following Parameters:
 		 * 
-		 * "shm_key" (Default: 0xBEE7): Key used to connect to shared memory
-		 * "event_queue_depth" (Default: 40): Number of events in the Shared Memory (incomplete + pending art)
+		 * "buffer_count" REQUIRED: Number of events in the Shared Memory (incomplete + pending art)
 		 * "max_event_size_bytes" REQUIRED: Maximum event size (all Fragments), in bytes
+		 *  OR "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 		 * "stale_buffer_touch_count" (Default: 0x10000): Maximum number of times a buffer may be queried before being marked as abandoned. 
 		 * Owner resets this counter every time it touches the buffer.
 		 * "art_analyzer_count" (Default: 1): Number of art procceses to start
-		 * "fragment_count" (REQUIRED): Number of Fragments to expect per event
+		 * "expected_fragments_per_event" (REQUIRED): Number of Fragments to expect per event
 		 * "update_run_ids_on_new_fragment" (Default: true): Whether the run and subrun ID of an event should be updated whenever a Fragment is added.
 		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
 		 * \endverbatim
@@ -80,16 +80,11 @@ namespace artdaq {
 		void DoneWritingFragment(detail::RawFragmentHeader frag);
 
 		/**
-		 * \brief Check if there is space for a Fragment with the given header
-		 * \param frag Header to check
-		 * \return Whether there is space (either in a new buffer or an incomplete event) for a Fragment with the given sequence ID.
-		 */
-		//bool CheckSpace(detail::RawFragmentHeader frag);
-		/**
 		 * \brief Get the number of incomplete events in the SharedMemoryEventManager
 		 * \return The number of incomplete events in the SharedMemoryEventManager
 		 */
 		size_t GetOpenEventCount();
+
 		/**
 		 * \brief Get the count of Fragments of a given type in the buffer
 		 * \param buffer Buffer ID of buffer

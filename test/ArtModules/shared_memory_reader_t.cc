@@ -232,6 +232,10 @@ struct ShmRTestFixture
 		return *s_source_helper;
 	}
 
+	/**
+	 * \brief Gets the key for the shared memory segment
+	 * \return Key of the shared memory segment
+	 */
 	uint32_t getKey()
 	{
 		static uint32_t key = static_cast<uint32_t>(std::hash<std::string>()("shared_memory_reader_t"));
@@ -264,13 +268,17 @@ struct ShmRTestFixture
 		return s_reader;
 	}
 
+	/**
+	 * \brief Get the instance of the SharedMemoryEventManager
+	 * \return Static instance of the SharedMemoryEventManager
+	 */
 	artdaq::SharedMemoryEventManager& writer()
 	{
 		fhicl::ParameterSet pset;
 		pset.put("shared_memory_key", getKey());
 		pset.put("max_event_size_bytes", 0x100000);
 		pset.put("art_analyzer_count", 0);
-		pset.put("fragment_count", 1);
+		pset.put("expected_fragments_per_event", 1);
 		pset.put("buffer_count", 10);
 		static artdaq::SharedMemoryEventManager
 			s_writer(pset,pset.to_string());
@@ -286,6 +294,7 @@ namespace
 	/**
 	 * \brief Run a basic checkout of the SharedMemoryReader
 	 * \param reader SharedMemoryReader instance
+	 * \param writer SharedMemoryWriter instance
 	 * \param run Run principal pointer
 	 * \param subrun Subrun principal pointer
 	 * \param eventid ID of event

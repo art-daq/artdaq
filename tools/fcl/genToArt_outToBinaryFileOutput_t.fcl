@@ -14,14 +14,13 @@ genToArt:
   event_builder:
   {
 	buffer_count: 10
+	expected_fragments_per_event: 1
     event_queue_wait_time: 5.0
     print_event_store_stats: false
     fragment_receiver_count: 1
     use_art: true
     verbose: false
-	fragment_count: 1
 	max_event_size_bytes: 10000
-	shared_memory_key: 0x6E2A57BF
   }
 }
 
@@ -31,10 +30,6 @@ source:
   module_type: RawInput
   waiting_time: 25.0
   fragment_type_map: [[226, "ABC"]]
-	buffer_count: 10
-	fragment_count: 1
-	max_event_size_bytes: 10000
-	shared_memory_key: 0x6E2A57BF
 }
 
 outputs: {

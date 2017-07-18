@@ -45,7 +45,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	fhicl::ParameterSet agg_pset;
 	try
 	{
-		agg_pset = daq_pset.get<fhicl::ParameterSet>("Dispatcher");
+		agg_pset = daq_pset.get<fhicl::ParameterSet>("dispatcher", daq_pset.get<fhicl::ParameterSet>("aggregator"));
 	}
 	catch (...)
 	{

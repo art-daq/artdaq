@@ -8,6 +8,7 @@
 
 #define my_rank artdaq::Globals::my_rank_
 #define metricMan artdaq::Globals::metricMan_
+#define seedAndRandom() artdaq::Globals::seedAndRandom_()
 
 // Trace Levels
 #define DATA_RECV         5
@@ -37,6 +38,12 @@ namespace artdaq
 		 * \return timeval represented as a double
 		 */
 		static double timevalAsDouble(struct timeval tv);
+
+		static uint32_t seedAndRandom_()
+		{
+			srand(time(0));
+			return rand();
+		}
 	};
 }
 

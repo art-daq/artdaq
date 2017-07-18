@@ -35,9 +35,7 @@ NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
 	: NetMonTransportServiceInterface()
 	, data_pset_(pset)
 	, sender_ptr_(nullptr)
-	, incoming_events_(new artdaq::SharedMemoryEventReceiver(pset.get<int>("shared_memory_key", 0xBEE7),
-													 pset.get<size_t>("buffer_count", 20),
-													 pset.get<size_t>("max_buffer_size", 1024)))
+	, incoming_events_(new artdaq::SharedMemoryEventReceiver(pset.get<int>("shared_memory_key", 0xBEE7)))
 	, recvd_fragments_(nullptr)
 {
 	if (pset.has_key("rank")) my_rank = pset.get<int>("rank");

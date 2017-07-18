@@ -4,12 +4,12 @@
 #include <fstream>
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, std::string art_fhicl)
-	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key"),
+	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", seedAndRandom()),
 						  pset.get<size_t>("buffer_count"),
-						  pset.get<size_t>("max_event_size_bytes"),
+						  pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
 						  pset.get<size_t>("stale_buffer_timeout_usec", 1000000))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
-	, num_fragments_per_event_(pset.get<size_t>("fragment_count"))
+	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
 	, queue_size_(pset.get<size_t>("buffer_count"))
 	, run_id_(0)
 	, subrun_id_(0)
@@ -27,7 +27,10 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 {
 	TLOG_DEBUG("SharedMemoryEventManager") << "BEGIN CONSTRUCTOR" << TLOG_ENDL;
 	std::ofstream of(config_file_name_);
-	of << art_fhicl << std::endl;
+
+	of << art_fhicl
+		<< " source.shared_memory_key: 0x" << std::hex << GetKey()
+		<< std::endl;
 	of.close();
 
 	if (pset.get<bool>("use_art", true) == false) num_art_processes_ = 0;
@@ -232,7 +235,9 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, run
 	}
 	if (newRun == 0) newRun = run_id_ + 1;
 	std::ofstream of(config_file_name_, std::ofstream::trunc);
-	of << art_fhicl << std::endl;
+	of << art_fhicl
+		<< " source.shared_memory_key: " << std::to_string(GetKey())
+		<< std::endl;
 	of.close();
 	if (n_art_processes != -1)
 	{
@@ -245,6 +250,7 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, run
 
 bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnValues)
 {
+	TLOG_DEBUG("SharedMemoryEventManager") << "SharedMemoryEventManager::endOfData" << TLOG_ENDL;
 	restart_art_ = false;
 
 	size_t initialStoreSize = GetOpenEventCount();
@@ -276,7 +282,6 @@ bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnV
 		if (lastReadCount > 0) usleep(1000);
 	}
 
-	TLOG_DEBUG("SharedMemoryEventManager") << "SharedMemoryEventManager::endOfData" << TLOG_ENDL;
 	broadcastFragment_(std::move(Fragment::eodFrag(0)));
 
 	TLOG_ARB(4, "SharedMemoryEventManager") << "endOfData: Getting return codes from art processes" << TLOG_ENDL;
@@ -287,6 +292,8 @@ bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnV
 	}
 	readerReturnValues = art_process_return_codes_;
 	if (readerReturnValues.size() == 0) readerReturnValues.push_back(0);
+
+	ResetAttachedCount();
 
 	TLOG_DEBUG("SharedMemoryEventManager") << "endOfData END" << TLOG_ENDL;
 	return true;

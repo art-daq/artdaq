@@ -13,10 +13,9 @@ BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 BOOST_AUTO_TEST_CASE(Construct) {
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
-	pset.put("shared_memory_key", rand() % 0xBEE7BEE7);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
-	pset.put("fragment_count", 2);
+	pset.put("expected_fragments_per_event", 2);
 	artdaq::SharedMemoryEventManager t( pset, pset.to_string());
 
 	BOOST_REQUIRE_EQUAL(t.runID(), 0);
@@ -29,10 +28,9 @@ BOOST_AUTO_TEST_CASE(AddFragment) {
 
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
-	pset.put("shared_memory_key", rand() % 0xBEE7BEE7);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
-	pset.put("fragment_count", 2);
+	pset.put("expected_fragments_per_event", 2);
 	artdaq::SharedMemoryEventManager t(pset, pset.to_string());
 
 	artdaq::FragmentPtr frag(new artdaq::Fragment(1,0,artdaq::Fragment::FirstUserFragmentType,0UL)), tmpFrag;
@@ -50,10 +48,9 @@ BOOST_AUTO_TEST_CASE(AddFragment) {
 BOOST_AUTO_TEST_CASE(DataFlow) {
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
-	pset.put("shared_memory_key", rand() % 0xBEE7BEE7);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
-	pset.put("fragment_count", 3);
+	pset.put("expected_fragments_per_event", 3);
 	artdaq::SharedMemoryEventManager t(pset, pset.to_string());
 
 	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
@@ -94,12 +91,10 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 {
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
-	auto key = rand() % 0xBEE7BEE7;
-	pset.put("shared_memory_key", key);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
-	pset.put("fragment_count", 2);
-	artdaq::SharedMemoryEventManager t(pset, pset.to_string());
+	pset.put("expected_fragments_per_event", 2);
+	artdaq::SharedMemoryEventManager t( pset, pset.to_string());
 
 	t.startRun(1);
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
@@ -115,7 +110,7 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	BOOST_REQUIRE_EQUAL(t.subrunID(), 1);
 	
 
-	artdaq::SharedMemoryEventReceiver r(key, 2, 1000);
+	artdaq::SharedMemoryEventReceiver r(t.GetKey());
 	t.endSubrun();
 	bool errflag = false;
 	auto hdr = r.ReadHeader(errflag);

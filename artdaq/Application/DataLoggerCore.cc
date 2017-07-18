@@ -48,7 +48,7 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	fhicl::ParameterSet agg_pset;
 	try
 	{
-		agg_pset = daq_pset.get<fhicl::ParameterSet>("DataLogger");
+		agg_pset = daq_pset.get<fhicl::ParameterSet>("datalogger", daq_pset.get<fhicl::ParameterSet>("aggregator"));
 	}
 	catch (...)
 	{

@@ -11,10 +11,9 @@ BOOST_AUTO_TEST_SUITE(DataReceiverManager_test)
 BOOST_AUTO_TEST_CASE(Construct) {
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
-	pset.put("shared_memory_key", rand() % 0xBEE7BEE7);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
-	pset.put("fragment_count", 2);
+	pset.put("expected_fragments_per_event", 2);
 
 	fhicl::ParameterSet source_fhicl;
 	source_fhicl.put("transferPluginType", "Shmem");
@@ -33,10 +32,9 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 	artdaq::configureMessageFacility("DataReceiverManager_t");
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
-	pset.put("shared_memory_key", rand() % 0xBEE7BEE7);
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
-	pset.put("fragment_count", 2);
+	pset.put("expected_fragments_per_event", 2);
 
 	fhicl::ParameterSet source_fhicl;
 	source_fhicl.put("transferPluginType", "Shmem");

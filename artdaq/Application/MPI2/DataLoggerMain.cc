@@ -12,7 +12,7 @@
 
 int main(int argc, char* argv[])
 {
-	artdaq::configureMessageFacility("DataLogger");
+	artdaq::configureMessageFacility("datalogger");
 
 	// initialization
 
