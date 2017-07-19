@@ -253,7 +253,7 @@ namespace
 			expected_frags_per_event += gen.numFragIDs();
 		}
 
-		artdaq::SharedMemoryEventManager store(eb_pset, pset.to_string());
+		artdaq::SharedMemoryEventManager store(eb_pset, pset);
 		store.startRun(gta_pset.get<int>("run_number", 1000));
 
 		auto const events_to_generate =

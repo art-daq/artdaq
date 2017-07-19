@@ -47,7 +47,7 @@ namespace artdaq
 
 			art::SourceHelper const pmaker; ///< An art::SourceHelper instance
 			std::unique_ptr<SharedMemoryEventReceiver> incoming_events; ///< The events from the EventStore
-			artdaq::TimeUtils::seconds waiting_time; ///< The amount of time to wait for an event from the queue
+			double waiting_time; ///< The amount of time to wait for an event from the queue
 			bool resume_after_timeout; ///< Whether to resume if the dequeue action times out
 			std::string pretend_module_name; ///< The module name to store data under
 			std::string unidentified_instance_name; ///< The name to use for unknown Fragment types
@@ -175,15 +175,18 @@ namespace artdaq
 
 				bool keep_looping = true;
 				bool got_event = false;
-				auto sleepTimeUsec = std::chrono::duration_cast<std::chrono::microseconds>(waiting_time / 1000).count();
-				if (sleepTimeUsec > 1000000) sleepTimeUsec = 1000000;
+				auto sleepTimeUsec = waiting_time * 1000; // waiting_time * 1000000 us/s / 1000 reps = us/rep
+				if (sleepTimeUsec > 100000) sleepTimeUsec = 100000; // Don't wait longer than 1/10th of a second
 				while (keep_looping)
 				{
 					keep_looping = false;
 					auto start = std::chrono::steady_clock::now();
-					while (!got_event && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start) < waiting_time) {
+					while (!got_event && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start).count() < waiting_time) {
 						got_event = incoming_events->ReadyForRead();
-						if (!got_event) usleep(sleepTimeUsec);
+						if (!got_event) {
+							usleep(sleepTimeUsec);
+							//TLOG_INFO("SharedMemoryReader") << "Waited " << std::to_string(std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start).count()) << " of " << std::to_string(waiting_time) << TLOG_ENDL;
+						}
 					}
 					if (!got_event)
 					{

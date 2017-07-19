@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 		// test of the EventStore's ability to deal with multiple events
 		// simulatenously.
 		GenericFragmentSimulator sim(pset);
-		std::unique_ptr<SharedMemoryEventManager> events(new SharedMemoryEventManager(pset, pset.to_string()));
+		std::unique_ptr<SharedMemoryEventManager> events(new SharedMemoryEventManager(pset, pset));
 		events->startRun(100);
 		FragmentPtrs frags;
 		size_t event_count = 0;
@@ -76,11 +76,11 @@ int main(int argc, char* argv[])
 			rc = *std::max_element(readerReturnValues.begin(), readerReturnValues.end());
 
 			size_t const NUM_EVENTS2 = 200;
-			auto temp = pset.to_string() + " source.waiting_time: 10 physics.analyzers.frags.num_events_expected: " + std::to_string(NUM_EVENTS2);
+			auto temp_config = pset.to_string() + " source.waiting_time: 10 physics.analyzers.frags.num_events_expected: " + std::to_string(NUM_EVENTS2);
 			fhicl::ParameterSet sim_config2;
-			fhicl::make_ParameterSet(temp, sim_config2);
+			fhicl::make_ParameterSet(temp_config, sim_config2);
 			GenericFragmentSimulator sim2(sim_config2);
-			events->ReconfigureArt(temp);
+			events->ReconfigureArt(sim_config2);
 			event_count = 0;
 			while (frags.clear() , event_count++ < NUM_EVENTS2 && sim2.getNext(frags))
 			{

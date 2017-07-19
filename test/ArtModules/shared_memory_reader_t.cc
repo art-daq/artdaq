@@ -281,7 +281,7 @@ struct ShmRTestFixture
 		pset.put("expected_fragments_per_event", 1);
 		pset.put("buffer_count", 10);
 		static artdaq::SharedMemoryEventManager
-			s_writer(pset,pset.to_string());
+			s_writer(pset,pset);
 		return s_writer;
 		
 	}

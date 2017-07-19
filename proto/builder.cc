@@ -227,7 +227,7 @@ void Builder::sink()
 	printHost("sink");
 	{
 		// This scope exists to control the lifetime of 'events'
-		auto events = std::make_shared<artdaq::SharedMemoryEventManager>(daq_pset_, daq_pset_.to_string());
+		auto events = std::make_shared<artdaq::SharedMemoryEventManager>(daq_pset_, daq_pset_);
 		events->startRun(daq_pset_.get<int>("run_number", 100));
 		{ // Block to handle scope of h, below.
 			artdaq::DataReceiverManager h(daq_pset_, events);

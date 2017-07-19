@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(Construct) {
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 2);
-	artdaq::SharedMemoryEventManager t( pset, pset.to_string());
+	artdaq::SharedMemoryEventManager t( pset, pset);
 
 	BOOST_REQUIRE_EQUAL(t.runID(), 0);
 	BOOST_REQUIRE_EQUAL(t.subrunID(), 0);
@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(AddFragment) {
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 2);
-	artdaq::SharedMemoryEventManager t(pset, pset.to_string());
+	artdaq::SharedMemoryEventManager t(pset, pset);
 
 	artdaq::FragmentPtr frag(new artdaq::Fragment(1,0,artdaq::Fragment::FirstUserFragmentType,0UL)), tmpFrag;
 	frag->resize(4);
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(DataFlow) {
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 3);
-	artdaq::SharedMemoryEventManager t(pset, pset.to_string());
+	artdaq::SharedMemoryEventManager t(pset, pset);
 
 	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
 	frag->resize(4);
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	pset.put("buffer_count", 2);
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 2);
-	artdaq::SharedMemoryEventManager t( pset, pset.to_string());
+	artdaq::SharedMemoryEventManager t(pset, pset);
 
 	t.startRun(1);
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);

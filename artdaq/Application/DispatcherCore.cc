@@ -123,7 +123,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 	return "Success";
 }
 
-std::string artdaq::DispatcherCore::generate_filter_fhicl_()
+fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 {
 	fhicl::ParameterSet generated_pset;
 
@@ -131,5 +131,5 @@ std::string artdaq::DispatcherCore::generate_filter_fhicl_()
 	 * \todo Magic code to generate proper art configuration for monitors!
 	 */
 
-	return generated_pset.to_string();
+	return generated_pset;
 }

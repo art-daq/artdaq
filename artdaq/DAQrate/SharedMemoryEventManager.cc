@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <fstream>
 
-artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, std::string art_fhicl)
+artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", seedAndRandom()),
 						  pset.get<size_t>("buffer_count"),
 						  pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
@@ -28,10 +28,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	TLOG_DEBUG("SharedMemoryEventManager") << "BEGIN CONSTRUCTOR" << TLOG_ENDL;
 	std::ofstream of(config_file_name_);
 
-	of << art_fhicl
-		<< " source.shared_memory_key: 0x" << std::hex << GetKey()
-		<< std::endl;
-	of.close();
+	configureArt_(art_pset);
 
 	if (pset.get<bool>("use_art", true) == false) num_art_processes_ = 0;
 
@@ -51,6 +48,7 @@ artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
 	TLOG_DEBUG("SharedMemoryEventManager") << "DESTRUCTOR" << TLOG_ENDL;
 	std::vector<int> ignored;
 	endOfData(ignored);
+	remove(config_file_name_.c_str());
 }
 
 bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader frag, void* dataPtr, bool skipCheck)
@@ -225,7 +223,7 @@ void artdaq::SharedMemoryEventManager::StartArt()
 
 }
 
-void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, run_id_t newRun, int n_art_processes)
+void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_pset, run_id_t newRun, int n_art_processes)
 {
 	TLOG_DEBUG("SharedMemoryEventManager") << "ReconfigureArt BEGIN" << TLOG_ENDL;
 	if (restart_art_) // Art is running
@@ -235,10 +233,7 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(std::string art_fhicl, run
 	}
 	if (newRun == 0) newRun = run_id_ + 1;
 	std::ofstream of(config_file_name_, std::ofstream::trunc);
-	of << art_fhicl
-		<< " source.shared_memory_key: " << std::to_string(GetKey())
-		<< std::endl;
-	of.close();
+	configureArt_(art_pset);
 	if (n_art_processes != -1)
 	{
 		TLOG_INFO("SharedMemoryEventManager") << "Setting number of art processes to " << n_art_processes << TLOG_ENDL;
@@ -448,4 +443,17 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	IncrementWritePos(new_buffer, sizeof(detail::RawEventHeader));
 	TLOG_TRACE("SharedMemoryEventManager") << "getBufferForSequenceID " << std::to_string(seqID) << " returning newly initialized buffer " << new_buffer << TLOG_ENDL;
 	return new_buffer;
+}
+
+void artdaq::SharedMemoryEventManager::configureArt_(fhicl::ParameterSet art_pset)
+{
+	std::ofstream of(config_file_name_, std::ofstream::trunc);
+	of << art_pset.to_string();
+
+	if(art_pset.has_key("services.NetMonTransportServiceInterface"))
+	{
+		of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << GetKey();
+	}
+	of << " source.shared_memory_key: 0x" << std::hex << GetKey();
+	of.close();
 }

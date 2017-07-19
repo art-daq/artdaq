@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(Construct) {
 	fhicl::ParameterSet sources_fhicl;
 	sources_fhicl.put("shmem", source_fhicl);
 	pset.put("sources", sources_fhicl);
-	auto shm = std::make_shared<artdaq::SharedMemoryEventManager>(pset, pset.to_string());
+	auto shm = std::make_shared<artdaq::SharedMemoryEventManager>(pset, pset);
 	artdaq::DataReceiverManager t(pset, shm);
 }
 
@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 	fhicl::ParameterSet sources_fhicl;
 	sources_fhicl.put("shmem", source_fhicl);
 	pset.put("sources", sources_fhicl);
-	auto shm = std::make_shared<artdaq::SharedMemoryEventManager>(pset, pset.to_string());
+	auto shm = std::make_shared<artdaq::SharedMemoryEventManager>(pset, pset);
 	artdaq::DataReceiverManager t(pset, shm);
 	artdaq::ShmemTransfer transfer(source_fhicl, artdaq::TransferInterface::Role::kSend);
 	BOOST_REQUIRE_EQUAL(t.getSharedMemoryEventManager().get(), shm.get());

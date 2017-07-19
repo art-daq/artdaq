@@ -98,7 +98,7 @@ public:
 
 
 private:		
-	std::string generate_filter_fhicl_();
+	fhicl::ParameterSet generate_filter_fhicl_();
 
 	std::unique_ptr<Fragment> init_fragment_ptr_;
 	std::mutex dispatcher_transfers_mutex_;

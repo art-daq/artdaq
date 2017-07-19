@@ -24,7 +24,7 @@ namespace artdaq {
 		/**
 		 * \brief SharedMemoryEventManager Constructor
 		 * \param pset ParameterSet used to configure SharedMemoryEventManager
-		 * \param art_fhicl FHiCL string used to configure art
+		 * \param art_pset ParameterSet used to configure art
 		 * 
 		 * \verbatim
 		 * SharedMemoryEventManager accepts the following Parameters:
@@ -40,7 +40,7 @@ namespace artdaq {
 		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
 		 * \endverbatim
 		 */
-		SharedMemoryEventManager(fhicl::ParameterSet pset, std::string art_fhicl);
+		SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
 		/**
 		 * \brief SharedMemoryEventManager Destructor
 		 */
@@ -103,11 +103,11 @@ namespace artdaq {
 		void StartArt();
 		/**
 		 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
-		 * \param art_fhicl Fhicl string used to configure art
+		 * \param art_pset ParameterSet used to configure art
 		 * \param newRun New Run number for reconfigured art
 		 * \param n_art_processes Number of art processes to start, -1 (default) leaves the number unchanged
 		 */
-		void ReconfigureArt(std::string art_fhicl, run_id_t newRun = 0, int n_art_processes = -1);
+		void ReconfigureArt(fhicl::ParameterSet art_pset, run_id_t newRun = 0, int n_art_processes = -1);
 
 		/**
 		* \brief Indicate that the end of input has been reached to the art processes.
@@ -210,6 +210,8 @@ namespace artdaq {
 		detail::RawEventHeader* getEventHeader_(int buffer);
 
 		int getBufferForSequenceID_(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
+
+		void configureArt_(fhicl::ParameterSet art_pset);
 	};
 }
 

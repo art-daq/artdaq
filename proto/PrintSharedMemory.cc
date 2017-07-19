@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
 	if(pset.get<bool>("ReadEventInfo", false))
 	{
-		artdaq::SharedMemoryEventManager t(pset, pset.to_string());
+		artdaq::SharedMemoryEventManager t(pset, pset);
 		std::cout << t.toString() << std::endl;
 	}
 	else

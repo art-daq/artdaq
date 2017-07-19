@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 		// test of the EventStore's ability to deal with multiple events
 		// simulatenously.
 		GenericFragmentSimulator sim(pset);
-		SharedMemoryEventManager events(pset, pset.to_string());
+		SharedMemoryEventManager events(pset, pset);
 		events.startRun(RUN_ID);
 		FragmentPtrs frags;
 		size_t event_count = 0;

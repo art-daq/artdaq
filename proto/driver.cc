@@ -85,7 +85,7 @@ int main(int argc, char * argv[]) try
 	// associated with async threads and std::string::c_str().
 	fhicl::ParameterSet event_builder_pset = pset.get<fhicl::ParameterSet>("event_builder");
 
-	artdaq::SharedMemoryEventManager store(event_builder_pset, pset.to_string());
+	artdaq::SharedMemoryEventManager store(event_builder_pset, pset);
 	//////////////////////////////////////////////////////////////////////
 
 	int events_to_generate = pset.get<int>("events_to_generate", 0);
