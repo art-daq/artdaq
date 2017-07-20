@@ -53,10 +53,10 @@ artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
 
 bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader frag, void* dataPtr, bool skipCheck)
 {
-	TLOG_DEBUG("SharedMemoryEventManager") << "AddFragment(Header, ptr) BEGIN frag.word_count=" << std::to_string(frag.word_count)
+	TLOG_TRACE("SharedMemoryEventManager") << "AddFragment(Header, ptr) BEGIN frag.word_count=" << std::to_string(frag.word_count)
 		<< ", sequence_id=" << std::to_string(frag.sequence_id) << TLOG_ENDL;
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
-	TLOG_DEBUG("SharedMemoryEventManager") << "Using buffer " << std::to_string(buffer) << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "Using buffer " << std::to_string(buffer) << TLOG_ENDL;
 	if (buffer == -1) return false;
 
 	std::unique_lock<std::mutex> lk(buffer_write_mutexes_[buffer]);
@@ -66,34 +66,34 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 		hdr->subrun_id = subrun_id_;
 	}
 
-	TLOG_DEBUG("SharedMemoryEventManager") << "AddFragment before Write calls" << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "AddFragment before Write calls" << TLOG_ENDL;
 	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
 
 	if (!skipCheck) {
-		TLOG_DEBUG("SharedMemoryEventManager") << "Checking for complete event" << TLOG_ENDL;
+		TLOG_TRACE("SharedMemoryEventManager") << "Checking for complete event" << TLOG_ENDL;
 		auto fragmentCount = GetFragmentCount(buffer);
 		hdr->is_complete = fragmentCount == num_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
-		TLOG_DEBUG("SharedMemoryEventManager") << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
+		TLOG_TRACE("SharedMemoryEventManager") << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
 			<< ", fragmentCount=" << std::to_string(fragmentCount)
 			<< ", num_fragments_per_event=" << std::to_string(num_fragments_per_event_)
 			<< ", buffer_writes_pending_[buffer]=" << std::to_string(buffer_writes_pending_[buffer]) << TLOG_ENDL;
 
 		if (hdr->is_complete)
 		{
-			TLOG_DEBUG("SharedMemoryEventManager") << "Closing event" << TLOG_ENDL;
+			TLOG_TRACE("SharedMemoryEventManager") << "Closing event" << TLOG_ENDL;
 			MarkBufferFull(buffer);
 			requests_.RemoveRequest(frag.sequence_id);
 			requests_.SendRoutingToken(1);
 		}
 	}
 
-	TLOG_DEBUG("SharedMemoryEventManager") << "AddFragment END" << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "AddFragment END" << TLOG_ENDL;
 	return true;
 }
 
 bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag, int64_t timeout_usec, FragmentPtr& outfrag)
 {
-	TLOG_DEBUG("SharedMemoryEventManager") << "AddFragment(FragmentPtr) BEGIN" << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "AddFragment(FragmentPtr) BEGIN" << TLOG_ENDL;
 	auto hdr = *reinterpret_cast<detail::RawFragmentHeader*>(frag->headerAddress());
 	auto data = frag->headerAddress();
 	auto start = std::chrono::steady_clock::now();
@@ -112,7 +112,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag, int64_t tim
 
 artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detail::RawFragmentHeader frag)
 {
-	TLOG_DEBUG("SharedMemoryEventManager") << "WriteFragmentHeader BEGIN" << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "WriteFragmentHeader BEGIN" << TLOG_ENDL;
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
 
 	if (buffer == -1) return nullptr;
@@ -124,16 +124,16 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 	auto pos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));
 	IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
 
-	TLOG_DEBUG("SharedMemoryEventManager") << "WriteFragmentHeader END" << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "WriteFragmentHeader END" << TLOG_ENDL;
 	return pos;
 
 }
 
 void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHeader frag)
 {
-	TLOG_DEBUG("SharedMemoryEventManager") << "DoneWritingFragment BEGIN" << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "DoneWritingFragment BEGIN" << TLOG_ENDL;
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, frag.timestamp);
-	if (buffer == -1) throw cet::exception("SharedMemoryEventManager") << "getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!";
+	if (buffer == -1) Detach(true,"SharedMemoryEventManager","getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!");
 	buffer_writes_pending_[buffer]--;
 	std::unique_lock<std::mutex> lk(buffer_write_mutexes_[buffer]);
 	auto hdr = getEventHeader_(buffer);
@@ -150,7 +150,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		requests_.RemoveRequest(frag.sequence_id);
 		requests_.SendRoutingToken(1);
 	}
-	TLOG_DEBUG("SharedMemoryEventManager") << "DoneWritingFragment END" << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "DoneWritingFragment END" << TLOG_ENDL;
 }
 
 //bool artdaq::SharedMemoryEventManager::CheckSpace(detail::RawFragmentHeader frag)
@@ -179,7 +179,7 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCount(int buffer, Fragment::
 		auto fragHdr = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(GetReadPos(buffer));
 		IncrementReadPos(buffer, fragHdr->word_count * sizeof(RawDataType));
 		if (type != Fragment::InvalidFragmentType && fragHdr->type != type) continue;
-		TLOG_DEBUG("GetFragmentCount") << "Adding Fragment with size=" << std::to_string(fragHdr->word_count) << " to Fragment count" << TLOG_ENDL;
+		TLOG_TRACE("GetFragmentCount") << "Adding Fragment with size=" << std::to_string(fragHdr->word_count) << " to Fragment count" << TLOG_ENDL;
 		++count;
 	}
 
