@@ -197,9 +197,9 @@ int artdaq::MPITransfer::receiveFragmentHeader(detail::RawFragmentHeader& header
 	return status.MPI_SOURCE;
 }
 
-int artdaq::MPITransfer::receiveFragmentData(RawDataType* destination, size_t wordCount, size_t timeout_usec)
+int artdaq::MPITransfer::receiveFragmentData(RawDataType* destination, size_t wordCount)
 {
-	TLOG_ARB(6, uniqueLabel()) << "MPITransfer::receiveFragmentData entered wordCount=" << std::to_string(wordCount) << " tmo=" << std::to_string(timeout_usec) << " us (ignored)" << TLOG_ENDL;
+	TLOG_ARB(6, uniqueLabel()) << "MPITransfer::receiveFragmentData entered wordCount=" << std::to_string(wordCount) << TLOG_ENDL;
 	int wait_result = MPI_SUCCESS;
 	MPI_Status status;
 

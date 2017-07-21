@@ -76,10 +76,9 @@ namespace artdaq
 		* \brief Receive the body of a Fragment to the given destination pointer
 		* \param destination Pointer to memory region where Fragment data should be stored
 		 * \param wordCount Number of words of Fragment data to receive
-		* \param receiveTimeout Timeout for receive
 		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 		*/
-		int receiveFragmentData(RawDataType* destination, size_t wordCount, size_t receiveTimeout) override;
+		int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
 
 		/**
 		* \brief Copy a Fragment to the destination. Multicast is always unreliable
@@ -388,7 +387,7 @@ int artdaq::MulticastTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	return ret;
 }
 
-int artdaq::MulticastTransfer::receiveFragmentData(RawDataType* destination, size_t wordCount, size_t)
+int artdaq::MulticastTransfer::receiveFragmentData(RawDataType* destination, size_t wordCount)
 {
 	if (fragment_buffer_.size() > detail::RawFragmentHeader::num_words()) {
 		auto dataSize = (fragment_buffer_.size() - detail::RawFragmentHeader::num_words()) * sizeof(RawDataType);

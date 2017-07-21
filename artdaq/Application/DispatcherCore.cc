@@ -64,7 +64,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...) {} // OK if there's no metrics table defined in the FHiCL                          
 
-	return initializeDataReceiver(agg_pset, metric_pset);
+	return initializeDataReceiver(pset,agg_pset, metric_pset);
 }
 
 std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& pset)

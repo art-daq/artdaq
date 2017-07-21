@@ -55,9 +55,9 @@ namespace artdaq
 		* \param receiveTimeout Timeout for receive
 		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 		*/
-		int receiveFragmentData(RawDataType* destination, size_t wordCount, size_t receiveTimeout) override
+		int receiveFragmentData(RawDataType* destination, size_t wordCount) override
 		{
-			return theTransfer_->receiveFragmentData(destination, wordCount, receiveTimeout);
+			return theTransfer_->receiveFragmentData(destination, wordCount);
 		}
 
 		/**

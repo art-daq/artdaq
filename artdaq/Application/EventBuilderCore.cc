@@ -59,5 +59,5 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...) {} // OK if there's no metrics table defined in the FHiCL
 
-	return initializeDataReceiver(evb_pset, metric_pset);
+	return initializeDataReceiver(pset,evb_pset, metric_pset);
 }

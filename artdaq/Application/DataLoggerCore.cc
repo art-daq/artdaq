@@ -19,7 +19,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 artdaq::DataLoggerCore::DataLoggerCore(int rank, std::string name)
-	: DataReceiverCore(rank,name)
+	: DataReceiverCore(rank, name)
 {
 }
 
@@ -67,6 +67,6 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...) {} // OK if there's no metrics table defined in the FHiCL                                    
 
-	
-	return initializeDataReceiver(agg_pset, metric_pset);
+
+	return initializeDataReceiver(pset, agg_pset, metric_pset);
 }

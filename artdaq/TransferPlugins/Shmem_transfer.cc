@@ -119,7 +119,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 	return artdaq::TransferInterface::RECV_TIMEOUT;
 }
 
-int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t word_count, size_t)
+int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t word_count)
 {
 		auto sts = shm_manager_->ReadFragmentData(destination, word_count);
 

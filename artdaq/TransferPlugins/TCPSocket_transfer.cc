@@ -165,7 +165,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		sts = read(fd_, buff, byte_cnt);
 		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done with read" << TLOG_ENDL;
 
-		TLOG_ARB(9, uniqueLabel()) << "TCPSocketTransfer::recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << errno << ")" << TLOG_ENDL;
+		TLOG_ARB(9, uniqueLabel()) << "TCPSocketTransfer::recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << strerror(errno) << ")" << TLOG_ENDL;
 		if (sts <= 0)
 		{
 			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Error on receive, closing socket" << TLOG_ENDL;
@@ -214,7 +214,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	return ret_rank;
 }
 
-int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, size_t, size_t timeout_usec)
+int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, size_t)
 {
 	TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: BEGIN" << TLOG_ENDL;
 	int ret_rank = RECV_TIMEOUT;
@@ -224,31 +224,23 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		return RECV_TIMEOUT;
 	}
 
-	TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::recvFragment timeout_usec=" << std::to_string(timeout_usec) << TLOG_ENDL;
 	//void* buff=alloca(max_fragment_size_words_*8);
 	uint8_t* buff;
 	size_t byte_cnt = 0;
 	int sts;
-	uint64_t start_time_us = TimeUtils::gettimeofday_us();
 
 	pollfd pollfd_s;
 	pollfd_s.events = POLLIN | POLLERR;
 	pollfd_s.fd = fd_;
 
-	int timeout_ms;
-	if (timeout_usec == 0)
-		timeout_ms = 0;
-	else
-		timeout_ms = (timeout_usec + 999) / 1000; // want at least 1 ms
-
 	bool done = false;
 	while (!done)
 	{
 		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Polling fd to see if there's data" << TLOG_ENDL;
-		int num_fds_ready = poll(&pollfd_s, 1, timeout_ms);
+		int num_fds_ready = poll(&pollfd_s, 1, -1);
 		if (num_fds_ready <= 0)
 		{
-			if (num_fds_ready == 0 && timeout_ms > 0)
+			if (num_fds_ready == 0)
 			{
 				TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: No data on receive socket, returning RECV_TIMEOUT" << TLOG_ENDL;
 				return RECV_TIMEOUT;
@@ -279,7 +271,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		sts = read(fd_, buff, byte_cnt);
 		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done with read" << TLOG_ENDL;
 
-		TLOG_ARB(9, uniqueLabel()) << "recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << errno << ")" << TLOG_ENDL;
+		TLOG_ARB(9, uniqueLabel()) << "recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << strerror(errno) << ")" << TLOG_ENDL;
 		if (sts <= 0)
 		{
 			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Error on receive, closing socket" << TLOG_ENDL;
@@ -312,15 +304,6 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					break; // no more read of ready fds
 				}
 			}
-		}
-
-		if (!done && timeout_usec > 0)
-		{
-			// calc next timeout_ms (unless timed out)
-			size_t delta_us = TimeUtils::gettimeofday_us() - start_time_us;
-			if (delta_us > timeout_usec)
-				return RECV_TIMEOUT;
-			timeout_ms = ((timeout_usec - delta_us) + 999) / 1000; // want at least 1 ms
 		}
 	} // while(!done)...poll
 
@@ -444,7 +427,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 				// NOTE: YES -- could drop here
 				goto do_again;
 			}
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::sendFragment_: WRITE ERROR!" << TLOG_ENDL;
+			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::sendFragment_: WRITE ERROR: " << strerror(errno) << TLOG_ENDL;
 			connect_state = 0; // any write error closes
 			close(fd_);
 			fd_ = -1;

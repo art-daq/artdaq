@@ -134,7 +134,7 @@ protected:
 	 * \param metric_pset ParameterSet for MetricManager
 	 * \return Whether the initialize succeeded
 	 */
-	bool initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& metric_pset);
+	bool initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset);
 
 	std::string name_; ///< Name of this DataReceiverCore instance
 

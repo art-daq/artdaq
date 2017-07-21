@@ -25,7 +25,7 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 	frag.autoResize();
 	
 	TLOG_TRACE("TransferInterface") << "Receiving Fragment Body from rank " << source_rank() << TLOG_ENDL;
-	auto bodyret = receiveFragmentData(frag.headerAddress() + detail::RawFragmentHeader::num_words(), frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType), receive_timeout);
+	auto bodyret = receiveFragmentData(frag.headerAddress() + detail::RawFragmentHeader::num_words(), frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType));
 	TLOG_TRACE("TransferInterface") << "Done receiving Body, ret is " << bodyret << ", should be " << source_rank() << TLOG_ENDL;
 
 	if (bodyret != ret) throw cet::exception("TransferInterface") << "Got different return codes from receiveFragmentHeader and receiveFragmentData!";

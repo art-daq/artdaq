@@ -96,10 +96,12 @@ namespace artdaq
 		 * \brief Receive the body of a Fragment to the given destination pointer
 		 * \param destination Pointer to memory region where Fragment data should be stored
 		 * \param wordCount Number of words of Fragment data to receive
-		 * \param receiveTimeout Timeout for receive
 		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		 *
+		 * The precondition for calling this function is that you have received a valid header, therefore it does
+		 * not have a , as the Fragment data should immediately be available.
 		 */
-		virtual int receiveFragmentData(RawDataType* destination, size_t wordCount, size_t receiveTimeout) = 0;
+		virtual int receiveFragmentData(RawDataType* destination, size_t wordCount) = 0;
 
 		/**
 		* \brief Copy a Fragment to the destination. May not necessarily be reliable

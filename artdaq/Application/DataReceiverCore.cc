@@ -27,7 +27,7 @@ artdaq::DataReceiverCore::~DataReceiverCore()
 	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
 }
 
-bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& metric_pset)
+bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset)
 {
 	// other parameters
 	verbose_ = pset.get<bool>("verbose", false);
@@ -49,9 +49,9 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	fhicl::ParameterSet tmp = pset;
 	tmp.erase("daq");
 	
-	event_store_ptr_ = std::shared_ptr<SharedMemoryEventManager>(new SharedMemoryEventManager(pset, tmp));
+	event_store_ptr_ = std::shared_ptr<SharedMemoryEventManager>(new SharedMemoryEventManager(data_pset, tmp));
 
-	receiver_ptr_.reset(new artdaq::DataReceiverManager(pset, event_store_ptr_));
+	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_pset, event_store_ptr_));
 
 	return true;
 }

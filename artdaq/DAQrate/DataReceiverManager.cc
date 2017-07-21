@@ -98,6 +98,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	double delta_t, hdr_delta_t, store_delta_t, data_delta_t;
 	detail::RawFragmentHeader header;
 	size_t endOfDataCount = -1;
+	auto sleep_time = receive_timeout_ / 100 > 100000 ? 100000 : receive_timeout_ / 100;
 
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
@@ -117,13 +118,13 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			RawDataType* loc = nullptr;
 			while (loc == nullptr) {
 				loc = shm_manager_->WriteFragmentHeader(header);
-				if (loc == nullptr) usleep(receive_timeout_ / 100);
+				if (loc == nullptr) usleep(sleep_time);
 				if (stop_requested_) return;
 			}
 			before_body = std::chrono::steady_clock::now();
 
 			TRACE(16, "DataReceiverManager::runReceiver_: Calling receiveFragmentData");
-			auto ret2 = source_plugins_[source_rank]->receiveFragmentData(loc, header.word_count - header.num_words(), receive_timeout_);
+			auto ret2 = source_plugins_[source_rank]->receiveFragmentData(loc, header.word_count - header.num_words());
 			TRACE(16, "DataReceiverManager::runReceiver_: Done with receiveFragmentData, ret2=%d (should be %d)", ret2, source_rank);
 
 			if (ret != ret2) {
@@ -163,7 +164,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		{
 			shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 			Fragment frag(header.word_count - header.num_words());
-			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag.headerAddress() + header.num_words(), 1, receive_timeout_);
+			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag.headerAddress() + header.num_words(), 1);
 			if (ret3 == source_rank)
 			{
 				endOfDataCount = *frag.dataBegin();

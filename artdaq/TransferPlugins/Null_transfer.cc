@@ -53,7 +53,7 @@ namespace artdaq
 		* WARNING: This function may create unintended side-effets. NullTransfer should
 		* only really be used in Role::kSend!
 		*/
-		int receiveFragmentData(RawDataType*, size_t, size_t) override 
+		int receiveFragmentData(RawDataType*, size_t) override 
 		{
 			return source_rank();
 		}
