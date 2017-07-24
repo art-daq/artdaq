@@ -60,6 +60,7 @@ namespace artdaq
 		std::chrono::steady_clock::time_point start_time_;
 		fhicl::ParameterSet ps_;
 		artdaq::MetricManager metricMan_;
+		bool validate_mode_;
 	};
 
 	inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)

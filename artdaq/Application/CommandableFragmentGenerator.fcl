@@ -18,6 +18,8 @@ request_mode: "Ignored" # Possible values are: Ignored, Single, Buffer, Window
                       # Buffer: When request is received, sends all data recieved since last request
                       # Window: When request is received, sends all data satisfying timestamp window defined below
 					  # Window mode will also check RequestMessage for additional requests that it may not have satisfied.
+end_of_run_quiet_timeout_ms: 1000 # Time, in milliseconds, that the entire system must be quiet for check_stop to return true in request mode. 
+                                  # **DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING!**
 
 # Data Buffer configuration for Ignored, Buffer, and Window request modes
 data_buffer_depth_fragments: 1000
