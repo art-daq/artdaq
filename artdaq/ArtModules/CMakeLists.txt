@@ -13,6 +13,7 @@ art_make( BASENAME_ONLY
   artdaq_DAQdata
   art_Framework_Core
   art_Framework_IO_Sources
+  art_Framework_IO_Root
   art_Framework_Principal
   artdaq_ArtModules_NetMonTransportService_service
   art_Persistency_Provenance
@@ -58,6 +59,16 @@ simple_plugin(NetMonInput "source"
 )
 
 simple_plugin(RootMPIOutput "module"
+  artdaq_ArtModules
+  art_Framework_IO_Root
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${CETLIB_EXCEPT}
+  ${ROOT_RIO}
+)
+
+simple_plugin(RootDAQOut "module"
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
   art_Framework_Services_Registry
