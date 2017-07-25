@@ -6,10 +6,7 @@
 #include "art/Framework/IO/FileStatsCollector.h"
 #include "art/Framework/IO/PostCloseFileRenamer.h"
 #include "art/Framework/IO/Root/DropMetaData.h"
-#include "art/Framework/IO/Root/RootOutputFile.h"
 #include "art/Framework/IO/Root/RootOutputClosingCriteria.h"
-#include "art/Framework/IO/Root/detail/rootOutputConfigurationTools.h"
-#include "art/Framework/IO/detail/logFileAction.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/ResultsPrincipal.h"
@@ -22,7 +19,11 @@
 #include "art/Utilities/ConfigurationTable.h"
 #include "art/Utilities/parent_path.h"
 #include "art/Utilities/unique_filename.h"
+
 #include "artdaq/ArtModules/RootDAQOutFile.h"
+#include "artdaq/ArtModules/detail/rootOutputConfigurationTools.h"
+#include "artdaq/ArtModules/detail/logFileAction.h"
+
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Utilities/Exception.h"
 #include "fhiclcpp/ParameterSet.h"

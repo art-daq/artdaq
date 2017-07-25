@@ -14,13 +14,18 @@ art_make( BASENAME_ONLY
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_IO_Root
+  art_Framework_IO_RootVersion
+  art_Framework_IO
   art_Framework_Principal
   artdaq_ArtModules_NetMonTransportService_service
   art_Persistency_Provenance
+  art_Persistency_RootDB
   ${CANVAS_LIB_LIST}
   MF_MessageLogger
+  ${SQLITE3}
   ${ROOT_CINTEX}
   ${ROOT_RIO}
+  ${ROOT_TREE}
   ${ROOT_CORE}
   ${ROOT_NET}
   ${ROOT_REFLEX}
@@ -72,12 +77,17 @@ simple_plugin(RootDAQOut "module"
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
   art_Framework_Services_Registry
+  art_Framework_IO_Root
+  art_Framework_IO_RootVersion
+  art_Persistency_RootDB
   art_Utilities
   MF_MessageLogger
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}
+  ${SQLITE3}
   ${ROOT_RIO}
+  ${ROOT_TREE}
 )
 
 simple_plugin(BinaryMPIOutput "module"
