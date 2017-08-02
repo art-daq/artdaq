@@ -7,6 +7,20 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "art/Framework/Core/FileBlock.h"
+#if ART_HEX_VERSION >= 0x20703
+# include "art/Framework/Core/OutputFileGranularity.h"
+# include "art/Framework/Services/System/DatabaseConnection.h"
+# include "art/Persistency/RootDB/TKeyVFSOpenPolicy.h"
+# include "cetlib/sqlite/Ntuple.h"
+# include "cetlib/sqlite/Transaction.h"
+# include "cetlib/sqlite/create_table.h"
+# include "cetlib/sqlite/exec.h"
+# include "cetlib/sqlite/insert.h"
+#else
+# include "art/Framework/Services/Registry/ServiceHandle.h"
+# include "cetlib/Ntuple/Transaction.h"
+# include "art/Persistency/RootDB/SQLite3Wrapper.h"
+#endif
 #include "art/Framework/IO/FileStatsCollector.h"
 #include "art/Framework/IO/Root/DropMetaData.h"
 #include "art/Framework/IO/Root/GetFileFormatEra.h"
@@ -17,13 +31,10 @@
 #include "art/Framework/Principal/ResultsPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "cetlib/Ntuple/Transaction.h"
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 #include "art/Persistency/RootDB/SQLErrMsg.h"
-#include "art/Persistency/RootDB/SQLite3Wrapper.h"
 #include "art/Version/GetReleaseVersion.h"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "canvas/Persistency/Provenance/rootNames.h"
@@ -364,23 +375,41 @@ RootDAQOutFile(OutputModule* om,
   , fastCloning_{fastCloning}
   , filePtr_{TFile::Open(file_.c_str(), "recreate", "", compressionLevel)}
   , treePointers_ { // Order (and number) must match BranchTypes.h!
-    std::make_unique<RootOutputTree>(static_cast<EventPrincipal*>(nullptr),
+    std::make_unique<RootOutputTree>(
+# if ART_HEX_VERSION < 0x20703
+                                     static_cast<EventPrincipal*>(nullptr),
+# endif
                                      filePtr_.get(), InEvent, pEventAux_,
                                      pEventProductProvenanceVector_, basketSize, splitLevel,
                                      treeMaxVirtualSize, saveMemoryObjectThreshold),
-    std::make_unique<RootOutputTree>(static_cast<SubRunPrincipal*>(nullptr),
+    std::make_unique<RootOutputTree>(
+# if ART_HEX_VERSION < 0x20703
+                                     static_cast<SubRunPrincipal*>(nullptr),
+# endif
                                      filePtr_.get(), InSubRun, pSubRunAux_,
                                      pSubRunProductProvenanceVector_, basketSize, splitLevel,
                                      treeMaxVirtualSize, saveMemoryObjectThreshold),
-    std::make_unique<RootOutputTree>(static_cast<RunPrincipal*>(nullptr),
+    std::make_unique<RootOutputTree>(
+# if ART_HEX_VERSION < 0x20703
+                                     static_cast<RunPrincipal*>(nullptr),
+# endif
                                      filePtr_.get(), InRun, pRunAux_,
                                      pRunProductProvenanceVector_, basketSize, splitLevel,
                                      treeMaxVirtualSize, saveMemoryObjectThreshold),
-    std::make_unique<RootOutputTree>(static_cast<ResultsPrincipal*>(nullptr),
+    std::make_unique<RootOutputTree>(
+# if ART_HEX_VERSION < 0x20703
+                                     static_cast<ResultsPrincipal*>(nullptr),
+# endif
                                      filePtr_.get(), InResults, pResultsAux_,
                                      pResultsProductProvenanceVector_, basketSize, splitLevel,
                                      treeMaxVirtualSize, saveMemoryObjectThreshold) }
+# if ART_HEX_VERSION < 0x20703
   , rootFileDB_{filePtr_.get(), "RootFileDB", SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE}
+# else
+  , rootFileDB_{ServiceHandle<DatabaseConnection>{}->get<TKeyVFSOpenPolicy>("RootFileDB",
+                                                                            filePtr_.get(),
+                                                                            SQLITE_OPEN_CREATE|SQLITE_OPEN_READWRITE)}
+# endif
 {
   // Don't split metadata tree or event description tree
   metaDataTree_ = RootOutputTree::makeTTree(filePtr_.get(), rootNames::metaDataTreeName(), 0);
@@ -546,7 +575,11 @@ beginInputFile(FileBlock const& fb, bool fastClone)
 void
 art::RootDAQOutFile::incrementInputFileNumber()
 {
+# if ART_HEX_VERSION >= 0x20703
+  fp_.update<Granularity::InputFile>();
+# else
   fp_.update<Boundary::InputFile>();
+# endif
 }
 
 void
@@ -610,7 +643,11 @@ void art::RootDAQOutFile::writeOne(EventPrincipal const& e)
   pHistory_ = &e.history();
   // Add event to index
   fileIndex_.addEntry(pEventAux_->id(), fp_.eventEntryNumber());
+# if ART_HEX_VERSION >= 0x20703
+  fp_.update<Granularity::Event>(status_);
+# else
   fp_.update<Boundary::Event>(status_);
+# endif
   TRACE( 10, "RootDAQOutFile::writeOne done/return" );
 }
 
@@ -623,7 +660,11 @@ writeSubRun(SubRunPrincipal const& sr)
   pSubRunAux_->setRangeSetID(subRunRSID_);
   fillBranches<InSubRun>(sr, pSubRunProductProvenanceVector_);
   fileIndex_.addEntry(EventID::invalidEvent(pSubRunAux_->id()), fp_.subRunEntryNumber());
+# if ART_HEX_VERSION >= 0x20703
+  fp_.update<Granularity::SubRun>(status_);
+# else
   fp_.update<Boundary::SubRun>(status_);
+# endif
 }
 
 void
@@ -635,7 +676,11 @@ writeRun(RunPrincipal const& r)
   pRunAux_->setRangeSetID(runRSID_);
   fillBranches<InRun>(r, pRunProductProvenanceVector_);
   fileIndex_.addEntry(EventID::invalidEvent(pRunAux_->id()), fp_.runEntryNumber());
+# if ART_HEX_VERSION >= 0x20703
+  fp_.update<Granularity::Run>(status_);
+# else
   fp_.update<Boundary::Run>(status_);
+# endif
 }
 
 void
@@ -723,8 +768,16 @@ art::
 RootDAQOutFile::
 writeProcessHistoryRegistry()
 {
+# if ART_HEX_VERSION >= 0x20703
+  ProcessHistoryMap pHistMap;
+  for (auto const& pr : ProcessHistoryRegistry::get()) {
+    pHistMap.emplace(pr);
+  }
+  auto const* p = &pHistMap;
+# else
   ProcessHistoryMap const& r = ProcessHistoryRegistry::get();
   ProcessHistoryMap* p = &const_cast<ProcessHistoryMap&>(r);
+# endif
   TBranch* b = metaDataTree_->Branch(metaBranchRootName<ProcessHistoryMap>(),
                                      &p, basketSize_, 0);
   if (b != nullptr) {
@@ -740,7 +793,11 @@ art::
 RootDAQOutFile::
 writeBranchIDListRegistry()
 {
+# if ART_HEX_VERSION >= 0x20703
+  BranchIDLists const* p = &BranchIDListRegistry::instance().data();
+# else
   BranchIDLists* p = &BranchIDListRegistry::instance()->data();
+# endif
   TBranch* b = metaDataTree_->Branch(metaBranchRootName<BranchIDLists>(), &p,
                                      basketSize_, 0);
   // FIXME: Turn this into a throw!
@@ -755,6 +812,18 @@ writeFileCatalogMetadata(FileStatsCollector const& stats,
                          FileCatalogMetadata::collection_type const& md,
                          FileCatalogMetadata::collection_type const& ssmd)
 {
+# if ART_HEX_VERSION >= 0x20703
+  using namespace cet::sqlite;
+  Ntuple<std::string,std::string> fileCatalogMetadata {rootFileDB_, "FileCatalog_metadata", {"Name","Value"}, true};
+  Transaction txn {rootFileDB_};
+  for (auto const& kv : md) {
+    fileCatalogMetadata.insert(kv.first, kv.second);
+  }
+  // Add our own specific information: File format and friends.
+  fileCatalogMetadata.insert("file_format", "\"artroot\"");
+  fileCatalogMetadata.insert("file_format_era", cet::canonical_string(getFileFormatEra()));
+  fileCatalogMetadata.insert("file_format_version", to_string(getFileFormatVersion()));
+# else
   ntuple::Ntuple<std::string,std::string> fileCatalogMetadata {rootFileDB_,
       "FileCatalog_metadata",
         {"Name","Value"},
@@ -768,13 +837,20 @@ writeFileCatalogMetadata(FileStatsCollector const& stats,
   insert_into(fileCatalogMetadata).values("file_format", "\"artroot\"");
   insert_into(fileCatalogMetadata).values("file_format_era", cet::canonical_string(getFileFormatEra()));
   insert_into(fileCatalogMetadata).values("file_format_version", to_string(getFileFormatVersion()));
+# endif
 
   // File start time.
   namespace bpt = boost::posix_time;
   auto formatted_time = [](auto const& t){ return cet::canonical_string(bpt::to_iso_extended_string(t)); };
+# if ART_HEX_VERSION >= 0x20703
+  fileCatalogMetadata.insert("start_time", formatted_time(stats.outputFileOpenTime()));
+  // File "end" time: now, since file is not actually closed yet.
+  fileCatalogMetadata.insert("end_time", formatted_time(boost::posix_time::second_clock::universal_time()));
+# else
   insert_into(fileCatalogMetadata).values("start_time", formatted_time(stats.outputFileOpenTime()));
   // File "end" time: now, since file is not actually closed yet.
   insert_into(fileCatalogMetadata).values("end_time", formatted_time(boost::posix_time::second_clock::universal_time()));
+# endif
 
   // Run/subRun information.
   if (!stats.seenSubRuns().empty()) {
@@ -797,11 +873,19 @@ writeFileCatalogMetadata(FileStatsCollector const& stats,
       // Rewind over last delimiter.
       buf.seekp(-2, ios_base::cur);
       buf << " ]";
+# if ART_HEX_VERSION >= 0x20703
+      fileCatalogMetadata.insert("runs", buf.str());
+# else
       insert_into(fileCatalogMetadata).values("runs", buf.str());
+# endif
     }
   }
   // Number of events.
+# if ART_HEX_VERSION >= 0x20703
+  fileCatalogMetadata.insert("event_count", to_string(stats.eventsThisFile()));
+# else
   insert_into(fileCatalogMetadata).values("event_count", to_string(stats.eventsThisFile()));
+# endif
   // first_event and last_event.
   auto eidToTuple = [](EventID const & eid)->string {
     ostringstream eidStr;
@@ -814,8 +898,13 @@ writeFileCatalogMetadata(FileStatsCollector const& stats,
     << " ]";
     return eidStr.str();
   };
+# if ART_HEX_VERSION >= 0x20703
+  fileCatalogMetadata.insert("first_event", eidToTuple(stats.lowestEventID()));
+  fileCatalogMetadata.insert("last_event", eidToTuple(stats.highestEventID()));
+# else
   insert_into(fileCatalogMetadata).values("first_event", eidToTuple(stats.lowestEventID()));
   insert_into(fileCatalogMetadata).values("last_event", eidToTuple(stats.highestEventID()));
+# endif
   // File parents.
   if (!stats.parents().empty()) {
     ostringstream pstring;
@@ -826,11 +915,19 @@ writeFileCatalogMetadata(FileStatsCollector const& stats,
     // Rewind over last delimiter.
     pstring.seekp(-2, ios_base::cur);
     pstring << " ]";
+# if ART_HEX_VERSION >= 0x20703
+    fileCatalogMetadata.insert("parents", pstring.str());
+# else
     insert_into(fileCatalogMetadata).values("parents", pstring.str());
+# endif
   }
   // Incoming stream-specific metadata overrides.
   for (auto const& kv : ssmd) {
+# if ART_HEX_VERSION >= 0x20703
+    fileCatalogMetadata.insert(kv.first, kv.second);
+# else
     insert_into(fileCatalogMetadata).values(kv.first, kv.second);
+# endif
   }
   txn.commit();
 }
@@ -892,10 +989,16 @@ writeResults(ResultsPrincipal & resp)
 }
 
 void
+# if ART_HEX_VERSION >= 0x20703
+art::RootDAQOutFile::writeTTrees()
+# else
 RootDAQOutFile::
 finishEndFile()
+# endif
 {
+# if ART_HEX_VERSION < 0x20703
   metaDataTree_->SetEntries(-1);
+# endif
   RootOutputTree::writeTTree(metaDataTree_);
   RootOutputTree::writeTTree(fileIndexTree_);
   RootOutputTree::writeTTree(parentageTree_);
@@ -904,6 +1007,7 @@ finishEndFile()
     auto const branchType = static_cast<BranchType>(i);
     treePointers_[branchType]->writeTree();
   }
+# if ART_HEX_VERSION < 0x20703
   // Write out DB -- the d'tor of the SQLite3Wrapper calls
   // sqlite3_close.  For the tkeyvfs, closing the DB calls
   // rootFile->Write("",TObject::kOverwrite).
@@ -911,6 +1015,7 @@ finishEndFile()
   // Close the file.
   filePtr_->Close();
   filePtr_.reset();
+# endif
 }
 
 template <art::BranchType BT>

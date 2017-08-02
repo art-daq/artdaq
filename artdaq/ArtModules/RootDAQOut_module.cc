@@ -34,6 +34,14 @@
 #define TRACE_NAME "RootDAQOut_module.cc"
 #include "trace.h"				// TRACE
 
+#if ART_HEX_VERSION >= 0x20703
+# include "Rtypes.h"
+# include "TBranchElement.h"
+# include "TClass.h"
+# include "TFile.h"
+# include "TTree.h"
+#endif
+
 #include <iomanip>
 #include <memory>
 #include <sstream>
@@ -123,7 +131,9 @@ private:
   void readResults(ResultsPrincipal const& resp) override;
   void respondToCloseInputFile(FileBlock const&) override;
   void incrementInputFileNumber() override;
+# if ART_HEX_VERSION < 0x20703
   Boundary fileSwitchBoundary() const override;
+# endif
   void write(EventPrincipal&) override;
   void writeSubRun(SubRunPrincipal&) override;
   void writeRun(RunPrincipal&) override;
@@ -452,10 +462,18 @@ art::RootDAQOut::writeProductDependencies()
 void
 art::RootDAQOut::finishEndFile()
 {
+# if ART_HEX_VERSION >= 0x20703
+  std::string const currentFileName {rootOutputFile_->currentFileName()};
+  rootOutputFile_->writeTTrees();
+  rootOutputFile_.reset();
+  fstats_.recordFileClose();
+  lastClosedFileName_ = PostCloseFileRenamer{fstats_}.maybeRenameFile(rootOutputFile_->currentFileName(), filePattern_);
+# else
   rootOutputFile_->finishEndFile();
   fstats_.recordFileClose();
   lastClosedFileName_ = PostCloseFileRenamer{fstats_}.maybeRenameFile(rootOutputFile_->currentFileName(), filePattern_);
   rootOutputFile_.reset();
+# endif
   detail::logFileAction("Closed output file ", lastClosedFileName_);
   rpm_.invoke(&ResultsProducer::doClear);
 }
@@ -513,6 +531,7 @@ requestsToCloseFile() const
   return ret;
 }
 
+#if ART_HEX_VERSION < 0x20703
 art::Boundary
 art::RootDAQOut::
 fileSwitchBoundary() const
@@ -522,6 +541,7 @@ fileSwitchBoundary() const
 	TRACE( 10, "RootDAQOut::fileSwitchBoundary done/return" );
   return bb;
 }
+#endif
 
 void
 art::RootDAQOut::

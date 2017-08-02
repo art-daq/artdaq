@@ -18,6 +18,14 @@
 #include "art/Framework/IO/Root/RootOutputTree.h"
 #include "artdaq/ArtModules/detail/DummyProductCache.h"
 #include "art/Framework/Principal/RangeSetsSupported.h"
+#if ART_HEX_VERSION >= 0x20703
+# include "art/Persistency/Provenance/Selections.h"
+# include "boost/filesystem.hpp"
+# include "cetlib/sqlite/Connection.h"
+#else
+# include "art/Persistency/Provenance/Selections.h"
+# include "boost/filesystem.hpp"
+#endif
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchID.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
@@ -25,9 +33,7 @@
 #include "canvas/Persistency/Provenance/ParameterSetBlob.h"
 #include "canvas/Persistency/Provenance/ParameterSetMap.h"
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
-#include "art/Persistency/Provenance/Selections.h"
 #include "art/Persistency/RootDB/SQLite3Wrapper.h"
-#include "boost/filesystem.hpp"
 
 #include <array>
 #include <map>
@@ -117,6 +123,9 @@ public: // MEMBER FUNCTIONS
                           bool dropMetaDataForDroppedData,
                           bool fastCloning);
 
+#if ART_HEX_VERSION >= 0x20703
+  void writeTTrees();
+#endif
   void writeOne(EventPrincipal const&);
   void writeSubRun(SubRunPrincipal const&);
   void writeRun(RunPrincipal const&);
@@ -208,7 +217,11 @@ private: // MEMBER DATA
   RootOutputTreePtrArray treePointers_;
   bool dataTypeReported_ {false};
   std::set<BranchID> branchesWithStoredHistory_ {};
+# if ART_HEX_VERSION >= 0x20703
+  cet::sqlite::Connection rootFileDB_;
+# else
   SQLite3Wrapper rootFileDB_;
+# endif
   OutputItemListArray selectedOutputItemList_ {{}}; // filled by aggregation
   detail::DummyProductCache dummyProductCache_ {};
   unsigned subRunRSID_ {-1u};
