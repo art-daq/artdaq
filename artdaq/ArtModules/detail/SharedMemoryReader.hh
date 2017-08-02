@@ -14,7 +14,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
-#include "artdaq/DAQdata/configureMessageFacility.hh"
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include <sys/time.h>
@@ -87,7 +86,6 @@ namespace artdaq
 				, fragment_type_map_(getDefaultTypes())
 				, readNext_calls_(0)
 			{
-				artdaq::configureMessageFacility("artdaqart");
 				help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 				for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 				{

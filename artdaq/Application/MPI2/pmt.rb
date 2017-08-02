@@ -129,13 +129,6 @@ class MPIHandler
 	  hostsFileHandle.write(optionsHash["host"] + "\n")
 	}
 
-	# ELF 08/01/2017
-	# Bit of a hack here to run hydra_nameserver as part of the MPI command...
-	nameserver_host = @executables[0]["host"]
-	  configFileHandle.write("-host %s -np 1 %s" % nameserver_host, 
-														  "hydra_nameserver"])
-	  hostsFileHandle.write(optionsHash["host"] + "\n")
-
 	mpiEnvironmentSetup = "export MV2_ENABLE_AFFINITY=0; export MV2_IBA_HCA=\"mlx4_0\"; "
 	if @preloadLib != ""
 	  mpiEnvironmentSetup << "export LD_PRELOAD=" << @preloadLib << "; "
@@ -159,8 +152,8 @@ class MPIHandler
           print "Unable to find rsh on this host (%s); hopefully another method, such as ssh, works for password-free MPI communication\n" % [ ENV["HOSTNAME"] ] 
         end
 
-	mpiCmd = "mpirun -nameserver %s %s %s -genv ARTDAQ_SHM_KEY %d %s -configfile %s -f %s" %
-	  [nameserver_host, displayString, logString, @shmKey, launcherArg, configFileHandle.path, hostsFileHandle.path]
+	mpiCmd = "mpirun %s %s -genv ARTDAQ_SHM_KEY %d %s -configfile %s -f %s" %
+	  [displayString, logString, @shmKey, launcherArg, configFileHandle.path, hostsFileHandle.path]
 	configFileHandle.rewind
 	hostsFileHandle.rewind
 	return mpiEnvironmentSetup + mpiCmd

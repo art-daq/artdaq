@@ -5,7 +5,6 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
-#include "artdaq/DAQdata/configureMessageFacility.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
@@ -39,7 +38,6 @@ NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
 	, incoming_events_(new artdaq::SharedMemoryEventReceiver(pset.get<int>("shared_memory_key", 0xBEE7)))
 	, recvd_fragments_(nullptr)
 {
-	artdaq::configureMessageFacility("artdaqart");
 	if (pset.has_key("rank")) my_rank = pset.get<int>("rank");
 	else my_rank = incoming_events_->GetRank();
 }

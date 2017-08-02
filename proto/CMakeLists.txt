@@ -76,16 +76,6 @@ art_make_exec(NAME artdaqDriver
   ${XMLRPCPP}
   ${XMLRPC_UTILPP}
   )
-  
-  art_make_exec(NAME mpi_reconnection_test
-    SOURCE
-    mpi_reconnection_test.cc
-  LIBRARIES
-  artdaq_DAQrate
-  artdaq_DAQdata
-  ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  )
-
 
 art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
