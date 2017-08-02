@@ -21,7 +21,7 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	char* logFhiclCode = getenv("ARTDAQ_LOG_FHICL");
 	char* artdaqMfextensionsDir = getenv("ARTDAQ_MFEXTENSIONS_DIR");
 
-#if 1
+#if 0
 	setenv( "TRACE_LVLS", "0xf", 0/*0 = no overwrite*/ );
 	unsigned long long lvls=strtoull( getenv("TRACE_LVLS"), NULL, 0 );
 	// NOTE: If TRACEs occur before this, they would be done with a different lvl S mask.
