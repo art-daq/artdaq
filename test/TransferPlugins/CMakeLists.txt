@@ -3,14 +3,14 @@
 # making sure they can communicate as expected.
 cet_test(transfer_driver_t HANDBUILT
   TEST_EXEC mpirun
-  TEST_ARGS -hosts localhost -np 5 transfer_driver_mpi transfer_driver_mpi.fcl
+  TEST_ARGS -nameserver localhost -hosts localhost -np 5 transfer_driver_mpi transfer_driver_mpi.fcl : -np 1 hydra_nameserver
   DATAFILES fcl/transfer_driver_mpi.fcl
   TEST_PROPERTIES RUN_SERIAL 1
   )
 
 cet_test(transfer_driver_validate_t HANDBUILT
   TEST_EXEC mpirun
-  TEST_ARGS -hosts localhost -np 5 transfer_driver_mpi transfer_driver_mpi_validate.fcl
+  TEST_ARGS -nameserver localhost -hosts localhost -np 5 transfer_driver_mpi transfer_driver_mpi_validate.fcl : -np 1 hydra_nameserver
   DATAFILES fcl/transfer_driver_mpi_validate.fcl
   TEST_PROPERTIES RUN_SERIAL 1
   )

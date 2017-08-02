@@ -92,11 +92,20 @@ namespace artdaq
 		// Identify an available buffer.
 		int findAvailable();
 						
+		void connect_();
+
 		static std::mutex mpi_mutex_;
 
 		std::vector<MPI_Request> reqs_;
+		std::condition_variable status_cv_;
+		std::mutex status_mutex_;
+		std::atomic<bool> status_locked_;
+		MPI_Status status_;
 		Fragments payload_;
 		int pos_;
+		MPI_Comm intercomm_;
+		char port_name_[MPI_MAX_PORT_NAME];
+		std::atomic<bool> initialized_;
 	};
 }
 
