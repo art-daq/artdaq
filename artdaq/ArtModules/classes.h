@@ -2,6 +2,12 @@
 #include "canvas/Persistency/Provenance/ParentageID.h"
 #include "canvas/Persistency/Common/Wrapper.h"
 
+#if ART_HEX_VERSION >= 0x20703
+namespace art
+{
+	typedef art::ParentageRegistry::collection_type ParentageMap;
+}
+#endif
 namespace
 {
 	/**
