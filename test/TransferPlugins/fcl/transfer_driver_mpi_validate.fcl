@@ -4,16 +4,17 @@ sends_per_sender: 1000
 buffer_count: 10
 fragment_size: 0x1000
 transfer_plugin_type: MPI
+auto_suppression_enabled: false
 validate_data_mode: true
 
 metrics: {
-    ganglia: {
-       metricPluginType: "ganglia"
-       level: 5
-       reporting_interval: 15.0
-     
-       configFile: "/home/eflumerf/Desktop/artdaq-mrb-base/gmond.conf"
-       group: "ARTDAQ"
-    }
+#    ganglia: {
+#       metricPluginType: "ganglia"
+#       level: 5
+#       reporting_interval: 15.0
+#     
+#       configFile: "/home/eflumerf/Desktop/artdaq-mrb-base/gmond.conf"
+#       group: "ARTDAQ"
+#    }
 
 }

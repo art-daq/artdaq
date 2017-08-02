@@ -8,7 +8,9 @@
 #include "art/Framework/IO/Sources/SourceHelper.h"
 #include "art/Framework/IO/Sources/SourceTraits.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
+#if ART_HEX_VERSION < 0x20703
 #include "art/Persistency/Provenance/BranchIDListHelper.h"
+#endif
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
@@ -30,17 +32,11 @@
 
 #include <TBufferFile.h>
 
+#include "tracemf.h"			// TLOG_ARB
 #include <memory>
 #include <string>
 #include <iostream>
 
-// JCF, Jul-18-2016
-
-// If LOGDEBUG is defined, the TLOG_DEBUG calls will print into the
-// aggregator logfiles using artdaq v1_13_00; this creates HUGE files
-// and slows things down considerably, so only define this if you're
-// troubleshooting
-//#define LOGDEBUG
 
 namespace art
 {
@@ -74,10 +70,8 @@ namespace art
 		// a dynamic_cast later if you need to retrieve it."
 
 		T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr));
-#ifdef LOGDEBUG
-	TLOG_DEBUG(callerName) << "ReadObjectAny: Got object of class " << className << 
-	  ", located at " << static_cast<void*>(ptr);
-#endif
+		TLOG_ARB(5,"InputUtilities") << "ReadObjectAny: Got object of class " << className << 
+		", located at " << static_cast<void*>(ptr) << " caller:" << callerName << TLOG_ENDL;
 
 		return ptr;
 	}
@@ -97,13 +91,11 @@ namespace art
 		{
 			if (object->processHistoryID().isValid())
 			{
-				std::ostringstream OS;
-				object->processHistoryID().print(OS);
-#ifdef LOGDEBUG
-	TLOG_DEBUG("printProcessHistoryID") << label << ": "
-		  << "ProcessHistoryID: '"
-		  << OS.str() << "'\n";
-#endif
+				//std::ostringstream OS;
+				//object->processHistoryID().print(OS);
+				TLOG_ARB(5,"InputUtilities") << label << ": "
+											 << "ProcessHistoryID: "
+											 << object->processHistoryID() << TLOG_ENDL;
 			}
 			else
 			{
