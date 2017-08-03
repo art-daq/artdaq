@@ -35,7 +35,8 @@ art_make( BASENAME_ONLY
   ${XMLRPCPP}
   ${XMLRPC_UTILPP}
   ${Boost_THREAD_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY} 
+  ${Boost_SYSTEM_LIBRARY}
+  ${TBB}
   )
 
 simple_plugin(TransferInput "source"

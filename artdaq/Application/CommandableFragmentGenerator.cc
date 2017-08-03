@@ -12,6 +12,7 @@
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include <fstream>
 #include <iomanip>
@@ -232,11 +233,19 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TRACE(4, "CFG: Calling applyRequests");
 			result = applyRequests(output);
 			TRACE(4, "CFG: Done with applyRequests");
+
+			if (exception()) {
+			  throw cet::exception("CommandableFragmentGenerator") << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
+			}
 		}
 		else
 		{
 			TRACE(4, "CFG: Calling getNext_ %zu", ev_counter());
-			result = getNext_(output);
+			try {
+			  result = getNext_(output);
+			} catch (...) {
+			  throw;
+			}
 			TRACE(4, "CFG: Done with getNext_ %zu", ev_counter());
 		}
 	}
@@ -283,7 +292,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 bool artdaq::CommandableFragmentGenerator::check_stop()
 {
-	TRACE(4, "CFG::check_stop: should_stop=%i, useDataThread_=%i, requests_.size()=%zu", should_stop(), useDataThread_, requests_.size());
+  TRACE(4, "CFG::check_stop: should_stop=%i, useDataThread_=%i, requests_.size()=%zu, exception status =%d", should_stop(), useDataThread_, requests_.size(), int(exception()));
 	if (!should_stop()) return false;
 	if (!useDataThread_ || mode_ == RequestMode::Ignored) return true;
 	if (!request_stop_requested_) return false;
@@ -347,7 +356,6 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 	stopNoMutex();
 	should_stop_.store(true);
 	std::unique_lock<std::mutex> lk(mutex_);
-
 	stop();
 }
 
@@ -498,7 +506,19 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		}
 
 		TRACE(4, "CommandableFragmentGenerator::getDataLoop: calling getNext_");
-		auto data = getNext_(newDataBuffer_);
+
+		bool data = false;
+
+		try {
+		  data = getNext_(newDataBuffer_);
+		} catch (...) {
+		  ExceptionHandler(ExceptionHandlerRethrow::no,
+				   "Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
+		  set_exception(true);
+
+		  data_thread_running_ = false;
+		  return;
+		}
 
 		auto startwait = std::chrono::steady_clock::now();
 		auto first = true;
@@ -664,10 +684,10 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 {
 	while (true)
 	{
-		if (check_stop() || !isHardwareOK_)
+	  if (check_stop() || !isHardwareOK_ || exception())
 		{
 			TLOG_DEBUG("CommandableFragmentGenerator") << "receiveRequestsLoop: check_stop is " << std::boolalpha << check_stop()
-				<< ", and isHardwareOK_ is " << isHardwareOK_ << ", aborting request reception thread." << TLOG_ENDL;
+								   << ", isHardwareOK_ is " << isHardwareOK_ << ", and exception state is " << exception() << ", aborting request reception thread." << TLOG_ENDL;
 			return;
 		}
 
@@ -738,7 +758,7 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 
 bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& frags)
 {
-	if (check_stop())
+  if (check_stop() || exception())
 	{
 		return false;
 	}
@@ -747,19 +767,19 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	{
 		while (dataBufferDepthFragments_ <= 0)
 		{
-			if (check_stop()) return false;
+		  if (check_stop() || exception()) return false;
 			std::unique_lock<std::mutex> lock(dataBufferMutex_);
 			dataCondition_.wait_for(lock, std::chrono::milliseconds(10), [this]() { return dataBufferDepthFragments_ > 0; });
 		}
 	}
 	else
 	{
-	        if (check_stop() && requests_.size() <= 0) return false;
+	  if ((check_stop() && requests_.size() <= 0) || exception()) return false;
 		checkDataBuffer();
 
 		while (requests_.size() <= 0)
 		{
-			if (check_stop()) return false;
+		  if (check_stop() || exception()) return false;
 
 			checkDataBuffer();
 

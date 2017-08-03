@@ -2,6 +2,7 @@
 // vim: set sw=2:
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include <ctime>
+#include <string.h>				// strlen
 
 void
 art::detail::logFileAction(const char* msg, std::string const& file)

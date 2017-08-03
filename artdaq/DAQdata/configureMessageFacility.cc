@@ -1,5 +1,9 @@
 #include "artdaq/DAQdata/configureMessageFacility.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#if ART_HEX_VERSION >= 0x20703	// art v2_07_03 means a new versions of fhicl, boost, etc
+# include "fhiclcpp/ParameterSet.h"
+# include <boost/lexical_cast.hpp>
+#endif
 #include "fhiclcpp/make_ParameterSet.h"
 #include "cetlib_except/exception.h"
 #include <boost/filesystem.hpp>
@@ -18,7 +22,7 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	char* logFhiclCode = getenv("ARTDAQ_LOG_FHICL");
 	char* artdaqMfextensionsDir = getenv("ARTDAQ_MFEXTENSIONS_DIR");
 
-#if 1
+#if 0
 	setenv( "TRACE_LVLS", "0xf", 0/*0 = no overwrite*/ );
 	unsigned long long lvls=strtoull( getenv("TRACE_LVLS"), NULL, 0 );
 	// NOTE: If TRACEs occur before this, they would be done with a different lvl S mask.
@@ -150,11 +154,17 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	//std::cout << "Message Facility Config is: " << pstr << std::endl;
 	fhicl::make_ParameterSet(pstr, pset);
 
+#  if ART_HEX_VERSION >= 0x20703	// art v2_07_03 means a new versions of fhicl, boost, etc
+	mf::StartMessageFacility(pset);
+
+	mf::SetApplicationName(progname);
+#  else
 	mf::StartMessageFacility(mf::MessageFacilityService::MultiThread,
 	                         pset);
 
 	mf::SetModuleName(progname);
 	mf::SetContext(progname);
+#  endif
 
 	if (logPathProblem.size() > 0)
 	{
