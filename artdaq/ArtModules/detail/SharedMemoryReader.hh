@@ -67,15 +67,13 @@ namespace artdaq
 			 * "resume_after_timeout" (Default: true): Whether to continue receiving data after a timeout
 			 * "raw_data_label" (Default: "daq"): The label to use for all raw data
 			 * "shared_memory_key" (Default: 0xBEE7): The key for the shared memory segment
-			 * "buffer_count" (Default: 20): The number of buffers in the shared memory segment
-			 * "max_buffer_size" (Default: 1024): The size of the buffers in the shared memory segment
 			 * \endverbatim
 			 */
 			SharedMemoryReader(fhicl::ParameterSet const& ps,
 							   art::ProductRegistryHelper& help,
 							   art::SourceHelper const& pm)
 				: pmaker(pm)
-				, incoming_events(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key"), ps.get<size_t>("buffer_count",0), ps.get<size_t>("max_event_size_bytes",0)))
+				, incoming_events(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key")))
 				, waiting_time(ps.get<double>("waiting_time", 86400.0))
 				, resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
 				, pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))

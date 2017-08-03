@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
+#include "trace.h"				// TRACE_CNTL, TRACE
 
 namespace BFS = boost::filesystem;
 
@@ -16,6 +17,17 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	char* logRootString = getenv("ARTDAQ_LOG_ROOT");
 	char* logFhiclCode = getenv("ARTDAQ_LOG_FHICL");
 	char* artdaqMfextensionsDir = getenv("ARTDAQ_MFEXTENSIONS_DIR");
+
+#if 1
+	setenv( "TRACE_LVLS", "0xf", 0/*0 = no overwrite*/ );
+	unsigned long long lvls=strtoull( getenv("TRACE_LVLS"), NULL, 0 );
+	// NOTE: If TRACEs occur before this, they would be done with a different lvl S mask.
+	//       To check this, one could: treset;tonMg 0-63; tcntl trig -nTRACE 4 50; <app>
+    //       checking for TRACEs before the TRACE below.
+	//       If an existing trace file is used, the value of modeS is unchanged.
+	TRACE_CNTL( "lvlmskSg", lvls );
+	TRACE( 4, "configureMessageFacilit lvlmskSg set to 0x%llx", lvls );
+#endif
 
 	if (logRootString != nullptr)
 	{

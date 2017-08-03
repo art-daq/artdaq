@@ -131,7 +131,8 @@ initialize_FILE_()
 	else
 	{
 		file_ptr_ = std::make_unique<std::ofstream>(file_name, std::ofstream::binary);
-		file_ptr_->rdbuf()->pubsetbuf(0, 0);
+		TRACE(4, "BinaryFileOutput::initialize_FILE_ file_ptr_=%p errno=%d", (void*)file_ptr_.get(), errno);
+		//file_ptr_->rdbuf()->pubsetbuf(0, 0);
 	}
 	fstats_.recordFileOpen();
 }
@@ -203,11 +204,13 @@ write(EventPrincipal& ep)
 		{
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
-			TLOG_ARB(2, "BinaryFileOutput") << "write seq=" << std::to_string(sequence_id) << " frag="<< fragid_id << " " << fragment.headerBeginBytes() << " bytes=0x" << std::hex << std::to_string(fragment.sizeBytes()) << " start" << TLOG_ENDL;
+			TRACE(4, "BinaryFileOutput::write seq=%lu frag=%i %p bytes=0x%lx start"
+				  , sequence_id, fragid_id, fragment.headerBeginBytes(), fragment.sizeBytes());
 			if (do_direct_)
 			{
 				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
-				TLOG_ARB(3, "BinaryFileOutput") << "write seq=" << std::to_string(sequence_id) << " frag=" << fragid_id << " done sts=" << std::to_string(sts) << " errno=" << errno << TLOG_ENDL;
+				TRACE(5, "BinaryFileOutput::write seq=%lu frag=%i done sts=%ld errno=%d"
+					  , sequence_id, fragid_id, sts, errno);
 			}
 			else
 			{
@@ -216,7 +219,8 @@ write(EventPrincipal& ep)
 #          else
 				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
 #          endif
-				TLOG_ARB(3, "BinaryFileOutput") << "write seq=" << std::to_string(sequence_id) << " frag=" << fragid_id << " done errno=" << errno  << TLOG_ENDL;
+				TRACE(5, "BinaryFileOutput::write seq=%lu frag=%i done errno=%d"
+					  , sequence_id, fragid_id, errno);
 			}
 		}
 	}

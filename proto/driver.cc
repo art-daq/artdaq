@@ -49,6 +49,8 @@ int main(int argc, char * argv[]) try
 	uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
 	uint64_t timestamp = 0;
 
+	artdaq::configureMessageFacility("artdaqDriver");
+
 	fhicl::ParameterSet fragment_receiver_pset = pset.get<fhicl::ParameterSet>("fragment_receiver");
 
 	std::unique_ptr<artdaq::FragmentGenerator>
@@ -58,7 +60,6 @@ int main(int argc, char * argv[]) try
 	std::unique_ptr<artdaq::CommandableFragmentGenerator> commandable_gen =
 		dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>(gen);
 
-	artdaq::configureMessageFacility("artdaqDriver");
 	artdaq::MetricManager metricMan_;
 	metricMan = &metricMan_;
 	my_rank = 0;

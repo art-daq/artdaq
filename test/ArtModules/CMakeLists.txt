@@ -34,7 +34,7 @@ cet_test(shared_memory_reader_t USE_BOOST_UNIT
   canvas_Persistency_Common_dict
   canvas_Persistency_WrappedStdDictionaries_dict
   art_Utilities
-  ${artVersionLib}
+#  art_Version
   )
 
 cet_test(daq_flow_t

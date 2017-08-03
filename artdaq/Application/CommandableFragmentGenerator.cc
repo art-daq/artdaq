@@ -754,6 +754,9 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	}
 	else
 	{
+	        if (check_stop() && requests_.size() <= 0) return false;
+		checkDataBuffer();
+
 		while (requests_.size() <= 0)
 		{
 			if (check_stop()) return false;
