@@ -6,10 +6,10 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
-#include "boost/program_options.hpp"
-#include "boost/filesystem.hpp"
-#include <artdaq/Application/RoutingMasterCore.hh>
-#include <artdaq/Application/RoutingMasterApp.hh>
+#include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
+#include "artdaq/Application/RoutingMasterCore.hh"
+#include "artdaq/Application/RoutingMasterApp.hh"
 #include <netdb.h>
 namespace bpo = boost::program_options;
 
@@ -36,18 +36,34 @@ extern "C"
 #include <sys/resource.h>
 }
 
+/**
+ * \brief Create a "lock file", removing it upon class destruction
+ */
 class LockFile
 {
 public:
+	/**
+	 * \brief Create a lock file with the given path
+	 * \param path Path to lock file
+	 */
 	explicit LockFile(std::string path) : fileName_(path)
 	{
 		std::ofstream fstream(fileName_);
 		fstream << "Locked" << std::endl;
 	}
+
+	/**
+	 * \brief LockFile Destructor, removes the lock file
+	 */
 	~LockFile()
 	{
 		if(IsLocked(fileName_))	remove(fileName_.c_str());
 	}
+	/**
+	 * \brief Check if the given lock file exists
+	 * \param path Path to lock file
+	 * \return Whether the lock file exists, as determined by boost::filesystem
+	 */
 	static bool IsLocked(std::string path)
 	{
 		return boost::filesystem::exists(path);

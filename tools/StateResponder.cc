@@ -5,8 +5,8 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 
-#include "boost/program_options.hpp"
-#include "boost/lexical_cast.hpp"
+#include <boost/program_options.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <iostream>
 

@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE ( GenericFragmentSimulator_t )
-#include "boost/test/auto_unit_test.hpp"
+#include <boost/test/auto_unit_test.hpp>
 
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Data/Fragment.hh"

@@ -1,8 +1,8 @@
 #define MPI_MODE 1
 
 #include "artdaq/DAQdata/Globals.hh"
-#include "test/DAQrate/TransferTest.hh"
-#include <fhiclcpp/make_ParameterSet.h>
+#include "proto/TransferTest.hh"
+#include "fhiclcpp/make_ParameterSet.h"
 #include <mpi.h>
 #include <cstdlib>
 
@@ -14,15 +14,21 @@ int main(int argc, char* argv[])
 	artdaq::configureMessageFacility("transfer_driver_mpi");
 	TRACE(TLVL_TRACE, "s_r_handles main enter" );
 	char envvar[] = "MV2_ENABLE_AFFINITY=0";
-	assert(putenv(envvar) == 0);
+	if(putenv(envvar) != 0)
+	{
+		std::cerr << "Unable to set MV2_ENABLE_AFFINITY environment variable!";
+		return 1;
+	}
 	auto const requested_threading = MPI_THREAD_SERIALIZED;
 	int provided_threading = -1;
 	auto rc = MPI_Init_thread(&argc, &argv, requested_threading, &provided_threading);
 	assert(rc == 0);
 	assert(requested_threading == provided_threading);
+	TRACE(TLVL_TRACE, "MPI_Init_thread rc=%d", rc);
 	rc = MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-
 	assert(rc == 0);
+	TRACE(TLVL_TRACE, "MPI_Comm_rank rc=%d", rc);
+
 
 	if (my_rank == 0)
 	{

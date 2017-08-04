@@ -5,7 +5,11 @@
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "art/Persistency/Provenance/BranchIDListHelper.h"
+#if ART_HEX_VERSION >= 0x20703
+# include <iterator>
+#else
+# include "art/Persistency/Provenance/BranchIDListHelper.h"
+#endif
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
@@ -42,10 +46,10 @@
 #include <string>
 #include <vector>
 
-#include "unistd.h"
+#include <unistd.h>
 
-#include "TClass.h"
-#include "TMessage.h"
+#include <TClass.h>
+#include <TMessage.h>
 
 #define TRACE_NAME "RootMPIOutput"
 
@@ -243,7 +247,12 @@ send_init_message()
 	//    "std::map<const art::ParentageID,art::Parentage>");
 	//FIXME: Replace the "5" here with a use of the proper enum value!
 	static TClass* parentage_map_class = TClass::GetClass(
-		"std::map<const art::Hash<5>,art::Parentage>");
+#   if ART_HEX_VERSION >= 0x20703
+                                "art::ParentageRegistry::collection_type"
+#   else
+                                "std::map<const art::Hash<5>,art::Parentage>"
+#   endif
+	                                                      );
 	if (parentage_map_class == nullptr)
 	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
@@ -274,8 +283,15 @@ send_init_message()
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): parameter set count: " + std::to_string(ps_cnt));
 		msg.WriteULong(ps_cnt);
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): Streaming parameter sets ...");
-		for (auto I = fhicl::ParameterSetRegistry::begin(),
-				 E = fhicl::ParameterSetRegistry::end(); I != E; ++I)
+		for (
+#            if ART_HEX_VERSION >= 0x20703
+			 auto I = std::begin(fhicl::ParameterSetRegistry::get()),
+				 E = std::end(fhicl::ParameterSetRegistry::get());
+#            else
+   	         auto I = fhicl::ParameterSetRegistry::begin(),
+                 E = fhicl::ParameterSetRegistry::end();
+#            endif
+			 I != E; ++I)
 		{
 			std::string pset_str = I->second.to_string();
 			//msg.WriteObjectAny(&pset_str, string_class);
@@ -301,8 +317,13 @@ send_init_message()
 		//typedef vector<BranchID::value_type> BranchIDList
 		//typedef vector<BranchIDList> BranchIDLists
 		//std::vector<std::vector<art::BranchID::value_type>>
+#       if ART_HEX_VERSION >= 0x20703
+		art::BranchIDLists const * bilr =
+			&art::BranchIDListRegistry::instance().data();
+#       else
 		art::BranchIDLists* bilr =
 			&art::BranchIDListRegistry::instance()->data();
+#       endif
 		FDEBUG(2) << "RootMPIOutput static send_init_message(): "
 				 "Content of BranchIDLists\n";
 		int max_bli = bilr->size();
@@ -324,6 +345,13 @@ send_init_message()
 			}
 		}
 	}
+
+#   if ART_HEX_VERSION >= 0x20703
+	art::ProcessHistoryMap phr;
+	for (auto const& pr : art::ProcessHistoryRegistry::get()) {
+		phr.emplace(pr);
+	}
+#   endif
 	//
 	//  Dump the ProcessHistoryRegistry.
 	//
@@ -333,7 +361,9 @@ send_init_message()
 			"Dumping ProcessHistoryRegistry ...");
 		//typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
+#       if ART_HEX_VERSION < 0x20703
 		art::ProcessHistoryMap const& phr = art::ProcessHistoryRegistry::get();
+#       endif
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
 			"phr: size: " + std::to_string(phr.size()));
 		for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
@@ -352,7 +382,11 @@ send_init_message()
 			"Streaming ProcessHistoryRegistry ...");
 		//typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
+#       if ART_HEX_VERSION >= 0x20703
+		const art::ProcessHistoryMap& phm = phr;
+#       else
 		const art::ProcessHistoryMap& phm = art::ProcessHistoryRegistry::get();
+#       endif
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
 			"phm: size: " + std::to_string(phm.size()));
 		msg.WriteObjectAny(&phm, process_history_map_class);
@@ -365,8 +399,12 @@ send_init_message()
 	{
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
 			"Streaming ParentageRegistry ...");
+#       if ART_HEX_VERSION >= 0x20703
+		auto const& parentageMap = art::ParentageRegistry::get();
+#       else
 		//typedef std::map<const ParentageID,Parentage> ParentageMap
 		const art::ParentageMap& parentageMap = art::ParentageRegistry::get();
+#       endif
 		msg.WriteObjectAny(&parentageMap, parentage_map_class);
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
 			"Finished streaming ParentageRegistry.");
@@ -810,11 +848,16 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 				"dumping ProcessHistoryRegistry ...");
 			//typedef std::map<const ProcessHistoryID,ProcessHistory>
 			//    ProcessHistoryMap;
+#          if ART_HEX_VERSION >= 0x20703
+			for (auto I = std::begin(art::ProcessHistoryRegistry::get())
+					 , E = std::end(art::ProcessHistoryRegistry::get()); I != E; ++I)
+#          else
 			art::ProcessHistoryMap const& phr =
 				art::ProcessHistoryRegistry::get();
 			TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
 				"phr: size: " + std::to_string(phr.size()));
 			for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
+#          endif
 			{
 				std::ostringstream OS;
 				I->first.print(OS);
@@ -822,8 +865,7 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 					"phr: id: '" + OS.str() + "'");
 				OS.str("");
 				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-					"phr: data.size(): "
-					+ std::to_string(I->second.data().size()));
+				      "phr: data.size(): %zu",I->second.data().size() );
 				if (I->second.data().size())
 				{
 					I->second.data().back().id().print(OS);
@@ -844,8 +886,13 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: ProcessHistoryID: '"
 					+ OS.str() + "'");
 				OS.str("");
+#              if ART_HEX_VERSION >= 0x20703
+				ProcessHistory processHistory;
+				ProcessHistoryRegistry::get(srp.aux().processHistoryID(),processHistory);
+#              else
 				const ProcessHistory& processHistory =
 					ProcessHistoryRegistry::get(srp.aux().processHistoryID());
+#              endif
 				if (processHistory.data().size())
 				{
 					// FIXME: Print something special on invalid id() here!

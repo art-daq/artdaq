@@ -8,7 +8,8 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-#include "art/Persistency/Provenance/BranchIDListHelper.h"
+//#include "art/Persistency/Provenance/BranchIDListHelper.h"
+#include "art/Persistency/Provenance/BranchIDListRegistry.h"
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 #include "canvas/Persistency/Provenance/EventID.h"
@@ -27,7 +28,7 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #define BOOST_TEST_MODULE ( raw_event_queue_reader_t )
-#include "boost/test/auto_unit_test.hpp"
+#include <boost/test/auto_unit_test.hpp>
 
 #include <iostream>
 #include <memory>
@@ -108,7 +109,11 @@ void
 MPRGlobalTestFixture::finalize()
 {
 	productRegistry_.setFrozen();
+#if ART_HEX_VERSION >= 0x20703
+	art::BranchIDListRegistry::updateFromProductRegistry(productRegistry_);
+#else
 	art::BranchIDListHelper::updateRegistries(productRegistry_);
+#endif
 	art::ProductMetaData::create_instance(productRegistry_);
 }
 
@@ -149,10 +154,19 @@ fake_single_process_branch(std::string const& tag,
 							   *process);
 	art::TypeID dummyType(typeid(int));
 	art::BranchDescription* result =
-		new art::BranchDescription(art::TypeLabel(art::InEvent,
-												  dummyType,
-												  productInstanceName),
+		new art::BranchDescription(
+#                     if ART_HEX_VERSION >= 0x20703
+                                   art::InEvent,
+                                   art::TypeLabel(dummyType,
+                                                  productInstanceName),
+#                     else
+                                   art::TypeLabel(art::InEvent,
+                                                  dummyType,
+                                                  productInstanceName),
+#                     endif
 								   mod);
+
+
 	branchKeys_.insert(std::make_pair(tag, art::BranchKey(*result)));
 	return std::unique_ptr<art::BranchDescription>(result);
 }

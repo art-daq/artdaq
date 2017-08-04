@@ -1,6 +1,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#include "xmlrpc-c/client_simple.hpp"
+#include <xmlrpc-c/client_simple.hpp>
 #pragma GCC diagnostic pop
 
 #include <errno.h>

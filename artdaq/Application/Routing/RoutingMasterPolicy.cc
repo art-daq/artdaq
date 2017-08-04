@@ -1,5 +1,5 @@
 #include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
-#include <fhiclcpp/ParameterSet.h>
+#include "fhiclcpp/ParameterSet.h"
 
 artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
 	: next_sequence_id_(0)

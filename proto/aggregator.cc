@@ -18,15 +18,15 @@
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 
 #include <signal.h>
 #include <iostream>
 #include <memory>
 #include <utility>
-#include <artdaq/Application/AggregatorApp.hh>
-#include <artdaq/ExternalComms/xmlrpc_commander.hh>
-#include <artdaq/BuildInfo/GetPackageBuildInfo.hh>
+#include "artdaq/Application/AggregatorApp.hh"
+#include "artdaq/ExternalComms/xmlrpc_commander.hh"
+#include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 
 int main(int argc, char * argv[])
 {

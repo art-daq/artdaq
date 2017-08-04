@@ -10,6 +10,12 @@ namespace artdaq
 		struct RequestPacket;
 		struct RequestHeader;
 		class RequestMessage;
+
+		enum class RequestMessageMode
+		{
+			Normal = 0,
+			EndOfRun = 1,
+		};
 	}
 }
 
@@ -57,12 +63,15 @@ struct artdaq::detail::RequestHeader
 	/** The magic bytes for the request header */
 	uint32_t header; //HEDR, or 0x48454452
 	uint32_t packet_count; ///< The number of RequestPackets in this Request message
+	RequestMessageMode mode ; ///< Communicates additional information to the Request receiver
 
 	/**
 	 * \brief Default Constructor
 	 */
 	RequestHeader() : header(0x48454452)
-	                , packet_count(0) {}
+	                , packet_count(0)
+		, mode(RequestMessageMode::Normal)
+	{}
 
 	/**
 	* \brief Check the magic bytes of the packet

@@ -75,6 +75,31 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+
+ art_make_exec(NAME transfer_driver_mpi # NO_INSTALL -- comment out to install
+SOURCE
+transfer_driver_mpi.cc
+TransferTest.cc
+ LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+   artdaq_DAQdata
+artdaq_TransferPlugins
+  ${FHICLCPP}
+   )
+
+ art_make_exec(NAME transfer_driver # NO_INSTALL -- comment out to install
+SOURCE
+transfer_driver.cc
+TransferTest.cc
+   LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+   artdaq_DAQdata
+artdaq_TransferPlugins
+  ${FHICLCPP}
+   )
+
   art_make_exec(NAME routing_master
   SOURCE
   routing_master.cc

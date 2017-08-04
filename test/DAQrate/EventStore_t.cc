@@ -1,10 +1,10 @@
 #include "artdaq/DAQrate/EventStore.hh"
-#include <fhiclcpp/ParameterSet.h>
+#include "fhiclcpp/ParameterSet.h"
 
 #include <thread>
 
 #define BOOST_TEST_MODULE(EventStore_t)
-#include "boost/test/auto_unit_test.hpp"
+#include <boost/test/auto_unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(EventStore_test)
 

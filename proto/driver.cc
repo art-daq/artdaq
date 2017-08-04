@@ -25,7 +25,7 @@
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 
 #include <signal.h>
 #include <iostream>
@@ -87,6 +87,8 @@ int main(int argc, char * argv[]) try
 	uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
 	uint64_t timestamp = 0;
 
+	artdaq::configureMessageFacility("artdaqDriver");
+
 	ParameterSet fragment_receiver_pset = pset.get<ParameterSet>("fragment_receiver");
 
 	std::unique_ptr<artdaq::FragmentGenerator>
@@ -96,7 +98,6 @@ int main(int argc, char * argv[]) try
 	std::unique_ptr<artdaq::CommandableFragmentGenerator> commandable_gen =
 		dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>(gen);
 
-	artdaq::configureMessageFacility("artdaqDriver");
 	artdaq::MetricManager metricMan_;
 	metricMan = &metricMan_;
 	my_rank = 0;

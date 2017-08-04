@@ -6,7 +6,7 @@
 */
 
 #include "artdaq/DAQdata/Globals.hh"
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 #include <iomanip>
 namespace bpo = boost::program_options;
 

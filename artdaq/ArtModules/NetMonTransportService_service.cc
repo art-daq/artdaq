@@ -14,8 +14,8 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
 
-#include "TClass.h"
-#include "TBufferFile.h"
+#include <TClass.h>
+#include <TBufferFile.h>
 
 #include <iomanip>
 #include <iostream>

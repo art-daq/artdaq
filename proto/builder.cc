@@ -11,7 +11,7 @@
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 namespace bpo = boost::program_options;
 
 #include <algorithm>

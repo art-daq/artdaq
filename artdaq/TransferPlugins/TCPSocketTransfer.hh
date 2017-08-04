@@ -22,7 +22,7 @@
 #include <condition_variable>
 
 // Products includes
-#include <fhiclcpp/fwd.h>
+#include "fhiclcpp/fwd.h"
 
 // artdaq Includes
 #include "artdaq/TransferPlugins/TransferInterface.hh"
