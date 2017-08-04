@@ -29,6 +29,7 @@ art_make( BASENAME_ONLY
   ${ROOT_CORE}
   ${ROOT_NET}
   ${ROOT_REFLEX}
+  ${Boost_DATE_TIME_LIBRARY}
   )
 
 simple_plugin(RawInput "source"
@@ -84,6 +85,7 @@ simple_plugin(RootDAQOut "module"
   MF_MessageLogger
   fhiclcpp
   cetlib
+  ${Boost_DATE_TIME_LIBRARY}
   ${CETLIB_EXCEPT}
   ${SQLITE3}
   ${ROOT_RIO}
