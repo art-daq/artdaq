@@ -173,11 +173,7 @@ namespace artdaq {
 		 */
 		void setOverwrite(bool overwrite) { overwrite_mode_ = overwrite; }
 
-		/**
-		 * \brief Write out information about the Shared Memory to a string
-		 * \return String containing information about the current Shared Memory buffers
-		 */
-		std::string toString() override;
+		void SetInitFragment(FragmentPtr frag);
 
 	private:
 		size_t num_art_processes_;
@@ -195,6 +191,7 @@ namespace artdaq {
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		int broadcast_timeout_ms_;
+		int broadcast_count_;
 
 		std::string config_file_name_;
 		std::vector<std::thread> art_processes_;
@@ -212,6 +209,9 @@ namespace artdaq {
 		int getBufferForSequenceID_(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
 
 		void configureArt_(fhicl::ParameterSet art_pset);
+
+		void send_init_frag_();
+		uint64_t last_init_time_;
 	};
 }
 

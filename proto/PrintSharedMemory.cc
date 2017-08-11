@@ -5,7 +5,7 @@ namespace bpo = boost::program_options;
 
 #include "fhiclcpp/make_ParameterSet.h"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 
 int main(int argc, char* argv[])
 {
@@ -18,6 +18,7 @@ int main(int argc, char* argv[])
 	bpo::options_description desc(descstr.str());
 	desc.add_options()
 		("config,c", bpo::value<std::string>(), "Configuration file.")
+		("events,e", "Print event information")
 	("key,M", bpo::value<std::string>(), "Shared Memory to attach to")
 		("help,h", "produce help message");
 	bpo::variables_map vm;
@@ -49,6 +50,7 @@ int main(int argc, char* argv[])
 		pset.put("shared_memory_key", vm["key"].as<std::string>());
 		pset.put("buffer_count", 1);
 		pset.put("max_event_size_bytes", 1024);
+		pset.put("ReadEventInfo", vm.count("events") > 0);
 	}
 	else {
 		if (getenv("FHICL_FILE_PATH") == nullptr) {
@@ -64,7 +66,7 @@ int main(int argc, char* argv[])
 
 	if(pset.get<bool>("ReadEventInfo", false))
 	{
-		artdaq::SharedMemoryEventManager t(pset, pset);
+		artdaq::SharedMemoryEventReceiver t(pset.get<uint32_t>("shared_memory_key"));
 		std::cout << t.toString() << std::endl;
 	}
 	else

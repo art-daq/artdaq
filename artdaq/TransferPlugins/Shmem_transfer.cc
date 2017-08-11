@@ -71,7 +71,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 		if (fragment.type() != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Recvd frag from shmem, type=" << (int)fragment.type() << ", sequenceID=" << std::to_string(fragment.sequenceID()) << ", source_rank=" << source_rank() << TLOG_ENDL;
+			TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << std::to_string(fragment.sequenceID()) << ", source_rank=" << source_rank() << TLOG_ENDL;
 		}
 
 		return source_rank();
@@ -196,7 +196,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 				<< "sequence ID, fragment ID, and type = "
 				<< fragment.sequenceID() << " "
 				<< fragment.fragmentID() << " "
-				<< ((int)fragment.type()) << TLOG_ENDL;
+				<< fragment.typeString() << TLOG_ENDL;
 			return CopyStatus::kErrorNotRequiringException;
 		}
 	}

@@ -66,6 +66,8 @@ namespace artdaq
 		 */
 		void receiveMessage(std::unique_ptr<TBufferFile>& msg);
 
+		void receiveInitMessage(std::unique_ptr<TBufferFile>& msg) { receiveMessage(msg); }
+
 	private:
 
 		void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>&);

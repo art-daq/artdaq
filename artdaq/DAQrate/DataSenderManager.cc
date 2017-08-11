@@ -322,13 +322,14 @@ sendFragment(Fragment&& frag)
 	}
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
-	TLOG_ARB(13, "DataSenderManager") << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << std::to_string(fragSize) << ", seqID=" << std::to_string(seqID) << TLOG_ENDL;
+	TLOG_ARB(13, "DataSenderManager") << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << std::to_string(fragSize) 
+		<< ", seqID=" << std::to_string(seqID) << ", type=" << frag.typeString() << TLOG_ENDL;
 	int dest = TransferInterface::RECV_TIMEOUT;
 	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType)
 	{
 		for (auto& bdest : enabled_destinations_)
 		{
-			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d (broadcast)", seqID, bdest);
+			TLOG_TRACE("DataSenderManager") << "sendFragment: Sending fragment with seqId " << std::to_string(seqID) << " to destination " << bdest << " (broadcast)" << TLOG_ENDL;
 			// Gross, we have to copy.
 			Fragment fragCopy(frag);
 			auto sts = destinations_[bdest]->copyFragment(fragCopy);
@@ -350,7 +351,7 @@ sendFragment(Fragment&& frag)
 		}
 		if (destinations_.count(dest) && enabled_destinations_.count(dest))
 		{
-			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
+			TLOG_TRACE("DataSenderManager") << "sendFragment: Sending fragment with seqId " << std::to_string(seqID) << " to destination " << dest << TLOG_ENDL;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 			auto lastWarnTime = std::chrono::steady_clock::now();
 			while (sts != TransferInterface::CopyStatus::kSuccess)

@@ -248,11 +248,11 @@ send_init_message()
 	//FIXME: Replace the "5" here with a use of the proper enum value!
 	static TClass* parentage_map_class = TClass::GetClass(
 #   if ART_HEX_VERSION >= 0x20703
-                                "art::ParentageRegistry::collection_type"
+								"art::ParentageRegistry::collection_type"
 #   else
-                                "std::map<const art::Hash<5>,art::Parentage>"
+								"std::map<const art::Hash<5>,art::Parentage>"
 #   endif
-	                                                      );
+														  );
 	if (parentage_map_class == nullptr)
 	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
@@ -288,8 +288,8 @@ send_init_message()
 			 auto I = std::begin(fhicl::ParameterSetRegistry::get()),
 				 E = std::end(fhicl::ParameterSetRegistry::get());
 #            else
-   	         auto I = fhicl::ParameterSetRegistry::begin(),
-                 E = fhicl::ParameterSetRegistry::end();
+			 auto I = fhicl::ParameterSetRegistry::begin(),
+				 E = fhicl::ParameterSetRegistry::end();
 #            endif
 			 I != E; ++I)
 		{
@@ -415,13 +415,13 @@ send_init_message()
 	//
 	{
 		art::ServiceHandle<NetMonTransportService> transport;
-		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			"Sending the init message to "
-			+ std::to_string(transport->dataReceiverCount()) +
-			" data receivers ...");
+		TLOG_DEBUG("RootMPIOutput") << "RootMPIOutput: RootMPIOutput static send_init_message(): "
+									<< "Sending the init message to "	
+									<< std::to_string(transport->dataReceiverCount())
+									<< " data receivers ..." << TLOG_ENDL;
 		for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx)
 		{
-			transport->sendMessage(idx, artdaq::Fragment::InitFragmentType, msg);
+			transport->sendMessage(artdaq::Fragment::InvalidSequenceID - 1 - idx, artdaq::Fragment::InitFragmentType, msg);
 		}
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
 			"Init message(s) sent.");
@@ -865,7 +865,7 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 					"phr: id: '" + OS.str() + "'");
 				OS.str("");
 				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-				      "phr: data.size(): %zu",I->second.data().size() );
+					  "phr: data.size(): %zu",I->second.data().size() );
 				if (I->second.data().size())
 				{
 					I->second.data().back().id().print(OS);

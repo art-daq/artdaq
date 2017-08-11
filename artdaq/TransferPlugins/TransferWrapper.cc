@@ -129,7 +129,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 					{
 						TLOG_INFO("TransferWrapper") << "Received " << cntr++ << "-th event, "
 							<< "seqID == " << fragmentPtr->sequenceID()
-							<< ", type == " << static_cast<int>(fragmentPtr->type()) << TLOG_ENDL;
+							<< ", type == " << fragmentPtr->typeString() << TLOG_ENDL;
 					}
 					continue;
 				}
@@ -206,7 +206,7 @@ artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 	{
 		std::stringstream errmsg;
 		errmsg << "Error: artdaq fragment of type " <<
-			type << ", sequence ID " <<
+			fragment.typeString() << ", sequence ID " <<
 			fragment.sequenceID() <<
 			" has internally inconsistent measures of its size, signalling data corruption: in bytes," <<
 			" total size = " << totalsize << ", artdaq fragment header = " << artdaqheader <<

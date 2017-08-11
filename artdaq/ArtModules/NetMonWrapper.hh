@@ -56,6 +56,12 @@ namespace art
 		 * \param[out] msg A pointer to the received message
 		 */
 		void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+
+		/**
+		* \brief Receive an init message from the NetMonTransportService
+		* \param[out] msg A pointer to the received message
+		*/
+		void receiveInitMessage(std::unique_ptr<TBufferFile>& msg);
 	};
 }
 

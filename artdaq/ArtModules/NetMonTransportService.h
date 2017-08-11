@@ -65,6 +65,8 @@ public:
 	 */
 	void receiveMessage(TBufferFile*& msg) override;
 
+	void receiveInitMessage(TBufferFile*& msg) override;
+
 	/**
 	 * \brief Get the number of data receivers
 	 * \return The number of data receivers

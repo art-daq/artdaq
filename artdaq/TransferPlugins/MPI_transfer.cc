@@ -111,7 +111,7 @@ moveFragment(Fragment&& frag, size_t send_timeout_usec)
 	Fragment& curfrag = payload_[buffer_idx];
 	curfrag = std::move(frag);
 
-	TLOG_ARB(5, uniqueLabel()) << "MPITransfer::moveFragment before send src=" << source_rank() << " dest=" << destination_rank() << " seqID=" << std::to_string(curfrag.sequenceID()) << " type=" << std::to_string(curfrag.type()) << " found_idx=" << req_idx << TLOG_ENDL;
+	TLOG_ARB(5, uniqueLabel()) << "MPITransfer::moveFragment before send src=" << source_rank() << " dest=" << destination_rank() << " seqID=" << std::to_string(curfrag.sequenceID()) << " type=" << curfrag.typeString() << " found_idx=" << req_idx << TLOG_ENDL;
 
 	std::unique_lock<std::mutex> lk(mpi_mutex_);
 
