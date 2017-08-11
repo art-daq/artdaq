@@ -10,7 +10,6 @@ simple_plugin(FragmentSniffer "module"
   ${CETLIB}
   ${CETLIB_EXCEPT}
   )
-
   
 #get_cmake_property(_variableNames VARIABLES)
 #foreach (_variableName ${_variableNames})

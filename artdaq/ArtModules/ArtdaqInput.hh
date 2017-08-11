@@ -39,6 +39,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/InputUtilities.hh"
+#include "artdaq/ArtModules/detail/ParentageMap.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include <cstdio>
@@ -304,12 +305,12 @@ void
 art::ArtdaqInput<U>::
 readFile(const std::string&, art::FileBlock*& fb)
 {
-	TLOG_ARB(5, "ArtdaqInput") << "Begin: ArtdaqInput::" <<
-		"readFile(const std::string& name, art::FileBlock*& fb)" << TLOG_ENDL;
-	fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInput2013"),
-							"nothing");
-	TLOG_ARB(5, "ArtdaqInput") << "End:   ArtdaqInput::" <<
-		"readFile(const std::string& name, art::FileBlock*& fb)" << TLOG_ENDL;
+        TLOG_ARB(5,"ArtdaqInput") << "Begin: ArtdaqInput::"
+                "readFile(const std::string& name, art::FileBlock*& fb)" << TLOG_ENDL;
+        fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInput2013"),
+                                                        "nothing");
+        TLOG_ARB(5,"ArtdaqInput") << "End:   ArtdaqInput::"
+                "readFile(const std::string& name, art::FileBlock*& fb)" << TLOG_ENDL;
 }
 
 template <typename U>
@@ -317,30 +318,30 @@ bool
 art::ArtdaqInput<U>::
 hasMoreData() const
 {
-	TLOG_ARB(5, "ArtdaqInput") << "Begin: ArtdaqInput::hasMoreData()" << TLOG_ENDL;
-	if (shutdownMsgReceived_)
-	{
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput::hasMoreData(): " <<
-			"returning false on shutdownMsgReceived_." << TLOG_ENDL;
-		TLOG_ARB(5, "ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()" << TLOG_ENDL;
-		return false;
-	}
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput::hasMoreData(): " <<
-		"returning true on not shutdownMsgReceived_." << TLOG_ENDL;
-	TLOG_ARB(5, "ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()" << TLOG_ENDL;
-	return true;
+        TLOG_ARB(5,"ArtdaqInput") << "Begin: ArtdaqInput::hasMoreData()" << TLOG_ENDL;
+        if (shutdownMsgReceived_)
+        {
+                TLOG_ARB(5,"ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
+                        "returning false on shutdownMsgReceived_." << TLOG_ENDL;
+                TLOG_ARB(5,"ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()" << TLOG_ENDL;
+                return false;
+        }
+        TLOG_ARB(5,"ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
+                "returning true on not shutdownMsgReceived_." << TLOG_ENDL;
+        TLOG_ARB(5,"ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()" << TLOG_ENDL;
+        return true;
 }
 
 template <typename U>
 void
 art::ArtdaqInput<U>::
 readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
-						  unsigned long msg_type_code,
-						  art::RunPrincipal* const inR,
-						  art::SubRunPrincipal* const inSR,
-						  art::RunPrincipal*& outR,
-						  art::SubRunPrincipal*& outSR,
-						  art::EventPrincipal*& outE)
+                                                  unsigned long msg_type_code,
+                                                  art::RunPrincipal* const inR,
+                                                  art::SubRunPrincipal* const inSR,
+                                                  art::RunPrincipal*& outR,
+                                                  art::SubRunPrincipal*& outSR,
+                                                  art::EventPrincipal*& outE)
 {
 	//
 	//  Process the message.
@@ -560,7 +561,7 @@ void
 art::ArtdaqInput<U>::
 putInPrincipal(RunPrincipal*& rp, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
 {
-	rp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forRun(rp->id()));
+        rp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forRun(rp->id()));
 }
 
 template <typename U>
@@ -568,7 +569,7 @@ void
 art::ArtdaqInput<U>::
 putInPrincipal(SubRunPrincipal*& srp, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
 {
-	srp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forSubRun(srp->id()));
+        srp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forSubRun(srp->id()));
 }
 
 template <typename U>
@@ -576,7 +577,7 @@ void
 art::ArtdaqInput<U>::
 putInPrincipal(EventPrincipal*& ep, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
 {
-	ep->put(std::move(prd), bd, std::move(prdprov));
+        ep->put(std::move(prd), bd, std::move(prdprov));
 }
 
 
@@ -584,8 +585,8 @@ template <typename U>
 bool
 art::ArtdaqInput<U>::
 readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
-		 art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
-		 art::EventPrincipal*& outE)
+                 art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
+                 art::EventPrincipal*& outE)
 {
 	TLOG_ARB(5, "ArtdaqInput") << "Begin: ArtdaqInput::readNext" << TLOG_ENDL;
 	if (outputFileCloseNeeded_)
