@@ -134,6 +134,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 
 			shm_manager_->DoneWritingFragment(header);
+			TLOG_TRACE("DataReceiverManager") << "Done receiving fragment with sequence ID " << std::to_string(header.sequence_id) << " from rank " << source_rank << TLOG_ENDL;
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, header.word_count * sizeof(RawDataType));
 			recv_seq_count_.setSlot(source_rank, header.sequence_id);
@@ -181,7 +182,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			TLOG_DEBUG("DataReceiverManager") << "Received Init Fragment from rank " << source_rank << "." << TLOG_ENDL;
 			FragmentPtr frag(new Fragment(header.word_count - header.num_words()));
 			memcpy(frag->headerAddress(), &header, header.num_words() * sizeof(RawDataType));
-			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag->headerAddress() + header.num_words(), 1);
+			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag->headerAddress() + header.num_words(), header.word_count - header.num_words());
 			if (ret3 == source_rank)
 			{
 				shm_manager_->SetInitFragment(std::move(frag));

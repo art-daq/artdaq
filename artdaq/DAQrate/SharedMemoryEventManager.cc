@@ -7,7 +7,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", seedAndRandom()),
 						  pset.get<size_t>("buffer_count"),
 						  pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
-						  pset.get<size_t>("stale_buffer_timeout_usec", 1000000))
+						  pset.get<size_t>("stale_buffer_timeout_usec", 100 * 1000000))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
 	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
 	, queue_size_(pset.get<size_t>("buffer_count"))
@@ -152,6 +152,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 
 	if (hdr->is_complete)
 	{
+		TLOG_TRACE("SharedMemoryEventManager") << "DoneWritingFragment: This fragment completes the event. Releasing to art" << TLOG_ENDL;
 		MarkBufferFull(buffer);
 		requests_.RemoveRequest(frag.sequence_id);
 		requests_.SendRoutingToken(1);
@@ -284,7 +285,8 @@ bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnV
 		if (lastReadCount > 0) usleep(1000);
 	}
 
-	broadcastFragment_(std::move(Fragment::eodFrag(0)));
+	FragmentPtr outFrag;
+	broadcastFragment_(std::move(Fragment::eodFrag(0)), outFrag);
 
 	TLOG_ARB(4, "SharedMemoryEventManager") << "endOfData: Getting return codes from art processes" << TLOG_ENDL;
 
@@ -338,7 +340,7 @@ bool artdaq::SharedMemoryEventManager::endRun()
 
 	endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
 	*endOfRunFrag->dataBegin() = my_rank;
-	broadcastFragment_(std::move(endOfRunFrag));
+	broadcastFragment_(std::move(endOfRunFrag), endOfRunFrag);
 	return true;
 }
 
@@ -353,7 +355,7 @@ bool artdaq::SharedMemoryEventManager::endSubrun()
 	endOfSubrunFrag->setSystemType(Fragment::EndOfSubrunFragmentType);
 	*endOfSubrunFrag->dataBegin() = my_rank;
 
-	broadcastFragment_(std::move(endOfSubrunFrag));
+	broadcastFragment_(std::move(endOfSubrunFrag), endOfSubrunFrag);
 	return true;
 }
 
@@ -379,7 +381,7 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 	}
 }
 
-void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag)
+void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag)
 {
 	auto hdr = *reinterpret_cast<detail::RawFragmentHeader*>(frag->headerAddress());
 	hdr.sequence_id = Fragment::InvalidSequenceID - ++broadcast_count_;
@@ -397,6 +399,7 @@ void artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag)
 	AddFragment(hdr, frag->headerAddress(), true);
 	getEventHeader_(buffer)->is_complete = true;
 	MarkBufferFull(buffer, -1, BufferMode::Broadcast);
+	outFrag.swap(frag);
 }
 
 artdaq::detail::RawEventHeader* artdaq::SharedMemoryEventManager::getEventHeader_(int buffer)
@@ -453,12 +456,15 @@ void artdaq::SharedMemoryEventManager::configureArt_(fhicl::ParameterSet art_pse
 void artdaq::SharedMemoryEventManager::send_init_frag_()
 {
 	if (init_fragment_ != nullptr && TimeUtils::gettimeofday_us() > last_init_time_ + 10 * GetBufferTimeout()) {
-		TLOG_TRACE("SharedMemoryEventManager") << "Sending init Fragment..." << TLOG_ENDL;
-		FragmentPtr init_fragment_copy(new Fragment(init_fragment_->size()));
+		TLOG_TRACE("SharedMemoryEventManager") << "Sending init Fragment to art..." << TLOG_ENDL;
 
-		memcpy(init_fragment_copy->headerAddress(), init_fragment_->headerAddress(), init_fragment_->size() * sizeof(artdaq::RawDataType));
+#if 1
+		std::fstream ostream("receiveInitMessage.bin", std::ios::out | std::ios::binary);
+		ostream.write(reinterpret_cast<char*>(init_fragment_->dataBeginBytes()), init_fragment_->dataSizeBytes());
+		ostream.close();
+#endif
 
-		broadcastFragment_(std::move(init_fragment_copy));
+		broadcastFragment_(std::move(init_fragment_), init_fragment_);
 		last_init_time_ = TimeUtils::gettimeofday_us();
 		TLOG_TRACE("SharedMemoryEventManager") << "Init Fragment sent" << TLOG_ENDL;
 	}
@@ -466,6 +472,8 @@ void artdaq::SharedMemoryEventManager::send_init_frag_()
 
 void artdaq::SharedMemoryEventManager::SetInitFragment(FragmentPtr frag)
 {
-	init_fragment_.swap(frag);
-	send_init_frag_();
+	if (!init_fragment_ || init_fragment_ == nullptr) {
+		init_fragment_.swap(frag);
+		send_init_frag_();
+	}
 }

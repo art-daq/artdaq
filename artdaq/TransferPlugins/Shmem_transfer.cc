@@ -186,6 +186,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 			auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode);
 			if (sts != 0) return CopyStatus::kErrorNotRequiringException;
 
+			TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) << "Fragment send successfully" << TLOG_ENDL;
 			return CopyStatus::kSuccess;
 		}
 		else
@@ -201,6 +202,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		}
 	}
 
+	TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) << "Fragment Send Timeout!" << TLOG_ENDL;
 	return CopyStatus::kTimeout;
 }
 

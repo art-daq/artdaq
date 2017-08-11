@@ -202,7 +202,7 @@ namespace artdaq {
 		
 		FragmentPtr init_fragment_;
 
-		void broadcastFragment_(FragmentPtr frag);
+		void broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag);
 
 		detail::RawEventHeader* getEventHeader_(int buffer);
 

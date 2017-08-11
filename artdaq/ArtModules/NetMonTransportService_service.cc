@@ -19,6 +19,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -75,7 +76,7 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 		connect();
 	}
 
-	TLOG_DEBUG("NetMonTransportService") << "Sending message with sequenceID=" << std::to_string(sequenceId) << " and type=" << std::to_string(messageType) << TLOG_ENDL;
+	TLOG_DEBUG("NetMonTransportService") << "Sending message with sequenceID=" << std::to_string(sequenceId) << ", type=" << std::to_string(messageType) << ", length=" << std::to_string(msg.Length()) << TLOG_ENDL;
 	artdaq::NetMonHeader header;
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment
@@ -142,7 +143,18 @@ receiveMessage(TBufferFile*& msg)
 			msg = nullptr;
 			return;
 		}
-		if (firstFragmentType == artdaq::Fragment::InitFragmentType) continue;
+		if (firstFragmentType == artdaq::Fragment::InitFragmentType)
+		{
+			TLOG_DEBUG("NetMonTransportService") << "Cannot receive InitFragments here, retrying" << TLOG_ENDL;
+			incoming_events_->ReleaseBuffer();
+			continue;
+		}
+		// EndOfRun and EndOfSubrun Fragments are ignored in NetMonTransportService
+		else if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType || firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType)
+		{
+			incoming_events_->ReleaseBuffer();
+			continue;
+		}
 
 		TLOG_TRACE("NetMonTransportService") << "receiveMessage: Getting all Fragments" << TLOG_ENDL;
 		recvd_fragments_ = incoming_events_->GetFragmentsByType(errflag, artdaq::Fragment::InvalidFragmentType);
@@ -150,7 +162,10 @@ receiveMessage(TBufferFile*& msg)
 		   sorted by sequence ID before they can be passed to art.
 		*/
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(),
-				  artdaq::fragmentSequenceIDCompare);
+				  artdaq::fragmentSequenceIDCompare);			
+		
+		TLOG_TRACE("NetMonTransportService") << "receiveMessage: Releasing buffer" << TLOG_ENDL;
+		incoming_events_->ReleaseBuffer();
 	}
 
 	TLOG_TRACE("NetMonTransportService") << "receiveMessage: Returning top Fragment" << TLOG_ENDL;
@@ -245,6 +260,13 @@ receiveInitMessage(TBufferFile*& msg)
 	TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Copying Fragment into TBufferFile: message length: " << std::to_string(header->data_length) << TLOG_ENDL;
 	auto buffer = static_cast<char *>(malloc(header->data_length));
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
+
+#if 0
+	std::fstream ostream("receiveInitMessage.bin", std::ios::out | std::ios::binary);
+	ostream.write(buffer, header->data_length);
+	ostream.close();
+#endif
+
 	msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
 
 	TLOG_TRACE("NetMonTransportService") << "receiveInitMessage END" << TLOG_ENDL;
