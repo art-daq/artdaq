@@ -130,7 +130,8 @@ public:
 protected:
 	/**
 	 * \brief Initialize the DataReceiverCore (should be called from initialize() overrides
-	 * \param pset ParameterSet for DataReceiverManager and SharedMemoryEventManager
+	 * \param pset ParameterSet for art configuration
+	 * \param data_pset ParameterSet for DataReceiverManager and SharedMemoryEventManager configuration
 	 * \param metric_pset ParameterSet for MetricManager
 	 * \return Whether the initialize succeeded
 	 */

@@ -40,9 +40,17 @@ namespace artdaq
 		 */
 		static double timevalAsDouble(struct timeval tv);
 
+		/**
+		 * \brief Seed the C random number generator with the current time (if that has not been done already) and generate a random value
+		 * \return A random number.
+		 */
 		static uint32_t seedAndRandom_()
 		{
-			srand(TimeUtils::gettimeofday_us());
+			static bool initialized_ = false;
+			if (!initialized_) {
+				srand(TimeUtils::gettimeofday_us());
+				initialized_ = true;
+			}
 			return rand();
 		}
 	};

@@ -253,6 +253,7 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_ps
 
 bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnValues)
 {
+	init_fragment_.reset(nullptr);
 	TLOG_DEBUG("SharedMemoryEventManager") << "SharedMemoryEventManager::endOfData" << TLOG_ENDL;
 	restart_art_ = false;
 
@@ -305,6 +306,7 @@ bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnV
 
 void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
+	init_fragment_.reset(nullptr);
 	StartArt();
 	run_id_ = runID;
 	subrun_id_ = 1;

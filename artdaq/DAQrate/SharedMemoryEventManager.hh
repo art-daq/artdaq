@@ -173,6 +173,9 @@ namespace artdaq {
 		 */
 		void setOverwrite(bool overwrite) { overwrite_mode_ = overwrite; }
 
+		/**
+		 * \brief Set the stored Init fragment, if one has not yet been set already.
+		 */
 		void SetInitFragment(FragmentPtr frag);
 
 	private:
