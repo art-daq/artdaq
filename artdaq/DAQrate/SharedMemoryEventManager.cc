@@ -55,6 +55,7 @@ artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
 	std::vector<int> ignored;
 	endOfData(ignored);
 	remove(config_file_name_.c_str());
+	TLOG_DEBUG("SharedMemoryEventManager") << "Destructor END" << TLOG_ENDL;
 }
 
 bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader frag, void* dataPtr, bool skipCheck)

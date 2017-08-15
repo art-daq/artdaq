@@ -162,7 +162,7 @@ bool artdaq::DataReceiverCore::shutdown()
 	   it can wrap up whatever it needs to do. */
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
-	TLOG_ARB(4, "DataReceiverCore") << "shutdown: Calling EventStore::endOfData" << TLOG_ENDL;
+	TLOG_DEBUG("DataReceiverCore") << "shutdown: Calling EventStore::endOfData" << TLOG_ENDL;
 	std::vector<int> readerReturnValues;
 	endSucceeded = event_store_ptr_->endOfData(readerReturnValues);
 	while (!endSucceeded && attemptsToEnd < 3)
@@ -171,9 +171,16 @@ bool artdaq::DataReceiverCore::shutdown()
 		TLOG_DEBUG(name_) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
 		endSucceeded = event_store_ptr_->endOfData(readerReturnValues);
 	}
-	TLOG_ARB(4, "DataReceiverCore") << "shutdown: Shutting down MetricManager" << TLOG_ENDL;
+	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down MetricManager" << TLOG_ENDL;
 	metricMan_.shutdown();
-	TLOG_ARB(4, "DataReceiverCore") << "shutdown: Complete" << TLOG_ENDL;
+
+	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down DataReceiverManager" << TLOG_ENDL;
+	receiver_ptr_.reset(nullptr);
+	
+	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down SharedMemoryEventManager" << TLOG_ENDL;
+	event_store_ptr_.reset();
+
+	TLOG_DEBUG("DataReceiverCore") << "shutdown: Complete" << TLOG_ENDL;
 	return endSucceeded;
 }
 

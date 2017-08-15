@@ -64,17 +64,17 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 
 artdaq::DataReceiverManager::~DataReceiverManager()
 {
-	TLOG_DEBUG("DataReceiverManager") << "Destructor" << TLOG_ENDL;
-	TRACE(5, "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=%zu, bytes=%zu", count(), byteCount());
+	TLOG_DEBUG("DataReceiverManager") << "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount()) << TLOG_ENDL;
 	stop_requested_ = true;
 
-	TRACE(5, "~DataReceiverManager: Joining all threads");
+	TLOG_DEBUG("DataReceiverManager") << "~DataReceiverManager: Joining all threads" << TLOG_ENDL;
 	for (auto& s : source_threads_)
 	{
 		auto& thread = s.second;
 		if (thread.joinable()) thread.join();
 	}
-	TRACE(5, "~DataReceiverManager: DONE");
+	shm_manager_.reset();
+	TLOG_DEBUG("DataReceiverManager") << "Destructor END" << TLOG_ENDL;
 }
 
 
@@ -192,7 +192,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				TLOG_ERROR("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving EndOfData Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")" << TLOG_ENDL;
 				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving EndOfData Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
 			}
-			
+
 		}
 
 
