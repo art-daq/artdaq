@@ -1,0 +1,4 @@
+
+test_int: 456789
+test_uint: 0x1111FFFF1111FFFF
+test_hex: "0x1111FFFF1111FFFF"
