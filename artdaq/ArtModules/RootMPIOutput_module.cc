@@ -248,19 +248,12 @@ send_init_message()
 	//static TClass* parentage_map_class = TClass::GetClass(
 	//    "std::map<const art::ParentageID,art::Parentage>");
 	//FIXME: Replace the "5" here with a use of the proper enum value!
-	static TClass* parentage_map_class = TClass::GetClass(
-#   if ART_HEX_VERSION >= 0x20703
-								"art::ParentageRegistry::collection_type"
-#   else
-								"std::map<const art::Hash<5>,art::Parentage>"
-#   endif
-														  );
+	static TClass* parentage_map_class = TClass::GetClass("art::ParentageMap");
 	if (parentage_map_class == nullptr)
 	{
 		throw art::Exception(art::errors::DictionaryNotFound) <<
 			  "RootMPIOutput static send_init_message(): "
-			  "Could not get class for "
-			  "std::map<const art::Hash<5>,art::Parentage>!";
+			  "Could not get class for ParentageMap";
 	}
 	//
 	//  Construct and send the init message.
