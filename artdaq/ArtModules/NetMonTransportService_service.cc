@@ -76,6 +76,14 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 		connect();
 	}
 
+#if 1
+	if (messageType == artdaq::Fragment::InitFragmentType) {
+		std::fstream ostream("sendInitMessage.bin", std::ios::out | std::ios::binary);
+		ostream.write(msg.Buffer(), msg.Length());
+		ostream.close();
+}
+#endif
+
 	TLOG_DEBUG("NetMonTransportService") << "Sending message with sequenceID=" << std::to_string(sequenceId) << ", type=" << std::to_string(messageType) << ", length=" << std::to_string(msg.Length()) << TLOG_ENDL;
 	artdaq::NetMonHeader header;
 	header.data_length = static_cast<uint64_t>(msg.Length());

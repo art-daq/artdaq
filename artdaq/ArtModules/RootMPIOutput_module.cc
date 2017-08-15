@@ -299,8 +299,7 @@ send_init_message()
         //
         {
                 TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): Streaming MasterProductRegistry ...");
-                art::ProductList productList(
-                        art::ProductMetaData::instance().productList());
+                art::ProductList productList(art::ProductMetaData::instance().productList());
                 msg.WriteObjectAny(&productList, product_list_class);
                 TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): Finished streaming MasterProductRegistry.");
         }
@@ -392,8 +391,10 @@ send_init_message()
         //  Stream the ParentageRegistry.
         //
         {
-                TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-                        "Streaming ParentageRegistry ...");
+#if 0
+                TLOG_DEBUG("RootMPIOutput") << "RootMPIOutput static send_init_message(): " <<
+                        "Streaming ParentageRegistry ... sz=" << std::to_string(msg.Length()) << TLOG_ENDL;
+#endif
 #       if ART_HEX_VERSION >= 0x20703
                 art::ParentageMap parentageMap{};
                 for (auto const& pr : art::ParentageRegistry::get()) {
@@ -402,9 +403,17 @@ send_init_message()
 #       else
                 const art::ParentageMap& parentageMap = art::ParentageRegistry::get();
 #       endif
-		msg.WriteObjectAny(&parentageMap, parentage_map_class);
-		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
-			"Finished streaming ParentageRegistry.");
+
+			TLOG_TRACE("RootMPIOutput") << "Before WriteObjectAny ParentageMap" << TLOG_ENDL;
+#if 0
+				auto sts =
+#endif
+			msg.WriteObjectAny(&parentageMap, parentage_map_class);
+			TLOG_TRACE("RootMPIOuptut") << "After WriteObjectAny ParentageMap" << TLOG_ENDL;
+#if 0
+		TLOG_DEBUG("RootMPIOutput") << "RootMPIOutput: RootMPIOutput static send_init_message(): " <<
+			"Finished streaming ParentageRegistry." << " sts=" << sts << ", sz=" << std::to_string(msg.Length()) << TLOG_ENDL;
+#endif
 	}
 	//
 	//
@@ -426,7 +435,7 @@ send_init_message()
 	TRACE(5, "RootMPIOutput: End:   RootMPIOutput static send_init_message()");
 }
 
-//#pragma GCC pop_options
+#//pragma GCC pop_options
 
 void
 art::RootMPIOutput::

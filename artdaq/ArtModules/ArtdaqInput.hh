@@ -266,21 +266,11 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	//  Read the ParentageRegistry.
 	//
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ParentageMap" << TLOG_ENDL;
-#if ART_HEX_VERSION >= 0x20703
-	typedef art::ParentageRegistry::collection_type ParentageMap;
 	ParentageMap* parentageMap
 		= ReadObjectAny<ParentageMap>(msg,
-									  "art::ParentageRegistry::collection_type",
+									  "art::ParentageMap",
 									  "ArtdaqInput::ArtdaqInput");
 	ParentageRegistry::put(*parentageMap);
-#else
-	art::ParentageMap* parentageMap
-		= ReadObjectAny<art::ParentageMap>(msg,
-										   "std::map<const art::Hash<5>,art::Parentage>",
-										   "ArtdaqInput::ArtdaqInput");
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got ParentageMap" << TLOG_ENDL;
-	ParentageRegistry::put(*parentageMap);
-#endif
 
 	//
 	//  Finished with init message.
