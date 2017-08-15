@@ -38,6 +38,7 @@ art_make_exec(NAME artdaqDriver
   )
 
 art_make_exec(NAME fhicl_test
+    SOURCE
   fhicl_test.cc
   LIBRARIES
   ${FHICLCPP}
