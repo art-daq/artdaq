@@ -37,6 +37,17 @@ art_make_exec(NAME artdaqDriver
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+art_make_exec(NAME fhicl_test
+    SOURCE
+  fhicl_test.cc
+  LIBRARIES
+  ${FHICLCPP}
+  ${CETLIB}
+  ${CETLIB_EXCEPT}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
+
   art_make_exec(NAME aggregator
     SOURCE
     aggregator.cc

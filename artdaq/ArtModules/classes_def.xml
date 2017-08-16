@@ -1,4 +1,3 @@
 <lcgdict>
- <class name="std::pair<const art::ParentageID, art::Parentage>"/>
  <class name="art::ParentageMap"/>
 </lcgdict>
