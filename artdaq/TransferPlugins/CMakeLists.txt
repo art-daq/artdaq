@@ -38,6 +38,17 @@ art_make( BASENAME_ONLY
   ${Boost_SYSTEM_LIBRARY}
   ${TBB}
   )
+  
+simple_plugin(TransferOutput "module"
+  artdaq_TransferPlugins
+  artdaq_ArtModules
+  art_Framework_IO_Root
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${CETLIB_EXCEPT}
+  ${ROOT_RIO}
+)
 
 simple_plugin(TransferInput "source"
   artdaq_TransferPlugins

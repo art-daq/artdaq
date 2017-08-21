@@ -100,9 +100,9 @@ public:
 private:		
 	fhicl::ParameterSet generate_filter_fhicl_();
 
-	std::unique_ptr<Fragment> init_fragment_ptr_;
 	std::mutex dispatcher_transfers_mutex_;
 	std::unordered_map<std::string, fhicl::ParameterSet> registered_monitors_;
+  fhicl::ParameterSet pset_; // The ParameterSet initially passed to the Dispatcher (contains input info)
 };
 
 #endif
