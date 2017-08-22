@@ -77,7 +77,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 
 	try
 	{
-		auto label = pset.get<std::string>("label");
+		auto label = pset.get<std::string>("unique_label");
 		registered_monitors_[label] = pset;
 		if (event_store_ptr_ != nullptr)
 		{

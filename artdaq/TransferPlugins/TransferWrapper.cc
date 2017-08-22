@@ -68,7 +68,8 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 
 	try
 	{
-		myClient.call(serverUrl_, "daq.register_monitor", "s", &result, pset.to_string().c_str());
+		auto dispatcherConfig = pset.get<fhicl::ParameterSet>("dispatcher_config");
+		myClient.call(serverUrl_, "daq.register_monitor", "s", &result, dispatcherConfig.to_string().c_str());
 	}
 	catch (...)
 	{
