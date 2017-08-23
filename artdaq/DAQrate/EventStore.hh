@@ -277,7 +277,7 @@ namespace artdaq
 		 * \brief Set the mode for RequestMessages. Used to indicate when EventStore should enter "EndOfRun" mode
 		 * \param mode Mode to set
 		 */
-		void setRequestMode(detail::RequestMessageMode mode) { request_mode_ = mode; }
+		void setRequestMode(detail::RequestMessageMode mode);
 
 	private:
 		// id_ is the unique identifier of this object; MPI programs will
