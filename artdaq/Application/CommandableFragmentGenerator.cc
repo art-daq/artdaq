@@ -28,7 +28,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, request_addr_("227.128.12.26")
 	, requests_()
 	, request_stop_requested_(false)
-, end_of_run_timeout_ms_(1000)
+	, request_received_(false)
+	, end_of_run_timeout_ms_(1000)
 	, windowOffset_(0)
 	, windowWidth_(0)
 	, staleTimeout_(Fragment::InvalidTimestamp)
@@ -56,7 +57,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, ev_counter_(1)
 	, board_id_(-1)
 	, instance_name_for_metrics_("FragmentGenerator")
-	, sleep_on_stop_us_(0) {}
+	, sleep_on_stop_us_(0)
+{}
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
 	: mutex_()
@@ -64,6 +66,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
 	, requests_()
 	, request_stop_requested_(false)
+	, request_received_(false)
 	, end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
 	, windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
 	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
@@ -234,17 +237,21 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			result = applyRequests(output);
 			TRACE(4, "CFG: Done with applyRequests");
 
-			if (exception()) {
-			  throw cet::exception("CommandableFragmentGenerator") << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
+			if (exception())
+			{
+				throw cet::exception("CommandableFragmentGenerator") << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
 			}
 		}
 		else
 		{
 			TRACE(4, "CFG: Calling getNext_ %zu", ev_counter());
-			try {
-			  result = getNext_(output);
-			} catch (...) {
-			  throw;
+			try
+			{
+				result = getNext_(output);
+			}
+			catch (...)
+			{
+				throw;
 			}
 			TRACE(4, "CFG: Done with getNext_ %zu", ev_counter());
 		}
@@ -253,7 +260,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	{
 		latest_exception_report_ = "cet::exception caught in getNext(): ";
 		latest_exception_report_.append(e.what());
-		TLOG_ERROR("getNext") << "cet::exception caught: " << e << TLOG_ENDL;
+		TLOG_ERROR("CommandableFragmentGenerator") << "getNext: cet::exception caught: " << e << TLOG_ENDL;
 		set_exception(true);
 		return false;
 	}
@@ -261,7 +268,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	{
 		latest_exception_report_ = "boost::exception caught in getNext(): ";
 		latest_exception_report_.append(boost::diagnostic_information(e));
-		TLOG_ERROR("getNext") << "boost::exception caught: " << boost::diagnostic_information(e) << TLOG_ENDL;
+		TLOG_ERROR("CommandableFragmentGenerator") << "getNext: boost::exception caught: " << boost::diagnostic_information(e) << TLOG_ENDL;
 		set_exception(true);
 		return false;
 	}
@@ -269,14 +276,14 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	{
 		latest_exception_report_ = "std::exception caught in getNext(): ";
 		latest_exception_report_.append(e.what());
-		TLOG_ERROR("getNext") << "std::exception caught: " << e.what() << TLOG_ENDL;
+		TLOG_ERROR("CommandableFragmentGenerator") << "getNext: std::exception caught: " << e.what() << TLOG_ENDL;
 		set_exception(true);
 		return false;
 	}
 	catch (...)
 	{
 		latest_exception_report_ = "Unknown exception caught in getNext().";
-		TLOG_ERROR("getNext") << "unknown exception caught" << TLOG_ENDL;
+		TLOG_ERROR("CommandableFragmentGenerator") << "getNext: unknown exception caught" << TLOG_ENDL;
 		set_exception(true);
 		return false;
 	}
@@ -292,9 +299,17 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 bool artdaq::CommandableFragmentGenerator::check_stop()
 {
-  TRACE(4, "CFG::check_stop: should_stop=%i, useDataThread_=%i, requests_.size()=%zu, exception status =%d", should_stop(), useDataThread_, requests_.size(), int(exception()));
+	TRACE(4, "CFG::check_stop: should_stop=%i, useDataThread_=%i, requests_.size()=%zu, exception status =%d", should_stop(), useDataThread_, requests_.size(), int(exception()));
 	if (!should_stop()) return false;
 	if (!useDataThread_ || mode_ == RequestMode::Ignored) return true;
+
+	if (!request_received_)
+	{
+		TLOG_ERROR("CommandableFragmentGenerator") << "Stop request received by request-based CommandableFragmentGenerator, but no requests have been received." << std::endl
+			<< "Check that UDP port " << request_port_ << " is open in the firewall config." << TLOG_ENDL;
+		return true;
+	}
+
 	if (!request_stop_requested_) return false;
 
 	auto dur = std::chrono::steady_clock::now() - request_stop_timeout_;
@@ -509,15 +524,18 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 		bool data = false;
 
-		try {
-		  data = getNext_(newDataBuffer_);
-		} catch (...) {
-		  ExceptionHandler(ExceptionHandlerRethrow::no,
-				   "Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
-		  set_exception(true);
+		try
+		{
+			data = getNext_(newDataBuffer_);
+		}
+		catch (...)
+		{
+			ExceptionHandler(ExceptionHandlerRethrow::no,
+							 "Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
+			set_exception(true);
 
-		  data_thread_running_ = false;
-		  return;
+			data_thread_running_ = false;
+			return;
 		}
 
 		auto startwait = std::chrono::steady_clock::now();
@@ -684,10 +702,10 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 {
 	while (true)
 	{
-	  if (check_stop() || !isHardwareOK_ || exception())
+		if (check_stop() || !isHardwareOK_ || exception())
 		{
 			TLOG_DEBUG("CommandableFragmentGenerator") << "receiveRequestsLoop: check_stop is " << std::boolalpha << check_stop()
-								   << ", isHardwareOK_ is " << isHardwareOK_ << ", and exception state is " << exception() << ", aborting request reception thread." << TLOG_ENDL;
+				<< ", isHardwareOK_ is " << isHardwareOK_ << ", and exception state is " << exception() << ", aborting request reception thread." << TLOG_ENDL;
 			return;
 		}
 
@@ -710,6 +728,7 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 				TRACE(4, "CFG: Request header word: 0x%x", (int)hdr_buffer.header);
 				if (hdr_buffer.isValid())
 				{
+					request_received_ = true;
 					if (hdr_buffer.mode == detail::RequestMessageMode::EndOfRun)
 					{
 						TLOG_INFO("CommandableFragmentGenerator") << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests..." << TLOG_ENDL;
@@ -758,7 +777,7 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 
 bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& frags)
 {
-  if (check_stop() || exception())
+	if (check_stop() || exception())
 	{
 		return false;
 	}
@@ -767,19 +786,19 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	{
 		while (dataBufferDepthFragments_ <= 0)
 		{
-		  if (check_stop() || exception()) return false;
+			if (check_stop() || exception()) return false;
 			std::unique_lock<std::mutex> lock(dataBufferMutex_);
 			dataCondition_.wait_for(lock, std::chrono::milliseconds(10), [this]() { return dataBufferDepthFragments_ > 0; });
 		}
 	}
 	else
 	{
-	  if ((check_stop() && requests_.size() <= 0) || exception()) return false;
+		if ((check_stop() && requests_.size() <= 0) || exception()) return false;
 		checkDataBuffer();
 
 		while (requests_.size() <= 0)
 		{
-		  if (check_stop() || exception()) return false;
+			if (check_stop() || exception()) return false;
 
 			checkDataBuffer();
 
@@ -844,7 +863,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 				}
 				while (req->first > ev_counter() && request_stop_requested_ && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - request_stop_timeout_).count() > 1)
 				{
-					sendEmptyFragment(frags,ev_counter(), "Missing request for");
+					sendEmptyFragment(frags, ev_counter(), "Missing request for");
 					ev_counter_inc(1, true);
 				}
 				if (req->first > ev_counter())
