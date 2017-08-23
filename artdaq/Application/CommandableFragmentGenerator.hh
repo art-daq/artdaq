@@ -431,6 +431,7 @@ namespace artdaq
 		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> requests_;
 		std::atomic<bool> request_stop_requested_;
 		std::chrono::steady_clock::time_point request_stop_timeout_;
+		std::atomic<bool> request_received_;
 		size_t end_of_run_timeout_ms_;
 		std::mutex request_mutex_;
 		std::thread requestThread_;
