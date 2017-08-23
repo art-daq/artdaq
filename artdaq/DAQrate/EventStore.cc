@@ -395,6 +395,15 @@ namespace artdaq
 		return queue_.enqTimedWait(endOfSubrunEvent, enq_timeout_);
 	}
 
+	void EventStore::setRequestMode(detail::RequestMessageMode mode)
+	{
+		request_mode_ = mode;
+		if (send_requests_ && request_mode_ == detail::RequestMessageMode::EndOfRun)
+		{
+			send_request_();
+		}
+	}
+
 	void
 		EventStore::initStatistics_()
 	{
@@ -541,7 +550,8 @@ namespace artdaq
 				exit(1);
 			}
 
-			if (multicast_out_addr_ != "localhost") {
+			if (multicast_out_addr_ != "localhost")
+			{
 				struct in_addr addr;
 				int sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 				if (sts == -1)
@@ -624,9 +634,11 @@ namespace artdaq
 
 		TLOG_DEBUG("EventStore") << "Sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
 		size_t sts = 0;
-		while (sts < sizeof(detail::RoutingToken)) {
+		while (sts < sizeof(detail::RoutingToken))
+		{
 			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
-			if (res == -1) {
+			if (res == -1)
+			{
 				usleep(1000);
 				continue;
 			}
