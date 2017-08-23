@@ -71,7 +71,7 @@ namespace artdaq
 		 * \brief Set the mode for RequestMessages. Used to indicate when RequestSender should enter "EndOfRun" mode
 		 * \param mode Mode to set
 		 */
-		void SetRequestMode(detail::RequestMessageMode mode) { request_mode_ = mode; }
+		void SetRequestMode(detail::RequestMessageMode mode);
 
 		/**
 		 * \brief Get the mode for RequestMessages.
@@ -81,8 +81,9 @@ namespace artdaq
 
 		/**
 		 * \brief Send a request message containing all current requests
+		 * \param endOfRunOnly Whether the request should only be sent in EndOfRun RequestMessageMode (default: false)
 		 */
-		void SendRequest();
+		void SendRequest(bool endOfRunOnly = false);
 
 		/**
 		 * \brief Add a request to the request list

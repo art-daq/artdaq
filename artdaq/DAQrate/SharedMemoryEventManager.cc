@@ -93,6 +93,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 			requests_.SendRoutingToken(1);
 		}
 	}
+	requests_.SendRequest(true);
 
 	TLOG_TRACE("SharedMemoryEventManager") << "AddFragment END" << TLOG_ENDL;
 	return true;
@@ -158,6 +159,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		requests_.RemoveRequest(frag.sequence_id);
 		requests_.SendRoutingToken(1);
 	}
+	requests_.SendRequest(true);
 	TLOG_TRACE("SharedMemoryEventManager") << "DoneWritingFragment END" << TLOG_ENDL;
 }
 

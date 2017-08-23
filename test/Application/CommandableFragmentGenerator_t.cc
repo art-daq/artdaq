@@ -25,8 +25,8 @@ public:
 	 * \brief Generate data and return it to CommandableFragmentGenerator
 	 * \param frags FragmentPtrs list that new Fragments should be added to
 	 * \return True if data was generated
-	 * 
-	 * CommandableFragmentGeneratorTest merely default-constructs Fragments, emplacing them on the frags list. 
+	 *
+	 * CommandableFragmentGeneratorTest merely default-constructs Fragments, emplacing them on the frags list.
 	 */
 	bool getNext_(artdaq::FragmentPtrs& frags) override;
 
@@ -65,7 +65,8 @@ public:
 artdaqtest::CommandableFragmentGeneratorTest::CommandableFragmentGeneratorTest()
 
 	:
-	CommandableFragmentGenerator() {}
+	CommandableFragmentGenerator()
+{}
 
 bool
 artdaqtest::CommandableFragmentGeneratorTest::getNext_(artdaq::FragmentPtrs& frags)
@@ -78,33 +79,33 @@ std::vector<artdaq::Fragment::fragment_id_t>
 artdaqtest::CommandableFragmentGeneratorTest::
 fragmentIDs()
 {
-	return {1};
+	return { 1 };
 }
 
 void
-artdaqtest::CommandableFragmentGeneratorTest::start() { }
+artdaqtest::CommandableFragmentGeneratorTest::start() {}
 
 void
-artdaqtest::CommandableFragmentGeneratorTest::stopNoMutex() { }
+artdaqtest::CommandableFragmentGeneratorTest::stopNoMutex() {}
 
 void
-artdaqtest::CommandableFragmentGeneratorTest::stop() { }
+artdaqtest::CommandableFragmentGeneratorTest::stop() {}
 
 void
-artdaqtest::CommandableFragmentGeneratorTest::pause() { }
+artdaqtest::CommandableFragmentGeneratorTest::pause() {}
 
 void
-artdaqtest::CommandableFragmentGeneratorTest::resume() { }
+artdaqtest::CommandableFragmentGeneratorTest::resume() {}
 
 BOOST_AUTO_TEST_SUITE(CommandableFragmentGenerator_t)
 
-	BOOST_AUTO_TEST_CASE(Simple)
-	{
-		artdaqtest::CommandableFragmentGeneratorTest testGen;
-		artdaq::CommandableFragmentGenerator& baseGen(testGen);
-		artdaq::FragmentPtrs fps;
-		baseGen.getNext(fps);
-		BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	}
+BOOST_AUTO_TEST_CASE(Simple)
+{
+	artdaqtest::CommandableFragmentGeneratorTest testGen;
+	artdaq::CommandableFragmentGenerator& baseGen(testGen);
+	artdaq::FragmentPtrs fps;
+	baseGen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

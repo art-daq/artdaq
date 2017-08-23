@@ -52,6 +52,12 @@ namespace artdaq
 		}
 	}
 
+
+	void RequestSender::SetRequestMode(detail::RequestMessageMode mode) {
+		request_mode_ = mode; 
+		SendRequest(true);
+	}
+
 	void
 		RequestSender::setup_requests_(std::string request_address)
 	{
@@ -174,10 +180,10 @@ namespace artdaq
 		usleep(0); // Give up time slice
 	}
 
-	void RequestSender::SendRequest()
+	void RequestSender::SendRequest(bool endOfRunOnly)
 	{
-		std::lock_guard<std::mutex> lk(request_mutex_);
 		if (!send_requests_) return;
+		if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
 		std::thread request([=] { do_send_request_(); });
 		request.detach();
 		usleep(0); // Give up time slice
