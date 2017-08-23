@@ -306,7 +306,7 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	if (!request_received_)
 	{
 		TLOG_ERROR("CommandableFragmentGenerator") << "Stop request received by request-based CommandableFragmentGenerator, but no requests have been received." << std::endl
-			<< "Check that port " << request_port_ << " is open in the firewall config." << TLOG_ENDL;
+			<< "Check that UDP port " << request_port_ << " is open in the firewall config." << TLOG_ENDL;
 		return true;
 	}
 
