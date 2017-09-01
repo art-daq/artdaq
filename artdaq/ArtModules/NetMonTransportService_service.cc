@@ -31,7 +31,7 @@ NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
 	: NetMonTransportServiceInterface()
 	, data_pset_(pset)
 	, sender_ptr_(nullptr)
-	, incoming_events_(new artdaq::SharedMemoryEventReceiver(pset.get<int>("shared_memory_key", 0xBEE7)))
+	, incoming_events_(new artdaq::SharedMemoryEventReceiver(pset.get<int>("shared_memory_key"), pset.get<int>("broadcast_shared_memory_key")))
 	, recvd_fragments_(nullptr)
 {
 	TLOG_TRACE("NetMonTransportService") << "NetMonTransportService CONSTRUCTOR" << TLOG_ENDL;
@@ -205,12 +205,12 @@ receiveInitMessage(TBufferFile*& msg)
 		bool got_event = false;
 		while (!got_event)
 		{
-			got_event = incoming_events_->ReadyForRead(artdaq::SharedMemoryManager::BufferMode::Broadcast);
+			got_event = incoming_events_->ReadyForRead();
 		}
 
 		TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Reading buffer header" << TLOG_ENDL;
 		auto errflag = false;
-		incoming_events_->ReadHeader(errflag, artdaq::SharedMemoryManager::BufferMode::Broadcast);
+		incoming_events_->ReadHeader(errflag);
 		if (errflag) { // Buffer was changed out from under reader!
 			TLOG_ERROR("NetMonTransportService") << "receiveInitMessage: Error receiving message!" << TLOG_ENDL;
 			msg = nullptr;

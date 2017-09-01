@@ -104,6 +104,7 @@ private:
 	void runReceiver_(int);
 		
 	std::atomic<bool> stop_requested_;
+	std::atomic<size_t> stop_requested_time_;
 
 	std::map<int, std::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
@@ -115,6 +116,7 @@ private:
 	detail::FragCounter recv_seq_count_; // For counting sequence IDs
 
 	size_t receive_timeout_;
+	size_t stop_timeout_ms_;
 	std::shared_ptr<SharedMemoryEventManager> shm_manager_;
 };
 

@@ -14,7 +14,7 @@
 
 namespace BFS = boost::filesystem;
 
-void artdaq::configureMessageFacility(char const* progname, bool useConsole)
+std::string artdaq::generateMessageFacilityConfiguration(char const* progname, bool useConsole)
 {
 	std::string logPathProblem = "";
 	std::string logfileName = "";
@@ -30,7 +30,7 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	//       checking for TRACEs before the TRACE below.
 	//       If an existing trace file is used, the value of modeS is unchanged.
 	TRACE_CNTL("lvlmskSg", lvls);
-	TRACE(4, "configureMessageFacilit lvlmskSg set to 0x%llx", lvls);
+	TRACE(4, "configureMessageFacility lvlmskSg set to 0x%llx", lvls);
 #endif
 
 	if (logRootString != nullptr)
@@ -40,17 +40,22 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 			logPathProblem = "Log file root directory ";
 			logPathProblem.append(logRootString);
 			logPathProblem.append(" does not exist!");
+			throw cet::exception("ConfigureMessageFacility") << logPathProblem;
 		}
 		else
 		{
 			std::string logfileDir(logRootString);
 			logfileDir.append("/");
 			logfileDir.append(progname);
+
+			// As long as the top-level directory exists, I don't think we really care if we have to create application directories...
 			if (!BFS::exists(logfileDir))
 			{
-				logPathProblem = "Log file directory ";
+				BFS::create_directory(logfileDir);
+				/*logPathProblem = "Log file directory ";
 				logPathProblem.append(logfileDir);
 				logPathProblem.append(" does not exist!");
+				throw cet::exception("ConfigureMessageFacility") << logPathProblem;*/
 			}
 			else
 			{
@@ -95,11 +100,12 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	ss << "debugModules:[\"*\"]  statistics:[\"stats\"] "
 		<< "  destinations : { ";
 
-	if (useConsole) {
+	if (useConsole)
+	{
 		if (artdaqMfextensionsDir != nullptr)
 		{
 			ss << "    console : { "
-				<< "      type : \"ANSI\" threshold : \"DEBUG\" "
+				<< "      type : \"ANSI\" threshold : \"INFO\" "
 				<< "      noTimeStamps : true "
 				<< "      bell_on_error: true "
 				<< "    } ";
@@ -107,7 +113,7 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 		else
 		{
 			ss << "    console : { "
-				<< "      type : \"cout\" threshold : \"DEBUG\" "
+				<< "      type : \"cout\" threshold : \"INFO\" "
 				<< "      noTimeStamps : true "
 				<< "    } ";
 		}
@@ -126,7 +132,7 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	{
 		ss << "    trace : { "
 			<< "       type : \"TRACE\" threshold : \"DEBUG\" format:{noLineBreaks: true} lvls: 0x7 lvlm: 0xF"
-			<< "    }";
+			<< "    } ";
 	}
 
 	if (logFhiclCode != nullptr)
@@ -147,9 +153,15 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 
 	ss << "  } ";
 
-	fhicl::ParameterSet pset;
 	std::string pstr(ss.str());
 	//std::cout << "Message Facility Config is: " << pstr << std::endl;
+	return pstr;
+}
+
+void artdaq::configureMessageFacility(char const* progname, bool useConsole)
+{
+	auto pstr = generateMessageFacilityConfiguration(progname, useConsole);
+	fhicl::ParameterSet pset;
 	fhicl::make_ParameterSet(pstr, pset);
 
 #  if ART_HEX_VERSION >= 0x20703	// art v2_07_03 means a new versions of fhicl, boost, etc
@@ -162,11 +174,6 @@ void artdaq::configureMessageFacility(char const* progname, bool useConsole)
 	mf::SetModuleName(progname);
 	mf::SetContext(progname);
 #  endif
-
-	if (logPathProblem.size() > 0)
-	{
-		mf::LogError(progname) << logPathProblem;
-	}
 }
 
 void artdaq::setMsgFacAppName(const std::string& appType, unsigned short port)

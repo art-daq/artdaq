@@ -54,6 +54,8 @@ namespace artdaq
 			bool shutdownMsgReceived; ///< Whether a shutdown message has been received
 			bool outputFileCloseNeeded; ///< If an explicit output file close message is needed
 			size_t bytesRead; ///< running total of number of bytes received
+			std::unique_ptr<SharedMemoryManager> data_shm;
+			std::unique_ptr<SharedMemoryManager> broadcast_shm;
 
 			/**
 			 * \brief SharedMemoryReader Constructor
@@ -73,7 +75,6 @@ namespace artdaq
 							   art::ProductRegistryHelper& help,
 							   art::SourceHelper const& pm)
 				: pmaker(pm)
-				, incoming_events(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key")))
 				, waiting_time(ps.get<double>("waiting_time", 86400.0))
 				, resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
 				, pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))
@@ -84,13 +85,22 @@ namespace artdaq
 				, fragment_type_map_(getDefaultTypes())
 				, readNext_calls_(0)
 			{
+				// For testing
+				if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") || (ps.has_key("expected_fragments_per_event") && ps.has_key("max_fragment_size_bytes"))))
+				{
+				    data_shm.reset(new SharedMemoryManager(ps.get<uint32_t>("shared_memory_key"), ps.get<int>("buffer_count"), ps.has_key("max_event_size_bytes") ? ps.get<size_t>("max_event_size_bytes") : ps.get<size_t>("expected_fragments_per_event") * ps.get<size_t>("max_fragment_size_bytes")));
+					broadcast_shm.reset( new SharedMemoryManager(ps.get<uint32_t>("broadcast_shared_memory_key"), ps.get<int>("broadcast_buffer_count", 5), ps.get<size_t>("broadcast_buffer_size", 0x100000)));
+				}
+				incoming_events.reset(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key"), ps.get<uint32_t>("broadcast_shared_memory_key")));
+
 				help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 				for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 				{
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 				}
 				auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
-				for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it) {
+				for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
+				{
 					fragment_type_map_[it->first] = it->second;
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 				}
@@ -112,7 +122,8 @@ namespace artdaq
 			SharedMemoryReader(fhicl::ParameterSet const& ps,
 							   art::ProductRegistryHelper& help,
 							   art::SourceHelper const& pm,
-							   art::MasterProductRegistry&) : SharedMemoryReader(ps, help, pm) {}
+							   art::MasterProductRegistry&) : SharedMemoryReader(ps, help, pm)
+			{}
 
 			/**
 			 * \brief SharedMemoryReader destructor
@@ -130,7 +141,7 @@ namespace artdaq
 			 */
 			void readFile(std::string const&, art::FileBlock*& fb)
 			{
-				TRACE( 5, "SharedMemoryReader::readFile enter/start" );
+				TRACE(5, "SharedMemoryReader::readFile enter/start");
 				fb = new art::FileBlock(art::FileFormatVersion(1, "RawEvent2011"), "nothing");
 			}
 
@@ -171,6 +182,9 @@ namespace artdaq
 				//      should stop.
 				// In any case, if we time out, we emit an informational message.
 
+				if (shutdownMsgReceived) return false;
+
+				start:
 				bool keep_looping = true;
 				bool got_event = false;
 				auto sleepTimeUsec = waiting_time * 1000; // waiting_time * 1000000 us/s / 1000 reps = us/rep
@@ -179,9 +193,11 @@ namespace artdaq
 				{
 					keep_looping = false;
 					auto start = std::chrono::steady_clock::now();
-					while (!got_event && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start).count() < waiting_time) {
+					while (!got_event && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start).count() < waiting_time)
+					{
 						got_event = incoming_events->ReadyForRead();
-						if (!got_event) {
+						if (!got_event)
+						{
 							usleep(sleepTimeUsec);
 							//TLOG_INFO("SharedMemoryReader") << "Waited " << std::to_string(std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start).count()) << " of " << std::to_string(waiting_time) << TLOG_ENDL;
 						}
@@ -194,7 +210,8 @@ namespace artdaq
 					}
 				}
 
-				if (!got_event) {
+				if (!got_event)
+				{
 					TLOG_INFO("SharedMemoryReader") << "Did not receive an event from Shared Memory, returning false" << TLOG_ENDL;
 					shutdownMsgReceived = true;
 					return false;
@@ -203,9 +220,9 @@ namespace artdaq
 
 				auto errflag = false;
 				auto evtHeader = incoming_events->ReadHeader(errflag);
-				if (errflag) return true; // Buffer was changed out from under reader!
+				if (errflag) goto start; // Buffer was changed out from under reader!
 				auto fragmentTypes = incoming_events->GetFragmentTypes(errflag);
-				if (errflag) return true; // Buffer was changed out from under reader!
+				if (errflag) goto start; // Buffer was changed out from under reader!
 				if (fragmentTypes.size() == 0)
 				{
 					TLOG_ERROR("SharedMemoryReader") << "Event has no Fragments! Aborting!" << TLOG_ENDL;
@@ -220,7 +237,7 @@ namespace artdaq
 				//      configured NOT to keep trying after a timeout, or
 				//   2) the event we read was the end-of-data marker: a null
 				//      pointer
-				if (!got_event || firstFragmentType == Fragment::EndOfDataFragmentType)
+				if (firstFragmentType == Fragment::EndOfDataFragmentType)
 				{
 					TLOG_DEBUG("SharedMemoryReader") << "Received shutdown message, returning false" << TLOG_ENDL;
 					shutdownMsgReceived = true;
@@ -315,7 +332,7 @@ namespace artdaq
 					std::map<Fragment::type_t, std::string>::const_iterator iter =
 						fragment_type_map_.find(type_code);
 					auto product = incoming_events->GetFragmentsByType(errflag, type_code);
-					if (errflag) return true; // Buffer was changed out from under reader!
+					if (errflag) goto start; // Buffer was changed out from under reader!
 					for (auto &frag : *product)
 						bytesRead += frag.sizeBytes();
 					if (iter != iter_end)
@@ -340,7 +357,8 @@ namespace artdaq
 				}
 				incoming_events->ReleaseBuffer();
 				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << std::to_string(bytesRead) << " qsize=" << std::to_string(qsize) << " cap=" << std::to_string(incoming_events->size()) << " metricMan=" << (void*)metricMan << TLOG_ENDL;
-				if (metricMan) {
+				if (metricMan)
+				{
 					metricMan->sendMetric("bytesRead", bytesRead >> 20, "MB", 5, false, "", true);
 					metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / incoming_events->size()), "%", 5, false, "", true);
 				}

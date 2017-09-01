@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 
 	if(pset.get<bool>("ReadEventInfo", false))
 	{
-		artdaq::SharedMemoryEventReceiver t(pset.get<uint32_t>("shared_memory_key"));
+		artdaq::SharedMemoryEventReceiver t(pset.get<uint32_t>("shared_memory_key"), pset.get<uint32_t>("broadcast_shared_memory_key", pset.get<uint32_t>("shared_memory_key")));
 		std::cout << t.toString() << std::endl;
 	}
 	else

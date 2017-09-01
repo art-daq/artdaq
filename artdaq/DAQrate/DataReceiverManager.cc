@@ -8,6 +8,7 @@
 
 artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset, std::shared_ptr<SharedMemoryEventManager> shm)
 	: stop_requested_(false)
+	, stop_requested_time_(0)
 	, source_threads_()
 	, source_plugins_()
 	, enabled_sources_()
@@ -15,6 +16,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	, recv_frag_size_()
 	, recv_seq_count_()
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
+	, stop_timeout_ms_(pset.get<size_t>("stop_timeout_ms",3000))
 	, shm_manager_(shm)
 {
 	TLOG_DEBUG("DataReceiverManager") << "Constructor" << TLOG_ENDL;
@@ -65,7 +67,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 artdaq::DataReceiverManager::~DataReceiverManager()
 {
 	TLOG_DEBUG("DataReceiverManager") << "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount()) << TLOG_ENDL;
-	stop_requested_ = true;
+	stop_requested_time_ = TimeUtils::gettimeofday_us();
 
 	TLOG_DEBUG("DataReceiverManager") << "~DataReceiverManager: Joining all threads" << TLOG_ENDL;
 	for (auto& s : source_threads_)
@@ -100,10 +102,10 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	size_t endOfDataCount = -1;
 	auto sleep_time = receive_timeout_ / 100 > 100000 ? 100000 : receive_timeout_ / 100;
 
-	while (!stop_requested_ && enabled_sources_.count(source_rank))
+	while (!(stop_requested_ && TimeUtils::gettimeofday_us() - stop_requested_time_ > stop_timeout_ms_ * 1000) && enabled_sources_.count(source_rank))
 	{
 		TRACE(16, "DataReceiverManager::runReceiver_: Begin loop");
-		if (stop_requested_) return;
+		if (stop_requested_) { receive_timeout_ = stop_timeout_ms_; }
 
 		start_time = std::chrono::steady_clock::now();
 

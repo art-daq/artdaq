@@ -49,9 +49,15 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	fhicl::ParameterSet tmp = pset;
 	tmp.erase("daq");
 	
-	event_store_ptr_ = std::shared_ptr<SharedMemoryEventManager>(new SharedMemoryEventManager(data_pset, tmp));
+	fhicl::ParameterSet data_tmp = data_pset;
+	if (data_pset.has_key("expected_events_per_bunch"))
+	{
+		data_tmp.put<int>("expected_fragments_per_event", data_pset.get<int>("expected_events_per_bunch"));
+	}
 
-	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_pset, event_store_ptr_));
+	event_store_ptr_ = std::shared_ptr<SharedMemoryEventManager>(new SharedMemoryEventManager(data_tmp, tmp));
+
+	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
 
 	return true;
 }
@@ -160,6 +166,12 @@ bool artdaq::DataReceiverCore::shutdown()
 	   shutdown state is from a state where there is no data taking.  All we have
 	   to do is signal the art input module that we're done taking data so that
 	   it can wrap up whatever it needs to do. */
+	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down MetricManager" << TLOG_ENDL;
+	metricMan_.shutdown();
+
+	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down DataReceiverManager" << TLOG_ENDL;
+	receiver_ptr_.reset(nullptr);
+
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Calling EventStore::endOfData" << TLOG_ENDL;
@@ -171,11 +183,6 @@ bool artdaq::DataReceiverCore::shutdown()
 		TLOG_DEBUG(name_) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
 		endSucceeded = event_store_ptr_->endOfData(readerReturnValues);
 	}
-	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down MetricManager" << TLOG_ENDL;
-	metricMan_.shutdown();
-
-	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down DataReceiverManager" << TLOG_ENDL;
-	receiver_ptr_.reset(nullptr);
 	
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down SharedMemoryEventManager" << TLOG_ENDL;
 	event_store_ptr_.reset();

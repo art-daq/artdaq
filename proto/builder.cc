@@ -205,6 +205,7 @@ void Builder::detector()
 			for (auto& fragPtr : frags)
 			{
 				std::cout << "Program::detector: Sending fragment " << fragments_sent + 1 << " of " << fragments_per_source << std::endl;
+				TLOG_DEBUG("builder") << "Program::detector: Sending fragment " << fragments_sent + 1 << " of " << fragments_per_source << TLOG_ENDL;
 				h.sendFragment(std::move(*fragPtr));
 				if (++fragments_sent == fragments_per_source) { break; }
 				if (want_periodic_sync_ && (fragments_sent % 100) == 0)
@@ -226,6 +227,7 @@ void Builder::sink()
 {
 	printHost("sink");
 	{
+		usleep(1000 * my_rank);
 		// This scope exists to control the lifetime of 'events'
 		auto events = std::make_shared<artdaq::SharedMemoryEventManager>(daq_pset_, daq_pset_);
 		events->startRun(daq_pset_.get<int>("run_number", 100));

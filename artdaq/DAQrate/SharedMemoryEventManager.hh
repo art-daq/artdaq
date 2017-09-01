@@ -86,12 +86,12 @@ namespace artdaq {
 		size_t GetOpenEventCount();
 
 		/**
-		 * \brief Get the count of Fragments of a given type in the buffer
-		 * \param buffer Buffer ID of buffer
+		 * \brief Get the count of Fragments of a given type in an event
+		 * \param seqID Sequence ID of Fragments
 		 * \param type Type of fragments to count. Use InvalidFragmentType to count all fragments (default)
-		 * \return Number of Fragments in buffer of given type
+		 * \return Number of Fragments in event of given type
 		 */
-		size_t GetFragmentCount(int buffer, Fragment::type_t type = Fragment::InvalidFragmentType);
+		size_t GetFragmentCount(Fragment::sequence_id_t seqID, Fragment::type_t type = Fragment::InvalidFragmentType);
 
 		/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
@@ -178,6 +178,8 @@ namespace artdaq {
 		 */
 		void SetInitFragment(FragmentPtr frag);
 
+		uint32_t GetBroadcastKey() { return broadcasts_.GetKey(); }
+
 	private:
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;
@@ -188,8 +190,8 @@ namespace artdaq {
 		bool overwrite_mode_;
 
 		std::unordered_map<int,std::atomic<int>> buffer_writes_pending_;
-		std::unordered_map<int, std::mutex> buffer_write_mutexes_;
-		std::mutex seq_id_buffer_mutex_;
+		std::unordered_map<int, std::mutex> buffer_mutexes_;
+		std::mutex sequence_id_mutex_;
 		
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
@@ -205,16 +207,17 @@ namespace artdaq {
 		
 		FragmentPtr init_fragment_;
 
-		void broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag);
+		bool broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag);
 
 		detail::RawEventHeader* getEventHeader_(int buffer);
 
-		int getBufferForSequenceID_(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
+		int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
 
 		void configureArt_(fhicl::ParameterSet art_pset);
 
 		void send_init_frag_();
 		uint64_t last_init_time_;
+		SharedMemoryManager broadcasts_;
 	};
 }
 

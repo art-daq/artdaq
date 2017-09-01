@@ -255,6 +255,11 @@ struct ShmRTestFixture
 		static uint32_t key = static_cast<uint32_t>(std::hash<std::string>()("shared_memory_reader_t"));
 		return key;
 	}
+	uint32_t getBroadcastKey()
+	{
+		static uint32_t key = static_cast<uint32_t>(std::hash<std::string>()("shared_memory_reader_t BROADCAST"));
+		return key;
+	}
 
 	/**
 	 * \brief Get an artdaq::detail::SharedMemoryReader object, creating a static instance if necessary
@@ -265,6 +270,7 @@ struct ShmRTestFixture
 		writer();
 		fhicl::ParameterSet pset;
 		pset.put("shared_memory_key", getKey());
+		pset.put("broadcast_shared_memory_key", getBroadcastKey());
 		pset.put("max_event_size_bytes", 0x100000);
 		pset.put("buffer_count", 10);
 		static artdaq::detail::SharedMemoryReader<>
@@ -290,6 +296,7 @@ struct ShmRTestFixture
 	{
 		fhicl::ParameterSet pset;
 		pset.put("shared_memory_key", getKey());
+		pset.put("broadcast_shared_memory_key", getBroadcastKey());
 		pset.put("max_event_size_bytes", 0x100000);
 		pset.put("art_analyzer_count", 0);
 		pset.put("expected_fragments_per_event", 1);

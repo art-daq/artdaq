@@ -40,9 +40,10 @@ BOOST_AUTO_TEST_CASE(AddFragment) {
 		*(frag->dataBegin() + ii) = ii;
 	}
 
-	t.AddFragment(std::move(frag), 1000000, tmpFrag);
+	bool sts = t.AddFragment(std::move(frag), 1000000, tmpFrag);
+	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(0), 1);
+	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 }
 
 BOOST_AUTO_TEST_CASE(DataFlow) {
@@ -65,7 +66,7 @@ BOOST_AUTO_TEST_CASE(DataFlow) {
 	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(0), 1);
+	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 
 	frag->setFragmentID(1);
 	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
@@ -73,7 +74,7 @@ BOOST_AUTO_TEST_CASE(DataFlow) {
 	memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(0), 2);
+	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 2);
 	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
 
 	frag->setFragmentID(2);
@@ -110,11 +111,14 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	BOOST_REQUIRE_EQUAL(t.subrunID(), 1);
 	
 
-	artdaq::SharedMemoryEventReceiver r(t.GetKey());
+	artdaq::SharedMemoryEventReceiver r(t.GetKey(), t.GetBroadcastKey());
 	t.endSubrun();
 	bool errflag = false;
+	bool sts = r.ReadyForRead();
+	BOOST_REQUIRE_EQUAL(sts, true);
 	auto hdr = r.ReadHeader(errflag);
 	BOOST_REQUIRE_EQUAL(errflag, false);
+	BOOST_REQUIRE(hdr != nullptr);
 	BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
 	BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
 	BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
@@ -124,8 +128,11 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	r.ReleaseBuffer();
 
 	t.endRun();
+	sts = r.ReadyForRead();
+	BOOST_REQUIRE_EQUAL(sts, true);
 	hdr = r.ReadHeader(errflag);
 	BOOST_REQUIRE_EQUAL(errflag, false);
+	BOOST_REQUIRE(hdr != nullptr);
 	BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
 	BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
 	BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);

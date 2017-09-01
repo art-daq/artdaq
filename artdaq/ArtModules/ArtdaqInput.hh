@@ -189,7 +189,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	if (!msg)
 	{
 		throw art::Exception(art::errors::DataCorruption) <<
-			"ArtdaqInput: Could not receive message!";
+			"ArtdaqInput: Could not receive init message!";
 	}
 
 	// This first unsigned long is the message type code, ignored here in the constructor

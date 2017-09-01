@@ -6,6 +6,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/throw_exception.hpp>
 
 #include "fhiclcpp/ParameterSet.h"
 
@@ -31,6 +33,9 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	TLOG_DEBUG(name_) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
 
 	pset_ = pset;
+	pset_.erase("outputs");
+	pset_.erase("physics");
+	pset_.erase("daq");
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -77,17 +82,53 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 
 	try
 	{
+		TLOG_DEBUG(name_) << "Getting unique_label from input ParameterSet" << TLOG_ENDL;
 		auto label = pset.get<std::string>("unique_label");
+		TLOG_DEBUG(name_) << "Unique label is " << label << TLOG_ENDL;
+		if (registered_monitors_.count(label))
+		{
+			throw cet::exception("DispatcherCore") << "Unique label already exists!";
+		}
 		registered_monitors_[label] = pset;
 		if (event_store_ptr_ != nullptr)
 		{
+			TLOG_DEBUG(name_) << "Generating new fhicl and reconfiguring art" << TLOG_ENDL;
 			event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
 		}
+		else
+		{
+			TLOG_ERROR(name_) << "Unable to add monitor as there is no SharedMemoryEventManager instance!" << TLOG_ENDL;
+		}
+	}
+	catch (const cet::exception& e)
+	{
+		std::stringstream errmsg;
+		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
+		errmsg << "Exception: " << e.what();
+		TLOG_ERROR(name_) << errmsg.str() << TLOG_ENDL;
+		return errmsg.str();
+	}
+	catch (const boost::exception& e)
+	{
+		std::stringstream errmsg;
+		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
+		errmsg << "Exception: " << boost::diagnostic_information(e);
+		TLOG_ERROR(name_) << errmsg.str() << TLOG_ENDL;
+		return errmsg.str();
+	}
+	catch (const std::exception& e)
+	{
+		std::stringstream errmsg;
+		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
+		errmsg << "Exception: " << e.what();
+		TLOG_ERROR(name_) << errmsg.str() << TLOG_ENDL;
+		return errmsg.str();
 	}
 	catch (...)
 	{
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered";
+		TLOG_ERROR(name_) << errmsg.str() << TLOG_ENDL;
 		return errmsg.str();
 	}
 
@@ -128,6 +169,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 
 fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 {
+	TLOG_DEBUG(name_) << "generate_filter_fhicl_ BEGIN" << TLOG_ENDL;
 	fhicl::ParameterSet generated_pset = pset_;
 	fhicl::ParameterSet generated_outputs;
 	fhicl::ParameterSet generated_physics;
@@ -143,6 +185,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 	{
 		auto label = monitor.first;
 		auto pset = monitor.second;
+		TLOG_DEBUG(name_) << "generate_filter_fhicl: Generating fhicl for monitor " << label << TLOG_ENDL;
 
 		try
 		{
@@ -156,7 +199,20 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 			}
 			auto output_name = outputs.get_pset_names()[0];
 			auto output_pset = outputs.get<fhicl::ParameterSet>(output_name);
-			generated_outputs.put(label + "_" + output_name, output_pset);
+			generated_outputs.put(label + output_name, output_pset);
+			bool outputInPath = false;
+			for (size_t ii = 0; ii < path.size(); ++ii)
+			{
+				if (path[ii] == output_name)
+				{
+					path[ii] = label + output_name;
+					outputInPath = true;
+				}
+			}
+			if (!outputInPath)
+			{
+				path.push_back(label + output_name);
+			}
 
 			//physics section
 			auto physics_pset = pset.get<fhicl::ParameterSet>("physics");
@@ -173,7 +229,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 					else if (generated_physics_analyzers.has_key(key))
 					{
 						// Module already exists with name, rename
-						auto newkey = label + "_" + key;
+						auto newkey = label + key;
 						generated_physics_analyzers.put<fhicl::ParameterSet>(newkey, analyzers.get<fhicl::ParameterSet>(key));
 						for (size_t ii = 0; ii < path.size(); ++ii)
 						{
@@ -202,7 +258,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 					else if (generated_physics_producers.has_key(key))
 					{
 						// Module already exists with name, rename
-						auto newkey = label + "_" + key;
+						auto newkey = label + key;
 						generated_physics_producers.put<fhicl::ParameterSet>(newkey, producers.get<fhicl::ParameterSet>(key));
 						for (size_t ii = 0; ii < path.size(); ++ii)
 						{
@@ -231,7 +287,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 					else if (generated_physics_filters.has_key(key))
 					{
 						// Module already exists with name, rename
-						auto newkey = label + "_" + key;
+						auto newkey = label + key;
 						generated_physics_filters.put<fhicl::ParameterSet>(newkey, filters.get<fhicl::ParameterSet>(key));
 						for (size_t ii = 0; ii < path.size(); ++ii)
 						{
@@ -252,9 +308,11 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 		catch (cet::exception e)
 		{
 			// Error in parsing input fhicl
+			TLOG_ERROR(name_) << "Error processing input fhicl: " << e.what() << TLOG_ENDL;
 		}
 	}
 
+	TLOG_DEBUG(name_) << "generate_filter_fhicl_: Building final ParameterSet" << TLOG_ENDL;
 	generated_pset.put("outputs", generated_outputs);
 
 	generated_physics.put("analyzers", generated_physics_analyzers);
@@ -262,5 +320,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 	generated_physics.put("filters", generated_physics_filters);
 
 	generated_pset.put("physics", generated_physics);
+
+	TLOG_DEBUG(name_) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string() << TLOG_ENDL;
 	return generated_pset;
 }
