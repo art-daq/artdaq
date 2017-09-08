@@ -110,6 +110,12 @@ namespace artdaq {
 		pid_t StartArtProcess(fhicl::ParameterSet pset);
 
 		/**
+		 * \brief Shutdown a set of art processes
+		 * \param pids PIDs of the art processes
+		 */
+		void ShutdownArtProcesses(std::set<pid_t> pids);
+
+		/**
 		 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
 		 * \param art_pset ParameterSet used to configure art
 		 * \param newRun New Run number for reconfigured art

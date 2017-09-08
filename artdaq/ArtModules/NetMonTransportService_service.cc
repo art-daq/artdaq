@@ -76,7 +76,7 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 		connect();
 	}
 
-#if 1
+#if 0
 	if (messageType == artdaq::Fragment::InitFragmentType) {
 		std::fstream ostream("sendInitMessage.bin", std::ios::out | std::ios::binary);
 		ostream.write(msg.Buffer(), msg.Length());
@@ -205,7 +205,7 @@ receiveInitMessage(TBufferFile*& msg)
 		bool got_event = false;
 		while (!got_event)
 		{
-			got_event = incoming_events_->ReadyForRead();
+			got_event = incoming_events_->ReadyForRead(true);
 		}
 
 		TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Reading buffer header" << TLOG_ENDL;
@@ -269,8 +269,9 @@ receiveInitMessage(TBufferFile*& msg)
 	auto buffer = static_cast<char *>(malloc(header->data_length));
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 
-#if 0
-	std::fstream ostream("receiveInitMessage.bin", std::ios::out | std::ios::binary);
+#if 1
+	std::string fileName = "receiveInitMessage_" + std::to_string(getpid()) + ".bin";
+	std::fstream ostream(fileName.c_str(), std::ios::out | std::ios::binary);
 	ostream.write(buffer, header->data_length);
 	ostream.close();
 #endif

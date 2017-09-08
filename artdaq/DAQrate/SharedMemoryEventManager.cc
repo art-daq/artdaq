@@ -36,6 +36,14 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	if (pset.get<bool>("use_art", true) == false) num_art_processes_ = 0;
 	configureArt_(art_pset);
 
+	if (overwrite_mode_ && num_art_processes_ > 0)
+	{
+		TLOG_WARNING("SharedMemoryEventManager") << "Art is configured to run, but overwrite mode is enabled! Check your configuration if this in unintentional!" << TLOG_ENDL;
+	}
+	else if(overwrite_mode_)
+	{
+		TLOG_INFO("SharedMemoryEventManager") << "Overwrite Mode enabled, no configured art processes at startup" << TLOG_ENDL;
+	}
 
 	for (size_t ii = 0; ii < size(); ++ii)
 	{
@@ -235,7 +243,7 @@ pid_t fork_execv(const char *cmd, char* const *argv)
 		execvp(cmd, argv);
 		exit(1);
 	}
-	TRACE(2, "fork_execl pid=%d", pid);
+	TLOG_DEBUG("SharedMemoryEventManager") << "PID of forked process " << cmd << ": " << pid << TLOG_ENDL;
 	return pid;
 }
 
@@ -332,6 +340,82 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 
 }
 
+void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids)
+{
+	for (auto pid : pids)
+	{
+		if (kill(pid, 0) < 0)
+		{
+			pids.erase(pid);
+		}
+	}
+	if (pids.size() == 0)
+	{
+		TLOG_TRACE("SharedMemoryEventManager") << "All art processes already exited, nothing to do." << TLOG_ENDL;
+		return;
+	}
+
+	TLOG_TRACE("SharedMemoryEventManager") << "Gently informing art processes that it is time to shut down" << TLOG_ENDL;
+	for (auto pid : pids)
+	{
+		kill(pid, SIGQUIT);
+	}
+
+	int graceful_wait_ms = 1000;
+	int int_wait_ms = 100;
+
+	TLOG_TRACE("SharedMemoryEventManager") << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully" << TLOG_ENDL;
+	for (int ii = 0; ii < graceful_wait_ms; ++ii)
+	{
+		usleep(1000);
+
+		for (auto pid : pids)
+		{
+			if (kill(pid, 0) < 0)
+			{
+				pids.erase(pid);
+			}
+		}
+		if (pids.size() == 0)
+		{
+			TLOG_TRACE("SharedMemoryEventManager") << "All art processes exited after " << ii << " ms." << TLOG_ENDL;
+			return;
+		}
+	}
+
+	TLOG_TRACE("SharedMemoryEventManager") << "Insisting that the art processes shut down" << TLOG_ENDL;
+	for (auto pid : pids)
+	{
+		kill(pid, SIGINT);
+	}
+
+	TLOG_TRACE("SharedMemoryEventManager") << "Waiting up to " << int_wait_ms<< " ms for all art processes to exit" << TLOG_ENDL;
+	for (int ii = graceful_wait_ms; ii < graceful_wait_ms + int_wait_ms; ++ii)
+	{
+		usleep(1000);
+
+		for (auto pid : pids)
+		{
+			if (kill(pid, 0) < 0)
+			{
+				pids.erase(pid);
+			}
+		}
+
+		if (pids.size() == 0)
+		{
+			TLOG_TRACE("SharedMemoryEventManager") << "All art processes exited after " << ii << " ms." << TLOG_ENDL;
+			return;
+		}
+	}
+
+	TLOG_TRACE("SharedMemoryEventManager") << "Killing remaning art processes with extreme prejudice" << TLOG_ENDL;
+	while (pids.size() > 0)
+	{
+		kill(*pids.begin(), SIGKILL);
+	}
+}
+
 void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_pset, run_id_t newRun, int n_art_processes)
 {
 	TLOG_DEBUG("SharedMemoryEventManager") << "ReconfigureArt BEGIN" << TLOG_ENDL;
@@ -403,27 +487,12 @@ bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnV
 		}
 		broadcastFragment_(std::move(outFrag), outFrag);
 	}
-	TLOG_TRACE("SharedMemoryEventManager") << "Sleeping for 50 ms to allow art processes time to shut down" << TLOG_ENDL;
-	usleep(50000);
-
-	for (auto& pid : art_process_pids_)
-	{
-		kill(pid, SIGQUIT);
-	}
-
-	TLOG_TRACE("SharedMemoryEventManager") << "Sleeping for 50 ms to allow art processes time to shut down" << TLOG_ENDL;
-	usleep(50000);
-
-	for (auto& pid : art_process_pids_)
-	{
-		kill(pid, SIGINT);
-	}
 
 	while (art_process_pids_.size() > 0)
 	{
-		kill(*art_process_pids_.begin(), SIGKILL);
-		usleep(1000);
+		ShutdownArtProcesses(art_process_pids_);
 	}
+
 	TLOG_TRACE("SharedMemoryEventManager") << "endOfData: Getting return codes from art processes" << TLOG_ENDL;
 
 	for (auto& proc : art_processes_)
@@ -445,6 +514,8 @@ bool artdaq::SharedMemoryEventManager::endOfData(std::vector<int>& readerReturnV
 	TLOG_INFO("SharedMemoryEventManager") << "EndOfData Complete. There were " << GetLastSeenBufferID() << " events sent to art" << TLOG_ENDL;
 	return true;
 }
+
+
 
 void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
@@ -626,7 +697,8 @@ void artdaq::SharedMemoryEventManager::send_init_frag_()
 		TLOG_TRACE("SharedMemoryEventManager") << "Sending init Fragment to art..." << TLOG_ENDL;
 
 #if 1
-		std::fstream ostream("receiveInitMessage.bin", std::ios::out | std::ios::binary);
+		std::string fileName = "receiveInitMessage_" + std::to_string(my_rank) + ".bin";
+		std::fstream ostream(fileName.c_str(), std::ios::out | std::ios::binary);
 		ostream.write(reinterpret_cast<char*>(init_fragment_->dataBeginBytes()), init_fragment_->dataSizeBytes());
 		ostream.close();
 #endif
