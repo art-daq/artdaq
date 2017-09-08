@@ -59,6 +59,9 @@ namespace art {
   class ResultsAuxiliary;
 }
 
+/**
+ * \brief An output module which allows specifying the output filename exactly. Used for testing (file -> /dev/null,  etc)
+ */
 class art::RootDAQOutFile {
 public: // TYPES
 

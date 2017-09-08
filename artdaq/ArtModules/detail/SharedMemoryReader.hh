@@ -54,8 +54,8 @@ namespace artdaq
 			bool shutdownMsgReceived; ///< Whether a shutdown message has been received
 			bool outputFileCloseNeeded; ///< If an explicit output file close message is needed
 			size_t bytesRead; ///< running total of number of bytes received
-			std::unique_ptr<SharedMemoryManager> data_shm;
-			std::unique_ptr<SharedMemoryManager> broadcast_shm;
+			std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
+			std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control Fragments)
 
 			/**
 			 * \brief SharedMemoryReader Constructor
@@ -88,8 +88,8 @@ namespace artdaq
 				// For testing
 				if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") || (ps.has_key("expected_fragments_per_event") && ps.has_key("max_fragment_size_bytes"))))
 				{
-				    data_shm.reset(new SharedMemoryManager(ps.get<uint32_t>("shared_memory_key"), ps.get<int>("buffer_count"), ps.has_key("max_event_size_bytes") ? ps.get<size_t>("max_event_size_bytes") : ps.get<size_t>("expected_fragments_per_event") * ps.get<size_t>("max_fragment_size_bytes")));
-					broadcast_shm.reset( new SharedMemoryManager(ps.get<uint32_t>("broadcast_shared_memory_key"), ps.get<int>("broadcast_buffer_count", 5), ps.get<size_t>("broadcast_buffer_size", 0x100000)));
+					data_shm.reset(new SharedMemoryManager(ps.get<uint32_t>("shared_memory_key"), ps.get<int>("buffer_count"), ps.has_key("max_event_size_bytes") ? ps.get<size_t>("max_event_size_bytes") : ps.get<size_t>("expected_fragments_per_event") * ps.get<size_t>("max_fragment_size_bytes")));
+					broadcast_shm.reset(new SharedMemoryManager(ps.get<uint32_t>("broadcast_shared_memory_key"), ps.get<int>("broadcast_buffer_count", 5), ps.get<size_t>("broadcast_buffer_size", 0x100000)));
 				}
 				incoming_events.reset(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key"), ps.get<uint32_t>("broadcast_shared_memory_key")));
 
@@ -184,7 +184,7 @@ namespace artdaq
 
 				if (shutdownMsgReceived) return false;
 
-				start:
+			start:
 				bool keep_looping = true;
 				bool got_event = false;
 				auto sleepTimeUsec = waiting_time * 1000; // waiting_time * 1000000 us/s / 1000 reps = us/rep
@@ -192,14 +192,14 @@ namespace artdaq
 				while (keep_looping)
 				{
 					keep_looping = false;
-					auto start = std::chrono::steady_clock::now();
-					while (!got_event && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start).count() < waiting_time)
+					auto start_time = std::chrono::steady_clock::now();
+					while (!got_event && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start_time).count() < waiting_time)
 					{
 						got_event = incoming_events->ReadyForRead();
 						if (!got_event)
 						{
 							usleep(sleepTimeUsec);
-							//TLOG_INFO("SharedMemoryReader") << "Waited " << std::to_string(std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start).count()) << " of " << std::to_string(waiting_time) << TLOG_ENDL;
+							//TLOG_INFO("SharedMemoryReader") << "Waited " << std::to_string(std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start_time).count()) << " of " << std::to_string(waiting_time) << TLOG_ENDL;
 						}
 					}
 					if (!got_event)
