@@ -41,7 +41,7 @@ namespace artdaq
 
 	RequestSender::~RequestSender()
 	{
-		TLOG_DEBUG("RequestSender") << "Shutting down RequestSender" << TLOG_ENDL;
+		TLOG_TRACE("RequestSender") << "Shutting down RequestSender" << TLOG_ENDL;
 		if (request_socket_) {
 			shutdown(request_socket_, 2);
 			close(request_socket_);

@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iomanip>
 #include <bitset>
+#include <signal.h>
 
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
@@ -63,6 +64,13 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 		return false;
 	}
 
+	broadcast_mode_ = agg_pset.get<bool>("broadcast_mode", true);
+	if (broadcast_mode_ && !agg_pset.has_key("broadcast_mode"))
+	{
+		agg_pset.put<bool>("broadcast_mode", true);
+		agg_pset.put<int>("art_analyzer_count", 0);
+	}
+
 	// initialize the MetricManager and the names of our metrics
 	fhicl::ParameterSet metric_pset;
 
@@ -92,8 +100,15 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		registered_monitors_[label] = pset;
 		if (event_store_ptr_ != nullptr)
 		{
-			TLOG_DEBUG(name_) << "Generating new fhicl and reconfiguring art" << TLOG_ENDL;
-			event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
+			if (broadcast_mode_) {
+				TLOG_DEBUG(name_) << "Starting art process with received fhicl" << TLOG_ENDL;
+				registered_monitor_pids_[label] = event_store_ptr_->StartArtProcess(pset);
+			}
+			else
+			{
+				TLOG_DEBUG(name_) << "Generating new fhicl and reconfiguring art" << TLOG_ENDL;
+				event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
+			}
 		}
 		else
 		{
@@ -154,7 +169,16 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 		registered_monitors_.erase(label);
 		if (event_store_ptr_ != nullptr)
 		{
-			event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
+			if(broadcast_mode_) {
+				kill(registered_monitor_pids_[label], SIGQUIT);
+				usleep(50000);
+				kill(registered_monitor_pids_[label], SIGKILL);
+				registered_monitor_pids_.erase(label);
+			}
+			else
+			{
+				event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
+			}
 		}
 	}
 	catch (...)

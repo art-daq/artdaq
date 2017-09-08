@@ -66,17 +66,18 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 
 artdaq::DataReceiverManager::~DataReceiverManager()
 {
-	TLOG_DEBUG("DataReceiverManager") << "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount()) << TLOG_ENDL;
+	TLOG_TRACE("DataReceiverManager") << "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount()) << TLOG_ENDL;
 	stop_requested_time_ = TimeUtils::gettimeofday_us();
+	stop_requested_ = true;
 
-	TLOG_DEBUG("DataReceiverManager") << "~DataReceiverManager: Joining all threads" << TLOG_ENDL;
+	TLOG_TRACE("DataReceiverManager") << "~DataReceiverManager: Joining all threads" << TLOG_ENDL;
 	for (auto& s : source_threads_)
 	{
 		auto& thread = s.second;
 		if (thread.joinable()) thread.join();
 	}
 	shm_manager_.reset();
-	TLOG_DEBUG("DataReceiverManager") << "Destructor END" << TLOG_ENDL;
+	TLOG_TRACE("DataReceiverManager") << "Destructor END" << TLOG_ENDL;
 }
 
 
@@ -112,11 +113,14 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		TRACE(16, "DataReceiverManager::runReceiver_: Calling receiveFragmentHeader");
 		ret = source_plugins_[source_rank]->receiveFragmentHeader(header, receive_timeout_);
 		TRACE(16, "DataReceiverManager::runReceiver_: Done with receiveFragmentHeader, ret=%d (should be %d)", ret, source_rank);
-		if (ret != source_rank) continue; // Receive timeout or other oddness
+		if (ret != source_rank)
+		{
+			continue; // Receive timeout or other oddness
+		}
 
 		after_header = std::chrono::steady_clock::now();
 
-		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType) {
+		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType || header.type == Fragment::EmptyFragmentType || header.type == Fragment::ContainerFragmentType) {
 			TLOG_TRACE("DataReceiverManager") << "Received Fragment Header from rank " << source_rank << "." << TLOG_ENDL;
 			RawDataType* loc = nullptr;
 			while (loc == nullptr) {
@@ -137,9 +141,15 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 			shm_manager_->DoneWritingFragment(header);
 			TLOG_TRACE("DataReceiverManager") << "Done receiving fragment with sequence ID " << std::to_string(header.sequence_id) << " from rank " << source_rank << TLOG_ENDL;
+
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, header.word_count * sizeof(RawDataType));
 			recv_seq_count_.setSlot(source_rank, header.sequence_id);
+			if (endOfDataCount != static_cast<size_t>(-1))
+			{
+				TLOG_DEBUG("DataReceiverManager") << "Received fragment " << std::to_string(header.sequence_id) << " from rank " << source_rank
+					<< " (" << std::to_string(recv_frag_count_.slotCount(source_rank)) << "/" << std::to_string(endOfDataCount) << ")" << TLOG_ENDL;
+			}
 
 			if (metricMan)
 			{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
@@ -164,39 +174,37 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				TRACE(6, "DataReceiverManager::runReceiver_: Done sending receive stats");
 			}
 		}
-		else if (header.type == Fragment::EndOfDataFragmentType)
+		else if (header.type == Fragment::EndOfDataFragmentType || header.type == Fragment::InitFragmentType || header.type == Fragment::EndOfRunFragmentType || header.type == Fragment::EndOfSubrunFragmentType || header.type == Fragment::ShutdownFragmentType)
 		{
-			TLOG_DEBUG("DataReceiverManager") << "Received EndOfData Fragment from rank " << source_rank << "." << TLOG_ENDL;
+			TLOG_DEBUG("DataReceiverManager") << "Received System Fragment from rank " << source_rank << " of type " << detail::RawFragmentHeader::SystemTypeToString(header.type) << "." << TLOG_ENDL;
 			shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
-			Fragment frag(header.word_count - header.num_words());
-			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag.headerAddress() + header.num_words(), 1);
-			if (ret3 == source_rank)
-			{
-				endOfDataCount = *frag.dataBegin();
-			}
-			else
-			{
-				TLOG_ERROR("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving EndOfData Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")" << TLOG_ENDL;
-				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving EndOfData Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
-			}
-		}
-		else if (header.type == Fragment::InitFragmentType) {
-			TLOG_DEBUG("DataReceiverManager") << "Received Init Fragment from rank " << source_rank << "." << TLOG_ENDL;
 			FragmentPtr frag(new Fragment(header.word_count - header.num_words()));
 			memcpy(frag->headerAddress(), &header, header.num_words() * sizeof(RawDataType));
 			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag->headerAddress() + header.num_words(), header.word_count - header.num_words());
-			if (ret3 == source_rank)
+			if (ret3 != source_rank)
 			{
+				TLOG_ERROR("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving System Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")" << TLOG_ENDL;
+				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving System Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
+			}
+
+			switch (header.type)
+			{
+			case Fragment::EndOfDataFragmentType:
+				endOfDataCount = *(frag->dataBegin());
+				TLOG_DEBUG("DataReceiverManager") << "EndOfData Fragment indicates that " << std::to_string(endOfDataCount) << " fragments are expected from rank " << source_rank 
+					<< " (recvd " << std::to_string(recv_frag_count_.slotCount(source_rank)) << ")." << TLOG_ENDL;
+				break;
+			case Fragment::InitFragmentType:
 				shm_manager_->SetInitFragment(std::move(frag));
+				break;
+			case Fragment::EndOfRunFragmentType:
+				break;
+			case Fragment::EndOfSubrunFragmentType:
+				break;
+			case Fragment::ShutdownFragmentType:
+				break;
 			}
-			else
-			{
-				TLOG_ERROR("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving EndOfData Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")" << TLOG_ENDL;
-				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving EndOfData Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
-			}
-
 		}
-
 
 		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank))
 		{

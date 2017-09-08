@@ -101,6 +101,14 @@ namespace artdaq {
 		 * \brief Start all the art processes
 		 */
 		void StartArt();
+
+		/** 
+		 * \brief Start one art process
+		 * \param pset ParameterSet to send to this art process
+		 * \return pid_t of the started process
+		 */
+		pid_t StartArtProcess(fhicl::ParameterSet pset);
+
 		/**
 		 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
 		 * \param art_pset ParameterSet used to configure art
@@ -178,8 +186,12 @@ namespace artdaq {
 		 */
 		void SetInitFragment(FragmentPtr frag);
 
+		/**
+		 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
+		 * \return The shared memory key of the broadcast SharedMemoryManager
+		 */
 		uint32_t GetBroadcastKey() { return broadcasts_.GetKey(); }
-
+		
 	private:
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;
@@ -197,10 +209,12 @@ namespace artdaq {
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		int broadcast_timeout_ms_;
 		int broadcast_count_;
+		int subrun_event_count_;
 
 		std::string config_file_name_;
 		std::vector<std::thread> art_processes_;
 		std::vector<int> art_process_return_codes_;
+		std::set<pid_t> art_process_pids_;
 		std::atomic<bool> restart_art_;
 
 		RequestSender requests_;

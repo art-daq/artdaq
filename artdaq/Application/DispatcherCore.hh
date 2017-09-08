@@ -50,7 +50,7 @@ public:
 	* \brief Processes the initialize request.
 	* \param pset ParameterSet used to configure the DispatcherCore
 	* \return Whether the initialize attempt succeeded
-	* 
+	*
 	* \verbatim
 	* DispatcherCore accepts the following Parameters:
 	* "daq" (REQUIRED): FHiCL table containing DAQ configuration
@@ -79,12 +79,12 @@ public:
 	*  Note that the "Dispatcher" ParameterSet is also used to configure the EventStore. See that class' documentation for more information.
 	*/
 	bool initialize(fhicl::ParameterSet const& pset) override;
-	
+
 	/**
 	 * \brief Create a new TransferInterface instance using the given configuration
 	 * \param pset ParameterSet used to configure the TransferInterface
 	 * \return String detailing any errors encountered or "Success"
-	 * 
+	 *
 	 * See TransferInterface for details on the expected configuration
 	 */
 	std::string register_monitor(fhicl::ParameterSet const& pset);
@@ -97,12 +97,14 @@ public:
 	std::string unregister_monitor(std::string const& label);
 
 
-private:		
+private:
 	fhicl::ParameterSet generate_filter_fhicl_();
 
 	std::mutex dispatcher_transfers_mutex_;
 	std::unordered_map<std::string, fhicl::ParameterSet> registered_monitors_;
-  fhicl::ParameterSet pset_; // The ParameterSet initially passed to the Dispatcher (contains input info)
+	std::unordered_map<std::string, pid_t> registered_monitor_pids_;
+	fhicl::ParameterSet pset_; // The ParameterSet initially passed to the Dispatcher (contains input info)
+	bool broadcast_mode_;
 };
 
 #endif
