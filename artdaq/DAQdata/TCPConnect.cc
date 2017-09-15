@@ -97,6 +97,8 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 	}
 	TLOG_INFO("TCPConnect") << "Resolving host " << host << ", on port " << std::to_string(port) << TLOG_ENDL;
 
+	if (host == "localhost") host = "127.0.0.1";
+
 	bzero((char *)&sin, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port); // just a guess at an open port

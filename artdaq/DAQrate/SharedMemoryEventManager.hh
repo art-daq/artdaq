@@ -6,10 +6,45 @@
 #include "artdaq/DAQrate/RequestSender.hh"
 #include <set>
 #include <deque>
+#include <fstream>
+#include <iomanip>
 #include "fhiclcpp/fwd.h"
 #include "artdaq/Application/StatisticsHelper.hh"
 
 namespace artdaq {
+
+	/**
+	 * \brief art_config_file wraps a temporary file used to configure art
+	 */
+	class art_config_file
+	{
+	public:
+		art_config_file(fhicl::ParameterSet ps, uint32_t shm_key, uint32_t broadcast_key) : file_name_(std::tmpnam(nullptr))
+		{
+			std::ofstream of(file_name_, std::ofstream::trunc);
+			of << ps.to_string();
+
+			if (ps.has_key("services.NetMonTransportServiceInterface"))
+			{
+				of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
+				of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
+				of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
+			}
+			if (!ps.has_key("services.message"))
+			{
+				of << " services.message: { " << generateMessageFacilityConfiguration("art") << "} ";
+			}
+			of << " source.shared_memory_key: 0x" << std::hex << shm_key;
+			of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
+			of << " source.rank: " << std::dec << my_rank;
+			of.close();
+		}
+		~art_config_file() { remove(file_name_.c_str()); }
+		std::string getFileName() const { return file_name_; }
+	private:
+		std::string file_name_;
+	};
+
 	/**
 	 * \brief The SharedMemoryEventManager is a SharedMemoryManger which tracks events as they are built
 	 */
@@ -20,19 +55,19 @@ namespace artdaq {
 		typedef RawEvent::subrun_id_t subrun_id_t; ///< Copy RawEvent::subrun_id_t into local scope
 		typedef Fragment::sequence_id_t sequence_id_t; ///< Copy Fragment::sequence_id_t into local scope
 		typedef std::map<sequence_id_t, RawEvent_ptr> EventMap; ///< An EventMap is a map of RawEvent_ptr objects, keyed by sequence ID
-				
+
 		/**
 		 * \brief SharedMemoryEventManager Constructor
 		 * \param pset ParameterSet used to configure SharedMemoryEventManager
 		 * \param art_pset ParameterSet used to configure art
-		 * 
+		 *
 		 * \verbatim
 		 * SharedMemoryEventManager accepts the following Parameters:
-		 * 
+		 *
 		 * "buffer_count" REQUIRED: Number of events in the Shared Memory (incomplete + pending art)
 		 * "max_event_size_bytes" REQUIRED: Maximum event size (all Fragments), in bytes
 		 *  OR "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
-		 * "stale_buffer_touch_count" (Default: 0x10000): Maximum number of times a buffer may be queried before being marked as abandoned. 
+		 * "stale_buffer_touch_count" (Default: 0x10000): Maximum number of times a buffer may be queried before being marked as abandoned.
 		 * Owner resets this counter every time it touches the buffer.
 		 * "art_analyzer_count" (Default: 1): Number of art procceses to start
 		 * "expected_fragments_per_event" (REQUIRED): Number of Fragments to expect per event
@@ -51,10 +86,9 @@ namespace artdaq {
 		 * \brief Add a Fragment to the SharedMemoryEventManager
 		 * \param frag Header of the Fragment (seq ID and size info)
 		 * \param dataPtr Pointer to the fragment's data (i.e. Fragment::headerAddress())
-		 * \param skipCheck (Default: false): Whether to skip checking for event completion (i.e. broadcastFragment_)
 		 * \return Whether the Fragment was successfully added
 		 */
-		bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr, bool skipCheck = false);
+		bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
 
 	public:
 		/**
@@ -79,11 +113,11 @@ namespace artdaq {
 		 */
 		void DoneWritingFragment(detail::RawFragmentHeader frag);
 
-		/**
-		 * \brief Get the number of incomplete events in the SharedMemoryEventManager
-		 * \return The number of incomplete events in the SharedMemoryEventManager
-		 */
-		size_t GetOpenEventCount();
+		size_t GetInactiveEventCount() { return inactive_buffers_.size(); }
+		size_t GetIncompleteEventCount() { return active_buffers_.size(); }
+		size_t GetPendingEventCount() { return pending_buffers_.size(); }
+		size_t GetLockedBufferCount() { return GetBuffersOwnedByManager().size(); }
+		size_t GetArtEventCount() { return subrun_event_count_; }
 
 		/**
 		 * \brief Get the count of Fragments of a given type in an event
@@ -96,13 +130,13 @@ namespace artdaq {
 		/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 		 */
-		void RunArt();
+		void RunArt(std::shared_ptr<art_config_file> config_file, pid_t& pid_out);
 		/**
 		 * \brief Start all the art processes
 		 */
 		void StartArt();
 
-		/** 
+		/**
 		 * \brief Start one art process
 		 * \param pset ParameterSet to send to this art process
 		 * \return pid_t of the started process
@@ -125,7 +159,6 @@ namespace artdaq {
 
 		/**
 		* \brief Indicate that the end of input has been reached to the art processes.
-		* \param[out] readerReturnValues Exit status codes of the art processes
 		* \return True if the end proceeded correctly
 		*
 		* Put the end-of-data marker onto the RawEvent queue (if possible),
@@ -133,8 +166,8 @@ namespace artdaq {
 		* value.  This scenario returns true.  If the end-of-data marker
 		* can not be pushed onto the RawEvent queue, false is returned.
 		*/
-		bool endOfData(std::vector<int>& readerReturnValues);
-				
+		bool endOfData();
+
 		/**
 		* \brief Start a Run
 		* \param runID Run number of the new run
@@ -180,7 +213,7 @@ namespace artdaq {
 		 * \param mode Mode to set
 		 */
 		void setRequestMode(detail::RequestMessageMode mode) { requests_.SetRequestMode(mode); }
-		
+
 		/**
 		 * \brief Set the overwrite flag (non-reliable data transfer) for the Shared Memory
 		 * \param overwrite Whether to allow the writer to overwrite data that has not yet been read
@@ -197,34 +230,39 @@ namespace artdaq {
 		 * \return The shared memory key of the broadcast SharedMemoryManager
 		 */
 		uint32_t GetBroadcastKey() { return broadcasts_.GetKey(); }
-		
+
 	private:
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;
 		size_t const queue_size_;
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
+		Fragment::sequence_id_t sequence_id_;
+
+		std::set<int> inactive_buffers_;
+		std::set<int> active_buffers_;
+		std::set<int> pending_buffers_;
+
 		bool update_run_ids_;
 		bool overwrite_mode_;
 
-		std::unordered_map<int,std::atomic<int>> buffer_writes_pending_;
+		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_mutexes_;
 		std::mutex sequence_id_mutex_;
-		
+
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		int broadcast_timeout_ms_;
 		int broadcast_count_;
 		int subrun_event_count_;
 
-		std::string config_file_name_;
-		std::vector<std::thread> art_processes_;
-		std::vector<int> art_process_return_codes_;
-		std::set<pid_t> art_process_pids_;
+		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
+		fhicl::ParameterSet current_art_pset_;
+		std::shared_ptr<art_config_file> current_art_config_file_;
 
 		RequestSender requests_;
-		
+
 		FragmentPtr init_fragment_;
 
 		bool broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag);
@@ -232,11 +270,12 @@ namespace artdaq {
 		detail::RawEventHeader* getEventHeader_(int buffer);
 
 		int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
-
-		void configureArt_(fhicl::ParameterSet art_pset);
+		bool hasFragments_(int buffer);
+		void complete_buffer_(int buffer);
+		bool bufferComparator(int bufA, int bufB);
+		void check_pending_buffers_();
 
 		void send_init_frag_();
-		uint64_t last_init_time_;
 		SharedMemoryManager broadcasts_;
 	};
 }

@@ -53,8 +53,6 @@
 #include <TClass.h>
 #include <TMessage.h>
 
-#define TRACE_NAME "TransferOutput"
-
 namespace art
 {
 	class TransferOutput;
@@ -116,9 +114,10 @@ art::TransferOutput::
 TransferOutput(fhicl::ParameterSet const& ps)
 	: OutputModule(ps)
 	, initMsgSent_(false)
-	, transfer_(artdaq::MakeTransferPlugin(ps, "transfer_plugin", artdaq::TransferInterface::Role::kSend))
 {
 	TLOG_DEBUG("TransferOutput") << "Begin: TransferOutput::TransferOutput(ParameterSet const& ps)" << TLOG_ENDL;
+	transfer_ = std::move(artdaq::MakeTransferPlugin(ps, "transfer_plugin", artdaq::TransferInterface::Role::kSend));
+	TLOG_DEBUG("TransferOutput") << "END: TransferOutput::TransferOutput" << TLOG_ENDL;
 }
 
 art::TransferOutput::
@@ -742,9 +741,8 @@ writeRun(RunPrincipal& rp)
 	//  Send message.
 	//
 	{
-		ServiceHandle<NetMonTransportService> transport;
 		TLOG_TRACE("TransferOutput") << " writeRun: sending a message ...");
-		transport->sendMessage(0, artdaq::Fragment::EndOfRunFragmentType, msg);
+		sendMessage_(0, artdaq::Fragment::EndOfRunFragmentType, msg);
 		TLOG_TRACE("TransferOutput") << " writeRun: message sent.");
 	}
 	//
@@ -904,7 +902,7 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 void
 art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 {
-	TLOG_DEBUG("NetMonTransportService") << "Sending message with sequenceID=" << std::to_string(sequenceId) << ", type=" << std::to_string(messageType) << ", length=" << std::to_string(msg.Length()) << TLOG_ENDL;
+	TLOG_DEBUG("TransferOutput") << "Sending message with sequenceID=" << std::to_string(sequenceId) << ", type=" << std::to_string(messageType) << ", length=" << std::to_string(msg.Length()) << TLOG_ENDL;
 	artdaq::NetMonHeader header;
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment
@@ -918,6 +916,16 @@ art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBuf
 	{
 		sts = transfer_->copyFragment(fragment);
 	}
+
+#if 1
+	if (messageType == artdaq::Fragment::InitFragmentType)
+	{
+		std::fstream ostream("sendInitMessage_TransferOutput.bin", std::ios::out | std::ios::binary);
+		ostream.write(msg.Buffer(), msg.Length());
+		ostream.close();
+	}
+#endif
+
 }
 
 DEFINE_ART_MODULE(art::TransferOutput)

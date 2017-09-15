@@ -64,11 +64,10 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		std::vector<int> readerReturnValues;
-		bool endSucceeded = events.endOfData(readerReturnValues);
+		bool endSucceeded = events.endOfData();
 		if (endSucceeded)
 		{
-			rc = *std::max_element(readerReturnValues.begin(), readerReturnValues.end());
+			rc = 0;
 		}
 		else
 		{

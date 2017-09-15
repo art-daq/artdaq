@@ -69,11 +69,10 @@ int main(int argc, char* argv[])
 		}
 
 		std::cout << "Ending first run..." << std::endl;
-		std::vector<int> readerReturnValues;
-		bool endSucceeded = events->endOfData(readerReturnValues);
+		bool endSucceeded = events->endOfData();
 		if (endSucceeded)
 		{
-			rc = *std::max_element(readerReturnValues.begin(), readerReturnValues.end());
+			rc = 0;
 
 			size_t const NUM_EVENTS2 = 200;
 			auto temp_config = pset.to_string() + " source.waiting_time: 10 physics.analyzers.frags.num_events_expected: " + std::to_string(NUM_EVENTS2);
@@ -99,10 +98,10 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			bool endSucceeded2 = events->endOfData(readerReturnValues);
+			bool endSucceeded2 = events->endOfData();
 			if (endSucceeded2)
 			{
-				rc = *std::max_element(readerReturnValues.begin(), readerReturnValues.end());
+				rc = 0;
 			}
 			else
 			{

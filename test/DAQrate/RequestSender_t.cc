@@ -1,6 +1,6 @@
 #include "artdaq/DAQrate/RequestSender.hh"
 
-#define BOOST_TEST_MODULE(RequestSender_t)
+#define BOOST_TEST_MODULE RequestSender_t
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
@@ -10,15 +10,31 @@
 
 BOOST_AUTO_TEST_SUITE(RequestSender_test)
 
-BOOST_AUTO_TEST_CASE(Construct) {
+#define TRACE_REQUIRE_EQUAL(l,r) do { \
+if(l == r) { \
+TLOG_DEBUG("RequestSender_t") << __LINE__ << ": Checking if " << #l << " (" << std::to_string(l) << ") equals " << #r << " (" << std::to_string(r) << ")...YES!" << TLOG_ENDL; \
+} \
+else \
+{ \
+	TLOG_ERROR("RequestSender_t") << __LINE__ << ": Checking if " << #l << " (" << std::to_string(l) << ") equals " << #r << " (" << std::to_string(r) << ")...NO!" << TLOG_ENDL; \
+} \
+  BOOST_REQUIRE_EQUAL(l, r); \
+} while(0)
+
+BOOST_AUTO_TEST_CASE(Construct)
+{
+	artdaq::configureMessageFacility("RequestSender_t", true, true);
+	TLOG_INFO("RequestSender_t") << "Construct Test Case BEGIN" << TLOG_ENDL;
 	fhicl::ParameterSet pset;
 	artdaq::RequestSender t(pset);
+	BOOST_REQUIRE_EQUAL(t.GetRequestMode(), artdaq::detail::RequestMessageMode::Normal);
 }
 
 BOOST_AUTO_TEST_CASE(Tokens)
 {
-	artdaq::configureMessageFacility("RequestSender_t");
-	const int TOKEN_PORT = seedAndRandom() % 60000 + 1024;
+	artdaq::configureMessageFacility("RequestSender_t", true, true);
+	TLOG_INFO("RequestSender_t") << "Tokens Test Case BEGIN" << TLOG_ENDL;
+	const int TOKEN_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	TLOG_DEBUG("RequestSender_t") << "Opening token listener socket" << TLOG_ENDL;
 	auto token_socket = TCP_listen_fd(TOKEN_PORT, 3 * sizeof(artdaq::detail::RoutingToken));
 
@@ -32,9 +48,10 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	my_rank = 0;
 
 
+	BOOST_REQUIRE(token_socket != -1);
 	if (token_socket == -1)
 	{
-		BOOST_ERROR("Token listener socket was not opened successfully.");
+		TLOG_ERROR("RequestSender_t") << "Token listener socket was not opened successfully." << TLOG_ENDL;
 		return;
 	}
 
@@ -48,32 +65,36 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	artdaq::detail::RoutingToken buff;
 	auto sts = read(conn_sock, &buff, sizeof(artdaq::detail::RoutingToken));
 
-	BOOST_REQUIRE_EQUAL(sts, sizeof(artdaq::detail::RoutingToken));
-	BOOST_REQUIRE_EQUAL(buff.header, TOKEN_MAGIC);
-	BOOST_REQUIRE_EQUAL(buff.new_slots_free, 120);
-	BOOST_REQUIRE_EQUAL(buff.rank, 0);
+	TRACE_REQUIRE_EQUAL(sts, sizeof(artdaq::detail::RoutingToken));
+	TRACE_REQUIRE_EQUAL(buff.header, TOKEN_MAGIC);
+	TRACE_REQUIRE_EQUAL(buff.new_slots_free, 120);
+	TRACE_REQUIRE_EQUAL(buff.rank, 0);
 
 	my_rank = 13;
 	t.SendRoutingToken(335);
 
 	sts = read(conn_sock, &buff, sizeof(artdaq::detail::RoutingToken));
 
-	BOOST_REQUIRE_EQUAL(sts, sizeof(artdaq::detail::RoutingToken));
-	BOOST_REQUIRE_EQUAL(buff.header, TOKEN_MAGIC);
-	BOOST_REQUIRE_EQUAL(buff.new_slots_free, 335);
-	BOOST_REQUIRE_EQUAL(buff.rank, 13);
+	TRACE_REQUIRE_EQUAL(sts, sizeof(artdaq::detail::RoutingToken));
+	TRACE_REQUIRE_EQUAL(buff.header, TOKEN_MAGIC);
+	TRACE_REQUIRE_EQUAL(buff.new_slots_free, 335);
+	TRACE_REQUIRE_EQUAL(buff.rank, 13);
+
+	close(conn_sock);
+	close(token_socket);
 }
 
 BOOST_AUTO_TEST_CASE(Requests)
 {
-	artdaq::configureMessageFacility("RequestSender_t");
-	const int REQUEST_PORT = seedAndRandom() % 60000 + 1024;
+	artdaq::configureMessageFacility("RequestSender_t", true, true);
+	TLOG_INFO("RequestSender_t") << "Requests Test Case BEGIN" << TLOG_ENDL;
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet pset;
 	pset.put("request_port", REQUEST_PORT);
 	pset.put("request_delay_ms", DELAY_TIME);
 	pset.put("send_requests", true);
-	pset.put("request_address", "localhost");
+	pset.put("request_address", "227.28.12.28");
 	artdaq::RequestSender t(pset);
 
 
@@ -85,7 +106,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	int yes = 1;
 	if (setsockopt(request_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 	{
-		BOOST_ERROR("Unable to set reuse on request socket");
+		TLOG_ERROR("RequestSender_t") << "Unable to set reuse on request socket" << TLOG_ENDL;
 		return;
 	}
 	memset(&si_me_request, 0, sizeof(si_me_request));
@@ -94,10 +115,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind(request_socket, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
-		BOOST_ERROR("Cannot bind request socket to port " + std::to_string(REQUEST_PORT));
+		TLOG_ERROR("RequestSender_t") << "Cannot bind request socket to port " << std::to_string(REQUEST_PORT) << TLOG_ENDL;
 		return;
 	}
-	
+
 	TLOG_DEBUG("RequestSender_t") << "Sending request" << TLOG_ENDL;
 	auto start_time = std::chrono::steady_clock::now();
 	t.AddRequest(0, 0x10);
@@ -116,10 +137,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 			TRACE(4, "CFG: Recieved packet on Request channel");
 			artdaq::detail::RequestHeader hdr_buffer;
 			recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
-			BOOST_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
-			BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
+			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
+			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
 								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::Normal));
-			BOOST_REQUIRE_EQUAL(hdr_buffer.packet_count, 1);
+			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 1);
 			if (hdr_buffer.isValid())
 			{
 
@@ -128,26 +149,26 @@ BOOST_AUTO_TEST_CASE(Requests)
 
 				for (auto& buffer : pkt_buffer)
 				{
-					BOOST_REQUIRE_EQUAL(buffer.isValid(), true);
-					BOOST_REQUIRE_EQUAL(buffer.sequence_id, 0);
-					BOOST_REQUIRE_EQUAL(buffer.timestamp, 0x10);
+					TRACE_REQUIRE_EQUAL(buffer.isValid(), true);
+					TRACE_REQUIRE_EQUAL(buffer.sequence_id, 0);
+					TRACE_REQUIRE_EQUAL(buffer.timestamp, 0x10);
 				}
 			}
 			else
 			{
-				BOOST_ERROR("Invalid header received");
+				TLOG_ERROR("RequestSender_t") << "Invalid header received" << TLOG_ENDL;
 				return;
 			}
 		}
 		else
 		{
-			BOOST_ERROR("Wrong event type from poll");
+			TLOG_ERROR("RequestSender_t") << "Wrong event type from poll" << TLOG_ENDL;
 			return;
 		}
 	}
 	else
 	{
-		BOOST_ERROR("Timeout occured waiting for request");
+		TLOG_ERROR("RequestSender_t") << "Timeout occured waiting for request" << TLOG_ENDL;
 		return;
 	}
 
@@ -164,39 +185,39 @@ BOOST_AUTO_TEST_CASE(Requests)
 			TRACE(4, "CFG: Recieved packet on Request channel");
 			artdaq::detail::RequestHeader hdr_buffer;
 			recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
-			BOOST_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
-			BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
+			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
+			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
 								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
-			BOOST_REQUIRE_EQUAL(hdr_buffer.packet_count, 2);
+			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 2);
 			if (hdr_buffer.isValid())
 			{
 
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
 				recv(request_socket, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
 
-				BOOST_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
-				BOOST_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 0);
-				BOOST_REQUIRE_EQUAL(pkt_buffer[0].timestamp, 0x10);
-				BOOST_REQUIRE_EQUAL(pkt_buffer[1].isValid(), true);
-				BOOST_REQUIRE_EQUAL(pkt_buffer[1].sequence_id, 2);
-				BOOST_REQUIRE_EQUAL(pkt_buffer[1].timestamp, 0x20);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 0);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[0].timestamp, 0x10);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[1].isValid(), true);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[1].sequence_id, 2);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[1].timestamp, 0x20);
 
 			}
 			else
 			{
-				BOOST_ERROR("Invalid header received");
+				TLOG_ERROR("RequestSender_t") << "Invalid header received" << TLOG_ENDL;
 				return;
 			}
 		}
 		else
 		{
-			BOOST_ERROR("Wrong event type from poll");
+			TLOG_ERROR("RequestSender_t") << "Wrong event type from poll" << TLOG_ENDL;
 			return;
 		}
 	}
 	else
 	{
-		BOOST_ERROR("Timeout occured waiting for request");
+		TLOG_ERROR("RequestSender_t") << "Timeout occured waiting for request" << TLOG_ENDL;
 		return;
 	}
 
@@ -213,36 +234,36 @@ BOOST_AUTO_TEST_CASE(Requests)
 			TRACE(4, "CFG: Recieved packet on Request channel");
 			artdaq::detail::RequestHeader hdr_buffer;
 			recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
-			BOOST_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
-			BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
+			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
+			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
 								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
-			BOOST_REQUIRE_EQUAL(hdr_buffer.packet_count, 1);
+			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 1);
 			if (hdr_buffer.isValid())
 			{
 
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
 				recv(request_socket, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
 
-				BOOST_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
-				BOOST_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 3);
-				BOOST_REQUIRE_EQUAL(pkt_buffer[0].timestamp, 0x30);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 3);
+				TRACE_REQUIRE_EQUAL(pkt_buffer[0].timestamp, 0x30);
 
 			}
 			else
 			{
-				BOOST_ERROR("Invalid header received");
+				TLOG_ERROR("RequestSender_t") << "Invalid header received" << TLOG_ENDL;
 				return;
 			}
 		}
 		else
 		{
-			BOOST_ERROR("Wrong event type from poll");
+			TLOG_ERROR("RequestSender_t") << "Wrong event type from poll" << TLOG_ENDL;
 			return;
 		}
 	}
 	else
 	{
-		BOOST_ERROR("Timeout occured waiting for request");
+		TLOG_ERROR("RequestSender_t") << "Timeout occured waiting for request" << TLOG_ENDL;
 		return;
 	}
 

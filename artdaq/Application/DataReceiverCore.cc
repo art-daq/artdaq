@@ -175,13 +175,12 @@ bool artdaq::DataReceiverCore::shutdown()
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Calling EventStore::endOfData" << TLOG_ENDL;
-	std::vector<int> readerReturnValues;
-	endSucceeded = event_store_ptr_->endOfData(readerReturnValues);
+	endSucceeded = event_store_ptr_->endOfData();
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
 		TLOG_DEBUG(name_) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
-		endSucceeded = event_store_ptr_->endOfData(readerReturnValues);
+		endSucceeded = event_store_ptr_->endOfData();
 	}
 	
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down SharedMemoryEventManager" << TLOG_ENDL;
@@ -214,7 +213,7 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	{
 		if (event_store_ptr_ != nullptr)
 		{
-			return boost::lexical_cast<std::string>(event_store_ptr_->GetOpenEventCount());
+			return boost::lexical_cast<std::string>(event_store_ptr_->GetIncompleteEventCount());
 		}
 		else
 		{

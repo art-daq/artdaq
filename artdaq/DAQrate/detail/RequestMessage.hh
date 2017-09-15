@@ -19,6 +19,21 @@ namespace artdaq
 			Normal = 0, ///< Normal running
 			EndOfRun = 1, ///< End of Run mode (Used to end request processing on receiver)
 		};
+
+		inline std::ostream& operator<<(std::ostream& o, RequestMessageMode m)
+		{
+			switch (m)
+			{
+			case RequestMessageMode::Normal:
+				o << "Normal";
+				break;
+			case RequestMessageMode::EndOfRun:
+				o << "EndOfRun";
+				break;
+			}
+			return o;
+		}
+
 	}
 }
 
@@ -39,7 +54,8 @@ public:
 	RequestPacket()
 		: header(0)
 		, sequence_id(Fragment::InvalidSequenceID)
-		, timestamp(Fragment::InvalidTimestamp) {}
+		, timestamp(Fragment::InvalidTimestamp)
+	{}
 
 	/**
 	 * \brief Create a RequestPacket using the given sequence ID and timestmap
@@ -49,7 +65,8 @@ public:
 	RequestPacket(const Fragment::sequence_id_t& seq, const Fragment::timestamp_t& ts)
 		: header(0x54524947)
 		, sequence_id(seq)
-		, timestamp(ts) {}
+		, timestamp(ts)
+	{}
 
 	/**
 	 * \brief Check the magic bytes of the packet
@@ -66,13 +83,13 @@ struct artdaq::detail::RequestHeader
 	/** The magic bytes for the request header */
 	uint32_t header; //HEDR, or 0x48454452
 	uint32_t packet_count; ///< The number of RequestPackets in this Request message
-	RequestMessageMode mode ; ///< Communicates additional information to the Request receiver
+	RequestMessageMode mode; ///< Communicates additional information to the Request receiver
 
 	/**
 	 * \brief Default Constructor
 	 */
 	RequestHeader() : header(0x48454452)
-	                , packet_count(0)
+		, packet_count(0)
 		, mode(RequestMessageMode::Normal)
 	{}
 
@@ -93,7 +110,8 @@ public:
 	 * \brief Default Constructor
 	 */
 	RequestMessage() : header_()
-	                 , packets_() { }
+		, packets_()
+	{}
 
 	/**
 	 * \brief Get a pointer to the RequestHeader, filling in the current size of the message

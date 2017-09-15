@@ -30,7 +30,14 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	}
 
 	auto shmKey = pset.get<uint32_t>("shm_key", std::hash<std::string>()(uniqueLabel()));
-	shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, buffer_count_, max_fragment_size_words_ * sizeof(artdaq::RawDataType));
+	if (role == Role::kReceive)
+	{
+		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, buffer_count_, max_fragment_size_words_ * sizeof(artdaq::RawDataType));
+	}
+	else
+	{
+		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, 0, 0);
+	}
 }
 
 artdaq::ShmemTransfer::~ShmemTransfer()
@@ -110,7 +117,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Recvd fragment header from shmem, type=" <<(int)header.type << ", sequenceID="<< std::to_string(header.sequence_id)<< ", source_rank=" << source_rank() << TLOG_ENDL;
+			TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Recvd fragment header from shmem, type=" << (int)header.type << ", sequenceID=" << std::to_string(header.sequence_id) << ", source_rank=" << source_rank() << TLOG_ENDL;
 		}
 
 		return source_rank();
@@ -121,13 +128,13 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 
 int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t word_count)
 {
-		auto sts = shm_manager_->ReadFragmentData(destination, word_count);
+	auto sts = shm_manager_->ReadFragmentData(destination, word_count);
 
-		TLOG_TRACE(uniqueLabel()) << "Return status from ReadFragmentData is " << sts << TLOG_ENDL;
+	TLOG_TRACE(uniqueLabel()) << "Return status from ReadFragmentData is " << sts << TLOG_ENDL;
 
-		if (sts != 0) return RECV_TIMEOUT;
+	if (sts != 0) return RECV_TIMEOUT;
 
-		return source_rank();
+	return source_rank();
 
 	return artdaq::TransferInterface::RECV_TIMEOUT;
 }
@@ -175,7 +182,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	// copy the fragment if the shm is available                                               
 	if (shm_manager_->ReadyForWrite(!reliableMode))
 	{
-		TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) <<  "Sending fragment with seqID=" << std::to_string(fragment.sequenceID()) << TLOG_ENDL;
+		TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) << "Sending fragment with seqID=" << std::to_string(fragment.sequenceID()) << TLOG_ENDL;
 		artdaq::RawDataType* fragAddr = fragment.headerAddress();
 		size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 

@@ -38,17 +38,6 @@ namespace bpo = boost::program_options;
 namespace
 {
 	/**
-	 * \brief Compare two integers magnitudes
-	 * \param a First integer
-	 * \param b Second integer
-	 * \return Result of |a| < |b|
-	 */
-	static bool abs_compare(int a, int b)
-	{
-		return (std::abs(a) < std::abs(b));
-	}
-
-	/**
 	 * \brief Process the command line
 	 * \param argc Number of arguments
 	 * \param argv Array of arguments as strings
@@ -245,13 +234,14 @@ namespace
 		}
 
 		artdaq::FragmentPtrs frags;
-		auto const eb_pset = gta_pset.get<fhicl::ParameterSet>("event_builder", {});
+		auto eb_pset = gta_pset.get<fhicl::ParameterSet>("event_builder", {});
 		size_t expected_frags_per_event = 0;
 		for (auto& gen : generators)
 		{
 			gen.start(1000, 0, 0);
 			expected_frags_per_event += gen.numFragIDs();
 		}
+		eb_pset.put_or_replace<size_t>("expected_fragments_per_event", expected_frags_per_event);
 
 		artdaq::SharedMemoryEventManager store(eb_pset, pset);
 		store.startRun(gta_pset.get<int>("run_number", 1000));
@@ -269,11 +259,13 @@ namespace
 			{
 				done |= !gen.getNext(frags);
 			}
+			TLOG_TRACE("genToArt") << "There are " << std::to_string(frags.size()) << " Fragments in event " << std::to_string(event_count) << "." << TLOG_ENDL;
 			artdaq::Fragment::sequence_id_t current_sequence_id = -1;
 			for (auto& val : frags)
 			{
 				if (reset_sequenceID)
 				{
+					TLOG_DEBUG("genToArt") << "Setting fragment sequence id to " << std::to_string(event_count) << TLOG_ENDL;
 					val->setSequenceID(event_count);
 				}
 				if (current_sequence_id ==
@@ -296,24 +288,20 @@ namespace
 				if (!sts)
 				{
 					TLOG_ERROR("genToArt") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+					store.endOfData();
 					exit(1);
 				}
 			}
 			frags.clear();
+			TLOG_TRACE("genToArt") << "Event " << std::to_string(event_count) << " END" << TLOG_ENDL;
 		}
 		for (auto& gen : generators)
 		{
 			gen.stop(0, 0);
 		}
 
-		std::vector<int> readerReturnValues;
-		bool endSucceeded = store.endOfData(readerReturnValues);
-		if (endSucceeded && readerReturnValues.size() > 0)
-		{
-
-			return *std::max_element(readerReturnValues.begin(), readerReturnValues.end(), abs_compare);
-		}
-		else if (endSucceeded)
+		bool endSucceeded = store.endOfData();
+		if (endSucceeded)
 		{
 			return 0;
 		}

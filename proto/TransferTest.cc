@@ -8,8 +8,6 @@
 
 #include "fhiclcpp/make_ParameterSet.h"
 
-#define TRACE_NAME "TransferTest"
-
 artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	: senders_(psi.get<int>("num_senders"))
 	, receivers_(psi.get<int>("num_receivers"))

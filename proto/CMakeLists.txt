@@ -164,6 +164,7 @@ art_make_exec(NAME tracemf
     tracemf.cc
     LIBRARIES
     artdaq_DAQdata
+	artdaq-core_Utilities
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     )
 

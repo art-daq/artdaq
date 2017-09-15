@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE ( CommandableFragmentGenerator_t )
+#define BOOST_TEST_MODULE CommandableFragmentGenerator_t
 #include <boost/test/auto_unit_test.hpp>
 
 #include "artdaq-core/Data/Fragment.hh"

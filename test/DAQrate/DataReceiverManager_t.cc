@@ -1,6 +1,6 @@
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 
-#define BOOST_TEST_MODULE(DataReceiverManager_t)
+#define BOOST_TEST_MODULE DataReceiverManager_t
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 	BOOST_REQUIRE_EQUAL(t.running_sources().size(), 1);
 
 	artdaq::Fragment testFrag(10);
-	testFrag.setSequenceID(0);
+	testFrag.setSequenceID(1);
 	testFrag.setFragmentID(0);
 	testFrag.setTimestamp(0x100);
 	testFrag.setSystemType(artdaq::Fragment::DataFragmentType);

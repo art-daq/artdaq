@@ -169,20 +169,41 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		auto start_time = std::chrono::steady_clock::now();
 		TLOG_ARB(16, "FragmentReceiverManager") << "runReceiver_: Calling receiveFragment" << TLOG_ENDL;
 		auto fragment = std::unique_ptr<Fragment>(new Fragment());
+#if 0
 		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
-		TLOG_ARB(16, "FragmentReceiverManager") << "runReceiver_: Done with receiveFragment, ret="<< ret << " (should be " << source_rank << ")" << TLOG_ENDL;
-
+		TLOG_ARB(16, "FragmentReceiverManager") << "runReceiver_: Done with receiveFragment, ret=" << ret << " (should be " << source_rank << ")" << TLOG_ENDL;
 		if (ret != source_rank) continue; // Receive timeout or other oddness
+#else
+		artdaq::detail::RawFragmentHeader hdr;
+		auto ret1 = source_plugins_[source_rank]->receiveFragmentHeader(hdr, receive_timeout_);
+		TLOG_ARB(16, "FragmentReceiverManager") << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")" << TLOG_ENDL;
+
+		if (ret1 != source_rank) continue; // Receive timeout or other oddness
+
+		fragment->resize(hdr.word_count - hdr.num_words());
+		memcpy(fragment->headerAddress(), &hdr, hdr.num_words() * sizeof(artdaq::RawDataType));
+		auto ret2 = source_plugins_[source_rank]->receiveFragmentData(fragment->headerAddress() + hdr.num_words(), hdr.word_count - hdr.num_words());
+		if (ret2 != ret1)
+		{
+			TLOG_ERROR("FragmentReceiverManager") << "ReceiveFragmentHeader returned " << ret1 << ", but ReceiveFragmentData returned " << ret2 << TLOG_ENDL;
+			continue;
+		}
+#endif
+
 
 		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
 			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));
 		}
-		else
+		else if(fragment->type() == artdaq::Fragment::DataFragmentType || fragment->type() == artdaq::Fragment::ContainerFragmentType || fragment->isUserFragmentType(fragment->type()))
 		{
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, fragment->size() * sizeof(RawDataType));
 			recv_seq_count_.setSlot(source_rank, fragment->sequenceID());
+		}
+		else
+		{
+			continue;
 		}
 
 

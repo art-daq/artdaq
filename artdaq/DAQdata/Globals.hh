@@ -1,7 +1,7 @@
 #ifndef ARTDAQ_DAQDATA_GLOBALS_HH
 #define ARTDAQ_DAQDATA_GLOBALS_HH
 
-#include "artdaq/DAQdata/configureMessageFacility.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "tracemf.h"
 #include <sstream>
 #include "artdaq-utilities/Plugins/MetricManager.hh"
@@ -18,6 +18,12 @@
 #define TRANSFER_SEND2    8
 #define TRANSFER_RECEIVE1 9
 #define TRANSFER_RECEIVE2 10
+
+//https://stackoverflow.com/questions/21594140/c-how-to-ensure-different-random-number-generation-in-c-when-program-is-execut
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+
 
 /**
  * \brief The artdaq namespace
@@ -48,7 +54,18 @@ namespace artdaq
 		{
 			static bool initialized_ = false;
 			if (!initialized_) {
-				srand(TimeUtils::gettimeofday_us());
+				int fp = open("/dev/random", O_RDONLY);
+				if (fp == -1) abort();
+				unsigned seed;
+				unsigned pos = 0;
+				while (pos < sizeof(seed))
+				{
+					int amt = read(fp, (char *)&seed + pos, sizeof(seed) - pos);
+					if (amt <= 0) abort();
+					pos += amt;
+				}
+				srand(seed);
+				close(fp);
 				initialized_ = true;
 			}
 			return rand();

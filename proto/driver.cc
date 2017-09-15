@@ -137,13 +137,12 @@ int main(int argc, char * argv[]) try
 	}
 
 
-	std::vector<int> readerReturnValues;
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
-	endSucceeded = store.endOfData(readerReturnValues);
+	endSucceeded = store.endOfData();
 	while (!endSucceeded && attemptsToEnd < 3) {
 		++attemptsToEnd;
-		endSucceeded = store.endOfData(readerReturnValues);
+		endSucceeded = store.endOfData();
 	}
 	if (!endSucceeded) {
 		std::cerr << "Failed to shut down the reader and the event store "

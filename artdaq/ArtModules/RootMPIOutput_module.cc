@@ -377,6 +377,11 @@ send_init_message()
         //  Send init message.
         //
 		art::ServiceHandle<NetMonTransportService> transport;
+		if (!transport.get())
+		{
+			TLOG_ERROR("RootMPIOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+			return;
+		}
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
 		      "Sending the init message to "
 		      + std::to_string(transport->dataReceiverCount()) +
@@ -622,6 +627,11 @@ write(CONST_WRITE EventPrincipal& ep)
         //
         {
                 ServiceHandle<NetMonTransportService> transport;
+				if (!transport.get())
+				{
+					TLOG_ERROR("RootMPIOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+					return;
+				}
                 TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
                         "Sending a message ...");
                 transport->sendMessage(ep.id().event(), artdaq::Fragment::DataFragmentType, msg);
@@ -734,6 +744,11 @@ writeRun(CONST_WRITE RunPrincipal& rp)
         //
         {
                 ServiceHandle<NetMonTransportService> transport;
+				if (!transport.get())
+				{
+					TLOG_ERROR("RootMPIOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+					return;
+}
                 TRACE(5, "RootMPIOutput: writeRun: sending a message ...");
                 transport->sendMessage(0, artdaq::Fragment::EndOfRunFragmentType, msg);
                 TRACE(5, "RootMPIOutput: writeRun: message sent.");
@@ -872,6 +887,11 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
         //  Send message.
         //
 		ServiceHandle<NetMonTransportService> transport;
+		if (!transport.get())
+		{
+			TLOG_ERROR("RootMPIOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+			return;
+		}
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
 		      "Sending the EndOfSubrun message to "
 		      + std::to_string(transport->dataReceiverCount())

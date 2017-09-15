@@ -243,13 +243,11 @@ void Builder::sink()
 		TLOG_DEBUG("builder") << "All detectors are done, Sending endOfData Fragment" << TLOG_ENDL;
 		// Make the reader application finish, and capture its return
 		// status.
-		std::vector<int> readerReturnValues;
 		bool endSucceeded = false;
-		endSucceeded = events->endOfData(readerReturnValues);
+		endSucceeded = events->endOfData();
 		if (endSucceeded)
 		{
-			TLOG_DEBUG("builder") << "Sink: reader is done, its exit status was: "
-				<< readerReturnValues[0] << TLOG_ENDL;
+			TLOG_DEBUG("builder") << "Sink: reader is done" << TLOG_ENDL;
 		}
 		else
 		{

@@ -25,10 +25,10 @@
 #include "canvas/Utilities/GetPassID.h"
 #include "art/Version/GetReleaseVersion.h"
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/configureMessageFacility.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "fhiclcpp/make_ParameterSet.h"
 
-#define BOOST_TEST_MODULE ( shared_memory_reader_t )
+#define BOOST_TEST_MODULE shared_memory_reader_t
 #include <boost/test/auto_unit_test.hpp>
 
 #include <iostream>
@@ -465,8 +465,8 @@ BOOST_AUTO_TEST_CASE(end_of_data)
 	// and should return null pointers for new-run, -subrun and -event.
 	// Prepare our 'previous run/subrun/event'..
 	art::RunID runid(2112);
-	art::SubRunID subrunid(2112, 1);
-	art::EventID eventid(2112, 1, 3);
+	art::SubRunID subrunid(2112, 3);
+	art::EventID eventid(2112, 3, 1);
 	art::Timestamp now;
 	std::unique_ptr<art::RunPrincipal> run(source_helper().makeRunPrincipal(runid.run(), now));
 	std::unique_ptr<art::SubRunPrincipal> subrun(source_helper().makeSubRunPrincipal(runid.run(), subrunid.subRun(), now));
@@ -474,8 +474,7 @@ BOOST_AUTO_TEST_CASE(end_of_data)
 																			 subrunid.subRun(),
 																			 eventid.event(),
 																			 now));
-	std::vector<int> readerReturnValues;
-	writer().endOfData(readerReturnValues);
+	writer().endOfData();
 	art::EventPrincipal* newevent = nullptr;
 	art::SubRunPrincipal* newsubrun = nullptr;
 	art::RunPrincipal* newrun = nullptr;

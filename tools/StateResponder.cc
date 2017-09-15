@@ -1,6 +1,6 @@
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
-#include "artdaq/DAQdata/configureMessageFacility.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
