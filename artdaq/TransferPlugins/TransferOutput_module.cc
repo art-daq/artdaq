@@ -917,7 +917,7 @@ art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBuf
 		sts = transfer_->copyFragment(fragment);
 	}
 
-#if 1
+#if 0
 	if (messageType == artdaq::Fragment::InitFragmentType)
 	{
 		std::fstream ostream("sendInitMessage_TransferOutput.bin", std::ios::out | std::ios::binary);

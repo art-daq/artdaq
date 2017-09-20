@@ -299,6 +299,7 @@ struct ShmRTestFixture
 		pset.put("broadcast_shared_memory_key", getBroadcastKey());
 		pset.put("max_event_size_bytes", 0x100000);
 		pset.put("art_analyzer_count", 0);
+		pset.put("stale_buffer_timeout_usec", 100000);
 		pset.put("expected_fragments_per_event", 1);
 		pset.put("buffer_count", 10);
 		static artdaq::SharedMemoryEventManager
@@ -353,7 +354,14 @@ namespace
 
 		artdaq::FragmentPtr tempFrag;
 		auto sts = writer.AddFragment(std::move(tmpFrag), 1000000, tempFrag);
-		BOOST_REQUIRE_EQUAL(sts, true);
+		BOOST_REQUIRE_EQUAL(sts,true);
+
+		while (writer.GetLockedBufferCount())
+		{
+			writer.sendMetrics();
+			usleep(100000);
+		}
+
 		art::EventPrincipal* newevent = nullptr;
 		art::SubRunPrincipal* newsubrun = nullptr;
 		art::RunPrincipal* newrun = nullptr;
@@ -465,8 +473,8 @@ BOOST_AUTO_TEST_CASE(end_of_data)
 	// and should return null pointers for new-run, -subrun and -event.
 	// Prepare our 'previous run/subrun/event'..
 	art::RunID runid(2112);
-	art::SubRunID subrunid(2112, 3);
-	art::EventID eventid(2112, 3, 1);
+	art::SubRunID subrunid(2112, 1);
+	art::EventID eventid(2112, 1, 3);
 	art::Timestamp now;
 	std::unique_ptr<art::RunPrincipal> run(source_helper().makeRunPrincipal(runid.run(), now));
 	std::unique_ptr<art::SubRunPrincipal> subrun(source_helper().makeSubRunPrincipal(runid.run(), subrunid.subRun(), now));

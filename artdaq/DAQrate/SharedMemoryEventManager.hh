@@ -19,24 +19,24 @@ namespace artdaq {
 	class art_config_file
 	{
 	public:
-		art_config_file(fhicl::ParameterSet ps, uint32_t shm_key, uint32_t broadcast_key) : file_name_(std::tmpnam(nullptr))
+		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/) : file_name_(std::tmpnam(nullptr))
 		{
 			std::ofstream of(file_name_, std::ofstream::trunc);
 			of << ps.to_string();
 
-			if (ps.has_key("services.NetMonTransportServiceInterface"))
-			{
-				of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
-				of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-				of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
-			}
+			//if (ps.has_key("services.NetMonTransportServiceInterface"))
+			//{
+			//	of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
+			//	of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
+			//	of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
+			//}
 			if (!ps.has_key("services.message"))
 			{
 				of << " services.message: { " << generateMessageFacilityConfiguration("art") << "} ";
 			}
-			of << " source.shared_memory_key: 0x" << std::hex << shm_key;
-			of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-			of << " source.rank: " << std::dec << my_rank;
+			//of << " source.shared_memory_key: 0x" << std::hex << shm_key;
+			//of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
+			//of << " source.rank: " << std::dec << my_rank;
 			of.close();
 		}
 		~art_config_file() { remove(file_name_.c_str()); }
@@ -231,6 +231,8 @@ namespace artdaq {
 		 */
 		uint32_t GetBroadcastKey() { return broadcasts_.GetKey(); }
 
+		RawDataType* GetDroppedDataAddress() { return dropped_data_->dataBegin(); }
+
 	private:
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;
@@ -264,6 +266,7 @@ namespace artdaq {
 		RequestSender requests_;
 
 		FragmentPtr init_fragment_;
+		FragmentPtr dropped_data_; ///< Used for when data comes in badly out-of-sequence
 
 		bool broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag);
 

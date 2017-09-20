@@ -31,7 +31,7 @@ NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
 	: NetMonTransportServiceInterface()
 	, data_pset_(pset)
 	, sender_ptr_(nullptr)
-	, incoming_events_(new artdaq::SharedMemoryEventReceiver(pset.get<int>("shared_memory_key"), pset.get<int>("broadcast_shared_memory_key")))
+	, incoming_events_(new artdaq::SharedMemoryEventReceiver(pset.get<int>("shared_memory_key", 0xBEE70000 + getppid()), pset.get<int>("broadcast_shared_memory_key", 0xCEE70000 + getppid())))
 	, recvd_fragments_(nullptr)
 {
 	TLOG_TRACE("NetMonTransportService") << "NetMonTransportService CONSTRUCTOR" << TLOG_ENDL;
@@ -160,6 +160,7 @@ receiveMessage(TBufferFile*& msg)
 		// EndOfRun and EndOfSubrun Fragments are ignored in NetMonTransportService
 		else if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType || firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType)
 		{
+			TLOG_DEBUG("NetMonTransportService") << "Ignoring EndOfRun or EndOfSubrun Fragment" << TLOG_ENDL;
 			incoming_events_->ReleaseBuffer();
 			continue;
 		}
@@ -269,7 +270,7 @@ receiveInitMessage(TBufferFile*& msg)
 	auto buffer = static_cast<char *>(malloc(header->data_length));
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 
-#if 1
+#if 0
 	std::string fileName = "receiveInitMessage_" + std::to_string(getpid()) + ".bin";
 	std::fstream ostream(fileName.c_str(), std::ios::out | std::ios::binary);
 	ostream.write(buffer, header->data_length);

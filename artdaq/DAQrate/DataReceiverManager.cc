@@ -123,10 +123,17 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType || header.type == Fragment::EmptyFragmentType || header.type == Fragment::ContainerFragmentType) {
 			TLOG_TRACE("DataReceiverManager") << "Received Fragment Header from rank " << source_rank << "." << TLOG_ENDL;
 			RawDataType* loc = nullptr;
-			while (loc == nullptr) {
+			while (loc == nullptr )//&& static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - after_header).count()) < receive_timeout_) 
+			{
 				loc = shm_manager_->WriteFragmentHeader(header);
 				if (loc == nullptr) usleep(sleep_time);
 				if (stop_requested_) return;
+			}
+			if (loc == nullptr)
+			{
+				// Could not enqueue event!
+				TLOG_ERROR("DataReceiverManager") << "runReceiver_: Could not get data location for event " << std::to_string(header.sequence_id) << TLOG_ENDL;
+				continue;
 			}
 			before_body = std::chrono::steady_clock::now();
 
