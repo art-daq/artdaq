@@ -41,6 +41,11 @@ namespace artdaq
 
 	RequestSender::~RequestSender()
 	{
+		TLOG_TRACE("RequestSender") << "Shutting down RequestSender: Waiting for requests to be sent" << TLOG_ENDL;
+		while (request_sending_)
+		{
+			usleep(1000);
+		}
 		TLOG_TRACE("RequestSender") << "Shutting down RequestSender" << TLOG_ENDL;
 		if (request_socket_) {
 			shutdown(request_socket_, 2);
@@ -148,6 +153,7 @@ namespace artdaq
 		{
 			TLOG_ERROR("RequestSender") << "Error sending request message data" << TLOG_ENDL;
 		}
+		request_sending_ = false;
 	}
 
 	void RequestSender::send_routing_token_(int nSlots)
@@ -184,6 +190,7 @@ namespace artdaq
 	{
 		if (!send_requests_) return;
 		if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
+		request_sending_ = true;
 		std::thread request([=] { do_send_request_(); });
 		request.detach();
 		usleep(0); // Give up time slice

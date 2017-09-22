@@ -121,7 +121,8 @@ namespace artdaq
 		int token_socket_;
 		struct sockaddr_in token_addr_;
 		std::string token_address_;
-		
+		std::atomic<bool> request_sending_;
+
 	private:
 		void setup_requests_(std::string trigger_addr);
 		
