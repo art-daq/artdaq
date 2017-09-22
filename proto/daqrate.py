@@ -46,9 +46,13 @@ def TRACE( lvl, fmt_s, *args ):
 
 class Re:
     import re
+	## Create an instance of the regular expression
     def __init__( self, reg_ex=None,flags=0 ):
+	    ## The compiled version of the regex
         if reg_ex: self.compiled = self.re.compile(reg_ex,flags)
+		## Match object representing all matches for the regex
         self.match_obj=None
+	## Find matches for the regular expression
     def search(self,arg1,string=None):
         if string: self.match_obj = self.re.search(arg1, string)
         else:      self.match_obj = self.compiled.search( arg1 )

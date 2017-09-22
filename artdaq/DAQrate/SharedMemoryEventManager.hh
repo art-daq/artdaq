@@ -19,6 +19,10 @@ namespace artdaq {
 	class art_config_file
 	{
 	public:
+		/**
+		 * \brief art_config_file Constructor
+		 * \param ps ParameterSet to write to temporary file
+		 */
 		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/) : file_name_(std::tmpnam(nullptr))
 		{
 			std::ofstream of(file_name_, std::ofstream::trunc);
@@ -40,6 +44,10 @@ namespace artdaq {
 			of.close();
 		}
 		~art_config_file() { remove(file_name_.c_str()); }
+		/**
+		 * \brief Get the path of the temporary file
+		 * \return The path of the temporary file
+		 */
 		std::string getFileName() const { return file_name_; }
 	private:
 		std::string file_name_;
@@ -113,10 +121,34 @@ namespace artdaq {
 		 */
 		void DoneWritingFragment(detail::RawFragmentHeader frag);
 
+		/**
+		* \brief Returns the number of buffers which have no data
+		* \return The number of buffers which have no data
+		*/
 		size_t GetInactiveEventCount() { return inactive_buffers_.size(); }
+
+		/**
+		* \brief Returns the number of buffers which contain data but are not yet complete
+		* \return The number of buffers which contain data but are not yet complete
+		*/
 		size_t GetIncompleteEventCount() { return active_buffers_.size(); }
+
+		/**
+		* \brief Returns the number of events which are complete but waiting on lower sequenced events to finish
+		* \return The number of events which are complete but waiting on lower sequenced events to finish
+		*/
 		size_t GetPendingEventCount() { return pending_buffers_.size(); }
+
+		/**
+		* \brief Returns the number of buffers currently owned by this manager
+		* \return The number of buffers currently owned by this manager
+		*/
 		size_t GetLockedBufferCount() { return GetBuffersOwnedByManager().size(); }
+
+		/**
+		 * \brief Returns the number of events sent to art this subrun
+		 * \return The number of events sent to art this subrun
+		 */
 		size_t GetArtEventCount() { return subrun_event_count_; }
 
 		/**
@@ -231,6 +263,10 @@ namespace artdaq {
 		 */
 		uint32_t GetBroadcastKey() { return broadcasts_.GetKey(); }
 
+		/**
+		 * \brief Gets the address of the "dropped data" fragment. Used for testing.
+		 * \return Pointer to the data payload of the "dropped data" fragment
+		 */
 		RawDataType* GetDroppedDataAddress() { return dropped_data_->dataBegin(); }
 
 	private:

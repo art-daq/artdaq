@@ -33,6 +33,10 @@ public:
 	 */
 	bool getNext_(artdaq::FragmentPtrs& frags) override;
 
+	/**
+	 * \brief Returns whether the hwFail flag has not been set
+	 * \return If hwFail has been set, false, otherwise true
+	 */
 	bool checkHWStatus_() override { return !hwFail_.load(); }
 
 	/**
@@ -60,8 +64,15 @@ public:
 	 */
 	void resume() override;
 
+	/**
+	 * \brief Have getNext_ generate count fragments
+	 * \param count Number of fragments to generate
+	 */
 	void setFireCount(size_t count) { fireCount_ = count; }
 
+	/**
+	 * \brief Set the hwFail flag
+	 */
 	void setHwFail() { hwFail_ = true; }
 private:
 	std::atomic<size_t> fireCount_;

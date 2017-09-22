@@ -255,6 +255,10 @@ struct ShmRTestFixture
 		static uint32_t key = static_cast<uint32_t>(std::hash<std::string>()("shared_memory_reader_t"));
 		return key;
 	}
+	/**
+	* \brief Gets the key for the broadcast shared memory segment
+	* \return Key of the broadcast shared memory segment
+	*/
 	uint32_t getBroadcastKey()
 	{
 		static uint32_t key = static_cast<uint32_t>(std::hash<std::string>()("shared_memory_reader_t BROADCAST"));

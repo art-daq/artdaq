@@ -20,6 +20,12 @@ namespace artdaq
 			EndOfRun = 1, ///< End of Run mode (Used to end request processing on receiver)
 		};
 
+		/**
+		 * \brief Converts the RequestMessageMode to a string and sends it to the output stream
+		 * \param o Stream to send string to
+		 * \param m RequestMessageMode to convert to string
+		 * \return o with string sent to it
+		 */
 		inline std::ostream& operator<<(std::ostream& o, RequestMessageMode m)
 		{
 			switch (m)
