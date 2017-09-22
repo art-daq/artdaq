@@ -1,5 +1,5 @@
-#ifndef ARTDAQ_CORE_CORE_SHARED_MEMORY_EVENT_MANAGER_HH
-#define ARTDAQ_CORE_CORE_SHARED_MEMORY_EVENT_MANAGER_HH
+#ifndef ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
+#define ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
 
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
@@ -247,6 +247,7 @@ namespace artdaq {
 
 		bool update_run_ids_;
 		bool overwrite_mode_;
+		bool every_seqid_expected_;
 
 		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_mutexes_;
@@ -283,4 +284,4 @@ namespace artdaq {
 	};
 }
 
-#endif //ARTDAQ_CORE_CORE_SHARED_MEMORY_EVENT_MANAGER_HH
+#endif //ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH

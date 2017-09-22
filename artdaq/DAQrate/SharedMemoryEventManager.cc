@@ -8,7 +8,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
 						  pset.get<size_t>("buffer_count"),
 						  pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
-						  pset.get<size_t>("stale_buffer_timeout_usec", 100 * 1000000),
+						  pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
 						  !pset.get<bool>("broadcast_mode", false))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
 	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
@@ -18,6 +18,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, sequence_id_(1)
 	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
 	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
+	, every_seqid_expected_(pset.get<bool>("every_sequence_id_should_be_present", false))
 	, buffer_writes_pending_()
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
@@ -222,7 +223,7 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		}
 		else
 		{
-			TLOG_WARNING("SharedMemoryEventManager") << "art process " << pid << " exited with status code 0x" << std::hex << status << " (" << std::dec << status <<  "), " <<  (restart_art_ ? "restarting" : "not restarting") << TLOG_ENDL;
+			TLOG_WARNING("SharedMemoryEventManager") << "art process " << pid << " exited with status code 0x" << std::hex << status << " (" << std::dec << status << "), " << (restart_art_ ? "restarting" : "not restarting") << TLOG_ENDL;
 		}
 	}
 }
@@ -437,11 +438,8 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		broadcastFragment_(std::move(outFrag), outFrag);
 	}
 
-	while (art_processes_.size() > 0)
-	{
-		ShutdownArtProcesses(art_processes_);
-	}
-
+	ShutdownArtProcesses(art_processes_);
+	art_processes_.clear();
 	ResetAttachedCount();
 
 	TLOG_TRACE("SharedMemoryEventManager") << "endOfData: Clearing buffers" << TLOG_ENDL;
@@ -582,6 +580,7 @@ artdaq::detail::RawEventHeader* artdaq::SharedMemoryEventManager::getEventHeader
 
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
 {
+	check_pending_buffers_();
 	std::unique_lock<std::mutex> lk(sequence_id_mutex_);
 	TLOG_ARB(14, "SharedMemoryEventManager") << "getBufferForSequenceID " << std::to_string(seqID) << " BEGIN" << TLOG_ENDL;
 	auto buffers = GetBuffersOwnedByManager();
@@ -614,21 +613,18 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	while (seqID >= sequence_id_)
 	{
 		new_buffer = GetBufferForWriting(overwrite_mode_);
-		if (new_buffer == -1)
+		if (new_buffer == -1 && !every_seqid_expected_)
 		{
-			auto bufs = GetBuffersOwnedByManager();
+			auto bufs = inactive_buffers_;
 			Fragment::sequence_id_t lowestSeqId = seqID;
 			int buffer = -1;
 			for (auto buf : bufs)
 			{
-				if (!hasFragments_(buf))
+				auto hdr = getEventHeader_(buf);
+				if (hdr->sequence_id < lowestSeqId)
 				{
-					auto hdr = getEventHeader_(buf);
-					if (hdr->sequence_id < lowestSeqId)
-					{
-						lowestSeqId = hdr->sequence_id;
-						buffer = buf;
-					}
+					lowestSeqId = hdr->sequence_id;
+					buffer = buf;
 				}
 			}
 
@@ -637,6 +633,8 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 			ResetWritePos(buffer);
 			new_buffer = buffer;
 		}
+
+		if (new_buffer == -1) return -1;
 		TraceLock(buffer_mutexes_[new_buffer], 34, "getBufferForSequenceID");
 		auto hdr = getEventHeader_(new_buffer);
 		hdr->is_complete = false;
@@ -753,7 +751,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_()
 		{
 			auto hdr = getEventHeader_(buf);
 			if (hdr->sequence_id > lowestSeqId) break;
-			TLOG_DEBUG("SharedMemoryEventManager") << "Releasing event " << std::to_string(hdr->sequence_id) << " to art." << TLOG_ENDL;
+			TLOG_DEBUG("SharedMemoryEventManager") << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art." << TLOG_ENDL;
 			MarkBufferFull(buf);
 			subrun_event_count_++;
 			pending_buffers_.erase(buf);
@@ -789,7 +787,7 @@ void artdaq::SharedMemoryEventManager::send_init_frag_()
 
 		broadcastFragment_(std::move(init_fragment_), init_fragment_);
 		TLOG_TRACE("SharedMemoryEventManager") << "Init Fragment sent" << TLOG_ENDL;
-}
+	}
 	else
 	{
 		TLOG_WARNING("SharedMemoryEventManager") << "Cannot send init fragment because I haven't yet received one!" << TLOG_ENDL;

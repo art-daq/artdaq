@@ -38,15 +38,14 @@ void signal_handler(int signal)
 }
 
 artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
-																		  timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
-																		  , dispatcherHost_(pset.get<std::string>("dispatcherHost"))
-																		  , dispatcherPort_(pset.get<std::string>("dispatcherPort"))
-																		  , serverUrl_("http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2")
-																		  , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
-																		  , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
-																		  , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
-																		  , debugLevel_(pset.get<std::size_t>("debugLevel", 0))
-																		  , monitorRegistered_(false)
+	timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
+	, dispatcherHost_(pset.get<std::string>("dispatcherHost"))
+	, dispatcherPort_(pset.get<std::string>("dispatcherPort"))
+	, serverUrl_("http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2")
+	, maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
+	, allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", { 226, 227, 229 }))
+	, quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
+	, monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
 
@@ -126,20 +125,15 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 
 					static size_t cntr = 1;
 
-					if (debugLevel_ > 1)
-					{
-						TLOG_INFO("TransferWrapper") << "Received " << cntr++ << "-th event, "
-							<< "seqID == " << fragmentPtr->sequenceID()
-							<< ", type == " << fragmentPtr->typeString() << TLOG_ENDL;
-					}
+					TLOG_INFO("TransferWrapper") << "Received " << cntr++ << "-th event, "
+						<< "seqID == " << fragmentPtr->sequenceID()
+						<< ", type == " << fragmentPtr->typeString() << TLOG_ENDL;
 					continue;
 				}
 				else
 				{
-					if (debugLevel_ > 0)
-					{
-						TLOG_WARNING("TransferWrapper") << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again" << TLOG_ENDL;
-					}
+					TLOG_WARNING("TransferWrapper") << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again" << TLOG_ENDL;
+
 				}
 			}
 			catch (...)
@@ -147,6 +141,15 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 				ExceptionHandler(ExceptionHandlerRethrow::yes,
 								 "Problem receiving data in TransferWrapper::receiveMessage");
 			}
+		}
+
+		if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
+		{
+			//if (monitorRegistered_)
+			//{
+			//	unregisterMonitor();
+			//}
+			return;
 		}
 
 		try
@@ -173,7 +176,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			if (fragments_received > maxEventsBeforeInit_)
 			{
 				throw cet::exception("TransferWrapper") << "First " << maxEventsBeforeInit_ <<
-					  " events received did not include the \"Init\" event containing necessary info for art; exiting...";
+					" events received did not include the \"Init\" event containing necessary info for art; exiting...";
 			}
 		}
 	}
@@ -196,7 +199,7 @@ void
 artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 {
 	const size_t artdaqheader = artdaq::detail::RawFragmentHeader::num_words() *
-								sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
+		sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
 	const size_t payload = static_cast<size_t>(fragment.dataEndBytes() - fragment.dataBeginBytes());
 	const size_t metadata = sizeof(artdaq::NetMonHeader);
 	const size_t totalsize = fragment.sizeBytes();
@@ -251,7 +254,7 @@ artdaq::TransferWrapper::unregisterMonitor()
 	if (!monitorRegistered_)
 	{
 		throw cet::exception("TransferWrapper") <<
-			  "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
+			"The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
 	}
 
 	TLOG_INFO("TransferWrapper") << "Requesting that this monitor (" << transfer_->uniqueLabel()

@@ -88,7 +88,6 @@ namespace artdaq
 		const std::size_t maxEventsBeforeInit_;
 		const std::vector<int> allowedFragmentTypes_;
 		const bool quitOnFragmentIntegrityProblem_;
-		const size_t debugLevel_;
 		bool monitorRegistered_;
 	};
 }
