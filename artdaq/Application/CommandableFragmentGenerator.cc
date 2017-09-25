@@ -874,7 +874,11 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		{
 			if (mode_ == RequestMode::Buffer || static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count()) > missing_request_window_timeout_us_)
 			{
-				// We only care about the latest request received. Send empties for all others.
+				if (mode_ == RequestMode::Window)
+				{
+					TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count() << " us "
+						<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us)." << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
+				} // else, Buffer mode, where it only makes sense to send for the last request
 				sendEmptyFragments(frags);
 			}
 			for (auto req = requests_.begin(); req != requests_.end();)
