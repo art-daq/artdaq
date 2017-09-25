@@ -35,6 +35,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, staleTimeout_(Fragment::InvalidTimestamp)
 	, maxFragmentCount_(std::numeric_limits<size_t>::max())
 	, uniqueWindows_(true)
+	, last_window_send_time_()
+	, missing_request_window_timeout_us_(1000000)
 	, useDataThread_(false)
 	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
@@ -73,6 +75,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
 	, uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
+	, last_window_send_time_()
+	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 1000000))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
 	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
@@ -182,19 +186,22 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 		exit(1);
 	}
 
-	struct ip_mreq mreq;
-	int sts = ResolveHost(request_addr_.c_str(), mreq.imr_multiaddr);
-	if (sts == -1)
+	if (request_addr_ != "localhost")
 	{
-		throw art::Exception(art::errors::Configuration) << "Unable to resolve multicast request address" << std::endl;
-		exit(1);
-	}
-	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-	if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
-	{
-		throw art::Exception(art::errors::Configuration) <<
-			"CommandableFragmentGenerator: Unable to join multicast group" << std::endl;
-		exit(1);
+		struct ip_mreq mreq;
+		int sts = ResolveHost(request_addr_.c_str(), mreq.imr_multiaddr);
+		if (sts == -1)
+		{
+			throw art::Exception(art::errors::Configuration) << "Unable to resolve multicast request address" << std::endl;
+			exit(1);
+		}
+		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
+		{
+			throw art::Exception(art::errors::Configuration) <<
+				"CommandableFragmentGenerator: Unable to join multicast group" << std::endl;
+			exit(1);
+		}
 	}
 }
 
@@ -207,6 +214,7 @@ artdaq::CommandableFragmentGenerator::~CommandableFragmentGenerator()
 	if (monitoringThread_.joinable()) monitoringThread_.join();
 	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining requestThread" << TLOG_ENDL;
 	if (requestThread_.joinable()) requestThread_.join();
+	if (request_socket_ != -1) close(request_socket_);
 }
 
 bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
@@ -864,7 +872,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		}
 		else if (mode_ == RequestMode::Buffer || mode_ == RequestMode::Window)
 		{
-			if (mode_ == RequestMode::Buffer)
+			if (mode_ == RequestMode::Buffer || static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count()) > missing_request_window_timeout_us_)
 			{
 				// We only care about the latest request received. Send empties for all others.
 				sendEmptyFragments(frags);
@@ -935,6 +943,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 					}
 					req = requests_.erase(req);
 					ev_counter_inc(1, true);
+					last_window_send_time_ = std::chrono::steady_clock::now();
 				}
 				else
 				{
@@ -954,10 +963,14 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtrs& frags, size_t seqId, std::string desc)
 {
 	TLOG_WARNING("CommandableFragmentGenerator") << desc << " request " << seqId << ", sending empty fragment" << TLOG_ENDL;
-	auto frag = new Fragment();
-	frag->setSequenceID(seqId);
-	frag->setSystemType(Fragment::EmptyFragmentType);
-	frags.emplace_back(FragmentPtr(frag));
+	for (auto fid : fragment_ids_)
+	{
+		auto frag = new Fragment();
+		frag->setSequenceID(seqId);
+		frag->setFragmentID(fid);
+		frag->setSystemType(Fragment::EmptyFragmentType);
+		frags.emplace_back(FragmentPtr(frag));
+	}
 	return true;
 }
 
@@ -972,6 +985,13 @@ void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPt
 		auto seq = it->first;
 		auto ts = it->second;
 
+		while (seq > ev_counter())
+		{
+			// Otherwise, this is just one we missed, send an empty
+			sendEmptyFragment(frags, ev_counter(), "Missed request for");
+			ev_counter_inc(1, true);
+		}
+
 		// Check if this is the one "true" request
 		if (++it == requests_.end())
 		{
@@ -981,9 +1001,6 @@ void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPt
 		}
 		if (seq < ev_counter()) continue;
 
-		// Otherwise, this is just one we missed, send an empty
-		sendEmptyFragment(frags, ev_counter(), "Missed request for");
-		ev_counter_inc(1, true);
 	}
 	requests_.clear();
 
