@@ -23,7 +23,7 @@ namespace artdaq
 		, active_requests_()
 		, request_port_(pset.get<int>("request_port", 3001))
 		, request_delay_(pset.get<size_t>("request_delay_ms", 10) * 1000)
-		, multicast_out_addr_(pset.get<std::string>("output_address", "localhost"))
+		, multicast_out_addr_(pset.get<std::string>("output_address", "0.0.0.0"))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
 	{
@@ -47,19 +47,22 @@ namespace artdaq
 			usleep(1000);
 		}
 		TLOG_TRACE("RequestSender") << "Shutting down RequestSender" << TLOG_ENDL;
-		if (request_socket_) {
+		if (request_socket_)
+		{
 			shutdown(request_socket_, 2);
 			close(request_socket_);
 		}
-		if (token_socket_) {
+		if (token_socket_)
+		{
 			shutdown(token_socket_, 2);
 			close(token_socket_);
 		}
 	}
 
 
-	void RequestSender::SetRequestMode(detail::RequestMessageMode mode) {
-		request_mode_ = mode; 
+	void RequestSender::SetRequestMode(detail::RequestMessageMode mode)
+	{
+		request_mode_ = mode;
 		SendRequest(true);
 	}
 
@@ -81,7 +84,19 @@ namespace artdaq
 				exit(1);
 			}
 
-			if (multicast_out_addr_ != "localhost") {
+			if (multicast_out_addr_ == "0.0.0.0")
+			{
+				multicast_out_addr_.reserve(HOST_NAME_MAX);
+				sts = gethostname(&multicast_out_addr_[0], HOST_NAME_MAX);
+				if (sts < 0)
+				{
+					TLOG_ERROR("RequestSender") << "Could not get current hostname" << TLOG_ENDL;
+					exit(1);
+				}
+			}
+
+			if (multicast_out_addr_ != "localhost")
+			{
 				struct in_addr addr;
 				sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 				if (sts == -1)
@@ -94,6 +109,11 @@ namespace artdaq
 				if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 				{
 					TLOG_ERROR("RequestSender") << "Unable to enable port reuse on request socket" << TLOG_ENDL;
+					exit(1);
+				}
+				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &yes, sizeof(yes)) < 0)
+				{
+					TLOG_ERROR("RequestSender") << "Unable to enable multicast loopback on request socket" << TLOG_ENDL;
 					exit(1);
 				}
 				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
@@ -168,9 +188,11 @@ namespace artdaq
 
 		TLOG_TRACE("RequestSender") << "Sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
 		size_t sts = 0;
-		while (sts < sizeof(detail::RoutingToken)) {
+		while (sts < sizeof(detail::RoutingToken))
+		{
 			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
-			if (res == -1) {
+			if (res == -1)
+			{
 				usleep(1000);
 				continue;
 			}
@@ -205,7 +227,8 @@ namespace artdaq
 		SendRequest();
 	}
 
-	void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID) {
+	void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)
+	{
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		active_requests_.erase(seqID);
 	}

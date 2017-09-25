@@ -337,6 +337,11 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				exit(1);
 			}
 
+			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &yes, sizeof(yes)) < 0)
+			{
+				TLOG_ERROR("RequestSender") << "Unable to enable multicast loopback on table socket" << TLOG_ENDL;
+				exit(1);
+			}
 			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 			{
 				TLOG_ERROR(name_) << "Cannot set outgoing interface. Errno: " << std::to_string(errno) << TLOG_ENDL;
