@@ -216,7 +216,8 @@ BOOST_AUTO_TEST_CASE(Requests)
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TRACE(4, "CFG: Recieved packet on Request channel");
 			artdaq::detail::RequestHeader hdr_buffer;
-			recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
+			auto sts = recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
+			TRACE_REQUIRE_EQUAL(sts, sizeof(hdr_buffer));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
 								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
@@ -225,7 +226,8 @@ BOOST_AUTO_TEST_CASE(Requests)
 			{
 
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-				recv(request_socket, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
+				sts = recv(request_socket, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
+				TRACE_REQUIRE_EQUAL(static_cast<size_t>(sts), static_cast<size_t>(sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count));
 
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 0);

@@ -23,6 +23,7 @@ namespace artdaq
 		, active_requests_()
 		, request_port_(pset.get<int>("request_port", 3001))
 		, request_delay_(pset.get<size_t>("request_delay_ms", 10) * 1000)
+		, request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
 		, multicast_out_addr_(pset.get<std::string>("output_address", "0.0.0.0"))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
@@ -42,7 +43,10 @@ namespace artdaq
 	RequestSender::~RequestSender()
 	{
 		TLOG_TRACE("RequestSender") << "Shutting down RequestSender: Waiting for requests to be sent" << TLOG_ENDL;
-		while (request_sending_)
+
+		auto start_time = std::chrono::steady_clock::now();
+
+		while (request_sending_ && request_shutdown_timeout_us_ > static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count()))
 		{
 			usleep(1000);
 		}
@@ -164,6 +168,7 @@ namespace artdaq
 		message.header()->mode = request_mode_;
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
+		std::lock_guard<std::mutex> lk2(request_send_mutex_);
 		TLOG_TRACE("RequestSender") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << TLOG_ENDL;
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
@@ -215,7 +220,6 @@ namespace artdaq
 		request_sending_ = true;
 		std::thread request([=] { do_send_request_(); });
 		request.detach();
-		usleep(0); // Give up time slice
 	}
 
 	void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)

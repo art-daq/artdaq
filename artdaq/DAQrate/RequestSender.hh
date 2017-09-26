@@ -52,6 +52,7 @@ namespace artdaq
 		 * "send_requests" (Default: false): Whether to send DataRequests when new sequence IDs are seen
 		 * "request_port" (Default: 3001): Port to send DataRequests on
 		 * "request_delay_ms" (Default: 10): How long to wait before sending new DataRequests
+		 * "request_shutdown_timeout_us" (Default: 0.1s): How long to wait for pending requests to be sent at shutdown
 		 * "output_address" (Default: "localhost"): Use this hostname for multicast output (to assign to the proper NIC)
 		 * "request_address" (Default: "227.128.12.26"): Multicast address to send DataRequests to
 		 * "routing_token_config" (Default: Empty table): FHiCL table containing RoutingToken configuration
@@ -108,9 +109,11 @@ namespace artdaq
 		// Request stuff
 		bool send_requests_;
 		mutable std::mutex request_mutex_;
+		mutable std::mutex request_send_mutex_;
 		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_;
 		int request_port_;
 		size_t request_delay_;
+		size_t request_shutdown_timeout_us_;
 		int request_socket_;
 		struct sockaddr_in request_addr_;
 		std::string multicast_out_addr_;
