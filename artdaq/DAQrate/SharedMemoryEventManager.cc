@@ -219,7 +219,7 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		art_processes_.erase(pid);
 		if (status == 0)
 		{
-			TLOG_DEBUG("SharedMemoryEventManager") << "art process " << pid << " exited normally, " << (restart_art_ ? "restarting" : "not restarting") << TLOG_ENDL;
+			TLOG_INFO("SharedMemoryEventManager") << "art process " << pid << " exited normally, " << (restart_art_ ? "restarting" : "not restarting") << TLOG_ENDL;
 		}
 		else
 		{
@@ -279,6 +279,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 
 void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids)
 {
+	restart_art_ = false;
 	current_art_config_file_ = nullptr;
 	current_art_pset_ = fhicl::ParameterSet();
 
@@ -438,8 +439,11 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		broadcastFragment_(std::move(outFrag), outFrag);
 	}
 
-	ShutdownArtProcesses(art_processes_);
-	art_processes_.clear();
+	while (art_processes_.size() > 0)
+	{
+		TLOG_DEBUG("SharedMemoryEventManager") << "Waiting for all art processes to exit, there are " << std::to_string(art_processes_.size()) << " remaining." << TLOG_ENDL;
+		ShutdownArtProcesses(art_processes_);
+	}
 	ResetAttachedCount();
 
 	TLOG_TRACE("SharedMemoryEventManager") << "endOfData: Clearing buffers" << TLOG_ENDL;
