@@ -105,6 +105,7 @@ namespace artdaq
 		 * "stale_request_timeout" (Default: -1): How long should request messages be retained
 		 * "request_windows_are_unique" (Default: true): Whether Fragments should be removed from the buffer when matched to a request window
 		 * "missing_request_window_timeout_us" (Default: 1s): How long to wait for a missing request in Window mode (measured from the last time data was sent)
+		 * "window_close_timeout_us" (Default: 2s): How long to wait for the end of the data buffer to pass the end of a request window (measured from the last time data was sent)
 		 * "separate_data_thread" (Default: false): Whether data collection should proceed on its own thread. Required for all data request processing
 		 * "data_buffer_depth_fragments" (Default: 1000): How many Fragments to store in the buffer
 		 * "data_buffer_depth_mb" (Default: 1000): The maximum size of the data buffer in MB
@@ -445,6 +446,7 @@ namespace artdaq
 		bool uniqueWindows_;
 		std::chrono::steady_clock::time_point last_window_send_time_;
 		size_t missing_request_window_timeout_us_;
+		size_t window_close_timeout_us_;
 
 		bool useDataThread_;
 		std::atomic<bool> data_thread_running_;

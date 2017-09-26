@@ -77,6 +77,12 @@ public:
 	 * \brief Set the hwFail flag
 	 */
 	void setHwFail() { hwFail_ = true; }
+
+	void waitForFrags() { 
+		auto start_time = std::chrono::steady_clock::now();
+		while (fireCount_ > 0) { usleep(1000); } 
+		TLOG_INFO("CommandableFragmentGenerator_t") << "Waited " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count() << " us for events to be picked up by CFG" << TLOG_ENDL;
+	}
 private:
 	std::atomic<size_t> fireCount_;
 	std::atomic<bool> hwFail_;
@@ -208,6 +214,7 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
+	gen.waitForFrags();
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
@@ -231,7 +238,7 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 	fps.clear();
 
 	gen.setFireCount(2);
-	usleep(1000);
+	gen.waitForFrags();
 	t.AddRequest(4, 7);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -318,6 +325,7 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	fps.clear();
 
 	gen.setFireCount(2);
+	gen.waitForFrags();
 	t.AddRequest(4, 7);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -350,10 +358,10 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	TLOG_INFO("CommandableFragmentGenerator_t") << "BufferMode test case END" << TLOG_ENDL;
 }
 
-BOOST_AUTO_TEST_CASE(WindowMode_Narrow)
+BOOST_AUTO_TEST_CASE(WindowMode_Function)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode test case BEGIN" << TLOG_ENDL;
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_Function test case BEGIN" << TLOG_ENDL;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -405,6 +413,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Narrow)
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.setFireCount(1);
+	gen.waitForFrags();
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 1);
@@ -422,6 +431,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Narrow)
 
 	// Missing Request Timeout
 	gen.setFireCount(2);
+	gen.waitForFrags();
 	t.AddRequest(4, 3);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -455,6 +465,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Narrow)
 
 	// Data-taking has passed request
 	gen.setFireCount(10);
+	gen.waitForFrags();
 	t.AddRequest(5, 4);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -472,7 +483,481 @@ BOOST_AUTO_TEST_CASE(WindowMode_Narrow)
 	fps.clear();
 
 	gen.StopCmd(0xFFFFFFFF, 1);
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode test case END" << TLOG_ENDL;
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_Function test case END" << TLOG_ENDL;
+
+}
+
+// 1. Both start and end before any data in buffer  "RequestBeforeBuffer"
+// 2. Start before buffer, end in buffer            "RequestStartsBeforeBuffer"
+// 3. Start befoer buffer, end after buffer         "RequestOutsideBuffer"
+// 4. Start and end in buffer                       "RequestInBuffer"
+// 5. Start in buffer, end after buffer             "RequestEndsAfterBuffer"
+// 6. Start and end after buffer                    "RequestAfterBuffer"
+BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestBeforeBuffer test case BEGIN" << TLOG_ENDL;
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int DELAY_TIME = 100;
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	ps.put<int>("request_port", REQUEST_PORT);
+#if MULTICAST_MODE
+	ps.put<std::string>("request_address", "227.18.12.32");
+#else
+	ps.put<std::string>("request_address", "localhost");
+#endif
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
+	ps.put<bool>("separate_data_thread", true);
+	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<std::string>("request_mode", "window");
+	ps.put("request_delay_ms", DELAY_TIME);
+	ps.put("send_requests", true);
+
+	artdaq::RequestSender t(ps);
+
+	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
+	artdaq::FragmentPtrs fps;
+	int sts;
+	artdaq::Fragment::type_t type;
+
+	// 1. Both start and end before any data in buffer
+	//  -- Should return ContainerFragment with MissingData bit set and zero Fragments
+	gen.setFireCount(9); // Buffer start is at ts 6, end at 10
+	gen.waitForFrags();
+	t.AddRequest(1, 1); // Requesting data from ts 1 to 3
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf4 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf4.block_count(), 0);
+	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	type = artdaq::Fragment::EmptyFragmentType;
+	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+
+	gen.StopCmd(0xFFFFFFFF, 1);
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestBeforeBuffer test case END" << TLOG_ENDL;
+
+}
+BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestStartsBeforeBuffer test case BEGIN" << TLOG_ENDL;
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int DELAY_TIME = 100;
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	ps.put<int>("request_port", REQUEST_PORT);
+#if MULTICAST_MODE
+	ps.put<std::string>("request_address", "227.18.12.32");
+#else
+	ps.put<std::string>("request_address", "localhost");
+#endif
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
+	ps.put<bool>("separate_data_thread", true);
+	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<std::string>("request_mode", "window");
+	ps.put("request_delay_ms", DELAY_TIME);
+	ps.put("send_requests", true);
+
+	artdaq::RequestSender t(ps);
+
+	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
+	artdaq::FragmentPtrs fps;
+	int sts;
+	artdaq::Fragment::type_t type;
+
+	gen.waitForFrags();
+	gen.setFireCount(9); // Buffer contains 6 to 10
+	gen.waitForFrags();
+
+	// 2. Start before buffer, end in buffer
+	//  -- Should return ContainerFragment with MissingData bit set and one or more Fragments
+	t.AddRequest(1, 4); // Requesting data from ts 4 to 6
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf4 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf4.block_count(), 1);
+	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+
+	gen.StopCmd(0xFFFFFFFF, 1);
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestStartsBeforeBuffer test case END" << TLOG_ENDL;
+
+}
+BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestOutsideBuffer test case BEGIN" << TLOG_ENDL;
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int DELAY_TIME = 100;
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	ps.put<int>("request_port", REQUEST_PORT);
+#if MULTICAST_MODE
+	ps.put<std::string>("request_address", "227.18.12.32");
+#else
+	ps.put<std::string>("request_address", "localhost");
+#endif
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 4);
+	ps.put<size_t>("window_close_timeout_us", 500000);
+	ps.put<bool>("separate_data_thread", true);
+	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<std::string>("request_mode", "window");
+	ps.put("request_delay_ms", DELAY_TIME);
+	ps.put("send_requests", true);
+
+	artdaq::RequestSender t(ps);
+
+	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
+	artdaq::FragmentPtrs fps;
+	int sts;
+	artdaq::Fragment::type_t type;
+
+	gen.waitForFrags();
+	gen.setFireCount(9); // Buffer contains 6 to 10
+	gen.waitForFrags();
+
+	// 3. Start before buffer, end after buffer
+	//  -- Should not return until buffer passes end or timeout (check both cases), MissingData bit set
+
+	t.AddRequest(1, 6); // Requesting data from ts 6 to 9, buffer will contain 10
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 6);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf.block_count(), 4);
+	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+	fps.clear();
+
+	t.AddRequest(2, 9); // Requesting data from ts 9 to 12
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+
+	gen.setFireCount(3); // Buffer start is at ts 10, end at 13
+	gen.waitForFrags();
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 9);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf2 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf2.block_count(), 3);
+	BOOST_REQUIRE_EQUAL(cf2.missing_data(), true);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf2.fragment_type(), type);
+	fps.clear();
+
+
+
+	t.AddRequest(3, 12); // Requesting data from ts 11 to 14
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+
+	usleep(550000);
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 12);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf4 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf4.block_count(), 1);
+	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+
+	gen.StopCmd(0xFFFFFFFF, 1);
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestOutsideBuffer test case END" << TLOG_ENDL;
+
+}
+BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestInBuffer test case BEGIN" << TLOG_ENDL;
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int DELAY_TIME = 100;
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	ps.put<int>("request_port", REQUEST_PORT);
+#if MULTICAST_MODE
+	ps.put<std::string>("request_address", "227.18.12.32");
+#else
+	ps.put<std::string>("request_address", "localhost");
+#endif
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
+	ps.put<bool>("separate_data_thread", true);
+	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<std::string>("request_mode", "window");
+	ps.put("request_delay_ms", DELAY_TIME);
+	ps.put("send_requests", true);
+
+	artdaq::RequestSender t(ps);
+
+	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
+	artdaq::FragmentPtrs fps;
+	int sts;
+	artdaq::Fragment::type_t type;
+	gen.waitForFrags();
+
+	// 4. Start and end in buffer
+	//  -- Should return ContainerFragment with one or more Fragments
+	gen.setFireCount(5); // Buffer start is at ts 2, end at 6
+	gen.waitForFrags();
+	t.AddRequest(1, 3); // Requesting data from ts 3 to 5
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf4 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf4.block_count(), 3);
+	BOOST_REQUIRE_EQUAL(cf4.missing_data(), false);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+
+	gen.StopCmd(0xFFFFFFFF, 1);
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestInBuffer test case END" << TLOG_ENDL;
+
+}
+BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestEndsAfterBuffer test case BEGIN" << TLOG_ENDL;
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int DELAY_TIME = 100;
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	ps.put<int>("request_port", REQUEST_PORT);
+#if MULTICAST_MODE
+	ps.put<std::string>("request_address", "227.18.12.32");
+#else
+	ps.put<std::string>("request_address", "localhost");
+#endif
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
+	ps.put<size_t>("window_close_timeout_us", 500000);
+	ps.put<bool>("separate_data_thread", true);
+	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<std::string>("request_mode", "window");
+	ps.put("request_delay_ms", DELAY_TIME);
+	ps.put("send_requests", true);
+
+	artdaq::RequestSender t(ps);
+
+	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
+	artdaq::FragmentPtrs fps;
+	int sts;
+	artdaq::Fragment::type_t type;
+	gen.waitForFrags();
+	gen.setFireCount(5); // Buffer contains 2 to 6
+	gen.waitForFrags();
+
+		// 5. Start in buffer, end after buffer
+		//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
+	t.AddRequest(1, 5); // Requesting data from ts 5 to 7
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+
+	gen.setFireCount(2); // Buffer contains 4 to 8
+	gen.waitForFrags();
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf.block_count(), 3);
+	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+	fps.clear();
+
+	t.AddRequest(2, 8); // Requesting data from ts 8 to 10
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+
+	usleep(550000);
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf4 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf4.block_count(), 1);
+	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+
+	gen.StopCmd(0xFFFFFFFF, 1);
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestEndsAfterBuffer test case END" << TLOG_ENDL;
+
+}
+BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestAfterBuffer test case BEGIN" << TLOG_ENDL;
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int DELAY_TIME = 100;
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	ps.put<int>("request_port", REQUEST_PORT);
+#if MULTICAST_MODE
+	ps.put<std::string>("request_address", "227.18.12.32");
+#else
+	ps.put<std::string>("request_address", "localhost");
+#endif
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
+	ps.put<size_t>("window_close_timeout_us", 500000);
+	ps.put<bool>("separate_data_thread", true);
+	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<std::string>("request_mode", "window");
+	ps.put("request_delay_ms", DELAY_TIME);
+	ps.put("send_requests", true);
+
+	artdaq::RequestSender t(ps);
+
+	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
+	artdaq::FragmentPtrs fps;
+	int sts;
+	artdaq::Fragment::type_t type;
+	gen.waitForFrags();
+
+	// 6. Start and end after buffer
+	//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
+	gen.setFireCount(9); // Buffer start is 6, end at 10
+	gen.waitForFrags();
+	t.AddRequest(1, 11); // Requesting data from ts 11 to 13
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	gen.setFireCount(1); // Buffer start is 7, end at 11
+	gen.waitForFrags();
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+
+	gen.setFireCount(3); // Buffer start is 10, end at 14
+	gen.waitForFrags();
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 11);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf.block_count(), 3);
+	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+	fps.clear();
+
+	t.AddRequest(2, 16); // Requesting data from ts 15 to 17
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+
+	usleep(550000);
+
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 16);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf4 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf4.block_count(), 0);
+	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	type = artdaq::Fragment::EmptyFragmentType;
+	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+
+	gen.StopCmd(0xFFFFFFFF, 1);
+	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestAfterBuffer test case END" << TLOG_ENDL;
 
 }
 
