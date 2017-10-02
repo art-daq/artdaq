@@ -1,6 +1,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/detail/RawEventQueueReader.hh"
+#include "artdaq-core/Data/ContainerFragment.hh"
 
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
@@ -29,6 +30,7 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 {
 	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name,
 												unidentified_instance_name);
+		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container_Empty");
 	for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
@@ -195,10 +197,41 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 			bytesRead += frag.sizeBytes();
 		if (iter != iter_end)
 		{
-			put_product_in_principal(std::move(product),
-									 *outE,
-									 pretend_module_name,
-									 iter->second);
+			if (type_list[idx] == artdaq::Fragment::ContainerFragmentType)
+			{
+				std::map<std::string, Fragments> derived_fragments;
+
+				for (auto frag : *product)
+				{
+					ContainerFragment cf(frag);
+					auto contained_type = fragment_type_map_.find(cf.fragment_type());
+					if (contained_type != iter_end)
+					{
+						auto label = iter->second + "_" + contained_type->second;
+						derived_fragments[label].push_back(std::move(frag));
+					}
+					else
+					{
+						derived_fragments[iter->second].push_back(std::move(frag));
+					}
+				}
+
+				for (auto& type : derived_fragments)
+				{
+					put_product_in_principal(std::unique_ptr<Fragments>(&type.second),
+											 *outE,
+											 pretend_module_name,
+											 type.first);
+				}
+
+			}
+			else
+			{
+				put_product_in_principal(std::move(product),
+										 *outE,
+										 pretend_module_name,
+										 iter->second);
+			}
 		}
 		else
 		{
