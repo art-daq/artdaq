@@ -30,7 +30,7 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 {
 	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name,
 												unidentified_instance_name);
-		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container_Empty");
+		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "ContainerEmpty");
 	for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
@@ -207,7 +207,7 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 					auto contained_type = fragment_type_map_.find(cf.fragment_type());
 					if (contained_type != iter_end)
 					{
-						auto label = iter->second + "_" + contained_type->second;
+						auto label = iter->second + contained_type->second;
 						derived_fragments[label].push_back(std::move(frag));
 					}
 					else
