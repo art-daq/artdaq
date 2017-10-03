@@ -199,7 +199,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 		{
 			if (type_list[idx] == artdaq::Fragment::ContainerFragmentType)
 			{
-				std::map<std::string, std::unique_ptr<Fragments>> derived_fragments;
+				std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
+				derived_fragments[iter->second] = std::make_unique<Fragments>();
 
 				for(size_t ii = 0; ii < product->size(); ++ii)
 				{
@@ -208,11 +209,15 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 					if (contained_type != iter_end)
 					{
 						auto label = iter->second + contained_type->second;
-						derived_fragments[label]->push_back(std::move(product->at(ii)));
+						if (!derived_fragments.count(label))
+						{
+							derived_fragments[label] = std::make_unique<Fragments>();
+						}
+						derived_fragments[label]->emplace_back(std::move(product->at(ii)));
 					}
 					else
 					{
-						derived_fragments[iter->second]->push_back(std::move(product->at(ii)));
+						derived_fragments[iter->second]->emplace_back(std::move(product->at(ii)));
 					}
 				}
 
