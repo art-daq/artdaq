@@ -301,7 +301,9 @@ size_t artdaq::BoardReaderCore::process_fragments()
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
+		TRACE(17, name_ + "::process_fragments getNext start");
 		active = generator_ptr_->getNext(frags);
+		TRACE(17, name_ + "::process_fragments getNext done (active=%i)", active);
 		// 08-May-2015, KAB & JCF: if the generator getNext() method returns false
 		// (which indicates that the data flow has stopped) *and* the reason that
 		// it has stopped is because there was an exception that wasn't handled by
@@ -316,7 +318,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 		delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 		statsHelper_.addSample(INPUT_WAIT_STAT_KEY, delta_time);
 
-		TRACE(16, "%s::process_fragments INPUT_WAIT=%f", name_.c_str(), delta_time);
+		TRACE(16, name_ + "::process_fragments INPUT_WAIT=%f", delta_time);
 
 		if (!active) { break; }
 		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
@@ -446,9 +448,9 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			prev_seq_id_ = sequence_id;
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
-			TRACE(17, "%s::process_fragments seq=%lu sendFragment start", name_.c_str(), sequence_id);
+			TRACE(17, name_ + "::process_fragments seq=%lu sendFragment start", sequence_id);
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
-			TRACE(17, "%s::process_fragments seq=%lu sendFragment done (res=%i)", name_.c_str(), sequence_id,res);
+			TRACE(17, name_ + "::process_fragments seq=%lu sendFragment done (res=%i)", sequence_id,res);
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
