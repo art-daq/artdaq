@@ -663,7 +663,7 @@ namespace artdaq
 	{
 		if (metricMan)
 		{
-			metricMan->sendMetric("Incomplete Event Count", events_.size(), "events", 1);
+			metricMan->sendMetric("Incomplete Event Count", events_.size(), "events", 1, false);
 
 			MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
 				getMonitoredQuantity(EVENT_RATE_STAT_KEY);
@@ -674,7 +674,7 @@ namespace artdaq
 
 				metricMan->sendMetric("Event Count",
 									  static_cast<unsigned long>(stats.fullSampleCount),
-									  "events", 1);
+									  "events", 1, false);
 				metricMan->sendMetric("Event Rate",
 									  stats.recentSampleRate, "events/sec", 1);
 				metricMan->sendMetric("Average Event Size",

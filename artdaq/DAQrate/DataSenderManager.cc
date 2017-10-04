@@ -417,7 +417,7 @@ sendFragment(Fragment&& frag)
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 3);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 3);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 3);
-		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3);
+		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, false);
 		if (use_routing_master_) {
 			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 1);
 			if (routing_wait_time_ > 0)

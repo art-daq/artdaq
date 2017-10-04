@@ -654,7 +654,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
 		metricMan_.sendMetric("Fragment Count",
 							  static_cast<unsigned long>(stats.fullSampleCount),
-							  "fragments", 1);
+							  "fragments", 1, false);
 		metricMan_.sendMetric("Fragment Rate",
 							  stats.recentSampleRate, "fragments/sec", 1);
 		metricMan_.sendMetric("Average Fragment Size",
