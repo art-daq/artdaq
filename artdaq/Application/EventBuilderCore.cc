@@ -647,9 +647,9 @@ void artdaq::EventBuilderCore::sendMetrics_()
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(INPUT_FRAGMENTS_STAT_KEY);
+	artdaq::MonitoredQuantityStats stats;
 	if (mqPtr.get() != 0)
 	{
-		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
 		metricMan_.sendMetric("Fragment Count",
@@ -675,8 +675,9 @@ void artdaq::EventBuilderCore::sendMetrics_()
 		getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
+		mqPtr->getStats(stats);
 		metricMan_.sendMetric("Average Input Wait Time",
-			(mqPtr->getRecentValueSum() / fragmentCount),
+							  stats.recentValueSum / fragmentCount,
 							  "seconds/fragment", 3);
 	}
 
@@ -684,8 +685,9 @@ void artdaq::EventBuilderCore::sendMetrics_()
 		getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
+		mqPtr->getStats(stats);
 		metricMan_.sendMetric("Avg Event Store Wait Time",
-			(mqPtr->getRecentValueSum() / fragmentCount),
+			(stats.recentValueSum / fragmentCount),
 							  "seconds/fragment", 3);
 	}
 }

@@ -181,6 +181,10 @@ namespace artdaq
 			TRACE(14, "EventStore::insert seq=%lu enqTimedWait start", sequence_id);
 			bool enqSuccess = queue_.enqTimedWait(complete_event, enq_timeout_);
 			TRACE(enqSuccess ? 14 : 0, "EventStore::insert seq=%lu enqTimedWait complete", sequence_id);
+			if (metricMan)
+			{
+				metricMan->sendMetric("Current Event Number", sequence_id, "id", 2, false);
+			}
 			if (!enqSuccess)
 			{
 				//TRACE_CNTL( "modeM", 0 );
@@ -659,8 +663,27 @@ namespace artdaq
 	{
 		if (metricMan)
 		{
-			metricMan->sendMetric("Incomplete Event Count", events_.size(),
-								  "events", 1);
+			metricMan->sendMetric("Incomplete Event Count", events_.size(), "events", 1);
+
+			MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
+				getMonitoredQuantity(EVENT_RATE_STAT_KEY);
+			if (mqPtr.get() != 0)
+			{
+				artdaq::MonitoredQuantityStats stats;
+				mqPtr->getStats(stats);
+
+				metricMan->sendMetric("Event Count",
+									  static_cast<unsigned long>(stats.fullSampleCount),
+									  "events", 1);
+				metricMan->sendMetric("Event Rate",
+									  stats.recentSampleRate, "events/sec", 1);
+				metricMan->sendMetric("Average Event Size",
+					(stats.recentValueAverage * sizeof(artdaq::RawDataType)
+					 ), "bytes/fragment", 2);
+				metricMan->sendMetric("Data Rate",
+					(stats.recentValueRate * sizeof(artdaq::RawDataType)
+					 ), "bytes/sec", 2);
+			}
 		}
 		if (incomplete_event_report_interval_ms_ > 0 && events_.size())
 		{
