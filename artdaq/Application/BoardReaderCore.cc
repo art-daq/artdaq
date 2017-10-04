@@ -301,9 +301,9 @@ size_t artdaq::BoardReaderCore::process_fragments()
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
-		TRACE(17, name_ + "::process_fragments getNext start");
+		TRACE(18, name_ + "::process_fragments getNext start");
 		active = generator_ptr_->getNext(frags);
-		TRACE(17, name_ + "::process_fragments getNext done (active=%i)", active);
+		TRACE(18, name_ + "::process_fragments getNext done (active=%i)", active);
 		// 08-May-2015, KAB & JCF: if the generator getNext() method returns false
 		// (which indicates that the data flow has stopped) *and* the reason that
 		// it has stopped is because there was an exception that wasn't handled by
