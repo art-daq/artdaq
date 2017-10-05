@@ -13,6 +13,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 
 #include <fstream>
 #include <iomanip>
@@ -40,6 +41,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, missing_request_window_timeout_us_(1000000)
 	, window_close_timeout_us_(2000000)
 	, useDataThread_(false)
+	, sleep_on_no_data_us_(0)
 	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
 	, dataBufferDepthBytes_(0)
@@ -82,6 +84,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 1000000))
 	, window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
+	, sleep_on_no_data_us_(ps.get<size_t>("sleep_on_no_data_us", 0))
 	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
 	, dataBufferDepthBytes_(0)
@@ -542,6 +545,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: calling getNext_" << TLOG_ENDL;
 
 		bool data = false;
+		auto startdata = std::chrono::steady_clock::now();
 
 		try
 		{
@@ -559,6 +563,16 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 		TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: checking buffer size" << TLOG_ENDL;
 		auto startwait = std::chrono::steady_clock::now();
+
+		if (newDataBuffer_.size() == 0 && sleep_on_no_data_us_ > 0)
+		{
+			usleep(sleep_on_no_data_us_);
+		}
+		if (metricMan)
+		{
+			metricMan->sendMetric("Avg Data Acquisition Time", std::chrono::duration_cast<artdaq::TimeUtils::seconds>(startwait - startdata).count(), "s", 3, artdaq::MetricMode::Average);
+		}
+
 		auto first = true;
 		auto lastwaittime = 0;
 		while (dataBufferIsTooLarge())

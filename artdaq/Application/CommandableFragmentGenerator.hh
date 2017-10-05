@@ -108,6 +108,7 @@ namespace artdaq
 		 * "window_close_timeout_us" (Default: 2s): How long to wait for the end of the data buffer to pass the end of a request window (measured from the last time data was sent)
 		 * "expected_fragment_type" (Default: 231, EmptyFragmentType): The type of Fragments this CFG will be generating. "Empty" will auto-detect type based on Fragments generated.
 		 * "separate_data_thread" (Default: false): Whether data collection should proceed on its own thread. Required for all data request processing
+		 * "sleep_on_no_data_us" (Default: 0 (no sleep)): How long to sleep after calling getNext_ if no data is returned
 		 * "data_buffer_depth_fragments" (Default: 1000): How many Fragments to store in the buffer
 		 * "data_buffer_depth_mb" (Default: 1000): The maximum size of the data buffer in MB
 		 * "separate_monitoring_thread" (Default: false): Whether a thread that calls the checkHWStatus_ method should be created
@@ -451,6 +452,7 @@ namespace artdaq
 		size_t window_close_timeout_us_;
 
 		bool useDataThread_;
+		size_t sleep_on_no_data_us_;
 		std::atomic<bool> data_thread_running_;
 		std::thread dataThread_;
 
