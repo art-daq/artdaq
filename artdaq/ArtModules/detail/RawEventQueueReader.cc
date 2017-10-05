@@ -253,8 +253,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 	}
 	TRACE( 10, "readNext: bytesRead=%lu qsize=%zu cap=%zu metricMan=%p", bytesRead, qsize, incoming_events.capacity(), (void*)metricMan );
 	if (metricMan) {
-		metricMan->sendMetric( "bytesRead", bytesRead>>20, "MB", 5, false, "", true );
-		metricMan->sendMetric( "queue%Used", static_cast<unsigned long int>(qsize*100/incoming_events.capacity()), "%", 5, false, "", true );
+		metricMan->sendMetric( "bytesRead", bytesRead>>20, "MB", 5, MetricMode::Accumulate, "", true );
+		metricMan->sendMetric( "queue%Used", static_cast<unsigned long int>(qsize*100/incoming_events.capacity()), "%", 5, MetricMode::LastPoint, "", true );
 	}
 
 	return true;

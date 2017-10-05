@@ -652,17 +652,10 @@ void artdaq::EventBuilderCore::sendMetrics_()
 	{
 		mqPtr->getStats(stats);
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-		metricMan_.sendMetric("Fragment Count",
-							  static_cast<unsigned long>(stats.fullSampleCount),
-							  "fragments", 1, false);
-		metricMan_.sendMetric("Fragment Rate",
-							  stats.recentSampleRate, "fragments/sec", 1);
-		metricMan_.sendMetric("Average Fragment Size",
-			(stats.recentValueAverage * sizeof(artdaq::RawDataType)
-			 ), "bytes/fragment", 2);
-		metricMan_.sendMetric("Data Rate",
-			(stats.recentValueRate * sizeof(artdaq::RawDataType)
-			 ), "bytes/sec", 2);
+		metricMan_.sendMetric("Fragment Count", static_cast<unsigned long>(stats.fullSampleCount), "fragments", 1, MetricMode::Accumulate);
+		metricMan_.sendMetric("Fragment Rate", stats.recentSampleRate, "fragments/sec", 1, MetricMode::Average);
+		metricMan_.sendMetric("Average Fragment Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/fragment", 2, MetricMode::Average);
+		metricMan_.sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);
 	}
 
 	// 13-Jan-2015, KAB - Just a reminder that using "fragmentCount" in the
@@ -676,9 +669,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
 	if (mqPtr.get() != 0)
 	{
 		mqPtr->getStats(stats);
-		metricMan_.sendMetric("Average Input Wait Time",
-							  stats.recentValueSum / fragmentCount,
-							  "seconds/fragment", 3);
+		metricMan_.sendMetric("Average Input Wait Time", stats.recentValueSum / fragmentCount, "seconds/fragment", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
@@ -686,9 +677,7 @@ void artdaq::EventBuilderCore::sendMetrics_()
 	if (mqPtr.get() != 0)
 	{
 		mqPtr->getStats(stats);
-		metricMan_.sendMetric("Avg Event Store Wait Time",
-			(stats.recentValueSum / fragmentCount),
-							  "seconds/fragment", 3);
+		metricMan_.sendMetric("Avg Event Store Wait Time", (stats.recentValueSum / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
 }
 

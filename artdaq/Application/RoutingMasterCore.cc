@@ -268,7 +268,8 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 		if (startTime >= nextSendTime)
 		{
 			auto table = policy_->GetCurrentTable();
-			if (table.size() > 0) {
+			if (table.size() > 0)
+			{
 				send_event_table(table);
 				++table_update_count_;
 				delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
@@ -280,7 +281,8 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 				TLOG_WARNING(name_) << "No tokens received in this update interval! This is most likely a Very Bad Thing!" << TLOG_ENDL;
 			}
 			auto max_tokens = policy_->GetMaxNumberOfTokens();
-			if (max_tokens > 0) {
+			if (max_tokens > 0)
+			{
 				auto frac = table.size() / static_cast<double>(max_tokens);
 				if (frac > 0.75) current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
 				if (frac < 0.5) current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
@@ -321,7 +323,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		}
 
 		auto yes = 1;
-		if (receive_address_ != "localhost") {
+		if (receive_address_ != "localhost")
+		{
 			TLOG_DEBUG(name_) << "Making sure that multicast sending uses the correct interface for hostname " << receive_address_ << TLOG_ENDL;
 			struct in_addr addr;
 			sts = ResolveHost(receive_address_.c_str(), addr);
@@ -430,11 +433,13 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 
 			TLOG_ARB(20, name_) << "send_event_table: Polling Request socket for new requests" << TLOG_ENDL;
 			auto ready = true;
-			while (ready) {
+			while (ready)
+			{
 				detail::RoutingAckPacket buffer;
 				if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, NULL, NULL) < 0)
 				{
-					if (errno == EWOULDBLOCK || errno == EAGAIN) {
+					if (errno == EWOULDBLOCK || errno == EAGAIN)
+					{
 						TLOG_ARB(20, name_) << "send_event_table: No more ack datagrams on ack socket." << TLOG_ENDL;
 						ready = false;
 					}
@@ -466,13 +471,14 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	if (metricMan)
 	{
 		std::chrono::duration<double, std::ratio<1>> delta = std::chrono::steady_clock::now() - start_time;
-		metricMan->sendMetric("Table Acknowledge Time", delta.count(), "seconds", 3);
+		metricMan->sendMetric("Avg Table Acknowledge Time", delta.count(), "seconds", 3, MetricMode::Average);
 	}
 }
 
 void artdaq::RoutingMasterCore::receive_tokens_()
 {
-	while (!shutdown_requested_) {
+	while (!shutdown_requested_)
+	{
 		TLOG_DEBUG(name_) << "Receive Token loop start" << TLOG_ENDL;
 		if (token_socket_ == -1)
 		{
@@ -497,20 +503,24 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 		}
 
 		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), current_table_interval_ms_);
-		if (nfds == -1) {
+		if (nfds == -1)
+		{
 			perror("epoll_wait");
 			exit(EXIT_FAILURE);
 		}
 
 		TLOG_DEBUG(name_) << "Received " << std::to_string(nfds) << " events" << TLOG_ENDL;
-		for (auto n = 0; n < nfds; ++n) {
-			if (receive_token_events_[n].data.fd == token_socket_) {
+		for (auto n = 0; n < nfds; ++n)
+		{
+			if (receive_token_events_[n].data.fd == token_socket_)
+			{
 				TLOG_DEBUG(name_) << "Accepting new connection on token_socket" << TLOG_ENDL;
 				sockaddr_in addr;
 				socklen_t arglen = sizeof(addr);
 				auto conn_sock = accept(token_socket_, (struct sockaddr *)&addr, &arglen);
 
-				if (conn_sock == -1) {
+				if (conn_sock == -1)
+				{
 					perror("accept");
 					exit(EXIT_FAILURE);
 				}
@@ -519,12 +529,14 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				struct epoll_event ev;
 				ev.events = EPOLLIN | EPOLLET;
 				ev.data.fd = conn_sock;
-				if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
+				if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
+				{
 					perror("epoll_ctl: conn_sock");
 					exit(EXIT_FAILURE);
 				}
 			}
-			else {
+			else
+			{
 				auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
 				detail::RoutingToken buff;
 				auto sts = read(receive_token_events_[n].data.fd, &buff, sizeof(detail::RoutingToken));
@@ -536,7 +548,8 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				{
 					TLOG_DEBUG(name_) << "Received token from " << std::to_string(buff.rank) << " indicating " << buff.new_slots_free << " slots are free." << TLOG_ENDL;
 					received_token_count_ += buff.new_slots_free;
-					if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID) {
+					if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
+					{
 						policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
 					}
 					else if (routing_mode_ == detail::RoutingMasterMode::RouteBySendCount)
@@ -544,7 +557,8 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 						if (!received_token_counter_.count(buff.rank)) received_token_counter_[buff.rank] = 0;
 						received_token_counter_[buff.rank] += buff.new_slots_free;
 						TLOG_DEBUG(name_) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size() << "." << TLOG_ENDL;
-						while (received_token_counter_[buff.rank] >= sender_ranks_.size()) {
+						while (received_token_counter_[buff.rank] >= sender_ranks_.size())
+						{
 							TLOG_DEBUG(name_) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size()
 								<< "... Sending token to policy" << TLOG_ENDL;
 							policy_->AddReceiverToken(buff.rank, 1);
@@ -631,15 +645,9 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
-		metricMan_.sendMetric("Table Update Count",
-							  static_cast<unsigned long>(stats.fullSampleCount),
-							  "updates", 1);
-		metricMan_.sendMetric("Table Update Rate",
-							  stats.recentSampleRate, "updates/sec", 1);
-
-		metricMan_.sendMetric("Average Sender Acknowledgement Time",
-			(mqPtr->getRecentValueSum() / sender_ranks_.size()),
-							  "seconds", 3, false);
+		metricMan_.sendMetric("Table Update Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::Accumulate);
+		metricMan_.sendMetric("Table Update Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
+		metricMan_.sendMetric("Average Sender Acknowledgement Time", (mqPtr->getRecentValueSum() / sender_ranks_.size()), "seconds", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TOKENS_RECEIVED_STAT_KEY);
@@ -647,13 +655,8 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
-		metricMan_.sendMetric("Receiver Token Count",
-							  static_cast<unsigned long>(stats.fullSampleCount),
-							  "updates", 1);
-		metricMan_.sendMetric("Receiver Token Rate",
-							  stats.recentSampleRate, "updates/sec", 1);
-		metricMan_.sendMetric("Total Receiver Token Wait Time",
-							  mqPtr->getRecentValueSum(),
-							  "seconds", 3, false);
+		metricMan_.sendMetric("Receiver Token Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::Accumulate);
+		metricMan_.sendMetric("Receiver Token Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
+		metricMan_.sendMetric("Total Receiver Token Wait Time", mqPtr->getRecentValueSum(), "seconds", 3, MetricMode::Average);
 	}
 }
