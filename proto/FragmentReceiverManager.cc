@@ -212,9 +212,9 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
 			TLOG_ARB(6, "FragmentReceiverManager") << "runReceiver_: Sending receive stats" << TLOG_ENDL;
 			auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
-			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1);
-			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(fragment->size() * sizeof(RawDataType)), "B", 1);
-			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), fragment->size() * sizeof(RawDataType) / delta_t, "B/s", 1);
+			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1, MetricMode::Accumulate);
+			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(fragment->size() * sizeof(RawDataType)), "B", 1, MetricMode::Accumulate);
+			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), fragment->size() * sizeof(RawDataType) / delta_t, "B/s", 1, MetricMode::Average);
 		}
 
 

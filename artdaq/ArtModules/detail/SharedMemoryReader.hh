@@ -13,6 +13,7 @@
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
@@ -339,7 +340,7 @@ namespace artdaq
 						bytesRead += frag.sizeBytes();
 					if (iter != iter_end)
 					{
-					  if (type_list[idx] == artdaq::Fragment::ContainerFragmentType)
+					  if (type_code == artdaq::Fragment::ContainerFragmentType)
 						{
 						  std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
 						  derived_fragments[iter->second] = std::make_unique<Fragments>();
@@ -397,8 +398,8 @@ namespace artdaq
 				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << std::to_string(bytesRead) << " qsize=" << std::to_string(qsize) << " cap=" << std::to_string(incoming_events->size()) << " metricMan=" << (void*)metricMan << TLOG_ENDL;
 				if (metricMan)
 				{
-					metricMan->sendMetric("bytesRead", bytesRead >> 20, "MB", 5, false, "", true);
-					metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / incoming_events->size()), "%", 5, false, "", true);
+					metricMan->sendMetric("bytesRead", bytesRead, "B", 5, MetricMode::Accumulate, "", true);
+					metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / incoming_events->size()), "%", 5, MetricMode::LastPoint, "", true);
 				}
 
 				return true;

@@ -475,7 +475,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	if (metricMan)
 	{
 		double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-		metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
+		metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, MetricMode::LastPoint);
 	}
 }
 
@@ -485,7 +485,7 @@ void artdaq::SharedMemoryEventManager::startSubrun()
 	if (metricMan)
 	{
 		double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-		metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
+		metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, MetricMode::LastPoint);
 	}
 }
 
@@ -526,9 +526,9 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 {
 	if (metricMan)
 	{
-		metricMan->sendMetric("Incomplete Event Count", GetIncompleteEventCount(), "events", 1);
-		metricMan->sendMetric("Reserved Event Buffers", GetInactiveEventCount(), "events", 1);
-		metricMan->sendMetric("Pending Event Count", GetPendingEventCount(), "events", 1);
+		metricMan->sendMetric("Incomplete Event Count", GetIncompleteEventCount(), "events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Reserved Event Buffers", GetInactiveEventCount(), "events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Pending Event Count", GetPendingEventCount(), "events", 1, MetricMode::LastPoint);
 	}
 	check_pending_buffers_();
 	if (incomplete_event_report_interval_ms_ > 0 && GetLockedBufferCount())
@@ -768,10 +768,10 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_()
 		auto full = ReadReadyCount();
 		auto empty = WriteReadyCount(overwrite_mode_);
 		auto total = size();
-		metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2);
-		metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2);
-		metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2);
-		metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2);
+		metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
+		metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
+		metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
+		metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
 	}
 	TLOG_TRACE("SharedMemoryEventManager") << "check_pending_buffers_ END" << TLOG_ENDL;
 }
