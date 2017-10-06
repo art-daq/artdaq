@@ -181,6 +181,10 @@ namespace artdaq
 			TRACE(14, "EventStore::insert seq=%lu enqTimedWait start", sequence_id);
 			bool enqSuccess = queue_.enqTimedWait(complete_event, enq_timeout_);
 			TRACE(enqSuccess ? 14 : 0, "EventStore::insert seq=%lu enqTimedWait complete", sequence_id);
+			if (metricMan)
+			{
+				metricMan->sendMetric("Current Event Number", sequence_id, "id", 2, MetricMode::LastPoint);
+			}
 			if (!enqSuccess)
 			{
 				//TRACE_CNTL( "modeM", 0 );
@@ -349,7 +353,7 @@ namespace artdaq
 		if (metricMan)
 		{
 			double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-			metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
+			metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, MetricMode::LastPoint);
 		}
 	}
 
@@ -359,7 +363,7 @@ namespace artdaq
 		if (metricMan)
 		{
 			double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
-			metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, false);
+			metricMan->sendMetric("Run Number", runSubrun, "Run:Subrun", 1, MetricMode::LastPoint);
 		}
 	}
 
@@ -393,6 +397,15 @@ namespace artdaq
 		endOfSubrunEvent->insertFragment(std::move(endOfSubrunFrag));
 
 		return queue_.enqTimedWait(endOfSubrunEvent, enq_timeout_);
+	}
+
+	void EventStore::setRequestMode(detail::RequestMessageMode mode)
+	{
+		request_mode_ = mode;
+		if (send_requests_ && request_mode_ == detail::RequestMessageMode::EndOfRun)
+		{
+			send_request_();
+		}
 	}
 
 	void
@@ -541,7 +554,8 @@ namespace artdaq
 				exit(1);
 			}
 
-			if (multicast_out_addr_ != "localhost") {
+			if (multicast_out_addr_ != "localhost")
+			{
 				struct in_addr addr;
 				int sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 				if (sts == -1)
@@ -624,9 +638,11 @@ namespace artdaq
 
 		TLOG_DEBUG("EventStore") << "Sending RoutingToken to " << token_address_ << ":" << token_port_ << TLOG_ENDL;
 		size_t sts = 0;
-		while (sts < sizeof(detail::RoutingToken)) {
+		while (sts < sizeof(detail::RoutingToken))
+		{
 			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
-			if (res == -1) {
+			if (res == -1)
+			{
 				usleep(1000);
 				continue;
 			}
@@ -647,8 +663,20 @@ namespace artdaq
 	{
 		if (metricMan)
 		{
-			metricMan->sendMetric("Incomplete Event Count", events_.size(),
-								  "events", 1);
+			metricMan->sendMetric("Incomplete Event Count", events_.size(), "events", 1, MetricMode::LastPoint);
+
+			MonitoredQuantityPtr mqPtr = StatisticsCollection::getInstance().
+				getMonitoredQuantity(EVENT_RATE_STAT_KEY);
+			if (mqPtr.get() != 0)
+			{
+				artdaq::MonitoredQuantityStats stats;
+				mqPtr->getStats(stats);
+
+				metricMan->sendMetric("Event Count", static_cast<unsigned long>(stats.fullSampleCount), "events", 1, MetricMode::Accumulate);
+				metricMan->sendMetric("Event Rate", stats.recentSampleRate, "events/sec", 1, MetricMode::Average);
+				metricMan->sendMetric("Average Event Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/fragment", 2, MetricMode::Average);
+				metricMan->sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);
+			}
 		}
 		if (incomplete_event_report_interval_ms_ > 0 && events_.size())
 		{

@@ -303,7 +303,7 @@ bool artdaq::AggregatorCore::initialize(fhicl::ParameterSet const& pset)
 		ExceptionHandler(ExceptionHandlerRethrow::no,
 						 "Error loading metrics in AggregatorCore::initialize()");
 	}
-	
+
 	if (event_store_ptr_ == nullptr)
 	{
 		artdaq::EventStore::ART_CFGSTRING_FCN* reader = &artapp_string_config;
@@ -449,7 +449,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 	{
 		sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
 
-		if (sender_ptr_->destinationCount() == 0) {
+		if (sender_ptr_->destinationCount() == 0)
+		{
 			sender_ptr_.reset(nullptr);
 		}
 	}
@@ -468,8 +469,8 @@ size_t artdaq::AggregatorCore::process_fragments()
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
 		//Removed if statement on different Aggregator types as they all go through DataReceiverManager now
-		fragmentPtr = receiver_ptr_->recvFragment(senderSlot, recvTimeout); 
-		
+		fragmentPtr = receiver_ptr_->recvFragment(senderSlot, recvTimeout);
+
 		stats_helper_.addSample(INPUT_WAIT_STAT_KEY,
 			(artdaq::MonitoredQuantity::getCurrentTime() - startTime));
 		/*if (senderSlot == MPI_ANY_SOURCE) // Use RECV_TIMEOUT now to indicate that no senders have sent anything
@@ -1324,14 +1325,9 @@ void artdaq::AggregatorCore::sendMetrics_()
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
 		eventCount = std::max(double(stats.recentSampleCount), 1.0);
-		metricMan_.sendMetric("Event Rate",
-							  stats.recentSampleRate, "events/sec", 1);
-		metricMan_.sendMetric("Average Event Size",
-			(stats.recentValueAverage * sizeof(artdaq::RawDataType)
-			 ), "bytes/event", 2);
-		metricMan_.sendMetric("Data Rate",
-			(stats.recentValueRate * sizeof(artdaq::RawDataType)
-			 ), "bytes/sec", 2);
+		metricMan_.sendMetric("Event Rate", stats.recentSampleRate, "events/sec", 1, MetricMode::Average);
+		metricMan_.sendMetric("Average Event Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/event", 2, MetricMode::Average);
+		metricMan_.sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);
 	}
 
 	// 13-Jan-2015, KAB - Just a reminder that using "eventCount" in the
@@ -1344,35 +1340,27 @@ void artdaq::AggregatorCore::sendMetrics_()
 		getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Average Input Wait Time",
-			(mqPtr->getRecentValueSum() / eventCount),
-							  "seconds/event", 3);
+		metricMan_.sendMetric("Average Input Wait Time", (mqPtr->getRecentValueSum() / eventCount), "seconds/event", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Avg art Queue Wait Time",
-			(mqPtr->getRecentValueSum() / eventCount),
-							  "seconds/event", 3);
+		metricMan_.sendMetric("Avg art Queue Wait Time", (mqPtr->getRecentValueSum() / eventCount), "seconds/event", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(SHM_COPY_TIME_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Avg Shared Memory Copy Time",
-			(mqPtr->getRecentValueSum() / eventCount),
-							  "seconds/event", 4);
+		metricMan_.sendMetric("Avg Shared Memory Copy Time", (mqPtr->getRecentValueSum() / eventCount), "seconds/event", 4, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(FILE_CHECK_TIME_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Average File Check Time",
-			(mqPtr->getRecentValueSum() / eventCount),
-							  "seconds/event", 4);
+		metricMan_.sendMetric("Average File Check Time", (mqPtr->getRecentValueSum() / eventCount), "seconds/event", 4, MetricMode::Average);
 	}
 }

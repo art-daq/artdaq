@@ -647,22 +647,15 @@ void artdaq::EventBuilderCore::sendMetrics_()
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(INPUT_FRAGMENTS_STAT_KEY);
+	artdaq::MonitoredQuantityStats stats;
 	if (mqPtr.get() != 0)
 	{
-		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-		metricMan_.sendMetric("Fragment Count",
-							  static_cast<unsigned long>(stats.fullSampleCount),
-							  "fragments", 1);
-		metricMan_.sendMetric("Fragment Rate",
-							  stats.recentSampleRate, "fragments/sec", 1);
-		metricMan_.sendMetric("Average Fragment Size",
-			(stats.recentValueAverage * sizeof(artdaq::RawDataType)
-			 ), "bytes/fragment", 2);
-		metricMan_.sendMetric("Data Rate",
-			(stats.recentValueRate * sizeof(artdaq::RawDataType)
-			 ), "bytes/sec", 2);
+		metricMan_.sendMetric("Fragment Count", static_cast<unsigned long>(stats.fullSampleCount), "fragments", 1, MetricMode::Accumulate);
+		metricMan_.sendMetric("Fragment Rate", stats.recentSampleRate, "fragments/sec", 1, MetricMode::Average);
+		metricMan_.sendMetric("Average Fragment Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/fragment", 2, MetricMode::Average);
+		metricMan_.sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);
 	}
 
 	// 13-Jan-2015, KAB - Just a reminder that using "fragmentCount" in the
@@ -675,18 +668,16 @@ void artdaq::EventBuilderCore::sendMetrics_()
 		getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Average Input Wait Time",
-			(mqPtr->getRecentValueSum() / fragmentCount),
-							  "seconds/fragment", 3);
+		mqPtr->getStats(stats);
+		metricMan_.sendMetric("Average Input Wait Time", stats.recentValueSum / fragmentCount, "seconds/fragment", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(STORE_EVENT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Avg Event Store Wait Time",
-			(mqPtr->getRecentValueSum() / fragmentCount),
-							  "seconds/fragment", 3);
+		mqPtr->getStats(stats);
+		metricMan_.sendMetric("Avg Event Store Wait Time", (stats.recentValueSum / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
 }
 

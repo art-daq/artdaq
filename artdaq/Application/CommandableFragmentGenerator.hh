@@ -104,7 +104,11 @@ namespace artdaq
 		 * "request_window_width" (Default: 0): For Window request mode, the window will be timestamp - offset to timestamp - offset + width
 		 * "stale_request_timeout" (Default: -1): How long should request messages be retained
 		 * "request_windows_are_unique" (Default: true): Whether Fragments should be removed from the buffer when matched to a request window
+		 * "missing_request_window_timeout_us" (Default: 1s): How long to wait for a missing request in Window mode (measured from the last time data was sent)
+		 * "window_close_timeout_us" (Default: 2s): How long to wait for the end of the data buffer to pass the end of a request window (measured from the last time data was sent)
+		 * "expected_fragment_type" (Default: 231, EmptyFragmentType): The type of Fragments this CFG will be generating. "Empty" will auto-detect type based on Fragments generated.
 		 * "separate_data_thread" (Default: false): Whether data collection should proceed on its own thread. Required for all data request processing
+		 * "sleep_on_no_data_us" (Default: 0 (no sleep)): How long to sleep after calling getNext_ if no data is returned
 		 * "data_buffer_depth_fragments" (Default: 1000): How many Fragments to store in the buffer
 		 * "data_buffer_depth_mb" (Default: 1000): The maximum size of the data buffer in MB
 		 * "separate_monitoring_thread" (Default: false): Whether a thread that calls the checkHWStatus_ method should be created
@@ -431,6 +435,7 @@ namespace artdaq
 		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> requests_;
 		std::atomic<bool> request_stop_requested_;
 		std::chrono::steady_clock::time_point request_stop_timeout_;
+		std::atomic<bool> request_received_;
 		size_t end_of_run_timeout_ms_;
 		std::mutex request_mutex_;
 		std::thread requestThread_;
@@ -439,10 +444,15 @@ namespace artdaq
 		Fragment::timestamp_t windowOffset_;
 		Fragment::timestamp_t windowWidth_;
 		Fragment::timestamp_t staleTimeout_;
+		Fragment::type_t expectedType_;
 		size_t maxFragmentCount_;
 		bool uniqueWindows_;
+		std::chrono::steady_clock::time_point last_window_send_time_;
+		size_t missing_request_window_timeout_us_;
+		size_t window_close_timeout_us_;
 
 		bool useDataThread_;
+		size_t sleep_on_no_data_us_;
 		std::atomic<bool> data_thread_running_;
 		std::thread dataThread_;
 
@@ -483,7 +493,7 @@ namespace artdaq
 
 		uint64_t timestamp_;
 
-		std::atomic<bool> should_stop_, exception_;
+		std::atomic<bool> should_stop_, exception_, force_stop_;
 		std::string latest_exception_report_;
 		std::atomic<size_t> ev_counter_;
 

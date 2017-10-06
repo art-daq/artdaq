@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v2_03_02a
-defaultqual    e10:s46
+parent artdaq  v2_03_03
+defaultqual    e14:s48
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -22,12 +22,12 @@ art             v2_06_03        s48
 art             v2_06_02        s47
 art             v2_06_01        s46
 artdaq_core 		v1_07_08
-artdaq_utilities        -
+artdaq_utilities        v1_03_00
 mvapich2		v1_9_0
 mpich			v3_2_0c
 xmlrpc_c		v1_39_10a
-artdaq_ganglia_plugin   v1_02_05a        -       optional
-artdaq_epics_plugin     v1_01_08a        -       optional
+artdaq_ganglia_plugin   v1_02_05b        -       optional
+artdaq_epics_plugin     v1_01_08b        -       optional
 artdaq_mfextensions     v1_01_11        -       optional
 cetbuildtools		v5_08_01	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
@@ -36,91 +36,91 @@ end_product_list
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
-qualifier		art		artdaq_core    	   artdaq_utilities	      	mvapich2	mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions
-e14:s50:debug		e14:debug	e14:s50:debug	   a_u_intf_v1:e14:s50:debug	-		e14:debug	e14:debug	e14:g371:s50:debug	e14:s50:debug       	e14:s50:debug
-e14:s50:prof		e14:prof 	e14:s50:prof	   a_u_intf_v1:e14:s50:prof	-		e14:prof	e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
-e14:s48:debug		e14:debug	e14:s48:debug	   a_u_intf_v1:e14:s48:debug	-		e14:debug	e14:debug	e14:g371:s48:debug	e14:s48:debug       	e14:s48:debug
-e14:s48:prof		e14:prof 	e14:s48:prof	   a_u_intf_v1:e14:s48:prof	-		e14:prof	e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
-e10:s48:debug		e10:debug	e10:s48:debug	   a_u_intf_v1:e10:s48:debug	-		e10:debug	e10:debug	e10:g371:s48:debug	e10:s48:debug       	e10:s48:debug
-e10:s48:prof		e10:prof 	e10:s48:prof	   a_u_intf_v1:e10:s48:prof	-		e10:prof	e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
-e14:s47:debug		e14:debug	e14:s47:debug	   a_u_intf_v1:e14:s47:debug	-		e14:debug	e14:debug	e14:g371:s47:debug	e14:s47:debug       	e14:s47:debug
-e14:s47:prof		e14:prof 	e14:s47:prof	   a_u_intf_v1:e14:s47:prof	-		e14:prof	e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
-e10:s47:debug		e10:debug	e10:s47:debug	   a_u_intf_v1:e10:s47:debug	-		e10:debug	e10:debug	e10:g371:s47:debug	e10:s47:debug       	e10:s47:debug
-e10:s47:prof		e10:prof 	e10:s47:prof	   a_u_intf_v1:e10:s47:prof	-		e10:prof	e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
-e14:s46:debug		e14:debug	e14:s46:debug	   a_u_intf_v1:e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug       	e14:s46:debug
-e14:s46:prof		e14:prof 	e14:s46:prof	   a_u_intf_v1:e14:s46:prof	-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
-e10:s46:debug		e10:debug	e10:s46:debug	   a_u_intf_v1:e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug       	e10:s46:debug
-e10:s46:prof		e10:prof 	e10:s46:prof	   a_u_intf_v1:e10:s46:prof	-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
-e14:s50:ib:debug	e14:debug	e14:s50:debug	   a_u_intf_v1:e14:s50:debug	-nq-		-		e14:debug	e14:g371:s50:debug	e14:s50:debug		e14:s50:debug
-e14:s50:ib:prof		e14:prof	e14:s50:prof	   a_u_intf_v1:e14:s50:prof	-nq-		-		e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
-e14:s50:eth:debug	e14:debug	e14:s50:debug	   a_u_intf_v1:e14:s50:debug	-		e14:debug	e14:debug	e14:g371:s50:debug	e14:s50:debug		e14:s50:debug
-e14:s50:eth:prof	e14:prof 	e14:s50:prof 	   a_u_intf_v1:e14:s50:prof	-		e14:prof	e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
-e14:s48:ib:debug	e14:debug	e14:s48:debug	   a_u_intf_v1:e14:s48:debug	-nq-		-		e14:debug	e14:g371:s48:debug	e14:s48:debug		e14:s48:debug
-e14:s48:ib:prof		e14:prof	e14:s48:prof	   a_u_intf_v1:e14:s48:prof	-nq-		-		e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
-e14:s48:eth:debug	e14:debug	e14:s48:debug	   a_u_intf_v1:e14:s48:debug	-		e14:debug	e14:debug	e14:g371:s48:debug	e14:s48:debug		e14:s48:debug
-e14:s48:eth:prof	e14:prof 	e14:s48:prof 	   a_u_intf_v1:e14:s48:prof	-		e14:prof	e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
-e10:s48:ib:debug	e10:debug	e10:s48:debug	   a_u_intf_v1:e10:s48:debug	-nq-		-		e10:debug	e10:g371:s48:debug	e10:s48:debug		e10:s48:debug
-e10:s48:ib:prof		e10:prof	e10:s48:prof	   a_u_intf_v1:e10:s48:prof	-nq-		-		e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
-e10:s48:eth:debug	e10:debug	e10:s48:debug	   a_u_intf_v1:e10:s48:debug	-		e10:debug	e10:debug	e10:g371:s48:debug	e10:s48:debug		e10:s48:debug
-e10:s48:eth:prof	e10:prof 	e10:s48:prof 	   a_u_intf_v1:e10:s48:prof	-		e10:prof	e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
-e14:s47:ib:debug	e14:debug	e14:s47:debug	   a_u_intf_v1:e14:s47:debug	-nq-		-		e14:debug	e14:g371:s47:debug	e14:s47:debug		e14:s47:debug
-e14:s47:ib:prof		e14:prof	e14:s47:prof	   a_u_intf_v1:e14:s47:prof	-nq-		-		e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
-e14:s47:eth:debug	e14:debug	e14:s47:debug	   a_u_intf_v1:e14:s47:debug	-		e14:debug	e14:debug	e14:g371:s47:debug	e14:s47:debug		e14:s47:debug
-e14:s47:eth:prof	e14:prof 	e14:s47:prof 	   a_u_intf_v1:e14:s47:prof	-		e14:prof	e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
-e10:s47:ib:debug	e10:debug	e10:s47:debug	   a_u_intf_v1:e10:s47:debug	-nq-		-		e10:debug	e10:g371:s47:debug	e10:s47:debug		e10:s47:debug
-e10:s47:ib:prof		e10:prof	e10:s47:prof	   a_u_intf_v1:e10:s47:prof	-nq-		-		e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
-e10:s47:eth:debug	e10:debug	e10:s47:debug	   a_u_intf_v1:e10:s47:debug	-		e10:debug	e10:debug	e10:g371:s47:debug	e10:s47:debug		e10:s47:debug
-e10:s47:eth:prof	e10:prof 	e10:s47:prof 	   a_u_intf_v1:e10:s47:prof	-		e10:prof	e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
-e14:s46:ib:debug	e14:debug	e14:s46:debug	   a_u_intf_v1:e14:s46:debug	-nq-		-		e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
-e14:s46:ib:prof		e14:prof	e14:s46:prof	   a_u_intf_v1:e14:s46:prof	-nq-		-		e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
-e14:s46:eth:debug	e14:debug	e14:s46:debug	   a_u_intf_v1:e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
-e14:s46:eth:prof	e14:prof 	e14:s46:prof 	   a_u_intf_v1:e14:s46:prof	-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
-e10:s46:ib:debug	e10:debug	e10:s46:debug	   a_u_intf_v1:e10:s46:debug	-nq-		-		e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
-e10:s46:ib:prof		e10:prof	e10:s46:prof	   a_u_intf_v1:e10:s46:prof	-nq-		-		e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
-e10:s46:eth:debug	e10:debug	e10:s46:debug	   a_u_intf_v1:e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
-e10:s46:eth:prof	e10:prof 	e10:s46:prof 	   a_u_intf_v1:e10:s46:prof	-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
-nu:e14:s50:debug	nu:e14:debug	nu:e14:s50:debug   a_u_intf_v1:e14:s50:debug	-		e14:debug	e14:debug	e14:g371:s50:debug	e14:s50:debug       	e14:s50:debug
-nu:e14:s50:prof		nu:e14:prof 	nu:e14:s50:prof	   a_u_intf_v1:e14:s50:prof	-		e14:prof	e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
-nu:e14:s48:debug	nu:e14:debug	nu:e14:s48:debug   a_u_intf_v1:e14:s48:debug	-		e14:debug	e14:debug	e14:g371:s48:debug	e14:s48:debug       	e14:s48:debug
-nu:e14:s48:prof		nu:e14:prof 	nu:e14:s48:prof	   a_u_intf_v1:e14:s48:prof	-		e14:prof	e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
-nu:e10:s48:debug	nu:e10:debug	nu:e10:s48:debug   a_u_intf_v1:e10:s48:debug	-		e10:debug	e10:debug	e10:g371:s48:debug	e10:s48:debug       	e10:s48:debug
-nu:e10:s48:prof		nu:e10:prof 	nu:e10:s48:prof	   a_u_intf_v1:e10:s48:prof	-		e10:prof	e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
-nu:e14:s47:debug	nu:e14:debug	nu:e14:s47:debug   a_u_intf_v1:e14:s47:debug	-		e14:debug	e14:debug	e14:g371:s47:debug	e14:s47:debug       	e14:s47:debug
-nu:e14:s47:prof		nu:e14:prof 	nu:e14:s47:prof	   a_u_intf_v1:e14:s47:prof	-		e14:prof	e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
-nu:e10:s47:debug	nu:e10:debug	nu:e10:s47:debug   a_u_intf_v1:e10:s47:debug	-		e10:debug	e10:debug	e10:g371:s47:debug	e10:s47:debug       	e10:s47:debug
-nu:e10:s47:prof		nu:e10:prof 	nu:e10:s47:prof	   a_u_intf_v1:e10:s47:prof	-		e10:prof	e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
-nu:e14:s46:debug	nu:e14:debug	nu:e14:s46:debug   a_u_intf_v1:e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug       	e14:s46:debug
-nu:e14:s46:prof		nu:e14:prof 	nu:e14:s46:prof	   a_u_intf_v1:e14:s46:prof	-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
-nu:e10:s46:debug	nu:e10:debug	nu:e10:s46:debug   a_u_intf_v1:e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug       	e10:s46:debug
-nu:e10:s46:prof		nu:e10:prof 	nu:e10:s46:prof	   a_u_intf_v1:e10:s46:prof	-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
-nu:e14:s50:ib:debug	nu:e14:debug	nu:e14:s50:debug   a_u_intf_v1:e14:s50:debug	-nq-		-		e14:debug	e14:g371:s50:debug	e14:s50:debug		e14:s50:debug
-nu:e14:s50:ib:prof	nu:e14:prof	nu:e14:s50:prof	   a_u_intf_v1:e14:s50:prof	-nq-		-		e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
-nu:e14:s50:eth:debug	nu:e14:debug	nu:e14:s50:debug   a_u_intf_v1:e14:s50:debug	-		e14:debug	e14:debug	e14:g371:s50:debug	e14:s50:debug		e14:s50:debug
-nu:e14:s50:eth:prof	nu:e14:prof 	nu:e14:s50:prof    a_u_intf_v1:e14:s50:prof	-		e14:prof	e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
-nu:e14:s48:ib:debug	nu:e14:debug	nu:e14:s48:debug   a_u_intf_v1:e14:s48:debug	-nq-		-		e14:debug	e14:g371:s48:debug	e14:s48:debug		e14:s48:debug
-nu:e14:s48:ib:prof	nu:e14:prof	nu:e14:s48:prof	   a_u_intf_v1:e14:s48:prof	-nq-		-		e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
-nu:e14:s48:eth:debug	nu:e14:debug	nu:e14:s48:debug   a_u_intf_v1:e14:s48:debug	-		e14:debug	e14:debug	e14:g371:s48:debug	e14:s48:debug		e14:s48:debug
-nu:e14:s48:eth:prof	nu:e14:prof 	nu:e14:s48:prof    a_u_intf_v1:e14:s48:prof	-		e14:prof	e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
-nu:e10:s48:ib:debug	nu:e10:debug	nu:e10:s48:debug   a_u_intf_v1:e10:s48:debug	-nq-		-		e10:debug	e10:g371:s48:debug	e10:s48:debug		e10:s48:debug
-nu:e10:s48:ib:prof	nu:e10:prof	nu:e10:s48:prof	   a_u_intf_v1:e10:s48:prof	-nq-		-		e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
-nu:e10:s48:eth:debug	nu:e10:debug	nu:e10:s48:debug   a_u_intf_v1:e10:s48:debug	-		e10:debug	e10:debug	e10:g371:s48:debug	e10:s48:debug		e10:s48:debug
-nu:e10:s48:eth:prof	nu:e10:prof 	nu:e10:s48:prof    a_u_intf_v1:e10:s48:prof	-		e10:prof	e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
-nu:e14:s47:ib:debug	nu:e14:debug	nu:e14:s47:debug   a_u_intf_v1:e14:s47:debug	-nq-		-		e14:debug	e14:g371:s47:debug	e14:s47:debug		e14:s47:debug
-nu:e14:s47:ib:prof	nu:e14:prof	nu:e14:s47:prof	   a_u_intf_v1:e14:s47:prof	-nq-		-		e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
-nu:e14:s47:eth:debug	nu:e14:debug	nu:e14:s47:debug   a_u_intf_v1:e14:s47:debug	-		e14:debug	e14:debug	e14:g371:s47:debug	e14:s47:debug		e14:s47:debug
-nu:e14:s47:eth:prof	nu:e14:prof 	nu:e14:s47:prof    a_u_intf_v1:e14:s47:prof	-		e14:prof	e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
-nu:e10:s47:ib:debug	nu:e10:debug	nu:e10:s47:debug   a_u_intf_v1:e10:s47:debug	-nq-		-		e10:debug	e10:g371:s47:debug	e10:s47:debug		e10:s47:debug
-nu:e10:s47:ib:prof	nu:e10:prof	nu:e10:s47:prof	   a_u_intf_v1:e10:s47:prof	-nq-		-		e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
-nu:e10:s47:eth:debug	nu:e10:debug	nu:e10:s47:debug   a_u_intf_v1:e10:s47:debug	-		e10:debug	e10:debug	e10:g371:s47:debug	e10:s47:debug		e10:s47:debug
-nu:e10:s47:eth:prof	nu:e10:prof 	nu:e10:s47:prof    a_u_intf_v1:e10:s47:prof	-		e10:prof	e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
-nu:e14:s46:ib:debug	nu:e14:debug	nu:e14:s46:debug   a_u_intf_v1:e14:s46:debug	-nq-		-		e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
-nu:e14:s46:ib:prof	nu:e14:prof	nu:e14:s46:prof	   a_u_intf_v1:e14:s46:prof	-nq-		-		e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
-nu:e14:s46:eth:debug	nu:e14:debug	nu:e14:s46:debug   a_u_intf_v1:e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
-nu:e14:s46:eth:prof	nu:e14:prof 	nu:e14:s46:prof    a_u_intf_v1:e14:s46:prof	-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
-nu:e10:s46:ib:debug	nu:e10:debug	nu:e10:s46:debug   a_u_intf_v1:e10:s46:debug	-nq-		-		e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
-nu:e10:s46:ib:prof	nu:e10:prof	nu:e10:s46:prof	   a_u_intf_v1:e10:s46:prof	-nq-		-		e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
-nu:e10:s46:eth:debug	nu:e10:debug	nu:e10:s46:debug   a_u_intf_v1:e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
-nu:e10:s46:eth:prof	nu:e10:prof 	nu:e10:s46:prof    a_u_intf_v1:e10:s46:prof	-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+qualifier		art		artdaq_core    	   artdaq_utilities	mvapich2	mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions
+e14:s50:debug		e14:debug	e14:s50:debug	   e14:s50:debug	-		e14:debug	e14:debug	e14:g371:s50:debug	e14:s50:debug       	e14:s50:debug
+e14:s50:prof		e14:prof 	e14:s50:prof	   e14:s50:prof		-		e14:prof	e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
+e14:s48:debug		e14:debug	e14:s48:debug	   e14:s48:debug	-		e14:debug	e14:debug	e14:g371:s48:debug	e14:s48:debug       	e14:s48:debug
+e14:s48:prof		e14:prof 	e14:s48:prof	   e14:s48:prof		-		e14:prof	e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
+e10:s48:debug		e10:debug	e10:s48:debug	   e10:s48:debug	-		e10:debug	e10:debug	e10:g371:s48:debug	e10:s48:debug       	e10:s48:debug
+e10:s48:prof		e10:prof 	e10:s48:prof	   e10:s48:prof		-		e10:prof	e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
+e14:s47:debug		e14:debug	e14:s47:debug	   e14:s47:debug	-		e14:debug	e14:debug	e14:g371:s47:debug	e14:s47:debug       	e14:s47:debug
+e14:s47:prof		e14:prof 	e14:s47:prof	   e14:s47:prof		-		e14:prof	e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
+e10:s47:debug		e10:debug	e10:s47:debug	   e10:s47:debug	-		e10:debug	e10:debug	e10:g371:s47:debug	e10:s47:debug       	e10:s47:debug
+e10:s47:prof		e10:prof 	e10:s47:prof	   e10:s47:prof		-		e10:prof	e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
+e14:s46:debug		e14:debug	e14:s46:debug	   e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug       	e14:s46:debug
+e14:s46:prof		e14:prof 	e14:s46:prof	   e14:s46:prof		-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+e10:s46:debug		e10:debug	e10:s46:debug	   e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug       	e10:s46:debug
+e10:s46:prof		e10:prof 	e10:s46:prof	   e10:s46:prof		-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+e14:s50:ib:debug	e14:debug	e14:s50:debug	   e14:s50:debug	-nq-		-		e14:debug	e14:g371:s50:debug	e14:s50:debug		e14:s50:debug
+e14:s50:ib:prof		e14:prof	e14:s50:prof	   e14:s50:prof		-nq-		-		e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
+e14:s50:eth:debug	e14:debug	e14:s50:debug	   e14:s50:debug	-		e14:debug	e14:debug	e14:g371:s50:debug	e14:s50:debug		e14:s50:debug
+e14:s50:eth:prof	e14:prof 	e14:s50:prof 	   e14:s50:prof		-		e14:prof	e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
+e14:s48:ib:debug	e14:debug	e14:s48:debug	   e14:s48:debug	-nq-		-		e14:debug	e14:g371:s48:debug	e14:s48:debug		e14:s48:debug
+e14:s48:ib:prof		e14:prof	e14:s48:prof	   e14:s48:prof		-nq-		-		e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
+e14:s48:eth:debug	e14:debug	e14:s48:debug	   e14:s48:debug	-		e14:debug	e14:debug	e14:g371:s48:debug	e14:s48:debug		e14:s48:debug
+e14:s48:eth:prof	e14:prof 	e14:s48:prof 	   e14:s48:prof		-		e14:prof	e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
+e10:s48:ib:debug	e10:debug	e10:s48:debug	   e10:s48:debug	-nq-		-		e10:debug	e10:g371:s48:debug	e10:s48:debug		e10:s48:debug
+e10:s48:ib:prof		e10:prof	e10:s48:prof	   e10:s48:prof		-nq-		-		e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
+e10:s48:eth:debug	e10:debug	e10:s48:debug	   e10:s48:debug	-		e10:debug	e10:debug	e10:g371:s48:debug	e10:s48:debug		e10:s48:debug
+e10:s48:eth:prof	e10:prof 	e10:s48:prof 	   e10:s48:prof		-		e10:prof	e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
+e14:s47:ib:debug	e14:debug	e14:s47:debug	   e14:s47:debug	-nq-		-		e14:debug	e14:g371:s47:debug	e14:s47:debug		e14:s47:debug
+e14:s47:ib:prof		e14:prof	e14:s47:prof	   e14:s47:prof		-nq-		-		e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
+e14:s47:eth:debug	e14:debug	e14:s47:debug	   e14:s47:debug	-		e14:debug	e14:debug	e14:g371:s47:debug	e14:s47:debug		e14:s47:debug
+e14:s47:eth:prof	e14:prof 	e14:s47:prof 	   e14:s47:prof		-		e14:prof	e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
+e10:s47:ib:debug	e10:debug	e10:s47:debug	   e10:s47:debug	-nq-		-		e10:debug	e10:g371:s47:debug	e10:s47:debug		e10:s47:debug
+e10:s47:ib:prof		e10:prof	e10:s47:prof	   e10:s47:prof		-nq-		-		e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
+e10:s47:eth:debug	e10:debug	e10:s47:debug	   e10:s47:debug	-		e10:debug	e10:debug	e10:g371:s47:debug	e10:s47:debug		e10:s47:debug
+e10:s47:eth:prof	e10:prof 	e10:s47:prof 	   e10:s47:prof		-		e10:prof	e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
+e14:s46:ib:debug	e14:debug	e14:s46:debug	   e14:s46:debug	-nq-		-		e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
+e14:s46:ib:prof		e14:prof	e14:s46:prof	   e14:s46:prof		-nq-		-		e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+e14:s46:eth:debug	e14:debug	e14:s46:debug	   e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
+e14:s46:eth:prof	e14:prof 	e14:s46:prof 	   e14:s46:prof		-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+e10:s46:ib:debug	e10:debug	e10:s46:debug	   e10:s46:debug	-nq-		-		e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
+e10:s46:ib:prof		e10:prof	e10:s46:prof	   e10:s46:prof		-nq-		-		e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+e10:s46:eth:debug	e10:debug	e10:s46:debug	   e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
+e10:s46:eth:prof	e10:prof 	e10:s46:prof 	   e10:s46:prof		-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+nu:e14:s50:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	-		e14:debug	e14:debug	e14:g371:s50:debug	e14:s50:debug       	e14:s50:debug
+nu:e14:s50:prof		nu:e14:prof 	nu:e14:s50:prof	   e14:s50:prof		-		e14:prof	e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
+nu:e14:s48:debug	nu:e14:debug	nu:e14:s48:debug   e14:s48:debug	-		e14:debug	e14:debug	e14:g371:s48:debug	e14:s48:debug       	e14:s48:debug
+nu:e14:s48:prof		nu:e14:prof 	nu:e14:s48:prof	   e14:s48:prof		-		e14:prof	e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
+nu:e10:s48:debug	nu:e10:debug	nu:e10:s48:debug   e10:s48:debug	-		e10:debug	e10:debug	e10:g371:s48:debug	e10:s48:debug       	e10:s48:debug
+nu:e10:s48:prof		nu:e10:prof 	nu:e10:s48:prof	   e10:s48:prof		-		e10:prof	e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
+nu:e14:s47:debug	nu:e14:debug	nu:e14:s47:debug   e14:s47:debug	-		e14:debug	e14:debug	e14:g371:s47:debug	e14:s47:debug       	e14:s47:debug
+nu:e14:s47:prof		nu:e14:prof 	nu:e14:s47:prof	   e14:s47:prof		-		e14:prof	e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
+nu:e10:s47:debug	nu:e10:debug	nu:e10:s47:debug   e10:s47:debug	-		e10:debug	e10:debug	e10:g371:s47:debug	e10:s47:debug       	e10:s47:debug
+nu:e10:s47:prof		nu:e10:prof 	nu:e10:s47:prof	   e10:s47:prof		-		e10:prof	e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
+nu:e14:s46:debug	nu:e14:debug	nu:e14:s46:debug   e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug       	e14:s46:debug
+nu:e14:s46:prof		nu:e14:prof 	nu:e14:s46:prof	   e14:s46:prof		-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+nu:e10:s46:debug	nu:e10:debug	nu:e10:s46:debug   e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug       	e10:s46:debug
+nu:e10:s46:prof		nu:e10:prof 	nu:e10:s46:prof	   e10:s46:prof		-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+nu:e14:s50:ib:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	-nq-		-		e14:debug	e14:g371:s50:debug	e14:s50:debug		e14:s50:debug
+nu:e14:s50:ib:prof	nu:e14:prof	nu:e14:s50:prof	   e14:s50:prof		-nq-		-		e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
+nu:e14:s50:eth:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	-		e14:debug	e14:debug	e14:g371:s50:debug	e14:s50:debug		e14:s50:debug
+nu:e14:s50:eth:prof	nu:e14:prof 	nu:e14:s50:prof    e14:s50:prof		-		e14:prof	e14:prof	e14:g371:s50:prof	e14:s50:prof		e14:s50:prof
+nu:e14:s48:ib:debug	nu:e14:debug	nu:e14:s48:debug   e14:s48:debug	-nq-		-		e14:debug	e14:g371:s48:debug	e14:s48:debug		e14:s48:debug
+nu:e14:s48:ib:prof	nu:e14:prof	nu:e14:s48:prof	   e14:s48:prof		-nq-		-		e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
+nu:e14:s48:eth:debug	nu:e14:debug	nu:e14:s48:debug   e14:s48:debug	-		e14:debug	e14:debug	e14:g371:s48:debug	e14:s48:debug		e14:s48:debug
+nu:e14:s48:eth:prof	nu:e14:prof 	nu:e14:s48:prof    e14:s48:prof		-		e14:prof	e14:prof	e14:g371:s48:prof	e14:s48:prof		e14:s48:prof
+nu:e10:s48:ib:debug	nu:e10:debug	nu:e10:s48:debug   e10:s48:debug	-nq-		-		e10:debug	e10:g371:s48:debug	e10:s48:debug		e10:s48:debug
+nu:e10:s48:ib:prof	nu:e10:prof	nu:e10:s48:prof	   e10:s48:prof		-nq-		-		e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
+nu:e10:s48:eth:debug	nu:e10:debug	nu:e10:s48:debug   e10:s48:debug	-		e10:debug	e10:debug	e10:g371:s48:debug	e10:s48:debug		e10:s48:debug
+nu:e10:s48:eth:prof	nu:e10:prof 	nu:e10:s48:prof    e10:s48:prof		-		e10:prof	e10:prof	e10:g371:s48:prof	e10:s48:prof		e10:s48:prof
+nu:e14:s47:ib:debug	nu:e14:debug	nu:e14:s47:debug   e14:s47:debug	-nq-		-		e14:debug	e14:g371:s47:debug	e14:s47:debug		e14:s47:debug
+nu:e14:s47:ib:prof	nu:e14:prof	nu:e14:s47:prof	   e14:s47:prof		-nq-		-		e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
+nu:e14:s47:eth:debug	nu:e14:debug	nu:e14:s47:debug   e14:s47:debug	-		e14:debug	e14:debug	e14:g371:s47:debug	e14:s47:debug		e14:s47:debug
+nu:e14:s47:eth:prof	nu:e14:prof 	nu:e14:s47:prof    e14:s47:prof		-		e14:prof	e14:prof	e14:g371:s47:prof	e14:s47:prof		e14:s47:prof
+nu:e10:s47:ib:debug	nu:e10:debug	nu:e10:s47:debug   e10:s47:debug	-nq-		-		e10:debug	e10:g371:s47:debug	e10:s47:debug		e10:s47:debug
+nu:e10:s47:ib:prof	nu:e10:prof	nu:e10:s47:prof	   e10:s47:prof		-nq-		-		e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
+nu:e10:s47:eth:debug	nu:e10:debug	nu:e10:s47:debug   e10:s47:debug	-		e10:debug	e10:debug	e10:g371:s47:debug	e10:s47:debug		e10:s47:debug
+nu:e10:s47:eth:prof	nu:e10:prof 	nu:e10:s47:prof    e10:s47:prof		-		e10:prof	e10:prof	e10:g371:s47:prof	e10:s47:prof		e10:s47:prof
+nu:e14:s46:ib:debug	nu:e14:debug	nu:e14:s46:debug   e14:s46:debug	-nq-		-		e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
+nu:e14:s46:ib:prof	nu:e14:prof	nu:e14:s46:prof	   e14:s46:prof		-nq-		-		e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+nu:e14:s46:eth:debug	nu:e14:debug	nu:e14:s46:debug   e14:s46:debug	-		e14:debug	e14:debug	e14:g371:s46:debug	e14:s46:debug		e14:s46:debug
+nu:e14:s46:eth:prof	nu:e14:prof 	nu:e14:s46:prof    e14:s46:prof		-		e14:prof	e14:prof	e14:g371:s46:prof	e14:s46:prof		e14:s46:prof
+nu:e10:s46:ib:debug	nu:e10:debug	nu:e10:s46:debug   e10:s46:debug	-nq-		-		e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
+nu:e10:s46:ib:prof	nu:e10:prof	nu:e10:s46:prof	   e10:s46:prof		-nq-		-		e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
+nu:e10:s46:eth:debug	nu:e10:debug	nu:e10:s46:debug   e10:s46:debug	-		e10:debug	e10:debug	e10:g371:s46:debug	e10:s46:debug		e10:s46:debug
+nu:e10:s46:eth:prof	nu:e10:prof 	nu:e10:s46:prof    e10:s46:prof		-		e10:prof	e10:prof	e10:g371:s46:prof	e10:s46:prof		e10:s46:prof
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:

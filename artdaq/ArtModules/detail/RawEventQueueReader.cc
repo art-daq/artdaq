@@ -1,6 +1,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/detail/RawEventQueueReader.hh"
+#include "artdaq-core/Data/ContainerFragment.hh"
 
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
@@ -29,6 +30,7 @@ artdaq::detail::RawEventQueueReader::RawEventQueueReader(fhicl::ParameterSet con
 {
 	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name,
 												unidentified_instance_name);
+		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "ContainerEmpty");
 	for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 	{
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
@@ -195,10 +197,46 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 			bytesRead += frag.sizeBytes();
 		if (iter != iter_end)
 		{
-			put_product_in_principal(std::move(product),
-									 *outE,
-									 pretend_module_name,
-									 iter->second);
+			if (type_list[idx] == artdaq::Fragment::ContainerFragmentType)
+			{
+				std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
+				derived_fragments[iter->second] = std::make_unique<Fragments>();
+
+				for(size_t ii = 0; ii < product->size(); ++ii)
+				{
+					ContainerFragment cf(product->at(ii));
+					auto contained_type = fragment_type_map_.find(cf.fragment_type());
+					if (contained_type != iter_end)
+					{
+						auto label = iter->second + contained_type->second;
+						if (!derived_fragments.count(label))
+						{
+							derived_fragments[label] = std::make_unique<Fragments>();
+						}
+						derived_fragments[label]->emplace_back(std::move(product->at(ii)));
+					}
+					else
+					{
+						derived_fragments[iter->second]->emplace_back(std::move(product->at(ii)));
+					}
+				}
+
+				for (auto& type : derived_fragments)
+				{
+					put_product_in_principal(std::move(type.second),
+											 *outE,
+											 pretend_module_name,
+											 type.first);
+				}
+
+			}
+			else
+			{
+				put_product_in_principal(std::move(product),
+										 *outE,
+										 pretend_module_name,
+										 iter->second);
+			}
 		}
 		else
 		{
@@ -215,8 +253,8 @@ bool artdaq::detail::RawEventQueueReader::readNext(art::RunPrincipal* const & in
 	}
 	TRACE( 10, "readNext: bytesRead=%lu qsize=%zu cap=%zu metricMan=%p", bytesRead, qsize, incoming_events.capacity(), (void*)metricMan );
 	if (metricMan) {
-		metricMan->sendMetric( "bytesRead", bytesRead>>20, "MB", 5, false, "", true );
-		metricMan->sendMetric( "queue%Used", static_cast<unsigned long int>(qsize*100/incoming_events.capacity()), "%", 5, false, "", true );
+		metricMan->sendMetric( "bytesRead", bytesRead>>20, "MB", 5, MetricMode::Accumulate, "", true );
+		metricMan->sendMetric( "queue%Used", static_cast<unsigned long int>(qsize*100/incoming_events.capacity()), "%", 5, MetricMode::LastPoint, "", true );
 	}
 
 	return true;

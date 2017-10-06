@@ -173,12 +173,12 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 
 		auto total_send_time = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_send - send_start).count();
 		totalTime += total_send_time;
-		if (metricMan && ii % 100 == 0)
+		if (metricMan)
 		{
-			metricMan->sendMetric("send_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(send_start - loop_start).count(), "seconds", 3);
-			metricMan->sendMetric("total_send_time", total_send_time, "seconds", 3);
-			metricMan->sendMetric("after_send_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - after_send).count(), "seconds", 3);
-			metricMan->sendMetric("send_rate", data_size_wrds * sizeof(artdaq::RawDataType) / total_send_time, "B/s", 3);
+			metricMan->sendMetric("send_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(send_start - loop_start).count(), "seconds", 3,MetricMode::Accumulate);
+			metricMan->sendMetric("total_send_time", total_send_time, "seconds", 3, MetricMode::Accumulate);
+			metricMan->sendMetric("after_send_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - after_send).count(), "seconds", 3, MetricMode::Accumulate);
+			metricMan->sendMetric("send_rate", data_size_wrds * sizeof(artdaq::RawDataType) / total_send_time, "B/s", 3, MetricMode::Average);
 		}
 	}
 
@@ -239,18 +239,18 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			}
 			if (metricMan)
 			{
-				metricMan->sendMetric("input_wait", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_receive - end_loop).count(), "seconds", 3);
+				metricMan->sendMetric("input_wait", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_receive - end_loop).count(), "seconds", 3, MetricMode::Accumulate);
 			}
 
 		}
 		TRACE(7, "TransferTest::do_receiving: Recv Loop end, counter is %d", counter);
 		auto total_recv_time = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_receive - before_receive).count();
 		totalTime += total_recv_time;
-		if (metricMan && counter % 100 == 0)
+		if (metricMan)
 		{
-			metricMan->sendMetric("recv_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(before_receive - start_loop).count(), "seconds", 3);
-			metricMan->sendMetric("total_recv_time", total_recv_time, "seconds", 3);
-			metricMan->sendMetric("recv_rate", thisSize / total_recv_time, "B/s", 3);
+			metricMan->sendMetric("recv_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(before_receive - start_loop).count(), "seconds", 3, MetricMode::Accumulate);
+			metricMan->sendMetric("total_recv_time", total_recv_time, "seconds", 3, MetricMode::Accumulate);
+			metricMan->sendMetric("recv_rate", thisSize / total_recv_time, "B/s", 3, MetricMode::Average);
 		}
 		end_loop = std::chrono::steady_clock::now();
 	}
