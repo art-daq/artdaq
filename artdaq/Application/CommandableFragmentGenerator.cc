@@ -13,6 +13,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 
 #include <fstream>
 #include <iomanip>
@@ -33,12 +34,14 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, windowOffset_(0)
 	, windowWidth_(0)
 	, staleTimeout_(Fragment::InvalidTimestamp)
+	, expectedType_(Fragment::EmptyFragmentType)
 	, maxFragmentCount_(std::numeric_limits<size_t>::max())
 	, uniqueWindows_(true)
 	, last_window_send_time_()
 	, missing_request_window_timeout_us_(1000000)
 	, window_close_timeout_us_(2000000)
 	, useDataThread_(false)
+	, sleep_on_no_data_us_(0)
 	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
 	, dataBufferDepthBytes_(0)
@@ -75,11 +78,13 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
 	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
+	, expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::EmptyFragmentType))
 	, uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
 	, last_window_send_time_(std::chrono::steady_clock::now())
 	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 1000000))
 	, window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
+	, sleep_on_no_data_us_(ps.get<size_t>("sleep_on_no_data_us", 0))
 	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
 	, dataBufferDepthBytes_(0)
@@ -540,6 +545,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: calling getNext_" << TLOG_ENDL;
 
 		bool data = false;
+		auto startdata = std::chrono::steady_clock::now();
 
 		try
 		{
@@ -557,6 +563,16 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 		TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: checking buffer size" << TLOG_ENDL;
 		auto startwait = std::chrono::steady_clock::now();
+
+		if (newDataBuffer_.size() == 0 && sleep_on_no_data_us_ > 0)
+		{
+			usleep(sleep_on_no_data_us_);
+		}
+		if (metricMan)
+		{
+			metricMan->sendMetric("Avg Data Acquisition Time", std::chrono::duration_cast<artdaq::TimeUtils::seconds>(startwait - startdata).count(), "s", 3, artdaq::MetricMode::Average);
+		}
+
 		auto first = true;
 		auto lastwaittime = 0;
 		while (dataBufferIsTooLarge())
@@ -651,8 +667,8 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats()
 	if (metricMan)
 	{
 		TLOG_ARB(15, "CommandableFragmentGenerator") << "getDataBufferStats: Sending Metrics" << TLOG_ENDL;
-		metricMan->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1);
-		metricMan->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1);
+		metricMan->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1, MetricMode::LastPoint);
 	}
 	TLOG_ARB(15, "CommandableFragmentGenerator") << "getDataBufferStats: frags=" << dataBufferDepthFragments_.load() << "/" << maxDataBufferDepthFragments_
 		<< ", sz=" << std::to_string(dataBufferDepthBytes_.load()) << "/" << std::to_string(maxDataBufferDepthBytes_) << TLOG_ENDL;
@@ -881,7 +897,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 				if (mode_ == RequestMode::Window)
 				{
 					TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count() << " us "
-						<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us)." << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
+						<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages." << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
 				} // else, Buffer mode, where it only makes sense to send for the last request
 				sendEmptyFragments(frags);
 			}
