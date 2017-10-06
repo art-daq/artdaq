@@ -97,12 +97,14 @@ namespace artdaq
 				for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 				{
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
+					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container" + it->second);
 				}
 				auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
 				for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
 				{
 					fragment_type_map_[it->first] = it->second;
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
+					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container" + it->second);
 				}
 				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string() << TLOG_ENDL;
 				//for(auto& type : fragment_type_map_)
@@ -337,10 +339,46 @@ namespace artdaq
 						bytesRead += frag.sizeBytes();
 					if (iter != iter_end)
 					{
-						put_product_in_principal(std::move(product),
-												 *outE,
-												 pretend_module_name,
-												 iter->second);
+					  if (type_list[idx] == artdaq::Fragment::ContainerFragmentType)
+						{
+						  std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
+						  derived_fragments[iter->second] = std::make_unique<Fragments>();
+
+						  for(size_t ii = 0; ii < product->size(); ++ii)
+							{
+							  ContainerFragment cf(product->at(ii));
+							  auto contained_type = fragment_type_map_.find(cf.fragment_type());
+							  if (contained_type != iter_end)
+								{
+								  auto label = iter->second + contained_type->second;
+								  if (!derived_fragments.count(label))
+									{
+									  derived_fragments[label] = std::make_unique<Fragments>();
+									}
+								  derived_fragments[label]->emplace_back(std::move(product->at(ii)));
+								}
+							  else
+								{
+								  derived_fragments[iter->second]->emplace_back(std::move(product->at(ii)));
+								}
+							}
+
+						  for (auto& type : derived_fragments)
+							{
+							  put_product_in_principal(std::move(type.second),
+													   *outE,
+													   pretend_module_name,
+													   type.first);
+							}
+
+						}
+					  else
+						{
+						  put_product_in_principal(std::move(product),
+												   *outE,
+												   pretend_module_name,
+												   iter->second);
+						}
 					}
 					else
 					{
