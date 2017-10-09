@@ -28,7 +28,7 @@ namespace artdaq
 		 */
 		CommanderInterface(const fhicl::ParameterSet& ps, artdaq::Commandable& commandable)
 			: _commandable(commandable)
-			, _id(ps.get<int>("id"))
+			, _id(ps.get<int>("id", 0))
 		{}
 
 		/**
@@ -48,6 +48,78 @@ namespace artdaq
 		virtual ~CommanderInterface() = default;
 
 		virtual void run_server() = 0;
+
+		virtual std::string send_init(fhicl::ParameterSet, uint64_t, uint64_t)
+		{
+#pragma message "Using default implementation of send_init!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_soft_init(fhicl::ParameterSet, uint64_t, uint64_t)
+		{
+#pragma message "Using default implementation of send_soft_init!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_reinit(fhicl::ParameterSet, uint64_t, uint64_t)
+		{
+#pragma message "Using default implementation of send_reinit!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_start(art::RunID, uint64_t, uint64_t)
+		{
+#pragma message "Using default implementation of send_start!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_pause(uint64_t, uint64_t)
+		{
+#pragma message "Using default implementation of send_pause!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_resume(uint64_t, uint64_t)
+		{
+#pragma message "Using default implementation of send_resume!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_stop(uint64_t, uint64_t)
+		{
+#pragma message "Using default implementation of send_stop!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_shutdown(uint64_t)
+		{
+#pragma message "Using default implementation of send_shutdown!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_status()
+		{
+#pragma message "Using default implementation of send_status!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_report(std::string)
+		{
+#pragma message "Using default implementation of send_report!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_reset_statistics(std::string)
+		{
+#pragma message "Using default implementation of send_reset_statistics!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_legal_commands()
+		{
+#pragma message "Using default implementation of send_legal_commands!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_register_monitor(std::string)
+		{
+#pragma message "Using default implementation of send_register_monitor!"
+			return "NOT IMPLEMENTED";
+		}
+		virtual std::string send_unregister_monitor(std::string)
+		{
+#pragma message "Using default implementation of send_unregister_monitor!"
+			return "NOT IMPLEMENTED";
+		}
+
 
 	private:
 

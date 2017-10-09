@@ -25,6 +25,7 @@ public:
 	 * \verbatim
 	  xmlrpc_commander accepts the following Parameters:
 	   id: For XMLRPC, the ID should be the port to listen on
+	   server_url: When sending, location of XMLRPC server
 	 * \endverbatim
 	 */
 	xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable);
@@ -34,12 +35,17 @@ public:
 	 */
 	void run_server() override;
 
+	std::string send_register_monitor(std::string monitor_fhicl) override;
+
+	std::string send_unregister_monitor(std::string monitor_label) override;
+
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
 
 	xmlrpc_commander(xmlrpc_commander&&) = delete;
 
-	int _port;
+	int port_;
+	std::string serverUrl_;
 
 public:
 	std::mutex mutex_; ///< XMLRPC mutex

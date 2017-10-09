@@ -1,5 +1,6 @@
-#include "artdaq/TransferPlugins/TransferWrapper.hh"
+#include "artdaq/ArtModules/detail/TransferWrapper.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+#include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -8,12 +9,6 @@
 #include "cetlib/BasicPluginFactory.h"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#include <xmlrpc-c/girerr.hpp>
-#include <xmlrpc-c/base.hpp>
-#include <xmlrpc-c/client_simple.hpp>
-#pragma GCC diagnostic pop
 
 #include <TBufferFile.h>
 
@@ -59,30 +54,20 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 						 "TransferWrapper: failure in call to MakeTransferPlugin");
 	}
 
-	xmlrpc_c::clientSimple myClient;
-	xmlrpc_c::value result;
+
+	fhicl::ParameterSet new_pset(pset);
+
+	new_pset.put<std::string>("server_url", serverUrl_);
+	auto dispatcherConfig = pset.get<fhicl::ParameterSet>("dispatcher_config");
+	artdaq::Commandable c;
+	commander_ = MakeCommanderPlugin(pset, c);
 
 	TLOG_INFO("TransferWrapper") << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
 		<< "\") with the dispatcher aggregator" << TLOG_ENDL;
 
-	try
-	{
-		auto dispatcherConfig = pset.get<fhicl::ParameterSet>("dispatcher_config");
-		myClient.call(serverUrl_, "daq.register_monitor", "s", &result, dispatcherConfig.to_string().c_str());
-	}
-	catch (...)
-	{
-		std::stringstream errmsg;
-		errmsg << "Problem attempting XML-RPC call on host " << dispatcherHost_
-			<< ", port " << dispatcherPort_ << "; possible causes are malformed FHiCL or nonexistent process at requested port";
-		ExceptionHandler(ExceptionHandlerRethrow::yes,
-						 errmsg.str());
-	}
+	auto status = commander_->send_register_monitor(dispatcherConfig.to_string());
 
-	const std::string status = xmlrpc_c::value_string(result);
-
-	TLOG_INFO("TransferWrapper") << "Response from dispatcher is \""
-		<< status << "\"" << TLOG_ENDL;
+	TLOG_INFO("TransferWrapper") << "Response from dispatcher is \"" << status << "\"" << TLOG_ENDL;
 
 	if (status == "Success")
 	{
@@ -260,25 +245,8 @@ artdaq::TransferWrapper::unregisterMonitor()
 	TLOG_INFO("TransferWrapper") << "Requesting that this monitor (" << transfer_->uniqueLabel()
 		<< ") be unregistered from the dispatcher aggregator" << TLOG_ENDL;
 
-	xmlrpc_c::clientSimple myClient;
-	xmlrpc_c::value result;
+	auto status = commander_->send_unregister_monitor(transfer_->uniqueLabel());
 
-	try
-	{
-		myClient.call(serverUrl_, "daq.unregister_monitor", "s", &result, (transfer_->uniqueLabel()).c_str());
-	}
-	catch (...)
-	{
-		std::stringstream errmsg;
-		errmsg << "Problem attempting to unregister monitor via XML-RPC call on host " << dispatcherHost_
-			<< ", port " << dispatcherPort_ << "; possible causes are that the monitor label \""
-			<< transfer_->uniqueLabel()
-			<< "\" is unrecognized by contacted process or process at requested port doesn't exist";
-		ExceptionHandler(ExceptionHandlerRethrow::no,
-						 errmsg.str());
-	}
-
-	const std::string status = xmlrpc_c::value_string(result);
 
 	TLOG_INFO("TransferWrapper") << "Response from dispatcher is \""
 		<< status << "\"" << TLOG_ENDL;

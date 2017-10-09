@@ -11,9 +11,6 @@ art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   ${MF_MESSAGELOGGER}
   ${FHICLCPP}
   ${CETLIB}
-  ${XMLRPC_CLIENTPP}
-  ${XMLRPCPP}
-  ${XMLRPC_UTILPP}
 )
 
 art_make_exec(EventBuilderMain

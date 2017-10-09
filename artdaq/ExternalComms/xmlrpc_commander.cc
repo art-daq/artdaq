@@ -9,6 +9,7 @@
 #include <xmlrpc-c/registry.hpp>
 #include <xmlrpc-c/server_abyss.hpp>
 #include <xmlrpc-c/girerr.hpp>
+#include <xmlrpc-c/client_simple.hpp>
 #pragma GCC diagnostic pop
 #include <stdexcept>
 #include <iostream>
@@ -16,6 +17,7 @@
 #include <memory>
 #include <cstdint>
 
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
@@ -718,7 +720,8 @@ private:								\
 
 	xmlrpc_commander::xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable)
 		: CommanderInterface(ps, commandable)
-		, _port(ps.get<int>("id"))
+		, port_(ps.get<int>("id", 0))
+		, serverUrl_(ps.get<std::string>("server_url",""))
 	{}
 
 	void xmlrpc_commander::run_server() try
@@ -790,7 +793,7 @@ private:								\
 		struct sockaddr_in sockAddr;
 
 		sockAddr.sin_family = AF_INET;
-		sockAddr.sin_port = htons(_port);
+		sockAddr.sin_port = htons(port_);
 		sockAddr.sin_addr.s_addr = 0;
 
 		retval = bind(socket_file_descriptor,
@@ -837,5 +840,68 @@ private:								\
 	catch (...)
 	{
 		throw;
+	}
+
+
+	std::string xmlrpc_commander::send_register_monitor(std::string monitor_fhicl)
+	{
+		if (serverUrl_ == "")
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes,
+							 errmsg.str());
+
+		}
+		xmlrpc_c::clientSimple myClient;
+		xmlrpc_c::value result;
+		
+		try
+		{
+			myClient.call(serverUrl_, "daq.register_monitor", "s", &result, monitor_fhicl.c_str());
+		}
+		catch (...)
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting XML-RPC call on host " << serverUrl_
+				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
+			ExceptionHandler(ExceptionHandlerRethrow::yes,
+							 errmsg.str());
+		}
+
+		return xmlrpc_c::value_string(result);
+	}
+
+	std::string xmlrpc_commander::send_unregister_monitor(std::string monitor_label)
+	{
+		if (serverUrl_ == "")
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes,
+							 errmsg.str());
+
+		}
+
+		xmlrpc_c::clientSimple myClient;
+		xmlrpc_c::value result;
+
+		try
+		{
+			myClient.call(serverUrl_, "daq.unregister_monitor", "s", &result, monitor_label.c_str());
+		}
+		catch (...)
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting to unregister monitor via XML-RPC call on host " << serverUrl_
+				<< "; possible causes are that the monitor label \""
+				<< monitor_label
+				<< "\" is unrecognized by contacted process or process at requested port doesn't exist";
+			ExceptionHandler(ExceptionHandlerRethrow::no,
+							 errmsg.str());
+		}
+
+		return xmlrpc_c::value_string(result);
+
 	}
 } // namespace artdaq

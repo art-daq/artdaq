@@ -11,6 +11,8 @@ art_make( BASENAME_ONLY
   LIB_LIBRARIES
   artdaq_DAQrate
   artdaq_DAQdata
+  artdaq_Application
+  artdaq_ExternalComms
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_IO_Root
@@ -41,6 +43,22 @@ simple_plugin(RawInput "source"
   art_Persistency_Provenance
   art_Utilities
   MF_MessageLogger
+)
+
+simple_plugin(TransferOutput "module"
+  artdaq_TransferPlugins
+  artdaq_ArtModules
+  art_Framework_IO_Root
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${CETLIB_EXCEPT}
+  ${ROOT_RIO}
+)
+
+simple_plugin(TransferInput "source"
+  artdaq_TransferPlugins
+  artdaq_ArtModules
 )
 
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)

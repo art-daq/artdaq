@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "artdaq/ExternalComms/CommanderInterface.hh"
 
 #include <TBufferFile.h>
 
@@ -82,6 +83,7 @@ namespace artdaq
 
 		std::size_t timeoutInUsecs_;
 		std::unique_ptr<TransferInterface> transfer_;
+		std::unique_ptr<CommanderInterface> commander_;
 		const std::string dispatcherHost_;
 		const std::string dispatcherPort_;
 		const std::string serverUrl_;

@@ -31,28 +31,11 @@ art_make( BASENAME_ONLY
   ${ROOT_CORE}
   ${ROOT_NET}
   ${ROOT_REFLEX}
-  ${XMLRPC_CLIENTPP}
-  ${XMLRPCPP}
-  ${XMLRPC_UTILPP}
   ${Boost_THREAD_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   ${TBB}
   )
   
-simple_plugin(TransferOutput "module"
-  artdaq_TransferPlugins
-  artdaq_ArtModules
-  art_Framework_IO_Root
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  ${CETLIB_EXCEPT}
-  ${ROOT_RIO}
-)
-
-simple_plugin(TransferInput "source"
-  artdaq_TransferPlugins
-)
 
 simple_plugin(Shmem "transfer"
   artdaq_TransferPlugins
