@@ -6,7 +6,7 @@
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
-#include "proto/LoadParameterSet.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
 
 #include <cstddef>
 #include <iostream>

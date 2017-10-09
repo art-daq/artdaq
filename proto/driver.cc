@@ -30,7 +30,7 @@
 #include <memory>
 #include <utility>
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "LoadParameterSet.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
 
 namespace  bpo = boost::program_options;
 

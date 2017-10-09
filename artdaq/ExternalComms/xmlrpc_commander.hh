@@ -6,30 +6,33 @@
 #define artdaq_ExternalComms_xmlrpc_commander_hh
 
 #include <mutex>
-#include "artdaq/Application/Commandable.hh"
+#include "artdaq/ExternalComms/CommanderInterface.hh"
 
 namespace artdaq
 {
-	class xmlrpc_commander;
-}
 
 /**
  * \brief The xmlrpc_commander class serves as the XMLRPC server run in each artdaq application
  */
-class artdaq::xmlrpc_commander
+class xmlrpc_commander : public CommanderInterface
 {
 public:
 	/**
 	 * \brief xmlrpc_commander Constructor
-	 * \param port Port to listen on
+	 * \param ps ParameterSet used for configuring xmlrpc_commander
 	 * \param commandable artdaq::Commandable object to send transition commands to
+	 *
+	 * \verbatim
+	  xmlrpc_commander accepts the following Parameters:
+	   id: For XMLRPC, the ID should be the port to listen on
+	 * \endverbatim
 	 */
-	xmlrpc_commander(int port, artdaq::Commandable& commandable);
+	xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable);
 
 	/**
 	 * \brief Run the XMLRPC server
 	 */
-	void run();
+	void run_server() override;
 
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
@@ -39,8 +42,9 @@ private:
 	int _port;
 
 public:
-	artdaq::Commandable& _commandable; ///< The artdaq::Commandable object that this xmlrpc_commander sends commands to
 	std::mutex mutex_; ///< XMLRPC mutex
 };
+
+}
 
 #endif /* artdaq_ExternalComms_xmlrpc_commander_hh */

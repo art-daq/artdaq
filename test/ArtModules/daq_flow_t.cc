@@ -5,7 +5,7 @@
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "cetlib/exception.h"
 #include "fhiclcpp/make_ParameterSet.h"
-#include "proto/LoadParameterSet.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
 
 #include <cstddef>
 #include <iostream>

@@ -406,7 +406,8 @@ namespace artdaq
 		 * \param c xmlrpc_commander instance to command
 		 */
 		explicit start_(xmlrpc_commander& c) :
-			cmd_(c, "s:iii", "start the run") {}
+			cmd_(c, "s:iii", "start the run")
+		{}
 
 		/** Default timeout for command */
 		static const uint64_t defaultTimeout = 45;
@@ -483,12 +484,13 @@ private:								\
 		class shutdown_ : public cmd_
 	{
 	public:
-			/**
-		 * \brief shutdown_ Constructor
-		 * \param c xmlrpc_commander to send transition commands to
-		 */
+		/**
+	 * \brief shutdown_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 		shutdown_(xmlrpc_commander& c) :
-			cmd_(c, "s:i", "shutdown the program") {}
+			cmd_(c, "s:i", "shutdown the program")
+		{}
 
 		/** Default timeout for command */
 		static const uint64_t defaultTimeout = 45;
@@ -513,7 +515,8 @@ private:								\
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 		status_(xmlrpc_commander& c) :
-			cmd_(c, "s:n", "report the current state") {}
+			cmd_(c, "s:n", "report the current state")
+		{}
 
 	private:
 
@@ -536,7 +539,8 @@ private:								\
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 		report_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "report statistics") {}
+			cmd_(c, "s:s", "report statistics")
+		{}
 
 	private:
 		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
@@ -568,7 +572,8 @@ private:								\
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 		reset_stats_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "reset statistics") {}
+			cmd_(c, "s:s", "reset statistics")
+		{}
 
 	private:
 		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
@@ -598,7 +603,8 @@ private:								\
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 		legal_commands_(xmlrpc_commander& c) :
-			cmd_(c, "s:n", "return the currently legal commands") {}
+			cmd_(c, "s:n", "return the currently legal commands")
+		{}
 
 	private:
 		bool execute_(xmlrpc_c::paramList const&, xmlrpc_c::value* const retvalP)
@@ -631,7 +637,8 @@ private:								\
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 		register_monitor_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "Get notified of a new monitor") {}
+			cmd_(c, "s:s", "Get notified of a new monitor")
+		{}
 
 	private:
 		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
@@ -662,7 +669,8 @@ private:								\
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 		unregister_monitor_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "Remove a monitor") {}
+			cmd_(c, "s:s", "Remove a monitor")
+		{}
 
 	private:
 		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
@@ -689,11 +697,13 @@ private:								\
 	// the preprocessor decision; as such, I'll leave it in for now...
 
 #if 0
-	class shutdown_ : public xmlrpc_c::registry::shutdown {
+	class shutdown_ : public xmlrpc_c::registry::shutdown
+	{
 	public:
 		shutdown_(xmlrpc_c::serverAbyss *server) : _server(server) {}
 
-		virtual void doit(const std::string& paramString, void*) const {
+		virtual void doit(const std::string& paramString, void*) const
+		{
 			TLOG_INFO("XMLRPC_Commander") << "A shutdown command was sent "
 				<< "with parameter "
 				<< paramString << "\"" << TLOG_ENDL;
@@ -706,125 +716,126 @@ private:								\
 
 
 
-xmlrpc_commander::xmlrpc_commander(int port, artdaq::Commandable& commandable) :
-	_port(port)
-	, _commandable(commandable) {}
+	xmlrpc_commander::xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable)
+		: CommanderInterface(ps, commandable)
+		, _port(ps.get<int>("id"))
+	{}
 
-void xmlrpc_commander::run() try
-{
-	xmlrpc_c::registry registry;
+	void xmlrpc_commander::run_server() try
+	{
+		xmlrpc_c::registry registry;
 
 #define register_method(m) \
   xmlrpc_c::methodPtr const ptr_ ## m(new m ## _(*this));\
   registry.addMethod ("daq." #m, ptr_ ## m);
 
-	register_method(init);
-	register_method(soft_init);
-	register_method(reinit);
-	register_method(start);
-	register_method(status);
-	register_method(report);
-	register_method(stop);
-	register_method(pause);
-	register_method(resume);
-	register_method(reset_stats);
-	register_method(register_monitor);
-	register_method(unregister_monitor);
-	register_method(legal_commands);
+		register_method(init);
+		register_method(soft_init);
+		register_method(reinit);
+		register_method(start);
+		register_method(status);
+		register_method(report);
+		register_method(stop);
+		register_method(pause);
+		register_method(resume);
+		register_method(reset_stats);
+		register_method(register_monitor);
+		register_method(unregister_monitor);
+		register_method(legal_commands);
 
-	register_method(shutdown);
+		register_method(shutdown);
 
-	// alias "daq.reset" to the internal shutdown transition
-	xmlrpc_c::methodPtr const ptr_reset(new shutdown_(*this));
-	registry.addMethod("daq.reset", ptr_reset);
+		// alias "daq.reset" to the internal shutdown transition
+		xmlrpc_c::methodPtr const ptr_reset(new shutdown_(*this));
+		registry.addMethod("daq.reset", ptr_reset);
 
 #undef register_method
 
-	// JCF, 6/3/15
+		// JCF, 6/3/15
 
-	// In the following code, I configure a socket to have the
-	// SO_REUSEADDR option so that once an artdaq process closes, the
-	// port it was communicating on becomes immediately available
-	// (desirable if, say, the DAQ program is terminated and then
-	// immediately restarted)
+		// In the following code, I configure a socket to have the
+		// SO_REUSEADDR option so that once an artdaq process closes, the
+		// port it was communicating on becomes immediately available
+		// (desirable if, say, the DAQ program is terminated and then
+		// immediately restarted)
 
-	// Much of the following code is cribbed from
-	// http://fossies.org/linux/freeswitch/libs/xmlrpc-c/src/cpp/test/server_abyss.cpp
+		// Much of the following code is cribbed from
+		// http://fossies.org/linux/freeswitch/libs/xmlrpc-c/src/cpp/test/server_abyss.cpp
 
-	// Below, "0" is the default protocol (in this case, given the IPv4
-	// Protocol Family (PF_INET) and the SOCK_STREAM communication
-	// method)
+		// Below, "0" is the default protocol (in this case, given the IPv4
+		// Protocol Family (PF_INET) and the SOCK_STREAM communication
+		// method)
 
-	XMLRPC_SOCKET socket_file_descriptor = socket(PF_INET, SOCK_STREAM, 0);
+		XMLRPC_SOCKET socket_file_descriptor = socket(PF_INET, SOCK_STREAM, 0);
 
-	if (socket_file_descriptor < 0)
-	{
-		throw cet::exception("xmlrpc_commander::run") <<
-			"Problem with the socket() call; C-style errno == " <<
-			errno << " (" << strerror(errno) << ")";
-	}
+		if (socket_file_descriptor < 0)
+		{
+			throw cet::exception("xmlrpc_commander::run") <<
+				"Problem with the socket() call; C-style errno == " <<
+				errno << " (" << strerror(errno) << ")";
+		}
 
-	int enable = 1;
-	int retval = setsockopt(socket_file_descriptor,
-							SOL_SOCKET, SO_REUSEADDR,
-							&enable, sizeof(int));
+		int enable = 1;
+		int retval = setsockopt(socket_file_descriptor,
+								SOL_SOCKET, SO_REUSEADDR,
+								&enable, sizeof(int));
 
-	if (retval < 0)
-	{
-		throw cet::exception("xmlrpc_commander::run") <<
-			"Problem with the call to setsockopt(); C-style errno == " <<
-			errno << " (" << strerror(errno) << ")";
-	}
+		if (retval < 0)
+		{
+			throw cet::exception("xmlrpc_commander::run") <<
+				"Problem with the call to setsockopt(); C-style errno == " <<
+				errno << " (" << strerror(errno) << ")";
+		}
 
-	struct sockaddr_in sockAddr;
+		struct sockaddr_in sockAddr;
 
-	sockAddr.sin_family = AF_INET;
-	sockAddr.sin_port = htons(_port);
-	sockAddr.sin_addr.s_addr = 0;
+		sockAddr.sin_family = AF_INET;
+		sockAddr.sin_port = htons(_port);
+		sockAddr.sin_addr.s_addr = 0;
 
-	retval = bind(socket_file_descriptor,
-				  reinterpret_cast<struct sockaddr*>(&sockAddr),
-				  sizeof(sockAddr));
+		retval = bind(socket_file_descriptor,
+					  reinterpret_cast<struct sockaddr*>(&sockAddr),
+					  sizeof(sockAddr));
 
-	if (retval != 0)
-	{
-		close(socket_file_descriptor);
-		throw cet::exception("xmlrpc_commander::run") <<
-			"Problem with the bind() call; C-style errno == " <<
-			errno << " (" << strerror(errno) << ")";
-	}
+		if (retval != 0)
+		{
+			close(socket_file_descriptor);
+			throw cet::exception("xmlrpc_commander::run") <<
+				"Problem with the bind() call; C-style errno == " <<
+				errno << " (" << strerror(errno) << ")";
+		}
 
-	xmlrpc_c::serverAbyss server(xmlrpc_c::serverAbyss::constrOpt().registryP(&registry).socketFd(socket_file_descriptor));
+		xmlrpc_c::serverAbyss server(xmlrpc_c::serverAbyss::constrOpt().registryP(&registry).socketFd(socket_file_descriptor));
 
 #if 0
-	shutdown_ shutdown_obj(&server);
-	registry.setShutdown(&shutdown_obj);
+		shutdown_ shutdown_obj(&server);
+		registry.setShutdown(&shutdown_obj);
 #endif
 
-	TLOG_DEBUG("XMLRPC_Commander") << "running server" << TLOG_ENDL;
+		TLOG_DEBUG("XMLRPC_Commander") << "running server" << TLOG_ENDL;
 
-	// JCF, 6/3/15
+		// JCF, 6/3/15
 
-	// Use a catch block to clean up (i.e., close the socket). An
-	// opportunity for RAII, although all control paths are limited to
-	// this section of the file...
+		// Use a catch block to clean up (i.e., close the socket). An
+		// opportunity for RAII, although all control paths are limited to
+		// this section of the file...
 
-	try
-	{
-		server.run();
+		try
+		{
+			server.run();
+		}
+		catch (...)
+		{
+			TLOG_WARNING("XMLRPC_Commander") << "server threw an exception; closing the socket and rethrowing" << TLOG_ENDL;
+			close(socket_file_descriptor);
+			throw;
+		}
+
+		close(socket_file_descriptor);
+		TLOG_DEBUG("XMLRPC_Commander") << "server terminated" << TLOG_ENDL;
 	}
 	catch (...)
 	{
-		TLOG_WARNING("XMLRPC_Commander") << "server threw an exception; closing the socket and rethrowing" << TLOG_ENDL;
-		close(socket_file_descriptor);
 		throw;
 	}
-
-	close(socket_file_descriptor);
-	TLOG_DEBUG("XMLRPC_Commander") << "server terminated" << TLOG_ENDL;
-}
-catch (...)
-{
-	throw;
-}
 } // namespace artdaq
