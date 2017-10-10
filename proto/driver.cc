@@ -46,10 +46,11 @@ int main(int argc, char * argv[]) try
 	auto pset = LoadParameterSet(argc, argv);
 
 	int run = pset.get<int>("run_number", 1);
+	bool debug = pset.get<bool>("debug_cout", false);
 	uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
 	uint64_t timestamp = 0;
 
-	artdaq::configureMessageFacility("artdaqDriver");
+	artdaq::configureMessageFacility("artdaqDriver",true,debug);
 
 	fhicl::ParameterSet fragment_receiver_pset = pset.get<fhicl::ParameterSet>("fragment_receiver");
 
