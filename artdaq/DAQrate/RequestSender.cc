@@ -152,6 +152,7 @@ namespace artdaq
 
 	void RequestSender::do_send_request_()
 	{
+		if (!send_requests_) return;
 		TLOG_TRACE("RequestSender") << "Waiting for " << request_delay_ << " microseconds." << TLOG_ENDL;
 		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
 
@@ -208,6 +209,7 @@ namespace artdaq
 
 	void RequestSender::SendRoutingToken(int nSlots)
 	{
+		if (!send_routing_tokens_) return;
 		std::thread token([=] {send_routing_token_(nSlots); });
 		token.detach();
 		usleep(0); // Give up time slice
