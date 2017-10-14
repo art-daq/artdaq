@@ -38,6 +38,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, maxFragmentCount_(std::numeric_limits<size_t>::max())
 	, uniqueWindows_(true)
 	, last_window_send_time_()
+	, last_window_send_time_set_(false)
 	, missing_request_window_timeout_us_(1000000)
 	, window_close_timeout_us_(2000000)
 	, useDataThread_(false)
@@ -80,7 +81,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
 	, expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
 	, uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
-	, last_window_send_time_(std::chrono::steady_clock::now())
+        , last_window_send_time_(decltype(last_window_send_time_)::max())
+        , last_window_send_time_set_(false)
 	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 1000000))
 	, window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
@@ -374,6 +376,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	latest_exception_report_ = "none";
 	dataBuffer_.clear();
 	requests_.clear();
+	last_window_send_time_set_ = false;
 
 	start();
 
@@ -892,6 +895,11 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		}
 		else if (mode_ == RequestMode::Buffer || mode_ == RequestMode::Window)
 		{
+		        if (!last_window_send_time_set_) {
+              		    last_window_send_time_ = std::chrono::steady_clock::now();
+			    last_window_send_time_set_ = true;
+	                }
+
 			if (mode_ == RequestMode::Buffer || static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count()) > missing_request_window_timeout_us_)
 			{
 				if (mode_ == RequestMode::Window)
