@@ -151,7 +151,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 		auto send_start = std::chrono::steady_clock::now();
 		sender.sendFragment(std::move(frag));
 		auto after_send = std::chrono::steady_clock::now();
-		TRACE(1, "Sender %d sent fragment %d", my_rank, ii);
+		TLOG_TRACE("TransferTest") << "Sender " << my_rank << " sent fragment " << ii << TLOG_ENDL;
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
 		frag = artdaq::Fragment(data_size_wrds); // replace/renew
@@ -221,8 +221,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 					first = false;
 				}
 				counter--;
-				TRACE(1, "Receiver %d received fragment %d with seqID %lu from Sender %d (Expecting %d more)"
-					  , my_rank, receives_each_receiver_ - counter, ignoreFragPtr->sequenceID(), senderSlot, counter);
+				TLOG_TRACE("TransferTest") << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter << " with seqID " << std::to_string(ignoreFragPtr->sequenceID()) << " from Sender " << senderSlot << " (expectecting " << counter << " more)" << TLOG_ENDL;
 				thisSize = ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
 				totalSize += thisSize;
 				if (validate_mode_)
