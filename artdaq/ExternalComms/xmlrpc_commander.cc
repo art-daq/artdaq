@@ -27,7 +27,7 @@
 
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq/Application/LoadParameterSet.hh"
 
 namespace artdaq
 {
@@ -259,8 +259,7 @@ namespace artdaq
 	fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramList& paramList, int index)
 	{
 		std::string configString = paramList.getString(index);
-		fhicl::ParameterSet pset;
-		fhicl::make_ParameterSet(configString, pset);
+		fhicl::ParameterSet pset = LoadParameterSet(configString);
 
 		return pset;
 	}
