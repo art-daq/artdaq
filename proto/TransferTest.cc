@@ -133,7 +133,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 	for (int ii = 0; ii < sends_each_sender_; ++ii)
 	{
 		auto loop_start = std::chrono::steady_clock::now();
-		TLOG_ARB(7, "TransferTest") << "sender rank " << std::to_string(my_rank) << " #" << std::to_string(ii) << " resized bytes=" << std::to_string(frag.sizeBytes()) << TLOG_ENDL;
+		TLOG_ARB(7, "TransferTest") << "sender rank " << my_rank << " #" << ii << " resized bytes=" << std::to_string(frag.sizeBytes()) << TLOG_ENDL;
 		totalSize += frag.sizeBytes();
 
 		//unsigned sndDatSz = data_size_wrds;
@@ -149,8 +149,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 		auto send_start = std::chrono::steady_clock::now();
 		sender.sendFragment(std::move(frag));
 		auto after_send = std::chrono::steady_clock::now();
-		//if (ii % (sends_each_sender_ / 100) == 0)
-		TLOG_INFO("TransferTest") << "Sender " << std::to_string(my_rank) << " sent fragment " << std::to_string(ii) << TLOG_ENDL;
+		TLOG_TRACE("TransferTest") << "Sender " << my_rank << " sent fragment " << ii << TLOG_ENDL;
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
 		frag = artdaq::Fragment(data_size_wrds); // replace/renew
@@ -168,13 +167,13 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 				}
 			}
 		}
-		TLOG_ARB(9, "TransferTest") << "sender rank " << std::to_string(my_rank) << " frag replaced" << TLOG_ENDL;
+		TLOG_ARB(9, "TransferTest") << "sender rank " << my_rank << " frag replaced" << TLOG_ENDL;
 
 		auto total_send_time = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_send - send_start).count();
 		totalTime += total_send_time;
 		if (metricMan)
 		{
-			metricMan->sendMetric("send_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(send_start - loop_start).count(), "seconds", 3,MetricMode::Accumulate);
+			metricMan->sendMetric("send_init_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(send_start - loop_start).count(), "seconds", 3, MetricMode::Accumulate);
 			metricMan->sendMetric("total_send_time", total_send_time, "seconds", 3, MetricMode::Accumulate);
 			metricMan->sendMetric("after_send_time", std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - after_send).count(), "seconds", 3, MetricMode::Accumulate);
 			metricMan->sendMetric("send_rate", data_size_wrds * sizeof(artdaq::RawDataType) / total_send_time, "B/s", 3, MetricMode::Average);
@@ -200,7 +199,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	while (activeSenders > 0)
 	{
 		auto start_loop = std::chrono::steady_clock::now();
-		TLOG_ARB(7, "TransferTest") << "do_receiving: Counter is " << std::to_string(counter) << ", calling recvFragment" << TLOG_ENDL;
+		TLOG_ARB(7, "TransferTest") << "do_receiving: Counter is " << counter << ", calling recvFragment" << TLOG_ENDL;
 		int senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
 		auto before_receive = std::chrono::steady_clock::now();
 		auto ignoreFragPtr = receiver.recvFragment(senderSlot);
@@ -221,7 +220,6 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 					first = false;
 				}
 				counter--;
-				//if (counter % (receives_each_receiver_ / 100) == 0 || counter < 10 || receives_each_receiver_ - counter < 10)
 				TLOG_INFO("TransferTest") << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter
 					<< " with seqID " << std::to_string(ignoreFragPtr->sequenceID()) << " from Sender " << senderSlot << " (Expecting " << counter << " more)" << TLOG_ENDL;
 				thisSize = ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
@@ -244,7 +242,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			}
 
 		}
-		TLOG_ARB(7, "TransferTest") << "do_receiving: Recv Loop end, counter is " << std::to_string(counter) << TLOG_ENDL;
+		TLOG_ARB(7, "TransferTest") << "do_receiving: Recv Loop end, counter is " << counter << TLOG_ENDL;
 		auto total_recv_time = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_receive - before_receive).count();
 		totalTime += total_recv_time;
 		if (metricMan)
