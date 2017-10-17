@@ -118,6 +118,9 @@ private:
 	size_t receive_timeout_;
 	size_t stop_timeout_ms_;
 	std::shared_ptr<SharedMemoryEventManager> shm_manager_;
+
+	bool non_reliable_mode_enabled_;
+	size_t non_reliable_mode_retry_count_;
 };
 
 inline

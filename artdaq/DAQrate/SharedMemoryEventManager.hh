@@ -111,9 +111,10 @@ namespace artdaq {
 		/**
 		 * \brief Get a pointer to a reserved memory area for the given Fragment header
 		 * \param frag Fragment header (contains sequence ID and size information)
+		 * \param dropIfNoBuffersAvailable Whether to drop the fragment (instead of returning nullptr) when no buffers are available (Default: false)
 		 * \return Pointer to memory location for Fragment body (Header is copied into buffer here)
 		 */
-		RawDataType* WriteFragmentHeader(detail::RawFragmentHeader frag);
+		RawDataType* WriteFragmentHeader(detail::RawFragmentHeader frag, bool dropIfNoBuffersAvailable = false);
 
 		/**
 		 * \brief Used to indicate that the given Fragment is now completely in the buffer. Will check for buffer completeness, and unset the pending flag.

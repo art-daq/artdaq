@@ -128,15 +128,24 @@ bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag, int64_t tim
 	return sts;
 }
 
-artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detail::RawFragmentHeader frag)
+artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detail::RawFragmentHeader frag, bool dropIfNoBuffersAvailable)
 {
 	TLOG_ARB(14, "SharedMemoryEventManager") << "WriteFragmentHeader BEGIN" << TLOG_ENDL;
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp);
 
-	if (buffer == -1) return nullptr;
-	if (buffer == -2)
+	if (buffer < 0)
 	{
-		TLOG_ERROR("SharedMemoryEventManager") << "Dropping fragment because data taking has already passed this event number: " << std::to_string(frag.sequence_id) << TLOG_ENDL;
+		if (buffer == -1 && !dropIfNoBuffersAvailable) return nullptr;
+		if (buffer == -2)
+		{
+			TLOG_ERROR("SharedMemoryEventManager") << "Dropping fragment because data taking has already passed this event number: " << std::to_string(frag.sequence_id) << TLOG_ENDL;
+		}
+		else
+		{
+			TLOG_ERROR("SharedMemoryEventManager") << "Dropping fragment because there is no room in the queue and reliable mode is off: " << std::to_string(frag.sequence_id) << TLOG_ENDL;
+			std::unique_lock<std::mutex> lk(sequence_id_mutex_);
+			if (frag.sequence_id > sequence_id_) sequence_id_ = frag.sequence_id;
+		}
 		dropped_data_.reset(new Fragment(frag.word_count - frag.num_words()));
 		return dropped_data_->dataBegin();
 	}

@@ -18,10 +18,19 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
 	, stop_timeout_ms_(pset.get<size_t>("stop_timeout_ms",3000))
 	, shm_manager_(shm)
+	, non_reliable_mode_enabled_(pset.get<bool>("non_reliable_mode", false))
+	, non_reliable_mode_retry_count_(pset.get<size_t>("non_reliable_mode_retry_count", -1))
 {
 	TLOG_DEBUG("DataReceiverManager") << "Constructor" << TLOG_ENDL;
 	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
 	auto enabled_srcs_empty = enabled_srcs.size() == 0;
+
+	if (non_reliable_mode_enabled_)
+	{
+		TLOG_WARNING("DataReceiverManager") << "DataReceiverManager is configured to drop data after " << std::to_string(non_reliable_mode_retry_count_)
+			<< " failed attempts to put data into the SharedMemoryEventManager! If this is unexpected, please check your configuration!" << TLOG_ENDL;
+	}
+
 	if (enabled_srcs_empty)
 	{
 		TLOG_INFO("DataReceiverManager") << "enabled_sources not specified, assuming all sources enabled." << TLOG_ENDL;
@@ -123,11 +132,17 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType || header.type == Fragment::EmptyFragmentType || header.type == Fragment::ContainerFragmentType) {
 			TLOG_TRACE("DataReceiverManager") << "Received Fragment Header from rank " << source_rank << "." << TLOG_ENDL;
 			RawDataType* loc = nullptr;
+			size_t retries = 0;
 			while (loc == nullptr )//&& static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - after_header).count()) < receive_timeout_) 
 			{
 				loc = shm_manager_->WriteFragmentHeader(header);
 				if (loc == nullptr) usleep(sleep_time);
 				if (stop_requested_) return;
+				retries++;
+				if (non_reliable_mode_enabled_ && non_reliable_mode_retry_count_ < retries)
+				{
+					loc = shm_manager_->WriteFragmentHeader(header, true);
+				}
 			}
 			if (loc == nullptr)
 			{
