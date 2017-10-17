@@ -111,6 +111,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	detail::RawFragmentHeader header;
 	size_t endOfDataCount = -1;
 	auto sleep_time = receive_timeout_ / 100 > 100000 ? 100000 : receive_timeout_ / 100;
+	auto max_retries = non_reliable_mode_retry_count_ * (receive_timeout_ / sleep_time);
 
 	while (!(stop_requested_ && TimeUtils::gettimeofday_us() - stop_requested_time_ > stop_timeout_ms_ * 1000) && enabled_sources_.count(source_rank))
 	{
@@ -139,7 +140,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				if (loc == nullptr) usleep(sleep_time);
 				if (stop_requested_) return;
 				retries++;
-				if (non_reliable_mode_enabled_ && non_reliable_mode_retry_count_ < retries)
+				if (non_reliable_mode_enabled_ && retries > max_retries)
 				{
 					loc = shm_manager_->WriteFragmentHeader(header, true);
 				}
