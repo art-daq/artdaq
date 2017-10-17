@@ -356,7 +356,7 @@ sendFragment(Fragment&& frag)
 			while (sts != TransferInterface::CopyStatus::kSuccess)
 			{
 				sts = destinations_[dest]->copyFragment(frag);
-				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
+				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<artdaq::TimeUtils::seconds>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
 				{
 					TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying..." << TLOG_ENDL;
 					lastWarnTime = std::chrono::steady_clock::now();
@@ -387,7 +387,7 @@ sendFragment(Fragment&& frag)
 			while (sts != TransferInterface::CopyStatus::kSuccess)
 			{
 				sts = destinations_[dest]->moveFragment(std::move(frag));
-				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
+				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<artdaq::TimeUtils::seconds>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
 				{
 					TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying..." << TLOG_ENDL;
 					lastWarnTime = std::chrono::steady_clock::now();
@@ -413,11 +413,11 @@ sendFragment(Fragment&& frag)
 	}
 	if (metricMan)
 	{//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
-		auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
+		auto delta_t = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(std::chrono::steady_clock::now() - start_time).count();
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 3, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 3, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 3, MetricMode::Average);
-		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::Accumulate);
+		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::LastPoint);
 		if (use_routing_master_) {
 			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 1, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)

@@ -5,6 +5,7 @@
 #include "tracemf.h"
 #include <sstream>
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 
 #define my_rank artdaq::Globals::my_rank_
 #define metricMan artdaq::Globals::metricMan_
