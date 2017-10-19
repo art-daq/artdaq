@@ -78,13 +78,13 @@ namespace artdaq
 			request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 			if (!request_socket_)
 			{
-				TLOG_ERROR("RequestSender") << "I failed to create the socket for sending Data Requests!" << TLOG_ENDL;
+				TLOG_ERROR("RequestSender") << "I failed to create the socket for sending Data Requests! err=" << strerror(errno) << TLOG_ENDL;
 				exit(1);
 			}
 			int sts = ResolveHost(request_address.c_str(), request_port_, request_addr_);
 			if (sts == -1)
 			{
-				TLOG_ERROR("RequestSender") << "Unable to resolve Data Request address" << TLOG_ENDL;
+				TLOG_ERROR("RequestSender") << "Unable to resolve Data Request address, err=" << strerror(errno) << TLOG_ENDL;
 				exit(1);
 			}
 
@@ -94,7 +94,7 @@ namespace artdaq
 				sts = gethostname(&multicast_out_addr_[0], HOST_NAME_MAX);
 				if (sts < 0)
 				{
-					TLOG_ERROR("RequestSender") << "Could not get current hostname" << TLOG_ENDL;
+					TLOG_ERROR("RequestSender") << "Could not get current hostname,  err=" << strerror(errno) << TLOG_ENDL;
 					exit(1);
 				}
 			}
@@ -105,31 +105,31 @@ namespace artdaq
 				sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 				if (sts == -1)
 				{
-					TLOG_ERROR("RequestSender") << "Unable to resolve multicast interface address" << TLOG_ENDL;
+					TLOG_ERROR("RequestSender") << "Unable to resolve multicast interface address, err=" << strerror(errno) << TLOG_ENDL;
 					exit(1);
 				}
 
 				int yes = 1;
 				if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 				{
-					TLOG_ERROR("RequestSender") << "Unable to enable port reuse on request socket" << TLOG_ENDL;
+					TLOG_ERROR("RequestSender") << "Unable to enable port reuse on request socket, err=" << strerror(errno) << TLOG_ENDL;
 					exit(1);
 				}
 				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &yes, sizeof(yes)) < 0)
 				{
-					TLOG_ERROR("RequestSender") << "Unable to enable multicast loopback on request socket" << TLOG_ENDL;
+					TLOG_ERROR("RequestSender") << "Unable to enable multicast loopback on request socket, err=" << strerror(errno) << TLOG_ENDL;
 					exit(1);
 				}
 				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 				{
-					TLOG_ERROR("RequestSender") << "Cannot set outgoing interface." << TLOG_ENDL;
+					TLOG_ERROR("RequestSender") << "Cannot set outgoing interface, err=" << strerror(errno) << TLOG_ENDL;
 					exit(1);
 				}
 			}
 			int yes = 1;
 			if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
 			{
-				TLOG_ERROR("RequestSender") << "Cannot set request socket to broadcast." << TLOG_ENDL;
+				TLOG_ERROR("RequestSender") << "Cannot set request socket to broadcast, err=" << strerror(errno) << TLOG_ENDL;
 				exit(1);
 			}
 		}
@@ -144,7 +144,7 @@ namespace artdaq
 			token_socket_ = TCPConnect(token_address_.c_str(), token_port_);
 			if (!token_socket_)
 			{
-				TLOG_ERROR("RequestSender") << "I failed to create the socket for sending Routing Tokens!" << TLOG_ENDL;
+				TLOG_ERROR("RequestSender") << "I failed to create the socket for sending Routing Tokens! err=" << strerror(errno) << TLOG_ENDL;
 				exit(1);
 			}
 		}
@@ -173,11 +173,11 @@ namespace artdaq
 		TLOG_TRACE("RequestSender") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << TLOG_ENDL;
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
-			TLOG_ERROR("RequestSender") << "Error sending request message header" << TLOG_ENDL;
+			TLOG_ERROR("RequestSender") << "Error sending request message header err=" << strerror(errno) << TLOG_ENDL;
 		}
 		if (sendto(request_socket_, message.buffer(), sizeof(detail::RequestPacket) * message.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
-			TLOG_ERROR("RequestSender") << "Error sending request message data" << TLOG_ENDL;
+			TLOG_ERROR("RequestSender") << "Error sending request message data err=" << strerror(errno) << TLOG_ENDL;
 		}
 		request_sending_ = false;
 	}

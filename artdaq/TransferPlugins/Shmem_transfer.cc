@@ -78,7 +78,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 		if (fragment.type() != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << std::to_string(fragment.sequenceID()) << ", source_rank=" << source_rank() << TLOG_ENDL;
+			TLOG_ARB(8, uniqueLabel()) << "Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << std::to_string(fragment.sequenceID()) << ", source_rank=" << source_rank() << TLOG_ENDL;
 		}
 
 		return source_rank();
@@ -117,7 +117,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Recvd fragment header from shmem, type=" << (int)header.type << ", sequenceID=" << std::to_string(header.sequence_id) << ", source_rank=" << source_rank() << TLOG_ENDL;
+			TLOG_ARB(8, uniqueLabel()) << "Recvd fragment header from shmem, type=" << (int)header.type << ", sequenceID=" << std::to_string(header.sequence_id) << ", source_rank=" << source_rank() << TLOG_ENDL;
 		}
 
 		return source_rank();
@@ -177,12 +177,12 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		}
 	}
 
-	TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) << "Either write has timed out or buffer ready" << TLOG_ENDL;
+	TLOG_ARB(5, uniqueLabel()) << "Either write has timed out or buffer ready" << TLOG_ENDL;
 
 	// copy the fragment if the shm is available                                               
 	if (shm_manager_->ReadyForWrite(!reliableMode))
 	{
-		TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) << "Sending fragment with seqID=" << std::to_string(fragment.sequenceID()) << TLOG_ENDL;
+		TLOG_ARB(5, uniqueLabel()) << "Sending fragment with seqID=" << std::to_string(fragment.sequenceID()) << TLOG_ENDL;
 		artdaq::RawDataType* fragAddr = fragment.headerAddress();
 		size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 
@@ -193,7 +193,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 			auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode);
 			if (sts != 0) return CopyStatus::kErrorNotRequiringException;
 
-			TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) << "Fragment send successfully" << TLOG_ENDL;
+			TLOG_ARB(5, uniqueLabel()) << "Fragment send successfully" << TLOG_ENDL;
 			return CopyStatus::kSuccess;
 		}
 		else
@@ -209,7 +209,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		}
 	}
 
-	TLOG_ARB(TRANSFER_SEND2, uniqueLabel()) << "Fragment Send Timeout!" << TLOG_ENDL;
+	TLOG_ARB(5, uniqueLabel()) << "Fragment Send Timeout!" << TLOG_ENDL;
 	return CopyStatus::kTimeout;
 }
 

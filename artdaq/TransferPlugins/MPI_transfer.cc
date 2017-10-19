@@ -167,7 +167,7 @@ int artdaq::MPITransfer::receiveFragmentHeader(detail::RawFragmentHeader& header
 	TLOG_ARB(8, uniqueLabel()) << "MPITransfer::receiveFragmentHeader recvd" << TLOG_ENDL;
 
 
-	{TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "MPITransfer::receiveFragmentHeader: " << my_rank
+	{TLOG_ARB(8, uniqueLabel()) << "MPITransfer::receiveFragmentHeader: " << my_rank
 		<< " Wait_error=" << wait_result
 		<< " status_error=" << status.MPI_ERROR
 		<< " source=" << status.MPI_SOURCE
@@ -256,7 +256,7 @@ cancelReq_(MPI_Request req) const
 {
 	if (req == MPI_REQUEST_NULL) return;
 
-	TLOG_ARB(TRANSFER_RECEIVE2, uniqueLabel()) << "Cancelling post" << TLOG_ENDL;
+	TLOG_ARB(8, uniqueLabel()) << "Cancelling post" << TLOG_ENDL;
 
 	std::unique_lock<std::mutex> lk(mpi_mutex_);
 	int result = MPI_Cancel(&req);

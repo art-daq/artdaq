@@ -171,7 +171,7 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 	request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (!request_socket_)
 	{
-		throw art::Exception(art::errors::Configuration) << "CommandableFragmentGenerator: Error creating socket for receiving data requests!" << std::endl;
+		throw art::Exception(art::errors::Configuration) << "CommandableFragmentGenerator: Error creating socket for receiving data requests! err=" << strerror(errno) << std::endl;
 		exit(1);
 	}
 
@@ -181,7 +181,7 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 	if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 	{
 		throw art::Exception(art::errors::Configuration) <<
-			"RequestedFragmentGenrator: Unable to enable port reuse on request socket" << std::endl;
+			"RequestedFragmentGenrator: Unable to enable port reuse on request socket, err=" << strerror(errno) << std::endl;
 		exit(1);
 	}
 	memset(&si_me_request, 0, sizeof(si_me_request));
@@ -191,7 +191,7 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 	if (bind(request_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
 		throw art::Exception(art::errors::Configuration) <<
-			"CommandableFragmentGenerator: Cannot bind request socket to port " << request_port_ << std::endl;
+			"CommandableFragmentGenerator: Cannot bind request socket to port " << request_port_ << ", err=" << strerror(errno) << std::endl;
 		exit(1);
 	}
 
@@ -201,14 +201,14 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 		int sts = ResolveHost(request_addr_.c_str(), mreq.imr_multiaddr);
 		if (sts == -1)
 		{
-			throw art::Exception(art::errors::Configuration) << "Unable to resolve multicast request address" << std::endl;
+			throw art::Exception(art::errors::Configuration) << "Unable to resolve multicast request address, err=" << strerror(errno) << std::endl;
 			exit(1);
 		}
 		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 		{
 			throw art::Exception(art::errors::Configuration) <<
-				"CommandableFragmentGenerator: Unable to join multicast group" << std::endl;
+				"CommandableFragmentGenerator: Unable to join multicast group, err=" << strerror(errno) << std::endl;
 			exit(1);
 		}
 	}

@@ -11,14 +11,6 @@
 #define metricMan artdaq::Globals::metricMan_
 #define seedAndRandom() artdaq::Globals::seedAndRandom_()
 
-// Trace Levels
-#define DATA_RECV         5
-#define DATA_SEND         6
-#define TRANSFER_SEND1    7
-#define TRANSFER_SEND2    8
-#define TRANSFER_RECEIVE1 9
-#define TRANSFER_RECEIVE2 10
-
 //https://stackoverflow.com/questions/21594140/c-how-to-ensure-different-random-number-generation-in-c-when-program-is-execut
 #include <fcntl.h>
 #include <unistd.h>
