@@ -560,39 +560,7 @@ private:								\
 			return true;
 		}
 	};
-
-
-	/**
-	* \brief reset_stats_ Command class
-	*/
-	class reset_stats_ : public cmd_
-	{
-	public:
-		/**
-		* \brief reset_stats_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
-		reset_stats_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "reset statistics")
-		{}
-
-	private:
-		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
-		{
-			try
-			{
-				getParam<std::string>(paramList, 0);
-			}
-			catch (...)
-			{
-				*retvalP = xmlrpc_c::value_string("The reset_stats message requires a single argument that selects the type of statistics to be reported.");
-				return true;
-			}
-
-			return _c._commandable.reset_stats(getParam<std::string>(paramList, 0));
-		}
-	};
-
+	
 	/**
 	* \brief legal_commands_ Command class
 	*/
@@ -740,7 +708,6 @@ private:								\
 		register_method(stop);
 		register_method(pause);
 		register_method(resume);
-		register_method(reset_stats);
 		register_method(register_monitor);
 		register_method(unregister_monitor);
 		register_method(legal_commands);

@@ -65,6 +65,9 @@ namespace art {
 class art::RootDAQOutFile {
 public: // TYPES
 
+	/// <summary>
+	/// Possible modes for when to close a file
+	/// </summary>
   enum class ClosureRequestMode { MaxEvents, MaxSize, Unset };
   using  RootOutputTreePtrArray = std::array<std::unique_ptr<RootOutputTree>, NumBranchTypes>;
 

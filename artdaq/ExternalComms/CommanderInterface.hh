@@ -47,73 +47,178 @@ namespace artdaq
 		 */
 		virtual ~CommanderInterface() = default;
 
+		/// <summary>
+		/// run_server is the main work loop for the Commander.
+		/// 
+		/// This function is expected to block and persist for the entire run of the application.
+		/// It should accept and handle the following commands (subject to state-machine constraints, see Commandable::legal_commands()):
+		/// init
+		/// soft_init
+		/// reinit
+		/// start
+		/// pause
+		/// resume
+		/// stop
+		/// shutdown
+		/// status
+		/// report
+		/// legal_commands
+		/// register_monitor
+		/// unregister_monitor
+		/// 
+		/// See the send_* functions for more details on each command. Not all commands are valid for all applications/states.
+		/// run_server should return a string indicating success or failure to the transport mechanism when it is done processing a command.
+		/// </summary>
 		virtual void run_server() = 0;
 
+		/// <summary>
+		/// Using the transport mechanism, send an init command
+		/// 
+		/// The init command is accepted by all artdaq processes that are in the booted state.
+		/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_init(fhicl::ParameterSet, uint64_t, uint64_t)
 		{
 #pragma message "Using default implementation of send_init!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a soft_init command
+		/// 
+		/// The soft_init command is accepted by all artdaq processes that are in the booted state.
+		/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_soft_init(fhicl::ParameterSet, uint64_t, uint64_t)
 		{
 #pragma message "Using default implementation of send_soft_init!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a reinit command
+		/// 
+		/// The reinit command is accepted by all artdaq processes.
+		/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_reinit(fhicl::ParameterSet, uint64_t, uint64_t)
 		{
 #pragma message "Using default implementation of send_reinit!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a start command
+		/// 
+		/// The start command starts a Run using the given run number.
+		/// This command also accepts a timeout parameter and a timestamp parameter.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_start(art::RunID, uint64_t, uint64_t)
 		{
 #pragma message "Using default implementation of send_start!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a pause command
+		/// 
+		/// The pause command pauses a Run. When the run resumes, the subrun number will be incremented.
+		/// This command accepts a timeout parameter and a timestamp parameter.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_pause(uint64_t, uint64_t)
 		{
 #pragma message "Using default implementation of send_pause!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a resume command
+		/// 
+		/// The resume command resumes a paused Run. When the run resumes, the subrun number will be incremented.
+		/// This command accepts a timeout parameter and a timestamp parameter.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_resume(uint64_t, uint64_t)
 		{
 #pragma message "Using default implementation of send_resume!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a stop command
+		/// 
+		/// The stop command stops the current Run.
+		/// This command accepts a timeout parameter and a timestamp parameter.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_stop(uint64_t, uint64_t)
 		{
 #pragma message "Using default implementation of send_stop!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a shutdown command
+		/// 
+		/// The shutdown command shuts down the artdaq process.
+		/// This command accepts a timeout parameter.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_shutdown(uint64_t)
 		{
 #pragma message "Using default implementation of send_shutdown!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a status command
+		/// 
+		/// The status command returns the current status of the artdaq process.
+		/// </summary>
+		/// <returns>Command result: current status of the artdaq process</returns>
 		virtual std::string send_status()
 		{
 #pragma message "Using default implementation of send_status!"
 			return "NOT IMPLEMENTED";
 		}
+		/// <summary>
+		/// Using the transport mechanism, send a report command
+		/// 
+		/// The report command returns the current value of the requested reportable quantity.
+		/// </summary>
+		/// <returns>Command result: current value of the requested reportable quantity</returns>
 		virtual std::string send_report(std::string)
 		{
 #pragma message "Using default implementation of send_report!"
 			return "NOT IMPLEMENTED";
 		}
-		virtual std::string send_reset_statistics(std::string)
-		{
-#pragma message "Using default implementation of send_reset_statistics!"
-			return "NOT IMPLEMENTED";
-		}
+		/// <summary>
+		/// Using the transport mechanism, send a legal_commands command
+		/// 
+		/// This will query the artdaq process, and it will return the list of allowed transition commands from its current state.
+		/// </summary>
+		/// <returns>Command result: a list of allowed transition commands from its current state</returns>
 		virtual std::string send_legal_commands()
 		{
 #pragma message "Using default implementation of send_legal_commands!"
 			return "NOT IMPLEMENTED";
 		}
+
+		/// <summary>
+		/// Using the transport mechanism, send a register_monitor command
+		/// 
+		/// This will cause a Dispatcher to start an art process with the given FHiCL configuration string
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_register_monitor(std::string)
 		{
 #pragma message "Using default implementation of send_register_monitor!"
 			return "NOT IMPLEMENTED";
 		}
+
+		/// <summary>
+		/// Using the transport mechanism, send an unregister_monitor command
+		/// 
+		/// This will cause a Dispatcher to stop sending data to the monitor identified by the given label
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_unregister_monitor(std::string)
 		{
 #pragma message "Using default implementation of send_unregister_monitor!"
@@ -124,10 +229,13 @@ namespace artdaq
 	private:
 
 	public:
+		/// <summary>
+		/// Reference to the Commandable that this Commander Commands.
+		/// </summary>
 		artdaq::Commandable& _commandable;
 
 	protected:
-		int _id;
+		int _id; ///< ID Number of this Commander
 	};
 }
 

@@ -17,7 +17,9 @@ namespace art {
   class Principal;
 
   namespace detail {
-
+	  /// <summary>
+	  /// Auxiliary class to handle provenance information
+	  /// </summary>
     class KeptProvenance {
     public:
       KeptProvenance(DropMetaData dropMetaData,

@@ -78,6 +78,9 @@ public:
 	 */
 	void setHwFail() { hwFail_ = true; }
 
+	/// <summary>
+	/// Wait for all fragments generated to be read by the CommandableFragmentGenerator
+	/// </summary>
 	void waitForFrags() { 
 		auto start_time = std::chrono::steady_clock::now();
 		while (fireCount_ > 0) { usleep(1000); } 

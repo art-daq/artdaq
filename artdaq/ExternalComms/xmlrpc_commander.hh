@@ -35,8 +35,18 @@ public:
 	 */
 	void run_server() override;
 
+	/// <summary>
+	/// Send a register_monitor command over XMLRPC
+	/// </summary>
+	/// <param name="monitor_fhicl">FHiCL string contianing monitor configuration</param>
+	/// <returns>Return status from XMLRPC</returns>
 	std::string send_register_monitor(std::string monitor_fhicl) override;
 
+	/// <summary>
+	/// Send an unregister_monitor command over XMLRPC
+	/// </summary>
+	/// <param name="monitor_label">Label of the monitor to unregister</param>
+	/// <returns>Return status from XMLRPC</returns>
 	std::string send_unregister_monitor(std::string monitor_label) override;
 
 private:
