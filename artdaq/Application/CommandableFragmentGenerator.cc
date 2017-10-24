@@ -928,7 +928,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 				bool windowTimeout = static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count()) > window_close_timeout_us_;
 				if (windowTimeout)
 				{
-					TLOG_WARNING("CommandableFragmentGenerator") << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max) << ", buffer=" << std::to_string(dataBuffer_.back()->timestamp()) << "). Time waiting: "
+				       TLOG_WARNING("CommandableFragmentGenerator") << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max) << ", buffer=" << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (if no buffer in memory, this is shown as a 0)). Time waiting: "
 						<< std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count() << " us "
 						<< "(> " << std::to_string(window_close_timeout_us_) << " us)." << TLOG_ENDL;
 				}
