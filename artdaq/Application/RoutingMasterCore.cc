@@ -475,7 +475,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 	if (metricMan)
 	{
-		std::chrono::duration<double, std::ratio<1>> delta = std::chrono::steady_clock::now() - start_time;
+		artdaq::TimeUtils::seconds delta = std::chrono::steady_clock::now() - start_time;
 		metricMan->sendMetric("Avg Table Acknowledge Time", delta.count(), "seconds", 3, MetricMode::Average);
 	}
 }
