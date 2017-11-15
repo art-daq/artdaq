@@ -447,6 +447,8 @@ namespace artdaq
 		Fragment::type_t expectedType_;
 		size_t maxFragmentCount_;
 		bool uniqueWindows_;
+		bool missing_request_;
+		std::chrono::steady_clock::time_point missing_request_time_;
 		std::chrono::steady_clock::time_point last_window_send_time_;
 	        bool last_window_send_time_set_;
 		size_t missing_request_window_timeout_us_;
