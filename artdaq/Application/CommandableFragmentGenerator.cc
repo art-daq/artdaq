@@ -37,6 +37,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, expectedType_(Fragment::EmptyFragmentType)
 	, maxFragmentCount_(std::numeric_limits<size_t>::max())
 	, uniqueWindows_(true)
+	, missing_request_(true)
+	,missing_request_time_()
 	, last_window_send_time_()
 	, last_window_send_time_set_(false)
 	, missing_request_window_timeout_us_(1000000)
@@ -81,8 +83,10 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
 	, expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
 	, uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
-        , last_window_send_time_(decltype(last_window_send_time_)::max())
-        , last_window_send_time_set_(false)
+	, missing_request_(false)
+	, missing_request_time_(decltype(missing_request_time_)::max())
+	, last_window_send_time_(decltype(last_window_send_time_)::max())
+	, last_window_send_time_set_(false)
 	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 1000000))
 	, window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
@@ -895,16 +899,17 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		}
 		else if (mode_ == RequestMode::Buffer || mode_ == RequestMode::Window)
 		{
-		        if (!last_window_send_time_set_) {
-              		    last_window_send_time_ = std::chrono::steady_clock::now();
-			    last_window_send_time_set_ = true;
-	                }
+			if (!last_window_send_time_set_)
+			{
+				last_window_send_time_ = std::chrono::steady_clock::now();
+				last_window_send_time_set_ = true;
+			}
 
-			if (mode_ == RequestMode::Buffer || static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count()) > missing_request_window_timeout_us_)
+			if (mode_ == RequestMode::Buffer || (missing_request_ && static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - missing_request_time_).count()) > missing_request_window_timeout_us_))
 			{
 				if (mode_ == RequestMode::Window)
 				{
-					TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count() << " us "
+					TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - missing_request_time_).count() << " us "
 						<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages." << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
 				} // else, Buffer mode, where it only makes sense to send for the last request
 				sendEmptyFragments(frags);
@@ -924,8 +929,13 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 				}
 				if (req->first > ev_counter())
 				{
+					if (!missing_request_)
+					{
+						missing_request_ = true;
+						missing_request_time_ = std::chrono::steady_clock::now();
+					}
 					++req;
-					continue; // Will loop through all requests, means we're in Window mode and missing the correct one
+					break; // We're in Window mode and missing the correct request
 				}
 				TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Checking that data exists for request window " << std::to_string(req->first) << " (Buffered mode will always succeed)" << TLOG_ENDL;
 				Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
@@ -936,7 +946,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 				bool windowTimeout = static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count()) > window_close_timeout_us_;
 				if (windowTimeout)
 				{
-				       TLOG_WARNING("CommandableFragmentGenerator") << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max) << ", buffer=" << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (if no buffer in memory, this is shown as a 0)). Time waiting: "
+					TLOG_WARNING("CommandableFragmentGenerator") << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max) << ", buffer=" << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (if no buffer in memory, this is shown as a 0)). Time waiting: "
 						<< std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count() << " us "
 						<< "(> " << std::to_string(window_close_timeout_us_) << " us)." << TLOG_ENDL;
 				}
