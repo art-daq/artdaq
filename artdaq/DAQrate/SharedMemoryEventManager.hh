@@ -106,7 +106,7 @@ namespace artdaq {
 		* \param [out] outfrag Rejected Fragment if timeout occurs
 		* \return Whether the Fragment was successfully added
 		*/
-		bool AddFragment(FragmentPtr frag, int64_t timeout_usec, FragmentPtr& outfrag);
+		bool AddFragment(FragmentPtr frag, size_t timeout_usec, FragmentPtr& outfrag);
 
 		/**
 		 * \brief Get a pointer to a reserved memory area for the given Fragment header

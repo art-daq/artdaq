@@ -108,14 +108,14 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	return true;
 }
 
-bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag, int64_t timeout_usec, FragmentPtr& outfrag)
+bool artdaq::SharedMemoryEventManager::AddFragment(FragmentPtr frag, size_t timeout_usec, FragmentPtr& outfrag)
 {
 	TLOG_TRACE("SharedMemoryEventManager") << "AddFragment(FragmentPtr) BEGIN" << TLOG_ENDL;
 	auto hdr = *reinterpret_cast<detail::RawFragmentHeader*>(frag->headerAddress());
 	auto data = frag->headerAddress();
 	auto start = std::chrono::steady_clock::now();
 	bool sts = false;
-	while (!sts && std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count() < timeout_usec)
+	while (!sts && TimeUtils::GetElapsedTimeMicroseconds(start) < timeout_usec)
 	{
 		sts = AddFragment(hdr, data);
 		if (!sts) usleep(1000);
@@ -266,7 +266,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 
 
 	while ((GetAttachedCount() - initialCount < 1 || pid <= 0)
-		   && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - startTime).count() < 5)
+		   && TimeUtils::GetElapsedTime(startTime)< 5)
 	{
 		usleep(1000);
 	}
@@ -279,7 +279,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	else
 	{
 		TLOG_INFO("SharedMemoryEventManager") << std::setw(4) << std::fixed << "art initialization took "
-			<< std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - startTime).count() << " seconds." << TLOG_ENDL;
+			<< TimeUtils::GetElapsedTime(startTime) << " seconds." << TLOG_ENDL;
 
 		return pid;
 	}
@@ -423,7 +423,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	auto lastReadCount = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
 
 	// We will wait until no buffer has been read for 1 second.
-	while (lastReadCount > 0 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() < 1000)
+	while (lastReadCount > 0 && TimeUtils::GetElapsedTime(start) < 1)
 	{
 		auto temp = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
 		if (temp != lastReadCount)
@@ -542,7 +542,9 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 	check_pending_buffers_();
 	if (incomplete_event_report_interval_ms_ > 0 && GetLockedBufferCount())
 	{
-		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_incomplete_event_report_time_).count() < incomplete_event_report_interval_ms_) return;
+		if (TimeUtils::GetElapsedTimeMilliseconds( last_incomplete_event_report_time_) < static_cast<size_t>(incomplete_event_report_interval_ms_)) 
+			return;
+
 		last_incomplete_event_report_time_ = std::chrono::steady_clock::now();
 		std::ostringstream oss;
 		oss << "Incomplete Events (" << num_fragments_per_event_ << "): ";
@@ -559,7 +561,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag, Frag
 {
 	auto buffer = broadcasts_.GetBufferForWriting(false);
 	auto start_time = std::chrono::steady_clock::now();
-	while (buffer == -1 && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() < broadcast_timeout_ms_)
+	while (buffer == -1 && TimeUtils::GetElapsedTimeMilliseconds(start_time) < static_cast<size_t>(broadcast_timeout_ms_))
 	{
 		usleep(10000);
 		buffer = broadcasts_.GetBufferForWriting(false);

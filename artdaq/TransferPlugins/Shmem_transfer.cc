@@ -51,7 +51,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 										   size_t receiveTimeout)
 {
 	auto waitStart = std::chrono::steady_clock::now();
-	while (!shm_manager_->ReadyForRead() && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - waitStart).count() < 1000)
+	while (!shm_manager_->ReadyForRead() && TimeUtils::GetElapsedTimeMicroseconds(waitStart) < 1000)
 	{
 		// BURN THAT CPU!
 	}
@@ -90,7 +90,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout)
 {
 	auto waitStart = std::chrono::steady_clock::now();
-	while (!shm_manager_->ReadyForRead() && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - waitStart).count() < 1000)
+	while (!shm_manager_->ReadyForRead() && TimeUtils::GetElapsedTimeMicroseconds(waitStart) < 1000)
 	{
 		// BURN THAT CPU!
 	}
@@ -159,7 +159,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	if (send_timeout_usec > 0)
 	{
 		auto waitStart = std::chrono::steady_clock::now();
-		while (!shm_manager_->ReadyForWrite(!reliableMode) && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - waitStart).count() < 1000)
+		while (!shm_manager_->ReadyForWrite(!reliableMode) && TimeUtils::GetElapsedTimeMicroseconds(waitStart) < 1000)
 		{
 			// BURN THAT CPU!
 		}

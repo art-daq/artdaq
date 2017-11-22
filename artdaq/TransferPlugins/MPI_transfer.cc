@@ -87,7 +87,7 @@ moveFragment(Fragment&& frag, size_t send_timeout_usec)
 	TLOG_ARB(5, uniqueLabel()) << "MPITransfer::moveFragment: Finding available send slot, send_timeout_usec=" << std::to_string(send_timeout_usec) << TLOG_ENDL;
 	auto req_idx = findAvailable();
 	auto counter = 0;
-	while (req_idx == RECV_TIMEOUT && std::chrono::duration_cast<std::chrono::duration<size_t, std::ratio<1, 1000000>>>(std::chrono::steady_clock::now() - start_time).count() < send_timeout_usec)
+	while (req_idx == RECV_TIMEOUT &&  TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec)
 	{
 		usleep(1000);
 		req_idx = findAvailable();
@@ -95,7 +95,7 @@ moveFragment(Fragment&& frag, size_t send_timeout_usec)
 		if (counter % 1000 == 0)
 		{
 			TLOG_INFO(uniqueLabel()) << "Rank " << source_rank() << " waiting for available buffer to " << destination_rank() << ". "
-				<< "Waited " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() << " ms so far." << TLOG_ENDL;
+				<< "Waited " << std::to_string(TimeUtils::GetElapsedTimeMilliseconds(start_time)) << " ms so far." << TLOG_ENDL;
 		}
 
 	}

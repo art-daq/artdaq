@@ -46,7 +46,7 @@ namespace artdaq
 
 		auto start_time = std::chrono::steady_clock::now();
 
-		while (request_sending_ && request_shutdown_timeout_us_ > static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count()))
+		while (request_sending_ && request_shutdown_timeout_us_ > TimeUtils::GetElapsedTimeMicroseconds(start_time))
 		{
 			usleep(1000);
 		}

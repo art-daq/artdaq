@@ -423,13 +423,13 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto startTime = std::chrono::steady_clock::now();
 		while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0)
 		{
-			auto currentTime = std::chrono::steady_clock::now();
 			auto table_ack_wait_time_ms = current_table_interval_ms_ / max_ack_cycle_count_;
-			if (static_cast<size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) > table_ack_wait_time_ms)
+			if (TimeUtils::GetElapsedTimeMilliseconds(startTime) > table_ack_wait_time_ms)
 			{
 				if (counter > max_ack_cycle_count_ && table_update_count_ > 0)
 				{
-					TLOG_ERROR(name_) << "Did not receive acks from all senders after resending table " << std::to_string(counter) << " times during the table_update_interval. Check the status of the senders!" << TLOG_ENDL;
+					TLOG_ERROR(name_) << "Did not receive acks from all senders after resending table " << std::to_string(counter)
+						<< " times during the table_update_interval. Check the status of the senders!" << TLOG_ENDL;
 					break;
 				}
 				TLOG_WARNING(name_) << "Did not receive acks from all senders within the table_ack_wait_time. Resending table update" << TLOG_ENDL;
@@ -456,17 +456,27 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				}
 				else
 				{
-					TLOG_DEBUG(name_) << "Ack packet from rank " << buffer.rank << " has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id) << TLOG_ENDL;
+					TLOG_DEBUG(name_) << "Ack packet from rank " << buffer.rank << " has first= " << std::to_string(buffer.first_sequence_id)
+						<< " and last= " << std::to_string(buffer.last_sequence_id) << TLOG_ENDL;
 					if (acks.count(buffer.rank) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 					{
 						TLOG_DEBUG(name_) << "Received table update acknowledgement from sender with rank " << std::to_string(buffer.rank) << "." << TLOG_ENDL;
 						acks[buffer.rank] = true;
-						TLOG_DEBUG(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) << " acks outstanding" << TLOG_ENDL;
+						TLOG_DEBUG(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; })
+							<< " acks outstanding" << TLOG_ENDL;
 					}
 					else
 					{
-						if (!acks.count(buffer.rank)) { TLOG_ERROR(name_) << "Received acknowledgement from invalid rank " << buffer.rank << "! Cross-talk between RoutingMasters means there's a configuration error!" << TLOG_ENDL; }
-						else { TLOG_WARNING(name_) << "Received acknowledgement from rank " << buffer.rank << " that had incorrect sequence ID information. Discarding." << TLOG_ENDL; }
+						if (!acks.count(buffer.rank))
+						{
+							TLOG_ERROR(name_) << "Received acknowledgement from invalid rank " << buffer.rank << "!"
+								<< " Cross-talk between RoutingMasters means there's a configuration error!" << TLOG_ENDL;
+						}
+						else
+						{
+							TLOG_WARNING(name_) << "Received acknowledgement from rank " << buffer.rank
+								<< " that had incorrect sequence ID information. Discarding." << TLOG_ENDL;
+						}
 					}
 				}
 			}

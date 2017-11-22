@@ -196,13 +196,13 @@ namespace artdaq
 				{
 					keep_looping = false;
 					auto start_time = std::chrono::steady_clock::now();
-					while (!got_event && std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start_time).count() < waiting_time)
+					while (!got_event && TimeUtils::GetElapsedTime(start_time) < waiting_time)
 					{
 						got_event = incoming_events->ReadyForRead();
 						if (!got_event)
 						{
 							usleep(sleepTimeUsec);
-							//TLOG_INFO("SharedMemoryReader") << "Waited " << std::to_string(std::chrono::duration_cast<TimeUtils::seconds>(std::chrono::steady_clock::now() - start_time).count()) << " of " << std::to_string(waiting_time) << TLOG_ENDL;
+							//TLOG_INFO("SharedMemoryReader") << "Waited " << std::to_string(TimeUtils::GetElapsedTime(start_time)) << " of " << std::to_string(waiting_time) << TLOG_ENDL;
 						}
 					}
 					if (!got_event)

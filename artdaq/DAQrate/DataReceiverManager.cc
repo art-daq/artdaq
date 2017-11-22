@@ -134,7 +134,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			TLOG_TRACE("DataReceiverManager") << "Received Fragment Header from rank " << source_rank << "." << TLOG_ENDL;
 			RawDataType* loc = nullptr;
 			size_t retries = 0;
-			while (loc == nullptr )//&& static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - after_header).count()) < receive_timeout_) 
+			while (loc == nullptr )//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_) 
 			{
 				loc = shm_manager_->WriteFragmentHeader(header);
 				if (loc == nullptr) usleep(sleep_time);
@@ -177,10 +177,10 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (metricMan)
 			{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
 				TRACE(6, "DataReceiverManager::runReceiver_: Sending receive stats");
-				delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
-				hdr_delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(after_header - start_time).count();
-				store_delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(before_body - after_header).count();
-				data_delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - before_body).count();
+				delta_t = TimeUtils::GetElapsedTime(start_time);
+				hdr_delta_t = TimeUtils::GetElapsedTime(start_time, after_header);
+				store_delta_t = TimeUtils::GetElapsedTime(after_header, before_body);
+				data_delta_t = TimeUtils::GetElapsedTime(before_body);
 				metricMan->sendMetric("Total Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1, MetricMode::Accumulate);
 				metricMan->sendMetric("Total Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(header.word_count * sizeof(RawDataType)), "B", 1, MetricMode::Accumulate);
 				metricMan->sendMetric("Total Receive Rate From Rank " + std::to_string(source_rank), header.word_count * sizeof(RawDataType) / delta_t, "B/s", 1, MetricMode::Average);
