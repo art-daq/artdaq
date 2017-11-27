@@ -141,6 +141,35 @@ namespace artdaq
 		 */
 		bool getNext(FragmentPtrs& output) override final;
 
+
+		/// <summary>
+		/// Create fragments using data buffer for request mode Ignored.
+		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+		/// </summary>
+		/// <param name="frags">Ouput fragments</param>
+		void applyRequestsIgnoredMode(artdaq::FragmentPtrs& frags);
+
+		/// <summary>
+		/// Create fragments using data buffer for request mode Single.
+		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+		/// </summary>
+		/// <param name="frags">Ouput fragments</param>
+		void applyRequestsSingleMode(artdaq::FragmentPtrs& frags);
+
+		/// <summary>
+		/// Create fragments using data buffer for request mode Buffer.
+		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+		/// </summary>
+		/// <param name="frags">Ouput fragments</param>
+		void applyRequestsBufferMode(artdaq::FragmentPtrs& frags);
+
+		/// <summary>
+		/// Create fragments using data buffer for request mode Window.
+		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+		/// </summary>
+		/// <param name="frags">Ouput fragments</param>
+		void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
+
 		/**
 		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
 		 * \param[out] output list of FragmentPtr objects ready for transmission
@@ -189,6 +218,12 @@ namespace artdaq
 		 * objects to the data buffer, blocking when the data buffer is full.
 		 */
 		void getDataLoop();
+
+		/**
+		 * \brief Wait for the data buffer to drain (dataBufferIsTooLarge returns false), periodically reporting status.
+		 * \return True if wait ended without something else disrupting the run
+		 */
+		bool waitForDataBufferReady();
 
 		/**
 		 * \brief Test the configured constraints on the data buffer

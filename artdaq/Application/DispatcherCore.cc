@@ -321,7 +321,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 		}
 		generated_physics.put<std::vector<std::string>>(label, path);
 	}
-	catch (cet::exception e)
+	catch (cet::exception& e)
 	{
 		// Error in parsing input fhicl
 		TLOG_ERROR(name_) << "merge_parameter_sets_: Error processing input fhicl: " << e.what() << TLOG_ENDL;

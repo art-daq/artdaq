@@ -46,7 +46,7 @@ public:
 	 * \brief Create a lock file with the given path
 	 * \param path Path to lock file
 	 */
-	explicit LockFile(std::string path) : fileName_(path)
+	explicit LockFile(std::string const& path) : fileName_(path)
 	{
 		std::ofstream fstream(fileName_);
 		fstream << "Locked" << std::endl;
@@ -64,7 +64,7 @@ public:
 	 * \param path Path to lock file
 	 * \return Whether the lock file exists, as determined by boost::filesystem
 	 */
-	static bool IsLocked(std::string path)
+	static bool IsLocked(std::string const& path)
 	{
 		return boost::filesystem::exists(path);
 	}

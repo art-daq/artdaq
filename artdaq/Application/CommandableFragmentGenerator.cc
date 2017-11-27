@@ -568,45 +568,19 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			return;
 		}
 
-		TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: checking buffer size" << TLOG_ENDL;
-		auto startwait = std::chrono::steady_clock::now();
+		if (metricMan)
+		{
+			metricMan->sendMetric("Avg Data Acquisition Time", TimeUtils::GetElapsedTime(startdata), "s", 3, artdaq::MetricMode::Average);
+		}
 
 		if (newDataBuffer_.size() == 0 && sleep_on_no_data_us_ > 0)
 		{
 			usleep(sleep_on_no_data_us_);
 		}
-		if (metricMan)
-		{
-			metricMan->sendMetric("Avg Data Acquisition Time", TimeUtils::GetElapsedTime(startdata, startwait), "s", 3, artdaq::MetricMode::Average);
-		}
 
-		auto first = true;
-		auto lastwaittime = 0ULL;
-		while (dataBufferIsTooLarge())
-		{
-			if (should_stop())
-			{
-				TLOG_DEBUG("CommandableFragmentGenerator") << "Run ended while waiting for buffer to shrink!" << TLOG_ENDL;
-				std::unique_lock<std::mutex> lock(dataBufferMutex_);
-				getDataBufferStats();
-				dataCondition_.notify_all();
-				data_thread_running_ = false;
-				return;
-			}
-			auto waittime = TimeUtils::GetElapsedTimeMilliseconds(startwait);
-
-			if (first || (waittime != lastwaittime && waittime % 1000 == 0))
-			{
-				TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")" << TLOG_ENDL;
-				first = false;
-			}
-			if (waittime % 5 && waittime != lastwaittime)
-			{
-				TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: Data Retreival paused for " << std::to_string(waittime) << " ms waiting for data buffer to drain" << TLOG_ENDL;
-			}
-			lastwaittime = waittime;
-			usleep(1000);
-		}
+		TLOG_ARB(15, "CommandableFragmentGenerator") << "Waiting for data buffer ready" << TLOG_ENDL;
+		if (!waitForDataBufferReady()) return;
+		TLOG_ARB(15, "CommandableFragmentGenerator") << "Done waiting for data buffer ready" << TLOG_ENDL;
 
 		TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: processing data" << TLOG_ENDL;
 		if (data && !force_stop_)
@@ -649,6 +623,39 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			return;
 		}
 	}
+}
+
+bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
+{
+	auto startwait = std::chrono::steady_clock::now();
+	auto first = true;
+	auto lastwaittime = 0ULL;
+	while (dataBufferIsTooLarge())
+	{
+		if (should_stop())
+		{
+			TLOG_DEBUG("CommandableFragmentGenerator") << "Run ended while waiting for buffer to shrink!" << TLOG_ENDL;
+			std::unique_lock<std::mutex> lock(dataBufferMutex_);
+			getDataBufferStats();
+			dataCondition_.notify_all();
+			data_thread_running_ = false;
+			return false;
+		}
+		auto waittime = TimeUtils::GetElapsedTimeMilliseconds(startwait);
+
+		if (first || (waittime != lastwaittime && waittime % 1000 == 0))
+		{
+			TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")" << TLOG_ENDL;
+			first = false;
+		}
+		if (waittime % 5 && waittime != lastwaittime)
+		{
+			TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: Data Retreival paused for " << std::to_string(waittime) << " ms waiting for data buffer to drain" << TLOG_ENDL;
+		}
+		lastwaittime = waittime;
+		usleep(1000);
+	}
+	return true;
 }
 
 bool artdaq::CommandableFragmentGenerator::dataBufferIsTooLarge()
@@ -738,7 +745,7 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 		TLOG_ARB(12, "CommandableFragmentGenerator") << "getMonitoringDataLoop: Determining whether to call checkHWStatus_" << TLOG_ENDL;
 
 		auto now = std::chrono::steady_clock::now();
-		if (TimeUtils::GetElapsedTimeMicroseconds(lastMonitoringCall_,now) >= static_cast<size_t>(monitoringInterval_))
+		if (TimeUtils::GetElapsedTimeMicroseconds(lastMonitoringCall_, now) >= static_cast<size_t>(monitoringInterval_))
 		{
 			isHardwareOK_ = checkHWStatus_();
 			TLOG_ARB(12, "CommandableFragmentGenerator") << "getMonitoringDataLoop: isHardwareOK_ is now " << std::boolalpha << isHardwareOK_ << TLOG_ENDL;
@@ -768,60 +775,224 @@ void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
 		ufds[0].fd = request_socket_;
 		ufds[0].events = POLLIN | POLLPRI;
 		int rv = poll(ufds, 1, ms_to_wait);
-		if (rv > 0)
+
+		// Continue loop if no message received or message does not have correct event ID
+		if (rv <= 0 || (ufds[0].revents != POLLIN && ufds[0].revents != POLLPRI)) continue;
+
+		TLOG_ARB(11, "CommandableFragmentGenerator") << "Recieved packet on Request channel" << TLOG_ENDL;
+		detail::RequestHeader hdr_buffer;
+		recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
+		TLOG_ARB(11, "CommandableFragmentGenerator") << "Request header word: 0x" << std::hex << hdr_buffer.header << TLOG_ENDL;
+		if (!hdr_buffer.isValid()) continue;
+
+		request_received_ = true;
+		if (hdr_buffer.mode == detail::RequestMessageMode::EndOfRun)
 		{
-			if (ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
+			TLOG_INFO("CommandableFragmentGenerator") << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests..." << TLOG_ENDL;
+			request_stop_timeout_ = std::chrono::steady_clock::now();
+			request_stop_requested_ = true;
+		}
+
+		std::vector<detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
+		recv(request_socket_, &pkt_buffer[0], sizeof(detail::RequestPacket) * hdr_buffer.packet_count, 0);
+		bool anyNew = false;
+		for (auto& buffer : pkt_buffer)
+		{
+			if (!buffer.isValid()) continue;
+			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
 			{
-				TLOG_ARB(11, "CommandableFragmentGenerator") << "Recieved packet on Request channel" << TLOG_ENDL;
-				detail::RequestHeader hdr_buffer;
-				recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
-				TLOG_ARB(11, "CommandableFragmentGenerator") << "Request header word: 0x" << std::hex << hdr_buffer.header << TLOG_ENDL;
-				if (hdr_buffer.isValid())
+				TLOG_ERROR("CommandableFragmentGenerator") << "Received conflicting request for SeqID "
+					<< std::to_string(buffer.sequence_id) << "!"
+					<< " Old ts=" << std::to_string(requests_[buffer.sequence_id])
+					<< ", new ts=" << std::to_string(buffer.timestamp) << ". Keeping OLD!" << TLOG_ENDL;
+			}
+			else if (!requests_.count(buffer.sequence_id))
+			{
+				int delta = buffer.sequence_id - ev_counter();
+				TLOG_ARB(11, "CommandableFragmentGenerator") << "Recieved request for sequence ID " << std::to_string(buffer.sequence_id)
+					<< " and timestamp " << std::to_string(buffer.timestamp) << " (delta: " << delta << ")" << TLOG_ENDL;
+				if (delta < 0)
 				{
-					request_received_ = true;
-					if (hdr_buffer.mode == detail::RequestMessageMode::EndOfRun)
-					{
-						TLOG_INFO("CommandableFragmentGenerator") << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests..." << TLOG_ENDL;
-						request_stop_timeout_ = std::chrono::steady_clock::now();
-						request_stop_requested_ = true;
-					}
-					std::vector<detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-					recv(request_socket_, &pkt_buffer[0], sizeof(detail::RequestPacket) * hdr_buffer.packet_count, 0);
-					bool anyNew = false;
-					for (auto& buffer : pkt_buffer)
-					{
-						if (!buffer.isValid()) continue;
-						if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
-						{
-							TLOG_ERROR("CommandableFragmentGenerator") << "Received conflicting request for SeqID "
-								<< std::to_string(buffer.sequence_id) << "!"
-								<< " Old ts=" << std::to_string(requests_[buffer.sequence_id])
-								<< ", new ts=" << std::to_string(buffer.timestamp) << ". Keeping OLD!" << TLOG_ENDL;
-						}
-						else if (!requests_.count(buffer.sequence_id))
-						{
-							int delta = buffer.sequence_id - ev_counter();
-							TLOG_ARB(11, "CommandableFragmentGenerator") << "Recieved request for sequence ID " << std::to_string(buffer.sequence_id)
-								<< " and timestamp " << std::to_string(buffer.timestamp) << " (delta: " << delta << ")" << TLOG_ENDL;
-							if (delta < 0)
-							{
-								TLOG_ARB(11, "CommandableFragmentGenerator") << "Already serviced this request! Ignoring..." << TLOG_ENDL;
-							}
-							else
-							{
-								std::unique_lock<std::mutex> tlk(request_mutex_);
-								requests_[buffer.sequence_id] = buffer.timestamp;
-								anyNew = true;
-							}
-						}
-					}
-					if (anyNew)
-					{
-						std::unique_lock<std::mutex> lock(request_mutex_);
-						requestCondition_.notify_all();
-					}
+					TLOG_ARB(11, "CommandableFragmentGenerator") << "Already serviced this request! Ignoring..." << TLOG_ENDL;
+				}
+				else
+				{
+					std::unique_lock<std::mutex> tlk(request_mutex_);
+					requests_[buffer.sequence_id] = buffer.timestamp;
+					anyNew = true;
 				}
 			}
+		}
+		if (anyNew)
+		{
+			std::unique_lock<std::mutex> lock(request_mutex_);
+			requestCondition_.notify_all();
+		}
+	}
+}
+
+void artdaq::CommandableFragmentGenerator::applyRequestsIgnoredMode(artdaq::FragmentPtrs& frags)
+{
+	// We just copy everything that's here into the output.
+	TLOG_ARB(9, "CommandableFragmentGenerator") << "Mode is Ignored; Copying data to output" << TLOG_ENDL;
+	std::move(dataBuffer_.begin(), dataBuffer_.end(), std::inserter(frags, frags.end()));
+	dataBuffer_.clear();
+}
+
+void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::FragmentPtrs& frags)
+{
+	// We only care about the latest request received. Send empties for all others.
+	sendEmptyFragments(frags);
+
+	// If no requests remain after sendEmptyFragments, return
+	if (requests_.size() == 0 || !requests_.count(ev_counter())) return;
+
+	if (dataBuffer_.size() > 0)
+	{
+		TLOG_ARB(9, "CommandableFragmentGenerator") << "Mode is Single; Sending copy of last event" << TLOG_ENDL;
+		for (auto& fragptr : dataBuffer_)
+		{
+			// Return the latest data point
+			auto frag = fragptr.get();
+			auto newfrag = std::unique_ptr<artdaq::Fragment>(new Fragment(ev_counter(), frag->fragmentID()));
+			newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
+			memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
+			newfrag->setTimestamp(requests_[ev_counter()]);
+			newfrag->setSequenceID(ev_counter());
+			frags.push_back(std::move(newfrag));
+		}
+	}
+	else
+	{
+		sendEmptyFragment(frags, ev_counter(), "No data for");
+	}
+	requests_.clear();
+	ev_counter_inc(1, true);
+}
+
+void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::FragmentPtrs& frags)
+{
+	sendEmptyFragments(frags);
+
+	// If no requests remain after sendEmptyFragments, return
+	if (requests_.size() == 0 || !requests_.count(ev_counter())) return;
+
+	TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered Fragments" << TLOG_ENDL;
+	frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
+	frags.back()->setTimestamp(requests_[ev_counter()]);
+	ContainerFragmentLoader cfl(*frags.back());
+	cfl.set_missing_data(false); // Buffer mode is never missing data, even if there IS no data.
+
+	// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
+	// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
+	for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
+	{
+		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" << TLOG_ENDL;
+		cfl.addFragment(*it);
+		it = dataBuffer_.erase(it);
+	}
+	requests_.clear();
+	ev_counter_inc(1, true);
+}
+
+void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::FragmentPtrs& frags)
+{
+	if (!last_window_send_time_set_)
+	{
+		last_window_send_time_ = std::chrono::steady_clock::now();
+		last_window_send_time_set_ = true;
+	}
+
+	if (missing_request_ && TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) > missing_request_window_timeout_us_)
+	{
+		TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
+			<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
+			<< " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
+		sendEmptyFragments(frags);
+	}
+	for (auto req = requests_.begin(); req != requests_.end();)
+	{
+		auto ts = req->second;
+		if (req->first < ev_counter())
+		{
+			req = requests_.erase(req);
+			continue;
+		}
+		while (req->first > ev_counter() && request_stop_requested_ && TimeUtils::GetElapsedTime(request_stop_timeout_) > 1)
+		{
+			sendEmptyFragment(frags, ev_counter(), "Missing request for");
+			ev_counter_inc(1, true);
+		}
+		if (req->first > ev_counter())
+		{
+			if (!missing_request_)
+			{
+				missing_request_ = true;
+				missing_request_time_ = std::chrono::steady_clock::now();
+			}
+			++req;
+			break; // We're missing the correct request
+		}
+		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Checking that data exists for request window " << std::to_string(req->first) << TLOG_ENDL;
+		Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
+		Fragment::timestamp_t max = min + windowWidth_;
+		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: min is " << std::to_string(min) << ", max is " << std::to_string(max)
+			<< " and last point in buffer is " << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (sz=" << std::to_string(dataBuffer_.size()) << ")" << TLOG_ENDL;
+		bool windowClosed = dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max;
+		bool windowTimeout = TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) > window_close_timeout_us_;
+		if (windowTimeout)
+		{
+			TLOG_WARNING("CommandableFragmentGenerator") << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max)
+				<< ", buffer=" << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0))
+				<< " (if no buffer in memory, this is shown as a 0)). Time waiting: "
+				<< TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) << " us "
+				<< "(> " << std::to_string(window_close_timeout_us_) << " us)." << TLOG_ENDL;
+		}
+		if (windowClosed || !data_thread_running_ || windowTimeout)
+		{
+			TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-requested Fragments" << TLOG_ENDL;
+			frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
+			frags.back()->setTimestamp(ts);
+			ContainerFragmentLoader cfl(*frags.back());
+
+			if (!windowClosed) cfl.set_missing_data(true);
+			if (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min)
+			{
+				TLOG_DEBUG("CommandableFragmentGenerator") << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer" << TLOG_ENDL;
+				cfl.set_missing_data(true);
+			}
+
+			// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
+			// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
+			for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
+			{
+				Fragment::timestamp_t fragT = (*it)->timestamp();
+				if (fragT < min || fragT > max || (fragT == max && windowWidth_ > 0))
+				{
+					++it;
+					continue;
+				}
+
+				TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" << TLOG_ENDL;
+				cfl.addFragment(*it);
+
+				if (uniqueWindows_)
+				{
+					it = dataBuffer_.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+			req = requests_.erase(req);
+			ev_counter_inc(1, true);
+			last_window_send_time_ = std::chrono::steady_clock::now();
+		}
+		else
+		{
+			// Wait for the window to be closed for the current event
+			break;
 		}
 	}
 }
@@ -833,6 +1004,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		return false;
 	}
 
+	// Wait for data, if in ignored mode, or a request otherwise
 	if (mode_ == RequestMode::Ignored)
 	{
 		while (dataBufferDepthFragments_ <= 0)
@@ -862,145 +1034,23 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		std::unique_lock<std::mutex> dlk(dataBufferMutex_);
 		std::unique_lock<std::mutex> rlk(request_mutex_);
 
-
-		if (mode_ == RequestMode::Ignored)
+		switch (mode_)
 		{
-			// We just copy everything that's here into the output.
-			TLOG_ARB(9, "CommandableFragmentGenerator") << "Mode is Ignored; Copying data to output" << TLOG_ENDL;
-			std::move(dataBuffer_.begin(), dataBuffer_.end(), std::inserter(frags, frags.end()));
-			dataBuffer_.clear();
+		case RequestMode::Single:
+			applyRequestsSingleMode(frags);
+			break;
+		case RequestMode::Window:
+			applyRequestsWindowMode(frags);
+			break;
+		case RequestMode::Buffer:
+			applyRequestsBufferMode(frags);
+			break;
+		case RequestMode::Ignored:
+		default:
+			applyRequestsIgnoredMode(frags);
+			break;
 		}
-		else if (mode_ == RequestMode::Single)
-		{
-			// We only care about the latest request received. Send empties for all others.
-			sendEmptyFragments(frags);
 
-			if (dataBuffer_.size() > 0)
-			{
-				TLOG_ARB(9, "CommandableFragmentGenerator") << "Mode is Single; Sending copy of last event" << TLOG_ENDL;
-				for (auto& fragptr : dataBuffer_)
-				{
-					// Return the latest data point
-					auto frag = fragptr.get();
-					auto newfrag = std::unique_ptr<artdaq::Fragment>(new Fragment(ev_counter(), frag->fragmentID()));
-					newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
-					memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
-					newfrag->setTimestamp(requests_[ev_counter()]);
-					newfrag->setSequenceID(ev_counter());
-					frags.push_back(std::move(newfrag));
-				}
-			}
-			else
-			{
-				sendEmptyFragment(frags, ev_counter(), "No data for");
-			}
-			requests_.clear();
-			ev_counter_inc(1, true);
-		}
-		else if (mode_ == RequestMode::Buffer || mode_ == RequestMode::Window)
-		{
-			if (!last_window_send_time_set_)
-			{
-				last_window_send_time_ = std::chrono::steady_clock::now();
-				last_window_send_time_set_ = true;
-			}
-
-			if (mode_ == RequestMode::Buffer || (missing_request_ && TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) > missing_request_window_timeout_us_))
-			{
-				if (mode_ == RequestMode::Window)
-				{
-					TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
-						<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages." << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
-				} // else, Buffer mode, where it only makes sense to send for the last request
-				sendEmptyFragments(frags);
-			}
-			for (auto req = requests_.begin(); req != requests_.end();)
-			{
-				auto ts = req->second;
-				if (req->first < ev_counter())
-				{
-					req = requests_.erase(req);
-					continue;
-				}
-				while (req->first > ev_counter() && request_stop_requested_ && TimeUtils::GetElapsedTime( request_stop_timeout_) > 1)
-				{
-					sendEmptyFragment(frags, ev_counter(), "Missing request for");
-					ev_counter_inc(1, true);
-				}
-				if (req->first > ev_counter())
-				{
-					if (!missing_request_)
-					{
-						missing_request_ = true;
-						missing_request_time_ = std::chrono::steady_clock::now();
-					}
-					++req;
-					break; // We're in Window mode and missing the correct request
-				}
-				TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Checking that data exists for request window " << std::to_string(req->first) << " (Buffered mode will always succeed)" << TLOG_ENDL;
-				Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
-				Fragment::timestamp_t max = min + windowWidth_;
-				TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: min is " << std::to_string(min) << ", max is " << std::to_string(max)
-					<< " and last point in buffer is " << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (sz=" << std::to_string(dataBuffer_.size()) << ")" << TLOG_ENDL;
-				bool windowClosed = mode_ != RequestMode::Window || (dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max);
-				bool windowTimeout = TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) > window_close_timeout_us_;
-				if (windowTimeout)
-				{
-					TLOG_WARNING("CommandableFragmentGenerator") << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max) << ", buffer=" << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (if no buffer in memory, this is shown as a 0)). Time waiting: "
-						<< TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) << " us "
-						<< "(> " << std::to_string(window_close_timeout_us_) << " us)." << TLOG_ENDL;
-				}
-				if (windowClosed || !data_thread_running_ || windowTimeout)
-				{
-					TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-requested Fragments" << TLOG_ENDL;
-					frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
-					frags.back()->setTimestamp(ts);
-					ContainerFragmentLoader cfl(*frags.back());
-
-					if (mode_ == RequestMode::Window && !windowClosed) cfl.set_missing_data(true);
-					if (mode_ == RequestMode::Window && dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min)
-					{
-						TLOG_DEBUG("CommandableFragmentGenerator") << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer" << TLOG_ENDL;
-						cfl.set_missing_data(true);
-					}
-
-					// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
-					// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
-					for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
-					{
-						if (mode_ == RequestMode::Window)
-						{
-							Fragment::timestamp_t fragT = (*it)->timestamp();
-							if (fragT < min || fragT > max || (fragT == max && windowWidth_ > 0))
-							{
-								++it;
-								continue;
-							}
-						}
-
-						TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" << TLOG_ENDL;
-						cfl.addFragment(*it);
-
-						if (mode_ == RequestMode::Buffer || (mode_ == RequestMode::Window && uniqueWindows_))
-						{
-							it = dataBuffer_.erase(it);
-						}
-						else
-						{
-							++it;
-						}
-					}
-					req = requests_.erase(req);
-					ev_counter_inc(1, true);
-					last_window_send_time_ = std::chrono::steady_clock::now();
-				}
-				else
-				{
-					// Wait for the window to be closed for the current event
-					break;
-				}
-			}
-		}
 		getDataBufferStats();
 	}
 
