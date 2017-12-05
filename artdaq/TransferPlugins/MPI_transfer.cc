@@ -172,7 +172,7 @@ int artdaq::MPITransfer::receiveFragmentHeader(detail::RawFragmentHeader& header
 		<< " status_error=" << status.MPI_ERROR
 		<< " source=" << status.MPI_SOURCE
 		<< " tag=" << status.MPI_TAG
-		<< " Fragment_sequenceID=" << header.sequence_id
+		<< " Fragment_sequenceID=" << (uint64_t)header.sequence_id
 		<< " Fragment_size=" << header.word_count
 		<< " fragID=" << header.fragment_id << TLOG_ENDL;
 	}

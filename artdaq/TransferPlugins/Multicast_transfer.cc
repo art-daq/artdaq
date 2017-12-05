@@ -562,7 +562,6 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	TLOG_DEBUG(uniqueLabel()) << "After attempted change, receive buffer size is now " << actual_recv_buff_size.value() << TLOG_ENDL;
 }
 
-
 #pragma GCC diagnostic pop
 
 DEFINE_ARTDAQ_TRANSFER(artdaq::MulticastTransfer)
