@@ -86,7 +86,7 @@ namespace artdaq
 
 		/**
 		 * \brief CommandableFragmentGenerator default constructor
-		 * 
+		 *
 		 * This constructor defalt-initializes all parameters
 		 */
 		CommandableFragmentGenerator();
@@ -94,7 +94,7 @@ namespace artdaq
 		/**
 		 * \brief CommandableFragmentGenerator Constructor
 		 * \param ps ParameterSet used to configure CommandableFragmentGenerator
-		 * 
+		 *
 		 * \verbatim
 		 * CommandableFragmentGenerator accepts the following Parameters:
 		 * "request_port" (Default: 3001): Port on which data requests will be received
@@ -129,7 +129,7 @@ namespace artdaq
 
 		/**
 		 * \brief CommandableFragmentGenerator Destructor
-		 * 
+		 *
 		 * Joins all threads before returning
 		 */
 		virtual ~CommandableFragmentGenerator();
@@ -140,6 +140,35 @@ namespace artdaq
 		 * \return Whether getNext completed without exceptions
 		 */
 		bool getNext(FragmentPtrs& output) override final;
+
+
+		/// <summary>
+		/// Create fragments using data buffer for request mode Ignored.
+		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+		/// </summary>
+		/// <param name="frags">Ouput fragments</param>
+		void applyRequestsIgnoredMode(artdaq::FragmentPtrs& frags);
+
+		/// <summary>
+		/// Create fragments using data buffer for request mode Single.
+		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+		/// </summary>
+		/// <param name="frags">Ouput fragments</param>
+		void applyRequestsSingleMode(artdaq::FragmentPtrs& frags);
+
+		/// <summary>
+		/// Create fragments using data buffer for request mode Buffer.
+		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+		/// </summary>
+		/// <param name="frags">Ouput fragments</param>
+		void applyRequestsBufferMode(artdaq::FragmentPtrs& frags);
+
+		/// <summary>
+		/// Create fragments using data buffer for request mode Window.
+		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+		/// </summary>
+		/// <param name="frags">Ouput fragments</param>
+		void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
 
 		/**
 		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
@@ -191,6 +220,12 @@ namespace artdaq
 		void getDataLoop();
 
 		/**
+		 * \brief Wait for the data buffer to drain (dataBufferIsTooLarge returns false), periodically reporting status.
+		 * \return True if wait ended without something else disrupting the run
+		 */
+		bool waitForDataBufferReady();
+
+		/**
 		 * \brief Test the configured constraints on the data buffer
 		 * \return Whether the data buffer is full
 		 */
@@ -236,7 +271,7 @@ namespace artdaq
 		 * \param run Run ID of the new run
 		 * \param timeout Timeout for transition
 		 * \param timestamp Timestamp of transition
-		 * 
+		 *
 		 * After a call to 'StartCmd', all Fragments returned by getNext()
 		 * will be marked as part of a Run with the given run number, and
 		 * with subrun number 1. Calling StartCmd also resets the event
@@ -251,7 +286,7 @@ namespace artdaq
 		 * \brief Stop the CommandableFragmentGenerator
 		 * \param timeout Timeout for transition
 		 * \param timestamp Timestamp of transition
-		 * 
+		 *
 		 * After a call to StopCmd(), getNext() will eventually return
 		 * false. This may not happen for several calls, if the
 		 * implementation has data to be 'drained' from the system.
@@ -262,7 +297,7 @@ namespace artdaq
 		 * \brief Pause the CommandableFragmentGenerator
 		 * \param timeout Timeout for transition
 		 * \param timestamp Timestamp of transition
-		 * 
+		 *
 		 * A call to PauseCmd() is advisory. It is an indication that the
 		 * BoardReader should stop the incoming flow of data, if it can do
 		 * so.
@@ -273,7 +308,7 @@ namespace artdaq
 		 * \brief Resume the CommandableFragmentGenerator
 		 * \param timeout Timeout for transition
 		 * \param timestamp Timestamp of transition
-		 * 
+		 *
 		 * After a call to ResumeCmd(), the next Fragments returned from
 		 * getNext() will be part of a new SubRun.
 		 */
@@ -283,7 +318,7 @@ namespace artdaq
 		 * \brief Get a report about a user-specified run-time quantity
 		 * \param which Which quantity to report
 		 * \return The report about the specified quantity
-		 * 
+		 *
 		 * CommandableFragmentGenerator only implements "latest_exception",
 		 * a report on the last exception received. However, child classes
 		 * can override the reportSpecific function to provide additional
@@ -450,7 +485,7 @@ namespace artdaq
 		bool missing_request_;
 		std::chrono::steady_clock::time_point missing_request_time_;
 		std::chrono::steady_clock::time_point last_window_send_time_;
-	        bool last_window_send_time_set_;
+		bool last_window_send_time_set_;
 		size_t missing_request_window_timeout_us_;
 		size_t window_close_timeout_us_;
 
