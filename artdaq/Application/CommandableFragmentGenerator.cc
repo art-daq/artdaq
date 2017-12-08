@@ -913,6 +913,8 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
 			<< " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
 		sendEmptyFragments(frags);
+
+		missing_request_ = false;
 	}
 	for (auto req = requests_.begin(); req != requests_.end();)
 	{
