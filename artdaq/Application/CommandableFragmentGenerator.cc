@@ -915,6 +915,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		sendEmptyFragments(frags);
 
 		missing_request_ = false;
+		missing_request_time_ = decltype(missing_request_time_)::max();
 	}
 	for (auto req = requests_.begin(); req != requests_.end();)
 	{
