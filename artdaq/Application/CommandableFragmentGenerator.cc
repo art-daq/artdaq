@@ -20,6 +20,7 @@
 #include <iterator>
 #include <iostream>
 #include <iomanip>
+#include <algorithm>
 #include <sys/poll.h>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
@@ -906,17 +907,28 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		last_window_send_time_set_ = true;
 	}
 
-	if (missing_request_ && static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - missing_request_time_).count()) > missing_request_window_timeout_us_)
+	bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(), 
+						    [this](decltype(requests_)::value_type& request){ 
+						      return request.first == ev_counter(); });
 
-	{
-		TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - missing_request_time_).count() << " us "
-			<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
-			<< " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
-		sendEmptyFragments(frags);
+	if (missing_request_) {
+	  if (!now_have_desired_request && static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - missing_request_time_).count()) > missing_request_window_timeout_us_)
 
-		missing_request_ = false;
-		missing_request_time_ = decltype(missing_request_time_)::max();
+	    {
+	      TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - missing_request_time_).count() << " us "
+							 << "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
+							 << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
+	      sendEmptyFragments(frags);
+
+	      missing_request_ = false;
+	      missing_request_time_ = decltype(missing_request_time_)::max();
+	    }
+	  else if (now_have_desired_request) {
+	    missing_request_ = false;
+	    missing_request_time_ = decltype(missing_request_time_)::max();
+	  }
 	}
+
 	for (auto req = requests_.begin(); req != requests_.end();)
 	{
 		auto ts = req->second;
@@ -930,15 +942,14 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			sendEmptyFragment(frags, ev_counter(), "Missing request for");
 			ev_counter_inc(1, true);
 		}
-		if (req->first > ev_counter())
+		if (!now_have_desired_request)
 		{
-			if (!missing_request_)
+			if (req->first > ev_counter() && !missing_request_)
 			{
 				missing_request_ = true;
 				missing_request_time_ = std::chrono::steady_clock::now();
 			}
-			++req;
-			break; // We're missing the correct request
+			break; 
 		}
 		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Checking that data exists for request window " << std::to_string(req->first) << TLOG_ENDL;
 		Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
