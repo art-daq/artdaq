@@ -46,7 +46,7 @@ class LoggerIO
 	@fileHandle = nil
 	
 	@maxFiles = 9
-	@maxFileSize = 1048576
+	@maxFileSize = 1000000000000000    # A Very Big Number
 	
 	self.openFile(@logPath)
   end

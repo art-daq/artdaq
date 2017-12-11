@@ -616,6 +616,13 @@ namespace artdaq
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		TLOG_DEBUG("EventStore") << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str << TLOG_ENDL;
+
+		for (size_t i_req = 0; i_req < message.size(); ++i_req) {
+		  TLOG_ARB(11, "EventStore") << "Sending request to multicast group " << str <<
+                    " for sequence ID == " << (message.buffer() + i_req)->sequence_id << ", timestamp == " <<
+                    (message.buffer() + i_req)->timestamp << TLOG_ENDL;
+                }
+
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
 			TLOG_ERROR("EventStore") << "Error sending request message header" << TLOG_ENDL;
