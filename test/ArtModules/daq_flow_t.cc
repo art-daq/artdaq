@@ -1,45 +1,50 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
-#include "artdaq/DAQrate/EventStore.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "cetlib/exception.h"
-#include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq/Application/LoadParameterSet.hh"
 
 #include <cstddef>
 #include <iostream>
 #include <string>
 #include <vector>
 
-using artdaq::EventStore;
 using artdaq::FragmentPtrs;
 using artdaq::GenericFragmentSimulator;
-using fhicl::ParameterSet;
+using artdaq::SharedMemoryEventManager;
 using std::size_t;
 
 
 int main(int argc, char* argv[])
 {
+	auto pset = LoadParameterSet(argc, argv);
 	artdaq::MPISentry mpiSentry(&argc, &argv);
 	int rc = -1;
 	try
 	{
 		size_t const NUM_FRAGS_PER_EVENT = 5;
-		EventStore::run_id_t const RUN_ID = 2112;
+		SharedMemoryEventManager::run_id_t const RUN_ID = 2112;
 		size_t const NUM_EVENTS = 100;
-		// We may want to add ParameterSet parsing to this code, but right
-		// now this will do...
-		ParameterSet sim_config;
-		sim_config.put("fragments_per_event", NUM_FRAGS_PER_EVENT);
-		sim_config.put("run_number", RUN_ID);
-		sim_config.put("print_event_store_stats", true);
-		sim_config.put("event_queue_wait_time", 10.0);
+		pset.put("expected_fragments_per_event", NUM_FRAGS_PER_EVENT);
+		pset.put("run_number", RUN_ID);
+		pset.put("print_event_store_stats", true);
+		pset.put("event_queue_wait_time", 10.0);
+		pset.put("max_event_size_bytes", 0x100000);
+		pset.put("buffer_count", 10);
+
+		auto temp = pset.to_string() + " source.waiting_time: 10";
+		pset = fhicl::ParameterSet();
+		fhicl::make_ParameterSet(temp, pset);
 		// Eventually, this test should make a mixed-up streams of
 		// Fragments; this has too clean a pattern to be an interesting
 		// test of the EventStore's ability to deal with multiple events
 		// simulatenously.
-		GenericFragmentSimulator sim(sim_config);
-		EventStore events(sim_config, NUM_FRAGS_PER_EVENT, RUN_ID, argc, argv, &artapp);
+		GenericFragmentSimulator sim(pset);
+		SharedMemoryEventManager events(pset, pset);
+		events.startRun(RUN_ID);
 		FragmentPtrs frags;
 		size_t event_count = 0;
 		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
@@ -49,15 +54,20 @@ int main(int argc, char* argv[])
 			for (auto&& frag : frags)
 			{
 				assert(frag != nullptr);
-				events.insert(std::move(frag));
+				artdaq::FragmentPtr tempFrag;
+				auto sts = events.AddFragment(std::move(frag), 1000000, tempFrag);
+				if (!sts)
+				{
+					TLOG_ERROR("daq_flow_t") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+					exit(1);
+				}
 			}
 		}
 
-		int readerReturnValue;
-		bool endSucceeded = events.endOfData(readerReturnValue);
+		bool endSucceeded = events.endOfData();
 		if (endSucceeded)
 		{
-			rc = readerReturnValue;
+			rc = 0;
 		}
 		else
 		{

@@ -20,7 +20,7 @@ project(artdaq)
 # cetbuildtools contains our cmake modules
 SET ( CETBUILDTOOLS_VERSION $ENV{CETBUILDTOOLS_VERSION} )
 IF (NOT CETBUILDTOOLS_VERSION)
-    MESSAGE (FATAL_ERROR "ERROR: setup cetbuildtools to get the cmake modules")
+	MESSAGE (FATAL_ERROR "ERROR: setup cetbuildtools to get the cmake modules")
 ENDIF()
 
 set(CMAKE_MODULE_PATH
@@ -54,7 +54,7 @@ find_ups_boost(v1_53_0)
 find_ups_product (cetbuildtools v4_09_02)
 find_ups_product( TRACE v3_03_00 )
 find_ups_product( art v1_08_10 )
-   find_ups_product( canvas v1_00_00 )
+find_ups_product( canvas v1_00_00 )
 find_ups_product( artdaq_core v1_03_01 )
 find_ups_product( artdaq_utilities v1_00_00)
 find_ups_product( cetlib v1_08_00 )
@@ -117,7 +117,7 @@ find_library( XMLRPC_UTIL NAMES xmlrpc_util PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFA
 find_library( XMLRPC_UTILPP NAMES xmlrpc_util++ PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
 # XMLRPC_UTILPP is new to v1_39_07:
 if(NOT XMLRPC_UTILPP)
-    set(XMLRPC_UTILPP "")
+	set(XMLRPC_UTILPP "")
 endif()
 find_library( XMLRPC_XMLPARSE NAMES xmlrpc_xmlparse PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
 find_library( XMLRPC_XMLTOK NAMES xmlrpc_xmltok PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )

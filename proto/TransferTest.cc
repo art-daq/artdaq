@@ -1,14 +1,12 @@
 #include "proto/TransferTest.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQrate/DataReceiverManager.hh"
+#include "proto/FragmentReceiverManager.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
 
 #include "fhiclcpp/make_ParameterSet.h"
-
-#define TRACE_NAME "TransferTest"
 
 artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	: senders_(psi.get<int>("num_senders"))
@@ -87,6 +85,7 @@ int artdaq::TransferTest::runTest()
 	TLOG_ARB(11, "TransferTest") << "runTest BEGIN" << TLOG_ENDL;
 	start_time_ = std::chrono::steady_clock::now();
 	std::pair<size_t, double> result;
+	if (my_rank >= senders_ + receivers_) return 0;
 	if (my_rank < senders_)
 	{
 		result = do_sending();
@@ -162,14 +161,14 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 		frag = artdaq::Fragment(data_size_wrds); // replace/renew
 		if (validate_mode_)
 		{
-			artdaq::RawDataType gen_seed = 0;
+			artdaq::RawDataType gen_seed = ii + 1;
 
 			std::generate_n(frag.dataBegin(), data_size_wrds, [&]() {	return ++gen_seed; });
-			for (size_t ii = 0; ii < frag.dataSize(); ++ii)
+			for (size_t jj = 0; jj < frag.dataSize(); ++jj)
 			{
-				if (*(frag.dataBegin() + ii) != ii + 1)
+				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
 				{
-					TLOG_ERROR("TransferTest") << "Data corruption detected! (" << std::to_string(*(frag.dataBegin() + ii)) << " != " << std::to_string(ii + 1) << ") Aborting!" << TLOG_ENDL;
+					TLOG_ERROR("TransferTest") << "Input Data corruption detected! (" << std::to_string(*(frag.dataBegin() + jj)) << " != " << std::to_string(ii + jj + 2) << " at position " << ii << ") Aborting!" << TLOG_ENDL;
 					exit(1);
 				}
 			}
@@ -202,7 +201,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 {
 	TLOG_ARB(7, "TransferTest") << "do_receiving entered" << TLOG_ENDL;
-	artdaq::DataReceiverManager receiver(ps_);
+
+	artdaq::FragmentReceiverManager receiver(ps_);
 	receiver.start_threads();
 	int counter = receives_each_receiver_;
 	size_t totalSize = 0;
@@ -243,16 +243,17 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 					first = false;
 				}
 				counter--;
-				TLOG_TRACE("TransferTest") << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter << " with seqID " << std::to_string(ignoreFragPtr->sequenceID()) << " from Sender " << senderSlot << " (expecting " << counter << " more)" << TLOG_ENDL;
+				TLOG_INFO("TransferTest") << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter
+					<< " with seqID " << std::to_string(ignoreFragPtr->sequenceID()) << " from Sender " << senderSlot << " (Expecting " << counter << " more)" << TLOG_ENDL;
 				thisSize = ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
 				totalSize += thisSize;
 				if (validate_mode_)
 				{
 					for (size_t ii = 0; ii < ignoreFragPtr->dataSize(); ++ii)
 					{
-						if (*(ignoreFragPtr->dataBegin() + ii) != ii + 1)
+						if (*(ignoreFragPtr->dataBegin() + ii) != ignoreFragPtr->sequenceID() + ii + 1)
 						{
-							TLOG_ERROR("TransferTest") << "Data corruption detected! (" << std::to_string(*(ignoreFragPtr->dataBegin() + ii)) << " != " << std::to_string(ii + 1) << ") Aborting!" << TLOG_ENDL;
+							TLOG_ERROR("TransferTest") << "Output Data corruption detected! (" << std::to_string(*(ignoreFragPtr->dataBegin() + ii)) << " != " << std::to_string(ignoreFragPtr->sequenceID() + ii + 1) << " at position " << ii << ") Aborting!" << TLOG_ENDL;
 							exit(1);
 						}
 					}

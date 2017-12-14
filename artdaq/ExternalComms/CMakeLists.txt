@@ -6,12 +6,20 @@
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ExternalComms
   LIB_LIBRARIES artdaq_Application
+  EXCLUDE xmlrpc_commander.cc
+  NO_PLUGINS
   ${ART_UTILITIES}
   ${FHICLCPP}
   ${CETLIB}
+)
+
+simple_plugin(xmlrpc "commander"
+  artdaq_ExternalComms
   ${XMLRPC_SERVER_ABYSSPP}
   ${XMLRPC_SERVER_ABYSS}
   ${XMLRPC_SERVERPP}
+  ${XMLRPC_CLIENT}
+  ${XMLRPC_CLIENTPP}
   ${XMLRPC_SERVER}
   ${XMLRPC_ABYSS}
   ${XMLRPCPP}

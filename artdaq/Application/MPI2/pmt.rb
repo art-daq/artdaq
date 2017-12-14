@@ -489,10 +489,10 @@ class PMT
 
 	  # Aggregators
 	  ## DataLogger
-	  initResource(root.elements["dataLogger"], "AggregatorMain", portNumber + 1)
+	  initResource(root.elements["dataLogger"], "DataLoggerMain", portNumber + 1)
 	  
 	  ## OnlineMonitor
-	  initResource(root.elements["onlineMonitor"], "AggregatorMain", portNumber + 2)
+	  initResource(root.elements["onlineMonitor"], "DispatcherMain", portNumber + 2)
  
 	end
 	

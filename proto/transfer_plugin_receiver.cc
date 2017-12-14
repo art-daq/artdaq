@@ -21,7 +21,7 @@
 // normal in that this function is unlikely to be changed, and this is
 // a standalone app (not part of artdaq)
 
-fhicl::ParameterSet ReadParameterSet(const std::string fhicl_filename)
+fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 {
 	if (std::getenv("FHICL_FILE_PATH") == nullptr)
 	{

@@ -24,21 +24,20 @@
 #include <iostream>
 #include <memory>
 #include <utility>
-#include "artdaq/Application/AggregatorApp.hh"
-#include "artdaq/ExternalComms/xmlrpc_commander.hh"
+#include "artdaq/Application/DataLoggerApp.hh"
+#include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 
 int main(int argc, char * argv[])
 {
 	std::ostringstream descstr;
 	descstr << argv[0]
-		<< " <-p <port-number>> <-r <rank>> [-n <name>] [-c <config-file>]";
+		<< "<-r <rank>> <-c <config-file>>";
 	boost::program_options::options_description desc(descstr.str());
 	desc.add_options()
 		("config,c", boost::program_options::value<std::string>(), "Configuration file.")
 		("rank,r", boost::program_options::value<int>(), "Process Rank")
-		("port,p", boost::program_options::value<unsigned short>(), "Port number")
-		("name,n", boost::program_options::value<std::string>(), "Application Nickname")
 		("help,h", "produce help message");
 	boost::program_options::variables_map vm;
 	try {
@@ -54,13 +53,7 @@ int main(int argc, char * argv[])
 		std::cout << desc << std::endl;
 		return 1;
 	}
-
-	if (!vm.count("port"))
-	{
-		TLOG_ERROR("Option") << argv[0] << " port number not supplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << TLOG_ENDL;
-		return 1;
-	}
-
+	
 	if (!vm.count("rank"))
 	{
 		TLOG_ERROR("Option") << argv[0] << " rank not supplied" << std::endl << "For usage and an options list, please do '" << argv[0] << " --help'" << TLOG_ENDL;
@@ -68,46 +61,39 @@ int main(int argc, char * argv[])
 	}
 	auto rank = vm["rank"].as<int>();
 
-	std::string name = "Aggregator";
-	if (vm.count("name"))
-	{
-		name = vm["name"].as<std::string>();
-		TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
-	}
 
-	artdaq::setMsgFacAppName(name, vm["port"].as<unsigned short>());
+	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
+
+
+
+	std::string name = config.get<std::string>("application_name", "DataLogger");
+	TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
+
 	TLOG_DEBUG(name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
-	// create the AggregatorApp
-	artdaq::AggregatorApp agg_app(rank, name);
+	artdaq::setMsgFacAppName(name, config.get<int>("id"));
 
-	if (vm.count("config")) {
-		fhicl::ParameterSet pset;
-		if (getenv("FHICL_FILE_PATH") == nullptr) {
-			std::cerr
-				<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
-			setenv("FHICL_FILE_PATH", ".", 0);
-		}
-		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-		make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+	// create the DataLoggerApp
+	artdaq::DataLoggerApp dl_app(rank, name);
 
-		int run = pset.get<int>("run_number", 101);
-		uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
-		uint64_t timestamp = 0;
 
-		agg_app.do_initialize(pset, timeout, timestamp);
-		agg_app.do_start(art::RunID(run), timeout, timestamp);
+	int run = config.get<int>("run_number", 101);
+	uint64_t timeout = config.get<uint64_t>("transition_timeout", 30);
+	uint64_t timestamp = 0;
 
-		TLOG_INFO(name) << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
-			<< "xmlrpc http://`hostname`:" << vm["port"].as<unsigned short>() << "/RPC2 daq.stop" << std::endl
-			<< "xmlrpc http://`hostname`:" << vm["port"].as<unsigned short>() << "/RPC2 daq.shutdown" << TLOG_ENDL;
-	}
+	dl_app.do_initialize(config, timeout, timestamp);
+	dl_app.do_start(art::RunID(run), timeout, timestamp);
 
-	// create the xmlrpc_commander and run it
-	artdaq::xmlrpc_commander commander(vm["port"].as<unsigned short>(), agg_app);
-	commander.run();
+	TLOG_INFO(name) << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
+		<< "xmlrpc http://`hostname`:" << vm["port"].as<unsigned short>() << "/RPC2 daq.stop" << std::endl
+		<< "xmlrpc http://`hostname`:" << vm["port"].as<unsigned short>() << "/RPC2 daq.shutdown" << TLOG_ENDL;
 
+
+
+	auto commander = artdaq::MakeCommanderPlugin(config, dl_app);
+	commander->run_server();
+	
 }

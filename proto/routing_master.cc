@@ -1,5 +1,5 @@
 #include "MPIProg.hh"
-#include "artdaq/Application/Routing/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
 #include "cetlib/filepath_maker.h"
@@ -46,7 +46,7 @@ public:
 	 * \brief Create a lock file with the given path
 	 * \param path Path to lock file
 	 */
-	explicit LockFile(std::string path) : fileName_(path)
+	explicit LockFile(std::string const& path) : fileName_(path)
 	{
 		std::ofstream fstream(fileName_);
 		fstream << "Locked" << std::endl;
@@ -64,7 +64,7 @@ public:
 	 * \param path Path to lock file
 	 * \return Whether the lock file exists, as determined by boost::filesystem
 	 */
-	static bool IsLocked(std::string path)
+	static bool IsLocked(std::string const& path)
 	{
 		return boost::filesystem::exists(path);
 	}
@@ -135,7 +135,6 @@ private:
 
 	fhicl::ParameterSet const pset_;
 	fhicl::ParameterSet const daq_pset_;
-	MPI_Comm local_group_comm_;
 	TestRole_t role_;
 
 	std::string routing_master_address_;
@@ -152,7 +151,6 @@ RoutingMasterTest::RoutingMasterTest(int argc, char* argv[]) :
 	MPIProg(argc, argv)
 	, pset_(getPset(argc, argv))
 	, daq_pset_(pset_.get<fhicl::ParameterSet>("daq"))
-	, local_group_comm_()
 	, routing_master_address_(daq_pset_.get<std::string>("routing_master_hostname", "localhost"))
 	, multicast_address_(daq_pset_.get<std::string>("table_update_address", "227.128.12.28"))
 	, token_port_(daq_pset_.get<int>("routing_token_port", 35555))
@@ -219,7 +217,7 @@ void RoutingMasterTest::go()
 		lock = std::make_unique<LockFile>("/tmp/routing_master_t.lock");
 	}
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
-	MPI_Comm_split(MPI_COMM_WORLD, static_cast<int>(role_), 0, &local_group_comm_);
+
 	switch (role_)
 	{
 	case TestRole_t::TABLE_RECEIVER:
@@ -265,7 +263,7 @@ void RoutingMasterTest::generate_tokens()
 		token_counter[rank] = 0;
 	}
 	while (sent_tokens < token_count_) {
-		int this_rank = eb_ranks_[rand() % eb_ranks_.size()];
+		int this_rank = eb_ranks_[seedAndRandom() % eb_ranks_.size()];
 		token_counter[this_rank]++;
 		artdaq::detail::RoutingToken token;
 		token.header = TOKEN_MAGIC;
@@ -294,7 +292,6 @@ void RoutingMasterTest::generate_tokens()
 		
 	}
 
-	MPI_Comm_free(&local_group_comm_);
 	TLOG_INFO("generate_tokens") << "Waiting at MPI_Barrier" << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 	TLOG_INFO("generate_tokens") << "Done with MPI_Barrier" << TLOG_ENDL;
@@ -423,7 +420,6 @@ void RoutingMasterTest::table_receiver()
 		}
 	}
 
-	MPI_Comm_free(&local_group_comm_);
 	TLOG_INFO("table_receiver") << "Waiting at MPI_Barrier" << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 	TLOG_INFO("table_receiver") << "Done with MPI_Barrier" << TLOG_ENDL;
@@ -434,7 +430,7 @@ void RoutingMasterTest::routing_master()
 	TLOG_DEBUG("routing_master") << "Init" << TLOG_ENDL;
 	printHost("routing_master");
 
-	auto app = std::make_unique<artdaq::RoutingMasterApp>(local_group_comm_, "RoutingMaster");
+	auto app = std::make_unique<artdaq::RoutingMasterApp>(MPI_COMM_WORLD, "RoutingMaster");
 
 	app->initialize(pset_, 0, 0);
 	app->do_start(art::RunID(1), 0, 0);
@@ -445,7 +441,6 @@ void RoutingMasterTest::routing_master()
 	TLOG_INFO("routing_master") << "Done with RoutingMasterCore::stop, calling shutdown" << TLOG_ENDL;
 	app->do_shutdown(0);
 	TLOG_INFO("routing_master") << "Done with RoutingMasterCore::shutdown" << TLOG_ENDL;
-	MPI_Comm_free(&local_group_comm_);
 }
 
 void RoutingMasterTest::printHost(const std::string& functionName) const

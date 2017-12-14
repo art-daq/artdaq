@@ -6,41 +6,61 @@
 #define artdaq_ExternalComms_xmlrpc_commander_hh
 
 #include <mutex>
-#include "artdaq/Application/Commandable.hh"
+#include "artdaq/ExternalComms/CommanderInterface.hh"
 
 namespace artdaq
 {
-	class xmlrpc_commander;
-}
 
 /**
  * \brief The xmlrpc_commander class serves as the XMLRPC server run in each artdaq application
  */
-class artdaq::xmlrpc_commander
+class xmlrpc_commander : public CommanderInterface
 {
 public:
 	/**
 	 * \brief xmlrpc_commander Constructor
-	 * \param port Port to listen on
+	 * \param ps ParameterSet used for configuring xmlrpc_commander
 	 * \param commandable artdaq::Commandable object to send transition commands to
+	 *
+	 * \verbatim
+	  xmlrpc_commander accepts the following Parameters:
+	   id: For XMLRPC, the ID should be the port to listen on
+	   server_url: When sending, location of XMLRPC server
+	 * \endverbatim
 	 */
-	xmlrpc_commander(int port, artdaq::Commandable& commandable);
+	xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable);
 
 	/**
 	 * \brief Run the XMLRPC server
 	 */
-	void run();
+	void run_server() override;
+
+	/// <summary>
+	/// Send a register_monitor command over XMLRPC
+	/// </summary>
+	/// <param name="monitor_fhicl">FHiCL string contianing monitor configuration</param>
+	/// <returns>Return status from XMLRPC</returns>
+	std::string send_register_monitor(std::string monitor_fhicl) override;
+
+	/// <summary>
+	/// Send an unregister_monitor command over XMLRPC
+	/// </summary>
+	/// <param name="monitor_label">Label of the monitor to unregister</param>
+	/// <returns>Return status from XMLRPC</returns>
+	std::string send_unregister_monitor(std::string monitor_label) override;
 
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
 
 	xmlrpc_commander(xmlrpc_commander&&) = delete;
 
-	int _port;
+	int port_;
+	std::string serverUrl_;
 
 public:
-	artdaq::Commandable& _commandable; ///< The artdaq::Commandable object that this xmlrpc_commander sends commands to
 	std::mutex mutex_; ///< XMLRPC mutex
 };
+
+}
 
 #endif /* artdaq_ExternalComms_xmlrpc_commander_hh */

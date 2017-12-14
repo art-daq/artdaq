@@ -18,6 +18,7 @@ OR
 using std::list;
 #include "artdaq/TransferPlugins/detail/Timeout.hh"
 #include "artdaq/DAQdata/Globals.hh"				// TRACE
+#include "artdaq-core/Utilities/TimeUtils.hh"
 
 // public:
 
@@ -65,7 +66,7 @@ Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& functi
 	tmo.desc = desc;
 	tmo.tag = tag;
 	tmo.function = function;
-	tmo.tmo_tod_us = start_us ? start_us : gettimeofday_us() + period_us;
+	tmo.tmo_tod_us = start_us ? start_us : artdaq::TimeUtils::gettimeofday_us() + period_us;
 	tmo.period_us = period_us;
 	tmo.check = tmo.missed_periods = 0;
 	copy_in_timeout(tmo);
@@ -80,7 +81,7 @@ Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& functi
 	tmo.tag = tag;
 	tmo.function = function;
 	tmo.period_us = rel_ms * 1000;
-	tmo.tmo_tod_us = gettimeofday_us() + tmo.period_us;
+	tmo.tmo_tod_us = artdaq::TimeUtils::gettimeofday_us() + tmo.period_us;
 	tmo.check = tmo.missed_periods = 0;
 	copy_in_timeout(tmo);
 } // add_periodic
@@ -110,7 +111,7 @@ Timeout::add_relative(const char* desc, void* tag, std::function<void()>& functi
 	tmo.desc = desc;
 	tmo.tag = tag;
 	tmo.function = function;
-	tmo.tmo_tod_us = gettimeofday_us() + rel_ms * 1000;
+	tmo.tmo_tod_us = artdaq::TimeUtils::gettimeofday_us() + rel_ms * 1000;
 	tmo.period_us = 0;
 	tmo.missed_periods = tmo.check = 0;
 	copy_in_timeout(tmo);
@@ -125,7 +126,7 @@ Timeout::add_relative(std::string desc
 	tmo.tag = 0;
 	tmo.function = 0;
 	tmo.period_us = 0;
-	tmo.tmo_tod_us = gettimeofday_us() + rel_ms * 1000;
+	tmo.tmo_tod_us = artdaq::TimeUtils::gettimeofday_us() + rel_ms * 1000;
 	tmo.missed_periods = tmo.check = 0;
 	copy_in_timeout(tmo);
 } // add_periodic
@@ -137,7 +138,7 @@ Timeout::get_next_expired_timeout(std::string& desc, void** tag, std::function<v
 	int skipped = 0;
 	timeoutspec tmo;
 	TRACE( 15, "get_next_expired_timeout b4 get_clear_next_expired_timeout" );
-	skipped = get_clear_next_expired_timeout(tmo, gettimeofday_us());
+	skipped = get_clear_next_expired_timeout(tmo, artdaq::TimeUtils::gettimeofday_us());
 	if (skipped == -1)
 	{
 		TRACE( 18, "get_next_expired_timeout - get_clear_next_expired_timeout returned false" );
@@ -166,7 +167,7 @@ Timeout::get_next_timeout_delay(int64_t* delay_us)
 	else
 	{
 		TRACE( 17, "get_next_timeout_delay active_.size() != 0 %lu",active_time_size );
-		uint64_t tod_us = gettimeofday_us();
+		uint64_t tod_us = artdaq::TimeUtils::gettimeofday_us();
 		timeoutspec* tmo = &tmospecs_[(*(active_time_.begin())).second];
 		*delay_us = tmo->tmo_tod_us - tod_us;
 		if (*delay_us < 0)
@@ -207,14 +208,6 @@ Timeout::is_consistent()
 		if (tmospecs_[ii].check != 0) return false;
 	return (true);
 }
-
-uint64_t Timeout::gettimeofday_us()
-{
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return (uint64_t)tv.tv_sec * 1000000 + tv.tv_usec;
-}
-
 
 void
 Timeout::timeoutlist_init()

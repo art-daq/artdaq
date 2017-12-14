@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_Routing_RoutingPacket_hh
-#define artdaq_Application_Routing_RoutingPacket_hh
+#ifndef artdaq_DAQrate_detail_RoutingPacket_hh
+#define artdaq_DAQrate_detail_RoutingPacket_hh
 
 #include "artdaq-core/Data/Fragment.hh"
 
@@ -23,8 +23,8 @@ namespace artdaq
 		 */
 		enum class RoutingMasterMode : uint8_t
 		{
-			RouteBySequenceID,
-			RouteBySendCount,
+			RouteBySequenceID, ///< Events should be routed by sequence ID (BR -> EB)
+			RouteBySendCount, ///< Events should be routed by send count (EB -> Agg)
 			INVALID
 		};
 	}
@@ -60,7 +60,7 @@ struct artdaq::detail::RoutingPacketEntry
 struct artdaq::detail::RoutingPacketHeader
 {
 	uint32_t header; ///< Magic bytes to make sure the packet wasn't garbled
-	RoutingMasterMode mode;
+	RoutingMasterMode mode; ///< The current mode of the RoutingMaster
 	size_t nEntries; ///< The number of RoutingPacketEntries in the RoutingPacket
 
 	/**

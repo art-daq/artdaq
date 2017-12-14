@@ -12,9 +12,9 @@
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("transfer_driver_mpi");
-	TRACE(TLVL_TRACE, "s_r_handles main enter" );
+	TLOG_ARB(TLVL_TRACE, "transfer_driver_mpi") << "BEGIN" << TLOG_ENDL;
 	char envvar[] = "MV2_ENABLE_AFFINITY=0";
-	if(putenv(envvar) != 0)
+	if (putenv(envvar) != 0)
 	{
 		std::cerr << "Unable to set MV2_ENABLE_AFFINITY environment variable!";
 		return 1;
@@ -24,10 +24,10 @@ int main(int argc, char* argv[])
 	auto rc = MPI_Init_thread(&argc, &argv, requested_threading, &provided_threading);
 	assert(rc == 0);
 	assert(requested_threading == provided_threading);
-	TRACE(TLVL_TRACE, "MPI_Init_thread rc=%d", rc);
+	TLOG_ARB(TLVL_TRACE, "transfer_driver_mpi") << "MPI_Init_thread rc=" << std::to_string(rc) << TLOG_ENDL;
 	rc = MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 	assert(rc == 0);
-	TRACE(TLVL_TRACE, "MPI_Comm_rank rc=%d", rc);
+	TLOG_ARB(TLVL_TRACE, "transfer_driver_mpi")<< "MPI_Comm_rank rc=" << std::to_string(rc) << TLOG_ENDL;
 
 
 	if (my_rank == 0)
@@ -54,15 +54,15 @@ int main(int argc, char* argv[])
 	artdaq::TransferTest theTest(ps);
 
 	//std::cout << "Entering infinite loop to connect debugger. PID=" << std::to_string(getpid()) << std::endl;
-	// volatile bool loopForever = true;
-	// while (loopForever) {
-	// 	  usleep(1000);
-	// }
+	//volatile bool loopForever = true;
+	//while (loopForever) {
+	//	usleep(1000);
+	//}
 
 	theTest.runTest();
 
 	rc = MPI_Finalize();
 	assert(rc == 0);
-	TRACE(TLVL_TRACE, "s_r_handles main return" );
+	TLOG_ARB(TLVL_TRACE, "transfer_driver_mpi") << "END" << TLOG_ENDL;
 	return 0;
 }

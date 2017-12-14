@@ -1,7 +1,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 
 #include <sstream>
 

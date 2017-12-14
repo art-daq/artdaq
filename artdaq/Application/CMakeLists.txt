@@ -12,8 +12,11 @@ art_make_library( LIBRARY_NAME artdaq_Application
   BoardReaderCore.cc
   EventBuilderCore.cc
   EventBuilderApp.cc
-  AggregatorApp.cc
-  AggregatorCore.cc
+  DataLoggerApp.cc
+  DataLoggerCore.cc
+  DataReceiverCore.cc
+  DispatcherApp.cc
+  DispatcherCore.cc
   RoutingMasterApp.cc
   RoutingMasterCore.cc
   StatisticsHelper.cc

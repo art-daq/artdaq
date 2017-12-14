@@ -6,7 +6,7 @@
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("transfer_driver");
-	TRACE(10, "s_r_handles main enter");
+	TLOG_ARB(10, "transfer_driver") << "BEGIN" << TLOG_ENDL;
 
 	std::cout << "argc:" << argc << std::endl;
 	for (int i = 0; i < argc; ++i)
@@ -32,6 +32,6 @@ int main(int argc, char* argv[])
 	artdaq::TransferTest theTest(ps);
 	theTest.runTest();
 
-	TRACE(11, "s_r_handles main return");
+	TLOG_ARB(11, "transfer_driver") << "END" << TLOG_ENDL;
 	return 0;
 }

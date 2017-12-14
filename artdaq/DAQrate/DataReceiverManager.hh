@@ -13,11 +13,11 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
 namespace artdaq
 {
 	class DataReceiverManager;
-	class FragmentStoreElement;
 }
 
 /**
@@ -32,6 +32,7 @@ public:
 	/**
 	 * \brief DataReceiverManager Constructor
 	 * \param ps ParameterSet used to configure the DataReceiverManager
+	 * \param shm Pointer to SharedMemoryEventManager instance (destination for received data)
 	 *
 	 * \verbatim
 	 * DataReceiverManager accepts the following Parameters:
@@ -43,21 +44,13 @@ public:
 	 *   NOTE: "source_rank" MUST be specified (and unique) for each source!
 	 * \endverbatim
 	 */
-	explicit DataReceiverManager(const fhicl::ParameterSet& ps);
+	explicit DataReceiverManager(const fhicl::ParameterSet& ps, std::shared_ptr<SharedMemoryEventManager> shm);
 
 	/**
 	 * \brief DataReceiverManager Destructor
 	 */
 	virtual ~DataReceiverManager();
-
-	/**
-	 * \brief Receive a Fragment
-	 * \param[out] rank Rank of sender that sent the Fragment, or RECV_TIMEOUT
-	 * \param timeout_usec Timeout to wait for a Fragment to become ready
-	 * \return Pointer to received Fragment. May be nullptr if no Fragments are ready
-	 */
-	FragmentPtr recvFragment(int& rank, size_t timeout_usec = 0);
-
+	
 	/**
 	 * \brief Return the count of Fragment objects received by this DataReceiverManager
 	 * \return The count of Fragment objects received by this DataReceiverManager
@@ -89,136 +82,45 @@ public:
 	std::set<int> enabled_sources() const { return enabled_sources_; }
 
 	/**
-	 * \brief Suppress the given source
-	 * \param source Source rank to suppress
+	 * \brief Get the list of sources which are still receiving data
+	 * \return std::set containing ranks of sources which are still receiving data
 	 */
-	void suppress_source(int source);
+	std::set<int> running_sources() const { return running_sources_; }
 
 	/**
-	 * \brief Re-enable all sources
+	 * \brief Get a handle to the SharedMemoryEventManager connected to this DataReceiverManager
+	 * \return shared_ptr to SharedMemoryEventManager instance
 	 */
-	void unsuppressAll();
+	std::shared_ptr<SharedMemoryEventManager> getSharedMemoryEventManager() const { return shm_manager_; }
+
 
 	/**
-	 * \brief Place the given Fragment back in the FragmentStore (Called when the EventStore is full)
-	 * \param source_rank Rank from which the rejected Fragment came
-	 * \param frag Fragment to return to the store
-	 *
-	 * This function will automatically suppress source_rank
+	 * \brief Get a pointer to the FragCounter instance tracking the number of received Fragments
+	 * \return Pointer to the FragCounter instance tracking the number of recevied Fragments
 	 */
-	void reject_fragment(int source_rank, FragmentPtr frag);
+	std::shared_ptr<detail::FragCounter> GetReceivedFragmentCount() { return std::shared_ptr<detail::FragCounter>(&recv_frag_count_); }
 
 private:
 	void runReceiver_(int);
-
-	bool fragments_ready_() const;
-
-	int get_next_source_() const;
-
+		
 	std::atomic<bool> stop_requested_;
+	std::atomic<size_t> stop_requested_time_;
 
 	std::map<int, std::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
-	std::set<int> suppressed_sources_;
-
-	std::map<int, FragmentStoreElement> fragment_store_;
-
-	std::mutex input_cv_mutex_;
-	std::condition_variable input_cv_;
-	std::mutex output_cv_mutex_;
-	std::condition_variable output_cv_;
+	std::set<int> running_sources_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
 	detail::FragCounter recv_frag_size_; // Number of bytes received per source.
 	detail::FragCounter recv_seq_count_; // For counting sequence IDs
-	bool suppress_noisy_senders_;
-	size_t suppression_threshold_;
 
 	size_t receive_timeout_;
-};
+	size_t stop_timeout_ms_;
+	std::shared_ptr<SharedMemoryEventManager> shm_manager_;
 
-/**
- * \brief This class contains tracking information for all Fragment objects which have been received from a specific source
- *
- * This class was designed so that there could be a mutex for each source, instead of locking all sources whenever a
- * Fragment had to be retrieved. FragmentStoreElement is itself a container type, sorted by Fragment arrival time. It is a
- * modified queue, with only the first element accessible, but it allows elements to be added to either end (for rejected Fragments).
- */
-class artdaq::FragmentStoreElement
-{
-public:
-	/**
-	 * \brief FragmentStoreElement Constructor
-	 */
-	FragmentStoreElement()
-		: frags_()
-		, empty_(true)
-		, eod_marker_(-1)
-	{
-		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
-	}
-
-	/**
-	 * \brief Are any Fragment objects contained in this FragmentStoreElement?
-	 * \return Whether any Fragment objects are contained in this FragmentStoreElement
-	 */
-	bool empty() const
-	{
-		return empty_;
-	}
-
-	/**
-	 * \brief Add a Fragment to the front of the FragmentStoreElement
-	 * \param frag Fragment to add
-	 */
-	void emplace_front(FragmentPtr&& frag)
-	{
-		std::unique_lock<std::mutex> lk(mutex_);
-		frags_.emplace_front(std::move(frag));
-		empty_ = false;
-	}
-
-	/**
-	 * \brief Add a Fragment to the end of the FragmentStoreElement
-	 * \param frag Fragment to add
-	 */
-	void emplace_back(FragmentPtr&& frag)
-	{
-		std::unique_lock<std::mutex> lk(mutex_);
-		frags_.emplace_back(std::move(frag));
-		empty_ = false;
-	}
-
-	/**
-	 * \brief Remove the first Fragment from the FragmentStoreElement and return it
-	 * \return The first Fragment in the FragmentStoreElement
-	 */
-	FragmentPtr front()
-	{
-		std::unique_lock<std::mutex> lk(mutex_);
-		auto current_fragment = std::move(frags_.front());
-		frags_.pop_front();
-		empty_ = frags_.size() == 0;
-		return std::move(current_fragment);
-	}
-
-	/**
-	 * \brief Set the End-Of-Data marker value for this Receiver
-	 * \param eod Number of Receives expected for this receiver
-	 */
-	void SetEndOfData(size_t eod) { eod_marker_ = eod; }
-	/**
-	 * \brief Get the value of the End-Of-Data marker for this Receiver
-	 * \return The value of the End-Of-Data marker. Returns -1 (0xFFFFFFFFFFFFFFFF) if no EndOfData Fragments received
-	 */
-	size_t GetEndOfData() const { return eod_marker_; }
-
-private:
-	mutable std::mutex mutex_;
-	FragmentPtrs frags_;
-	std::atomic<bool> empty_;
-	size_t eod_marker_;
+	bool non_reliable_mode_enabled_;
+	size_t non_reliable_mode_retry_count_;
 };
 
 inline

@@ -131,24 +131,6 @@ public:
 	std::string status() const;
 
 	/**
-	 * \brief Virutal function which resets statistics
-	 * \param which Which stat to reset
-	 * \return True, unless which is "fail"
-	 */
-	virtual bool reset_stats(std::string const& which)
-	{
-		std::lock_guard<std::mutex> lk(primary_mutex_);
-		if (which == "fail")
-		{
-			return false;
-		}
-		else
-		{
-			return true;
-		}
-	}
-
-	/**
 	* \brief Perform the register_monitor action.
 	* \return A report on the status of the command
 	*

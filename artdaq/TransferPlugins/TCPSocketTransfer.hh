@@ -8,16 +8,10 @@
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
 // C Includes
-#include <sys/types.h>			// size_t
 #include <stdint.h>				// uint64_t
 #include <sys/uio.h>			// iovec
-#include <poll.h>				// struct pollfd
 
 // C++ Includes
-#include <vector>
-#include <map>
-#include <set>
-#include <vector>
 #include <thread>				// std::thread
 #include <condition_variable>
 
@@ -63,12 +57,20 @@ public:
 	virtual ~TCPSocketTransfer();
 
 	/**
-	* \brief Receive a Fragment using TCP
-	* \param[out] frag Received Fragment
-	* \param timeout_usec Timeout for receive, in microseconds
-	* \return Rank of sender or RECV_TIMEOUT
+	* \brief Receive a Fragment Header from the transport mechanism
+	* \param[out] header Received Fragment Header
+	* \param receiveTimeout Timeout for receive
+	* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 	*/
-	int receiveFragment(Fragment& frag, size_t timeout_usec = 0) override;
+	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
+
+	/**
+	* \brief Receive the body of a Fragment to the given destination pointer
+	* \param destination Pointer to memory region where Fragment data should be stored
+	* \param wordCount Number of RawDataType words to receive
+	* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	*/
+	int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
 
 	/**
 	* \brief Copy a Fragment to the destination. Same implementation as moveFragment, as TCP is always reliable
@@ -105,8 +107,6 @@ private:
 
 	SocketState state_;
 
-	Fragment frag;
-	uint8_t* buffer;
 	size_t offset;
 	int target_bytes;
 	size_t rcvbuf_;
@@ -135,9 +135,9 @@ private:
 private: // methods
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
 
-	CopyStatus sendFragment_(const void* buf, size_t bytes, size_t tmo);
+	CopyStatus sendData_(const void* buf, size_t bytes, size_t tmo);
 
-	CopyStatus sendFragment_(const struct iovec* iov, int iovcnt, size_t tmo);
+	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo);
 
 	// Thread to drive reconnect_ requests
 	void stats_connect_();

@@ -251,8 +251,8 @@ send_init_message()
                          auto I = std::begin(fhicl::ParameterSetRegistry::get()),
                                  E = std::end(fhicl::ParameterSetRegistry::get());
 #            else
-                 auto I = fhicl::ParameterSetRegistry::begin(),
-                 E = fhicl::ParameterSetRegistry::end();
+			 auto I = fhicl::ParameterSetRegistry::begin(),
+				 E = fhicl::ParameterSetRegistry::end();
 #            endif
                          I != E; ++I)
 		{
@@ -377,6 +377,11 @@ send_init_message()
         //  Send init message.
         //
 		art::ServiceHandle<NetMonTransportService> transport;
+		if (!transport.get())
+		{
+			TLOG_ERROR("RootMPIOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+			return;
+		}
 		TRACE(5, "RootMPIOutput: RootMPIOutput static send_init_message(): "
 		      "Sending the init message to "
 		      + std::to_string(transport->dataReceiverCount()) +
@@ -622,6 +627,11 @@ write(CONST_WRITE EventPrincipal& ep)
         //
         {
                 ServiceHandle<NetMonTransportService> transport;
+				if (!transport.get())
+				{
+					TLOG_ERROR("RootMPIOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+					return;
+				}
                 TRACE(5, "RootMPIOutput: RootMPIOutput::write(const EventPrincipal& ep): "
                         "Sending a message ...");
                 transport->sendMessage(ep.id().event(), artdaq::Fragment::DataFragmentType, msg);
@@ -734,6 +744,11 @@ writeRun(CONST_WRITE RunPrincipal& rp)
         //
         {
                 ServiceHandle<NetMonTransportService> transport;
+				if (!transport.get())
+				{
+					TLOG_ERROR("RootMPIOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+					return;
+}
                 TRACE(5, "RootMPIOutput: writeRun: sending a message ...");
                 transport->sendMessage(0, artdaq::Fragment::EndOfRunFragmentType, msg);
                 TRACE(5, "RootMPIOutput: writeRun: message sent.");
@@ -810,34 +825,34 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
                                 "phr: size: " + std::to_string(phr.size()));
                         for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
 #          endif
-                        {
-                                std::ostringstream OS;
-                                I->first.print(OS);
-                                TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-                                        "phr: id: '" + OS.str() + "'");
-                                OS.str("");
-                                TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-                                      "phr: data.size(): %zu",I->second.data().size() );
-                                if (I->second.data().size())
-                                {
-                                        I->second.data().back().id().print(OS);
-                                        TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-                                                "phr: data.back().id(): '"
-                                                + OS.str() + "'");
-                                }
-                        }
-                        if (!srp.aux().processHistoryID().isValid())
-                        {
-                                TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
-                                        "ProcessHistoryID: 'INVALID'");
-                        }
-                        else
-                        {
-                                std::ostringstream OS;
-                                srp.aux().processHistoryID().print(OS);
-                                TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: ProcessHistoryID: '"
-                                        + OS.str() + "'");
-                                OS.str("");
+			{
+				std::ostringstream OS;
+				I->first.print(OS);
+				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
+					"phr: id: '" + OS.str() + "'");
+				OS.str("");
+				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
+					  "phr: data.size(): %zu",I->second.data().size() );
+				if (I->second.data().size())
+				{
+					I->second.data().back().id().print(OS);
+					TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
+						"phr: data.back().id(): '"
+						+ OS.str() + "'");
+				}
+			}
+			if (!srp.aux().processHistoryID().isValid())
+			{
+				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
+					"ProcessHistoryID: 'INVALID'");
+			}
+			else
+			{
+				std::ostringstream OS;
+				srp.aux().processHistoryID().print(OS);
+				TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: ProcessHistoryID: '"
+					+ OS.str() + "'");
+				OS.str("");
 #              if ART_HEX_VERSION >= 0x20703
                                 ProcessHistory processHistory;
                                 ProcessHistoryRegistry::get(srp.aux().processHistoryID(),processHistory);
@@ -872,6 +887,11 @@ art::RootMPIOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
         //  Send message.
         //
 		ServiceHandle<NetMonTransportService> transport;
+		if (!transport.get())
+		{
+			TLOG_ERROR("RootMPIOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+			return;
+		}
 		TRACE(5, "RootMPIOutput: RootMPIOutput::writeSubRun: "
 		      "Sending the EndOfSubrun message to "
 		      + std::to_string(transport->dataReceiverCount())

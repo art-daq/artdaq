@@ -244,7 +244,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		TLOG_ARB(10, "CommandableFragmentGenerator") << "getNext: Checking whether to collect Monitoring Data" << TLOG_ENDL;
 		auto now = std::chrono::steady_clock::now();
 
-		if (std::chrono::duration_cast<std::chrono::microseconds>(now - lastMonitoringCall_).count() >= monitoringInterval_)
+		if (TimeUtils::GetElapsedTimeMicroseconds(lastMonitoringCall_, now) >= static_cast<size_t>(monitoringInterval_))
 		{
 			TLOG_ARB(10, "CommandableFragmentGenerator") << "getNext: Collecting Monitoring Data" << TLOG_ENDL;
 			isHardwareOK_ = checkHWStatus_();
@@ -343,8 +343,7 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 
 	if (!request_stop_requested_) return false;
 
-	auto dur = std::chrono::steady_clock::now() - request_stop_timeout_;
-	return  std::chrono::duration_cast<std::chrono::milliseconds>(dur).count() > static_cast<int>(end_of_run_timeout_ms_);// && requests_.size() == 0;
+	return TimeUtils::GetElapsedTimeMilliseconds(request_stop_timeout_) > end_of_run_timeout_ms_;// && requests_.size() == 0;
 }
 
 int artdaq::CommandableFragmentGenerator::fragment_id() const
@@ -570,11 +569,9 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			return;
 		}
 
-		auto startwait = std::chrono::steady_clock::now();
-
 		if (metricMan)
 		{
-			metricMan->sendMetric("Avg Data Acquisition Time", std::chrono::duration_cast<artdaq::TimeUtils::seconds>(startwait - startdata).count(), "s", 3, artdaq::MetricMode::Average);
+			metricMan->sendMetric("Avg Data Acquisition Time", TimeUtils::GetElapsedTime(startdata), "s", 3, artdaq::MetricMode::Average);
 		}
 
 		if (newDataBuffer_.size() == 0 && sleep_on_no_data_us_ > 0)
@@ -645,9 +642,9 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 			data_thread_running_ = false;
 			return false;
 		}
-		auto waittime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startwait).count();
+		auto waittime = TimeUtils::GetElapsedTimeMilliseconds(startwait);
 
-		if (first || (waittime != static_cast<int>(lastwaittime) && waittime % 1000 == 0))
+		if (first || (waittime != lastwaittime && waittime % 1000 == 0))
 		{
 			TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")" << TLOG_ENDL;
 			first = false;
@@ -749,7 +746,7 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 		TLOG_ARB(12, "CommandableFragmentGenerator") << "getMonitoringDataLoop: Determining whether to call checkHWStatus_" << TLOG_ENDL;
 
 		auto now = std::chrono::steady_clock::now();
-		if (std::chrono::duration_cast<std::chrono::microseconds>(now - lastMonitoringCall_).count() >= monitoringInterval_)
+		if (TimeUtils::GetElapsedTimeMicroseconds(lastMonitoringCall_, now) >= static_cast<size_t>(monitoringInterval_))
 		{
 			isHardwareOK_ = checkHWStatus_();
 			TLOG_ARB(12, "CommandableFragmentGenerator") << "getMonitoringDataLoop: isHardwareOK_ is now " << std::boolalpha << isHardwareOK_ << TLOG_ENDL;
@@ -907,27 +904,26 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		last_window_send_time_set_ = true;
 	}
 
-	bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(), 
-						    [this](decltype(requests_)::value_type& request){ 
-						      return request.first == ev_counter(); });
+       bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(), 
+                                                   [this](decltype(requests_)::value_type& request){ 
+                                                     return request.first == ev_counter(); });
 
-	if (missing_request_) {
-	  if (!now_have_desired_request && static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - missing_request_time_).count()) > missing_request_window_timeout_us_)
+       if (missing_request_) {
+         if (!now_have_desired_request &&  TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) > missing_request_window_timeout_us_)
 
-	    {
-	      TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - missing_request_time_).count() << " us "
-							 << "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
-							 << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
-	      sendEmptyFragments(frags);
+           {
+             TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
+                                                        << "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
+                                                        << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
+             sendEmptyFragments(frags);
 
-	      missing_request_ = false;
-	      missing_request_time_ = decltype(missing_request_time_)::max();
-	    }
-	  else if (now_have_desired_request) {
-	    missing_request_ = false;
-	    missing_request_time_ = decltype(missing_request_time_)::max();
-	  }
-	}
+             missing_request_ = false;
+             missing_request_time_ = decltype(missing_request_time_)::max();
+           }
+         else if (now_have_desired_request) {
+           missing_request_ = false;
+           missing_request_time_ = decltype(missing_request_time_)::max();
+         }
 
 	for (auto req = requests_.begin(); req != requests_.end();)
 	{
@@ -937,19 +933,20 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			req = requests_.erase(req);
 			continue;
 		}
-		while (req->first > ev_counter() && request_stop_requested_ && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - request_stop_timeout_).count() > 1)
+		while (req->first > ev_counter() && request_stop_requested_ && TimeUtils::GetElapsedTime(request_stop_timeout_) > 1)
 		{
 			sendEmptyFragment(frags, ev_counter(), "Missing request for");
 			ev_counter_inc(1, true);
 		}
-		if (!now_have_desired_request)
+		if (req->first > ev_counter())
 		{
-			if (req->first > ev_counter() && !missing_request_)
+			if (!missing_request_)
 			{
 				missing_request_ = true;
 				missing_request_time_ = std::chrono::steady_clock::now();
 			}
-			break; 
+			++req;
+			break; // We're missing the correct request
 		}
 		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Checking that data exists for request window " << std::to_string(req->first) << TLOG_ENDL;
 		Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
@@ -957,13 +954,13 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: min is " << std::to_string(min) << ", max is " << std::to_string(max)
 			<< " and last point in buffer is " << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (sz=" << std::to_string(dataBuffer_.size()) << ")" << TLOG_ENDL;
 		bool windowClosed = dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max;
-		bool windowTimeout = static_cast<size_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count()) > window_close_timeout_us_;
+		bool windowTimeout = TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) > window_close_timeout_us_;
 		if (windowTimeout)
 		{
 			TLOG_WARNING("CommandableFragmentGenerator") << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max)
 				<< ", buffer=" << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0))
 				<< " (if no buffer in memory, this is shown as a 0)). Time waiting: "
-				<< std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - last_window_send_time_).count() << " us "
+				<< TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) << " us "
 				<< "(> " << std::to_string(window_close_timeout_us_) << " us)." << TLOG_ENDL;
 		}
 		if (windowClosed || !data_thread_running_ || windowTimeout)
