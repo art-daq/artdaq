@@ -485,6 +485,7 @@ namespace artdaq
 		bool missing_request_;
 		std::chrono::steady_clock::time_point missing_request_time_;
 		std::chrono::steady_clock::time_point last_window_send_time_;
+
 		bool last_window_send_time_set_;
 		size_t missing_request_window_timeout_us_;
 		size_t window_close_timeout_us_;

@@ -20,6 +20,7 @@
 #include <iterator>
 #include <iostream>
 #include <iomanip>
+#include <algorithm>
 #include <sys/poll.h>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
@@ -648,7 +649,7 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 			TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")" << TLOG_ENDL;
 			first = false;
 		}
-		if (waittime % 5 && waittime != lastwaittime)
+		if (waittime % 5 && waittime != static_cast<int>(lastwaittime))
 		{
 			TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: Data Retreival paused for " << std::to_string(waittime) << " ms waiting for data buffer to drain" << TLOG_ENDL;
 		}
@@ -903,13 +904,27 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		last_window_send_time_set_ = true;
 	}
 
-	if (missing_request_ && TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) > missing_request_window_timeout_us_)
-	{
-		TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
-			<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
-			<< " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
-		sendEmptyFragments(frags);
-	}
+       bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(), 
+                                                   [this](decltype(requests_)::value_type& request){ 
+                                                     return request.first == ev_counter(); });
+
+       if (missing_request_) {
+         if (!now_have_desired_request &&  TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) > missing_request_window_timeout_us_)
+
+           {
+             TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
+                                                        << "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
+                                                        << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
+             sendEmptyFragments(frags);
+
+             missing_request_ = false;
+             missing_request_time_ = decltype(missing_request_time_)::max();
+           }
+         else if (now_have_desired_request) {
+           missing_request_ = false;
+           missing_request_time_ = decltype(missing_request_time_)::max();
+         }
+
 	for (auto req = requests_.begin(); req != requests_.end();)
 	{
 		auto ts = req->second;
