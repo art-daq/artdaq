@@ -649,7 +649,7 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 			TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")" << TLOG_ENDL;
 			first = false;
 		}
-		if (waittime % 5 && waittime != static_cast<int>(lastwaittime))
+		if (waittime % 5 && waittime != lastwaittime)
 		{
 			TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: Data Retreival paused for " << std::to_string(waittime) << " ms waiting for data buffer to drain" << TLOG_ENDL;
 		}
