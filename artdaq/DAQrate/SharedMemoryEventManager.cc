@@ -51,7 +51,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	{
 		buffer_writes_pending_[ii] = 0;
 	}
-	requests_.SendRoutingToken(size());
+	//requests_.SendRoutingToken(size());
 
 	if (!IsValid()) throw cet::exception("SharedMemoryEventManager") << "Unable to attach to Shared Memory!";
 
