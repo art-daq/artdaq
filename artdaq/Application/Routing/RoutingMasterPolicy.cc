@@ -26,7 +26,7 @@ void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_
 		for (unsigned i = 0; i < new_slots_free; ++i)
 		{
 			auto it = tokens_.begin();
-			std::advance(it, rand() % tokens_.size());
+			if(tokens_.size()) std::advance(it, rand() % tokens_.size());
 			tokens_.insert(it, rank);
 		}
 	}
