@@ -904,26 +904,27 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		last_window_send_time_set_ = true;
 	}
 
-       bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(), 
-                                                   [this](decltype(requests_)::value_type& request){ 
-                                                     return request.first == ev_counter(); });
+	bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(),
+												[this](decltype(requests_)::value_type& request) {
+		return request.first == ev_counter(); });
 
-       if (missing_request_) {
-         if (!now_have_desired_request &&  TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) > missing_request_window_timeout_us_)
+	if (missing_request_)
+	{
+		if (!now_have_desired_request &&  TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) > missing_request_window_timeout_us_)
+		{
+			TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
+				<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
+				<< " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
+			sendEmptyFragments(frags);
 
-           {
-             TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
-                                                        << "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
-                                                        << " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
-             sendEmptyFragments(frags);
-
-             missing_request_ = false;
-             missing_request_time_ = decltype(missing_request_time_)::max();
-           }
-         else if (now_have_desired_request) {
-           missing_request_ = false;
-           missing_request_time_ = decltype(missing_request_time_)::max();
-         }
+			missing_request_ = false;
+			missing_request_time_ = decltype(missing_request_time_)::max();
+		}
+		else if (now_have_desired_request) {
+			missing_request_ = false;
+			missing_request_time_ = decltype(missing_request_time_)::max();
+		}
+	}
 
 	for (auto req = requests_.begin(); req != requests_.end();)
 	{
