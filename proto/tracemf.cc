@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 		auto start = std::chrono::steady_clock::now();
 		for (size_t l = 0; l < loops; ++l)
 		{
-			TRACE_(TLVL_DEBUG, "Test TRACE_ with an int " << 42 << " and a float %.1f", 5.56);
+			TRACEN_( "tracemf", TLVL_DEBUG, "Test TRACE_ with an int " << 42 << " and a float %.1f", 5.56);
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACE_ test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 		auto start = std::chrono::steady_clock::now();
 		for (size_t l = 0; l < loops; ++l)
 		{
-			TRACE_STREAMER(TLVL_DEBUG, "tracemf", 0) << "Test TRACE_STREAMER with an int " << 42 << " and a float " << std::fixed << std::setprecision(1) << 5.56 << TRACE_ENDL;
+			TRACE_STREAMER(TLVL_DEBUG, "tracemf", 0,0) << "Test TRACE_STREAMER with an int " << 42 << " and a float " << std::fixed << std::setprecision(1) << 5.56 << TRACE_ENDL;
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACE_STREAMER test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;

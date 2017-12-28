@@ -413,7 +413,7 @@ void RoutingMasterTest::table_receiver()
 				ack.first_sequence_id = first;
 				ack.last_sequence_id = last;
 
-				TLOG_DEBUG("table_receiver") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << routing_master_address_ << ", port " << ack_port_ << TLOG_ENDL
+				TLOG_DEBUG("table_receiver") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << routing_master_address_ << ", port " << ack_port_ << TLOG_ENDL;
 				sendto(ack_socket, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr, sizeof(ack_addr));
 				current_sequence_id = last;
 			}

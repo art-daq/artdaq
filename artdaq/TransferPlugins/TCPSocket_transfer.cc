@@ -342,7 +342,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 		usleep(1000);
 	}
 
-	TRACE_(7, "TCPSocketTransfer::sendFragment returning kSuccess");
+	TRACE(7, "TCPSocketTransfer::sendFragment returning kSuccess");
 	return sts;
 }
 
