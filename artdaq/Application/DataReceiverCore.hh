@@ -140,7 +140,7 @@ protected:
 	std::string name_; ///< Name of this DataReceiverCore instance
 
 	std::unique_ptr<DataReceiverManager> receiver_ptr_; ///< Pointer to the DataReceiverManager
-	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_; ///< Pointer to the SharedMemoryEventManager (art)
+	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_; ///< Pointer to the SharedMemoryEventManager
 	std::atomic<bool> stop_requested_; ///< Stop has been requested?
 	std::atomic<bool> pause_requested_; ///< Pause has been requested?
 	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
