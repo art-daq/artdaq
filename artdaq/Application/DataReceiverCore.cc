@@ -48,14 +48,14 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	fhicl::ParameterSet tmp = pset;
 	tmp.erase("daq");
-	
+
 	fhicl::ParameterSet data_tmp = data_pset;
 	if (data_pset.has_key("expected_events_per_bunch"))
 	{
 		data_tmp.put<int>("expected_fragments_per_event", data_pset.get<int>("expected_events_per_bunch"));
 	}
 
-	event_store_ptr_ = std::shared_ptr<SharedMemoryEventManager>(new SharedMemoryEventManager(data_tmp, tmp));
+	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, tmp));
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
 
@@ -182,7 +182,7 @@ bool artdaq::DataReceiverCore::shutdown()
 		TLOG_DEBUG(name_) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
 		endSucceeded = event_store_ptr_->endOfData();
 	}
-	
+
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down SharedMemoryEventManager" << TLOG_ENDL;
 	event_store_ptr_.reset();
 
