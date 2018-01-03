@@ -77,6 +77,9 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
 		}
 		else
 		{
+		  std::cout << "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
+		  std::cout << config << std::endl;
+		  std::cout << "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
 			pset = LoadParameterSet(config);
 		}
 	}

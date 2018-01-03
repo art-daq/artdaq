@@ -2,8 +2,9 @@
 
 hostname=`hostname`
 
-echo "STARTING:$hostname:$1:${@:2}"
-$1 -p ${@:2} #&> $1.$2
+echo "STARTING!$hostname!$1!${@:2}"
+cmd=$1;shift
+$cmd -c "$*" 
 
 # 11-Mar-2016, KAB: added an optional delay (of configurable length) to allow
 # for graceful cleanup in the event of a crash of one of the artdaq processes.
@@ -18,7 +19,8 @@ $1 -p ${@:2} #&> $1.$2
 # For reference, "export ARTDAQ_PROCESS_FAILURE_EXIT_DELAY=150" is the command to
 # set the env var, and this can be done in the shell in which startXYZSystem.sh is run.
 exitStatus=$?
-echo "$hostname:$?:$1:${@:2} ended with status $exitStatus"
+#echo "$hostname!$?!$1!${@:2} ended with status $exitStatus"
+echo "$hostname $? $cmd $* ended with status $exitStatus"
 if [[ $exitStatus -ne 0 ]] && [[ -n "$ARTDAQ_PROCESS_FAILURE_EXIT_DELAY" ]] ; then
     let totalDelay=$ARTDAQ_PROCESS_FAILURE_EXIT_DELAY
     if [[ $totalDelay > 0 ]]; then
@@ -27,11 +29,12 @@ if [[ $exitStatus -ne 0 ]] && [[ -n "$ARTDAQ_PROCESS_FAILURE_EXIT_DELAY" ]] ; th
         if [[ $delayInterval -gt 30 ]]; then let delayInterval=30; fi
         let delaySoFar=0
         while [[ $delaySoFar -lt $totalDelay ]]; do
-            echo "***** Wrapper script for $hostname:$?:$1:${@:2} sleeping to allow cleanup"
+            echo "***** Wrapper script for $hostname!$?!$1!${@:2} sleeping to allow cleanup"
             sleep $delayInterval
             let delaySoFar=$delaySoFar+$delayInterval
         done
     fi
 fi
 
-echo "EXITING:$hostname:$?:$1:${@:2}"
+#echo "EXITING $hostname $? $1 ${@:2}"
+echo "EXITING $hostname $? $cmd $*"
