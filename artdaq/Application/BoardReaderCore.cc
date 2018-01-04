@@ -50,9 +50,7 @@ artdaq::BoardReaderCore::~BoardReaderCore()
 
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	TLOG_DEBUG(name_) << "initialize method called with "
-		<< "ParameterSet = \"" << pset.to_string()
-		<< "\"." << TLOG_ENDL;
+	TLOG_DEBUG(name_) << "initialize method called with "		<< "ParameterSet = \"" << pset.to_string()		<< "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;

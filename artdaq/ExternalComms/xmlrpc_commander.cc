@@ -24,10 +24,11 @@
 #include <cstring>
 
 #include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/make_ParameterSet.h"
 
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Application/LoadParameterSet.hh"
+ //#include "artdaq/Application/LoadParameterSet.hh"
 
 namespace artdaq
 {
@@ -143,7 +144,7 @@ namespace artdaq
 
 	protected:
 
-		xmlrpc_commander& _c; ///< The xmlrpc_commander instance that the command will be sent to
+		xmlrpc_commander & _c; ///< The xmlrpc_commander instance that the command will be sent to
 
 		/**
 		 * \brief "execute_" is a wrapper function around the call to the commandable object's function
@@ -258,9 +259,26 @@ namespace artdaq
 	template <>
 	fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramList& paramList, int index)
 	{
-		std::string configString = paramList.getString(index);
-		fhicl::ParameterSet pset = LoadParameterSet(configString);
+		std::string configString = std::string(paramList.getString(index).c_str());
+		std::cout << "Loading Parameter Set from string: " << configString << std::endl;
+		fhicl::ParameterSet pset;
 
+		try
+		{
+			fhicl::make_ParameterSet(configString, pset);
+		}
+		catch (fhicl::exception e)
+		{
+			if (getenv("FHICL_FILE_PATH") == nullptr)
+			{
+				std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+				setenv("FHICL_FILE_PATH", ".", 0);
+			}
+			cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
+			fhicl::make_ParameterSet(configString, lookup_policy, pset);
+		}
+
+		std::cout << "Parameter Set Loaded." << std::endl;
 		return pset;
 	}
 
@@ -371,15 +389,15 @@ namespace artdaq
 									\
   private:								\
   bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP ) { \
-										\
+	fhicl::ParameterSet ps;							\
 	try {								\
-	  getParam<fhicl::ParameterSet>(paramList, 0);			\
+	  ps = getParam<fhicl::ParameterSet>(paramList, 0);			\
 	} catch (...) {							\
 	  *retvalP = xmlrpc_c::value_string ("The "#NAME" message requires a single argument that is a string containing the initialization ParameterSet");	\
 	  return true;							\
 	}									\
 									\
-	return _c._commandable.CALL( getParam<fhicl::ParameterSet>(paramList, 0), \
+	return _c._commandable.CALL(ps, \
 				 getParam<uint64_t>(paramList, 1, defaultTimeout), \
 				 getParam<uint64_t>(paramList, 2, defaultTimestamp) \
 				 );					\
@@ -560,7 +578,7 @@ private:								\
 			return true;
 		}
 	};
-	
+
 	/**
 	* \brief legal_commands_ Command class
 	*/
@@ -688,14 +706,14 @@ private:								\
 	xmlrpc_commander::xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable)
 		: CommanderInterface(ps, commandable)
 		, port_(ps.get<int>("id", 0))
-		, serverUrl_(ps.get<std::string>("server_url",""))
+		, serverUrl_(ps.get<std::string>("server_url", ""))
 	{
-	  //std::cout << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_ << std::endl;
+		//std::cout << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_ << std::endl;
 	}
 
 	void xmlrpc_commander::run_server() try
 	{
-	  //std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
+		//std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 		xmlrpc_c::registry registry;
 
 #define register_method(m) \
@@ -824,7 +842,7 @@ private:								\
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
-		
+
 		try
 		{
 			myClient.call(serverUrl_, "daq.register_monitor", "s", &result, monitor_fhicl.c_str());

@@ -1,8 +1,10 @@
 #include "artdaq/Application/BoardReaderApp.hh"
 
 artdaq::BoardReaderApp::BoardReaderApp(int rank, std::string name) :
-																					rank_(rank)
-																					, name_(name) {}
+	fragment_receiver_ptr_(nullptr)
+																					, rank_(rank)
+																					, name_(name)
+{}
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -19,6 +21,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	// then deletes the old one, and we need the opposite order.
 	fragment_receiver_ptr_.reset(nullptr);
 	fragment_receiver_ptr_.reset(new BoardReaderCore(*this, rank_, name_));
+	TLOG_DEBUG(name_ + "App") << "Initializing new BoardReaderCore at " << (void*)fragment_receiver_ptr_.get() << " with pset " << pset.to_string() << TLOG_ENDL;
 	external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
 	if (! external_request_status_)
 	{
@@ -27,6 +30,8 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 		report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
 	}
 
+	TLOG_DEBUG(name_ + "App") << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
+		<< "Done initializing." << TLOG_ENDL;
 	return external_request_status_;
 }
 

@@ -6,10 +6,11 @@
 #include <iostream>
 namespace bpo = boost::program_options;
 
-inline fhicl::ParameterSet LoadParameterSet(std::string psetOrFile)
+fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 {
 	std::cout << "Loading Parameter Set from string: " << psetOrFile << std::endl;
 	fhicl::ParameterSet pset;
+
 	try
 	{
 		make_ParameterSet(psetOrFile, pset);
@@ -30,7 +31,7 @@ inline fhicl::ParameterSet LoadParameterSet(std::string psetOrFile)
 	return pset;
 }
 
-inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
+fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
 {
 	std::ostringstream descstr;
 	descstr << argv[0]
@@ -59,7 +60,7 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
 
 
 	fhicl::ParameterSet pset;
-	
+
 	if (vm.count("config"))
 	{
 		std::string config = vm["config"].as<std::string>();
@@ -79,9 +80,9 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
 		}
 		else
 		{
-		  std::cout << "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
-		  std::cout << config << std::endl;
-		  std::cout << "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
+			std::cout << "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
+			std::cout << config << std::endl;
+			std::cout << "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
 			pset = LoadParameterSet(config);
 		}
 	}

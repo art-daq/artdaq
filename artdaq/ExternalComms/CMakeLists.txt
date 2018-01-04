@@ -15,6 +15,7 @@ art_make( BASENAME_ONLY
 
 simple_plugin(xmlrpc "commander"
   artdaq_ExternalComms
+  ${FHICLCPP}
   ${XMLRPC_SERVER_ABYSSPP}
   ${XMLRPC_SERVER_ABYSS}
   ${XMLRPC_SERVERPP}
