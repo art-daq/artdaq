@@ -39,7 +39,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/InputUtilities.hh"
-#include "artdaq/ArtModules/detail/ParentageMap.hh"
+#include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include <cstdio>

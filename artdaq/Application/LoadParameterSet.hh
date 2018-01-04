@@ -8,6 +8,7 @@ namespace bpo = boost::program_options;
 
 inline fhicl::ParameterSet LoadParameterSet(std::string psetOrFile)
 {
+	std::cout << "Loading Parameter Set from string: " << psetOrFile << std::endl;
 	fhicl::ParameterSet pset;
 	try
 	{
@@ -25,6 +26,7 @@ inline fhicl::ParameterSet LoadParameterSet(std::string psetOrFile)
 		make_ParameterSet(psetOrFile, lookup_policy, pset);
 	}
 
+	std::cout << "Parameter Set Loaded." << std::endl;
 	return pset;
 }
 

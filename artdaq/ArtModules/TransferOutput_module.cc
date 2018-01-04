@@ -38,7 +38,7 @@
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "artdaq/ArtModules/detail/ParentageMap.hh"
+#include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 

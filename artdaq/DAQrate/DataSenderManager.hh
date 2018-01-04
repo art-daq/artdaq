@@ -111,6 +111,7 @@ private:
 
 	bool broadcast_sends_;
 	bool non_blocking_mode_;
+	size_t send_timeout_us_;
 
 	bool use_routing_master_;
 	detail::RoutingMasterMode routing_master_mode_;

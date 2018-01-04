@@ -37,7 +37,7 @@
 #include "fhiclcpp/ParameterSetRegistry.h"
 
 #include "artdaq/ArtModules/NetMonTransportService.h"
-#include "artdaq/ArtModules/detail/ParentageMap.hh"
+#include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 

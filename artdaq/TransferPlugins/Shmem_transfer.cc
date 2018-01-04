@@ -156,7 +156,7 @@ artdaq::TransferInterface::CopyStatus
 artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec, bool reliableMode)
 {
 	// wait for the shm to become free, if requested     
-	if (send_timeout_usec > 0)
+	if (send_timeout_usec > 0 || reliableMode)
 	{
 		auto waitStart = std::chrono::steady_clock::now();
 		while (!shm_manager_->ReadyForWrite(!reliableMode) && TimeUtils::GetElapsedTimeMicroseconds(waitStart) < 1000)
@@ -169,7 +169,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 			size_t sleepTime = 1000; // microseconds
 			int64_t nloops = (send_timeout_usec - 1000) / sleepTime;
 
-			while (reliableMode && !shm_manager_->ReadyForWrite(!reliableMode) && loopCount < nloops)
+			while (reliableMode && !shm_manager_->ReadyForWrite(!reliableMode) && (send_timeout_usec == 0 || loopCount < nloops))
 			{
 				usleep(sleepTime);
 				++loopCount;
