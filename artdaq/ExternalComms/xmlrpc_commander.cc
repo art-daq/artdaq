@@ -689,10 +689,13 @@ private:								\
 		: CommanderInterface(ps, commandable)
 		, port_(ps.get<int>("id", 0))
 		, serverUrl_(ps.get<std::string>("server_url",""))
-	{}
+	{
+	  //std::cout << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_ << std::endl;
+	}
 
 	void xmlrpc_commander::run_server() try
 	{
+	  //std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 		xmlrpc_c::registry registry;
 
 #define register_method(m) \
@@ -871,3 +874,5 @@ private:								\
 
 	}
 } // namespace artdaq
+
+DEFINE_ARTDAQ_COMMANDER(artdaq::xmlrpc_commander)

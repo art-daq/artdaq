@@ -48,6 +48,10 @@ int main(int argc, char* argv[])
 	// create the EventBuilderApp
 	artdaq::EventBuilderApp evb_app(mpiSentry->rank(), name);
 
+	TLOG_DEBUG(name + "Main") << "Creating EventBuilder Commander plugin" << TLOG_ENDL;
 	auto commander = artdaq::MakeCommanderPlugin(config, evb_app);
+
+	TLOG_DEBUG(name + "Main") << "Running Commmander Server" << TLOG_ENDL;
 	commander->run_server();
+	TLOG_DEBUG(name + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
 }
