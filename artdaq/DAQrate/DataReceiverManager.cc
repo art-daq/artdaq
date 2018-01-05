@@ -201,7 +201,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		else if (header.type == Fragment::EndOfDataFragmentType || header.type == Fragment::InitFragmentType || header.type == Fragment::EndOfRunFragmentType || header.type == Fragment::EndOfSubrunFragmentType || header.type == Fragment::ShutdownFragmentType)
 		{
 			TLOG_DEBUG("DataReceiverManager") << "Received System Fragment from rank " << source_rank << " of type " << detail::RawFragmentHeader::SystemTypeToString(header.type) << "." << TLOG_ENDL;
-			shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
+			
 			FragmentPtr frag(new Fragment(header.word_count - header.num_words()));
 			memcpy(frag->headerAddress(), &header, header.num_words() * sizeof(RawDataType));
 			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag->headerAddress() + header.num_words(), header.word_count - header.num_words());
@@ -214,18 +214,23 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			switch (header.type)
 			{
 			case Fragment::EndOfDataFragmentType:
+				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 				endOfDataCount = *(frag->dataBegin());
 				TLOG_DEBUG("DataReceiverManager") << "EndOfData Fragment indicates that " << std::to_string(endOfDataCount) << " fragments are expected from rank " << source_rank 
 					<< " (recvd " << std::to_string(recv_frag_count_.slotCount(source_rank)) << ")." << TLOG_ENDL;
 				break;
 			case Fragment::InitFragmentType:
+				shm_manager_->setRequestMode(detail::RequestMessageMode::Normal);
 				shm_manager_->SetInitFragment(std::move(frag));
 				break;
 			case Fragment::EndOfRunFragmentType:
+				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 				break;
 			case Fragment::EndOfSubrunFragmentType:
+				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 				break;
 			case Fragment::ShutdownFragmentType:
+				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 				break;
 			}
 		}
