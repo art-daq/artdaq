@@ -40,7 +40,7 @@ public:
 	/**
 	* Destructor.
 	*/
-	~DataReceiverCore();
+	virtual ~DataReceiverCore();
 
 	/**
 	* \brief Copy Assignment operator is deleted
