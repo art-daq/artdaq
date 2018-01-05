@@ -19,6 +19,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	// instance, then create a new one.  Doing it in one step does not
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
+	TLOG_DEBUG(name_ + "App") << "Initializing first deleting old instance " << (void*)fragment_receiver_ptr_.get() << TLOG_ENDL;
 	fragment_receiver_ptr_.reset(nullptr);
 	fragment_receiver_ptr_.reset(new BoardReaderCore(*this, rank_, name_));
 	TLOG_DEBUG(name_ + "App") << "Initializing new BoardReaderCore at " << (void*)fragment_receiver_ptr_.get() << " with pset " << pset.to_string() << TLOG_ENDL;
