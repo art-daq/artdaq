@@ -144,7 +144,7 @@ void artdaq::DataSenderManager::startTableReceiverThread_()
 {
 	if (routing_thread_.joinable()) routing_thread_.join();
 	TLOG_INFO("DataSenderManager") << "Starting Routing Thread" << TLOG_ENDL;
-	routing_thread_ = std::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
+	routing_thread_ = boost::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
 }
 void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 {

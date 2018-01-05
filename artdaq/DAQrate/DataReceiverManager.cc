@@ -98,7 +98,7 @@ void artdaq::DataReceiverManager::start_threads()
 		if (enabled_sources_.count(rank))
 		{
 			running_sources_.insert(rank);
-			source_threads_[rank] = std::thread(&DataReceiverManager::runReceiver_, this, rank);
+			source_threads_[rank] = boost::thread(&DataReceiverManager::runReceiver_, this, rank);
 		}
 	}
 }

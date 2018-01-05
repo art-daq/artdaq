@@ -504,21 +504,21 @@ void artdaq::CommandableFragmentGenerator::startDataThread()
 {
 	if (dataThread_.joinable()) dataThread_.join();
 	TLOG_INFO("CommandableFragmentGenerator") << "Starting Data Receiver Thread" << TLOG_ENDL;
-	dataThread_ = std::thread(&CommandableFragmentGenerator::getDataLoop, this);
+	dataThread_ = boost::thread(&CommandableFragmentGenerator::getDataLoop, this);
 }
 
 void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 {
 	if (monitoringThread_.joinable()) monitoringThread_.join();
 	TLOG_INFO("CommandableFragmentGenerator") << "Starting Hardware Monitoring Thread" << TLOG_ENDL;
-	monitoringThread_ = std::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
+	monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
 }
 
 void artdaq::CommandableFragmentGenerator::startRequestReceiverThread()
 {
 	if (requestThread_.joinable()) requestThread_.join();
 	TLOG_INFO("CommandableFragmentGenerator") << "Starting Request Reception Thread" << TLOG_ENDL;
-	requestThread_ = std::thread(&CommandableFragmentGenerator::receiveRequestsLoop, this);
+	requestThread_ = boost::thread(&CommandableFragmentGenerator::receiveRequestsLoop, this);
 }
 
 std::string artdaq::CommandableFragmentGenerator::printMode_()

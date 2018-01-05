@@ -53,9 +53,13 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 		report_string_.append(".");
 	}
 
+	boost::thread::attributes attrs;
+	attrs.set_stack_size(4096 * 2000); // 8 MB
+	fragment_processing_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::process_fragments, fragment_receiver_ptr_.get()));
+	/*
 	fragment_processing_future_ =
-		std::async(std::launch::async, &BoardReaderCore::process_fragments,
-				   fragment_receiver_ptr_.get());
+	std::async(std::launch::async, &BoardReaderCore::process_fragments,
+	fragment_receiver_ptr_.get());*/
 
 	return external_request_status_;
 }
@@ -71,13 +75,10 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		return false;
 	}
 
-	if (fragment_processing_future_.valid())
-	{
-		int number_of_fragments_sent = fragment_processing_future_.get();
+		int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 		TLOG_DEBUG(name_ + "App") << "do_stop(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
 			<< "." << TLOG_ENDL;
-	}
 
 	return external_request_status_;
 }
@@ -92,13 +93,10 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(name_ + ".");
 	}
 
-	if (fragment_processing_future_.valid())
-	{
-		int number_of_fragments_sent = fragment_processing_future_.get();
+	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 		TLOG_DEBUG(name_ + "App") << "do_pause(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
 			<< "." << TLOG_ENDL;
-	}
 
 	return external_request_status_;
 }
@@ -113,9 +111,13 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(name_ + ".");
 	}
 
+	boost::thread::attributes attrs;
+	attrs.set_stack_size(4096 * 2000); // 8 MB
+	fragment_processing_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::process_fragments, fragment_receiver_ptr_.get()));
+/*
 	fragment_processing_future_ =
 		std::async(std::launch::async, &BoardReaderCore::process_fragments,
-				   fragment_receiver_ptr_.get());
+				   fragment_receiver_ptr_.get());*/
 
 	return external_request_status_;
 }

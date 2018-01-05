@@ -12,7 +12,6 @@
 #include <condition_variable>
 #include <mutex>
 #include <queue>
-#include <thread>
 #include <chrono>
 #include <array>
 #include <list>
@@ -473,7 +472,7 @@ namespace artdaq
 		std::atomic<bool> request_received_;
 		size_t end_of_run_timeout_ms_;
 		std::mutex request_mutex_;
-		std::thread requestThread_;
+		boost::thread requestThread_;
 
 		RequestMode mode_;
 		Fragment::timestamp_t windowOffset_;
@@ -493,7 +492,7 @@ namespace artdaq
 		bool useDataThread_;
 		size_t sleep_on_no_data_us_;
 		std::atomic<bool> data_thread_running_;
-		std::thread dataThread_;
+		boost::thread dataThread_;
 
 		std::condition_variable requestCondition_;
 		std::condition_variable dataCondition_;
@@ -503,7 +502,7 @@ namespace artdaq
 		size_t maxDataBufferDepthBytes_;
 
 		bool useMonitoringThread_;
-		std::thread monitoringThread_;
+		boost::thread monitoringThread_;
 		int64_t monitoringInterval_; // Microseconds
 		std::chrono::steady_clock::time_point lastMonitoringCall_;
 		bool isHardwareOK_;

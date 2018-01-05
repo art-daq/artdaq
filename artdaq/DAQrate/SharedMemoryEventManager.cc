@@ -261,7 +261,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 		current_art_config_file_ = std::make_shared<art_config_file>(pset/*, GetKey(), GetBroadcastKey()*/);
 	}
 	pid_t pid = -1;
-	std::thread thread([&] {RunArt(current_art_config_file_, pid); });
+	boost::thread thread([&] {RunArt(current_art_config_file_, pid); });
 	thread.detach();
 
 

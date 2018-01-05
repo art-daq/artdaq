@@ -105,7 +105,7 @@ void artdaq::FragmentReceiverManager::start_threads()
 		auto& rank = source.first;
 		if (enabled_sources_.count(rank))
 		{
-			source_threads_[rank] = std::thread(&FragmentReceiverManager::runReceiver_, this, rank);
+			source_threads_[rank] = boost::thread(&FragmentReceiverManager::runReceiver_, this, rank);
 		}
 	}
 }

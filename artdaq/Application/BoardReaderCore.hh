@@ -132,7 +132,7 @@ public:
 	 * 
 	 * This loop calls the CommandableFragmentGenerator::getNext method, then sends each Fragment using DataSenderManager.
 	 */
-	size_t process_fragments();
+	void process_fragments();
 
 	/**
 	 * \brief Send a report on a given run-time quantity
@@ -149,6 +149,8 @@ public:
 	 * \return Pointer to the DataSenderManager
 	 */
 	static DataSenderManager* GetDataSenderManagerPtr() { return sender_ptr_.get(); }
+
+	size_t GetFragmentsProcessed() { return fragment_count_; }
 private:
 	Commandable& parent_application_;
 	//MPI_Comm local_group_comm_;

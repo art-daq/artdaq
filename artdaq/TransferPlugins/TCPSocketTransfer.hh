@@ -12,7 +12,6 @@
 #include <sys/uio.h>			// iovec
 
 // C++ Includes
-#include <thread>				// std::thread
 #include <condition_variable>
 
 // Products includes
@@ -126,7 +125,7 @@ private:
 
 	Timeout tmo_;
 	bool stats_connect_stop_;
-	std::thread stats_connect_thread_;
+	boost::thread stats_connect_thread_;
 	std::condition_variable stopstatscv_;
 	std::mutex stopstatscvm_; // protects 'stopcv'
 

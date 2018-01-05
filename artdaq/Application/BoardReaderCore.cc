@@ -262,7 +262,7 @@ bool artdaq::BoardReaderCore::reinitialize(fhicl::ParameterSet const& pset, uint
 	return true;
 }
 
-size_t artdaq::BoardReaderCore::process_fragments()
+void artdaq::BoardReaderCore::process_fragments()
 {
 	if (rt_priority_ > 0)
 	{
@@ -492,7 +492,6 @@ size_t artdaq::BoardReaderCore::process_fragments()
 	metricMan_.do_stop();
 
 	sender_ptr_.reset(nullptr);
-	return fragment_count_;
 }
 
 std::string artdaq::BoardReaderCore::report(std::string const& which) const

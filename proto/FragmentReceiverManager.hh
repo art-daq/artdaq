@@ -4,7 +4,6 @@
 #include <map>
 #include <set>
 #include <memory>
-#include <thread>
 #include <condition_variable>
 
 #include "fhiclcpp/fwd.h"
@@ -97,7 +96,7 @@ private:
 
 	std::atomic<bool> stop_requested_;
 
-	std::map<int, std::thread> source_threads_;
+	std::map<int, boost::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
 

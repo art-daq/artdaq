@@ -6,7 +6,6 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
-#include <thread>
 #include <chrono>
 
 #include "cetlib_except/exception.h"
@@ -210,7 +209,7 @@ namespace artdaq
 	void RequestSender::SendRoutingToken(int nSlots)
 	{
 		if (!send_routing_tokens_) return;
-		std::thread token([=] {send_routing_token_(nSlots); });
+		boost::thread token([=] {send_routing_token_(nSlots); });
 		token.detach();
 		usleep(0); // Give up time slice
 	}
@@ -220,7 +219,7 @@ namespace artdaq
 		if (!send_requests_) return;
 		if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
 		request_sending_ = true;
-		std::thread request([=] { do_send_request_(); });
+		boost::thread request([=] { do_send_request_(); });
 		request.detach();
 	}
 

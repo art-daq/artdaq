@@ -593,7 +593,7 @@ void artdaq::RoutingMasterCore::start_recieve_token_thread_()
 {
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 	TLOG_INFO(name_) << "Starting Token Reception Thread" << TLOG_ENDL;
-	ev_token_receive_thread_ = std::thread(&RoutingMasterCore::receive_tokens_, this);
+	ev_token_receive_thread_ = boost::thread(&RoutingMasterCore::receive_tokens_, this);
 }
 
 std::string artdaq::RoutingMasterCore::report(std::string const&) const

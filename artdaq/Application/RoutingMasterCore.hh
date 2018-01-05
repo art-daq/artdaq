@@ -213,7 +213,7 @@ private:
 	int table_socket_;
 	int ack_socket_;
 	mutable std::mutex request_mutex_;
-	std::thread ev_token_receive_thread_;
+	boost::thread ev_token_receive_thread_;
 
 };
 

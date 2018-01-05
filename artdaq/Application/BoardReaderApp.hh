@@ -2,7 +2,6 @@
 #define artdaq_Application_MPI2_BoardReaderApp_hh
 
 #include <future>
-#include <thread>
 
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
@@ -126,7 +125,7 @@ public:
 
 private:
 	std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;
-	std::future<size_t> fragment_processing_future_;
+	boost::thread fragment_processing_thread_;
 	int rank_;
 	std::string name_;
 };
