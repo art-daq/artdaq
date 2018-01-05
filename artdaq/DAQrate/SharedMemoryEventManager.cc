@@ -627,7 +627,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	int new_buffer;
 	while (seqID >= sequence_id_)
 	{
-		new_buffer = GetBufferForWriting(overwrite_mode_);
+		new_buffer = GetBufferForWriting(false);
 		if (new_buffer == -1 && !every_seqid_expected_)
 		{
 			auto bufs = inactive_buffers_;
@@ -643,10 +643,13 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 				}
 			}
 
-			if (buffer == -1) return -1;
-
-			ResetWritePos(buffer);
-			new_buffer = buffer;
+			if (buffer != -1) {
+				ResetWritePos(buffer);
+				new_buffer = buffer;
+			}
+		}
+		if (new_buffer == -1) {
+			new_buffer = GetBufferForWriting(overwrite_mode_);
 		}
 
 		if (new_buffer == -1) return -1;
