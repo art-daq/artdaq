@@ -16,12 +16,15 @@
 #include <limits>
 #include <memory>
 #include <cstdint>
+#define TRACE_NAME "xmlrpc_commander"
+#include "tracemf.h"
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <cstring>
+#include <exception>
 
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -29,6 +32,80 @@
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 #include "artdaq/DAQdata/Globals.hh"
  //#include "artdaq/Application/LoadParameterSet.hh"
+
+namespace {
+class env_wrap {
+public:
+    env_wrap() { xmlrpc_env_init(&this->env_c); };
+    ~env_wrap(){ xmlrpc_env_clean(&this->env_c);};
+    xmlrpc_env env_c;
+};
+} // namespace
+static xmlrpc_c::paramList
+pListFromXmlrpcArray(xmlrpc_value * const arrayP)
+{
+    env_wrap env;
+    XMLRPC_ASSERT_ARRAY_OK(arrayP);
+    unsigned int const arraySize = xmlrpc_array_size(&env.env_c, arrayP);
+    assert(!env.env_c.fault_occurred);
+    xmlrpc_c::paramList paramList(arraySize);
+    for (unsigned int i = 0; i < arraySize; ++i) {
+        xmlrpc_value * arrayItemP;
+        xmlrpc_array_read_item(&env.env_c, arrayP, i, &arrayItemP);
+        assert(!env.env_c.fault_occurred);
+        paramList.add(xmlrpc_c::value(arrayItemP));
+        xmlrpc_DECREF(arrayItemP);
+    }
+    return paramList;
+}
+static xmlrpc_value *
+c_executeMethod(xmlrpc_env *   const envP,
+                xmlrpc_value * const paramArrayP,
+                void *         const methodPtr,
+                void *         const callInfoPtr)
+{
+	xmlrpc_c::method * const methodP(static_cast<xmlrpc_c::method *>(methodPtr));
+    xmlrpc_c::paramList const paramList(pListFromXmlrpcArray(paramArrayP));
+    xmlrpc_c::callInfo * const callInfoP(static_cast<xmlrpc_c::callInfo *>(callInfoPtr));
+    xmlrpc_value * retval;
+    retval = NULL; // silence used-before-set warning
+    try {
+        xmlrpc_c::value result;
+        try {
+            xmlrpc_c::method2 * const method2P(dynamic_cast<xmlrpc_c::method2 *>(methodP));
+            if (method2P)
+                method2P->execute(paramList, callInfoP, &result);
+            else 
+                methodP->execute(paramList, &result);
+        } catch (xmlrpc_c::fault const& fault) {
+            xmlrpc_env_set_fault(envP, fault.getCode(), 
+                                 fault.getDescription().c_str()); 
+        }
+        if (!envP->fault_occurred) {
+            if (result.isInstantiated())
+                retval = result.cValue();
+            else
+                girerr::throwf("Xmlrpc-c user's xmlrpc_c::method object's "
+                       "'execute method' failed to set the RPC result "
+                       "value.");
+        }
+    } catch (std::exception const& e) {
+        xmlrpc_faultf(envP, "Unexpected error executing code for "
+                      "particular method, detected by Xmlrpc-c "
+                      "method registry code.  Method did not "
+                      "fail; rather, it did not complete at all.  %s",
+                      e.what());
+    } catch (...) {
+        xmlrpc_env_set_fault(envP, XMLRPC_INTERNAL_ERROR,
+                             "Unexpected error executing code for "
+                             "particular method, detected by Xmlrpc-c "
+                             "method registry code.  Method did not "
+                             "fail; rather, it did not complete at all.");
+    }
+    return retval;
+}
+
+
 
 namespace artdaq
 {
@@ -715,12 +792,32 @@ private:								\
 	{
 		//std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 		xmlrpc_c::registry registry;
+		struct xmlrpc_method_info3 methodInfo;
+		memset(&methodInfo, 0 , sizeof(methodInfo));
+		methodInfo.stackSize = 0x500000;
 
 #define register_method(m) \
   xmlrpc_c::methodPtr const ptr_ ## m(new m ## _(*this));\
-  registry.addMethod ("daq." #m, ptr_ ## m);
+  registry.addMethod ("daq." #m, ptr_ ## m)
 
-		register_method(init);
+		xmlrpc_env         env; // xmlrpc_env_init(&env);
+		xmlrpc_registry ***c_registryPPP;
+		c_registryPPP = (xmlrpc_registry ***)(((char*)&registry)+sizeof(girmem::autoObject));
+		TRACE( 5, "c_registryPP=%p &env=%p", (void*)c_registryPPP, (void*)&env );
+#define register_method2(m,ss)											\
+		xmlrpc_c::method * ptr_ ## m(dynamic_cast<xmlrpc_c::method *>(new m ## _(*this))); \
+		methodInfo.methodName      = "daq." #m;					\
+		methodInfo.methodFunction  = &c_executeMethod;	\
+		methodInfo.serverInfo      = ptr_ ## m;				\
+		methodInfo.stackSize       = ss;						\
+		methodInfo.signatureString = ptr_ ## m ->signature().c_str();	\
+		methodInfo.help            = ptr_ ## m ->help().c_str();	\
+		xmlrpc_env_init(&env);										\
+		xmlrpc_registry_add_method3(&env,**c_registryPPP,&methodInfo);	\
+		if(env.fault_occurred)throw(girerr::error(env.fault_string));	\
+		xmlrpc_env_clean(&env)
+
+		register_method2(init,0x200000);
 		register_method(soft_init);
 		register_method(reinit);
 		register_method(start);
