@@ -45,12 +45,12 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
 
 artdaq::BoardReaderCore::~BoardReaderCore()
 {
-	TRACEN(name_,TLVL_DEBUG,"Destructor");
+	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
 }
 
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	TRACEN(name_,TLVL_INFO, "initialize method called with ParameterSet = \"" /*+pset.to_string()+*/ "\".");
+	TLOG_DEBUG(name_) << "initialize method called with "           << "ParameterSet = \"" << pset.to_string()              << "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -60,9 +60,9 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	catch (...)
 	{
-		TRACEN(name_,TLVL_ERROR,
-		       "Unable to find the DAQ parameters in the initialization "
-		       "ParameterSet: \"" /*+pset.to_string()+*/ "\".");
+		TLOG_ERROR(name_)
+			<< "Unable to find the DAQ parameters in the initialization "
+			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 	fhicl::ParameterSet fr_pset;
@@ -73,9 +73,9 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	catch (...)
 	{
-		TRACEN(name_,TLVL_ERROR,
-		       "Unable to find the fragment_receiver parameters in the DAQ "
-		       "initialization ParameterSet: \"" /*+ daq_pset.to_string() +*/ "\".");
+		TLOG_ERROR(name_)
+			<< "Unable to find the fragment_receiver parameters in the DAQ "
+			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
 
@@ -89,7 +89,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 	if (metric_pset.is_empty())
 	{
-	    TRACEN(name_,TLVL_INFO, "No metric plugins appear to be defined");
+	    TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try
 	{
@@ -105,17 +105,10 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)
 	{
-#      if 0
 		TLOG_ERROR(name_)
 			<< "No fragment generator (parameter name = \"generator\") was "
 			<< "specified in the fragment_receiver ParameterSet.  The "
 			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\"." << TLOG_ENDL;
-#      else
-		TRACEN(name_,TLVL_ERROR,
-		"No fragment generator (parameter name = \"generator\") was "
-		"specified in the fragment_receiver ParameterSet.  The "
-		"DAQ initialization PSet was \""+daq_pset.to_string()+"\".");
-#      endif
 		return false;
 	}
 
@@ -131,11 +124,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
 
-#      if 0
 		TLOG_DEBUG(name_) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string() << TLOG_ENDL;
-#      else
-		TRACEN(name_,TLVL_DEBUG,"FHiCL parameter set used to initialize the fragment generator which threw an exception: "+fr_pset.to_string());
-#      endif
 
 		return false;
 	}
