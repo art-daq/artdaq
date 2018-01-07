@@ -44,6 +44,7 @@ art_make_exec(NAME fhicl_test
     ${FHICLCPP}
     ${CETLIB}
     ${CETLIB_EXCEPT}
+    ${MF_MESSAGELOGGER}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     )
 	

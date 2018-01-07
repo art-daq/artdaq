@@ -337,7 +337,7 @@ namespace artdaq
 	fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramList& paramList, int index)
 	{
 		std::string configString = std::string(paramList.getString(index).c_str());
-		std::cout << "Loading Parameter Set from string: " << configString << std::endl;
+		TLOG_DEBUG("xmlrpc_commander") << "Loading Parameter Set from string: " << configString << std::endl;
 		fhicl::ParameterSet pset;
 
 		try
@@ -355,7 +355,7 @@ namespace artdaq
 			fhicl::make_ParameterSet(configString, lookup_policy, pset);
 		}
 
-		std::cout << "Parameter Set Loaded." << std::endl;
+		TLOG_INFO("xmlrpc_commander") << "Parameter Set Loaded." << std::endl;
 		return pset;
 	}
 

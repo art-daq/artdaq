@@ -1,6 +1,7 @@
 #ifndef artdaq_proto_LoadParameterSet_hh
 #define artdaq_proto_LoadParameterSet_hh 1
 
+#include "tracemf.h" // note: in header files (this LoadParameterSet.hh) consider if you want TRACE/LOG to use "name" from .cc or name for this file
 #include "fhiclcpp/make_ParameterSet.h"
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -19,15 +20,15 @@ fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 	{
 		if (getenv("FHICL_FILE_PATH") == nullptr)
 		{
-			std::cerr
-				<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+			TLOG_INFO("LoadParameterSet")
+				<< "environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
 			setenv("FHICL_FILE_PATH", ".", 0);
 		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
 		make_ParameterSet(psetOrFile, lookup_policy, pset);
 	}
 
-	std::cout << "Parameter Set Loaded." << std::endl;
+	TLOG_INFO("LoadParameterSet") << "Parameter Set Loaded." << std::endl;
 	return pset;
 }
 
@@ -48,13 +49,13 @@ fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
 	}
 	catch (bpo::error const & e)
 	{
-		std::cerr << "Exception from command line processing in " << argv[0]
+		TLOG_ERROR("LoadParameterSet") << "Exception from command line processing in " << argv[0]
 			<< ": " << e.what() << "\n";
 		exit(-1);
 	}
 	if (vm.count("help"))
 	{
-		std::cout << desc << std::endl;
+		TLOG_INFO("LoadParameterSet") << desc << std::endl;
 		exit(1);
 	}
 
@@ -67,7 +68,7 @@ fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
 
 		if (config == "-" || config == "--")
 		{
-			std::cerr << "Reading configuration from standard input. Press Ctrl-D to end" << std::endl;
+			TLOG_ERROR("LoadParameterSet") << "Reading configuration from standard input. Press Ctrl-D to end" << std::endl;
 			std::stringstream ss;
 			std::string line;
 			while (std::getline(std::cin, line))
@@ -80,15 +81,13 @@ fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
 		}
 		else
 		{
-			std::cout << "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
-			std::cout << config << std::endl;
-			std::cout << "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ" << std::endl;
+			TLOG_DEBUG("LoadParameterSet") << config << std::endl;
 			pset = LoadParameterSet(config);
 		}
 	}
 	else
 	{
-		std::cerr << "Exception from command line processing in " << argv[0]
+		TLOG_ERROR("LoadParameterSet") << "Exception from command line processing in " << argv[0]
 			<< ": no configuration given.\n"
 			<< "For usage and an options list, please do '"
 			<< argv[0] << " --help"
