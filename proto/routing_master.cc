@@ -470,8 +470,8 @@ void printUsage()
 	struct rusage usage;
 	getrusage(RUSAGE_SELF, &usage);
 	std::cout << myid << ":"
-		<< " user=" << artdaq::Globals::timevalAsDouble(usage.ru_utime)
-		<< " sys=" << artdaq::Globals::timevalAsDouble(usage.ru_stime)
+		<< " user=" << artdaq::TimeUtils::convertUnixTimeToSeconds(usage.ru_utime)
+		<< " sys=" << artdaq::TimeUtils::convertUnixTimeToSeconds(usage.ru_stime)
 		<< std::endl;
 }
 

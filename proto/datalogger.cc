@@ -9,10 +9,10 @@
 // artdaq::EventStore through to the artdaq::RawInput source.
 //
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "cetlib/container_algorithms.h"
 #include "cetlib/filepath_maker.h"

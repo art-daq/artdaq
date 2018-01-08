@@ -30,14 +30,7 @@ namespace artdaq
 	public:
 		static int my_rank_; ///< The rank of the current application
 		static MetricManager* metricMan_; ///< A handle to MetricManager
-
-		/**
-		 * \brief Convert a timeval value to a double
-		 * \param tv Timeval to convert
-		 * \return timeval represented as a double
-		 */
-		static double timevalAsDouble(struct timeval tv);
-
+		
 		/**
 		 * \brief Seed the C random number generator with the current time (if that has not been done already) and generate a random value
 		 * \return A random number.
