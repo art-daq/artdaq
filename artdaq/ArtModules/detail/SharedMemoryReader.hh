@@ -1,6 +1,7 @@
 #ifndef artdaq_ArtModules_detail_SharedMemoryReader_hh
 #define artdaq_ArtModules_detail_SharedMemoryReader_hh
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "art/Framework/Core/Frameworkfwd.h"
 
 #include "art/Framework/Core/FileBlock.h"
@@ -23,7 +24,6 @@
 #include <string>
 #include <map>
 #include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq/DAQdata/Globals.hh"
 
 namespace artdaq
 {

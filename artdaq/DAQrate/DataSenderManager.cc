@@ -1,6 +1,7 @@
+
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "artdaq/DAQdata/Globals.hh"
 
 #include <chrono>
 #include "canvas/Utilities/Exception.h"
