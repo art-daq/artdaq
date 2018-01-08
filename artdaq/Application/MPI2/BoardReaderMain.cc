@@ -1,3 +1,4 @@
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Application/BoardReaderApp.hh"
 #include "artdaq/Application/MPI2/MPISentry.hh"
@@ -5,7 +6,6 @@
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "cetlib_except/exception.h"
 
 #include <boost/program_options.hpp>
