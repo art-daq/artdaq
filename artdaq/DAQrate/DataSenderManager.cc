@@ -102,7 +102,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 void artdaq::DataSenderManager::setupTableListener_()
 {
 	table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (!table_socket_)
+	if (table_socket_ < 0)
 	{
 		TLOG_ERROR("DataSenderManager") << "Error creating socket for receiving table updates!" << TLOG_ENDL;
 		exit(1);

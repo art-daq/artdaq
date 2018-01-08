@@ -310,7 +310,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	if (table_socket_ == -1)
 	{
 		table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if (!table_socket_)
+		if (table_socket_ < 0)
 		{
 			TLOG_ERROR(name_) << "I failed to create the socket for sending Data Requests! Errno: " << std::to_string(errno) << TLOG_ENDL;
 			exit(1);
@@ -362,7 +362,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	if (ack_socket_ == -1)
 	{
 		ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if (!ack_socket_)
+		if (ack_socket_ < 0)
 		{
 			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Error creating socket for receiving table update acks!" << std::endl;
 			exit(1);

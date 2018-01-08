@@ -1,6 +1,7 @@
 #ifndef ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
 #define ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
 
+#include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/DAQrate/RequestSender.hh"

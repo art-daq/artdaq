@@ -50,12 +50,12 @@ namespace artdaq
 			usleep(1000);
 		}
 		TLOG_TRACE("RequestSender") << "Shutting down RequestSender" << TLOG_ENDL;
-		if (request_socket_)
+		if (request_socket_ > 0)
 		{
 			shutdown(request_socket_, 2);
 			close(request_socket_);
 		}
-		if (token_socket_)
+		if (token_socket_ > 0)
 		{
 			shutdown(token_socket_, 2);
 			close(token_socket_);
@@ -75,7 +75,7 @@ namespace artdaq
 		if (send_requests_)
 		{
 			request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-			if (!request_socket_)
+			if (request_socket_ < 0)
 			{
 				TLOG_ERROR("RequestSender") << "I failed to create the socket for sending Data Requests! err=" << strerror(errno) << TLOG_ENDL;
 				exit(1);
@@ -141,7 +141,7 @@ namespace artdaq
 		{
 			TLOG_DEBUG("RequestSender") << "Creating Routing Token sending socket" << TLOG_ENDL;
 			token_socket_ = TCPConnect(token_address_.c_str(), token_port_);
-			if (!token_socket_)
+			if (token_socket_ < 0)
 			{
 				TLOG_ERROR("RequestSender") << "I failed to create the socket for sending Routing Tokens! err=" << strerror(errno) << TLOG_ENDL;
 				exit(1);

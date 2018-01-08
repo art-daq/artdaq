@@ -174,7 +174,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 void artdaq::CommandableFragmentGenerator::setupRequestListener()
 {
 	request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (!request_socket_)
+	if (request_socket_ < 0)
 	{
 		throw art::Exception(art::errors::Configuration) << "CommandableFragmentGenerator: Error creating socket for receiving data requests! err=" << strerror(errno) << std::endl;
 		exit(1);

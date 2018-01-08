@@ -242,7 +242,7 @@ void RoutingMasterTest::generate_tokens()
 	sleep(1);
 
 	int token_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (!token_socket)
+	if (token_socket < 0)
 	{
 		TLOG_ERROR("generate_tokens") << "I failed to create the socket for sending Routing Tokens!" << TLOG_ENDL;
 		exit(1);
@@ -304,7 +304,7 @@ void RoutingMasterTest::table_receiver()
 
 
 	auto table_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (!table_socket)
+	if (table_socket < 0)
 	{
 		TLOG_ERROR("table_receiver") << "Error creating socket for receiving data requests!" << TLOG_ENDL;
 		exit(1);
