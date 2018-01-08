@@ -403,8 +403,10 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	for (auto& buf : inactive_buffers_)
 	{
 		MarkBufferEmpty(buf, true);
-		inactive_buffers_.erase(buf);
+		//inactive_buffers_.erase(buf);
 	}
+	inactive_buffers_.clear();
+
 	TLOG_TRACE("SharedMemoryEventManager") << "endOfData: Done flushing, there are now " << GetInactiveEventCount()
 		<< " inactive events in the SharedMemoryEventManager." << TLOG_ENDL;
 	initialStoreSize = GetIncompleteEventCount();
