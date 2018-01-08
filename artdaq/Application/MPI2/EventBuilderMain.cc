@@ -38,12 +38,12 @@ int main(int argc, char* argv[])
 	std::string name = config.get<std::string>("application_name", "EventBuilder");
 	TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
 
-	TLOG_DEBUG(name + "Main") << "artdaq version " <<
+	artdaq::setMsgFacAppName(name, config.get<int>("id"));
+
+	TLOG_INFO(name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
-
-	artdaq::setMsgFacAppName(name, config.get<int>("id"));
 
 	// create the EventBuilderApp
 	artdaq::EventBuilderApp evb_app(mpiSentry->rank(), name);
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 	TLOG_DEBUG(name + "Main") << "Creating EventBuilder Commander plugin" << TLOG_ENDL;
 	auto commander = artdaq::MakeCommanderPlugin(config, evb_app);
 
-	TLOG_DEBUG(name + "Main") << "Running Commmander Server" << TLOG_ENDL;
+	TLOG_INFO(name + "Main") << "Running Commmander Server" << TLOG_ENDL;
 	commander->run_server();
-	TLOG_DEBUG(name + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
+	TLOG_INFO(name + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
 }

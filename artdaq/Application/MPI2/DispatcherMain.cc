@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 	std::string name = config.get<std::string>("application_name", "Dispatcher");
 	TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
 
-	TLOG_DEBUG(name + "Main") << "artdaq version " <<
+	TLOG_INFO(name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
@@ -50,5 +50,7 @@ int main(int argc, char* argv[])
 	artdaq::DispatcherApp disp_app(mpiSentry->rank(), name);
 
 	auto commander = artdaq::MakeCommanderPlugin(config, disp_app);
+	TLOG_INFO(name + "Main") << "Running Commmander Server" << TLOG_ENDL;
 	commander->run_server();
+	TLOG_INFO(name + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
 }
