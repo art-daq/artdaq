@@ -622,7 +622,7 @@ if __FILE__ == $0
 	end
 
 	opts.on("-f", "--logfhicl [fhicl log control]",
-			"File containing FHiCL code directing messagefacility messages.") do |logfhicl|
+			"Path to file containing FHiCL code directing messagefacility messages.") do |logfhicl|
 	  options.logFhicl = logfhicl
 	end
 
