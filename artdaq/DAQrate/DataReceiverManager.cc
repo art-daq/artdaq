@@ -1,7 +1,8 @@
 #include <chrono>
 
-#include "artdaq/DAQrate/DataReceiverManager.hh"
+#define TRACE_NAME "DataReceiverManager"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "cetlib_except/exception.h"
 #include <iomanip>
