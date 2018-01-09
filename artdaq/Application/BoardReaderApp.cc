@@ -1,3 +1,5 @@
+#define TRACE_NAME "BoardReaderApp"
+#include "tracemf.h"
 #include "artdaq/Application/BoardReaderApp.hh"
 
 artdaq::BoardReaderApp::BoardReaderApp(int rank, std::string name) :
