@@ -33,19 +33,20 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 {
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
-	TLOG_TRACE("SharedMemoryEventManager") << "BEGIN CONSTRUCTOR" << TLOG_ENDL;
 
-	if (pset.get<bool>("use_art", true) == false) num_art_processes_ = 0;
+	if (pset.get<bool>("use_art", true) == false) {
+		TLOG_INFO("SharedMemoryEventManager") << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:false";
+		num_art_processes_ = 0;
+	} else {
+		TLOG_INFO("SharedMemoryEventManager") << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:true";
+		TLOG_TRACE("SharedMemoryEventManager") << "art_pset is " << art_pset.to_string();
+	}
 	current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
 
 	if (overwrite_mode_ && num_art_processes_ > 0)
-	{
 		TLOG_WARNING("SharedMemoryEventManager") << "Art is configured to run, but overwrite mode is enabled! Check your configuration if this in unintentional!" << TLOG_ENDL;
-	}
 	else if (overwrite_mode_)
-	{
 		TLOG_INFO("SharedMemoryEventManager") << "Overwrite Mode enabled, no configured art processes at startup" << TLOG_ENDL;
-	}
 
 	for (size_t ii = 0; ii < size(); ++ii)
 	{

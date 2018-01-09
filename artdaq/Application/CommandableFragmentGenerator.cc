@@ -1,3 +1,6 @@
+#define TRACE_NAME "CommandableFragmentGenerator"
+#include "tracemf.h"
+
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 
 #include <boost/exception/all.hpp>
@@ -9,6 +12,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
+
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"

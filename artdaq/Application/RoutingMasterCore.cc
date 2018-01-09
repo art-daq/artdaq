@@ -10,16 +10,15 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/exception.h"
 
+#define TRACE_NAME "RoutingMasterCore" // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"   // to get tracemf.h before trace.h
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/RoutingMasterCore.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
-
-#define TRACE_NAME "RoutingMasterCore"
 
 const std::string artdaq::RoutingMasterCore::
 TABLE_UPDATES_STAT_KEY("RoutingMasterCoreTableUpdates");

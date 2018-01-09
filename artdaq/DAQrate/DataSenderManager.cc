@@ -1,4 +1,4 @@
-
+#define TRACE_NAME "DataSenderManager"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"

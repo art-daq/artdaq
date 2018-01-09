@@ -36,9 +36,10 @@
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
 
+#define TRACE_NAME "RootMPIOutput"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq-core/Data/detail/ParentageMap.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 
 #include <iomanip>
@@ -51,8 +52,6 @@
 
 #include <TClass.h>
 #include <TMessage.h>
-
-#define TRACE_NAME "RootMPIOutput"
 
 #  define CONST_WRITE
 

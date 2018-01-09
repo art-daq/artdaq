@@ -1,13 +1,13 @@
 #include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
 
+#define TRACE_NAME "DataReceiverCore"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/DataReceiverCore.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME "DataReceiverCore"
 
 #include <iomanip>
 
