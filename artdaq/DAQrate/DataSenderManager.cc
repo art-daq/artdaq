@@ -413,6 +413,7 @@ sendFragment(Fragment&& frag)
 	}
 	if (metricMan)
 	{//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
+		TRACE( 5, "sendFragment: sending metrics" );
 		auto delta_t = TimeUtils::GetElapsedTime(start_time);
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 3, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 3, MetricMode::Accumulate);
@@ -426,6 +427,6 @@ sendFragment(Fragment&& frag)
 			}
 		}
 	}
-	TRACE(5, "DataSenderManager::sendFragment: Done sending fragment %zu", seqID);
+	TRACE(5, "sendFragment: Done sending fragment %zu", seqID);
 	return dest;
 }
