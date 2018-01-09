@@ -1,3 +1,5 @@
+#define TRACE_NAME "BoardReaderCore"
+#include "tracemf.h"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragment.hh"
@@ -8,8 +10,6 @@
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
-
-#define TRACE_NAME "BoardReaderCore"
 
 const std::string artdaq::BoardReaderCore::
 FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
@@ -336,7 +336,7 @@ void artdaq::BoardReaderCore::process_fragments()
 			{
 				TLOG_DEBUG(name_)
 					<< "Sending fragment " << fragment_count_
-					<< " with sequence id " << sequence_id << "." << TLOG_ENDL;
+					<< " (%250) with sequence id " << sequence_id << "." << TLOG_ENDL;
 			}
 
 			/* ELF 5/10/2017 Removing in favor of DataReceiverManager source suppression logic

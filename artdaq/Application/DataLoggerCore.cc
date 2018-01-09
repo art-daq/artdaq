@@ -9,6 +9,8 @@
 #include "art/Framework/Art/artapp.h"
 #include "cetlib/BasicPluginFactory.h"
 
+#define TRACE_NAME "DataLoggerCore"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Data/RawEvent.hh"
@@ -16,7 +18,6 @@
 #include "artdaq/Application/DataLoggerCore.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "artdaq/DAQdata/Globals.hh"
 
 artdaq::DataLoggerCore::DataLoggerCore(int rank, std::string name)
 	: DataReceiverCore(rank, name)

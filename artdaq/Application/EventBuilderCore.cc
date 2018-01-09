@@ -1,13 +1,13 @@
 #include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
 
+#define TRACE_NAME "EventBuilderCore"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/EventBuilderCore.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME "EventBuilderCore"
 
 #include <iomanip>
 

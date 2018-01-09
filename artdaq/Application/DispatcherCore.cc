@@ -11,6 +11,9 @@
 
 #include "fhiclcpp/ParameterSet.h"
 
+#define TRACE_NAME "DispatcherCore"
+#include "tracemf.h"
+
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 
