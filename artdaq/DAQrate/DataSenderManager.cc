@@ -377,8 +377,8 @@ sendFragment(Fragment&& frag)
 			dest = calcDest_(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
 				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID "
-												  << std::to_string(seqID) << ", send number " << sent_frag_count_.count()
-												  << ", retrying." << TLOG_ENDL;
+				                                  << std::to_string(seqID) << ", send number " << sent_frag_count_.count()
+				                                  << ", retrying." << TLOG_ENDL;
 		}
 		if (destinations_.count(dest) && enabled_destinations_.count(dest)) {
 			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
@@ -387,13 +387,13 @@ sendFragment(Fragment&& frag)
 			sts = destinations_[dest]->moveFragment(std::move(frag), send_timeout_us_);
 			if (sts != TransferInterface::CopyStatus::kSuccess)
 				TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination "
-												<< dest << " failed! Data has been lost!" << TLOG_ENDL;
+				                                << dest << " failed! Data has been lost!" << TLOG_ENDL;
 
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		} else
 			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest
-											  << "! This event has been lost: " << seqID << TLOG_ENDL;
+			                                  << "! This event has been lost: " << seqID << TLOG_ENDL;
 	}
 	if (   routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
 	    && routing_table_.find(seqID - 1) != routing_table_.end()  ) {
