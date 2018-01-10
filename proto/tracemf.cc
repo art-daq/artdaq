@@ -119,18 +119,6 @@ int main(int argc, char *argv[])
 		std::cout << "TRACE_ test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
 	}
 
-	if (vm.count("T"))
-	{
-		std::cout << "Starting TRACE_STREAMER test" << std::endl;
-		auto start = std::chrono::steady_clock::now();
-		for (size_t l = 0; l < loops; ++l)
-		{
-			TRACE_STREAMER(TLVL_DEBUG, "tracemf", 0,0) << "Test TRACE_STREAMER with an int " << 42 << " and a float " << std::fixed << std::setprecision(1) << 5.56 << TRACE_ENDL;
-		}
-		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
-		std::cout << "TRACE_STREAMER test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
-	}
-
 	if (vm.count("D"))
 	{
 		std::cout << "Starting TLOG_DEBUG test" << std::endl;
