@@ -8,6 +8,7 @@ art_make( BASENAME_ONLY
   artdaq-core_Data
   cetlib
   ${CETLIB_EXCEPT}
+  ${Boost_SYSTEM_LIBRARY}
   fhiclcpp
   MF_MessageLogger
   MF_Utilities
