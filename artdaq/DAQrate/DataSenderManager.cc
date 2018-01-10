@@ -372,61 +372,52 @@ sendFragment(Fragment&& frag)
 		{
 			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID << TLOG_ENDL;
 		}
-	}
-	else
-	{
+	} else {
 		while (dest == TransferInterface::RECV_TIMEOUT) {
 			dest = calcDest_(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
-			{
-				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", send number " << sent_frag_count_.count() << ", retrying." << TLOG_ENDL;
-			}
+				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID "
+												  << std::to_string(seqID) << ", send number " << sent_frag_count_.count()
+												  << ", retrying." << TLOG_ENDL;
 		}
-		if (destinations_.count(dest) && enabled_destinations_.count(dest))
-		{
+		if (destinations_.count(dest) && enabled_destinations_.count(dest)) {
 			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 
 			sts = destinations_[dest]->moveFragment(std::move(frag), send_timeout_us_);
 			if (sts != TransferInterface::CopyStatus::kSuccess)
-			{
-				TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Data has been lost!" << TLOG_ENDL;
-			}
+				TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination "
+												<< dest << " failed! Data has been lost!" << TLOG_ENDL;
 
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
-		}
-		else
-		{
-			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID << TLOG_ENDL;
-		}
+		} else
+			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest
+											  << "! This event has been lost: " << seqID << TLOG_ENDL;
 	}
-	if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.find(seqID - 1) != routing_table_.end())
-	{
+	if (   routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
+	    && routing_table_.find(seqID - 1) != routing_table_.end()  ) {
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(seqID - 1));
-	}
-	else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount)
-	{
+	} else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount) {
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(sent_frag_count_.count()));
 	}
-	if (metricMan)
-	{//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
+	if (metricMan) {//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
 		TRACE( 5, "sendFragment: sending metrics" );
 		auto delta_t = TimeUtils::GetElapsedTime(start_time);
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 3, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 3, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 3, MetricMode::Average);
-		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::LastPoint);
+		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest),
+		                      "fragments", 3, MetricMode::LastPoint);
 		if (use_routing_master_) {
 			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 1, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)
-			{
-				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 1, MetricMode::Average);
-			}
+				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 1,
+				                      MetricMode::Average);
 		}
 	}
 	TRACE(5, "sendFragment: Done sending fragment %zu", seqID);
 	return dest;
-}
+}   // artdaq::DataSenderManager::sendFragment
