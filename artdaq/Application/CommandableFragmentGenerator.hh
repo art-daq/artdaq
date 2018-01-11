@@ -543,6 +543,8 @@ namespace artdaq
 
 		int sleep_on_stop_us_;
 
+    protected:
+
 		// Obtain the next group of Fragments, if any are available. Return
 		// false if no more data are available, if we are 'stopped', or if
 		// we are not running in state-machine mode. Note that getNext_()
