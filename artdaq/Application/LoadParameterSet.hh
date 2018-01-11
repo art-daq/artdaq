@@ -9,7 +9,6 @@ namespace bpo = boost::program_options;
 
 fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 {
-	std::cout << "Loading Parameter Set from string: " << psetOrFile << std::endl;
 	fhicl::ParameterSet pset;
 
 	try
@@ -19,16 +18,11 @@ fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 	catch (fhicl::exception e)
 	{
 		if (getenv("FHICL_FILE_PATH") == nullptr)
-		{
-			TLOG_INFO("LoadParameterSet")
-				<< "environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
 			setenv("FHICL_FILE_PATH", ".", 0);
-		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
 		make_ParameterSet(psetOrFile, lookup_policy, pset);
 	}
 
-	TLOG_INFO("LoadParameterSet") << "Parameter Set Loaded." << std::endl;
 	return pset;
 }
 
