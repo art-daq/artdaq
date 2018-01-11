@@ -68,6 +68,26 @@ art_make_exec(NAME fhicl_test
   ${XMLRPC_UTILPP}
   )
 
+  art_make_exec(NAME eventbuilder
+    SOURCE
+    eventbuilder.cc
+  LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+  artdaq_DAQdata
+  artdaq_BuildInfo
+  artdaq-core_Utilities
+  artdaq-core_Generators
+  art_Framework_Art
+  artdaq_ExternalComms
+  ${FHICLCPP}
+  ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${XMLRPC_CLIENTPP}
+  ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
+  )
+
   art_make_exec(NAME datalogger
     SOURCE
     datalogger.cc
