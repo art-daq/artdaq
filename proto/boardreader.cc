@@ -32,6 +32,21 @@ int main(int argc, char* argv[])
 	// create the BoardReaderApp
 	artdaq::BoardReaderApp br_app(rank, name);
 
+
+	auto auto_run = config.get<bool>("auto_run", false);
+	if (auto_run) {
+		int run = config.get<int>("run_number", 101);
+		uint64_t timeout = config.get<uint64_t>("transition_timeout", 30);
+		uint64_t timestamp = 0;
+
+		br_app.do_initialize(config, timeout, timestamp);
+		br_app.do_start(art::RunID(run), timeout, timestamp);
+
+		TLOG_INFO(name) << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
+			<< "xmlrpc http://`hostname`:" << config.get<int>("id") << "/RPC2 daq.stop" << std::endl
+			<< "xmlrpc http://`hostname`:" << config.get<int>("id") << "/RPC2 daq.shutdown" << TLOG_ENDL;
+	}
+
 	auto commander = artdaq::MakeCommanderPlugin(config, br_app);
 	commander->run_server();
 }
