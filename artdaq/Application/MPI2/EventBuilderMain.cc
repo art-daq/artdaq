@@ -14,7 +14,11 @@
 
 int main(int argc, char* argv[])
 {
-	artdaq::configureMessageFacility("eventbuilder");
+	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
+	std::string fac_name_part = config.get<std::string>("application_name", "EventBuilder");
+	std::string app_name = artdaq::setMsgFacAppName(fac_name_part, config.get<int>("id"));
+	artdaq::configureMessageFacility(app_name.c_str());
+	TLOG_DEBUG(fac_name_part + "Main") << "Setting application name to " << app_name << TLOG_ENDL;
 
 	// initialization
 
@@ -33,25 +37,18 @@ int main(int argc, char* argv[])
 		throw errormsg;
 	}
 
-	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
-
-	std::string name = config.get<std::string>("application_name", "EventBuilder");
-	TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
-
-	artdaq::setMsgFacAppName(name, config.get<int>("id"));
-
-	TLOG_INFO(name + "Main") << "artdaq version " <<
+	TLOG_INFO(fac_name_part + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the EventBuilderApp
-	artdaq::EventBuilderApp evb_app(mpiSentry->rank(), name);
+	artdaq::EventBuilderApp evb_app(mpiSentry->rank(), fac_name_part);
 
-	TLOG_DEBUG(name + "Main") << "Creating EventBuilder Commander plugin" << TLOG_ENDL;
+	TLOG_DEBUG(fac_name_part + "Main") << "Creating EventBuilder Commander plugin" << TLOG_ENDL;
 	auto commander = artdaq::MakeCommanderPlugin(config, evb_app);
 
-	TLOG_INFO(name + "Main") << "Running Commmander Server" << TLOG_ENDL;
+	TLOG_INFO(fac_name_part + "Main") << "Running Commmander Server" << TLOG_ENDL;
 	commander->run_server();
-	TLOG_INFO(name + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
+	TLOG_INFO(fac_name_part + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
 }
