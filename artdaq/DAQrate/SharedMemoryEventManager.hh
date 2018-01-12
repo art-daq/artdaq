@@ -82,6 +82,7 @@ namespace artdaq {
 		 * "expected_fragments_per_event" (REQUIRED): Number of Fragments to expect per event
 		 * "update_run_ids_on_new_fragment" (Default: true): Whether the run and subrun ID of an event should be updated whenever a Fragment is added.
 		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
+		 * "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 		 * \endverbatim
 		 */
 		SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
@@ -286,6 +287,7 @@ namespace artdaq {
 		bool update_run_ids_;
 		bool overwrite_mode_;
 		bool every_seqid_expected_;
+		bool send_init_fragments_;
 
 		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_mutexes_;

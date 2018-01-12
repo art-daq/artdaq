@@ -1,14 +1,3 @@
-//
-// artdaqDriver is a program for testing the behavior of the generic
-// RawInput source. Run 'artdaqDriver --help' to get a description of the
-// expected command-line parameters.
-//
-//
-// The current version generates simple data fragments, for testing
-// that data are transmitted without corruption from the
-// artdaq::EventStore through to the artdaq::RawInput source.
-//
-
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -31,7 +20,6 @@
 
 int main(int argc, char * argv[])
 {
-
 	artdaq::configureMessageFacility("datalogger");
 
 	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
@@ -50,9 +38,7 @@ int main(int argc, char * argv[])
 	// create the DataLoggerApp
 	artdaq::DataLoggerApp dl_app(rank, name);
 
-
 	auto auto_run = config.get<bool>("auto_run", false);
-
 	if (auto_run) {
 		int run = config.get<int>("run_number", 101);
 		uint64_t timeout = config.get<uint64_t>("transition_timeout", 30);
@@ -65,7 +51,6 @@ int main(int argc, char * argv[])
 			<< "xmlrpc http://`hostname`:" << config.get<int>("id") << "/RPC2 daq.stop" << std::endl
 			<< "xmlrpc http://`hostname`:" << config.get<int>("id") << "/RPC2 daq.shutdown" << TLOG_ENDL;
 	}
-
 
 	auto commander = artdaq::MakeCommanderPlugin(config, dl_app);
 	commander->run_server();

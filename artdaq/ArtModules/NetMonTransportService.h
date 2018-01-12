@@ -74,6 +74,8 @@ public:
 	size_t dataReceiverCount() const { return sender_ptr_->destinationCount(); }
 private:
 	fhicl::ParameterSet data_pset_;
+	bool init_received_;
+	double init_timeout_s_;
 
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;

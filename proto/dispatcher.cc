@@ -1,14 +1,3 @@
-//
-// artdaqDriver is a program for testing the behavior of the generic
-// RawInput source. Run 'artdaqDriver --help' to get a description of the
-// expected command-line parameters.
-//
-//
-// The current version generates simple data fragments, for testing
-// that data are transmitted without corruption from the
-// artdaq::EventStore through to the artdaq::RawInput source.
-//
-
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -31,7 +20,6 @@
 
 int main(int argc, char * argv[])
 {
-
 	artdaq::configureMessageFacility("datalogger");
 
 	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
@@ -49,7 +37,6 @@ int main(int argc, char * argv[])
 	
 	// create the DispatcherApp
 	artdaq::DispatcherApp dl_app(rank, name);
-
 
 	auto auto_run = config.get<bool>("auto_run", false);
 	if (auto_run) {

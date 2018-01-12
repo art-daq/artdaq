@@ -13,15 +13,9 @@
 
 int main(int argc, char* argv[])
 {
-	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
-	std::string fac_name_part = config.get<std::string>("application_name", "Dispatcher");
-	std::string app_name = artdaq::setMsgFacAppName(fac_name_part, config.get<int>("id"));
-	artdaq::configureMessageFacility(app_name.c_str());
-	TLOG_DEBUG(fac_name_part + "Main") << "Setting application name to " << app_name << TLOG_ENDL;
-
 	// initialization
 
-	int const wanted_threading_level{MPI_THREAD_FUNNELED};
+	int const wanted_threading_level{ MPI_THREAD_FUNNELED };
 
 	MPI_Comm local_group_comm;
 	std::unique_ptr<artdaq::MPISentry> mpiSentry;
@@ -37,16 +31,23 @@ int main(int argc, char* argv[])
 		throw errormsg;
 	}
 
-	TLOG_INFO(fac_name_part + "Main") << "artdaq version " <<
+	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
+	app_name = config.get<std::string>("application_name", "Dispatcher");
+	std::string mf_app_name = artdaq::setMsgFacAppName(app_name, config.get<int>("id"));
+	artdaq::configureMessageFacility(mf_app_name.c_str());
+	TLOG_DEBUG(app_name + "Main") << "Setting application name to " << mf_app_name << TLOG_ENDL;
+
+
+	TLOG_INFO(app_name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the DispatcherApp
-	artdaq::DispatcherApp disp_app(mpiSentry->rank(), fac_name_part);
+	artdaq::DispatcherApp disp_app(mpiSentry->rank(), app_name);
 
 	auto commander = artdaq::MakeCommanderPlugin(config, disp_app);
-	TLOG_INFO(fac_name_part + "Main") << "Running Commmander Server" << TLOG_ENDL;
+	TLOG_INFO(app_name + "Main") << "Running Commmander Server" << TLOG_ENDL;
 	commander->run_server();
-	TLOG_INFO(fac_name_part + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
+	TLOG_INFO(app_name + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
 }

@@ -8,6 +8,7 @@
 #include "artdaq-core/Utilities/TimeUtils.hh"
 
 #define my_rank artdaq::Globals::my_rank_
+#define app_name artdaq::Globals::app_name_
 #define metricMan artdaq::Globals::metricMan_
 #define seedAndRandom() artdaq::Globals::seedAndRandom_()
 
@@ -30,6 +31,7 @@ namespace artdaq
 	public:
 		static int my_rank_; ///< The rank of the current application
 		static MetricManager* metricMan_; ///< A handle to MetricManager
+		static std::string app_name_; ///< The name of the current application, to be used in logging and metrics
 		
 		/**
 		 * \brief Seed the C random number generator with the current time (if that has not been done already) and generate a random value

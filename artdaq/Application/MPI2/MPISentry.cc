@@ -128,4 +128,5 @@ initialize_()
 {
 	MPI_Comm_size(MPI_COMM_WORLD, &procs_);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+	my_rank = rank_;
 }

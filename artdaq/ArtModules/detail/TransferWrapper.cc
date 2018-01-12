@@ -34,9 +34,9 @@ void signal_handler(int signal)
 
 artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 	timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
-	, dispatcherHost_(pset.get<std::string>("dispatcherHost"))
-	, dispatcherPort_(pset.get<std::string>("dispatcherPort"))
-	, serverUrl_("http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2")
+	, dispatcherHost_(pset.get<std::string>("dispatcherHost", "localhost"))
+	, dispatcherPort_(pset.get<std::string>("dispatcherPort", "5266"))
+	, serverUrl_(pset.get<std::string>("server_url", "http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2"))
 	, maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
 	, allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", { 226, 227, 229 }))
 	, quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
@@ -54,13 +54,14 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 						 "TransferWrapper: failure in call to MakeTransferPlugin");
 	}
 
-
 	fhicl::ParameterSet new_pset(pset);
+	if (!new_pset.has_key("server_url")) {
+		new_pset.put<std::string>("server_url", serverUrl_);
+	}
 
-	new_pset.put<std::string>("server_url", serverUrl_);
 	auto dispatcherConfig = pset.get<fhicl::ParameterSet>("dispatcher_config");
 	artdaq::Commandable c;
-	commander_ = MakeCommanderPlugin(pset, c);
+	commander_ = MakeCommanderPlugin(new_pset, c);
 
 	TLOG_INFO("TransferWrapper") << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
 		<< "\") with the dispatcher aggregator" << TLOG_ENDL;

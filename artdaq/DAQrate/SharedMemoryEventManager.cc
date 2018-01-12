@@ -19,6 +19,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
 	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
 	, every_seqid_expected_(pset.get<bool>("every_sequence_id_should_be_present", false))
+	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
 	, buffer_writes_pending_()
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
@@ -35,18 +36,22 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 
 	if (pset.get<bool>("use_art", true) == false) {
-		TLOG_INFO("SharedMemoryEventManager") << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:false";
+		TLOG_INFO("SharedMemoryEventManager") << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:false" << TLOG_ENDL;
 		num_art_processes_ = 0;
 	} else {
-		TLOG_INFO("SharedMemoryEventManager") << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:true";
-		TLOG_TRACE("SharedMemoryEventManager") << "art_pset is " << art_pset.to_string();
+		TLOG_INFO("SharedMemoryEventManager") << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:true" << TLOG_ENDL;
+		TLOG_TRACE("SharedMemoryEventManager") << "art_pset is " << art_pset.to_string() << TLOG_ENDL;
 	}
 	current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
 
 	if (overwrite_mode_ && num_art_processes_ > 0)
+	{
 		TLOG_WARNING("SharedMemoryEventManager") << "Art is configured to run, but overwrite mode is enabled! Check your configuration if this in unintentional!" << TLOG_ENDL;
+	}
 	else if (overwrite_mode_)
+	{
 		TLOG_INFO("SharedMemoryEventManager") << "Overwrite Mode enabled, no configured art processes at startup" << TLOG_ENDL;
+	}
 
 	for (size_t ii = 0; ii < size(); ++ii)
 	{
@@ -809,7 +814,7 @@ void artdaq::SharedMemoryEventManager::send_init_frag_()
 		broadcastFragment_(std::move(init_fragment_), init_fragment_);
 		TLOG_TRACE("SharedMemoryEventManager") << "Init Fragment sent" << TLOG_ENDL;
 	}
-	else
+	else if(send_init_fragments_)
 	{
 		TLOG_WARNING("SharedMemoryEventManager") << "Cannot send init fragment because I haven't yet received one!" << TLOG_ENDL;
 	}

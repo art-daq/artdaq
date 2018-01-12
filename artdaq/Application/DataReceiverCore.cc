@@ -120,7 +120,7 @@ bool artdaq::DataReceiverCore::stop()
 		TLOG_ERROR(name_)
 			<< "EventStore::endRun in stop method failed after three tries." << TLOG_ENDL;
 	}
-
+	
 	run_is_paused_.store(false);
 	return true;
 }
@@ -166,8 +166,6 @@ bool artdaq::DataReceiverCore::shutdown()
 	   shutdown state is from a state where there is no data taking.  All we have
 	   to do is signal the art input module that we're done taking data so that
 	   it can wrap up whatever it needs to do. */
-	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down MetricManager" << TLOG_ENDL;
-	metricMan_.shutdown();
 
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down DataReceiverManager" << TLOG_ENDL;
 	receiver_ptr_.reset(nullptr);
@@ -185,6 +183,9 @@ bool artdaq::DataReceiverCore::shutdown()
 
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down SharedMemoryEventManager" << TLOG_ENDL;
 	event_store_ptr_.reset();
+
+	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down MetricManager" << TLOG_ENDL;
+	metricMan_.shutdown();
 
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Complete" << TLOG_ENDL;
 	return endSucceeded;

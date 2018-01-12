@@ -16,11 +16,6 @@
 
 int main(int argc, char* argv[])
 {
-	fhicl::ParameterSet config_ps = LoadParameterSet(argc, argv);
-	std::string fac_name_part = config_ps.get<std::string>("application_name", "BoardReader");
-	std::string app_name = artdaq::setMsgFacAppName(fac_name_part, config_ps.get<int>("id"));
-	artdaq::configureMessageFacility(app_name.c_str());
-	TLOG_DEBUG(fac_name_part + "Main") << "Setting application name to " << app_name << TLOG_ENDL;
 
 	// initialization
 	int const wanted_threading_level{ MPI_THREAD_FUNNELED };
@@ -34,21 +29,28 @@ int main(int argc, char* argv[])
 	}
 	catch (cet::exception& errormsg)
 	{
-		TLOG_ERROR(fac_name_part + "Main") << errormsg << TLOG_ENDL;
-		TLOG_ERROR(fac_name_part + "Main") << "MPISentry error encountered in BoardReaderMain; exiting..." << TLOG_ENDL;
+		TLOG_ERROR("BoardReaderMain") << errormsg << TLOG_ENDL;
+		TLOG_ERROR("BoardReaderMain") << "MPISentry error encountered in BoardReaderMain; exiting..." << TLOG_ENDL;
 		throw errormsg;
 	}
 
-	TLOG_INFO(fac_name_part + "Main") << "artdaq version " <<
+	fhicl::ParameterSet config_ps = LoadParameterSet(argc, argv);
+	app_name = config_ps.get<std::string>("application_name", "BoardReader");
+	std::string mf_app_name = artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id"));
+	artdaq::configureMessageFacility(mf_app_name.c_str());
+	TLOG_DEBUG(app_name + "Main") << "Setting application name to " << mf_app_name << TLOG_ENDL;
+
+
+	TLOG_INFO(app_name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
 	// create the BoardReaderApp
-	artdaq::BoardReaderApp br_app(mpiSentry->rank(), fac_name_part);
+	artdaq::BoardReaderApp br_app(mpiSentry->rank(), app_name);
 
 	auto commander = artdaq::MakeCommanderPlugin(config_ps, br_app);
-	TLOG_INFO(fac_name_part + "Main") << "Running Commmander Server" << TLOG_ENDL;
+	TLOG_INFO(app_name + "Main") << "Running Commmander Server" << TLOG_ENDL;
 	commander->run_server();
-	TLOG_INFO(fac_name_part + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
+	TLOG_INFO(app_name + "Main") << "Commandable Server ended, exiting..." << TLOG_ENDL;
 }
