@@ -894,7 +894,7 @@ private:								\
 
 		xmlrpc_c::serverAbyss server(xmlrpc_c::serverAbyss::constrOpt().registryP(&registry).socketFd(socket_file_descriptor));
 
-#if 1
+#if 0
 		xmlrpc_c::serverAbyss::shutdown shutdown_obj(&server);
 		registry.setShutdown(&shutdown_obj);
 #endif
