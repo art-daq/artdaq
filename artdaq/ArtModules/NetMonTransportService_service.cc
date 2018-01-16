@@ -217,51 +217,59 @@ receiveInitMessage(TBufferFile*& msg)
 	{
 		TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Waiting for available buffer" << TLOG_ENDL;
 
-		bool got_event = false;
-		while (!got_event)
-		{
-			got_event = incoming_events_->ReadyForRead(true);
-		}
-
-		TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Reading buffer header" << TLOG_ENDL;
+		bool got_init = false;
 		auto errflag = false;
-		incoming_events_->ReadHeader(errflag);
-		if (errflag) { // Buffer was changed out from under reader!
-			TLOG_ERROR("NetMonTransportService") << "receiveInitMessage: Error receiving message!" << TLOG_ENDL;
-			msg = nullptr;
-			return;
-		}
-		TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Getting Fragment types" << TLOG_ENDL;
-		auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
-		if (errflag) { // Buffer was changed out from under reader!
-			msg = nullptr;
-			TLOG_ERROR("NetMonTransportService") << "receiveInitMessage: Error receiving message!" << TLOG_ENDL;
-			return;
-		}
-		if (fragmentTypes.size() == 0)
-		{
-			TLOG_ERROR("NetMonTransportService") << "Event has no Fragments! Aborting!" << TLOG_ENDL;
-			incoming_events_->ReleaseBuffer();
-			msg = nullptr;
-			return;
-		}
-		TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Checking first Fragment type" << TLOG_ENDL;
-		auto firstFragmentType = *fragmentTypes.begin();
+		while (!got_init) {
 
-		// We return false, indicating we're done reading, if:
-		//   1) we did not obtain an event, because we timed out and were
-		//      configured NOT to keep trying after a timeout, or
-		//   2) the event we read was the end-of-data marker: a null
-		//      pointer
-		if (!got_event || firstFragmentType == artdaq::Fragment::EndOfDataFragmentType)
-		{
-			TLOG_DEBUG("NetMonTransportService") << "Received shutdown message, returning" << TLOG_ENDL;
-			incoming_events_->ReleaseBuffer();
-			msg = nullptr;
-			return;
+			bool got_event = false;
+			while (!got_event)
+			{
+				got_event = incoming_events_->ReadyForRead(true);
+			}
+
+			TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Reading buffer header" << TLOG_ENDL;
+			incoming_events_->ReadHeader(errflag);
+			if (errflag) { // Buffer was changed out from under reader!
+				TLOG_ERROR("NetMonTransportService") << "receiveInitMessage: Error receiving message!" << TLOG_ENDL;
+				msg = nullptr;
+				return;
+			}
+			TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Getting Fragment types" << TLOG_ENDL;
+			auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
+			if (errflag) { // Buffer was changed out from under reader!
+				msg = nullptr;
+				TLOG_ERROR("NetMonTransportService") << "receiveInitMessage: Error receiving message!" << TLOG_ENDL;
+				return;
+			}
+			if (fragmentTypes.size() == 0)
+			{
+				TLOG_ERROR("NetMonTransportService") << "Event has no Fragments! Aborting!" << TLOG_ENDL;
+				incoming_events_->ReleaseBuffer();
+				msg = nullptr;
+				return;
+			}
+			TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Checking first Fragment type" << TLOG_ENDL;
+			auto firstFragmentType = *fragmentTypes.begin();
+
+			// We return false, indicating we're done reading, if:
+			//   1) we did not obtain an event, because we timed out and were
+			//      configured NOT to keep trying after a timeout, or
+			//   2) the event we read was the end-of-data marker: a null
+			//      pointer
+			if (!got_event || firstFragmentType == artdaq::Fragment::EndOfDataFragmentType)
+			{
+				TLOG_DEBUG("NetMonTransportService") << "Received shutdown message, returning" << TLOG_ENDL;
+				incoming_events_->ReleaseBuffer();
+				msg = nullptr;
+				return;
+			}
+			if (firstFragmentType != artdaq::Fragment::InitFragmentType)
+			{
+				TLOG_WARNING("NetMonTransportService") << "Did NOT receive Init Fragment as first broadcast! Type=" << artdaq::detail::RawFragmentHeader::SystemTypeToString(firstFragmentType) << TLOG_ENDL;
+				incoming_events_->ReleaseBuffer();
+			}
+			got_init = true;
 		}
-
-
 		TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Getting all Fragments" << TLOG_ENDL;
 		recvd_fragments_ = incoming_events_->GetFragmentsByType(errflag, artdaq::Fragment::InvalidFragmentType);
 		/* Events coming out of the EventStore are not sorted but need to be

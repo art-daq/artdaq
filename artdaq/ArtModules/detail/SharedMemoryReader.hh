@@ -340,45 +340,45 @@ namespace artdaq
 						bytesRead += frag.sizeBytes();
 					if (iter != iter_end)
 					{
-					  if (type_code == artdaq::Fragment::ContainerFragmentType)
+						if (type_code == artdaq::Fragment::ContainerFragmentType)
 						{
-						  std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
-						  derived_fragments[iter->second] = std::make_unique<Fragments>();
+							std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
+							derived_fragments[iter->second] = std::make_unique<Fragments>();
 
-						  for(size_t ii = 0; ii < product->size(); ++ii)
+							for (size_t ii = 0; ii < product->size(); ++ii)
 							{
-							  ContainerFragment cf(product->at(ii));
-							  auto contained_type = fragment_type_map_.find(cf.fragment_type());
-							  if (contained_type != iter_end)
+								ContainerFragment cf(product->at(ii));
+								auto contained_type = fragment_type_map_.find(cf.fragment_type());
+								if (contained_type != iter_end)
 								{
-								  auto label = iter->second + contained_type->second;
-								  if (!derived_fragments.count(label))
+									auto label = iter->second + contained_type->second;
+									if (!derived_fragments.count(label))
 									{
-									  derived_fragments[label] = std::make_unique<Fragments>();
+										derived_fragments[label] = std::make_unique<Fragments>();
 									}
-								  derived_fragments[label]->emplace_back(std::move(product->at(ii)));
+									derived_fragments[label]->emplace_back(std::move(product->at(ii)));
 								}
-							  else
+								else
 								{
-								  derived_fragments[iter->second]->emplace_back(std::move(product->at(ii)));
+									derived_fragments[iter->second]->emplace_back(std::move(product->at(ii)));
 								}
 							}
 
-						  for (auto& type : derived_fragments)
+							for (auto& type : derived_fragments)
 							{
-							  put_product_in_principal(std::move(type.second),
-													   *outE,
-													   pretend_module_name,
-													   type.first);
+								put_product_in_principal(std::move(type.second),
+														 *outE,
+														 pretend_module_name,
+														 type.first);
 							}
 
 						}
-					  else
+						else
 						{
-						  put_product_in_principal(std::move(product),
-												   *outE,
-												   pretend_module_name,
-												   iter->second);
+							put_product_in_principal(std::move(product),
+													 *outE,
+													 pretend_module_name,
+													 iter->second);
 						}
 					}
 					else

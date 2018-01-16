@@ -223,6 +223,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					<< " (recvd " << std::to_string(recv_frag_count_.slotCount(source_rank)) << ")." << TLOG_ENDL;
 				break;
 			case Fragment::InitFragmentType:
+				TLOG_DEBUG("DataReceiverManager") << "Received Init Fragment from rank " << source_rank << "." << TLOG_ENDL;
 				shm_manager_->setRequestMode(detail::RequestMessageMode::Normal);
 				shm_manager_->SetInitFragment(std::move(frag));
 				break;

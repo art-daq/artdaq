@@ -167,7 +167,7 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 	{
 		TLOG_ERROR(name_)
 			<< "The fileName parameter was not specified "
-			<< "in the BinaryMPIOutput initialization PSet: \""
+			<< "in the BinaryFileOutput initialization PSet: \""
 			<< pset.to_string() << "\"." << TLOG_ENDL;
 		return false;
 	}
