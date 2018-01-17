@@ -168,7 +168,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	, communicationWrapper_(ps)
 {
 	artdaq::configureMessageFacility("artdaqart");
-	
+
 	// JCF, May-27-2016
 
 	// Something will have to be done about the labeling of this class,
@@ -266,10 +266,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	//  Read the ParentageRegistry.
 	//
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ParentageMap" << TLOG_ENDL;
-	ParentageMap* parentageMap
-		= ReadObjectAny<ParentageMap>(msg,
-									  "art::ParentageMap",
-									  "ArtdaqInput::ArtdaqInput");
+	ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInput::ArtdaqInput");
 	ParentageRegistry::put(*parentageMap);
 
 	//
@@ -295,12 +292,12 @@ void
 art::ArtdaqInput<U>::
 readFile(const std::string&, art::FileBlock*& fb)
 {
-        TLOG_ARB(5,"ArtdaqInput") << "Begin: ArtdaqInput::"
-                "readFile(const std::string& name, art::FileBlock*& fb)" << TLOG_ENDL;
-        fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInput2013"),
-                                                        "nothing");
-        TLOG_ARB(5,"ArtdaqInput") << "End:   ArtdaqInput::"
-                "readFile(const std::string& name, art::FileBlock*& fb)" << TLOG_ENDL;
+	TLOG_ARB(5, "ArtdaqInput") << "Begin: ArtdaqInput::"
+		"readFile(const std::string& name, art::FileBlock*& fb)" << TLOG_ENDL;
+	fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInput2013"),
+							"nothing");
+	TLOG_ARB(5, "ArtdaqInput") << "End:   ArtdaqInput::"
+		"readFile(const std::string& name, art::FileBlock*& fb)" << TLOG_ENDL;
 }
 
 template <typename U>
@@ -308,30 +305,30 @@ bool
 art::ArtdaqInput<U>::
 hasMoreData() const
 {
-        TLOG_ARB(5,"ArtdaqInput") << "Begin: ArtdaqInput::hasMoreData()" << TLOG_ENDL;
-        if (shutdownMsgReceived_)
-        {
-                TLOG_ARB(5,"ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
-                        "returning false on shutdownMsgReceived_." << TLOG_ENDL;
-                TLOG_ARB(5,"ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()" << TLOG_ENDL;
-                return false;
-        }
-        TLOG_ARB(5,"ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
-                "returning true on not shutdownMsgReceived_." << TLOG_ENDL;
-        TLOG_ARB(5,"ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()" << TLOG_ENDL;
-        return true;
+	TLOG_ARB(5, "ArtdaqInput") << "Begin: ArtdaqInput::hasMoreData()" << TLOG_ENDL;
+	if (shutdownMsgReceived_)
+	{
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
+			"returning false on shutdownMsgReceived_." << TLOG_ENDL;
+		TLOG_ARB(5, "ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()" << TLOG_ENDL;
+		return false;
+	}
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput::hasMoreData(): "
+		"returning true on not shutdownMsgReceived_." << TLOG_ENDL;
+	TLOG_ARB(5, "ArtdaqInput") << "End:   ArtdaqInput::hasMoreData()" << TLOG_ENDL;
+	return true;
 }
 
 template <typename U>
 void
 art::ArtdaqInput<U>::
 readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
-                                                  unsigned long msg_type_code,
-                                                  art::RunPrincipal* const inR,
-                                                  art::SubRunPrincipal* const inSR,
-                                                  art::RunPrincipal*& outR,
-                                                  art::SubRunPrincipal*& outSR,
-                                                  art::EventPrincipal*& outE)
+						  unsigned long msg_type_code,
+						  art::RunPrincipal* const inR,
+						  art::SubRunPrincipal* const inSR,
+						  art::RunPrincipal*& outR,
+						  art::SubRunPrincipal*& outSR,
+						  art::EventPrincipal*& outE)
 {
 	//
 	//  Process the message.
@@ -344,27 +341,19 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 	if (msg_type_code == 2)
 	{ // EndRun message.
 
-		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " <<
-			"processing EndRun message ..." << TLOG_ENDL;
+		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " << "processing EndRun message ..." << TLOG_ENDL;
 
-		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary",
-													   "ArtdaqInput::readAndConstructPrincipal"));
+		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary", "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
 
-		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " <<
-			"making flush RunPrincipal ..." << TLOG_ENDL;
+		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " << "making flush RunPrincipal ..." << TLOG_ENDL;
 		outR = pm_.makeRunPrincipal(RunID::flushRun(), run_aux->beginTime());
 
-		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " <<
-			"making flush SubRunPrincipal ..." << TLOG_ENDL;
-		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(),
-										run_aux->beginTime());
+		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " << "making flush SubRunPrincipal ..." << TLOG_ENDL;
+		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(), run_aux->beginTime());
 
-		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " <<
-			"making flush EventPrincipal ..." << TLOG_ENDL;
-		outE = pm_.makeEventPrincipal(EventID::flushEvent(),
-									  run_aux->endTime(), true,
-									  EventAuxiliary::Any);
+		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " << "making flush EventPrincipal ..." << TLOG_ENDL;
+		outE = pm_.makeEventPrincipal(EventID::flushEvent(), run_aux->endTime(), true, EventAuxiliary::Any);
 
 		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " <<
 			"finished processing EndRun message." << TLOG_ENDL;
@@ -372,15 +361,12 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 	else if (msg_type_code == 3)
 	{ // EndSubRun message.
 
-		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " <<
-			"processing EndSubRun message ..." << TLOG_ENDL;
+		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " << "processing EndSubRun message ..." << TLOG_ENDL;
 
-		subrun_aux.reset(ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary",
-															 "ArtdaqInput::readAndConstructPrincipal"));
+		subrun_aux.reset(ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary", "ArtdaqInput::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 
-		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " <<
-			"making flush RunPrincipal ..." << TLOG_ENDL;
+		TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: " << "making flush RunPrincipal ..." << TLOG_ENDL;
 		outR = pm_.makeRunPrincipal(RunID::flushRun(), subrun_aux->beginTime());
 
 		// 28-Feb-2014, KAB: added the setting of the end time in the *current*
@@ -432,16 +418,14 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 			throw art::Exception(art::errors::Unknown) << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
 		}
 
-		if ((inR == nullptr) || !inR->id().isValid() ||
-			(inR->run() != event_aux->run()))
+		if ((inR == nullptr) || !inR->id().isValid() || (inR->run() != event_aux->run()))
 		{
 			// New run, either we have no input RunPrincipal, or the
 			// input run number does not match the event run number.
 			TLOG_ARB(5, "ArtdaqInput") << "readAndConstructPrincipal: making RunPrincipal ..." << TLOG_ENDL;
 			outR = pm_.makeRunPrincipal(*run_aux.get());
 		}
-		if ((inSR == nullptr) || !inSR->id().isValid() ||
-			(inSR->subRun() != event_aux->subRun()))
+		if ((inSR == nullptr) || !inSR->id().isValid() || (inSR->subRun() != event_aux->subRun()))
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the event subRun number.
@@ -551,7 +535,7 @@ void
 art::ArtdaqInput<U>::
 putInPrincipal(RunPrincipal*& rp, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
 {
-        rp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forRun(rp->id()));
+	rp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forRun(rp->id()));
 }
 
 template <typename U>
@@ -559,7 +543,7 @@ void
 art::ArtdaqInput<U>::
 putInPrincipal(SubRunPrincipal*& srp, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
 {
-        srp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forSubRun(srp->id()));
+	srp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forSubRun(srp->id()));
 }
 
 template <typename U>
@@ -567,7 +551,7 @@ void
 art::ArtdaqInput<U>::
 putInPrincipal(EventPrincipal*& ep, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
 {
-        ep->put(std::move(prd), bd, std::move(prdprov));
+	ep->put(std::move(prd), bd, std::move(prdprov));
 }
 
 
@@ -575,8 +559,8 @@ template <typename U>
 bool
 art::ArtdaqInput<U>::
 readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
-                 art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
-                 art::EventPrincipal*& outE)
+		 art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
+		 art::EventPrincipal*& outE)
 {
 	TLOG_ARB(5, "ArtdaqInput") << "Begin: ArtdaqInput::readNext" << TLOG_ENDL;
 	if (outputFileCloseNeeded_)
