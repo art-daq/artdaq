@@ -74,16 +74,25 @@ namespace artdaq {
 		 * \verbatim
 		 * SharedMemoryEventManager accepts the following Parameters:
 		 *
+		 * "shared_memory_key" (Default 0xBEE70000 + PID): Key to use for shared memory access
 		 * "buffer_count" REQUIRED: Number of events in the Shared Memory (incomplete + pending art)
 		 * "max_event_size_bytes" REQUIRED: Maximum event size (all Fragments), in bytes
 		 *  OR "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
-		 * "stale_buffer_touch_count" (Default: 0x10000): Maximum number of times a buffer may be queried before being marked as abandoned.
-		 * Owner resets this counter every time it touches the buffer.
+		 * "stale_buffer_timeout_usec" (Default: event_queue_wait_time * 1,000,000): Maximum amount of time elapsed before a buffer is marked as abandoned. Time is reset each time an operation is performed on the buffer.
+		 * "event_queue_wait_time" (Default: 5): Amount of time (in seconds) an event can exist in shared memory before being released to art. Used as input to default parameter of "stale_buffer_timeout_usec".
+		 * "broadcast_mode" (Default: false): When true, buffers are not marked Empty when read, but return to Full state. Buffers are overwritten in order received.
 		 * "art_analyzer_count" (Default: 1): Number of art procceses to start
 		 * "expected_fragments_per_event" (REQUIRED): Number of Fragments to expect per event
 		 * "update_run_ids_on_new_fragment" (Default: true): Whether the run and subrun ID of an event should be updated whenever a Fragment is added.
-		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
+		 * "use_art" (Default: true): Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)
+		 * "overwite_mode" (Default: false): Whether new data is allowed to overwrite buffers in the "Full" state
 		 * "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
+		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
+		 * A "Broadcast shared memmory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
+		 * "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
+		 * "broadcast_shared_memory_key" (Default: 0xCEE7000 + PID): Key to use for broadcast shared memory access
+		 * "broadcast_buffer_count" (Default: 10): Buffers in the broadcast shared memory segment
+		 * "broadcast_buffer_size" (Default: 0x100000): Size of the buffers in the broadcast shared memory segment
 		 * \endverbatim
 		 */
 		SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
@@ -124,13 +133,7 @@ namespace artdaq {
 		 * \param frag Fragment that is now completely in the buffer.
 		 */
 		void DoneWritingFragment(detail::RawFragmentHeader frag);
-
-		/**
-		* \brief Returns the number of buffers which have no data
-		* \return The number of buffers which have no data
-		*/
-		//size_t GetInactiveEventCount() { return inactive_buffers_.size(); }
-
+		
 		/**
 		* \brief Returns the number of buffers which contain data but are not yet complete
 		* \return The number of buffers which contain data but are not yet complete
@@ -287,16 +290,13 @@ namespace artdaq {
 		size_t const queue_size_;
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
-		//Fragment::sequence_id_t sequence_id_;
 
-		//std::set<int> inactive_buffers_;
 		std::set<int> active_buffers_;
 		std::set<int> pending_buffers_;
 		std::unordered_map<Fragment::sequence_id_t, size_t> released_incomplete_events_;
 
 		bool update_run_ids_;
 		bool overwrite_mode_;
-		//bool every_seqid_expected_;
 		bool send_init_fragments_;
 
 		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
