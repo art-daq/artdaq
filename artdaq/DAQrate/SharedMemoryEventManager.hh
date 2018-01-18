@@ -11,6 +11,7 @@
 #include <iomanip>
 #include "fhiclcpp/fwd.h"
 #include "artdaq/Application/StatisticsHelper.hh"
+#define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 namespace artdaq {
 
@@ -128,7 +129,7 @@ namespace artdaq {
 		* \brief Returns the number of buffers which have no data
 		* \return The number of buffers which have no data
 		*/
-		size_t GetInactiveEventCount() { return inactive_buffers_.size(); }
+		//size_t GetInactiveEventCount() { return inactive_buffers_.size(); }
 
 		/**
 		* \brief Returns the number of buffers which contain data but are not yet complete
@@ -161,6 +162,14 @@ namespace artdaq {
 		 * \return Number of Fragments in event of given type
 		 */
 		size_t GetFragmentCount(Fragment::sequence_id_t seqID, Fragment::type_t type = Fragment::InvalidFragmentType);
+
+		/**
+		* \brief Get the count of Fragments of a given type in a buffer
+		* \param buffer Buffer to count
+		* \param type Type of fragments to count. Use InvalidFragmentType to count all fragments (default)
+		* \return Number of Fragments in buffer of given type
+		*/
+		size_t GetFragmentCountInBuffer(int buffer, Fragment::type_t type = Fragment::InvalidFragmentType);
 
 		/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
@@ -278,15 +287,16 @@ namespace artdaq {
 		size_t const queue_size_;
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
-		Fragment::sequence_id_t sequence_id_;
+		//Fragment::sequence_id_t sequence_id_;
 
-		std::set<int> inactive_buffers_;
+		//std::set<int> inactive_buffers_;
 		std::set<int> active_buffers_;
 		std::set<int> pending_buffers_;
+		std::unordered_map<Fragment::sequence_id_t, size_t> released_incomplete_events_;
 
 		bool update_run_ids_;
 		bool overwrite_mode_;
-		bool every_seqid_expected_;
+		//bool every_seqid_expected_;
 		bool send_init_fragments_;
 
 		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
