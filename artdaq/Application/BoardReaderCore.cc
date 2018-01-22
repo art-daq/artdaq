@@ -230,6 +230,7 @@ bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 
 bool artdaq::BoardReaderCore::shutdown(uint64_t)
 {
+	generator_ptr_->joinThreads(); // Cleanly shut down the CommandableFragmentGenerator
 	generator_ptr_.reset(nullptr);
 	metricMan_.shutdown();
 	return true;

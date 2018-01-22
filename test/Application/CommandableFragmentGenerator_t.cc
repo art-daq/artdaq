@@ -25,7 +25,7 @@ public:
 	 */
 	explicit CommandableFragmentGeneratorTest(const fhicl::ParameterSet& ps);
 
-	virtual ~CommandableFragmentGeneratorTest() = default;
+	virtual ~CommandableFragmentGeneratorTest() { joinThreads(); };
 
 protected:
 	/**
@@ -187,6 +187,7 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests)
 	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
 	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 	TLOG_INFO("CommandableFragmentGenerator_t") << "IgnoreRequests test case END" << TLOG_ENDL;
 }
 
@@ -262,6 +263,7 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 	fps.clear();
 
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 	TLOG_INFO("CommandableFragmentGenerator_t") << "SingleMode test case END" << TLOG_ENDL;
 }
 
@@ -358,6 +360,7 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 
 
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 
 
 	TLOG_INFO("CommandableFragmentGenerator_t") << "BufferMode test case END" << TLOG_ENDL;
@@ -489,6 +492,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_Function test case END" << TLOG_ENDL;
+	gen.joinThreads();
 
 }
 
@@ -613,6 +617,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestStartsBeforeBuffer test case END" << TLOG_ENDL;
 
 }
@@ -722,6 +727,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestOutsideBuffer test case END" << TLOG_ENDL;
 
 }
@@ -869,6 +875,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestEndsAfterBuffer test case END" << TLOG_ENDL;
 
 }
@@ -962,6 +969,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestAfterBuffer test case END" << TLOG_ENDL;
 
 }
@@ -997,6 +1005,7 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 	TLOG_INFO("CommandableFragmentGenerator_t") << "HardwareFailure_NonThreaded test case END" << TLOG_ENDL;
 }
 
@@ -1009,7 +1018,7 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 	ps.put<int>("fragment_id", 1);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", true);
-	ps.put<int64_t>("hardware_poll_interval_us", 500000);
+	ps.put<int64_t>("hardware_poll_interval_us", 750000);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
@@ -1042,6 +1051,7 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
 	TLOG_INFO("CommandableFragmentGenerator_t") << "HardwareFailure_Threaded test case END" << TLOG_ENDL;
 }
 

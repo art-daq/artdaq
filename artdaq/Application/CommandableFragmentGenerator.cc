@@ -225,8 +225,13 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 
 artdaq::CommandableFragmentGenerator::~CommandableFragmentGenerator()
 {
-	force_stop_ = true;
+	joinThreads();
+}
+
+void artdaq::CommandableFragmentGenerator::joinThreads()
+{
 	should_stop_ = true;
+	force_stop_ = true;
 	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining dataThread" << TLOG_ENDL;
 	if (dataThread_.joinable()) dataThread_.join();
 	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining monitoringThread" << TLOG_ENDL;
@@ -566,7 +571,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
+				"Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
 			set_exception(true);
 
 			data_thread_running_ = false;
@@ -909,7 +914,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	}
 
 	bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(),
-												[this](decltype(requests_)::value_type& request) {
+		[this](decltype(requests_)::value_type& request) {
 		return request.first == ev_counter(); });
 
 	if (missing_request_)
