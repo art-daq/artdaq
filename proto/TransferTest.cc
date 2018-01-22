@@ -57,7 +57,8 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi, uint32_t key)
 	std::string hostmap = "";
 	if (psi.has_key("hostmap"))
 	{
-		hostmap = " host_map: @local::hostmap";
+        auto masterPortOffset = (key % (36728 - 10240)) + 1024; // Leave lots of headroom
+		hostmap = " host_map: @local::hostmap master_port_offset: " + std::to_string(masterPortOffset);
 	}
 
 	std::stringstream ss;
