@@ -137,6 +137,7 @@ int main(int argc, char * argv[]) try
 		}
 	}
 
+	commandable_gen->joinThreads();
 
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
