@@ -566,15 +566,12 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 		try
 		{
-			// ELF 1/22/18, if destructor has been called, getNext_ implementor may already have been destructed. Don't call getNext_ when should_stop_ is true.
-			if (!should_stop_) {
-				data = getNext_(newDataBuffer_);
-			}
+			data = getNext_(newDataBuffer_);
 		}
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
+				"Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
 			set_exception(true);
 
 			data_thread_running_ = false;
@@ -917,7 +914,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	}
 
 	bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(),
-												[this](decltype(requests_)::value_type& request) {
+		[this](decltype(requests_)::value_type& request) {
 		return request.first == ev_counter(); });
 
 	if (missing_request_)
