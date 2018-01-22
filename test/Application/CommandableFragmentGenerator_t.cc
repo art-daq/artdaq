@@ -1009,7 +1009,7 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 	ps.put<int>("fragment_id", 1);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", true);
-	ps.put<int64_t>("hardware_poll_interval_us", 500000);
+	ps.put<int64_t>("hardware_poll_interval_us", 750000);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);

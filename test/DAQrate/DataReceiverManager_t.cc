@@ -40,6 +40,7 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 	source_fhicl.put("transferPluginType", "Shmem");
 	source_fhicl.put("destination_rank", 0);
 	source_fhicl.put("source_rank", 0);
+	source_fhicl.put("shm_key", 0xFEEE0000 + getpid());
 
 	fhicl::ParameterSet sources_fhicl;
 	sources_fhicl.put("shmem", source_fhicl);
