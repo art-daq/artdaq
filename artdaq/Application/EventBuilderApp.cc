@@ -46,10 +46,6 @@ bool artdaq::EventBuilderApp::do_start(art::RunID id, uint64_t, uint64_t)
 		report_string_.append(".");
 	}
 
-	event_building_future_ =
-		std::async(std::launch::async, &EventBuilderCore::process_fragments,
-				   event_builder_ptr_.get());
-
 	return external_request_status_;
 }
 
@@ -61,11 +57,6 @@ bool artdaq::EventBuilderApp::do_stop(uint64_t, uint64_t)
 	{
 		report_string_ = "Error stopping ";
 		report_string_.append(name_ + ".");
-	}
-
-	if (event_building_future_.valid())
-	{
-		event_building_future_.get();
 	}
 	return external_request_status_;
 }
@@ -80,10 +71,6 @@ bool artdaq::EventBuilderApp::do_pause(uint64_t, uint64_t)
 		report_string_.append(name_ + ".");
 	}
 
-	if (event_building_future_.valid())
-	{
-		event_building_future_.get();
-	}
 	return external_request_status_;
 }
 
@@ -96,11 +83,7 @@ bool artdaq::EventBuilderApp::do_resume(uint64_t, uint64_t)
 		report_string_ = "Error resuming ";
 		report_string_.append(name_ + ".");
 	}
-
-	event_building_future_ =
-		std::async(std::launch::async, &EventBuilderCore::process_fragments,
-				   event_builder_ptr_.get());
-
+	
 	return external_request_status_;
 }
 

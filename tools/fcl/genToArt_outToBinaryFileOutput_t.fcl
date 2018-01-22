@@ -13,12 +13,14 @@ genToArt:
 
   event_builder:
   {
-    event_queue_depth: 20
+	buffer_count: 10
+	expected_fragments_per_event: 1
     event_queue_wait_time: 5.0
     print_event_store_stats: false
     fragment_receiver_count: 1
     use_art: true
     verbose: false
+	max_event_size_bytes: 10000
   }
 }
 

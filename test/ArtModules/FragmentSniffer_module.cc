@@ -71,7 +71,7 @@ namespace artdaq
 	{
 		art::Handle<Fragments> handle;
 		e.getByLabel(raw_label_, product_instance_name_, handle);
-		assert(handle->empty() || "getByLabel returned empty handle");
+		assert(!handle->empty() && "getByLabel returned empty handle");
 		assert(handle->size() == num_frags_per_event_);
 		++num_events_processed_;
 	}

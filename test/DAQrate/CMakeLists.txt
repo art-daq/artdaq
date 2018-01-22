@@ -6,15 +6,24 @@ if (EXISTS ${CPI_SOURCE})
 endif()
 
 cet_test(daqrate_gen_test HANDBUILT
-  TEST_EXEC daqrate
+  TEST_EXEC daqrate.py
   DATAFILES fcl/daqrate_gen_test.fcl
-  TEST_ARGS 5 1 4 11 -- -c daqrate_gen_test.fcl
+  TEST_ARGS 5 1 -- -c daqrate_gen_test.fcl
   TEST_PROPERTIES RUN_SERIAL true
   )
 
 cet_test(FragCounter_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate)
 
-cet_test(EventStore_t USE_BOOST_UNIT
-  LIBRARIES artdaq_DAQdata artdaq_DAQrate
-  )
+  # DataSenderManager is tested as part of the TransferTest
+
+  cet_test(DataReceiverManager_t USE_BOOST_UNIT
+  LIBRARIES artdaq_DAQrate
+  artdaq_TransferPlugins
+  artdaq_TransferPlugins_Shmem_transfer)
+
+  cet_test(RequestSender_t USE_BOOST_UNIT
+  LIBRARIES artdaq_DAQrate)
+
+  cet_test(SharedMemoryEventManager_t USE_BOOST_UNIT
+  LIBRARIES artdaq_DAQrate)

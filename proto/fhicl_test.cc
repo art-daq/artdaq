@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <iomanip>
-#include "LoadParameterSet.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
 
 namespace  bpo = boost::program_options;
 

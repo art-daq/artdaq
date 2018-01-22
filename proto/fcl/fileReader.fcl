@@ -15,8 +15,8 @@ services: {
 }
 
 outputs: {
-  rootMPIOutput: {
-    module_type: RootMPIOutput
+  rootNetOutput: {
+    module_type: RootNetOutput
 SelectEvents: { SelectEvents: [rdf] }
   }
 }
@@ -38,6 +38,6 @@ cpu_load_ratio: 0.0
    }
   }
 rdf: [ RandomDelay ]
-  my_output_modules: [ rootMPIOutput ]
+  my_output_modules: [ rootNetOutput ]
 }
 process_name: DAQFileSource

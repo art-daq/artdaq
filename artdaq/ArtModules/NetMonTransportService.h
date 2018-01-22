@@ -5,7 +5,7 @@
 
 #include "artdaq/ArtModules/NetMonTransportServiceInterface.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq-core/Core/GlobalQueue.hh"
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 
 // ----------------------------------------------------------------------
 
@@ -65,6 +65,8 @@ public:
 	 */
 	void receiveMessage(TBufferFile*& msg) override;
 
+	void receiveInitMessage(TBufferFile*& msg) override;
+
 	/**
 	 * \brief Get the number of data receivers
 	 * \return The number of data receivers
@@ -72,9 +74,11 @@ public:
 	size_t dataReceiverCount() const { return sender_ptr_->destinationCount(); }
 private:
 	fhicl::ParameterSet data_pset_;
+	bool init_received_;
+	double init_timeout_s_;
 
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
-	artdaq::RawEventQueue& incoming_events_;
+	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;
 	std::unique_ptr<std::vector<artdaq::Fragment>> recvd_fragments_;
 };
 

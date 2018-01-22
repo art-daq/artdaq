@@ -1,10 +1,9 @@
-#define BOOST_TEST_MODULE ( GenericFragmentSimulator_t )
+#define BOOST_TEST_MODULE GenericFragmentSimulator_t
 #include <boost/test/auto_unit_test.hpp>
 
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
-#include "artdaq/DAQrate/EventStore.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 
 #include <cstddef>

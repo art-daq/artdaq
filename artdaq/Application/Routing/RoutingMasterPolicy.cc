@@ -13,23 +13,34 @@ artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
 void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_free)
 {
 	if (!receiver_ranks_.count(rank)) return;
-	TRACE(10, "RoutingMasterPolicy::AddReceiverToken BEGIN");
+	TLOG_ARB(10, "RoutingMasterPolicy") << "AddReceiverToken BEGIN" << TLOG_ENDL;
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
-	for (unsigned i = 0; i < new_slots_free; ++i)
+	if (new_slots_free == 1) 
 	{
 		tokens_.push_back(rank);
 	}
+	else 
+	{
+		// Randomly distribute multitokens through the token list
+		// Only used at start run time, so we can take the performance hit
+		for (unsigned i = 0; i < new_slots_free; ++i)
+		{
+			auto it = tokens_.begin();
+			if(tokens_.size()) std::advance(it, rand() % tokens_.size());
+			tokens_.insert(it, rank);
+		}
+	}
 	if (tokens_.size() > max_token_count_) max_token_count_ = tokens_.size();
-	TRACE(10, "RoutingMasterPolicy::AddReceiverToken END");
+	TLOG_ARB(10, "RoutingMasterPolicy") << "AddReceiverToken END" << TLOG_ENDL;
 }
 
 std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot()
 {
-	TRACE(10, "RoutingMasterPolicy::getTokensSnapshot BEGIN");
+	TLOG_ARB(10, "RoutingMasterPolicy" ) << "getTokensSnapshot BEGIN" << TLOG_ENDL;
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
 	auto out = std::make_unique<std::deque<int>>(tokens_);
 	tokens_.clear();
-	TRACE(10, "RoutingMasterPolicy::getTokensSnapshot END");
+	TLOG_ARB(10, "RoutingMasterPolicy") << "getTokensSnapshot END" << TLOG_ENDL;
 	return out;
 }
 

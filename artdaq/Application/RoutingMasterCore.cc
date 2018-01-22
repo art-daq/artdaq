@@ -10,16 +10,15 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/exception.h"
 
+#define TRACE_NAME "RoutingMasterCore" // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"   // to get tracemf.h before trace.h
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/RoutingMasterCore.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
-
-#define TRACE_NAME "RoutingMasterCore"
 
 const std::string artdaq::RoutingMasterCore::
 TABLE_UPDATES_STAT_KEY("RoutingMasterCoreTableUpdates");
@@ -133,7 +132,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	num_receivers_ = policy_->GetReceiverCount();
 
 	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
-	receive_token_events_ = std::vector<epoll_event>(num_receivers_);
+	receive_token_events_ = std::vector<epoll_event>(num_receivers_ + 1);
 
 	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
 	routing_mode_ = mode ? detail::RoutingMasterMode::RouteBySendCount : detail::RoutingMasterMode::RouteBySequenceID;
@@ -274,7 +273,7 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 				++table_update_count_;
 				delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TABLE_UPDATES_STAT_KEY, delta_time);
-				TRACE(16, "%s::process_fragments TABLE_UPDATES_STAT_KEY=%f", name_.c_str(), delta_time);
+				TLOG_ARB(16, name_) << "process_fragments TABLE_UPDATES_STAT_KEY=" << std::to_string(delta_time) << TLOG_ENDL;
 			}
 			else
 			{
@@ -310,7 +309,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	if (table_socket_ == -1)
 	{
 		table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if (!table_socket_)
+		if (table_socket_ < 0)
 		{
 			TLOG_ERROR(name_) << "I failed to create the socket for sending Data Requests! Errno: " << std::to_string(errno) << TLOG_ENDL;
 			exit(1);
@@ -340,6 +339,11 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				exit(1);
 			}
 
+			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &yes, sizeof(yes)) < 0)
+			{
+				TLOG_ERROR("RequestSender") << "Unable to enable multicast loopback on table socket" << TLOG_ENDL;
+				exit(1);
+			}
 			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 			{
 				TLOG_ERROR(name_) << "Cannot set outgoing interface. Errno: " << std::to_string(errno) << TLOG_ENDL;
@@ -357,7 +361,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	if (ack_socket_ == -1)
 	{
 		ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if (!ack_socket_)
+		if (ack_socket_ < 0)
 		{
 			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Error creating socket for receiving table update acks!" << std::endl;
 			exit(1);
@@ -418,13 +422,13 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto startTime = std::chrono::steady_clock::now();
 		while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0)
 		{
-			auto currentTime = std::chrono::steady_clock::now();
 			auto table_ack_wait_time_ms = current_table_interval_ms_ / max_ack_cycle_count_;
-			if (static_cast<size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) > table_ack_wait_time_ms)
+			if (TimeUtils::GetElapsedTimeMilliseconds(startTime) > table_ack_wait_time_ms)
 			{
 				if (counter > max_ack_cycle_count_ && table_update_count_ > 0)
 				{
-					TLOG_ERROR(name_) << "Did not receive acks from all senders after resending table " << std::to_string(counter) << " times during the table_update_interval. Check the status of the senders!" << TLOG_ENDL;
+					TLOG_ERROR(name_) << "Did not receive acks from all senders after resending table " << std::to_string(counter)
+						<< " times during the table_update_interval. Check the status of the senders!" << TLOG_ENDL;
 					break;
 				}
 				TLOG_WARNING(name_) << "Did not receive acks from all senders within the table_ack_wait_time. Resending table update" << TLOG_ENDL;
@@ -451,17 +455,27 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				}
 				else
 				{
-					TLOG_DEBUG(name_) << "Ack packet from rank " << buffer.rank << " has first= " << std::to_string(buffer.first_sequence_id) << " and last= " << std::to_string(buffer.last_sequence_id) << TLOG_ENDL;
+					TLOG_DEBUG(name_) << "Ack packet from rank " << buffer.rank << " has first= " << std::to_string(buffer.first_sequence_id)
+						<< " and last= " << std::to_string(buffer.last_sequence_id) << TLOG_ENDL;
 					if (acks.count(buffer.rank) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 					{
 						TLOG_DEBUG(name_) << "Received table update acknowledgement from sender with rank " << std::to_string(buffer.rank) << "." << TLOG_ENDL;
 						acks[buffer.rank] = true;
-						TLOG_DEBUG(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) << " acks outstanding" << TLOG_ENDL;
+						TLOG_DEBUG(name_) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; })
+							<< " acks outstanding" << TLOG_ENDL;
 					}
 					else
 					{
-						if (!acks.count(buffer.rank)) { TLOG_ERROR(name_) << "Received acknowledgement from invalid rank " << buffer.rank << "! Cross-talk between RoutingMasters means there's a configuration error!" << TLOG_ENDL; }
-						else { TLOG_WARNING(name_) << "Received acknowledgement from rank " << buffer.rank << " that had incorrect sequence ID information. Discarding." << TLOG_ENDL; }
+						if (!acks.count(buffer.rank))
+						{
+							TLOG_ERROR(name_) << "Received acknowledgement from invalid rank " << buffer.rank << "!"
+								<< " Cross-talk between RoutingMasters means there's a configuration error!" << TLOG_ENDL;
+						}
+						else
+						{
+							TLOG_WARNING(name_) << "Received acknowledgement from rank " << buffer.rank
+								<< " that had incorrect sequence ID information. Discarding." << TLOG_ENDL;
+						}
 					}
 				}
 			}
@@ -470,7 +484,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 	if (metricMan)
 	{
-		std::chrono::duration<double, std::ratio<1>> delta = std::chrono::steady_clock::now() - start_time;
+		artdaq::TimeUtils::seconds delta = std::chrono::steady_clock::now() - start_time;
 		metricMan->sendMetric("Avg Table Acknowledge Time", delta.count(), "seconds", 3, MetricMode::Average);
 	}
 }
@@ -578,7 +592,7 @@ void artdaq::RoutingMasterCore::start_recieve_token_thread_()
 {
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 	TLOG_INFO(name_) << "Starting Token Reception Thread" << TLOG_ENDL;
-	ev_token_receive_thread_ = std::thread(&RoutingMasterCore::receive_tokens_, this);
+	ev_token_receive_thread_ = boost::thread(&RoutingMasterCore::receive_tokens_, this);
 }
 
 std::string artdaq::RoutingMasterCore::report(std::string const&) const

@@ -1,3 +1,7 @@
 *#
 *~
 *.tmproj
+.editorconfig
+bin/*
+obj/*
+*.vcxproj*

@@ -32,10 +32,17 @@
 
 #include <TBufferFile.h>
 
+
+#define TRACE_NAME "InputUtilities"
+#define TLVL_READOBJANY 32
+#define TLVL_PROCESSHISTORYID 33
+#define TLVL_PROCESSMAP 34
+
 #include "tracemf.h"			// TLOG_ARB
 #include <memory>
 #include <string>
 #include <iostream>
+
 
 
 namespace art
@@ -56,8 +63,8 @@ namespace art
 		if (tclassPtr == nullptr)
 		{
 			throw art::Exception(art::errors::DictionaryNotFound) <<
-			      callerName << " call to ReadObjectAny: "
-			      "Could not get TClass for " << className << "!";
+				callerName << " call to ReadObjectAny: "
+				"Could not get TClass for " << className << "!";
 		}
 
 		// JCF, May-24-2016
@@ -70,8 +77,8 @@ namespace art
 		// a dynamic_cast later if you need to retrieve it."
 
 		T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr));
-		TLOG_ARB(5,"InputUtilities") << "ReadObjectAny: Got object of class " << className << 
-		", located at " << static_cast<void*>(ptr) << " caller:" << callerName << TLOG_ENDL;
+		TLOG(TLVL_READOBJANY) << "ReadObjectAny: Got object of class " << className <<
+			", located at " << static_cast<void*>(ptr) << " caller:" << callerName << TLOG_ENDL;
 
 		return ptr;
 	}
@@ -85,25 +92,16 @@ namespace art
 	template <typename T>
 	void printProcessHistoryID(const std::string& label, const T& object)
 	{
-		(void)label; // Otherwise we get an error if LOGDEBUG isn't defined, since description won't be used
 
-		if (art::debugit() >= 1)
+		if (object->processHistoryID().isValid())
 		{
-			if (object->processHistoryID().isValid())
-			{
-				//std::ostringstream OS;
-				//object->processHistoryID().print(OS);
-				TLOG_ARB(5,"InputUtilities") << label << ": "
-											 << "ProcessHistoryID: "
-											 << object->processHistoryID() << TLOG_ENDL;
-			}
-			else
-			{
-#ifdef LOGDEBUG
-	TLOG_DEBUG("printProcessHistoryID") << label << ": "
-		   << "ProcessHistoryID: 'INVALID'\n";
-#endif
-			}
+			//std::ostringstream OS;
+			//object->processHistoryID().print(OS);
+			TLOG(TLVL_PROCESSHISTORYID) << label << ": " << "ProcessHistoryID: " << object->processHistoryID() << TLOG_ENDL;
+		}
+		else
+		{
+			TLOG(TLVL_PROCESSHISTORYID) << label << ": " << "ProcessHistoryID: 'INVALID'";
 		}
 	}
 
@@ -116,38 +114,20 @@ namespace art
 	template <typename T>
 	void printProcessMap(const T& mappable, const std::string description)
 	{
-		(void) description; // Otherwise we get an error if LOGDEBUG isn't defined, since description won't be used
+		TLOG(TLVL_PROCESSMAP) << "Got " << description;
 
-#ifdef LOGDEBUG
-	TLOG_DEBUG("printProcessMap") << "Got " << description << "\n";
-#endif
-
-		if (art::debugit() >= 1)
+		TLOG(TLVL_PROCESSMAP) << "Dumping " << description << "...";
+		TLOG(TLVL_PROCESSMAP) << "Size: " << (unsigned long)mappable.size();
+		for (auto I = mappable.begin(), E = mappable.end(); I != E; ++I)
 		{
-#ifdef LOGDEBUG
-	  TLOG_DEBUG("printProcessMap") << "Dumping " << description << "...\n";
-	  TLOG_DEBUG("printProcessMap") << "Size: "
-		<< (unsigned long) mappable.size() << '\n';
-#endif
-			for (auto I = mappable.begin(), E = mappable.end(); I != E; ++I)
-			{
-				std::ostringstream OS;
-				I->first.print(OS);
-#ifdef LOGDEBUG
-	TLOG_DEBUG("printProcessMap") << description << ": id: '" << OS.str() << "'\n";
-#endif
-				OS.str("");
-#ifdef LOGDEBUG
-	TLOG_DEBUG("printProcessMap") << description << ": data.size(): "
-		  << I->second.data().size() << '\n';
-#endif
-				I->second.data().back().id().print(OS);
+			std::ostringstream OS;
+			I->first.print(OS);
+			TLOG(TLVL_PROCESSMAP) << description << ": id: '" << OS.str() << "'";
+			OS.str("");
+			TLOG(TLVL_PROCESSMAP) << description << ": data.size(): " << I->second.data().size();
+			I->second.data().back().id().print(OS);
 
-#ifdef LOGDEBUG
-	TLOG_DEBUG("printProcessMap") << description << ": data.back().id(): '"
-		  << OS.str() << "'\n";
-#endif
-			}
+			TLOG(TLVL_PROCESSMAP) << description << ": data.back().id(): '" << OS.str() << "'";
 		}
 	}
 }

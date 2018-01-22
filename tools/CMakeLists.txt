@@ -48,9 +48,9 @@ cet_test(genToArt_outToBinaryFileOutput_t HANDBUILT
   DATAFILES fcl/genToArt_outToBinaryFileOutput_t.fcl
 )
 
-#cet_test(genToArt_outToBinaryMPIOutput_t HANDBUILT
+#cet_test(genToArt_outToBinaryNetOutput_t HANDBUILT
 #  TEST_EXEC mpirun
-#  TEST_ARGS genToArt -c genToArt_outToBinaryMPIOutput_t.fcl :  s_r_handles 1 
-#  DATAFILES fcl/genToArt_outToBinaryMPIOutput_t.fcl)
+#  TEST_ARGS genToArt -c genToArt_outToBinaryNetOutput_t.fcl :  s_r_handles 1 
+#  DATAFILES fcl/genToArt_outToBinaryNetOutput_t.fcl)
   
 install_source()

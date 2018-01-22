@@ -2,14 +2,9 @@
 #define artdaq_TransferPlugins_ShemmTransfer_hh
 
 #include "fhiclcpp/fwd.h"
-#include <atomic>
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-
-#define BUFFER_EMPTY 0UL
-#define WRITING_FRAGMENT 1UL
-#define FRAGMENT_READY 2UL
-#define READING_FRAGMENT 3UL
+#include "artdaq-core/Core/SharedMemoryFragmentManager.hh"
 
 namespace artdaq
 {
@@ -48,6 +43,22 @@ namespace artdaq
 		                            size_t receiveTimeout) override;
 
 		/**
+		* \brief Receive a Fragment Header from the transport mechanism
+		* \param[out] header Received Fragment Header
+		* \param receiveTimeout Timeout for receive
+		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		*/
+		int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
+
+		/**
+		* \brief Receive the body of a Fragment to the given destination pointer
+		* \param destination Pointer to memory region where Fragment data should be stored
+		 * \param wordCount Number of words of Fragment data to receive
+		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		*/
+		int receiveFragmentData(RawDataType* destination,size_t wordCount) override;
+
+		/**
 		* \brief Copy a Fragment to the destination. May be unreliable
 		* \param fragment Fragment to copy
 		* \param send_timeout_usec Timeout for send, in microseconds (default size_t::MAX_VALUE)
@@ -68,33 +79,9 @@ namespace artdaq
 	private:
 		CopyStatus sendFragment(Fragment&& fragment,
 		                        size_t send_timeout_usec, bool reliable = false);
-
-		bool readyForRead_();
-
-		bool readyForWrite_();
-
-		RawDataType* offsetToPtr(size_t offset);
-
-		struct ShmBuffer
-		{
-			size_t offset;
-			size_t fragmentSizeWords;
-			std::atomic<unsigned int> sem;
-			unsigned int writeCount;
-		};
-
-		struct ShmStruct
-		{
-			std::atomic<unsigned int> read_pos;
-			std::atomic<unsigned int> write_pos;
-			ShmBuffer buffers[100];
-		};
-
-
+		
 		size_t send_timeout_usec_;
-		int shm_segment_id_;
-		ShmStruct* shm_ptr_;
-		int shm_key_;
+		std::unique_ptr<SharedMemoryFragmentManager> shm_manager_;
 
 		Role role_;
 	};

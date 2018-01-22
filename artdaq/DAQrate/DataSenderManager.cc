@@ -1,6 +1,7 @@
+#define TRACE_NAME "DataSenderManager"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "artdaq/DAQdata/Globals.hh"
 
 #include <chrono>
 #include "canvas/Utilities/Exception.h"
@@ -9,7 +10,6 @@
 #include <sys/types.h>
 #include <poll.h>
 #include <sys/socket.h>
-#include "artdaq/Application/Routing/RoutingPacket.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
@@ -18,6 +18,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, sent_frag_count_()
 	, broadcast_sends_(pset.get<bool>("broadcast_sends", false))
 	, non_blocking_mode_(pset.get<bool>("nonblocking_sends", false))
+	, send_timeout_us_(pset.get<size_t>("send_timeout_usec", 0))
 	, routing_master_mode_(detail::RoutingMasterMode::INVALID)
 	, should_stop_(false)
 	, ack_socket_(-1)
@@ -38,9 +39,9 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	{
 		try
 		{
-		  auto transfer = MakeTransferPlugin(dests, d, TransferInterface::Role::kSend);
-		  auto destination_rank = transfer->destination_rank();
-		  destinations_.emplace( destination_rank, std::move(transfer));
+			auto transfer = MakeTransferPlugin(dests, d, TransferInterface::Role::kSend);
+			auto destination_rank = transfer->destination_rank();
+			destinations_.emplace(destination_rank, std::move(transfer));
 		}
 		catch (std::invalid_argument)
 		{
@@ -89,7 +90,8 @@ artdaq::DataSenderManager::~DataSenderManager()
 	{
 		if (destinations_.count(dest))
 		{
-			destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(sent_frag_count_.slotCount(dest))));
+			auto sts = destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(sent_frag_count_.slotCount(dest))));
+			if (sts != TransferInterface::CopyStatus::kSuccess) TLOG_ERROR("DataSenderManager") << "Error sending EOD Fragment to sender rank " << dest << TLOG_ENDL;
 			//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 		}
 	}
@@ -101,7 +103,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 void artdaq::DataSenderManager::setupTableListener_()
 {
 	table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (!table_socket_)
+	if (table_socket_ < 0)
 	{
 		TLOG_ERROR("DataSenderManager") << "Error creating socket for receiving table updates!" << TLOG_ENDL;
 		exit(1);
@@ -143,7 +145,7 @@ void artdaq::DataSenderManager::startTableReceiverThread_()
 {
 	if (routing_thread_.joinable()) routing_thread_.join();
 	TLOG_INFO("DataSenderManager") << "Starting Routing Thread" << TLOG_ENDL;
-	routing_thread_ = std::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
+	routing_thread_ = boost::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
 }
 void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 {
@@ -194,7 +196,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 
 			TLOG_DEBUG("DataSenderManager") << "Checking for valid header" << TLOG_ENDL;
 			if (hdr.header == ROUTING_MAGIC) {
-				if(routing_master_mode_ != detail::RoutingMasterMode::INVALID && routing_master_mode_ != hdr.mode)
+				if (routing_master_mode_ != detail::RoutingMasterMode::INVALID && routing_master_mode_ != hdr.mode)
 				{
 					TLOG_ERROR("DataSenderManager") << "Received table has different RoutingMasterMode than expected!" << TLOG_ENDL;
 					exit(1);
@@ -247,7 +249,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				ack.first_sequence_id = first;
 				ack.last_sequence_id = last;
 
-				TLOG_DEBUG("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")"<< TLOG_ENDL;
+				TLOG_DEBUG("DataSenderManager") << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")" << TLOG_ENDL;
 				TLOG_DEBUG("DataSenderManager") << "There are now " << routing_table_.size() << " entries in the Routing Table" << TLOG_ENDL;
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 			}
@@ -269,21 +271,21 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 	if (use_routing_master_)
 	{
 		auto start = std::chrono::steady_clock::now();
-		while (routing_timeout_ms_ <= 0 || std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() < routing_timeout_ms_)
+		while (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_))
 		{
 			std::unique_lock<std::mutex> lck(routing_mutex_);
 			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id)) {
-				routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
+				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 				return routing_table_.at(sequence_id);
 			}
 			else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count()))
 			{
-				routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
+				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 				return routing_table_.at(sent_frag_count_.count());
 			}
 			usleep(routing_timeout_ms_ * 10);
 		}
-		routing_wait_time_.fetch_add(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count());
+		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 		if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID) {
 			TLOG_ERROR("DataSenderManager") << "Bad Omen: I don't have routing information for seqID " << std::to_string(sequence_id)
 				<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!" << TLOG_ENDL;
@@ -322,19 +324,20 @@ sendFragment(Fragment&& frag)
 	}
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
-	TLOG_ARB(13, "DataSenderManager") << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << std::to_string(fragSize) << ", seqID=" << std::to_string(seqID) << TLOG_ENDL;
+	TLOG_ARB(13, "DataSenderManager") << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << std::to_string(fragSize)
+		<< ", seqID=" << std::to_string(seqID) << ", type=" << frag.typeString() << TLOG_ENDL;
 	int dest = TransferInterface::RECV_TIMEOUT;
 	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType)
 	{
 		for (auto& bdest : enabled_destinations_)
 		{
-			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d (broadcast)", seqID, bdest);
+			TLOG_TRACE("DataSenderManager") << "sendFragment: Sending fragment with seqId " << std::to_string(seqID) << " to destination " << bdest << " (broadcast)" << TLOG_ENDL;
 			// Gross, we have to copy.
 			Fragment fragCopy(frag);
-			auto sts = destinations_[bdest]->copyFragment(fragCopy);
+			auto sts = destinations_[bdest]->copyFragment(fragCopy, send_timeout_us_);
 			while (sts == TransferInterface::CopyStatus::kTimeout)
 			{
-				sts = destinations_[bdest]->copyFragment(fragCopy);
+				sts = destinations_[bdest]->copyFragment(fragCopy, send_timeout_us_);
 			}
 			sent_frag_count_.incSlot(bdest);
 		}
@@ -350,13 +353,13 @@ sendFragment(Fragment&& frag)
 		}
 		if (destinations_.count(dest) && enabled_destinations_.count(dest))
 		{
-			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
+			TLOG_TRACE("DataSenderManager") << "sendFragment: Sending fragment with seqId " << std::to_string(seqID) << " to destination " << dest << TLOG_ENDL;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 			auto lastWarnTime = std::chrono::steady_clock::now();
 			while (sts != TransferInterface::CopyStatus::kSuccess)
 			{
-				sts = destinations_[dest]->copyFragment(frag);
-				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
+				sts = destinations_[dest]->copyFragment(frag, send_timeout_us_);
+				if (sts != TransferInterface::CopyStatus::kSuccess && TimeUtils::GetElapsedTime(lastWarnTime) >= 1)
 				{
 					TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying..." << TLOG_ENDL;
 					lastWarnTime = std::chrono::steady_clock::now();
@@ -369,65 +372,52 @@ sendFragment(Fragment&& frag)
 		{
 			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID << TLOG_ENDL;
 		}
-	}
-	else
-	{
+	} else {
 		while (dest == TransferInterface::RECV_TIMEOUT) {
 			dest = calcDest_(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
-			{
-				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID " << std::to_string(seqID) << ", send number " << sent_frag_count_.count() << ", retrying." << TLOG_ENDL;
-			}
+				TLOG_WARNING("DataSenderManager") << "Could not get destination for seqID "
+				                                  << std::to_string(seqID) << ", send number " << sent_frag_count_.count()
+				                                  << ", retrying." << TLOG_ENDL;
 		}
-		if (destinations_.count(dest) && enabled_destinations_.count(dest))
-		{
+		if (destinations_.count(dest) && enabled_destinations_.count(dest)) {
 			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
-			auto lastWarnTime = std::chrono::steady_clock::now();
-			while (sts != TransferInterface::CopyStatus::kSuccess)
-			{
-				sts = destinations_[dest]->moveFragment(std::move(frag));
-				if (sts != TransferInterface::CopyStatus::kSuccess && std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - lastWarnTime).count() >= 1)
-				{
-					TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying..." << TLOG_ENDL;
-					lastWarnTime = std::chrono::steady_clock::now();
-				}
-			}
+
+			sts = destinations_[dest]->moveFragment(std::move(frag), send_timeout_us_);
+			if (sts != TransferInterface::CopyStatus::kSuccess)
+				TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination "
+				                                << dest << " failed! Data has been lost!" << TLOG_ENDL;
+
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
-		}
-		else
-		{
-			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID << TLOG_ENDL;
-		}
+		} else
+			TLOG_WARNING("DataSenderManager") << "calcDest returned invalid destination rank " << dest
+			                                  << "! This event has been lost: " << seqID << TLOG_ENDL;
 	}
-	if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.find(seqID - 1) != routing_table_.end())
-	{
+	if (   routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
+	    && routing_table_.find(seqID - 1) != routing_table_.end()  ) {
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(seqID - 1));
-	}
-	else if(routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount)
-	{
+	} else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount) {
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(sent_frag_count_.count()));
 	}
-	if (metricMan)
-	{//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
-		auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
+	if (metricMan) {//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
+		TRACE( 5, "sendFragment: sending metrics" );
+		auto delta_t = TimeUtils::GetElapsedTime(start_time);
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 3, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 3, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 3, MetricMode::Average);
-		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::Accumulate);
+		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest),
+		                      "fragments", 3, MetricMode::LastPoint);
 		if (use_routing_master_) {
 			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 1, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)
-			{
-				size_t wttemp = routing_wait_time_;
-				routing_wait_time_ = 0;
-				metricMan->sendMetric("Routing Wait Time", wttemp / 1000000000, "s", 1, MetricMode::Average);
-			}
+				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 1,
+				                      MetricMode::Average);
 		}
 	}
-	TRACE(5, "DataSenderManager::sendFragment: Done sending fragment %zu", seqID);
+	TRACE(5, "sendFragment: Done sending fragment %zu", seqID);
 	return dest;
-}
+}   // artdaq::DataSenderManager::sendFragment

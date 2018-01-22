@@ -81,10 +81,27 @@ namespace artdaq
 		 * \param[out] fragment Received Fragment
 		 * \param receiveTimeout Timeout for receive
 		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-		 * 
-		 * This is a pure virtual function, derived classes should override it
 		 */
-		virtual int receiveFragment(artdaq::Fragment& fragment, size_t receiveTimeout) = 0;
+		virtual int receiveFragment(artdaq::Fragment& fragment, size_t receiveTimeout);
+
+		/**
+		 * \brief Receive a Fragment Header from the transport mechanism
+		 * \param[out] header Received Fragment Header
+		 * \param receiveTimeout Timeout for receive
+		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		 */
+		virtual int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) = 0;
+
+		/**
+		 * \brief Receive the body of a Fragment to the given destination pointer
+		 * \param destination Pointer to memory region where Fragment data should be stored
+		 * \param wordCount Number of words of Fragment data to receive
+		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+		 *
+		 * The precondition for calling this function is that you have received a valid header, therefore it does
+		 * not have a , as the Fragment data should immediately be available.
+		 */
+		virtual int receiveFragmentData(RawDataType* destination, size_t wordCount) = 0;
 
 		/**
 		* \brief Copy a Fragment to the destination. May not necessarily be reliable

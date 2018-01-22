@@ -46,7 +46,7 @@ class LoggerIO
 	@fileHandle = nil
 	
 	@maxFiles = 9
-	@maxFileSize = 1048576
+	@maxFileSize = 1000000000000000    # A Very Big Number
 	
 	self.openFile(@logPath)
   end
@@ -107,6 +107,9 @@ class MPIHandler
 	# rank 0.
 	@executables << {"program" => program, "options" => options, "host" => host,
 	  "state" => "idle", "exitcode" => -1}
+
+        puts "JOHN, EXECUTABLES: "
+        puts @executables
   end
 
   def removeExecutable(program, host, options)
@@ -154,6 +157,7 @@ class MPIHandler
 
 	mpiCmd = "mpirun %s %s -genv ARTDAQ_SHM_KEY %d %s -configfile %s -f %s" %
 	  [displayString, logString, @shmKey, launcherArg, configFileHandle.path, hostsFileHandle.path]
+
 	configFileHandle.rewind
 	hostsFileHandle.rewind
 	return mpiEnvironmentSetup + mpiCmd
@@ -162,9 +166,12 @@ class MPIHandler
   def parseOutput(line)
 	# Parse the output of the MPI processes.  The shell wrapper scripts that
 	# launch the actual exectuables print the following:
-	#   STARTING:hostname:executable:command line options
-	#   EXITING:hostname:return code:executable:command line options
-	parts = line.chomp.split(":")
+	#   STARTING!hostname!executable!command line options
+	#   EXITING!hostname!return code!executable!command line options
+#    puts "JOHN: inside parseOutput"
+	parts = line.chomp.split("!")
+#    puts parts.length
+#    puts parts
 	if parts.length == 4 and parts[0] == "STARTING"
 	  @executables.each { |optionsHash|
 		if parts[2] == optionsHash["program"] and parts[3] == optionsHash["options"]
@@ -251,6 +258,14 @@ class MPIHandler
 	  hostsFile = Tempfile.new("hosts")
 	  begin
 		mpiCmd = self.buildMPICommand(configFile, hostsFile, "pmt_mpiwrapper.sh")
+
+            puts "JOHN: MPI COMMAND IS: "
+            puts mpiCmd
+            puts 
+
+            puts "JOHN: CONFIG FILE CONTENTS ARE: "
+            puts configFile.read
+            puts 
 		Open3.popen3(mpiCmd) { |stdin, stdout, stderr|
 		  self.handleIO(stdout, stderr)
 		}
@@ -447,8 +462,16 @@ class PMT
 
 	if parameterFile != nil
 	  IO.foreach(parameterFile) { |definition|
-		program, host, *port = definition.split(" ")
-		@mpiHandler.addExecutable(program, host, port.join(" "))
+		program, host, *port = definition.split("!")
+                puts "Program: "
+                puts program
+                puts "Host: "
+                puts host
+                puts "Port1: "
+                puts *port
+                puts "Port2: "
+                puts port.join(" ")
+		@mpiHandler.addExecutable(program, host, port.join(" ").strip)
 	  }
 	end
 
@@ -489,10 +512,10 @@ class PMT
 
 	  # Aggregators
 	  ## DataLogger
-	  initResource(root.elements["dataLogger"], "AggregatorMain", portNumber + 1)
+	  initResource(root.elements["dataLogger"], "DataLoggerMain", portNumber + 1)
 	  
 	  ## OnlineMonitor
-	  initResource(root.elements["onlineMonitor"], "AggregatorMain", portNumber + 2)
+	  initResource(root.elements["onlineMonitor"], "DispatcherMain", portNumber + 2)
  
 	end
 	
@@ -599,7 +622,7 @@ if __FILE__ == $0
 	end
 
 	opts.on("-f", "--logfhicl [fhicl log control]",
-			"FHiCL code directing messagefacility messages.") do |logfhicl|
+			"Path to file containing FHiCL code directing messagefacility messages.") do |logfhicl|
 	  options.logFhicl = logfhicl
 	end
 

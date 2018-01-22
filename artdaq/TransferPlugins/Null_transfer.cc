@@ -35,6 +35,30 @@ namespace artdaq
 		}
 
 		/**
+		* \brief Pretend to receive a Fragment Header
+		* \return Source Rank (Success code)
+		*
+		* WARNING: This function may create unintended side-effets. NullTransfer should
+		* only really be used in Role::kSend!
+		*/
+		int receiveFragmentHeader(detail::RawFragmentHeader&, size_t) override
+		{
+			return source_rank();
+		}
+
+		/**
+		* \brief Pretend to receive Fragment Data
+		* \return Source Rank (Success code)
+		*
+		* WARNING: This function may create unintended side-effets. NullTransfer should
+		* only really be used in Role::kSend!
+		*/
+		int receiveFragmentData(RawDataType*, size_t) override 
+		{
+			return source_rank();
+		}
+
+		/**
 		 * \brief Pretend to copy a Fragment to a destination
 		 * \return CopyStatus::kSuccess (No-Op)
 		 */

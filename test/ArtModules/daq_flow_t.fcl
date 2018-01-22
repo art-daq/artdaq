@@ -8,8 +8,10 @@ process_name: dftest
 source:
 {
   module_type: RawInput
-  waiting_time: 30 # waiting time, in seconds, for queue timeout
+  waiting_time: 30.0 # waiting time, in seconds, for queue timeout
   resume_after_timeout: false
+  buffer_count: 10
+  max_event_size_bytes: 0x100000
 }
 
 physics:

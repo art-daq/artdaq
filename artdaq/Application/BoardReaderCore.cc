@@ -1,3 +1,5 @@
+#define TRACE_NAME "BoardReaderCore"
+#include "tracemf.h"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragment.hh"
@@ -8,8 +10,6 @@
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
-
-#define TRACE_NAME "BoardReaderCore"
 
 const std::string artdaq::BoardReaderCore::
 FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
@@ -50,9 +50,7 @@ artdaq::BoardReaderCore::~BoardReaderCore()
 
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	TLOG_DEBUG(name_) << "initialize method called with "
-		<< "ParameterSet = \"" << pset.to_string()
-		<< "\"." << TLOG_ENDL;
+	TLOG_DEBUG(name_) << "initialize method called with "           << "ParameterSet = \"" << pset.to_string()              << "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -91,7 +89,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 	if (metric_pset.is_empty())
 	{
-		TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
+	    TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try
 	{
@@ -253,7 +251,7 @@ bool artdaq::BoardReaderCore::reinitialize(fhicl::ParameterSet const& pset, uint
 	return true;
 }
 
-size_t artdaq::BoardReaderCore::process_fragments()
+void artdaq::BoardReaderCore::process_fragments()
 {
 	if (rt_priority_ > 0)
 	{
@@ -318,7 +316,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 		delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 		statsHelper_.addSample(INPUT_WAIT_STAT_KEY, delta_time);
 
-		TRACE(16, name_ + "::process_fragments INPUT_WAIT=%f", delta_time);
+		TLOG_ARB(16,name_) << "process_fragments INPUT_WAIT="<<std::to_string( delta_time) << TLOG_ENDL;
 
 		if (!active) { break; }
 		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
@@ -338,7 +336,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			{
 				TLOG_DEBUG(name_)
 					<< "Sending fragment " << fragment_count_
-					<< " with sequence id " << sequence_id << "." << TLOG_ENDL;
+					<< " (%250) with sequence id " << sequence_id << "." << TLOG_ENDL;
 			}
 
 			/* ELF 5/10/2017 Removing in favor of DataReceiverManager source suppression logic
@@ -352,7 +350,7 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			if (mpi_sync_fragment_interval_ > 0 && fragment_count_ > 0 &&
 				(fragment_count_ % mpi_sync_fragment_interval_) == 0)
 			{
-				TRACE(4, "BoardReaderCore: Entering MPI Barrier");
+				TLOG_ARB(4, "BoardReaderCore: Entering MPI Barrier");
 				MPI_Ibarrier(local_group_comm_, &mpi_request);
 				barrier_is_pending = true;
 			}
@@ -448,9 +446,9 @@ size_t artdaq::BoardReaderCore::process_fragments()
 			prev_seq_id_ = sequence_id;
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
-			TRACE(17, name_ + "::process_fragments seq=%lu sendFragment start", sequence_id);
+			TLOG_ARB(17,name_) << "process_fragments seq="<< std::to_string(sequence_id) << " sendFragment start" << TLOG_ENDL;
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
-			TRACE(17, name_ + "::process_fragments seq=%lu sendFragment done (res=%i)", sequence_id, res);
+			TLOG_ARB(17, name_) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment done (res="<< res<<")"<<TLOG_ENDL;
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
@@ -483,7 +481,6 @@ size_t artdaq::BoardReaderCore::process_fragments()
 	metricMan_.do_stop();
 
 	sender_ptr_.reset(nullptr);
-	return fragment_count_;
 }
 
 std::string artdaq::BoardReaderCore::report(std::string const& which) const

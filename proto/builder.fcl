@@ -8,4 +8,5 @@ daq:
   det4: { fileNames: [ "/scratch/greenc/ds50_data/board4.out" ] generate_data: false max_set_size_gib: 0.02 }
 #  want_sink: false
   fragments_per_source: 10
+  shm_key: 0xB1DE5
 }

@@ -5,12 +5,14 @@ art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
   SUBDIRS detail
   NO_PLUGINS
-  DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   ${CANVAS_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
+  artdaq-core_Data
   artdaq_DAQrate
   artdaq_DAQdata
+  artdaq_Application
+  artdaq_ExternalComms
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_IO_Root
@@ -34,12 +36,30 @@ art_make( BASENAME_ONLY
 
 simple_plugin(RawInput "source"
   artdaq_ArtModules
+  artdaq-core_Data
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal
   art_Persistency_Provenance
   art_Utilities
   MF_MessageLogger
+)
+
+simple_plugin(TransferOutput "module"
+  artdaq_TransferPlugins
+  artdaq_ArtModules
+  art_Framework_IO_Root
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${CETLIB_EXCEPT}
+  ${ROOT_RIO}
+)
+
+simple_plugin(TransferInput "source"
+  artdaq-core_Data
+  artdaq_TransferPlugins
+  artdaq_ArtModules
 )
 
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
@@ -49,6 +69,7 @@ MF_MessageLogger
   ${CETLIB_EXCEPT})
 
 simple_plugin(NetMonInput "source"
+  artdaq-core_Data
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
   artdaq-core_Utilities
@@ -64,7 +85,7 @@ simple_plugin(NetMonInput "source"
   ${CETLIB_EXCEPT}
 )
 
-simple_plugin(RootMPIOutput "module"
+simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
   art_Framework_IO_Root
   MF_MessageLogger
@@ -92,7 +113,7 @@ simple_plugin(RootDAQOut "module"
   ${ROOT_TREE}
 )
 
-simple_plugin(BinaryMPIOutput "module"
+simple_plugin(BinaryNetOutput "module"
   artdaq_ArtModules
   art_Framework_Services_Registry
   art_Utilities
@@ -116,6 +137,7 @@ simple_plugin(BinaryFileOutput "module"
 )
 
 simple_plugin(NetMonTransportService "service"
+  artdaq-core_Data
   artdaq_DAQrate
   art_Framework_Services_Registry
   MF_MessageLogger

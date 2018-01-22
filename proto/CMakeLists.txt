@@ -13,7 +13,7 @@ include(CetTest)
 # re-initialize the test environment.
 cet_test_env("FHICL_FILE_PATH=.")
 
-cet_test(daqrate PREBUILT NO_AUTO INSTALL_BIN)
+cet_test(daqrate.py PREBUILT NO_AUTO INSTALL_BIN)
 cet_test(builder.sh PREBUILT NO_AUTO INSTALL_BIN)
 
 cet_script(numawrap)
@@ -39,18 +39,78 @@ art_make_exec(NAME artdaqDriver
 
 art_make_exec(NAME fhicl_test
     SOURCE
-  fhicl_test.cc
+    fhicl_test.cc
+    LIBRARIES
+    ${FHICLCPP}
+    ${CETLIB}
+    ${CETLIB_EXCEPT}
+    ${MF_MESSAGELOGGER}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    )
+	
+  art_make_exec(NAME boardreader
+    SOURCE
+    boardreader.cc
   LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+  artdaq_DAQdata
+  artdaq_BuildInfo
+  artdaq-core_Utilities
+  artdaq-core_Generators
+  art_Framework_Art
+  artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
-  ${CETLIB_EXCEPT}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${XMLRPC_CLIENTPP}
+  ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
   )
 
-
-  art_make_exec(NAME aggregator
+  art_make_exec(NAME eventbuilder
     SOURCE
-    aggregator.cc
+    eventbuilder.cc
+  LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+  artdaq_DAQdata
+  artdaq_BuildInfo
+  artdaq-core_Utilities
+  artdaq-core_Generators
+  art_Framework_Art
+  artdaq_ExternalComms
+  ${FHICLCPP}
+  ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${XMLRPC_CLIENTPP}
+  ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
+  )
+
+  art_make_exec(NAME datalogger
+    SOURCE
+    datalogger.cc
+  LIBRARIES
+  artdaq_Application # needed for messagefacility
+  artdaq_DAQrate
+  artdaq_DAQdata
+  artdaq_BuildInfo
+  artdaq-core_Utilities
+  artdaq-core_Generators
+  art_Framework_Art
+  artdaq_ExternalComms
+  ${FHICLCPP}
+  ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${XMLRPC_CLIENTPP}
+  ${XMLRPCPP}
+  ${XMLRPC_UTILPP}
+  )
+  
+  art_make_exec(NAME dispatcher
+    SOURCE
+    dispatcher.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
   artdaq_DAQrate
@@ -91,6 +151,7 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
 SOURCE
 transfer_driver_mpi.cc
 TransferTest.cc
+FragmentReceiverManager.cc
  LIBRARIES
   artdaq_Application # needed for messagefacility
   artdaq_DAQrate
@@ -102,6 +163,7 @@ artdaq_TransferPlugins
  art_make_exec(NAME transfer_driver # NO_INSTALL -- comment out to install
 SOURCE
 transfer_driver.cc
+FragmentReceiverManager.cc
 TransferTest.cc
    LIBRARIES
   artdaq_Application # needed for messagefacility
@@ -125,7 +187,6 @@ artdaq_TransferPlugins
  art_make_exec(NAME builder
    SOURCE
    builder.cc
-   Config.cc
    LIBRARIES
    art_Framework_Art
   artdaq_Application # needed for messagefacility
@@ -144,24 +205,17 @@ art_make_exec(NAME tracemf
     tracemf.cc
     LIBRARIES
     artdaq_DAQdata
+	artdaq-core_Utilities
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     )
 
-cet_test(config_t
-  SOURCES
-  config_t.cc
-  Config.cc
-  LIBRARIES artdaq_DAQrate
-   ${Boost_PROGRAM_OPTIONS_LIBRARY} )
-
-cet_test(config_with_art_t
-  SOURCES
-  config_with_art_t.cc
-  Config.cc
-  LIBRARIES artdaq_DAQrate
-   ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  TEST_PROPERTIES ENVIRONMENT ARTDAQ_DAQRATE_USE_ART=1
-  )
-
+	art_make_exec(NAME PrintSharedMemory
+	SOURCE PrintSharedMemory.cc
+	LIBRARIES
+	artdaq_DAQrate
+	artdaq-core_Core
+	${Boost_PROGRAM_OPTIONS_LIBRARY}
+	)
+	
 install_fhicl(LIST daqrate_simdata_noart.fcl Multicast.fcl Shmem.fcl)
 install_source()

@@ -156,7 +156,7 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 
 	auto i = 0;
 	auto now = std::chrono::steady_clock::now();
-	while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now).count() < delay * load_factor_)
+	while (TimeUtils::GetElapsedTimeMilliseconds(now) < static_cast<size_t>(delay * load_factor_))
 	{
 		i = i + 1 % std::numeric_limits<int>::max();
 	}

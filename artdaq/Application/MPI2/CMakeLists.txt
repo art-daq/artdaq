@@ -11,9 +11,6 @@ art_make_library( LIBRARY_NAME artdaq_Application_MPI2
   ${MF_MESSAGELOGGER}
   ${FHICLCPP}
   ${CETLIB}
-  ${XMLRPC_CLIENTPP}
-  ${XMLRPCPP}
-  ${XMLRPC_UTILPP}
 )
 
 art_make_exec(EventBuilderMain
@@ -36,7 +33,17 @@ art_make_exec(BoardReaderMain
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
 )
 
-art_make_exec(AggregatorMain
+art_make_exec(DataLoggerMain
+  LIBRARIES
+  artdaq-utilities_Plugins
+  artdaq_DAQrate
+  artdaq_Application_MPI2
+  artdaq_ExternalComms
+  artdaq_BuildInfo
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+)
+
+art_make_exec(DispatcherMain
   LIBRARIES
   artdaq-utilities_Plugins
   artdaq_DAQrate

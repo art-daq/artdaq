@@ -31,20 +31,15 @@ art_make( BASENAME_ONLY
   ${ROOT_CORE}
   ${ROOT_NET}
   ${ROOT_REFLEX}
-  ${XMLRPC_CLIENTPP}
-  ${XMLRPCPP}
-  ${XMLRPC_UTILPP}
   ${Boost_THREAD_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   ${TBB}
   )
-
-simple_plugin(TransferInput "source"
-  artdaq_TransferPlugins
-)
+  
 
 simple_plugin(Shmem "transfer"
   artdaq_TransferPlugins
+  artdaq-core_Core
 )
 
 simple_plugin(Null "transfer"

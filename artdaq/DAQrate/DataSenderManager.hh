@@ -12,7 +12,7 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/Application/Routing/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
 
 namespace artdaq
 {
@@ -111,6 +111,7 @@ private:
 
 	bool broadcast_sends_;
 	bool non_blocking_mode_;
+	size_t send_timeout_us_;
 
 	bool use_routing_master_;
 	detail::RoutingMasterMode routing_master_mode_;
@@ -125,7 +126,7 @@ private:
 	int table_socket_;
 	std::map<Fragment::sequence_id_t, int> routing_table_;
 	mutable std::mutex routing_mutex_;
-	std::thread routing_thread_;
+	boost::thread routing_thread_;
 	mutable std::atomic<size_t> routing_wait_time_;
 
 	int routing_timeout_ms_;

@@ -50,6 +50,12 @@ public:
 	 * \param[out] msg ROOT message data
 	 */
 	virtual void receiveMessage(TBufferFile*& msg) = 0;
+
+	/**
+	* \brief Receive the init message
+	* \param[out] msg ROOT message data
+	*/
+	virtual void receiveInitMessage(TBufferFile*& msg) = 0;
 };
 
 DECLARE_ART_SERVICE_INTERFACE(NetMonTransportServiceInterface, LEGACY)

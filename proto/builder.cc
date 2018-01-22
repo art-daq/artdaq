@@ -2,16 +2,14 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
-#include "Config.hh"
-#include "artdaq/DAQrate/EventStore.hh"
 #include "MPIProg.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
-#include "artdaq-core/Core/SimpleQueueReader.hh"
+#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq/DAQrate/quiet_mpi.hh"
-#include "fhiclcpp/ParameterSet.h"
 
 #include <boost/program_options.hpp>
+#include "fhiclcpp/make_ParameterSet.h"
 namespace bpo = boost::program_options;
 
 #include <algorithm>
@@ -43,18 +41,14 @@ public:
 	 * \brief Builder Constructor
 	 * \param argc Argument Count
 	 * \param argv Argument Array
+	 * \param pset fhicl::ParameterSet used to configure builder
 	 */
-	Builder(int argc, char* argv[]);
+	Builder(int argc, char* argv[], fhicl::ParameterSet pset);
 
 	/**
 	 * \brief Start the Builder application, using the type configuration to select which method to run
 	 */
 	void go();
-
-	/**
-	 * \brief Receive data from detector via DataReceiverManager, and send to a sink using DataSenderManager
-	 */
-	void source();
 
 	/**
 	 * \brief Receive data from source via DataReceiverManager, send it to the EventStore (and art, if configured)
@@ -67,41 +61,86 @@ public:
 	void detector();
 
 private:
-	enum Color_t : int
+	enum class Role : int
 	{
 		DETECTOR,
-		SOURCE,
 		SINK
 	};
 
 	void printHost(const std::string& functionName) const;
 
-	artdaq::Config conf_;
-	fhicl::ParameterSet const daq_pset_;
+	fhicl::ParameterSet daq_pset_;
 	bool const want_sink_;
 	bool const want_periodic_sync_;
 	MPI_Comm local_group_comm_;
+	Role builder_role_;
 };
 
-Builder::Builder(int argc, char* argv[]) :
-										 MPIProg(argc, argv)
-										 , conf_(my_rank, procs_, 10, 10240, argc, argv)
-										 , daq_pset_(conf_.getArtPset())
-										 , want_sink_(daq_pset_.get<bool>("want_sink", true))
-										 , want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
-										 , local_group_comm_()
+Builder::Builder(int argc, char* argv[], fhicl::ParameterSet pset) :
+	MPIProg(argc, argv)
+	, daq_pset_(pset)
+	, want_sink_(daq_pset_.get<bool>("want_sink", true))
+	, want_periodic_sync_(daq_pset_.get<bool>("want_periodic_sync", false))
+	, local_group_comm_()
 {
-	conf_.writeInfo();
+	std::vector<std::string> detectors;
+	daq_pset_.get_if_present("detectors", detectors);
+	if (static_cast<size_t>(my_rank) >= detectors.size())
+	{
+		builder_role_ = Role::SINK;
+	}
+	else
+	{
+		builder_role_ = Role::DETECTOR;
+	}
+	std::string type(pset.get<std::string>("transfer_plugin_type", "Shmem"));
+
+	int senders = pset.get<int>("num_senders");
+	int receivers = pset.get<int>("num_receivers");
+	int buffer_count = pset.get<int>("buffer_count", 10);
+	int max_payload_size = pset.get<size_t>("fragment_size", 0x100000);
+
+	std::string hostmap = "";
+	if (pset.has_key("hostmap"))
+	{
+		hostmap = " host_map: @local::hostmap";
+	}
+
+	std::stringstream ss;
+	ss << pset.to_string();
+	ss << " sources: {";
+	for (int ii = 0; ii < senders; ++ii)
+	{
+		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size << " buffer_count: " << buffer_count << hostmap << "}";
+	}
+	ss << "} destinations: {";
+	for (int jj = senders; jj < senders + receivers; ++jj)
+	{
+		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size << " buffer_count: " << buffer_count << hostmap << "}";
+	}
+	ss << "}";
+
+	daq_pset_ = fhicl::ParameterSet();
+	make_ParameterSet(ss.str(), daq_pset_);
+
+
 }
 
 void Builder::go()
 {
+	//volatile bool loopForever = true;
+	//while(loopForever)
+	//{
+	//	usleep(1000000);
+	//}
+
+
 	MPI_Barrier(MPI_COMM_WORLD);
 	//std::cout << "daq_pset_: " << daq_pset_.to_string() << std::endl << "conf_.makeParameterSet(): " << conf_.makeParameterSet().to_string() << std::endl;
-	MPI_Comm_split(MPI_COMM_WORLD, conf_.type_, 0, &local_group_comm_);
-	switch (conf_.type_)
+	MPI_Comm_split(MPI_COMM_WORLD, static_cast<int>(builder_role_), 0, &local_group_comm_);
+	switch (builder_role_)
 	{
-	case artdaq::Config::TaskSink:
+	case Role::SINK:
 		if (want_sink_)
 		{
 			sink();
@@ -115,45 +154,12 @@ void Builder::go()
 			MPI_Barrier(MPI_COMM_WORLD);
 		}
 		break;
-	case artdaq::Config::TaskSource:
-		source();
-		break;
-	case artdaq::Config::TaskDetector:
+	case Role::DETECTOR:
 		detector();
 		break;
 	default:
 		throw "No such node type";
 	}
-}
-
-void Builder::source()
-{
-	printHost("source");
-	// needs to get data from the detectors and send it to the sinks
-	artdaq::FragmentPtr frag;
-	{ // Block to handle lifetime of to_r and from_d, below.
-		artdaq::DataReceiverManager from_d(conf_.makeParameterSet());
-		from_d.start_threads();
-		std::unique_ptr<artdaq::DataSenderManager> to_r(want_sink_ ? new artdaq::DataSenderManager(conf_.makeParameterSet()) : nullptr);
-		int senderCount = from_d.enabled_sources().size();
-		while (senderCount > 0)
-		{
-			int ignoredSender;
-			frag = from_d.recvFragment(ignoredSender);
-			if (!frag || ignoredSender == artdaq::TransferInterface::RECV_TIMEOUT) continue;
-			std::cout << "Program::source: Received fragment " << frag->sequenceID() << " from sender " << ignoredSender << std::endl;
-			if (want_sink_ && frag->type() != artdaq::Fragment::EndOfDataFragmentType)
-			{
-				to_r->sendFragment(std::move(*frag));
-			}
-			else if (frag->type() == artdaq::Fragment::EndOfDataFragmentType)
-			{
-				senderCount--;
-			}
-		}
-	}
-	TLOG_DEBUG("builder") << "source done " << conf_.rank_ << TLOG_ENDL;
-	MPI_Barrier(MPI_COMM_WORLD);
 }
 
 void Builder::detector()
@@ -165,25 +171,22 @@ void Builder::detector()
 	assert(!(detector_rank < 0));
 	std::ostringstream det_ps_name_loc;
 	std::vector<std::string> detectors;
-	size_t detectors_size = 0;
-	if (!(daq_pset_.get_if_present("detectors", detectors) &&
-		  (detectors_size = detectors.size())))
+	bool detectors_present = daq_pset_.get_if_present("detectors", detectors);
+	size_t detectors_size = detectors.size();
+	if (!(detectors_present && detectors_size))
 	{
 		throw cet::exception("Configuration")
-			  << "Unable to find required sequence of detector "
-			  << "parameter set names, \"detectors\".";
+			<< "Unable to find required sequence of detector "
+			<< "parameter set names, \"detectors\".";
 	}
 	fhicl::ParameterSet det_ps =
-		daq_pset_.get<fhicl::ParameterSet>
-		((detectors_size > static_cast<size_t>(detector_rank)) ?
-			 detectors[detector_rank] :
-			 detectors[0]);
+		daq_pset_.get<fhicl::ParameterSet>(((detectors_size > static_cast<size_t>(detector_rank)) ? detectors[detector_rank] : detectors[0]));
 	std::unique_ptr<artdaq::FragmentGenerator> const
 		gen(artdaq::makeFragmentGenerator
 		(det_ps.get<std::string>("generator"),
 		 det_ps));
 	{ // Block to handle lifetime of h, below.
-		artdaq::DataSenderManager h(conf_.makeParameterSet());
+		artdaq::DataSenderManager h(daq_pset_);
 		MPI_Barrier(local_group_comm_);
 		// not using the run time method
 		// TimedLoop tl(conf_.run_time_);
@@ -202,6 +205,7 @@ void Builder::detector()
 			for (auto& fragPtr : frags)
 			{
 				std::cout << "Program::detector: Sending fragment " << fragments_sent + 1 << " of " << fragments_per_source << std::endl;
+				TLOG_DEBUG("builder") << "Program::detector: Sending fragment " << fragments_sent + 1 << " of " << fragments_per_source << TLOG_ENDL;
 				h.sendFragment(std::move(*fragPtr));
 				if (++fragments_sent == fragments_per_source) { break; }
 				if (want_periodic_sync_ && (fragments_sent % 100) == 0)
@@ -212,9 +216,9 @@ void Builder::detector()
 			}
 			frags.clear();
 		}
-		TLOG_DEBUG("builder") << "detector waiting " << conf_.rank_ << TLOG_ENDL;
+		TLOG_DEBUG("builder") << "detector waiting " << my_rank << TLOG_ENDL;
 	}
-	TLOG_DEBUG("builder") << "detector done " << conf_.rank_ << TLOG_ENDL;
+	TLOG_DEBUG("builder") << "detector done " << my_rank << TLOG_ENDL;
 	MPI_Comm_free(&local_group_comm_);
 	MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -223,65 +227,36 @@ void Builder::sink()
 {
 	printHost("sink");
 	{
+		usleep(1000 * my_rank);
 		// This scope exists to control the lifetime of 'events'
-		int sink_rank;
-		bool useArt = daq_pset_.get<bool>("useArt", false);
-		const char* dummyArgs[1]{"SimpleQueueReader"};
-		MPI_Comm_rank(local_group_comm_, &sink_rank);
-		artdaq::EventStore::ART_CMDLINE_FCN* reader =
-			useArt ?
-				&artapp :
-				&artdaq::simpleQueueReaderApp;
-		artdaq::EventStore events(daq_pset_, conf_.detectors_,
-								  conf_.run_,
-								  useArt ? conf_.art_argc_ : 1,
-								  useArt ? conf_.art_argv_ : const_cast<char**>(dummyArgs),
-								  reader);
+		auto events = std::make_shared<artdaq::SharedMemoryEventManager>(daq_pset_, daq_pset_);
+		events->startRun(daq_pset_.get<int>("run_number", 100));
 		{ // Block to handle scope of h, below.
-			artdaq::DataReceiverManager h(conf_.makeParameterSet());
+			artdaq::DataReceiverManager h(daq_pset_, events);
 			h.start_threads();
-			int senderCount = h.enabled_sources().size();
-			while (senderCount > 0)
+			while (h.running_sources().size() > 0)
 			{
-				artdaq::FragmentPtr pfragment(new artdaq::Fragment);
-				int ignoredSource;
-				pfragment = h.recvFragment(ignoredSource);
-				if (!pfragment || ignoredSource == artdaq::TransferInterface::RECV_TIMEOUT) continue;
-				std::cout << "Program::sink: Received fragment " << pfragment->sequenceID() << " from sender " << ignoredSource << std::endl;
-				if (pfragment->type() != artdaq::Fragment::EndOfDataFragmentType)
-				{
-					events.insert(std::move(pfragment));
-				}
-				else
-				{
-					senderCount--;
-				}
+				usleep(10000);
 			}
 		}
+
+		TLOG_DEBUG("builder") << "All detectors are done, Sending endOfData Fragment" << TLOG_ENDL;
 		// Make the reader application finish, and capture its return
 		// status.
-		int readerReturnValue;
 		bool endSucceeded = false;
-		int attemptsToEnd = 1;
-		endSucceeded = events.endOfData(readerReturnValue);
-		while (!endSucceeded && attemptsToEnd < 3)
-		{
-			++attemptsToEnd;
-			endSucceeded = events.endOfData(readerReturnValue);
-		}
+		endSucceeded = events->endOfData();
 		if (endSucceeded)
 		{
-			TLOG_DEBUG("builder") << "Sink: reader is done, its exit status was: "
-				 << readerReturnValue << TLOG_ENDL;
+			TLOG_DEBUG("builder") << "Sink: reader is done" << TLOG_ENDL;
 		}
 		else
 		{
 			TLOG_DEBUG("builder") << "Sink: reader failed to complete because the "
-				 << "endOfData marker could not be pushed onto the queue."
-				 << TLOG_ENDL;
+				<< "endOfData marker could not be pushed onto the queue."
+				<< TLOG_ENDL;
 		}
 	} // end of lifetime of 'events'
-	TLOG_DEBUG("builder") << "Sink done " << conf_.rank_ << TLOG_ENDL;
+	TLOG_DEBUG("builder") << "Sink done " << my_rank << TLOG_ENDL;
 	MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -301,9 +276,9 @@ void Builder::printHost(const std::string& functionName) const
 		hostString = "unknown";
 	}
 	TLOG_DEBUG("builder") << "Running " << functionName
-		 << " on host " << hostString
-		 << " with rank " << my_rank << "."
-		 << TLOG_ENDL;
+		<< " on host " << hostString
+		<< " with rank " << my_rank << "."
+		<< TLOG_ENDL;
 }
 
 void printUsage()
@@ -312,18 +287,57 @@ void printUsage()
 	struct rusage usage;
 	getrusage(RUSAGE_SELF, &usage);
 	std::cout << myid << ":"
-		<< " user=" << artdaq::Globals::timevalAsDouble(usage.ru_utime)
-		<< " sys=" << artdaq::Globals::timevalAsDouble(usage.ru_stime)
+		<< " user=" << artdaq::TimeUtils::convertUnixTimeToSeconds(usage.ru_utime)
+		<< " sys=" << artdaq::TimeUtils::convertUnixTimeToSeconds(usage.ru_stime)
 		<< std::endl;
 }
 
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("builder");
+
+	std::ostringstream descstr;
+	descstr << argv[0]
+		<< " <-c <config-file>> <other-options> [<source-file>]+";
+	bpo::options_description desc(descstr.str());
+	desc.add_options()
+		("config,c", bpo::value<std::string>(), "Configuration file.")
+		("help,h", "produce help message");
+	bpo::variables_map vm;
+	try {
+		bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
+		bpo::notify(vm);
+	}
+	catch (bpo::error const & e) {
+		std::cerr << "Exception from command line processing in " << argv[0]
+			<< ": " << e.what() << "\n";
+		return -1;
+	}
+	if (vm.count("help")) {
+		std::cout << desc << std::endl;
+		return 1;
+	}
+	if (!vm.count("config")) {
+		std::cerr << "Exception from command line processing in " << argv[0]
+			<< ": no configuration file given.\n"
+			<< "For usage and an options list, please do '"
+			<< argv[0] << " --help"
+			<< "'.\n";
+		return 2;
+	}
+	fhicl::ParameterSet pset;
+	if (getenv("FHICL_FILE_PATH") == nullptr) {
+		std::cerr
+			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+		setenv("FHICL_FILE_PATH", ".", 0);
+	}
+	cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
+	fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+
 	int rc = 1;
 	try
 	{
-		Builder p(argc, argv);
+		Builder p(argc, argv, pset);
 		std::cerr << "Started process " << my_rank << " of " << p.procs_ << ".\n";
 		p.go();
 		rc = 0;
