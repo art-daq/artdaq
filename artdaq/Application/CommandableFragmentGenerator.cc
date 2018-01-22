@@ -561,7 +561,10 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 		try
 		{
-			data = getNext_(newDataBuffer_);
+			// ELF 1/22/18, if destructor has been called, getNext_ implementor may already have been destructed. Don't call getNext_ when should_stop_ is true.
+			if (!should_stop_) {
+				data = getNext_(newDataBuffer_);
+			}
 		}
 		catch (...)
 		{
