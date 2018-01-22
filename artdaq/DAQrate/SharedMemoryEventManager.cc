@@ -415,9 +415,11 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	size_t initialStoreSize = GetIncompleteEventCount();
 	TLOG_TRACE("SharedMemoryEventManager") << "endOfData: Flushing " << initialStoreSize
 		<< " stale events from the SharedMemoryEventManager." << TLOG_ENDL;
-	for (auto& buf : active_buffers_)
+	int counter = initialStoreSize;
+	while(active_buffers_.size() > 0 && counter > 0)
 	{
-		complete_buffer_(buf);
+		complete_buffer_(*active_buffers_.begin());
+		counter--;
 	}
 	TLOG_TRACE("SharedMemoryEventManager") << "endOfData: Done flushing, there are now " << GetIncompleteEventCount()
 		<< " stale events in the SharedMemoryEventManager." << TLOG_ENDL;
@@ -716,8 +718,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_()
 
 		Fragment::sequence_id_t lowestSeqId = Fragment::InvalidSequenceID;
 		
-		// Disable "weak ordering" when no buffers are available for writing
-		if (GetBufferForWriting(false) != -1)
+		// Only use "weak ordering" when buffers are available for writing
+		if (WriteReadyCount(false) != 0)
 		{
 			for (auto buf : active_buffers_)
 			{

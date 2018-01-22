@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 	auto fhicl = std::string(argv[1]);
 	make_ParameterSet(fhicl, lookup_policy, ps);
 
-	artdaq::TransferTest theTest(ps);
+	artdaq::TransferTest theTest(ps,0);
 
 	//std::cout << "Entering infinite loop to connect debugger. PID=" << std::to_string(getpid()) << std::endl;
 	//volatile bool loopForever = true;

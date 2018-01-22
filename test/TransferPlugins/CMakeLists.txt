@@ -21,26 +21,26 @@
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_tcp.fcl
 	DATAFILES fcl/transfer_driver_tcp.fcl
-  TEST_PROPERTIES RUN_SERIAL 1
+  #TEST_PROPERTIES RUN_SERIAL 1
 	)
 	
   cet_test(transfer_driver_shmem_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_shmem.fcl
 	DATAFILES fcl/transfer_driver_shmem.fcl
-  TEST_PROPERTIES RUN_SERIAL 1
+  #TEST_PROPERTIES RUN_SERIAL 1
 	)
 	
   cet_test(transfer_driver_tcp_validate_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_tcp_validate.fcl
 	DATAFILES fcl/transfer_driver_tcp_validate.fcl
-  TEST_PROPERTIES RUN_SERIAL 1
+  #TEST_PROPERTIES RUN_SERIAL 1
 	)
 	
   cet_test(transfer_driver_shmem_validate_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_shmem_validate.fcl
 	DATAFILES fcl/transfer_driver_shmem_validate.fcl
-  TEST_PROPERTIES RUN_SERIAL 1
+  #TEST_PROPERTIES RUN_SERIAL 1
 	)

@@ -8,7 +8,7 @@
 
 #include "fhiclcpp/make_ParameterSet.h"
 
-artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
+artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi, uint32_t key)
 	: senders_(psi.get<int>("num_senders"))
 	, receivers_(psi.get<int>("num_receivers"))
 	, sends_each_sender_(psi.get<int>("sends_per_sender"))
@@ -65,12 +65,12 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	ss << " sources: {";
 	for (int ii = 0; ii < senders_; ++ii)
 	{
-		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << hostmap << "}";
+		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << " shm_key: " << std::to_string(key) << hostmap << "}";
 	}
 	ss << "} destinations: {";
 	for (int jj = senders_; jj < senders_ + receivers_; ++jj)
 	{
-		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << hostmap << "}";
+		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << " shm_key: " << std::to_string(key) << hostmap << "}";
 	}
 	ss << "}";
 

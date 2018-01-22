@@ -27,6 +27,7 @@ public:
 
 	virtual ~CommandableFragmentGeneratorTest() = default;
 
+protected:
 	/**
 	 * \brief Generate data and return it to CommandableFragmentGenerator
 	 * \param frags FragmentPtrs list that new Fragments should be added to
@@ -67,6 +68,7 @@ public:
 	 */
 	void resume() override;
 
+public:
 	/**
 	 * \brief Have getNext_ generate count fragments
 	 * \param count Number of fragments to generate

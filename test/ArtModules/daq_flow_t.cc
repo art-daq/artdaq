@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
 		pset.put("event_queue_wait_time", 10.0);
 		pset.put("max_event_size_bytes", 0x100000);
 		pset.put("buffer_count", 10);
+		pset.put("send_init_fragments", false);
 
 		auto temp = pset.to_string() + " source.waiting_time: 10";
 		pset = fhicl::ParameterSet();
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
 		size_t event_count = 0;
 		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
-			LOG_DEBUG("main") << "Number of fragments: " << frags.size() << '\n';
+			TLOG_DEBUG("daq_flow_t") << "Number of fragments: " << frags.size() << TLOG_ENDL;
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);
 			for (auto&& frag : frags)
 			{

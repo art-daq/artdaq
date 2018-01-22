@@ -20,6 +20,7 @@ namespace artdaq
 		/**
 		 * \brief TransferTest Constructor
 		 * \param psi ParameterSet used to configure TransferTest
+		 * \param key Key for Shared Memory (Should be same across all instances of TransferTest used in test)
 		 * 
 		 * \verbatim
 		 * TransferTest accepts the following Parameters:
@@ -33,7 +34,7 @@ namespace artdaq
 		 * "hostmap" (OPTIONAL): Host map to use for "host_map" parameter of TransferInterface plugins (i.e. TCPSocketTransfer)
 		 * \endverbatim
 		 */
-		explicit TransferTest(fhicl::ParameterSet psi);
+		explicit TransferTest(fhicl::ParameterSet psi, uint32_t key);
 
 		/**
 		 * \brief Run the test as configured
