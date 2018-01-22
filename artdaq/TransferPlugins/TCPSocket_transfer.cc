@@ -46,13 +46,14 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, timeoutMessageArmed_(true)
 {
 	TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend") << TLOG_ENDL;
+    auto masterPortOffset = pset.get<int>("offset_all_ports",0);
 	auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 	for (auto& ps : hosts)
 	{
 		auto rank = ps.get<size_t>("rank", RECV_TIMEOUT);
 		DestinationInfo info;
 		info.hostname = ps.get<std::string>("host", "localhost");
-		info.portOffset = ps.get<int>("portOffset", 5500);
+		info.portOffset = ps.get<int>("portOffset", 5500) + masterPortOffset;
 
 		hostMap_[rank] = info;
 	}
