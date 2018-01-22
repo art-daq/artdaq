@@ -133,6 +133,15 @@ namespace artdaq
 		 */
 		virtual ~CommandableFragmentGenerator();
 
+
+		/**
+		 * \brief Join any data-taking threads. Should be called when destructing CommandableFragmentGenerator
+		 *
+		 * Join any data-taking threads. Should be called when destructing CommandableFragmentGenerator
+		 * Sets flags so that threads stop operations.
+		 */
+		void joinThreads();
+
 		/**
 		 * \brief getNext calls either applyRequests or getNext_ to get any data that is ready to be sent to the EventBuilders
 		 * \param output FragmentPtrs object containing Fragments ready for transmission

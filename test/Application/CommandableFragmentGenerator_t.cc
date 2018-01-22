@@ -25,7 +25,7 @@ public:
 	 */
 	explicit CommandableFragmentGeneratorTest(const fhicl::ParameterSet& ps);
 
-	virtual ~CommandableFragmentGeneratorTest() = default;
+	virtual ~CommandableFragmentGeneratorTest() { joinThreads(); };
 
 protected:
 	/**

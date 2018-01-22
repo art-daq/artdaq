@@ -225,8 +225,13 @@ void artdaq::CommandableFragmentGenerator::setupRequestListener()
 
 artdaq::CommandableFragmentGenerator::~CommandableFragmentGenerator()
 {
-	force_stop_ = true;
+	joinThreads();
+}
+
+void artdaq::CommandableFragmentGenerator::joinThreads()
+{
 	should_stop_ = true;
+	force_stop_ = true;
 	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining dataThread" << TLOG_ENDL;
 	if (dataThread_.joinable()) dataThread_.join();
 	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining monitoringThread" << TLOG_ENDL;
