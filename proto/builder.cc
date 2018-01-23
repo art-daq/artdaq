@@ -42,8 +42,9 @@ public:
 	 * \param argc Argument Count
 	 * \param argv Argument Array
 	 * \param pset fhicl::ParameterSet used to configure builder
+	 * \param key Shared Memory Key to use
 	 */
-	Builder(int argc, char* argv[], fhicl::ParameterSet pset);
+	Builder(int argc, char* argv[], fhicl::ParameterSet pset, int key);
 
 	/**
 	 * \brief Start the Builder application, using the type configuration to select which method to run
@@ -76,7 +77,7 @@ private:
 	Role builder_role_;
 };
 
-Builder::Builder(int argc, char* argv[], fhicl::ParameterSet pset) :
+Builder::Builder(int argc, char* argv[], fhicl::ParameterSet pset, int key) :
 	MPIProg(argc, argv)
 	, daq_pset_(pset)
 	, want_sink_(daq_pset_.get<bool>("want_sink", true))
@@ -111,12 +112,12 @@ Builder::Builder(int argc, char* argv[], fhicl::ParameterSet pset) :
 	ss << " sources: {";
 	for (int ii = 0; ii < senders; ++ii)
 	{
-		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size << " buffer_count: " << buffer_count << hostmap << "}";
+		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size << " buffer_count: " << buffer_count << " shm_key_offset: " << std::to_string(key) << hostmap << "}";
 	}
 	ss << "} destinations: {";
 	for (int jj = senders; jj < senders + receivers; ++jj)
 	{
-		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size << " buffer_count: " << buffer_count << hostmap << "}";
+		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size << " buffer_count: " << buffer_count << " shm_key_offset: " << std::to_string(key) << hostmap << "}";
 	}
 	ss << "}";
 
@@ -302,6 +303,7 @@ int main(int argc, char* argv[])
 	bpo::options_description desc(descstr.str());
 	desc.add_options()
 		("config,c", bpo::value<std::string>(), "Configuration file.")
+		("key,k", bpo::value<int>(), "Shared Memory Key")
 		("help,h", "produce help message");
 	bpo::variables_map vm;
 	try {
@@ -325,6 +327,11 @@ int main(int argc, char* argv[])
 			<< "'.\n";
 		return 2;
 	}
+	int key = 0;
+	if (vm.count("key"))
+	{
+		key = vm["key"].as<int>();
+	}
 	fhicl::ParameterSet pset;
 	if (getenv("FHICL_FILE_PATH") == nullptr) {
 		std::cerr
@@ -337,7 +344,7 @@ int main(int argc, char* argv[])
 	int rc = 1;
 	try
 	{
-		Builder p(argc, argv, pset);
+		Builder p(argc, argv, pset,key);
 		std::cerr << "Started process " << my_rank << " of " << p.procs_ << ".\n";
 		p.go();
 		rc = 0;

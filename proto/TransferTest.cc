@@ -66,12 +66,12 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi, uint32_t key)
 	ss << " sources: {";
 	for (int ii = 0; ii < senders_; ++ii)
 	{
-		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << " shm_key: " << std::to_string(key) << hostmap << "}";
+		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << " shm_key_offset: " << std::to_string(key) << hostmap << "}";
 	}
 	ss << "} destinations: {";
 	for (int jj = senders_; jj < senders_ + receivers_; ++jj)
 	{
-		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << " shm_key: " << std::to_string(key) << hostmap << "}";
+		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words: " << max_payload_size_ << " buffer_count: " << buffer_count_ << " shm_key_offset: " << std::to_string(key) << hostmap << "}";
 	}
 	ss << "}";
 

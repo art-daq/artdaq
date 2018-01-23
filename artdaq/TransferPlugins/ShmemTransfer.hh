@@ -22,7 +22,7 @@ namespace artdaq
 		 * 
 		 * \verbatim
 		 * ShmemTransfer accepts the following Parameters:
-		 * "shm_key" (Default: hash of uniqueLabel): Key to use for shared memory segment
+		 * "shm_key_offset" (Default: 0): Offset to add to shared memory key (hash of uniqueLabel)
 		 * \endverbatim
 		 * ShmemTransfer also requires all Parameters for configuring a TransferInterface
 		 */
