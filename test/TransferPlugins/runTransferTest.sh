@@ -8,7 +8,7 @@ fi
 
 log=`basename $fcl|cut -f1 -d.`
 
-key=$(($RANDOM + 0xFEED0000))
+key=$(($RANDOM & 0xFFFF + 0xFEED0000))
 
 transfer_driver 0 $key $fcl & PID0=$!
 transfer_driver 1 $key $fcl & PID1=$!
