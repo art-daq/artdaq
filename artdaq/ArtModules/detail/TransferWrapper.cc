@@ -63,20 +63,27 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 	artdaq::Commandable c;
 	commander_ = MakeCommanderPlugin(new_pset, c);
 
-	TLOG_INFO("TransferWrapper") << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
-		<< "\") with the dispatcher aggregator" << TLOG_ENDL;
+	int retry = 3;
 
-	auto status = commander_->send_register_monitor(dispatcherConfig.to_string());
+	while (retry > 0) {
+		TLOG_INFO("TransferWrapper") << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
+			<< "\") with the dispatcher aggregator" << TLOG_ENDL;
 
-	TLOG_INFO("TransferWrapper") << "Response from dispatcher is \"" << status << "\"" << TLOG_ENDL;
+		auto status = commander_->send_register_monitor(dispatcherConfig.to_string());
 
-	if (status == "Success")
-	{
-		monitorRegistered_ = true;
-	}
-	else
-	{
-		throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to register with dispatcher did not result in the \"Success\" response";
+		TLOG_INFO("TransferWrapper") << "Response from dispatcher is \"" << status << "\"" << TLOG_ENDL;
+
+		if (status == "Success")
+		{
+			monitorRegistered_ = true;
+			break;
+		}
+		else
+		{
+			TLOG_WARNING("TransferWrapper") << "Error in TransferWrapper: attempt to register with dispatcher did not result in the \"Success\" response" << TLOG_ENDL;
+			usleep(100000);
+		}
+		retry--;
 	}
 }
 
