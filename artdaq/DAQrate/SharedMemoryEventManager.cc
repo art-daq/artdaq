@@ -161,7 +161,9 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 	Write(buffer, &frag, frag.num_words() * sizeof(RawDataType));
 
 	auto pos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));
-	IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
+    if(frag.word_count - frag.num_words() > 0) {
+    	IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
+    }
 
 	TLOG_ARB(14, "SharedMemoryEventManager") << "WriteFragmentHeader END" << TLOG_ENDL;
 	return pos;
