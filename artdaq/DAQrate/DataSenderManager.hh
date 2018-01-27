@@ -42,6 +42,7 @@ public:
 	 *   "table_acknowledge_port" (Default: 35557): Port that acknowledgements should be sent to
 	 *   "routing_master_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
 	 *   "routing_timeout_ms" (Default: 1000): Time to wait for a routing table update if the table is exhausted
+	 *   "routing_retry_count" (Default: 5): Number of times to retry calculating destination before giving up (DROPPING DATA!)
 	 * "destinations" (Default: Empty ParameterSet): FHiCL table for TransferInterface configurations for each destaintion
 	 *   NOTE: "destination_rank" MUST be specified (and unique) for each destination!
 	 * "enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified,
@@ -130,6 +131,7 @@ private:
 	mutable std::atomic<size_t> routing_wait_time_;
 
 	int routing_timeout_ms_;
+	int routing_retry_count_;
 };
 
 inline

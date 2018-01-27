@@ -6,10 +6,10 @@
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
-						  pset.get<size_t>("buffer_count"),
-						  pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
-						  pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
-						  !pset.get<bool>("broadcast_mode", false))
+		pset.get<size_t>("buffer_count"),
+		pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
+		pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
+		!pset.get<bool>("broadcast_mode", false))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
 	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
 	, queue_size_(pset.get<size_t>("buffer_count"))
@@ -29,9 +29,9 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, current_art_pset_(art_pset)
 	, requests_(pset)
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
-				  pset.get<size_t>("broadcast_buffer_count", 10),
-				  pset.get<size_t>("broadcast_buffer_size", 0x100000),
-				  pset.get<int>("fragment_broadcast_timeout_ms", 3000) * 1000, false)
+		pset.get<size_t>("broadcast_buffer_count", 10),
+		pset.get<size_t>("broadcast_buffer_size", 0x100000),
+		pset.get<int>("fragment_broadcast_timeout_ms", 3000) * 1000, false)
 {
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
@@ -161,9 +161,9 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 	Write(buffer, &frag, frag.num_words() * sizeof(RawDataType));
 
 	auto pos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));
-    if(frag.word_count - frag.num_words() > 0) {
-    	IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
-    }
+	if (frag.word_count - frag.num_words() > 0) {
+		IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
+	}
 
 	TLOG_ARB(14, "SharedMemoryEventManager") << "WriteFragmentHeader END" << TLOG_ENDL;
 	return pos;
@@ -183,8 +183,13 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		hdr->run_id = run_id_;
 		hdr->subrun_id = subrun_id_;
 	}
+
+	if (buffer_writes_pending_[buffer] != 0)
+	{
+		TLOG_TRACE("SharedMemoryEventManager") << "Done writing fragment, but there's another writer. Not doing bookkeeping steps." << TLOG_ENDL;
+	}
 	auto frag_count = GetFragmentCount(frag.sequence_id);
-	hdr->is_complete = frag_count == num_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
+	hdr->is_complete = frag_count == num_fragments_per_event_;
 #if ART_SUPPORTS_DUPLICATE_EVENTS
 	if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id)) {
 		hdr->is_complete = frag_count == released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
@@ -283,7 +288,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 
 
 	while ((GetAttachedCount() - initialCount < 1 || pid <= 0)
-		   && TimeUtils::GetElapsedTime(startTime) < 5)
+		&& TimeUtils::GetElapsedTime(startTime) < 5)
 	{
 		usleep(1000);
 	}
@@ -418,7 +423,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	TLOG_TRACE("SharedMemoryEventManager") << "endOfData: Flushing " << initialStoreSize
 		<< " stale events from the SharedMemoryEventManager." << TLOG_ENDL;
 	int counter = initialStoreSize;
-	while(active_buffers_.size() > 0 && counter > 0)
+	while (active_buffers_.size() > 0 && counter > 0)
 	{
 		complete_buffer_(*active_buffers_.begin());
 		counter--;
@@ -476,8 +481,6 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	return true;
 }
 
-
-
 void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
 	init_fragment_.reset(nullptr);
@@ -510,9 +513,9 @@ void artdaq::SharedMemoryEventManager::startSubrun()
 bool artdaq::SharedMemoryEventManager::endRun()
 {
 	FragmentPtr	endOfRunFrag(new
-							 Fragment(static_cast<size_t>
-							 (ceil(sizeof(my_rank) /
-								   static_cast<double>(sizeof(Fragment::value_type))))));
+		Fragment(static_cast<size_t>
+		(ceil(sizeof(my_rank) /
+			static_cast<double>(sizeof(Fragment::value_type))))));
 
 	endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
 	*endOfRunFrag->dataBegin() = my_rank;
@@ -525,9 +528,9 @@ bool artdaq::SharedMemoryEventManager::endSubrun()
 {
 	std::unique_ptr<artdaq::Fragment>
 		endOfSubrunFrag(new
-						Fragment(static_cast<size_t>
-						(ceil(sizeof(my_rank) /
-							  static_cast<double>(sizeof(Fragment::value_type))))));
+			Fragment(static_cast<size_t>
+			(ceil(sizeof(my_rank) /
+				static_cast<double>(sizeof(Fragment::value_type))))));
 
 	endOfSubrunFrag->setSystemType(Fragment::EndOfSubrunFragmentType);
 	*endOfSubrunFrag->dataBegin() = my_rank;
@@ -616,7 +619,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 			return buf;
 		}
 	}
-	
+
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
 	if (released_incomplete_events_.count(seqID)) {
 		TLOG_ERROR("SharedMemoryEventManager") << "Buffer has already been marked \"Incomplete\" and sent to art!" << TLOG_ENDL;
@@ -719,7 +722,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_()
 		}
 
 		Fragment::sequence_id_t lowestSeqId = Fragment::InvalidSequenceID;
-		
+
 		// Only use "weak ordering" when buffers are available for writing
 		if (WriteReadyCount(false) != 0)
 		{
@@ -760,7 +763,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_()
 		metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
 	}
 	TLOG_TRACE("SharedMemoryEventManager") << "check_pending_buffers_ END" << TLOG_ENDL;
-	}
+}
 
 void artdaq::SharedMemoryEventManager::send_init_frag_()
 {
