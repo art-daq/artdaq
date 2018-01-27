@@ -140,17 +140,18 @@ namespace artdaq
 		if (send_routing_tokens_)
 		{
 			TLOG_DEBUG("RequestSender") << "Creating Routing Token sending socket" << TLOG_ENDL;
-            int retry =5;
-            while(retry > 0 && token_socket_ < 0) {
-			token_socket_ = TCPConnect(token_address_.c_str(), token_port_);
-            if(token_socket_ < 0) usleep(100000);
-            retry--;
-            }
+			int retry = 5;
+			while (retry > 0 && token_socket_ < 0) {
+				token_socket_ = TCPConnect(token_address_.c_str(), token_port_);
+				if (token_socket_ < 0) usleep(100000);
+				retry--;
+			}
 			if (token_socket_ < 0)
 			{
 				TLOG_ERROR("RequestSender") << "I failed to create the socket for sending Routing Tokens! err=" << strerror(errno) << TLOG_ENDL;
 				exit(1);
 			}
+			TLOG_DEBUG("RequestSender") << "Routing Token sending socket created successfully" << TLOG_ENDL;
 		}
 	}
 
