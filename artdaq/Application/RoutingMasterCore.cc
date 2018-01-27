@@ -199,9 +199,10 @@ bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 
 bool artdaq::RoutingMasterCore::shutdown(uint64_t)
 {
+    shutdown_requested_.store(true);
+	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 	policy_.reset(nullptr);
 	metricMan_.shutdown();
-	shutdown_requested_.store(true);
 	return true;
 }
 
@@ -299,7 +300,6 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 
 	metricMan_.do_stop();
 
-	policy_.reset(nullptr);
 	return table_update_count_;
 }
 
