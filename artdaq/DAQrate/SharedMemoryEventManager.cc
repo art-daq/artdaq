@@ -176,7 +176,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
 	if (buffer == -1) Detach(true, "SharedMemoryEventManager", "getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!");
 	if (buffer == -2) return;
-	buffer_writes_pending_[buffer]--;
+
 	auto hdr = getEventHeader_(buffer);
 	if (update_run_ids_)
 	{
@@ -184,9 +184,11 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		hdr->subrun_id = subrun_id_;
 	}
 
+	buffer_writes_pending_[buffer]--;
 	if (buffer_writes_pending_[buffer] != 0)
 	{
 		TLOG_TRACE("SharedMemoryEventManager") << "Done writing fragment, but there's another writer. Not doing bookkeeping steps." << TLOG_ENDL;
+		return;
 	}
 	auto frag_count = GetFragmentCount(frag.sequence_id);
 	hdr->is_complete = frag_count == num_fragments_per_event_;
