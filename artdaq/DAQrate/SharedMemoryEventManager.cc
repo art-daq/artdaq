@@ -177,6 +177,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
 	if (buffer == -1) Detach(true, "SharedMemoryEventManager", "getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!");
 	if (buffer == -2) return;
+	TraceLock lk(buffer_mutexes_[buffer], 50, "DoneWritingFragment");
 
 	auto hdr = getEventHeader_(buffer);
 	if (update_run_ids_)
@@ -202,7 +203,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	complete_buffer_(buffer);
 	requests_.SendRequest(true);
 	TLOG_TRACE("SharedMemoryEventManager") << "DoneWritingFragment END" << TLOG_ENDL;
-}
+	}
 
 size_t artdaq::SharedMemoryEventManager::GetFragmentCount(Fragment::sequence_id_t seqID, Fragment::type_t type)
 {
