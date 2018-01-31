@@ -4,6 +4,8 @@
 #include <sys/wait.h>
 #include "SharedMemoryEventManager.hh"
 
+std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
+
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
 		pset.get<size_t>("buffer_count"),
@@ -150,7 +152,6 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		else
 		{
 			TLOG_ERROR("SharedMemoryEventManager") << "Dropping fragment because there is no room in the queue and reliable mode is off: " << std::to_string(frag.sequence_id) << TLOG_ENDL;
-			std::unique_lock<std::mutex> lk(sequence_id_mutex_);
 		}
 		dropped_data_.reset(new Fragment(frag.word_count - frag.num_words()));
 		return dropped_data_->dataBegin();
@@ -552,7 +553,7 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 		metricMan->sendMetric("Incomplete Event Count", GetIncompleteEventCount(), "events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Pending Event Count", GetPendingEventCount(), "events", 1, MetricMode::LastPoint);
 	}
-	check_pending_buffers_();
+
 	if (incomplete_event_report_interval_ms_ > 0 && GetLockedBufferCount())
 	{
 		if (TimeUtils::GetElapsedTimeMilliseconds(last_incomplete_event_report_time_) < static_cast<size_t>(incomplete_event_report_interval_ms_))
@@ -608,7 +609,6 @@ artdaq::detail::RawEventHeader* artdaq::SharedMemoryEventManager::getEventHeader
 
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
 {
-	check_pending_buffers_();
 	std::unique_lock<std::mutex> lk(sequence_id_mutex_);
 	TLOG_ARB(14, "SharedMemoryEventManager") << "getBufferForSequenceID " << std::to_string(seqID) << " BEGIN" << TLOG_ENDL;
 	auto buffers = GetBuffersOwnedByManager();
@@ -631,6 +631,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 
 	if (!create_new) return -1;
 
+	check_pending_buffers_(lk);
 	int new_buffer = GetBufferForWriting(false);
 
 	if (new_buffer == -1)
@@ -694,63 +695,61 @@ bool artdaq::SharedMemoryEventManager::bufferComparator(int bufA, int bufB)
 	return getEventHeader_(bufA)->sequence_id < getEventHeader_(bufB)->sequence_id;
 }
 
-void artdaq::SharedMemoryEventManager::check_pending_buffers_()
+void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<std::mutex> const& lock)
 {
-	TLOG_TRACE("SharedMemoryEventManager") << "check_pending_buffers_ BEGIN" << TLOG_ENDL;
+	TLOG_TRACE("SharedMemoryEventManager") << "check_pending_buffers_ BEGIN Locked=" << std::boolalpha << lock.owns_lock() << TLOG_ENDL;
+
+	auto buffers = GetBuffersOwnedByManager();
+	for (auto buf : buffers)
 	{
-		std::unique_lock<std::mutex> lk(sequence_id_mutex_);
-		auto buffers = GetBuffersOwnedByManager();
-		for (auto buf : buffers)
-		{
-			if (ResetBuffer(buf) && !pending_buffers_.count(buf))
-			{
-				auto hdr = getEventHeader_(buf);
-				if (active_buffers_.count(buf))
-				{
-					TLOG_WARNING("SharedMemoryEventManager") << "Active event " << std::to_string(hdr->sequence_id) << " is stale. Scheduling release of incomplete event to art." << TLOG_ENDL;
-					requests_.RemoveRequest(hdr->sequence_id);
-					requests_.SendRoutingToken(1);
-					active_buffers_.erase(buf);
-					pending_buffers_.insert(buf);
-					if (!released_incomplete_events_.count(hdr->sequence_id)) {
-						released_incomplete_events_[hdr->sequence_id] = num_fragments_per_event_ - GetFragmentCountInBuffer(buf);
-					}
-					else {
-						released_incomplete_events_[hdr->sequence_id] -= GetFragmentCountInBuffer(buf);
-					}
-				}
-
-			}
-		}
-
-		Fragment::sequence_id_t lowestSeqId = Fragment::InvalidSequenceID;
-
-		// Only use "weak ordering" when buffers are available for writing
-		if (WriteReadyCount(false) != 0)
-		{
-			for (auto buf : active_buffers_)
-			{
-				auto hdr = getEventHeader_(buf);
-				TLOG_TRACE("SharedMemoryEventManager") << "Buffer: " << buf << ", SeqID: " << std::to_string(hdr->sequence_id) << ", ACTIVE" << TLOG_ENDL;
-				if (hdr->sequence_id < lowestSeqId)
-				{
-					lowestSeqId = hdr->sequence_id;
-				}
-			}
-			TLOG_TRACE("SharedMemoryEventManager") << "Lowest SeqID held: " << std::to_string(lowestSeqId) << TLOG_ENDL;
-		}
-
-		std::list<int> sorted_buffers(pending_buffers_.begin(), pending_buffers_.end());
-		sorted_buffers.sort([this](int a, int b) {return bufferComparator(a, b); });
-		for (auto buf : sorted_buffers)
+		if (ResetBuffer(buf) && !pending_buffers_.count(buf))
 		{
 			auto hdr = getEventHeader_(buf);
-			if (hdr->sequence_id > lowestSeqId) break;
-			TLOG_DEBUG("SharedMemoryEventManager") << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art." << TLOG_ENDL;
-			MarkBufferFull(buf);
-			subrun_event_count_++;
-			pending_buffers_.erase(buf);
+			if (active_buffers_.count(buf))
+			{
+				TLOG_WARNING("SharedMemoryEventManager") << "Active event " << std::to_string(hdr->sequence_id) << " is stale. Scheduling release of incomplete event to art." << TLOG_ENDL;
+				requests_.RemoveRequest(hdr->sequence_id);
+				requests_.SendRoutingToken(1);
+				active_buffers_.erase(buf);
+				pending_buffers_.insert(buf);
+				if (!released_incomplete_events_.count(hdr->sequence_id)) {
+					released_incomplete_events_[hdr->sequence_id] = num_fragments_per_event_ - GetFragmentCountInBuffer(buf);
+				}
+				else {
+					released_incomplete_events_[hdr->sequence_id] -= GetFragmentCountInBuffer(buf);
+				}
+			}
+
 		}
+	}
+
+	Fragment::sequence_id_t lowestSeqId = Fragment::InvalidSequenceID;
+
+	// Only use "weak ordering" when buffers are available for writing
+	if (WriteReadyCount(false) != 0)
+	{
+		for (auto buf : active_buffers_)
+		{
+			auto hdr = getEventHeader_(buf);
+			TLOG_TRACE("SharedMemoryEventManager") << "Buffer: " << buf << ", SeqID: " << std::to_string(hdr->sequence_id) << ", ACTIVE" << TLOG_ENDL;
+			if (hdr->sequence_id < lowestSeqId)
+			{
+				lowestSeqId = hdr->sequence_id;
+			}
+		}
+		TLOG_TRACE("SharedMemoryEventManager") << "Lowest SeqID held: " << std::to_string(lowestSeqId) << TLOG_ENDL;
+	}
+
+	std::list<int> sorted_buffers(pending_buffers_.begin(), pending_buffers_.end());
+	sorted_buffers.sort([this](int a, int b) {return bufferComparator(a, b); });
+	for (auto buf : sorted_buffers)
+	{
+		auto hdr = getEventHeader_(buf);
+		if (hdr->sequence_id > lowestSeqId) break;
+		TLOG_DEBUG("SharedMemoryEventManager") << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art." << TLOG_ENDL;
+		MarkBufferFull(buf);
+		subrun_event_count_++;
+		pending_buffers_.erase(buf);
 	}
 
 	TLOG_TRACE("SharedMemoryEventManager") << "check_pending_buffers_: Sending Metrics" << TLOG_ENDL;
