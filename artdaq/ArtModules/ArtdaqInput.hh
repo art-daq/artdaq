@@ -9,7 +9,10 @@
 #if ART_HEX_VERSION < 0x20703
 # include "art/Persistency/Provenance/BranchIDListHelper.h"
 #endif
+#if ART_HEX_VERSION < 0x20900
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
+#include "canvas/Persistency/Provenance/BranchIDList.h"
+#endif
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
@@ -17,7 +20,6 @@
 #include "canvas/Persistency/Common/EDProduct.h"
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
-#include "canvas/Persistency/Provenance/BranchIDList.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/History.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
@@ -224,6 +226,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	art::ProductList* productlist = ReadObjectAny<art::ProductList>(msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
 	helper.productList(productlist);
 
+#if ART_HEX_VERSION < 0x20900
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list" << TLOG_ENDL;
 	if (art::debugit() >= 1)
 	{
@@ -254,6 +257,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 			}
 		}
 	}
+#endif
 
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory" << TLOG_ENDL;
 	art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInput::ArtdaqInput");

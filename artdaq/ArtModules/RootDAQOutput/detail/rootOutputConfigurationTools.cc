@@ -6,7 +6,7 @@
 # define BOUNDARY_GRANULARITY Boundary::InputFile
 #endif
 #include "art/Framework/IO/Root/RootOutputClosingCriteria.h"
-#include "artdaq/ArtModules/detail/rootOutputConfigurationTools.h"
+#include "artdaq/ArtModules/RootDAQOutput/detail/rootOutputConfigurationTools.h"
 #include "canvas/Utilities/Exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 

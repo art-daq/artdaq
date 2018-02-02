@@ -2,6 +2,7 @@
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"
+#include "art/Framework/Principal/Selector.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
@@ -176,7 +177,13 @@ write(EventPrincipal& ep)
 	using RawEventHandles = std::vector<RawEventHandle>;
 
 	auto result_handles = std::vector<art::GroupQueryResult>();
+	
+#if ART_HEX_VERSION < 0x20906
 	ep.getManyByType(art::TypeID(typeid(RawEvent)), result_handles);
+#else
+	auto const& wrapped = art::WrappedTypeID::make<RawEvent>();
+	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
+#endif
 
 	for (auto const& result_handle : result_handles)
 	{

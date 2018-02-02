@@ -10,12 +10,14 @@
 #else
 # include "art/Persistency/Provenance/BranchIDListHelper.h"
 #endif
+#if ART_HEX_VERSION < 0x20900
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
+#include "canvas/Persistency/Provenance/BranchIDList.h"
+#endif
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 
 #include "canvas/Persistency/Provenance/BranchDescription.h"
-#include "canvas/Persistency/Provenance/BranchIDList.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/History.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
@@ -260,6 +262,7 @@ send_init_message()
 	msg.WriteObjectAny(&productList, product_list_class);
 	TLOG_TRACE("TransferOutput") << " TransferOutput static send_init_message(): Finished streaming MasterProductRegistry." << TLOG_ENDL;
 
+#if ART_HEX_VERSION < 0x20900
 	//
 	//  Dump The BranchIDListRegistry
 	//
@@ -295,6 +298,7 @@ send_init_message()
 			}
 		}
 	}
+#endif
 
 #   if ART_HEX_VERSION >= 0x20703
 	art::ProcessHistoryMap phr;

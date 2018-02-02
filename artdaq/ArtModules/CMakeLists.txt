@@ -1,6 +1,10 @@
 
 include_directories(${MPI_INCLUDE_PATH})
 
+if( ${ART_HEX_VERSION} LESS 0x20906 )
+    add_subdirectory(RootDAQOutput)
+endif()
+
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
   SUBDIRS detail
@@ -21,7 +25,7 @@ art_make( BASENAME_ONLY
   art_Framework_Principal
   artdaq_ArtModules_NetMonTransportService_service
   art_Persistency_Provenance
-  art_Persistency_RootDB
+  #  art_Persistency_RootDB
   ${CANVAS_LIB_LIST}
   MF_MessageLogger
   ${SQLITE3}
@@ -93,24 +97,6 @@ simple_plugin(RootNetOutput "module"
   cetlib
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
-)
-
-simple_plugin(RootDAQOut "module"
-  artdaq_ArtModules_NetMonTransportService_service
-  artdaq_ArtModules
-  art_Framework_Services_Registry
-  art_Framework_IO_Root
-  art_Framework_IO_RootVersion
-  art_Persistency_RootDB
-  art_Utilities
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  ${Boost_DATE_TIME_LIBRARY}
-  ${CETLIB_EXCEPT}
-  ${SQLITE3}
-  ${ROOT_RIO}
-  ${ROOT_TREE}
 )
 
 simple_plugin(BinaryNetOutput "module"
