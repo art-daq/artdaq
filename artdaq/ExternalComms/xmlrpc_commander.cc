@@ -337,7 +337,7 @@ namespace artdaq
 	fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramList& paramList, int index)
 	{
 		std::string configString = std::string(paramList.getString(index).c_str());
-		TLOG_DEBUG("xmlrpc_commander") << "Loading Parameter Set from string: " << configString << std::endl;
+		TLOG(TLVL_DEBUG) << "Loading Parameter Set from string: " << configString << std::endl;
 		fhicl::ParameterSet pset;
 
 		try
@@ -355,7 +355,7 @@ namespace artdaq
 			fhicl::make_ParameterSet(configString, lookup_policy, pset);
 		}
 
-		TLOG_INFO("xmlrpc_commander") << "Parameter Set Loaded." << std::endl;
+		TLOG(TLVL_INFO) << "Parameter Set Loaded." << std::endl;
 		return pset;
 	}
 
@@ -412,25 +412,25 @@ namespace artdaq
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG_ERROR("XMLRPC_Commander") << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
 			}
 			catch (art::Exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG_ERROR("XMLRPC_Commander") << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
 			}
 			catch (cet::exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG_ERROR("XMLRPC_Commander") << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
 			}
 			catch (...)
 			{
 				std::string msg = exception_msg("Unknown exception", _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG_ERROR("XMLRPC_Commander") << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
 			}
 		}
 		else
@@ -768,7 +768,7 @@ private:								\
 
 		virtual void doit(const std::string& paramString, void*) const
 		{
-			TLOG_INFO("XMLRPC_Commander") << "A shutdown command was sent "
+			TLOG(TLVL_INFO) << "A shutdown command was sent "
 				<< "with parameter "
 				<< paramString << "\"" << TLOG_ENDL;
 			_server->terminate();
@@ -899,7 +899,7 @@ private:								\
 		registry.setShutdown(&shutdown_obj);
 #endif
 
-		TLOG_DEBUG("XMLRPC_Commander") << "running server" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "running server" << TLOG_ENDL;
 
 		// JCF, 6/3/15
 
@@ -913,13 +913,13 @@ private:								\
 		}
 		catch (...)
 		{
-			TLOG_WARNING("XMLRPC_Commander") << "server threw an exception; closing the socket and rethrowing" << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << "server threw an exception; closing the socket and rethrowing" << TLOG_ENDL;
 			close(socket_file_descriptor);
 			throw;
 		}
 
 		close(socket_file_descriptor);
-		TLOG_DEBUG("XMLRPC_Commander") << "server terminated" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "server terminated" << TLOG_ENDL;
 	}
 	catch (...)
 	{

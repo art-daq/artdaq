@@ -20,10 +20,8 @@ public:
 
 	/**
 	 * \brief EventBuilderCore Constructor.
-	 * \param rank Rank of the EventBuilder
-	 * \param name Friendly name for the EventBuilder
 	 */
-	EventBuilderCore(int rank, std::string name);
+	EventBuilderCore();
 
 	/**
 	* \brief Copy Constructor is deleted

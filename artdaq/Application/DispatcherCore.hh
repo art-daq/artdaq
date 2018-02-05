@@ -24,11 +24,8 @@ public:
 
 	/**
 	* \brief DispatcherCore Constructor.
-	* \param rank Rank of the Dispatcher
-	* \param name Friendly name for the Dispatcher
-	* \todo Make the global queue size configurable
 	*/
-	DispatcherCore(int rank, std::string name);
+	DispatcherCore();
 
 	/**
 	 * \brief Copy Constructor is deleted

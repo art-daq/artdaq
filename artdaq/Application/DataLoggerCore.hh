@@ -21,11 +21,8 @@ public:
 
 	/**
 	* \brief DataLoggerCore Constructor.
-	* \param rank Rank of the DataLogger
-	* \param name Friendly name for the DataLogger
-	* \todo Make the global queue size configurable
 	*/
-	DataLoggerCore(int rank, std::string name);
+	DataLoggerCore();
 
 	/**
 	 * \brief Copy Constructor is deleted

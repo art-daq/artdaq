@@ -22,18 +22,18 @@
 
 
 
-artdaq::DispatcherCore::DispatcherCore(int rank, std::string name)
-	: DataReceiverCore(rank, name)
+artdaq::DispatcherCore::DispatcherCore()
+	: DataReceiverCore()
 {}
 
 artdaq::DispatcherCore::~DispatcherCore()
 {
-	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Destructor" << TLOG_ENDL;
 }
 
 bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(name_) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
 
 	pset_ = pset;
 	pset_.erase("outputs");
@@ -48,7 +48,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "Unable to find the DAQ parameters in the initialization "
 			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
@@ -60,7 +60,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "Unable to find the Dispatcher parameters in the DAQ "
 			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
@@ -87,14 +87,14 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 
 std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(name_) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"" << TLOG_ENDL;
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	
 	try
 	{
-		TLOG_DEBUG(name_) << "Getting unique_label from input ParameterSet" << TLOG_ENDL;
+		TLOG_DEBUG(app_name) << "Getting unique_label from input ParameterSet" << TLOG_ENDL;
 		auto label = pset.get<std::string>("unique_label");
-		TLOG_DEBUG(name_) << "Unique label is " << label << TLOG_ENDL;
+		TLOG_DEBUG(app_name) << "Unique label is " << label << TLOG_ENDL;
 		if (registered_monitors_.count(label))
 		{
 			throw cet::exception("DispatcherCore") << "Unique label already exists!";
@@ -105,18 +105,18 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		{
 			if (broadcast_mode_) {
 				fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
-				TLOG_DEBUG(name_) << "Starting art process with received fhicl" << TLOG_ENDL;
+				TLOG_DEBUG(app_name) << "Starting art process with received fhicl" << TLOG_ENDL;
 				registered_monitor_pids_[label] = event_store_ptr_->StartArtProcess(ps);
 			}
 			else
 			{
-				TLOG_DEBUG(name_) << "Generating new fhicl and reconfiguring art" << TLOG_ENDL;
+				TLOG_DEBUG(app_name) << "Generating new fhicl and reconfiguring art" << TLOG_ENDL;
 				event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
 			}
 		}
 		else
 		{
-			TLOG_ERROR(name_) << "Unable to add monitor as there is no SharedMemoryEventManager instance!" << TLOG_ENDL;
+			TLOG_ERROR(app_name) << "Unable to add monitor as there is no SharedMemoryEventManager instance!" << TLOG_ENDL;
 		}
 	}
 	catch (const cet::exception& e)
@@ -124,7 +124,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
 		errmsg << "Exception: " << e.what();
-		TLOG_ERROR(name_) << errmsg.str() << TLOG_ENDL;
+		TLOG_ERROR(app_name) << errmsg.str() << TLOG_ENDL;
 		return errmsg.str();
 	}
 	catch (const boost::exception& e)
@@ -132,7 +132,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
 		errmsg << "Exception: " << boost::diagnostic_information(e);
-		TLOG_ERROR(name_) << errmsg.str() << TLOG_ENDL;
+		TLOG_ERROR(app_name) << errmsg.str() << TLOG_ENDL;
 		return errmsg.str();
 	}
 	catch (const std::exception& e)
@@ -140,14 +140,14 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
 		errmsg << "Exception: " << e.what();
-		TLOG_ERROR(name_) << errmsg.str() << TLOG_ENDL;
+		TLOG_ERROR(app_name) << errmsg.str() << TLOG_ENDL;
 		return errmsg.str();
 	}
 	catch (...)
 	{
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered";
-		TLOG_ERROR(name_) << errmsg.str() << TLOG_ENDL;
+		TLOG_ERROR(app_name) << errmsg.str() << TLOG_ENDL;
 		return errmsg.str();
 	}
 
@@ -156,7 +156,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 
 std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 {
-	TLOG_DEBUG(name_) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"" << TLOG_ENDL;
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 
 	try
@@ -166,7 +166,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 			std::stringstream errmsg;
 			errmsg << "Warning in DispatcherCore::unregister_monitor: unable to find requested transfer plugin with "
 				<< "label \"" << label << "\"";
-			TLOG_WARNING(name_) << errmsg.str() << TLOG_ENDL;
+			TLOG_WARNING(app_name) << errmsg.str() << TLOG_ENDL;
 			return errmsg.str();
 		}
 
@@ -204,7 +204,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	fhicl::ParameterSet generated_physics_producers;
 	fhicl::ParameterSet generated_physics_filters;
 
-	TLOG_DEBUG(name_) << "merge_parameter_sets_: Generating fhicl for monitor " << label << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "merge_parameter_sets_: Generating fhicl for monitor " << label << TLOG_ENDL;
 
 	try
 	{
@@ -327,10 +327,10 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	catch (cet::exception& e)
 	{
 		// Error in parsing input fhicl
-		TLOG_ERROR(name_) << "merge_parameter_sets_: Error processing input fhicl: " << e.what() << TLOG_ENDL;
+		TLOG_ERROR(app_name) << "merge_parameter_sets_: Error processing input fhicl: " << e.what() << TLOG_ENDL;
 	}
 
-	TLOG_DEBUG(name_) << "merge_parameter_sets_: Building final ParameterSet" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "merge_parameter_sets_: Building final ParameterSet" << TLOG_ENDL;
 	generated_pset.put("outputs", generated_outputs);
 
 	generated_physics.put("analyzers", generated_physics_analyzers);
@@ -344,7 +344,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 
 fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 {
-	TLOG_DEBUG(name_) << "generate_filter_fhicl_ BEGIN" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "generate_filter_fhicl_ BEGIN" << TLOG_ENDL;
 	fhicl::ParameterSet generated_pset = pset_;
 	
 	for (auto& monitor : registered_monitors_)
@@ -355,6 +355,6 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 	}
 
 
-	TLOG_DEBUG(name_) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string() << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string() << TLOG_ENDL;
 	return generated_pset;
 }

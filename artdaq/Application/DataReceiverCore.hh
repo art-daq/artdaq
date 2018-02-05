@@ -27,10 +27,8 @@ public:
 
 	/**
 	 * \brief DataReceiverCore Constructor.
-	 * \param rank Rank of the DataReceiver
-	 * \param name Friendly name for the DataReceiver
 	 */
-	DataReceiverCore(int rank, std::string name);
+	DataReceiverCore();
 
 	/**
 	* \brief Copy Constructor is deleted
@@ -136,9 +134,7 @@ protected:
 	 * \return Whether the initialize succeeded
 	 */
 	bool initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset);
-
-	std::string name_; ///< Name of this DataReceiverCore instance
-
+	
 	std::unique_ptr<DataReceiverManager> receiver_ptr_; ///< Pointer to the DataReceiverManager
 	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_; ///< Pointer to the SharedMemoryEventManager
 	std::atomic<bool> stop_requested_; ///< Stop has been requested?
