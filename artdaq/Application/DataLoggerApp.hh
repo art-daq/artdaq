@@ -100,8 +100,6 @@ public:
 
 
 private:
-	int rank_;
-	std::string name_;
 	std::unique_ptr<DataLoggerCore> DataLogger_ptr_;
 };
 

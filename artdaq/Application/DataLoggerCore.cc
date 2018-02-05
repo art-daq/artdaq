@@ -19,19 +19,19 @@
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
-artdaq::DataLoggerCore::DataLoggerCore(int rank, std::string name)
-	: DataReceiverCore(rank, name)
+artdaq::DataLoggerCore::DataLoggerCore()
+	: DataReceiverCore()
 {
 }
 
 artdaq::DataLoggerCore::~DataLoggerCore()
 {
-	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Destructor" << TLOG_ENDL;
 }
 
 bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(name_) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -41,7 +41,7 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "Unable to find the DAQ parameters in the initialization "
 			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
@@ -53,7 +53,7 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "Unable to find the DataLogger parameters in the DAQ "
 			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;

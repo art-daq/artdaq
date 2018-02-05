@@ -301,7 +301,7 @@ namespace artdaq {
 
 		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_mutexes_;
-		std::mutex sequence_id_mutex_;
+		static std::mutex sequence_id_mutex_;
 
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
@@ -327,7 +327,7 @@ namespace artdaq {
 		bool hasFragments_(int buffer);
 		void complete_buffer_(int buffer);
 		bool bufferComparator(int bufA, int bufB);
-		void check_pending_buffers_();
+		void check_pending_buffers_(std::unique_lock<std::mutex> const& lock = std::unique_lock<std::mutex>(sequence_id_mutex_));
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;

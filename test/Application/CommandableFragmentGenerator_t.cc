@@ -443,7 +443,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	t.AddRequest(4, 3);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1);
 
 	usleep(1500000);
 	sts = gen.getNext(fps);
@@ -451,14 +451,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	BOOST_REQUIRE_EQUAL(fps.size(), 2);
 
 
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	auto ts = artdaq::Fragment::InvalidTimestamp;
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
-	auto emptyType = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
-	BOOST_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
-	fps.pop_front();
 	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
 	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
 	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
@@ -469,6 +461,15 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	BOOST_REQUIRE_EQUAL(cf3.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
 	BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
+	fps.pop_front();
+
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	auto ts = artdaq::Fragment::InvalidTimestamp;
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+	auto emptyType = artdaq::Fragment::EmptyFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
+	BOOST_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
 	fps.clear();
 
 	// Data-taking has passed request

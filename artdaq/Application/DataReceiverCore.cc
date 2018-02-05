@@ -11,20 +11,18 @@
 
 #include <iomanip>
 
-artdaq::DataReceiverCore::DataReceiverCore(int rank, std::string name)
-	: name_(name)
-	, stop_requested_(false)
+artdaq::DataReceiverCore::DataReceiverCore()
+	: stop_requested_(false)
 	, pause_requested_(false)
 	, run_is_paused_(false)
 {
-	TLOG_DEBUG(name_) << "Constructor" << TLOG_ENDL;
-	my_rank = rank;
+	TLOG_DEBUG(app_name) << "Constructor" << TLOG_ENDL;
 	metricMan = &metricMan_;
 }
 
 artdaq::DataReceiverCore::~DataReceiverCore()
 {
-	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Destructor" << TLOG_ENDL;
 }
 
 bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset)
@@ -34,11 +32,11 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	if (metric_pset.is_empty())
 	{
-		TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
+		TLOG_INFO(app_name) << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try
 	{
-		metricMan_.initialize(metric_pset, name_ + "." + std::to_string(my_rank));
+		metricMan_.initialize(metric_pset, app_name + "." + std::to_string(my_rank));
 	}
 	catch (...)
 	{
@@ -96,12 +94,12 @@ bool artdaq::DataReceiverCore::stop()
 		while (!endSucceeded && attemptsToEnd < 3)
 		{
 			++attemptsToEnd;
-			TLOG_DEBUG(name_) << "Retrying EventStore::endSubrun()" << TLOG_ENDL;
+			TLOG_DEBUG(app_name) << "Retrying EventStore::endSubrun()" << TLOG_ENDL;
 			endSucceeded = event_store_ptr_->endSubrun();
 		}
 		if (!endSucceeded)
 		{
-			TLOG_ERROR(name_)
+			TLOG_ERROR(app_name)
 				<< "EventStore::endSubrun in stop method failed after three tries." << TLOG_ENDL;
 		}
 	}
@@ -112,12 +110,12 @@ bool artdaq::DataReceiverCore::stop()
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG_DEBUG(name_) << "Retrying EventStore::endRun()" << TLOG_ENDL;
+		TLOG_DEBUG(app_name) << "Retrying EventStore::endRun()" << TLOG_ENDL;
 		endSucceeded = event_store_ptr_->endRun();
 	}
 	if (!endSucceeded)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "EventStore::endRun in stop method failed after three tries." << TLOG_ENDL;
 	}
 	
@@ -137,12 +135,12 @@ bool artdaq::DataReceiverCore::pause()
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG_DEBUG(name_) << "Retrying EventStore::endSubrun()" << TLOG_ENDL;
+		TLOG_DEBUG(app_name) << "Retrying EventStore::endSubrun()" << TLOG_ENDL;
 		endSucceeded = event_store_ptr_->endSubrun();
 	}
 	if (!endSucceeded)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "EventStore::endSubrun in pause method failed after three tries." << TLOG_ENDL;
 	}
 
@@ -177,7 +175,7 @@ bool artdaq::DataReceiverCore::shutdown()
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG_DEBUG(name_) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
+		TLOG_DEBUG(app_name) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
 		endSucceeded = event_store_ptr_->endOfData();
 	}
 
@@ -193,7 +191,7 @@ bool artdaq::DataReceiverCore::shutdown()
 
 bool artdaq::DataReceiverCore::soft_initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(name_) << "soft_initialize method called with DAQ "
+	TLOG_DEBUG(app_name) << "soft_initialize method called with DAQ "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\"." << TLOG_ENDL;
 	return true;
@@ -201,7 +199,7 @@ bool artdaq::DataReceiverCore::soft_initialize(fhicl::ParameterSet const& pset)
 
 bool artdaq::DataReceiverCore::reinitialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(name_) << "reinitialize method called with DAQ "
+	TLOG_DEBUG(app_name) << "reinitialize method called with DAQ "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\"." << TLOG_ENDL;
 	event_store_ptr_ = nullptr;
@@ -235,7 +233,7 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	// - report on the number of incomplete events in the EventStore
 	//   (if running)
 	std::string tmpString;
-	if (event_store_ptr_ != nullptr)	tmpString.append(name_ + " run number = " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) + ".\n");
+	if (event_store_ptr_ != nullptr)	tmpString.append(app_name + " run number = " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) + ".\n");
 	tmpString.append("Command \"" + which + "\" is not currently supported.");
 	return tmpString;
 }
@@ -244,10 +242,10 @@ void artdaq::DataReceiverCore::logMessage_(std::string const& text)
 {
 	if (verbose_)
 	{
-		TLOG_INFO(name_) << text << TLOG_ENDL;
+		TLOG_INFO(app_name) << text << TLOG_ENDL;
 	}
 	else
 	{
-		TLOG_DEBUG(name_) << text << TLOG_ENDL;
+		TLOG_DEBUG(app_name) << text << TLOG_ENDL;
 	}
 }

@@ -18,11 +18,12 @@
 
 #include "fhiclcpp/fwd.h"
 #include "fhiclcpp/ParameterSet.h"
+
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQrate/detail/RequestMessage.hh"
-#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/RequestReceiver.hh"
 
 namespace artdaq
 {
@@ -184,12 +185,7 @@ namespace artdaq
 		 * \return True if not stopped
 		 */
 		bool applyRequests(FragmentPtrs& output);
-
-		/**
-		 * \brief Opens the socket used to listen for data requests
-		 */
-		void setupRequestListener();
-
+		
 		/**
 		 * \brief Send an EmptyFragmentType Fragment
 		 * \param[out] frags Output list to append EmptyFragmentType to
@@ -203,8 +199,9 @@ namespace artdaq
 		 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
 		 * If the request message seqID > ev_counter, simply send empties until they're equal
 		 * \param[out] frags Output list to append EmptyFragmentType to
+		 * \param requests List of requests to process
 		 */
-		void sendEmptyFragments(FragmentPtrs& frags);
+		void sendEmptyFragments(FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests);
 
 		/**
 		 * \brief Function that launches the data thread (getDataLoop())
@@ -215,12 +212,7 @@ namespace artdaq
 		 * \brief Function that launches the monitoring thread (getMonitoringDataLoop())
 		 */
 		void startMonitoringThread();
-
-		/**
-		 * \brief Function that launches the data request receiver thread (receiveRequestsLoop())
-		 */
-		void startRequestReceiverThread();
-
+		
 		/**
 		 * \brief When separate_data_thread is set to true, this loop repeatedly calls getNext_ and adds returned Fragment
 		 * objects to the data buffer, blocking when the data buffer is full.
@@ -255,12 +247,7 @@ namespace artdaq
 		 * \brief This function regularly calls checkHWStatus_(), and sets the isHardwareOK flag accordingly.
 		 */
 		void getMonitoringDataLoop();
-
-		/**
-		 * \brief This function receives data request packets, adding new requests to the request list
-		 */
-		void receiveRequestsLoop();
-
+		
 		/**
 		 * \brief Get the list of Fragment IDs handled by this CommandableFragmentGenerator
 		 * \return A std::vector<Fragment::fragment_id_t> containing the Fragment IDs handled by this CommandableFragmentGenerator
@@ -469,19 +456,10 @@ namespace artdaq
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
-		int request_port_;
-		std::string request_addr_;
 
 		//Socket parameters
 		struct sockaddr_in si_data_;
-		int request_socket_;
-		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> requests_;
-		std::atomic<bool> request_stop_requested_;
-		std::chrono::steady_clock::time_point request_stop_timeout_;
-		std::atomic<bool> request_received_;
-		size_t end_of_run_timeout_ms_;
-		std::mutex request_mutex_;
-		boost::thread requestThread_;
+		std::unique_ptr<RequestReceiver> requestReceiver_;
 
 		RequestMode mode_;
 		Fragment::timestamp_t windowOffset_;
@@ -493,8 +471,8 @@ namespace artdaq
 		bool missing_request_;
 		std::chrono::steady_clock::time_point missing_request_time_;
 		std::chrono::steady_clock::time_point last_window_send_time_;
-
 		bool last_window_send_time_set_;
+		std::set<Fragment::sequence_id_t> windows_sent_ooo_;
 		size_t missing_request_window_timeout_us_;
 		size_t window_close_timeout_us_;
 
@@ -503,7 +481,6 @@ namespace artdaq
 		std::atomic<bool> data_thread_running_;
 		boost::thread dataThread_;
 
-		std::condition_variable requestCondition_;
 		std::condition_variable dataCondition_;
 		std::atomic<int> dataBufferDepthFragments_;
 		std::atomic<size_t> dataBufferDepthBytes_;

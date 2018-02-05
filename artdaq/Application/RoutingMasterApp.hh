@@ -124,9 +124,7 @@ public:
 	std::string report(std::string const&) const override;
 
 private:
-	int rank_;
 	std::unique_ptr<artdaq::RoutingMasterCore> routing_master_ptr_;
-	std::string name_;
 	std::future<size_t> routing_master_future_;
 };
 

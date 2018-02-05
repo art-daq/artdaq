@@ -36,10 +36,8 @@ public:
 
 	/**
 	 * \brief RoutingMasterCore Constructor.
-	 * \param rank Rank of the RoutingMaster
-	 * \param name Friendly name for the RoutingMaster
 	 */
-	RoutingMasterCore(int rank, std::string name);
+	RoutingMasterCore();
 
 	/**
 	* \brief Copy Constructor is deleted
@@ -162,7 +160,6 @@ private:
 	void start_recieve_token_thread_();
 
 	art::RunID run_id_;
-	std::string name_;
 
 	fhicl::ParameterSet policy_pset_;
 	int rt_priority_;

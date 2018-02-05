@@ -4,10 +4,11 @@
 
 #include <iostream>
 
-artdaq::DataLoggerApp::DataLoggerApp(int rank, std::string name) :
-	rank_(rank)
-	, name_(name)
-{}
+artdaq::DataLoggerApp::DataLoggerApp(int rank, std::string name)
+{
+	my_rank = rank;
+	app_name = name;
+}
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -20,13 +21,13 @@ bool artdaq::DataLoggerApp::do_initialize(fhicl::ParameterSet const& pset, uint6
 	//DataLogger_ptr_.reset(nullptr);
 	if (DataLogger_ptr_.get() == 0)
 	{
-		DataLogger_ptr_.reset(new DataLoggerCore(rank_, name_));
+		DataLogger_ptr_.reset(new DataLoggerCore());
 	}
 	external_request_status_ = DataLogger_ptr_->initialize(pset);
 	if (!external_request_status_)
 	{
 		report_string_ = "Error initializing ";
-		report_string_.append(name_ + " ");
+		report_string_.append(app_name + " ");
 		report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
 	}
 
@@ -40,7 +41,7 @@ bool artdaq::DataLoggerApp::do_start(art::RunID id, uint64_t, uint64_t)
 	if (!external_request_status_)
 	{
 		report_string_ = "Error starting ";
-		report_string_.append(name_ + " ");
+		report_string_.append(app_name + " ");
 		report_string_.append("for run number ");
 		report_string_.append(boost::lexical_cast<std::string>(id.run()));
 		report_string_.append(".");
@@ -56,7 +57,7 @@ bool artdaq::DataLoggerApp::do_stop(uint64_t, uint64_t)
 	if (!external_request_status_)
 	{
 		report_string_ = "Error stopping ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 
 	return external_request_status_;
@@ -69,7 +70,7 @@ bool artdaq::DataLoggerApp::do_pause(uint64_t, uint64_t)
 	if (!external_request_status_)
 	{
 		report_string_ = "Error pausing ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 
 	return external_request_status_;
@@ -82,7 +83,7 @@ bool artdaq::DataLoggerApp::do_resume(uint64_t, uint64_t)
 	if (!external_request_status_)
 	{
 		report_string_ = "Error resuming ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 
 	return external_request_status_;
@@ -95,7 +96,7 @@ bool artdaq::DataLoggerApp::do_shutdown(uint64_t)
 	if (!external_request_status_)
 	{
 		report_string_ = "Error shutting down ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 
 	return external_request_status_;

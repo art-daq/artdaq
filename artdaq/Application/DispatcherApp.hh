@@ -113,8 +113,6 @@ public:
 	std::string unregister_monitor(std::string const& label) override;
 
 private:
-	int rank_;
-	std::string name_;
 	std::unique_ptr<DispatcherCore> Dispatcher_ptr_;
 };
 

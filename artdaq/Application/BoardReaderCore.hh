@@ -32,11 +32,8 @@ public:
 	/**
 	 * \brief BoardReaderCore Constructor
 	 * \param parent_application Reference to parent Commandable object, for in_run_failure notification
-	 * \param rank Rank of the BoardReader
-	 * \param name Friendly name for the BoardReader
 	 */
-	BoardReaderCore(Commandable& parent_application, int rank,
-					std::string name);
+	BoardReaderCore(Commandable& parent_application);
 
 	/**
 	 * \brief Copy Constructor is Deleted
@@ -153,23 +150,13 @@ public:
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 private:
 	Commandable& parent_application_;
-	//MPI_Comm local_group_comm_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
 	art::RunID run_id_;
-	std::string name_;
 
 	fhicl::ParameterSet data_pset_;
 	int rt_priority_;
 	bool skip_seqId_test_;
 
-	/* ELF 5/10/2017 Removing in favor of DataReceiverManager source suppression logic
-	int mpi_sync_fragment_interval_;
-	double mpi_sync_wait_threshold_fraction_;
-	int mpi_sync_wait_threshold_count_;
-	size_t mpi_sync_wait_interval_usec_;
-	int mpi_sync_wait_log_level_;
-	int mpi_sync_wait_log_interval_sec_;
-	*/
 	static std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 
 	size_t fragment_count_;

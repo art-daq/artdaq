@@ -24,33 +24,30 @@ FRAGMENTS_PER_READ_STAT_KEY("BoardReaderCoreFragmentsPerRead");
 
 std::unique_ptr<artdaq::DataSenderManager> artdaq::BoardReaderCore::sender_ptr_ = nullptr;
 
-artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application,
-										 int rank, std::string name) :
+artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application) :
 	parent_application_(parent_application)
 	/*, local_group_comm_(local_group_comm)*/
 	, generator_ptr_(nullptr)
-	, name_(name)
 	, stop_requested_(false)
 	, pause_requested_(false)
 {
-	TLOG_DEBUG(name_) << "Constructor" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Constructor" << TLOG_ENDL;
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PROCESSED_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
 	metricMan = &metricMan_;
-	my_rank = rank;
 }
 
 artdaq::BoardReaderCore::~BoardReaderCore()
 {
-	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Destructor" << TLOG_ENDL;
 }
 
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	TLOG_DEBUG(name_) << "initialize method called with "           << "ParameterSet = \"" << pset.to_string()              << "\"." << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "initialize method called with "           << "ParameterSet = \"" << pset.to_string()              << "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -60,7 +57,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "Unable to find the DAQ parameters in the initialization "
 			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
@@ -73,7 +70,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "Unable to find the fragment_receiver parameters in the DAQ "
 			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
@@ -89,11 +86,11 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 	if (metric_pset.is_empty())
 	{
-	    TLOG_INFO(name_) << "No metric plugins appear to be defined" << TLOG_ENDL;
+	    TLOG_INFO(app_name) << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try
 	{
-		metricMan_.initialize(metric_pset, name_);
+		metricMan_.initialize(metric_pset, app_name);
 	}
 	catch (...)
 	{
@@ -105,7 +102,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "No fragment generator (parameter name = \"generator\") was "
 			<< "specified in the fragment_receiver ParameterSet.  The "
 			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\"." << TLOG_ENDL;
@@ -124,7 +121,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
 
-		TLOG_DEBUG(name_) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string() << TLOG_ENDL;
+		TLOG_DEBUG(app_name) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string() << TLOG_ENDL;
 
 		return false;
 	}
@@ -139,7 +136,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		mpi_sync_wait_threshold_count_ = mpi_sync_fragment_interval_ * mpi_sync_wait_threshold_fraction_;
 		if (mpi_sync_wait_threshold_count_ >= mpi_sync_fragment_interval_)
 		{
-			TLOG_WARNING(name_) << "The calculated mpi_sync wait threshold "
+			TLOG_WARNING(app_name) << "The calculated mpi_sync wait threshold "
 				<< "(" << mpi_sync_wait_threshold_count_ << " fragments) "
 				<< "is too large, setting it to "
 				<< (mpi_sync_fragment_interval_ - 1) << "." << TLOG_ENDL;
@@ -147,7 +144,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		}
 		if (mpi_sync_wait_threshold_count_ < 0)
 		{
-			TLOG_WARNING(name_) << "The calculated mpi_sync wait threshold "
+			TLOG_WARNING(app_name) << "The calculated mpi_sync wait threshold "
 				<< "(" << mpi_sync_wait_threshold_count_ << " fragments) "
 				<< "is too small, setting it to zero." << TLOG_ENDL;
 			mpi_sync_wait_threshold_count_ = 0;
@@ -164,7 +161,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		mpi_sync_wait_log_level_ = 0;
 		mpi_sync_wait_log_interval_sec_ = 10;
 	}
-	TLOG_DEBUG(name_)
+	TLOG_DEBUG(app_name)
 		<< "mpi_sync_fragment_interval is " << mpi_sync_fragment_interval_
 		<< ", mpi_sync_wait_threshold_fraction is " << mpi_sync_wait_threshold_fraction_
 		<< ", mpi_sync_wait_threshold_count is " << mpi_sync_wait_threshold_count_
@@ -194,14 +191,14 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	generator_ptr_->StartCmd(id.run(), timeout, timestamp);
 	run_id_ = id;
 
-	TLOG_DEBUG(name_) << "Started run " << run_id_.run() <<
+	TLOG_DEBUG(app_name) << "Started run " << run_id_.run() <<
 		", timeout = " << timeout << ", timestamp = " << timestamp << TLOG_ENDL;
 	return true;
 }
 
 bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG_DEBUG(name_) << "Stopping run " << run_id_.run()
+	TLOG_DEBUG(app_name) << "Stopping run " << run_id_.run()
 		<< " after " << fragment_count_
 		<< " fragments." << TLOG_ENDL;
 	stop_requested_.store(true);
@@ -211,7 +208,7 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 
 bool artdaq::BoardReaderCore::pause(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG_DEBUG(name_) << "Pausing run " << run_id_.run()
+	TLOG_DEBUG(app_name) << "Pausing run " << run_id_.run()
 		<< " after " << fragment_count_
 		<< " fragments." << TLOG_ENDL;
 	pause_requested_.store(true);
@@ -221,7 +218,7 @@ bool artdaq::BoardReaderCore::pause(uint64_t timeout, uint64_t timestamp)
 
 bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG_DEBUG(name_) << "Resuming run " << run_id_.run() << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Resuming run " << run_id_.run() << TLOG_ENDL;
 	pause_requested_.store(false);
 	metricMan_.do_start();
 	generator_ptr_->ResumeCmd(timeout, timestamp);
@@ -238,7 +235,7 @@ bool artdaq::BoardReaderCore::shutdown(uint64_t)
 
 bool artdaq::BoardReaderCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	TLOG_DEBUG(name_) << "soft_initialize method called with "
+	TLOG_DEBUG(app_name) << "soft_initialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\"." << TLOG_ENDL;
 	return true;
@@ -246,7 +243,7 @@ bool artdaq::BoardReaderCore::soft_initialize(fhicl::ParameterSet const& pset, u
 
 bool artdaq::BoardReaderCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	TLOG_DEBUG(name_) << "reinitialize method called with "
+	TLOG_DEBUG(app_name) << "reinitialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\"." << TLOG_ENDL;
 	return true;
@@ -261,7 +258,7 @@ void artdaq::BoardReaderCore::process_fragments()
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
 		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param))
-			TLOG_WARNING(name_) << "setting realtime priority failed" << TLOG_ENDL;
+			TLOG_WARNING(app_name) << "setting realtime priority failed" << TLOG_ENDL;
 #pragma GCC diagnostic pop
 	}
 
@@ -277,19 +274,19 @@ void artdaq::BoardReaderCore::process_fragments()
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
 		if (status != 0)
 		{
-			TLOG_ERROR(name_)
+			TLOG_ERROR(app_name)
 				<< "Failed to set realtime priority to " << rt_priority_
 				<< ", return code = " << status << TLOG_ENDL;
 		}
 #pragma GCC diagnostic pop
 	}
 
-	TLOG_DEBUG(name_) << "Initializing DataSenderManager. my_rank=" << my_rank << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Initializing DataSenderManager. my_rank=" << my_rank << TLOG_ENDL;
 	sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
 
 	//MPI_Barrier(local_group_comm_);
 
-	TLOG_DEBUG(name_) << "Waiting for first fragment." << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Waiting for first fragment." << TLOG_ENDL;
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
 	artdaq::FragmentPtrs frags;
@@ -300,9 +297,9 @@ void artdaq::BoardReaderCore::process_fragments()
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
-		TRACE(18, name_ + "::process_fragments getNext start");
+		TRACE(18, app_name + "::process_fragments getNext start");
 		active = generator_ptr_->getNext(frags);
-		TRACE(18, name_ + "::process_fragments getNext done (active=%i)", active);
+		TRACE(18, app_name + "::process_fragments getNext done (active=%i)", active);
 		// 08-May-2015, KAB & JCF: if the generator getNext() method returns false
 		// (which indicates that the data flow has stopped) *and* the reason that
 		// it has stopped is because there was an exception that wasn't handled by
@@ -317,7 +314,7 @@ void artdaq::BoardReaderCore::process_fragments()
 		delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 		statsHelper_.addSample(INPUT_WAIT_STAT_KEY, delta_time);
 
-		TLOG_ARB(16,name_) << "process_fragments INPUT_WAIT="<<std::to_string( delta_time) << TLOG_ENDL;
+		TLOG_ARB(16,app_name) << "process_fragments INPUT_WAIT="<<std::to_string( delta_time) << TLOG_ENDL;
 
 		if (!active) { break; }
 		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
@@ -326,7 +323,7 @@ void artdaq::BoardReaderCore::process_fragments()
 		{
 			if (!fragPtr.get())
 			{
-				TLOG_WARNING(name_) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
+				TLOG_WARNING(app_name) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
 					<< "This is most likely caused by a problem with the Fragment Generator!" << TLOG_ENDL;
 				continue;
 			}
@@ -335,7 +332,7 @@ void artdaq::BoardReaderCore::process_fragments()
 
 			if ((fragment_count_ % 250) == 0)
 			{
-				TLOG_DEBUG(name_)
+				TLOG_DEBUG(app_name)
 					<< "Sending fragment " << fragment_count_
 					<< " (%250) with sequence id " << sequence_id << "." << TLOG_ENDL;
 			}
@@ -362,7 +359,7 @@ void artdaq::BoardReaderCore::process_fragments()
 				int retcode = MPI_Test(&mpi_request, &test_flag, &mpi_status);
 				if (retcode != MPI_SUCCESS)
 				{
-					TLOG_ERROR(name_)
+					TLOG_ERROR(app_name)
 						<< "MPI_Test for Ibarrier completion failed with return code "
 						<< retcode << TLOG_ENDL;
 				}
@@ -389,7 +386,7 @@ void artdaq::BoardReaderCore::process_fragments()
 								{
 									if (retcode != MPI_SUCCESS)
 									{
-										TLOG_ERROR(name_)
+										TLOG_ERROR(app_name)
 											<< "MPI_Test for Ibarrier completion failed with return code "
 											<< retcode << TLOG_ENDL;
 									}
@@ -397,7 +394,7 @@ void artdaq::BoardReaderCore::process_fragments()
 									{
 										if (mpi_sync_wait_log_level_ == 2)
 										{
-											TLOG_WARNING(name_)
+											TLOG_WARNING(app_name)
 												<< "Waiting for one or more BoardReaders to catch up "
 												<< "so that the sending of data fragments is reasonably "
 												<< "well synchronized (fragment count is currently "
@@ -409,7 +406,7 @@ void artdaq::BoardReaderCore::process_fragments()
 										}
 										else if (mpi_sync_wait_log_level_ == 3)
 										{
-											TLOG_ERROR(name_)
+											TLOG_ERROR(app_name)
 												<< "Waiting for one or more BoardReaders to catch up "
 												<< "so that the sending of data fragments is reasonably "
 												<< "well synchronized (fragment count is currently "
@@ -439,7 +436,7 @@ void artdaq::BoardReaderCore::process_fragments()
 			// check for continous sequence IDs
 			if (!skip_seqId_test_ && abs(sequence_id - prev_seq_id_) > 1)
 			{
-				TLOG_WARNING(name_)
+				TLOG_WARNING(app_name)
 					<< "Missing sequence IDs: current sequence ID = "
 					<< sequence_id << ", previous sequence ID = "
 					<< prev_seq_id_ << "." << TLOG_ENDL;
@@ -447,9 +444,9 @@ void artdaq::BoardReaderCore::process_fragments()
 			prev_seq_id_ = sequence_id;
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
-			TLOG_ARB(17,name_) << "process_fragments seq="<< std::to_string(sequence_id) << " sendFragment start" << TLOG_ENDL;
+			TLOG_ARB(17,app_name) << "process_fragments seq="<< std::to_string(sequence_id) << " sendFragment start" << TLOG_ENDL;
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
-			TLOG_ARB(17, name_) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment done (res="<< res<<")"<<TLOG_ENDL;
+			TLOG_ARB(17, app_name) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment done (res="<< res<<")"<<TLOG_ENDL;
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
@@ -458,11 +455,11 @@ void artdaq::BoardReaderCore::process_fragments()
 			if (readyToReport)
 			{
 				std::string statString = buildStatisticsString_();
-				TLOG_DEBUG(name_) << statString << TLOG_ENDL;
+				TLOG_DEBUG(app_name) << statString << TLOG_ENDL;
 			}
 			if (fragment_count_ == 1 || readyToReport)
 			{
-				TLOG_DEBUG(name_)
+				TLOG_DEBUG(app_name)
 					<< "Sending fragment " << fragment_count_
 					<< " with sequence id " << sequence_id << "." << TLOG_ENDL;
 			}
@@ -499,7 +496,7 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 	// --> nothing here yet
 
 	// if we haven't been able to come up with any report so far, say so
-	std::string tmpString = name_ + " run number = ";
+	std::string tmpString = app_name + " run number = ";
 	tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
 	tmpString.append(". Command=\"" + which + "\" is not currently supported.");
 	return tmpString;
@@ -508,7 +505,7 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 std::string artdaq::BoardReaderCore::buildStatisticsString_()
 {
 	std::ostringstream oss;
-	oss << name_ << " statistics:" << std::endl;
+	oss << app_name << " statistics:" << std::endl;
 
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().
