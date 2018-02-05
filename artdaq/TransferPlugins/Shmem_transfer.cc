@@ -6,6 +6,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	TransferInterface(pset, role)
 	, role_(role)
 {
+	TLOG(TLVL_DEBUG) << uniqueLabel() << " ShmemTransfer{} begin";
 	// char* keyChars = getenv("ARTDAQ_SHM_KEY");
 	// if (keyChars != NULL && shm_key_ == static_cast<int>(std::hash<std::string>()(unique_label_))) {
 	//   std::string keyString(keyChars);
@@ -70,7 +71,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 		}
 	}
 
-	//TLOG(4) << <uniqueLabel() < " delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops << TLOG_ENDL;
+	TLOG(4) << uniqueLabel() << " ShmemTransfer::receiveFragment ReadyForRead=" << shm_manager_->ReadyForRead();
 
 	if (shm_manager_->ReadyForRead())
 	{
@@ -80,7 +81,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 		if (fragment.type() != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG_ARB(8) << uniqueLabel() << " - Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << std::to_string(fragment.sequenceID()) << ", source_rank=" << source_rank() << TLOG_ENDL;
+			TLOG_ARB(8) << uniqueLabel() << " Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << std::to_string(fragment.sequenceID()) << ", source_rank=" << source_rank() << TLOG_ENDL;
 		}
 
 		return source_rank();
@@ -184,7 +185,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	// copy the fragment if the shm is available                                               
 	if (shm_manager_->ReadyForWrite(!reliableMode))
 	{
-		TLOG_ARB(5) << uniqueLabel() << ": Sending fragment with seqID=" << std::to_string(fragment.sequenceID()) << TLOG_ENDL;
+		TLOG_ARB(5) << uniqueLabel() << " Sending fragment with seqID=" << std::to_string(fragment.sequenceID()) << TLOG_ENDL;
 		artdaq::RawDataType* fragAddr = fragment.headerAddress();
 		size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 
