@@ -922,10 +922,10 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		if ((check_stop() && requestReceiver_->size() == 0) || exception()) return false;
 		checkDataBuffer();
 
-		// Wait up to 100 ms for a request...
+		// Wait up to 1000 ms for a request...
 		auto counter = 0;
 
-		while (requestReceiver_->size() == 0 && counter < 10)
+		while (requestReceiver_->size() == 0 && counter < 100)
 		{
 			if (check_stop() || exception()) return false;
 
