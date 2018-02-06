@@ -772,6 +772,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 
 void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::FragmentPtrs& frags)
 {
+	TLOG(10) << "applyRequestsWindowMode BEGIN";
 	if (!last_window_send_time_set_)
 	{
 		last_window_send_time_ = std::chrono::steady_clock::now();
@@ -801,10 +802,12 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		}
 	}
 
+	TLOG(10) << "applyRequestsWindowMode: Starting request processing";
 	for (auto req = requests.begin(); req != requests.end();)
 	{
-		while (req->first < ev_counter())
+		while (req->first < ev_counter() && requests.size() > 0)
 		{
+			TLOG(10) << "applyRequestsWindowMode: Clearing passed request for sequence ID " << req->first;
 			requestReceiver_->RemoveRequest(req->first);
 			req = requests.erase(req);
 		}
