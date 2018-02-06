@@ -1,3 +1,7 @@
+
+
+#define TRACE_NAME "BinaryFileOutput"
+
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Principal/EventPrincipal.h"
@@ -13,8 +17,6 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/Globals.hh"
-
-#define TRACE_NAME "BinaryFileOutput"
 
 #include <iomanip>
 #include <iostream>

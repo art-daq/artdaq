@@ -1,11 +1,8 @@
 #ifndef ARTDAQ_DAQDATA_GLOBALS_HH
 #define ARTDAQ_DAQDATA_GLOBALS_HH
 
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
-#include "tracemf.h"
 #include <sstream>
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq-core/Utilities/TimeUtils.hh"
 
 #define my_rank artdaq::Globals::my_rank_
 #define app_name artdaq::Globals::app_name_
@@ -60,4 +57,7 @@ namespace artdaq
 	};
 }
 
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "tracemf.h"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 #endif // ARTDAQ_DAQDATA_GLOBALS_HH

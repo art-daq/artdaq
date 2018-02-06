@@ -1,11 +1,11 @@
+
+#define TRACE_NAME (app_name + "_SharedMemoryEventManager").c_str()
+
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Utilities/TraceLock.hh"
 #include <sys/wait.h>
 #include "SharedMemoryEventManager.hh"
-
-#undef TRACE_NAME
-#define TRACE_NAME (app_name + "_SharedMemoryEventManager").c_str()
 
 std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
 
@@ -206,7 +206,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	complete_buffer_(buffer);
 	requests_.SendRequest(true);
 	TLOG(TLVL_TRACE) << "DoneWritingFragment END" << TLOG_ENDL;
-	}
+}
 
 size_t artdaq::SharedMemoryEventManager::GetFragmentCount(Fragment::sequence_id_t seqID, Fragment::type_t type)
 {
@@ -469,9 +469,9 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		broadcastFragment_(std::move(outFrag), outFrag);
 	}
 
+	TLOG(TLVL_DEBUG) << "Waiting for all art processes to exit, there are " << std::to_string(art_processes_.size()) << " remaining." << TLOG_ENDL;
 	while (art_processes_.size() > 0)
 	{
-		TLOG(TLVL_DEBUG) << "Waiting for all art processes to exit, there are " << std::to_string(art_processes_.size()) << " remaining." << TLOG_ENDL;
 		ShutdownArtProcesses(art_processes_);
 	}
 	ResetAttachedCount();
