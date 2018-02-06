@@ -19,7 +19,7 @@ bindir      fq_dir      bin
 product			version		optional
 art             v2_07_03        s50
 art             v2_06_01        s46
-artdaq_core 		v3_01_03
+artdaq_core 		v3_01_04
 artdaq_utilities        v1_04_02
 mvapich2		v1_9_0
 mpich			v3_2_0c
