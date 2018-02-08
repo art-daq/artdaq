@@ -4,9 +4,10 @@
 
 artdaq::BoardReaderApp::BoardReaderApp(int rank, std::string name)
 	: fragment_receiver_ptr_(nullptr)
-	, rank_(rank)
-	, name_(name)
-{}
+{
+	my_rank = rank;
+	app_name = name;
+}
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -21,19 +22,19 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	// instance, then create a new one.  Doing it in one step does not
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
-	TLOG_DEBUG(name_ + "App") << "Initializing first deleting old instance " << (void*)fragment_receiver_ptr_.get() << TLOG_ENDL;
+	TLOG_DEBUG(app_name + "App") << "Initializing first deleting old instance " << (void*)fragment_receiver_ptr_.get() << TLOG_ENDL;
 	fragment_receiver_ptr_.reset(nullptr);
-	fragment_receiver_ptr_.reset(new BoardReaderCore(*this, rank_, name_));
-	TLOG_DEBUG(name_ + "App") << "Initializing new BoardReaderCore at " << (void*)fragment_receiver_ptr_.get() << " with pset " << pset.to_string() << TLOG_ENDL;
+	fragment_receiver_ptr_.reset(new BoardReaderCore(*this));
+	TLOG_DEBUG(app_name + "App") << "Initializing new BoardReaderCore at " << (void*)fragment_receiver_ptr_.get() << " with pset " << pset.to_string() << TLOG_ENDL;
 	external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
 	if (! external_request_status_)
 	{
 		report_string_ = "Error initializing ";
-		report_string_.append(name_ + " ");
+		report_string_.append(app_name + " ");
 		report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
 	}
 
-	TLOG_DEBUG(name_ + "App") << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
+	TLOG_DEBUG(app_name + "App") << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
 		<< "Done initializing." << TLOG_ENDL;
 	return external_request_status_;
 }
@@ -45,7 +46,7 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	if (! external_request_status_)
 	{
 		report_string_ = "Error starting ";
-		report_string_.append(name_ + " ");
+		report_string_.append(app_name + " ");
 		report_string_.append("for run number ");
 		report_string_.append(boost::lexical_cast<std::string>(id.run()));
 		report_string_.append(", timeout ");
@@ -73,12 +74,12 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error stopping ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 		return false;
 	}
 
 		int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
-		TLOG_DEBUG(name_ + "App") << "do_stop(uint64_t, uint64_t): "
+		TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
 			<< "." << TLOG_ENDL;
 
@@ -92,11 +93,11 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error pausing ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
-		TLOG_DEBUG(name_ + "App") << "do_pause(uint64_t, uint64_t): "
+		TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
 			<< "." << TLOG_ENDL;
 
@@ -110,7 +111,7 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error resuming ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 
 	boost::thread::attributes attrs;
@@ -131,7 +132,7 @@ bool artdaq::BoardReaderApp::do_shutdown(uint64_t timeout)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error shutting down ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 	return external_request_status_;
 }
@@ -143,7 +144,7 @@ bool artdaq::BoardReaderApp::do_soft_initialize(fhicl::ParameterSet const& pset,
 	if (! external_request_status_)
 	{
 		report_string_ = "Error soft-initializing ";
-		report_string_.append(name_ + " ");
+		report_string_.append(app_name + " ");
 		report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
 	}
 	return external_request_status_;
@@ -155,7 +156,7 @@ bool artdaq::BoardReaderApp::do_reinitialize(fhicl::ParameterSet const& pset, ui
 	if (! external_request_status_)
 	{
 		report_string_ = "Error reinitializing ";
-		report_string_.append(name_ + " ");
+		report_string_.append(app_name + " ");
 		report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
 	}
 	return external_request_status_;
@@ -163,7 +164,7 @@ bool artdaq::BoardReaderApp::do_reinitialize(fhicl::ParameterSet const& pset, ui
 
 void artdaq::BoardReaderApp::BootedEnter()
 {
-	TLOG_DEBUG(name_ + "App") << "Booted state entry action called." << TLOG_ENDL;
+	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." << TLOG_ENDL;
 
 	// the destruction of any existing BoardReaderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

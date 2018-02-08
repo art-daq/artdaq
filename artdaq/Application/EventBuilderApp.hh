@@ -109,8 +109,6 @@ public:
 	std::string report(std::string const& which) const override;
 
 private:
-	int rank_;
-	std::string name_;
 	std::unique_ptr<artdaq::EventBuilderCore> event_builder_ptr_;
 };
 

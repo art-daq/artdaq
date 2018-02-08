@@ -45,7 +45,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, stats_connect_thread_(std::bind(&TCPSocketTransfer::stats_connect_, this))
 	, timeoutMessageArmed_(true)
 {
-	TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend") << TLOG_ENDL;
+	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend") << TLOG_ENDL;
     auto masterPortOffset = pset.get<int>("offset_all_ports",0);
 	auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 	for (auto& ps : hosts)
@@ -64,22 +64,22 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	if (role == TransferInterface::Role::kReceive)
 	{
 		// Wait for sender to connect...
-		TLOG_DEBUG(uniqueLabel()) << "Listening for connections" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " Listening for connections" << TLOG_ENDL;
 		listen_();
-		TLOG_DEBUG(uniqueLabel()) << "Done Listening" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " Done Listening" << TLOG_ENDL;
 	}
 	else
 	{
-		TLOG_DEBUG(uniqueLabel()) << "Connecting to destination" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " Connecting to destination" << TLOG_ENDL;
 		connect_();
-		TLOG_DEBUG(uniqueLabel()) << "Done Connecting" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " Done Connecting" << TLOG_ENDL;
 	}
-	TLOG_DEBUG(uniqueLabel()) << "End of TCPSocketTransfer Constructor" << TLOG_ENDL;
+	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " End of TCPSocketTransfer Constructor" << TLOG_ENDL;
 }
 
 artdaq::TCPSocketTransfer::~TCPSocketTransfer()
 {
-	TLOG_DEBUG(uniqueLabel()) << "Shutting down TCPSocketTransfer" << TLOG_ENDL;
+	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " Shutting down TCPSocketTransfer" << TLOG_ENDL;
 	stats_connect_stop_ = true;
 	stopstatscv_.notify_all();
 	stats_connect_thread_.join();
@@ -98,20 +98,20 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer()
 		}
 	}
 	close(fd_);
-	TLOG_DEBUG(uniqueLabel()) << "End of TCPSocketTransfer Destructor" << TLOG_ENDL;
+	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " End of TCPSocketTransfer Destructor" << TLOG_ENDL;
 }
 
 int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& header, size_t timeout_usec)
 {
-	TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: BEGIN" << TLOG_ENDL;
+	TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: BEGIN" << TLOG_ENDL;
 	int ret_rank = RECV_TIMEOUT;
 	if (fd_ == -1)
 	{ // what if just listen_fd??? 
-		TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Receive socket not connected, returning RECV_TIMEOUT" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Receive socket not connected, returning RECV_TIMEOUT" << TLOG_ENDL;
 		return RECV_TIMEOUT;
 	}
 
-	TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::recvFragment timeout_usec=" << std::to_string(timeout_usec) << TLOG_ENDL;
+	TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::recvFragment timeout_usec=" << std::to_string(timeout_usec) << TLOG_ENDL;
 	//void* buff=alloca(max_fragment_size_words_*8);
 	size_t byte_cnt = 0;
 	int sts;
@@ -131,13 +131,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	bool done = false;
 	while (!done)
 	{
-		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Polling fd to see if there's data" << TLOG_ENDL;
+		//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Polling fd to see if there's data" << TLOG_ENDL;
 		int num_fds_ready = poll(&pollfd_s, 1, timeout_ms);
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0 && timeout_ms > 0)
 			{
-				TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: No data on receive socket, returning RECV_TIMEOUT" << TLOG_ENDL;
+				TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: No data on receive socket, returning RECV_TIMEOUT" << TLOG_ENDL;
 				return RECV_TIMEOUT;
 			}
 			break;
@@ -145,31 +145,31 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 		if (!(pollfd_s.revents & (POLLIN | POLLERR)))
 		{
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Wrong event received from pollfd" << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Wrong event received from pollfd" << TLOG_ENDL;
 			continue;
 		}
 
 		if (state_ == SocketState::Metadata)
 		{
-			//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Reading Message Header" << TLOG_ENDL;
+			//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Reading Message Header" << TLOG_ENDL;
 			buff = &(mha[offset]);
 			byte_cnt = sizeof(MessHead) - offset;
 		}
 		else
 		{
-			//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Reading data" << TLOG_ENDL;
+			//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Reading data" << TLOG_ENDL;
 			buff = reinterpret_cast<uint8_t*>(&header) + offset;
 			byte_cnt = mh.byte_count - offset;
 		}
 
-		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Reading " << byte_cnt << " bytes from socket" << TLOG_ENDL;
+		//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Reading " << byte_cnt << " bytes from socket" << TLOG_ENDL;
 		sts = read(fd_, buff, byte_cnt);
-		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done with read" << TLOG_ENDL;
+		//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Done with read" << TLOG_ENDL;
 
-		TLOG_ARB(9, uniqueLabel()) << "TCPSocketTransfer::recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << strerror(errno) << ")" << TLOG_ENDL;
+		TLOG_ARB(9, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << strerror(errno) << ")" << TLOG_ENDL;
 		if (sts <= 0)
 		{
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Error on receive, closing socket" << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Error on receive, closing socket" << TLOG_ENDL;
 			close(fd_);
 		}
 		else
@@ -178,7 +178,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			sts = offset += sts;
 			if (sts == target_bytes)
 			{
-				TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Target read bytes reached. Changing state" << TLOG_ENDL;
+				TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Target read bytes reached. Changing state" << TLOG_ENDL;
 				offset = 0;
 				if (state_ == SocketState::Metadata)
 				{
@@ -192,8 +192,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					state_ = SocketState::Metadata;
 					target_bytes = sizeof(MessHead);
 					ret_rank = source_rank();
-					TLOG_ARB(9, uniqueLabel()) << "TCPSocketTransfer::recvFragment done sts=" << sts << " src=" << ret_rank << TLOG_ENDL;
-					TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done receiving fragment. Moving into output." << TLOG_ENDL;
+					TLOG_ARB(9, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::recvFragment done sts=" << sts << " src=" << ret_rank << TLOG_ENDL;
+					TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Done receiving fragment. Moving into output." << TLOG_ENDL;
 
 					done = true; // no more polls
 					break; // no more read of ready fds
@@ -211,17 +211,17 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		}
 	} // while(!done)...poll
 
-	TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Returning " << ret_rank << TLOG_ENDL;
+	TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Returning " << ret_rank << TLOG_ENDL;
 	return ret_rank;
 }
 
 int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, size_t)
 {
-	TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: BEGIN" << TLOG_ENDL;
+	TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: BEGIN" << TLOG_ENDL;
 	int ret_rank = RECV_TIMEOUT;
 	if (fd_ == -1)
 	{ // what if just listen_fd??? 
-		TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Receive socket not connected, returning RECV_TIMEOUT" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Receive socket not connected, returning RECV_TIMEOUT" << TLOG_ENDL;
 		return RECV_TIMEOUT;
 	}
 
@@ -237,13 +237,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	bool done = false;
 	while (!done)
 	{
-		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Polling fd to see if there's data" << TLOG_ENDL;
+		//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Polling fd to see if there's data" << TLOG_ENDL;
 		int num_fds_ready = poll(&pollfd_s, 1, -1);
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0)
 			{
-				TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: No data on receive socket, returning RECV_TIMEOUT" << TLOG_ENDL;
+				TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: No data on receive socket, returning RECV_TIMEOUT" << TLOG_ENDL;
 				return RECV_TIMEOUT;
 			}
 			break;
@@ -251,31 +251,31 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 
 		if (!(pollfd_s.revents & (POLLIN | POLLERR)))
 		{
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Wrong event received from pollfd" << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Wrong event received from pollfd" << TLOG_ENDL;
 			continue;
 		}
 
 		if (state_ == SocketState::Metadata)
 		{
-			//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Reading Message Header" << TLOG_ENDL;
+			//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Reading Message Header" << TLOG_ENDL;
 			buff = &(mha[offset]);
 			byte_cnt = sizeof(MessHead) - offset;
 		}
 		else
 		{
-			//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Reading data" << TLOG_ENDL;
+			//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Reading data" << TLOG_ENDL;
 			buff = reinterpret_cast<uint8_t*>(destination) + offset;
 			byte_cnt = mh.byte_count - offset;
 		}
 
-		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Reading " << byte_cnt << " bytes from socket" << TLOG_ENDL;
+		//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Reading " << byte_cnt << " bytes from socket" << TLOG_ENDL;
 		sts = read(fd_, buff, byte_cnt);
-		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done with read" << TLOG_ENDL;
+		//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Done with read" << TLOG_ENDL;
 
-		TLOG_ARB(9, uniqueLabel()) << "recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << strerror(errno) << ")" << TLOG_ENDL;
+		TLOG_ARB(9, "TCPSocketTransfer") << uniqueLabel() << " recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << strerror(errno) << ")" << TLOG_ENDL;
 		if (sts <= 0)
 		{
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Error on receive, closing socket" << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Error on receive, closing socket" << TLOG_ENDL;
 			close(fd_);
 		}
 		else
@@ -284,7 +284,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			sts = offset += sts;
 			if (sts == target_bytes)
 			{
-				TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Target read bytes reached. Changing state" << TLOG_ENDL;
+				TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Target read bytes reached. Changing state" << TLOG_ENDL;
 				offset = 0;
 				if (state_ == SocketState::Metadata)
 				{
@@ -298,8 +298,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					state_ = SocketState::Metadata;
 					target_bytes = sizeof(MessHead);
 					ret_rank = source_rank();
-					TLOG_ARB(9, uniqueLabel()) << "recvFragment done sts=" << sts << " src=" << ret_rank << TLOG_ENDL;
-					TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Done receiving fragment. Moving into output." << TLOG_ENDL;
+					TLOG_ARB(9, "TCPSocketTransfer") << uniqueLabel() << " recvFragment done sts=" << sts << " src=" << ret_rank << TLOG_ENDL;
+					TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Done receiving fragment. Moving into output." << TLOG_ENDL;
 
 					done = true; // no more polls
 					break; // no more read of ready fds
@@ -308,7 +308,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		}
 	} // while(!done)...poll
 
-	TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::receiveFragment: Returning " << ret_rank << TLOG_ENDL;
+	TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Returning " << ret_rank << TLOG_ENDL;
 	return ret_rank;
 }
 
@@ -316,7 +316,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 // the Fragment was sent OR -1 if to none.
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(Fragment&& frag, size_t send_timeout_usec)
 {
-	TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::sendFragment begin" << TLOG_ENDL;
+	TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::sendFragment begin" << TLOG_ENDL;
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
 
 	// Send Fragment Header
@@ -326,7 +326,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	auto sts = sendData_(&iov, 1, send_timeout_usec);
 	while (sts != CopyStatus::kSuccess)
 	{
-		TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::sendFragment: Timeout or Error sending fragment" << TLOG_ENDL;
+		TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::sendFragment: Timeout or Error sending fragment" << TLOG_ENDL;
 		sts = sendData_(&iov, 1, send_timeout_usec);
 		usleep(1000);
 	}
@@ -338,7 +338,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	sts = sendData_(&iov, 1, send_timeout_usec);
 	while (sts != CopyStatus::kSuccess)
 	{
-		TLOG_ARB(7, uniqueLabel()) << "TCPSocketTransfer::sendFragment: Timeout or Error sending fragment" << TLOG_ENDL;
+		TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::sendFragment: Timeout or Error sending fragment" << TLOG_ENDL;
 		sts = sendData_(&iov, 1, send_timeout_usec);
 		usleep(1000);
 	}
@@ -349,7 +349,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const void* buf, size_t bytes, size_t send_timeout_usec)
 {
-	TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::sendData_ Converting buf to iovec" << TLOG_ENDL;
+	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::sendData_ Converting buf to iovec" << TLOG_ENDL;
 	iovec iov = { (void*)buf, bytes };
 	return sendData_(&iov, 1, send_timeout_usec);
 }
@@ -361,15 +361,15 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	{
 		if (timeoutMessageArmed_)
 		{
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::sendData_: Send fd is not open. Returning kTimeout" << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::sendData_: Send fd is not open. Returning kTimeout" << TLOG_ENDL;
 			timeoutMessageArmed_ = false;
 		}
 		return CopyStatus::kTimeout;
 	}
 	timeoutMessageArmed_ = true;
-	TLOG_ARB(12, uniqueLabel()) << "send_timeout_usec is " << std::to_string(send_timeout_usec) << ", currently unused." << TLOG_ENDL;
+	TLOG_ARB(12, "TCPSocketTransfer") << uniqueLabel() << "send_timeout_usec is " << std::to_string(send_timeout_usec) << ", currently unused." << TLOG_ENDL;
 
-	//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::sendData_: Determining write size" << TLOG_ENDL;
+	//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::sendData_: Determining write size" << TLOG_ENDL;
 	uint32_t total_to_write_bytes = 0;
 	std::vector<iovec> iov_in(iovcnt + 1); // need contiguous (for the unlike case that only partial MH
 	std::vector<iovec> iovv(iovcnt + 2); // 1 more for mh and another one for any partial
@@ -379,7 +379,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		iov_in[ii + 1] = iov[ii];
 		total_to_write_bytes += iov[ii].iov_len;
 	}
-	//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::sendData_: Constructing Message Header" << TLOG_ENDL;
+	//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::sendData_: Constructing Message Header" << TLOG_ENDL;
 	MessHead mh = { 0,MessHead::data_v0,htons(source_rank()),htonl(total_to_write_bytes) };
 	iov_in[0].iov_base = &mh;
 	iov_in[0].iov_len = sizeof(mh);
@@ -412,23 +412,23 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 
 		// need to do blocking algorithm -- including throttled block notifications
 	do_again:
-		TLOG_ARB(7, uniqueLabel()) << "sendFragment b4 writev " << std::setw(7) << std::to_string(total_written_bytes) << " total_written_bytes fd=" << fd_ << " in_idx=" << std::to_string(in_iov_idx)
+		TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << "sendFragment b4 writev " << std::setw(7) << std::to_string(total_written_bytes) << " total_written_bytes fd=" << fd_ << " in_idx=" << std::to_string(in_iov_idx)
 			<< " iovcnt=" << std::to_string(out_iov_idx) << " 1st.len=" << std::to_string(iovv[0].iov_len) << TLOG_ENDL;
-		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer calling writev" << TLOG_ENDL;
+		//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer calling writev" << TLOG_ENDL;
 		sts = writev(fd_, &(iovv[0]), out_iov_idx);
-		//TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer done with writev" << TLOG_ENDL;
+		//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer done with writev" << TLOG_ENDL;
 
 		if (sts == -1)
 		{
 			if (errno == EAGAIN /* same as EWOULDBLOCK */)
 			{
-				TLOG_ARB(2, uniqueLabel()) << "sendFragment EWOULDBLOCK" << TLOG_ENDL;
+				TLOG_ARB(2, "TCPSocketTransfer") << uniqueLabel() << "sendFragment EWOULDBLOCK" << TLOG_ENDL;
 				fcntl(fd_, F_SETFL, 0); // clear O_NONBLOCK
 				blocking = true;
 				// NOTE: YES -- could drop here
 				goto do_again;
 			}
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::sendFragment_: WRITE ERROR: " << strerror(errno) << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::sendFragment_: WRITE ERROR: " << strerror(errno) << TLOG_ENDL;
 			connect_state = 0; // any write error closes
 			close(fd_);
 			fd_ = -1;
@@ -437,7 +437,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		else if (sts != this_write_bytes)
 		{
 			// we'll loop around -- with
-			TLOG_ARB(4, uniqueLabel()) << "sendFragment writev sts(" << std::to_string(sts) << ")!=requested_send_bytes(" << std::to_string(this_write_bytes) << ")" << TLOG_ENDL;
+			TLOG_ARB(4, "TCPSocketTransfer") << uniqueLabel() << "sendFragment writev sts(" << std::to_string(sts) << ")!=requested_send_bytes(" << std::to_string(this_write_bytes) << ")" << TLOG_ENDL;
 			total_written_bytes += sts; // add sts to total_written_bytes now as sts is adjusted next
 			// find which iovs are done
 			for (ii = 0; (size_t)sts >= iovv[ii].iov_len; ++ii)
@@ -469,14 +469,14 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 				}
 			}
 			++out_iov_idx; // done with
-			TLOG_ARB(4, uniqueLabel()) << "sendFragment writev sts!=: this_write_bytes=" << std::to_string(this_write_bytes)
+			TLOG_ARB(4, "TCPSocketTransfer") << uniqueLabel() << "sendFragment writev sts!=: this_write_bytes=" << std::to_string(this_write_bytes)
 				<< " out_iov_idx=" << std::to_string(out_iov_idx)
 				<< " additional=" << std::to_string(additional)
 				<< " ii=" << ii << TLOG_ENDL;
 		}
 		else
 		{
-			TLOG_ARB(4, uniqueLabel()) << "sendFragment writev sts(" << std::to_string(sts) << ")==requested_send_bytes(" << std::to_string(this_write_bytes) << ")" << TLOG_ENDL;
+			TLOG_ARB(4, "TCPSocketTransfer") << uniqueLabel() << "sendFragment writev sts(" << std::to_string(sts) << ")==requested_send_bytes(" << std::to_string(this_write_bytes) << ")" << TLOG_ENDL;
 			total_written_bytes += sts;
 			--out_iov_idx; // make it the index of the last iovv
 			iovv[out_iov_idx].iov_base = (uint8_t*)(iovv[out_iov_idx].iov_base) + iovv[out_iov_idx].iov_len;
@@ -507,7 +507,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		}
 	} while (total_written_bytes < total_to_write_bytes);
 	if (total_written_bytes > total_to_write_bytes)
-		TLOG_ARB(0, uniqueLabel()) << "sendFragment program error: too many bytes transferred" << TLOG_ENDL;
+		TLOG_ARB(0, "TCPSocketTransfer") << uniqueLabel() << "sendFragment program error: too many bytes transferred" << TLOG_ENDL;
 
 	if (blocking)
 	{
@@ -516,7 +516,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	}
 	sts = total_written_bytes - sizeof(MessHead);
 
-	TLOG_ARB(10, uniqueLabel()) << "sendFragment sts=" << std::to_string(sts) << TLOG_ENDL;
+	TLOG_ARB(10, "TCPSocketTransfer") << uniqueLabel() << "sendFragment sts=" << std::to_string(sts) << TLOG_ENDL;
 	return TransferInterface::CopyStatus::kSuccess;
 }
 
@@ -541,7 +541,7 @@ void artdaq::TCPSocketTransfer::stats_connect_() // thread
 		sts = stopstatscv_.wait_until(lck
 									  , std::chrono::system_clock::now()
 									  + std::chrono::milliseconds(msdly));
-		TLOG_ARB(5, uniqueLabel()) << "thread1 after wait_until(msdly=" << msdly << ") - sts=" << static_cast<int>(sts) << TLOG_ENDL;
+		TLOG_ARB(5, "TCPSocketTransfer") << uniqueLabel() << "thread1 after wait_until(msdly=" << msdly << ") - sts=" << static_cast<int>(sts) << TLOG_ENDL;
 
 		if (sts == std::cv_status::no_timeout)
 			break;
@@ -560,7 +560,7 @@ void artdaq::TCPSocketTransfer::stats_connect_() // thread
 
 void artdaq::TCPSocketTransfer::connect_()
 {
-	TLOG_DEBUG(uniqueLabel()) << "Connecting sender socket" << TLOG_ENDL;
+	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "Connecting sender socket" << TLOG_ENDL;
 	int sndbuf_bytes = static_cast<int>(sndbuf_);
 	fd_ = TCPConnect(hostMap_[destination_rank()].hostname.c_str()
 					 , calculate_port_()
@@ -568,16 +568,16 @@ void artdaq::TCPSocketTransfer::connect_()
 					 , sndbuf_bytes);
 	connect_state = 0;
 	blocking = 0;
-	TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::connect_ " + hostMap_[destination_rank()].hostname + ":" << calculate_port_() << " fd_=" << fd_ << TLOG_ENDL;
+	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::connect_ " + hostMap_[destination_rank()].hostname + ":" << calculate_port_() << " fd_=" << fd_ << TLOG_ENDL;
 	if (fd_ != -1)
 	{
 		// write connect msg
-		TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::connect_: Writing connect message" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::connect_: Writing connect message" << TLOG_ENDL;
 		MessHead mh = { 0,MessHead::connect_v0,htons(source_rank()),htonl(CONN_MAGIC) };
 		ssize_t sts = write(fd_, &mh, sizeof(mh));
 		if (sts == -1)
 		{
-			TLOG_ERROR(uniqueLabel()) << "TCPSocketTransfer::connect_: Error writing connect message!" << TLOG_ENDL;
+			TLOG_ERROR("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::connect_: Error writing connect message!" << TLOG_ENDL;
 			// a write error here is completely unexpected!
 			connect_state = 0;
 			close(fd_);
@@ -585,7 +585,7 @@ void artdaq::TCPSocketTransfer::connect_()
 		}
 		else
 		{
-			TLOG_INFO(uniqueLabel()) << "TCPSocketTransfer::connect_: Successfully connected" << TLOG_ENDL;
+			TLOG_INFO("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::connect_: Successfully connected" << TLOG_ENDL;
 			// consider it all connected/established
 			connect_state = 1;
 		}
@@ -594,22 +594,22 @@ void artdaq::TCPSocketTransfer::connect_()
 
 void artdaq::TCPSocketTransfer::reconnect_()
 {
-	TLOG_ARB(5, uniqueLabel()) << "check/reconnect" << TLOG_ENDL;
+	TLOG_ARB(5, "TCPSocketTransfer") << uniqueLabel() << "check/reconnect" << TLOG_ENDL;
 	if (fd_ == -1 && role() == TransferInterface::Role::kSend) return connect_();
 	if ((fd_ == -1 || listen_fd_ == -1) && role() == TransferInterface::Role::kReceive) return listen_();
 }
 
 void artdaq::TCPSocketTransfer::listen_()
 {
-	TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::listen_: Listening/accepting new connections" << TLOG_ENDL;
+	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Listening/accepting new connections" << TLOG_ENDL;
 	if (listen_fd_ == -1)
 	{
-		TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::listen_: Opening listener" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Opening listener" << TLOG_ENDL;
 		listen_fd_ = TCP_listen_fd(calculate_port_(), rcvbuf_);
 	}
 	if (listen_fd_ == -1)
 	{
-		TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::listen_: Error creating listen_fd_!" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Error creating listen_fd_!" << TLOG_ENDL;
 		return;
 	}
 
@@ -626,11 +626,11 @@ void artdaq::TCPSocketTransfer::listen_()
 		sockaddr_un un;
 		socklen_t arglen = sizeof(un);
 		int fd;
-		TLOG_DEBUG(uniqueLabel()) << "Calling accept" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "Calling accept" << TLOG_ENDL;
 		fd = accept(listen_fd_, (sockaddr *)&un, &arglen);
-		TLOG_DEBUG(uniqueLabel()) << "Done with accept" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "Done with accept" << TLOG_ENDL;
 
-		TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::listen_: Reading connect message" << TLOG_ENDL;
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Reading connect message" << TLOG_ENDL;
 		socklen_t lenlen = sizeof(tv);
 		/*sts=*/
 		setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen); // see man 7 socket.
@@ -638,12 +638,12 @@ void artdaq::TCPSocketTransfer::listen_()
 		uint64_t mark_us = TimeUtils::gettimeofday_us();
 		sts = read(fd, &mh, sizeof(mh));
 		uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
-		TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::listen_: Read of connect message took " << delta_us << " microseconds." << TLOG_ENDL;
-		TLOG_ARB(10, uniqueLabel()) << "do_connect read of connect msg (after accept) took " << std::to_string(delta_us) << " microseconds" << TLOG_ENDL; // emperically, read take a couple hundred usecs.
+		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Read of connect message took " << delta_us << " microseconds." << TLOG_ENDL;
+		TLOG_ARB(10, "TCPSocketTransfer") << uniqueLabel() << "do_connect read of connect msg (after accept) took " << std::to_string(delta_us) << " microseconds" << TLOG_ENDL; // emperically, read take a couple hundred usecs.
 		if (sts != sizeof(mh))
 		{
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::listen_: Wrong message header length received!" << TLOG_ENDL;
-			TLOG_ARB(0, uniqueLabel()) << "do_connect_ problem with connect msg sts(" << sts << ")!=sizeof(mh)("<<std::to_string(sizeof(mh)) << ")" << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Wrong message header length received!" << TLOG_ENDL;
+			TLOG_ARB(0, "TCPSocketTransfer") << uniqueLabel() << "do_connect_ problem with connect msg sts(" << sts << ")!=sizeof(mh)("<<std::to_string(sizeof(mh)) << ")" << TLOG_ENDL;
 			close(fd);
 			return;
 		}
@@ -652,7 +652,7 @@ void artdaq::TCPSocketTransfer::listen_()
 		mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
 		if (ntohl(mh.conn_magic) != CONN_MAGIC || mh.source_id != source_rank())
 		{
-			TLOG_DEBUG(uniqueLabel()) << "TCPSocketTransfer::listen_: Wrong magic bytes in header!" << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Wrong magic bytes in header!" << TLOG_ENDL;
 			close(fd);
 			return;
 		}
@@ -664,13 +664,13 @@ void artdaq::TCPSocketTransfer::listen_()
 
 		// now add (new) connection
 		fd_ = fd;
-		TLOG_INFO(uniqueLabel()) << "TCPSocketTransfer::listen_: New fd is " << fd_ << TLOG_ENDL;
+		TLOG_INFO("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: New fd is " << fd_ << TLOG_ENDL;
 
-		TLOG_ARB(3, uniqueLabel()) << "do_connect_ connection from sender_rank=" << std::to_string(mh.source_id) << TLOG_ENDL;
+		TLOG_ARB(3, "TCPSocketTransfer") << uniqueLabel() << "do_connect_ connection from sender_rank=" << std::to_string(mh.source_id) << TLOG_ENDL;
 	}
 	else
 	{
-		TLOG_ARB(10, uniqueLabel()) << "TCPSocketTransfer::do_connect_: No connections in timeout interval!" << TLOG_ENDL;
+		TLOG_ARB(10, "TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::do_connect_: No connections in timeout interval!" << TLOG_ENDL;
 	}
 } // do_connect_
 

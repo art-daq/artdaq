@@ -11,19 +11,19 @@
 
 #include <iomanip>
 
-artdaq::EventBuilderCore::EventBuilderCore(int rank, std::string name)
-	: DataReceiverCore(rank, name)
+artdaq::EventBuilderCore::EventBuilderCore()
+	: DataReceiverCore()
 {
 }
 
 artdaq::EventBuilderCore::~EventBuilderCore()
 {
-	TLOG_DEBUG(name_) << "Destructor" << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "Destructor" << TLOG_ENDL;
 }
 
 bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(name_) << "initialize method called with DAQ "
+	TLOG_DEBUG(app_name) << "initialize method called with DAQ "
 		<< "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
@@ -34,7 +34,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "Unable to find the DAQ parameters in the initialization "
 			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
@@ -46,7 +46,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG_ERROR(app_name)
 			<< "Unable to find the event_builder parameters in the DAQ "
 			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
 		return false;

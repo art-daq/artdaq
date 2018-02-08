@@ -1,3 +1,4 @@
+#define TRACE_NAME "TransferInterface"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "cetlib_except/exception.h"
 
@@ -9,7 +10,8 @@ artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role
 	, buffer_count_(ps.get<size_t>("buffer_count", 10))
 	, max_fragment_size_words_(ps.get<size_t>("max_fragment_size_words", 1024))
 {
-	TLOG_DEBUG(uniqueLabel()) << "TransferInterface constructor has " << ps.to_string() << TLOG_ENDL;
+	TLOG_DEBUG("TransferInterface") << uniqueLabel() << " role:"<<(int)role<<" TransferInterface constructor has "
+									<< ps.to_string() << TLOG_ENDL;
 }
 
 int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t receive_timeout)

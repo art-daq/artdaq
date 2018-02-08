@@ -1,8 +1,10 @@
 #include "artdaq/Application/EventBuilderApp.hh"
 
-artdaq::EventBuilderApp::EventBuilderApp(int rank, std::string name) :
-																									rank_(rank)
-																									, name_(name) {}
+artdaq::EventBuilderApp::EventBuilderApp(int rank, std::string name) 
+{
+	my_rank = rank;
+	app_name = name;
+}
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -20,13 +22,13 @@ bool artdaq::EventBuilderApp::do_initialize(fhicl::ParameterSet const& pset, uin
 	//event_builder_ptr_.reset(nullptr);
 	if (event_builder_ptr_.get() == 0)
 	{
-		event_builder_ptr_.reset(new EventBuilderCore(rank_, name_));
+		event_builder_ptr_.reset(new EventBuilderCore());
 		external_request_status_ = event_builder_ptr_->initialize(pset);
 	}
 	if (! external_request_status_)
 	{
 		report_string_ = "Error initializing an EventBuilderCore named";
-		report_string_.append(name_ + " with ");
+		report_string_.append(app_name + " with ");
 		report_string_.append("ParameterSet = \"" + pset.to_string() + "\".");
 	}
 
@@ -40,7 +42,7 @@ bool artdaq::EventBuilderApp::do_start(art::RunID id, uint64_t, uint64_t)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error starting ";
-		report_string_.append(name_ + " for run ");
+		report_string_.append(app_name + " for run ");
 		report_string_.append("number ");
 		report_string_.append(boost::lexical_cast<std::string>(id.run()));
 		report_string_.append(".");
@@ -56,7 +58,7 @@ bool artdaq::EventBuilderApp::do_stop(uint64_t, uint64_t)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error stopping ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 	return external_request_status_;
 }
@@ -68,7 +70,7 @@ bool artdaq::EventBuilderApp::do_pause(uint64_t, uint64_t)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error pausing ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 
 	return external_request_status_;
@@ -81,7 +83,7 @@ bool artdaq::EventBuilderApp::do_resume(uint64_t, uint64_t)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error resuming ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 	
 	return external_request_status_;
@@ -94,7 +96,7 @@ bool artdaq::EventBuilderApp::do_shutdown(uint64_t)
 	if (! external_request_status_)
 	{
 		report_string_ = "Error shutting down ";
-		report_string_.append(name_ + ".");
+		report_string_.append(app_name + ".");
 	}
 	return external_request_status_;
 }
@@ -106,7 +108,7 @@ bool artdaq::EventBuilderApp::do_soft_initialize(fhicl::ParameterSet const& pset
 	if (! external_request_status_)
 	{
 		report_string_ = "Error soft-initializing ";
-		report_string_.append(name_ + " with ");
+		report_string_.append(app_name + " with ");
 		report_string_.append("ParameterSet = \"" + pset.to_string() + "\".");
 	}
 	return external_request_status_;
@@ -119,7 +121,7 @@ bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, u
 	if (! external_request_status_)
 	{
 		report_string_ = "Error reinitializing ";
-		report_string_.append(name_ + " with ");
+		report_string_.append(app_name + " with ");
 		report_string_.append("ParameterSet = \"" + pset.to_string() + "\".");
 	}
 	return external_request_status_;
@@ -127,7 +129,7 @@ bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, u
 
 void artdaq::EventBuilderApp::BootedEnter()
 {
-	TLOG_DEBUG(name_ + "App") << "Booted state entry action called." << TLOG_ENDL;
+	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." << TLOG_ENDL;
 
 	// the destruction of any existing EventBuilderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

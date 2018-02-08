@@ -59,6 +59,7 @@ private:
 
 public:
 	std::mutex mutex_; ///< XMLRPC mutex
+	std::unique_ptr<xmlrpc_c::serverAbyss> server; ///< XMLRPC server
 };
 
 }

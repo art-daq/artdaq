@@ -30,12 +30,7 @@
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	: mutex_()
-	, request_port_(3001)
-	, request_addr_("227.128.12.26")
-	, requests_()
-	, request_stop_requested_(false)
-	, request_received_(false)
-	, end_of_run_timeout_ms_(1000)
+	, requestReceiver_(new RequestReceiver())
 	, windowOffset_(0)
 	, windowWidth_(0)
 	, staleTimeout_(Fragment::InvalidTimestamp)
@@ -46,6 +41,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, missing_request_time_()
 	, last_window_send_time_()
 	, last_window_send_time_set_(false)
+	, windows_sent_ooo_()
 	, missing_request_window_timeout_us_(1000000)
 	, window_close_timeout_us_(2000000)
 	, useDataThread_(false)
@@ -77,12 +73,6 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
 	: mutex_()
-	, request_port_(ps.get<int>("request_port", 3001))
-	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
-	, requests_()
-	, request_stop_requested_(false)
-	, request_received_(false)
-	, end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
 	, windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
 	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
@@ -92,6 +82,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, missing_request_time_(decltype(missing_request_time_)::max())
 	, last_window_send_time_(decltype(last_window_send_time_)::max())
 	, last_window_send_time_set_(false)
+	, windows_sent_ooo_()
 	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 1000000))
 	, window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
@@ -171,55 +162,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 			latest_exception_report_ = "Error in CommandableFragmentGenerator: use_data_thread must be true when request_mode is not \"Ignored\"!";
 			throw cet::exception(latest_exception_report_);
 		}
-		setupRequestListener();
-	}
-}
-
-void artdaq::CommandableFragmentGenerator::setupRequestListener()
-{
-	request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (request_socket_ < 0)
-	{
-		throw art::Exception(art::errors::Configuration) << "CommandableFragmentGenerator: Error creating socket for receiving data requests! err=" << strerror(errno) << std::endl;
-		exit(1);
-	}
-
-	struct sockaddr_in si_me_request;
-
-	int yes = 1;
-	if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
-	{
-		throw art::Exception(art::errors::Configuration) <<
-			"RequestedFragmentGenrator: Unable to enable port reuse on request socket, err=" << strerror(errno) << std::endl;
-		exit(1);
-	}
-	memset(&si_me_request, 0, sizeof(si_me_request));
-	si_me_request.sin_family = AF_INET;
-	si_me_request.sin_port = htons(request_port_);
-	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (bind(request_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
-	{
-		throw art::Exception(art::errors::Configuration) <<
-			"CommandableFragmentGenerator: Cannot bind request socket to port " << request_port_ << ", err=" << strerror(errno) << std::endl;
-		exit(1);
-	}
-
-	if (request_addr_ != "localhost")
-	{
-		struct ip_mreq mreq;
-		int sts = ResolveHost(request_addr_.c_str(), mreq.imr_multiaddr);
-		if (sts == -1)
-		{
-			throw art::Exception(art::errors::Configuration) << "Unable to resolve multicast request address, err=" << strerror(errno) << std::endl;
-			exit(1);
-		}
-		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
-		{
-			throw art::Exception(art::errors::Configuration) <<
-				"CommandableFragmentGenerator: Unable to join multicast group, err=" << strerror(errno) << std::endl;
-			exit(1);
-		}
+		requestReceiver_.reset(new RequestReceiver(ps));
 	}
 }
 
@@ -236,9 +179,7 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 	if (dataThread_.joinable()) dataThread_.join();
 	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining monitoringThread" << TLOG_ENDL;
 	if (monitoringThread_.joinable()) monitoringThread_.join();
-	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining requestThread" << TLOG_ENDL;
-	if (requestThread_.joinable()) requestThread_.join();
-	if (request_socket_ != -1) close(request_socket_);
+	requestReceiver_.reset(nullptr);
 }
 
 bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
@@ -337,22 +278,14 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 bool artdaq::CommandableFragmentGenerator::check_stop()
 {
-	TLOG_ARB(14, "CommandableFragmentGeneraotr") << "CFG::check_stop: should_stop=" << should_stop() << ", useDataThread_=" << useDataThread_ << ", requests_.size()=" << std::to_string(requests_.size()) << ", exception status =" << int(exception()) << TLOG_ENDL;
+	TLOG_ARB(14, "CommandableFragmentGeneraotr") << "CFG::check_stop: should_stop=" << should_stop() << ", useDataThread_=" << useDataThread_ << ", exception status =" << int(exception()) << TLOG_ENDL;
 
 	if (!should_stop()) return false;
 	if (!useDataThread_ || mode_ == RequestMode::Ignored) return true;
 	if (force_stop_) return true;
 
-	if (!request_received_)
-	{
-		TLOG_ERROR("CommandableFragmentGenerator") << "Stop request received by request-based CommandableFragmentGenerator, but no requests have been received." << std::endl
-			<< "Check that UDP port " << request_port_ << " is open in the firewall config." << TLOG_ENDL;
-		return true;
-	}
-
-	if (!request_stop_requested_) return false;
-
-	return TimeUtils::GetElapsedTimeMilliseconds(request_stop_timeout_) > end_of_run_timeout_ms_;// && requests_.size() == 0;
+	// check_stop returns true if the CFG should stop. We should wait for the RequestReceiver to stop before stopping.
+	return !requestReceiver_->isRunning();
 }
 
 int artdaq::CommandableFragmentGenerator::fragment_id() const
@@ -389,7 +322,6 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	subrun_number_ = 1;
 	latest_exception_report_ = "none";
 	dataBuffer_.clear();
-	requests_.clear();
 	last_window_send_time_set_ = false;
 
 	start();
@@ -397,7 +329,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	if (mode_ != RequestMode::Ignored) startRequestReceiverThread();
+	if (mode_ != RequestMode::Ignored && !requestReceiver_->isRunning()) requestReceiver_->startRequestReceiverThread();
 }
 
 void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t timestamp)
@@ -434,7 +366,6 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 	should_stop_ = false;
 
 	dataBuffer_.clear();
-	requests_.clear();
 
 	// no lock required: thread not started yet
 	resume();
@@ -442,7 +373,7 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	if (mode_ != RequestMode::Ignored) startRequestReceiverThread();
+	if (mode_ != RequestMode::Ignored && !requestReceiver_->isRunning()) requestReceiver_->startRequestReceiverThread();
 }
 
 std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& which)
@@ -521,13 +452,6 @@ void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 	if (monitoringThread_.joinable()) monitoringThread_.join();
 	TLOG_INFO("CommandableFragmentGenerator") << "Starting Hardware Monitoring Thread" << TLOG_ENDL;
 	monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
-}
-
-void artdaq::CommandableFragmentGenerator::startRequestReceiverThread()
-{
-	if (requestThread_.joinable()) requestThread_.join();
-	TLOG_INFO("CommandableFragmentGenerator") << "Starting Request Reception Thread" << TLOG_ENDL;
-	requestThread_ = boost::thread(&CommandableFragmentGenerator::receiveRequestsLoop, this);
 }
 
 std::string artdaq::CommandableFragmentGenerator::printMode_()
@@ -655,7 +579,11 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 
 		if (first || (waittime != lastwaittime && waittime % 1000 == 0))
 		{
-			TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. Check the connection between the BoardReader and the EventBuilders! (seq_id=" << ev_counter() << ")" << TLOG_ENDL;
+			TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. "
+				<< "(seq_id=" << ev_counter()
+				<< ", frags=" << dataBufferDepthFragments_ << "/" << maxDataBufferDepthFragments_
+				<< ", szB=" << dataBufferDepthBytes_ << "/" << maxDataBufferDepthBytes_ << ")" << TLOG_ENDL;
+			TLOG_TRACE("CommandableFragmentGenerator") << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues" << TLOG_ENDL;
 			first = false;
 		}
 		if (waittime % 5 && waittime != lastwaittime)
@@ -765,82 +693,6 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 	}
 }
 
-void artdaq::CommandableFragmentGenerator::receiveRequestsLoop()
-{
-	while (!force_stop_)
-	{
-		if (check_stop() || !isHardwareOK_ || exception())
-		{
-			TLOG_DEBUG("CommandableFragmentGenerator") << "receiveRequestsLoop: check_stop is " << std::boolalpha << check_stop()
-				<< ", isHardwareOK_ is " << isHardwareOK_ << ", and exception state is " << exception() << ", aborting request reception thread." << TLOG_ENDL;
-			return;
-		}
-
-		// Don't listen for requests when we're going to ignore them anyway
-		if (mode_ == RequestMode::Ignored) return;
-		TLOG_ARB(16, "CommandableFragmentGenerator") << "receiveRequestsLoop: Polling Request socket for new requests" << TLOG_ENDL;
-
-		int ms_to_wait = 1000;
-		struct pollfd ufds[1];
-		ufds[0].fd = request_socket_;
-		ufds[0].events = POLLIN | POLLPRI;
-		int rv = poll(ufds, 1, ms_to_wait);
-
-		// Continue loop if no message received or message does not have correct event ID
-		if (rv <= 0 || (ufds[0].revents != POLLIN && ufds[0].revents != POLLPRI)) continue;
-
-		TLOG_ARB(11, "CommandableFragmentGenerator") << "Recieved packet on Request channel" << TLOG_ENDL;
-		detail::RequestHeader hdr_buffer;
-		recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
-		TLOG_ARB(11, "CommandableFragmentGenerator") << "Request header word: 0x" << std::hex << hdr_buffer.header << TLOG_ENDL;
-		if (!hdr_buffer.isValid()) continue;
-
-		request_received_ = true;
-		if (hdr_buffer.mode == detail::RequestMessageMode::EndOfRun)
-		{
-			TLOG_INFO("CommandableFragmentGenerator") << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests..." << TLOG_ENDL;
-			request_stop_timeout_ = std::chrono::steady_clock::now();
-			request_stop_requested_ = true;
-		}
-
-		std::vector<detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-		recv(request_socket_, &pkt_buffer[0], sizeof(detail::RequestPacket) * hdr_buffer.packet_count, 0);
-		bool anyNew = false;
-		for (auto& buffer : pkt_buffer)
-		{
-			if (!buffer.isValid()) continue;
-			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
-			{
-				TLOG_ERROR("CommandableFragmentGenerator") << "Received conflicting request for SeqID "
-					<< std::to_string(buffer.sequence_id) << "!"
-					<< " Old ts=" << std::to_string(requests_[buffer.sequence_id])
-					<< ", new ts=" << std::to_string(buffer.timestamp) << ". Keeping OLD!" << TLOG_ENDL;
-			}
-			else if (!requests_.count(buffer.sequence_id))
-			{
-				int delta = buffer.sequence_id - ev_counter();
-				TLOG_ARB(11, "CommandableFragmentGenerator") << "Recieved request for sequence ID " << std::to_string(buffer.sequence_id)
-					<< " and timestamp " << std::to_string(buffer.timestamp) << " (delta: " << delta << ")" << TLOG_ENDL;
-				if (delta < 0)
-				{
-					TLOG_ARB(11, "CommandableFragmentGenerator") << "Already serviced this request! Ignoring..." << TLOG_ENDL;
-				}
-				else
-				{
-					std::unique_lock<std::mutex> tlk(request_mutex_);
-					requests_[buffer.sequence_id] = buffer.timestamp;
-					anyNew = true;
-				}
-			}
-		}
-		if (anyNew)
-		{
-			std::unique_lock<std::mutex> lock(request_mutex_);
-			requestCondition_.notify_all();
-		}
-	}
-}
-
 void artdaq::CommandableFragmentGenerator::applyRequestsIgnoredMode(artdaq::FragmentPtrs& frags)
 {
 	// We just copy everything that's here into the output.
@@ -852,10 +704,16 @@ void artdaq::CommandableFragmentGenerator::applyRequestsIgnoredMode(artdaq::Frag
 void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::FragmentPtrs& frags)
 {
 	// We only care about the latest request received. Send empties for all others.
-	sendEmptyFragments(frags);
+	auto requests = requestReceiver_->GetRequests();
+	while (requests.size() > 1) {
+		// std::map is ordered by key => Last sequence ID in the map is the one we care about
+		requestReceiver_->RemoveRequest(requests.begin()->first);
+		requests.erase(requests.begin());
+	}
+	sendEmptyFragments(frags, requests);
 
 	// If no requests remain after sendEmptyFragments, return
-	if (requests_.size() == 0 || !requests_.count(ev_counter())) return;
+	if (requests.size() == 0 || !requests.count(ev_counter())) return;
 
 	if (dataBuffer_.size() > 0)
 	{
@@ -867,7 +725,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 			auto newfrag = std::unique_ptr<artdaq::Fragment>(new Fragment(ev_counter(), frag->fragmentID()));
 			newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
 			memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
-			newfrag->setTimestamp(requests_[ev_counter()]);
+			newfrag->setTimestamp(requests[ev_counter()]);
 			newfrag->setSequenceID(ev_counter());
 			frags.push_back(std::move(newfrag));
 		}
@@ -876,20 +734,27 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 	{
 		sendEmptyFragment(frags, ev_counter(), "No data for");
 	}
-	requests_.clear();
+	requestReceiver_->RemoveRequest(ev_counter());
 	ev_counter_inc(1, true);
 }
 
 void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::FragmentPtrs& frags)
 {
-	sendEmptyFragments(frags);
+	// We only care about the latest request received. Send empties for all others.
+	auto requests = requestReceiver_->GetRequests();
+	while (requests.size() > 1) {
+		// std::map is ordered by key => Last sequence ID in the map is the one we care about
+		requestReceiver_->RemoveRequest(requests.begin()->first);
+		requests.erase(requests.begin());
+	}
+	sendEmptyFragments(frags, requests);
 
 	// If no requests remain after sendEmptyFragments, return
-	if (requests_.size() == 0 || !requests_.count(ev_counter())) return;
+	if (requests.size() == 0 || !requests.count(ev_counter())) return;
 
 	TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered Fragments" << TLOG_ENDL;
 	frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
-	frags.back()->setTimestamp(requests_[ev_counter()]);
+	frags.back()->setTimestamp(requests[ev_counter()]);
 	ContainerFragmentLoader cfl(*frags.back());
 	cfl.set_missing_data(false); // Buffer mode is never missing data, even if there IS no data.
 
@@ -901,20 +766,22 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 		cfl.addFragment(*it);
 		it = dataBuffer_.erase(it);
 	}
-	requests_.clear();
+	requestReceiver_->RemoveRequest(ev_counter());
 	ev_counter_inc(1, true);
 }
 
 void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::FragmentPtrs& frags)
 {
+	TLOG(10) << "applyRequestsWindowMode BEGIN";
 	if (!last_window_send_time_set_)
 	{
 		last_window_send_time_ = std::chrono::steady_clock::now();
 		last_window_send_time_set_ = true;
 	}
 
-	bool now_have_desired_request = std::any_of(requests_.begin(), requests_.end(),
-		[this](decltype(requests_)::value_type& request) {
+	auto requests = requestReceiver_->GetRequests();
+	bool now_have_desired_request = std::any_of(requests.begin(), requests.end(),
+		[this](decltype(requests)::value_type& request) {
 		return request.first == ev_counter(); });
 
 	if (missing_request_)
@@ -924,7 +791,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
 				<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
 				<< " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
-			sendEmptyFragments(frags);
+			sendEmptyFragments(frags, requests);
 
 			missing_request_ = false;
 			missing_request_time_ = decltype(missing_request_time_)::max();
@@ -935,19 +802,16 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		}
 	}
 
-	for (auto req = requests_.begin(); req != requests_.end();)
+	TLOG(10) << "applyRequestsWindowMode: Starting request processing";
+	for (auto req = requests.begin(); req != requests.end();)
 	{
-		auto ts = req->second;
-		if (req->first < ev_counter())
+		while (req->first < ev_counter() && requests.size() > 0)
 		{
-			req = requests_.erase(req);
-			continue;
+			TLOG(10) << "applyRequestsWindowMode: Clearing passed request for sequence ID " << req->first;
+			requestReceiver_->RemoveRequest(req->first);
+			req = requests.erase(req);
 		}
-		while (req->first > ev_counter() && request_stop_requested_ && TimeUtils::GetElapsedTime(request_stop_timeout_) > 1)
-		{
-			sendEmptyFragment(frags, ev_counter(), "Missing request for");
-			ev_counter_inc(1, true);
-		}
+		if (requests.size() == 0) break;
 		if (req->first > ev_counter())
 		{
 			if (!missing_request_)
@@ -955,9 +819,8 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 				missing_request_ = true;
 				missing_request_time_ = std::chrono::steady_clock::now();
 			}
-			++req;
-			break; // We're missing the correct request
 		}
+		auto ts = req->second;
 		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Checking that data exists for request window " << std::to_string(req->first) << TLOG_ENDL;
 		Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 		Fragment::timestamp_t max = min + windowWidth_;
@@ -972,11 +835,16 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 				<< " (if no buffer in memory, this is shown as a 0)). Time waiting: "
 				<< TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) << " us "
 				<< "(> " << std::to_string(window_close_timeout_us_) << " us)." << TLOG_ENDL;
+
+			if (missing_request_) {
+				TLOG_ERROR("CommandableFragmentGenerator") << "A Window timeout has occurred while there are pending requests. Sending empties." << TLOG_ENDL;
+				sendEmptyFragments(frags, requests);
+			}
 		}
 		if (windowClosed || !data_thread_running_ || windowTimeout)
 		{
 			TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-requested Fragments" << TLOG_ENDL;
-			frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
+			frags.emplace_back(new artdaq::Fragment(req->first, fragment_id()));
 			frags.back()->setTimestamp(ts);
 			ContainerFragmentLoader cfl(*frags.back());
 
@@ -1010,14 +878,27 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 					++it;
 				}
 			}
-			req = requests_.erase(req);
-			ev_counter_inc(1, true);
+			if (req->first == ev_counter())
+			{
+				ev_counter_inc(1, true);
+				while (windows_sent_ooo_.count(ev_counter()))
+				{
+					TLOG_ARB(9, "CommandableFragmentGenerator") << "Data-taking has caught up to out-of-order window request " << ev_counter() << ", removing from list" << TLOG_ENDL;
+					windows_sent_ooo_.erase(windows_sent_ooo_.begin(), windows_sent_ooo_.find(ev_counter()));
+					ev_counter_inc(1, true);
+				}
+			}
+			else
+			{
+				windows_sent_ooo_.insert(req->first);
+			}
+			requestReceiver_->RemoveRequest(req->first);
+			req = requests.erase(req);
 			last_window_send_time_ = std::chrono::steady_clock::now();
 		}
 		else
 		{
-			// Wait for the window to be closed for the current event
-			break;
+			++req;
 		}
 	}
 }
@@ -1041,23 +922,25 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	}
 	else
 	{
-		if ((check_stop() && requests_.size() <= 0) || exception()) return false;
+		if ((check_stop() && requestReceiver_->size() == 0) || exception()) return false;
 		checkDataBuffer();
 
-		while (requests_.size() <= 0)
+		// Wait up to 1000 ms for a request...
+		auto counter = 0;
+
+		while (requestReceiver_->size() == 0 && counter < 100)
 		{
 			if (check_stop() || exception()) return false;
 
 			checkDataBuffer();
 
-			std::unique_lock<std::mutex> lock(request_mutex_);
-			requestCondition_.wait_for(lock, std::chrono::milliseconds(10), [this]() { return requests_.size() > 0; });
+			requestReceiver_->WaitForRequests(10); // milliseconds
+			counter++;
 		}
 	}
 
 	{
 		std::unique_lock<std::mutex> dlk(dataBufferMutex_);
-		std::unique_lock<std::mutex> rlk(request_mutex_);
 
 		switch (mode_)
 		{
@@ -1086,7 +969,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 
 bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtrs& frags, size_t seqId, std::string desc)
 {
-	TLOG_WARNING("CommandableFragmentGenerator") << desc << " request " << seqId << ", sending empty fragment" << TLOG_ENDL;
+	TLOG_WARNING("CommandableFragmentGenerator") << desc << " sequence ID " << seqId << ", sending empty fragment" << TLOG_ENDL;
 	for (auto fid : fragment_ids_)
 	{
 		auto frag = new Fragment();
@@ -1098,36 +981,31 @@ bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtr
 	return true;
 }
 
-void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPtrs& frags)
+void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests)
 {
-	auto sequence_id = Fragment::InvalidSequenceID;
-	auto timestamp = Fragment::InvalidTimestamp;
-	// Map is ordered by sequence ID!
-	TLOG_ARB(19, "CommandableFragmentGenerator") << "Sending Empty Fragments" << TLOG_ENDL;
-	for (auto it = requests_.begin(); it != requests_.end();)
-	{
-		auto seq = it->first;
-		auto ts = it->second;
+	if (requests.size() == 0 && windows_sent_ooo_.size() == 0) return;
 
-		while (seq > ev_counter())
+	if (requests.size() > 0) {
+		TLOG_ARB(19, "CommandableFragmentGenerator") << "Sending Empty Fragments for Sequence IDs from " << ev_counter() << " up to but not including " << requests.begin()->first << TLOG_ENDL;
+		while (requests.begin()->first > ev_counter())
 		{
-			// Otherwise, this is just one we missed, send an empty
 			sendEmptyFragment(frags, ev_counter(), "Missed request for");
 			ev_counter_inc(1, true);
 		}
-
-		// Check if this is the one "true" request
-		if (++it == requests_.end())
-		{
-			sequence_id = seq;
-			timestamp = ts;
-			break;
-		}
-		if (seq < ev_counter()) continue;
-
 	}
-	requests_.clear();
-
-	if (sequence_id < ev_counter()) return; // No new requests received.
-	requests_[sequence_id] = timestamp;
+	else if (windows_sent_ooo_.size() > 0)
+	{
+		TLOG_ARB(19, "CommandableFragmentGenerator") << "Sending Empty Fragments for Sequence IDs from " << ev_counter() << " up to but not including " << *windows_sent_ooo_.begin() << TLOG_ENDL;
+		while (*windows_sent_ooo_.begin() > ev_counter())
+		{
+			sendEmptyFragment(frags, ev_counter(), "Missed request for");
+			ev_counter_inc(1, true);
+		}
+	}
+	while (windows_sent_ooo_.count(ev_counter()))
+	{
+		TLOG_ARB(19, "CommandableFragmentGenerator") << "Data-taking has caught up to out-of-order window request " << ev_counter() << ", removing from list" << TLOG_ENDL;
+		windows_sent_ooo_.erase(windows_sent_ooo_.begin(), windows_sent_ooo_.find(ev_counter()));
+		ev_counter_inc(1, true);
+	}
 }
