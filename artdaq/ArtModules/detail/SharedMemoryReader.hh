@@ -144,7 +144,7 @@ namespace artdaq
 			 */
 			void readFile(std::string const&, art::FileBlock*& fb)
 			{
-				TRACE(5, "SharedMemoryReader::readFile enter/start");
+				TRACEN("SharedMemoryReader", 5, "SharedMemoryReader::readFile enter/start");
 				fb = new art::FileBlock(art::FileFormatVersion(1, "RawEvent2011"), "nothing");
 			}
 
