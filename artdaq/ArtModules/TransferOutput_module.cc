@@ -421,10 +421,28 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
+#if ART_HEX_VERSION > 0x20800
+		auto const& productDescription = I->second->productDescription();
+		auto const& refs = keptProducts()[productDescription.branchType()];
+		bool found = false;
+		for (auto const& ref : refs)
+		{
+			if (*ref == productDescription) {
+				found = true;
+				break;
+			}
+		}
+		if (I->second->productUnavailable() || !found)
+		{
+			continue;
+		}
+#else
 		if (I->second->productUnavailable() || !selected(I->second->productDescription()))
 		{
 			continue;
 		}
+
+#endif
 		++prd_cnt;
 	}
 	//
@@ -451,10 +469,28 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
+#if ART_HEX_VERSION > 0x20800
+		auto const& productDescription = I->second->productDescription();
+		auto const& refs = keptProducts()[productDescription.branchType()];
+		bool found = false;
+		for (auto const& ref : refs)
+		{
+			if (*ref == productDescription) {
+				found = true;
+				break;
+			}
+		}
+		if (I->second->productUnavailable() || !found)
+		{
+			continue;
+		}
+#else
 		if (I->second->productUnavailable() || !selected(I->second->productDescription()))
 		{
 			continue;
 		}
+
+#endif
 		const BranchDescription& bd(I->second->productDescription());
 		bkv.push_back(new BranchKey(bd));
 		if (art::debugit() >= 2)
@@ -494,7 +530,11 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 				+ "' procnm: '"
 				+ bd.processName()
 				+ "'" << TLOG_ENDL;
+#if ART_HEX_VERSION > 0x20800
+			OutputHandle oh = principal.getForOutput(bd.productID(), true);
+#else
 			OutputHandle oh = principal.getForOutput(bd.branchID(), true);
+#endif
 			const EDProduct* prd = oh.wrapper();
 			msg.WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
 		}

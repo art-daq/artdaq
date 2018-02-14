@@ -6,13 +6,6 @@
 #include <string>
 using std::string;
 
-namespace artdaq
-{
-	/**
-	 * \brief RawInput is a typedef of art::Source<detail::SharedMemoryReader>
-	 */
-	typedef art::Source<detail::SharedMemoryReader<artdaq::Fragment::MakeSystemTypeMap>> RawInput;
-}
 
 namespace art
 {
@@ -21,10 +14,17 @@ namespace art
 	* source.fileNames and don't want the files services to be used.
 	*/
 	template <>
-	struct Source_generator<artdaq::detail::SharedMemoryReader<>>
+	struct Source_generator<artdaq::detail::SharedMemoryReader<artdaq::Fragment::MakeSystemTypeMap>>
 	{
 		static constexpr bool value = true; ///< Used to suppress use of file services on art Source
 	};
+}
+namespace artdaq
+{
+	/**
+	 * \brief RawInput is a typedef of art::Source<detail::SharedMemoryReader>
+	 */
+	typedef art::Source<detail::SharedMemoryReader<artdaq::Fragment::MakeSystemTypeMap>> RawInput;
 }
 
 DEFINE_ART_INPUT_SOURCE(artdaq::RawInput)

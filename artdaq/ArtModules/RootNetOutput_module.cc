@@ -243,6 +243,8 @@ send_init_message()
 			"RootNetOutput static send_init_message(): "
 			"Could not get class for ParentageMap.";
 	}
+	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << (void*)parentage_map_class << TLOG_ENDL;
+
 	//
 	//  Construct and send the init message.
 	//
@@ -352,7 +354,8 @@ send_init_message()
 	//
 	//  Stream the ParentageRegistry.
 	//
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "static send_init_message(): Streaming ParentageRegistry ..." << TLOG_ENDL;
+	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "static send_init_message(): Streaming ParentageRegistry ..."
+		 << (void*)parentage_map_class << TLOG_ENDL;
 #       if ART_HEX_VERSION >= 0x20703
 	art::ParentageMap parentageMap{};
 	for (auto const& pr : art::ParentageRegistry::get()) {
@@ -412,6 +415,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			"RootNetOutput::writeDataProducts(...): "
 			"Could not get TClass for art::ProductProvenance!";
 	}
+	
 	//
 	//  Calculate the data product count.
 	//
@@ -419,10 +423,28 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
+#if ART_HEX_VERSION > 0x20800
+		auto const& productDescription = I->second->productDescription();
+		auto const& refs = keptProducts()[productDescription.branchType()];
+		bool found = false;
+		for (auto const& ref : refs)
+		{
+			if (*ref == productDescription) {
+				found = true;
+				break;
+			}
+		}
+		if (I->second->productUnavailable() || !found)
+		{
+			continue;
+		}
+#else
 		if (I->second->productUnavailable() || !selected(I->second->productDescription()))
 		{
 			continue;
 		}
+
+#endif
 		++prd_cnt;
 	}
 	//
@@ -446,10 +468,28 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
+#if ART_HEX_VERSION > 0x20800
+		auto const& productDescription = I->second->productDescription();
+		auto const& refs = keptProducts()[productDescription.branchType()];
+		bool found = false;
+		for (auto const& ref : refs)
+		{
+			if (*ref == productDescription) {
+				found = true;
+				break;
+			}
+		}
+		if (I->second->productUnavailable() || !found)
+		{
+			continue;
+		}
+#else
 		if (I->second->productUnavailable() || !selected(I->second->productDescription()))
 		{
 			continue;
 		}
+
+#endif
 		const BranchDescription& bd(I->second->productDescription());
 		bkv.push_back(new BranchKey(bd));
 		TLOG_ARB(TLVL_WRITEDATAPRODUCTS_VERBOSE, "RootNetOutput") << "RootNetOutput::writeDataProducts(...): Dumping branch key           of class: '"
@@ -482,8 +522,13 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			<< "' procnm: '"
 			<< bd.processName()
 			<< "'" << TLOG_ENDL;
+#if ART_HEX_VERSION > 0x20800
+		OutputHandle oh = principal.getForOutput(bd.productID(), true);
+#else
 		OutputHandle oh = principal.getForOutput(bd.branchID(), true);
+#endif
 		const EDProduct* prd = oh.wrapper();
+		TLOG(TLVL_WRITEDATAPRODUCTS) << "Class for branch " << bd.wrappedName() << " is " << (void*)TClass::GetClass(bd.wrappedName().c_str());
 		msg.WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
 		TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "RootNetOutput::writeDataProducts(...): "
 			"Streaming product provenance of class: '"
@@ -495,8 +540,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			<< "' procnm: '"
 			<< bd.processName()
 			<< "'" << TLOG_ENDL;
-		const ProductProvenance* prdprov =
-			I->second->productProvenancePtr().get();
+		const ProductProvenance* prdprov = I->second->productProvenancePtr().get();
 		msg.WriteObjectAny(prdprov, prdprov_class);
 	}
 	TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "End:   RootNetOutput::writeDataProducts(...)" << TLOG_ENDL;

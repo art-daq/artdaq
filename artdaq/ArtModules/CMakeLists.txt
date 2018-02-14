@@ -13,6 +13,7 @@ art_make( BASENAME_ONLY
   ${CANVAS_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
   artdaq-core_Data
+  artdaq-core_Data_dict
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_Application
@@ -41,6 +42,7 @@ art_make( BASENAME_ONLY
 simple_plugin(RawInput "source"
   artdaq_ArtModules
   artdaq-core_Data
+  artdaq-core_Data_dict
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal
@@ -62,6 +64,7 @@ simple_plugin(TransferOutput "module"
 
 simple_plugin(TransferInput "source"
   artdaq-core_Data
+  artdaq-core_Data_dict
   artdaq_TransferPlugins
   artdaq_ArtModules
 )
@@ -74,6 +77,7 @@ MF_MessageLogger
 
 simple_plugin(NetMonInput "source"
   artdaq-core_Data
+  artdaq-core_Data_dict
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
   artdaq-core_Utilities
@@ -91,6 +95,7 @@ simple_plugin(NetMonInput "source"
 
 simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
+  artdaq-core_Data_dict
   art_Framework_IO_Root
   MF_MessageLogger
   fhiclcpp
@@ -124,6 +129,7 @@ simple_plugin(BinaryFileOutput "module"
 
 simple_plugin(NetMonTransportService "service"
   artdaq-core_Data
+  artdaq-core_Data_dict
   artdaq_DAQrate
   art_Framework_Services_Registry
   MF_MessageLogger
