@@ -20,9 +20,9 @@
 #include "art/Utilities/parent_path.h"
 #include "art/Utilities/unique_filename.h"
 
-#include "artdaq/ArtModules/RootDAQOutFile.h"
-#include "artdaq/ArtModules/detail/rootOutputConfigurationTools.h"
-#include "artdaq/ArtModules/detail/logFileAction.h"
+#include "artdaq/ArtModules/RootDAQOutput/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutput/detail/rootOutputConfigurationTools.h"
+#include "art/Framework/IO/detail/logFileAction.h"
 
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Utilities/Exception.h"

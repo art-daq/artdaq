@@ -11,7 +11,10 @@
 #if ART_HEX_VERSION < 0x20703
 #include "art/Persistency/Provenance/BranchIDListHelper.h"
 #endif
+#if ART_HEX_VERSION < 0x20900
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
+#include "canvas/Persistency/Provenance/BranchIDList.h"
+#endif
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
@@ -19,7 +22,6 @@
 #include "canvas/Persistency/Common/EDProduct.h"
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
-#include "canvas/Persistency/Provenance/BranchIDList.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/History.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"

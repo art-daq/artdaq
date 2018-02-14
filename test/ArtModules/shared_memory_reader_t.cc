@@ -10,7 +10,10 @@
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 //#include "art/Persistency/Provenance/BranchIDListHelper.h"
+#if ART_HEX_VERSION < 0x20900
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
+#include "canvas/Utilities/GetPassID.h"
+#endif
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 #include "canvas/Persistency/Provenance/EventID.h"
@@ -22,7 +25,6 @@
 #include "canvas/Persistency/Provenance/SubRunID.h"
 #include "canvas/Persistency/Provenance/Timestamp.h"
 #include "canvas/Utilities/Exception.h"
-#include "canvas/Utilities/GetPassID.h"
 #include "art/Version/GetReleaseVersion.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
@@ -67,8 +69,11 @@ public:
 		fake_single_module_process(std::string const& tag,
 								   std::string const& processName,
 								   fhicl::ParameterSet const& moduleParams,
-								   std::string const& release = art::getReleaseVersion(),
-								   std::string const& pass = art::getPassID());
+								   std::string const& release = art::getReleaseVersion()
+#if ART_HEX_VERSION < 0x20800
+			,								   std::string const& pass = art::getPassID()
+#endif
+		);
 
 	/**
 	 * \brief Create a BranchDescription for a process
@@ -110,10 +115,12 @@ void
 MPRGlobalTestFixture::finalize()
 {
 	productRegistry_.setFrozen();
+#if ART_HEX_VERSION < 0x20900
 #if ART_HEX_VERSION >= 0x20703
 	art::BranchIDListRegistry::updateFromProductRegistry(productRegistry_);
 #else
 	art::BranchIDListHelper::updateRegistries(productRegistry_);
+#endif
 #endif
 	art::ProductMetaData::create_instance(productRegistry_);
 }
@@ -123,8 +130,11 @@ MPRGlobalTestFixture::
 fake_single_module_process(std::string const& tag,
 						   std::string const& processName,
 						   fhicl::ParameterSet const& moduleParams,
-						   std::string const& release,
-						   std::string const& pass)
+						   std::string const& release
+#if ART_HEX_VERSION < 0x20800	
+	,					   std::string const& pass
+#endif
+)
 {
 	fhicl::ParameterSet processParams;
 	processParams.put(processName, moduleParams);

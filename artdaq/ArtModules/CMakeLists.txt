@@ -1,6 +1,10 @@
 
 include_directories(${MPI_INCLUDE_PATH})
 
+if( ${ART_HEX_VERSION} LESS 0x20906 )
+    add_subdirectory(RootDAQOutput)
+endif()
+
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
   SUBDIRS detail
@@ -9,6 +13,7 @@ art_make( BASENAME_ONLY
   ${CANVAS_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
   artdaq-core_Data
+  artdaq-core_Data_dict
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_Application
@@ -21,7 +26,7 @@ art_make( BASENAME_ONLY
   art_Framework_Principal
   artdaq_ArtModules_NetMonTransportService_service
   art_Persistency_Provenance
-  art_Persistency_RootDB
+  #  art_Persistency_RootDB
   ${CANVAS_LIB_LIST}
   MF_MessageLogger
   ${SQLITE3}
@@ -37,6 +42,7 @@ art_make( BASENAME_ONLY
 simple_plugin(RawInput "source"
   artdaq_ArtModules
   artdaq-core_Data
+  artdaq-core_Data_dict
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal
@@ -58,6 +64,7 @@ simple_plugin(TransferOutput "module"
 
 simple_plugin(TransferInput "source"
   artdaq-core_Data
+  artdaq-core_Data_dict
   artdaq_TransferPlugins
   artdaq_ArtModules
 )
@@ -70,6 +77,7 @@ MF_MessageLogger
 
 simple_plugin(NetMonInput "source"
   artdaq-core_Data
+  artdaq-core_Data_dict
   artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
   artdaq-core_Utilities
@@ -87,30 +95,13 @@ simple_plugin(NetMonInput "source"
 
 simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
+  artdaq-core_Data_dict
   art_Framework_IO_Root
   MF_MessageLogger
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
-)
-
-simple_plugin(RootDAQOut "module"
-  artdaq_ArtModules_NetMonTransportService_service
-  artdaq_ArtModules
-  art_Framework_Services_Registry
-  art_Framework_IO_Root
-  art_Framework_IO_RootVersion
-  art_Persistency_RootDB
-  art_Utilities
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  ${Boost_DATE_TIME_LIBRARY}
-  ${CETLIB_EXCEPT}
-  ${SQLITE3}
-  ${ROOT_RIO}
-  ${ROOT_TREE}
 )
 
 simple_plugin(BinaryNetOutput "module"
@@ -138,6 +129,7 @@ simple_plugin(BinaryFileOutput "module"
 
 simple_plugin(NetMonTransportService "service"
   artdaq-core_Data
+  artdaq-core_Data_dict
   artdaq_DAQrate
   art_Framework_Services_Registry
   MF_MessageLogger

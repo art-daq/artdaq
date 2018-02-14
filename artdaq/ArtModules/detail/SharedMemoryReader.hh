@@ -46,7 +46,7 @@ namespace artdaq
 			 */
 			SharedMemoryReader& operator=(SharedMemoryReader const&) = delete;
 
-			art::SourceHelper const pmaker; ///< An art::SourceHelper instance
+			art::SourceHelper const& pmaker; ///< An art::SourceHelper instance
 			std::unique_ptr<SharedMemoryEventReceiver> incoming_events; ///< The events from the EventStore
 			double waiting_time; ///< The amount of time to wait for an event from the queue
 			bool resume_after_timeout; ///< Whether to resume if the dequeue action times out
@@ -233,7 +233,7 @@ namespace artdaq
 					return false;
 				}
 				auto firstFragmentType = *fragmentTypes.begin();
-				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << std::to_string(firstFragmentType) << TLOG_ENDL;
+				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << std::to_string(firstFragmentType) << " (" << fragment_type_map_[firstFragmentType] << ")" << TLOG_ENDL;
 
 				// We return false, indicating we're done reading, if:
 				//   1) we did not obtain an event, because we timed out and were

@@ -1,4 +1,4 @@
-#include "artdaq/ArtModules/detail/KeptProvenance.h"
+#include "artdaq/ArtModules/RootDAQOutput/detail/KeptProvenance.h"
 #include "art/Framework/Principal/Principal.h"
 #include "canvas/Persistency/Provenance/Parentage.h"
 

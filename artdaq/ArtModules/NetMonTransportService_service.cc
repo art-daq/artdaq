@@ -24,6 +24,10 @@
 #include <string>
 #include <vector>
 
+
+#define DUMP_SEND_MESSAGE 0
+#define DUMP_RECEIVE_MESSAGE 0
+
 static fhicl::ParameterSet empty_pset;
 
 
@@ -80,12 +84,11 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 		connect();
 	}
 
-#if 0
-	if (messageType == artdaq::Fragment::InitFragmentType) {
-		std::fstream ostream("sendInitMessage.bin", std::ios::out | std::ios::binary);
-		ostream.write(msg.Buffer(), msg.Length());
-		ostream.close();
-	}
+#if DUMP_SEND_MESSAGE
+	std::string fileName = "sendMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" + std::to_string(sequenceId) + ".bin";
+	std::fstream ostream(fileName, std::ios::out | std::ios::binary);
+	ostream.write(msg.Buffer(), msg.Length());
+	ostream.close();
 #endif
 
 	TLOG_DEBUG("NetMonTransportService") << "Sending message with sequenceID=" << std::to_string(sequenceId) << ", type=" << std::to_string(messageType) << ", length=" << std::to_string(msg.Length()) << TLOG_ENDL;
@@ -93,8 +96,8 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment
 		fragment(std::ceil(msg.Length() /
-						   static_cast<double>(sizeof(artdaq::RawDataType))),
-				 sequenceId, 0, messageType, header);
+			static_cast<double>(sizeof(artdaq::RawDataType))),
+			sequenceId, 0, messageType, header);
 
 	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
 	sender_ptr_->sendFragment(std::move(fragment));
@@ -175,7 +178,7 @@ receiveMessage(TBufferFile*& msg)
 		   sorted by sequence ID before they can be passed to art.
 		*/
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(),
-				  artdaq::fragmentSequenceIDCompare);
+			artdaq::fragmentSequenceIDCompare);
 
 		TLOG_TRACE("NetMonTransportService") << "receiveMessage: Releasing buffer" << TLOG_ENDL;
 		incoming_events_->ReleaseBuffer();
@@ -183,7 +186,7 @@ receiveMessage(TBufferFile*& msg)
 
 	// Do not process data until Init Fragment received!
 	auto start = std::chrono::steady_clock::now();
-	while (!init_received_ && artdaq::TimeUtils::GetElapsedTime(start) < init_timeout_s_) 
+	while (!init_received_ && artdaq::TimeUtils::GetElapsedTime(start) < init_timeout_s_)
 	{
 		usleep(init_timeout_s_ * 1000000 / 100); // Check 100 times
 	}
@@ -199,11 +202,18 @@ receiveMessage(TBufferFile*& msg)
 		recvd_fragments_.reset(nullptr);
 	}
 
-	TLOG_TRACE("NetMonTransportService") << "receiveMessage: Copying Fragment into TBufferFile" << TLOG_ENDL;
+	TLOG_TRACE("NetMonTransportService") << "receiveMessage: Copying Fragment into TBufferFile, length=" << topFrag.metadata<artdaq::NetMonHeader>()->data_length << TLOG_ENDL;
 	auto header = topFrag.metadata<artdaq::NetMonHeader>();
 	auto buffer = static_cast<char *>(malloc(header->data_length));
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 	msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
+
+#if DUMP_RECEIVE_MESSAGE
+	std::string fileName = "receiveMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" + std::to_string(topFrag.sequenceID()) + ".bin";
+	std::fstream ostream(fileName.c_str(), std::ios::out | std::ios::binary);
+	ostream.write(buffer, header->data_length);
+	ostream.close();
+#endif
 
 	TLOG_TRACE("NetMonTransportService") << "receiveMessage END" << TLOG_ENDL;
 }
@@ -276,7 +286,7 @@ receiveInitMessage(TBufferFile*& msg)
 		sorted by sequence ID before they can be passed to art.
 		*/
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(),
-				  artdaq::fragmentSequenceIDCompare);
+			artdaq::fragmentSequenceIDCompare);
 	}
 
 	TLOG_TRACE("NetMonTransportService") << "receiveInitMessage: Returning top Fragment" << TLOG_ENDL;
@@ -292,7 +302,7 @@ receiveInitMessage(TBufferFile*& msg)
 	auto buffer = static_cast<char *>(malloc(header->data_length));
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 
-#if 0
+#if DUMP_RECEIVE_MESSAGE
 	std::string fileName = "receiveInitMessage_" + std::to_string(getpid()) + ".bin";
 	std::fstream ostream(fileName.c_str(), std::ios::out | std::ios::binary);
 	ostream.write(buffer, header->data_length);
