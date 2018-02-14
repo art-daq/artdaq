@@ -2,7 +2,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 artdaq::Commandable::Commandable() : fsm_(*this)
-								   , primary_mutex_() {}
+, primary_mutex_() {}
 
 // **********************************************************************
 // *** The following methods implement the externally available commands.
@@ -198,25 +198,25 @@ std::vector<std::string> artdaq::Commandable::legal_commands() const
 
 	if (currentState == "Ready")
 	{
-		return {"init", "soft_init", "start", "shutdown"};
+		return { "init", "soft_init", "start", "shutdown" };
 	}
 	if (currentState == "Running")
 	{
 		// 12-May-2015, KAB: in_run_failure is also possible, but it
 		// shouldn't be requested externally.
-		return {"pause", "stop"};
+		return { "pause", "stop" };
 	}
 	if (currentState == "Paused")
 	{
-		return {"resume", "stop"};
+		return { "resume", "stop" };
 	}
 	if (currentState == "InRunError")
 	{
-		return {"pause", "stop"};
+		return { "pause", "stop" };
 	}
 
 	// Booted and Error
-	return {"init", "shutdown"};
+	return { "init", "shutdown" };
 }
 
 // *******************************************************************
@@ -306,6 +306,41 @@ void artdaq::Commandable::BootedEnter()
 void artdaq::Commandable::InRunExit()
 {
 	TLOG_DEBUG("CommandableInterface") << "InRunExit called." << TLOG_ENDL;
+}
+
+
+bool artdaq::Commandable::do_trace_memory_set(std::string const& name, uint64_t mask)
+{
+	TLOG_DEBUG("CommandableInterface") << "Setting mskM for name " << name << " to " << std::hex << std::showbase << mask << TLOG_ENDL;
+	if (name != "TRACE")
+	{
+		TRACE_CNTL("lvlmsknM", name.c_str(), mask);
+	}
+	else
+	{
+		TRACE_CNTL("lvlmskMg", mask);
+	}
+	return true;
+}
+
+bool artdaq::Commandable::do_trace_msgfacility_set(std::string const& name, uint64_t mask)
+{
+	TLOG_DEBUG("CommandableInterface") << "Setting mskS for name " << name << " to " << std::hex << std::showbase << mask << TLOG_ENDL;
+	if (name != "TRACE")
+	{
+		TRACE_CNTL("lvlmsknS", name.c_str(), mask);
+	}
+	else
+	{
+		TRACE_CNTL("lvlmskSg", mask);
+	}
+	return true;
+}
+
+bool artdaq::Commandable::do_meta_command(std::string const& cmd, std::string const& arg)
+{
+	TLOG_DEBUG("CommandableInterface") << "Meta-Command called: cmd=" << cmd << ", arg=" << arg << TLOG_ENDL;
+	return true;
 }
 
 // *********************

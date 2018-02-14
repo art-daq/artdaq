@@ -352,6 +352,15 @@ namespace artdaq
 		 */
 		bool exception() const { return exception_.load(); }
 
+
+		/**
+		* \brief The meta-command is used for implementing user-specific commands in a CommandableFragmentGenerator
+		* \param command Name of the command to run
+		* \param arg Argument(s) for command
+		* \return true if command succeeded or if command not supported
+		*/
+		virtual bool metaCommand(std::string const& command, std::string const& arg);
+
 	protected:
 
 		// John F., 12/6/13 -- need to figure out which of these getter
@@ -591,6 +600,7 @@ namespace artdaq
 		virtual std::string report();
 
 		virtual std::string reportSpecific(std::string const&);
+
 	};
 }
 

@@ -440,6 +440,12 @@ bool artdaq::CommandableFragmentGenerator::checkHWStatus_()
 	return true;
 }
 
+bool artdaq::CommandableFragmentGenerator::metaCommand(std::string const&, std::string const&)
+{
+#pragma message "Using default implementation of CommandableFragmentGenerator::metaCommand(std::string, std::string)"
+	return true;
+}
+
 void artdaq::CommandableFragmentGenerator::startDataThread()
 {
 	if (dataThread_.joinable()) dataThread_.join();

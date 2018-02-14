@@ -79,4 +79,22 @@ namespace artdaq {
 		return "NOT IMPLEMENTED";
 	}
 
+	inline std::string CommanderInterface::send_trace_memory_set(std::string, uint64_t)
+	{
+#pragma message "Using default implementation of send_trace_memory_set!"
+		return "NOT IMPLEMENTED";
+	}
+
+	inline std::string CommanderInterface::send_trace_msgfacility_set(std::string, uint64_t)
+	{
+#pragma message "Using default implementation of send_trace_msgfacility_set!"
+		return "NOT IMPLEMENTED";
+	}
+
+	inline std::string CommanderInterface::send_meta_command(std::string, std::string)
+	{
+#pragma message "Using default implementation of send_meta_command!"
+		return "NOT IMPLEMENTED";
+	}
+
 } //namespace artdaq

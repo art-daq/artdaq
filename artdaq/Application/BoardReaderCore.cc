@@ -398,6 +398,18 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 	return tmpString;
 }
 
+bool artdaq::BoardReaderCore::metaCommand(std::string const& command, std::string const& arg)
+{
+	TLOG_DEBUG(app_name) << "metaCommand method called with "
+		<< "command = \"" << command << "\""
+		<< ", arg = \"" << arg << "\""
+		<< "." << TLOG_ENDL;
+
+	if (generator_ptr_) return generator_ptr_->metaCommand(command, arg);
+
+	return true;
+}
+
 std::string artdaq::BoardReaderCore::buildStatisticsString_()
 {
 	std::ostringstream oss;

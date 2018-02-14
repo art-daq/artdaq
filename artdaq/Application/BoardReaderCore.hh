@@ -142,6 +142,14 @@ public:
 	std::string report(std::string const& which) const;
 
 	/**
+	* \brief Run a user-defined command on the CommandableFragmentGenerator
+	* \param command Command name to run
+	* \param arg Argument(s) for command
+	* \return Whether command completed successfully. (By convention, unsupported commands should return true)
+	*/
+	bool metaCommand(std::string const& command, std::string const& arg);
+
+	/**
 	 * \brief Gets a handle to the DataSenderManager
 	 * \return Pointer to the DataSenderManager
 	 */

@@ -115,6 +115,14 @@ public:
 	 */
 	void BootedEnter() override;
 
+	/**
+	* \brief Perform a user-defined command (passed to CommandableFragmentGenerator)
+	* \param command Name of the command
+	* \param arg Argument for the command
+	* \return Whether the command succeeded
+	*/
+	bool do_meta_command(std::string const& command, std::string const& arg) override;
+
 	/* Report_ptr */
 	/**
 	 * \brief If which is "transition_status", report the status of the last transition. Otherwise pass through to BoardReaderCore

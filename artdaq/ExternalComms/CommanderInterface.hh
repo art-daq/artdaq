@@ -183,6 +183,35 @@ namespace artdaq
 		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_unregister_monitor(std::string);
 
+		/// <summary>
+		/// Using the transport mechanism, send an send_trace_memory_set command
+		/// 
+		/// This will cause the receiver to set the TRACE memory level mask for the given name to the given mask
+		/// Use name == "TRACE" to set ALL names
+		///
+		/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_memory_set TraceLock i/$((0x1234)) # Use Bash to convert hex to dec
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
+		virtual std::string send_trace_memory_set(std::string, uint64_t);
+
+		/// <summary>
+		/// Using the transport mechanism, send an send_trace_msgfacility_set command
+		/// 
+		/// This will cause the receiver to set the TRACE MessageFacility level mask for the given name to the given mask.
+		/// Use name == "TRACE" to set ALL names
+		///
+		/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i/$((0x1234)) # Use Bash to convert hex to dec
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
+		virtual std::string send_trace_msgfacility_set(std::string, uint64_t);
+
+		/// <summary>
+		/// Using the transport mechanism, send an send_meta_command command
+		/// 
+		/// This will cause the receiver to run the given command with the given argument in user code
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
+		virtual std::string send_meta_command(std::string, std::string);
 
 	private:
 

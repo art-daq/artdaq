@@ -601,7 +601,7 @@ private:								\
 			auto ret = _c._commandable.shutdown(getParam<uint64_t>(paramList, 0, defaultTimeout));
 
 #if 1
-			if(_c.server) _c.server->terminate();
+			if (_c.server) _c.server->terminate();
 #endif
 
 			return ret;
@@ -764,6 +764,102 @@ private:								\
 	};
 
 
+	/**
+	* \brief trace_memory_set_ Command class
+	*/
+	class trace_memory_set_ : public cmd_
+	{
+	public:
+		/**
+		* \brief unregister_monitor_ Constructor
+		* \param c xmlrpc_commander to send transition commands to
+		*/
+		trace_memory_set_(xmlrpc_commander& c) :
+			cmd_(c, "s:ss", "Set TRACE Memory mask")
+		{}
+
+	private:
+		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+		{
+			try
+			{
+				getParam<std::string>(paramList, 0);
+				getParam<uint64_t>(paramList, 1);
+			}
+			catch (...)
+			{
+				*retvalP = xmlrpc_c::value_string("The trace_memory_set command expects a name (TRACE for all) and a mask");
+				return true;
+			}
+
+			return _c._commandable.do_trace_memory_set(getParam<std::string>(paramList, 0), getParam<uint64_t>(paramList, 1));
+		}
+	};
+
+	/**
+	* \brief trace_msgfacility_set_ Command class
+	*/
+	class trace_msgfacility_set_ : public cmd_
+	{
+	public:
+		/**
+		* \brief trace_msgfacility_set_ Constructor
+		* \param c xmlrpc_commander to send transition commands to
+		*/
+		trace_msgfacility_set_(xmlrpc_commander& c) :
+			cmd_(c, "s:ss", "Set TRACE MessageFacility mask")
+		{}
+
+	private:
+		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+		{
+			try
+			{
+				getParam<std::string>(paramList, 0);
+				getParam<uint64_t>(paramList, 1);
+			}
+			catch (...)
+			{
+				*retvalP = xmlrpc_c::value_string("The trace_msgfacility_set command expects a name (TRACE for all) and a mask");
+				return true;
+			}
+
+			return _c._commandable.do_trace_msgfacility_set(getParam<std::string>(paramList, 0), getParam<uint64_t>(paramList, 1));
+		}
+	};
+
+	/**
+	* \brief meta_command_ Command class
+	*/
+	class meta_command_ : public cmd_
+	{
+	public:
+		/**
+		* \brief meta_command_ Constructor
+		* \param c xmlrpc_commander to send transition commands to
+		*/
+		meta_command_(xmlrpc_commander& c) :
+			cmd_(c, "s:ss", "Run custom command")
+		{}
+
+	private:
+		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+		{
+			try
+			{
+				getParam<std::string>(paramList, 0);
+				getParam<std::string>(paramList, 1);
+			}
+			catch (...)
+			{
+				*retvalP = xmlrpc_c::value_string("The meta_command command expects a string command and a string argument");
+				return true;
+			}
+
+			return _c._commandable.do_meta_command(getParam<std::string>(paramList, 0), getParam<std::string>(paramList, 1));
+		}
+	};
+
 	// JCF, 9/4/14
 
 	// Not sure if anyone was planning to resurrect this code by changing
@@ -839,6 +935,9 @@ private:								\
 		register_method(register_monitor);
 		register_method(unregister_monitor);
 		register_method(legal_commands);
+		register_method(trace_memory_set);
+		register_method(trace_msgfacility_set);
+		register_method(meta_command);
 
 		register_method(shutdown);
 
