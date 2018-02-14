@@ -118,6 +118,17 @@ bool artdaq::DataReceiverCore::stop()
 		TLOG_ERROR(app_name)
 			<< "EventStore::endRun in stop method failed after three tries." << TLOG_ENDL;
 	}
+
+	endSucceeded = false;
+	attemptsToEnd = 1;
+	TLOG_DEBUG("DataReceiverCore") << "stop: Calling EventStore::endOfData" << TLOG_ENDL;
+	endSucceeded = event_store_ptr_->endOfData();
+	while (!endSucceeded && attemptsToEnd < 3)
+	{
+		++attemptsToEnd;
+		TLOG_DEBUG(app_name) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
+		endSucceeded = event_store_ptr_->endOfData();
+	}
 	
 	run_is_paused_.store(false);
 	return true;

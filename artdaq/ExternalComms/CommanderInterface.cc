@@ -79,15 +79,15 @@ namespace artdaq {
 		return "NOT IMPLEMENTED";
 	}
 
-	inline std::string CommanderInterface::send_trace_memory_set(std::string, uint64_t)
+	inline std::string CommanderInterface::send_trace_get(std::string)
 	{
-#pragma message "Using default implementation of send_trace_memory_set!"
+#pragma message "Using default implementation of send_trace_get!"
 		return "NOT IMPLEMENTED";
 	}
 
-	inline std::string CommanderInterface::send_trace_msgfacility_set(std::string, uint64_t)
+	inline std::string CommanderInterface::send_trace_set(std::string, std::string, uint64_t)
 	{
-#pragma message "Using default implementation of send_trace_msgfacility_set!"
+#pragma message "Using default implementation of send_trace_set!"
 		return "NOT IMPLEMENTED";
 	}
 

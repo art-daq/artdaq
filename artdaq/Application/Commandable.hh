@@ -244,18 +244,18 @@ public:
 	virtual void InRunExit();
 
 	/**
-	* \brief Set the TRACE mask for the given trace name (memory output)
+	* \brief Get the TRACE mask for the given trace name
 	*
 	* This function is implemented in Commandable, derived classes may override if necessary.
 	*/
-	virtual bool do_trace_memory_set(std::string const&, uint64_t);
+	virtual std::string do_trace_get(std::string const&);
 
 	/**
-	* \brief Set the TRACE mask for the given trace name (MessageFacility output)
+	* \brief Set the given TRACE mask for the given trace name
 	*
 	* This function is implemented in Commandable, derived classes may override if necessary.
 	*/
-	virtual bool do_trace_msgfacility_set(std::string const&, uint64_t);
+	virtual bool do_trace_set(std::string const&, std::string const&, uint64_t);
 
 	/**
 	* \brief Run a module-defined command with the given parameter string

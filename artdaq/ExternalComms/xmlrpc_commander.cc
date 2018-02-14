@@ -765,17 +765,17 @@ private:								\
 
 
 	/**
-	* \brief trace_memory_set_ Command class
+	* \brief trace_set_ Command class
 	*/
-	class trace_memory_set_ : public cmd_
+	class trace_set_ : public cmd_
 	{
 	public:
 		/**
 		* \brief unregister_monitor_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		trace_memory_set_(xmlrpc_commander& c) :
-			cmd_(c, "s:ss", "Set TRACE Memory mask")
+		trace_set_(xmlrpc_commander& c) :
+			cmd_(c, "s:ssi", "Set TRACE mask")
 		{}
 
 	private:
@@ -784,30 +784,31 @@ private:								\
 			try
 			{
 				getParam<std::string>(paramList, 0);
-				getParam<uint64_t>(paramList, 1);
+				getParam<std::string>(paramList, 1);
+				getParam<uint64_t>(paramList, 2);
 			}
 			catch (...)
 			{
-				*retvalP = xmlrpc_c::value_string("The trace_memory_set command expects a name (TRACE for all) and a mask");
+				*retvalP = xmlrpc_c::value_string("The trace_set command expects a mask type (M, S , or T), a name (ALL for all) and a mask");
 				return true;
 			}
 
-			return _c._commandable.do_trace_memory_set(getParam<std::string>(paramList, 0), getParam<uint64_t>(paramList, 1));
+			return _c._commandable.do_trace_set(getParam<std::string>(paramList, 0), getParam<std::string>(paramList, 1), getParam<uint64_t>(paramList, 2));
 		}
 	};
 
 	/**
-	* \brief trace_msgfacility_set_ Command class
+	* \brief trace_get_ Command class
 	*/
-	class trace_msgfacility_set_ : public cmd_
+	class trace_get_ : public cmd_
 	{
 	public:
 		/**
 		* \brief trace_msgfacility_set_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		trace_msgfacility_set_(xmlrpc_commander& c) :
-			cmd_(c, "s:ss", "Set TRACE MessageFacility mask")
+		trace_get_(xmlrpc_commander& c) :
+			cmd_(c, "s:s", "Get TRACE mask")
 		{}
 
 	private:
@@ -816,15 +817,15 @@ private:								\
 			try
 			{
 				getParam<std::string>(paramList, 0);
-				getParam<uint64_t>(paramList, 1);
 			}
 			catch (...)
 			{
-				*retvalP = xmlrpc_c::value_string("The trace_msgfacility_set command expects a name (TRACE for all) and a mask");
+				*retvalP = xmlrpc_c::value_string("The trace_msgfacility_set command expects a name (ALL for all)");
 				return true;
 			}
 
-			return _c._commandable.do_trace_msgfacility_set(getParam<std::string>(paramList, 0), getParam<uint64_t>(paramList, 1));
+			*retvalP = xmlrpc_c::value_string(_c._commandable.do_trace_get(getParam<std::string>(paramList, 0)));
+			return true;
 		}
 	};
 
@@ -935,8 +936,8 @@ private:								\
 		register_method(register_monitor);
 		register_method(unregister_monitor);
 		register_method(legal_commands);
-		register_method(trace_memory_set);
-		register_method(trace_msgfacility_set);
+		register_method(trace_set);
+		register_method(trace_get);
 		register_method(meta_command);
 
 		register_method(shutdown);
