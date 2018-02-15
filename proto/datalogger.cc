@@ -20,39 +20,39 @@
 
 int main(int argc, char * argv[])
 {
-	artdaq::configureMessageFacility("datalogger");
+	fhicl::ParameterSet config_ps = LoadParameterSet(argc, argv);
+	app_name = config_ps.get<std::string>("application_name", "DataLogger");
+	std::string mf_app_name = artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id"));
+	artdaq::configureMessageFacility(mf_app_name.c_str());
 
-	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
+	auto rank = config_ps.get<int>("rank", 0);
+	TLOG_DEBUG(app_name + "Main") << "Setting application name to " << app_name << TLOG_ENDL;
 
-	std::string name = config.get<std::string>("application_name", "DataLogger");
-	auto rank = config.get<int>("rank", 0);
-	TLOG_DEBUG(name + "Main") << "Setting application name to " << name << TLOG_ENDL;
-
-	TLOG_DEBUG(name + "Main") << "artdaq version " <<
+	TLOG_DEBUG(app_name + "Main") << "artdaq version " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 		<< ", built " <<
 		artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
 
-	artdaq::setMsgFacAppName(name, config.get<int>("id"));
-	
-	// create the DataLoggerApp
-	artdaq::DataLoggerApp dl_app(rank, name);
+	artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id"));
 
-	auto auto_run = config.get<bool>("auto_run", false);
+	// create the DataLoggerApp
+	artdaq::DataLoggerApp dl_app(rank, app_name);
+
+	auto auto_run = config_ps.get<bool>("auto_run", false);
 	if (auto_run) {
-		int run = config.get<int>("run_number", 101);
-		uint64_t timeout = config.get<uint64_t>("transition_timeout", 30);
+		int run = config_ps.get<int>("run_number", 101);
+		uint64_t timeout = config_ps.get<uint64_t>("transition_timeout", 30);
 		uint64_t timestamp = 0;
 
-		dl_app.do_initialize(config, timeout, timestamp);
+		dl_app.do_initialize(config_ps, timeout, timestamp);
 		dl_app.do_start(art::RunID(run), timeout, timestamp);
 
-		TLOG_INFO(name) << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
-			<< "xmlrpc http://`hostname`:" << config.get<int>("id") << "/RPC2 daq.stop" << std::endl
-			<< "xmlrpc http://`hostname`:" << config.get<int>("id") << "/RPC2 daq.shutdown" << TLOG_ENDL;
+		TLOG_INFO(app_name) << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
+			<< "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.stop" << std::endl
+			<< "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.shutdown" << TLOG_ENDL;
 	}
 
-	auto commander = artdaq::MakeCommanderPlugin(config, dl_app);
+	auto commander = artdaq::MakeCommanderPlugin(config_ps, dl_app);
 	commander->run_server();
 	
 }

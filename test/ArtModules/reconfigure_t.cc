@@ -2,7 +2,6 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq/Application/MPI2/MPISentry.hh"
 #include "cetlib/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -24,7 +23,6 @@ int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("reconfigure_t");
 	auto pset = LoadParameterSet(argc, argv);
-	artdaq::MPISentry mpiSentry(&argc, &argv);
 	int rc = -1;
 	try
 	{

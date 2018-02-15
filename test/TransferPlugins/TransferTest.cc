@@ -1,7 +1,7 @@
-#include "proto/TransferTest.hh"
+#include "test/TransferPlugins/TransferTest.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "proto/FragmentReceiverManager.hh"
+#include "test/TransferPlugins/FragmentReceiverManager.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 
 #include "artdaq/DAQdata/Globals.hh"

@@ -130,7 +130,6 @@ if(BTYPE_UC STREQUAL DEBUG)
   add_definitions(-DDEBUGME)
 endif()
 
-find_package(MPI QUIET)
 
 if (DEFINED ENV{NDDSHOME})
    set( USING_RTIDDS TRUE )

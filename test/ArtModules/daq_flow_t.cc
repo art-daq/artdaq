@@ -2,7 +2,6 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq/Application/MPI2/MPISentry.hh"
 #include "cetlib/exception.h"
 #include "fhiclcpp/make_ParameterSet.h"
 #include "artdaq/Application/LoadParameterSet.hh"
@@ -21,7 +20,6 @@ using std::size_t;
 int main(int argc, char* argv[])
 {
 	auto pset = LoadParameterSet(argc, argv);
-	artdaq::MPISentry mpiSentry(&argc, &argv);
 	int rc = -1;
 	try
 	{

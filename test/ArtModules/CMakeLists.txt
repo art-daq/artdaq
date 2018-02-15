@@ -1,4 +1,3 @@
-include_directories(${MPI_INCLUDE_PATH})
 
 simple_plugin(FragmentSniffer "module"
   artdaq_DAQdata
@@ -41,10 +40,8 @@ endif()
 cet_test(daq_flow_t
   LIBRARIES
   art_Framework_Art
-  ${MPI_C_LIBRARIES}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   artdaq_DAQdata_GenericFragmentSimulator_generator
-  artdaq_Application_MPI2
   artdaq_DAQrate
   artdaq_DAQdata
   MF_MessageLogger
@@ -57,10 +54,8 @@ cet_test(daq_flow_t
   cet_test(reconfigure_t
    LIBRARIES
   art_Framework_Art
-  ${MPI_C_LIBRARIES}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   artdaq_DAQdata_GenericFragmentSimulator_generator
-  artdaq_Application_MPI2
   artdaq_DAQrate
   artdaq_DAQdata
   MF_MessageLogger

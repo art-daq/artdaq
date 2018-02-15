@@ -47,7 +47,7 @@ artdaq::BoardReaderCore::~BoardReaderCore()
 
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
 {
-	TLOG_DEBUG(app_name) << "initialize method called with "           << "ParameterSet = \"" << pset.to_string()              << "\"." << TLOG_ENDL;
+	TLOG_DEBUG(app_name) << "initialize method called with " << "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -86,7 +86,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 	if (metric_pset.is_empty())
 	{
-	    TLOG_INFO(app_name) << "No metric plugins appear to be defined" << TLOG_ENDL;
+		TLOG_INFO(app_name) << "No metric plugins appear to be defined" << TLOG_ENDL;
 	}
 	try
 	{
@@ -95,7 +95,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no,
-						 "Error loading metrics in BoardReaderCore::initialize()");
+			"Error loading metrics in BoardReaderCore::initialize()");
 	}
 
 	// create the requested CommandableFragmentGenerator
@@ -128,48 +128,8 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	metricMan_.setPrefix(generator_ptr_->metricsReportingInstanceName());
 
 	rt_priority_ = fr_pset.get<int>("rt_priority", 0);
-	/* ELF 5/10/2017 Removing in favor of DataReceiverManager source suppression logic
-	mpi_sync_fragment_interval_ = fr_pset.get<int>("mpi_sync_interval", 0);
-	if (mpi_sync_fragment_interval_ > 0)
-	{
-		mpi_sync_wait_threshold_fraction_ = fr_pset.get<double>("mpi_sync_wait_threshold", 0.5);
-		mpi_sync_wait_threshold_count_ = mpi_sync_fragment_interval_ * mpi_sync_wait_threshold_fraction_;
-		if (mpi_sync_wait_threshold_count_ >= mpi_sync_fragment_interval_)
-		{
-			TLOG_WARNING(app_name) << "The calculated mpi_sync wait threshold "
-				<< "(" << mpi_sync_wait_threshold_count_ << " fragments) "
-				<< "is too large, setting it to "
-				<< (mpi_sync_fragment_interval_ - 1) << "." << TLOG_ENDL;
-			mpi_sync_wait_threshold_count_ = mpi_sync_fragment_interval_ - 1;
-		}
-		if (mpi_sync_wait_threshold_count_ < 0)
-		{
-			TLOG_WARNING(app_name) << "The calculated mpi_sync wait threshold "
-				<< "(" << mpi_sync_wait_threshold_count_ << " fragments) "
-				<< "is too small, setting it to zero." << TLOG_ENDL;
-			mpi_sync_wait_threshold_count_ = 0;
-		}
-		mpi_sync_wait_interval_usec_ = fr_pset.get<size_t>("mpi_sync_wait_interval_usec", 100);
-		mpi_sync_wait_log_level_ = fr_pset.get<int>("mpi_sync_wait_log_level", 2);
-		mpi_sync_wait_log_interval_sec_ = fr_pset.get<int>("mpi_sync_wait_log_interval_sec", 10);
-	}
-	else
-	{
-		mpi_sync_wait_threshold_fraction_ = 0.0;
-		mpi_sync_wait_threshold_count_ = 0;
-		mpi_sync_wait_interval_usec_ = 1000000;
-		mpi_sync_wait_log_level_ = 0;
-		mpi_sync_wait_log_interval_sec_ = 10;
-	}
-	TLOG_DEBUG(app_name)
-		<< "mpi_sync_fragment_interval is " << mpi_sync_fragment_interval_
-		<< ", mpi_sync_wait_threshold_fraction is " << mpi_sync_wait_threshold_fraction_
-		<< ", mpi_sync_wait_threshold_count is " << mpi_sync_wait_threshold_count_
-		<< ", mpi_sync_wait_interval_usec is " << mpi_sync_wait_interval_usec_
-		<< ", mpi_sync_wait_log_level is " << mpi_sync_wait_log_level_
-		<< ", mpi_sync_wait_log_interval_sec is " << mpi_sync_wait_log_interval_sec_ << TLOG_ENDL;
-		*/
-		// fetch the monitoring parameters and create the MonitoredQuantity instances
+
+	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
 
 	// check if we should skip the sequence ID test...
@@ -283,7 +243,7 @@ void artdaq::BoardReaderCore::process_fragments()
 
 	TLOG_DEBUG(app_name) << "Initializing DataSenderManager. my_rank=" << my_rank << TLOG_ENDL;
 	sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
-	
+
 	TLOG_DEBUG(app_name) << "Waiting for first fragment." << TLOG_ENDL;
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
@@ -311,7 +271,7 @@ void artdaq::BoardReaderCore::process_fragments()
 		delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 		statsHelper_.addSample(INPUT_WAIT_STAT_KEY, delta_time);
 
-		TLOG_ARB(16,app_name) << "process_fragments INPUT_WAIT="<<std::to_string( delta_time) << TLOG_ENDL;
+		TLOG_ARB(16, app_name) << "process_fragments INPUT_WAIT=" << std::to_string(delta_time) << TLOG_ENDL;
 
 		if (!active) { break; }
 		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
@@ -345,12 +305,12 @@ void artdaq::BoardReaderCore::process_fragments()
 			prev_seq_id_ = sequence_id;
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
-			TLOG_ARB(17,app_name) << "process_fragments seq="<< std::to_string(sequence_id) << " sendFragment start" << TLOG_ENDL;
+			TLOG_ARB(17, app_name) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment start" << TLOG_ENDL;
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
-			TLOG_ARB(17, app_name) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment done (res="<< res<<")"<<TLOG_ENDL;
+			TLOG_ARB(17, app_name) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment done (res=" << res << ")" << TLOG_ENDL;
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
-								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+				artdaq::MonitoredQuantity::getCurrentTime() - startTime);
 
 			bool readyToReport = statsHelper_.readyToReport(fragment_count_);
 			if (readyToReport)

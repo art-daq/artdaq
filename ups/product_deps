@@ -17,13 +17,11 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-art             v2_09_06        s62
+art             v2_10_02        s64
 art             v2_07_03        s50
 art             v2_06_01        s46
 artdaq_core 		v3_01_04
 artdaq_utilities        v1_04_02
-mvapich2		v1_9_0
-mpich			v3_2_1
 xmlrpc_c		v1_39_10b
 artdaq_ganglia_plugin   v1_02_08        -       optional
 artdaq_epics_plugin     v1_02_02        -       optional
@@ -35,55 +33,19 @@ end_product_list
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
-qualifier		art		artdaq_core    	   artdaq_utilities	mvapich2	mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions
-e15:s62:debug		e15:debug	e15:s62:debug	   e15:s62:debug	-		e15:debug	e15:debug	e15:s62:debug	e15:s62:debug       	e15:s62:debug
-e15:s62:prof		e15:prof 	e15:s62:prof	   e15:s62:prof		-		e15:prof	e15:prof	e15:s62:prof	e15:s62:prof		e15:s62:prof
-e14:s62:debug		e14:debug	e14:s62:debug	   e14:s62:debug	-		e14:debug	e14:debug	e14:s62:debug	e14:s62:debug       	e14:s62:debug
-e14:s62:prof		e14:prof 	e14:s62:prof	   e14:s62:prof		-		e14:prof	e14:prof	e14:s62:prof	e14:s62:prof		e14:s62:prof
-e14:s50:debug		e14:debug	e14:s50:debug	   e14:s50:debug	-		e14:debug	e14:debug	e14:s50:debug	e14:s50:debug       	e14:s50:debug
-e14:s50:prof		e14:prof 	e14:s50:prof	   e14:s50:prof		-		e14:prof	e14:prof	e14:s50:prof	e14:s50:prof		e14:s50:prof
-e10:s46:debug		e10:debug	e10:s46:debug	   e10:s46:debug	-		e10:debug	e10:debug	e10:s46:debug	e10:s46:debug       	e10:s46:debug
-e10:s46:prof		e10:prof 	e10:s46:prof	   e10:s46:prof		-		e10:prof	e10:prof	e10:s46:prof	e10:s46:prof		e10:s46:prof
-e15:s62:ib:debug	e15:debug	e15:s62:debug	   e15:s62:debug	-nq-		-		e15:debug	e15:s62:debug	e15:s62:debug		e15:s62:debug
-e15:s62:ib:prof		e15:prof	e15:s62:prof	   e15:s62:prof		-nq-		-		e15:prof	e15:s62:prof	e15:s62:prof		e15:s62:prof
-e15:s62:eth:debug	e15:debug	e15:s62:debug	   e15:s62:debug	-		e15:debug	e15:debug	e15:s62:debug	e15:s62:debug		e15:s62:debug
-e15:s62:eth:prof	e15:prof 	e15:s62:prof 	   e15:s62:prof		-		e15:prof	e15:prof	e15:s62:prof	e15:s62:prof		e15:s62:prof
-e14:s62:ib:debug	e14:debug	e14:s62:debug	   e14:s62:debug	-nq-		-		e14:debug	e14:s62:debug	e14:s62:debug		e14:s62:debug
-e14:s62:ib:prof		e14:prof	e14:s62:prof	   e14:s62:prof		-nq-		-		e14:prof	e14:s62:prof	e14:s62:prof		e14:s62:prof
-e14:s62:eth:debug	e14:debug	e14:s62:debug	   e14:s62:debug	-		e14:debug	e14:debug	e14:s62:debug	e14:s62:debug		e14:s62:debug
-e14:s62:eth:prof	e14:prof 	e14:s62:prof 	   e14:s62:prof		-		e14:prof	e14:prof	e14:s62:prof	e14:s62:prof		e14:s62:prof
-e14:s50:ib:debug	e14:debug	e14:s50:debug	   e14:s50:debug	-nq-		-		e14:debug	e14:s50:debug	e14:s50:debug		e14:s50:debug
-e14:s50:ib:prof		e14:prof	e14:s50:prof	   e14:s50:prof		-nq-		-		e14:prof	e14:s50:prof	e14:s50:prof		e14:s50:prof
-e14:s50:eth:debug	e14:debug	e14:s50:debug	   e14:s50:debug	-		e14:debug	e14:debug	e14:s50:debug	e14:s50:debug		e14:s50:debug
-e14:s50:eth:prof	e14:prof 	e14:s50:prof 	   e14:s50:prof		-		e14:prof	e14:prof	e14:s50:prof	e14:s50:prof		e14:s50:prof
-e10:s46:ib:debug	e10:debug	e10:s46:debug	   e10:s46:debug	-nq-		-		e10:debug	e10:s46:debug	e10:s46:debug		e10:s46:debug
-e10:s46:ib:prof		e10:prof	e10:s46:prof	   e10:s46:prof		-nq-		-		e10:prof	e10:s46:prof	e10:s46:prof		e10:s46:prof
-e10:s46:eth:debug	e10:debug	e10:s46:debug	   e10:s46:debug	-		e10:debug	e10:debug	e10:s46:debug	e10:s46:debug		e10:s46:debug
-e10:s46:eth:prof	e10:prof 	e10:s46:prof 	   e10:s46:prof		-		e10:prof	e10:prof	e10:s46:prof	e10:s46:prof		e10:s46:prof
-nu:e15:s62:debug	nu:e15:debug	nu:e15:s62:debug   e15:s62:debug	-		e15:debug	e15:debug	e15:s62:debug	e15:s62:debug       	e15:s62:debug
-nu:e15:s62:prof		nu:e15:prof 	nu:e15:s62:prof	   e15:s62:prof		-		e15:prof	e15:prof	e15:s62:prof	e15:s62:prof		e15:s62:prof
-nu:e14:s62:debug	nu:e14:debug	nu:e14:s62:debug   e14:s62:debug	-		e14:debug	e14:debug	e14:s62:debug	e14:s62:debug       	e14:s62:debug
-nu:e14:s62:prof		nu:e14:prof 	nu:e14:s62:prof	   e14:s62:prof		-		e14:prof	e14:prof	e14:s62:prof	e14:s62:prof		e14:s62:prof
-nu:e14:s50:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	-		e14:debug	e14:debug	e14:s50:debug	e14:s50:debug       	e14:s50:debug
-nu:e14:s50:prof		nu:e14:prof 	nu:e14:s50:prof	   e14:s50:prof		-		e14:prof	e14:prof	e14:s50:prof	e14:s50:prof		e14:s50:prof
-nu:e10:s46:debug	nu:e10:debug	nu:e10:s46:debug   e10:s46:debug	-		e10:debug	e10:debug	e10:s46:debug	e10:s46:debug       	e10:s46:debug
-nu:e10:s46:prof		nu:e10:prof 	nu:e10:s46:prof	   e10:s46:prof		-		e10:prof	e10:prof	e10:s46:prof	e10:s46:prof		e10:s46:prof
-nu:e15:s62:ib:debug	nu:e15:debug	nu:e15:s62:debug   e15:s62:debug	-nq-		-		e15:debug	e15:s62:debug	e15:s62:debug		e15:s62:debug
-nu:e15:s62:ib:prof	nu:e15:prof	nu:e15:s62:prof	   e15:s62:prof		-nq-		-		e15:prof	e15:s62:prof	e15:s62:prof		e15:s62:prof
-nu:e15:s62:eth:debug	nu:e15:debug	nu:e15:s62:debug   e15:s62:debug	-		e15:debug	e15:debug	e15:s62:debug	e15:s62:debug		e15:s62:debug
-nu:e15:s62:eth:prof	nu:e15:prof 	nu:e15:s62:prof    e15:s62:prof		-		e15:prof	e15:prof	e15:s62:prof	e15:s62:prof		e15:s62:prof
-nu:e14:s62:ib:debug	nu:e14:debug	nu:e14:s62:debug   e14:s62:debug	-nq-		-		e14:debug	e14:s62:debug	e14:s62:debug		e14:s62:debug
-nu:e14:s62:ib:prof	nu:e14:prof	nu:e14:s62:prof	   e14:s62:prof		-nq-		-		e14:prof	e14:s62:prof	e14:s62:prof		e14:s62:prof
-nu:e14:s62:eth:debug	nu:e14:debug	nu:e14:s62:debug   e14:s62:debug	-		e14:debug	e14:debug	e14:s62:debug	e14:s62:debug		e14:s62:debug
-nu:e14:s62:eth:prof	nu:e14:prof 	nu:e14:s62:prof    e14:s62:prof		-		e14:prof	e14:prof	e14:s62:prof	e14:s62:prof		e14:s62:prof
-nu:e14:s50:ib:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	-nq-		-		e14:debug	e14:s50:debug	e14:s50:debug		e14:s50:debug
-nu:e14:s50:ib:prof	nu:e14:prof	nu:e14:s50:prof	   e14:s50:prof		-nq-		-		e14:prof	e14:s50:prof	e14:s50:prof		e14:s50:prof
-nu:e14:s50:eth:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	-		e14:debug	e14:debug	e14:s50:debug	e14:s50:debug		e14:s50:debug
-nu:e14:s50:eth:prof	nu:e14:prof 	nu:e14:s50:prof    e14:s50:prof		-		e14:prof	e14:prof	e14:s50:prof	e14:s50:prof		e14:s50:prof
-nu:e10:s46:ib:debug	nu:e10:debug	nu:e10:s46:debug   e10:s46:debug	-nq-		-		e10:debug	e10:s46:debug	e10:s46:debug		e10:s46:debug
-nu:e10:s46:ib:prof	nu:e10:prof	nu:e10:s46:prof	   e10:s46:prof		-nq-		-		e10:prof	e10:s46:prof	e10:s46:prof		e10:s46:prof
-nu:e10:s46:eth:debug	nu:e10:debug	nu:e10:s46:debug   e10:s46:debug	-		e10:debug	e10:debug	e10:s46:debug	e10:s46:debug		e10:s46:debug
-nu:e10:s46:eth:prof	nu:e10:prof 	nu:e10:s46:prof    e10:s46:prof		-		e10:prof	e10:prof	e10:s46:prof	e10:s46:prof		e10:s46:prof
+qualifier			art				artdaq_core    	   artdaq_utilities	xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions
+e15:s64:debug		e15:debug		e15:s64:debug	   e15:s64:debug	e15:debug	e15:s64:debug			e15:s64:debug       e15:s64:debug
+e15:s64:prof		e15:prof 		e15:s64:prof	   e15:s64:prof		e15:prof	e15:s64:prof			e15:s64:prof		e15:s64:prof
+e14:s50:debug		e14:debug		e14:s50:debug	   e14:s50:debug	e14:debug	e14:s50:debug			e14:s50:debug       e14:s50:debug
+e14:s50:prof		e14:prof 		e14:s50:prof	   e14:s50:prof		e14:prof	e14:s50:prof			e14:s50:prof		e14:s50:prof
+e10:s46:debug		e10:debug		e10:s46:debug	   e10:s46:debug	e10:debug	e10:s46:debug			e10:s46:debug       e10:s46:debug
+e10:s46:prof		e10:prof 		e10:s46:prof	   e10:s46:prof		e10:prof	e10:s46:prof			e10:s46:prof		e10:s46:prof
+nu:e15:s64:debug	nu:e15:debug	nu:e15:s64:debug   e15:s64:debug	e15:debug	e15:s64:debug			e15:s64:debug       e15:s64:debug
+nu:e15:s64:prof		nu:e15:prof 	nu:e15:s64:prof	   e15:s64:prof		e15:prof	e15:s64:prof			e15:s64:prof		e15:s64:prof
+nu:e14:s50:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	e14:debug	e14:s50:debug			e14:s50:debug       e14:s50:debug
+nu:e14:s50:prof		nu:e14:prof 	nu:e14:s50:prof	   e14:s50:prof		e14:prof	e14:s50:prof			e14:s50:prof		e14:s50:prof
+nu:e10:s46:debug	nu:e10:debug	nu:e10:s46:debug   e10:s46:debug	e10:debug	e10:s46:debug			e10:s46:debug       e10:s46:debug
+nu:e10:s46:prof		nu:e10:prof 	nu:e10:s46:prof	   e10:s46:prof		e10:prof	e10:s46:prof			e10:s46:prof		e10:s46:prof
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
