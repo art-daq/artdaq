@@ -283,16 +283,13 @@ void artdaq::BoardReaderCore::process_fragments()
 
 	TLOG_DEBUG(app_name) << "Initializing DataSenderManager. my_rank=" << my_rank << TLOG_ENDL;
 	sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
-
-	//MPI_Barrier(local_group_comm_);
-
+	
 	TLOG_DEBUG(app_name) << "Waiting for first fragment." << TLOG_ENDL;
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
 	artdaq::FragmentPtrs frags;
 	bool active = true;
-	//MPI_Request mpi_request;
-	//bool barrier_is_pending = false;
+
 	while (active)
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
@@ -306,7 +303,7 @@ void artdaq::BoardReaderCore::process_fragments()
 		// the experiment-specific FragmentGenerator class, we move to the
 		// InRunError state so that external observers (e.g. RunControl or
 		// DAQInterface) can see that there was a problem.
-		if (!active && generator_ptr_->exception())
+		if (!active && generator_ptr_ && generator_ptr_->exception())
 		{
 			parent_application_.in_run_failure();
 		}
@@ -336,102 +333,6 @@ void artdaq::BoardReaderCore::process_fragments()
 					<< "Sending fragment " << fragment_count_
 					<< " (%250) with sequence id " << sequence_id << "." << TLOG_ENDL;
 			}
-
-			/* ELF 5/10/2017 Removing in favor of DataReceiverManager source suppression logic
-			startTime = artdaq::MonitoredQuantity::getCurrentTime();
-			// 10-Sep-2015, KAB - added non-blocking synchronization between
-			// BoardReader processes.  Ibarrier is called every N fragments
-			// by each BoardReader, but each BR is allowed to continue processing
-			// fragments until a specified threshold of additional fragments is
-			// reached.  Once that threshold is reached, and one or more of the
-			// other BoardReaders haven't called Ibarrier, we wait.
-			if (mpi_sync_fragment_interval_ > 0 && fragment_count_ > 0 &&
-				(fragment_count_ % mpi_sync_fragment_interval_) == 0)
-			{
-				TLOG_ARB(4, "BoardReaderCore: Entering MPI Barrier");
-				MPI_Ibarrier(local_group_comm_, &mpi_request);
-				barrier_is_pending = true;
-			}
-			if (barrier_is_pending)
-			{
-				MPI_Status mpi_status;
-				int test_flag;
-				int retcode = MPI_Test(&mpi_request, &test_flag, &mpi_status);
-				if (retcode != MPI_SUCCESS)
-				{
-					TLOG_ERROR(app_name)
-						<< "MPI_Test for Ibarrier completion failed with return code "
-						<< retcode << TLOG_ENDL;
-				}
-
-				if (test_flag != 0)
-				{
-					barrier_is_pending = false;
-				}
-				else
-				{
-					int tmpVal = (fragment_count_ % mpi_sync_fragment_interval_);
-					if (tmpVal >= mpi_sync_wait_threshold_count_)
-					{
-						int report_interval = mpi_sync_wait_log_interval_sec_;
-						time_t last_report_time = time(0);
-						while (test_flag == 0 && !stop_requested_.load())
-						{
-							usleep(mpi_sync_wait_interval_usec_);
-							retcode = MPI_Test(&mpi_request, &test_flag, &mpi_status);
-							if (retcode != MPI_SUCCESS || test_flag == 0)
-							{
-								time_t now = time(0);
-								if ((now - last_report_time) >= report_interval)
-								{
-									if (retcode != MPI_SUCCESS)
-									{
-										TLOG_ERROR(app_name)
-											<< "MPI_Test for Ibarrier completion failed with return code "
-											<< retcode << TLOG_ENDL;
-									}
-									else
-									{
-										if (mpi_sync_wait_log_level_ == 2)
-										{
-											TLOG_WARNING(app_name)
-												<< "Waiting for one or more BoardReaders to catch up "
-												<< "so that the sending of data fragments is reasonably "
-												<< "well synchronized (fragment count is currently "
-												<< fragment_count_
-												<< "). If this situation persists, it may indicate that "
-												<< "the data flow from one or more BoardReaders has "
-												<< "stopped, possibly because of a problem reading out "
-												<< "the associated hardware component(s)." << TLOG_ENDL;
-										}
-										else if (mpi_sync_wait_log_level_ == 3)
-										{
-											TLOG_ERROR(app_name)
-												<< "Waiting for one or more BoardReaders to catch up "
-												<< "so that the sending of data fragments is reasonably "
-												<< "well synchronized (fragment count is currently "
-												<< fragment_count_
-												<< "). If this situation persists, it may indicate that "
-												<< "the data flow from one or more BoardReaders has "
-												<< "stopped, possibly because of a problem reading out "
-												<< "the associated hardware component(s)." << TLOG_ENDL;
-										}
-									}
-									last_report_time = now;
-									report_interval += mpi_sync_wait_log_interval_sec_;
-								}
-							}
-						}
-						if (test_flag != 0)
-						{
-							barrier_is_pending = false;
-						}
-					}
-				}
-			}
-			statsHelper_.addSample(BRSYNC_WAIT_STAT_KEY,
-								   artdaq::MonitoredQuantity::getCurrentTime() - startTime);
-			*/
 
 			// check for continous sequence IDs
 			if (!skip_seqId_test_ && abs(sequence_id - prev_seq_id_) > 1)
@@ -468,11 +369,6 @@ void artdaq::BoardReaderCore::process_fragments()
 		frags.clear();
 	}
 
-	// 07-Feb-2013, KAB
-	// removing this barrier so that we can stop the trigger (V1495)
-	// generation and readout before stopping the readout of the other cards
-	//MPI_Barrier(local_group_comm_);
-
 	// 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
 	// processing fragments loop so that metrics correctly go to zero when
 	// there is no data flowing
@@ -500,6 +396,18 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 	tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
 	tmpString.append(". Command=\"" + which + "\" is not currently supported.");
 	return tmpString;
+}
+
+bool artdaq::BoardReaderCore::metaCommand(std::string const& command, std::string const& arg)
+{
+	TLOG_DEBUG(app_name) << "metaCommand method called with "
+		<< "command = \"" << command << "\""
+		<< ", arg = \"" << arg << "\""
+		<< "." << TLOG_ENDL;
+
+	if (generator_ptr_) return generator_ptr_->metaCommand(command, arg);
+
+	return true;
 }
 
 std::string artdaq::BoardReaderCore::buildStatisticsString_()

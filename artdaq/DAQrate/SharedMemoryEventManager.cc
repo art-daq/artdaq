@@ -5,7 +5,6 @@
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Utilities/TraceLock.hh"
 #include <sys/wait.h>
-#include "SharedMemoryEventManager.hh"
 
 std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
 

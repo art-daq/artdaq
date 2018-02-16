@@ -1,5 +1,5 @@
 #include "TClass.h"
-#include "artdaq/ArtModules/detail/DummyProductCache.h"
+#include "artdaq/ArtModules/RootDAQOutput/detail/DummyProductCache.h"
 #include "canvas/Utilities/Exception.h"
 
 namespace art {

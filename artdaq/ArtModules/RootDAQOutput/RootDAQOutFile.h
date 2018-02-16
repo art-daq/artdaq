@@ -16,7 +16,7 @@
 #include "art/Framework/IO/Root/DropMetaData.h"
 #include "art/Framework/IO/Root/RootOutputClosingCriteria.h"
 #include "art/Framework/IO/Root/RootOutputTree.h"
-#include "artdaq/ArtModules/detail/DummyProductCache.h"
+#include "artdaq/ArtModules/RootDAQOutput/detail/DummyProductCache.h"
 #include "art/Framework/Principal/RangeSetsSupported.h"
 #if ART_HEX_VERSION >= 0x20703
 # include "art/Persistency/Provenance/Selections.h"

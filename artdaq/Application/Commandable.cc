@@ -2,7 +2,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 artdaq::Commandable::Commandable() : fsm_(*this)
-								   , primary_mutex_() {}
+, primary_mutex_() {}
 
 // **********************************************************************
 // *** The following methods implement the externally available commands.
@@ -198,25 +198,25 @@ std::vector<std::string> artdaq::Commandable::legal_commands() const
 
 	if (currentState == "Ready")
 	{
-		return {"init", "soft_init", "start", "shutdown"};
+		return { "init", "soft_init", "start", "shutdown" };
 	}
 	if (currentState == "Running")
 	{
 		// 12-May-2015, KAB: in_run_failure is also possible, but it
 		// shouldn't be requested externally.
-		return {"pause", "stop"};
+		return { "pause", "stop" };
 	}
 	if (currentState == "Paused")
 	{
-		return {"resume", "stop"};
+		return { "resume", "stop" };
 	}
 	if (currentState == "InRunError")
 	{
-		return {"pause", "stop"};
+		return { "pause", "stop" };
 	}
 
 	// Booted and Error
-	return {"init", "shutdown"};
+	return { "init", "shutdown" };
 }
 
 // *******************************************************************
@@ -306,6 +306,90 @@ void artdaq::Commandable::BootedEnter()
 void artdaq::Commandable::InRunExit()
 {
 	TLOG_DEBUG("CommandableInterface") << "InRunExit called." << TLOG_ENDL;
+}
+
+
+std::string artdaq::Commandable::do_trace_get(std::string const& name)
+{
+	TLOG_DEBUG("CommandableInterface") << "Getting masks for name " << name << TLOG_ENDL;
+	std::ostringstream ss;
+	if (name == "ALL")
+	{
+		unsigned ii = 0;
+		unsigned ee = traceControl_p->num_namLvlTblEnts;
+		for (ii = 0; ii < ee; ++ii)
+		{
+			if (traceNamLvls_p[ii].name[0])
+				ss << traceNamLvls_p[ii].name << " " << std::hex << std::showbase << traceNamLvls_p[ii].M << " " << traceNamLvls_p[ii].S << " " << traceNamLvls_p[ii].T  << " " << std::endl;
+		}
+	}
+	else
+	{
+		unsigned ii = 0;
+		unsigned ee = traceControl_p->num_namLvlTblEnts;
+		for (ii = 0; ii < ee; ++ii)
+		{
+			if (traceNamLvls_p[ii].name[0] && TMATCHCMP(name.c_str(), traceNamLvls_p[ii].name)) break;
+		}
+		if (ii == ee) return "";
+
+		ss << std::hex << traceNamLvls_p[ii].M << " " << traceNamLvls_p[ii].S << " " << traceNamLvls_p[ii].T;
+	}
+	return ss.str();
+}
+
+bool artdaq::Commandable::do_trace_set(std::string const& type, std::string const& name, uint64_t mask)
+{
+	TLOG_DEBUG("CommandableInterface") << "Setting msk " << type << " for name " << name << " to " << std::hex << std::showbase << mask << TLOG_ENDL;
+	if (name != "ALL")
+	{
+		if (type.size() > 0) {
+			switch (type[0])
+			{
+			case 'M':
+				TRACE_CNTL("lvlmsknM", name.c_str(), mask);
+				break;
+			case 'S':
+				TRACE_CNTL("lvlmsknS", name.c_str(), mask);
+				break;
+			case 'T':
+				TRACE_CNTL("lvlmsknT", name.c_str(), mask);
+				break;
+			}
+		}
+		else
+		{
+			TLOG_ERROR("CommandableInterface") << "Cannot set mask: no type specified!" << TLOG_ENDL;
+		}
+	}
+	else
+	{
+		if (type.size() > 0) {
+			switch (type[0])
+			{
+			case 'M':
+				TRACE_CNTL("lvlmskMg", mask);
+				break;
+			case 'S':
+				TRACE_CNTL("lvlmskSg", mask);
+				break;
+			case 'T':
+				TRACE_CNTL("lvlmskTg", mask);
+				break;
+			}
+		}
+		else
+		{
+			TLOG_ERROR("CommandableInterface") << "Cannot set mask: no type specified!" << TLOG_ENDL;
+		}
+	}
+	return true;
+}
+
+bool artdaq::Commandable::do_meta_command(std::string const& cmd, std::string const& arg)
+{
+	TLOG_DEBUG("CommandableInterface") << "Meta-Command called: cmd=" << cmd << ", arg=" << arg << TLOG_ENDL;
+	return true;
 }
 
 // *********************

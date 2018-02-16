@@ -173,6 +173,18 @@ void artdaq::BoardReaderApp::BootedEnter()
 	fragment_receiver_ptr_.reset(nullptr);
 }
 
+bool artdaq::BoardReaderApp::do_meta_command(std::string const& command, std::string const& arg)
+{
+	external_request_status_ = fragment_receiver_ptr_->metaCommand(command, arg);
+	if (!external_request_status_)
+	{
+		report_string_ = "Error running meta-command on ";
+		report_string_.append(app_name + " ");
+		report_string_.append("with command = \"" + command + "\", arg = \"" + arg + "\".");
+	}
+	return external_request_status_;
+}
+
 std::string artdaq::BoardReaderApp::report(std::string const& which) const
 {
 	std::string resultString;

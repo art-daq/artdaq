@@ -1,4 +1,4 @@
-#include "artdaq/ArtModules/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutput/RootDAQOutFile.h"
 // vim: set sw=2:
 
 #include "Rtypes.h"
@@ -25,8 +25,8 @@
 #include "art/Framework/IO/Root/DropMetaData.h"
 #include "art/Framework/IO/Root/GetFileFormatEra.h"
 #include "art/Framework/IO/Root/GetFileFormatVersion.h"
-#include "artdaq/ArtModules/detail/KeptProvenance.h"
-#include "artdaq/ArtModules/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutput/detail/KeptProvenance.h"
+#include "artdaq/ArtModules/RootDAQOutput/RootDAQOutFile.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/ResultsPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"

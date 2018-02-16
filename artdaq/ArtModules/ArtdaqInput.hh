@@ -9,7 +9,10 @@
 #if ART_HEX_VERSION < 0x20703
 # include "art/Persistency/Provenance/BranchIDListHelper.h"
 #endif
+#if ART_HEX_VERSION < 0x20900
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
+#include "canvas/Persistency/Provenance/BranchIDList.h"
+#endif
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
@@ -17,7 +20,6 @@
 #include "canvas/Persistency/Common/EDProduct.h"
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
-#include "canvas/Persistency/Provenance/BranchIDList.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/History.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
@@ -98,7 +100,7 @@ public:
 	 * \param pm An art::SourceHelper for handling provenance
 	 */
 	ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegistryHelper& helper,
-				const art::SourceHelper& pm);
+				art::SourceHelper const& pm);
 
 	/**
 	 * \brief Called by art to close the input source. No-Op
@@ -153,7 +155,7 @@ private:
 private:
 	bool shutdownMsgReceived_;
 	bool outputFileCloseNeeded_;
-	const art::SourceHelper& pm_;
+	art::SourceHelper const& pm_;
 	U communicationWrapper_;
 };
 
@@ -161,7 +163,7 @@ template <typename U>
 art::ArtdaqInput<U>::
 ArtdaqInput(const fhicl::ParameterSet& ps,
 			art::ProductRegistryHelper& helper,
-			const art::SourceHelper& pm)
+			art::SourceHelper const& pm)
 	: shutdownMsgReceived_(false)
 	, outputFileCloseNeeded_(false)
 	, pm_(pm)
@@ -223,8 +225,9 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 
 	art::ProductList* productlist = ReadObjectAny<art::ProductList>(msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
 	helper.productList(productlist);
-
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list" << TLOG_ENDL;
+
+#if ART_HEX_VERSION < 0x20900
 	if (art::debugit() >= 1)
 	{
 		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: before BranchIDLists" << TLOG_ENDL;
@@ -254,6 +257,9 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 			}
 		}
 	}
+#endif
+
+
 
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory" << TLOG_ENDL;
 	art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInput::ArtdaqInput");
@@ -499,7 +505,8 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 		const BranchDescription& bd = iter->second;
 		std::unique_ptr<EDProduct> prd;
 		{
-			TLOG_ARB(5, "ArtdaqInput") << "readDataProducts: Reading product." << TLOG_ENDL;
+			TLOG_ARB(5, "ArtdaqInput") << "readDataProducts: Reading product with wrapped name: " << bd.wrappedName()
+				<<", TClass = " << (void*)TClass::GetClass(bd.wrappedName().c_str()) << TLOG_ENDL;
 
 			// JCF, May-25-2016
 			// Currently unclear why the templatized version of ReadObjectAny doesn't work here...
@@ -507,8 +514,11 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 			//	    prd.reset(ReadObjectAny<EDProduct>(msg, bd.wrappedName()));
 
 			void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
+			auto pp = reinterpret_cast<EDProduct*>(p);
 
-			prd.reset(reinterpret_cast<EDProduct*>(p));
+			TLOG_ARB(5, "ArtdaqInput") << "readDataProducts: After ReadObjectAny(prd): p=" << p
+				<< ", EDProduct::isPresent: " << pp->isPresent() << TLOG_ENDL;
+			prd.reset(pp);
 			p = nullptr;
 		}
 		std::unique_ptr<const ProductProvenance> prdprov;
@@ -526,6 +536,7 @@ readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
 				<< "' procnm: '"
 				<< bd.processName() << TLOG_ENDL;
 			putInPrincipal(outPrincipal, std::move(prd), bd, std::move(prdprov));
+
 		}
 	}
 }
@@ -551,7 +562,9 @@ void
 art::ArtdaqInput<U>::
 putInPrincipal(EventPrincipal*& ep, std::unique_ptr<EDProduct>&& prd, const BranchDescription& bd, std::unique_ptr<const ProductProvenance>&& prdprov)
 {
+	TLOG_ARB(6, "ArtdaqInput") << "EventPrincipal size before put: " << ep->size();
 	ep->put(std::move(prd), bd, std::move(prdprov));
+	TLOG_ARB(6, "ArtdaqInput") << "EventPrincipal size after put: " << ep->size();
 }
 
 

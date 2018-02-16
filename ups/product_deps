@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_00_02
+parent artdaq  v3_00_03
 defaultqual    e14:s50
 
 # These optional lines define the installed directories where
@@ -17,16 +17,17 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
+art             v2_10_02        s64
 art             v2_07_03        s50
 art             v2_06_01        s46
-artdaq_core 		v3_01_04
-artdaq_utilities        v1_04_02
+artdaq_core 		v3_01_05
+artdaq_utilities        v1_04_03
 mvapich2		v1_9_0
-mpich			v3_2_0c
-xmlrpc_c		v1_39_10a
-artdaq_ganglia_plugin   v1_02_08        -       optional
-artdaq_epics_plugin     v1_02_02        -       optional
-artdaq_mfextensions     v1_02_01        -       optional
+mpich			v3_2_1
+xmlrpc_c		v1_39_10b
+artdaq_ganglia_plugin   v1_02_09        -       optional
+artdaq_epics_plugin     v1_02_03        -       optional
+artdaq_mfextensions     v1_02_02        -       optional
 cetbuildtools		v7_00_02	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
@@ -35,10 +36,16 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		art		artdaq_core    	   artdaq_utilities	mvapich2	mpich		xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions
+e15:s64:debug		e15:debug	e15:s64:debug	   e15:s64:debug	-		e15:debug	e15:debug	e15:s64:debug	e15:s64:debug       	e15:s64:debug
+e15:s64:prof		e15:prof 	e15:s64:prof	   e15:s64:prof		-		e15:prof	e15:prof	e15:s64:prof	e15:s64:prof		e15:s64:prof
 e14:s50:debug		e14:debug	e14:s50:debug	   e14:s50:debug	-		e14:debug	e14:debug	e14:s50:debug	e14:s50:debug       	e14:s50:debug
 e14:s50:prof		e14:prof 	e14:s50:prof	   e14:s50:prof		-		e14:prof	e14:prof	e14:s50:prof	e14:s50:prof		e14:s50:prof
 e10:s46:debug		e10:debug	e10:s46:debug	   e10:s46:debug	-		e10:debug	e10:debug	e10:s46:debug	e10:s46:debug       	e10:s46:debug
 e10:s46:prof		e10:prof 	e10:s46:prof	   e10:s46:prof		-		e10:prof	e10:prof	e10:s46:prof	e10:s46:prof		e10:s46:prof
+e15:s64:ib:debug	e15:debug	e15:s64:debug	   e15:s64:debug	-nq-		-		e15:debug	e15:s64:debug	e15:s64:debug		e15:s64:debug
+e15:s64:ib:prof		e15:prof	e15:s64:prof	   e15:s64:prof		-nq-		-		e15:prof	e15:s64:prof	e15:s64:prof		e15:s64:prof
+e15:s64:eth:debug	e15:debug	e15:s64:debug	   e15:s64:debug	-		e15:debug	e15:debug	e15:s64:debug	e15:s64:debug		e15:s64:debug
+e15:s64:eth:prof	e15:prof 	e15:s64:prof 	   e15:s64:prof		-		e15:prof	e15:prof	e15:s64:prof	e15:s64:prof		e15:s64:prof
 e14:s50:ib:debug	e14:debug	e14:s50:debug	   e14:s50:debug	-nq-		-		e14:debug	e14:s50:debug	e14:s50:debug		e14:s50:debug
 e14:s50:ib:prof		e14:prof	e14:s50:prof	   e14:s50:prof		-nq-		-		e14:prof	e14:s50:prof	e14:s50:prof		e14:s50:prof
 e14:s50:eth:debug	e14:debug	e14:s50:debug	   e14:s50:debug	-		e14:debug	e14:debug	e14:s50:debug	e14:s50:debug		e14:s50:debug

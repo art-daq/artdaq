@@ -49,6 +49,7 @@ simple_plugin(Null "transfer"
 simple_plugin(Multicast "transfer"
   artdaq_TransferPlugins
   ${Boost_SYSTEM_LIBRARY}
+  pthread
 )
 
 simple_plugin(TCPSocket "transfer"

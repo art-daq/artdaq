@@ -143,9 +143,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			break;
 		}
 
-		if (!(pollfd_s.revents & (POLLIN | POLLERR)))
+		if (!(pollfd_s.revents & (POLLIN | POLLHUP | POLLERR)))
 		{
-			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Wrong event received from pollfd" << TLOG_ENDL;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragment: Wrong event received from pollfd: " << static_cast<int>(pollfd_s.revents) << TLOG_ENDL;
 			continue;
 		}
 
