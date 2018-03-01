@@ -114,6 +114,7 @@ art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   ${CETLIB}
   ${FHICLCPP}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  pthread
   )
 
 art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
@@ -123,6 +124,7 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
   ${CETLIB}
   ${FHICLCPP}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  pthread
   )
     
 art_make_exec(NAME tracemf

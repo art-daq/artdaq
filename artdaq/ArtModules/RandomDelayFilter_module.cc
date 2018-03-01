@@ -86,22 +86,6 @@ public:
 	 */
 	bool filter(art::Event& e) override;
 
-	/**
-	 * \brief Reconfigure the RandomDelayFilter
-	 * \param p ParameterSet used to configure the RandomDelayFilter 
-	 * 
-	 * RandomDelayFilter accepts the following Parametrs:
-	 * "minimum_delay_ms" (Default: 0): The minimum amount of time to delay, in ms
-	 * "maximum_delay_ms" (Default: 1000): The maximum amount of time to delay, in ms
-	 * "mean_delay_ms" (Default: 500): If using a normal distribution for delay times, the mean of the distribution, in ms
-	 * "sigma_delay_ms" (Default: 100): If using a normal distribution for delay times, the sigma of the distribution, in ms
-	 * "pass_filter_percentage" (Default: 100): The fraction of events which will pass the filter
-	 * "cpu_load_ratio" (Default: 1.0): The fraction of the delay time which should be active (spinning) versis passive (sleeping)
-	 * "use_normal_distribution" (Default: false): Use a normal distribution for delay times, versus a uniform one
-	 * "random_seed" (Default: 271828): The seed for the ditribution
-	 */
-	void reconfigure(fhicl::ParameterSet const& p) override;
-
 private:
 	// Random Delay Parameters (min/max for uniform, mean/sigma for normal)
 	double min_ms_;
@@ -162,32 +146,6 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 	}
 
 	return (*pass_distn_)(engine_) < pass_factor_;
-}
-
-void artdaq::RandomDelayFilter::reconfigure(fhicl::ParameterSet const& p)
-{
-	min_ms_ = p.get<double>("minimum_delay_ms", 0);
-	max_ms_ = p.get<double>("maximum_delay_ms", 1000);
-	mean_ms_ = p.get<double>("mean_delay_ms", 500);
-	sigma_ms_ = p.get<double>("sigma_delay_ms", 100);
-	pass_factor_ = p.get<int>("pass_filter_percentage", 100);
-	load_factor_ = p.get<double>("cpu_load_ratio", 1.0);
-	isNormal_ = p.get<bool>("use_normal_distribution", false);
-	engine_ = std::mt19937(p.get<int64_t>("random_seed", 271828));
-
-	// Set limits on parameters
-	if (pass_factor_ > 100) pass_factor_ = 100;
-	if (pass_factor_ < 0) pass_factor_ = 0;
-	if (load_factor_ < 0.0) load_factor_ = 0.0;
-	if (load_factor_ > 1.0) load_factor_ = 1.0;
-
-	if (min_ms_ < 0) min_ms_ = 0;
-	if (min_ms_ > max_ms_) max_ms_ = min_ms_;
-	if (mean_ms_ < 0) mean_ms_ = 0;
-	if (sigma_ms_ < 0) sigma_ms_ = 0;
-
-	uniform_distn_.reset(new std::uniform_real_distribution<double>(min_ms_, max_ms_));
-	normal_distn_.reset(new std::normal_distribution<double>(mean_ms_, sigma_ms_));
 }
 
 DEFINE_ART_MODULE(artdaq::RandomDelayFilter)
