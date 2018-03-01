@@ -320,11 +320,14 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 	current_art_config_file_ = nullptr;
 	current_art_pset_ = fhicl::ParameterSet();
 
-	for (auto pid : pids)
+	for (auto pid = pids.begin(); pid != pids.end();)
 	{
-		if (kill(pid, 0) >= 0)
+		if (kill(*pid, 0) >= 0)
 		{
-			pids.erase(pid);
+			pid = pids.erase(pid);
+		}
+		else {
+			++pid;
 		}
 	}
 	if (pids.size() == 0)
@@ -348,11 +351,14 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 	{
 		usleep(1000);
 
-		for (auto pid : pids)
+		for (auto pid = pids.begin(); pid != pids.end();)
 		{
-			if (kill(pid, 0) < 0)
+			if (kill(*pid, 0) >= 0)
 			{
-				pids.erase(pid);
+				pid = pids.erase(pid);
+			}
+			else {
+				++pid;
 			}
 		}
 		if (pids.size() == 0)
@@ -373,11 +379,14 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 	{
 		usleep(1000);
 
-		for (auto pid : pids)
+		for (auto pid = pids.begin(); pid != pids.end();)
 		{
-			if (kill(pid, 0) < 0)
+			if (kill(*pid, 0) >= 0)
 			{
-				pids.erase(pid);
+				pid = pids.erase(pid);
+			}
+			else {
+				++pid;
 			}
 		}
 
