@@ -306,7 +306,6 @@ namespace artdaq {
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		int broadcast_timeout_ms_;
-		int broadcast_count_;
 		int subrun_event_count_;
 
 		std::set<pid_t> art_processes_;

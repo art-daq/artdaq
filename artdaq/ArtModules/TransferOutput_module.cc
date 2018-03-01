@@ -118,7 +118,7 @@ TransferOutput(fhicl::ParameterSet const& ps)
 	, initMsgSent_(false)
 {
 	TLOG_DEBUG("TransferOutput") << "Begin: TransferOutput::TransferOutput(ParameterSet const& ps)" << TLOG_ENDL;
-	transfer_ = std::move(artdaq::MakeTransferPlugin(ps, "transfer_plugin", artdaq::TransferInterface::Role::kSend));
+	transfer_ = artdaq::MakeTransferPlugin(ps, "transfer_plugin", artdaq::TransferInterface::Role::kSend);
 	TLOG_DEBUG("TransferOutput") << "END: TransferOutput::TransferOutput" << TLOG_ENDL;
 }
 

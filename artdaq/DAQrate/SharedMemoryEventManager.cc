@@ -26,7 +26,6 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
-	, broadcast_count_(0)
 	, subrun_event_count_(0)
 	, art_processes_()
 	, restart_art_(false)
@@ -465,7 +464,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	}
 
 	TLOG(TLVL_TRACE) << "endOfData: Broadcasting EndOfData Fragment" << TLOG_ENDL;
-	FragmentPtr outFrag = std::move(Fragment::eodFrag(GetBufferCount()));
+	FragmentPtr outFrag = Fragment::eodFrag(GetBufferCount());
 	bool success = broadcastFragment_(std::move(outFrag), outFrag);
 	if (!success)
 	{

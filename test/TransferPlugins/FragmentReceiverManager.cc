@@ -144,7 +144,7 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 
 	if (current_fragment != nullptr)
 		TLOG_ARB(5, "FragmentReceiverManager") << "recvFragment: Done  rank="<< rank <<", fragment size="<<std::to_string(current_fragment->size()) << " words, seqId="  << std::to_string( current_fragment->sequenceID()) << TLOG_ENDL;
-	return std::move(current_fragment);
+	return current_fragment;
 }
 
 void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)

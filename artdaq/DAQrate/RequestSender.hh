@@ -121,7 +121,6 @@ namespace artdaq
 		bool send_routing_tokens_;
 		int token_port_;
 		int token_socket_;
-		struct sockaddr_in token_addr_;
 		std::string token_address_;
 		std::atomic<bool> request_sending_;
 

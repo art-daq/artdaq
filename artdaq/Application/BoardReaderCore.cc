@@ -295,7 +295,7 @@ void artdaq::BoardReaderCore::process_fragments()
 			}
 
 			// check for continous sequence IDs
-			if (!skip_seqId_test_ && abs(sequence_id - prev_seq_id_) > 1)
+			if (!skip_seqId_test_ && abs(static_cast<int64_t>(sequence_id) - static_cast<int64_t>(prev_seq_id_)) > 1)
 			{
 				TLOG_WARNING(app_name)
 					<< "Missing sequence IDs: current sequence ID = "

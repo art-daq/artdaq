@@ -1,5 +1,5 @@
 #ifndef artdaq_TransferPlugins_ShmemTransfer_hh
-#define artdaq_TransferPlugins_ShemmTransfer_hh
+#define artdaq_TransferPlugins_ShmemTransfer_hh
 
 #include "fhiclcpp/fwd.h"
 
@@ -80,10 +80,8 @@ namespace artdaq
 		CopyStatus sendFragment(Fragment&& fragment,
 		                        size_t send_timeout_usec, bool reliable = false);
 		
-		size_t send_timeout_usec_;
 		std::unique_ptr<SharedMemoryFragmentManager> shm_manager_;
 
-		Role role_;
 	};
 }
 
