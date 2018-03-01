@@ -119,7 +119,6 @@ private:
 	std::atomic<bool> should_stop_;
 	int table_port_;
 	std::string table_address_;
-	struct sockaddr_in table_addr_;
 	int ack_port_;
 	std::string ack_address_;
 	struct sockaddr_in ack_addr_;

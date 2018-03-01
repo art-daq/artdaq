@@ -4,6 +4,7 @@
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 #include "fhiclcpp/fwd.h"
 
+#include "cetlib/compiler_macros.h"
 #include <memory>
 
 namespace artdaq
@@ -16,11 +17,15 @@ namespace artdaq
 	typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::ParameterSet const& ps);
 }
 
+#ifndef EXTERN_C_FUNC_DECLARE_START
+#define EXTERN_C_FUNC_DECLARE_START extern "C" {
+#endif
+
 #define DEFINE_ARTDAQ_COMMANDABLE_GENERATOR(klass)                    \
-  extern "C"                                                          \
+  EXTERN_C_FUNC_DECLARE_START                                      \
   std::unique_ptr<artdaq::CommandableFragmentGenerator>               \
   make(fhicl::ParameterSet const & ps) {                              \
     return std::unique_ptr<artdaq::CommandableFragmentGenerator>(new klass(ps)); \
-  }
+  }}
 
 #endif /* artdaq_Application_GeneratorMacros_hh */

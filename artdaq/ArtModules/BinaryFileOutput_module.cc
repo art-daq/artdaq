@@ -212,7 +212,7 @@ write(EventPrincipal& ep)
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
 			TRACE(4, "BinaryFileOutput::write seq=%lu frag=%i %p bytes=0x%lx start"
-				  , sequence_id, fragid_id, fragment.headerBeginBytes(), fragment.sizeBytes());
+				  , sequence_id, fragid_id, reinterpret_cast<const void*>(fragment.headerBeginBytes()), fragment.sizeBytes());
 			if (do_direct_)
 			{
 				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());

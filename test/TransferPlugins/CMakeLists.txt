@@ -15,6 +15,28 @@
 #  TEST_PROPERTIES RUN_SERIAL 1
 #  )
 
+art_make( BASENAME_ONLY
+  LIBRARY_NAME artdaq_test_TransferPlugins
+  NO_PLUGINS
+  EXCLUDE transfer_driver.cc
+  DICT_DICTIONARIES
+  LIB_LIBRARIES
+  artdaq_DAQrate
+   artdaq_DAQdata
+artdaq_TransferPlugins
+  )
+
+ art_make_exec(NAME transfer_driver # NO_INSTALL -- comment out to install
+SOURCE
+transfer_driver.cc
+   LIBRARIES
+  artdaq_DAQrate
+   artdaq_DAQdata
+artdaq_TransferPlugins
+artdaq_test_TransferPlugins
+  ${FHICLCPP}
+   )
+
   cet_script(runTransferTest.sh)
 
   cet_test(transfer_driver_tcp_t HANDBUILT

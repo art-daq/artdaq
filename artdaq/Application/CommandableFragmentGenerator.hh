@@ -467,7 +467,6 @@ namespace artdaq
 		// are the FHiCL variable names with a "_" appended
 
 		//Socket parameters
-		struct sockaddr_in si_data_;
 		std::unique_ptr<RequestReceiver> requestReceiver_;
 
 		RequestMode mode_;

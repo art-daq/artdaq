@@ -46,7 +46,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, timeoutMessageArmed_(true)
 {
 	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend") << TLOG_ENDL;
-    auto masterPortOffset = pset.get<int>("offset_all_ports",0);
+	auto masterPortOffset = pset.get<int>("offset_all_ports", 0);
 	auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 	for (auto& ps : hosts)
 	{
@@ -87,7 +87,7 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer()
 	if (role() == TransferInterface::Role::kSend)
 	{
 		// close all open connections (send stop_v0) first
-		MessHead mh = { 0,MessHead::stop_v0,htons(TransferInterface::source_rank()),0 };
+		MessHead mh = { 0,MessHead::stop_v0,htons(TransferInterface::source_rank()),{0} };
 		if (fd_ != -1)
 		{
 			// should be blocking with modest timeo
@@ -380,7 +380,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		total_to_write_bytes += iov[ii].iov_len;
 	}
 	//TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::sendData_: Constructing Message Header" << TLOG_ENDL;
-	MessHead mh = { 0,MessHead::data_v0,htons(source_rank()),htonl(total_to_write_bytes) };
+	MessHead mh = { 0,MessHead::data_v0,htons(source_rank()),{htonl(total_to_write_bytes)} };
 	iov_in[0].iov_base = &mh;
 	iov_in[0].iov_len = sizeof(mh);
 	total_to_write_bytes += sizeof(mh);
@@ -399,7 +399,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		// iov looping from below (b/c of the latter, we need to check this_write_bytes)
 		for (;
 			(in_iov_idx + out_iov_idx) < iov_in.size() && this_write_bytes < per_write_max_bytes;
-			 ++out_iov_idx)
+			++out_iov_idx)
 		{
 			this_write_bytes += iov_in[in_iov_idx + out_iov_idx].iov_len;
 			iovv[out_iov_idx] = iov_in[in_iov_idx + out_iov_idx];
@@ -539,8 +539,8 @@ void artdaq::TCPSocketTransfer::stats_connect_() // thread
 
 		std::unique_lock<std::mutex> lck(stopstatscvm_);
 		sts = stopstatscv_.wait_until(lck
-									  , std::chrono::system_clock::now()
-									  + std::chrono::milliseconds(msdly));
+			, std::chrono::system_clock::now()
+			+ std::chrono::milliseconds(msdly));
 		TLOG_ARB(5, "TCPSocketTransfer") << uniqueLabel() << "thread1 after wait_until(msdly=" << msdly << ") - sts=" << static_cast<int>(sts) << TLOG_ENDL;
 
 		if (sts == std::cv_status::no_timeout)
@@ -563,9 +563,9 @@ void artdaq::TCPSocketTransfer::connect_()
 	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "Connecting sender socket" << TLOG_ENDL;
 	int sndbuf_bytes = static_cast<int>(sndbuf_);
 	fd_ = TCPConnect(hostMap_[destination_rank()].hostname.c_str()
-					 , calculate_port_()
-					 , O_NONBLOCK
-					 , sndbuf_bytes);
+		, calculate_port_()
+		, O_NONBLOCK
+		, sndbuf_bytes);
 	connect_state = 0;
 	blocking = 0;
 	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::connect_ " + hostMap_[destination_rank()].hostname + ":" << calculate_port_() << " fd_=" << fd_ << TLOG_ENDL;
@@ -573,7 +573,7 @@ void artdaq::TCPSocketTransfer::connect_()
 	{
 		// write connect msg
 		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::connect_: Writing connect message" << TLOG_ENDL;
-		MessHead mh = { 0,MessHead::connect_v0,htons(source_rank()),htonl(CONN_MAGIC) };
+		MessHead mh = { 0,MessHead::connect_v0,htons(source_rank()),{htonl(CONN_MAGIC)} };
 		ssize_t sts = write(fd_, &mh, sizeof(mh));
 		if (sts == -1)
 		{
@@ -643,7 +643,7 @@ void artdaq::TCPSocketTransfer::listen_()
 		if (sts != sizeof(mh))
 		{
 			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Wrong message header length received!" << TLOG_ENDL;
-			TLOG_ARB(0, "TCPSocketTransfer") << uniqueLabel() << "do_connect_ problem with connect msg sts(" << sts << ")!=sizeof(mh)("<<std::to_string(sizeof(mh)) << ")" << TLOG_ENDL;
+			TLOG_ARB(0, "TCPSocketTransfer") << uniqueLabel() << "do_connect_ problem with connect msg sts(" << sts << ")!=sizeof(mh)(" << std::to_string(sizeof(mh)) << ")" << TLOG_ENDL;
 			close(fd);
 			return;
 		}

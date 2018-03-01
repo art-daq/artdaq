@@ -4,7 +4,6 @@
 
 artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role) :
 	TransferInterface(pset, role)
-	, role_(role)
 {
 	TLOG(TLVL_DEBUG) << uniqueLabel() << " ShmemTransfer{} begin";
 	// char* keyChars = getenv("ARTDAQ_SHM_KEY");
@@ -43,7 +42,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	}
 }
 
-artdaq::ShmemTransfer::~ShmemTransfer()
+artdaq::ShmemTransfer::~ShmemTransfer() noexcept
 {
 	TLOG_ARB(5, "ShmemTransfer") << "~ShmemTransfer called - " << uniqueLabel() << TLOG_ENDL;
 	shm_manager_.reset(nullptr);

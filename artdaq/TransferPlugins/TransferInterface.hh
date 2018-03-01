@@ -4,6 +4,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "fhiclcpp/ParameterSet.h"
+#include "cetlib/compiler_macros.h"
 
 #include <limits>
 #include <iostream>
@@ -155,11 +156,16 @@ namespace artdaq
 	};
 }
 
+#ifndef EXTERN_C_FUNC_DECLARE_START
+#define EXTERN_C_FUNC_DECLARE_START extern "C" {
+#endif
+
 #define DEFINE_ARTDAQ_TRANSFER(klass)                                \
-  extern "C" std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const & ps, \
+  EXTERN_C_FUNC_DECLARE_START                                      \
+std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const & ps, \
 								 artdaq::TransferInterface::Role role) { \
 	return std::unique_ptr<artdaq::TransferInterface>(new klass(ps, role)); \
-}
+}}
 
 
 #endif /* artdaq_ArtModules_TransferInterface.hh */

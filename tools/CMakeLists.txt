@@ -4,13 +4,10 @@ include(CetTest)
 # re-initialize the test environment.
 cet_test_env("FHICL_FILE_PATH=.")
 
-include_directories(${MPI_INCLUDE_PATH})
-
 install_scripts( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh )
 
 art_make_exec(StateResponder
   LIBRARIES
-  artdaq_Application_MPI2
   artdaq_Application
   artdaq_ExternalComms
   ${MPI_C_LIBRARIES}
@@ -19,14 +16,16 @@ art_make_exec(StateResponder
 
 art_make_exec(genToArt
   LIBRARIES
-  artdaq_Application_MPI2
+  artdaq_Application
   artdaq_DAQrate
   artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq-core_Utilities
   artdaq-core_Generators
   art_Framework_Art
+  canvas
   ${FHICLCPP}
   ${CETLIB}
+  ${CETLIB_EXCEPT}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 

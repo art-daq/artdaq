@@ -11,7 +11,6 @@
 
 #include "art/Framework/Art/artapp.h"
 #include "canvas/Utilities/Exception.h"
-#include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
@@ -315,8 +314,6 @@ namespace
 int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("genToArt");
-	// Needed in case plugins use eg MPI timing for performance.
-	artdaq::MPISentry sentry(&argc, &argv);
 	// Command line handling.
 	bpo::variables_map vm;
 	auto result = process_cmd_line(argc, argv, vm);

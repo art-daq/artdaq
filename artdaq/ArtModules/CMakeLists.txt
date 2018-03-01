@@ -1,6 +1,4 @@
 
-include_directories(${MPI_INCLUDE_PATH})
-
 if( ${ART_HEX_VERSION} LESS 0x20906 )
     add_subdirectory(RootDAQOutput)
 endif()

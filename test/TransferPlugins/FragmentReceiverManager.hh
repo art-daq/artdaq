@@ -178,7 +178,7 @@ public:
 		auto current_fragment = std::move(frags_.front());
 		frags_.pop_front();
 		empty_ = frags_.size() == 0;
-		return std::move(current_fragment);
+		return current_fragment;
 	}
 
 	/**

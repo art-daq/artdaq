@@ -41,7 +41,7 @@ namespace artdaq
 					transfer_pset,
 					std::move(role));
 
-			return std::move(transfer);
+			return transfer;
 		}
 		catch (...)
 		{

@@ -3,6 +3,7 @@
 
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq/Application/Commandable.hh"
+#include "cetlib/compiler_macros.h"
 
 
 namespace artdaq
@@ -225,11 +226,16 @@ namespace artdaq
 	};
 }
 
+#ifndef EXTERN_C_FUNC_DECLARE_START
+#define EXTERN_C_FUNC_DECLARE_START extern "C" {
+#endif
+
 #define DEFINE_ARTDAQ_COMMANDER(klass)                                \
-  extern "C" std::unique_ptr<artdaq::CommanderInterface> make(fhicl::ParameterSet const & ps, \
+  EXTERN_C_FUNC_DECLARE_START                                      \
+    std::unique_ptr<artdaq::CommanderInterface> make(fhicl::ParameterSet const & ps, \
 								 artdaq::Commandable& commandable) { \
 	return std::unique_ptr<artdaq::CommanderInterface>(new klass(ps, commandable)); \
-}
+}}
 
 
 #endif /* artdaq_ExternalComms_CommanderInterface.hh */
