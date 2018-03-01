@@ -19,10 +19,8 @@ class artdaq::RoutingMasterApp : public artdaq::Commandable
 public:
 	/**
 	* \brief RoutingMasterApp Constructor
-	* \param rank Rank of this RoutingMaster
-	* \param name Friendly name of this application instance (MessageFacility Category)
 	*/
-	RoutingMasterApp(int rank, std::string name);
+	RoutingMasterApp();
 
 	/**
 	* \brief Copy Constructor is deleted

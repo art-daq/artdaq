@@ -1,9 +1,7 @@
 #include "artdaq/Application/EventBuilderApp.hh"
 
-artdaq::EventBuilderApp::EventBuilderApp(int rank, std::string name) 
+artdaq::EventBuilderApp::EventBuilderApp() 
 {
-	my_rank = rank;
-	app_name = name;
 }
 
 // *******************************************************************

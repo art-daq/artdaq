@@ -3,10 +3,8 @@
 /**
 * Default constructor.
 */
-artdaq::RoutingMasterApp::RoutingMasterApp(int rank, std::string name)
+artdaq::RoutingMasterApp::RoutingMasterApp( )
 {
-	my_rank = rank;
-	app_name = name;
 }
 
 // *******************************************************************

@@ -98,6 +98,20 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 			"Error loading metrics in BoardReaderCore::initialize()");
 	}
 
+	if (daq_pset.has_key("rank"))
+	{
+		if (my_rank >= 0 && daq_pset.get<int>("rank") != my_rank) {
+			TLOG_WARNING(app_name) << "BoardReader rank specified at startup is different than rank specified at configure! Using rank received at configure!";
+		}
+		my_rank = daq_pset.get<int>("rank");
+	}
+	if (my_rank == -1)
+	{
+		TLOG_ERROR(app_name) << "BoardReader rank not specified at startup or in configuration! Aborting";
+		exit(1);
+	}
+
+
 	// create the requested CommandableFragmentGenerator
 	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)

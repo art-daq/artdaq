@@ -19,10 +19,8 @@ class artdaq::BoardReaderApp : public artdaq::Commandable
 public:
 	/**
 	 * \brief BoardReaderApp Constructor
-	 * \param rank Rank of this BoardReader
-	 * \param name Friendly name of this application instance (MessageFacility Category)
 	 */
-	BoardReaderApp(int rank, std::string name);
+	BoardReaderApp();
 
 	/**
 	 * \brief Copy Constructor is deleted

@@ -65,6 +65,20 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
 		return false;
 	}
+
+	if (daq_pset.has_key("rank"))
+	{
+		if (my_rank >= 0 && daq_pset.get<int>("rank") != my_rank) {
+			TLOG_WARNING(app_name) << "Routing Master rank specified at startup is different than rank specified at configure! Using rank received at configure!";
+		}
+		my_rank = daq_pset.get<int>("rank");
+	}
+	if (my_rank == -1)
+	{
+		TLOG_ERROR(app_name) << "Routing Master rank not specified at startup or in configuration! Aborting";
+		exit(1);
+	}
+
 	try
 	{
 		policy_pset_ = daq_pset.get<fhicl::ParameterSet>("policy");

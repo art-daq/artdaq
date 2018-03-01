@@ -2,11 +2,9 @@
 #include "tracemf.h"
 #include "artdaq/Application/BoardReaderApp.hh"
 
-artdaq::BoardReaderApp::BoardReaderApp(int rank, std::string name)
+artdaq::BoardReaderApp::BoardReaderApp()
 	: fragment_receiver_ptr_(nullptr)
 {
-	my_rank = rank;
-	app_name = name;
 }
 
 // *******************************************************************

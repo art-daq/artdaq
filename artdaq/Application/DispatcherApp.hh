@@ -19,10 +19,8 @@ class artdaq::DispatcherApp : public artdaq::Commandable
 public:
 	/**
 	 * \brief DispatcherApp Constructor
-	 * \param rank The rank of the Dispatcher
-	 * \param name The nickname of the Dispatcher
 	 */
-	DispatcherApp(int rank, std::string name);
+	DispatcherApp();
 
 	/**
 	 * \brief Copy Constructor is Deleted

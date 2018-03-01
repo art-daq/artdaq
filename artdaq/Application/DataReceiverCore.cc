@@ -53,6 +53,19 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		data_tmp.put<int>("expected_fragments_per_event", data_pset.get<int>("expected_events_per_bunch"));
 	}
 
+	if (data_pset.has_key("rank"))
+	{
+		if (my_rank >= 0 && data_pset.get<int>("rank") != my_rank) {
+			TLOG_WARNING(app_name) << "Rank specified at startup is different than rank specified at configure! Using rank received at configure!";
+		}
+		my_rank = data_pset.get<int>("rank");
+	}
+	if (my_rank == -1)
+	{
+		TLOG_ERROR(app_name) << "Rank not specified at startup or in configuration! Aborting";
+		exit(1);
+	}
+
 	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, tmp));
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));

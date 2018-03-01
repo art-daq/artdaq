@@ -4,10 +4,8 @@
 
 #include <iostream>
 
-artdaq::DispatcherApp::DispatcherApp(int rank, std::string name)
+artdaq::DispatcherApp::DispatcherApp()
 {
-	my_rank = rank;
-	app_name = name;
 }
 
 // *******************************************************************
