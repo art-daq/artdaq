@@ -93,6 +93,7 @@ namespace artdaq {
 		 * "broadcast_shared_memory_key" (Default: 0xCEE7000 + PID): Key to use for broadcast shared memory access
 		 * "broadcast_buffer_count" (Default: 10): Buffers in the broadcast shared memory segment
 		 * "broadcast_buffer_size" (Default: 0x100000): Size of the buffers in the broadcast shared memory segment
+		 * "minimum_art_lifetime_s" (Default: 2 secodns): Amount of time that an art process should run to not be considered "DOA"
 		 * \endverbatim
 		 */
 		SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
@@ -312,6 +313,7 @@ namespace artdaq {
 		std::atomic<bool> restart_art_;
 		fhicl::ParameterSet current_art_pset_;
 		std::shared_ptr<art_config_file> current_art_config_file_;
+		double minimum_art_lifetime_s_;
 
 		RequestSender requests_;
 

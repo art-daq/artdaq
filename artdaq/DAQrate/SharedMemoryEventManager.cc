@@ -30,6 +30,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, art_processes_()
 	, restart_art_(false)
 	, current_art_pset_(art_pset)
+	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
 	, requests_(pset)
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
 		pset.get<size_t>("broadcast_buffer_count", 10),
@@ -235,6 +236,7 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 {
 	while (restart_art_)
 	{
+		auto start_time = std::chrono::steady_clock::now();
 		send_init_frag_();
 		TLOG(TLVL_INFO) << "Starting art process with config file " << config_file->getFileName() << TLOG_ENDL;
 		std::vector<char*> args{ (char*)"art", (char*)"-c", &config_file->getFileName()[0], NULL };
@@ -259,7 +261,11 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		}
 		else
 		{
-			TLOG(TLVL_WARNING) << "art process " << pid << " exited with status code 0x" << std::hex << status << " (" << std::dec << status << "), " << (restart_art_ ? "restarting" : "not restarting") << TLOG_ENDL;
+			auto  art_lifetime = TimeUtils::GetElapsedTime(start_time);
+			if (art_lifetime < minimum_art_lifetime_s_) restart_art_ = false;
+			TLOG((restart_art_ ? TLVL_WARNING : TLVL_ERROR)) << "art process " << pid << " exited with status code 0x" << std::hex << status << " (" << std::dec << status << ")" 
+				<< " after " << std::setprecision(2) << art_lifetime << " seconds, "
+				<< (restart_art_ ? "restarting" : "not restarting") << TLOG_ENDL;
 		}
 	}
 }
