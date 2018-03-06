@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_00_03
+parent artdaq  v3_00_03a
 defaultqual    e14:s50
 
 # These optional lines define the installed directories where
@@ -21,7 +21,7 @@ art             v2_10_02        s64
 art             v2_07_03        s50
 art             v2_06_01        s46
 artdaq_core 		v3_01_05
-artdaq_utilities        v1_04_03
+artdaq_utilities        v1_04_04
 mvapich2		v1_9_0
 mpich			v3_2_1
 xmlrpc_c		v1_39_10b
