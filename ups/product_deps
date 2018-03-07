@@ -22,7 +22,7 @@ art             v2_07_03        s50
 art             v2_06_01        s46
 artdaq_core 		v3_01_05
 artdaq_utilities        v1_04_04
-xmlrpc_c		v1_39_10c
+xmlrpc_c		v1_39_10d
 artdaq_ganglia_plugin   v1_02_09        -       optional
 artdaq_epics_plugin     v1_02_03        -       optional
 artdaq_mfextensions     v1_02_02        -       optional
