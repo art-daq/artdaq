@@ -474,6 +474,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		}
 		if (lastReadCount > 0) usleep(1000);
 	}
+	TLOG(TLVL_TRACE) << "endOfData: After wait for outstanding buffers. Still outstanding: " << lastReadCount << ", time waited: " << TimeUtils::GetElapsedTime(start) << " s / " << end_of_data_wait_s_ << " s, art process count: " << art_processes_.size();
 
 	TLOG(TLVL_TRACE) << "endOfData: Broadcasting EndOfData Fragment" << TLOG_ENDL;
 	FragmentPtr outFrag = Fragment::eodFrag(GetBufferCount());
