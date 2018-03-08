@@ -141,6 +141,8 @@ int main(int argc, char * argv[]) try
 		commandable_gen->joinThreads();
 	}
 
+	store.endRun();
+
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
 	endSucceeded = store.endOfData();
