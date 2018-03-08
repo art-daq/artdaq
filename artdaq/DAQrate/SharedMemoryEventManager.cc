@@ -31,6 +31,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, restart_art_(false)
 	, current_art_pset_(art_pset)
 	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
+	, end_of_data_wait_s_(pset.get<double>("end_of_data_wait_s", 1.0))
 	, requests_(pset)
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
 		pset.get<size_t>("broadcast_buffer_count", 10),
@@ -461,8 +462,8 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	auto start = std::chrono::steady_clock::now();
 	auto lastReadCount = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
 
-	// We will wait until no buffer has been read for 1 second.
-	while (lastReadCount > 0 && TimeUtils::GetElapsedTime(start) < 1)
+	// We will wait until no buffer has been read for the end of data wait seconds, or no art processes are left.
+	while (lastReadCount > 0 && (end_of_data_wait_s_ == 0 || TimeUtils::GetElapsedTime(start) < end_of_data_wait_s_) && art_processes_.size() > 0)
 	{
 		auto temp = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
 		if (temp != lastReadCount)
