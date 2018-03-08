@@ -332,7 +332,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 
 	for (auto pid = pids.begin(); pid != pids.end();)
 	{
-		if (kill(*pid, 0) >= 0)
+		if (kill(*pid, 0) < 0)
 		{
 			pid = pids.erase(pid);
 		}
@@ -363,7 +363,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 
 		for (auto pid = pids.begin(); pid != pids.end();)
 		{
-			if (kill(*pid, 0) >= 0)
+			if (kill(*pid, 0) < 0)
 			{
 				pid = pids.erase(pid);
 			}
@@ -391,7 +391,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 
 		for (auto pid = pids.begin(); pid != pids.end();)
 		{
-			if (kill(*pid, 0) >= 0)
+			if (kill(*pid, 0) < 0)
 			{
 				pid = pids.erase(pid);
 			}
