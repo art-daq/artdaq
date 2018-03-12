@@ -269,7 +269,7 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		{
 			auto  art_lifetime = TimeUtils::GetElapsedTime(start_time);
 			if (art_lifetime < minimum_art_lifetime_s_) restart_art_ = false;
-			TLOG((restart_art_ ? TLVL_WARNING : TLVL_ERROR)) << "art process " << pid << " exited with status code 0x" << std::hex << status << " (" << std::dec << status << ")" 
+			TLOG((restart_art_ ? TLVL_WARNING : TLVL_ERROR)) << "art process " << pid << " exited with status code 0x" << std::hex << status << " (" << std::dec << status << ")"
 				<< " after " << std::setprecision(2) << art_lifetime << " seconds, "
 				<< (restart_art_ ? "restarting" : "not restarting") << TLOG_ENDL;
 		}
@@ -354,8 +354,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 		kill(pid, SIGQUIT);
 	}
 
-	int graceful_wait_ms = 1000;
-	int int_wait_ms = 100;
+	int graceful_wait_ms = 5000;
+	int int_wait_ms = 1000;
 
 	TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully" << TLOG_ENDL;
 	for (int ii = 0; ii < graceful_wait_ms; ++ii)
@@ -488,6 +488,17 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		}
 		broadcastFragment_(std::move(outFrag), outFrag);
 	}
+
+	TLOG(TLVL_DEBUG) << "Allowing " << std::to_string(art_processes_.size()) << " art processes the chance to end gracefully" << TLOG_ENDL;
+	auto beginArtCount = art_processes_.size();
+	bool anyArtFinished = true;
+	while (beginArtCount > 0 && anyArtFinished)
+	{
+		usleep(1000000); // Sleep one second
+		anyArtFinished = art_processes_.size() < beginArtCount;
+		beginArtCount = art_processes_.size();
+	}
+
 
 	TLOG(TLVL_DEBUG) << "Waiting for all art processes to exit, there are " << std::to_string(art_processes_.size()) << " remaining." << TLOG_ENDL;
 	while (art_processes_.size() > 0)
