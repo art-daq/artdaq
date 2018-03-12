@@ -56,6 +56,10 @@ minimum_art_lifetime_s: 2.0
 
 # Amount of time with no reads to wait before sending EndOfData message (0 to wait as long as there are outstanding buffers and live art processes)
 end_of_data_wait_s: 1.0
+
+# Amount of time to wait for art processes to pick up and process EndOfData message before moving on to shutdown phase
+end_of_data_graceful_shutdown_us: 1000000
+		 
 		 
 #
 #  Broadcast Shared Memory Parameters

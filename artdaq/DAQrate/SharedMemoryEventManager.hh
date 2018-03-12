@@ -95,6 +95,7 @@ namespace artdaq {
 		 * "broadcast_buffer_size" (Default: 0x100000): Size of the buffers in the broadcast shared memory segment
 		 * "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
 		 * "end_of_data_wait_s" (Default: 1 second): Amount of time with no reads to wait before sending EndOfData message (0 to wait as long as there are outstanding buffers and live art processes)
+		 * "end_of_data_graceful_shutdown_us" (Default: 1000000 us): Amount of time to wait for art processes to pick up and process EndOfData message before moving on to shutdown phase
 		 * \endverbatim
 		 */
 		SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
@@ -316,6 +317,7 @@ namespace artdaq {
 		std::shared_ptr<art_config_file> current_art_config_file_;
 		double minimum_art_lifetime_s_;
 		double end_of_data_wait_s_;
+		size_t end_of_data_graceful_shutdown_us_;
 
 		RequestSender requests_;
 

@@ -32,6 +32,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, current_art_pset_(art_pset)
 	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
 	, end_of_data_wait_s_(pset.get<double>("end_of_data_wait_s", 1.0))
+	, end_of_data_graceful_shutdown_us_(pset.get<size_t>("end_of_data_graceful_shutdown_us", 1000000))
 	, requests_(pset)
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
 		pset.get<size_t>("broadcast_buffer_count", 10),
@@ -489,14 +490,10 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		broadcastFragment_(std::move(outFrag), outFrag);
 	}
 
-	TLOG(TLVL_DEBUG) << "Allowing " << std::to_string(art_processes_.size()) << " art processes the chance to end gracefully" << TLOG_ENDL;
-	auto beginArtCount = art_processes_.size();
-	bool anyArtFinished = true;
-	while (beginArtCount > 0 && anyArtFinished)
+	if (art_processes_.size() > 0)
 	{
-		usleep(1000000); // Sleep one second
-		anyArtFinished = art_processes_.size() < beginArtCount;
-		beginArtCount = art_processes_.size();
+		TLOG(TLVL_DEBUG) << "Allowing " << std::to_string(art_processes_.size()) << " art processes the chance to end gracefully" << TLOG_ENDL;
+		usleep(end_of_data_graceful_shutdown_us_);
 	}
 
 
