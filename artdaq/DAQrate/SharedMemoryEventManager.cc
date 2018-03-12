@@ -634,6 +634,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag, Frag
 
 	broadcasts_.MarkBufferFull(buffer, -1);
 	outFrag.swap(frag);
+	TLOG(TLVL_TRACE) << "broadcastFragment_ Complete" << TLOG_ENDL;
 	return true;
 }
 
