@@ -18,13 +18,18 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, sent_frag_count_()
 	, broadcast_sends_(pset.get<bool>("broadcast_sends", false))
 	, non_blocking_mode_(pset.get<bool>("nonblocking_sends", false))
-	, send_timeout_us_(pset.get<size_t>("send_timeout_usec", 0))
+	, send_timeout_us_(pset.get<size_t>("send_timeout_usec", 5000000))
+	, send_retry_count_(pset.get<size_t>("send_retry_count", 2))
 	, routing_master_mode_(detail::RoutingMasterMode::INVALID)
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
 {
 	TLOG_DEBUG("DataSenderManager") << "Received pset: " << pset.to_string() << TLOG_ENDL;
+	
+	// Validate parameters
+	if (send_timeout_us_ == 0) send_timeout_us_ = std::numeric_limits<size_t>::max();
+
 	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_table_config", fhicl::ParameterSet());
 	use_routing_master_ = rmConfig.get<bool>("use_routing_master", false);
 	table_port_ = rmConfig.get<int>("table_update_port", 35556);
@@ -336,9 +341,11 @@ sendFragment(Fragment&& frag)
 			// Gross, we have to copy.
 			Fragment fragCopy(frag);
 			auto sts = destinations_[bdest]->copyFragment(fragCopy, send_timeout_us_);
-			while (sts == TransferInterface::CopyStatus::kTimeout)
+			size_t retries = 0; // Tried once, so retries < send_retry_count_ will have it retry send_retry_count_ times
+			while (sts == TransferInterface::CopyStatus::kTimeout && retries < send_retry_count_)
 			{
 				sts = destinations_[bdest]->copyFragment(fragCopy, send_timeout_us_);
+				retries++;
 			}
 			sent_frag_count_.incSlot(bdest);
 		}
@@ -359,7 +366,8 @@ sendFragment(Fragment&& frag)
 			TLOG_TRACE("DataSenderManager") << "sendFragment: Sending fragment with seqId " << std::to_string(seqID) << " to destination " << dest << TLOG_ENDL;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 			auto lastWarnTime = std::chrono::steady_clock::now();
-			while (sts != TransferInterface::CopyStatus::kSuccess)
+			size_t retries = 0; // Have NOT yet tried, so retries <= send_retry_count_ will have it RETRY send_retry_count_ times
+			while (sts != TransferInterface::CopyStatus::kSuccess && retries <= send_retry_count_)
 			{
 				sts = destinations_[dest]->copyFragment(frag, send_timeout_us_);
 				if (sts != TransferInterface::CopyStatus::kSuccess && TimeUtils::GetElapsedTime(lastWarnTime) >= 1)
@@ -391,7 +399,7 @@ sendFragment(Fragment&& frag)
 			TRACE(5, "DataSenderManager::sendFragment: Sending fragment with seqId %zu to destination %d", seqID, dest);
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 
-			sts = destinations_[dest]->moveFragment(std::move(frag), send_timeout_us_);
+			sts = destinations_[dest]->moveFragment(std::move(frag));
 			if (sts != TransferInterface::CopyStatus::kSuccess)
 				TLOG_ERROR("DataSenderManager") << "sendFragment: Sending fragment " << seqID << " to destination "
 				<< dest << " failed! Data has been lost!" << TLOG_ENDL;

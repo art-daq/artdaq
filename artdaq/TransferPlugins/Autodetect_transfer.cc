@@ -32,7 +32,7 @@ namespace artdaq
 		 * \return Rank of sender
 		 */
 		int receiveFragment(artdaq::Fragment& fragment,
-		                            size_t receiveTimeout) override
+			size_t receiveTimeout) override
 		{
 			return theTransfer_->receiveFragment(fragment, receiveTimeout);
 		}
@@ -65,8 +65,7 @@ namespace artdaq
 		 * \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
 		 * \return A TransferInterface::CopyStatus result variable
 		 */
-		CopyStatus copyFragment(artdaq::Fragment& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override
+		CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec) override
 		{
 			return theTransfer_->copyFragment(fragment, send_timeout_usec);
 		}
@@ -77,10 +76,9 @@ namespace artdaq
 		* \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
 		* \return A TransferInterface::CopyStatus result variable
 		*/
-		CopyStatus moveFragment(artdaq::Fragment&& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override
+		CopyStatus moveFragment(artdaq::Fragment&& fragment) override
 		{
-			return theTransfer_->moveFragment(std::move(fragment), send_timeout_usec);
+			return theTransfer_->moveFragment(std::move(fragment));
 		}
 
 	private:

@@ -42,6 +42,7 @@ public:
 	 * \verbatim
 	 * TCPSocketTransfer accepts the following Parameters:
 	 * "tcp_receive_buffer_size" (Default: 0): The TCP buffer size on the receive socket
+	 * "send_retry_timeout_us" (Default: 1000000): Microseconds between send retries (infinite retries for moveFragment, up to send_timeout_us for copyFragment)
 	 * "host_map" (REQUIRED): List of FHiCL tables containing information about other hosts in the system.
 	 *   Each table should contain:
 	 *   "rank" (Default: RECV_TIMEOUT): Rank of this host
@@ -82,10 +83,9 @@ public:
 	/**
 	* \brief Move a Fragment to the destination.
 	* \param frag Fragment to move
-	* \param timeout_usec Timeout for send, in microseconds
 	* \return CopyStatus detailing result of copy
 	*/
-	CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec) override { return sendFragment_(std::move(frag), timeout_usec); }
+	CopyStatus moveFragment(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
 
 private:
 
@@ -110,6 +110,7 @@ private:
 	int target_bytes;
 	size_t rcvbuf_;
 	size_t sndbuf_;
+	size_t send_retry_timeout_us_;
 
 	struct DestinationInfo
 	{

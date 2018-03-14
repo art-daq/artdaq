@@ -148,10 +148,9 @@ artdaq::ShmemTransfer::copyFragment(artdaq::Fragment& fragment, size_t send_time
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::ShmemTransfer::moveFragment(artdaq::Fragment&& fragment,
-									size_t send_timeout_usec)
+artdaq::ShmemTransfer::moveFragment(artdaq::Fragment&& fragment)
 {
-	return sendFragment(std::move(fragment), send_timeout_usec, true);
+	return sendFragment(std::move(fragment), 0, true);
 }
 
 artdaq::TransferInterface::CopyStatus

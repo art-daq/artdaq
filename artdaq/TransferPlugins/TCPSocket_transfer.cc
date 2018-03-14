@@ -41,6 +41,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, target_bytes(sizeof(MessHead))
 	, rcvbuf_(pset.get<size_t>("tcp_receive_buffer_size", 0))
 	, sndbuf_(max_fragment_size_words_ * sizeof(artdaq::RawDataType) * buffer_count_)
+	, send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
 	, stats_connect_stop_(false)
 	, stats_connect_thread_(std::bind(&TCPSocketTransfer::stats_connect_, this))
 	, timeoutMessageArmed_(true)
@@ -323,23 +324,25 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 
 	iovec iov = { reinterpret_cast<void*>(grab_ownership_frag.headerAddress()),
 		detail::RawFragmentHeader::num_words() * sizeof(RawDataType) };
-	auto sts = sendData_(&iov, 1, send_timeout_usec);
+
+	auto sts = sendData_(&iov, 1, send_retry_timeout_us_);
 	while (sts != CopyStatus::kSuccess)
 	{
 		TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::sendFragment: Timeout or Error sending fragment" << TLOG_ENDL;
-		sts = sendData_(&iov, 1, send_timeout_usec);
+		sts = sendData_(&iov, 1, send_retry_timeout_us_);
 		usleep(1000);
 	}
 
 	// Send Fragment Data
 
+	auto start_time = std::chrono::steady_clock::now();
 	iov = { reinterpret_cast<void*>(grab_ownership_frag.headerAddress() + detail::RawFragmentHeader::num_words()),
 		grab_ownership_frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType) };
-	sts = sendData_(&iov, 1, send_timeout_usec);
-	while (sts != CopyStatus::kSuccess)
+	sts = sendData_(&iov, 1, send_retry_timeout_us_);
+	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec))
 	{
 		TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::sendFragment: Timeout or Error sending fragment" << TLOG_ENDL;
-		sts = sendData_(&iov, 1, send_timeout_usec);
+		sts = sendData_(&iov, 1, send_retry_timeout_us_);
 		usleep(1000);
 	}
 

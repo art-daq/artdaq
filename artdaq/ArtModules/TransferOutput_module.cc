@@ -101,10 +101,12 @@ private:
 	virtual void writeSubRun(SubRunPrincipal&);
 
 	void writeDataProducts(TBufferFile&, const Principal&,
-						   std::vector<BranchKey*>&);
+		std::vector<BranchKey*>&);
 
 private:
 	bool initMsgSent_;
+	size_t send_timeout_us_;
+	size_t send_retry_count_;
 	std::unique_ptr<artdaq::TransferInterface> transfer_;
 
 	void sendMessage_(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg);
@@ -116,6 +118,8 @@ art::TransferOutput::
 TransferOutput(fhicl::ParameterSet const& ps)
 	: OutputModule(ps)
 	, initMsgSent_(false)
+	, send_timeout_us_(ps.get<size_t>("send_timeout_us", 5000000))
+	, send_retry_count_(ps.get<size_t>("send_retry_count", 5))
 {
 	TLOG_DEBUG("TransferOutput") << "Begin: TransferOutput::TransferOutput(ParameterSet const& ps)" << TLOG_ENDL;
 	transfer_ = artdaq::MakeTransferPlugin(ps, "transfer_plugin", artdaq::TransferInterface::Role::kSend);
@@ -297,7 +301,7 @@ send_init_message()
 					<< std::dec << TLOG_ENDL;
 			}
 		}
-	}
+}
 #endif
 
 #   if ART_HEX_VERSION >= 0x20703
@@ -386,14 +390,14 @@ send_init_message()
 		"Init message(s) sent." << TLOG_ENDL;
 
 	TLOG_TRACE("TransferOutput") << " End:   TransferOutput static send_init_message()" << TLOG_ENDL;
-}
+	}
 
 #//pragma GCC pop_options
 
 void
 art::TransferOutput::
 writeDataProducts(TBufferFile& msg, const Principal& principal,
-				  std::vector<BranchKey*>& bkv)
+	std::vector<BranchKey*>& bkv)
 {
 	TLOG_TRACE("TransferOutput") << " Begin: TransferOutput::writeDataProducts(...)" << TLOG_ENDL;
 	//
@@ -444,7 +448,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 
 #endif
 		++prd_cnt;
-	}
+		}
 	//
 	//  Write the data product count.
 	//
@@ -553,9 +557,9 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 				I->second->productProvenancePtr().get();
 			msg.WriteObjectAny(prdprov, prdprov_class);
 		}
-	}
+		}
 	TLOG_TRACE("TransferOutput") << " End:   TransferOutput::writeDataProducts(...)" << TLOG_ENDL;
-}
+	}
 
 void
 art::TransferOutput::
@@ -624,7 +628,7 @@ write(EventPrincipal& ep)
 		TLOG_TRACE("TransferOutput") << " TransferOutput::write(const EventPrincipal& ep): "
 			"Streaming RunAuxiliary ..." << TLOG_ENDL;
 		msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().aux(),
-						   run_aux_class);
+			run_aux_class);
 		TLOG_TRACE("TransferOutput") << " TransferOutput::write(const EventPrincipal& ep): "
 			"Finished streaming RunAuxiliary." << TLOG_ENDL;
 	}
@@ -635,7 +639,7 @@ write(EventPrincipal& ep)
 		TLOG_TRACE("TransferOutput") << " TransferOutput::write(const EventPrincipal& ep): "
 			"Streaming SubRunAuxiliary ..." << TLOG_ENDL;
 		msg.WriteObjectAny(&ep.subRunPrincipal().aux(),
-						   subrun_aux_class);
+			subrun_aux_class);
 		TLOG_TRACE("TransferOutput") << " TransferOutput::write(const EventPrincipal& ep): "
 			"Finished streaming SubRunAuxiliary." << TLOG_ENDL;
 	}
@@ -706,7 +710,7 @@ writeRun(RunPrincipal& rp)
 	//
 	static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
 	assert(run_aux_class != nullptr && "writeRun: Could not get TClass for "
-		   "art::RunAuxiliary!");
+		"art::RunAuxiliary!");
 	//
 	//  Begin preparing message.
 	//
@@ -854,7 +858,7 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 			//    ProcessHistoryMap;
 #          if ART_HEX_VERSION >= 0x20703
 			for (auto I = std::begin(art::ProcessHistoryRegistry::get())
-				 , E = std::end(art::ProcessHistoryRegistry::get()); I != E; ++I)
+				, E = std::end(art::ProcessHistoryRegistry::get()); I != E; ++I)
 #          else
 			art::ProcessHistoryMap const& phr =
 				art::ProcessHistoryRegistry::get();
@@ -864,7 +868,7 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 #          endif
 			{
 				std::ostringstream OS;
-				I->first.print(OS);
+					I->first.print(OS);
 				TLOG_TRACE("TransferOutput") << " TransferOutput::writeSubRun: "
 					"phr: id: '" + OS.str() + "'" << TLOG_ENDL;
 				OS.str("");
@@ -951,14 +955,16 @@ art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBuf
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment
 		fragment(std::ceil(msg.Length() /
-						   static_cast<double>(sizeof(artdaq::RawDataType))),
-				 sequenceId, 0, messageType, header);
+			static_cast<double>(sizeof(artdaq::RawDataType))),
+			sequenceId, 0, messageType, header);
 
 	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
 	auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
-	while (sts != artdaq::TransferInterface::CopyStatus::kSuccess)
+	size_t retries = 0;
+	while (sts != artdaq::TransferInterface::CopyStatus::kSuccess && retries <= send_retry_count_)
 	{
-		sts = transfer_->copyFragment(fragment);
+		sts = transfer_->copyFragment(fragment, send_timeout_us_);
+		retries++;
 	}
 
 #if 0
@@ -967,9 +973,9 @@ art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBuf
 		std::fstream ostream("sendInitMessage_TransferOutput.bin", std::ios::out | std::ios::binary);
 		ostream.write(msg.Buffer(), msg.Length());
 		ostream.close();
-	}
+}
 #endif
 
-}
+	}
 
 DEFINE_ART_MODULE(art::TransferOutput)

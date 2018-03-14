@@ -48,7 +48,7 @@ namespace artdaq
 		 * \brief TransferInterface Constructor
 		 * \param ps ParameterSet used for configuring the TransferInterface
 		 * \param role Role of the TransferInterface (See TransferInterface::Role)
-		 * 
+		 *
 		 * \verbatim
 		 * TransferInterface accepts the following Parameters:
 		 * "source_rank" (Default: my_rank): The rank that data is coming from
@@ -110,16 +110,15 @@ namespace artdaq
 		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		virtual CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+		virtual CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec) = 0;
 
 		// Move fragment (should be reliable)
 		/**
 		* \brief Move a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
 		* \param fragment Fragment to move
-		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment) = 0;
 
 		/**
 		 * \brief Get the unique label of this TransferInterface instance
@@ -131,7 +130,7 @@ namespace artdaq
 		 * \brief Get the source rank for this TransferInterface instance
 		 * \return The source rank for this Transferinterface instance
 		 */
-	        virtual int source_rank() const { return source_rank_; }
+		virtual int source_rank() const { return source_rank_; }
 		/**
 		 * \brief Get the destination rank for this TransferInterface instance
 		 * \return The destination rank for this TransferInterface instance
