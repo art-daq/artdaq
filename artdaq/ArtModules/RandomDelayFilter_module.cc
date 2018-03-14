@@ -97,11 +97,19 @@ private:
 	double load_factor_;
 
 	// Random Engine Setup
-	bool isNormal_;
 	std::mt19937 engine_;
 	std::unique_ptr<std::uniform_real_distribution<double>> uniform_distn_;
 	std::unique_ptr<std::normal_distribution<double>> normal_distn_;
+	std::unique_ptr<std::exponential_distribution<double>> exponential_distn_;
 	std::unique_ptr<std::uniform_int_distribution<int>> pass_distn_;
+
+	enum class DistType {
+		Fixed,
+		Uniform,
+		Normal,
+		Exponential
+	};
+	DistType distribution_type_;
 };
 
 
@@ -112,7 +120,6 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 	, sigma_ms_(p.get<double>("sigma_delay_ms", 100))
 	, pass_factor_(p.get<int>("pass_filter_percentage", 100))
 	, load_factor_(p.get<double>("cpu_load_ratio", 1.0))
-	, isNormal_(p.get<bool>("use_normal_distribution", false))
 	, engine_(p.get<int64_t>("random_seed", 271828))
 	, pass_distn_(new std::uniform_int_distribution<int>(0, 100))
 {
@@ -127,13 +134,55 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 	if (mean_ms_ < 0) mean_ms_ = 0;
 	if (sigma_ms_ < 0) sigma_ms_ = 0;
 
-	uniform_distn_.reset(new std::uniform_real_distribution<double>(min_ms_, max_ms_));
-	normal_distn_.reset(new std::normal_distribution<double>(mean_ms_, sigma_ms_));
+	auto type = p.get<std::string>("delay_distribution_type", "Uniform");
+	assert(type.size() >= 1);
+	switch (type[0])
+	{
+	case 'n':
+	case 'N':
+		TLOG_INFO("RandomDelayFilter") << "Generating delay times using Normal distribution with mean " << mean_ms_ << " ms, std. dev. " << sigma_ms_ << " ms, and offset " << min_ms_ << ".";
+		distribution_type_ = DistType::Normal;
+		normal_distn_.reset(new std::normal_distribution<double>(mean_ms_, sigma_ms_));
+		break;
+	case 'e':
+	case 'E':
+		TLOG_INFO("RandomDelayFilter") << "Generating delay times using Exponential distribution with mean " << mean_ms_ << " ms and offset " <<  min_ms_ << ".";
+		distribution_type_ = DistType::Exponential;
+		if (mean_ms_ == 0) mean_ms_ = 1;
+		exponential_distn_.reset(new std::exponential_distribution<double>(1/mean_ms_));
+		break;
+	case 'U':
+	case 'u':
+		TLOG_INFO("RandomDelayFilter") << "Generating delay times using Uniform distribution with min " << min_ms_ << " ms and max " << max_ms_ << " ms.";
+		distribution_type_ = DistType::Uniform;
+		uniform_distn_.reset(new std::uniform_real_distribution<double>(min_ms_, max_ms_));
+		break;
+	case 'f':
+	case 'F':
+	default:
+		TLOG_INFO("RandomDelayFilter") << "Delay time set to " << min_ms_ << " ms.";
+		distribution_type_ = DistType::Fixed;
+		break;
+	}
 }
 
 bool artdaq::RandomDelayFilter::filter(art::Event& e)
 {
-	double delay = isNormal_ ? (*normal_distn_)(engine_) : (*uniform_distn_)(engine_);
+	double delay = min_ms_;
+	switch (distribution_type_)
+	{
+	case DistType::Normal:
+		delay += (*normal_distn_)(engine_);
+		break;
+	case DistType::Exponential:
+		delay += (*exponential_distn_)(engine_);
+		break;
+	case DistType::Uniform:
+		delay = (*uniform_distn_)(engine_);
+		break;
+	case DistType::Fixed:
+		break;
+	}
 	TLOG_DEBUG("RandomDelayFilter") << "Simulating processing of event " << e.event() << " by delaying " << std::to_string(delay) << "ms." << TLOG_ENDL;
 
 	usleep(1000 * (1 - load_factor_) * delay);
