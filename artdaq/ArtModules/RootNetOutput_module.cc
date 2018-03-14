@@ -890,7 +890,7 @@ art::RootNetOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 
 	// Disconnecting will cause EOD fragments to be generated which will
 	// allow components downstream to flush data and clean up.
-	transport->disconnect();
+	//transport->disconnect();
 
 	//
 	//  Delete the branch keys we created for the message.
