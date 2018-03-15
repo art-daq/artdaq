@@ -163,7 +163,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 	if (metricMan)
 	{
-		metricMan->sendMetric("Input Fragments", 1, "Fragments", 1, MetricMode::AccumulateAndRate);
+		metricMan->sendMetric("Input Fragment Rate", 1, "Fragments", 1, MetricMode::Rate);
 	}
 
 	buffer_writes_pending_[buffer]++;
@@ -806,7 +806,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		auto full = ReadReadyCount();
 		auto empty = WriteReadyCount(overwrite_mode_);
 		auto total = size();
-		metricMan->sendMetric("Events Released to art", counter, "Events", 1, MetricMode::AccumulateAndRate);
+		metricMan->sendMetric("Event Rate", counter, "Events/s", 1, MetricMode::Rate);
+		metricMan->sendMetric("Events Released to art", subrun_event_count_, "Events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
