@@ -423,15 +423,15 @@ sendFragment(Fragment&& frag)
 	if (metricMan) {//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
 		TRACE(5, "sendFragment: sending metrics");
 		auto delta_t = TimeUtils::GetElapsedTime(start_time);
-		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 3, MetricMode::Accumulate);
-		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 3, MetricMode::Accumulate);
-		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 3, MetricMode::Average);
+		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 5, MetricMode::Accumulate);
+		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 5, MetricMode::Accumulate);
+		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 5, MetricMode::Average);
 		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest),
 			"fragments", 3, MetricMode::LastPoint);
 		if (use_routing_master_) {
-			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 1, MetricMode::LastPoint);
+			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 2, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)
-				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 1,
+				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 2,
 					MetricMode::Average);
 		}
 	}
