@@ -413,6 +413,18 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 	while (pids.size() > 0)
 	{
 		kill(*pids.begin(), SIGKILL);
+		usleep(1000);
+
+		for (auto pid = pids.begin(); pid != pids.end();)
+		{
+			if (kill(*pid, 0) < 0)
+			{
+				pid = pids.erase(pid);
+			}
+			else {
+				++pid;
+			}
+		}
 	}
 }
 
@@ -497,7 +509,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	}
 
 
-	TLOG(TLVL_DEBUG) << "Waiting for all art processes to exit, there are " << std::to_string(art_processes_.size()) << " remaining." << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "There are " << std::to_string(art_processes_.size()) << " art processes remaining. Proceeding to shutdown." << TLOG_ENDL;
 	while (art_processes_.size() > 0)
 	{
 		ShutdownArtProcesses(art_processes_);

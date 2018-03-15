@@ -14,6 +14,8 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
+	TLOG_DEBUG("CommandableInterface") << "Initialize transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.init(pset, timeout, timestamp);
 	if (external_request_status_)
@@ -21,7 +23,7 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after an init transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
@@ -33,6 +35,8 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
+	TLOG_DEBUG("CommandableInterface") << "Start transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.start(id, timeout, timestamp);
 	if (external_request_status_)
@@ -40,7 +44,7 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after a start transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
@@ -52,6 +56,8 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
+	TLOG_DEBUG("CommandableInterface") << "Stop transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.stop(timeout, timestamp);
 	if (external_request_status_)
@@ -59,7 +65,7 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after a stop transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
@@ -71,6 +77,8 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
+	TLOG_DEBUG("CommandableInterface") << "Pause transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.pause(timeout, timestamp);
 	if (external_request_status_)
@@ -78,7 +86,7 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after a pause transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
@@ -90,6 +98,8 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
+	TLOG_DEBUG("CommandableInterface") << "Resume transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.resume(timeout, timestamp);
 	if (external_request_status_)
@@ -97,7 +107,7 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after a resume transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
@@ -109,6 +119,8 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
+	TLOG_DEBUG("CommandableInterface") << "Shutdown transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.shutdown(timeout);
 	if (external_request_status_)
@@ -116,7 +128,7 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after a shutdown transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
@@ -128,6 +140,8 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
+	TLOG_DEBUG("CommandableInterface") << "Soft_initialize transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.soft_init(pset, timeout, timestamp);
 	if (external_request_status_)
@@ -135,7 +149,7 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after a soft_init transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
@@ -147,6 +161,8 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
 
+	TLOG_DEBUG("CommandableInterface") << "Reinitialize transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.reinit(pset, timeout, timestamp);
 	if (external_request_status_)
@@ -154,7 +170,7 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after a reinit transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
@@ -166,6 +182,8 @@ bool artdaq::Commandable::in_run_failure()
 	external_request_status_ = true;
 	report_string_ = "An error condition was reported while running.";
 
+	TLOG_DEBUG("CommandableInterface") << "In_Run_Failure transition started";
+	auto start_time = std::chrono::steady_clock::now();
 	std::string initialState = fsm_.getState().getName();
 	fsm_.in_run_failure();
 	if (external_request_status_)
@@ -173,7 +191,7 @@ bool artdaq::Commandable::in_run_failure()
 		std::string finalState = fsm_.getState().getName();
 		TLOG_DEBUG("CommandableInterface")
 			<< "States before and after an in_run_failure transition: "
-			<< initialState << " and " << finalState << TLOG_ENDL;
+			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." << TLOG_ENDL;
 	}
 
 	return (external_request_status_);
