@@ -478,7 +478,7 @@ void artdaq::BoardReaderCore::sendMetrics_()
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-		metricMan_.sendMetric("Fragment Count", static_cast<unsigned long>(stats.fullSampleCount), "fragments", 1, MetricMode::Accumulate);
+		metricMan_.sendMetric("Fragment Count", static_cast<unsigned long>(stats.fullSampleCount), "fragments", 1, MetricMode::LastPoint);
 		metricMan_.sendMetric("Fragment Rate", stats.recentSampleRate, "fragments/sec", 1, MetricMode::Average);
 		metricMan_.sendMetric("Average Fragment Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/fragment", 2, MetricMode::Average);
 		metricMan_.sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);

@@ -163,7 +163,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 	if (metricMan)
 	{
-		metricMan->sendMetric("Input Fragment Rate", 1, "Fragments", 1, MetricMode::Rate);
+		metricMan->sendMetric("Input Fragment Rate", 1, "Fragments/s", 1, MetricMode::Rate);
 	}
 
 	buffer_writes_pending_[buffer]++;
