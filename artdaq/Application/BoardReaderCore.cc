@@ -149,11 +149,14 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	// check if we should skip the sequence ID test...
 	skip_seqId_test_ = (generator_ptr_->fragmentIDs().size() > 1);
 
+	verbose_ = fr_pset.get<bool>("verbose", true);
+
 	return true;
 }
 
 bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t timestamp)
 {
+	logMessage_("Starting run " + boost::lexical_cast<std::string>(id.run()));
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
@@ -165,45 +168,50 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	generator_ptr_->StartCmd(id.run(), timeout, timestamp);
 	run_id_ = id;
 
-	TLOG_DEBUG(app_name) << "Started run " << run_id_.run() <<
-		", timeout = " << timeout << ", timestamp = " << timestamp << TLOG_ENDL;
+	logMessage_("Completed the Start transition (Started run) for run " +
+	            boost::lexical_cast<std::string>(run_id_.run()) +
+	            ", timeout = " + boost::lexical_cast<std::string>(timeout) +
+	            ", timestamp = " +  boost::lexical_cast<std::string>(timestamp));
 	return true;
 }
 
 bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG_DEBUG(app_name) << "Stopping run " << run_id_.run()
-		<< " after " << fragment_count_
-		<< " fragments." << TLOG_ENDL;
+	logMessage_("Stopping run " + boost::lexical_cast<std::string>(run_id_.run()) +
+	            " after " + boost::lexical_cast<std::string>(fragment_count_) + " fragments.");
 	stop_requested_.store(true);
 	generator_ptr_->StopCmd(timeout, timestamp);
+	logMessage_("Completed the Stop transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
 	return true;
 }
 
 bool artdaq::BoardReaderCore::pause(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG_DEBUG(app_name) << "Pausing run " << run_id_.run()
-		<< " after " << fragment_count_
-		<< " fragments." << TLOG_ENDL;
+	logMessage_("Pausing run " + boost::lexical_cast<std::string>(run_id_.run()) +
+	            " after " + boost::lexical_cast<std::string>(fragment_count_) + " fragments.");
 	pause_requested_.store(true);
 	generator_ptr_->PauseCmd(timeout, timestamp);
+	logMessage_("Completed the Pause transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
 	return true;
 }
 
 bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG_DEBUG(app_name) << "Resuming run " << run_id_.run() << TLOG_ENDL;
+	logMessage_("Resuming run " + boost::lexical_cast<std::string>(run_id_.run()));
 	pause_requested_.store(false);
 	metricMan_.do_start();
 	generator_ptr_->ResumeCmd(timeout, timestamp);
+	logMessage_("Completed the Resume transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
 	return true;
 }
 
 bool artdaq::BoardReaderCore::shutdown(uint64_t)
 {
+	logMessage_("Starting Shutdown transition");
 	generator_ptr_->joinThreads(); // Cleanly shut down the CommandableFragmentGenerator
 	generator_ptr_.reset(nullptr);
 	metricMan_.shutdown();
+	logMessage_("Completed Shutdown transition");
 	return true;
 }
 
@@ -518,5 +526,17 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	if (mqPtr.get() != 0)
 	{
 		metricMan_.sendMetric("Avg Frags Per Read", mqPtr->getRecentValueAverage(), "fragments/read", 4, MetricMode::Average);
+	}
+}
+
+void artdaq::BoardReaderCore::logMessage_(std::string const& text)
+{
+	if (verbose_)
+	{
+		TLOG_INFO(app_name) << text << TLOG_ENDL;
+	}
+	else
+	{
+		TLOG_DEBUG(app_name) << text << TLOG_ENDL;
 	}
 }
