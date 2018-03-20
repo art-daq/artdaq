@@ -27,6 +27,7 @@ TCP_listen_fd(int port, int rcvbuf)
 	listener_fd = socket(PF_INET, SOCK_STREAM, 0); /* man TCP(7P) */
 	if (listener_fd == -1)
 	{
+		TLOG_ERROR("TCPConnect") << "Could not open listen socket! Exiting with code 1!";
 		perror("socket error");
 		exit(1);
 	}
@@ -35,8 +36,9 @@ TCP_listen_fd(int port, int rcvbuf)
 	sts = setsockopt(listener_fd,SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 	if (sts == -1)
 	{
+ 		TLOG_ERROR("TCPConnect") << "Could not set SO_REUSEADDR! Exiting with code 2!";
 		perror("setsockopt SO_REUSEADDR");
-		return (1);
+		return (2);
 	}
 
 	bzero((char *)&sin, sizeof(sin));
@@ -48,8 +50,9 @@ TCP_listen_fd(int port, int rcvbuf)
 	sts = bind(listener_fd, (struct sockaddr *)&sin, sizeof(sin));
 	if (sts == -1)
 	{
+ 		TLOG_ERROR("TCPConnect") << "Could not bind socket! Exiting with code 3!";
 		perror("bind error");
-		exit(1);
+		exit(3);
 	}
 	//printf( " OK\n" );
 
