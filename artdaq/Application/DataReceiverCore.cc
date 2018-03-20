@@ -28,7 +28,7 @@ artdaq::DataReceiverCore::~DataReceiverCore()
 bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset)
 {
 	// other parameters
-	verbose_ = pset.get<bool>("verbose", false);
+	verbose_ = data_pset.get<bool>("verbose", true);
 
 	if (metric_pset.is_empty())
 	{
@@ -75,6 +75,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 bool artdaq::DataReceiverCore::start(art::RunID id)
 {
+	logMessage_("Starting run " + boost::lexical_cast<std::string>(id.run()));
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 	run_is_paused_.store(false);
@@ -82,14 +83,14 @@ bool artdaq::DataReceiverCore::start(art::RunID id)
 	event_store_ptr_->startRun(id.run());
 	receiver_ptr_->start_threads();
 
-	logMessage_("Started run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	logMessage_("Completed the Start transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
 }
 
 bool artdaq::DataReceiverCore::stop()
 {
 	logMessage_("Stopping run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) +
-				", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
+	            ", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
 	bool endSucceeded;
 	int attemptsToEnd;
 
@@ -144,13 +145,14 @@ bool artdaq::DataReceiverCore::stop()
 	}
 	
 	run_is_paused_.store(false);
+	logMessage_("Completed the Stop transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
 }
 
 bool artdaq::DataReceiverCore::pause()
 {
 	logMessage_("Pausing run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) +
-				", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
+	            ", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
 	pause_requested_.store(true);
 
 	bool endSucceeded = false;
@@ -169,6 +171,7 @@ bool artdaq::DataReceiverCore::pause()
 	}
 
 	run_is_paused_.store(true);
+	logMessage_("Completed the Pause transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
 }
 
@@ -179,11 +182,14 @@ bool artdaq::DataReceiverCore::resume()
 	metricMan_.do_start();
 	event_store_ptr_->startSubrun();
 	run_is_paused_.store(false);
+	logMessage_("Completed the Resume transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
 }
 
 bool artdaq::DataReceiverCore::shutdown()
 {
+	logMessage_("Starting Shutdown transition");
+
 	/* We don't care about flushing data here.  The only way to transition to the
 	   shutdown state is from a state where there is no data taking.  All we have
 	   to do is signal the art input module that we're done taking data so that
@@ -210,6 +216,7 @@ bool artdaq::DataReceiverCore::shutdown()
 	metricMan_.shutdown();
 
 	TLOG_DEBUG("DataReceiverCore") << "shutdown: Complete" << TLOG_ENDL;
+	logMessage_("Completed Shutdown transition");
 	return endSucceeded;
 }
 

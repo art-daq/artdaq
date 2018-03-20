@@ -52,7 +52,7 @@ public:
 	*     "inrun_recv_timeout_usec" (Default: 100000): Amount of time to wait for new Fragment objects while running
 	*     "endrun_recv_timeout_usec" (Default: 20000000): Amount of time to wait for additional Fragment objects at EndOfRun
 	*     "pause_recv_timeout_usec" (Default: 3000000): Amount of time to wait for additional Fragment objects at PauseRun
-	*     "verbose" (Default: false): Whether to print more verbose status information
+	*     "verbose" (Default: true): Whether to print transition messages
 	*   "metrics": FHiCL table containing configuration for MetricManager
 	* \endverbatim
 	*
