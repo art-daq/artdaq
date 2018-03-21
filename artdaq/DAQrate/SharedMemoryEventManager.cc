@@ -151,11 +151,11 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		if (buffer == -1 && !dropIfNoBuffersAvailable) return nullptr;
 		if (buffer == -2)
 		{
-			TLOG(TLVL_ERROR) << "Dropping fragment because data taking has already passed this event number: " << std::to_string(frag.sequence_id) << TLOG_ENDL;
+			TLOG(TLVL_ERROR) << "Dropping fragment with sequence id " << std::to_string(frag.sequence_id) << " and fragment id " << std::to_string(frag.fragment_id) << " because data taking has already passed this event." << TLOG_ENDL;
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Dropping fragment because there is no room in the queue and reliable mode is off: " << std::to_string(frag.sequence_id) << TLOG_ENDL;
+			TLOG(TLVL_ERROR) << "Dropping fragment with sequence id " << std::to_string(frag.sequence_id) << " and fragment id " << std::to_string(frag.fragment_id) << " because there is no room in the queue and reliable mode is off." << TLOG_ENDL;
 		}
 		dropped_data_.reset(new Fragment(frag.word_count - frag.num_words()));
 		return dropped_data_->dataBegin();
@@ -669,7 +669,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
 	if (released_incomplete_events_.count(seqID)) {
-		TLOG(TLVL_ERROR) << "Buffer has already been marked \"Incomplete\" and sent to art!" << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "Event " << std::to_string(seqID) << " has already been marked \"Incomplete\" and sent to art!" << TLOG_ENDL;
 		return -2;
 	}
 #endif
