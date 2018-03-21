@@ -22,6 +22,7 @@
 #include "artdaq/TransferPlugins/detail/SRSockets.hh"
 #include "artdaq/TransferPlugins/detail/Timeout.hh"	// Timeout
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/TransferPlugins/detail/HostMap.hh"
 
 namespace artdaq
 {
@@ -87,6 +88,7 @@ public:
 	*/
 	CopyStatus moveFragment(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
 
+
 private:
 
 	int fd_;
@@ -112,13 +114,7 @@ private:
 	size_t sndbuf_;
 	size_t send_retry_timeout_us_;
 
-	struct DestinationInfo
-	{
-		std::string hostname;
-		int portOffset;
-	};
-
-	std::unordered_map<size_t, DestinationInfo> hostMap_;
+	hostMap_t hostMap_;
 
 	volatile unsigned connect_state : 1; // 0=not "connected" (initial msg not sent)
 	unsigned blocking : 1; // compatible with bool (true/false)
@@ -150,7 +146,21 @@ private: // methods
 	// Receiver should listen for connections
 	void listen_();
 
-	int calculate_port_() const { return (hostMap_.at(destination_rank())).portOffset + source_rank(); }
+	int calculate_port_() const { 
+		int source_index = 0;
+		bool found = false;
+		for (auto it = hostMap_.begin(); it != hostMap_.end(); ++it)
+		{
+			if (it->first == source_rank()) {
+				found = true;
+				break;
+			}
+			source_index++;
+		}
+		if (!found) { TLOG_ERROR("TCPSocketTransfer") << "Could not find source rank in host_map!!!"; }
+		auto portOffset = hostMap_.at(destination_rank()).portOffset;
+		return portOffset + source_index;
+	}
 };
 
 #endif // TCPSocketTransfer_hh

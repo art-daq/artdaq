@@ -2,6 +2,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+#include "artdaq/TransferPlugins/detail/HostMap.hh"
 
 #include <chrono>
 #include "canvas/Utilities/Exception.h"
@@ -40,7 +41,24 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	routing_retry_count_ = rmConfig.get<int>("routing_retry_count", 5);
 
 
+	hostMap_t host_map = MakeHostMap(pset);
+
 	auto dests = pset.get<fhicl::ParameterSet>("destinations", fhicl::ParameterSet());
+	for (auto& d : dests.get_pset_names())
+	{
+		auto dest_pset = dests.get<fhicl::ParameterSet>(d);
+		host_map = MakeHostMap(dest_pset, 0, host_map);
+	}
+	auto host_map_pset = MakeHostMapPset(host_map);
+	fhicl::ParameterSet dests_mod;
+	for (auto& d : dests.get_pset_names())
+	{
+		auto dest_pset = dests.get<fhicl::ParameterSet>(d);
+		dest_pset.erase("host_map");
+		dest_pset.put<std::vector<fhicl::ParameterSet>>("host_map", host_map_pset);
+		dests_mod.put<fhicl::ParameterSet>(d, dest_pset);
+	}
+
 	for (auto& d : dests.get_pset_names())
 	{
 		try

@@ -4,6 +4,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+#include "artdaq/TransferPlugins/detail/HostMap.hh"
 #include "cetlib_except/exception.h"
 #include <iomanip>
 
@@ -17,7 +18,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	, recv_frag_size_()
 	, recv_seq_count_()
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
-	, stop_timeout_ms_(pset.get<size_t>("stop_timeout_ms",3000))
+	, stop_timeout_ms_(pset.get<size_t>("stop_timeout_ms", 3000))
 	, shm_manager_(shm)
 	, non_reliable_mode_enabled_(pset.get<bool>("non_reliable_mode", false))
 	, non_reliable_mode_retry_count_(pset.get<size_t>("non_reliable_mode_retry_count", -1))
@@ -44,13 +45,29 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 		}
 	}
 
+	hostMap_t host_map = MakeHostMap(pset);
 	auto srcs = pset.get<fhicl::ParameterSet>("sources", fhicl::ParameterSet());
 	for (auto& s : srcs.get_pset_names())
 	{
+		auto src_pset = srcs.get<fhicl::ParameterSet>(s);
+		host_map = MakeHostMap(src_pset, 0, host_map);
+	}
+	auto host_map_pset = MakeHostMapPset(host_map);
+	fhicl::ParameterSet srcs_mod;
+	for (auto& s : srcs.get_pset_names())
+	{
+		auto src_pset = srcs.get<fhicl::ParameterSet>(s);
+		src_pset.erase("host_map");
+		src_pset.put<std::vector<fhicl::ParameterSet>>("host_map", host_map_pset);
+		srcs_mod.put<fhicl::ParameterSet>(s, src_pset);
+	}
+
+	for (auto& s : srcs_mod.get_pset_names())
+	{
 		try
 		{
-			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s,
-																				  TransferInterface::Role::kReceive));
+			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs_mod, s,
+				TransferInterface::Role::kReceive));
 			auto source_rank = transfer->source_rank();
 			if (enabled_srcs_empty) enabled_sources_.insert(source_rank);
 			source_plugins_[source_rank] = std::move(transfer);
@@ -137,7 +154,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			TLOG_TRACE("DataReceiverManager") << "Received Fragment Header from rank " << source_rank << "." << TLOG_ENDL;
 			RawDataType* loc = nullptr;
 			size_t retries = 0;
-			while (loc == nullptr )//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_) 
+			while (loc == nullptr)//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_) 
 			{
 				loc = shm_manager_->WriteFragmentHeader(header);
 				if (loc == nullptr) usleep(sleep_time);
@@ -197,14 +214,14 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), data_delta_t, "s", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>((header.word_count - header.num_words()) * sizeof(RawDataType)), "B", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), (header.word_count - header.num_words()) * sizeof(RawDataType) / data_delta_t, "B/s", 5, MetricMode::Average);
-			metricMan->sendMetric("Data Receive Count From Rank " + std::to_string(source_rank), recv_frag_count_.slotCount(source_rank), "fragments", 3, MetricMode::LastPoint);
+				metricMan->sendMetric("Data Receive Count From Rank " + std::to_string(source_rank), recv_frag_count_.slotCount(source_rank), "fragments", 3, MetricMode::LastPoint);
 				TRACE(6, "DataReceiverManager::runReceiver_: Done sending receive stats");
 			}
 		}
 		else if (header.type == Fragment::EndOfDataFragmentType || header.type == Fragment::InitFragmentType || header.type == Fragment::EndOfRunFragmentType || header.type == Fragment::EndOfSubrunFragmentType || header.type == Fragment::ShutdownFragmentType)
 		{
 			TLOG_DEBUG("DataReceiverManager") << "Received System Fragment from rank " << source_rank << " of type " << detail::RawFragmentHeader::SystemTypeToString(header.type) << "." << TLOG_ENDL;
-			
+
 			FragmentPtr frag(new Fragment(header.word_count - header.num_words()));
 			memcpy(frag->headerAddress(), &header, header.num_words() * sizeof(RawDataType));
 			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag->headerAddress() + header.num_words(), header.word_count - header.num_words());
@@ -219,7 +236,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			case Fragment::EndOfDataFragmentType:
 				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 				endOfDataCount = *(frag->dataBegin());
-				TLOG_DEBUG("DataReceiverManager") << "EndOfData Fragment indicates that " << std::to_string(endOfDataCount) << " fragments are expected from rank " << source_rank 
+				TLOG_DEBUG("DataReceiverManager") << "EndOfData Fragment indicates that " << std::to_string(endOfDataCount) << " fragments are expected from rank " << source_rank
 					<< " (recvd " << std::to_string(recv_frag_count_.slotCount(source_rank)) << ")." << TLOG_ENDL;
 				break;
 			case Fragment::InitFragmentType:
