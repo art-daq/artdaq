@@ -185,6 +185,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 				{
 					std::unique_lock<std::mutex> tlk(request_mutex_);
 					requests_[buffer.sequence_id] = buffer.timestamp;
+					request_timing_[buffer.sequence_id] = std::chrono::steady_clock::now();
 					anyNew = true;
 				}
 			}
@@ -201,4 +202,10 @@ void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqI
 	std::unique_lock<std::mutex> lk(request_mutex_);
 	requests_.erase(reqID);
 	if (reqID > highest_seen_request_) highest_seen_request_ = reqID;
+
+	if (metricMan)
+	{
+		metricMan->sendMetric("Request Response Time", TimeUtils::GetElapsedTime(request_timing_[reqID]), "seconds", 2, MetricMode::Average);
+	}
+	request_timing_.erase(reqID);
 }

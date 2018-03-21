@@ -67,6 +67,7 @@ namespace artdaq
 		//Socket parameters
 		int request_socket_;
 		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> requests_;
+		std::map<artdaq::Fragment::sequence_id_t, std::chrono::steady_clock::time_point> request_timing_;
 		std::atomic<bool> request_stop_requested_;
 		std::chrono::steady_clock::time_point request_stop_timeout_;
 		std::atomic<bool> request_received_;
