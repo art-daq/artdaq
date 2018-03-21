@@ -385,7 +385,7 @@ namespace artdaq
 
 	void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)
 	{
-		std::unique_lock<std::mutex> lk(_c.mutex_, std::try_to_lock);
+		std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::chrono::milliseconds(250));
 		if (lk.owns_lock())
 		{
 			try
