@@ -27,6 +27,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
 	, subrun_event_count_(0)
+	, subrun_incomplete_event_count_(0)
 	, art_processes_()
 	, restart_art_(false)
 	, current_art_pset_(art_pset)
@@ -586,6 +587,7 @@ bool artdaq::SharedMemoryEventManager::endSubrun()
 
 	TLOG(TLVL_INFO) << "Subrun " << subrun_id_ << " in run " << run_id_ << " has ended. There were " << subrun_event_count_ << " events in this subrun." << TLOG_ENDL;
 	subrun_event_count_ = 0;
+	subrun_incomplete_event_count_ = 0;
 
 	return true;
 }
@@ -757,6 +759,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				requests_.SendRoutingToken(1);
 				active_buffers_.erase(buf);
 				pending_buffers_.insert(buf);
+				subrun_incomplete_event_count_++;
+				if (metricMan) metricMan->sendMetric("Incomplete Event Rate", 1, "events/s", 3, MetricMode::Rate);
 				if (!released_incomplete_events_.count(hdr->sequence_id)) {
 					released_incomplete_events_[hdr->sequence_id] = num_fragments_per_event_ - GetFragmentCountInBuffer(buf);
 				}
@@ -789,6 +793,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	sorted_buffers.sort([this](int a, int b) {return bufferComparator(a, b); });
 
 	auto counter = 0;
+	double eventSize = 0;
 	for (auto buf : sorted_buffers)
 	{
 		auto hdr = getEventHeader_(buf);
@@ -797,8 +802,10 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		MarkBufferFull(buf);
 		subrun_event_count_++;
 		counter++;
+		eventSize += BufferDataSize(buf);
 		pending_buffers_.erase(buf);
 	}
+	eventSize /= counter;
 
 	TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics" << TLOG_ENDL;
 	if (metricMan)
@@ -806,8 +813,12 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		auto full = ReadReadyCount();
 		auto empty = WriteReadyCount(overwrite_mode_);
 		auto total = size();
+
 		metricMan->sendMetric("Event Rate", counter, "Events/s", 1, MetricMode::Rate);
 		metricMan->sendMetric("Events Released to art", subrun_event_count_, "Events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Incomplete Events Released to art", subrun_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Event Size", eventSize, "Bytes", 1, MetricMode::Average);
+
 		metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
@@ -831,7 +842,7 @@ void artdaq::SharedMemoryEventManager::send_init_frag_()
 
 		broadcastFragment_(std::move(init_fragment_), init_fragment_);
 		TLOG(TLVL_TRACE) << "Init Fragment sent" << TLOG_ENDL;
-	}
+}
 	else if (send_init_fragments_)
 	{
 		TLOG(TLVL_WARNING) << "Cannot send init fragment because I haven't yet received one!" << TLOG_ENDL;

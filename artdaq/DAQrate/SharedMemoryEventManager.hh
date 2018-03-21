@@ -310,6 +310,7 @@ namespace artdaq {
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		int broadcast_timeout_ms_;
 		int subrun_event_count_;
+		int subrun_incomplete_event_count_;
 
 		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
