@@ -75,6 +75,11 @@ public:
 	void start_threads();
 
 	/**
+	 * \brief Stop receiver threads 
+	 */
+	void stop_threads();
+
+	/**
 	 * \brief Get the list of enabled sources
 	 * \return The list of enabled sources
 	 */

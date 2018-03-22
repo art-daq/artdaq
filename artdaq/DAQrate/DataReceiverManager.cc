@@ -93,16 +93,8 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 
 artdaq::DataReceiverManager::~DataReceiverManager()
 {
-	TLOG_TRACE("DataReceiverManager") << "~DataReceiverManager: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount()) << TLOG_ENDL;
-	stop_requested_time_ = TimeUtils::gettimeofday_us();
-	stop_requested_ = true;
-
-	TLOG_TRACE("DataReceiverManager") << "~DataReceiverManager: Joining all threads" << TLOG_ENDL;
-	for (auto& s : source_threads_)
-	{
-		auto& thread = s.second;
-		if (thread.joinable()) thread.join();
-	}
+	TLOG_TRACE("DataReceiverManager") << "~DataReceiverManager: BEGIN" << TLOG_ENDL;
+	stop_threads();
 	shm_manager_.reset();
 	TLOG_TRACE("DataReceiverManager") << "Destructor END" << TLOG_ENDL;
 }
@@ -110,6 +102,7 @@ artdaq::DataReceiverManager::~DataReceiverManager()
 
 void artdaq::DataReceiverManager::start_threads()
 {
+	stop_requested_ = false;
 	for (auto& source : source_plugins_)
 	{
 		auto& rank = source.first;
@@ -120,6 +113,21 @@ void artdaq::DataReceiverManager::start_threads()
 			attrs.set_stack_size(4096 * 500); // 2000 KB
 			source_threads_[rank] = boost::thread(attrs, boost::bind(&DataReceiverManager::runReceiver_, this, rank));
 		}
+	}
+}
+
+void artdaq::DataReceiverManager::stop_threads()
+{
+	TLOG_TRACE("DataReceiverManager") << "stop_threads: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount()) << TLOG_ENDL;
+
+	stop_requested_time_ = TimeUtils::gettimeofday_us();
+	stop_requested_ = true;
+
+	TLOG_TRACE("DataReceiverManager") << "stop_threads: Joining all threads" << TLOG_ENDL;
+	for (auto& s : source_threads_)
+	{
+		auto& thread = s.second;
+		if (thread.joinable()) thread.join();
 	}
 }
 

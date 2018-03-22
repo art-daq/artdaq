@@ -93,6 +93,7 @@ bool artdaq::DataReceiverCore::stop()
 	            ", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
 	bool endSucceeded;
 	int attemptsToEnd;
+	receiver_ptr_->stop_threads();
 
 	// 21-Jun-2013, KAB - the stop_requested_ variable must be set
 	// before the flush lock so that the processFragments loop will
