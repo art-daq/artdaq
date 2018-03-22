@@ -1,6 +1,7 @@
 #define TRACE_NAME "ShmemTransfer"
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
 #include "cetlib_except/exception.h"
+#include <signal.h>
 
 artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role) :
 	TransferInterface(pset, role)
@@ -168,6 +169,13 @@ artdaq::ShmemTransfer::moveFragment(artdaq::Fragment&& fragment)
 artdaq::TransferInterface::CopyStatus
 artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec, bool reliableMode)
 {
+	if (!shm_manager_->IsValid()) {
+		shm_manager_->Attach();
+		if (!shm_manager_->IsValid()) {
+			TLOG_ERROR("ShmemTransfer") << "FATAL: Attempted to send Fragment when not attached to Shared Memory!";
+			kill(0, SIGUSR2);
+		}
+	}
 	// wait for the shm to become free, if requested     
 	if (send_timeout_usec > 0 || reliableMode)
 	{

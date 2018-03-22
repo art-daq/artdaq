@@ -134,6 +134,7 @@ art::TransferOutput::
 	auto sts = transfer_->moveFragment(std::move(*artdaq::Fragment::eodFrag(0)));
 	if (sts != artdaq::TransferInterface::CopyStatus::kSuccess) TLOG_ERROR("TransferOutput") << "Error sending EOD Fragment!" << TLOG_ENDL;
 	transfer_.reset(nullptr);
+	TLOG_DEBUG("TransferOutput") << "End: TransferOutput::~TransferOutput()";
 }
 
 void
