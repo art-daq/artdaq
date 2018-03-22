@@ -754,7 +754,6 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			auto hdr = getEventHeader_(buf);
 			if (active_buffers_.count(buf))
 			{
-				TLOG(TLVL_WARNING) << "Active event " << std::to_string(hdr->sequence_id) << " is stale. Scheduling release of incomplete event to art." << TLOG_ENDL;
 				requests_.RemoveRequest(hdr->sequence_id);
 				requests_.SendRoutingToken(1);
 				active_buffers_.erase(buf);
@@ -767,6 +766,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				else {
 					released_incomplete_events_[hdr->sequence_id] -= GetFragmentCountInBuffer(buf);
 				}
+				TLOG(TLVL_WARNING) << "Active event " << std::to_string(hdr->sequence_id) << " is stale. Scheduling release of incomplete event (missing " << released_incomplete_events_[hdr->sequence_id] << " Fragments) to art." << TLOG_ENDL;
 			}
 
 		}
