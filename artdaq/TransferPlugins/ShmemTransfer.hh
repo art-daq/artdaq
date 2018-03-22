@@ -25,6 +25,9 @@ namespace artdaq
 		 * "shm_key_offset" (Default: 0): Offset to add to shared memory key (hash of uniqueLabel)
 		 * \endverbatim
 		 * ShmemTransfer also requires all Parameters for configuring a TransferInterface
+		 * Additionally, an offset can be added via the ARTDAQ_SHMEM_TRANSFER_OFFSET envrionment variable.
+		 * Note that this variable, if used, MUST have the same value for all artdaq processes communicating
+		 * via ShmemTransfer.
 		 */
 		ShmemTransfer(fhicl::ParameterSet const& pset, Role role);
 
