@@ -117,8 +117,12 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 					fragments_received++;
 
 					static size_t cntr = 1;
-
-					TLOG_INFO("TransferWrapper") << "Received " << cntr++ << "-th event, "
+					auto mod = ++cntr % 10;
+					auto suffix = "-th";
+					if (mod == 1) suffix = "-st";
+					if (mod == 2) suffix = "-nd";
+					if (mod == 3) suffix = "-rd";
+					TLOG_INFO("TransferWrapper") << "Received " << cntr << suffix << " event, "
 						<< "seqID == " << fragmentPtr->sequenceID()
 						<< ", type == " << fragmentPtr->typeString() << TLOG_ENDL;
 					continue;
