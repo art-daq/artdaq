@@ -121,6 +121,11 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 			++loopCount;
 		}
 	}
+	
+	if (!shm_manager_->ReadyForRead() && shm_manager_->IsEndOfData()) 
+	{
+		return artdaq::TransferInterface::DATA_END;
+	}
 
 	//TLOG(4) << uniqueLabel() << " delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops << TLOG_ENDL;
 
@@ -176,6 +181,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 			return CopyStatus::kSuccess;
 		}
 	}
+	shm_manager_->SetRank(my_rank);
 	// wait for the shm to become free, if requested     
 	if (send_timeout_usec > 0 || reliableMode)
 	{

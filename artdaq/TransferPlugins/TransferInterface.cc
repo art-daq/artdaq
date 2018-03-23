@@ -22,7 +22,7 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 	ret = receiveFragmentHeader(*reinterpret_cast<detail::RawFragmentHeader*>(frag.headerAddress()), receive_timeout);
 	
 	TLOG_TRACE("TransferInterface") << "Done receiving Header, ret is " << ret << ", should be " << source_rank() << TLOG_ENDL;
-	if (ret == RECV_TIMEOUT) return ret;
+	if (ret < RECV_SUCCESS) return ret;
 
 	frag.autoResize();
 	

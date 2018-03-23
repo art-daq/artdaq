@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 
 		auto retval = transfer->receiveFragment(myfrag, timeout);
 
-		if (retval != artdaq::TransferInterface::RECV_TIMEOUT)
+		if (retval >= artdaq::TransferInterface::RECV_SUCCESS)
 		{
 			std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment with seqID == " <<
 				myfrag.sequenceID() << ", fragID == " << myfrag.fragmentID() << " has size " <<

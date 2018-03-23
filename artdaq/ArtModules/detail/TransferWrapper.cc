@@ -111,7 +111,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			{
 				auto result = transfer_->receiveFragment(*fragmentPtr, timeoutInUsecs_);
 
-				if (result != artdaq::TransferInterface::RECV_TIMEOUT)
+				if (result >= artdaq::TransferInterface::RECV_SUCCESS)
 				{
 					receivedFragment = true;
 					fragments_received++;
@@ -126,6 +126,12 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 						<< "seqID == " << fragmentPtr->sequenceID()
 						<< ", type == " << fragmentPtr->typeString() << TLOG_ENDL;
 					continue;
+				}
+				else if (result == artdaq::TransferInterface::DATA_END)
+				{
+					TLOG_ERROR("TransferWrapper") << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
+					unregisterMonitor();
+					return;
 				}
 				else
 				{
