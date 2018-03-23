@@ -172,8 +172,8 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	if (!shm_manager_->IsValid()) {
 		shm_manager_->Attach();
 		if (!shm_manager_->IsValid()) {
-			TLOG_ERROR("ShmemTransfer") << "FATAL: Attempted to send Fragment when not attached to Shared Memory!";
-			kill(0, SIGUSR2);
+			TLOG_ERROR("ShmemTransfer") << "Attempted to send Fragment when not attached to Shared Memory! Returning kSuccess, and dropping data!";
+			return CopyStatus::kSuccess;
 		}
 	}
 	// wait for the shm to become free, if requested     
