@@ -13,6 +13,7 @@
 
 // C++ Includes
 #include <condition_variable>
+#include <boost/thread.hpp>
 
 // Products includes
 #include "fhiclcpp/fwd.h"
@@ -91,8 +92,12 @@ public:
 
 private:
 
-	int fd_;
-	static int listen_fd_;
+	static int listen_thread_refcount_;
+	static std::unique_ptr<boost::thread> listen_thread_;
+	static std::map<int, std::set<int>> connected_fds_;
+	int send_fd_;
+	int active_receive_fd_;
+	int last_active_receive_fd_;
 
 	union
 	{
@@ -144,9 +149,8 @@ private: // methods
 	void reconnect_();
 
 	// Receiver should listen for connections
+	void start_listen_thread_();
 	void listen_();
-
-	static std::map<int, int> connected_fds_;
 
 	int calculate_port_() const { 
 		return destination_rank() + ((GetPartitionNumber() % 22) * 1000) + 10000;
