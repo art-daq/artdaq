@@ -34,3 +34,20 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 
 	return ret;
 }
+
+int artdaq::TransferInterface::GetPartitionNumber() const
+{
+	auto part = getenv("ARTDAQ_PARTITION_NUMBER"); // 0-127
+	uint32_t part_u = 0;
+	if (part != nullptr)
+	{
+		try {
+			auto part_s = std::string(part);
+			part_u = static_cast<uint32_t>(std::stoll(part_s, 0, 0));
+		}
+		catch (std::invalid_argument) {}
+		catch (std::out_of_range) {}
+	}
+
+	return (part_u & 0x7F);
+}

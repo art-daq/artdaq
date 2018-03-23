@@ -607,64 +607,87 @@ void artdaq::TCPSocketTransfer::listen_()
 		return;
 	}
 
-	int res;
-	timeval tv = { 2,0 }; // maybe increase of some global "debugging" flag set???
-	fd_set rfds;
-	FD_ZERO(&rfds);
-	FD_SET(listen_fd_, &rfds);
+	static std::mutex listen_mutex_;
+	std::unique_lock<std::mutex> listen_lock(listen_mutex_);
 
-	res = select(listen_fd_ + 1, &rfds, (fd_set *)0, (fd_set *)0, &tv);
-	if (res > 0)
+	if (connected_fds_.count(source_rank()))
 	{
-		int sts;
-		sockaddr_un un;
-		socklen_t arglen = sizeof(un);
-		int fd;
-		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "Calling accept" << TLOG_ENDL;
-		fd = accept(listen_fd_, (sockaddr *)&un, &arglen);
-		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "Done with accept" << TLOG_ENDL;
-
-		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Reading connect message" << TLOG_ENDL;
-		socklen_t lenlen = sizeof(tv);
-		/*sts=*/
-		setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen); // see man 7 socket.
-		MessHead mh;
-		uint64_t mark_us = TimeUtils::gettimeofday_us();
-		sts = read(fd, &mh, sizeof(mh));
-		uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
-		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Read of connect message took " << delta_us << " microseconds." << TLOG_ENDL;
-		TLOG_ARB(10, "TCPSocketTransfer") << uniqueLabel() << "do_connect read of connect msg (after accept) took " << std::to_string(delta_us) << " microseconds" << TLOG_ENDL; // emperically, read take a couple hundred usecs.
-		if (sts != sizeof(mh))
-		{
-			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Wrong message header length received!" << TLOG_ENDL;
-			TLOG_ARB(0, "TCPSocketTransfer") << uniqueLabel() << "do_connect_ problem with connect msg sts(" << sts << ")!=sizeof(mh)(" << std::to_string(sizeof(mh)) << ")" << TLOG_ENDL;
-			close(fd);
-			return;
-		}
-
-		// check for "magic" and valid source_id(aka rank)
-		mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
-		if (ntohl(mh.conn_magic) != CONN_MAGIC || mh.source_id != source_rank())
-		{
-			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Wrong magic bytes in header!" << TLOG_ENDL;
-			close(fd);
-			return;
-		}
 		if (fd_ != -1)
 		{
 			// close previous  dec connect_count_
 			close(fd_);
 		}
+		fd_ = connected_fds_[source_rank()];
+		connected_fds_.erase(source_rank());
 
-		// now add (new) connection
-		fd_ = fd;
 		TLOG_INFO("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: New fd is " << fd_ << TLOG_ENDL;
-
-		TLOG_ARB(3, "TCPSocketTransfer") << uniqueLabel() << "do_connect_ connection from sender_rank=" << std::to_string(mh.source_id) << TLOG_ENDL;
 	}
-	else
-	{
-		TLOG_ARB(10, "TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::do_connect_: No connections in timeout interval!" << TLOG_ENDL;
+	else {
+		int res;
+		timeval tv = { 2,0 }; // maybe increase of some global "debugging" flag set???
+		fd_set rfds;
+		FD_ZERO(&rfds);
+		FD_SET(listen_fd_, &rfds);
+
+		res = select(listen_fd_ + 1, &rfds, (fd_set *)0, (fd_set *)0, &tv);
+		if (res > 0)
+		{
+			int sts;
+			sockaddr_un un;
+			socklen_t arglen = sizeof(un);
+			int fd;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "Calling accept" << TLOG_ENDL;
+			fd = accept(listen_fd_, (sockaddr *)&un, &arglen);
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "Done with accept" << TLOG_ENDL;
+
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Reading connect message" << TLOG_ENDL;
+			socklen_t lenlen = sizeof(tv);
+			/*sts=*/
+			setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen); // see man 7 socket.
+			MessHead mh;
+			uint64_t mark_us = TimeUtils::gettimeofday_us();
+			sts = read(fd, &mh, sizeof(mh));
+			uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
+			TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Read of connect message took " << delta_us << " microseconds." << TLOG_ENDL;
+			TLOG_ARB(10, "TCPSocketTransfer") << uniqueLabel() << "do_connect read of connect msg (after accept) took " << std::to_string(delta_us) << " microseconds" << TLOG_ENDL; // emperically, read take a couple hundred usecs.
+			if (sts != sizeof(mh))
+			{
+				TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Wrong message header length received!" << TLOG_ENDL;
+				TLOG_ARB(0, "TCPSocketTransfer") << uniqueLabel() << "do_connect_ problem with connect msg sts(" << sts << ")!=sizeof(mh)(" << std::to_string(sizeof(mh)) << ")" << TLOG_ENDL;
+				close(fd);
+				return;
+			}
+
+			// check for "magic" and valid source_id(aka rank)
+			mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
+			if (ntohl(mh.conn_magic) != CONN_MAGIC)
+			{
+				TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: Wrong magic bytes in header!" << TLOG_ENDL;
+				close(fd);
+				return;
+			}
+
+			if (mh.source_id != source_rank()) {
+				connected_fds_[mh.source_id] = fd;
+				return listen_(); // Try again
+			}
+
+			if (fd_ != -1)
+			{
+				// close previous  dec connect_count_
+				close(fd_);
+			}
+
+			// now add (new) connection
+			fd_ = fd;
+			TLOG_INFO("TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::listen_: New fd is " << fd_ << TLOG_ENDL;
+
+			TLOG_ARB(3, "TCPSocketTransfer") << uniqueLabel() << "do_connect_ connection from sender_rank=" << std::to_string(mh.source_id) << TLOG_ENDL;
+		}
+		else
+		{
+			TLOG_ARB(10, "TCPSocketTransfer") << uniqueLabel() << "TCPSocketTransfer::do_connect_: No connections in timeout interval!" << TLOG_ENDL;
+		}
 	}
 } // do_connect_
 

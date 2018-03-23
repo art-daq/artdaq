@@ -31,20 +31,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 		throw cet::exception("ConfigurationException", "Buffer Count is too large for Shmem transfer!");
 	}
 
-	auto shmoff = getenv("ARTDAQ_SHMEM_TRANSFER_OFFSET");
-	uint32_t shmoff_u = 0;
-	if (shmoff != nullptr)
-	{
-		try {
-			auto shmoff_s = std::string(shmoff);
-			shmoff_u = static_cast<uint32_t>(std::stoll(shmoff_s, 0, 0));
-		}
-		catch (std::invalid_argument) {}
-		catch (std::out_of_range) {}
-	}
-
-	auto shmKey = pset.get<uint32_t>("shm_key_offset", 0) + shmoff_u;
-	shmKey += std::hash<std::string>()(uniqueLabel());
+	auto shmKey = pset.get<uint32_t>("shm_key_offset", 0) + (GetPartitionNumber() << 24) + ((source_rank() & 0xFFF) << 12) + (destination_rank() & 0xFFF);
 	if (role == Role::kReceive)
 	{
 		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, buffer_count_, max_fragment_size_words_ * sizeof(artdaq::RawDataType));

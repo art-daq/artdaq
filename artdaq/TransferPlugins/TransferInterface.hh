@@ -146,6 +146,12 @@ namespace artdaq
 		 * \return The destination rank for this TransferInterface instance
 		 */
 		virtual int destination_rank() const { return destination_rank_; }
+
+		/**
+		 * \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
+		 * \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
+		 */
+		int GetPartitionNumber() const;
 	private:
 		const Role role_;
 

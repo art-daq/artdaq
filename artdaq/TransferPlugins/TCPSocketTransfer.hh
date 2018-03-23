@@ -92,7 +92,7 @@ public:
 private:
 
 	int fd_;
-	int listen_fd_;
+	static int listen_fd_;
 
 	union
 	{
@@ -146,20 +146,10 @@ private: // methods
 	// Receiver should listen for connections
 	void listen_();
 
+	static std::map<int, int> connected_fds_;
+
 	int calculate_port_() const { 
-		int source_index = 0;
-		bool found = false;
-		for (auto it = hostMap_.begin(); it != hostMap_.end(); ++it)
-		{
-			if (it->first == source_rank()) {
-				found = true;
-				break;
-			}
-			source_index++;
-		}
-		if (!found) { TLOG_ERROR("TCPSocketTransfer") << "Could not find source rank in host_map!!!"; }
-		auto portOffset = hostMap_.at(destination_rank()).portOffset;
-		return portOffset + source_index;
+		return destination_rank() + ((GetPartitionNumber() % 22) * 1000) + 10000;
 	}
 };
 
