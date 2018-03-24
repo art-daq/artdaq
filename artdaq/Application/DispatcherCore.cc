@@ -70,10 +70,12 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	if (broadcast_mode_ && !agg_pset.has_key("broadcast_mode"))
 	{
 		agg_pset.put<bool>("broadcast_mode", true);
-		agg_pset.put<int>("art_analyzer_count", 0);
 	}
 
-	// initialize the MetricManager and the names of our metrics
+    agg_pset.erase("art_analyzer_count");
+	agg_pset.put<int>("art_analyzer_count", 0);
+	
+    // initialize the MetricManager and the names of our metrics
 	fhicl::ParameterSet metric_pset;
 
 	try
