@@ -132,6 +132,9 @@ private:
 	std::mutex stopstatscvm_; // protects 'stopcv'
 
 	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
+    size_t not_connected_count_; // Number of times returned RECV_TIMEOUT because no receive sockets open
+    size_t receive_err_threshold_; // Number of times TO print RECV_TIMEOUT before starting to return DATA_END
+    size_t receive_err_wait_us_; // Amount of time to wait if there are no connected receive sockets
 
 private: // methods
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);

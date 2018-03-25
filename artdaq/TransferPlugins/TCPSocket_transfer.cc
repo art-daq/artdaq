@@ -50,6 +50,9 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, stats_connect_stop_(false)
 	, stats_connect_thread_(std::bind(&TCPSocketTransfer::stats_connect_, this))
 	, timeoutMessageArmed_(true)
+    , not_connected_count_(0)
+    , receive_err_threshold_(pset.get<size_t>("receive_socket_disconnected_max_count", 1000))
+    , receive_err_wait_us_(pset.get<size_t>("receive_socket_disconnected_wait_us", 10000))
 {
 	TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend") << TLOG_ENDL;
 	auto masterPortOffset = pset.get<int>("offset_all_ports", 0);
@@ -118,11 +121,15 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 {
 	TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragmentHeader: BEGIN" << TLOG_ENDL;
 	int ret_rank = RECV_TIMEOUT;
+
 	if (connected_fds_[source_rank()].size() == 0)
 	{ // what if just listen_fd??? 
-		TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT" << TLOG_ENDL;
+        if(++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
+        TLOG_DEBUG("TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT" << TLOG_ENDL;
+        usleep(receive_err_wait_us_);
 		return RECV_TIMEOUT;
 	}
+    not_connected_count_ = 0;
 
 	TLOG_ARB(7, "TCPSocketTransfer") << uniqueLabel() << " TCPSocketTransfer::receiveFragmentHeader timeout_usec=" << std::to_string(timeout_usec) << TLOG_ENDL;
 	//void* buff=alloca(max_fragment_size_words_*8);
@@ -664,7 +671,7 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 	if (listen_thread_refcount_ == 0)
 	{
 		listen_thread_refcount_ = 1;
-		if (listen_thread_->joinable()) listen_thread_->join();
+		if (listen_thread_ && listen_thread_->joinable()) listen_thread_->join();
 		TLOG_INFO("TCPSocketTransfer") << "Starting Listener Thread" << TLOG_ENDL;
 		listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, this);
 	}
