@@ -99,6 +99,7 @@ private:
 	std::map<int, boost::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
+	std::set<int> running_sources_;
 
 	std::map<int, FragmentStoreElement> fragment_store_;
 

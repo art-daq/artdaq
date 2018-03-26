@@ -5,6 +5,7 @@ buffer_count: 10
 fragment_size: 0x1000
 transfer_plugin_type: Shmem
 validate_data_mode: true
+partition_number: 9
 
 metrics: {
     ganglia: {

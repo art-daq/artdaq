@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(Construct) {
 
 	fhicl::ParameterSet source_fhicl;
 	source_fhicl.put("transferPluginType", "Shmem");
-	source_fhicl.put("destination_rank", 0);
+	source_fhicl.put("destination_rank", 1);
 	source_fhicl.put("source_rank", 0);
 
 	fhicl::ParameterSet sources_fhicl;
@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 
 	fhicl::ParameterSet source_fhicl;
 	source_fhicl.put("transferPluginType", "Shmem");
-	source_fhicl.put("destination_rank", 0);
+	source_fhicl.put("destination_rank", 1);
 	source_fhicl.put("source_rank", 0);
 	source_fhicl.put("shm_key", 0xFEEE0000 + getpid());
 
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 
 	transfer.moveFragment(std::move(*(eodFrag.get())));
 
-	sleep(1);
+	sleep(2);
 	BOOST_REQUIRE_EQUAL(t.count(), 1);
 	BOOST_REQUIRE_EQUAL(t.slotCount(0), 1);
 	BOOST_REQUIRE_EQUAL(t.enabled_sources().size(), 1);

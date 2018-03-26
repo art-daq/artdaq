@@ -4,6 +4,7 @@ sends_per_sender: 10000
 buffer_count: 10
 fragment_size: 0x6400000
 transfer_plugin_type: TCPSocket
+partition_number: 12
 
 hostmap: [
 {rank: 0 host: localhost portOffset: 5300 },

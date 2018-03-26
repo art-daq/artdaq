@@ -9,6 +9,7 @@ artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role
 	, unique_label_(ps.get<std::string>("unique_label", "transfer_between_" + std::to_string(source_rank_) + "_and_" + std::to_string(destination_rank_)))
 	, buffer_count_(ps.get<size_t>("buffer_count", 10))
 	, max_fragment_size_words_(ps.get<size_t>("max_fragment_size_words", 1024))
+	, partition_number_(ps.get<short>("partition_number", GetPartitionNumber()))
 {
 	TLOG_DEBUG("TransferInterface") << uniqueLabel() << " role:"<<(int)role<<" TransferInterface constructor has "
 									<< ps.to_string() << TLOG_ENDL;

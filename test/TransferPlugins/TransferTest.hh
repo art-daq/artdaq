@@ -20,13 +20,13 @@ namespace artdaq
 		/**
 		 * \brief TransferTest Constructor
 		 * \param psi ParameterSet used to configure TransferTest
-		 * \param key Key for Shared Memory (Should be same across all instances of TransferTest used in test)
 		 * 
 		 * \verbatim
 		 * TransferTest accepts the following Parameters:
 		 * "num_senders" (REQUIRED): Number of sending TransferTest instances
 		 * "num_receivers" (REQUIRED): Number of receiving TransferTest instances
-		 * "sends_pper_sender" (REQUIRED): Number of sends each sender will perform
+		 * "sends_per_sender" (REQUIRED): Number of sends each sender will perform
+		 * "sending_threads" (Default: 1): Number of TransferInterface instances to send fragments from for each source rank
 		 * "buffer_count" (Default: 10): Buffer count for TransferInterfaces
 		 * "fragment_size" (Default: 0x100000): Size of Fragments to transfer
 		 * "metrics": FHiCL table used to configure MetricManager (see documentation)
@@ -34,7 +34,7 @@ namespace artdaq
 		 * "hostmap" (OPTIONAL): Host map to use for "host_map" parameter of TransferInterface plugins (i.e. TCPSocketTransfer)
 		 * \endverbatim
 		 */
-		explicit TransferTest(fhicl::ParameterSet psi, uint32_t key);
+		explicit TransferTest(fhicl::ParameterSet psi);
 
 		/**
 		 * \brief Run the test as configured
@@ -54,14 +54,16 @@ namespace artdaq
 
 		int senders_;
 		int receivers_;
+		int sending_threads_;
 		int sends_each_sender_;
-		int receives_each_receiver_; // Should be sends_each_sender * sending_ranks / receiving_ranks
+		int receives_each_receiver_; // Should be sends_each_sender * sending_threads * sending_ranks / receiving_ranks
 		int buffer_count_;
 		size_t max_payload_size_;
 		std::chrono::steady_clock::time_point start_time_;
 		fhicl::ParameterSet ps_;
 		artdaq::MetricManager metricMan_;
 		bool validate_mode_;
+		int partition_number_;
 	};
 
 	inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)

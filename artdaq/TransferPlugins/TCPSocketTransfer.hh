@@ -156,7 +156,7 @@ private: // methods
 	void listen_();
 
 	int calculate_port_() const { 
-		return destination_rank() + ((GetPartitionNumber() % 22) * 1000) + 10000;
+		return destination_rank() + ((partition_number_ % 22) * 1000) + 10000;
 	}
 };
 

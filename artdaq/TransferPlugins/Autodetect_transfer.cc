@@ -89,7 +89,7 @@ namespace artdaq
 artdaq::AutodetectTransfer::AutodetectTransfer(const fhicl::ParameterSet& pset, Role role)
 	: TransferInterface(pset, role)
 {
-	TLOG_TRACE("AutodetectTransfer") << uniqueLabel() << " Begin AutodetectTransfer constructor" << TLOG_ENDL;
+	TLOG_TRACE(GetTraceName()) << "Begin AutodetectTransfer constructor" << TLOG_ENDL;
 	std::string srcHost, destHost;
 	auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 	for (auto& ps : hosts)
@@ -104,15 +104,15 @@ artdaq::AutodetectTransfer::AutodetectTransfer(const fhicl::ParameterSet& pset, 
 			destHost = ps.get<std::string>("host", "localhost");
 		}
 	}
-	TLOG_TRACE("AutodetectTransfer") << uniqueLabel() << " ADT: srcHost=" << srcHost << ", destHost=" << destHost << TLOG_ENDL;
+	TLOG_TRACE(GetTraceName()) << "ADT: srcHost=" << srcHost << ", destHost=" << destHost << TLOG_ENDL;
 	if (srcHost == destHost)
 	{
-		TLOG_TRACE("AutodetectTransfer") << uniqueLabel() << " ADT: Constructing ShmemTransfer" << TLOG_ENDL;
+		TLOG_TRACE(GetTraceName()) << "ADT: Constructing ShmemTransfer" << TLOG_ENDL;
 		theTransfer_.reset(new ShmemTransfer(pset, role));
 	}
 	else
 	{
-		TLOG_TRACE("AutodetectTransfer") << uniqueLabel() << " ADT: Constructing TCPSocketTransfer" << TLOG_ENDL;
+		TLOG_TRACE(GetTraceName()) << "ADT: Constructing TCPSocketTransfer" << TLOG_ENDL;
 		theTransfer_.reset(new TCPSocketTransfer(pset, role));
 	}
 }

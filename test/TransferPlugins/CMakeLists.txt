@@ -66,3 +66,17 @@ artdaq_test_TransferPlugins
 	DATAFILES fcl/transfer_driver_shmem_validate.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
 	)
+
+  cet_test(transfer_driver_tcp_multi HANDBUILT
+      TEST_EXEC runTransferTest.sh
+      TEST_ARGS transfer_driver_tcp_multi.fcl
+      DATAFILES fcl/transfer_driver_tcp_multi.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+      )
+
+  cet_test(transfer_driver_shmem_multi HANDBUILT
+      TEST_EXEC runTransferTest.sh
+      TEST_ARGS transfer_driver_shmem_multi.fcl
+      DATAFILES fcl/transfer_driver_shmem_multi.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+      )
