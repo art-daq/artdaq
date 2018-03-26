@@ -296,7 +296,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	auto initialCount = GetAttachedCount();
 	auto startTime = std::chrono::steady_clock::now();
 
-	if (pset != current_art_pset_)
+	if (pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = pset;
 		current_art_config_file_ = std::make_shared<art_config_file>(pset/*, GetKey(), GetBroadcastKey()*/);
@@ -330,8 +330,8 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids)
 {
 	restart_art_ = false;
-	current_art_config_file_ = nullptr;
-	current_art_pset_ = fhicl::ParameterSet();
+	//current_art_config_file_ = nullptr;
+	//current_art_pset_ = fhicl::ParameterSet();
 
 	for (auto pid = pids.begin(); pid != pids.end();)
 	{
@@ -441,8 +441,11 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_ps
 		broadcasts_.MarkBufferEmpty(ii, true);
 	}
 	if (newRun == 0) newRun = run_id_ + 1;
-	current_art_pset_ = art_pset;
-	current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
+
+	if (art_pset != current_art_pset_ || !current_art_config_file_) {
+		current_art_pset_ = art_pset;
+		current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
+	}
 
 	if (n_art_processes != -1)
 	{
