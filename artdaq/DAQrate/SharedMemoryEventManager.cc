@@ -22,6 +22,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
 	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
 	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
+	, running_(false)
 	, buffer_writes_pending_()
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
@@ -34,6 +35,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
 	, end_of_data_wait_s_(pset.get<double>("end_of_data_wait_s", 1.0))
 	, end_of_data_graceful_shutdown_us_(pset.get<size_t>("end_of_data_graceful_shutdown_us", 1000000))
+	, art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 100000))
 	, requests_(pset)
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
 		pset.get<size_t>("broadcast_buffer_count", 10),
@@ -80,7 +82,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 artdaq::SharedMemoryEventManager::~SharedMemoryEventManager()
 {
 	TLOG(TLVL_TRACE) << "DESTRUCTOR" ;
-	endOfData();
+	if(running_) endOfData();
 	TLOG(TLVL_TRACE) << "Destructor END" ;
 }
 
@@ -489,7 +491,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 			lastReadCount = temp;
 			start = std::chrono::steady_clock::now();
 		}
-		if (lastReadCount > 0) usleep(1000);
+		if (lastReadCount > 0) usleep(art_event_processing_time_us_);
 	}
 	TLOG(TLVL_TRACE) << "endOfData: After wait for outstanding buffers. Still outstanding: " << lastReadCount << ", time waited: " << TimeUtils::GetElapsedTime(start) << " s / " << end_of_data_wait_s_ << " s, art process count: " << art_processes_.size();
 
@@ -529,11 +531,13 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 
 	TLOG(TLVL_TRACE) << "endOfData END" ;
 	TLOG(TLVL_INFO) << "EndOfData Complete. There were " << GetLastSeenBufferID() << " events processed in this run." ;
+	running_ = false;
 	return true;
 }
 
 void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
+	running_ = true;
 	init_fragment_.reset(nullptr);
 	StartArt();
 	run_id_ = runID;
