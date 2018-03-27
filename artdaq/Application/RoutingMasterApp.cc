@@ -1,3 +1,5 @@
+#define TRACE_NAME "RoutingMasterApp"
+
 #include "artdaq/Application/RoutingMasterApp.hh"
 
 /**
@@ -73,7 +75,7 @@ bool artdaq::RoutingMasterApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		int number_of_table_entries_sent = routing_master_future_.get();
 		TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
 			<< "Number of table entries sent = " << number_of_table_entries_sent
-			<< "." << TLOG_ENDL;
+			<< "." ;
 	}
 
 	return external_request_status_;
@@ -94,7 +96,7 @@ bool artdaq::RoutingMasterApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		int number_of_table_entries_sent = routing_master_future_.get();
 		TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
 			<< "Number of table entries sent = " << number_of_table_entries_sent
-			<< "." << TLOG_ENDL;
+			<< "." ;
 	}
 
 	return external_request_status_;
@@ -156,7 +158,7 @@ bool artdaq::RoutingMasterApp::do_reinitialize(fhicl::ParameterSet const& pset, 
 
 void artdaq::RoutingMasterApp::BootedEnter()
 {
-	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." << TLOG_ENDL;
+	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." ;
 
 	// the destruction of any existing RoutingMasterCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

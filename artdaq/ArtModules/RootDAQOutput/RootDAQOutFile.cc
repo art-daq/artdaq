@@ -61,7 +61,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-#define TRACE_NAME "RootDAQOutFile.cc"
+#define TRACE_NAME "RootDAQOutFile"
 #include "trace.h"				// TRACE
 
 #include <algorithm>
@@ -597,19 +597,19 @@ requestsToCloseFile()
 {
   using namespace std::chrono;
   unsigned int constexpr oneK {1024u};
-  TRACE( 10, "RootDAQOutFile::requestsToCloseFile start" );
+  TLOG(10) << "RootDAQOutFile::requestsToCloseFile start" ;
   unsigned sz=filePtr_->GetSize();
-  TRACE( 10, "RootDAQOutFile::requestsToCloseFile after filePtr_->GetSize()" );
+  TLOG(10) << "RootDAQOutFile::requestsToCloseFile after filePtr_->GetSize()";
   fp_.updateSize(sz/oneK);
   fp_.updateAge(duration_cast<seconds>(steady_clock::now() - beginTime_));
   bool ret=fileSwitchCriteria_.should_close(fp_);
-  TRACE( 10, "RootDAQOutFile::requestsToCloseFile done/return" );
+  TLOG(10) << "RootDAQOutFile::requestsToCloseFile done/return" ;
   return ret;
 }
 
 void art::RootDAQOutFile::writeOne(EventPrincipal const& e)
 {
-  TRACE( 10, "RootDAQOutFile::writeOne begin" );
+  TLOG(10) << "RootDAQOutFile::writeOne begin" ;
   // Auxiliary branch.
   // Note: pEventAux_ must be set before calling fillBranches
   // since it gets written out in that routine.
@@ -648,7 +648,7 @@ void art::RootDAQOutFile::writeOne(EventPrincipal const& e)
 # else
   fp_.update<Boundary::Event>(status_);
 # endif
-  TRACE( 10, "RootDAQOutFile::writeOne done/return" );
+  TLOG(10) << "RootDAQOutFile::writeOne done/return" ;
 }
 
 void
@@ -1022,7 +1022,7 @@ template <art::BranchType BT>
 void art::RootDAQOutFile::fillBranches(Principal const& principal,
                                        vector<ProductProvenance>* vpp)
 {
-  TRACE( 11, "RootDAQOutFile::fillBranches begin" );
+  TLOG(11) << "RootDAQOutFile::fillBranches begin" ;
   bool const fastCloning = (BT == InEvent) && currentlyFastCloning_;
   detail::KeptProvenance keptProvenance {dropMetaData_, dropMetaDataForDroppedData_, branchesWithStoredHistory_};
   map<unsigned,unsigned> checksumToIndex;
@@ -1079,7 +1079,7 @@ void art::RootDAQOutFile::fillBranches(Principal const& principal,
   vpp->assign(keptProvenance.begin(), keptProvenance.end());
   treePointers_[BT]->fillTree();  // write happes here
   vpp->clear();
-  TRACE( 11, "RootDAQOutFile::fillBranches done/return" );
+  TLOG(11) << "RootDAQOutFile::fillBranches done/return" ;
 }
 
 void

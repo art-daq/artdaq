@@ -127,7 +127,7 @@ bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, u
 
 void artdaq::EventBuilderApp::BootedEnter()
 {
-	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." << TLOG_ENDL;
+	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." ;
 
 	// the destruction of any existing EventBuilderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

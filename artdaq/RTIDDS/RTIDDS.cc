@@ -1,3 +1,5 @@
+#define TRACE_NAME "RTIDDS"
+
 #include "artdaq/RTIDDS/RTIDDS.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
@@ -18,7 +20,7 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
 
 	if (retcode != DDS_RETCODE_OK)
 	{
-		TLOG_WARNING(name_) << "Problem obtaining default participant QoS, retcode was " << retcode << TLOG_ENDL;
+		TLOG(TLVL_WARNING) << name_ << ": Problem obtaining default participant QoS, retcode was " << retcode ;
 	}
 
 	retcode = DDSPropertyQosPolicyHelper::add_property(
@@ -28,7 +30,7 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
 
 	if (retcode != DDS_RETCODE_OK)
 	{
-		TLOG_WARNING(name_) << "Problem setting dds.builtin_type.octets.max_size, retcode was " << retcode << TLOG_ENDL;
+		TLOG(TLVL_WARNING) << name_ << ": Problem setting dds.builtin_type.octets.max_size, retcode was " << retcode ;
 	}
 
 	participant_.reset(DDSDomainParticipantFactory::get_instance()->
@@ -48,7 +50,7 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
 
 	if (participant_ == nullptr || topic_octets_ == nullptr)
 	{
-		TLOG_WARNING(name_) << "Problem setting up the RTI-DDS participant and/or topic" << TLOG_ENDL;
+		TLOG(TLVL_WARNING) << name_ << ": Problem setting up the RTI-DDS participant and/or topic" ;
 	}
 
 	// JCF, 9/16/15                                                                                                                    
@@ -64,7 +66,7 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
 
 	if (retcode != DDS_RETCODE_OK)
 	{
-		TLOG_WARNING(name_) << "Problem obtaining default datawriter QoS, retcode was " << retcode << TLOG_ENDL;
+		TLOG(TLVL_WARNING) << name_ << ": Problem obtaining default datawriter QoS, retcode was " << retcode ;
 	}
 
 	retcode = DDSPropertyQosPolicyHelper::add_property(
@@ -74,7 +76,7 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
 
 	if (retcode != DDS_RETCODE_OK)
 	{
-		TLOG_WARNING(name_) << "Problem setting dds.builtin_type.octets.alloc_size, retcode was " << retcode << TLOG_ENDL;
+		TLOG(TLVL_WARNING) << name_ << ": Problem setting dds.builtin_type.octets.alloc_size, retcode was " << retcode ;
 	}
 
 
@@ -89,7 +91,7 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
 
 		if (octets_writer_ == nullptr)
 		{
-			TLOG_WARNING(name_) << "Problem setting up the RTI-DDS writer objects" << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << name_ << ": Problem setting up the RTI-DDS writer objects" ;
 		}
 	}
 	else
@@ -102,7 +104,7 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
 
 		if (octets_reader_ == nullptr)
 		{
-			TLOG_WARNING(name_) << "Problem setting up the RTI-DDS reader objects" << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << name_ << ": Problem setting up the RTI-DDS reader objects" ;
 		}
 	}
 }
@@ -138,26 +140,26 @@ void artdaq::RTIDDS::copyFragmentToDDS_(artdaq::Fragment& fragment)
 
 		if (retcode != DDS_RETCODE_OK)
 		{
-			TLOG_WARNING(name_) << "Problem writing octets (bytes), retcode was " << retcode << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << name_ << ": Problem writing octets (bytes), retcode was " << retcode ;
 
-			TLOG_WARNING(name_) << "Fragment failed for DDS! "
+			TLOG(TLVL_WARNING) << name_ << ": Fragment failed for DDS! "
 				<< "fragment address and size = "
 				<< static_cast<void*>(fragment.headerBeginBytes()) << " " << static_cast<int>(fragment.sizeBytes()) << " "
 				<< "sequence ID, fragment ID, and type = "
 				<< fragment.sequenceID() << " "
 				<< fragment.fragmentID() << " "
-				<< ((int) fragment.type()) << TLOG_ENDL;
+				<< ((int) fragment.type()) ;
 		}
 	}
 	else
 	{
-		TLOG_WARNING(name_) << "Fragment invalid for shared memory! "
+		TLOG(TLVL_WARNING) << name_ << ": Fragment invalid for DDS! "
 			<< "fragment address and size = "
 			<< static_cast<void*>(fragment.headerBeginBytes()) << " " << static_cast<int>(fragment.sizeBytes()) << " "
 			<< "sequence ID, fragment ID, and type = "
 			<< fragment.sequenceID() << " "
 			<< fragment.fragmentID() << " "
-			<< ((int) fragment.type()) << TLOG_ENDL;
+			<< ((int) fragment.type()) ;
 	}
 }
 
@@ -167,13 +169,13 @@ void artdaq::RTIDDS::OctetsListener::on_data_available(DDSDataReader* reader)
 	DDS_SampleInfo info;
 	DDS_ReturnCode_t retcode;
 
-	TLOG_DEBUG("OctetsListener") << "In OctetsListener::on_data_available" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << name_ << ": In OctetsListener::on_data_available" ;
 
 
 	octets_reader = DDSOctetsDataReader::narrow(reader);
 	if (octets_reader == nullptr)
 	{
-		TLOG_ERROR("OctetsListener") << "Error: Very unexpected - DDSOctetsDataReader::narrow failed" << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << name_ << ": Error: Very unexpected - DDSOctetsDataReader::narrow failed" ;
 		return;
 	}
 
@@ -192,8 +194,8 @@ void artdaq::RTIDDS::OctetsListener::on_data_available(DDSDataReader* reader)
 		}
 		else if (retcode != DDS_RETCODE_OK)
 		{
-			TLOG_WARNING("OctetsListener") << "Unable to take data from data reader, error "
-				<< retcode << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << "Unable to take data from data reader, error "
+				<< retcode ;
 			return;
 		}
 		if (info.valid_data)
@@ -240,12 +242,12 @@ bool artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fr
 
 		dds_octets_queue_.pop();
 
-		TLOG_DEBUG("RTIDDS")
-			<< "Received fragment from DDS, type ="
+		TLOG(TLVL_DEBUG) << name_
+			<< ": Received fragment from DDS, type ="
 			<< ((int)fragment.type()) << ", sequenceID = "
 			<< fragment.sequenceID() << ", size in bytes = "
 			<< fragment.sizeBytes()
-			<< TLOG_ENDL;
+			;
 
 		return true;
 	}

@@ -1,3 +1,5 @@
+#define TRACE_NAME "MulticastTransfer"
+
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -166,8 +168,8 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 		auto multicast_address = boost::asio::ip::address::from_string(pset.get<std::string>("multicast_address"));
 		auto local_address = boost::asio::ip::address::from_string(pset.get<std::string>("local_address"));
 
-		TLOG_DEBUG(GetTraceName()) << "MulticastTransfer: multicast address is set to " << multicast_address << TLOG_ENDL;
-		TLOG_DEBUG(GetTraceName()) << "MulticastTransfer: local address is set to " << local_address << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << GetTraceName() << ": multicast address is set to " << multicast_address ;
+		TLOG(TLVL_DEBUG) << GetTraceName() << ": local address is set to " << local_address ;
 
 		if (TransferInterface::role() == Role::kSend)
 		{
@@ -225,8 +227,8 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 		book_container_of_buffers(receive_buffers_, max_fragment_size_words_, max_subfragments, 0, max_subfragments - 1);
 	}
 
-	TLOG_DEBUG(GetTraceName()) << "MulticastTransfer: max_subfragments is " << max_subfragments << TLOG_ENDL;
-	TLOG_DEBUG(GetTraceName()) << "MulticastTransfer: Staging buffer size is " << staging_memory_.size() << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": max_subfragments is " << max_subfragments ;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": Staging buffer size is " << staging_memory_.size() ;
 }
 
 #pragma GCC diagnostic push
@@ -357,7 +359,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 			// to be incomplete
 
 			assert(!fragment_complete);
-			TLOG_WARNING(GetTraceName()) << "MulticastTransfer: Got an incomplete fragment" << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << GetTraceName() << ": Got an incomplete fragment" ;
 			return artdaq::TransferInterface::RECV_TIMEOUT;
 		}
 
@@ -449,7 +451,7 @@ artdaq::MulticastTransfer::copyFragment(artdaq::Fragment& fragment,
 void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& fragment)
 {
 	auto num_subfragments = static_cast<size_t>(std::ceil(fragment.sizeBytes() / static_cast<float>(subfragment_size_)));
-	TLOG_DEBUG(GetTraceName()) << "MulticastTransfer: # of subfragments to use is " << num_subfragments << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": # of subfragments to use is " << num_subfragments ;
 
 	for (auto i_s = 0; i_s < num_subfragments; ++i_s)
 	{
@@ -540,8 +542,8 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	boost::asio::socket_base::receive_buffer_size actual_recv_buff_size;
 	socket_->get_option(actual_recv_buff_size);
 
-	TLOG_DEBUG(GetTraceName()) << "MulticastTransfer: Receive buffer size is currently " << actual_recv_buff_size.value() <<
-		" bytes, will try to change it to " << recv_buff_size << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": Receive buffer size is currently " << actual_recv_buff_size.value() <<
+		" bytes, will try to change it to " << recv_buff_size ;
 
 	boost::asio::socket_base::receive_buffer_size recv_buff_option(recv_buff_size);
 
@@ -555,7 +557,7 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	}
 
 	socket_->get_option(actual_recv_buff_size);
-	TLOG_DEBUG(GetTraceName()) << "MulticastTransfer: After attempted change, receive buffer size is now " << actual_recv_buff_size.value() << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": After attempted change, receive buffer size is now " << actual_recv_buff_size.value() ;
 }
 
 #pragma GCC diagnostic pop

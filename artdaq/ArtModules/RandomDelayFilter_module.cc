@@ -7,6 +7,8 @@
 // from cetpkgsupport v1_09_00.
 ////////////////////////////////////////////////////////////////////////
 
+#define TRACE_NAME "RandomDelayFilter"
+
 #include "art/Framework/Core/EDFilter.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -140,27 +142,27 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 	{
 	case 'n':
 	case 'N':
-		TLOG_INFO("RandomDelayFilter") << "Generating delay times using Normal distribution with mean " << mean_ms_ << " ms, std. dev. " << sigma_ms_ << " ms, and offset " << min_ms_ << ".";
+		TLOG(TLVL_INFO) << "Generating delay times using Normal distribution with mean " << mean_ms_ << " ms, std. dev. " << sigma_ms_ << " ms, and offset " << min_ms_ << ".";
 		distribution_type_ = DistType::Normal;
 		normal_distn_.reset(new std::normal_distribution<double>(mean_ms_, sigma_ms_));
 		break;
 	case 'e':
 	case 'E':
-		TLOG_INFO("RandomDelayFilter") << "Generating delay times using Exponential distribution with mean " << mean_ms_ << " ms and offset " <<  min_ms_ << ".";
+		TLOG(TLVL_INFO) << "Generating delay times using Exponential distribution with mean " << mean_ms_ << " ms and offset " <<  min_ms_ << ".";
 		distribution_type_ = DistType::Exponential;
 		if (mean_ms_ == 0) mean_ms_ = 1;
 		exponential_distn_.reset(new std::exponential_distribution<double>(1/mean_ms_));
 		break;
 	case 'U':
 	case 'u':
-		TLOG_INFO("RandomDelayFilter") << "Generating delay times using Uniform distribution with min " << min_ms_ << " ms and max " << max_ms_ << " ms.";
+		TLOG(TLVL_INFO) << "Generating delay times using Uniform distribution with min " << min_ms_ << " ms and max " << max_ms_ << " ms.";
 		distribution_type_ = DistType::Uniform;
 		uniform_distn_.reset(new std::uniform_real_distribution<double>(min_ms_, max_ms_));
 		break;
 	case 'f':
 	case 'F':
 	default:
-		TLOG_INFO("RandomDelayFilter") << "Delay time set to " << min_ms_ << " ms.";
+		TLOG(TLVL_INFO) << "Delay time set to " << min_ms_ << " ms.";
 		distribution_type_ = DistType::Fixed;
 		break;
 	}
@@ -183,7 +185,7 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 	case DistType::Fixed:
 		break;
 	}
-	TLOG_DEBUG("RandomDelayFilter") << "Simulating processing of event " << e.event() << " by delaying " << std::to_string(delay) << "ms." << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Simulating processing of event " << e.event() << " by delaying " << std::to_string(delay) << "ms." ;
 
 	usleep(1000 * (1 - load_factor_) * delay);
 

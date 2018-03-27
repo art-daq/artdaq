@@ -1,3 +1,4 @@
+#deinfe TRACE_NAME "requestReceiver"
 
 #include <boost/program_options.hpp>
 #include "fhiclcpp/make_ParameterSet.h"
@@ -59,7 +60,7 @@ int main(int argc, char* argv[])
 	{
 		for (auto req : recvr.GetRequests())
 		{
-			TLOG_INFO("RequestReceiver") << "Received Request for Sequence ID " << std::to_string(req.first) << ", timestamp " << std::to_string(req.second) << TLOG_ENDL;
+			TLOG(TLVL_INFO) << "Received Request for Sequence ID " << std::to_string(req.first) << ", timestamp " << std::to_string(req.second) ;
 		}
 		recvr.ClearRequests();
 		usleep(10000);

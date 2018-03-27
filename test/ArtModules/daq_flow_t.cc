@@ -1,3 +1,5 @@
+#define TRACE_NAME "daq_flow_t"
+
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
@@ -48,7 +50,7 @@ int main(int argc, char* argv[])
 		size_t event_count = 0;
 		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
-			TLOG_DEBUG("daq_flow_t") << "Number of fragments: " << frags.size() << TLOG_ENDL;
+			TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size() ;
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);
 			for (auto&& frag : frags)
 			{
@@ -57,7 +59,7 @@ int main(int argc, char* argv[])
 				auto sts = events.AddFragment(std::move(frag), 1000000, tempFrag);
 				if (!sts)
 				{
-					TLOG_ERROR("daq_flow_t") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+					TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
 					exit(1);
 				}
 			}

@@ -40,12 +40,12 @@ namespace artdaq {
 			if (config_ps.has_key("rank")) {
 				my_rank = config_ps.get<int>("rank");
 			}
-			TLOG_DEBUG(app_name + "Main") << "Setting application name to " << app_name << TLOG_ENDL;
+			TLOG_DEBUG(app_name + "Main") << "Setting application name to " << app_name ;
 
 			TLOG_DEBUG(app_name + "Main") << "artdaq version " <<
 				artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 				<< ", built " <<
-				artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() << TLOG_ENDL;
+				artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() ;
 
 			artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id"));
 
@@ -80,9 +80,9 @@ namespace artdaq {
 				comm->do_initialize(config_ps, timeout, timestamp);
 				comm->do_start(art::RunID(run), timeout, timestamp);
 
-				TLOG_INFO(app_name) << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
+				TLOG_INFO(app_name + "Main") << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
 					<< "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.stop" << std::endl
-					<< "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.shutdown" << TLOG_ENDL;
+					<< "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.shutdown" ;
 			}
 
 			auto commander = artdaq::MakeCommanderPlugin(config_ps, *comm.get());

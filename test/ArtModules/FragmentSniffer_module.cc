@@ -1,3 +1,5 @@
+#define TRACE_NAME "FragmentSniffer"
+
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -78,10 +80,10 @@ namespace artdaq
 	
 	void FragmentSniffer::endJob()
 	{
-		TLOG_INFO("Progress") << "events processed: "
+		TLOG(TLVL_INFO) << "events processed: "
 			<< num_events_processed_
 			<< "\nevents expected:  "
-			<< num_events_expected_ << TLOG_ENDL;
+			<< num_events_expected_ ;
 		if(num_events_expected_ > 0) assert(num_events_processed_ == num_events_expected_);
 	}
 

@@ -59,11 +59,11 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
 
 void artdaq::RequestReceiver::setupRequestListener()
 {
-	TLOG_INFO("RequestReceiver") << "Setting up request listen socket, rank=" << my_rank << ", address=" << request_addr_ << ":" << request_port_ << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Setting up request listen socket, rank=" << my_rank << ", address=" << request_addr_ << ":" << request_port_ ;
 	request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (request_socket_ < 0)
 	{
-		TLOG_ERROR("RequestReceiver") << "Error creating socket for receiving data requests! err=" << strerror(errno) << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "Error creating socket for receiving data requests! err=" << strerror(errno) ;
 		exit(1);
 	}
 
@@ -72,7 +72,7 @@ void artdaq::RequestReceiver::setupRequestListener()
 	int yes = 1;
 	if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 	{
-		TLOG_ERROR("RequestReceiver") << "Unable to enable port reuse on request socket, err=" << strerror(errno) << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "Unable to enable port reuse on request socket, err=" << strerror(errno) ;
 		exit(1);
 	}
 	memset(&si_me_request, 0, sizeof(si_me_request));
@@ -81,7 +81,7 @@ void artdaq::RequestReceiver::setupRequestListener()
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind(request_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
-		TLOG_ERROR("RequestReceiver") << "Cannot bind request socket to port " << request_port_ << ", err=" << strerror(errno) << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << request_port_ << ", err=" << strerror(errno) ;
 		exit(1);
 	}
 
@@ -91,28 +91,28 @@ void artdaq::RequestReceiver::setupRequestListener()
 		int sts = ResolveHost(request_addr_.c_str(), mreq.imr_multiaddr);
 		if (sts == -1)
 		{
-			TLOG_ERROR("RequestReceiver") << "Unable to resolve multicast request address, err=" << strerror(errno) << TLOG_ENDL;
+			TLOG(TLVL_ERROR) << "Unable to resolve multicast request address, err=" << strerror(errno) ;
 			exit(1);
 		}
 		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 		{
-			TLOG_ERROR("RequestReceiver") << "Unable to join multicast group, err=" << strerror(errno) << TLOG_ENDL;
+			TLOG(TLVL_ERROR) << "Unable to join multicast group, err=" << strerror(errno) ;
 			exit(1);
 		}
 	}
-	TLOG_INFO("RequestReceiver") << "Done setting up request socket, rank=" << my_rank << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Done setting up request socket, rank=" << my_rank ;
 }
 
 artdaq::RequestReceiver::~RequestReceiver()
 {
 	if (!request_received_)
 	{
-		TLOG_ERROR("RequestReceiver") << "Stop request received by RequestReceiver, but no requests have ever been received." << std::endl
-			<< "Check that UDP port " << request_port_ << " is open in the firewall config." << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "Stop request received by RequestReceiver, but no requests have ever been received." << std::endl
+			<< "Check that UDP port " << request_port_ << " is open in the firewall config." ;
 	}
 	should_stop_ = true;
-	TLOG_DEBUG("RequestReceiver") << "Joining requestThread" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Joining requestThread" ;
 	if (requestThread_.joinable()) requestThread_.join();
 	if (request_socket_ != -1) close(request_socket_);
 }
@@ -120,7 +120,7 @@ artdaq::RequestReceiver::~RequestReceiver()
 void artdaq::RequestReceiver::startRequestReceiverThread()
 {
 	if (requestThread_.joinable()) requestThread_.join();
-	TLOG_INFO("RequestReceiver") << "Starting Request Reception Thread" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Starting Request Reception Thread" ;
 	requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
 	running_ = true;
 }
@@ -129,7 +129,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 {
 	while (!should_stop_)
 	{
-		TLOG_ARB(16, "RequestReceiver") << "receiveRequestsLoop: Polling Request socket for new requests" << TLOG_ENDL;
+		TLOG(16) << "receiveRequestsLoop: Polling Request socket for new requests" ;
 
 		int ms_to_wait = 100;
 		struct pollfd ufds[1];
@@ -147,16 +147,16 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			continue;
 		}
 
-		TLOG_ARB(11, "RequestReceiver") << "Recieved packet on Request channel" << TLOG_ENDL;
+		TLOG(11) << "Recieved packet on Request channel" ;
 		artdaq::detail::RequestHeader hdr_buffer;
 		recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
-		TLOG_ARB(11, "RequestReceiver") << "Request header word: 0x" << std::hex << hdr_buffer.header << TLOG_ENDL;
+		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer.header ;
 		if (!hdr_buffer.isValid()) continue;
 
 		request_received_ = true;
 		if (hdr_buffer.mode == artdaq::detail::RequestMessageMode::EndOfRun)
 		{
-			TLOG_INFO("RequestReceiver") << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests..." << TLOG_ENDL;
+			TLOG(TLVL_INFO) << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests..." ;
 			request_stop_timeout_ = std::chrono::steady_clock::now();
 			request_stop_requested_ = true;
 		}
@@ -169,19 +169,19 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			if (!buffer.isValid()) continue;
 			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
 			{
-				TLOG_ERROR("RequestReceiver") << "Received conflicting request for SeqID "
+				TLOG(TLVL_ERROR) << "Received conflicting request for SeqID "
 					<< std::to_string(buffer.sequence_id) << "!"
 					<< " Old ts=" << std::to_string(requests_[buffer.sequence_id])
-					<< ", new ts=" << std::to_string(buffer.timestamp) << ". Keeping OLD!" << TLOG_ENDL;
+					<< ", new ts=" << std::to_string(buffer.timestamp) << ". Keeping OLD!" ;
 			}
 			else if (!requests_.count(buffer.sequence_id))
 			{
 				int delta = buffer.sequence_id - highest_seen_request_;
-				TLOG_ARB(11, "RequestReceiver") << "Recieved request for sequence ID " << std::to_string(buffer.sequence_id)
-					<< " and timestamp " << std::to_string(buffer.timestamp) << " (delta: " << delta << ")" << TLOG_ENDL;
+				TLOG(11) << "Recieved request for sequence ID " << std::to_string(buffer.sequence_id)
+					<< " and timestamp " << std::to_string(buffer.timestamp) << " (delta: " << delta << ")" ;
 				if (delta < 0)
 				{
-					TLOG_ARB(11, "RequestReceiver") << "Already serviced this request! Ignoring..." << TLOG_ENDL;
+					TLOG(11) << "Already serviced this request! Ignoring..." ;
 				}
 				else
 				{

@@ -417,25 +417,25 @@ namespace artdaq
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg ;
 			}
 			catch (art::Exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg ;
 			}
 			catch (cet::exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg ;
 			}
 			catch (...)
 			{
 				std::string msg = exception_msg("Unknown exception", _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg ;
 			}
 		}
 		else
@@ -878,7 +878,7 @@ private:								\
 		{
 			TLOG(TLVL_INFO) << "A shutdown command was sent "
 				<< "with parameter "
-				<< paramString << "\"" << TLOG_ENDL;
+				<< paramString << "\"" ;
 			_server->terminate();
 		}
 	private:
@@ -1011,7 +1011,7 @@ private:								\
 		registry.setShutdown(&shutdown_obj);
 #endif
 
-		TLOG(TLVL_DEBUG) << "running server" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "running server" ;
 
 		// JCF, 6/3/15
 
@@ -1025,13 +1025,13 @@ private:								\
 		}
 		catch (...)
 		{
-			TLOG(TLVL_WARNING) << "server threw an exception; closing the socket and rethrowing" << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << "server threw an exception; closing the socket and rethrowing" ;
 			close(socket_file_descriptor);
 			throw;
 		}
 
 		close(socket_file_descriptor);
-		TLOG(TLVL_DEBUG) << "server terminated" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "server terminated" ;
 	}
 	catch (...)
 	{

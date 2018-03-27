@@ -80,7 +80,7 @@ namespace art
 
 		T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr));
 		TLOG(TLVL_READOBJANY) << "ReadObjectAny: Got object of class " << className <<
-			", located at " << static_cast<void*>(ptr) << " caller:" << callerName << TLOG_ENDL;
+			", located at " << static_cast<void*>(ptr) << " caller:" << callerName ;
 
 		return ptr;
 	}
@@ -99,7 +99,7 @@ namespace art
 		{
 			//std::ostringstream OS;
 			//object->processHistoryID().print(OS);
-			TLOG(TLVL_PROCESSHISTORYID) << label << ": " << "ProcessHistoryID: " << object->processHistoryID() << TLOG_ENDL;
+			TLOG(TLVL_PROCESSHISTORYID) << label << ": " << "ProcessHistoryID: " << object->processHistoryID() ;
 		}
 		else
 		{

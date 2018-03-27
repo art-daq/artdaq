@@ -1,3 +1,5 @@
+#define TRACE_NAME "reconfigure_t"
+
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
@@ -60,7 +62,7 @@ int main(int argc, char* argv[])
 				auto sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
 				if (!sts)
 				{
-					TLOG_ERROR("reconfigure_t") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+					TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
 					exit(1);
 				}
 			}
@@ -90,7 +92,7 @@ int main(int argc, char* argv[])
 					auto sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
 					if (!sts)
 					{
-						TLOG_ERROR("reconfigure_t") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+						TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
 						exit(1);
 					}
 				}

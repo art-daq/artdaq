@@ -8,6 +8,7 @@
 // that data are transmitted without corruption from the
 // artdaq::EventStore through to the artdaq::RawInput source.
 //
+#define TRACE_NAME "artdaqDriver"
 
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
@@ -72,7 +73,7 @@ int main(int argc, char * argv[]) try
 	catch (...) {} // OK if there's no metrics table defined in the FHiCL 
 
 	if (metric_pset.is_empty()) {
-		TLOG_INFO("artdaqDriver") << "No metric plugins appear to be defined" << TLOG_ENDL;
+		TLOG(TLVL_INFO) << "No metric plugins appear to be defined" ;
 	}
 	try {
 		metricMan_.initialize(metric_pset, "artdaqDriver");
@@ -98,7 +99,7 @@ int main(int argc, char * argv[]) try
 		commandable_gen->StartCmd(run, timeout, timestamp);
 	}
 
-	TLOG_ARB(50, "artdaqDriver") << "driver main before store.startRun" << TLOG_ENDL;
+	TLOG(50) << "driver main before store.startRun" ;
 	store.startRun(run);
 
 	// Read or generate fragments as rapidly as possible, and feed them
@@ -107,7 +108,7 @@ int main(int argc, char * argv[]) try
 	// speed as the limiting factor
 	while ((commandable_gen && commandable_gen->getNext(frags)) ||
 		(gen && gen->getNext(frags))) {
-		TLOG_ARB(50, "artdaqDriver") << "driver main: getNext returned frags.size()=" << std::to_string(frags.size()) << " current event_count=" << event_count << TLOG_ENDL;
+		TLOG(50) << "driver main: getNext returned frags.size()=" << std::to_string(frags.size()) << " current event_count=" << event_count ;
 		for (auto & val : frags) {
 			if (val->sequenceID() != previous_sequence_id) {
 				++event_count;
@@ -123,7 +124,7 @@ int main(int argc, char * argv[]) try
 			auto sts = store.AddFragment(std::move(val), 1000000, tempFrag);
 			if (!sts)
 			{
-				TLOG_ERROR("artdaqDriver") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
 				exit(1);
 			}
 		}

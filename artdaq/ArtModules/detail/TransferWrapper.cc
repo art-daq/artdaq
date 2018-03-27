@@ -1,3 +1,5 @@
+#define TRACE_NAME "TransferWrapper"
+
 #include "artdaq/ArtModules/detail/TransferWrapper.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
@@ -66,12 +68,12 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 	int retry = 3;
 
 	while (retry > 0) {
-		TLOG_INFO("TransferWrapper") << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
-			<< "\") with the dispatcher aggregator" << TLOG_ENDL;
+		TLOG(TLVL_INFO) << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
+			<< "\") with the dispatcher aggregator" ;
 
 		auto status = commander_->send_register_monitor(dispatcherConfig.to_string());
 
-		TLOG_INFO("TransferWrapper") << "Response from dispatcher is \"" << status << "\"" << TLOG_ENDL;
+		TLOG(TLVL_INFO) << "Response from dispatcher is \"" << status << "\"" ;
 
 		if (status == "Success")
 		{
@@ -80,7 +82,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 		}
 		else
 		{
-			TLOG_WARNING("TransferWrapper") << "Error in TransferWrapper: attempt to register with dispatcher did not result in the \"Success\" response" << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << "Error in TransferWrapper: attempt to register with dispatcher did not result in the \"Success\" response" ;
 			usleep(100000);
 		}
 		retry--;
@@ -102,7 +104,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 		{
 			if (gSignalStatus)
 			{
-				TLOG_INFO("TransferWrapper") << "Ctrl-C appears to have been hit" << TLOG_ENDL;
+				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit" ;
 				unregisterMonitor();
 				return;
 			}
@@ -122,20 +124,20 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 					if (mod == 1) suffix = "-st";
 					if (mod == 2) suffix = "-nd";
 					if (mod == 3) suffix = "-rd";
-					TLOG_INFO("TransferWrapper") << "Received " << cntr << suffix << " event, "
+					TLOG(TLVL_INFO) << "Received " << cntr << suffix << " event, "
 						<< "seqID == " << fragmentPtr->sequenceID()
-						<< ", type == " << fragmentPtr->typeString() << TLOG_ENDL;
+						<< ", type == " << fragmentPtr->typeString() ;
 					continue;
 				}
 				else if (result == artdaq::TransferInterface::DATA_END)
 				{
-					TLOG_ERROR("TransferWrapper") << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
+					TLOG(TLVL_ERROR) << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
 					unregisterMonitor();
 					return;
 				}
 				else
 				{
-					TLOG_WARNING("TransferWrapper") << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again" << TLOG_ENDL;
+					TLOG(TLVL_WARNING) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again" ;
 
 				}
 			}
@@ -219,7 +221,7 @@ artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 			" total size = " << totalsize << ", artdaq fragment header = " << artdaqheader <<
 			", metadata = " << metadata << ", payload = " << payload;
 
-		TLOG_ERROR("TransferWrapper") << errmsg.str() << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << errmsg.str() ;
 
 		if (quitOnFragmentIntegrityProblem_)
 		{
@@ -239,7 +241,7 @@ artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 		errmsg << "Error: artdaq fragment appears to have type "
 			<< type << ", not found in the allowed fragment types list";
 
-		TLOG_ERROR("TransferWrapper") << errmsg.str() << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << errmsg.str() ;
 		if (quitOnFragmentIntegrityProblem_)
 		{
 			throw cet::exception("TransferWrapper") << errmsg.str();
@@ -260,14 +262,14 @@ artdaq::TransferWrapper::unregisterMonitor()
 			"The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
 	}
 
-	TLOG_INFO("TransferWrapper") << "Requesting that this monitor (" << transfer_->uniqueLabel()
-		<< ") be unregistered from the dispatcher aggregator" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Requesting that this monitor (" << transfer_->uniqueLabel()
+		<< ") be unregistered from the dispatcher aggregator" ;
 
 	auto status = commander_->send_unregister_monitor(transfer_->uniqueLabel());
 
 
-	TLOG_INFO("TransferWrapper") << "Response from dispatcher is \""
-		<< status << "\"" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Response from dispatcher is \""
+		<< status << "\"" ;
 
 	if (status == "Success")
 	{
