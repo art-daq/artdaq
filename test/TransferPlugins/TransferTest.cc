@@ -171,6 +171,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 
 		auto send_start = std::chrono::steady_clock::now();
 		sender.sendFragment(std::move(frag));
+		TLOG(TLVL_DEBUG) << "Sender " << my_rank << " sending fragment " << ii;
 		auto after_send = std::chrono::steady_clock::now();
 		TLOG(TLVL_TRACE) << "Sender " << my_rank << " sent fragment " << ii;
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
@@ -245,12 +246,13 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 		auto ignoreFragPtr = receiver.recvFragment(senderSlot);
 		auto after_receive = std::chrono::steady_clock::now();
 		size_t thisSize = 0;
-		if (senderSlot == artdaq::TransferInterface::RECV_SUCCESS && ignoreFragPtr)
+		if (senderSlot >= artdaq::TransferInterface::RECV_SUCCESS && ignoreFragPtr)
 		{
 			if (ignoreFragPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 			{
 				TLOG(TLVL_INFO) << "Receiver " << my_rank << " received EndOfData Fragment from Sender " << senderSlot;
 				activeSenders--;
+				TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;
 			}
 			else
 			{
@@ -281,6 +283,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 		else if (senderSlot == artdaq::TransferInterface::DATA_END) {
 			TLOG(TLVL_ERROR) << "Receiver " << my_rank << " detected fatal protocol error! Reducing active sender count by one!" << std::endl;
 			activeSenders--;
+			TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;
 		}
 		TLOG(7) << "do_receiving: Recv Loop end, counter is " << counter;
 		auto total_recv_time = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(after_receive - before_receive).count();

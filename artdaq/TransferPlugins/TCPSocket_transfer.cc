@@ -196,7 +196,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					break;
 				}
 				else if (pollfds[index % pollfds.size()].revents & (POLLNVAL)) {
-					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket";
+					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: FD is closed, most likely because the peer went away. Removing from fd list.";
 					close(pollfds[active_index].fd);
 					connected_fds_[source_rank()].erase(pollfds[active_index].fd);
 					continue;
@@ -696,15 +696,15 @@ void artdaq::TCPSocketTransfer::listen_()
 	int listen_fd = -1;
 	while (listen_thread_refcount_ > 0)
 	{
-		TLOG(TLVL_TRACE) << GetTraceName() << ": listen_: Listening/accepting new connections";
+		TLOG(TLVL_TRACE) << "listen_: Listening/accepting new connections";
 		if (listen_fd == -1)
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": listen_: Opening listener";
+			TLOG(TLVL_DEBUG) << "listen_: Opening listener";
 			listen_fd = TCP_listen_fd(calculate_port_(), rcvbuf_);
 		}
 		if (listen_fd == -1)
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": listen_: Error creating listen_fd!";
+			TLOG(TLVL_DEBUG) << "listen_: Error creating listen_fd!";
 			break;
 		}
 
@@ -721,11 +721,11 @@ void artdaq::TCPSocketTransfer::listen_()
 			sockaddr_un un;
 			socklen_t arglen = sizeof(un);
 			int fd;
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": Calling accept";
+			TLOG(TLVL_DEBUG) << "listen_: Calling accept";
 			fd = accept(listen_fd, (sockaddr *)&un, &arglen);
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": Done with accept";
 
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": listen_: Reading connect message";
+			TLOG(TLVL_DEBUG) << "listen_: Reading connect message";
 			socklen_t lenlen = sizeof(tv);
 			/*sts=*/
 			setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen); // see man 7 socket.
@@ -733,34 +733,35 @@ void artdaq::TCPSocketTransfer::listen_()
 			uint64_t mark_us = TimeUtils::gettimeofday_us();
 			sts = read(fd, &mh, sizeof(mh));
 			uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": listen_: Read of connect message took " << delta_us << " microseconds.";
+			TLOG(TLVL_DEBUG) << "listen_: Read of connect message took " << delta_us << " microseconds.";
 			if (sts != sizeof(mh))
 			{
-				TLOG(TLVL_DEBUG) << GetTraceName() << ": listen_: Wrong message header length received!";
+				TLOG(TLVL_DEBUG) << "listen_: Wrong message header length received!";
 				close(fd);
-				return;
+				continue;
 			}
 
 			// check for "magic" and valid source_id(aka rank)
 			mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
 			if (ntohl(mh.conn_magic) != CONN_MAGIC)
 			{
-				TLOG(TLVL_DEBUG) << GetTraceName() << ": listen_: Wrong magic bytes in header!";
+				TLOG(TLVL_DEBUG) << "listen_: Wrong magic bytes in header!";
 				close(fd);
-				return;
+				continue;
 			}
 
 			// now add (new) connection
 			connected_fds_[mh.source_id].insert(fd);
 
-			TLOG(TLVL_INFO) << GetTraceName() << ": listen_: New fd is " << fd << " for source rank " << mh.source_id;
+			TLOG(TLVL_INFO) << "listen_: New fd is " << fd << " for source rank " << mh.source_id;
 		}
 		else
 		{
-			TLOG(10) << GetTraceName() << ": listen_: No connections in timeout interval!";
+			TLOG(10) << "listen_: No connections in timeout interval!";
 		}
 	}
 
+	TLOG(TLVL_INFO) << "listen_: Shutting down connection listener";
 	if (listen_fd != -1) close(listen_fd);
 	for (auto& rank : connected_fds_)
 	{

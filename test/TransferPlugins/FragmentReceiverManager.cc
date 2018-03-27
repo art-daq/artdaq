@@ -19,6 +19,7 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 	, suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled", true))
 	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
+	, last_source_(-1)
 {
 	TLOG(TLVL_DEBUG) << "Constructor" ;
 	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
@@ -86,17 +87,40 @@ artdaq::FragmentReceiverManager::~FragmentReceiverManager()
 
 bool artdaq::FragmentReceiverManager::fragments_ready_() const
 {
-	return get_next_source_() != -1;
+	for (auto& it : fragment_store_)
+	{
+		if (!enabled_sources_.count(it.first)) continue;
+		if (!it.second.empty()) { return true; }
+	}
+	return false;
 }
 
 int artdaq::FragmentReceiverManager::get_next_source_() const
 {
 	//std::unique_lock<std::mutex> lck(fragment_store_mutex_);
+	std::set<int> ready_sources;
 	for (auto& it : fragment_store_)
 	{
 		if (!enabled_sources_.count(it.first)) continue;
-		if (!it.second.empty()) return it.first;
+		if (!it.second.empty()) {
+			ready_sources.insert(it.first);
+		}
 	}
+
+	if (ready_sources.size()) {
+		auto iter = ready_sources.find(last_source_);
+		if (iter == ready_sources.end() || ++iter == ready_sources.end()) {
+			TLOG(TLVL_DEBUG) << "get_next_source returning " << *ready_sources.begin();
+			last_source_ = *ready_sources.begin();
+			return *ready_sources.begin();
+		}
+
+		TLOG(TLVL_DEBUG) << "get_next_source returning " << *iter;
+		last_source_ = *iter;
+		return *iter;
+	}	
+
+	TLOG(TLVL_DEBUG) << "get_next_source returning -1";
 	return -1;
 }
 
@@ -191,6 +215,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank) && TimeUtils::GetElapsedTimeMilliseconds(eod_quiet_start) > 1000)
 		{
+			TLOG(TLVL_DEBUG) << "runReceiver_: EndOfData conditions satisfied, ending receive loop";
 			running_sources_.erase(source_rank);
 			return;
 		}
@@ -210,10 +235,12 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
+			TLOG(TLVL_TRACE) << "runReceiver_: EndOfData Fragment received!";
 			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));
 		}
 		else if(fragment->type() == artdaq::Fragment::DataFragmentType || fragment->type() == artdaq::Fragment::ContainerFragmentType || fragment->isUserFragmentType(fragment->type()))
 		{
+			TLOG(TLVL_TRACE) << "runReceiver_: Data Fragment received!";
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, fragment->size() * sizeof(RawDataType));
 			recv_seq_count_.setSlot(source_rank, fragment->sequenceID());
@@ -236,6 +263,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 
 		fragment_store_[source_rank].emplace_back(std::move(fragment));
+		TLOG(TLVL_TRACE) << "runReceiver_: There are now " << fragment_store_[source_rank].size() << " Fragments stored from this source";
 		input_cv_.notify_all();
 
 	}

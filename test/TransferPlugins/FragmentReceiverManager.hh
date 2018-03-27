@@ -115,6 +115,7 @@ private:
 	size_t suppression_threshold_;
 
 	size_t receive_timeout_;
+	mutable int last_source_;
 };
 
 /**
@@ -192,6 +193,12 @@ public:
 	 * \return The value of the End-Of-Data marker. Returns -1 (0xFFFFFFFFFFFFFFFF) if no EndOfData Fragments received
 	 */
 	size_t GetEndOfData() const { return eod_marker_; }
+
+	/**
+	 * \brief Get the number of Fragments stored in this FragmentStoreElement
+	 * \return The number of Fragments stored in this FragmentStoreElement
+	 */
+	size_t size() const { return frags_.size(); }
 
 private:
 	mutable std::mutex mutex_;
