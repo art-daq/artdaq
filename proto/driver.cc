@@ -6,7 +6,7 @@
 //
 // The current version generates simple data fragments, for testing
 // that data are transmitted without corruption from the
-// artdaq::EventStore through to the artdaq::RawInput source.
+// artdaq::Eventevent_manager through to the artdaq::RawInput source.
 //
 #define TRACE_NAME "artdaqDriver"
 
@@ -88,7 +88,7 @@ int main(int argc, char * argv[]) try
 	// associated with async threads and std::string::c_str().
 	fhicl::ParameterSet event_builder_pset = pset.get<fhicl::ParameterSet>("event_builder");
 
-	artdaq::SharedMemoryEventManager store(event_builder_pset, pset);
+	artdaq::SharedMemoryEventManager event_manager(event_builder_pset, pset);
 	//////////////////////////////////////////////////////////////////////
 
 	int events_to_generate = pset.get<int>("events_to_generate", 0);
@@ -99,11 +99,11 @@ int main(int argc, char * argv[]) try
 		commandable_gen->StartCmd(run, timeout, timestamp);
 	}
 
-	TLOG(50) << "driver main before store.startRun" ;
-	store.startRun(run);
+	TLOG(50) << "driver main before event_manager.startRun" ;
+	event_manager.startRun(run);
 
 	// Read or generate fragments as rapidly as possible, and feed them
-	// into the EventStore. The throughput resulting from this design
+	// into the Eventevent_manager. The throughput resulting from this design
 	// choice is likely to have the fragment reading (or generation)
 	// speed as the limiting factor
 	while ((commandable_gen && commandable_gen->getNext(frags)) ||
@@ -121,7 +121,7 @@ int main(int argc, char * argv[]) try
 				break;
 			}
 			artdaq::FragmentPtr tempFrag;
-			auto sts = store.AddFragment(std::move(val), 1000000, tempFrag);
+			auto sts = event_manager.AddFragment(std::move(val), 1000000, tempFrag);
 			if (!sts)
 			{
 				TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
@@ -142,17 +142,17 @@ int main(int argc, char * argv[]) try
 		commandable_gen->joinThreads();
 	}
 
-	store.endRun();
+	event_manager.endRun();
 
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
-	endSucceeded = store.endOfData();
+	endSucceeded = event_manager.endOfData();
 	while (!endSucceeded && attemptsToEnd < 3) {
 		++attemptsToEnd;
-		endSucceeded = store.endOfData();
+		endSucceeded = event_manager.endOfData();
 	}
 	if (!endSucceeded) {
-		std::cerr << "Failed to shut down the reader and the event store "
+		std::cerr << "Failed to shut down the reader and the SharedMemoryEventManager "
 			<< "because the endOfData marker could not be pushed "
 			<< "onto the queue." << std::endl;
 	}
