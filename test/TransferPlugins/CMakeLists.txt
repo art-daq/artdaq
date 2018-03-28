@@ -22,7 +22,6 @@ transfer_driver.cc
   artdaq_DAQrate
    artdaq_DAQdata
 artdaq_TransferPlugins
-artdaq_test_TransferPlugins
   ${FHICLCPP}
    )
 

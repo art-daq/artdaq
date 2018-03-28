@@ -1,6 +1,6 @@
 #define TRACE_NAME "transfer_driver"
 
-#include "test/TransferPlugins/TransferTest.hh"
+#include "artdaq/DAQrate/TransferTest.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/make_ParameterSet.h"
 

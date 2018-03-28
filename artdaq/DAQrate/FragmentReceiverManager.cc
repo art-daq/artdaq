@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include "test/TransferPlugins/FragmentReceiverManager.hh"
+#include "artdaq/DAQrate/FragmentReceiverManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "cetlib_except/exception.h"

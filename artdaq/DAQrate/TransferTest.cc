@@ -1,7 +1,7 @@
-#include "test/TransferPlugins/TransferTest.hh"
+#include "artdaq/DAQrate/TransferTest.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "test/TransferPlugins/FragmentReceiverManager.hh"
+#include "artdaq/DAQrate/FragmentReceiverManager.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 
 #define TRACE_NAME "TransferTest"
