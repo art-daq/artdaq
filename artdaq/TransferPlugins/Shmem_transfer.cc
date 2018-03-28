@@ -7,7 +7,7 @@
 artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role) :
 	TransferInterface(pset, role)
 {
-	TLOG(TLVL_DEBUG) << GetTraceName() << ": Constructor begin";
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": Constructor BEGIN";
 	// char* keyChars = getenv("ARTDAQ_SHM_KEY");
 	// if (keyChars != NULL && shm_key_ == static_cast<int>(std::hash<std::string>()(unique_label_))) {
 	//   std::string keyString(keyChars);
@@ -36,6 +36,12 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	if (partition > 127) partition = 127; // Can't be > 127
 
 	auto shmKey = pset.get<uint32_t>("shm_key_offset", 0) + (partition << 24) + ((source_rank() & 0xFFF) << 12) + (destination_rank() & 0xFFF);
+
+	// Configured Shared Memory key overrides everything! Needed for Online Monitor connections!
+	if (pset.has_key("shm_key")) {
+		shmKey = pset.get<uint32_t>("shm_key");
+	}
+
 	if (role == Role::kReceive)
 	{
 		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, buffer_count_, max_fragment_size_words_ * sizeof(artdaq::RawDataType));
@@ -44,6 +50,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	{
 		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, 0, 0);
 	}
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": Constructor END";
 }
 
 artdaq::ShmemTransfer::~ShmemTransfer() noexcept
