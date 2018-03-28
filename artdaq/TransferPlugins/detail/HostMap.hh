@@ -23,7 +23,7 @@ namespace artdaq {
 		{
 			fhicl::ParameterSet rank_output;
 			rank_output.put<int>("rank", rank.first);
-			rank_output.put<std::string>("hostname", rank.second.hostname);
+			rank_output.put<std::string>("host", rank.second.hostname);
 			rank_output.put<int>("portOffset", rank.second.portOffset);
 			output.push_back(rank_output);
 		}
