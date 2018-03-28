@@ -1,3 +1,5 @@
+#define TRACE_NAME "AutodetectTransfer"
+
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/TransferPlugins/TCPSocketTransfer.hh"
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
