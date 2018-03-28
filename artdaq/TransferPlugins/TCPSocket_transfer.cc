@@ -125,7 +125,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	if (connected_fds_[source_rank()].size() == 0)
 	{ // what if just listen_fd??? 
 		if (++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
+		TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
 		usleep(receive_err_wait_us_);
 		return RECV_TIMEOUT;
 	}
@@ -137,10 +137,10 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	int sts;
 	uint64_t start_time_us = TimeUtils::gettimeofday_us();
 
-	while (active_receive_fd_ != -1) {
-		TLOG(TLVL_TRACE) << GetTraceName() << ": Currently receiving from fd " << active_receive_fd_ << ", waiting!";
-		usleep(1000);
-	}
+	//while (active_receive_fd_ != -1) {
+	//	TLOG(TLVL_TRACE) << GetTraceName() << ": Currently receiving from fd " << active_receive_fd_ << ", waiting!";
+	//	usleep(1000);
+	//}
 
 
 	uint8_t* buff;
@@ -311,6 +311,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			if (num_fds_ready == 0)
 			{
 				TLOG(7) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT";
+				active_receive_fd_ = -1;
 				return RECV_TIMEOUT;
 			}
 			break;
