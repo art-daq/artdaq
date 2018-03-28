@@ -314,7 +314,7 @@ void artdaq::BoardReaderCore::process_fragments()
 			{
 				TLOG(TLVL_DEBUG)
 					<< "Sending fragment " << fragment_count_
-					<< " (%250) with sequence id " << sequence_id << ".";
+					<< " with sequence id " << sequence_id << ".";
 			}
 
 			// check for continous sequence IDs
