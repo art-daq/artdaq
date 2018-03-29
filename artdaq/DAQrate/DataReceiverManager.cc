@@ -150,7 +150,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank) && TimeUtils::GetElapsedTimeMilliseconds(eod_quiet_start) > 1000)
 		{
 			TLOG(TLVL_DEBUG) << "runReceiver_: End of Data conditions met, ending runReceiver loop";
-			running_sources_.erase(source_rank);
+			if(&running_sources_) running_sources_.erase(source_rank);
 			return;
 		}
 
