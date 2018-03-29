@@ -91,8 +91,8 @@ public:
 
 
 private:
-
-	static int listen_thread_refcount_;
+	static std::atomic<int> listen_thread_refcount_;
+	static std::mutex listen_thread_mutex_;
 	static std::unique_ptr<boost::thread> listen_thread_;
 	static std::map<int, std::set<int>> connected_fds_;
 	int send_fd_;

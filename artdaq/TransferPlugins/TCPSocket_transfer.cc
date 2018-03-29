@@ -31,9 +31,10 @@
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include <iomanip>
 
-int artdaq::TCPSocketTransfer::listen_thread_refcount_ = 0;
+std::atomic<int> artdaq::TCPSocketTransfer::listen_thread_refcount_(0);
 std::unique_ptr<boost::thread> artdaq::TCPSocketTransfer::listen_thread_ = nullptr;
 std::map<int, std::set<int>> artdaq::TCPSocketTransfer::connected_fds_ = std::map<int, std::set<int>>();
+std::mutex artdaq::TCPSocketTransfer::listen_thread_mutex_;
 
 artdaq::TCPSocketTransfer::
 TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
@@ -100,16 +101,15 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer()
 	}
 	else
 	{
+		std::unique_lock<std::mutex> lk(listen_thread_mutex_);
 		for (auto& fd : connected_fds_[source_rank()])
 		{
 			close(fd);
 			connected_fds_[source_rank()].erase(fd);
 		}
 
-		static std::mutex teardown_mutex;
-		std::unique_lock<std::mutex> lk(teardown_mutex);
 		listen_thread_refcount_--;
-		if (listen_thread_refcount_ == 0 && listen_thread_->joinable())
+		if (listen_thread_refcount_ == 0 && listen_thread_ && listen_thread_->joinable())
 		{
 			listen_thread_->join();
 		}
@@ -152,7 +152,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		timeout_ms = (timeout_usec + 999) / 1000; // want at least 1 ms
 
 	bool done = false;
-	while (!done)
+	while (!done && connected_fds_[source_rank()].size() > 0)
 	{
 		if (active_receive_fd_ == -1) {
 			size_t fd_count = connected_fds_[source_rank()].size();
@@ -227,14 +227,14 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			byte_cnt = mh.byte_count - offset;
 		}
 
-		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Reading " << byte_cnt << " bytes from socket" ;
+		TLOG(9) << GetTraceName() << ": receiveFragmentHeader: Reading " << byte_cnt << " bytes from socket";
 		sts = read(active_receive_fd_, buff, byte_cnt);
-		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Done with read" ;
+		TLOG(9) << GetTraceName() << ": receiveFragmentHeader: Done with read";
 
-		TLOG(9) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << strerror(errno) << ")";
-		if (sts <= 0)
+		TLOG(9) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state_) << " read=" << sts;
+		if (sts < 0)
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket";
+			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket " << " (errno=" << errno << ": " << strerror(errno) << ")";
 			close(active_receive_fd_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
 			active_receive_fd_ = -1;
@@ -253,6 +253,14 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					mh.byte_count = ntohl(mh.byte_count);
 					mh.source_id = ntohs(mh.source_id);
 					target_bytes = mh.byte_count;
+
+					if (mh.message_type == MessHead::stop_v0)
+					{
+						TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Stop Message received. Closing socket";
+						close(active_receive_fd_);
+						connected_fds_[source_rank()].erase(active_receive_fd_);
+						active_receive_fd_ = -1;
+					}
 				}
 				else
 				{
@@ -304,8 +312,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	bool done = false;
 	while (!done)
 	{
-		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data" ;
-		int num_fds_ready = poll(&pollfd_s, 1, -1);
+		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data" ;
+		int num_fds_ready = poll(&pollfd_s, 1, 1000);
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0)
@@ -317,9 +325,15 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			break;
 		}
 
-		if (!(pollfd_s.revents & (POLLIN | POLLERR)))
+		if (pollfd_s.revents & (POLLNVAL)) {
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: FD is closed, most likely because the peer went away. Removing from fd list.";
+			close(active_receive_fd_);
+			connected_fds_[source_rank()].erase(active_receive_fd_);
+			break;
+		}
+		else if (!(pollfd_s.revents & (POLLIN | POLLPRI | POLLERR)))
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Wrong event received from pollfd";
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Wrong event received from pollfd: " << pollfd_s.revents;
 			continue;
 		}
 
@@ -340,10 +354,11 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		sts = read(active_receive_fd_, buff, byte_cnt);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Done with read" ;
 
-		TLOG(9) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state_) << " read=" << sts << " (errno=" << strerror(errno) << ")";
-		if (sts <= 0)
+		TLOG(9) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state_) << " read=" << sts;
+		if (sts < 0)
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket";
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket" 
+				<< " (errno=" << errno << ": " << strerror(errno) << ")";
 			close(active_receive_fd_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
 			active_receive_fd_ = -1;
@@ -677,12 +692,11 @@ void artdaq::TCPSocketTransfer::reconnect_()
 
 void artdaq::TCPSocketTransfer::start_listen_thread_()
 {
-	static std::mutex start_listen_mutex;
-	std::unique_lock<std::mutex> start_lock(start_listen_mutex);
+	std::unique_lock<std::mutex> start_lock(listen_thread_mutex_);
 	if (listen_thread_refcount_ == 0)
 	{
-		listen_thread_refcount_ = 1;
 		if (listen_thread_ && listen_thread_->joinable()) listen_thread_->join();
+		listen_thread_refcount_ = 1;
 		TLOG(TLVL_INFO) << GetTraceName() << ": Starting Listener Thread";
 		listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, this);
 	}
@@ -744,7 +758,7 @@ void artdaq::TCPSocketTransfer::listen_()
 
 			// check for "magic" and valid source_id(aka rank)
 			mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
-			if (ntohl(mh.conn_magic) != CONN_MAGIC)
+			if (ntohl(mh.conn_magic) != CONN_MAGIC || !(mh.message_type == MessHead::connect_v0)) // Allow for future connect message versions
 			{
 				TLOG(TLVL_DEBUG) << "listen_: Wrong magic bytes in header!";
 				close(fd);
