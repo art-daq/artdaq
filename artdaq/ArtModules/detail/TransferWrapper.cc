@@ -262,22 +262,30 @@ artdaq::TransferWrapper::unregisterMonitor()
 			"The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
 	}
 
-	TLOG(TLVL_INFO) << "Requesting that this monitor (" << transfer_->uniqueLabel()
-		<< ") be unregistered from the dispatcher aggregator" ;
+	int retry = 3;
+	while (retry > 0) {
 
-	auto status = commander_->send_unregister_monitor(transfer_->uniqueLabel());
+		TLOG(TLVL_INFO) << "Requesting that this monitor (" << transfer_->uniqueLabel()
+			<< ") be unregistered from the dispatcher aggregator";
+
+		auto status = commander_->send_unregister_monitor(transfer_->uniqueLabel());
 
 
-	TLOG(TLVL_INFO) << "Response from dispatcher is \""
-		<< status << "\"" ;
+		TLOG(TLVL_INFO) << "Response from dispatcher is \""
+			<< status << "\"";
 
-	if (status == "Success")
-	{
-		monitorRegistered_ = false;
-	}
-	else
-	{
-		throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to unregister with dispatcher did not result in the \"Success\" response";
+		if (status == "Success")
+		{
+			monitorRegistered_ = false;
+			break;
+		}
+		else if (status == "busy")
+		{ }
+		else
+		{
+			throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to unregister with dispatcher did not result in the \"Success\" response";
+		}
+		retry--;
 	}
 }
 
