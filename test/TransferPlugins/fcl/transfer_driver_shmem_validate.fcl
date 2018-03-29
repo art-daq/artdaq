@@ -6,15 +6,3 @@ fragment_size: 0x1000
 transfer_plugin_type: Shmem
 validate_data_mode: true
 partition_number: 9
-
-metrics: {
-    ganglia: {
-       metricPluginType: "ganglia"
-       level: 5
-       reporting_interval: 15.0
-     
-       configFile: "/home/eflumerf/Desktop/artdaq-mrb-base/gmond.conf"
-       group: "ARTDAQ"
-    }
-
-}

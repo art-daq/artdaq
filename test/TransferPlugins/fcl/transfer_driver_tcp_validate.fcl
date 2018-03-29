@@ -15,16 +15,3 @@ hostmap: [
 {rank: 4 host: localhost portOffset: 6340 },
 {rank: 5 host: localhost portOffset: 6350 }
 ]
-
-metrics: {
-    ganglia: {
-       metricPluginType: "ganglia"
-       level: 5
-       reporting_interval: 15.0
-     
-       configFile: "/home/eflumerf/Desktop/artdaq-mrb-base/gmond.conf"
-       group: "ARTDAQ"
-    }
-
-}
-
