@@ -18,21 +18,11 @@ namespace artdaq
 	class TransferInterface
 	{
 	public:
-		/**
-		 * \brief Value to be returned upon receive timeout.
-		 */
-		static const int RECV_TIMEOUT = -1111;
-
-		/**
-		 * \brief Value that is to be returned when a Transfer plugin determines that no more data will be arriving.
-		 * Examples: Unrecoverable protocol error, source went away, etc.
-		 */
-		static const int DATA_END = -2222;
-
-		/**
-		 * \brief For code clarity, things checking for successful receive should check retval >= RECV_SUCCESS
-		 */
-		static const int RECV_SUCCESS = 0;
+		enum : int {
+			DATA_END = -2222,///< Value that is to be returned when a Transfer plugin determines that no more data will be arriving.
+			RECV_TIMEOUT = -1111, ///< Value to be returned upon receive timeout.
+			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= RECV_SUCCESS
+		};
 
 		/**
 		 * \brief Used to determine if a TransferInterface is a Sender or Receiver

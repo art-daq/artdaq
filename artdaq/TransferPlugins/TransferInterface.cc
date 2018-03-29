@@ -17,7 +17,7 @@ artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role
 
 int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t receive_timeout)
 {
-	auto ret = RECV_TIMEOUT;
+	auto ret = static_cast<int>(RECV_TIMEOUT);
 
 	TLOG(TLVL_TRACE) << "Receiving Fragment Header from rank " << source_rank() ;
 	ret = receiveFragmentHeader(*reinterpret_cast<detail::RawFragmentHeader*>(frag.headerAddress()), receive_timeout);
