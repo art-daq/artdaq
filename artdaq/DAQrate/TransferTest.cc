@@ -96,7 +96,7 @@ int artdaq::TransferTest::runTest()
 	{
 		std::vector<std::future<std::pair<size_t, double>>> results_futures(sending_threads_);
 		for (int ii = 0; ii < sending_threads_; ++ii) {
-			results_futures[ii] = std::async(std::bind(&TransferTest::do_sending, this));
+			results_futures[ii] = std::async(std::bind(&TransferTest::do_sending, this, ii));
 		}
 		for (auto& future : results_futures)
 		{
@@ -120,7 +120,7 @@ int artdaq::TransferTest::runTest()
 	return 0;
 }
 
-std::pair<size_t, double> artdaq::TransferTest::do_sending()
+std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 {
 	TLOG(7) << "do_sending entered RawFragmentHeader::num_words()=" << std::to_string(artdaq::detail::RawFragmentHeader::num_words());
 
@@ -160,7 +160,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending()
 		totalSize += frag.sizeBytes();
 
 		//unsigned sndDatSz = data_size_wrds;
-		frag.setSequenceID(ii);
+		frag.setSequenceID(ii * sending_threads_ + index);
 		frag.setFragmentID(my_rank);
 		frag.setSystemType(artdaq::Fragment::DataFragmentType);
 		/*

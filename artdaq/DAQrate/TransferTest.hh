@@ -43,7 +43,7 @@ namespace artdaq
 		int runTest();
 
 	private:
-		std::pair<size_t, double> do_sending();
+		std::pair<size_t, double> do_sending(int thread_index);
 
 		std::pair<size_t, double> do_receiving();
 
