@@ -811,6 +811,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	TLOG(10) << "applyRequestsWindowMode: Starting request processing";
 	for (auto req = requests.begin(); req != requests.end();)
 	{
+	  TLOG(10, "CommandableFragmentGenerator") << "applyRequestsWindowMode: processing request with sequence ID " << \
+	               req->first << ", timestamp " << req->second;
+
+
 		while (req->first < ev_counter() && requests.size() > 0)
 		{
 			TLOG(10) << "applyRequestsWindowMode: Clearing passed request for sequence ID " << req->first;
