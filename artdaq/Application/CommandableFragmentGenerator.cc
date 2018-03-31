@@ -338,17 +338,20 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
+	if (requestReceiver_ && requestReceiver_->isRunning()) requestReceiver_->stopRequestReceiverThread();
 
 	stopNoMutex();
 	should_stop_.store(true);
 	std::unique_lock<std::mutex> lk(mutex_);
 	stop();
+	TLOG(TLVL_DEBUG) << "Stop command complete.";
 }
 
 void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t timestamp)
 {
 	timeout_ = timeout;
 	timestamp_ = timestamp;
+	if (requestReceiver_->isRunning()) requestReceiver_->stopRequestReceiverThread();
 
 	pauseNoMutex();
 	should_stop_.store(true);
@@ -560,6 +563,9 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		{
 			TLOG(TLVL_INFO) << "Data flow has stopped. Ending data collection thread" ;
 			data_thread_running_ = false;
+			if (requestReceiver_) requestReceiver_->ClearRequests();
+			dataBuffer_.clear();
+			newDataBuffer_.clear();
 			return;
 		}
 	}

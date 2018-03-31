@@ -106,20 +106,38 @@ void artdaq::RequestReceiver::setupRequestListener()
 
 artdaq::RequestReceiver::~RequestReceiver()
 {
+	stopRequestReceiverThread();
+}
+
+void artdaq::RequestReceiver::stopRequestReceiverThread()
+{
 	if (!request_received_)
 	{
 		TLOG(TLVL_ERROR) << "Stop request received by RequestReceiver, but no requests have ever been received." << std::endl
-			<< "Check that UDP port " << request_port_ << " is open in the firewall config." ;
+			<< "Check that UDP port " << request_port_ << " is open in the firewall config.";
 	}
 	should_stop_ = true;
-	TLOG(TLVL_DEBUG) << "Joining requestThread" ;
+	TLOG(TLVL_DEBUG) << "Joining requestThread";
 	if (requestThread_.joinable()) requestThread_.join();
-	if (request_socket_ != -1) close(request_socket_);
+	if (request_socket_ != -1) {
+		close(request_socket_);
+		request_socket_ = -1;
+	}
+	request_received_ = false;
+	highest_seen_request_ = 0;
 }
 
 void artdaq::RequestReceiver::startRequestReceiverThread()
 {
 	if (requestThread_.joinable()) requestThread_.join();
+	should_stop_ = false;
+	request_stop_requested_ = false;
+
+	if (request_socket_ == -1) {
+		TLOG(TLVL_INFO) << "Connecting Request Reception socket";
+		setupRequestListener();
+	}
+	
 	TLOG(TLVL_INFO) << "Starting Request Reception Thread" ;
 	requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
 	running_ = true;

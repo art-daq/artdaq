@@ -96,8 +96,8 @@ namespace artdaq {
 		 * "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
 		 * "end_of_data_wait_s" (Default: 1 second): Amount of time with no reads to wait before sending EndOfData message (0 to wait as long as there are outstanding buffers and live art processes)
 		 * "end_of_data_graceful_shutdown_us" (Default: 1000000 us): Amount of time to wait for art processes to pick up and process EndOfData message before moving on to shutdown phase
-		 * "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers. 
-		                                                                 (TUNING: Should be slightly longer than the mean art processing time, but not so long that the Stop transition times out)
+		 * "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers.
+																		 (TUNING: Should be slightly longer than the mean art processing time, but not so long that the Stop transition times out)
 		 * \endverbatim
 		 */
 		SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
@@ -138,7 +138,7 @@ namespace artdaq {
 		 * \param frag Fragment that is now completely in the buffer.
 		 */
 		void DoneWritingFragment(detail::RawFragmentHeader frag);
-		
+
 		/**
 		* \brief Returns the number of buffers which contain data but are not yet complete
 		* \return The number of buffers which contain data but are not yet complete
@@ -264,7 +264,7 @@ namespace artdaq {
 		 * \brief Set the RequestMessageMode for all outgoing data requests
 		 * \param mode Mode to set
 		 */
-		void setRequestMode(detail::RequestMessageMode mode) { requests_.SetRequestMode(mode); }
+		void setRequestMode(detail::RequestMessageMode mode) { if (requests_) requests_->SetRequestMode(mode); }
 
 		/**
 		 * \brief Set the overwrite flag (non-reliable data transfer) for the Shared Memory
@@ -324,7 +324,8 @@ namespace artdaq {
 		size_t end_of_data_graceful_shutdown_us_;
 		size_t art_event_processing_time_us_;
 
-		RequestSender requests_;
+		std::unique_ptr<RequestSender> requests_;
+		fhicl::ParameterSet data_pset_;
 
 		FragmentPtr init_fragment_;
 		FragmentPtr dropped_data_; ///< Used for when data comes in badly out-of-sequence

@@ -23,6 +23,11 @@ namespace artdaq
 		void setupRequestListener();
 
 		/**
+		* \brief Stop the data request receiver thread (receiveRequestsLoop)
+		*/
+		void stopRequestReceiverThread();
+
+		/**
 		* \brief Function that launches the data request receiver thread (receiveRequestsLoop())
 		*/
 		void startRequestReceiverThread();

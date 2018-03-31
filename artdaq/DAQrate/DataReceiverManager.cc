@@ -14,6 +14,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	, source_threads_()
 	, source_plugins_()
 	, enabled_sources_()
+	, running_sources_()
 	, recv_frag_count_()
 	, recv_frag_size_()
 	, recv_seq_count_()
@@ -103,6 +104,7 @@ artdaq::DataReceiverManager::~DataReceiverManager()
 void artdaq::DataReceiverManager::start_threads()
 {
 	stop_requested_ = false;
+	if (shm_manager_) shm_manager_->setRequestMode(artdaq::detail::RequestMessageMode::Normal);
 	for (auto& source : source_plugins_)
 	{
 		auto& rank = source.first;
@@ -150,7 +152,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank) && TimeUtils::GetElapsedTimeMilliseconds(eod_quiet_start) > 1000)
 		{
 			TLOG(TLVL_DEBUG) << "runReceiver_: End of Data conditions met, ending runReceiver loop";
-			if(&running_sources_) running_sources_.erase(source_rank);
+			running_sources_.erase(source_rank);
 			return;
 		}
 

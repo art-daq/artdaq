@@ -36,7 +36,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, end_of_data_wait_s_(pset.get<double>("end_of_data_wait_s", 1.0))
 	, end_of_data_graceful_shutdown_us_(pset.get<size_t>("end_of_data_graceful_shutdown_us", 1000000))
 	, art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 100000))
-	, requests_(pset)
+	, requests_(nullptr)
+	, data_pset_(pset)
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
 		pset.get<size_t>("broadcast_buffer_count", 10),
 		pset.get<size_t>("broadcast_buffer_size", 0x100000),
@@ -118,7 +119,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 		<< ", buffer_writes_pending_[buffer]=" << std::to_string(buffer_writes_pending_[buffer]) ;
 
 	complete_buffer_(buffer);
-	requests_.SendRequest(true);
+	if(requests_) requests_->SendRequest(true);
 
 	TLOG(TLVL_TRACE) << "AddFragment END" ;
 	return true;
@@ -213,7 +214,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 #endif
 
 	complete_buffer_(buffer);
-	requests_.SendRequest(true);
+	if(requests_) requests_->SendRequest(true);
 	TLOG(TLVL_TRACE) << "DoneWritingFragment END" ;
 }
 
@@ -529,6 +530,9 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	}
 	released_incomplete_events_.clear();
 
+	TLOG(TLVL_TRACE) << "endOfData: Shutting down RequestReceiver";
+	requests_.reset(nullptr);
+
 	TLOG(TLVL_TRACE) << "endOfData END" ;
 	TLOG(TLVL_INFO) << "EndOfData Complete. There were " << GetLastSeenBufferID() << " events processed in this run." ;
 	running_ = false;
@@ -542,7 +546,8 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	StartArt();
 	run_id_ = runID;
 	subrun_id_ = 1;
-	requests_.SendRoutingToken(queue_size_);
+	requests_.reset(new RequestSender(data_pset_));
+	if(requests_) requests_->SendRoutingToken(queue_size_);
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
 		<< ", max queue size = "
 		<< queue_size_
@@ -705,11 +710,13 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 
 	active_buffers_.insert(new_buffer);
 
-	if (timestamp != Fragment::InvalidTimestamp)
-	{
-		requests_.AddRequest(seqID, timestamp);
+	if (requests_) {
+		if (timestamp != Fragment::InvalidTimestamp)
+		{
+			requests_->AddRequest(seqID, timestamp);
+		}
+		requests_->SendRequest();
 	}
-	requests_.SendRequest();
 	TLOG(14) << "getBufferForSequenceID " << std::to_string(seqID) << " returning newly initialized buffer " << new_buffer ;
 	return new_buffer;
 }
@@ -733,8 +740,10 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 	{
 		TLOG(TLVL_DEBUG) << "complete_buffer_: This fragment completes event " << std::to_string(hdr->sequence_id) << "." ;
 
-		requests_.RemoveRequest(hdr->sequence_id);
-		requests_.SendRoutingToken(1);
+		if (requests_) {
+			requests_->RemoveRequest(hdr->sequence_id);
+			requests_->SendRoutingToken(1);
+		}
 		{
 			std::unique_lock<std::mutex> lk(sequence_id_mutex_);
 			active_buffers_.erase(buffer);
@@ -761,8 +770,10 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			auto hdr = getEventHeader_(buf);
 			if (active_buffers_.count(buf))
 			{
-				requests_.RemoveRequest(hdr->sequence_id);
-				requests_.SendRoutingToken(1);
+				if (requests_) {
+					requests_->RemoveRequest(hdr->sequence_id);
+					requests_->SendRoutingToken(1);
+				}
 				active_buffers_.erase(buf);
 				pending_buffers_.insert(buf);
 				subrun_incomplete_event_count_++;
