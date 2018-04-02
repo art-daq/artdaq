@@ -262,11 +262,14 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 
 		TLOG(TLVL_INFO) << "PID of new art process is " << pid ;
 		art_processes_.insert(pid);
-		int status;
-		waitpid(pid, &status, 0);
+		siginfo_t status;
+		auto sts = waitid(P_PID, pid, &status, WEXITED);
 		TLOG(TLVL_INFO) << "Removing PID " << pid << " from process list" ;
 		art_processes_.erase(pid);
-		if (status == 0)
+        if(sts < 0) {
+            TLOG(TLVL_WARNING) << "Error occurred in waitid for art process " << pid << ": " << errno << " (" << strerror(errno) << ").";
+        }
+        else if (status.si_code == CLD_EXITED && status.si_status == 0)
 		{
 			TLOG(TLVL_INFO) << "art process " << pid << " exited normally, " << (restart_art_ ? "restarting" : "not restarting") ;
 		}
@@ -274,8 +277,22 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		{
 			auto  art_lifetime = TimeUtils::GetElapsedTime(start_time);
 			if (art_lifetime < minimum_art_lifetime_s_) restart_art_ = false;
-			TLOG((restart_art_ ? TLVL_WARNING : TLVL_ERROR)) << "art process " << pid << " exited with status code 0x" << std::hex << status << " (" << std::dec << status << ")"
-				<< " after " << std::setprecision(2) << art_lifetime << " seconds, "
+
+            auto exit_type = "exited with status code";
+            switch(status.si_code) {
+                case CLD_DUMPED:
+                case CLD_KILLED:
+                    exit_type = "was killed with signal";
+                    break;
+                case CLD_EXITED:
+                default:
+                    break;
+            }
+
+			TLOG((restart_art_ ? TLVL_WARNING : TLVL_ERROR)) 
+                << "art process " << pid << " " << exit_type <<" " <<  status.si_status 
+                << (status.si_code == CLD_DUMPED ? " (core dumped)" : "") 
+                << " after " << std::setprecision(2) << art_lifetime << " seconds, "
 				<< (restart_art_ ? "restarting" : "not restarting") ;
 		}
 	}
