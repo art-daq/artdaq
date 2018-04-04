@@ -88,14 +88,12 @@ namespace artdaq {
 		 * "overwite_mode" (Default: false): Whether new data is allowed to overwrite buffers in the "Full" state
 		 * "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
-		 * A "Broadcast shared memmory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
+		 * A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 		 * "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
 		 * "broadcast_shared_memory_key" (Default: 0xCEE7000 + PID): Key to use for broadcast shared memory access
 		 * "broadcast_buffer_count" (Default: 10): Buffers in the broadcast shared memory segment
 		 * "broadcast_buffer_size" (Default: 0x100000): Size of the buffers in the broadcast shared memory segment
 		 * "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
-		 * "end_of_data_wait_s" (Default: 1 second): Amount of time with no reads to wait before sending EndOfData message (0 to wait as long as there are outstanding buffers and live art processes)
-		 * "end_of_data_graceful_shutdown_us" (Default: 1000000 us): Amount of time to wait for art processes to pick up and process EndOfData message before moving on to shutdown phase
 		 * "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers.
 																		 (TUNING: Should be slightly longer than the mean art processing time, but not so long that the Stop transition times out)
 		 * \endverbatim
@@ -312,16 +310,17 @@ namespace artdaq {
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		int broadcast_timeout_ms_;
-		int subrun_event_count_;
-		int subrun_incomplete_event_count_;
+
+		std::atomic<int> run_event_count_;
+		std::atomic<int> run_incomplete_event_count_;
+		std::atomic<int> subrun_event_count_;
+		std::atomic<int> subrun_incomplete_event_count_;
 
 		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
 		fhicl::ParameterSet current_art_pset_;
 		std::shared_ptr<art_config_file> current_art_config_file_;
 		double minimum_art_lifetime_s_;
-		double end_of_data_wait_s_;
-		size_t end_of_data_graceful_shutdown_us_;
 		size_t art_event_processing_time_us_;
 
 		std::unique_ptr<RequestSender> requests_;
