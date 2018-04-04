@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #include "canvas/Utilities/Exception.h"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 
 #define TRACE_NAME (app_name + "_RoutingMasterCore").c_str() // include these 2 first -
 #include "artdaq/DAQdata/Globals.hh"   // to get tracemf.h before trace.h

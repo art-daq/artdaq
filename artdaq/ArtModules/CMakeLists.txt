@@ -84,8 +84,7 @@ simple_plugin(NetMonInput "source"
   art_Framework_Principal
   art_Persistency_Provenance
   art_Utilities
-  MF_MessageLogger
-  MF_Utilities
+  ${MESSAGEFACILITY_LIBS}
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}

@@ -4,7 +4,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "cetlib/BasicPluginFactory.h"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"

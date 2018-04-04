@@ -7,7 +7,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/makeCommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>

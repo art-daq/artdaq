@@ -18,8 +18,7 @@ art_make(BASENAME_ONLY
   artdaq-core_Data
   artdaq-core_Utilities
   ${FHICLCPP}
-  ${MF_MESSAGELOGGER}
-  ${MF_UTILITIES}
+  ${MESSAGEFACILITY_LIBS}
   ${CLHEP}
   ${Boost_THREAD_LIBRARY}
   ${Boost_SYSTEM_LIBRARY} 
