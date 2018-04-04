@@ -19,8 +19,6 @@
 #define TLVL_INRUN_FAILURE TLVL_TRACE
 #define TLVL_LEGAL_COMMANDS TLVL_TRACE
 
-
-
 artdaq::Commandable::Commandable() : fsm_(*this)
 , primary_mutex_() {}
 
@@ -33,6 +31,10 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
+	
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Initializing");
+#endif
 
 	TLOG(TLVL_INIT) << "Initialize transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -41,6 +43,9 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after an init transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
@@ -56,6 +61,9 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Starting");
+#endif
 
 	TLOG(TLVL_START) << "Start transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -64,6 +72,9 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after a start transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
@@ -79,6 +90,9 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Stopping");
+#endif
 
 	TLOG(TLVL_STOP) << "Stop transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -87,6 +101,9 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after a stop transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
@@ -102,6 +119,9 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Pausing");
+#endif
 
 	TLOG(TLVL_PAUSE) << "Pause transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -110,6 +130,9 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after a pause transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
@@ -125,6 +148,9 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Resuming");
+#endif
 
 	TLOG(TLVL_RESUME) << "Resume transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -133,6 +159,9 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after a resume transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
@@ -148,6 +177,9 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Shutting Down");
+#endif
 
 	TLOG(TLVL_SHUTDOWN) << "Shutdown transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -156,6 +188,9 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after a shutdown transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
@@ -171,6 +206,9 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Soft_initializing");
+#endif
 
 	TLOG(TLVL_SOFT_INIT) << "Soft_initialize transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -179,6 +217,9 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after a soft_init transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
@@ -194,6 +235,9 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Reinitializing");
+#endif
 
 	TLOG(TLVL_REINIT) << "Reinitialize transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -202,6 +246,9 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after a reinit transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
@@ -217,6 +264,9 @@ bool artdaq::Commandable::in_run_failure()
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "An error condition was reported while running.";
+#if ART_HEX_VERSION >= 0x21100
+	mf::SetModuleName("Failing");
+#endif
 
 	TLOG(TLVL_INRUN_FAILURE) << "In_Run_Failure transition started";
 	auto start_time = std::chrono::steady_clock::now();
@@ -225,6 +275,9 @@ bool artdaq::Commandable::in_run_failure()
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
+#if ART_HEX_VERSION >= 0x21100
+		mf::SetModuleName(finalState);
+#endif
 		TLOG(TLVL_DEBUG)
 			<< "States before and after an in_run_failure transition: "
 			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s." ;
