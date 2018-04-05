@@ -309,7 +309,7 @@ void artdaq::BoardReaderCore::process_fragments()
 			}
 			artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
 #if ART_HEX_VERSION >=0x21100
-			mf::SetIteration("Sequence ID " + std::to_string(sequence_id));
+			SetMFIteration("Sequence ID " + std::to_string(sequence_id));
 #endif
 			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
 

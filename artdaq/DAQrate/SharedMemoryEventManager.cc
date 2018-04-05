@@ -741,7 +741,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	buffer_writes_pending_[new_buffer] = 0;
 	IncrementWritePos(new_buffer, sizeof(detail::RawEventHeader));
 #if ART_HEX_VERSION >= 0x21100
-	mf::SetIteration("Sequence ID " + std::to_string(seqID));
+	SetMFIteration("Sequence ID " + std::to_string(seqID));
 #endif
 
 	active_buffers_.insert(new_buffer);

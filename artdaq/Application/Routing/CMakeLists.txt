@@ -4,6 +4,7 @@ art_make( BASENAME_ONLY
   NO_PLUGINS
   EXCLUDE RoundRobin_policy.cc NthEvent_policy.cc NoOp_policy.cc CapacityTest_policy.cc
   LIB_LIBRARIES
+  artdaq_DAQdata
   artdaq-core_Utilities
   artdaq-core_Data
   cetlib
