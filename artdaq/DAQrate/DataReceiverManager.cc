@@ -19,7 +19,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	, recv_frag_size_()
 	, recv_seq_count_()
 	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
-	, stop_timeout_ms_(pset.get<size_t>("stop_timeout_ms", 3000))
+	, stop_timeout_ms_(pset.get<size_t>("stop_timeout_ms", 1500))
 	, shm_manager_(shm)
 	, non_reliable_mode_enabled_(pset.get<bool>("non_reliable_mode", false))
 	, non_reliable_mode_retry_count_(pset.get<size_t>("non_reliable_mode_retry_count", -1))
@@ -163,6 +163,9 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		TLOG(16) << "runReceiver_: Done with receiveFragmentHeader, ret=" << ret << " (should be " << source_rank << ")";
 		if (ret != source_rank)
 		{
+			if (ret >= 0) {
+				TLOG(TLVL_WARNING) << "Received Fragment from rank " << ret << ", but was expecting one from rank " << source_rank << "!";
+			}
 			continue; // Receive timeout or other oddness
 		}
 
@@ -192,16 +195,13 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 			before_body = std::chrono::steady_clock::now();
 
-			if (header.word_count - header.num_words() > 0)
-			{
-				TLOG(16) << "runReceiver_: Calling receiveFragmentData";
-				auto ret2 = source_plugins_[source_rank]->receiveFragmentData(loc, header.word_count - header.num_words());
-				TLOG(16) << "runReceiver_: Done with receiveFragmentData, ret2=" << ret2 << " (should be " << source_rank << ")";
+			TLOG(16) << "runReceiver_: Calling receiveFragmentData";
+			auto ret2 = source_plugins_[source_rank]->receiveFragmentData(loc, header.word_count - header.num_words());
+			TLOG(16) << "runReceiver_: Done with receiveFragmentData, ret2=" << ret2 << " (should be " << source_rank << ")";
 
-				if (ret != ret2) {
-					TLOG(TLVL_ERROR) << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
-					throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
-				}
+			if (ret != ret2) {
+				TLOG(TLVL_ERROR) << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
+				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
 			}
 
 			shm_manager_->DoneWritingFragment(header);
@@ -246,14 +246,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 			FragmentPtr frag(new Fragment(header.word_count - header.num_words()));
 			memcpy(frag->headerAddress(), &header, header.num_words() * sizeof(RawDataType));
-			if (header.word_count - header.num_words() > 0)
+			auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag->headerAddress() + header.num_words(), header.word_count - header.num_words());
+			if (ret3 != source_rank)
 			{
-				auto ret3 = source_plugins_[source_rank]->receiveFragmentData(frag->headerAddress() + header.num_words(), header.word_count - header.num_words());
-				if (ret3 != source_rank)
-				{
-					TLOG(TLVL_ERROR) << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving System Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
-					throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving System Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
-				}
+				TLOG(TLVL_ERROR) << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving System Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
+				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader while receiving System Fragment! (Expected: " << source_rank << ", Got: " << ret3 << ")";
 			}
 
 			switch (header.type)

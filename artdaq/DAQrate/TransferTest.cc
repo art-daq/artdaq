@@ -18,13 +18,18 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	, sends_each_sender_(psi.get<int>("sends_per_sender"))
 	, receives_each_receiver_(senders_ * sending_threads_ * sends_each_sender_ / receivers_)
 	, buffer_count_(psi.get<int>("buffer_count", 10))
-	, max_payload_size_(psi.get<size_t>("fragment_size", 0x100000))
+	, fragment_size_(psi.get<size_t>("fragment_size", 0x100000))
 	, ps_()
 	, validate_mode_(psi.get<bool>("validate_data_mode", false))
 	, partition_number_(psi.get<int>("partition_number", rand() % 0x7F))
 {
 	TLOG(10) << "CONSTRUCTOR";
 	metricMan = &metricMan_;
+	
+	if (fragment_size_ < artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType))
+	{
+		fragment_size_ = artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType);
+	}
 
 	fhicl::ParameterSet metric_pset;
 
@@ -71,12 +76,12 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	ss << " sources: {";
 	for (int ii = 0; ii < senders_; ++ii)
 	{
-		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words : " << max_payload_size_ << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
+		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words : " << fragment_size_ << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
 	}
 	ss << "}" << std::endl << " destinations: {";
 	for (int jj = senders_; jj < senders_ + receivers_; ++jj)
 	{
-		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words : " << max_payload_size_ << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
+		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words : " << fragment_size_ << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
 	}
 	ss << "}" << std::endl;
 
@@ -128,8 +133,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 	double totalTime = 0;
 	artdaq::DataSenderManager sender(ps_);
 
-	unsigned data_size_wrds = max_payload_size_ / sizeof(artdaq::RawDataType) - artdaq::detail::RawFragmentHeader::num_words();
-	if (data_size_wrds < 8) data_size_wrds = 8; // min size
+	unsigned data_size_wrds = (fragment_size_ / sizeof(artdaq::RawDataType)) - artdaq::detail::RawFragmentHeader::num_words();
 	artdaq::Fragment frag(data_size_wrds);
 
 	if (validate_mode_)

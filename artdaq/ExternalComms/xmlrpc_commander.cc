@@ -907,7 +907,7 @@ private:								\
 		/*#define register_method(m) \
 		//  xmlrpc_c::methodPtr const ptr_ ## m(new m ## _(*this));\
 		   registry.addMethod ("daq." #m, ptr_ ## m) */
-#define register_method(m) register_method2(m,0x200000)
+#define register_method(m) register_method2(m,0x400000)
 
 		xmlrpc_env         env; // xmlrpc_env_init(&env);
 		xmlrpc_registry ***c_registryPPP;

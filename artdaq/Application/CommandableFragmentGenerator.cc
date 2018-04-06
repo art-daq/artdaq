@@ -210,10 +210,11 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		{
 			TLOG(TLVL_TRACE) << "getNext: Calling applyRequests" ;
 			result = applyRequests(output);
-			TLOG(TLVL_TRACE) << "getNext: Done with applyRequests" ;
+			TLOG(TLVL_TRACE) << "getNext: Done with applyRequests result=" << std::boolalpha << result;
 
 			if (exception())
 			{
+				TLOG(TLVL_ERROR) << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
 				throw cet::exception("CommandableFragmentGenerator") << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
 			}
 		}

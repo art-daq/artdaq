@@ -111,6 +111,7 @@ artdaq::RequestReceiver::~RequestReceiver()
 
 void artdaq::RequestReceiver::stopRequestReceiverThread()
 {
+	std::unique_lock<std::mutex> lk(state_mutex_);
 	if (!request_received_)
 	{
 		TLOG(TLVL_ERROR) << "Stop request received by RequestReceiver, but no requests have ever been received." << std::endl
@@ -119,6 +120,8 @@ void artdaq::RequestReceiver::stopRequestReceiverThread()
 	should_stop_ = true;
 	TLOG(TLVL_DEBUG) << "Joining requestThread";
 	if (requestThread_.joinable()) requestThread_.join();
+	while (running_) usleep(10000);
+
 	if (request_socket_ != -1) {
 		close(request_socket_);
 		request_socket_ = -1;
@@ -129,6 +132,7 @@ void artdaq::RequestReceiver::stopRequestReceiverThread()
 
 void artdaq::RequestReceiver::startRequestReceiverThread()
 {
+	std::unique_lock<std::mutex> lk(state_mutex_);
 	if (requestThread_.joinable()) requestThread_.join();
 	should_stop_ = false;
 	request_stop_requested_ = false;
@@ -149,7 +153,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 	{
 		TLOG(16) << "receiveRequestsLoop: Polling Request socket for new requests" ;
 
-		int ms_to_wait = 100;
+		int ms_to_wait = 10;
 		struct pollfd ufds[1];
 		ufds[0].fd = request_socket_;
 		ufds[0].events = POLLIN | POLLPRI;
@@ -182,6 +186,9 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
 		recv(request_socket_, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
 		bool anyNew = false;
+
+			if (should_stop_) break;
+
 		for (auto& buffer : pkt_buffer)
 		{
 			if (!buffer.isValid()) continue;
@@ -214,6 +221,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			request_cv_.notify_all();
 		}
 	}
+	TLOG(TLVL_DEBUG) << "Ending Request Thread";
 	running_ = false;
 }
 
@@ -221,7 +229,11 @@ void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqI
 {
 	std::unique_lock<std::mutex> lk(request_mutex_);
 	requests_.erase(reqID);
-	if (reqID > highest_seen_request_) highest_seen_request_ = reqID;
+	if (reqID > highest_seen_request_ && !should_stop_) // Stop accounting for requests after stop
+	{
+		TLOG(18) << "Setting highest_seen_request_ to " << reqID;
+		highest_seen_request_ = reqID;
+	}
 
 	if (metricMan)
 	{
