@@ -1,4 +1,10 @@
 #!/bin/bash
+
+if [ $# -lt 2 ];then
+    echo "USAGE: $0 <fcl_file> <n_procs>"
+    exit 1
+fi
+
 fcl=$1
 nprocs=$2
 
