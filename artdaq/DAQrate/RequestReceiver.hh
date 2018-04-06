@@ -79,10 +79,11 @@ namespace artdaq
 		size_t end_of_run_timeout_ms_;
 		std::atomic<bool> should_stop_;
 		mutable std::mutex request_mutex_;
+		mutable std::mutex state_mutex_;
 		std::condition_variable request_cv_;
 		boost::thread requestThread_;
 		
-		artdaq::Fragment::sequence_id_t highest_seen_request_;
+		std::atomic<artdaq::Fragment::sequence_id_t> highest_seen_request_;
 	};
 }
 

@@ -391,6 +391,19 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 				}
 			}
 		}
+
+		// Check if we were asked to do a 0-size receive
+		if (target_bytes == 0 && state_ == SocketState::Data)
+		{
+			state_ = SocketState::Metadata;
+			target_bytes = sizeof(MessHead);
+			ret_rank = source_rank();
+			TLOG(9) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
+			TLOG(7) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
+
+			done = true; // no more polls
+		}
+
 	} // while(!done)...poll
 
 	last_active_receive_fd_ = active_receive_fd_;

@@ -190,11 +190,20 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	// invalid events (and large, invalid events)                                            
 	if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
 	{
+		TLOG(5) << GetTraceName() << ": Writing fragment with seqID=" << std::to_string(fragment.sequenceID());
 		auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode, send_timeout_usec);
-		if (sts == -3) return CopyStatus::kTimeout;
-		if (sts != 0) return CopyStatus::kErrorNotRequiringException;
+		if (sts == -3)
+		{
+			TLOG(TLVL_WARNING) << GetTraceName() << ": Timeout writing fragment with seqID=" << std::to_string(fragment.sequenceID());
+			return CopyStatus::kTimeout;
+		}
+		if (sts != 0)
+		{
+			TLOG(TLVL_WARNING) << GetTraceName() << ": Error writing fragment with seqID=" << std::to_string(fragment.sequenceID());
+			return CopyStatus::kErrorNotRequiringException;
+		}
 
-		TLOG(5) << GetTraceName() << ": Fragment send successfully" ;
+		TLOG(5) << GetTraceName() << ": Successfully sent Fragment with seqID=" << std::to_string(fragment.sequenceID());
 		return CopyStatus::kSuccess;
 	}
 	else

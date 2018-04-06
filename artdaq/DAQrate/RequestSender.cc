@@ -168,6 +168,7 @@ namespace artdaq
 			std::lock_guard<std::mutex> lk(request_mutex_);
 			for (auto& req : active_requests_)
 			{
+			  TLOG(12, "RequestSender") << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second;
 				message.addRequest(req.first, req.second);
 			}
 		}
