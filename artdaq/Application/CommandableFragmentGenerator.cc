@@ -317,13 +317,15 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	timeout_ = timeout;
 	timestamp_ = timestamp;
 	ev_counter_.store(1);
+	missing_request_ = false;
 	should_stop_.store(false);
 	exception_.store(false);
 	run_number_ = run;
 	subrun_number_ = 1;
 	latest_exception_report_ = "none";
 	dataBuffer_.clear();
-	last_window_send_time_set_ = false;
+	last_window_send_time_set_ = false; 
+	windows_sent_ooo_.clear();
 
 	start();
 
