@@ -8,6 +8,7 @@ art_make( BASENAME_ONLY
   LIB_LIBRARIES artdaq_Application
   EXCLUDE xmlrpc_commander.cc
   NO_PLUGINS
+  artdaq_DAQdata
   ${ART_UTILITIES}
   ${FHICLCPP}
   ${CETLIB}

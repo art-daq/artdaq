@@ -30,6 +30,9 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	// other parameters
 	verbose_ = data_pset.get<bool>("verbose", true);
 
+	// TRACE here so that mftrace_module and mftrace_iteration are ready by mftrace...should set it for all subsequent traces
+	TLOG(TLVL_INFO) << "Initializing Data Receiver";
+
 	if (metric_pset.is_empty())
 	{
 		TLOG(TLVL_INFO) << "No metric plugins appear to be defined" ;

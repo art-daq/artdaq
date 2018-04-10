@@ -1,6 +1,7 @@
 #ifndef artdaq_ExternalComms_CommanderInterface_hh
 #define artdaq_ExternalComms_CommanderInterface_hh
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "artdaq/Application/Commandable.hh"
 #include "cetlib/compiler_macros.h"

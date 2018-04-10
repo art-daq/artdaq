@@ -209,7 +209,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 		fd.events = POLLIN | POLLPRI;
 
 		auto res = poll(&fd, 1, 1000);
-		if (res > 0) {
+		if (res > 0)
+		{
 			auto first = artdaq::Fragment::InvalidSequenceID;
 			auto last = artdaq::Fragment::InvalidSequenceID;
 			artdaq::detail::RoutingPacketHeader hdr;
@@ -219,7 +220,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			TLOG(TLVL_DEBUG) << "Received " << std::to_string(stss) << " bytes. (sizeof(RoutingPacketHeader) == " << std::to_string(sizeof(detail::RoutingPacketHeader));
 
 			TLOG(TLVL_DEBUG) << "Checking for valid header";
-			if (hdr.header == ROUTING_MAGIC) {
+			if (hdr.header == ROUTING_MAGIC)
+			{
 				if (routing_master_mode_ != detail::RoutingMasterMode::INVALID && routing_master_mode_ != hdr.mode)
 				{
 					TLOG(TLVL_ERROR) << "Received table has different RoutingMasterMode than expected!";
@@ -243,7 +245,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				}
 				auto thisSeqID = first;
 
-				if (routing_table_.count(last) == 0) {
+				if (routing_table_.count(last) == 0)
+				{
 					for (auto entry : buffer)
 					{
 						if (thisSeqID != entry.sequence_id)
@@ -298,7 +301,8 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 		while (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_))
 		{
 			std::unique_lock<std::mutex> lck(routing_mutex_);
-			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id)) {
+			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id))
+			{
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 				return routing_table_.at(sequence_id);
 			}
@@ -310,7 +314,8 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 			usleep(routing_timeout_ms_ * 10);
 		}
 		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
-		if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID) {
+		if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
+		{
 			TLOG(TLVL_ERROR) << "Bad Omen: I don't have routing information for seqID " << std::to_string(sequence_id)
 				<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!";
 		}
@@ -320,7 +325,8 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 				<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!";
 		}
 	}
-	else {
+	else
+	{
 		auto index = sequence_id % enabled_destinations_.size();
 		auto it = enabled_destinations_.begin();
 		for (; index > 0; --index)
@@ -334,8 +340,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 }
 
 int
-artdaq::DataSenderManager::
-sendFragment(Fragment&& frag)
+artdaq::DataSenderManager::sendFragment(Fragment&& frag)
 {
 	// Precondition: Fragment must be complete and consistent (including
 	// header information).
@@ -371,7 +376,8 @@ sendFragment(Fragment&& frag)
 	else if (non_blocking_mode_)
 	{
 		auto count = routing_retry_count_;
-		while (dest == TransferInterface::RECV_TIMEOUT && count > 0) {
+		while (dest == TransferInterface::RECV_TIMEOUT && count > 0)
+		{
 			dest = calcDest_(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
 			{
@@ -402,18 +408,22 @@ sendFragment(Fragment&& frag)
 			TLOG(TLVL_WARNING) << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID;
 		}
 	}
-	else {
+	else
+	{
 		auto count = routing_retry_count_;
-		while (dest == TransferInterface::RECV_TIMEOUT && count > 0) {
+		while (dest == TransferInterface::RECV_TIMEOUT && count > 0)
+		{
 			dest = calcDest_(seqID);
-			if (dest == TransferInterface::RECV_TIMEOUT) {
+			if (dest == TransferInterface::RECV_TIMEOUT)
+			{
 				count--;
 				TLOG(TLVL_WARNING) << "Could not get destination for seqID "
 					<< std::to_string(seqID) << ", send number " << sent_frag_count_.count()
 					<< (count > 0 ? ", retrying." : ".");
 			}
 		}
-		if (dest != TransferInterface::RECV_TIMEOUT && destinations_.count(dest) && enabled_destinations_.count(dest)) {
+		if (dest != TransferInterface::RECV_TIMEOUT && destinations_.count(dest) && enabled_destinations_.count(dest))
+		{
 			TLOG(5) << "DataSenderManager::sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 
@@ -430,27 +440,31 @@ sendFragment(Fragment&& frag)
 			<< "! This event has been lost: " << seqID;
 	}
 	if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
-		&& routing_table_.find(seqID - 1) != routing_table_.end()) {
+		&& routing_table_.find(seqID - 1) != routing_table_.end())
+	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(seqID - 1));
 	}
-	else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount) {
+	else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount)
+	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(sent_frag_count_.count()));
 	}
-	if (metricMan) {//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
+	if (metricMan)
+	{//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
 		TLOG(5) << "sendFragment: sending metrics";
 		auto delta_t = TimeUtils::GetElapsedTime(start_time);
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 5, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 5, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 5, MetricMode::Average);
 		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest),
-			"fragments", 3, MetricMode::LastPoint);
-		if (use_routing_master_) {
+							  "fragments", 3, MetricMode::LastPoint);
+		if (use_routing_master_)
+		{
 			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 2, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)
 				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 2,
-					MetricMode::Average);
+									  MetricMode::Average);
 		}
 	}
 	TLOG(5) << "sendFragment: Done sending fragment " << seqID;
