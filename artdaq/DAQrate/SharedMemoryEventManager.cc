@@ -602,11 +602,13 @@ void artdaq::SharedMemoryEventManager::startSubrun()
 
 bool artdaq::SharedMemoryEventManager::endRun()
 {
+	TLOG(TLVL_INFO) << "Ending run " << run_id_;
 	FragmentPtr	endOfRunFrag(new
 		Fragment(static_cast<size_t>
 		(ceil(sizeof(my_rank) /
 			static_cast<double>(sizeof(Fragment::value_type))))));
 
+	TLOG(TLVL_DEBUG) << "Broadcasting EndOfRun Fragment";
 	endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
 	*endOfRunFrag->dataBegin() = my_rank;
 	broadcastFragment_(std::move(endOfRunFrag), endOfRunFrag);
@@ -619,12 +621,14 @@ bool artdaq::SharedMemoryEventManager::endRun()
 
 bool artdaq::SharedMemoryEventManager::endSubrun()
 {
+	TLOG(TLVL_INFO) << "Ending subrun " << subrun_id_;
 	std::unique_ptr<artdaq::Fragment>
 		endOfSubrunFrag(new
 			Fragment(static_cast<size_t>
 			(ceil(sizeof(my_rank) /
 				static_cast<double>(sizeof(Fragment::value_type))))));
 
+	TLOG(TLVL_DEBUG) << "Broadcasting EndOfSubrun Fragment";
 	endOfSubrunFrag->setSystemType(Fragment::EndOfSubrunFragmentType);
 	*endOfSubrunFrag->dataBegin() = my_rank;
 
@@ -664,13 +668,16 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 
 bool artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag)
 {
+	TLOG(TLVL_DEBUG) << "Broadcasting Fragment with seqID=" << frag->sequenceID() << ", type " << detail::RawFragmentHeader::SystemTypeToString(frag->type()) << ", size=" << frag->sizeBytes() << "B.";
 	auto buffer = broadcasts_.GetBufferForWriting(false);
+	TLOG(TLVL_DEBUG) << "broadcastFragment_: after getting buffer 1st buffer=" << buffer;
 	auto start_time = std::chrono::steady_clock::now();
 	while (buffer == -1 && TimeUtils::GetElapsedTimeMilliseconds(start_time) < static_cast<size_t>(broadcast_timeout_ms_))
 	{
 		usleep(10000);
 		buffer = broadcasts_.GetBufferForWriting(false);
 	}
+	TLOG(TLVL_DEBUG) << "broadcastFragment_: after getting buffer w/timeout, buffer=" << buffer << ", elapsed time=" << TimeUtils::GetElapsedTime(start_time) << " s.";
 	if (buffer == -1)
 	{
 		TLOG(TLVL_ERROR) << "Broadcast of fragment type " << frag->typeString() << " failed due to timeout waiting for buffer!";
@@ -678,6 +685,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag, Frag
 		return false;
 	}
 
+	TLOG(TLVL_DEBUG) << "broadcastFragment_: Filling in RawEventHeader";
 	auto hdr = reinterpret_cast<detail::RawEventHeader*>(broadcasts_.GetBufferStart(buffer));
 	hdr->run_id = run_id_;
 	hdr->subrun_id = subrun_id_;
@@ -685,12 +693,13 @@ bool artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag, Frag
 	hdr->is_complete = true;
 	broadcasts_.IncrementWritePos(buffer, sizeof(detail::RawEventHeader));
 
-	TLOG(TLVL_TRACE) << "broadcastFragment_ before Write calls";
+	TLOG(TLVL_DEBUG) << "broadcastFragment_ before Write calls";
 	broadcasts_.Write(buffer, frag->headerAddress(), frag->size() * sizeof(RawDataType));
 
+	TLOG(TLVL_DEBUG) << "broadcastFragment_ Marking buffer full";
 	broadcasts_.MarkBufferFull(buffer, -1);
 	outFrag.swap(frag);
-	TLOG(TLVL_TRACE) << "broadcastFragment_ Complete";
+	TLOG(TLVL_DEBUG) << "broadcastFragment_ Complete";
 	return true;
 }
 

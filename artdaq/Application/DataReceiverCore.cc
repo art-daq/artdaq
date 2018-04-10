@@ -103,6 +103,7 @@ bool artdaq::DataReceiverCore::stop()
 
 	if (!run_is_paused_.load())
 	{
+		TLOG(TLVL_DEBUG) << "Ending subrun " << event_store_ptr_->subrunID();
 		endSucceeded = false;
 		attemptsToEnd = 1;
 		endSucceeded = event_store_ptr_->endSubrun();
@@ -117,8 +118,10 @@ bool artdaq::DataReceiverCore::stop()
 			TLOG(TLVL_ERROR)
 				<< "EventStore::endSubrun in stop method failed after three tries." ;
 		}
+		TLOG(TLVL_DEBUG) << "Done Ending subrun " << event_store_ptr_->subrunID();
 	}
 
+	TLOG(TLVL_DEBUG) << "Ending run " << event_store_ptr_->runID();
 	endSucceeded = false;
 	attemptsToEnd = 1;
 	endSucceeded = event_store_ptr_->endRun();
@@ -133,6 +136,7 @@ bool artdaq::DataReceiverCore::stop()
 		TLOG(TLVL_ERROR)
 			<< "EventStore::endRun in stop method failed after three tries." ;
 	}
+	TLOG(TLVL_DEBUG) << "Done Ending run " << event_store_ptr_->runID();
 
 	endSucceeded = false;
 	attemptsToEnd = 1;
