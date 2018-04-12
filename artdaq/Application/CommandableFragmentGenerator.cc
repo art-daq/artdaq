@@ -1,5 +1,5 @@
-#define TRACE_NAME "CommandableFragmentGenerator"
-#include "tracemf.h"
+#define TRACE_NAME (app_name + "_CommandableFragmentGenerator").c_str() // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 

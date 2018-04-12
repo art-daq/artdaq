@@ -82,3 +82,17 @@ artdaq_TransferPlugins
       DATAFILES fcl/transfer_driver_shmem_complex.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
       )
+	  
+  cet_test(transfer_driver_tcp_empty_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_tcp_empty.fcl 2
+	DATAFILES fcl/transfer_driver_tcp_empty.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+	)
+	
+  cet_test(transfer_driver_shmem_empty_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_shmem_empty.fcl 2
+	DATAFILES fcl/transfer_driver_shmem_empty.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+	)

@@ -9,6 +9,11 @@
 #define metricMan artdaq::Globals::metricMan_
 #define seedAndRandom() artdaq::Globals::seedAndRandom_()
 
+#define mftrace_iteration artdaq::Globals::mftrace_iteration_
+#define mftrace_module artdaq::Globals::mftrace_module_
+#define SetMFModuleName(name) mftrace_module = name
+#define SetMFIteration(name) mftrace_iteration = name
+
 //https://stackoverflow.com/questions/21594140/c-how-to-ensure-different-random-number-generation-in-c-when-program-is-execut
 #include <fcntl.h>
 #include <unistd.h>
@@ -29,7 +34,11 @@ namespace artdaq
 		static int my_rank_; ///< The rank of the current application
 		static MetricManager* metricMan_; ///< A handle to MetricManager
 		static std::string app_name_; ///< The name of the current application, to be used in logging and metrics
-		
+
+		// MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
+		static std::string mftrace_module_;
+		static std::string mftrace_iteration_;
+
 		/**
 		 * \brief Seed the C random number generator with the current time (if that has not been done already) and generate a random value
 		 * \return A random number.

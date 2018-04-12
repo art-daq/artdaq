@@ -22,8 +22,7 @@ art_make( BASENAME_ONLY
   cetlib
   ${CETLIB_EXCEPT}
   fhiclcpp
-  MF_MessageLogger
-  MF_Utilities
+  ${MESSAGEFACILITY_LIBS}
   ${ROOT_CINTEX}
   ${ROOT_RIO}
   ${ROOT_CORE}
