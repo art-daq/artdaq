@@ -5,8 +5,6 @@ if [ $# -lt 2 ];then
     exit 1
 fi
 
-# No concurrency of transfer_driver tests!
-flock -e 200
 
 fcl=$1
 nprocs=$2
@@ -23,6 +21,9 @@ fi
 
 log=`basename $fcl|cut -f1 -d.`
 
+# No concurrency of transfer_driver tests!
+(
+flock -e 200
 for ii in `seq $nprocs`;do
   rank=$(($ii - 1))
   transfer_driver $rank $fcl & PIDS[$ii]=$!
@@ -33,6 +34,6 @@ for jj in ${PIDS[@]}; do
   wait $jj
   rc=$(($rc + $?))
 done
-
+) 200>/tmp/transfertest.lockfile
 exit $rc
 
