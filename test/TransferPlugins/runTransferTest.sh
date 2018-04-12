@@ -5,6 +5,9 @@ if [ $# -lt 2 ];then
     exit 1
 fi
 
+# No concurrency of transfer_driver tests!
+flock -e 200
+
 fcl=$1
 nprocs=$2
 
