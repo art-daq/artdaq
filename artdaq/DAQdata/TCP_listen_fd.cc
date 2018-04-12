@@ -5,6 +5,8 @@
 //  $RCSfile: TCP_listen_fd.cpp,v $
 //  rev="$Revision: 1.3 $$Date: 2010/06/04 14:00:32 $";
 
+#define TRACE_NAME "TCP_listen_fd"
+
 #include <stdio.h>		// printf
 #include <stdlib.h>		// exit
 #include <strings.h>		// bzero
@@ -27,16 +29,18 @@ TCP_listen_fd(int port, int rcvbuf)
 	listener_fd = socket(PF_INET, SOCK_STREAM, 0); /* man TCP(7P) */
 	if (listener_fd == -1)
 	{
+		TLOG(TLVL_ERROR) << "Could not open listen socket! Exiting with code 1!";
 		perror("socket error");
 		exit(1);
 	}
 
 	int opt = 1; // SO_REUSEADDR - man socket(7)
-	sts = setsockopt(listener_fd,SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+	sts = setsockopt(listener_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 	if (sts == -1)
 	{
+		TLOG(TLVL_ERROR) << "Could not set SO_REUSEADDR! Exiting with code 2!";
 		perror("setsockopt SO_REUSEADDR");
-		return (1);
+		return (2);
 	}
 
 	bzero((char *)&sin, sizeof(sin));
@@ -48,29 +52,28 @@ TCP_listen_fd(int port, int rcvbuf)
 	sts = bind(listener_fd, (struct sockaddr *)&sin, sizeof(sin));
 	if (sts == -1)
 	{
+		TLOG(TLVL_ERROR) << "Could not bind socket! Exiting with code 3!";
 		perror("bind error");
-		exit(1);
+		exit(3);
 	}
 	//printf( " OK\n" );
 
 	int len = 0;
 	socklen_t arglen = sizeof(len);
 	sts = getsockopt(listener_fd, SOL_SOCKET, SO_RCVBUF, &len, &arglen);
-	TRACE( 1,"RCVBUF initial: %d sts/errno=%d/%d arglen=%d rcvbuf=%d listener_fd=%d"
-		,len,sts,errno,arglen,rcvbuf,listener_fd );
+	TLOG(TLVL_WARNING) << "RCVBUF initial: " << len << " sts/errno=" << sts << "/" << errno << " arglen=" << arglen << " rcvbuf=" << rcvbuf << " listener_fd=" << listener_fd;
 	if (rcvbuf > 0)
 	{
 		len = rcvbuf;
 		sts = setsockopt(listener_fd, SOL_SOCKET, SO_RCVBUF, &len, arglen);
 		if (sts == -1)
-		TRACE( 0, "Error with setsockopt SNDBUF %d", errno );
+			TLOG(TLVL_ERROR) << "Error with setsockopt SNDBUF " << errno;
 		len = 0;
 		sts = getsockopt(listener_fd, SOL_SOCKET, SO_RCVBUF, &len, &arglen);
 		if (len < (rcvbuf * 2))
-		TRACE( 1,"RCVBUF %d not expected (%d) sts/errno=%d/%d"
-			,len,rcvbuf,sts,errno);
+			TLOG(TLVL_WARNING) << "RCVBUF " << len << " not expected (" << rcvbuf << " sts/errno=" << sts << "/" << errno;
 		else
-		TRACE( 3,"RCVBUF %d sts/errno=%d/%d", len,sts,errno );
+			TLOG(TLVL_DEBUG) << "RCVBUF " << len << " sts/errno=" << sts << "/" << errno;
 	}
 
 	//printf( "listen..." );fflush(stdout);

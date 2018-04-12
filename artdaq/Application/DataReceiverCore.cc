@@ -1,7 +1,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
 
-#define TRACE_NAME "DataReceiverCore"
+#define TRACE_NAME (app_name + "_DataReceiverCore").c_str() // include these 2 first -
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -16,23 +16,26 @@ artdaq::DataReceiverCore::DataReceiverCore()
 	, pause_requested_(false)
 	, run_is_paused_(false)
 {
-	TLOG_DEBUG(app_name) << "Constructor" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Constructor" ;
 	metricMan = &metricMan_;
 }
 
 artdaq::DataReceiverCore::~DataReceiverCore()
 {
-	TLOG_DEBUG(app_name) << "Destructor" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Destructor" ;
 }
 
 bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset)
 {
 	// other parameters
-	verbose_ = pset.get<bool>("verbose", false);
+	verbose_ = data_pset.get<bool>("verbose", true);
+
+	// TRACE here so that mftrace_module and mftrace_iteration are ready by mftrace...should set it for all subsequent traces
+	TLOG(TLVL_INFO) << "Initializing Data Receiver";
 
 	if (metric_pset.is_empty())
 	{
-		TLOG_INFO(app_name) << "No metric plugins appear to be defined" << TLOG_ENDL;
+		TLOG(TLVL_INFO) << "No metric plugins appear to be defined" ;
 	}
 	try
 	{
@@ -53,6 +56,19 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		data_tmp.put<int>("expected_fragments_per_event", data_pset.get<int>("expected_events_per_bunch"));
 	}
 
+	if (data_pset.has_key("rank"))
+	{
+		if (my_rank >= 0 && data_pset.get<int>("rank") != my_rank) {
+			TLOG(TLVL_WARNING) << "Rank specified at startup is different than rank specified at configure! Using rank received at configure!";
+		}
+		my_rank = data_pset.get<int>("rank");
+	}
+	if (my_rank == -1)
+	{
+		TLOG(TLVL_ERROR) << "Rank not specified at startup or in configuration! Aborting";
+		exit(1);
+	}
+
 	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, tmp));
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
@@ -62,6 +78,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 bool artdaq::DataReceiverCore::start(art::RunID id)
 {
+	logMessage_("Starting run " + boost::lexical_cast<std::string>(id.run()));
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 	run_is_paused_.store(false);
@@ -69,16 +86,17 @@ bool artdaq::DataReceiverCore::start(art::RunID id)
 	event_store_ptr_->startRun(id.run());
 	receiver_ptr_->start_threads();
 
-	logMessage_("Started run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	logMessage_("Completed the Start transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
 }
 
 bool artdaq::DataReceiverCore::stop()
 {
 	logMessage_("Stopping run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) +
-				", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
+	            ", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
 	bool endSucceeded;
 	int attemptsToEnd;
+	receiver_ptr_->stop_threads();
 
 	// 21-Jun-2013, KAB - the stop_requested_ variable must be set
 	// before the flush lock so that the processFragments loop will
@@ -88,56 +106,61 @@ bool artdaq::DataReceiverCore::stop()
 
 	if (!run_is_paused_.load())
 	{
+		TLOG(TLVL_DEBUG) << "Ending subrun " << event_store_ptr_->subrunID();
 		endSucceeded = false;
 		attemptsToEnd = 1;
 		endSucceeded = event_store_ptr_->endSubrun();
 		while (!endSucceeded && attemptsToEnd < 3)
 		{
 			++attemptsToEnd;
-			TLOG_DEBUG(app_name) << "Retrying EventStore::endSubrun()" << TLOG_ENDL;
+			TLOG(TLVL_DEBUG) << "Retrying EventStore::endSubrun()" ;
 			endSucceeded = event_store_ptr_->endSubrun();
 		}
 		if (!endSucceeded)
 		{
-			TLOG_ERROR(app_name)
-				<< "EventStore::endSubrun in stop method failed after three tries." << TLOG_ENDL;
+			TLOG(TLVL_ERROR)
+				<< "EventStore::endSubrun in stop method failed after three tries." ;
 		}
+		TLOG(TLVL_DEBUG) << "Done Ending subrun " << event_store_ptr_->subrunID();
 	}
 
+	TLOG(TLVL_DEBUG) << "Ending run " << event_store_ptr_->runID();
 	endSucceeded = false;
 	attemptsToEnd = 1;
 	endSucceeded = event_store_ptr_->endRun();
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG_DEBUG(app_name) << "Retrying EventStore::endRun()" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "Retrying EventStore::endRun()" ;
 		endSucceeded = event_store_ptr_->endRun();
 	}
 	if (!endSucceeded)
 	{
-		TLOG_ERROR(app_name)
-			<< "EventStore::endRun in stop method failed after three tries." << TLOG_ENDL;
+		TLOG(TLVL_ERROR)
+			<< "EventStore::endRun in stop method failed after three tries." ;
 	}
+	TLOG(TLVL_DEBUG) << "Done Ending run " << event_store_ptr_->runID();
 
 	endSucceeded = false;
 	attemptsToEnd = 1;
-	TLOG_DEBUG("DataReceiverCore") << "stop: Calling EventStore::endOfData" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "stop: Calling EventStore::endOfData" ;
 	endSucceeded = event_store_ptr_->endOfData();
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG_DEBUG(app_name) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "Retrying EventStore::endOfData()" ;
 		endSucceeded = event_store_ptr_->endOfData();
 	}
 	
 	run_is_paused_.store(false);
+	logMessage_("Completed the Stop transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
 }
 
 bool artdaq::DataReceiverCore::pause()
 {
 	logMessage_("Pausing run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) +
-				", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
+	            ", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
 	pause_requested_.store(true);
 
 	bool endSucceeded = false;
@@ -146,16 +169,17 @@ bool artdaq::DataReceiverCore::pause()
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG_DEBUG(app_name) << "Retrying EventStore::endSubrun()" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "Retrying EventStore::endSubrun()" ;
 		endSucceeded = event_store_ptr_->endSubrun();
 	}
 	if (!endSucceeded)
 	{
-		TLOG_ERROR(app_name)
-			<< "EventStore::endSubrun in pause method failed after three tries." << TLOG_ENDL;
+		TLOG(TLVL_ERROR)
+			<< "EventStore::endSubrun in pause method failed after three tries." ;
 	}
 
 	run_is_paused_.store(true);
+	logMessage_("Completed the Pause transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
 }
 
@@ -166,53 +190,57 @@ bool artdaq::DataReceiverCore::resume()
 	metricMan_.do_start();
 	event_store_ptr_->startSubrun();
 	run_is_paused_.store(false);
+	logMessage_("Completed the Resume transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
 }
 
 bool artdaq::DataReceiverCore::shutdown()
 {
+	logMessage_("Starting Shutdown transition");
+
 	/* We don't care about flushing data here.  The only way to transition to the
 	   shutdown state is from a state where there is no data taking.  All we have
 	   to do is signal the art input module that we're done taking data so that
 	   it can wrap up whatever it needs to do. */
 
-	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down DataReceiverManager" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "shutdown: Shutting down DataReceiverManager" ;
 	receiver_ptr_.reset(nullptr);
 
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
-	TLOG_DEBUG("DataReceiverCore") << "shutdown: Calling EventStore::endOfData" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "shutdown: Calling EventStore::endOfData" ;
 	endSucceeded = event_store_ptr_->endOfData();
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG_DEBUG(app_name) << "Retrying EventStore::endOfData()" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "Retrying EventStore::endOfData()" ;
 		endSucceeded = event_store_ptr_->endOfData();
 	}
 
-	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down SharedMemoryEventManager" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "shutdown: Shutting down SharedMemoryEventManager" ;
 	event_store_ptr_.reset();
 
-	TLOG_DEBUG("DataReceiverCore") << "shutdown: Shutting down MetricManager" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "shutdown: Shutting down MetricManager" ;
 	metricMan_.shutdown();
 
-	TLOG_DEBUG("DataReceiverCore") << "shutdown: Complete" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "shutdown: Complete" ;
+	logMessage_("Completed Shutdown transition");
 	return endSucceeded;
 }
 
 bool artdaq::DataReceiverCore::soft_initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(app_name) << "soft_initialize method called with DAQ "
+	TLOG(TLVL_DEBUG) << "soft_initialize method called with DAQ "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\"." << TLOG_ENDL;
+		<< "\"." ;
 	return true;
 }
 
 bool artdaq::DataReceiverCore::reinitialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(app_name) << "reinitialize method called with DAQ "
+	TLOG(TLVL_DEBUG) << "reinitialize method called with DAQ "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\"." << TLOG_ENDL;
+		<< "\"." ;
 	event_store_ptr_ = nullptr;
 	return initialize(pset);
 }
@@ -253,10 +281,10 @@ void artdaq::DataReceiverCore::logMessage_(std::string const& text)
 {
 	if (verbose_)
 	{
-		TLOG_INFO(app_name) << text << TLOG_ENDL;
+		TLOG(TLVL_INFO) << text ;
 	}
 	else
 	{
-		TLOG_DEBUG(app_name) << text << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << text ;
 	}
 }

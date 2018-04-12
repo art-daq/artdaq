@@ -19,10 +19,8 @@ class artdaq::EventBuilderApp : public artdaq::Commandable
 public:
 	/**
 	* \brief EventBuilderApp Constructor
-	* \param rank Rank of this EventBuilder
-	* \param name Friendly name of this application instance (MessageFacility Category)
 	*/
-	EventBuilderApp(int rank, std::string name);
+	EventBuilderApp();
 
 	/**
 	* \brief Copy Constructor is deleted

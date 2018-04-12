@@ -88,11 +88,14 @@ namespace artdaq {
 		 * "overwite_mode" (Default: false): Whether new data is allowed to overwrite buffers in the "Full" state
 		 * "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
-		 * A "Broadcast shared memmory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
+		 * A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 		 * "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
 		 * "broadcast_shared_memory_key" (Default: 0xCEE7000 + PID): Key to use for broadcast shared memory access
 		 * "broadcast_buffer_count" (Default: 10): Buffers in the broadcast shared memory segment
 		 * "broadcast_buffer_size" (Default: 0x100000): Size of the buffers in the broadcast shared memory segment
+		 * "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
+		 * "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers.
+																		 (TUNING: Should be slightly longer than the mean art processing time, but not so long that the Stop transition times out)
 		 * \endverbatim
 		 */
 		SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
@@ -133,7 +136,7 @@ namespace artdaq {
 		 * \param frag Fragment that is now completely in the buffer.
 		 */
 		void DoneWritingFragment(detail::RawFragmentHeader frag);
-		
+
 		/**
 		* \brief Returns the number of buffers which contain data but are not yet complete
 		* \return The number of buffers which contain data but are not yet complete
@@ -259,7 +262,7 @@ namespace artdaq {
 		 * \brief Set the RequestMessageMode for all outgoing data requests
 		 * \param mode Mode to set
 		 */
-		void setRequestMode(detail::RequestMessageMode mode) { requests_.SetRequestMode(mode); }
+		void setRequestMode(detail::RequestMessageMode mode) { if (requests_) requests_->SetRequestMode(mode); }
 
 		/**
 		 * \brief Set the overwrite flag (non-reliable data transfer) for the Shared Memory
@@ -298,6 +301,7 @@ namespace artdaq {
 		bool update_run_ids_;
 		bool overwrite_mode_;
 		bool send_init_fragments_;
+		bool running_;
 
 		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_mutexes_;
@@ -306,15 +310,21 @@ namespace artdaq {
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		int broadcast_timeout_ms_;
-		int broadcast_count_;
-		int subrun_event_count_;
+
+		std::atomic<int> run_event_count_;
+		std::atomic<int> run_incomplete_event_count_;
+		std::atomic<int> subrun_event_count_;
+		std::atomic<int> subrun_incomplete_event_count_;
 
 		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
 		fhicl::ParameterSet current_art_pset_;
 		std::shared_ptr<art_config_file> current_art_config_file_;
+		double minimum_art_lifetime_s_;
+		size_t art_event_processing_time_us_;
 
-		RequestSender requests_;
+		std::unique_ptr<RequestSender> requests_;
+		fhicl::ParameterSet data_pset_;
 
 		FragmentPtr init_fragment_;
 		FragmentPtr dropped_data_; ///< Used for when data comes in badly out-of-sequence

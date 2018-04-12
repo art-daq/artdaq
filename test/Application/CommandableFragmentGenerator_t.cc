@@ -1,3 +1,5 @@
+#define TRACE_NAME "CommandableFragmentGenerator_t"
+
 #define BOOST_TEST_MODULE CommandableFragmentGenerator_t
 #include <boost/test/auto_unit_test.hpp>
 
@@ -86,7 +88,7 @@ public:
 	void waitForFrags() { 
 		auto start_time = std::chrono::steady_clock::now();
 		while (fireCount_ > 0) { usleep(1000); } 
-		TLOG_INFO("CommandableFragmentGenerator_t") << "Waited " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count() << " us for events to be picked up by CFG" << TLOG_ENDL;
+		TLOG(TLVL_INFO) << "Waited " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count() << " us for events to be picked up by CFG" ;
 	}
 private:
 	std::atomic<size_t> fireCount_;
@@ -135,7 +137,7 @@ BOOST_AUTO_TEST_SUITE(CommandableFragmentGenerator_t)
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "Simple test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Simple test case BEGIN" ;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
@@ -147,13 +149,13 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
 	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
 	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
-	TLOG_INFO("CommandableFragmentGenerator_t") << "Simple test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Simple test case END" ;
 }
 
 BOOST_AUTO_TEST_CASE(IgnoreRequests)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "IgnoreRequests test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "IgnoreRequests test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 1;
 	fhicl::ParameterSet ps;
@@ -188,13 +190,13 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests)
 	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-	TLOG_INFO("CommandableFragmentGenerator_t") << "IgnoreRequests test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "IgnoreRequests test case END" ;
 }
 
 BOOST_AUTO_TEST_CASE(SingleMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "SingleMode test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "SingleMode test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -264,13 +266,13 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-	TLOG_INFO("CommandableFragmentGenerator_t") << "SingleMode test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "SingleMode test case END" ;
 }
 
 BOOST_AUTO_TEST_CASE(BufferMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "BufferMode test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "BufferMode test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -363,13 +365,13 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	gen.joinThreads();
 
 
-	TLOG_INFO("CommandableFragmentGenerator_t") << "BufferMode test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "BufferMode test case END" ;
 }
 
 BOOST_AUTO_TEST_CASE(WindowMode_Function)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_Function test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_Function test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -492,7 +494,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	fps.clear();
 
 	gen.StopCmd(0xFFFFFFFF, 1);
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_Function test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_Function test case END" ;
 	gen.joinThreads();
 
 }
@@ -506,7 +508,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestBeforeBuffer test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestBeforeBuffer test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -558,13 +560,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestBeforeBuffer test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestBeforeBuffer test case END" ;
 
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestStartsBeforeBuffer test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestStartsBeforeBuffer test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -619,13 +621,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestStartsBeforeBuffer test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestStartsBeforeBuffer test case END" ;
 
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestOutsideBuffer test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestOutsideBuffer test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -729,13 +731,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestOutsideBuffer test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestOutsideBuffer test case END" ;
 
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestInBuffer test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestInBuffer test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -788,13 +790,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestInBuffer test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestInBuffer test case END" ;
 
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestEndsAfterBuffer test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestEndsAfterBuffer test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -877,13 +879,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestEndsAfterBuffer test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestEndsAfterBuffer test case END" ;
 
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestAfterBuffer test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestAfterBuffer test case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
@@ -971,14 +973,14 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-	TLOG_INFO("CommandableFragmentGenerator_t") << "WindowMode_RequestAfterBuffer test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "WindowMode_RequestAfterBuffer test case END" ;
 
 }
 
 BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "HardwareFailure_NonThreaded test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "HardwareFailure_NonThreaded test case BEGIN" ;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
@@ -1007,13 +1009,13 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-	TLOG_INFO("CommandableFragmentGenerator_t") << "HardwareFailure_NonThreaded test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "HardwareFailure_NonThreaded test case END" ;
 }
 
 BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
-	TLOG_INFO("CommandableFragmentGenerator_t") << "HardwareFailure_Threaded test case BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "HardwareFailure_Threaded test case BEGIN" ;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
@@ -1053,7 +1055,7 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-	TLOG_INFO("CommandableFragmentGenerator_t") << "HardwareFailure_Threaded test case END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "HardwareFailure_Threaded test case END" ;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

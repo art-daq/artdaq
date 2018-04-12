@@ -4,7 +4,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "cetlib/BasicPluginFactory.h"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 
 		auto retval = transfer->receiveFragment(myfrag, timeout);
 
-		if (retval != artdaq::TransferInterface::RECV_TIMEOUT)
+		if (retval >= artdaq::TransferInterface::RECV_SUCCESS)
 		{
 			std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment with seqID == " <<
 				myfrag.sequenceID() << ", fragID == " << myfrag.fragmentID() << " has size " <<

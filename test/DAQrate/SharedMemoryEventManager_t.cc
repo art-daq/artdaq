@@ -1,3 +1,4 @@
+#define TRACE_NAME "SharedMemoryEventManager_t"
 
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq-core/Data/Fragment.hh"
@@ -12,7 +13,7 @@ BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
 BOOST_AUTO_TEST_CASE(Construct)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Construct BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Construct BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -23,12 +24,12 @@ BOOST_AUTO_TEST_CASE(Construct)
 	BOOST_REQUIRE_EQUAL(t.runID(), 0);
 	BOOST_REQUIRE_EQUAL(t.subrunID(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetLockedBufferCount(), 0);
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Construct END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Construct END" ;
 }
 
 BOOST_AUTO_TEST_CASE(AddFragment)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test AddFragment BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test AddFragment BEGIN" ;
 
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
@@ -48,12 +49,12 @@ BOOST_AUTO_TEST_CASE(AddFragment)
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test AddFragment END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test AddFragment END" ;
 }
 
 BOOST_AUTO_TEST_CASE(DataFlow)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test DataFlow BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test DataFlow BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -93,7 +94,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test DataFlow END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test DataFlow END" ;
 }
 
 /*
@@ -103,7 +104,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 // 2c. Inactive buffer times out and then data arrives (Error case)
 BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Ordering_IncompleteActiveBuffer BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Ordering_IncompleteActiveBuffer BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 20);
@@ -185,12 +186,12 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
 	}
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Ordering_IncompleteActiveBuffer END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Ordering_IncompleteActiveBuffer END" ;
 }
 
 BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Ordering_IncompleteActiveBuffer_Timeout BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Ordering_IncompleteActiveBuffer_Timeout BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 20);
@@ -283,12 +284,12 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 4);
 	}
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Ordering_IncompleteActiveBuffer_Timeout END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Ordering_IncompleteActiveBuffer_Timeout END" ;
 }
 
 BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Ordering_InactiveBuffer BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Ordering_InactiveBuffer BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 20);
@@ -376,12 +377,12 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
 	}
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Ordering_InactiveBuffer END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Ordering_InactiveBuffer END" ;
 }
 
 BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Ordering_InactiveBuffer_Timeout BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Ordering_InactiveBuffer_Timeout BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 20);
@@ -461,13 +462,13 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
 	}
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test Ordering_InactiveBuffer_Timeout END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test Ordering_InactiveBuffer_Timeout END" ;
 }
 */
 //SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
 BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test ConsumeDroppedData_Active BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 20);
@@ -588,13 +589,13 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 #endif
 	}
 
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test ConsumeDroppedData_Active END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active END" ;
 }
 /*
 //SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
 BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test ConsumeDroppedData_Inactive BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Inactive BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 20);
@@ -698,13 +699,13 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
 	}
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test ConsumeDroppedData_Inactive END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Inactive END" ;
 }
 */
 
 BOOST_AUTO_TEST_CASE(RunNumbers)
 {
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test RunNumbers BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test RunNumbers BEGIN" ;
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -756,7 +757,7 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	BOOST_REQUIRE_EQUAL(frags->size(), 1);
 	r.ReleaseBuffer();
 
-	TLOG_INFO("SharedMemoryEventManager_t") << "Test RunNumbers END" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Test RunNumbers END" ;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -4,6 +4,7 @@ sends_per_sender: 1000000
 buffer_count: 10
 fragment_size: 5120
 transfer_plugin_type: TCPSocket
+partition_number: 11
 
 hostmap: [
 {rank: 0 host: localhost portOffset: 5300 },
@@ -13,15 +14,3 @@ hostmap: [
 {rank: 4 host: localhost portOffset: 5340 },
 {rank: 5 host: localhost portOffset: 5350 }
 ]
-
-metrics: {
-    ganglia: {
-       metricPluginType: "ganglia"
-       level: 5
-       reporting_interval: 15.0
-     
-       configFile: "/home/eflumerf/Desktop/artdaq-mrb-base/gmond.conf"
-       group: "ARTDAQ"
-    }
-
-}

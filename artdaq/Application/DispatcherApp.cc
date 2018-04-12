@@ -1,13 +1,13 @@
+#define TRACE_NAME "DispatcherApp"
+
 #include "artdaq/Application/DispatcherApp.hh"
 #include "artdaq/Application/DispatcherCore.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include <iostream>
 
-artdaq::DispatcherApp::DispatcherApp(int rank, std::string name)
+artdaq::DispatcherApp::DispatcherApp()
 {
-	my_rank = rank;
-	app_name = name;
 }
 
 // *******************************************************************
@@ -146,7 +146,7 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 
 std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& info)
 {
-	TLOG_DEBUG(app_name) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"" ;
 
 	if (Dispatcher_ptr_)
 	{
@@ -171,7 +171,7 @@ std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& i
 
 std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 {
-	TLOG_DEBUG(app_name) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"" ;
 
 	if (Dispatcher_ptr_)
 	{

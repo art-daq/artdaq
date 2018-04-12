@@ -4,10 +4,8 @@
 
 #include <iostream>
 
-artdaq::DataLoggerApp::DataLoggerApp(int rank, std::string name)
+artdaq::DataLoggerApp::DataLoggerApp()
 {
-	my_rank = rank;
-	app_name = name;
 }
 
 // *******************************************************************

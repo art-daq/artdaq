@@ -63,6 +63,7 @@ public:
 	 *     See CommandableFragmentGenerator for configuration options.
 	 *     "generator" (Default: ""): The plugin name of the generator to load
 	 *     "rt_priority" (Default: 0): The unix priority to attempt to assign to the process
+	 *     "verbose" (Default: true): Whether to print transition messages
 	 *   "metrics": FHiCL table containing MetricManager configuration.
 	 *     See MetricManager for configuration options.
 	 * \endverbatim
@@ -180,6 +181,14 @@ private:
 	artdaq::MetricManager metricMan_;
 
 	void sendMetrics_();
+
+	bool verbose_; ///< Whether to log transition messages
+
+	/**
+	 * \brief Log a message, setting severity based on verbosity flag
+	 * \param text Message to log
+	 */
+	void logMessage_(std::string const& text);
 };
 
 #endif /* artdaq_Application_MPI2_BoardReaderCore_hh */

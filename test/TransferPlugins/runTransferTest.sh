@@ -1,21 +1,35 @@
 #!/bin/bash
+
+if [ $# -lt 2 ];then
+    echo "USAGE: $0 <fcl_file> <n_procs>"
+    exit 1
+fi
+
 fcl=$1
+nprocs=$2
 
 if ! [ -e $fcl ];then
     echo "File $fcl Not Found! Aborting..."
     exit 1
 fi
 
+if [ $nprocs -lt 2 ]; then
+    echo "Must use at least 2 processes!"
+	exit 2
+fi
+
 log=`basename $fcl|cut -f1 -d.`
 
-key=$(($RANDOM & 0xFFFF + 0xFEED0000))
+for ii in `seq $nprocs`;do
+  rank=$(($ii - 1))
+  transfer_driver $rank $fcl & PIDS[$ii]=$!
+done
 
-transfer_driver 0 $key $fcl & PID0=$!
-transfer_driver 1 $key $fcl & PID1=$!
-wait $PID0
-rc0=$?
-wait $PID1
-rc1=$?
+rc=0
+for jj in ${PIDS[@]}; do
+  wait $jj
+  rc=$(($rc + $?))
+done
 
-exit $(( $rc0 + $rc1 ))
+exit $rc
 

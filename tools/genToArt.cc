@@ -9,9 +9,10 @@
 // eventbuilder.
 ////////////////////////////////////////////////////////////////////////
 
+#define TRACE_NAME "genToArt"
+
 #include "art/Framework/Art/artapp.h"
 #include "canvas/Utilities/Exception.h"
-#include "artdaq/Application/MPI2/MPISentry.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
@@ -61,8 +62,8 @@ namespace
 		}
 		catch (bpo::error const& e)
 		{
-			std::cerr << "Exception from command line processing in " << argv[0]
-				<< ": " << e.what() << "\n";
+			TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
+				<< ": " << e.what();
 			return -1;
 		}
 		if (vm.count("help"))
@@ -72,11 +73,11 @@ namespace
 		}
 		if (!vm.count("config"))
 		{
-			std::cerr << "Exception from command line processing in " << argv[0]
+			TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
 				<< ": no configuration file given.\n"
 				<< "For usage and an options list, please do '"
 				<< argv[0] << " --help"
-				<< "'.\n";
+				<< "'.";
 			return 2;
 		}
 		return 0;
@@ -259,13 +260,13 @@ namespace
 			{
 				done |= !gen.getNext(frags);
 			}
-			TLOG_TRACE("genToArt") << "There are " << std::to_string(frags.size()) << " Fragments in event " << std::to_string(event_count) << "." << TLOG_ENDL;
+			TLOG(TLVL_TRACE) << "There are " << std::to_string(frags.size()) << " Fragments in event " << std::to_string(event_count) << "." ;
 			artdaq::Fragment::sequence_id_t current_sequence_id = -1;
 			for (auto& val : frags)
 			{
 				if (reset_sequenceID)
 				{
-					TLOG_DEBUG("genToArt") << "Setting fragment sequence id to " << std::to_string(event_count) << TLOG_ENDL;
+					TLOG(TLVL_DEBUG) << "Setting fragment sequence id to " << std::to_string(event_count) ;
 					val->setSequenceID(event_count);
 				}
 				if (current_sequence_id ==
@@ -287,13 +288,13 @@ namespace
 				auto sts = store.AddFragment(std::move(val), 1000000, tempFrag);
 				if (!sts)
 				{
-					TLOG_ERROR("genToArt") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+					TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
 					store.endOfData();
 					exit(1);
 				}
 			}
 			frags.clear();
-			TLOG_TRACE("genToArt") << "Event " << std::to_string(event_count) << " END" << TLOG_ENDL;
+			TLOG(TLVL_TRACE) << "Event " << std::to_string(event_count) << " END" ;
 		}
 		for (auto& gen : generators)
 		{
@@ -315,8 +316,6 @@ namespace
 int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("genToArt");
-	// Needed in case plugins use eg MPI timing for performance.
-	artdaq::MPISentry sentry(&argc, &argv);
 	// Command line handling.
 	bpo::variables_map vm;
 	auto result = process_cmd_line(argc, argv, vm);
@@ -328,7 +327,7 @@ int main(int argc, char* argv[]) try
 	fhicl::ParameterSet pset;
 	if (getenv("FHICL_FILE_PATH") == nullptr)
 	{
-		std::cerr
+		TLOG(TLVL_ERROR)
 			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
@@ -338,19 +337,18 @@ int main(int argc, char* argv[]) try
 }
 catch (std::string& x)
 {
-	std::cerr << "Exception (type string) caught in genToArt: " << x << '\n';
+	TLOG(TLVL_ERROR) << "Exception (type string) caught in genToArt: " << x << '\n';
 	return 1;
 }
 catch (char const* m)
 {
-	std::cerr << "Exception (type char const*) caught in genToArt: ";
+	TLOG(TLVL_ERROR) << "Exception (type char const*) caught in genToArt: ";
 	if (m)
 	{
-		std::cerr << m;
+		TLOG(TLVL_ERROR) << m;
 	}
 	else
 	{
-		std::cerr << "[the value was a null pointer, so no message is available]";
+		TLOG(TLVL_ERROR) << "[the value was a null pointer, so no message is available]";
 	}
-	std::cerr << '\n';
 }

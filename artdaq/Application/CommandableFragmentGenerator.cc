@@ -1,5 +1,5 @@
-#define TRACE_NAME "CommandableFragmentGenerator"
-#include "tracemf.h"
+#define TRACE_NAME (app_name + "_CommandableFragmentGenerator").c_str() // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/Application/CommandableFragmentGenerator.hh"
 
@@ -115,7 +115,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 
 	fragment_ids_ = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
 
-	TLOG_TRACE("CommandableFragmentGenerator") << "artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(ps)" << TLOG_ENDL;
+	TLOG(TLVL_TRACE) << "artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(ps)" ;
 	int fragment_id = ps.get<int>("fragment_id", -99);
 
 	if (fragment_id != -99)
@@ -153,7 +153,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	{
 		mode_ = RequestMode::Ignored;
 	}
-	TLOG_DEBUG("CommandableFragmentGenerator") << "Request mode is " << printMode_() << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Request mode is " << printMode_() ;
 
 	if (mode_ != RequestMode::Ignored)
 	{
@@ -175,9 +175,9 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 {
 	should_stop_ = true;
 	force_stop_ = true;
-	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining dataThread" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Joining dataThread" ;
 	if (dataThread_.joinable()) dataThread_.join();
-	TLOG_DEBUG("CommandableFragmentGenerator") << "Joining monitoringThread" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Joining monitoringThread" ;
 	if (monitoringThread_.joinable()) monitoringThread_.join();
 	requestReceiver_.reset(nullptr);
 }
@@ -191,14 +191,14 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 	if (!useMonitoringThread_ && monitoringInterval_ > 0)
 	{
-		TLOG_ARB(10, "CommandableFragmentGenerator") << "getNext: Checking whether to collect Monitoring Data" << TLOG_ENDL;
+		TLOG(10) << "getNext: Checking whether to collect Monitoring Data" ;
 		auto now = std::chrono::steady_clock::now();
 
 		if (TimeUtils::GetElapsedTimeMicroseconds(lastMonitoringCall_, now) >= static_cast<size_t>(monitoringInterval_))
 		{
-			TLOG_ARB(10, "CommandableFragmentGenerator") << "getNext: Collecting Monitoring Data" << TLOG_ENDL;
+			TLOG(10) << "getNext: Collecting Monitoring Data" ;
 			isHardwareOK_ = checkHWStatus_();
-			TLOG_ARB(10, "CommandableFragmentGenerator") << "getNext: isHardwareOK_ is now " << std::boolalpha << isHardwareOK_ << TLOG_ENDL;
+			TLOG(10) << "getNext: isHardwareOK_ is now " << std::boolalpha << isHardwareOK_ ;
 			lastMonitoringCall_ = now;
 		}
 	}
@@ -208,12 +208,13 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		std::lock_guard<std::mutex> lk(mutex_);
 		if (useDataThread_)
 		{
-			TLOG_TRACE("CommandableFragmentGenerator") << "getNext: Calling applyRequests" << TLOG_ENDL;
+			TLOG(TLVL_TRACE) << "getNext: Calling applyRequests" ;
 			result = applyRequests(output);
-			TLOG_TRACE("CommandableFragmentGenerator") << "getNext: Done with applyRequests" << TLOG_ENDL;
+			TLOG(TLVL_TRACE) << "getNext: Done with applyRequests result=" << std::boolalpha << result;
 
 			if (exception())
 			{
+				TLOG(TLVL_ERROR) << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
 				throw cet::exception("CommandableFragmentGenerator") << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
 			}
 		}
@@ -221,10 +222,10 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		{
 			if (!isHardwareOK_)
 			{
-				TLOG_ERROR("CommandableFragmentGenerator") << "Stopping CFG because the hardware reports bad status!" << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << "Stopping CFG because the hardware reports bad status!" ;
 				return false;
 			}
-			TLOG_TRACE("CommandableFragmentGenerator") << "getNext: Calling getNext_ " << std::to_string(ev_counter()) << TLOG_ENDL;
+			TLOG(TLVL_TRACE) << "getNext: Calling getNext_ " << std::to_string(ev_counter()) ;
 			try
 			{
 				result = getNext_(output);
@@ -233,14 +234,14 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			{
 				throw;
 			}
-			TLOG_TRACE("CommandableFragmentGenerator") << "getNext: Done with getNext_ " << std::to_string(ev_counter()) << TLOG_ENDL;
+			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ " << std::to_string(ev_counter()) ;
 		}
 	}
 	catch (const cet::exception& e)
 	{
 		latest_exception_report_ = "cet::exception caught in getNext(): ";
 		latest_exception_report_.append(e.what());
-		TLOG_ERROR("CommandableFragmentGenerator") << "getNext: cet::exception caught: " << e << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "getNext: cet::exception caught: " << e ;
 		set_exception(true);
 		return false;
 	}
@@ -248,7 +249,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	{
 		latest_exception_report_ = "boost::exception caught in getNext(): ";
 		latest_exception_report_.append(boost::diagnostic_information(e));
-		TLOG_ERROR("CommandableFragmentGenerator") << "getNext: boost::exception caught: " << boost::diagnostic_information(e) << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "getNext: boost::exception caught: " << boost::diagnostic_information(e) ;
 		set_exception(true);
 		return false;
 	}
@@ -256,21 +257,21 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	{
 		latest_exception_report_ = "std::exception caught in getNext(): ";
 		latest_exception_report_.append(e.what());
-		TLOG_ERROR("CommandableFragmentGenerator") << "getNext: std::exception caught: " << e.what() << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "getNext: std::exception caught: " << e.what() ;
 		set_exception(true);
 		return false;
 	}
 	catch (...)
 	{
 		latest_exception_report_ = "Unknown exception caught in getNext().";
-		TLOG_ERROR("CommandableFragmentGenerator") << "getNext: unknown exception caught" << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "getNext: unknown exception caught" ;
 		set_exception(true);
 		return false;
 	}
 
 	if (!result)
 	{
-		TLOG_DEBUG("getNext") << "stopped " << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "stopped " ;
 	}
 
 	return result;
@@ -278,7 +279,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 bool artdaq::CommandableFragmentGenerator::check_stop()
 {
-	TLOG_ARB(14, "CommandableFragmentGeneraotr") << "CFG::check_stop: should_stop=" << should_stop() << ", useDataThread_=" << useDataThread_ << ", exception status =" << int(exception()) << TLOG_ENDL;
+	TLOG(14) << "CFG::check_stop: should_stop=" << should_stop() << ", useDataThread_=" << useDataThread_ << ", exception status =" << int(exception()) ;
 
 	if (!should_stop()) return false;
 	if (!useDataThread_ || mode_ == RequestMode::Ignored) return true;
@@ -316,13 +317,15 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	timeout_ = timeout;
 	timestamp_ = timestamp;
 	ev_counter_.store(1);
+	missing_request_ = false;
 	should_stop_.store(false);
 	exception_.store(false);
 	run_number_ = run;
 	subrun_number_ = 1;
 	latest_exception_report_ = "none";
 	dataBuffer_.clear();
-	last_window_send_time_set_ = false;
+	last_window_send_time_set_ = false; 
+	windows_sent_ooo_.clear();
 
 	start();
 
@@ -334,21 +337,24 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 
 void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG_DEBUG("CommandableFragmentGenerator") << "Stop Command received." << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Stop Command received." ;
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
+	if (requestReceiver_ && requestReceiver_->isRunning()) requestReceiver_->stopRequestReceiverThread();
 
 	stopNoMutex();
 	should_stop_.store(true);
 	std::unique_lock<std::mutex> lk(mutex_);
 	stop();
+	TLOG(TLVL_DEBUG) << "Stop command complete.";
 }
 
 void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t timestamp)
 {
 	timeout_ = timeout;
 	timestamp_ = timestamp;
+	if (requestReceiver_->isRunning()) requestReceiver_->stopRequestReceiverThread();
 
 	pauseNoMutex();
 	should_stop_.store(true);
@@ -449,14 +455,14 @@ bool artdaq::CommandableFragmentGenerator::metaCommand(std::string const&, std::
 void artdaq::CommandableFragmentGenerator::startDataThread()
 {
 	if (dataThread_.joinable()) dataThread_.join();
-	TLOG_INFO("CommandableFragmentGenerator") << "Starting Data Receiver Thread" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Starting Data Receiver Thread" ;
 	dataThread_ = boost::thread(&CommandableFragmentGenerator::getDataLoop, this);
 }
 
 void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 {
 	if (monitoringThread_.joinable()) monitoringThread_.join();
-	TLOG_INFO("CommandableFragmentGenerator") << "Starting Hardware Monitoring Thread" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Starting Hardware Monitoring Thread" ;
 	monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
 }
 
@@ -484,12 +490,12 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 	{
 		if (!isHardwareOK_)
 		{
-			TLOG_DEBUG("CommandableFragmentGenerator") << "getDataLoop: isHardwareOK is " << isHardwareOK_ << ", aborting data thread" << TLOG_ENDL;
+			TLOG(TLVL_DEBUG) << "getDataLoop: isHardwareOK is " << isHardwareOK_ << ", aborting data thread" ;
 			data_thread_running_ = false;
 			return;
 		}
 
-		TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: calling getNext_" << TLOG_ENDL;
+		TLOG(13) << "getDataLoop: calling getNext_" ;
 
 		bool data = false;
 		auto startdata = std::chrono::steady_clock::now();
@@ -518,11 +524,11 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			usleep(sleep_on_no_data_us_);
 		}
 
-		TLOG_ARB(15, "CommandableFragmentGenerator") << "Waiting for data buffer ready" << TLOG_ENDL;
+		TLOG(15) << "Waiting for data buffer ready" ;
 		if (!waitForDataBufferReady()) return;
-		TLOG_ARB(15, "CommandableFragmentGenerator") << "Done waiting for data buffer ready" << TLOG_ENDL;
+		TLOG(15) << "Done waiting for data buffer ready" ;
 
-		TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: processing data" << TLOG_ENDL;
+		TLOG(13) << "getDataLoop: processing data" ;
 		if (data && !force_stop_)
 		{
 			std::unique_lock<std::mutex> lock(dataBufferMutex_);
@@ -558,8 +564,11 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		}
 		if (!data || force_stop_)
 		{
-			TLOG_INFO("CommandableFragmentGenerator") << "Data flow has stopped. Ending data collection thread" << TLOG_ENDL;
+			TLOG(TLVL_INFO) << "Data flow has stopped. Ending data collection thread" ;
 			data_thread_running_ = false;
+			if (requestReceiver_) requestReceiver_->ClearRequests();
+			dataBuffer_.clear();
+			newDataBuffer_.clear();
 			return;
 		}
 	}
@@ -574,7 +583,7 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 	{
 		if (should_stop())
 		{
-			TLOG_DEBUG("CommandableFragmentGenerator") << "Run ended while waiting for buffer to shrink!" << TLOG_ENDL;
+			TLOG(TLVL_DEBUG) << "Run ended while waiting for buffer to shrink!" ;
 			std::unique_lock<std::mutex> lock(dataBufferMutex_);
 			getDataBufferStats();
 			dataCondition_.notify_all();
@@ -585,16 +594,16 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 
 		if (first || (waittime != lastwaittime && waittime % 1000 == 0))
 		{
-			TLOG_WARNING("CommandableFragmentGenerator") << "Bad Omen: Data Buffer has exceeded its size limits. "
+			TLOG(TLVL_WARNING) << "Bad Omen: Data Buffer has exceeded its size limits. "
 				<< "(seq_id=" << ev_counter()
 				<< ", frags=" << dataBufferDepthFragments_ << "/" << maxDataBufferDepthFragments_
-				<< ", szB=" << dataBufferDepthBytes_ << "/" << maxDataBufferDepthBytes_ << ")" << TLOG_ENDL;
-			TLOG_TRACE("CommandableFragmentGenerator") << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues" << TLOG_ENDL;
+				<< ", szB=" << dataBufferDepthBytes_ << "/" << maxDataBufferDepthBytes_ << ")" ;
+			TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues" ;
 			first = false;
 		}
 		if (waittime % 5 && waittime != lastwaittime)
 		{
-			TLOG_ARB(13, "CommandableFragmentGenerator") << "getDataLoop: Data Retreival paused for " << std::to_string(waittime) << " ms waiting for data buffer to drain" << TLOG_ENDL;
+			TLOG(13) << "getDataLoop: Data Retreival paused for " << std::to_string(waittime) << " ms waiting for data buffer to drain" ;
 		}
 		lastwaittime = waittime;
 		usleep(1000);
@@ -612,7 +621,7 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats()
 	/// dataBufferMutex must be owned by the calling thread!
 	dataBufferDepthFragments_ = dataBuffer_.size();
 	size_t acc = 0;
-	TLOG_ARB(15, "CommandableFragmentGenerator") << "getDataBufferStats: Calculating buffer size" << TLOG_ENDL;
+	TLOG(15) << "getDataBufferStats: Calculating buffer size" ;
 	for (auto i = dataBuffer_.begin(); i != dataBuffer_.end(); ++i)
 	{
 		if (i->get() != nullptr)
@@ -624,12 +633,12 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats()
 
 	if (metricMan)
 	{
-		TLOG_ARB(15, "CommandableFragmentGenerator") << "getDataBufferStats: Sending Metrics" << TLOG_ENDL;
+		TLOG(15) << "getDataBufferStats: Sending Metrics" ;
 		metricMan->sendMetric("Buffer Depth Fragments", dataBufferDepthFragments_.load(), "fragments", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Buffer Depth Bytes", dataBufferDepthBytes_.load(), "bytes", 1, MetricMode::LastPoint);
 	}
-	TLOG_ARB(15, "CommandableFragmentGenerator") << "getDataBufferStats: frags=" << dataBufferDepthFragments_.load() << "/" << maxDataBufferDepthFragments_
-		<< ", sz=" << std::to_string(dataBufferDepthBytes_.load()) << "/" << std::to_string(maxDataBufferDepthBytes_) << TLOG_ENDL;
+	TLOG(15) << "getDataBufferStats: frags=" << dataBufferDepthFragments_.load() << "/" << maxDataBufferDepthFragments_
+		<< ", sz=" << std::to_string(dataBufferDepthBytes_.load()) << "/" << std::to_string(maxDataBufferDepthBytes_) ;
 }
 
 void artdaq::CommandableFragmentGenerator::checkDataBuffer()
@@ -648,7 +657,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer()
 			}
 			if (dataBuffer_.size() > 0)
 			{
-				TLOG_ARB(17, "CommandableFragmentGenerator") << "Determining if Fragments can be dropped from data buffer" << TLOG_ENDL;
+				TLOG(17) << "Determining if Fragments can be dropped from data buffer" ;
 				Fragment::timestamp_t last = dataBuffer_.back()->timestamp();
 				Fragment::timestamp_t min = last > staleTimeout_ ? last - staleTimeout_ : 0;
 				for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
@@ -682,17 +691,17 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 	{
 		if (should_stop() || monitoringInterval_ <= 0)
 		{
-			TLOG_DEBUG("CommandableFragmentGenerator") << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
-				<< " and monitoringInterval is " << monitoringInterval_ << ", returning" << TLOG_ENDL;
+			TLOG(TLVL_DEBUG) << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
+				<< " and monitoringInterval is " << monitoringInterval_ << ", returning" ;
 			return;
 		}
-		TLOG_ARB(12, "CommandableFragmentGenerator") << "getMonitoringDataLoop: Determining whether to call checkHWStatus_" << TLOG_ENDL;
+		TLOG(12) << "getMonitoringDataLoop: Determining whether to call checkHWStatus_" ;
 
 		auto now = std::chrono::steady_clock::now();
 		if (TimeUtils::GetElapsedTimeMicroseconds(lastMonitoringCall_, now) >= static_cast<size_t>(monitoringInterval_))
 		{
 			isHardwareOK_ = checkHWStatus_();
-			TLOG_ARB(12, "CommandableFragmentGenerator") << "getMonitoringDataLoop: isHardwareOK_ is now " << std::boolalpha << isHardwareOK_ << TLOG_ENDL;
+			TLOG(12) << "getMonitoringDataLoop: isHardwareOK_ is now " << std::boolalpha << isHardwareOK_ ;
 			lastMonitoringCall_ = now;
 		}
 		usleep(monitoringInterval_ / 10);
@@ -702,7 +711,7 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 void artdaq::CommandableFragmentGenerator::applyRequestsIgnoredMode(artdaq::FragmentPtrs& frags)
 {
 	// We just copy everything that's here into the output.
-	TLOG_ARB(9, "CommandableFragmentGenerator") << "Mode is Ignored; Copying data to output" << TLOG_ENDL;
+	TLOG(9) << "Mode is Ignored; Copying data to output" ;
 	std::move(dataBuffer_.begin(), dataBuffer_.end(), std::inserter(frags, frags.end()));
 	dataBuffer_.clear();
 }
@@ -723,7 +732,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 
 	if (dataBuffer_.size() > 0)
 	{
-		TLOG_ARB(9, "CommandableFragmentGenerator") << "Mode is Single; Sending copy of last event" << TLOG_ENDL;
+		TLOG(9) << "Mode is Single; Sending copy of last event" ;
 		for (auto& fragptr : dataBuffer_)
 		{
 			// Return the latest data point
@@ -758,7 +767,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 	// If no requests remain after sendEmptyFragments, return
 	if (requests.size() == 0 || !requests.count(ev_counter())) return;
 
-	TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered Fragments" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Buffered Fragments" ;
 	frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
 	frags.back()->setTimestamp(requests[ev_counter()]);
 	ContainerFragmentLoader cfl(*frags.back());
@@ -768,7 +777,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 	// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
 	for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
 	{
-		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" << TLOG_ENDL;
+		TLOG(9) << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" ;
 		cfl.addFragment(*it);
 		it = dataBuffer_.erase(it);
 	}
@@ -794,9 +803,9 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	{
 		if (!now_have_desired_request &&  TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) > missing_request_window_timeout_us_)
 		{
-			TLOG_ERROR("CommandableFragmentGenerator") << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
+			TLOG(TLVL_ERROR) << "Data-taking has paused for " << TimeUtils::GetElapsedTimeMicroseconds(missing_request_time_) << " us "
 				<< "(> " << std::to_string(missing_request_window_timeout_us_) << " us) while waiting for missing data request messages."
-				<< " Sending Empty Fragments for missing requests!" << TLOG_ENDL;
+				<< " Sending Empty Fragments for missing requests!" ;
 			sendEmptyFragments(frags, requests);
 
 			missing_request_ = false;
@@ -811,6 +820,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	TLOG(10) << "applyRequestsWindowMode: Starting request processing";
 	for (auto req = requests.begin(); req != requests.end();)
 	{
+	  TLOG(10, "CommandableFragmentGenerator") << "applyRequestsWindowMode: processing request with sequence ID " << \
+	               req->first << ", timestamp " << req->second;
+
+
 		while (req->first < ev_counter() && requests.size() > 0)
 		{
 			TLOG(10) << "applyRequestsWindowMode: Clearing passed request for sequence ID " << req->first;
@@ -827,29 +840,29 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			}
 		}
 		auto ts = req->second;
-		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Checking that data exists for request window " << std::to_string(req->first) << TLOG_ENDL;
+		TLOG(9) << "ApplyRequests: Checking that data exists for request window " << std::to_string(req->first) ;
 		Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 		Fragment::timestamp_t max = min + windowWidth_;
-		TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: min is " << std::to_string(min) << ", max is " << std::to_string(max)
-			<< " and last point in buffer is " << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (sz=" << std::to_string(dataBuffer_.size()) << ")" << TLOG_ENDL;
+		TLOG(9) << "ApplyRequests: min is " << std::to_string(min) << ", max is " << std::to_string(max)
+			<< " and last point in buffer is " << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (sz=" << std::to_string(dataBuffer_.size()) << ")" ;
 		bool windowClosed = dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max;
 		bool windowTimeout = TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) > window_close_timeout_us_;
 		if (windowTimeout)
 		{
-			TLOG_WARNING("CommandableFragmentGenerator") << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max)
+			TLOG(TLVL_WARNING) << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max)
 				<< ", buffer=" << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0))
 				<< " (if no buffer in memory, this is shown as a 0)). Time waiting: "
 				<< TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) << " us "
-				<< "(> " << std::to_string(window_close_timeout_us_) << " us)." << TLOG_ENDL;
+				<< "(> " << std::to_string(window_close_timeout_us_) << " us)." ;
 
 			if (missing_request_) {
-				TLOG_ERROR("CommandableFragmentGenerator") << "A Window timeout has occurred while there are pending requests. Sending empties." << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << "A Window timeout has occurred while there are pending requests. Sending empties." ;
 				sendEmptyFragments(frags, requests);
 			}
 		}
 		if (windowClosed || !data_thread_running_ || windowTimeout)
 		{
-			TLOG_DEBUG("CommandableFragmentGenerator") << "Creating ContainerFragment for Buffered or Window-requested Fragments" << TLOG_ENDL;
+			TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Buffered or Window-requested Fragments" ;
 			frags.emplace_back(new artdaq::Fragment(req->first, fragment_id()));
 			frags.back()->setTimestamp(ts);
 			ContainerFragmentLoader cfl(*frags.back());
@@ -857,7 +870,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			if (!windowClosed) cfl.set_missing_data(true);
 			if (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min)
 			{
-				TLOG_DEBUG("CommandableFragmentGenerator") << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer" << TLOG_ENDL;
+				TLOG(TLVL_DEBUG) << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer" ;
 				cfl.set_missing_data(true);
 			}
 
@@ -872,7 +885,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 					continue;
 				}
 
-				TLOG_ARB(9, "CommandableFragmentGenerator") << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" << TLOG_ENDL;
+				TLOG(9) << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" ;
 				cfl.addFragment(*it);
 
 				if (uniqueWindows_)
@@ -889,7 +902,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 				ev_counter_inc(1, true);
 				while (windows_sent_ooo_.count(ev_counter()))
 				{
-					TLOG_ARB(9, "CommandableFragmentGenerator") << "Data-taking has caught up to out-of-order window request " << ev_counter() << ", removing from list" << TLOG_ENDL;
+					TLOG(9) << "Data-taking has caught up to out-of-order window request " << ev_counter() << ", removing from list" ;
 					windows_sent_ooo_.erase(windows_sent_ooo_.begin(), windows_sent_ooo_.find(ev_counter()));
 					ev_counter_inc(1, true);
 				}
@@ -969,13 +982,13 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	}
 
 	if (frags.size() > 0)
-		TLOG_ARB(9, "CommandableFragmentGenerator") << "Finished Processing Event " << std::to_string(ev_counter() + 1) << " for fragment_id " << fragment_id() << "." << TLOG_ENDL;
+		TLOG(9) << "Finished Processing Event " << std::to_string(ev_counter() + 1) << " for fragment_id " << fragment_id() << "." ;
 	return true;
 }
 
 bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtrs& frags, size_t seqId, std::string desc)
 {
-	TLOG_WARNING("CommandableFragmentGenerator") << desc << " sequence ID " << seqId << ", sending empty fragment" << TLOG_ENDL;
+	TLOG(TLVL_WARNING) << desc << " sequence ID " << seqId << ", sending empty fragment" ;
 	for (auto fid : fragment_ids_)
 	{
 		auto frag = new Fragment();
@@ -992,7 +1005,7 @@ void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPt
 	if (requests.size() == 0 && windows_sent_ooo_.size() == 0) return;
 
 	if (requests.size() > 0) {
-		TLOG_ARB(19, "CommandableFragmentGenerator") << "Sending Empty Fragments for Sequence IDs from " << ev_counter() << " up to but not including " << requests.begin()->first << TLOG_ENDL;
+		TLOG(19) << "Sending Empty Fragments for Sequence IDs from " << ev_counter() << " up to but not including " << requests.begin()->first ;
 		while (requests.begin()->first > ev_counter())
 		{
 			sendEmptyFragment(frags, ev_counter(), "Missed request for");
@@ -1001,7 +1014,7 @@ void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPt
 	}
 	else if (windows_sent_ooo_.size() > 0)
 	{
-		TLOG_ARB(19, "CommandableFragmentGenerator") << "Sending Empty Fragments for Sequence IDs from " << ev_counter() << " up to but not including " << *windows_sent_ooo_.begin() << TLOG_ENDL;
+		TLOG(19) << "Sending Empty Fragments for Sequence IDs from " << ev_counter() << " up to but not including " << *windows_sent_ooo_.begin() ;
 		while (*windows_sent_ooo_.begin() > ev_counter())
 		{
 			sendEmptyFragment(frags, ev_counter(), "Missed request for");
@@ -1010,7 +1023,7 @@ void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPt
 	}
 	while (windows_sent_ooo_.count(ev_counter()))
 	{
-		TLOG_ARB(19, "CommandableFragmentGenerator") << "Data-taking has caught up to out-of-order window request " << ev_counter() << ", removing from list" << TLOG_ENDL;
+		TLOG(19) << "Data-taking has caught up to out-of-order window request " << ev_counter() << ", removing from list" ;
 		windows_sent_ooo_.erase(windows_sent_ooo_.begin(), windows_sent_ooo_.find(ev_counter()));
 		ev_counter_inc(1, true);
 	}

@@ -1,9 +1,10 @@
+#define TRACE_NAME "reconfigure_t"
+
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq/Application/MPI2/MPISentry.hh"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 #include "artdaq/Application/LoadParameterSet.hh"
@@ -24,7 +25,6 @@ int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("reconfigure_t");
 	auto pset = LoadParameterSet(argc, argv);
-	artdaq::MPISentry mpiSentry(&argc, &argv);
 	int rc = -1;
 	try
 	{
@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
 				auto sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
 				if (!sts)
 				{
-					TLOG_ERROR("reconfigure_t") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+					TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
 					exit(1);
 				}
 			}
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 					auto sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
 					if (!sts)
 					{
-						TLOG_ERROR("reconfigure_t") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+						TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
 						exit(1);
 					}
 				}

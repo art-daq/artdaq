@@ -5,6 +5,8 @@
 //  $RCSfile: TCPConnect.cpp,v $
 //  rev="$Revision: 1.4 $$Date: 2010/06/24 03:49:45 $";
 
+#define TRACE_NAME "TCPConnect"
+
 #include <stdio.h>		// printf
 #include <sys/types.h>		// socket, bind, listen, accept
 #include <sys/socket.h>		// socket, bind, listen, accept
@@ -28,7 +30,7 @@ int ResolveHost(char const* host_in, in_addr& addr)
 {
 	std::string host;
 	struct hostent* hostent_sp;
-std::cmatch mm;
+	std::cmatch mm;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
 	//        at the beginning and end respectively.
 	if (regex_match(host_in, mm, std::regex("([^:]+):(\\d+)")))
@@ -47,7 +49,7 @@ std::cmatch mm;
 	{
 		host = std::string("127.0.0.1");
 	}
-	TLOG_INFO("TCPConnect") << "Resolving host " << host << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Resolving host " << host;
 
 	bzero((char *)&addr, sizeof(addr));
 
@@ -95,7 +97,7 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 		host = std::string("127.0.0.1");
 		port = dflt_port;
 	}
-	TLOG_INFO("TCPConnect") << "Resolving host " << host << ", on port " << std::to_string(port) << TLOG_ENDL;
+	TLOG(TLVL_INFO) << "Resolving host " << host << ", on port " << std::to_string(port);
 
 	if (host == "localhost") host = "127.0.0.1";
 
@@ -120,9 +122,9 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 // return connection fd.
 // 
 int TCPConnect(char const* host_in
-			   , int dflt_port
-			   , long flags
-			   , int sndbufsiz)
+	, int dflt_port
+	, long flags
+	, int sndbufsiz)
 {
 	int s_fd, sts;
 	struct sockaddr_in sin;
@@ -137,7 +139,7 @@ int TCPConnect(char const* host_in
 	}
 
 	sts = ResolveHost(host_in, dflt_port, sin);
-	if(sts == -1)
+	if (sts == -1)
 	{
 		close(s_fd);
 		return -1;
@@ -154,7 +156,7 @@ int TCPConnect(char const* host_in
 	if (flags)
 	{
 		sts = fcntl(s_fd, F_SETFL, flags);
-		TRACE( 4, "TCPConnect fcntl(fd=%d,flags=0x%lx)=%d",s_fd,flags,sts );
+		TLOG(TLVL_TRACE) << "TCPConnect fcntl(fd=" << s_fd << ",flags=0x" << std::hex << flags << std::dec << ") =" << sts;
 	}
 
 	if (sndbufsiz > 0)
@@ -163,18 +165,17 @@ int TCPConnect(char const* host_in
 		socklen_t lenlen = sizeof(len);
 		len = 0;
 		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
-		TRACE(3, "TCPConnect SNDBUF initial: %d sts/errno=%d/%d lenlen=%d", len, sts, errno, lenlen);
+		TLOG(TLVL_DEBUG) << "TCPConnect SNDBUF initial: "<< len <<" sts/errno="<< sts <<"/"<< errno <<" lenlen="<< lenlen ;
 		len = sndbufsiz;
 		sts = setsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, lenlen);
 		if (sts == -1)
-		TRACE(0, "Error with setsockopt SNDBUF %d", errno);
+			TLOG(TLVL_ERROR) << "Error with setsockopt SNDBUF "<< errno;
 		len = 0;
 		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
 		if (len < (sndbufsiz * 2))
-		TRACE(1, "SNDBUF %d not expected (%d) sts/errno=%d/%d"
-			, len, sndbufsiz, sts, errno);
+			TLOG(TLVL_WARNING) << "SNDBUF "<< len <<" not expected ("<< sndbufsiz <<" sts/errno="<< sts <<"/"<< errno ;
 		else
-		TRACE(3, "SNDBUF %d sts/errno=%d/%d", len, sts, errno);
+			TLOG(TLVL_DEBUG) << "SNDBUF "<< len <<" sts/errno="<< sts <<"/"<< errno ;
 	}
 	return (s_fd);
 }

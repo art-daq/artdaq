@@ -35,12 +35,12 @@
 #include <TBufferFile.h>
 
 
-#define TRACE_NAME "InputUtilities"
 #define TLVL_READOBJANY 32
 #define TLVL_PROCESSHISTORYID 33
 #define TLVL_PROCESSMAP 34
 
-#include "tracemf.h"			// TLOG_ARB
+#include "tracemf.h"	// TLOG - note: no #define TRACE_NAME in .hh files -
+                    	//  could conflict with TRACE_NAME in .cc files.
 #include <memory>
 #include <string>
 #include <iostream>
@@ -79,8 +79,8 @@ namespace art
 		// a dynamic_cast later if you need to retrieve it."
 
 		T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr));
-		TLOG(TLVL_READOBJANY) << "ReadObjectAny: Got object of class " << className <<
-			", located at " << static_cast<void*>(ptr) << " caller:" << callerName << TLOG_ENDL;
+		TLOG(TLVL_READOBJANY,"InputUtilities") << "ReadObjectAny: Got object of class " << className <<
+			", located at " << static_cast<void*>(ptr) << " caller:" << callerName ;
 
 		return ptr;
 	}
@@ -99,11 +99,11 @@ namespace art
 		{
 			//std::ostringstream OS;
 			//object->processHistoryID().print(OS);
-			TLOG(TLVL_PROCESSHISTORYID) << label << ": " << "ProcessHistoryID: " << object->processHistoryID() << TLOG_ENDL;
+			TLOG(TLVL_PROCESSHISTORYID,"InputUtilities") << label << ": " << "ProcessHistoryID: " << object->processHistoryID() ;
 		}
 		else
 		{
-			TLOG(TLVL_PROCESSHISTORYID) << label << ": " << "ProcessHistoryID: 'INVALID'";
+			TLOG(TLVL_PROCESSHISTORYID,"InputUtilities") << label << ": " << "ProcessHistoryID: 'INVALID'";
 		}
 	}
 
@@ -116,20 +116,20 @@ namespace art
 	template <typename T>
 	void printProcessMap(const T& mappable, const std::string description)
 	{
-		TLOG(TLVL_PROCESSMAP) << "Got " << description;
+		TLOG(TLVL_PROCESSMAP,"InputUtilities") << "Got " << description;
 
-		TLOG(TLVL_PROCESSMAP) << "Dumping " << description << "...";
-		TLOG(TLVL_PROCESSMAP) << "Size: " << (unsigned long)mappable.size();
+		TLOG(TLVL_PROCESSMAP,"InputUtilities") << "Dumping " << description << "...";
+		TLOG(TLVL_PROCESSMAP,"InputUtilities") << "Size: " << (unsigned long)mappable.size();
 		for (auto I = mappable.begin(), E = mappable.end(); I != E; ++I)
 		{
 			std::ostringstream OS;
 			I->first.print(OS);
-			TLOG(TLVL_PROCESSMAP) << description << ": id: '" << OS.str() << "'";
+			TLOG(TLVL_PROCESSMAP,"InputUtilities") << description << ": id: '" << OS.str() << "'";
 			OS.str("");
-			TLOG(TLVL_PROCESSMAP) << description << ": data.size(): " << I->second.data().size();
+			TLOG(TLVL_PROCESSMAP,"InputUtilities") << description << ": data.size(): " << I->second.data().size();
 			I->second.data().back().id().print(OS);
 
-			TLOG(TLVL_PROCESSMAP) << description << ": data.back().id(): '" << OS.str() << "'";
+			TLOG(TLVL_PROCESSMAP,"InputUtilities") << description << ": data.back().id(): '" << OS.str() << "'";
 		}
 	}
 }

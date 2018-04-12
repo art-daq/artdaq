@@ -99,6 +99,7 @@ private:
 	std::map<int, boost::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::set<int> enabled_sources_;
+	std::set<int> running_sources_;
 
 	std::map<int, FragmentStoreElement> fragment_store_;
 
@@ -114,6 +115,7 @@ private:
 	size_t suppression_threshold_;
 
 	size_t receive_timeout_;
+	mutable int last_source_;
 };
 
 /**
@@ -178,7 +180,7 @@ public:
 		auto current_fragment = std::move(frags_.front());
 		frags_.pop_front();
 		empty_ = frags_.size() == 0;
-		return std::move(current_fragment);
+		return current_fragment;
 	}
 
 	/**
@@ -191,6 +193,12 @@ public:
 	 * \return The value of the End-Of-Data marker. Returns -1 (0xFFFFFFFFFFFFFFFF) if no EndOfData Fragments received
 	 */
 	size_t GetEndOfData() const { return eod_marker_; }
+
+	/**
+	 * \brief Get the number of Fragments stored in this FragmentStoreElement
+	 * \return The number of Fragments stored in this FragmentStoreElement
+	 */
+	size_t size() const { return frags_.size(); }
 
 private:
 	mutable std::mutex mutex_;

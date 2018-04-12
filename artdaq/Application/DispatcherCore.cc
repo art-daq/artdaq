@@ -11,8 +11,8 @@
 
 #include "fhiclcpp/ParameterSet.h"
 
-#define TRACE_NAME "DispatcherCore"
-#include "tracemf.h"
+#define TRACE_NAME (app_name + "_DispatcherCore").c_str() // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
@@ -28,12 +28,12 @@ artdaq::DispatcherCore::DispatcherCore()
 
 artdaq::DispatcherCore::~DispatcherCore()
 {
-	TLOG_DEBUG(app_name) << "Destructor" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Destructor" ;
 }
 
 bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(app_name) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." ;
 
 	pset_ = pset;
 	pset_.erase("outputs");
@@ -48,9 +48,9 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(app_name)
+		TLOG(TLVL_ERROR)
 			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
+			<< "ParameterSet: \"" + pset.to_string() + "\"." ;
 		return false;
 	}
 	fhicl::ParameterSet agg_pset;
@@ -60,9 +60,9 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(app_name)
+		TLOG(TLVL_ERROR)
 			<< "Unable to find the Dispatcher parameters in the DAQ "
-			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
+			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." ;
 		return false;
 	}
 
@@ -70,10 +70,12 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	if (broadcast_mode_ && !agg_pset.has_key("broadcast_mode"))
 	{
 		agg_pset.put<bool>("broadcast_mode", true);
-		agg_pset.put<int>("art_analyzer_count", 0);
 	}
 
-	// initialize the MetricManager and the names of our metrics
+    agg_pset.erase("art_analyzer_count");
+	agg_pset.put<int>("art_analyzer_count", 0);
+	
+    // initialize the MetricManager and the names of our metrics
 	fhicl::ParameterSet metric_pset;
 
 	try
@@ -87,14 +89,14 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 
 std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(app_name) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"" ;
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	
 	try
 	{
-		TLOG_DEBUG(app_name) << "Getting unique_label from input ParameterSet" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "Getting unique_label from input ParameterSet" ;
 		auto label = pset.get<std::string>("unique_label");
-		TLOG_DEBUG(app_name) << "Unique label is " << label << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "Unique label is " << label ;
 		if (registered_monitors_.count(label))
 		{
 			throw cet::exception("DispatcherCore") << "Unique label already exists!";
@@ -105,18 +107,18 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		{
 			if (broadcast_mode_) {
 				fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
-				TLOG_DEBUG(app_name) << "Starting art process with received fhicl" << TLOG_ENDL;
+				TLOG(TLVL_DEBUG) << "Starting art process with received fhicl" ;
 				registered_monitor_pids_[label] = event_store_ptr_->StartArtProcess(ps);
 			}
 			else
 			{
-				TLOG_DEBUG(app_name) << "Generating new fhicl and reconfiguring art" << TLOG_ENDL;
+				TLOG(TLVL_DEBUG) << "Generating new fhicl and reconfiguring art" ;
 				event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
 			}
 		}
 		else
 		{
-			TLOG_ERROR(app_name) << "Unable to add monitor as there is no SharedMemoryEventManager instance!" << TLOG_ENDL;
+			TLOG(TLVL_ERROR) << "Unable to add monitor as there is no SharedMemoryEventManager instance!" ;
 		}
 	}
 	catch (const cet::exception& e)
@@ -124,7 +126,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
 		errmsg << "Exception: " << e.what();
-		TLOG_ERROR(app_name) << errmsg.str() << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << errmsg.str() ;
 		return errmsg.str();
 	}
 	catch (const boost::exception& e)
@@ -132,7 +134,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
 		errmsg << "Exception: " << boost::diagnostic_information(e);
-		TLOG_ERROR(app_name) << errmsg.str() << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << errmsg.str() ;
 		return errmsg.str();
 	}
 	catch (const std::exception& e)
@@ -140,14 +142,14 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered" << std::endl;
 		errmsg << "Exception: " << e.what();
-		TLOG_ERROR(app_name) << errmsg.str() << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << errmsg.str() ;
 		return errmsg.str();
 	}
 	catch (...)
 	{
 		std::stringstream errmsg;
 		errmsg << "Unable to create a Transfer plugin with the FHiCL code \"" << pset.to_string() << "\", a new monitor has not been registered";
-		TLOG_ERROR(app_name) << errmsg.str() << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << errmsg.str() ;
 		return errmsg.str();
 	}
 
@@ -156,7 +158,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 
 std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 {
-	TLOG_DEBUG(app_name) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"" ;
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 
 	try
@@ -166,7 +168,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 			std::stringstream errmsg;
 			errmsg << "Warning in DispatcherCore::unregister_monitor: unable to find requested transfer plugin with "
 				<< "label \"" << label << "\"";
-			TLOG_WARNING(app_name) << errmsg.str() << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << errmsg.str() ;
 			return errmsg.str();
 		}
 
@@ -204,7 +206,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	fhicl::ParameterSet generated_physics_producers;
 	fhicl::ParameterSet generated_physics_filters;
 
-	TLOG_DEBUG(app_name) << "merge_parameter_sets_: Generating fhicl for monitor " << label << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "merge_parameter_sets_: Generating fhicl for monitor " << label ;
 
 	try
 	{
@@ -327,10 +329,10 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	catch (cet::exception& e)
 	{
 		// Error in parsing input fhicl
-		TLOG_ERROR(app_name) << "merge_parameter_sets_: Error processing input fhicl: " << e.what() << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "merge_parameter_sets_: Error processing input fhicl: " << e.what() ;
 	}
 
-	TLOG_DEBUG(app_name) << "merge_parameter_sets_: Building final ParameterSet" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "merge_parameter_sets_: Building final ParameterSet" ;
 	generated_pset.put("outputs", generated_outputs);
 
 	generated_physics.put("analyzers", generated_physics_analyzers);
@@ -344,7 +346,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 
 fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 {
-	TLOG_DEBUG(app_name) << "generate_filter_fhicl_ BEGIN" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "generate_filter_fhicl_ BEGIN" ;
 	fhicl::ParameterSet generated_pset = pset_;
 	
 	for (auto& monitor : registered_monitors_)
@@ -355,6 +357,6 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 	}
 
 
-	TLOG_DEBUG(app_name) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string() << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string() ;
 	return generated_pset;
 }

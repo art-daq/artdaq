@@ -1,3 +1,5 @@
+#define TRACE_NAME "AutodetectTransfer"
+
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/TransferPlugins/TCPSocketTransfer.hh"
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
@@ -32,7 +34,7 @@ namespace artdaq
 		 * \return Rank of sender
 		 */
 		int receiveFragment(artdaq::Fragment& fragment,
-		                            size_t receiveTimeout) override
+			size_t receiveTimeout) override
 		{
 			return theTransfer_->receiveFragment(fragment, receiveTimeout);
 		}
@@ -65,8 +67,7 @@ namespace artdaq
 		 * \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
 		 * \return A TransferInterface::CopyStatus result variable
 		 */
-		CopyStatus copyFragment(artdaq::Fragment& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override
+		CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec) override
 		{
 			return theTransfer_->copyFragment(fragment, send_timeout_usec);
 		}
@@ -77,10 +78,9 @@ namespace artdaq
 		* \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
 		* \return A TransferInterface::CopyStatus result variable
 		*/
-		CopyStatus moveFragment(artdaq::Fragment&& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override
+		CopyStatus moveFragment(artdaq::Fragment&& fragment) override
 		{
-			return theTransfer_->moveFragment(std::move(fragment), send_timeout_usec);
+			return theTransfer_->moveFragment(std::move(fragment));
 		}
 
 	private:
@@ -91,7 +91,7 @@ namespace artdaq
 artdaq::AutodetectTransfer::AutodetectTransfer(const fhicl::ParameterSet& pset, Role role)
 	: TransferInterface(pset, role)
 {
-	TLOG_TRACE("AutodetectTransfer") << uniqueLabel() << " Begin AutodetectTransfer constructor" << TLOG_ENDL;
+	TLOG(TLVL_INFO) << GetTraceName() << ": Begin AutodetectTransfer constructor" ;
 	std::string srcHost, destHost;
 	auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 	for (auto& ps : hosts)
@@ -106,15 +106,15 @@ artdaq::AutodetectTransfer::AutodetectTransfer(const fhicl::ParameterSet& pset, 
 			destHost = ps.get<std::string>("host", "localhost");
 		}
 	}
-	TLOG_TRACE("AutodetectTransfer") << uniqueLabel() << " ADT: srcHost=" << srcHost << ", destHost=" << destHost << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": srcHost=" << srcHost << ", destHost=" << destHost ;
 	if (srcHost == destHost)
 	{
-		TLOG_TRACE("AutodetectTransfer") << uniqueLabel() << " ADT: Constructing ShmemTransfer" << TLOG_ENDL;
+		TLOG(TLVL_INFO) << GetTraceName() << ": Constructing ShmemTransfer" ;
 		theTransfer_.reset(new ShmemTransfer(pset, role));
 	}
 	else
 	{
-		TLOG_TRACE("AutodetectTransfer") << uniqueLabel() << " ADT: Constructing TCPSocketTransfer" << TLOG_ENDL;
+		TLOG(TLVL_INFO) << GetTraceName() << ": Constructing TCPSocketTransfer" ;
 		theTransfer_.reset(new TCPSocketTransfer(pset, role));
 	}
 }

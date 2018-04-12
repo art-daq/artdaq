@@ -131,49 +131,49 @@ RootNetOutput(fhicl::ParameterSet const& ps)
 	: OutputModule(ps)
 	, initMsgSent_(false)
 {
-	TLOG_DEBUG("RootNetOutput") << "Begin: RootNetOutput::RootNetOutput(ParameterSet const& ps)" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Begin: RootNetOutput::RootNetOutput(ParameterSet const& ps)" ;
 	ServiceHandle<NetMonTransportService> transport;
 	transport->connect();
-	TLOG_DEBUG("RootNetOutput") << "End:   RootNetOutput::RootNetOutput(ParameterSet const& ps)" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::RootNetOutput(ParameterSet const& ps)" ;
 }
 
 art::RootNetOutput::
 ~RootNetOutput()
 {
-	TLOG_DEBUG("RootNetOutput") << "Begin: RootNetOutput::~RootNetOutput()" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Begin: RootNetOutput::~RootNetOutput()" ;
 	ServiceHandle<NetMonTransportService> transport;
 	transport->disconnect();
-	TLOG_DEBUG("RootNetOutput") << "End:   RootNetOutput::~RootNetOutput()" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::~RootNetOutput()" ;
 }
 
 void
 art::RootNetOutput::
 openFile(FileBlock const&)
 {
-	TLOG_ARB(TLVL_OPENFILE, "RootNetOutput") << "Begin/End: RootNetOutput::openFile(const FileBlock&)" << TLOG_ENDL;
+	TLOG(TLVL_OPENFILE) << "Begin/End: RootNetOutput::openFile(const FileBlock&)" ;
 }
 
 void
 art::RootNetOutput::
 closeFile()
 {
-	TLOG_ARB(TLVL_CLOSEFILE, "RootNetOutput") << "Begin/End: RootNetOutput::closeFile()" << TLOG_ENDL;
+	TLOG(TLVL_CLOSEFILE) << "Begin/End: RootNetOutput::closeFile()" ;
 }
 
 void
 art::RootNetOutput::
 respondToCloseInputFile(FileBlock const&)
 {
-	TLOG_ARB(TLVL_RESPONDTOCLOSEINPUTFILE, "RootNetOutput") << "Begin/End: RootNetOutput::"
-		"respondToCloseOutputFiles(FileBlock const&)" << TLOG_ENDL;
+	TLOG(TLVL_RESPONDTOCLOSEINPUTFILE) << "Begin/End: RootNetOutput::"
+		"respondToCloseOutputFiles(FileBlock const&)" ;
 }
 
 void
 art::RootNetOutput::
 respondToCloseOutputFiles(FileBlock const&)
 {
-	TLOG_ARB(TLVL_RESPONDTOCLOSEOUTPUTFILE, "RootNetOutput") << "Begin/End: RootNetOutput::"
-		"respondToCloseOutputFiles(FileBlock const&)" << TLOG_ENDL;
+	TLOG(TLVL_RESPONDTOCLOSEOUTPUTFILE) << "Begin/End: RootNetOutput::"
+		"respondToCloseOutputFiles(FileBlock const&)" ;
 }
 
 static
@@ -190,9 +190,9 @@ void
 art::RootNetOutput::
 endJob()
 {
-	TLOG_ARB(TLVL_ENDJOB, "RootNetOutput") << "Begin: RootNetOutput::endJob()" << TLOG_ENDL;
+	TLOG(TLVL_ENDJOB) << "Begin: RootNetOutput::endJob()" ;
 	send_shutdown_message();
-	TLOG_ARB(TLVL_ENDJOB, "RootNetOutput") << "End:   RootNetOutput::endJob()" << TLOG_ENDL;
+	TLOG(TLVL_ENDJOB) << "End:   RootNetOutput::endJob()" ;
 }
 
 //#pragma GCC push_options
@@ -201,7 +201,7 @@ static
 void
 send_init_message()
 {
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "Begin: RootNetOutput static send_init_message()" << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "Begin: RootNetOutput static send_init_message()" ;
 	//
 	//  Get the classes we will need.
 	//
@@ -243,7 +243,7 @@ send_init_message()
 			"RootNetOutput static send_init_message(): "
 			"Could not get class for ParentageMap.";
 	}
-	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << (void*)parentage_map_class << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << (void*)parentage_map_class ;
 
 	//
 	//  Construct and send the init message.
@@ -253,17 +253,17 @@ send_init_message()
 	//
 	//  Stream the message type code.
 	//
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Streaming message type code ..." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Streaming message type code ..." ;
 	msg.WriteULong(1);
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Finished streaming message type code." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Finished streaming message type code." ;
 
 	//
 	//  Stream the ParameterSetRegistry.
 	//
 	unsigned long ps_cnt = fhicl::ParameterSetRegistry::size();
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): parameter set count: " + std::to_string(ps_cnt) << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): parameter set count: " + std::to_string(ps_cnt) ;
 	msg.WriteULong(ps_cnt);
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Streaming parameter sets ..." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Streaming parameter sets ..." ;
 	for (
 #            if ART_HEX_VERSION >= 0x20703
 		auto I = std::begin(fhicl::ParameterSetRegistry::get()),
@@ -278,16 +278,16 @@ send_init_message()
 		//msg.WriteObjectAny(&pset_str, string_class);
 		msg.WriteStdString(pset_str);
 	}
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Finished streaming parameter sets." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Finished streaming parameter sets." ;
 
 	//
 	//  Stream the MasterProductRegistry.
 	//
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Streaming MasterProductRegistry ..." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Streaming MasterProductRegistry ..." ;
 	art::ProductList productList(
 		art::ProductMetaData::instance().productList());
 	msg.WriteObjectAny(&productList, product_list_class);
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Finished streaming MasterProductRegistry." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Finished streaming MasterProductRegistry." ;
 
 #if ART_HEX_VERSION < 0x20900
 	//
@@ -300,16 +300,16 @@ send_init_message()
 	art::BranchIDLists* bilr =
 		&art::BranchIDListRegistry::instance()->data();
 #       endif
-	TLOG_ARB(TLVL_SENDINIT_VERBOSE1, "RootNetOutput") << "RootNetOutput static send_init_message(): Content of BranchIDLists" << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT_VERBOSE1) << "RootNetOutput static send_init_message(): Content of BranchIDLists" ;
 	int max_bli = bilr->size();
-	TLOG_ARB(TLVL_SENDINIT_VERBOSE1, "RootNetOutput") << "RootNetOutput static send_init_message(): max_bli: " << max_bli << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT_VERBOSE1) << "RootNetOutput static send_init_message(): max_bli: " << max_bli ;
 	for (int i = 0; i < max_bli; ++i)
 	{
 		int max_prdidx = (*bilr)[i].size();
-		TLOG_ARB(TLVL_SENDINIT_VERBOSE1, "RootNetOutput") << "RootNetOutput static send_init_message(): max_prdidx: " << max_prdidx << TLOG_ENDL;
+		TLOG(TLVL_SENDINIT_VERBOSE1) << "RootNetOutput static send_init_message(): max_prdidx: " << max_prdidx ;
 		for (int j = 0; j < max_prdidx; ++j)
 		{
-			TLOG_ARB(TLVL_SENDINIT_VERBOSE1, "RootNetOutput") << "RootNetOutput static send_init_message(): bli: " << i << " prdidx: " << j << " bid: 0x" << std::hex << static_cast<unsigned long>((*bilr)[i][j]) << std::dec << TLOG_ENDL;
+			TLOG(TLVL_SENDINIT_VERBOSE1) << "RootNetOutput static send_init_message(): bli: " << i << " prdidx: " << j << " bid: 0x" << std::hex << static_cast<unsigned long>((*bilr)[i][j]) << std::dec ;
 		}
 	}
 #endif
@@ -323,23 +323,23 @@ send_init_message()
 	//
 	//  Dump the ProcessHistoryRegistry.
 	//
-	TLOG_ARB(TLVL_SENDINIT_VERBOSE2, "RootNetOutput") << "RootNetOutput static send_init_message(): Dumping ProcessHistoryRegistry ..." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT_VERBOSE2) << "RootNetOutput static send_init_message(): Dumping ProcessHistoryRegistry ..." ;
 	//typedef std::map<const ProcessHistoryID,ProcessHistory>
 	//    ProcessHistoryMap;
 #       if ART_HEX_VERSION < 0x20703
 	art::ProcessHistoryMap const& phr = art::ProcessHistoryRegistry::get();
 #       endif
-	TLOG_ARB(TLVL_SENDINIT_VERBOSE2, "RootNetOutput") << "RootNetOutput static send_init_message(): phr: size: " << std::to_string(phr.size()) << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT_VERBOSE2) << "RootNetOutput static send_init_message(): phr: size: " << std::to_string(phr.size()) ;
 	for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
 	{
 		std::ostringstream OS;
 		I->first.print(OS);
-		TLOG_ARB(TLVL_SENDINIT_VERBOSE2, "RootNetOutput") << "RootNetOutput static send_init_message(): phr: id: '" << OS.str() << "'" << TLOG_ENDL;
+		TLOG(TLVL_SENDINIT_VERBOSE2) << "RootNetOutput static send_init_message(): phr: id: '" << OS.str() << "'" ;
 	}
 	//
 	//  Stream the ProcessHistoryRegistry.
 	//
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Streaming ProcessHistoryRegistry ..." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Streaming ProcessHistoryRegistry ..." ;
 	//typedef std::map<const ProcessHistoryID,ProcessHistory>
 	//    ProcessHistoryMap;
 #       if ART_HEX_VERSION >= 0x20703
@@ -347,15 +347,15 @@ send_init_message()
 #       else
 	const art::ProcessHistoryMap& phm = art::ProcessHistoryRegistry::get();
 #       endif
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): phm: size: " << std::to_string(phm.size()) << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): phm: size: " << std::to_string(phm.size()) ;
 	msg.WriteObjectAny(&phm, process_history_map_class);
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Finished streaming ProcessHistoryRegistry." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Finished streaming ProcessHistoryRegistry." ;
 
 	//
 	//  Stream the ParentageRegistry.
 	//
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "static send_init_message(): Streaming ParentageRegistry ..."
-		 << (void*)parentage_map_class << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "static send_init_message(): Streaming ParentageRegistry ..."
+		 << (void*)parentage_map_class ;
 #       if ART_HEX_VERSION >= 0x20703
 	art::ParentageMap parentageMap{};
 	for (auto const& pr : art::ParentageRegistry::get()) {
@@ -367,7 +367,7 @@ send_init_message()
 
 	msg.WriteObjectAny(&parentageMap, parentage_map_class);
 
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "static send_init_message(): Finished streaming ParentageRegistry." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "static send_init_message(): Finished streaming ParentageRegistry." ;
 
 	//
 	//
@@ -376,17 +376,17 @@ send_init_message()
 	art::ServiceHandle<NetMonTransportService> transport;
 	if (!transport.get())
 	{
-		TLOG_ERROR("RootNetOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "Could not get handle to NetMonTransportService!" ;
 		return;
 	}
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Sending the init message to " << std::to_string(transport->dataReceiverCount()) << " data receivers ..." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Sending the init message to " << std::to_string(transport->dataReceiverCount()) << " data receivers ..." ;
 	for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx)
 	{
 		transport->sendMessage(idx, artdaq::Fragment::InitFragmentType, msg);
 	}
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "RootNetOutput static send_init_message(): Init message(s) sent." << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Init message(s) sent." ;
 
-	TLOG_ARB(TLVL_SENDINIT, "RootNetOutput") << "End:   RootNetOutput static send_init_message()" << TLOG_ENDL;
+	TLOG(TLVL_SENDINIT) << "End:   RootNetOutput static send_init_message()" ;
 }
 
 //#pragma GCC pop_options
@@ -396,7 +396,7 @@ art::RootNetOutput::
 writeDataProducts(TBufferFile& msg, const Principal& principal,
 				  std::vector<BranchKey*>& bkv)
 {
-	TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "Begin: RootNetOutput::writeDataProducts(...)" << TLOG_ENDL;
+	TLOG(TLVL_WRITEDATAPRODUCTS) << "Begin: RootNetOutput::writeDataProducts(...)" ;
 	//
 	//  Fetch the class dictionaries we need for
 	//  writing out the data products.
@@ -450,9 +450,9 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//
 	//  Write the data product count.
 	//
-	TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "RootNetOutput::writeDataProducts(...): Streaming product count: " + std::to_string(prd_cnt) << TLOG_ENDL;
+	TLOG(TLVL_WRITEDATAPRODUCTS) << "RootNetOutput::writeDataProducts(...): Streaming product count: " + std::to_string(prd_cnt) ;
 	msg.WriteULong(prd_cnt);
-	TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "RootNetOutput::writeDataProducts(...): Finished streaming product count." << TLOG_ENDL;
+	TLOG(TLVL_WRITEDATAPRODUCTS) << "RootNetOutput::writeDataProducts(...): Finished streaming product count." ;
 
 	//
 	//  Loop over the groups in the RunPrincipal and
@@ -492,7 +492,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 #endif
 		const BranchDescription& bd(I->second->productDescription());
 		bkv.push_back(new BranchKey(bd));
-		TLOG_ARB(TLVL_WRITEDATAPRODUCTS_VERBOSE, "RootNetOutput") << "RootNetOutput::writeDataProducts(...): Dumping branch key           of class: '"
+		TLOG(TLVL_WRITEDATAPRODUCTS_VERBOSE) << "RootNetOutput::writeDataProducts(...): Dumping branch key           of class: '"
 			<< bkv.back()->friendlyClassName_
 			<< "' modlbl: '"
 			<< bkv.back()->moduleLabel_
@@ -500,8 +500,8 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			<< bkv.back()->productInstanceName_
 			<< "' procnm: '"
 			<< bkv.back()->processName_
-			<< "'" << TLOG_ENDL;
-		TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "RootNetOutput::writeDataProducts(...): "
+			<< "'" ;
+		TLOG(TLVL_WRITEDATAPRODUCTS) << "RootNetOutput::writeDataProducts(...): "
 			"Streaming branch key         of class: '"
 			<< bd.producedClassName()
 			<< "' modlbl: '"
@@ -510,9 +510,9 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			<< bd.productInstanceName()
 			<< "' procnm: '"
 			<< bd.processName()
-			<< "'" << TLOG_ENDL;
+			<< "'" ;
 		msg.WriteObjectAny(bkv.back(), branch_key_class);
-		TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "RootNetOutput::writeDataProducts(...): "
+		TLOG(TLVL_WRITEDATAPRODUCTS) << "RootNetOutput::writeDataProducts(...): "
 			"Streaming product            of class: '"
 			<< bd.producedClassName()
 			<< "' modlbl: '"
@@ -521,7 +521,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			<< bd.productInstanceName()
 			<< "' procnm: '"
 			<< bd.processName()
-			<< "'" << TLOG_ENDL;
+			<< "'" ;
 #if ART_HEX_VERSION > 0x20800
 		OutputHandle oh = principal.getForOutput(bd.productID(), true);
 #else
@@ -530,7 +530,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 		const EDProduct* prd = oh.wrapper();
 		TLOG(TLVL_WRITEDATAPRODUCTS) << "Class for branch " << bd.wrappedName() << " is " << (void*)TClass::GetClass(bd.wrappedName().c_str());
 		msg.WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
-		TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "RootNetOutput::writeDataProducts(...): "
+		TLOG(TLVL_WRITEDATAPRODUCTS) << "RootNetOutput::writeDataProducts(...): "
 			"Streaming product provenance of class: '"
 			<< bd.producedClassName()
 			<< "' modlbl: '"
@@ -539,11 +539,11 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			<< bd.productInstanceName()
 			<< "' procnm: '"
 			<< bd.processName()
-			<< "'" << TLOG_ENDL;
+			<< "'" ;
 		const ProductProvenance* prdprov = I->second->productProvenancePtr().get();
 		msg.WriteObjectAny(prdprov, prdprov_class);
 	}
-	TLOG_ARB(TLVL_WRITEDATAPRODUCTS, "RootNetOutput") << "End:   RootNetOutput::writeDataProducts(...)" << TLOG_ENDL;
+	TLOG(TLVL_WRITEDATAPRODUCTS) << "End:   RootNetOutput::writeDataProducts(...)" ;
 }
 
 void
@@ -553,7 +553,7 @@ write(CONST_WRITE EventPrincipal& ep)
 	//
 	//  Write an Event message.
 	//
-	TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "Begin: RootNetOutput::write(const EventPrincipal& ep)" << TLOG_ENDL;
+	TLOG(TLVL_WRITE) << "Begin: RootNetOutput::write(const EventPrincipal& ep)" ;
 	if (!initMsgSent_)
 	{
 		send_init_message();
@@ -598,41 +598,41 @@ write(CONST_WRITE EventPrincipal& ep)
 	//
 	//  Write message type code.
 	//
-	TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Streaming message type code ..." << TLOG_ENDL;
+	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Streaming message type code ..." ;
 	msg.WriteULong(4);
-	TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming message type code." << TLOG_ENDL;
+	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming message type code." ;
 
 	//
 	//  Write RunAuxiliary.
 	//
-	TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Streaming RunAuxiliary ..." << TLOG_ENDL;
+	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Streaming RunAuxiliary ..." ;
 	msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().aux(),
 					   run_aux_class);
-	TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming RunAuxiliary." << TLOG_ENDL;
+	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming RunAuxiliary." ;
 
 	//
 	//  Write SubRunAuxiliary.
 	//
-	TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Streaming SubRunAuxiliary ..." << TLOG_ENDL;
+	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Streaming SubRunAuxiliary ..." ;
 	msg.WriteObjectAny(&ep.subRunPrincipal().aux(),
 					   subrun_aux_class);
-	TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming SubRunAuxiliary." << TLOG_ENDL;
+	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming SubRunAuxiliary." ;
 
 	//
 	//  Write EventAuxiliary.
 	//
 	{
-		TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Streaming EventAuxiliary ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Streaming EventAuxiliary ..." ;
 		msg.WriteObjectAny(&ep.aux(), event_aux_class);
-		TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming EventAuxiliary." << TLOG_ENDL;
+		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming EventAuxiliary." ;
 	}
 	//
 	//  Write History.
 	//
 	{
-		TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Streaming History ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Streaming History ..." ;
 		msg.WriteObjectAny(&ep.history(), history_class);
-		TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming History." << TLOG_ENDL;
+		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming History." ;
 	}
 	//
 	//  Write data products.
@@ -646,12 +646,12 @@ write(CONST_WRITE EventPrincipal& ep)
 		ServiceHandle<NetMonTransportService> transport;
 		if (!transport.get())
 		{
-			TLOG_ERROR("RootNetOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+			TLOG(TLVL_ERROR) << "Could not get handle to NetMonTransportService!" ;
 			return;
 		}
-		TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Sending a message ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Sending a message ..." ;
 		transport->sendMessage(ep.id().event(), artdaq::Fragment::DataFragmentType, msg);
-		TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "RootNetOutput::write(const EventPrincipal& ep): Message sent." << TLOG_ENDL;
+		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Message sent." ;
 	}
 	//
 	//  Delete the branch keys we created for the message.
@@ -661,7 +661,7 @@ write(CONST_WRITE EventPrincipal& ep)
 		delete *I;
 		*I = 0;
 	}
-	TLOG_ARB(TLVL_WRITE, "RootNetOutput") << "End:   RootNetOutput::write(const EventPrincipal& ep)" << TLOG_ENDL;
+	TLOG(TLVL_WRITE) << "End:   RootNetOutput::write(const EventPrincipal& ep)" ;
 }
 
 void
@@ -671,7 +671,7 @@ writeRun(CONST_WRITE RunPrincipal& rp)
 	//
 	//  Write an EndRun message.
 	//
-	TLOG_ARB(TLVL_WRITERUN, "RootNetOutput") << "Begin: RootNetOutput::writeRun(const RunPrincipal& rp)" << TLOG_ENDL;
+	TLOG(TLVL_WRITERUN) << "Begin: RootNetOutput::writeRun(const RunPrincipal& rp)" ;
 	(void)rp;
 	if (!initMsgSent_)
 	{
@@ -694,52 +694,52 @@ writeRun(CONST_WRITE RunPrincipal& rp)
 	//  Write message type code.
 	//
 	{
-		TLOG_ARB(TLVL_WRITERUN, "RootNetOutput") << "writeRun: streaming message type code ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITERUN) << "writeRun: streaming message type code ..." ;
 		msg.WriteULong(2);
-		TLOG_ARB(TLVL_WRITERUN, "RootNetOutput") << "writeRun: finished streaming message type code." << TLOG_ENDL;
+		TLOG(TLVL_WRITERUN) << "writeRun: finished streaming message type code." ;
 	}
 	//
 	//  Write RunAuxiliary.
 	//
 	{
-		TLOG_ARB(TLVL_WRITERUN, "RootNetOutput") << "writeRun: streaming RunAuxiliary ..." << TLOG_ENDL;
-		TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: dumping ProcessHistoryRegistry ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITERUN) << "writeRun: streaming RunAuxiliary ..." ;
+		TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: dumping ProcessHistoryRegistry ..." ;
 		//typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
 		art::ProcessHistoryMap const& phr =
 			art::ProcessHistoryRegistry::get();
-		TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: phr: size: " << phr.size() << TLOG_ENDL;
+		TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: phr: size: " << phr.size() ;
 		for (auto I = phr.begin(), E = phr.end(); I != E; ++I) {
 			std::ostringstream OS;
 			I->first.print(OS);
-			TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: phr: id: '" << OS.str() << "'" << TLOG_ENDL;
+			TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: phr: id: '" << OS.str() << "'" ;
 			OS.str("");
-			TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: phr: data.size(): " << I->second.data().size() << TLOG_ENDL;
+			TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: phr: data.size(): " << I->second.data().size() ;
 			if (I->second.data().size()) {
 				I->second.data().back().id().print(OS);
-				TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: phr: data.back().id(): '" << OS.str() << "'" << TLOG_ENDL;
+				TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: phr: data.back().id(): '" << OS.str() << "'" ;
 			}
 		}
 		if (!rp.aux().processHistoryID().isValid()) {
-			TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: ProcessHistoryID: 'INVALID'" << TLOG_ENDL;
+			TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: ProcessHistoryID: 'INVALID'" ;
 		}
 		else {
 			std::ostringstream OS;
 			rp.aux().processHistoryID().print(OS);
-			TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: ProcessHistoryID: '" << OS.str() << "'" << TLOG_ENDL;
+			TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: ProcessHistoryID: '" << OS.str() << "'" ;
 			OS.str("");
 			const ProcessHistory& processHistory =
 				ProcessHistoryRegistry::get(rp.aux().processHistoryID());
 			if (processHistory.data().size()) {
 				// FIXME: Print something special on invalid id() here!
 				processHistory.data().back().id().print(OS);
-				TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: ProcessConfigurationID: '" << OS.str() << "'" << TLOG_ENDL;
+				TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: ProcessConfigurationID: '" << OS.str() << "'" ;
 				OS.str("");
-				TLOG_ARB(TLVL_WRITERUN_VERBOSE, "RootNetOutput") << "writeRun: ProcessConfiguration: '" << processHistory.data().back() << TLOG_ENDL;
+				TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: ProcessConfiguration: '" << processHistory.data().back() ;
 			}
 		}
 		msg.WriteObjectAny(&rp.aux(), run_aux_class);
-		TLOG_ARB(TLVL_WRITERUN, "RootNetOutput") << "writeRun: streamed RunAuxiliary." << TLOG_ENDL;
+		TLOG(TLVL_WRITERUN) << "writeRun: streamed RunAuxiliary." ;
 	}
 	//
 	//  Write data products.
@@ -753,12 +753,12 @@ writeRun(CONST_WRITE RunPrincipal& rp)
 		ServiceHandle<NetMonTransportService> transport;
 		if (!transport.get())
 		{
-			TLOG_ERROR("RootNetOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+			TLOG(TLVL_ERROR) << "Could not get handle to NetMonTransportService!" ;
 			return;
 		}
-		TLOG_ARB(TLVL_WRITERUN, "RootNetOutput") << "writeRun: sending a message ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITERUN) << "writeRun: sending a message ..." ;
 		transport->sendMessage(0, artdaq::Fragment::EndOfRunFragmentType, msg);
-		TLOG_ARB(TLVL_WRITERUN, "RootNetOutput") << "writeRun: message sent." << TLOG_ENDL;
+		TLOG(TLVL_WRITERUN) << "writeRun: message sent." ;
 	}
 	//
 	//  Delete the branch keys we created for the message.
@@ -768,7 +768,7 @@ writeRun(CONST_WRITE RunPrincipal& rp)
 		*I = 0;
 	}
 #endif // 0
-	TLOG_ARB(TLVL_WRITERUN, "RootNetOutput") << "End:   RootNetOutput::writeRun(const RunPrincipal& rp)" << TLOG_ENDL;
+	TLOG(TLVL_WRITERUN) << "End:   RootNetOutput::writeRun(const RunPrincipal& rp)" ;
 }
 
 void
@@ -777,7 +777,7 @@ art::RootNetOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 	//
 	//  Write an EndSubRun message.
 	//
-	TLOG_ARB(TLVL_WRITESUBRUN, "RootNetOutput") << "Begin: RootNetOutput::writeSubRun(const SubRunPrincipal& srp)" << TLOG_ENDL;
+	TLOG(TLVL_WRITESUBRUN) << "Begin: RootNetOutput::writeSubRun(const SubRunPrincipal& srp)" ;
 	if (!initMsgSent_)
 	{
 		send_init_message();
@@ -803,17 +803,17 @@ art::RootNetOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 	//  Write message type code.
 	//
 	{
-		TLOG_ARB(TLVL_WRITESUBRUN, "RootNetOutput") << "RootNetOutput::writeSubRun: streaming message type code ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: streaming message type code ..." ;
 		msg.WriteULong(3);
-		TLOG_ARB(TLVL_WRITESUBRUN, "RootNetOutput") << "RootNetOutput::writeSubRun: finished streaming message type code." << TLOG_ENDL;
+		TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: finished streaming message type code." ;
 	}
 	//
 	//  Write SubRunAuxiliary.
 	//
 	{
-		TLOG_ARB(TLVL_WRITESUBRUN, "RootNetOutput") << "RootNetOutput::writeSubRun: streaming SubRunAuxiliary ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: streaming SubRunAuxiliary ..." ;
 
-		TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: dumping ProcessHistoryRegistry ..." << TLOG_ENDL;
+		TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: dumping ProcessHistoryRegistry ..." ;
 		//typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
 #          if ART_HEX_VERSION >= 0x20703
@@ -822,30 +822,30 @@ art::RootNetOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 #          else
 		art::ProcessHistoryMap const& phr =
 			art::ProcessHistoryRegistry::get();
-		TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: phr: size: " << std::to_string(phr.size()) << TLOG_ENDL;
+		TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: phr: size: " << std::to_string(phr.size()) ;
 		for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
 #          endif
 		{
 			std::ostringstream OS;
 			I->first.print(OS);
-			TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: phr: id: '" << OS.str() << "'" << TLOG_ENDL;
+			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: phr: id: '" << OS.str() << "'" ;
 			OS.str("");
-			TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: phr: data.size():  " << std::to_string(I->second.data().size()) << TLOG_ENDL;
+			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: phr: data.size():  " << std::to_string(I->second.data().size()) ;
 			if (I->second.data().size())
 			{
 				I->second.data().back().id().print(OS);
-				TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: phr: data.back().id(): '" << OS.str() << "'" << TLOG_ENDL;
+				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: phr: data.back().id(): '" << OS.str() << "'" ;
 			}
 		}
 		if (!srp.aux().processHistoryID().isValid())
 		{
-			TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: ProcessHistoryID: 'INVALID'" << TLOG_ENDL;
+			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: ProcessHistoryID: 'INVALID'" ;
 		}
 		else
 		{
 			std::ostringstream OS;
 			srp.aux().processHistoryID().print(OS);
-			TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: ProcessHistoryID: '" << OS.str() << "'" << TLOG_ENDL;
+			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: ProcessHistoryID: '" << OS.str() << "'" ;
 			OS.str("");
 #              if ART_HEX_VERSION >= 0x20703
 			ProcessHistory processHistory;
@@ -858,14 +858,14 @@ art::RootNetOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 			{
 				// FIXME: Print something special on invalid id() here!
 				processHistory.data().back().id().print(OS);
-				TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: ProcessConfigurationID: '" << OS.str() << "'" << TLOG_ENDL;
+				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: ProcessConfigurationID: '" << OS.str() << "'" ;
 				OS.str("");
 				OS << processHistory.data().back();
-				TLOG_ARB(TLVL_WRITESUBRUN_VERBOSE, "RootNetOutput") << "RootNetOutput::writeSubRun: ProcessConfiguration: '" << OS.str() << TLOG_ENDL;
+				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: ProcessConfiguration: '" << OS.str() ;
 			}
 		}
 		msg.WriteObjectAny(&srp.aux(), subrun_aux_class);
-		TLOG_ARB(TLVL_WRITESUBRUN, "RootNetOutput") << "RootNetOutput::writeSubRun: streamed SubRunAuxiliary." << TLOG_ENDL;
+		TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: streamed SubRunAuxiliary." ;
 	}
 	//
 	//  Write data products.
@@ -878,19 +878,19 @@ art::RootNetOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 	ServiceHandle<NetMonTransportService> transport;
 	if (!transport.get())
 	{
-		TLOG_ERROR("RootNetOutput") << "Could not get handle to NetMonTransportService!" << TLOG_ENDL;
+		TLOG(TLVL_ERROR) << "Could not get handle to NetMonTransportService!" ;
 		return;
 	}
-	TLOG_ARB(TLVL_WRITESUBRUN, "RootNetOutput") << "RootNetOutput::writeSubRun: Sending the EndOfSubrun message to " << std::to_string(transport->dataReceiverCount()) << " data receivers ..." << TLOG_ENDL;
+	TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: Sending the EndOfSubrun message to " << std::to_string(transport->dataReceiverCount()) << " data receivers ..." ;
 	for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx)
 	{
 		transport->sendMessage(idx, artdaq::Fragment::EndOfSubrunFragmentType, msg);
 	}
-	TLOG_ARB(TLVL_WRITESUBRUN, "RootNetOutput") << "RootNetOutput::writeSubRun: EndOfSubrun message(s) sent." << TLOG_ENDL;
+	TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: EndOfSubrun message(s) sent." ;
 
 	// Disconnecting will cause EOD fragments to be generated which will
 	// allow components downstream to flush data and clean up.
-	transport->disconnect();
+	//transport->disconnect();
 
 	//
 	//  Delete the branch keys we created for the message.
@@ -900,7 +900,7 @@ art::RootNetOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
 		delete *I;
 		*I = 0;
 	}
-	TLOG_ARB(TLVL_WRITESUBRUN, "RootNetOutput") << "End:   RootNetOutput::writeSubRun(const SubRunPrincipal& srp)" << TLOG_ENDL;
+	TLOG(TLVL_WRITESUBRUN) << "End:   RootNetOutput::writeSubRun(const SubRunPrincipal& srp)" ;
 }
 
 DEFINE_ART_MODULE(art::RootNetOutput)

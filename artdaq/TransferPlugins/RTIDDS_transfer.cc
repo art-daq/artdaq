@@ -97,7 +97,7 @@ int artdaq::RTIDDSTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 	//      if (consecutive_timeouts % message_after_N_timeouts == 0) {
 	//	TLOG_INFO("RTIDDSTransfer") << consecutive_timeouts << " consecutive " << 
-	//	  static_cast<float>(receiveTimeout)/1e6 << "-second timeouts calling OctetsListener::receiveFragmentFromDDS, will continue trying..." << TLOG_ENDL;
+	//	  static_cast<float>(receiveTimeout)/1e6 << "-second timeouts calling OctetsListener::receiveFragmentFromDDS, will continue trying..." ;
 	//      }
 	//    } else {
 	//      consecutive_timeouts = 0;

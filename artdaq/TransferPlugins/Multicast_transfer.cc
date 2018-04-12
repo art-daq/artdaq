@@ -1,3 +1,5 @@
+#define TRACE_NAME "MulticastTransfer"
+
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -62,7 +64,7 @@ namespace artdaq
 		* \return Rank of sender or RECV_TIMEOUT
 		*/
 		int receiveFragment(artdaq::Fragment& fragment,
-							size_t receiveTimeout) override;
+			size_t receiveTimeout) override;
 
 		/**
 		* \brief Receive a Fragment Header from the transport mechanism
@@ -83,20 +85,16 @@ namespace artdaq
 		/**
 		* \brief Copy a Fragment to the destination. Multicast is always unreliable
 		* \param fragment Fragment to copy
-		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus copyFragment(artdaq::Fragment& fragment,
-								size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
+		CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec) override;
 
 		/**
 		* \brief Move a Fragment to the destination. Multicast is always unreliable
 		* \param fragment Fragment to move
-		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus moveFragment(artdaq::Fragment&& fragment,
-								size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
+		CopyStatus moveFragment(artdaq::Fragment&& fragment) override;
 
 	private:
 
@@ -104,13 +102,13 @@ namespace artdaq
 
 		template <typename T>
 		void book_container_of_buffers(std::vector<T>& buffers,
-									   const size_t fragment_size,
-									   const size_t total_subfragments,
-									   const size_t first_subfragment_num,
-									   const size_t last_subfragment_num);
+			const size_t fragment_size,
+			const size_t total_subfragments,
+			const size_t first_subfragment_num,
+			const size_t last_subfragment_num);
 
 		void get_fragment_quantities(const boost::asio::mutable_buffer& buf, size_t& payload_size, size_t& fragment_size,
-									 size_t& expected_subfragments);
+			size_t& expected_subfragments);
 
 		void set_receive_buffer_size(size_t recv_buff_size);
 
@@ -170,8 +168,8 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 		auto multicast_address = boost::asio::ip::address::from_string(pset.get<std::string>("multicast_address"));
 		auto local_address = boost::asio::ip::address::from_string(pset.get<std::string>("local_address"));
 
-		TLOG_DEBUG("MulticastTransfer") << uniqueLabel() << " multicast address is set to " << multicast_address << TLOG_ENDL;
-		TLOG_DEBUG("MulticastTransfer") << uniqueLabel() << " local address is set to " << local_address << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << GetTraceName() << ": multicast address is set to " << multicast_address ;
+		TLOG(TLVL_DEBUG) << GetTraceName() << ": local address is set to " << local_address ;
 
 		if (TransferInterface::role() == Role::kSend)
 		{
@@ -179,7 +177,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 			multicast_endpoint_ = std::make_unique<std::remove_reference<decltype(*multicast_endpoint_)>::type>(multicast_address, port);
 
 			socket_ = std::make_unique<std::remove_reference<decltype(*socket_)>::type>(*io_service_,
-																						multicast_endpoint_->protocol());
+				multicast_endpoint_->protocol());
 			socket_->bind(*local_endpoint_);
 		}
 		else
@@ -189,7 +187,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 
 			local_endpoint_ = std::make_unique<std::remove_reference<decltype(*local_endpoint_)>::type>(local_address, port);
 			socket_ = std::make_unique<std::remove_reference<decltype(*socket_)>::type>(*io_service_,
-																						local_endpoint_->protocol());
+				local_endpoint_->protocol());
 
 			boost::system::error_code ec;
 
@@ -229,15 +227,15 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 		book_container_of_buffers(receive_buffers_, max_fragment_size_words_, max_subfragments, 0, max_subfragments - 1);
 	}
 
-	TLOG_DEBUG("MulticastTransfer") << uniqueLabel() << " max_subfragments is " << max_subfragments << TLOG_ENDL;
-	TLOG_DEBUG("MulticastTransfer") << uniqueLabel() << " Staging buffer size is " << staging_memory_.size() << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": max_subfragments is " << max_subfragments ;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": Staging buffer size is " << staging_memory_.size() ;
 }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
-											   size_t receiveTimeout)
+	size_t receiveTimeout)
 {
 	assert(TransferInterface::role() == Role::kReceive);
 
@@ -361,7 +359,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 			// to be incomplete
 
 			assert(!fragment_complete);
-			TLOG_WARNING("MulticastTransfer") << uniqueLabel() << " Got an incomplete fragment" << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << GetTraceName() << ": Got an incomplete fragment" ;
 			return artdaq::TransferInterface::RECV_TIMEOUT;
 		}
 
@@ -400,14 +398,14 @@ int artdaq::MulticastTransfer::receiveFragmentData(RawDataType* destination, siz
 
 // Reliable transport is undefined for multicast; just use copy
 artdaq::TransferInterface::CopyStatus
-artdaq::MulticastTransfer::moveFragment(artdaq::Fragment&& f, size_t tmo)
+artdaq::MulticastTransfer::moveFragment(artdaq::Fragment&& f)
 {
-	return copyFragment(f, tmo);
+	return copyFragment(f, 100000000);
 }
 
 artdaq::TransferInterface::CopyStatus
 artdaq::MulticastTransfer::copyFragment(artdaq::Fragment& fragment,
-										size_t send_timeout_usec)
+	size_t send_timeout_usec)
 {
 	assert(TransferInterface::role() == Role::kSend);
 
@@ -453,7 +451,7 @@ artdaq::MulticastTransfer::copyFragment(artdaq::Fragment& fragment,
 void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& fragment)
 {
 	auto num_subfragments = static_cast<size_t>(std::ceil(fragment.sizeBytes() / static_cast<float>(subfragment_size_)));
-	TLOG_DEBUG("MulticastTransfer") << uniqueLabel() << " # of subfragments to use is " << num_subfragments << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": # of subfragments to use is " << num_subfragments ;
 
 	for (auto i_s = 0; i_s < num_subfragments; ++i_s)
 	{
@@ -462,8 +460,8 @@ void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 		subfragment_identifier sfi(fragment.sequenceID(), fragment.fragmentID(), i_s);
 
 		std::copy(reinterpret_cast<byte_t*>(&sfi),
-				  reinterpret_cast<byte_t*>(&sfi) + sizeof(subfragment_identifier),
-				  staging_memory_copyto);
+			reinterpret_cast<byte_t*>(&sfi) + sizeof(subfragment_identifier),
+			staging_memory_copyto);
 
 		auto low_ptr_into_fragment = fragment.headerBeginBytes() + subfragment_size_ * i_s;
 
@@ -472,8 +470,8 @@ void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 			fragment.headerBeginBytes() + subfragment_size_ * (i_s + 1);
 
 		std::copy(low_ptr_into_fragment,
-				  high_ptr_into_fragment,
-				  staging_memory_copyto + sizeof(subfragment_identifier));
+			high_ptr_into_fragment,
+			staging_memory_copyto + sizeof(subfragment_identifier));
 	}
 }
 
@@ -486,10 +484,10 @@ void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 
 template <typename T>
 void artdaq::MulticastTransfer::book_container_of_buffers(std::vector<T>& buffers,
-														  const size_t fragment_size,
-														  const size_t total_subfragments,
-														  const size_t first_subfragment_num,
-														  const size_t last_subfragment_num)
+	const size_t fragment_size,
+	const size_t total_subfragments,
+	const size_t first_subfragment_num,
+	const size_t last_subfragment_num)
 {
 	assert(staging_memory_.size() >= total_subfragments * (sizeof(subfragment_identifier) + subfragment_size_));
 	assert(buffers.size() == 0);
@@ -502,7 +500,7 @@ void artdaq::MulticastTransfer::book_container_of_buffers(std::vector<T>& buffer
 			sizeof(subfragment_identifier) + subfragment_size_;
 
 		buffers.emplace_back(&staging_memory_.at(i_f * (sizeof(subfragment_identifier) + subfragment_size_)),
-							 bytes_to_store);
+			bytes_to_store);
 	}
 }
 
@@ -511,8 +509,8 @@ void artdaq::MulticastTransfer::book_container_of_buffers(std::vector<T>& buffer
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 void artdaq::MulticastTransfer::get_fragment_quantities(const boost::asio::mutable_buffer& buf, size_t& payload_size,
-														size_t& fragment_size,
-														size_t& expected_subfragments)
+	size_t& fragment_size,
+	size_t& expected_subfragments)
 {
 	byte_t* buffer_ptr = boost::asio::buffer_cast<byte_t*>(buf);
 
@@ -530,9 +528,9 @@ void artdaq::MulticastTransfer::get_fragment_quantities(const boost::asio::mutab
 		sizeof(artdaq::RawDataType);
 
 	assert(fragment_size ==
-		   artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType) +
-		   metadata_size +
-		   payload_size);
+		artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType) +
+		metadata_size +
+		payload_size);
 
 	expected_subfragments = static_cast<size_t>(std::ceil(fragment_size / static_cast<float>(subfragment_size_)));
 }
@@ -544,8 +542,8 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	boost::asio::socket_base::receive_buffer_size actual_recv_buff_size;
 	socket_->get_option(actual_recv_buff_size);
 
-	TLOG_DEBUG("MulticastTransfer") << uniqueLabel() << " Receive buffer size is currently " << actual_recv_buff_size.value() <<
-		" bytes, will try to change it to " << recv_buff_size << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": Receive buffer size is currently " << actual_recv_buff_size.value() <<
+		" bytes, will try to change it to " << recv_buff_size ;
 
 	boost::asio::socket_base::receive_buffer_size recv_buff_option(recv_buff_size);
 
@@ -559,7 +557,7 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	}
 
 	socket_->get_option(actual_recv_buff_size);
-	TLOG_DEBUG("MulticastTransfer") << uniqueLabel() << " After attempted change, receive buffer size is now " << actual_recv_buff_size.value() << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": After attempted change, receive buffer size is now " << actual_recv_buff_size.value() ;
 }
 
 #pragma GCC diagnostic pop

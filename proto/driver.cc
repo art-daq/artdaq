@@ -6,8 +6,9 @@
 //
 // The current version generates simple data fragments, for testing
 // that data are transmitted without corruption from the
-// artdaq::EventStore through to the artdaq::RawInput source.
+// artdaq::Eventevent_manager through to the artdaq::RawInput source.
 //
+#define TRACE_NAME "artdaqDriver"
 
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
@@ -50,13 +51,13 @@ int main(int argc, char * argv[]) try
 	uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
 	uint64_t timestamp = 0;
 
-	artdaq::configureMessageFacility("artdaqDriver",true,debug);
+	artdaq::configureMessageFacility("artdaqDriver", true, debug);
 
 	fhicl::ParameterSet fragment_receiver_pset = pset.get<fhicl::ParameterSet>("fragment_receiver");
 
 	std::unique_ptr<artdaq::FragmentGenerator>
 		gen(artdaq::makeFragmentGenerator(fragment_receiver_pset.get<std::string>("generator"),
-										  fragment_receiver_pset));
+			fragment_receiver_pset));
 
 	std::unique_ptr<artdaq::CommandableFragmentGenerator> commandable_gen =
 		dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>(gen);
@@ -72,7 +73,7 @@ int main(int argc, char * argv[]) try
 	catch (...) {} // OK if there's no metrics table defined in the FHiCL 
 
 	if (metric_pset.is_empty()) {
-		TLOG_INFO("artdaqDriver") << "No metric plugins appear to be defined" << TLOG_ENDL;
+		TLOG(TLVL_INFO) << "No metric plugins appear to be defined";
 	}
 	try {
 		metricMan_.initialize(metric_pset, "artdaqDriver");
@@ -87,7 +88,7 @@ int main(int argc, char * argv[]) try
 	// associated with async threads and std::string::c_str().
 	fhicl::ParameterSet event_builder_pset = pset.get<fhicl::ParameterSet>("event_builder");
 
-	artdaq::SharedMemoryEventManager store(event_builder_pset, pset);
+	artdaq::SharedMemoryEventManager event_manager(event_builder_pset, pset);
 	//////////////////////////////////////////////////////////////////////
 
 	int events_to_generate = pset.get<int>("events_to_generate", 0);
@@ -98,16 +99,16 @@ int main(int argc, char * argv[]) try
 		commandable_gen->StartCmd(run, timeout, timestamp);
 	}
 
-	TLOG_ARB(50, "artdaqDriver") << "driver main before store.startRun" << TLOG_ENDL;
-	store.startRun(run);
+	TLOG(50) << "driver main before event_manager.startRun";
+	event_manager.startRun(run);
 
 	// Read or generate fragments as rapidly as possible, and feed them
-	// into the EventStore. The throughput resulting from this design
+	// into the Eventevent_manager. The throughput resulting from this design
 	// choice is likely to have the fragment reading (or generation)
 	// speed as the limiting factor
 	while ((commandable_gen && commandable_gen->getNext(frags)) ||
 		(gen && gen->getNext(frags))) {
-		TLOG_ARB(50, "artdaqDriver") << "driver main: getNext returned frags.size()=" << std::to_string(frags.size()) << " current event_count=" << event_count << TLOG_ENDL;
+		TLOG(50) << "driver main: getNext returned frags.size()=" << std::to_string(frags.size()) << " current event_count=" << event_count;
 		for (auto & val : frags) {
 			if (val->sequenceID() != previous_sequence_id) {
 				++event_count;
@@ -120,10 +121,10 @@ int main(int argc, char * argv[]) try
 				break;
 			}
 			artdaq::FragmentPtr tempFrag;
-			auto sts = store.AddFragment(std::move(val), 1000000, tempFrag);
+			auto sts = event_manager.AddFragment(std::move(val), 1000000, tempFrag);
 			if (!sts)
 			{
-				TLOG_ERROR("artdaqDriver") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art process status!";
 				exit(1);
 			}
 		}
@@ -141,17 +142,37 @@ int main(int argc, char * argv[]) try
 		commandable_gen->joinThreads();
 	}
 
+	TLOG(TLVL_INFO) << "Fragments generated, waiting for art to process them.";
+	auto art_wait_start_time = std::chrono::steady_clock::now();
+	auto last_delta_time = std::chrono::steady_clock::now();
+	auto last_count = event_manager.size() - event_manager.WriteReadyCount(false);
+
+	while (last_count > 0 && artdaq::TimeUtils::GetElapsedTime(last_delta_time) < 1.0)
+	{
+		auto this_count = event_manager.size() - event_manager.WriteReadyCount(false);
+		if (this_count != last_count) {
+			last_delta_time = std::chrono::steady_clock::now();
+			last_count = this_count;
+		}
+		usleep(1000);
+	}
+
+	TLOG(TLVL_INFO) << "Ending Run, waited " << std::setprecision(2) << artdaq::TimeUtils::GetElapsedTime(art_wait_start_time) << " seconds for art to process events. (" << last_count << " buffers remain).";
+	event_manager.endRun();
+	usleep(artdaq::TimeUtils::GetElapsedTimeMicroseconds(art_wait_start_time)); // Wait as long again for EndRun message to go through
+
+	TLOG(TLVL_INFO) << "Shutting down art";
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
-	endSucceeded = store.endOfData();
+	endSucceeded = event_manager.endOfData();
 	while (!endSucceeded && attemptsToEnd < 3) {
 		++attemptsToEnd;
-		endSucceeded = store.endOfData();
+		endSucceeded = event_manager.endOfData();
 	}
 	if (!endSucceeded) {
-		std::cerr << "Failed to shut down the reader and the event store "
+		TLOG(TLVL_ERROR) << "Failed to shut down the reader and the SharedMemoryEventManager "
 			<< "because the endOfData marker could not be pushed "
-			<< "onto the queue." << std::endl;
+			<< "onto the queue.";
 	}
 
 	metricMan_.do_stop();
@@ -177,7 +198,7 @@ catch (char const * m)
 }
 catch (...) {
 	artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,
-							 "Exception caught in artdaqDriver");
+		"Exception caught in artdaqDriver");
 }
 
 

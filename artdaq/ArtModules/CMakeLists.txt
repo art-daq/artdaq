@@ -1,6 +1,4 @@
 
-include_directories(${MPI_INCLUDE_PATH})
-
 if( ${ART_HEX_VERSION} LESS 0x20906 )
     add_subdirectory(RootDAQOutput)
 endif()
@@ -86,8 +84,7 @@ simple_plugin(NetMonInput "source"
   art_Framework_Principal
   art_Persistency_Provenance
   art_Utilities
-  MF_MessageLogger
-  MF_Utilities
+  ${MESSAGEFACILITY_LIBS}
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}

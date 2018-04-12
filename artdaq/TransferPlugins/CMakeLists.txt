@@ -1,15 +1,13 @@
 
 if (${USING_RTIDDS})
-include_directories(${MPI_INCLUDE_PATH} $ENV{NDDSHOME}/include $ENV{NDDSHOME}/include/ndds )
-else()
-include_directories(${MPI_INCLUDE_PATH} )
+include_directories($ENV{NDDSHOME}/include $ENV{NDDSHOME}/include/ndds )
 endif()
 
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_TransferPlugins
   NO_PLUGINS
   SUBDIRS detail
-  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc MPI_transfer.cc TCPSocket_transfer.cc Autodetect_transfer.cc
+  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc TCPSocket_transfer.cc Autodetect_transfer.cc
   DICT_DICTIONARIES
   ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
@@ -24,8 +22,7 @@ art_make( BASENAME_ONLY
   cetlib
   ${CETLIB_EXCEPT}
   fhiclcpp
-  MF_MessageLogger
-  MF_Utilities
+  ${MESSAGEFACILITY_LIBS}
   ${ROOT_CINTEX}
   ${ROOT_RIO}
   ${ROOT_CORE}
@@ -61,12 +58,6 @@ simple_plugin(Autodetect "transfer"
   artdaq_TransferPlugins
   artdaq_TransferPlugins_Shmem_transfer
   artdaq_TransferPlugins_TCPSocket_transfer
-)
-
-simple_plugin(MPI "transfer"
-  artdaq_TransferPlugins
-  ${CANVAS_LIB_LIST}
-  ${MPI_C_LIBRARIES}
 )
 
 if (${USING_RTIDDS})

@@ -13,6 +13,7 @@
 
 // C++ Includes
 #include <condition_variable>
+#include <boost/thread.hpp>
 
 // Products includes
 #include "fhiclcpp/fwd.h"
@@ -22,6 +23,7 @@
 #include "artdaq/TransferPlugins/detail/SRSockets.hh"
 #include "artdaq/TransferPlugins/detail/Timeout.hh"	// Timeout
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/TransferPlugins/detail/HostMap.hh"
 
 namespace artdaq
 {
@@ -42,6 +44,7 @@ public:
 	 * \verbatim
 	 * TCPSocketTransfer accepts the following Parameters:
 	 * "tcp_receive_buffer_size" (Default: 0): The TCP buffer size on the receive socket
+	 * "send_retry_timeout_us" (Default: 1000000): Microseconds between send retries (infinite retries for moveFragment, up to send_timeout_us for copyFragment)
 	 * "host_map" (REQUIRED): List of FHiCL tables containing information about other hosts in the system.
 	 *   Each table should contain:
 	 *   "rank" (Default: RECV_TIMEOUT): Rank of this host
@@ -82,15 +85,19 @@ public:
 	/**
 	* \brief Move a Fragment to the destination.
 	* \param frag Fragment to move
-	* \param timeout_usec Timeout for send, in microseconds
 	* \return CopyStatus detailing result of copy
 	*/
-	CopyStatus moveFragment(Fragment&& frag, size_t timeout_usec) override { return sendFragment_(std::move(frag), timeout_usec); }
+	CopyStatus moveFragment(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
+
 
 private:
-
-	int fd_;
-	int listen_fd_;
+	static std::atomic<int> listen_thread_refcount_;
+	static std::mutex listen_thread_mutex_;
+	static std::unique_ptr<boost::thread> listen_thread_;
+	static std::map<int, std::set<int>> connected_fds_;
+	int send_fd_;
+	int active_receive_fd_;
+	int last_active_receive_fd_;
 
 	union
 	{
@@ -110,14 +117,9 @@ private:
 	int target_bytes;
 	size_t rcvbuf_;
 	size_t sndbuf_;
+	size_t send_retry_timeout_us_;
 
-	struct DestinationInfo
-	{
-		std::string hostname;
-		int portOffset;
-	};
-
-	std::unordered_map<size_t, DestinationInfo> hostMap_;
+	hostMap_t hostMap_;
 
 	volatile unsigned connect_state : 1; // 0=not "connected" (initial msg not sent)
 	unsigned blocking : 1; // compatible with bool (true/false)
@@ -130,6 +132,9 @@ private:
 	std::mutex stopstatscvm_; // protects 'stopcv'
 
 	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
+    size_t not_connected_count_; // Number of times returned RECV_TIMEOUT because no receive sockets open
+    size_t receive_err_threshold_; // Number of times TO print RECV_TIMEOUT before starting to return DATA_END
+    size_t receive_err_wait_us_; // Amount of time to wait if there are no connected receive sockets
 
 private: // methods
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
@@ -147,9 +152,12 @@ private: // methods
 	void reconnect_();
 
 	// Receiver should listen for connections
+	void start_listen_thread_();
 	void listen_();
 
-	int calculate_port_() const { return (hostMap_.at(destination_rank())).portOffset + source_rank(); }
+	int calculate_port_() const { 
+		return destination_rank() + ((partition_number_ % 22) * 1000) + 10000;
+	}
 };
 
 #endif // TCPSocketTransfer_hh

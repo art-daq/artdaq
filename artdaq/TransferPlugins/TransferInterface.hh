@@ -4,6 +4,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "fhiclcpp/ParameterSet.h"
+#include "cetlib/compiler_macros.h"
 
 #include <limits>
 #include <iostream>
@@ -17,11 +18,11 @@ namespace artdaq
 	class TransferInterface
 	{
 	public:
-		/**
-		 * \brief Value to be returned upon receive timeout. Because receivers otherwise return rank,
-		 * this is also the limit on the number of ranks that artdaq currently supports.
-		 */
-		static const int RECV_TIMEOUT = 0xfedcba98;
+		enum : int {
+			DATA_END = -2222,///< Value that is to be returned when a Transfer plugin determines that no more data will be arriving.
+			RECV_TIMEOUT = -1111, ///< Value to be returned upon receive timeout.
+			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= RECV_SUCCESS
+		};
 
 		/**
 		 * \brief Used to determine if a TransferInterface is a Sender or Receiver
@@ -47,7 +48,7 @@ namespace artdaq
 		 * \brief TransferInterface Constructor
 		 * \param ps ParameterSet used for configuring the TransferInterface
 		 * \param role Role of the TransferInterface (See TransferInterface::Role)
-		 * 
+		 *
 		 * \verbatim
 		 * TransferInterface accepts the following Parameters:
 		 * "source_rank" (Default: my_rank): The rank that data is coming from
@@ -109,16 +110,15 @@ namespace artdaq
 		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		virtual CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+		virtual CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec) = 0;
 
 		// Move fragment (should be reliable)
 		/**
 		* \brief Move a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
 		* \param fragment Fragment to move
-		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec = std::numeric_limits<size_t>::max()) = 0;
+		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment) = 0;
 
 		/**
 		 * \brief Get the unique label of this TransferInterface instance
@@ -130,12 +130,19 @@ namespace artdaq
 		 * \brief Get the source rank for this TransferInterface instance
 		 * \return The source rank for this Transferinterface instance
 		 */
-	        virtual int source_rank() const { return source_rank_; }
+		virtual int source_rank() const { return source_rank_; }
 		/**
 		 * \brief Get the destination rank for this TransferInterface instance
 		 * \return The destination rank for this TransferInterface instance
 		 */
 		virtual int destination_rank() const { return destination_rank_; }
+
+
+		/**
+		 * \brief Constructs a name suitable for TRACE messages
+		 * \return The unique_label and a SEND/RECV identifier
+		 */
+		std::string GetTraceName() const { return unique_label_ + (role_ == Role::kSend ? "_SEND" : "_RECV"); }
 	private:
 		const Role role_;
 
@@ -143,9 +150,17 @@ namespace artdaq
 		const int destination_rank_;
 		const std::string unique_label_;
 
+		/**
+		* \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
+		* \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
+		*/
+		int GetPartitionNumber() const;
+
 	protected:
 		size_t buffer_count_; ///< The number of Fragment transfers the TransferInterface can handle simultaneously
 		const size_t max_fragment_size_words_; ///< The maximum size of the transferred Fragment objects, in artdaq::Fragment::RawDataType words
+		const short partition_number_; ///< The partition number of the DAQ
+
 	protected:
 		/**
 		 * \brief Get the TransferInterface::Role of this TransferInterface
@@ -155,11 +170,16 @@ namespace artdaq
 	};
 }
 
+#ifndef EXTERN_C_FUNC_DECLARE_START
+#define EXTERN_C_FUNC_DECLARE_START extern "C" {
+#endif
+
 #define DEFINE_ARTDAQ_TRANSFER(klass)                                \
-  extern "C" std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const & ps, \
+  EXTERN_C_FUNC_DECLARE_START                                      \
+std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const & ps, \
 								 artdaq::TransferInterface::Role role) { \
 	return std::unique_ptr<artdaq::TransferInterface>(new klass(ps, role)); \
-}
+}}
 
 
 #endif /* artdaq_ArtModules_TransferInterface.hh */

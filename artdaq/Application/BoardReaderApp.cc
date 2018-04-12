@@ -1,12 +1,10 @@
-#define TRACE_NAME "BoardReaderApp"
-#include "tracemf.h"
+#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/BoardReaderApp.hh"
 
-artdaq::BoardReaderApp::BoardReaderApp(int rank, std::string name)
+artdaq::BoardReaderApp::BoardReaderApp()
 	: fragment_receiver_ptr_(nullptr)
 {
-	my_rank = rank;
-	app_name = name;
 }
 
 // *******************************************************************
@@ -22,10 +20,10 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	// instance, then create a new one.  Doing it in one step does not
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
-	TLOG_DEBUG(app_name + "App") << "Initializing first deleting old instance " << (void*)fragment_receiver_ptr_.get() << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Initializing first deleting old instance " << (void*)fragment_receiver_ptr_.get() ;
 	fragment_receiver_ptr_.reset(nullptr);
 	fragment_receiver_ptr_.reset(new BoardReaderCore(*this));
-	TLOG_DEBUG(app_name + "App") << "Initializing new BoardReaderCore at " << (void*)fragment_receiver_ptr_.get() << " with pset " << pset.to_string() << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Initializing new BoardReaderCore at " << (void*)fragment_receiver_ptr_.get() << " with pset " << pset.to_string() ;
 	external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
 	if (! external_request_status_)
 	{
@@ -34,8 +32,8 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 		report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
 	}
 
-	TLOG_DEBUG(app_name + "App") << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
-		<< "Done initializing." << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
+		<< "Done initializing." ;
 	return external_request_status_;
 }
 
@@ -79,9 +77,9 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	}
 
 		int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
-		TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
+		TLOG(TLVL_DEBUG) << "do_stop(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
-			<< "." << TLOG_ENDL;
+			<< "." ;
 
 	return external_request_status_;
 }
@@ -97,9 +95,9 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	}
 
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
-		TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
+		TLOG(TLVL_DEBUG) << "do_pause(uint64_t, uint64_t): "
 			<< "Number of fragments sent = " << number_of_fragments_sent
-			<< "." << TLOG_ENDL;
+			<< "." ;
 
 	return external_request_status_;
 }
@@ -164,7 +162,7 @@ bool artdaq::BoardReaderApp::do_reinitialize(fhicl::ParameterSet const& pset, ui
 
 void artdaq::BoardReaderApp::BootedEnter()
 {
-	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Booted state entry action called." ;
 
 	// the destruction of any existing BoardReaderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

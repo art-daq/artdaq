@@ -24,7 +24,7 @@ namespace artdaq
 					commander_pset,
 					commandable);
 
-			return std::move(commander);
+			return commander;
 		}
 		catch (...)
 		{

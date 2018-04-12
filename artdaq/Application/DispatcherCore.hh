@@ -68,6 +68,7 @@ public:
 	*     "onmon_event_prescale" (Default: 1): Only send 1/N events to art for online monitoring (requires is_data_logger: true)
 	*     "filesize_check_interval_seconds" (Default: 20): Interval to check the file size when using Dispatcher-based subrun rollover
 	*     "filesize_check_interval_events" (Default: 20): Interval to check the file size when using Dispatcher-based subrun rollover
+	*     "verbose" (Default: true): Whether to print transition messages
 	*   "metrics": FHiCL table containing configuration for MetricManager
 	* "outputs" (REQUIRED): FHiCL table containing output parameters
 	*   "normalOutput" (REQUIRED): FHiCL table containing default output parameters

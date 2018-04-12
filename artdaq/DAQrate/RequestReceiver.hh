@@ -23,6 +23,11 @@ namespace artdaq
 		void setupRequestListener();
 
 		/**
+		* \brief Stop the data request receiver thread (receiveRequestsLoop)
+		*/
+		void stopRequestReceiverThread();
+
+		/**
 		* \brief Function that launches the data request receiver thread (receiveRequestsLoop())
 		*/
 		void startRequestReceiverThread();
@@ -67,16 +72,18 @@ namespace artdaq
 		//Socket parameters
 		int request_socket_;
 		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> requests_;
+		std::map<artdaq::Fragment::sequence_id_t, std::chrono::steady_clock::time_point> request_timing_;
 		std::atomic<bool> request_stop_requested_;
 		std::chrono::steady_clock::time_point request_stop_timeout_;
 		std::atomic<bool> request_received_;
 		size_t end_of_run_timeout_ms_;
 		std::atomic<bool> should_stop_;
 		mutable std::mutex request_mutex_;
+		mutable std::mutex state_mutex_;
 		std::condition_variable request_cv_;
 		boost::thread requestThread_;
 		
-		artdaq::Fragment::sequence_id_t highest_seen_request_;
+		std::atomic<artdaq::Fragment::sequence_id_t> highest_seen_request_;
 	};
 }
 

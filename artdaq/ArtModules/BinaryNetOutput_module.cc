@@ -43,8 +43,8 @@ public:
 	/**
 	 * \brief BinaryNetOutput Constructor
 	 * \param ps ParameterSet used to configure BinaryNetOutput
-	 * 
-	 * BinaryNetOutput forwards its ParameterSet to art::OutputModule, 
+	 *
+	 * BinaryNetOutput forwards its ParameterSet to art::OutputModule,
 	 * so any Parameters it requires are also required by BinaryNetOutput.
 	 * BinaryNetOutput also forwards its ParameterSet to DataSenderManager,
 	 * so any Parameters *it* requires are *also* required by BinaryMPIOuptut.
@@ -86,33 +86,33 @@ art::BinaryNetOutput::
 BinaryNetOutput(ParameterSet const& ps)
 	: OutputModule(ps)
 {
-	FDEBUG(1) << "Begin: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
+	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
 	readParameterSet_(ps);
-	FDEBUG(1) << "End: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
+	TLOG(TLVL_DEBUG) << "End: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
 }
 
 art::BinaryNetOutput::
 ~BinaryNetOutput()
 {
-	FDEBUG(1) << "Begin/End: BinaryNetOutput::~BinaryNetOutput()\n";
+	TLOG(TLVL_DEBUG) << "Begin/End: BinaryNetOutput::~BinaryNetOutput()\n";
 }
 
 void
 art::BinaryNetOutput::
 beginJob()
 {
-	FDEBUG(1) << "Begin: BinaryNetOutput::beginJob()\n";
+	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::beginJob()\n";
 	initialize_MPI_();
-	FDEBUG(1) << "End:   BinaryNetOutput::beginJob()\n";
+	TLOG(TLVL_DEBUG) << "End:   BinaryNetOutput::beginJob()\n";
 }
 
 void
 art::BinaryNetOutput::
 endJob()
 {
-	FDEBUG(1) << "Begin: BinaryNetOutput::endJob()\n";
+	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::endJob()\n";
 	deinitialize_MPI_();
-	FDEBUG(1) << "End:   BinaryNetOutput::endJob()\n";
+	TLOG(TLVL_DEBUG) << "End:   BinaryNetOutput::endJob()\n";
 }
 
 
@@ -129,9 +129,9 @@ initialize_MPI_()
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
 		if (status != 0)
 		{
-			TLOG_ERROR(name_)
+			TLOG(TLVL_ERROR) << name_
 				<< "Failed to set realtime priority to " << rt_priority_
-				<< ", return code = " << status << TLOG_ENDL;
+				<< ", return code = " << status;
 		}
 #pragma GCC diagnostic pop
 	}
@@ -151,16 +151,16 @@ bool
 art::BinaryNetOutput::
 readParameterSet_(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(name_) << "BinaryNetOutput::readParameterSet_ method called with "
+	TLOG(TLVL_DEBUG) << name_ << "BinaryNetOutput::readParameterSet_ method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\"." << TLOG_ENDL;
+		<< "\".";
 
 	// determine the data sending parameters
 	data_pset_ = pset;
 	name_ = pset.get<std::string>("module_name", "BinaryNetOutput");
 	rt_priority_ = pset.get<int>("rt_priority", 0);
 
-	TRACE(4, "BinaryNetOutput::readParameterSet()");
+	TLOG(TLVL_TRACE) << "BinaryNetOutput::readParameterSet()";
 
 	return true;
 }
@@ -177,7 +177,7 @@ write(EventPrincipal& ep)
 	using RawEventHandles = std::vector<RawEventHandle>;
 
 	auto result_handles = std::vector<art::GroupQueryResult>();
-	
+
 #if ART_HEX_VERSION < 0x20906
 	ep.getManyByType(art::TypeID(typeid(RawEvent)), result_handles);
 #else
@@ -197,9 +197,9 @@ write(EventPrincipal& ep)
 			auto fragment_copy = fragment;
 			auto fragid_id = fragment_copy.fragmentID();
 			auto sequence_id = fragment_copy.sequenceID();
-			TRACE(1, "BinaryNetOutput::write seq=%lu frag=%i start", sequence_id, fragid_id);
+			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " start";
 			sender_ptr_->sendFragment(std::move(fragment_copy));
-			TRACE(2, "BinaryNetOutput::write seq=%lu frag=%i done", sequence_id, fragid_id);
+			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done";
 		}
 	}
 

@@ -4,16 +4,4 @@ sends_per_sender: 10000
 buffer_count: 10
 fragment_size: 0x6400000
 transfer_plugin_type: Shmem
-
-metrics: {
-    ganglia: {
-       metricPluginType: "ganglia"
-       level: 5
-       reporting_interval: 15.0
-     
-       configFile: "/home/eflumerf/Desktop/artdaq-mrb-base/gmond.conf"
-       group: "ARTDAQ"
-    }
-
-}
-
+partition_number: 7

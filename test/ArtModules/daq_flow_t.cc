@@ -1,9 +1,10 @@
+#define TRACE_NAME "daq_flow_t"
+
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq/Application/MPI2/MPISentry.hh"
-#include "cetlib/exception.h"
+#include "cetlib_except/exception.h"
 #include "fhiclcpp/make_ParameterSet.h"
 #include "artdaq/Application/LoadParameterSet.hh"
 
@@ -21,7 +22,6 @@ using std::size_t;
 int main(int argc, char* argv[])
 {
 	auto pset = LoadParameterSet(argc, argv);
-	artdaq::MPISentry mpiSentry(&argc, &argv);
 	int rc = -1;
 	try
 	{
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
 		size_t event_count = 0;
 		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
-			TLOG_DEBUG("daq_flow_t") << "Number of fragments: " << frags.size() << TLOG_ENDL;
+			TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size() ;
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);
 			for (auto&& frag : frags)
 			{
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 				auto sts = events.AddFragment(std::move(frag), 1000000, tempFrag);
 				if (!sts)
 				{
-					TLOG_ERROR("daq_flow_t") << "Fragment was not added after 1s. Check art thread status!" << TLOG_ENDL;
+					TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
 					exit(1);
 				}
 			}

@@ -1,5 +1,5 @@
 #ifndef artdaq_TransferPlugins_ShmemTransfer_hh
-#define artdaq_TransferPlugins_ShemmTransfer_hh
+#define artdaq_TransferPlugins_ShmemTransfer_hh
 
 #include "fhiclcpp/fwd.h"
 
@@ -19,12 +19,15 @@ namespace artdaq
 		 * \brief ShmemTransfer Constructor
 		 * \param pset ParameterSet used to configure ShmemTransfer
 		 * \param role Role of this ShmemTransfer instance (kSend or kReceive)
-		 * 
+		 *
 		 * \verbatim
 		 * ShmemTransfer accepts the following Parameters:
 		 * "shm_key_offset" (Default: 0): Offset to add to shared memory key (hash of uniqueLabel)
 		 * \endverbatim
 		 * ShmemTransfer also requires all Parameters for configuring a TransferInterface
+		 * Additionally, an offset can be added via the ARTDAQ_SHMEM_TRANSFER_OFFSET envrionment variable.
+		 * Note that this variable, if used, MUST have the same value for all artdaq processes communicating
+		 * via ShmemTransfer.
 		 */
 		ShmemTransfer(fhicl::ParameterSet const& pset, Role role);
 
@@ -40,7 +43,7 @@ namespace artdaq
 		* \return Rank of sender or RECV_TIMEOUT
 		*/
 		int receiveFragment(Fragment& fragment,
-		                            size_t receiveTimeout) override;
+			size_t receiveTimeout) override;
 
 		/**
 		* \brief Receive a Fragment Header from the transport mechanism
@@ -56,34 +59,29 @@ namespace artdaq
 		 * \param wordCount Number of words of Fragment data to receive
 		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 		*/
-		int receiveFragmentData(RawDataType* destination,size_t wordCount) override;
+		int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
 
 		/**
 		* \brief Copy a Fragment to the destination. May be unreliable
 		* \param fragment Fragment to copy
-		* \param send_timeout_usec Timeout for send, in microseconds (default size_t::MAX_VALUE)
+		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus copyFragment(Fragment& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
+		CopyStatus copyFragment(Fragment& fragment, size_t send_timeout_usec) override;
 
 		/**
 		* \brief Move a Fragment to the destination.
 		* \param fragment Fragment to move
-		* \param send_timeout_usec Timeout for send, in microseconds (default size_t::MAX_VALUE)
 		* \return CopyStatus detailing result of move
 		*/
-		CopyStatus moveFragment(Fragment&& fragment,
-		                                size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
+		CopyStatus moveFragment(Fragment&& fragment) override;
 
 	private:
 		CopyStatus sendFragment(Fragment&& fragment,
-		                        size_t send_timeout_usec, bool reliable = false);
-		
-		size_t send_timeout_usec_;
+			size_t send_timeout_usec, bool reliable = false);
+
 		std::unique_ptr<SharedMemoryFragmentManager> shm_manager_;
 
-		Role role_;
 	};
 }
 

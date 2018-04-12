@@ -5,11 +5,13 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#define _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES 1
 #include <xmlrpc-c/base.hpp>
 #include <xmlrpc-c/registry.hpp>
 #include <xmlrpc-c/server_abyss.hpp>
 #include <xmlrpc-c/girerr.hpp>
 #include <xmlrpc-c/client_simple.hpp>
+#undef _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES
 #pragma GCC diagnostic pop
 #include <stdexcept>
 #include <iostream>
@@ -383,7 +385,7 @@ namespace artdaq
 
 	void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)
 	{
-		std::unique_lock<std::mutex> lk(_c.mutex_, std::try_to_lock);
+		std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::chrono::milliseconds(250));
 		if (lk.owns_lock())
 		{
 			try
@@ -415,25 +417,25 @@ namespace artdaq
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg ;
 			}
 			catch (art::Exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg ;
 			}
 			catch (cet::exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg ;
 			}
 			catch (...)
 			{
 				std::string msg = exception_msg("Unknown exception", _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg << TLOG_ENDL;
+				TLOG(TLVL_ERROR) << msg ;
 			}
 		}
 		else
@@ -876,7 +878,7 @@ private:								\
 		{
 			TLOG(TLVL_INFO) << "A shutdown command was sent "
 				<< "with parameter "
-				<< paramString << "\"" << TLOG_ENDL;
+				<< paramString << "\"" ;
 			_server->terminate();
 		}
 	private:
@@ -905,7 +907,7 @@ private:								\
 		/*#define register_method(m) \
 		//  xmlrpc_c::methodPtr const ptr_ ## m(new m ## _(*this));\
 		   registry.addMethod ("daq." #m, ptr_ ## m) */
-#define register_method(m) register_method2(m,0x200000)
+#define register_method(m) register_method2(m,0x400000)
 
 		xmlrpc_env         env; // xmlrpc_env_init(&env);
 		xmlrpc_registry ***c_registryPPP;
@@ -1009,7 +1011,7 @@ private:								\
 		registry.setShutdown(&shutdown_obj);
 #endif
 
-		TLOG(TLVL_DEBUG) << "running server" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "running server" ;
 
 		// JCF, 6/3/15
 
@@ -1023,13 +1025,13 @@ private:								\
 		}
 		catch (...)
 		{
-			TLOG(TLVL_WARNING) << "server threw an exception; closing the socket and rethrowing" << TLOG_ENDL;
+			TLOG(TLVL_WARNING) << "server threw an exception; closing the socket and rethrowing" ;
 			close(socket_file_descriptor);
 			throw;
 		}
 
 		close(socket_file_descriptor);
-		TLOG(TLVL_DEBUG) << "server terminated" << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "server terminated" ;
 	}
 	catch (...)
 	{

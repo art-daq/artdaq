@@ -71,7 +71,7 @@ namespace artdaq
 		* \brief Pretend to move a Fragment to a destination
 		* \return CopyStatus::kSuccess (No-Op)
 		*/
-		CopyStatus moveFragment(artdaq::Fragment&&, size_t) override
+		CopyStatus moveFragment(artdaq::Fragment&&) override
 		{
 			return CopyStatus::kSuccess;
 		}

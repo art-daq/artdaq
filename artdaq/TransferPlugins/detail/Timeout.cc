@@ -9,6 +9,9 @@
 OR
 	g++ -Wall -g -std=c++0x -shared -fPIC -o Timeout.so Timeout.cxx -lrt
 */
+
+#define TRACE_NAME "Timeout"
+
 #include <stdio.h>				// printf
 #include <sys/time.h>           /* struct timeval */
 #include <assert.h>				/* assert */
@@ -27,23 +30,26 @@ Timeout::timeoutspec::timeoutspec()
 	: desc(), tag(), function()
 	, ts(), period()
 	, missed_periods(), check()
-{   TRACE( 18, "Timeout::timeoutspec ctor this=%p", this );
+{
+	TLOG(18) << "Timeout::timeoutspec ctor this=" << this;
 }
-Timeout::timeoutspec::timeoutspec( const timeoutspec & other )
+Timeout::timeoutspec::timeoutspec(const timeoutspec & other)
 	: desc(other.desc), tag(other.tag), function(other.function)
 	, ts(other.ts), period(other.period)
 	, missed_periods(other.missed_periods), check(other.check)
-{   TRACE( 18, "Timeout::timeoutspec copy ctor" );
+{
+	TLOG(18) << "Timeout::timeoutspec copy ctor";
 }
-Timeout::timeoutspec & Timeout::timeoutspec::operator=( const Timeout::timeoutspec & other )
-{   TRACE( 18, "Timeout::timeoutspec copy assignment (operator=) other.desc="+other.desc );
+Timeout::timeoutspec & Timeout::timeoutspec::operator=(const Timeout::timeoutspec & other)
+{
+	TLOG(18) << "Timeout::timeoutspec copy assignment (operator= other.desc=" << other.desc << ")";
 	desc = other.desc;
-	tag=other.tag;
-	function=other.function;
-	ts=other.ts;
-	period=other.period;
-	missed_periods=other.missed_periods;
-	check=other.check;
+	tag = other.tag;
+	function = other.function;
+	ts = other.ts;
+	period = other.period;
+	missed_periods = other.missed_periods;
+	check = other.check;
 	return *this;
 }
 #endif
@@ -52,15 +58,15 @@ Timeout::timeoutspec & Timeout::timeoutspec::operator=( const Timeout::timeoutsp
 Timeout::Timeout(int max_tmos)
 	: tmospecs_(max_tmos)
 {
-	TRACE( 16, "Timeout ctor" );
+	TLOG(16) << "Timeout ctor";
 	timeoutlist_init();
 }
 
 
 void
 Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& function
-					  , uint64_t period_us
-					  , uint64_t start_us)
+	, uint64_t period_us
+	, uint64_t start_us)
 {
 	timeoutspec tmo;
 	tmo.desc = desc;
@@ -74,7 +80,7 @@ Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& functi
 
 void
 Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& function
-					  , int rel_ms)
+	, int rel_ms)
 {
 	timeoutspec tmo;
 	tmo.desc = desc;
@@ -88,11 +94,10 @@ Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& functi
 
 void
 Timeout::add_periodic(const char* desc
-					  , uint64_t period_us
-					  , uint64_t start_us)
+	, uint64_t period_us
+	, uint64_t start_us)
 {
-	TRACE( 19, "add_periodic - desc="+std::string(desc)+" period_us=%lu start_us=%lu"
-		, period_us, start_us );
+	TLOG(19) << "add_periodic - desc=" << desc << " period_us=" << period_us << " start_us=" << start_us;
 	timeoutspec tmo;
 	tmo.desc = desc;
 	tmo.tag = 0;
@@ -105,7 +110,7 @@ Timeout::add_periodic(const char* desc
 
 void
 Timeout::add_relative(const char* desc, void* tag, std::function<void()>& function
-					  , int rel_ms)
+	, int rel_ms)
 {
 	timeoutspec tmo;
 	tmo.desc = desc;
@@ -119,7 +124,7 @@ Timeout::add_relative(const char* desc, void* tag, std::function<void()>& functi
 
 void
 Timeout::add_relative(std::string desc
-					  , int rel_ms)
+	, int rel_ms)
 {
 	timeoutspec tmo;
 	tmo.desc = desc.c_str();
@@ -133,15 +138,15 @@ Timeout::add_relative(std::string desc
 
 int // tmo_tod_us is an output
 Timeout::get_next_expired_timeout(std::string& desc, void** tag, std::function<void()>& function
-								  , uint64_t* tmo_tod_us)
+	, uint64_t* tmo_tod_us)
 {
 	int skipped = 0;
 	timeoutspec tmo;
-	TRACE( 15, "get_next_expired_timeout b4 get_clear_next_expired_timeout" );
+	TLOG(15) << "get_next_expired_timeout b4 get_clear_next_expired_timeout";
 	skipped = get_clear_next_expired_timeout(tmo, artdaq::TimeUtils::gettimeofday_us());
 	if (skipped == -1)
 	{
-		TRACE( 18, "get_next_expired_timeout - get_clear_next_expired_timeout returned false" );
+		TLOG(18) << "get_next_expired_timeout - get_clear_next_expired_timeout returned false";
 		desc = std::string(""); // 2 ways to check for none timed out
 	}
 	else
@@ -161,12 +166,12 @@ Timeout::get_next_timeout_delay(int64_t* delay_us)
 	size_t active_time_size = active_time_.size();
 	if (active_time_size == 0)
 	{
-		TRACE( 17, "get_next_timeout_delay active_.size() == 0" );
+		TLOG(17) << "get_next_timeout_delay active_.size() == 0";
 		*delay_us = -1; // usually means a very very long time
 	}
 	else
 	{
-		TRACE( 17, "get_next_timeout_delay active_.size() != 0 %lu",active_time_size );
+		TLOG(17) << "get_next_timeout_delay active_.size() != 0: " << active_time_size;
 		uint64_t tod_us = artdaq::TimeUtils::gettimeofday_us();
 		timeoutspec* tmo = &tmospecs_[(*(active_time_.begin())).second];
 		*delay_us = tmo->tmo_tod_us - tod_us;
@@ -221,12 +226,12 @@ Timeout::timeoutlist_init()
 
 
 int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo
-											, uint64_t tod_now_us)
+	, uint64_t tod_now_us)
 {
 	int skipped = 0;
 	if (active_time_.size() == 0)
 	{
-		TRACE( 17, "get_clear_next_expired_timeout - nothing to get/clear!" );
+		TLOG(17) << "get_clear_next_expired_timeout - nothing to get/clear!";
 		return (false);
 	}
 	else
@@ -237,8 +242,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo
 		if (tmospecs_[idx].tmo_tod_us < tod_now_us)
 		{
 			tmo = tmospecs_[idx];
-			TRACE( 17, "get_clear_next_expired_timeout - clearing tag=%p desc="+tmo.desc+" period=%lu idx=%lu"
-				, tmo.tag, tmo.period_us, idx );
+			TLOG(17) << "get_clear_next_expired_timeout - clearing tag=" << tmo.tag << " desc=" << tmo.desc << " period=" << tmo.period_us << " idx=" << idx;
 
 			active_time_.erase(itfront);
 			// now, be effecient -- if periodic, add back at new time, else
@@ -250,17 +254,16 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo
 				uint64_t period_us = tmo.period_us;
 				delta_us = tod_now_us - tmo.tmo_tod_us;
 				skipped = delta_us / period_us;
-				assert( skipped >= 0 );
+				assert(skipped >= 0);
 				tmo.missed_periods += skipped;
 
 				/* now fast forward over skipped */
 				period_us += period_us * skipped;
 				tmospecs_[idx].tmo_tod_us += period_us;
 				active_time_.insert(std::pair<uint64_t, size_t>(tmospecs_[idx].tmo_tod_us, idx));
-				TRACE( 18
-					,"get_clear_next_expired_timeout - periodic timeout desc="+tmo.desc
-					+" period_us=%lu delta_us=%lu skipped=%d next tmo at:%lu"
-					, period_us, delta_us, skipped, tmospecs_[idx].tmo_tod_us );
+				TLOG(18) << "get_clear_next_expired_timeout - periodic timeout desc=" << tmo.desc
+					<< " period_us=" << period_us << " delta_us=" << delta_us
+					<< " skipped=" << skipped << " next tmo at:" << tmospecs_[idx].tmo_tod_us;
 			}
 			else
 			{
@@ -279,8 +282,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo
 		}
 		else
 		{
-			TRACE( 17, "get_clear_next_expired_timeout - front %lu NOT before ts_now %lu - not clearing!"
-				, tmospecs_[idx].tmo_tod_us, tod_now_us );
+			TLOG(17) << "get_clear_next_expired_timeout - front " << tmospecs_[idx].tmo_tod_us << " NOT before ts_now " << tod_now_us << " - not clearing!";
 			return (-1);
 		}
 	}
@@ -290,7 +292,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo
 // this doesn't do anything (function undefined)
 void Timeout::copy_in_timeout(const char* desc, uint64_t period_us, uint64_t start_us)
 {
-	TRACE( 18, "copy_in_timeout desc="+std::string(desc) );
+	TLOG(18) << "copy_in_timeout desc=" + std::string(desc);
 	timeoutspec tos;
 	tos.desc = desc;
 	tos.tag = NULL;
@@ -305,21 +307,21 @@ void
 Timeout::copy_in_timeout(timeoutspec& tmo)
 {
 	// check for at least one empty entry
-	assert( free_.size() );
+	assert(free_.size());
 
 	// get/fill-in free tmospec
 	std::unique_lock<std::mutex> ulock(lock_mutex_);
 	size_t idx = free_.front();
 	free_.pop_front();
 	tmospecs_[idx] = tmo;
-	TRACE( 20, "copy_in_timeout timeoutspec desc="+tmo.desc );
+	TLOG(20) << "copy_in_timeout timeoutspec desc=" + tmo.desc;
 	active_time_.insert(std::pair<uint64_t, size_t>(tmo.tmo_tod_us, idx));
 	active_desc_.insert(std::pair<std::string, size_t>(tmo.desc, idx));
 }
 
 bool
 Timeout::cancel_timeout(void* tag
-						, std::string desc)
+	, std::string desc)
 {
 	bool retsts = false;
 	std::unordered_multimap<std::string, size_t>::iterator ii, ee;
@@ -352,7 +354,7 @@ Timeout::cancel_timeout(void* tag
 			break;
 		}
 	}
-	TRACE( 22, "cancel_timeout returning %d", retsts );
+	TLOG(22) << "cancel_timeout returning " << retsts;
 	return retsts;
 } // cancel_timeout
 
@@ -362,6 +364,6 @@ Timeout::list_active_time()
 	std::map<uint64_t, size_t>::iterator ii = active_time_.begin(), ee = active_time_.end();
 	for (; ii != ee; ++ii)
 	{
-		TRACE( 3, "list_active_time %lu desc="+tmospecs_[(*ii).second].desc, (*ii).first );
+		TLOG(TLVL_DEBUG) << "list_active_time " << (*ii).first << " desc=" << tmospecs_[(*ii).second].desc;
 	}
 }

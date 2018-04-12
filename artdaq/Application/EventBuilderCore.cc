@@ -1,7 +1,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
 
-#define TRACE_NAME "EventBuilderCore"
+#define TRACE_NAME (app_name + "_EventBuilderCore").c_str() // include these 2 first -
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -18,13 +18,13 @@ artdaq::EventBuilderCore::EventBuilderCore()
 
 artdaq::EventBuilderCore::~EventBuilderCore()
 {
-	TLOG_DEBUG(app_name) << "Destructor" << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "Destructor" ;
 }
 
 bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(app_name) << "initialize method called with DAQ "
-		<< "ParameterSet = \"" << pset.to_string() << "\"." << TLOG_ENDL;
+	TLOG(TLVL_DEBUG) << "initialize method called with DAQ "
+		<< "ParameterSet = \"" << pset.to_string() << "\"." ;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -34,9 +34,9 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(app_name)
+		TLOG(TLVL_ERROR)
 			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\"." << TLOG_ENDL;
+			<< "ParameterSet: \"" + pset.to_string() + "\"." ;
 		return false;
 	}
 	fhicl::ParameterSet evb_pset;
@@ -46,9 +46,9 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(app_name)
+		TLOG(TLVL_ERROR)
 			<< "Unable to find the event_builder parameters in the DAQ "
-			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." << TLOG_ENDL;
+			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." ;
 		return false;
 	}
 

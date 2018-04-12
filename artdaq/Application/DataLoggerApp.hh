@@ -19,10 +19,8 @@ class artdaq::DataLoggerApp : public artdaq::Commandable
 public:
 	/**
 	 * \brief DataLoggerApp Constructor
-	 * \param rank The rank of the DataLogger
-	 * \param name The nickname of the DataLogger
 	 */
-	DataLoggerApp(int rank, std::string name);
+	DataLoggerApp();
 
 	/**
 	 * \brief Copy Constructor is Deleted

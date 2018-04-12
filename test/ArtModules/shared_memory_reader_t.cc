@@ -1,3 +1,5 @@
+#define TRACE_NAME "shared_memory_reader_t"
+
 #include "artdaq/ArtModules/detail/SharedMemoryReader.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
@@ -363,7 +365,7 @@ namespace
 
 		}
 		str << "}";
-		TLOG_DEBUG("shared_memory_reader_t") <<"Fragment to art: "<< str.str() << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) <<"Fragment to art: "<< str.str() ;
 		
 
 		artdaq::FragmentPtr tempFrag;
@@ -417,7 +419,7 @@ namespace
 			
 		}
 		str2 << "}";
-		TLOG_DEBUG("shared_memory_reader_t") << "Fragment from art: " << str2.str() << TLOG_ENDL;
+		TLOG(TLVL_DEBUG) << "Fragment from art: " << str2.str() ;
 
 		BOOST_CHECK(std::equal(fakeData.begin(),
 							   fakeData.end(),

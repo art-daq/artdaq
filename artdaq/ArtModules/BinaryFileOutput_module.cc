@@ -90,33 +90,33 @@ BinaryFileOutput(ParameterSet const& ps)
 	: OutputModule(ps)
 	, fstats_{ name_, processName() }
 {
-	FDEBUG(1) << "Begin: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";
+	TLOG(TLVL_DEBUG) << "Begin: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";
 	readParameterSet_(ps);
-	FDEBUG(1) << "End: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";
+	TLOG(TLVL_DEBUG) << "End: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";
 }
 
 art::BinaryFileOutput::
 ~BinaryFileOutput()
 {
-	FDEBUG(1) << "Begin/End: BinaryFileOutput::~BinaryFileOutput()\n";
+	TLOG(TLVL_DEBUG) << "Begin/End: BinaryFileOutput::~BinaryFileOutput()\n";
 }
 
 void
 art::BinaryFileOutput::
 beginJob()
 {
-	FDEBUG(1) << "Begin: BinaryFileOutput::beginJob()\n";
+	TLOG(TLVL_DEBUG) << "Begin: BinaryFileOutput::beginJob()\n";
 	initialize_FILE_();
-	FDEBUG(1) << "End:   BinaryFileOutput::beginJob()\n";
+	TLOG(TLVL_DEBUG) << "End:   BinaryFileOutput::beginJob()\n";
 }
 
 void
 art::BinaryFileOutput::
 endJob()
 {
-	FDEBUG(1) << "Begin: BinaryFileOutput::endJob()\n";
+	TLOG(TLVL_DEBUG) << "Begin: BinaryFileOutput::endJob()\n";
 	deinitialize_FILE_();
-	FDEBUG(1) << "End:   BinaryFileOutput::endJob()\n";
+	TLOG(TLVL_DEBUG) << "End:   BinaryFileOutput::endJob()\n";
 }
 
 
@@ -128,12 +128,12 @@ initialize_FILE_()
 	if (do_direct_)
 	{
 		fd_ = open(file_name.c_str(), O_WRONLY | O_CREAT | O_DIRECT, 0660);
-		TLOG_ARB(4, "BinaryFileOutput") << "initialize_FILE_ fd_=" << fd_ << TLOG_ENDL;
+		TLOG(TLVL_TRACE) << "initialize_FILE_ fd_=" << fd_;
 	}
 	else
 	{
 		file_ptr_ = std::make_unique<std::ofstream>(file_name, std::ofstream::binary);
-		TRACE(4, "BinaryFileOutput::initialize_FILE_ file_ptr_=%p errno=%d", (void*)file_ptr_.get(), errno);
+		TLOG(TLVL_TRACE) << "BinaryFileOutput::initialize_FILE_ file_ptr_=" << (void*)file_ptr_.get() << " errno=" << errno;
 		//file_ptr_->rdbuf()->pubsetbuf(0, 0);
 	}
 	fstats_.recordFileOpen();
@@ -157,9 +157,9 @@ bool
 art::BinaryFileOutput::
 readParameterSet_(fhicl::ParameterSet const& pset)
 {
-	TLOG_DEBUG(name_) << "BinaryFileOutput::readParameterSet_ method called with "
+	TLOG(TLVL_DEBUG) << name_ << "BinaryFileOutput::readParameterSet_ method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\"." << TLOG_ENDL;
+		<< "\".";
 	// determine the data sending parameters
 	try
 	{
@@ -167,10 +167,10 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 	}
 	catch (...)
 	{
-		TLOG_ERROR(name_)
+		TLOG(TLVL_ERROR) << name_
 			<< "The fileName parameter was not specified "
 			<< "in the BinaryFileOutput initialization PSet: \""
-			<< pset.to_string() << "\"." << TLOG_ENDL;
+			<< pset.to_string() << "\".";
 		return false;
 	}
 	do_direct_ = pset.get<bool>("directIO", false);
@@ -211,13 +211,13 @@ write(EventPrincipal& ep)
 		{
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
-			TRACE(4, "BinaryFileOutput::write seq=%lu frag=%i %p bytes=0x%lx start"
-				  , sequence_id, fragid_id, fragment.headerBeginBytes(), fragment.sizeBytes());
+			TLOG(TLVL_TRACE) << "BinaryFileOutput::write seq=" << sequence_id
+				<< " frag=" << fragid_id << " " << reinterpret_cast<const void*>(fragment.headerBeginBytes())
+				<< " bytes=0x" << std::hex << fragment.sizeBytes() << " start";
 			if (do_direct_)
 			{
 				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
-				TRACE(5, "BinaryFileOutput::write seq=%lu frag=%i done sts=%ld errno=%d"
-					  , sequence_id, fragid_id, sts, errno);
+				TLOG(5) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done sts=" << sts << " errno=" << errno;
 			}
 			else
 			{
@@ -226,8 +226,7 @@ write(EventPrincipal& ep)
 #          else
 				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
 #          endif
-				TRACE(5, "BinaryFileOutput::write seq=%lu frag=%i done errno=%d"
-					  , sequence_id, fragid_id, errno);
+				TLOG(5) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done errno=" << errno;
 			}
 		}
 	}
