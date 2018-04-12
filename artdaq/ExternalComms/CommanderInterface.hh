@@ -47,7 +47,7 @@ namespace artdaq
 		/**
 		 * \brief Default virtual Destructor
 		 */
-		virtual ~CommanderInterface() = default;
+		virtual ~CommanderInterface();
 
 		/// <summary>
 		/// run_server is the main work loop for the Commander.

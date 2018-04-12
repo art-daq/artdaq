@@ -1,6 +1,9 @@
 #include "CommanderInterface.hh"
 
 namespace artdaq {
+	CommanderInterface::~CommanderInterface()
+	{}
+
 	inline std::string CommanderInterface::send_init(fhicl::ParameterSet, uint64_t, uint64_t)
 	{
 #pragma message "Using default implementation of send_init!"
