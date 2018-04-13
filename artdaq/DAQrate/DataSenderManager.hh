@@ -61,9 +61,9 @@ public:
 	/**
 	 * \brief Send the given Fragment. Return the rank of the destination to which the Fragment was sent.
 	 * \param frag Fragment to sent
-	 * \return Rank of destination for Fragment
+	 * \return Pair containing Rank of destination for Fragment and the CopyStatus from the send call
 	 */
-	int sendFragment(Fragment&& frag);
+	std::pair<int, TransferInterface::CopyStatus> sendFragment(Fragment&& frag);
 
 	/**
 	* \brief Return the count of Fragment objects sent by this DataSenderManagerq

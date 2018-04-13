@@ -44,6 +44,18 @@ namespace artdaq
 			kErrorNotRequiringException ///< Some error occurred, but no exception was thrown
 		};
 
+		static std::string CopyStatusToString(CopyStatus in)
+		{
+			switch (in)
+			{
+			case CopyStatus::kSuccess: return "Success";
+			case CopyStatus::kTimeout: return "Timeout";
+			case CopyStatus::kErrorNotRequiringException: return "Error";
+			default: return "UNKNOWN";
+			}
+			return "SWITCHERROR";
+		}
+
 		/**
 		 * \brief TransferInterface Constructor
 		 * \param ps ParameterSet used for configuring the TransferInterface

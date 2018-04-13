@@ -18,6 +18,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	, sends_each_sender_(psi.get<int>("sends_per_sender"))
 	, receives_each_receiver_(senders_ * sending_threads_ * sends_each_sender_ / receivers_)
 	, buffer_count_(psi.get<int>("buffer_count", 10))
+	, error_count_max_(psi.get<int>("max_errors_before_abort", 3))
 	, fragment_size_(psi.get<size_t>("fragment_size", 0x100000))
 	, ps_()
 	, validate_mode_(psi.get<bool>("validate_data_mode", false))
@@ -25,7 +26,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 {
 	TLOG(10) << "CONSTRUCTOR";
 	metricMan = &metricMan_;
-	
+
 	if (fragment_size_ < artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType))
 	{
 		fragment_size_ = artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType);
@@ -100,12 +101,14 @@ int artdaq::TransferTest::runTest()
 	if (my_rank < senders_)
 	{
 		std::vector<std::future<std::pair<size_t, double>>> results_futures(sending_threads_);
-		for (int ii = 0; ii < sending_threads_; ++ii) {
+		for (int ii = 0; ii < sending_threads_; ++ii)
+		{
 			results_futures[ii] = std::async(std::bind(&TransferTest::do_sending, this, ii));
 		}
 		for (auto& future : results_futures)
 		{
-			if (future.valid()) {
+			if (future.valid())
+			{
 				auto thisresult = future.get();
 				result.first += thisresult.first;
 				result.second += thisresult.second;
@@ -140,7 +143,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 	{
 		artdaq::RawDataType gen_seed = 0;
 
-		std::generate_n(frag.dataBegin(), data_size_wrds, [&]() {	return ++gen_seed; });
+		std::generate_n(frag.dataBegin(), data_size_wrds, [&]() { return ++gen_seed; });
 		for (size_t ii = 0; ii < frag.dataSize(); ++ii)
 		{
 			if (*(frag.dataBegin() + ii) != ii + 1)
@@ -156,6 +159,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 	auto send_time_metric = 0.0;
 	auto after_time_metric = 0.0;
 	auto send_size_metric = 0.0;
+	auto error_count = 0;
 
 	for (int ii = 0; ii < sends_each_sender_; ++ii)
 	{
@@ -174,18 +178,28 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 				*++it = sndDatSz;*/
 
 		auto send_start = std::chrono::steady_clock::now();
-		sender.sendFragment(std::move(frag));
+		auto stspair = sender.sendFragment(std::move(frag));
 		TLOG(TLVL_DEBUG) << "Sender " << my_rank << " sending fragment " << ii;
 		auto after_send = std::chrono::steady_clock::now();
 		TLOG(TLVL_TRACE) << "Sender " << my_rank << " sent fragment " << ii;
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
+
+		if (stspair.second != artdaq::TransferInterface::CopyStatus::kSuccess)
+		{
+			error_count++;
+			if (error_count >= error_count_max_)
+			{
+				TLOG(TLVL_ERROR) << "Too many errors sending fragments! Aborting... (sent=" << ii << "/" << sends_each_sender_ << ")";
+				break;
+			}
+		}
 
 		frag = artdaq::Fragment(data_size_wrds); // replace/renew
 		if (validate_mode_)
 		{
 			artdaq::RawDataType gen_seed = ii + 1;
 
-			std::generate_n(frag.dataBegin(), data_size_wrds, [&]() {	return ++gen_seed; });
+			std::generate_n(frag.dataBegin(), data_size_wrds, [&]() { return ++gen_seed; });
 			for (size_t jj = 0; jj < frag.dataSize(); ++jj)
 			{
 				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
@@ -288,7 +302,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			}
 			input_wait_metric += std::chrono::duration_cast<artdaq::TimeUtils::seconds>(after_receive - end_loop).count();
 		}
-		else if (senderSlot == artdaq::TransferInterface::DATA_END) {
+		else if (senderSlot == artdaq::TransferInterface::DATA_END)
+		{
 			TLOG(TLVL_ERROR) << "Receiver " << my_rank << " detected fatal protocol error! Reducing active sender count by one!" << std::endl;
 			activeSenders--;
 			TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;

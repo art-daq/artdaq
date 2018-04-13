@@ -333,7 +333,7 @@ void artdaq::BoardReaderCore::process_fragments()
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
 			TLOG(17) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment start";
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
-			TLOG(17) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment done (res=" << res << ")";
+			TLOG(17) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 				artdaq::MonitoredQuantity::getCurrentTime() - startTime);

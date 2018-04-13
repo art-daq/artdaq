@@ -339,8 +339,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 	return TransferInterface::RECV_TIMEOUT;
 }
 
-int
-artdaq::DataSenderManager::sendFragment(Fragment&& frag)
+std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager::sendFragment(Fragment&& frag)
 {
 	// Precondition: Fragment must be complete and consistent (including
 	// header information).
@@ -356,6 +355,7 @@ artdaq::DataSenderManager::sendFragment(Fragment&& frag)
 	TLOG(13) << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << std::to_string(fragSize)
 		<< ", seqID=" << std::to_string(seqID) << ", type=" << frag.typeString();
 	int dest = TransferInterface::RECV_TIMEOUT;
+	auto outsts = TransferInterface::CopyStatus::kSuccess;
 	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType)
 	{
 		for (auto& bdest : enabled_destinations_)
@@ -370,6 +370,7 @@ artdaq::DataSenderManager::sendFragment(Fragment&& frag)
 				sts = destinations_[bdest]->copyFragment(fragCopy, send_timeout_us_);
 				retries++;
 			}
+			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
 			sent_frag_count_.incSlot(bdest);
 		}
 	}
@@ -400,6 +401,7 @@ artdaq::DataSenderManager::sendFragment(Fragment&& frag)
 					lastWarnTime = std::chrono::steady_clock::now();
 				}
 			}
+			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}
@@ -434,6 +436,7 @@ artdaq::DataSenderManager::sendFragment(Fragment&& frag)
 
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
+			outsts = sts;
 		}
 		else
 			TLOG(TLVL_WARNING) << "calcDest returned invalid destination rank " << dest
@@ -468,5 +471,5 @@ artdaq::DataSenderManager::sendFragment(Fragment&& frag)
 		}
 	}
 	TLOG(5) << "sendFragment: Done sending fragment " << seqID;
-	return dest;
+	return std::make_pair(dest, outsts);
 }   // artdaq::DataSenderManager::sendFragment

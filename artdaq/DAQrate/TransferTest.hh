@@ -58,6 +58,7 @@ namespace artdaq
 		int sends_each_sender_;
 		int receives_each_receiver_; // Should be sends_each_sender * sending_threads * sending_ranks / receiving_ranks
 		int buffer_count_;
+		int error_count_max_;
 		size_t fragment_size_;
 		std::chrono::steady_clock::time_point start_time_;
 		fhicl::ParameterSet ps_;
