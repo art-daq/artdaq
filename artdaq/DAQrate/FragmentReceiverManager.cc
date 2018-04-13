@@ -199,7 +199,12 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 			return;
 		}
 
-
+		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank) && TimeUtils::GetElapsedTimeMilliseconds(eod_quiet_start) > 1000)
+		{
+			TLOG(TLVL_DEBUG) << "runReceiver_: EndOfData conditions satisfied, ending receive loop";
+			running_sources_.erase(source_rank);
+			return;
+		}
 
 		auto start_time = std::chrono::steady_clock::now();
 		TLOG(16) << "runReceiver_: Calling receiveFragment" ;
@@ -213,12 +218,6 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		auto ret1 = source_plugins_[source_rank]->receiveFragmentHeader(hdr, receive_timeout_);
 		TLOG(16) << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")" ;
 
-		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank) && TimeUtils::GetElapsedTimeMilliseconds(eod_quiet_start) > 1000)
-		{
-			TLOG(TLVL_DEBUG) << "runReceiver_: EndOfData conditions satisfied, ending receive loop";
-			running_sources_.erase(source_rank);
-			return;
-		}
 		if (ret1 != source_rank) continue; // Receive timeout or other oddness
 		eod_quiet_start = std::chrono::steady_clock::now();
 

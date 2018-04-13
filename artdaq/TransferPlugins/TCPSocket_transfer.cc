@@ -42,9 +42,6 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, send_fd_(-1)
 	, active_receive_fd_(-1)
 	, last_active_receive_fd_(-1)
-	, state_(SocketState::Metadata)
-	, offset(0)
-	, target_bytes(sizeof(MessHead))
 	, rcvbuf_(pset.get<size_t>("tcp_receive_buffer_size", 0))
 	, sndbuf_(max_fragment_size_words_ * sizeof(artdaq::RawDataType) * buffer_count_)
 	, send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
@@ -101,7 +98,6 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 	}
 	else
 	{
-		std::unique_lock<std::mutex> lk(listen_thread_mutex_);
 		auto it = connected_fds_[source_rank()].begin();
 		while (it != connected_fds_[source_rank()].end())
 		{
@@ -109,6 +105,7 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 			it = connected_fds_[source_rank()].erase(it);
 		}
 
+		std::unique_lock<std::mutex> lk(listen_thread_mutex_);
 		listen_thread_refcount_--;
 		if (listen_thread_refcount_ == 0 && listen_thread_ && listen_thread_->joinable())
 		{
@@ -120,7 +117,7 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 
 int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& header, size_t timeout_usec)
 {
-	TLOG(7) << GetTraceName() << ": receiveFragmentHeader: BEGIN";
+	TLOG(5) << GetTraceName() << ": receiveFragmentHeader: BEGIN";
 	int ret_rank = RECV_TIMEOUT;
 
 	if (connected_fds_[source_rank()].size() == 0)
@@ -132,13 +129,17 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	}
 	not_connected_count_ = 0;
 
-	TLOG(7) << GetTraceName() << ": receiveFragmentHeader timeout_usec=" << std::to_string(timeout_usec);
+	TLOG(5) << GetTraceName() << ": receiveFragmentHeader timeout_usec=" << std::to_string(timeout_usec);
 	//void* buff=alloca(max_fragment_size_words_*8);
 	size_t byte_cnt = 0;
 	int sts;
+	int offset = 0;
+	SocketState state = SocketState::Metadata;
+	int target_bytes = sizeof(MessHead);
 	uint64_t start_time_us = TimeUtils::gettimeofday_us();
 
-	//while (active_receive_fd_ != -1) {
+	//while (active_receive_fd_ != -1) 
+	//{
 	//	TLOG(TLVL_TRACE) << GetTraceName() << ": Currently receiving from fd " << active_receive_fd_ << ", waiting!";
 	//	usleep(1000);
 	//}
@@ -155,11 +156,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	bool done = false;
 	while (!done && connected_fds_[source_rank()].size() > 0)
 	{
-		if (active_receive_fd_ == -1) {
+		if (active_receive_fd_ == -1)
+		{
 			size_t fd_count = connected_fds_[source_rank()].size();
 			auto iter = connected_fds_[source_rank()].begin();
 			std::vector<pollfd> pollfds(fd_count);
-			for (size_t ii = 0; ii < fd_count; ++ii) {
+			for (size_t ii = 0; ii < fd_count; ++ii)
+			{
 				pollfds[ii].events = POLLIN | POLLERR;
 				pollfds[ii].fd = *iter;
 				++iter;
@@ -171,17 +174,20 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			{
 				if (num_fds_ready == 0 && timeout_ms > 0)
 				{
-					TLOG(7) << GetTraceName() << ": receiveFragmentHeader: No data on receive socket, returning RECV_TIMEOUT";
+					TLOG(5) << GetTraceName() << ": receiveFragmentHeader: No data on receive socket, returning RECV_TIMEOUT";
 					return RECV_TIMEOUT;
 				}
 				break;
 			}
 
 			size_t index = 0;
-			if (last_active_receive_fd_ != -1) {
-				for (auto& pollfd : pollfds) {
+			if (last_active_receive_fd_ != -1)
+			{
+				for (auto& pollfd : pollfds)
+				{
 					index++;
-					if (pollfd.fd == last_active_receive_fd_) {
+					if (pollfd.fd == last_active_receive_fd_)
+					{
 						break;
 					}
 				}
@@ -191,18 +197,21 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			short anomolous_events = 0;
 			for (size_t ii = index; ii < index + pollfds.size(); ++ii)
 			{
-				if (pollfds[index % pollfds.size()].revents & (POLLIN | POLLPRI | POLLHUP | POLLERR)) {
+				if (pollfds[index % pollfds.size()].revents & (POLLIN | POLLPRI | POLLHUP | POLLERR))
+				{
 					active_index = index % pollfds.size();
 					active_receive_fd_ = pollfds[active_index].fd;
 					break;
 				}
-				else if (pollfds[index % pollfds.size()].revents & (POLLNVAL)) {
+				else if (pollfds[index % pollfds.size()].revents & (POLLNVAL))
+				{
 					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: FD is closed, most likely because the peer went away. Removing from fd list.";
 					close(pollfds[active_index].fd);
 					connected_fds_[source_rank()].erase(pollfds[active_index].fd);
 					continue;
 				}
-				else if (pollfds[index % pollfds.size()].revents) {
+				else if (pollfds[index % pollfds.size()].revents)
+				{
 					anomolous_events |= pollfds[index % pollfds.size()].revents;
 				}
 			}
@@ -213,9 +222,20 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				active_receive_fd_ = -1;
 				continue;
 			}
+
+			if (!done && timeout_usec > 0)
+			{
+				// calc next timeout_ms (unless timed out)
+				size_t delta_us = TimeUtils::gettimeofday_us() - start_time_us;
+				if (delta_us > timeout_usec)
+				{
+					return RECV_TIMEOUT;
+				}
+				timeout_ms = ((timeout_usec - delta_us) + 999) / 1000; // want at least 1 ms
+			}
 		}
 
-		if (state_ == SocketState::Metadata)
+		if (state == SocketState::Metadata)
 		{
 			//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Reading Message Header" ;
 			buff = &(mha[offset]);
@@ -228,11 +248,14 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			byte_cnt = mh.byte_count - offset;
 		}
 
-		TLOG(9) << GetTraceName() << ": receiveFragmentHeader: Reading " << byte_cnt << " bytes from socket";
-		sts = read(active_receive_fd_, buff, byte_cnt);
-		TLOG(9) << GetTraceName() << ": receiveFragmentHeader: Done with read";
+		if (byte_cnt > 0)
+		{
+			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Reading " << byte_cnt << " bytes from socket";
+			sts = read(active_receive_fd_, buff, byte_cnt);
+			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Done with read";
+		}
 
-		TLOG(9) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state_) << " read=" << sts;
+		TLOG(7) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state) << " read=" << sts;
 		if (sts < 0)
 		{
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket " << " (errno=" << errno << ": " << strerror(errno) << ")";
@@ -244,13 +267,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		{
 			// see if we're done (with this state)
 			sts = offset += sts;
-			if (sts == target_bytes)
+			if (sts >= target_bytes)
 			{
 				TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Target read bytes reached. Changing state";
 				offset = 0;
-				if (state_ == SocketState::Metadata)
+				if (state == SocketState::Metadata)
 				{
-					state_ = SocketState::Data;
+					state = SocketState::Data;
 					mh.byte_count = ntohl(mh.byte_count);
 					mh.source_id = ntohs(mh.source_id);
 					target_bytes = mh.byte_count;
@@ -265,11 +288,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				}
 				else
 				{
-					state_ = SocketState::Metadata;
-					target_bytes = sizeof(MessHead);
 					ret_rank = source_rank();
-					TLOG(9) << GetTraceName() << ": receiveFragmentHeader done sts=" << sts << " src=" << ret_rank;
-					TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Done receiving fragment. Moving into output.";
+					TLOG(8) << GetTraceName() << ": receiveFragmentHeader done sts=" << sts << " src=" << ret_rank;
+					TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Done receiving fragment header. Moving into output.";
 
 					done = true; // no more polls
 					break; // no more read of ready fds
@@ -277,23 +298,15 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			}
 		}
 
-		if (!done && timeout_usec > 0)
-		{
-			// calc next timeout_ms (unless timed out)
-			size_t delta_us = TimeUtils::gettimeofday_us() - start_time_us;
-			if (delta_us > timeout_usec)
-				return RECV_TIMEOUT;
-			timeout_ms = ((timeout_usec - delta_us) + 999) / 1000; // want at least 1 ms
-		}
 	} // while(!done)...poll
 
-	TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Returning " << ret_rank;
+	TLOG(5) << GetTraceName() << ": receiveFragmentHeader: Returning " << ret_rank;
 	return ret_rank;
 }
 
 int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, size_t)
 {
-	TLOG(7) << GetTraceName() << ": receiveFragmentData: BEGIN";
+	TLOG(9) << GetTraceName() << ": receiveFragmentData: BEGIN";
 	int ret_rank = RECV_TIMEOUT;
 	if (active_receive_fd_ == -1)
 	{ // what if just listen_fd??? 
@@ -305,40 +318,50 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	uint8_t* buff;
 	size_t byte_cnt = 0;
 	int sts;
+	int offset = 0;
+	SocketState state = SocketState::Metadata;
+	int target_bytes = sizeof(MessHead);
 
 	pollfd pollfd_s;
-	pollfd_s.events = POLLIN | POLLERR;
+	pollfd_s.events = POLLIN | POLLPRI | POLLERR;
 	pollfd_s.fd = active_receive_fd_;
 
 	bool done = false;
 	while (!done)
 	{
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data" ;
+		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0)
 			{
-				TLOG(7) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT";
+				TLOG(9) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT";
 				active_receive_fd_ = -1;
 				return RECV_TIMEOUT;
 			}
+
+			TLOG(TLVL_ERROR) << "Error in poll: errno=" << errno;
+			active_receive_fd_ = -1;
 			break;
 		}
 
-		if (pollfd_s.revents & (POLLNVAL)) {
+		if (pollfd_s.revents & (POLLNVAL))
+		{
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: FD is closed, most likely because the peer went away. Removing from fd list.";
 			close(active_receive_fd_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
+			active_receive_fd_ = -1;
 			break;
 		}
 		else if (!(pollfd_s.revents & (POLLIN | POLLPRI | POLLERR)))
 		{
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Wrong event received from pollfd: " << pollfd_s.revents;
+			close(active_receive_fd_);
+			connected_fds_[source_rank()].erase(active_receive_fd_);
 			continue;
 		}
 
-		if (state_ == SocketState::Metadata)
+		if (state == SocketState::Metadata)
 		{
 			//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Reading Message Header" ;
 			buff = &(mha[offset]);
@@ -355,10 +378,10 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		sts = read(active_receive_fd_, buff, byte_cnt);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Done with read" ;
 
-		TLOG(9) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state_) << " read=" << sts;
+		TLOG(10) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state) << " read=" << sts;
 		if (sts < 0)
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket" 
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket"
 				<< " (errno=" << errno << ": " << strerror(errno) << ")";
 			close(active_receive_fd_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
@@ -368,24 +391,22 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			// see if we're done (with this state)
 			sts = offset += sts;
-			if (sts == target_bytes)
+			if (sts >= target_bytes)
 			{
-				TLOG(7) << GetTraceName() << ": receiveFragmentData: Target read bytes reached. Changing state";
+				TLOG(9) << GetTraceName() << ": receiveFragmentData: Target read bytes reached. Changing state";
 				offset = 0;
-				if (state_ == SocketState::Metadata)
+				if (state == SocketState::Metadata)
 				{
-					state_ = SocketState::Data;
+					state = SocketState::Data;
 					mh.byte_count = ntohl(mh.byte_count);
 					mh.source_id = ntohs(mh.source_id);
 					target_bytes = mh.byte_count;
 				}
 				else
 				{
-					state_ = SocketState::Metadata;
-					target_bytes = sizeof(MessHead);
 					ret_rank = source_rank();
-					TLOG(9) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
-					TLOG(7) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
+					TLOG(11) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
+					TLOG(9) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
 
 					done = true; // no more polls
 					break; // no more read of ready fds
@@ -394,13 +415,11 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		}
 
 		// Check if we were asked to do a 0-size receive
-		if (target_bytes == 0 && state_ == SocketState::Data)
+		if (target_bytes == 0 && state == SocketState::Data)
 		{
-			state_ = SocketState::Metadata;
-			target_bytes = sizeof(MessHead);
 			ret_rank = source_rank();
-			TLOG(9) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
-			TLOG(7) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
+			TLOG(11) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
+			TLOG(9) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
 
 			done = true; // no more polls
 		}
@@ -410,7 +429,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	last_active_receive_fd_ = active_receive_fd_;
 	active_receive_fd_ = -1;
 
-	TLOG(7) << GetTraceName() << ": receiveFragmentData: Returning " << ret_rank;
+	TLOG(9) << GetTraceName() << ": receiveFragmentData: Returning " << ret_rank;
 	return ret_rank;
 }
 
@@ -418,7 +437,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 // the Fragment was sent OR -1 if to none.
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(Fragment&& frag, size_t send_timeout_usec)
 {
-	TLOG(7) << GetTraceName() << ": sendFragment begin";
+	TLOG(12) << GetTraceName() << ": sendFragment begin";
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
 
 	// Send Fragment Header
@@ -431,7 +450,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	//If it takes more than 10 seconds to write a Fragment header, give up
 	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
-		TLOG(7) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
+		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
 		sts = sendData_(&iov, 1, send_retry_timeout_us_);
 		usleep(1000);
 	}
@@ -445,12 +464,12 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	start_time = std::chrono::steady_clock::now();
 	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
-		TLOG(7) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
+		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
 		sts = sendData_(&iov, 1, send_retry_timeout_us_);
 		usleep(1000);
 	}
 
-	TLOG(7) << GetTraceName() << ": sendFragment returning kSuccess";
+	TLOG(12) << GetTraceName() << ": sendFragment returning kSuccess";
 	return sts;
 }
 
@@ -474,7 +493,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		return CopyStatus::kTimeout;
 	}
 	timeoutMessageArmed_ = true;
-	TLOG(12) << GetTraceName() << ": send_timeout_usec is " << std::to_string(send_timeout_usec) << ", currently unused.";
+	TLOG(14) << GetTraceName() << ": send_timeout_usec is " << std::to_string(send_timeout_usec) << ", currently unused.";
 
 	//TLOG(TLVL_DEBUG) << GetTraceName() << ": sendData_: Determining write size" ;
 	uint32_t total_to_write_bytes = 0;
@@ -506,7 +525,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		// iov looping from below (b/c of the latter, we need to check this_write_bytes)
 		for (;
 			(in_iov_idx + out_iov_idx) < iov_in.size() && this_write_bytes < per_write_max_bytes;
-			++out_iov_idx)
+			 ++out_iov_idx)
 		{
 			this_write_bytes += iov_in[in_iov_idx + out_iov_idx].iov_len;
 			iovv[out_iov_idx] = iov_in[in_iov_idx + out_iov_idx];
@@ -519,7 +538,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 
 		// need to do blocking algorithm -- including throttled block notifications
 	do_again:
-		TLOG(7) << GetTraceName() << ": sendFragment b4 writev " << std::setw(7) << std::to_string(total_written_bytes) << " total_written_bytes send_fd_=" << send_fd_ << " in_idx=" << std::to_string(in_iov_idx)
+		TLOG(14) << GetTraceName() << ": sendFragment b4 writev " << std::setw(7) << std::to_string(total_written_bytes) << " total_written_bytes send_fd_=" << send_fd_ << " in_idx=" << std::to_string(in_iov_idx)
 			<< " iovcnt=" << std::to_string(out_iov_idx) << " 1st.len=" << std::to_string(iovv[0].iov_len);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " calling writev" ;
 		sts = writev(send_fd_, &(iovv[0]), out_iov_idx);
@@ -623,7 +642,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	}
 	sts = total_written_bytes - sizeof(MessHead);
 
-	TLOG(10) << GetTraceName() << ": sendFragment sts=" << std::to_string(sts);
+	TLOG(14) << GetTraceName() << ": sendFragment sts=" << std::to_string(sts);
 	return TransferInterface::CopyStatus::kSuccess;
 }
 
@@ -646,9 +665,9 @@ void artdaq::TCPSocketTransfer::stats_connect_() // thread
 
 		std::unique_lock<std::mutex> lck(stopstatscvm_);
 		sts = stopstatscv_.wait_until(lck
-			, std::chrono::system_clock::now()
-			+ std::chrono::milliseconds(msdly));
-		TLOG(5) << GetTraceName() << ": thread1 after wait_until(msdly=" << msdly << ") - sts=" << static_cast<int>(sts);
+									  , std::chrono::system_clock::now()
+									  + std::chrono::milliseconds(msdly));
+		TLOG(15) << GetTraceName() << ": thread1 after wait_until(msdly=" << msdly << ") - sts=" << static_cast<int>(sts);
 
 		if (sts == std::cv_status::no_timeout)
 			break;
@@ -670,9 +689,9 @@ void artdaq::TCPSocketTransfer::connect_()
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": Connecting sender socket";
 	int sndbuf_bytes = static_cast<int>(sndbuf_);
 	send_fd_ = TCPConnect(hostMap_[destination_rank()].hostname.c_str()
-		, calculate_port_()
-		, O_NONBLOCK
-		, sndbuf_bytes);
+						  , calculate_port_()
+						  , O_NONBLOCK
+						  , sndbuf_bytes);
 	connect_state = 0;
 	blocking = 0;
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": connect_ " + hostMap_[destination_rank()].hostname + ":" << calculate_port_() << " send_fd_=" << send_fd_;
@@ -787,7 +806,7 @@ void artdaq::TCPSocketTransfer::listen_()
 		}
 		else
 		{
-			TLOG(10) << "listen_: No connections in timeout interval!";
+			TLOG(16) << "listen_: No connections in timeout interval!";
 		}
 	}
 

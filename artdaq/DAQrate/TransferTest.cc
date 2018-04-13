@@ -190,7 +190,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			if (error_count >= error_count_max_)
 			{
 				TLOG(TLVL_ERROR) << "Too many errors sending fragments! Aborting... (sent=" << ii << "/" << sends_each_sender_ << ")";
-				break;
+				exit(sends_each_sender_ - ii);
 			}
 		}
 
@@ -229,6 +229,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			after_time_metric = 0.0;
 			send_size_metric = 0.0;
 		}
+		usleep(0); // Yield execution
 	}
 
 	return std::make_pair(totalSize, totalTime);
@@ -334,6 +335,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	if (counter != 0)
 	{
 		TLOG(TLVL_ERROR) << "Did not receive all expected Fragments! Missing " << counter << " Fragments!";
+		exit(counter);
 	}
 
 	return std::make_pair(totalSize, totalTime);

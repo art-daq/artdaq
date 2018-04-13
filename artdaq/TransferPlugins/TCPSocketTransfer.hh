@@ -110,11 +110,7 @@ private:
 		Metadata,
 		Data
 	};
-
-	SocketState state_;
-
-	size_t offset;
-	int target_bytes;
+	
 	size_t rcvbuf_;
 	size_t sndbuf_;
 	size_t send_retry_timeout_us_;
