@@ -56,7 +56,7 @@ public:
 	 */
 	TCPSocketTransfer(fhicl::ParameterSet const& ps, Role role);
 
-	virtual ~TCPSocketTransfer();
+	virtual ~TCPSocketTransfer() noexcept;
 
 	/**
 	* \brief Receive a Fragment Header from the transport mechanism

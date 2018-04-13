@@ -258,6 +258,10 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 				activeSenders--;
 				TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;
 			}
+			else if (ignoreFragPtr->type() != artdaq::Fragment::DataFragmentType)
+			{
+				TLOG(TLVL_WARNING) << "Receiver " << my_rank << " received Fragment with System type " << artdaq::detail::RawFragmentHeader::SystemTypeToString(ignoreFragPtr->type()) << " (Unexpected!)";
+			}
 			else
 			{
 				if (first)
@@ -290,6 +294,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;
 		}
 		TLOG(7) << "do_receiving: Recv Loop end, counter is " << counter;
+
+
 		auto total_recv_time = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(after_receive - before_receive).count();
 		recv_time_metric += total_recv_time;
 		totalTime += total_recv_time;
@@ -308,6 +314,11 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			recv_size_metric = 0.0;
 		}
 		end_loop = std::chrono::steady_clock::now();
+	}
+
+	if (counter != 0)
+	{
+		TLOG(TLVL_ERROR) << "Did not receive all expected Fragments! Missing " << counter << " Fragments!";
 	}
 
 	return std::make_pair(totalSize, totalTime);
