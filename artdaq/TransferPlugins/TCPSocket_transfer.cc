@@ -78,7 +78,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": End of Constructor";
 }
 
-artdaq::TCPSocketTransfer::~TCPSocketTransfer()
+artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": Shutting down TCPSocketTransfer";
 	stats_connect_stop_ = true;
