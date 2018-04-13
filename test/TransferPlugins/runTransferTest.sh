@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [ $# -lt 2 ];then
-    echo "USAGE: $0 <fcl_file> <n_procs>"
-    exit 1
+	echo "USAGE: $0 <fcl_file> <n_procs>"
+	exit 1
 fi
 
 
@@ -10,12 +10,12 @@ fcl=$1
 nprocs=$2
 
 if ! [ -e $fcl ];then
-    echo "File $fcl Not Found! Aborting..."
-    exit 1
+	echo "File $fcl Not Found! Aborting..."
+	exit 1
 fi
 
 if [ $nprocs -lt 2 ]; then
-    echo "Must use at least 2 processes!"
+	echo "Must use at least 2 processes!"
 	exit 2
 fi
 

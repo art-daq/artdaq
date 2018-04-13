@@ -102,10 +102,11 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer()
 	else
 	{
 		std::unique_lock<std::mutex> lk(listen_thread_mutex_);
-		for (auto& fd : connected_fds_[source_rank()])
+		auto it = connected_fds_[source_rank()].begin();
+		while (it != connected_fds_[source_rank()].end())
 		{
-			close(fd);
-			connected_fds_[source_rank()].erase(fd);
+			close(*it);
+			it = connected_fds_[source_rank()].erase(it);
 		}
 
 		listen_thread_refcount_--;
