@@ -112,7 +112,15 @@ art_make_exec(NAME fhicl_test
   ${CETLIB}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
-  
+ 
+  art_make_exec(NAME requestReceiver
+      SOURCE requestReceiver.cc
+      LIBRARIES 
+      artdaq_Application
+      ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
+
   art_make_exec(NAME routing_master
   SOURCE
   routing_master.cc

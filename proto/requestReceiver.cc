@@ -1,4 +1,4 @@
-#deinfe TRACE_NAME "requestReceiver"
+#define TRACE_NAME "requestReceiver"
 
 #include <boost/program_options.hpp>
 #include "fhiclcpp/make_ParameterSet.h"
