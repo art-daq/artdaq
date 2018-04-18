@@ -17,9 +17,6 @@ daq: {
     event_queue_depth: 2
     event_queue_wait_time: 1
     onmon_event_prescale: 1
-    subrun_size_MB: -1
-    subrun_duration: -1
-    subrun_event_count: 0
     is_dispatcher: true
     art_thread_wait_ms: 4000
 

@@ -55,16 +55,10 @@ public:
 	*     "is_online_monitor": True if the DataLogger is an Online Monitor. is_data_logger takes precedence
 	*     "is_dispatcher": True if the DataLogger is a Dispatcher. is_data_logger and is_online_monitor take precedence
 	*       NOTE: At least ONE of these three parameters must be specified.
-	*     "xmlrpc_client_list" (Default: ""): List of XMLRPC addresses of other applications in the artdaq system
-	*     "subrun_size_MB" (Default: 0): Maximum size for DataLogger-based subrun rollover
-	*     "subrun_duration" (Dfeault: 0): Maximum time for DataLogger-based subrun rollover
-	*     "subrun_event_count" (Default: 0): Maximum event count for DataLogger-based subrun rollover
 	*     "inrun_recv_timeout_usec" (Default: 100000): Amount of time to wait for new events while running
 	*     "endrun_recv_timeout_usec" (Default: 20000000): Amount of time to wait for additional events at EndOfRun
 	*     "pause_recv_timeout_usec" (Default: 3000000): Amount of time to wait for additional events at PauseRun
 	*     "onmon_event_prescale" (Default: 1): Only send 1/N events to art for online monitoring (requires is_data_logger: true)
-	*     "filesize_check_interval_seconds" (Default: 20): Interval to check the file size when using DataLogger-based subrun rollover
-	*     "filesize_check_interval_events" (Default: 20): Interval to check the file size when using DataLogger-based subrun rollover
 	*     "verbose" (Default: true): Whether to print transition messages
 	*   "metrics": FHiCL table containing configuration for MetricManager
 	* "outputs" (REQUIRED): FHiCL table containing output parameters
