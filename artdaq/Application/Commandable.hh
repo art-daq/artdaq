@@ -89,7 +89,7 @@ public:
 	* \return Whether the transition was successful
 	*/
 	bool shutdown(uint64_t timeout);
-
+	
 	/**
 	* \brief Processes the soft-initialize request
 	* \param pset ParameterSet used to configure the Commandable
@@ -223,6 +223,13 @@ public:
 	*/
 	virtual bool do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t);
 
+	/**
+	* \brief Perform the rollover_subrun transition.
+	* \param eventNum Sequence ID of boundary
+	* \return Whether the transition succeeded
+	*/
+	virtual bool do_rollover_subrun(uint64_t eventNum);
+	
 	/**
 	 * \brief This function is called when an attempt is made to call an illegal transition
 	 * \param trans The transition that was attempted

@@ -245,6 +245,16 @@ bool artdaq::DataReceiverCore::reinitialize(fhicl::ParameterSet const& pset)
 	return initialize(pset);
 }
 
+bool artdaq::DataReceiverCore::rollover_subrun(uint64_t boundary)
+{
+	if (event_store_ptr_)
+	{
+		event_store_ptr_->rolloverSubrun(boundary);
+		return true;
+	}
+	return false;
+}
+
 std::string artdaq::DataReceiverCore::report(std::string const& which) const
 {
 	if (which == "incomplete_event_count")

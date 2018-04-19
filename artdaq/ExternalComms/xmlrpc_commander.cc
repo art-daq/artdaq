@@ -294,7 +294,9 @@ namespace artdaq
 	template <>
 	uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int index)
 	{
-		return boost::lexical_cast<uint64_t>(paramList.getInt(index));
+		TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as uint64_t.";
+		TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
+		return boost::lexical_cast<uint64_t>(paramList.getString(index));
 	}
 
 	/**
@@ -308,6 +310,8 @@ namespace artdaq
 	template <>
 	std::string cmd_::getParam<std::string>(const xmlrpc_c::paramList& paramList, int index)
 	{
+		TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as string.";
+		TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
 		return static_cast<std::string>(paramList.getString(index));
 	}
 
@@ -322,6 +326,8 @@ namespace artdaq
 	template <>
 	art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int index)
 	{
+		TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as Run Number.";
+		TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
 		std::string run_number_string = paramList.getString(index);
 		art::RunNumber_t run_number =
 			boost::lexical_cast<art::RunNumber_t>(run_number_string);
@@ -341,6 +347,8 @@ namespace artdaq
 	template <>
 	fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramList& paramList, int index)
 	{
+		TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as ParameterSet.";
+		TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
 		std::string configString = std::string(paramList.getString(index).c_str());
 		TLOG(TLVL_DEBUG) << "Loading Parameter Set from string: " << configString << std::endl;
 		fhicl::ParameterSet pset;
@@ -863,6 +871,32 @@ private:								\
 		}
 	};
 
+	/**
+	* \brief rollover_subrun_ Command class
+	*/
+	class rollover_subrun_ : public cmd_
+	{
+	public:
+		/**
+		* \brief shutdown_ Constructor
+		* \param c xmlrpc_commander to send transition commands to
+		*/
+		rollover_subrun_(xmlrpc_commander& c) :
+			cmd_(c, "s:i", "create a new subrun")
+		{}
+
+		/** Default timeout for command */
+		static const uint64_t defaultSequenceID = 0xFFFFFFFFFFFFFFFF;
+
+	private:
+
+		bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)
+		{
+			auto ret = _c._commandable.do_rollover_subrun(getParam<uint64_t>(paramList, 0, defaultSequenceID));
+			return ret;
+		}
+	};
+
 	// JCF, 9/4/14
 
 	// Not sure if anyone was planning to resurrect this code by changing
@@ -941,6 +975,7 @@ private:								\
 		register_method(trace_set);
 		register_method(trace_get);
 		register_method(meta_command);
+		register_method(rollover_subrun);
 
 		register_method(shutdown);
 

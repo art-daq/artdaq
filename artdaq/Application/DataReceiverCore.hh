@@ -111,6 +111,12 @@ public:
 	* \return True if no exception
 	*/
 	bool reinitialize(fhicl::ParameterSet const& pset);
+
+	/**
+	* \brief Rollover the subrun after the given event
+	* \param eventNum Sequence ID of boundary
+	*/
+	bool rollover_subrun(uint64_t eventNum);
 	
 	/**
 	* \brief Send a report on a given run-time quantity

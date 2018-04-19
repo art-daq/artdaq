@@ -67,6 +67,10 @@ namespace artdaq
 		/// legal_commands
 		/// register_monitor
 		/// unregister_monitor
+		/// trace_get
+		/// trace_set
+		/// meta_command
+		/// rollover_subrun
 		/// 
 		/// See the send_* functions for more details on each command. Not all commands are valid for all applications/states.
 		/// run_server should return a string indicating success or failure to the transport mechanism when it is done processing a command.
@@ -213,6 +217,15 @@ namespace artdaq
 		/// </summary>
 		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_meta_command(std::string, std::string);
+
+		/// <summary>
+		/// Using the transport mechanism, send a send_rollover_subrun command
+		///
+		/// This will cause the receiver to rollover the subrun number at the given event. (Event with seqID == boundary will be in new subrun.)
+		/// Should be sent to all EventBuilders before the given event is processed.
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
+		virtual std::string send_rollover_subrun(uint64_t);
 
 	private:
 

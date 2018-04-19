@@ -10,15 +10,17 @@ std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
-		pset.get<size_t>("buffer_count"),
-		pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
-		pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
-		!pset.get<bool>("broadcast_mode", false))
+						  pset.get<size_t>("buffer_count"),
+						  pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
+						  pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
+						  !pset.get<bool>("broadcast_mode", false))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
 	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
 	, queue_size_(pset.get<size_t>("buffer_count"))
 	, run_id_(0)
 	, subrun_id_(0)
+	, subrun_rollover_event_(Fragment::InvalidSequenceID)
+	, last_released_event_(0)
 	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
 	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
 	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
@@ -39,18 +41,20 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, requests_(nullptr)
 	, data_pset_(pset)
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
-		pset.get<size_t>("broadcast_buffer_count", 10),
-		pset.get<size_t>("broadcast_buffer_size", 0x100000),
-		pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
+				  pset.get<size_t>("broadcast_buffer_count", 10),
+				  pset.get<size_t>("broadcast_buffer_size", 0x100000),
+				  pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
 {
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 
-	if (pset.get<bool>("use_art", true) == false) {
+	if (pset.get<bool>("use_art", true) == false)
+	{
 		TLOG(TLVL_INFO) << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:false";
 		num_art_processes_ = 0;
 	}
-	else {
+	else
+	{
 		TLOG(TLVL_INFO) << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:true";
 		TLOG(TLVL_TRACE) << "art_pset is " << art_pset.to_string();
 	}
@@ -175,7 +179,8 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 	Write(buffer, &frag, frag.num_words() * sizeof(RawDataType));
 
 	auto pos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));
-	if (frag.word_count - frag.num_words() > 0) {
+	if (frag.word_count - frag.num_words() > 0)
+	{
 		IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
 	}
 
@@ -208,7 +213,8 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	auto frag_count = GetFragmentCount(frag.sequence_id);
 	hdr->is_complete = frag_count == num_fragments_per_event_;
 #if ART_SUPPORTS_DUPLICATE_EVENTS
-	if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id)) {
+	if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id))
+	{
 		hdr->is_complete = frag_count == released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
 	}
 #endif
@@ -266,7 +272,8 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		auto sts = waitid(P_PID, pid, &status, WEXITED);
 		TLOG(TLVL_INFO) << "Removing PID " << pid << " from process list";
 		art_processes_.erase(pid);
-		if (sts < 0) {
+		if (sts < 0)
+		{
 			TLOG(TLVL_WARNING) << "Error occurred in waitid for art process " << pid << ": " << errno << " (" << strerror(errno) << ").";
 		}
 		else if (status.si_code == CLD_EXITED && status.si_status == 0)
@@ -279,7 +286,8 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 			if (art_lifetime < minimum_art_lifetime_s_) restart_art_ = false;
 
 			auto exit_type = "exited with status code";
-			switch (status.si_code) {
+			switch (status.si_code)
+			{
 			case CLD_DUMPED:
 			case CLD_KILLED:
 				exit_type = "was killed with signal";
@@ -322,12 +330,12 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 		current_art_config_file_ = std::make_shared<art_config_file>(pset/*, GetKey(), GetBroadcastKey()*/);
 	}
 	pid_t pid = -1;
-	boost::thread thread([&] {RunArt(current_art_config_file_, pid); });
+	boost::thread thread([&] { RunArt(current_art_config_file_, pid); });
 	thread.detach();
 
 
 	while ((GetAttachedCount() - initialCount < 1 || pid <= 0)
-		&& TimeUtils::GetElapsedTime(startTime) < 5)
+		   && TimeUtils::GetElapsedTime(startTime) < 5)
 	{
 		usleep(1000);
 	}
@@ -359,7 +367,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 		{
 			pid = pids.erase(pid);
 		}
-		else {
+		else
+		{
 			++pid;
 		}
 	}
@@ -390,7 +399,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 			{
 				pid = pids.erase(pid);
 			}
-			else {
+			else
+			{
 				++pid;
 			}
 		}
@@ -418,7 +428,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 			{
 				pid = pids.erase(pid);
 			}
-			else {
+			else
+			{
 				++pid;
 			}
 		}
@@ -442,7 +453,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 			{
 				pid = pids.erase(pid);
 			}
-			else {
+			else
+			{
 				++pid;
 			}
 		}
@@ -462,7 +474,8 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_ps
 	}
 	if (newRun == 0) newRun = run_id_ + 1;
 
-	if (art_pset != current_art_pset_ || !current_art_config_file_) {
+	if (art_pset != current_art_pset_ || !current_art_config_file_)
+	{
 		current_art_pset_ = art_pset;
 		current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
 	}
@@ -538,7 +551,8 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		}
 
 		auto sleep_count = (end_of_data_wait_us / 10000) + 1;
-		for (size_t ii = 0; ii < sleep_count; ++ii) {
+		for (size_t ii = 0; ii < sleep_count; ++ii)
+		{
 			usleep(10000);
 			if (art_processes_.size() == 0) break;
 		}
@@ -576,6 +590,8 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	StartArt();
 	run_id_ = runID;
 	subrun_id_ = 1;
+	subrun_rollover_event_ = Fragment::InvalidSequenceID;
+	last_released_event_ = 0;
 	requests_.reset(new RequestSender(data_pset_));
 	if (requests_) requests_->SendRoutingToken(queue_size_);
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
@@ -593,6 +609,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 void artdaq::SharedMemoryEventManager::startSubrun()
 {
 	++subrun_id_;
+	subrun_rollover_event_ = Fragment::InvalidSequenceID;
 	if (metricMan)
 	{
 		double runSubrun = run_id_ + ((double)subrun_id_ / 10000);
@@ -604,9 +621,9 @@ bool artdaq::SharedMemoryEventManager::endRun()
 {
 	TLOG(TLVL_INFO) << "Ending run " << run_id_;
 	FragmentPtr	endOfRunFrag(new
-		Fragment(static_cast<size_t>
-		(ceil(sizeof(my_rank) /
-			static_cast<double>(sizeof(Fragment::value_type))))));
+							 Fragment(static_cast<size_t>
+							 (ceil(sizeof(my_rank) /
+								   static_cast<double>(sizeof(Fragment::value_type))))));
 
 	TLOG(TLVL_DEBUG) << "Broadcasting EndOfRun Fragment";
 	endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
@@ -624,11 +641,12 @@ bool artdaq::SharedMemoryEventManager::endSubrun()
 	TLOG(TLVL_INFO) << "Ending subrun " << subrun_id_;
 	std::unique_ptr<artdaq::Fragment>
 		endOfSubrunFrag(new
-			Fragment(static_cast<size_t>
-			(ceil(sizeof(my_rank) /
-				static_cast<double>(sizeof(Fragment::value_type))))));
+						Fragment(static_cast<size_t>
+						(ceil(sizeof(my_rank) /
+							  static_cast<double>(sizeof(Fragment::value_type))))));
 
 	TLOG(TLVL_DEBUG) << "Broadcasting EndOfSubrun Fragment";
+	endOfSubrunFrag->setSequenceID(subrun_rollover_event_);
 	endOfSubrunFrag->setSystemType(Fragment::EndOfSubrunFragmentType);
 	*endOfSubrunFrag->dataBegin() = my_rank;
 
@@ -639,6 +657,27 @@ bool artdaq::SharedMemoryEventManager::endSubrun()
 	subrun_incomplete_event_count_ = 0;
 
 	return true;
+}
+
+void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary)
+{
+	// Generated EndOfSubrun Fragments have Sequence ID 0 and should be ignored
+	if (boundary == 0 || boundary == Fragment::InvalidSequenceID) return;
+
+	if (boundary < last_released_event_)
+	{
+		auto logLevel = TLVL_ERROR;
+		bool processAnyway = false;
+		if (last_released_event_ - boundary < 100)
+		{
+			logLevel = TLVL_WARNING;
+			processAnyway = true;
+		}
+		TLOG(logLevel) << "Subrun rollover requested for event that is in the past. (delta = " << (last_released_event_ - boundary) << ").";
+		if (!processAnyway) return;
+	}
+	TLOG(TLVL_INFO) << "Will roll over when I reach Sequence ID " << boundary;
+	subrun_rollover_event_ = boundary;
 }
 
 void artdaq::SharedMemoryEventManager::sendMetrics()
@@ -724,7 +763,8 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	}
 
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
-	if (released_incomplete_events_.count(seqID)) {
+	if (released_incomplete_events_.count(seqID))
+	{
 		TLOG(TLVL_ERROR) << "Event " << std::to_string(seqID) << " has already been marked \"Incomplete\" and sent to art!";
 		return -2;
 	}
@@ -753,7 +793,8 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 
 	active_buffers_.insert(new_buffer);
 
-	if (requests_) {
+	if (requests_)
+	{
 		if (timestamp != Fragment::InvalidTimestamp)
 		{
 			requests_->AddRequest(seqID, timestamp);
@@ -783,7 +824,8 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 	{
 		TLOG(TLVL_DEBUG) << "complete_buffer_: This fragment completes event " << std::to_string(hdr->sequence_id) << ".";
 
-		if (requests_) {
+		if (requests_)
+		{
 			requests_->RemoveRequest(hdr->sequence_id);
 			requests_->SendRoutingToken(1);
 		}
@@ -813,7 +855,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			auto hdr = getEventHeader_(buf);
 			if (active_buffers_.count(buf))
 			{
-				if (requests_) {
+				if (requests_)
+				{
 					requests_->RemoveRequest(hdr->sequence_id);
 					requests_->SendRoutingToken(1);
 				}
@@ -822,10 +865,12 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				subrun_incomplete_event_count_++;
 				run_incomplete_event_count_++;
 				if (metricMan) metricMan->sendMetric("Incomplete Event Rate", 1, "events/s", 3, MetricMode::Rate);
-				if (!released_incomplete_events_.count(hdr->sequence_id)) {
+				if (!released_incomplete_events_.count(hdr->sequence_id))
+				{
 					released_incomplete_events_[hdr->sequence_id] = num_fragments_per_event_ - GetFragmentCountInBuffer(buf);
 				}
-				else {
+				else
+				{
 					released_incomplete_events_[hdr->sequence_id] -= GetFragmentCountInBuffer(buf);
 				}
 				TLOG(TLVL_WARNING) << "Active event " << std::to_string(hdr->sequence_id) << " is stale. Scheduling release of incomplete event (missing " << released_incomplete_events_[hdr->sequence_id] << " Fragments) to art.";
@@ -852,7 +897,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	}
 
 	std::list<int> sorted_buffers(pending_buffers_.begin(), pending_buffers_.end());
-	sorted_buffers.sort([this](int a, int b) {return bufferComparator(a, b); });
+	sorted_buffers.sort([this](int a, int b) { return bufferComparator(a, b); });
 
 	auto counter = 0;
 	double eventSize = 0;
@@ -860,6 +905,15 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	{
 		auto hdr = getEventHeader_(buf);
 		if (hdr->sequence_id > lowestSeqId) break;
+
+		if (hdr->sequence_id >= subrun_rollover_event_)
+		{
+			TLOG(TLVL_INFO) << "Subrun rollover reached at event " << hdr->sequence_id << " (boundary=" << subrun_rollover_event_ << ").";
+			endSubrun();
+			startSubrun();
+		}
+		if (hdr->sequence_id > last_released_event_) last_released_event_ = hdr->sequence_id;
+
 		TLOG(TLVL_DEBUG) << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art.";
 		MarkBufferFull(buf);
 		subrun_event_count_++;

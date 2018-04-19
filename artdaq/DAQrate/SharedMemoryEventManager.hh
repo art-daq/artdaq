@@ -254,6 +254,12 @@ namespace artdaq {
 		bool endSubrun();
 
 		/**
+		 * \brief Rollover the subrun after the specified event
+		 * \param boundary sequence ID of the boundary (Event with seqID == boundary will be in new subrun)
+		 */
+		void rolloverSubrun(sequence_id_t boundary);
+
+		/**
 		* \brief Send metrics to the MetricManager, if one has been instantiated in the application
 		*/
 		void sendMetrics();
@@ -293,6 +299,8 @@ namespace artdaq {
 		size_t const queue_size_;
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
+		sequence_id_t subrun_rollover_event_;
+		sequence_id_t last_released_event_;
 
 		std::set<int> active_buffers_;
 		std::set<int> pending_buffers_;

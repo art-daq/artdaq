@@ -100,4 +100,10 @@ namespace artdaq {
 		return "NOT IMPLEMENTED";
 	}
 
+	inline std::string CommanderInterface::send_rollover_subrun(uint64_t)
+	{
+#pragma message "Using default implementation of send_rollover_subrun!"
+		return "NOT IMPLEMENTED";
+	}
+
 } //namespace artdaq

@@ -268,9 +268,12 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				break;
 			case Fragment::EndOfRunFragmentType:
 				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
+				//shm_manager_->endRun();
 				break;
 			case Fragment::EndOfSubrunFragmentType:
-				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
+				//shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
+				if (header.sequence_id != Fragment::InvalidSequenceID) shm_manager_->rolloverSubrun(header.sequence_id);
+				else shm_manager_->rolloverSubrun(recv_seq_count_.slotCount(source_rank));
 				break;
 			case Fragment::ShutdownFragmentType:
 				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
