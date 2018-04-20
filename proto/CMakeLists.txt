@@ -27,7 +27,7 @@ art_make_exec(NAME fhicl_test
     ${MF_MESSAGELOGGER}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     )
-	
+
   art_make_exec(NAME artdaq
     SOURCE
     artdaq.cc
@@ -95,7 +95,7 @@ art_make_exec(NAME fhicl_test
   ${CETLIB}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
-  
+
   art_make_exec(NAME dispatcher
     SOURCE
     dispatcher.cc
@@ -112,10 +112,10 @@ art_make_exec(NAME fhicl_test
   ${CETLIB}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
- 
+
   art_make_exec(NAME requestReceiver
       SOURCE requestReceiver.cc
-      LIBRARIES 
+      LIBRARIES
       artdaq_Application
       ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
@@ -151,7 +151,7 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   pthread
   )
-    
+
 art_make_exec(NAME tracemf
     SOURCE
     tracemf.cc
@@ -168,6 +168,6 @@ art_make_exec(NAME tracemf
 	artdaq-core_Core
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
-	
+
 install_fhicl(SUBDIRS fcl)
 install_source()

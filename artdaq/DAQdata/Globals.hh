@@ -46,7 +46,8 @@ namespace artdaq
 		static uint32_t seedAndRandom_()
 		{
 			static bool initialized_ = false;
-			if (!initialized_) {
+			if (!initialized_)
+			{
 				int fp = open("/dev/random", O_RDONLY);
 				if (fp == -1) abort();
 				unsigned seed;

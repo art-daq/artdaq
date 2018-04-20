@@ -26,6 +26,11 @@ namespace artdaq
 	class RequestSender
 	{
 	public:
+		struct RequestSenderConfig
+		{
+
+		};
+
 		/**
 		 * \brief Default Constructor is deleted
 		 */
