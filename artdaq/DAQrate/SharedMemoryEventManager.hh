@@ -9,6 +9,7 @@
 #include <deque>
 #include <fstream>
 #include <iomanip>
+#include <sys/stat.h>
 #include "fhiclcpp/fwd.h"
 #include "artdaq/Application/StatisticsHelper.hh"
 #include "artdaq/DAQrate/detail/ArtConfig.hh"
@@ -27,15 +28,11 @@ namespace artdaq {
 		 * \param ps ParameterSet to write to temporary file
 		 */
 		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/)
+			: dir_name_("/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()))
+			, file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 		{
-			auto dirName = "/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()) + "_"
-				+ std::to_string(artdaq::TimeUtils::gettimeofday_us()) + "_XXXXXX";
-			auto dirNameC = new char[dirName.length() + 1];
-			strcpy(dirNameC, dirName.c_str());
-			char* tempDirName = nullptr;
-			while (!tempDirName) tempDirName = mkdtemp(dirNameC);
-			dir_name_ = std::string(tempDirName);
-			file_name_ = dir_name_ + "/artConfig_" + std::to_string(my_rank) + ".fcl";
+			mkdir(dir_name_.c_str(), S_IRWXU); // Allowed to fail if directory already exists
+
 			std::ofstream of(file_name_, std::ofstream::trunc);
 			of << ps.to_string();
 
@@ -57,7 +54,7 @@ namespace artdaq {
 		~art_config_file()
 		{
 			remove(file_name_.c_str());
-			remove(dir_name_.c_str());
+			rmdir(dir_name_.c_str()); // Will only delete directory if no config files are left over
 		}
 		/**
 		 * \brief Get the path of the temporary file
@@ -65,8 +62,8 @@ namespace artdaq {
 		 */
 		std::string getFileName() const { return file_name_; }
 	private:
-		std::string file_name_;
 		std::string dir_name_;
+		std::string file_name_;
 	};
 
 	/**
