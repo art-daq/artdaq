@@ -35,6 +35,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, subrun_incomplete_event_count_(0)
 	, art_processes_()
 	, restart_art_(false)
+	, always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
 	, current_art_pset_(art_pset)
 	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
 	, art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 100000))
@@ -251,12 +252,12 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCountInBuffer(int buffer, Fr
 
 void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> config_file, pid_t& pid_out)
 {
-	while (restart_art_)
+	do
 	{
 		auto start_time = std::chrono::steady_clock::now();
 		send_init_frag_();
 		TLOG(TLVL_INFO) << "Starting art process with config file " << config_file->getFileName();
-		std::vector<char*> args{ (char*)"art", (char*)"-c", &config_file->getFileName()[0], NULL };
+		std::vector<char*> args{ (char*)"art", getenv("ARTDAQ_PARTITION_NUMBER"), (char*)"-c", &config_file->getFileName()[0], NULL };
 
 		auto pid = fork();
 		if (pid == 0)
@@ -303,12 +304,12 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 				<< " after " << std::setprecision(2) << art_lifetime << " seconds, "
 				<< (restart_art_ ? "restarting" : "not restarting");
 		}
-	}
+	} while (restart_art_);
 }
 
 void artdaq::SharedMemoryEventManager::StartArt()
 {
-	restart_art_ = true;
+	restart_art_ = always_restart_art_;
 	if (num_art_processes_ == 0) return;
 	for (size_t ii = 0; ii < num_art_processes_; ++ii)
 	{
@@ -320,7 +321,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 {
 	static std::mutex start_art_mutex;
 	TraceLock lk(start_art_mutex, 15, "StartArtLock");
-	restart_art_ = true;
+	restart_art_ = always_restart_art_;
 	auto initialCount = GetAttachedCount();
 	auto startTime = std::chrono::steady_clock::now();
 
@@ -464,7 +465,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_pset, run_id_t newRun, int n_art_processes)
 {
 	TLOG(TLVL_DEBUG) << "ReconfigureArt BEGIN";
-	if (restart_art_) // Art is running
+	if (restart_art_ || !always_restart_art_) // Art is running
 	{
 		endOfData();
 	}

@@ -64,6 +64,28 @@ namespace artdaq
 			}
 			return rand();
 		}
+
+		/**
+		* \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
+		* \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
+		*/
+		static int GetPartitionNumber()
+		{
+			auto part = getenv("ARTDAQ_PARTITION_NUMBER"); // 0-127
+			uint32_t part_u = 0;
+			if (part != nullptr)
+			{
+				try
+				{
+					auto part_s = std::string(part);
+					part_u = static_cast<uint32_t>(std::stoll(part_s, 0, 0));
+				}
+				catch (std::invalid_argument) {}
+				catch (std::out_of_range) {}
+			}
+
+			return (part_u & 0x7F);
+		}
 	};
 }
 

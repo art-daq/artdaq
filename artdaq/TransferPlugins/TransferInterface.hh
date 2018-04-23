@@ -178,12 +178,6 @@ namespace artdaq
 		const int destination_rank_;
 		const std::string unique_label_;
 
-		/**
-		* \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
-		* \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
-		*/
-		int GetPartitionNumber() const;
-
 	protected:
 		size_t buffer_count_; ///< The number of Fragment transfers the TransferInterface can handle simultaneously
 		const size_t max_fragment_size_words_; ///< The maximum size of the transferred Fragment objects, in artdaq::Fragment::RawDataType words

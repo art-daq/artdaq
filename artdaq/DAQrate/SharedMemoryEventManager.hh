@@ -26,8 +26,16 @@ namespace artdaq {
 		 * \brief art_config_file Constructor
 		 * \param ps ParameterSet to write to temporary file
 		 */
-		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/) : file_name_(std::tmpnam(nullptr))
+		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/)
 		{
+			auto dirName = "/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()) + "_"
+				+ std::to_string(artdaq::TimeUtils::gettimeofday_us()) + "_XXXXXX";
+			auto dirNameC = new char[dirName.length() + 1];
+			strcpy(dirNameC, dirName.c_str());
+			char* tempDirName = nullptr;
+			while (!tempDirName) tempDirName = mkdtemp(dirNameC);
+			dir_name_ = std::string(tempDirName);
+			file_name_ = dir_name_ + "/artConfig_" + std::to_string(my_rank) + ".fcl";
 			std::ofstream of(file_name_, std::ofstream::trunc);
 			of << ps.to_string();
 
@@ -46,7 +54,11 @@ namespace artdaq {
 			//of << " source.rank: " << std::dec << my_rank;
 			of.close();
 		}
-		~art_config_file() { remove(file_name_.c_str()); }
+		~art_config_file()
+		{
+			remove(file_name_.c_str());
+			remove(dir_name_.c_str());
+		}
 		/**
 		 * \brief Get the path of the temporary file
 		 * \return The path of the temporary file
@@ -54,6 +66,7 @@ namespace artdaq {
 		std::string getFileName() const { return file_name_; }
 	private:
 		std::string file_name_;
+		std::string dir_name_;
 	};
 
 	/**
@@ -72,6 +85,7 @@ namespace artdaq {
 			fhicl::Atom<size_t> max_event_size_bytes{ fhicl::Name{ "max_event_size_bytes"}, fhicl::Comment{"Maximum event size (all Fragments), in bytes"} };
 			fhicl::Atom<size_t> stale_buffer_timeout_usec{ fhicl::Name{ "stale_buffer_timeout_usec"}, fhicl::Comment{"Maximum amount of time elapsed before a buffer is marked as abandoned. Time is reset each time an operation is performed on the buffer."}, 5000000 };
 			fhicl::Atom<bool> overwrite_mode{ fhicl::Name{ "overwrite_mode"}, fhicl::Comment{"Whether buffers are allowed to be overwritten when safe (state == Full or Reading)"}, false };
+			fhicl::Atom<bool> restart_crashed_art_processes{ fhicl::Name{"restart_crashed_art_processes"}, fhicl::Comment{"Whether to automatically restart art processes that fail for any reason"}, true };
 			fhicl::Atom<uint32_t> shared_memory_key{ fhicl::Name{ "shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid() };
 			fhicl::Atom<size_t> buffer_count{ fhicl::Name{ "buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"} };
 			fhicl::Atom<size_t> max_fragment_size_bytes{ fhicl::Name{ "max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"} };
@@ -110,6 +124,7 @@ namespace artdaq {
 		 *  OR "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 		 * "stale_buffer_timeout_usec" (Default: event_queue_wait_time * 1,000,000): Maximum amount of time elapsed before a buffer is marked as abandoned. Time is reset each time an operation is performed on the buffer.
 		 * "event_queue_wait_time" (Default: 5): Amount of time (in seconds) an event can exist in shared memory before being released to art. Used as input to default parameter of "stale_buffer_timeout_usec".
+		 * "restart_crashed_art_processes" (Default: true): Whether to automatically restart art processes that fail for any reason
 		 * "broadcast_mode" (Default: false): When true, buffers are not marked Empty when read, but return to Full state. Buffers are overwritten in order received.
 		 * "art_analyzer_count" (Default: 1): Number of art procceses to start
 		 * "expected_fragments_per_event" (REQUIRED): Number of Fragments to expect per event
@@ -356,6 +371,7 @@ namespace artdaq {
 
 		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
+		bool always_restart_art_;
 		fhicl::ParameterSet current_art_pset_;
 		std::shared_ptr<art_config_file> current_art_config_file_;
 		double minimum_art_lifetime_s_;
@@ -379,7 +395,7 @@ namespace artdaq {
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;
-	};
-}
+		};
+	}
 
 #endif //ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
