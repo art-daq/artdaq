@@ -120,6 +120,12 @@ art_make_exec(NAME fhicl_test
       ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+  art_make_exec(NAME requestSender
+      SOURCE requestSender.cc
+      LIBRARIES
+      artdaq_Application
+      ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
 
   art_make_exec(NAME routing_master
   SOURCE

@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	artdaq::configureMessageFacility("commandable");
 
 
-	fhicl::ParameterSet config = LoadParameterSet(argc, argv);
+	fhicl::ParameterSet config = LoadParameterSet<artdaq::CommanderInterface::Config>(argc, argv, "stateResponder", "This simple application sets up a CommanderInterface plugin and reports any received commands.");
 
 
 	artdaq::setMsgFacAppName("Commandable", config.get<int>("id"));

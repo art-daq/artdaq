@@ -11,7 +11,8 @@ namespace  bpo = boost::program_options;
 
 int main(int argc, char * argv[])
 {
-	auto pset = LoadParameterSet(argc, argv);
+	struct Config {};
+	auto pset = LoadParameterSet<Config>(argc, argv, "test_fhicl", "A test application to ensure that FHiCL numeric values are converted properly to/from hexadecimal values");
 
     for(auto& p : pset.get_all_keys()) {
 	  std::cout << "Key " << p << " has string value " << pset.get<std::string>(p) 

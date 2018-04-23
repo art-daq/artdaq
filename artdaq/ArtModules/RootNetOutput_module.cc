@@ -1,9 +1,6 @@
+#include "artdaq/ArtModules/RootNetOutput.hh"
+
 #include "art/Framework/Core/ModuleMacros.h"
-#include "art/Framework/Core/OutputModule.h"
-#include "art/Framework/Principal/EventPrincipal.h"
-#include "art/Framework/Principal/OutputHandle.h"
-#include "art/Framework/Principal/RunPrincipal.h"
-#include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #if ART_HEX_VERSION < 0x20900
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
@@ -67,60 +64,7 @@
 
 #include <TClass.h>
 #include <TMessage.h>
-
-#  define CONST_WRITE
-
-namespace art
-{
-	class RootNetOutput;
-}
-
-
-/**
- * \brief An art::OutputModule which sends events using DataSenderManager.
- * This module is designed for transporting Fragment-wrapped art::Events after
- * they have been read into art, for example between the EventBuilder and the Aggregator.
- */
-class art::RootNetOutput : public OutputModule
-{
-public:
-	/**
-	 * \brief RootNetOutput Constructor
-	 * \param ps ParameterSet used to configure RootNetOutput
-	 *
-	 * RootNetOutput accepts no Parameters beyond those which art::OutputModule takes.
-	 * See the art::OutputModule documentation for more details on those Parameters.
-	 */
-	explicit RootNetOutput(fhicl::ParameterSet const& ps);
-
-	/**
-	 * \brief RootNetOutput Destructor
-	 */
-	~RootNetOutput();
-
-private:
-	virtual void openFile(FileBlock const&);
-
-	virtual void closeFile();
-
-	virtual void respondToCloseInputFile(FileBlock const&);
-
-	virtual void respondToCloseOutputFiles(FileBlock const&);
-
-	virtual void endJob();
-
-	virtual void write(EventPrincipal CONST_WRITE&);
-
-	virtual void writeRun(RunPrincipal CONST_WRITE&);
-
-	virtual void writeSubRun(SubRunPrincipal CONST_WRITE&);
-
-	void writeDataProducts(TBufferFile&, const Principal&,
-						   std::vector<BranchKey*>&);
-
-private:
-	bool initMsgSent_;
-};
+#include <TBufferFile.h>
 
 art::RootNetOutput::
 RootNetOutput(fhicl::ParameterSet const& ps)
@@ -525,7 +469,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 
 void
 art::RootNetOutput::
-write(CONST_WRITE EventPrincipal& ep)
+write(EventPrincipal& ep)
 {
 	//
 	//  Write an Event message.
@@ -643,7 +587,7 @@ write(CONST_WRITE EventPrincipal& ep)
 
 void
 art::RootNetOutput::
-writeRun(CONST_WRITE RunPrincipal& rp)
+writeRun(RunPrincipal& rp)
 {
 	//
 	//  Write an EndRun message.
@@ -755,7 +699,7 @@ writeRun(CONST_WRITE RunPrincipal& rp)
 }
 
 void
-art::RootNetOutput::writeSubRun(CONST_WRITE SubRunPrincipal& srp)
+art::RootNetOutput::writeSubRun(SubRunPrincipal& srp)
 {
 	//
 	//  Write an EndSubRun message.

@@ -15,7 +15,14 @@ namespace artdaq
 	class CommanderInterface
 	{
 	public:
-
+		struct Config
+		{
+			fhicl::Atom<int> id{ fhicl::Name{"id"}, fhicl::Comment{"The unique ID associated with this Commander plugin. (ex. XMLRPC Port number)"}, 0 };
+			fhicl::Atom<std::string> commanderPluginType{ fhicl::Name{"commanderPluginType"}, fhicl::Comment{"String identifying the name of the CommanderInterface plugin to load"} };
+		};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+		using Parameters = fhicl::WrappedTable<Confg>;
+#endif
 
 		/**
 		 * \brief CommanderInterface Constructor

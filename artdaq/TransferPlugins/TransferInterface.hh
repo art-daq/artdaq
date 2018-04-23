@@ -18,7 +18,22 @@ namespace artdaq
 	class TransferInterface
 	{
 	public:
-		enum : int {
+		struct Config
+		{
+			fhicl::Atom<int> source_rank{ fhicl::Name{"source_rank"}, fhicl::Comment{"The rank that data is coming from"}, my_rank };
+			fhicl::Atom<int> destination_rank{ fhicl::Name{ "destination_rank"}, fhicl::Comment{"The rank that data is going to"}, my_rank };
+			fhicl::Atom<std::string> unique_label{ fhicl::Name{"unique_label"}, fhicl::Comment{"A label that uniquely identifies the TransferInterface instance"},"transfer_between_[source_rank]_and_[destination_rank]" };
+			fhicl::Atom<size_t>	buffer_count{ fhicl::Name{"buffer_count"}, fhicl::Comment{"How many Fragments can the TransferInterface handle simultaneously"},10 };
+			fhicl::Atom<size_t> max_fragment_size{ fhicl::Name{"max_fragment_size_words" }, fhicl::Comment{ "The maximum Fragment size expected.May be used for static memory allocation, and will cause errors if larger Fragments are sent." }, 1024 };
+			fhicl::Atom<short> partition_number{ fhicl::Name{"partition_number"},fhicl::Comment{"Partition that this TransferInterface is a part of"}, 0 };
+
+		};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+		using Parameters = fhicl::WrappedTable<Config>;
+#endif
+
+		enum : int
+		{
 			DATA_END = -2222,///< Value that is to be returned when a Transfer plugin determines that no more data will be arriving.
 			RECV_TIMEOUT = -1111, ///< Value to be returned upon receive timeout.
 			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= RECV_SUCCESS
@@ -69,6 +84,7 @@ namespace artdaq
 		 * "buffer_count" (Default: 10): How many Fragments can the TransferInterface handle simultaneously
 		 * "max_fragment_size_words" (Default: 1024): The maximum Fragment size expected. May be used for static memory allocation, and will cause errors
 		 * if larger Fragments are sent.
+		 * "partition_number" (Default: 0): Partition that this TransferInterface is a part of
 		 * \endverbatim
 		 */
 		TransferInterface(const fhicl::ParameterSet& ps, Role role);

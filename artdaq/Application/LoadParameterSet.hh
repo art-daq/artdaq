@@ -28,14 +28,15 @@ fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 	return pset;
 }
 
-namespace LoadParameterSetNS {
-	struct Config
-	{
-	};
+template<typename C>
+void PrintConfigurationToConsole(std::string name)
+{
+	fhicl::Table<C> config_description(fhicl::Name{ name });
+	config_description.print_allowed_configuration(std::cout);
 }
 
-template<typename C = LoadParameterSetNS::Config>
-fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name = "LoadParameterSet")
+template<typename C>
+fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name,std::string description )
 {
 	std::ostringstream descstr;
 	descstr << argv[0]
@@ -59,6 +60,8 @@ fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name = 
 	if (vm.count("help"))
 	{
 		std::cout << desc << std::endl;
+		std::cout << description << std::endl;
+		std::cout << "Sample FHiCL configuration for this application: " << std::endl;
 		fhicl::Table<C> config_description(fhicl::Name{name});
 		config_description.print_allowed_configuration(std::cout);
 		exit(1);

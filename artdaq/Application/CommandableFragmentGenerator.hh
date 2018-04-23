@@ -84,6 +84,32 @@ namespace artdaq
 	{
 	public:
 
+		struct Config
+		{
+			fhicl::Atom<std::string> generator_type                  { fhicl::Name{"generator"                        }, fhicl::Comment{"Name of the CommandableFragmentGenerator plugin to load"} };
+			fhicl::Atom<Fragment::timestamp_t> request_window_offset { fhicl::Name{"request_window_offset"            }, fhicl::Comment{"Request messages contain a timestamp. For Window request mode, start the window this far before the timestamp in the request"}, 0 };
+			fhicl::Atom<Fragment::timestamp_t> request_window_width  { fhicl::Name{"request_window_width"             }, fhicl::Comment{"For Window request mode, the window will be timestamp - offset to timestamp - offset + width"}, 0 };
+			fhicl::Atom<Fragment::timestamp_t> stale_request_timeout { fhicl::Name{"stale_request_timeout"            }, fhicl::Comment{"How long should request messages be retained"}, 0xFFFFFFFF };
+			fhicl::Atom<Fragment::type_t> expected_fragment_type     { fhicl::Name{"expected_fragment_type"           }, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType) };
+			fhicl::Atom<bool> request_windows_are_unique             { fhicl::Name{"request_windows_are_unique"       }, fhicl::Comment{"Whether Fragments should be removed from the buffer when matched to a request window"}, true };
+			fhicl::Atom<size_t> missing_request_window_timeout_us    { fhicl::Name{"missing_request_window_timeout_us"}, fhicl::Comment{"How long to wait for a missing request in Window mode (measured from the last time data was sent)"}, 1000000 };
+			fhicl::Atom<size_t> window_close_timeout_us              { fhicl::Name{"window_close_timeout_us"          }, fhicl::Comment{"How long to wait for the end of the data buffer to pass the end of a request window (measured from the last time data was sent)"}, 2000000 };
+			fhicl::Atom<bool> separate_data_thread                   { fhicl::Name{"separate_data_thread"             }, fhicl::Comment{"Whether data collection should proceed on its own thread. Required for all data request processing"}, false };
+			fhicl::Atom<size_t> sleep_on_no_data_us                  { fhicl::Name{"sleep_on_no_data_us"              }, fhicl::Comment{"How long to sleep after calling getNext_ if no data is returned"}, 0 };
+			fhicl::Atom<int> data_buffer_depth_fragments             { fhicl::Name{"data_buffer_depth_fragments"      }, fhicl::Comment{"How many Fragments to store in the buffer"}, 1000 };
+			fhicl::Atom<size_t> data_buffer_depth_mb                 { fhicl::Name{"data_buffer_depth_mb"             }, fhicl::Comment{"The maximum size of the data buffer in MB"}, 1000 };
+			fhicl::Atom<bool> separate_monitoring_thread             { fhicl::Name{"separate_monitoring_thread"       }, fhicl::Comment{"Whether a thread that calls the checkHWStatus_ method should be created"}, false };
+			fhicl::Atom<int64_t> hardware_poll_interval_us           { fhicl::Name{"hardware_poll_interval_us"        }, fhicl::Comment{"If a separate monitoring thread is used, how often should it call checkHWStatus_"}, 0 };
+			fhicl::Atom<int> board_id                                { fhicl::Name{"board_id"                         }, fhicl::Comment{"The identification number for this CommandableFragmentGenerator"} };
+			fhicl::Sequence<Fragment::fragment_id_t> fragment_ids    { fhicl::Name("fragment_ids"                     ), fhicl::Comment("A list of Fragment IDs created by this CommandableFragmentGenerator") };
+			fhicl::Atom<int> fragment_id                             { fhicl::Name{"fragment_id"                      }, fhicl::Comment{"The Fragment ID created by this CommandableFragmentGenerator"}, -99 };
+			fhicl::Atom<int> sleep_on_stop_us                        { fhicl::Name{"sleep_on_stop_us"                 }, fhicl::Comment{"How long to sleep before returning when stop transition is called"}, 0 };
+			fhicl::Atom<std::string> request_mode                    { fhicl::Name{"request_mode"                     }, fhicl::Comment{"The mode by which the CommandableFragmentGenerator will process reqeusts"}, "ignored" };
+			fhicl::TableFragment<artdaq::RequestReceiver::Config> receiverConfig;
+		};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+		using Parameters = fhicl::WrappedTable<Config>;
+#endif
 		/**
 		 * \brief CommandableFragmentGenerator default constructor
 		 *
@@ -104,8 +130,8 @@ namespace artdaq
 		 * "request_window_width" (Default: 0): For Window request mode, the window will be timestamp - offset to timestamp - offset + width
 		 * "stale_request_timeout" (Default: -1): How long should request messages be retained
 		 * "request_windows_are_unique" (Default: true): Whether Fragments should be removed from the buffer when matched to a request window
-		 * "missing_request_window_timeout_us" (Default: 1s): How long to wait for a missing request in Window mode (measured from the last time data was sent)
-		 * "window_close_timeout_us" (Default: 2s): How long to wait for the end of the data buffer to pass the end of a request window (measured from the last time data was sent)
+		 * "missing_request_window_timeout_us" (Default: 1000000): How long to wait for a missing request in Window mode (measured from the last time data was sent)
+		 * "window_close_timeout_us" (Default: 2000000): How long to wait for the end of the data buffer to pass the end of a request window (measured from the last time data was sent)
 		 * "expected_fragment_type" (Default: 231, EmptyFragmentType): The type of Fragments this CFG will be generating. "Empty" will auto-detect type based on Fragments generated.
 		 * "separate_data_thread" (Default: false): Whether data collection should proceed on its own thread. Required for all data request processing
 		 * "sleep_on_no_data_us" (Default: 0 (no sleep)): How long to sleep after calling getNext_ if no data is returned
@@ -185,7 +211,7 @@ namespace artdaq
 		 * \return True if not stopped
 		 */
 		bool applyRequests(FragmentPtrs& output);
-		
+
 		/**
 		 * \brief Send an EmptyFragmentType Fragment
 		 * \param[out] frags Output list to append EmptyFragmentType to
@@ -212,7 +238,7 @@ namespace artdaq
 		 * \brief Function that launches the monitoring thread (getMonitoringDataLoop())
 		 */
 		void startMonitoringThread();
-		
+
 		/**
 		 * \brief When separate_data_thread is set to true, this loop repeatedly calls getNext_ and adds returned Fragment
 		 * objects to the data buffer, blocking when the data buffer is full.
@@ -247,7 +273,7 @@ namespace artdaq
 		 * \brief This function regularly calls checkHWStatus_(), and sets the isHardwareOK flag accordingly.
 		 */
 		void getMonitoringDataLoop();
-		
+
 		/**
 		 * \brief Get the list of Fragment IDs handled by this CommandableFragmentGenerator
 		 * \return A std::vector<Fragment::fragment_id_t> containing the Fragment IDs handled by this CommandableFragmentGenerator
@@ -537,7 +563,7 @@ namespace artdaq
 
 		int sleep_on_stop_us_;
 
-    protected:
+	protected:
 
 		// Obtain the next group of Fragments, if any are available. Return
 		// false if no more data are available, if we are 'stopped', or if

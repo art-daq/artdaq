@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("requestReceiver");
 
-	auto pset = LoadParameterSet<artdaq::RequestReceiver::RequestReceiverConfig>(argc, argv, "receiver");
+	auto pset = LoadParameterSet<artdaq::RequestReceiver::Config>(argc, argv, "receiver", "This is a simple application which listens for Data Request messages and prints their contents");
 
 	int rc = 0;
 

@@ -13,6 +13,10 @@
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/TransferPlugins/detail/HostMap.hh"
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/OptionalTable.h"
+#include "fhiclcpp/types/TableFragment.h"
 
 namespace artdaq
 {
@@ -27,10 +31,41 @@ class artdaq::DataSenderManager
 {
 public:
 
+	struct RoutingTableConfig
+	{
+		fhicl::Atom<bool> use_routing_master{ fhicl::Name{ "use_routing_master"}, fhicl::Comment{ "True if using the Routing Master"}, false };
+		fhicl::Atom<int> table_port{ fhicl::Name{ "table_update_port"}, fhicl::Comment{ "Port that table updates should arrive on" },35556 };
+		fhicl::Atom<std::string> table_address{ fhicl::Name{ "table_update_address"}, fhicl::Comment{ "Address that table updates should arrive on" }, "227.128.12.28" };
+		fhicl::Atom<int> ack_port{ fhicl::Name{ "table_acknowledge_port" },fhicl::Comment{ "Port that acknowledgements should be sent to" },35557 };
+		fhicl::Atom<std::string> ack_address{ fhicl::Name{ "routing_master_hostname"}, fhicl::Comment{ "Host that acknowledgements should be sent to" },"localhost" };
+		fhicl::Atom<int> routing_timeout_ms{ fhicl::Name{"routing_timeout_ms"}, fhicl::Comment{"Time to wait (in ms) for a routing table update if the table is exhausted"}, 1000 };
+		fhicl::Atom<int> routing_retry_count{ fhicl::Name{"routing_retry_count"}, fhicl::Comment{"Number of times to retry getting destination from routing table"}, 5 };
+	};
+
+	struct DestinationsConfig
+	{
+		fhicl::OptionalTable<artdaq::TransferInterface::Config> dest{ fhicl::Name{"d1"}, fhicl::Comment{"Configuration for transfer to destination"} };
+	};
+
+	struct Config
+	{
+		fhicl::Atom<bool> broadcast_sends{ fhicl::Name{"broadcast_sends"}, fhicl::Comment{"Send all Fragments to all destinations"}, false };
+		fhicl::Atom<bool> nonblocking_sends{ fhicl::Name{"nonblocking_sends"}, fhicl::Comment{"Whether sends should block. Used for DL->DISP connection."}, false };
+		fhicl::Atom<size_t> send_timeout_us{ fhicl::Name{"send_timeout_usec"}, fhicl::Comment{"Timeout for sends in non-reliable modes (broadcast and nonblocking)"},5000000 };
+		fhicl::Atom<size_t> send_retry_count{ fhicl::Name{"send_retry_count"}, fhicl::Comment{"Number of times to retry a send in non-reliable mode"}, 2 };
+		fhicl::OptionalTable<RoutingTableConfig> routing_table_config{ fhicl::Name{"routing_table_config"} };
+		fhicl::OptionalTable<DestinationsConfig> destinations{ fhicl::Name{"destinations"} };
+		fhicl::TableFragment<artdaq::HostMap::Config> host_map;
+		fhicl::Sequence<size_t> enabled_destinations{ fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destiantion ranks to activate (must be defined in destinations block)"}, std::vector<size_t>() };
+	};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+	using Parameters = fhicl::WrappedTable<Config>;
+#endif
+
 	/**
 	 * \brief DataSenderManager Constructor
 	 * \param ps ParameterSet used to configure the DataSenderManager
-	 * 
+	 *
 	 * \verbatim
 	 * DataSenderManager accepts the following Parameters:
 	 * "broadcast_sends" (Default: false): Send all Fragments to all destinations

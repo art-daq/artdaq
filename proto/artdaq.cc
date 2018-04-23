@@ -3,7 +3,13 @@
 
 int main(int argc, char* argv[])
 {
-	fhicl::ParameterSet config_ps = LoadParameterSet(argc, argv);
+	struct Config
+	{
+		fhicl::TableFragment<artdaq::artdaqapp::Config> artdaqapp_config;
+		fhicl::Atom<std::string> app_type{ fhicl::Name{"app_type"}, fhicl::Comment{"Type of the artdaq application to run"}, "" };
+	};
+
+	fhicl::ParameterSet config_ps = LoadParameterSet<Config>(argc, argv, "artdaq", "This meta-application may be configured to run any of the core artdaq processes through the \"app_type\" configuration parameter.");
 	artdaq::detail::TaskType task = artdaq::detail::UnknownTask;
 
 	if (config_ps.has_key("app_type"))
