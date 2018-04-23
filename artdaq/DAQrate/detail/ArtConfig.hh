@@ -5,7 +5,11 @@
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq/ArtModules/RootNetOutput.hh"
 #include "art/Framework/Core/OutputModule.h"
-#include "art/Framework/IO/Root/RootOutputClosingCriteria.h"
+#if ART_HEX_VERSION >= 0x21002
+# include "art/Framework/IO/ClosingCriteria.h"
+#else
+# include "art/Framework/IO/Root/RootOutputClosingCriteria.h"
+#endif
 
 namespace art {
 	struct ServicesSchedulerConfig

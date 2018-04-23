@@ -31,7 +31,7 @@ namespace artdaq {
 			fhicl::Atom<uint64_t> transition_timeout{ fhicl::Name{"trantition_timeout"}, fhicl::Comment{"Timeout to use for automatic transitions"}, 30 };
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
-		using Parameters = fhicl::WrappedTable<Confg>;
+		using Parameters = fhicl::WrappedTable<Config>;
 #endif
 
 		static void runArtdaqApp(detail::TaskType task, fhicl::ParameterSet const& config_ps)

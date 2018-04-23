@@ -21,7 +21,7 @@ namespace artdaq
 			fhicl::Atom<std::string> commanderPluginType{ fhicl::Name{"commanderPluginType"}, fhicl::Comment{"String identifying the name of the CommanderInterface plugin to load"} };
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
-		using Parameters = fhicl::WrappedTable<Confg>;
+		using Parameters = fhicl::WrappedTable<Config>;
 #endif
 
 		/**
