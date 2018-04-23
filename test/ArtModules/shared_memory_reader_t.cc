@@ -73,7 +73,7 @@ public:
 								   fhicl::ParameterSet const& moduleParams,
 								   std::string const& release = art::getReleaseVersion()
 #if ART_HEX_VERSION < 0x20800
-			,								   std::string const& pass = art::getPassID()
+								   , std::string const& pass = art::getPassID()
 #endif
 		);
 
@@ -118,11 +118,7 @@ MPRGlobalTestFixture::finalize()
 {
 	productRegistry_.setFrozen();
 #if ART_HEX_VERSION < 0x20900
-#if ART_HEX_VERSION >= 0x20703
 	art::BranchIDListRegistry::updateFromProductRegistry(productRegistry_);
-#else
-	art::BranchIDListHelper::updateRegistries(productRegistry_);
-#endif
 #endif
 	art::ProductMetaData::create_instance(productRegistry_);
 }
@@ -134,7 +130,7 @@ fake_single_module_process(std::string const& tag,
 						   fhicl::ParameterSet const& moduleParams,
 						   std::string const& release
 #if ART_HEX_VERSION < 0x20800	
-	,					   std::string const& pass
+						   , std::string const& pass
 #endif
 )
 {
@@ -168,16 +164,10 @@ fake_single_process_branch(std::string const& tag,
 	art::TypeID dummyType(typeid(int));
 	art::BranchDescription* result =
 		new art::BranchDescription(
-#                     if ART_HEX_VERSION >= 0x20703
-                                   art::InEvent,
-                                   art::TypeLabel(dummyType,
-                                                  productInstanceName),
-#                     else
-                                   art::TypeLabel(art::InEvent,
-                                                  dummyType,
-                                                  productInstanceName),
-#                     endif
-								   mod);
+			art::InEvent,
+			art::TypeLabel(dummyType,
+						   productInstanceName),
+			mod);
 
 
 	branchKeys_.insert(std::make_pair(tag, art::BranchKey(*result)));
@@ -200,9 +190,9 @@ struct ShmRTestFixture
 			artdaq::configureMessageFacility("shared_memory_reader_t");
 			(void)reader(); // Force initialization.
 			art::ModuleDescription md(fhicl::ParameterSet().id(),
-								 "_NAMEERROR_",
-								 "_LABELERROR_",
-								 *gf().processConfigurations_["daq"]);
+									  "_NAMEERROR_",
+									  "_LABELERROR_",
+									  *gf().processConfigurations_["daq"]);
 			// These _xERROR_ strings should never appear in branch names; they
 			// are here as tracers to help identify any failures in coding.
 			helper().registerProducts(gf().productRegistry_, md);
@@ -319,9 +309,9 @@ struct ShmRTestFixture
 		pset.put("expected_fragments_per_event", 1);
 		pset.put("buffer_count", 10);
 		static artdaq::SharedMemoryEventManager
-			s_writer(pset,pset);
+			s_writer(pset, pset);
 		return s_writer;
-		
+
 	}
 };
 
@@ -347,9 +337,9 @@ namespace
 		std::vector<artdaq::Fragment::value_type> fakeData{ 1, 2, 3, 4 };
 		artdaq::FragmentPtr
 			tmpFrag(artdaq::Fragment::dataFrag(eventid.event(),
-															  0,
-															  fakeData.begin(),
-															  fakeData.end()));
+											   0,
+											   fakeData.begin(),
+											   fakeData.end()));
 		tmpFrag->setUserType(1);
 
 		writer.startRun(eventid.run());
@@ -365,12 +355,12 @@ namespace
 
 		}
 		str << "}";
-		TLOG(TLVL_DEBUG) <<"Fragment to art: "<< str.str() ;
-		
+		TLOG(TLVL_DEBUG) << "Fragment to art: " << str.str();
+
 
 		artdaq::FragmentPtr tempFrag;
 		auto sts = writer.AddFragment(std::move(tmpFrag), 1000000, tempFrag);
-		BOOST_REQUIRE_EQUAL(sts,true);
+		BOOST_REQUIRE_EQUAL(sts, true);
 
 		while (writer.GetLockedBufferCount())
 		{
@@ -412,14 +402,14 @@ namespace
 		auto iter2 = h->front().dataBegin();
 		std::ostringstream str2;
 		str2 << "{";
-		while(iter2 != h->front().dataEnd())
+		while (iter2 != h->front().dataEnd())
 		{
 			str2 << std::to_string(*iter2) << ", ";
 			++iter2;
-			
+
 		}
 		str2 << "}";
-		TLOG(TLVL_DEBUG) << "Fragment from art: " << str2.str() ;
+		TLOG(TLVL_DEBUG) << "Fragment from art: " << str2.str();
 
 		BOOST_CHECK(std::equal(fakeData.begin(),
 							   fakeData.end(),
@@ -434,7 +424,7 @@ BOOST_AUTO_TEST_CASE(nonempty_event)
 {
 	art::EventID eventid(2112, 1, 3);
 	art::Timestamp now;
-	basic_test(reader(),writer(),
+	basic_test(reader(), writer(),
 			   std::unique_ptr<art::RunPrincipal>(source_helper().makeRunPrincipal(eventid.run(), now)),
 			   std::unique_ptr<art::SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run(), eventid.subRun(), now)),
 			   eventid);
@@ -467,8 +457,8 @@ BOOST_AUTO_TEST_CASE(new_run)
 	basic_test(reader(), writer(),
 			   std::unique_ptr<art::RunPrincipal>(source_helper().makeRunPrincipal(eventid.run() - 1, now)),
 			   std::unique_ptr<art::SubRunPrincipal>(source_helper().makeSubRunPrincipal(eventid.run() - 1,
-																					eventid.subRun(),
-																					now)),
+																						 eventid.subRun(),
+																						 now)),
 			   eventid);
 }
 
@@ -495,9 +485,9 @@ BOOST_AUTO_TEST_CASE(end_of_data)
 	std::unique_ptr<art::RunPrincipal> run(source_helper().makeRunPrincipal(runid.run(), now));
 	std::unique_ptr<art::SubRunPrincipal> subrun(source_helper().makeSubRunPrincipal(runid.run(), subrunid.subRun(), now));
 	std::unique_ptr<art::EventPrincipal> event(source_helper().makeEventPrincipal(runid.run(),
-																			 subrunid.subRun(),
-																			 eventid.event(),
-																			 now));
+																				  subrunid.subRun(),
+																				  eventid.event(),
+																				  now));
 	writer().endOfData();
 	art::EventPrincipal* newevent = nullptr;
 	art::SubRunPrincipal* newsubrun = nullptr;

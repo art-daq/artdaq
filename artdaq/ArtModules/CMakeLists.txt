@@ -25,7 +25,7 @@ art_make( BASENAME_ONLY
   artdaq_ArtModules_NetMonTransportService_service
   art_Persistency_Provenance
   #  art_Persistency_RootDB
-  ${CANVAS_LIB_LIST}
+  canvas
   MF_MessageLogger
   ${SQLITE3}
   ${ROOT_CINTEX}
@@ -154,6 +154,6 @@ simple_plugin(PrintBuildInfo "module"
   )
 
 
-install_headers(SUBDIRS detail)                                                         
+install_headers(SUBDIRS detail)
 install_source(SUBDIRS detail)
 install_fhicl(SUBDIRS fcl)

@@ -5,7 +5,9 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 #include "fhiclcpp/types/ConfigurationTable.h"
+#endif
 
 #include <mutex>
 #include <condition_variable>
@@ -22,7 +24,9 @@ namespace artdaq
 			fhicl::Atom<std::string> request_addr{ fhicl::Name{"request_address"}, fhicl::Comment{"Multicast address to listen for request messages on"}, "227.128.12.26" };
 			fhicl::Atom<size_t> end_of_run_timeout_ms{ fhicl::Name{"end_of_run_quiet_timeout_ms"}, fhicl::Comment{"Amount of time (in ms) to wait for no new requests when a Stop transition is pending"}, 1000 };
 		};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<RequestReceiverConfig>;
+#endif
 
 		RequestReceiver();
 		RequestReceiver(const fhicl::ParameterSet& ps);
@@ -48,30 +52,33 @@ namespace artdaq
 		*/
 		void receiveRequestsLoop();
 
-		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const 
+		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const
 		{
 			std::unique_lock<std::mutex> lk(request_mutex_);
 			std::map<artdaq::Fragment::sequence_id_t, Fragment::timestamp_t> out;
-			for (auto& in : requests_) {
+			for (auto& in : requests_)
+			{
 				out[in.first] = in.second;
 			}
-			return out; 
+			return out;
 		}
 
 		void RemoveRequest(artdaq::Fragment::sequence_id_t reqID);
 
 		bool isRunning() { return running_; }
 
-		void ClearRequests() { 
+		void ClearRequests()
+		{
 			std::unique_lock<std::mutex> lk(request_mutex_);
-			requests_.clear(); 
+			requests_.clear();
 		}
 
 		size_t size() { return requests_.size(); }
 
-		bool WaitForRequests(int timeout_ms) {
+		bool WaitForRequests(int timeout_ms)
+		{
 			std::unique_lock<std::mutex> lk(request_mutex_);
-			return request_cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms), [this]() {return requests_.size() > 0; });
+			return request_cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms), [this]() { return requests_.size() > 0; });
 		}
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
@@ -93,7 +100,7 @@ namespace artdaq
 		mutable std::mutex state_mutex_;
 		std::condition_variable request_cv_;
 		boost::thread requestThread_;
-		
+
 		std::atomic<artdaq::Fragment::sequence_id_t> highest_seen_request_;
 	};
 }

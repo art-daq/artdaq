@@ -34,13 +34,11 @@
 #define TRACE_NAME "RootDAQOut"
 #include "trace.h"				// TRACE
 
-#if ART_HEX_VERSION >= 0x20703
 # include "Rtypes.h"
 # include "TBranchElement.h"
 # include "TClass.h"
 # include "TFile.h"
 # include "TTree.h"
-#endif
 
 #include <iomanip>
 #include <memory>
@@ -60,142 +58,141 @@ public:
 
   static constexpr char const* default_tmpDir {"<parent-path-of-filename>"};
 
-  struct Config {
+  struct Config
+ {
 
-	using Name = fhicl::Name;
-	using Comment = fhicl::Comment;
-	template <typename T> using Atom = fhicl::Atom<T>;
-	template <typename T> using OptionalAtom = fhicl::OptionalAtom<T>;
+using Name = fhicl::Name;
+using Comment = fhicl::Comment;
+template <typename T> using Atom = fhicl::Atom<T>;
+template <typename T> using OptionalAtom = fhicl::OptionalAtom<T>;
 
-	fhicl::TableFragment<art::OutputModule::Config> omConfig;
-	Atom<std::string> catalog { Name("catalog"), "" };
-	OptionalAtom<bool> dropAllEvents { Name("dropAllEvents") };
-	Atom<bool> dropAllSubRuns { Name("dropAllSubRuns"), false };
-	OptionalAtom<bool> fastCloning { Name("fastCloning") };
-	Atom<std::string> tmpDir { Name("tmpDir"), default_tmpDir };
-	Atom<int> compressionLevel { Name("compressionLevel"), 7 };
-	Atom<int64_t> saveMemoryObjectThreshold { Name("saveMemoryObjectThreshold"), -1l };
-	Atom<int64_t> treeMaxVirtualSize { Name("treeMaxVirtualSize"), -1 };
-	Atom<int> splitLevel { Name("splitLevel"), 99 };
-	Atom<int> basketSize { Name("basketSize"), 16384 };
-	Atom<bool> dropMetaDataForDroppedData { Name("dropMetaDataForDroppedData"), false };
-	Atom<std::string> dropMetaData { Name("dropMetaData"), "NONE" };
-	Atom<bool> writeParameterSets { Name("writeParameterSets"), true };
-	fhicl::Table<ClosingCriteria::Config> fileProperties { Name("fileProperties") };
+fhicl::TableFragment<art::OutputModule::Config> omConfig;
+Atom<std::string> catalog { Name("catalog"), "" };
+OptionalAtom<bool> dropAllEvents { Name("dropAllEvents") };
+Atom<bool> dropAllSubRuns { Name("dropAllSubRuns"), false };
+OptionalAtom<bool> fastCloning { Name("fastCloning") };
+Atom<std::string> tmpDir { Name("tmpDir"), default_tmpDir };
+Atom<int> compressionLevel { Name("compressionLevel"), 7 };
+Atom<int64_t> saveMemoryObjectThreshold { Name("saveMemoryObjectThreshold"), -1l };
+Atom<int64_t> treeMaxVirtualSize { Name("treeMaxVirtualSize"), -1 };
+Atom<int> splitLevel { Name("splitLevel"), 99 };
+Atom<int> basketSize { Name("basketSize"), 16384 };
+Atom<bool> dropMetaDataForDroppedData { Name("dropMetaDataForDroppedData"), false };
+Atom<std::string> dropMetaData { Name("dropMetaData"), "NONE" };
+Atom<bool> writeParameterSets { Name("writeParameterSets"), true };
+fhicl::Table<ClosingCriteria::Config> fileProperties { Name("fileProperties") };
 
-	Config()
-	{
-		// Both RootDAQOut module and OutputModule use the "fileName"
-		// FHiCL parameter.  However, whereas in OutputModule the
-		// parameter has a default, for RootDAQOut the parameter should
-		// not.  We therefore have to change the default flag setting
-		// for 'OutputModule::Config::fileName'.
-		using namespace fhicl::detail;
-		ParameterBase* adjustFilename {const_cast<fhicl::Atom<std::string>*>(&omConfig().fileName)};
-		adjustFilename->set_value_type(fhicl::value_type::REQUIRED);
-	  }
+Config()
+{
+	// Both RootDAQOut module and OutputModule use the "fileName"
+	// FHiCL parameter.  However, whereas in OutputModule the
+	// parameter has a default, for RootDAQOut the parameter should
+	// not.  We therefore have to change the default flag setting
+	// for 'OutputModule::Config::fileName'.
+	using namespace fhicl::detail;
+	ParameterBase* adjustFilename {const_cast<fhicl::Atom<std::string>*>(&omConfig().fileName)};
+	adjustFilename->set_value_type(fhicl::value_type::REQUIRED);
+  }
 
-	  struct KeysToIgnore {
-		std::set<std::string> operator()() const
-		{
-		  std::set<std::string> keys {art::OutputModule::Config::KeysToIgnore::get()};
-		  keys.insert("results");
-		  return keys;
-		}
-	  };
+  struct KeysToIgnore
+{
+std::set<std::string> operator()() const
+{
+  std::set<std::string> keys {art::OutputModule::Config::KeysToIgnore::get()};
+  keys.insert("results");
+  return keys;
+}
+};
 
-	};
+};
 
-	using Parameters = art::WrappedTable<Config,Config::KeysToIgnore>;
+using Parameters = art::WrappedTable<Config,Config::KeysToIgnore>;
 
-	explicit RootDAQOut(Parameters const&);
+explicit RootDAQOut(Parameters const&);
 
-	void postSelectProducts(FileBlock const&) override;
+void postSelectProducts(FileBlock const&) override;
 
-	void beginJob() override;
-	void endJob() override;
+void beginJob() override;
+void endJob() override;
 
-	void event(EventPrincipal const&) override;
+void event(EventPrincipal const&) override;
 
-	void beginSubRun(SubRunPrincipal const&) override;
-	void endSubRun(SubRunPrincipal const&) override;
+void beginSubRun(SubRunPrincipal const&) override;
+void endSubRun(SubRunPrincipal const&) override;
 
-	void beginRun(RunPrincipal const&) override;
-	void endRun(RunPrincipal const&) override;
+void beginRun(RunPrincipal const&) override;
+void endRun(RunPrincipal const&) override;
 
-  private:
+private:
 
-	std::string const& lastClosedFileName() const override;
-	void openFile(FileBlock const&) override;
-	void respondToOpenInputFile(FileBlock const&) override;
-	void readResults(ResultsPrincipal const& resp) override;
-	void respondToCloseInputFile(FileBlock const&) override;
-	void incrementInputFileNumber() override;
-  # if ART_HEX_VERSION < 0x20703
-	Boundary fileSwitchBoundary() const override;
-  # endif
-	void write(EventPrincipal&) override;
-	void writeSubRun(SubRunPrincipal&) override;
-	void writeRun(RunPrincipal&) override;
-	void setSubRunAuxiliaryRangeSetID(RangeSet const&) override;
-	void setRunAuxiliaryRangeSetID(RangeSet const&) override;
-	bool isFileOpen() const override;
-	void setFileStatus(OutputFileStatus) override;
-	bool requestsToCloseFile() const override;
-	void doOpenFile();
-	void startEndFile() override;
-	void writeFileFormatVersion() override;
-	void writeFileIndex() override;
-	void writeEventHistory() override;
-	void writeProcessConfigurationRegistry() override;
-	void writeProcessHistoryRegistry() override;
-	void writeParameterSetRegistry() override;
-	void writeProductDescriptionRegistry() override;
-	void writeParentageRegistry() override;
-	void writeBranchIDListRegistry() override;
-	void
-	doWriteFileCatalogMetadata(FileCatalogMetadata::collection_type const& md,
-							   FileCatalogMetadata::collection_type const& ssmd)
-							   override;
-	void writeProductDependencies() override;
-	void finishEndFile() override;
-	void doRegisterProducts(MasterProductRegistry& mpr,
-							ModuleDescription const& md) override;
+  std::string const& lastClosedFileName() const override;
+  void openFile(FileBlock const&) override;
+  void respondToOpenInputFile(FileBlock const&) override;
+  void readResults(ResultsPrincipal const& resp) override;
+  void respondToCloseInputFile(FileBlock const&) override;
+  void incrementInputFileNumber() override;
+  void write(EventPrincipal&) override;
+  void writeSubRun(SubRunPrincipal&) override;
+  void writeRun(RunPrincipal&) override;
+  void setSubRunAuxiliaryRangeSetID(RangeSet const&) override;
+  void setRunAuxiliaryRangeSetID(RangeSet const&) override;
+  bool isFileOpen() const override;
+  void setFileStatus(OutputFileStatus) override;
+  bool requestsToCloseFile() const override;
+  void doOpenFile();
+  void startEndFile() override;
+  void writeFileFormatVersion() override;
+  void writeFileIndex() override;
+  void writeEventHistory() override;
+  void writeProcessConfigurationRegistry() override;
+  void writeProcessHistoryRegistry() override;
+  void writeParameterSetRegistry() override;
+  void writeProductDescriptionRegistry() override;
+  void writeParentageRegistry() override;
+  void writeBranchIDListRegistry() override;
+  void
+  doWriteFileCatalogMetadata(FileCatalogMetadata::collection_type const& md,
+							 FileCatalogMetadata::collection_type const& ssmd)
+							 override;
+  void writeProductDependencies() override;
+  void finishEndFile() override;
+  void doRegisterProducts(MasterProductRegistry& mpr,
+						  ModuleDescription const& md) override;
 
-  private:
+private:
 
-	std::string const catalog_;
-	bool dropAllEvents_ {false};
-	bool dropAllSubRuns_;
-	std::string const moduleLabel_;
-	int inputFileCount_ {0};
-	std::unique_ptr<RootDAQOutFile> rootOutputFile_ {nullptr};
-	FileStatsCollector fstats_;
-	std::string const filePattern_;
-	std::string tmpDir_;
-	std::string lastClosedFileName_ {};
+  std::string const catalog_;
+  bool dropAllEvents_ {false};
+  bool dropAllSubRuns_;
+  std::string const moduleLabel_;
+  int inputFileCount_ {0};
+  std::unique_ptr<RootDAQOutFile> rootOutputFile_ {nullptr};
+  FileStatsCollector fstats_;
+  std::string const filePattern_;
+  std::string tmpDir_;
+  std::string lastClosedFileName_ {};
 
-	// We keep this set of data members for the use of RootDAQOutFile.
-	int const compressionLevel_;
-	int64_t const saveMemoryObjectThreshold_;
-	int64_t const treeMaxVirtualSize_;
-	int const splitLevel_;
-	int const basketSize_;
-	DropMetaData dropMetaData_;
-	bool dropMetaDataForDroppedData_;
+  // We keep this set of data members for the use of RootDAQOutFile.
+  int const compressionLevel_;
+  int64_t const saveMemoryObjectThreshold_;
+  int64_t const treeMaxVirtualSize_;
+  int const splitLevel_;
+  int const basketSize_;
+  DropMetaData dropMetaData_;
+  bool dropMetaDataForDroppedData_;
 
-	// We keep this for the use of RootDAQOutFile and we also use it
-	// during file open to make some choices.
-	bool fastCloning_ {true};
+  // We keep this for the use of RootDAQOutFile and we also use it
+  // during file open to make some choices.
+  bool fastCloning_ {true};
 
-	// Set false only for cases where we are guaranteed never to need
-	// historical ParameterSet information in the downstream file
-	// (e.g. mixing).
-	bool writeParameterSets_;
-	ClosingCriteria fileProperties_;
+  // Set false only for cases where we are guaranteed never to need
+  // historical ParameterSet information in the downstream file
+  // (e.g. mixing).
+  bool writeParameterSets_;
+  ClosingCriteria fileProperties_;
 
-	// ResultsProducer management.
-	RPManager rpm_;
+  // ResultsProducer management.
+  RPManager rpm_;
 };
 
 art::RootDAQOut::
@@ -231,7 +228,8 @@ RootDAQOut(Parameters const& config)
 	bool const fastCloningSet{ config().fastCloning(fastCloning_) };
 	fastCloning_ = detail::shouldFastClone(fastCloningSet, fastCloning_, wantAllEvents(), fileProperties_);
 
-	if (!writeParameterSets_) {
+	if (!writeParameterSets_)
+	{
 		mf::LogWarning("PROVENANCE")
 			<< "Output module " << moduleLabel_ << " has parameter writeParameterSets set to false.\n"
 			<< "Parameter set provenance will not be available in subsequent jobs.\n"
@@ -248,7 +246,8 @@ openFile(FileBlock const& fb)
 	//       input file, so we can find out about the available
 	//       products by looping over the branches of the input
 	//       file data trees.
-	if (!isFileOpen()) {
+	if (!isFileOpen())
+	{
 		doOpenFile();
 		respondToOpenInputFile(fb);
 	}
@@ -258,7 +257,8 @@ void
 art::RootDAQOut::
 postSelectProducts(FileBlock const& fb)
 {
-	if (isFileOpen()) {
+	if (isFileOpen())
+	{
 		rootOutputFile_->selectProducts(fb);
 	}
 }
@@ -273,12 +273,14 @@ respondToOpenInputFile(FileBlock const& fb)
 	bool fastCloneThisOne = fastCloning_ && (fb.tree() != nullptr) &&
 		((remainingEvents() < 0) ||
 		(remainingEvents() >= fb.tree()->GetEntries()));
-	if (fastCloning_ && !fastCloneThisOne) {
+	if (fastCloning_ && !fastCloneThisOne)
+	{
 		mf::LogWarning("FastCloning")
 			<< "Fast cloning deactivated for this input file due to "
 			<< "empty event tree and/or event limits.";
 	}
-	if (fastCloneThisOne && !fb.fastClonable()) {
+	if (fastCloneThisOne && !fb.fastClonable())
+	{
 		mf::LogWarning("FastCloning")
 			<< "Fast cloning deactivated for this input file due to "
 			<< "information in FileBlock.";
@@ -292,7 +294,8 @@ void
 art::RootDAQOut::
 readResults(ResultsPrincipal const& resp)
 {
-	rpm_.for_each_RPWorker([&resp](RPWorker& w) {
+	rpm_.for_each_RPWorker([&resp](RPWorker& w)
+	{
 		Results const res{ resp, w.moduleDescription() };
 		w.rp().doReadResults(res);
 	});
@@ -302,7 +305,8 @@ void
 art::RootDAQOut::
 respondToCloseInputFile(FileBlock const& fb)
 {
-	if (isFileOpen()) {
+	if (isFileOpen())
+	{
 		rootOutputFile_->respondToCloseInputFile(fb);
 	}
 }
@@ -313,10 +317,12 @@ respondToCloseInputFile(FileBlock const& fb)
 void art::RootDAQOut::write(EventPrincipal& ep)
 {
 	TLOG(10) << "RootDAQOut::write begin - line " << __LINE__;
-	if (dropAllEvents_) {
+	if (dropAllEvents_)
+	{
 		return;
 	}
-	if (hasNewlyDroppedBranch()[InEvent]) {
+	if (hasNewlyDroppedBranch()[InEvent])
+	{
 		ep.addToProcessHistory();
 	}
 	rootOutputFile_->writeOne(ep);
@@ -335,10 +341,12 @@ void
 art::RootDAQOut::
 writeSubRun(SubRunPrincipal& sr)
 {
-	if (dropAllSubRuns_) {
+	if (dropAllSubRuns_)
+	{
 		return;
 	}
-	if (hasNewlyDroppedBranch()[InSubRun]) {
+	if (hasNewlyDroppedBranch()[InSubRun])
+	{
 		sr.addToProcessHistory();
 	}
 	rootOutputFile_->writeSubRun(sr);
@@ -356,7 +364,8 @@ void
 art::RootDAQOut::
 writeRun(RunPrincipal& r)
 {
-	if (hasNewlyDroppedBranch()[InRun]) {
+	if (hasNewlyDroppedBranch()[InRun])
+	{
 		r.addToProcessHistory();
 	}
 	rootOutputFile_->writeRun(r);
@@ -368,12 +377,14 @@ art::RootDAQOut::
 startEndFile()
 {
 	auto resp = std::make_unique<ResultsPrincipal>(ResultsAuxiliary{},
-		description().processConfiguration());
+												   description().processConfiguration());
 	if (ProductMetaData::instance().productProduced(InResults) ||
-		hasNewlyDroppedBranch()[InResults]) {
+		hasNewlyDroppedBranch()[InResults])
+	{
 		resp->addToProcessHistory();
 	}
-	rpm_.for_each_RPWorker([&resp](RPWorker& w) {
+	rpm_.for_each_RPWorker([&resp](RPWorker& w)
+	{
 		Results res{ *resp, w.moduleDescription() };
 		w.rp().doWriteResults(*resp, res);
 	});
@@ -419,7 +430,8 @@ void
 art::RootDAQOut::
 writeParameterSetRegistry()
 {
-	if (writeParameterSets_) {
+	if (writeParameterSets_)
+	{
 		rootOutputFile_->writeParameterSetRegistry();
 	}
 }
@@ -448,7 +460,7 @@ writeBranchIDListRegistry()
 void
 art::RootDAQOut::
 doWriteFileCatalogMetadata(FileCatalogMetadata::collection_type const& md,
-	FileCatalogMetadata::collection_type const& ssmd)
+						   FileCatalogMetadata::collection_type const& ssmd)
 {
 	rootOutputFile_->writeFileCatalogMetadata(fstats_, md, ssmd);
 }
@@ -462,18 +474,11 @@ art::RootDAQOut::writeProductDependencies()
 void
 art::RootDAQOut::finishEndFile()
 {
-# if ART_HEX_VERSION >= 0x20703
 	std::string const currentFileName{ rootOutputFile_->currentFileName() };
 	rootOutputFile_->writeTTrees();
 	rootOutputFile_.reset();
 	fstats_.recordFileClose();
 	lastClosedFileName_ = PostCloseFileRenamer{ fstats_ }.maybeRenameFile(rootOutputFile_->currentFileName(), filePattern_);
-# else
-	rootOutputFile_->finishEndFile();
-	fstats_.recordFileClose();
-	lastClosedFileName_ = PostCloseFileRenamer{ fstats_ }.maybeRenameFile(rootOutputFile_->currentFileName(), filePattern_);
-	rootOutputFile_.reset();
-# endif
 	detail::logFileAction("Closed output file ", lastClosedFileName_);
 	rpm_.invoke(&ResultsProducer::doClear);
 }
@@ -481,10 +486,11 @@ art::RootDAQOut::finishEndFile()
 void
 art::RootDAQOut::
 doRegisterProducts(MasterProductRegistry& mpr,
-	ModuleDescription const& md)
+				   ModuleDescription const& md)
 {
 	// Register Results products from ResultsProducers.
-	rpm_.for_each_RPWorker([&mpr, &md](RPWorker& w) {
+	rpm_.for_each_RPWorker([&mpr, &md](RPWorker& w)
+	{
 		auto const& params = w.params();
 		w.setModuleDescription(ModuleDescription{ params.rpPSetID,
 												 params.rpPluginType,
@@ -523,56 +529,48 @@ art::RootDAQOut::
 requestsToCloseFile() const
 {
 	bool ret;
-	if (isFileOpen()) {
+	if (isFileOpen())
+	{
 		ret = rootOutputFile_->requestsToCloseFile();
 	}
-	else {
+	else
+	{
 		ret = false;
 	}
 	return ret;
 }
 
-#if ART_HEX_VERSION < 0x20703
-art::Boundary
-art::RootDAQOut::
-fileSwitchBoundary() const
-{
-	TLOG(10) << "RootDAQOut::fileSwitchBoundary start";
-	auto bb = fileProperties_.granularity();
-	TLOG(10) << "RootDAQOut::fileSwitchBoundary done/return";
-	return bb;
-}
-#endif
-
 void
 art::RootDAQOut::
 doOpenFile()
 {
-	if (inputFileCount_ == 0) {
+	if (inputFileCount_ == 0)
+	{
 		throw art::Exception(art::errors::LogicError)
 			<< "Attempt to open output file before input file. "
 			<< "Please report this to the core framework developers.\n";
 	}
 	rootOutputFile_ = std::make_unique<RootDAQOutFile>(this,
-		unique_filename(tmpDir_ + "/RootDAQOut"),
-		fileProperties_,
-		compressionLevel_,
-		saveMemoryObjectThreshold_,
-		treeMaxVirtualSize_,
-		splitLevel_,
-		basketSize_,
-		dropMetaData_,
-		dropMetaDataForDroppedData_,
-		fastCloning_);
+													   unique_filename(tmpDir_ + "/RootDAQOut"),
+													   fileProperties_,
+													   compressionLevel_,
+													   saveMemoryObjectThreshold_,
+													   treeMaxVirtualSize_,
+													   splitLevel_,
+													   basketSize_,
+													   dropMetaData_,
+													   dropMetaDataForDroppedData_,
+													   fastCloning_);
 	fstats_.recordFileOpen();
 	detail::logFileAction("Opened output file with pattern ", filePattern_);
-}
+	}
 
 string const&
 art::RootDAQOut::
 lastClosedFileName() const
 {
-	if (lastClosedFileName_.empty()) {
+	if (lastClosedFileName_.empty())
+	{
 		throw Exception(errors::LogicError, "RootDAQOut::currentFileName(): ")
 			<< "called before meaningful.\n";
 	}
@@ -597,7 +595,8 @@ void
 art::RootDAQOut::
 event(EventPrincipal const& ep)
 {
-	rpm_.for_each_RPWorker([&ep](RPWorker& w) {
+	rpm_.for_each_RPWorker([&ep](RPWorker& w)
+	{
 		Event const e{ ep, w.moduleDescription() };
 		w.rp().doEvent(e);
 	});
@@ -607,7 +606,8 @@ void
 art::RootDAQOut::
 beginSubRun(art::SubRunPrincipal const& srp)
 {
-	rpm_.for_each_RPWorker([&srp](RPWorker& w) {
+	rpm_.for_each_RPWorker([&srp](RPWorker& w)
+	{
 		SubRun const sr{ srp, w.moduleDescription() };
 		w.rp().doBeginSubRun(sr);
 	});
@@ -617,7 +617,8 @@ void
 art::RootDAQOut::
 endSubRun(art::SubRunPrincipal const& srp)
 {
-	rpm_.for_each_RPWorker([&srp](RPWorker& w) {
+	rpm_.for_each_RPWorker([&srp](RPWorker& w)
+	{
 		SubRun const sr{ srp, w.moduleDescription() };
 		w.rp().doEndSubRun(sr);
 	});
@@ -627,7 +628,8 @@ void
 art::RootDAQOut::
 beginRun(art::RunPrincipal const& rp)
 {
-	rpm_.for_each_RPWorker([&rp](RPWorker& w) {
+	rpm_.for_each_RPWorker([&rp](RPWorker& w)
+	{
 		Run const r{ rp, w.moduleDescription() };
 		w.rp().doBeginRun(r);
 	});
@@ -637,7 +639,8 @@ void
 art::RootDAQOut::
 endRun(art::RunPrincipal const& rp)
 {
-	rpm_.for_each_RPWorker([&rp](RPWorker& w) {
+	rpm_.for_each_RPWorker([&rp](RPWorker& w)
+	{
 		Run const r{ rp, w.moduleDescription() };
 		w.rp().doEndRun(r);
 	});

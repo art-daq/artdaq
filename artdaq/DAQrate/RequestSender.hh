@@ -6,6 +6,7 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/Table.h"
 
 #include <map>
 #include <memory>
@@ -28,8 +29,9 @@ namespace artdaq
 	public:
 		struct RequestSenderConfig
 		{
-
+			fhicl::Atom<bool> send_requests{fhicl::Name{ "send_requests" }, fhicl::Comment{ "Enable sending Data Request messages" }, false};
 		};
+		using Parameters = fhicl::WrappedTable<RequestSenderConfig>;
 
 		/**
 		 * \brief Default Constructor is deleted

@@ -27,7 +27,7 @@ art_make_library( LIBRARY_NAME artdaq_Application
   artdaq_Application_Routing
   art_Framework_Art
   art_Utilities
-  ${CANVAS_LIB_LIST}
+canvas
   ${MF_MESSAGELOGGER}
   ${CETLIB}
   ${Boost_FILESYSTEM_LIBRARY}

@@ -7,11 +7,6 @@
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
-#if ART_HEX_VERSION >= 0x20703
-# include <iterator>
-#else
-# include "art/Persistency/Provenance/BranchIDListHelper.h"
-#endif
 #if ART_HEX_VERSION < 0x20900
 #include "art/Persistency/Provenance/BranchIDListRegistry.h"
 #include "canvas/Persistency/Provenance/BranchIDList.h"
@@ -36,6 +31,7 @@
 #include "cetlib/lpad.h"
 #include "cetlib/rpad.h"
 #include <algorithm>
+# include <iterator>
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
@@ -103,7 +99,7 @@ private:
 	virtual void writeSubRun(SubRunPrincipal&);
 
 	void writeDataProducts(TBufferFile&, const Principal&,
-		std::vector<BranchKey*>&);
+						   std::vector<BranchKey*>&);
 
 private:
 	bool initMsgSent_;
@@ -123,18 +119,18 @@ TransferOutput(fhicl::ParameterSet const& ps)
 	, send_timeout_us_(ps.get<size_t>("send_timeout_us", 5000000))
 	, send_retry_count_(ps.get<size_t>("send_retry_count", 5))
 {
-	TLOG(TLVL_DEBUG) << "Begin: TransferOutput::TransferOutput(ParameterSet const& ps)" ;
+	TLOG(TLVL_DEBUG) << "Begin: TransferOutput::TransferOutput(ParameterSet const& ps)";
 	transfer_ = artdaq::MakeTransferPlugin(ps, "transfer_plugin", artdaq::TransferInterface::Role::kSend);
-	TLOG(TLVL_DEBUG) << "END: TransferOutput::TransferOutput" ;
+	TLOG(TLVL_DEBUG) << "END: TransferOutput::TransferOutput";
 }
 
 art::TransferOutput::
 ~TransferOutput()
 {
-	TLOG(TLVL_DEBUG) << "Begin: TransferOutput::~TransferOutput()" ;
+	TLOG(TLVL_DEBUG) << "Begin: TransferOutput::~TransferOutput()";
 
 	auto sts = transfer_->moveFragment(std::move(*artdaq::Fragment::eodFrag(0)));
-	if (sts != artdaq::TransferInterface::CopyStatus::kSuccess) TLOG(TLVL_ERROR) << "Error sending EOD Fragment!" ;
+	if (sts != artdaq::TransferInterface::CopyStatus::kSuccess) TLOG(TLVL_ERROR) << "Error sending EOD Fragment!";
 	transfer_.reset(nullptr);
 	TLOG(TLVL_DEBUG) << "End: TransferOutput::~TransferOutput()";
 }
@@ -143,14 +139,14 @@ void
 art::TransferOutput::
 openFile(FileBlock const&)
 {
-	TLOG(TLVL_TRACE) << "Begin/End: TransferOutput::openFile(const FileBlock&)" ;
+	TLOG(TLVL_TRACE) << "Begin/End: TransferOutput::openFile(const FileBlock&)";
 }
 
 void
 art::TransferOutput::
 closeFile()
 {
-	TLOG(TLVL_TRACE) << "Begin/End: TransferOutput::closeFile()" ;
+	TLOG(TLVL_TRACE) << "Begin/End: TransferOutput::closeFile()";
 }
 
 void
@@ -158,7 +154,7 @@ art::TransferOutput::
 respondToCloseInputFile(FileBlock const&)
 {
 	TLOG(TLVL_TRACE) << "Begin/End: TransferOutput::" <<
-		"respondToCloseOutputFiles(FileBlock const&)" ;
+		"respondToCloseOutputFiles(FileBlock const&)";
 }
 
 void
@@ -166,14 +162,14 @@ art::TransferOutput::
 respondToCloseOutputFiles(FileBlock const&)
 {
 	TLOG(TLVL_TRACE) << "Begin/End: TransferOutput::" <<
-		"respondToCloseOutputFiles(FileBlock const&)" ;
+		"respondToCloseOutputFiles(FileBlock const&)";
 }
 
 void
 art::TransferOutput::
 endJob()
 {
-	TLOG(TLVL_TRACE) << "Begin: TransferOutput::endJob()" ;
+	TLOG(TLVL_TRACE) << "Begin: TransferOutput::endJob()";
 }
 
 //#pragma GCC push_options
@@ -182,7 +178,7 @@ void
 art::TransferOutput::
 send_init_message()
 {
-	TLOG(TLVL_TRACE) << "Begin: TransferOutput static send_init_message()" ;
+	TLOG(TLVL_TRACE) << "Begin: TransferOutput static send_init_message()";
 	//
 	//  Get the classes we will need.
 	//
@@ -233,41 +229,36 @@ send_init_message()
 	//  Stream the message type code.
 	//
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): "
-		"Streaming message type code ..." ;
+		"Streaming message type code ...";
 	msg.WriteULong(1);
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): "
-		"Finished streaming message type code." ;
+		"Finished streaming message type code.";
 
 	//
 	//  Stream the ParameterSetRegistry.
 	//
 	unsigned long ps_cnt = fhicl::ParameterSetRegistry::size();
-	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): parameter set count: " << std::to_string(ps_cnt) ;
+	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): parameter set count: " << std::to_string(ps_cnt);
 	msg.WriteULong(ps_cnt);
-	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Streaming parameter sets ..." ;
+	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Streaming parameter sets ...";
 	for (
-#            if ART_HEX_VERSION >= 0x20703
 		auto I = std::begin(fhicl::ParameterSetRegistry::get()),
 		E = std::end(fhicl::ParameterSetRegistry::get());
-#            else
-		auto I = fhicl::ParameterSetRegistry::begin(),
-		E = fhicl::ParameterSetRegistry::end();
-#            endif
 		I != E; ++I)
 	{
 		std::string pset_str = I->second.to_string();
 		//msg.WriteObjectAny(&pset_str, string_class);
 		msg.WriteStdString(pset_str);
 	}
-	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Finished streaming parameter sets." ;
+	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Finished streaming parameter sets.";
 
 	//
 	//  Stream the MasterProductRegistry.
 	//
-	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Streaming MasterProductRegistry ..." ;;
+	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Streaming MasterProductRegistry ...";;
 	art::ProductList productList(art::ProductMetaData::instance().productList());
 	msg.WriteObjectAny(&productList, product_list_class);
-	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Finished streaming MasterProductRegistry." ;
+	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Finished streaming MasterProductRegistry.";
 
 #if ART_HEX_VERSION < 0x20900
 	//
@@ -278,22 +269,17 @@ send_init_message()
 		//typedef vector<BranchID::value_type> BranchIDList
 		//typedef vector<BranchIDList> BranchIDLists
 		//std::vector<std::vector<art::BranchID::value_type>>
-#       if ART_HEX_VERSION >= 0x20703
 		art::BranchIDLists const * bilr =
 			&art::BranchIDListRegistry::instance().data();
-#       else
-		art::BranchIDLists* bilr =
-			&art::BranchIDListRegistry::instance()->data();
-#       endif
-		TLOG(TLVL_TRACE) << "TransferOutput static send_init_message(): " << "Content of BranchIDLists" ;
+		TLOG(TLVL_TRACE) << "TransferOutput static send_init_message(): " << "Content of BranchIDLists";
 		int max_bli = bilr->size();
 		TLOG(TLVL_TRACE) << "TransferOutput static send_init_message(): " <<
-			"max_bli: " << max_bli ;
+			"max_bli: " << max_bli;
 		for (int i = 0; i < max_bli; ++i)
 		{
 			int max_prdidx = (*bilr)[i].size();
 			TLOG(TLVL_TRACE) << "TransferOutput static send_init_message(): " <<
-				"max_prdidx: " << max_prdidx ;
+				"max_prdidx: " << max_prdidx;
 			for (int j = 0; j < max_prdidx; ++j)
 			{
 				TLOG(TLVL_TRACE) << "TransferOutput static send_init_message(): " <<
@@ -301,108 +287,95 @@ send_init_message()
 					<< " prdidx: " << j
 					<< " bid: 0x" << std::hex
 					<< static_cast<unsigned long>((*bilr)[i][j])
-					<< std::dec ;
+					<< std::dec;
 			}
 		}
-}
+	}
 #endif
 
-#   if ART_HEX_VERSION >= 0x20703
 	art::ProcessHistoryMap phr;
 	for (auto const& pr : art::ProcessHistoryRegistry::get())
 	{
 		phr.emplace(pr);
 	}
-#   endif
 	//
 	//  Dump the ProcessHistoryRegistry.
 	//
 	if (art::debugit() >= 1)
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): "
-			"Dumping ProcessHistoryRegistry ..." ;
+			"Dumping ProcessHistoryRegistry ...";
 		//typedef std::map<const ProcessHistoryID,ProcessHistory>
 		//    ProcessHistoryMap;
-#       if ART_HEX_VERSION < 0x20703
-		art::ProcessHistoryMap const& phr = art::ProcessHistoryRegistry::get();
-#       endif
 		TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): " <<
-			"phr: size: " + std::to_string(phr.size()) ;
+			"phr: size: " + std::to_string(phr.size());
 		for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
 		{
 			std::ostringstream OS;
 			I->first.print(OS);
 			TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): " <<
-				"phr: id: '" + OS.str() + "'" ;
-		}
+				"phr: id: '" + OS.str() + "'";
 	}
+}
 	//
 	//  Stream the ProcessHistoryRegistry.
 	//
 
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): " <<
-		"Streaming ProcessHistoryRegistry ..." ;
+		"Streaming ProcessHistoryRegistry ...";
 	//typedef std::map<const ProcessHistoryID,ProcessHistory>
 	//    ProcessHistoryMap;
-#       if ART_HEX_VERSION >= 0x20703
 	const art::ProcessHistoryMap& phm = phr;
-#       else
-	const art::ProcessHistoryMap& phm = art::ProcessHistoryRegistry::get();
-#       endif
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): " <<
-		"phm: size: " << std::to_string(phm.size()) ;
+		"phm: size: " << std::to_string(phm.size());
 	msg.WriteObjectAny(&phm, process_history_map_class);
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): " <<
-		"Finished streaming ProcessHistoryRegistry." ;
+		"Finished streaming ProcessHistoryRegistry.";
 
 	//
 	//  Stream the ParentageRegistry.
 	//
 #if 0
 	TLOG(TLVL_DEBUG) << "TransferOutput static send_init_message(): " <<
-		"Streaming ParentageRegistry ... sz=" << std::to_string(msg.Length()) ;
+		"Streaming ParentageRegistry ... sz=" << std::to_string(msg.Length());
 #endif
-#       if ART_HEX_VERSION >= 0x20703
 	art::ParentageMap parentageMap{};
 	for (auto const& pr : art::ParentageRegistry::get())
 	{
 		parentageMap.emplace(pr.first, pr.second);
 	}
-#       else
-	const art::ParentageMap& parentageMap = art::ParentageRegistry::get();
-#       endif
 
-	TLOG(TLVL_TRACE) << "Before WriteObjectAny ParentageMap" ;
+	TLOG(TLVL_TRACE) << "Before WriteObjectAny ParentageMap";
 #if 0
 	auto sts =
 #endif
 		msg.WriteObjectAny(&parentageMap, parentage_map_class);
-	TLOG(TLVL_TRACE) << "After WriteObjectAny ParentageMap" ;
+	TLOG(TLVL_TRACE) << "After WriteObjectAny ParentageMap";
 #if 0
 	TLOG(TLVL_DEBUG) << "TransferOutput: TransferOutput static send_init_message(): " <<
-		"Finished streaming ParentageRegistry." << " sts=" << sts << ", sz=" << std::to_string(msg.Length()) ;
+		"Finished streaming ParentageRegistry." << " sts=" << sts << ", sz=" << std::to_string(msg.Length());
 #endif
 
 	//
 	//
 	//  Send init message.
 	//
-	TLOG(TLVL_DEBUG) << "TransferOutput: TransferOutput static send_init_message(): " << "Sending the init message." ;
+	TLOG(TLVL_DEBUG) << "TransferOutput: TransferOutput static send_init_message(): " << "Sending the init message.";
 	sendMessage_(artdaq::Fragment::InvalidSequenceID - 1, artdaq::Fragment::InitFragmentType, msg);
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): "
-		"Init message(s) sent." ;
+		"Init message(s) sent.";
 
-	TLOG(TLVL_TRACE) << " End:   TransferOutput static send_init_message()" ;
-	}
+	TLOG(TLVL_TRACE) << " End:   TransferOutput static send_init_message()";
+}
 
 #//pragma GCC pop_options
 
 void
 art::TransferOutput::
 writeDataProducts(TBufferFile& msg, const Principal& principal,
-	std::vector<BranchKey*>& bkv)
+				  std::vector<BranchKey*>& bkv)
 {
-	TLOG(TLVL_TRACE) << " Begin: TransferOutput::writeDataProducts(...)" ;
+	TLOG(TLVL_TRACE) << " Begin: TransferOutput::writeDataProducts(...)";
 	//
 	//  Fetch the class dictionaries we need for
 	//  writing out the data products.
@@ -434,7 +407,8 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 		bool found = false;
 		for (auto const& ref : refs)
 		{
-			if (*ref == productDescription) {
+			if (*ref == productDescription)
+			{
 				found = true;
 				break;
 			}
@@ -451,16 +425,16 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 
 #endif
 		++prd_cnt;
-		}
+	}
 	//
 	//  Write the data product count.
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::writeDataProducts(...): "
-			"Streaming product count: " << std::to_string(prd_cnt) ;
+			"Streaming product count: " << std::to_string(prd_cnt);
 		msg.WriteULong(prd_cnt);
 		TLOG(TLVL_TRACE) << " TransferOutput::writeDataProducts(...): "
-			"Finished streaming product count." ;
+			"Finished streaming product count.";
 	}
 	//
 	//  Loop over the groups in the RunPrincipal and
@@ -482,7 +456,8 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 		bool found = false;
 		for (auto const& ref : refs)
 		{
-			if (*ref == productDescription) {
+			if (*ref == productDescription)
+			{
 				found = true;
 				break;
 			}
@@ -511,7 +486,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 				<< bkv.back()->productInstanceName_
 				<< "' procnm: '"
 				<< bkv.back()->processName_
-				<< "'" ;
+				<< "'";
 		}
 		{
 			TLOG(TLVL_TRACE) << " TransferOutput::writeDataProducts(...): "
@@ -523,7 +498,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 				+ bd.productInstanceName()
 				+ "' procnm: '"
 				+ bd.processName()
-				+ "'" ;
+				+ "'";
 			msg.WriteObjectAny(bkv.back(), branch_key_class);
 		}
 		{
@@ -536,7 +511,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 				+ bd.productInstanceName()
 				+ "' procnm: '"
 				+ bd.processName()
-				+ "'" ;
+				+ "'";
 #if ART_HEX_VERSION > 0x20800
 			OutputHandle oh = principal.getForOutput(bd.productID(), true);
 #else
@@ -555,13 +530,13 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 				+ bd.productInstanceName()
 				+ "' procnm: '"
 				+ bd.processName()
-				+ "'" ;
+				+ "'";
 			const ProductProvenance* prdprov =
 				I->second->productProvenancePtr().get();
 			msg.WriteObjectAny(prdprov, prdprov_class);
 		}
-		}
-	TLOG(TLVL_TRACE) << " End:   TransferOutput::writeDataProducts(...)" ;
+	}
+	TLOG(TLVL_TRACE) << " End:   TransferOutput::writeDataProducts(...)";
 	}
 
 void
@@ -572,7 +547,7 @@ write(EventPrincipal& ep)
 	//  Write an Event message.
 	//
 	TLOG(TLVL_TRACE) << " Begin: TransferOutput::"
-		"write(const EventPrincipal& ep)" ;
+		"write(const EventPrincipal& ep)";
 	if (!initMsgSent_)
 	{
 		send_init_message();
@@ -619,52 +594,52 @@ write(EventPrincipal& ep)
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Streaming message type code ..." ;
+			"Streaming message type code ...";
 		msg.WriteULong(4);
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Finished streaming message type code." ;
+			"Finished streaming message type code.";
 	}
 	//
 	//  Write RunAuxiliary.
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Streaming RunAuxiliary ..." ;
+			"Streaming RunAuxiliary ...";
 		msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().aux(),
-			run_aux_class);
+						   run_aux_class);
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Finished streaming RunAuxiliary." ;
+			"Finished streaming RunAuxiliary.";
 	}
 	//
 	//  Write SubRunAuxiliary.
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Streaming SubRunAuxiliary ..." ;
+			"Streaming SubRunAuxiliary ...";
 		msg.WriteObjectAny(&ep.subRunPrincipal().aux(),
-			subrun_aux_class);
+						   subrun_aux_class);
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Finished streaming SubRunAuxiliary." ;
+			"Finished streaming SubRunAuxiliary.";
 	}
 	//
 	//  Write EventAuxiliary.
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Streaming EventAuxiliary ..." ;
+			"Streaming EventAuxiliary ...";
 		msg.WriteObjectAny(&ep.aux(), event_aux_class);
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Finished streaming EventAuxiliary." ;
+			"Finished streaming EventAuxiliary.";
 	}
 	//
 	//  Write History.
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Streaming History ..." ;
+			"Streaming History ...";
 		msg.WriteObjectAny(&ep.history(), history_class);
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Finished streaming History." ;
+			"Finished streaming History.";
 	}
 	//
 	//  Write data products.
@@ -676,10 +651,10 @@ write(EventPrincipal& ep)
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Sending a message ..." ;
+			"Sending a message ...";
 		sendMessage_(ep.id().event(), artdaq::Fragment::DataFragmentType, msg);
 		TLOG(TLVL_TRACE) << " TransferOutput::write(const EventPrincipal& ep): "
-			"Message sent." ;
+			"Message sent.";
 	}
 	//
 	//  Delete the branch keys we created for the message.
@@ -689,7 +664,7 @@ write(EventPrincipal& ep)
 		delete *I;
 		*I = 0;
 	}
-	TLOG(TLVL_TRACE) << " End:   TransferOutput::write(const EventPrincipal& ep)" ;
+	TLOG(TLVL_TRACE) << " End:   TransferOutput::write(const EventPrincipal& ep)";
 }
 
 void
@@ -699,7 +674,7 @@ writeRun(RunPrincipal& rp)
 	//
 	//  Write an EndRun message.
 	//
-	TLOG(TLVL_TRACE) << " Begin: TransferOutput::writeRun(const RunPrincipal& rp)" ;
+	TLOG(TLVL_TRACE) << " Begin: TransferOutput::writeRun(const RunPrincipal& rp)";
 	(void)rp;
 	if (!initMsgSent_)
 	{
@@ -713,7 +688,7 @@ writeRun(RunPrincipal& rp)
 	//
 	static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
 	assert(run_aux_class != nullptr && "writeRun: Could not get TClass for "
-		"art::RunAuxiliary!");
+		   "art::RunAuxiliary!");
 	//
 	//  Begin preparing message.
 	//
@@ -805,7 +780,7 @@ writeRun(RunPrincipal& rp)
 		*I = 0;
 	}
 #endif // 0
-	TLOG(TLVL_TRACE) << " End:   TransferOutput::writeRun(const RunPrincipal& rp)" ;
+	TLOG(TLVL_TRACE) << " End:   TransferOutput::writeRun(const RunPrincipal& rp)";
 }
 
 void
@@ -815,7 +790,7 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 	//  Write an EndSubRun message.
 	//
 	TLOG(TLVL_TRACE) << " Begin: TransferOutput::"
-		"writeSubRun(const SubRunPrincipal& srp)" ;
+		"writeSubRun(const SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
 		send_init_message();
@@ -842,86 +817,73 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-			"streaming message type code ..." ;
+			"streaming message type code ...";
 		msg.WriteULong(3);
 		TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-			"finished streaming message type code." ;
+			"finished streaming message type code.";
 	}
 	//
 	//  Write SubRunAuxiliary.
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-			"streaming SubRunAuxiliary ..." ;
+			"streaming SubRunAuxiliary ...";
 		if (art::debugit() >= 1)
 		{
 			TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-				"dumping ProcessHistoryRegistry ..." ;
+				"dumping ProcessHistoryRegistry ...";
 			//typedef std::map<const ProcessHistoryID,ProcessHistory>
 			//    ProcessHistoryMap;
-#          if ART_HEX_VERSION >= 0x20703
 			for (auto I = std::begin(art::ProcessHistoryRegistry::get())
-				, E = std::end(art::ProcessHistoryRegistry::get()); I != E; ++I)
-#          else
-			art::ProcessHistoryMap const& phr =
-				art::ProcessHistoryRegistry::get();
-			TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-				"phr: size: " << std::to_string(phr.size()) ;
-			for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
-#          endif
+				 , E = std::end(art::ProcessHistoryRegistry::get()); I != E; ++I)
 			{
 				std::ostringstream OS;
-					I->first.print(OS);
+				I->first.print(OS);
 				TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-					"phr: id: '" + OS.str() + "'" ;
+					"phr: id: '" + OS.str() + "'";
 				OS.str("");
 				TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-					"phr: data.size(): " << std::to_string(I->second.data().size()) ;
+					"phr: data.size(): " << std::to_string(I->second.data().size());
 				if (I->second.data().size())
 				{
 					I->second.data().back().id().print(OS);
 					TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
 						"phr: data.back().id(): '"
-						+ OS.str() + "'" ;
+						+ OS.str() + "'";
 				}
 			}
 			if (!srp.aux().processHistoryID().isValid())
 			{
 				TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-					"ProcessHistoryID: 'INVALID'" ;;
-			}
+					"ProcessHistoryID: 'INVALID'";;
+				}
 			else
 			{
 				std::ostringstream OS;
 				srp.aux().processHistoryID().print(OS);
 				TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: ProcessHistoryID: '"
-					+ OS.str() + "'" ;
+					+ OS.str() + "'";
 				OS.str("");
-#              if ART_HEX_VERSION >= 0x20703
 				ProcessHistory processHistory;
 				ProcessHistoryRegistry::get(srp.aux().processHistoryID(), processHistory);
-#              else
-				const ProcessHistory& processHistory =
-					ProcessHistoryRegistry::get(srp.aux().processHistoryID());
-#              endif
 				if (processHistory.data().size())
 				{
 					// FIXME: Print something special on invalid id() here!
 					processHistory.data().back().id().print(OS);
 					TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
 						"ProcessConfigurationID: '"
-						+ OS.str() + "'" ;
+						+ OS.str() + "'";
 					OS.str("");
 					OS << processHistory.data().back();
 					TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
 						"ProcessConfiguration: '"
-						+ OS.str() ;
+						+ OS.str();
 				}
 			}
-		}
+			}
 		msg.WriteObjectAny(&srp.aux(), subrun_aux_class);
-		TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: streamed SubRunAuxiliary." ;
-	}
+		TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: streamed SubRunAuxiliary.";
+		}
 	//
 	//  Write data products.
 	//
@@ -932,10 +894,10 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-			"Sending the EndOfSubrun message." ;
+			"Sending the EndOfSubrun message.";
 		sendMessage_(0, artdaq::Fragment::EndOfSubrunFragmentType, msg);
 		TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-			"EndOfSubrun message(s) sent." ;
+			"EndOfSubrun message(s) sent.";
 
 	}
 	//
@@ -946,20 +908,20 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 		delete *I;
 		*I = 0;
 	}
-	TLOG(TLVL_TRACE) << " End:   TransferOutput::writeSubRun(const SubRunPrincipal& srp)" ;
-}
+	TLOG(TLVL_TRACE) << " End:   TransferOutput::writeSubRun(const SubRunPrincipal& srp)";
+	}
 
 
 void
 art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 {
-	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << std::to_string(sequenceId) << ", type=" << std::to_string(messageType) << ", length=" << std::to_string(msg.Length()) ;
+	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << std::to_string(sequenceId) << ", type=" << std::to_string(messageType) << ", length=" << std::to_string(msg.Length());
 	artdaq::NetMonHeader header;
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment
 		fragment(std::ceil(msg.Length() /
-			static_cast<double>(sizeof(artdaq::RawDataType))),
-			sequenceId, 0, messageType, header);
+						   static_cast<double>(sizeof(artdaq::RawDataType))),
+				 sequenceId, 0, messageType, header);
 
 	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
 	auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
@@ -976,9 +938,9 @@ art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBuf
 		std::fstream ostream("sendInitMessage_TransferOutput.bin", std::ios::out | std::ios::binary);
 		ostream.write(msg.Buffer(), msg.Length());
 		ostream.close();
-}
+	}
 #endif
 
-	}
+}
 
 DEFINE_ART_MODULE(art::TransferOutput)
