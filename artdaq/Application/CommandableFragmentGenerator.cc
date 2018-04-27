@@ -274,6 +274,22 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		TLOG(TLVL_DEBUG) << "stopped " ;
 	}
 
+	if (metricMan && !output.empty()) {
+
+          auto timestamp = output.front()->timestamp();
+
+          if (output.size() > 1) { // Only bother sorting if >1 entry                                            
+            for (auto& outputfrag : output ) {
+              if (outputfrag->timestamp() > timestamp) {
+                timestamp = outputfrag->timestamp();
+              }
+            }
+          }
+
+          metricMan->sendMetric("Last Timestamp", timestamp, "Ticks", 1,
+                                MetricMode::LastPoint, app_name);
+        }
+
 	return result;
 }
 
