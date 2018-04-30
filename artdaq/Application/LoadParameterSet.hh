@@ -36,7 +36,7 @@ void PrintConfigurationToConsole(std::string name)
 }
 
 template<typename C>
-fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name,std::string description )
+fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name, std::string description)
 {
 	std::ostringstream descstr;
 	descstr << argv[0]
@@ -62,7 +62,7 @@ fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name,st
 		std::cout << desc << std::endl;
 		std::cout << description << std::endl;
 		std::cout << "Sample FHiCL configuration for this application: " << std::endl;
-		fhicl::Table<C> config_description(fhicl::Name{name});
+		fhicl::Table<C> config_description(fhicl::Name{ name });
 		config_description.print_allowed_configuration(std::cout);
 		exit(1);
 	}
