@@ -48,11 +48,11 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	}
 
 	fhicl::ParameterSet art_pset = pset;
-	try
+	if(art_pset.has_key("art"))
 	{
 		art_pset = art_pset.get<fhicl::ParameterSet>("art");
 	}
-	catch (...)
+	else
 	{
 		art_pset.erase("daq");
 	}
