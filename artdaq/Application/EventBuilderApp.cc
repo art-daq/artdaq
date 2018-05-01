@@ -1,3 +1,6 @@
+#define TRACE_NAME (app_name + "_DataLoggerApp").c_str() // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"
+
 #include "artdaq/Application/EventBuilderApp.hh"
 
 artdaq::EventBuilderApp::EventBuilderApp() 
@@ -122,6 +125,20 @@ bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, u
 		report_string_.append(app_name + " with ");
 		report_string_.append("ParameterSet = \"" + pset.to_string() + "\".");
 	}
+	return external_request_status_;
+}
+
+bool artdaq::EventBuilderApp::do_rollover_subrun(uint64_t boundary)
+{
+	TLOG(TLVL_DEBUG) << "do_rollover_subrun BEGIN boundary=" << boundary;
+	report_string_ = "";
+	external_request_status_ = event_builder_ptr_->rollover_subrun(boundary);
+	if (!external_request_status_)
+	{
+		report_string_ = "Error rolling over subrun in ";
+		report_string_.append(app_name + "!");
+	}
+	TLOG(TLVL_DEBUG) << "do_rollover_subrun END sts=" << std::boolalpha << external_request_status_;
 	return external_request_status_;
 }
 

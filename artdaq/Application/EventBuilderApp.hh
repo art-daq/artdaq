@@ -92,6 +92,12 @@ public:
 	bool do_reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t) override;
 
 	/**
+	* \brief Rollover the subrun after the given event
+	* \param eventNum Sequence ID of boundary
+	*/
+	bool do_rollover_subrun(uint64_t eventNum) override;
+
+	/**
 	* \brief Action taken upon entering the "Booted" state
 	*
 	* This is a No-Op

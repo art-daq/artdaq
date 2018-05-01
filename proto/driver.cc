@@ -44,7 +44,18 @@ dynamic_unique_ptr_cast(std::unique_ptr<B>& p);
 
 int main(int argc, char * argv[]) try
 {
-	auto pset = LoadParameterSet(argc, argv);
+	struct Config
+	{
+		fhicl::Atom<int> run_number{ fhicl::Name{"run_number"}, fhicl::Comment{"Run number to use for output file"}, 1 };
+		fhicl::Atom<bool> debug_cout{ fhicl::Name{"debug_cout"}, fhicl::Comment{"Whether to print debug messages to console"}, false };
+		fhicl::Atom<uint64_t> transition_timeout{ fhicl::Name{"transition_timeout"}, fhicl::Comment{"Timeout to use (in seconds) for automatic transitions"}, 30 };
+		fhicl::Table<artdaq::CommandableFragmentGenerator::Config> generator{ fhicl::Name{ "fragment_receiver" } };
+		fhicl::Table<artdaq::MetricManager::Config> metrics{ fhicl::Name{"metrics"} };
+		fhicl::Table<artdaq::SharedMemoryEventManager::Config> event_builder{ fhicl::Name{"event_builder"} };
+		fhicl::Atom<int> events_to_generate{ fhicl::Name{"events_to_generate"}, fhicl::Comment{"Number of events to generate and process"}, 0 };
+		fhicl::TableFragment<art::Config> art_config;
+	};
+	auto pset = LoadParameterSet<Config>(argc, argv, "driver", "The artdaqDriver executable runs a Fragment Generator and an art process, acting as a \"unit integration\" test for a data source");
 
 	int run = pset.get<int>("run_number", 1);
 	bool debug = pset.get<bool>("debug_cout", false);

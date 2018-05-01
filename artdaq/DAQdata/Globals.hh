@@ -46,7 +46,8 @@ namespace artdaq
 		static uint32_t seedAndRandom_()
 		{
 			static bool initialized_ = false;
-			if (!initialized_) {
+			if (!initialized_)
+			{
 				int fp = open("/dev/random", O_RDONLY);
 				if (fp == -1) abort();
 				unsigned seed;
@@ -63,10 +64,40 @@ namespace artdaq
 			}
 			return rand();
 		}
+
+		/**
+		* \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
+		* \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
+		*/
+		static int GetPartitionNumber()
+		{
+			auto part = getenv("ARTDAQ_PARTITION_NUMBER"); // 0-127
+			uint32_t part_u = 0;
+			if (part != nullptr)
+			{
+				try
+				{
+					auto part_s = std::string(part);
+					part_u = static_cast<uint32_t>(std::stoll(part_s, 0, 0));
+				}
+				catch (std::invalid_argument) {}
+				catch (std::out_of_range) {}
+			}
+
+			return (part_u & 0x7F);
+		}
 	};
 }
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "tracemf.h"
 #include "artdaq-core/Utilities/TimeUtils.hh"
+#include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Table.h"
+#include "fhiclcpp/types/Sequence.h"
+#include "fhiclcpp/types/TableFragment.h"
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+# include "fhiclcpp/types/ConfigurationTable.h"
+#endif
 #endif // ARTDAQ_DAQDATA_GLOBALS_HH

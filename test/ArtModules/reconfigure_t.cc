@@ -24,7 +24,13 @@ using std::size_t;
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("reconfigure_t");
-	auto pset = LoadParameterSet(argc, argv);
+	struct Config
+	{
+		fhicl::TableFragment<artdaq::SharedMemoryEventManager::Config> shmem_config;
+		fhicl::TableFragment<art::Config> art_config;
+		fhicl::TableFragment<artdaq::GenericFragmentSimulator::Config> frag_gen_config;
+	};
+	auto pset = LoadParameterSet<Config>(argc, argv, "reconfigure_t", "reconfigure_t tests data from a GenericFragmentSimulator through art, then performs a reconfiguration and tests that the reconfiguration worked correctly.");
 	int rc = -1;
 	try
 	{

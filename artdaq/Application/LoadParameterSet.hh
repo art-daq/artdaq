@@ -1,8 +1,10 @@
 #ifndef artdaq_proto_LoadParameterSet_hh
 #define artdaq_proto_LoadParameterSet_hh 1
 
-#include "tracemf.h" // note: in header files (this LoadParameterSet.hh) consider if you want TRACE/LOG to use "name" from .cc or name for this file
+// note: in header files (this LoadParameterSet.hh) consider if you want TRACE/LOG to use "name" from .cc or name for this file
+#include "tracemf.h"
 #include "fhiclcpp/make_ParameterSet.h"
+#include "fhiclcpp/types/Table.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 namespace bpo = boost::program_options;
@@ -26,7 +28,15 @@ fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 	return pset;
 }
 
-fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
+template<typename C>
+void PrintConfigurationToConsole(std::string name)
+{
+	fhicl::Table<C> config_description(fhicl::Name{ name });
+	config_description.print_allowed_configuration(std::cout);
+}
+
+template<typename C>
+fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name, std::string description)
 {
 	std::ostringstream descstr;
 	descstr << argv[0]
@@ -49,7 +59,11 @@ fhicl::ParameterSet LoadParameterSet(int argc, char* argv[])
 	}
 	if (vm.count("help"))
 	{
-		TLOG_INFO("LoadParameterSet") << desc << std::endl;
+		std::cout << desc << std::endl;
+		std::cout << description << std::endl;
+		std::cout << "Sample FHiCL configuration for this application: " << std::endl;
+		fhicl::Table<C> config_description(fhicl::Name{ name });
+		config_description.print_allowed_configuration(std::cout);
 		exit(1);
 	}
 

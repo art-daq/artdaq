@@ -16,6 +16,19 @@
 class NetMonTransportService : public NetMonTransportServiceInterface
 {
 public:
+	struct Config
+	{
+		fhicl::Atom<uint32_t> shared_memory_key{ fhicl::Name{"shared_memory_key"},fhicl::Comment{"Key to use when connecting to shared memory. Will default to 0xBEE70000 + getppid()."},0xBEE70000 };
+		fhicl::Atom<uint32_t> broadcast_shared_memory_key{ fhicl::Name{ "broadcast_shared_memory_key" },fhicl::Comment{ "Key to use when connecting to broadcast shared memory. Will default to 0xCEE70000 + getppid()."},0xCEE70000 };
+		fhicl::Atom<int> rank{ fhicl::Name{"rank"}, fhicl::Comment{"Rank of this artdaq application. Used for data transfers"} };
+		fhicl::Atom<double> init_fragment_timeout{ fhicl::Name{"init_fragment_timeout_seconds"}, fhicl::Comment{"Amount of time to wait, in seconds, for init Fragment to arrive"}, 1.0 };
+		fhicl::TableFragment<artdaq::DataSenderManager::Config> dataSenderConfig;
+	};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+	using Parameters = fhicl::WrappedTable<Config>;
+#endif
+
+
 	/**
 	 * \brief NetMonTransportService Destructor. Calls disconnect().
 	 */
@@ -24,7 +37,7 @@ public:
 	/**
 	 * \brief NetMonTransportService Constructor
 	 * \param pset ParameterSet used to configure NetMonTransportService and DataSenderManager
-	 * 
+	 *
 	 * \verbatim
 	 * NetMonTransportService accepts the following Parameters
 	 * "rank" (OPTIONAL): The rank of this applicaiton, for use by non-artdaq applications running NetMonTransportService
@@ -34,14 +47,14 @@ public:
 
 	/**
 	 * \brief Reconnect the NetMonTransportService.
-	 * 
+	 *
 	 * Creates a new instance of DataSenderManager using the stored ParameterSet
 	 */
 	void connect() override;
 
 	/**
 	 * \brief Disconnects the NetMonTranportService
-	 * 
+	 *
 	 * Destructs the DataSenderManager
 	 */
 	void disconnect() override;

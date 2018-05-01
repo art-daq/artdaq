@@ -47,8 +47,15 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 						 "Error loading metrics in DataReceiverCore::initialize()");
 	}
 
-	fhicl::ParameterSet tmp = pset;
-	tmp.erase("daq");
+	fhicl::ParameterSet art_pset = pset;
+	if(art_pset.has_key("art"))
+	{
+		art_pset = art_pset.get<fhicl::ParameterSet>("art");
+	}
+	else
+	{
+		art_pset.erase("daq");
+	}
 
 	fhicl::ParameterSet data_tmp = data_pset;
 	if (data_pset.has_key("expected_events_per_bunch"))
@@ -69,7 +76,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		exit(1);
 	}
 
-	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, tmp));
+	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, art_pset));
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
 
@@ -243,6 +250,16 @@ bool artdaq::DataReceiverCore::reinitialize(fhicl::ParameterSet const& pset)
 		<< "\"." ;
 	event_store_ptr_ = nullptr;
 	return initialize(pset);
+}
+
+bool artdaq::DataReceiverCore::rollover_subrun(uint64_t boundary)
+{
+	if (event_store_ptr_)
+	{
+		event_store_ptr_->rolloverSubrun(boundary);
+		return true;
+	}
+	return false;
 }
 
 std::string artdaq::DataReceiverCore::report(std::string const& which) const

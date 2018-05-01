@@ -9,8 +9,10 @@
 #include <deque>
 #include <fstream>
 #include <iomanip>
+#include <sys/stat.h>
 #include "fhiclcpp/fwd.h"
 #include "artdaq/Application/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/ArtConfig.hh"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 namespace artdaq {
@@ -25,8 +27,12 @@ namespace artdaq {
 		 * \brief art_config_file Constructor
 		 * \param ps ParameterSet to write to temporary file
 		 */
-		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/) : file_name_(std::tmpnam(nullptr))
+		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/)
+			: dir_name_("/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()))
+			, file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 		{
+			mkdir(dir_name_.c_str(), S_IRWXU); // Allowed to fail if directory already exists
+
 			std::ofstream of(file_name_, std::ofstream::trunc);
 			of << ps.to_string();
 
@@ -45,13 +51,18 @@ namespace artdaq {
 			//of << " source.rank: " << std::dec << my_rank;
 			of.close();
 		}
-		~art_config_file() { remove(file_name_.c_str()); }
+		~art_config_file()
+		{
+			remove(file_name_.c_str());
+			rmdir(dir_name_.c_str()); // Will only delete directory if no config files are left over
+		}
 		/**
 		 * \brief Get the path of the temporary file
 		 * \return The path of the temporary file
 		 */
 		std::string getFileName() const { return file_name_; }
 	private:
+		std::string dir_name_;
 		std::string file_name_;
 	};
 
@@ -65,6 +76,36 @@ namespace artdaq {
 		typedef RawEvent::subrun_id_t subrun_id_t; ///< Copy RawEvent::subrun_id_t into local scope
 		typedef Fragment::sequence_id_t sequence_id_t; ///< Copy Fragment::sequence_id_t into local scope
 		typedef std::map<sequence_id_t, RawEvent_ptr> EventMap; ///< An EventMap is a map of RawEvent_ptr objects, keyed by sequence ID
+
+		struct Config
+		{
+			fhicl::Atom<size_t> max_event_size_bytes{ fhicl::Name{ "max_event_size_bytes"}, fhicl::Comment{"Maximum event size (all Fragments), in bytes"} };
+			fhicl::Atom<size_t> stale_buffer_timeout_usec{ fhicl::Name{ "stale_buffer_timeout_usec"}, fhicl::Comment{"Maximum amount of time elapsed before a buffer is marked as abandoned. Time is reset each time an operation is performed on the buffer."}, 5000000 };
+			fhicl::Atom<bool> overwrite_mode{ fhicl::Name{ "overwrite_mode"}, fhicl::Comment{"Whether buffers are allowed to be overwritten when safe (state == Full or Reading)"}, false };
+			fhicl::Atom<bool> restart_crashed_art_processes{ fhicl::Name{"restart_crashed_art_processes"}, fhicl::Comment{"Whether to automatically restart art processes that fail for any reason"}, true };
+			fhicl::Atom<uint32_t> shared_memory_key{ fhicl::Name{ "shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid() };
+			fhicl::Atom<size_t> buffer_count{ fhicl::Name{ "buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"} };
+			fhicl::Atom<size_t> max_fragment_size_bytes{ fhicl::Name{ "max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"} };
+			fhicl::Atom<size_t> event_queue_wait_time{ fhicl::Name{ "event_queue_wait_time"}, fhicl::Comment{"Amount of time (in seconds) an event can exist in shared memory before being released to art. Used as input to default parameter of \"stale_buffer_timeout_usec\"."}, 5 };
+			fhicl::Atom<bool> broadcast_mode{ fhicl::Name{ "broadcast_mode"}, fhicl::Comment{"When true, buffers are not marked Empty when read, but return to Full state. Buffers are overwritten in order received."}, false };
+			fhicl::Atom<size_t> art_analyzer_count{ fhicl::Name{ "art_analyzer_count"}, fhicl::Comment{"Number of art procceses to start"}, 1 };
+			fhicl::Atom<size_t> expected_fragments_per_event{ fhicl::Name{ "expected_fragments_per_event"}, fhicl::Comment{"Number of Fragments to expect per event"} };
+			fhicl::Atom<bool> update_run_ids_on_new_fragment{ fhicl::Name{ "update_run_ids_on_new_fragment"}, fhicl::Comment{"Whether the run and subrun ID of an event should be updated whenever a Fragment is added."}, true };
+			fhicl::Atom<bool> send_init_fragments{ fhicl::Name{ "send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true };
+			fhicl::Atom<int> incomplete_event_report_interval_ms{ fhicl::Name{ "incomplete_event_report_interval_ms"}, fhicl::Comment{"Interval at which an incomplete event report should be written"}, -1 };
+			fhicl::Atom<int> fragment_broadcast_timeout_ms{ fhicl::Name{ "fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000 };
+			fhicl::Atom<double> minimum_art_lifetime_s{ fhicl::Name{ "minimum_art_lifetime_s"}, fhicl::Comment{"Amount of time that an art process should run to not be considered \"DOA\""}, 2.0 };
+			fhicl::Atom<size_t> expected_art_event_processing_time_us{ fhicl::Name{ "expected_art_event_processing_time_us"}, fhicl::Comment{"During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers."}, 100000 };
+			fhicl::Atom<uint32_t> broadcast_shared_memory_key{ fhicl::Name{ "broadcast_shared_memory_key"}, fhicl::Comment{""}, 0xCEE70000 + getpid() };
+			fhicl::Atom<size_t> broadcast_buffer_count{ fhicl::Name{ "broadcast_buffer_count"}, fhicl::Comment{"Buffers in the broadcast shared memory segment"}, 10 };
+			fhicl::Atom<size_t> broadcast_buffer_size{ fhicl::Name{ "broadcast_buffer_size"}, fhicl::Comment{"Size of the buffers in the broadcast shared memory segment"}, 0x100000 };
+			fhicl::Atom<bool> use_art{ fhicl::Name{ "use_art"}, fhicl::Comment{"Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)"}, true };
+
+			fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;
+		};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+		using Parameters = fhicl::WrappedTable<Config>;
+#endif
 
 		/**
 		 * \brief SharedMemoryEventManager Constructor
@@ -80,6 +121,7 @@ namespace artdaq {
 		 *  OR "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 		 * "stale_buffer_timeout_usec" (Default: event_queue_wait_time * 1,000,000): Maximum amount of time elapsed before a buffer is marked as abandoned. Time is reset each time an operation is performed on the buffer.
 		 * "event_queue_wait_time" (Default: 5): Amount of time (in seconds) an event can exist in shared memory before being released to art. Used as input to default parameter of "stale_buffer_timeout_usec".
+		 * "restart_crashed_art_processes" (Default: true): Whether to automatically restart art processes that fail for any reason
 		 * "broadcast_mode" (Default: false): When true, buffers are not marked Empty when read, but return to Full state. Buffers are overwritten in order received.
 		 * "art_analyzer_count" (Default: 1): Number of art procceses to start
 		 * "expected_fragments_per_event" (REQUIRED): Number of Fragments to expect per event
@@ -254,6 +296,12 @@ namespace artdaq {
 		bool endSubrun();
 
 		/**
+		 * \brief Rollover the subrun after the specified event
+		 * \param boundary sequence ID of the boundary (Event with seqID == boundary will be in new subrun)
+		 */
+		void rolloverSubrun(sequence_id_t boundary);
+
+		/**
 		* \brief Send metrics to the MetricManager, if one has been instantiated in the application
 		*/
 		void sendMetrics();
@@ -293,6 +341,8 @@ namespace artdaq {
 		size_t const queue_size_;
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
+		sequence_id_t subrun_rollover_event_;
+		sequence_id_t last_released_event_;
 
 		std::set<int> active_buffers_;
 		std::set<int> pending_buffers_;
@@ -318,6 +368,7 @@ namespace artdaq {
 
 		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
+		bool always_restart_art_;
 		fhicl::ParameterSet current_art_pset_;
 		std::shared_ptr<art_config_file> current_art_config_file_;
 		double minimum_art_lifetime_s_;
@@ -341,7 +392,7 @@ namespace artdaq {
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;
-	};
-}
+		};
+	}
 
 #endif //ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH

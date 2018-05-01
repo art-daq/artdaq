@@ -1,3 +1,6 @@
+#define TRACE_NAME (app_name + "_DataLoggerApp").c_str() // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"
+
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"

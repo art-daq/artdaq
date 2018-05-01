@@ -1,6 +1,7 @@
 #ifndef artdaq_DAQdata_GenericFragmentSimulator_hh
 #define artdaq_DAQdata_GenericFragmentSimulator_hh
 
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "fhiclcpp/fwd.h"
@@ -26,10 +27,23 @@ namespace artdaq
 class artdaq::GenericFragmentSimulator : public artdaq::FragmentGenerator
 {
 public:
+	struct Config
+	{
+		fhicl::Atom<size_t> content_selection{ fhicl::Name{"content_selection"}, fhicl::Comment{"What type of data to fill in generated Fragment payloads"}, 0 };
+		fhicl::Atom<size_t> payload_size{ fhicl::Name{"payload_size"}, fhicl::Comment{"The size (in words) of the Fragment payload"}, 10240 };
+		fhicl::Atom<bool> want_random_payload_size{ fhicl::Name{"want_random_payload_size"}, fhicl::Comment{"Whether payload size should be sampled from a random distribution"}, false };
+		fhicl::Atom<int64_t> random_seed{ fhicl::Name{"random_seed"}, fhicl::Comment{"Random seed for random number distributions"}, 314159 };
+		fhicl::Atom<size_t> fragments_per_event{ fhicl::Name{"fragments_per_event"}, fhicl::Comment{"The number of Fragment objects to generate for each sequence ID"}, 5 };
+		fhicl::Atom<Fragment::fragment_id_t> starting_fragment_id{ fhicl::Name{"starting_fragment_id"}, fhicl::Comment{"The first Fragment ID handled by this GenericFragmentSimulator."}, 0 };
+	};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+	using Parameters = fhicl::WrappedTable<Config>;
+#endif
+
 	/**
 	 * \brief GenericFragmentSimulator Constructor
 	 * \param ps ParameterSet used to configure the GenericFragmentSimulator
-	 * 
+	 *
 	 * \verbatim
 	 * GenericFragmentSimulator accepts the following Parameters:
 	 * "content_selection" (Default: 0): What type of data to fill in generated Fragment payloads
@@ -41,7 +55,7 @@ public:
 	 * "want_random_payload_size" (Default: false): Whether payload size should be sampled from a random distribution
 	 * "random_seed" (Default: 314159): Random seed for random number distributions
 	 * "fragments_per_event" (Default: 5): The number of Fragment objects to generate for each sequence ID
-	 * "starting_fragment_id" (Default: 0): The first Fragment ID handled by this GenericFragmentSimulator. 
+	 * "starting_fragment_id" (Default: 0): The first Fragment ID handled by this GenericFragmentSimulator.
 	 *   Fragment IDs will be starting_fragment_id to starting_fragment_id + fragments_per_event.
 	 * \endverbatim
 	 */
@@ -69,8 +83,8 @@ public:
 	 * \return True if no exception or assertion failure
 	 */
 	bool getNext(Fragment::sequence_id_t sequence_id,
-	             Fragment::fragment_id_t fragment_id,
-	             FragmentPtr& frag_ptr);
+				 Fragment::fragment_id_t fragment_id,
+				 FragmentPtr& frag_ptr);
 
 	/**
 	 * \brief Get the next Fragment from the generator

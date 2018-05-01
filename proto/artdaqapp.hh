@@ -4,7 +4,6 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/Application/TaskType.hh"
-#include "fhiclcpp/ParameterSet.h"
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 #include "artdaq/Application/BoardReaderApp.hh"
@@ -17,8 +16,24 @@
 #include <sys/prctl.h>
 
 namespace artdaq {
-	class artdaqapp {
+
+	class artdaqapp
+	{
 	public:
+		struct Config
+		{
+			fhicl::Atom<std::string> application_name{ fhicl::Name{ "application_name" }, fhicl::Comment{ "Name to use for metrics and logging" }, "BoardReader" };
+			fhicl::Atom<bool> replace_image_name{ fhicl::Name{ "replace_image_name" }, fhicl::Comment{ "Replace the application image name with application_name" }, false };
+			fhicl::Atom<int> rank{ fhicl::Name{ "rank" }, fhicl::Comment{ "The \"rank\" of the application, used for configuring data transfers" } };
+			fhicl::TableFragment<artdaq::CommanderInterface::Config> commanderPluginConfig;
+			fhicl::Atom<bool> auto_run{ fhicl::Name{"auto_run"}, fhicl::Comment{"Whether to automatically start a run"}, false };
+			fhicl::Atom<int> run_number{ fhicl::Name{"run_number"}, fhicl::Comment{"Run number to use for automatic run"}, 101 };
+			fhicl::Atom<uint64_t> transition_timeout{ fhicl::Name{"trantition_timeout"}, fhicl::Comment{"Timeout to use for automatic transitions"}, 30 };
+		};
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+		using Parameters = fhicl::WrappedTable<Config>;
+#endif
+
 		static void runArtdaqApp(detail::TaskType task, fhicl::ParameterSet const& config_ps)
 		{
 			app_name = config_ps.get<std::string>("application_name", detail::TaskTypeToString(task));
@@ -37,15 +52,16 @@ namespace artdaq {
 			std::string mf_app_name = artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id"));
 			artdaq::configureMessageFacility(mf_app_name.c_str());
 
-			if (config_ps.has_key("rank")) {
+			if (config_ps.has_key("rank"))
+			{
 				my_rank = config_ps.get<int>("rank");
 			}
-			TLOG_DEBUG(app_name + "Main") << "Setting application name to " << app_name ;
+			TLOG_DEBUG(app_name + "Main") << "Setting application name to " << app_name;
 
 			TLOG_DEBUG(app_name + "Main") << "artdaq version " <<
 				artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 				<< ", built " <<
-				artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp() ;
+				artdaq::GetPackageBuildInfo::getPackageBuildInfo().getBuildTimestamp();
 
 			artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id"));
 
@@ -72,7 +88,8 @@ namespace artdaq {
 			}
 
 			auto auto_run = config_ps.get<bool>("auto_run", false);
-			if (auto_run) {
+			if (auto_run)
+			{
 				int run = config_ps.get<int>("run_number", 101);
 				uint64_t timeout = config_ps.get<uint64_t>("transition_timeout", 30);
 				uint64_t timestamp = 0;
@@ -82,7 +99,7 @@ namespace artdaq {
 
 				TLOG_INFO(app_name + "Main") << "Running XMLRPC Commander. To stop, either Control-C or " << std::endl
 					<< "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.stop" << std::endl
-					<< "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.shutdown" ;
+					<< "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.shutdown";
 			}
 
 			auto commander = artdaq::MakeCommanderPlugin(config_ps, *comm.get());

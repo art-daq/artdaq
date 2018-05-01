@@ -17,7 +17,6 @@
 
 namespace artdaq
 {
-
 	RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 		: send_requests_(pset.get<bool>("send_requests", false))
 		, active_requests_()
