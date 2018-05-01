@@ -1037,17 +1037,18 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	fps.clear();
 
-	gen.setFireCount(1);
 	gen.setHwFail();
-	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	//gen.setFireCount(1);
+	//sts = gen.getNext(fps);
+	//BOOST_REQUIRE_EQUAL(sts, true);
+	//BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	//BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	//BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+	//BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	//fps.clear();
 
-	fps.clear();
 	sleep(1);
+
 	gen.setFireCount(1);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, false);

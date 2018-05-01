@@ -177,7 +177,6 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 {
 	running_sources_.insert(source_rank);
-	auto eod_quiet_start = std::chrono::steady_clock::now();
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
 		TLOG(16) << "runReceiver_ "<< source_rank << ": Begin loop" ;
@@ -199,7 +198,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 			return;
 		}
 
-		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank) && TimeUtils::GetElapsedTimeMilliseconds(eod_quiet_start) > 1000)
+		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank) && !source_plugins_[source_rank]->isRunning())
 		{
 			TLOG(TLVL_DEBUG) << "runReceiver_: EndOfData conditions satisfied, ending receive loop";
 			running_sources_.erase(source_rank);
@@ -219,7 +218,6 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		TLOG(16) << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")" ;
 
 		if (ret1 != source_rank) continue; // Receive timeout or other oddness
-		eod_quiet_start = std::chrono::steady_clock::now();
 
 		fragment->resize(hdr.word_count - hdr.num_words());
 		memcpy(fragment->headerAddress(), &hdr, hdr.num_words() * sizeof(artdaq::RawDataType));

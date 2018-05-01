@@ -76,6 +76,11 @@ namespace artdaq
 		*/
 		CopyStatus moveFragment(Fragment&& fragment) override;
 
+		/**
+		* \brief Determine whether the TransferInterface plugin is able to send/receive data
+		* \return True if the TransferInterface plugin is currently able to send/receive data
+		*/
+		bool isRunning() override;
 	private:
 		CopyStatus sendFragment(Fragment&& fragment,
 			size_t send_timeout_usec, bool reliable = false);

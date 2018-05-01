@@ -89,12 +89,18 @@ public:
 	*/
 	CopyStatus moveFragment(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
 
-
+	/**
+	* \brief Determine whether the TransferInterface plugin is able to send/receive data
+	* \return True if the TransferInterface plugin is currently able to send/receive data
+	*/
+	bool isRunning() override;
 private:
+
 	static std::atomic<int> listen_thread_refcount_;
 	static std::mutex listen_thread_mutex_;
 	static std::unique_ptr<boost::thread> listen_thread_;
 	static std::map<int, std::set<int>> connected_fds_;
+	static std::mutex connected_fd_mutex_;
 	int send_fd_;
 	int active_receive_fd_;
 	int last_active_receive_fd_;
@@ -153,6 +159,12 @@ private: // methods
 
 	int calculate_port_() const { 
 		return destination_rank() + ((partition_number_ % 22) * 1000) + 10000;
+	}
+
+	size_t getConnectedFDCount(int source_rank)
+	{
+		std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+		return connected_fds_.count(source_rank) ? connected_fds_[source_rank].size() : 0;
 	}
 };
 

@@ -83,6 +83,12 @@ namespace artdaq
 			return theTransfer_->moveFragment(std::move(fragment));
 		}
 
+		/**
+		* \brief Determine whether the TransferInterface plugin is able to send/receive data
+		* \return True if the TransferInterface plugin is currently able to send/receive data
+		*/
+		bool isRunning() override { return theTransfer_->isRunning(); }
+
 	private:
 		std::unique_ptr<TransferInterface> theTransfer_;
 	};

@@ -47,31 +47,32 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 	pset.put("sources", sources_fhicl);
 	auto shm = std::make_shared<artdaq::SharedMemoryEventManager>(pset, pset);
 	artdaq::DataReceiverManager t(pset, shm);
-	artdaq::ShmemTransfer transfer(source_fhicl, artdaq::TransferInterface::Role::kSend);
-	BOOST_REQUIRE_EQUAL(t.getSharedMemoryEventManager().get(), shm.get());
-	BOOST_REQUIRE_EQUAL(t.enabled_sources().size(), 1);
-	BOOST_REQUIRE_EQUAL(t.running_sources().size(), 0);
-	t.start_threads();
-	BOOST_REQUIRE_EQUAL(t.enabled_sources().size(), 1);
-	BOOST_REQUIRE_EQUAL(t.running_sources().size(), 1);
+	{
+		artdaq::ShmemTransfer transfer(source_fhicl, artdaq::TransferInterface::Role::kSend);
+		BOOST_REQUIRE_EQUAL(t.getSharedMemoryEventManager().get(), shm.get());
+		BOOST_REQUIRE_EQUAL(t.enabled_sources().size(), 1);
+		BOOST_REQUIRE_EQUAL(t.running_sources().size(), 0);
+		t.start_threads();
+		BOOST_REQUIRE_EQUAL(t.enabled_sources().size(), 1);
+		BOOST_REQUIRE_EQUAL(t.running_sources().size(), 1);
 
-	artdaq::Fragment testFrag(10);
-	testFrag.setSequenceID(1);
-	testFrag.setFragmentID(0);
-	testFrag.setTimestamp(0x100);
-	testFrag.setSystemType(artdaq::Fragment::DataFragmentType);
+		artdaq::Fragment testFrag(10);
+		testFrag.setSequenceID(1);
+		testFrag.setFragmentID(0);
+		testFrag.setTimestamp(0x100);
+		testFrag.setSystemType(artdaq::Fragment::DataFragmentType);
 
-	transfer.moveFragment(std::move(testFrag));
-	
-	sleep(1);
-	BOOST_REQUIRE_EQUAL(t.count(), 1);
-	BOOST_REQUIRE_EQUAL(t.slotCount(0), 1);
-	BOOST_REQUIRE_EQUAL(t.byteCount(), (10 + artdaq::detail::RawFragmentHeader::num_words()) * sizeof(artdaq::RawDataType));
+		transfer.moveFragment(std::move(testFrag));
 
-	artdaq::FragmentPtr eodFrag = artdaq::Fragment::eodFrag(1);
+		sleep(1);
+		BOOST_REQUIRE_EQUAL(t.count(), 1);
+		BOOST_REQUIRE_EQUAL(t.slotCount(0), 1);
+		BOOST_REQUIRE_EQUAL(t.byteCount(), (10 + artdaq::detail::RawFragmentHeader::num_words()) * sizeof(artdaq::RawDataType));
 
-	transfer.moveFragment(std::move(*(eodFrag.get())));
+		artdaq::FragmentPtr eodFrag = artdaq::Fragment::eodFrag(1);
 
+		transfer.moveFragment(std::move(*(eodFrag.get())));
+	}
 	sleep(2);
 	BOOST_REQUIRE_EQUAL(t.count(), 1);
 	BOOST_REQUIRE_EQUAL(t.slotCount(0), 1);

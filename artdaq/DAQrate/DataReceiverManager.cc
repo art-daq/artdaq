@@ -135,7 +135,7 @@ void artdaq::DataReceiverManager::stop_threads()
 
 void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
-	std::chrono::steady_clock::time_point start_time, after_header, before_body, eod_quiet_start;
+	std::chrono::steady_clock::time_point start_time, after_header, before_body;
 	int ret;
 	double delta_t, hdr_delta_t, store_delta_t, data_delta_t;
 	detail::RawFragmentHeader header;
@@ -149,7 +149,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		if (stop_requested_) { receive_timeout_ = stop_timeout_ms_; }
 
 		// Don't stop receiving until we haven't received anything for 1 second
-		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank) && TimeUtils::GetElapsedTimeMilliseconds(eod_quiet_start) > 1000)
+		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank) && !source_plugins_[source_rank]->isRunning())
 		{
 			TLOG(TLVL_DEBUG) << "runReceiver_: End of Data conditions met, ending runReceiver loop";
 			running_sources_.erase(source_rank);
@@ -170,7 +170,6 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		}
 
 		after_header = std::chrono::steady_clock::now();
-		eod_quiet_start = std::chrono::steady_clock::now();
 
 		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType || header.type == Fragment::EmptyFragmentType || header.type == Fragment::ContainerFragmentType) {
 			TLOG(TLVL_TRACE) << "Received Fragment Header from rank " << source_rank << ".";

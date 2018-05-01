@@ -984,3 +984,7 @@ void artdaq::SharedMemoryEventManager::SetInitFragment(FragmentPtr frag)
 		send_init_frag_();
 	}
 }
+
+#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
+FHICL_PROVIDE_ALLOWED_CONFIGURATION(artdaq::SharedMemoryEventManager)
+#endif

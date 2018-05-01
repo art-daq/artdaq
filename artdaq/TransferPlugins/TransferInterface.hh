@@ -165,6 +165,13 @@ namespace artdaq
 		 */
 		virtual int destination_rank() const { return destination_rank_; }
 
+		/**
+		 * \brief Determine whether the TransferInterface plugin is able to send/receive data
+		 * \return True if the TransferInterface plugin is currently able to send/receive data
+		 */
+		virtual bool isRunning() { return false; }
+
+
 
 		/**
 		 * \brief Constructs a name suitable for TRACE messages

@@ -96,6 +96,11 @@ namespace artdaq
 		*/
 		CopyStatus moveFragment(artdaq::Fragment&& fragment) override;
 
+		/**
+		* \brief Determine whether the TransferInterface plugin is able to send/receive data
+		* \return True if the TransferInterface plugin is currently able to send/receive data
+		*/
+		bool isRunning() override { return socket_ != nullptr; }
 	private:
 
 		void fill_staging_memory(const artdaq::Fragment& frag);

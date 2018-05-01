@@ -35,6 +35,7 @@ std::atomic<int> artdaq::TCPSocketTransfer::listen_thread_refcount_(0);
 std::unique_ptr<boost::thread> artdaq::TCPSocketTransfer::listen_thread_ = nullptr;
 std::map<int, std::set<int>> artdaq::TCPSocketTransfer::connected_fds_ = std::map<int, std::set<int>>();
 std::mutex artdaq::TCPSocketTransfer::listen_thread_mutex_;
+std::mutex artdaq::TCPSocketTransfer::connected_fd_mutex_;
 
 artdaq::TCPSocketTransfer::
 TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
@@ -98,12 +99,14 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 	}
 	else
 	{
-		auto it = connected_fds_[source_rank()].begin();
-		while (it != connected_fds_[source_rank()].end())
 		{
-			close(*it);
-			it = connected_fds_[source_rank()].erase(it);
-		}
+			std::unique_lock<std::mutex> fd_lock(connected_fd_mutex_);
+			auto it = connected_fds_[source_rank()].begin();
+			while (it != connected_fds_[source_rank()].end())
+			{
+				close(*it);
+				it = connected_fds_[source_rank()].erase(it);
+			}}
 
 		std::unique_lock<std::mutex> lk(listen_thread_mutex_);
 		listen_thread_refcount_--;
@@ -154,10 +157,11 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		timeout_ms = (timeout_usec + 999) / 1000; // want at least 1 ms
 
 	bool done = false;
-	while (!done && connected_fds_[source_rank()].size() > 0)
+	while (!done && getConnectedFDCount(source_rank()) > 0)
 	{
 		if (active_receive_fd_ == -1)
 		{
+			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 			size_t fd_count = connected_fds_[source_rank()].size();
 			auto iter = connected_fds_[source_rank()].begin();
 			std::vector<pollfd> pollfds(fd_count);
@@ -206,8 +210,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				else if (pollfds[index % pollfds.size()].revents & (POLLNVAL))
 				{
 					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: FD is closed, most likely because the peer went away. Removing from fd list.";
-					close(pollfds[active_index].fd);
-					connected_fds_[source_rank()].erase(pollfds[active_index].fd);
+					close(pollfds[index].fd);
+					connected_fds_[source_rank()].erase(pollfds[index].fd);
 					continue;
 				}
 				else if (pollfds[index % pollfds.size()].revents)
@@ -218,7 +222,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 			if (active_index == -1)
 			{
-				TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Wrong event received from a pollfd. Mask: " << static_cast<int>(anomolous_events);
+				if (anomolous_events)
+					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Wrong event received from a pollfd. Mask: " << static_cast<int>(anomolous_events);
 				active_receive_fd_ = -1;
 				continue;
 			}
@@ -260,6 +265,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		{
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket " << " (errno=" << errno << ": " << strerror(errno) << ")";
 			close(active_receive_fd_);
+			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
 			active_receive_fd_ = -1;
 		}
@@ -280,10 +286,18 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 					if (mh.message_type == MessHead::stop_v0)
 					{
-						TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Stop Message received. Closing socket";
+						TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Stop Message received. Closing socket " << active_receive_fd_;
 						close(active_receive_fd_);
+						std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 						connected_fds_[source_rank()].erase(active_receive_fd_);
 						active_receive_fd_ = -1;
+						TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: There are now " << connected_fds_[source_rank()].size() << " active senders.";
+					}
+
+					if (target_bytes == 0)
+					{
+						//Probably a stop_v0, return timeout so we can try again.
+						return RECV_TIMEOUT;
 					}
 				}
 				else
@@ -349,6 +363,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: FD is closed, most likely because the peer went away. Removing from fd list.";
 			close(active_receive_fd_);
+			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
 			active_receive_fd_ = -1;
 			break;
@@ -357,6 +372,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Wrong event received from pollfd: " << pollfd_s.revents;
 			close(active_receive_fd_);
+			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
 			continue;
 		}
@@ -384,6 +400,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket"
 				<< " (errno=" << errno << ": " << strerror(errno) << ")";
 			close(active_receive_fd_);
+			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
 			active_receive_fd_ = -1;
 		}
@@ -431,6 +448,19 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 
 	TLOG(9) << GetTraceName() << ": receiveFragmentData: Returning " << ret_rank;
 	return ret_rank;
+}
+
+bool artdaq::TCPSocketTransfer::isRunning()
+{
+	switch (role())
+	{
+	case TransferInterface::Role::kSend:
+		return send_fd_ != -1;
+	case TransferInterface::Role::kReceive:
+		TLOG(TLVL_DEBUG) << GetTraceName() << ": isRunning: There are " << getConnectedFDCount(source_rank()) << " fds connected.";
+		return getConnectedFDCount(source_rank()) > 0;
+	}
+	return false;
 }
 
 // Send the given Fragment. Return the rank of the destination to which
@@ -800,6 +830,7 @@ void artdaq::TCPSocketTransfer::listen_()
 			}
 
 			// now add (new) connection
+			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 			connected_fds_[mh.source_id].insert(fd);
 
 			TLOG(TLVL_INFO) << "listen_: New fd is " << fd << " for source rank " << mh.source_id;
@@ -812,6 +843,7 @@ void artdaq::TCPSocketTransfer::listen_()
 
 	TLOG(TLVL_INFO) << "listen_: Shutting down connection listener";
 	if (listen_fd != -1) close(listen_fd);
+	std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 	for (auto& rank : connected_fds_)
 	{
 		for (auto& fd : rank.second)

@@ -222,6 +222,22 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	return CopyStatus::kErrorNotRequiringException;
 }
 
+bool artdaq::ShmemTransfer::isRunning()
+{
+	bool ret = false;
+	switch (role())
+	{
+	case TransferInterface::Role::kSend:
+		ret = shm_manager_->IsValid();
+		break;
+	case TransferInterface::Role::kReceive:
+		ret = shm_manager_->GetAttachedCount() > 1;
+		break;
+	}
+	return ret;
+
+}
+
 DEFINE_ARTDAQ_TRANSFER(artdaq::ShmemTransfer)
 
 // Local Variables:

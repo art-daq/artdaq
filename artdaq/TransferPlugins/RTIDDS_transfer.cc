@@ -66,6 +66,20 @@ namespace artdaq
 		CopyStatus moveFragment(artdaq::Fragment&& fragment,
 										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
+		/**
+		* \brief Determine whether the TransferInterface plugin is able to send/receive data
+		* \return True if the TransferInterface plugin is currently able to send/receive data
+		*/
+		bool isRunning() override
+		{
+			switch (role())
+			{
+			case TransferInterface::Role::kSend:
+				return rtidds_writer_ != nullptr;
+			case TransferInterface::Role::kReceive:
+				return rtidds_reader_ != nullptr;
+			}
+		}
 	private:
 		std::unique_ptr<artdaq::RTIDDS> rtidds_reader_;
 		std::unique_ptr<artdaq::RTIDDS> rtidds_writer_;
