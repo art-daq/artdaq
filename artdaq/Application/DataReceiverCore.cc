@@ -39,7 +39,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	}
 	try
 	{
-		metricMan_.initialize(metric_pset, app_name + "." + std::to_string(my_rank));
+		metricMan_.initialize(metric_pset, app_name);
 	}
 	catch (...)
 	{
