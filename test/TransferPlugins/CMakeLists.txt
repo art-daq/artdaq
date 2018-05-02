@@ -33,21 +33,21 @@ artdaq_TransferPlugins
 	DATAFILES fcl/transfer_driver_tcp.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
 	)
-	
+
   cet_test(transfer_driver_shmem_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_shmem.fcl 2
 	DATAFILES fcl/transfer_driver_shmem.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
 	)
-	
+
   cet_test(transfer_driver_tcp_validate_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_tcp_validate.fcl 2
 	DATAFILES fcl/transfer_driver_tcp_validate.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
 	)
-	
+
   cet_test(transfer_driver_shmem_validate_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_shmem_validate.fcl 2
@@ -62,13 +62,13 @@ artdaq_TransferPlugins
   #TEST_PROPERTIES RUN_SERIAL 1
       )
 
-  cet_test(transfer_driver_shmem_multi HANDBUILT
-      TEST_EXEC runTransferTest.sh
-      TEST_ARGS transfer_driver_shmem_multi.fcl 2
-      DATAFILES fcl/transfer_driver_shmem_multi.fcl
-  #TEST_PROPERTIES RUN_SERIAL 1
-      )
-	  
+ # cet_test(transfer_driver_shmem_multi HANDBUILT
+ #     TEST_EXEC runTransferTest.sh
+ #     TEST_ARGS transfer_driver_shmem_multi.fcl 2
+ #     DATAFILES fcl/transfer_driver_shmem_multi.fcl
+ # #TEST_PROPERTIES RUN_SERIAL 1
+ #     )
+
   cet_test(transfer_driver_tcp_complex HANDBUILT
       TEST_EXEC runTransferTest.sh
       TEST_ARGS transfer_driver_tcp_complex.fcl 4
@@ -82,14 +82,14 @@ artdaq_TransferPlugins
       DATAFILES fcl/transfer_driver_shmem_complex.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
       )
-	  
+
   cet_test(transfer_driver_tcp_empty_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_tcp_empty.fcl 2
 	DATAFILES fcl/transfer_driver_tcp_empty.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
 	)
-	
+
   cet_test(transfer_driver_shmem_empty_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
 	TEST_ARGS transfer_driver_shmem_empty.fcl 2
