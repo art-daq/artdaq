@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
 		pset.put("print_event_store_stats", true);
 		pset.put("max_event_size_bytes", 0x100000);
 		pset.put("buffer_count",10);
+		pset.put("send_init_fragments", false);
 
 		auto temp = pset.to_string() + " source.waiting_time: 10";
 		pset = fhicl::ParameterSet();

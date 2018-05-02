@@ -342,8 +342,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	thread.detach();
 
 
-	while ((GetAttachedCount() - initialCount < 1 || pid <= 0)
-		   && TimeUtils::GetElapsedTime(startTime) < 5)
+	while (GetAttachedCount() - initialCount < 1 && TimeUtils::GetElapsedTime(startTime) < 5)
 	{
 		usleep(1000);
 	}
