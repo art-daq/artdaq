@@ -60,17 +60,28 @@ int main(int argc, char* argv[])
 		size_t event_count = 0;
 		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
-			LOG_DEBUG("main") << "Number of fragments: " << frags.size() << '\n';
+			TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size();
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);
 			for (auto&& frag : frags)
 			{
 				assert(frag != nullptr);
-				artdaq::FragmentPtr tempFrag;
-				auto sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
-				if (!sts)
+				bool sts = false;
+				auto loop_count = 0;
+				while (!sts)
 				{
-					TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
-					exit(1);
+					artdaq::FragmentPtr tempFrag;
+					sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
+					if (!sts && event_count <= 10 && loop_count < 100)
+					{
+						TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!";
+						exit(1);
+					}
+					frag = std::move(tempFrag);
+					if (!sts)
+					{
+						lop_count++;
+						usleep(10000);
+					}
 				}
 			}
 		}
@@ -90,17 +101,28 @@ int main(int argc, char* argv[])
 			event_count = 0;
 			while (frags.clear() , event_count++ < NUM_EVENTS2 && sim2.getNext(frags))
 			{
-				LOG_DEBUG("main") << "Number of fragments: " << frags.size() << '\n';
+				TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size();
 				assert(frags.size() == NUM_FRAGS_PER_EVENT);
 				for (auto&& frag : frags)
 				{
 					assert(frag != nullptr);
-					artdaq::FragmentPtr tempFrag;
-					auto sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
-					if (!sts)
+					bool sts = false;
+					auto loop_count = 0;
+					while (!sts)
 					{
-						TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
-						exit(1);
+						artdaq::FragmentPtr tempFrag;
+						sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
+						if (!sts && event_count <= 10 && loop_count < 100)
+						{
+							TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!";
+							exit(1);
+						}
+						frag = std::move(tempFrag);
+						if (!sts)
+						{
+							lop_count++;
+							usleep(10000);
+						}
 					}
 				}
 			}
