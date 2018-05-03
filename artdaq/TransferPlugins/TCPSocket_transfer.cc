@@ -106,7 +106,9 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 			{
 				close(*it);
 				it = connected_fds_[source_rank()].erase(it);
-			}}
+			}
+			connected_fds_.erase(source_rank());
+		}
 
 		std::unique_lock<std::mutex> lk(listen_thread_mutex_);
 		listen_thread_refcount_--;
@@ -844,14 +846,17 @@ void artdaq::TCPSocketTransfer::listen_()
 	TLOG(TLVL_INFO) << "listen_: Shutting down connection listener";
 	if (listen_fd != -1) close(listen_fd);
 	std::unique_lock<std::mutex> lk(connected_fd_mutex_);
-	for (auto& rank : connected_fds_)
+	auto it = connected_fds_.begin();
+	while (it != connected_fds_.end())
 	{
-		for (auto& fd : rank.second)
+		auto rank_it = it->second.begin();
+		while (rank_it != it->second.end())
 		{
-			close(fd);
+			close(*rank_it);
+			rank_it = it->second.erase(rank_it);
 		}
+		it = connected_fds_.erase(it);
 	}
-	connected_fds_.clear();
 
 } // do_connect_
 
