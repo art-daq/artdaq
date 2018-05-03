@@ -254,7 +254,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	auto init_wait_metric = 0.0;
 	int metric_send_interval = receives_each_receiver_ / 1000 > 1 ? receives_each_receiver_ : 1;
 
-	while (activeSenders > 0 && counter > 0)
+	// Only abort when there are no senders if were's > 90% done
+	while ((activeSenders > 0 || counter > receives_each_receiver_ / 10) && counter > 0)
 	{
 		auto start_loop = std::chrono::steady_clock::now();
 		TLOG(7) << "do_receiving: Counter is " << counter << ", calling recvFragment";

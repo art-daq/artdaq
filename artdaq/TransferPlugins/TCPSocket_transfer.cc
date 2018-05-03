@@ -213,6 +213,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				{
 					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: FD is closed, most likely because the peer went away. Removing from fd list.";
 					close(pollfds[index].fd);
+					std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 					connected_fds_[source_rank()].erase(pollfds[index].fd);
 					continue;
 				}
