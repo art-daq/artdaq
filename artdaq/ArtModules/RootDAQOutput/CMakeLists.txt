@@ -31,6 +31,7 @@ art_make( BASENAME_ONLY
   ${ROOT_NET}
   ${ROOT_REFLEX}
   ${Boost_DATE_TIME_LIBRARY}
+  ${TBB}
   )
 
 simple_plugin(RootDAQOut "module"
@@ -52,5 +53,5 @@ simple_plugin(RootDAQOut "module"
   ${ROOT_TREE}
 )
 
-install_headers(SUBDIRS detail)                                                         
+install_headers(SUBDIRS detail)
 install_source(SUBDIRS detail)
