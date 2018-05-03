@@ -180,7 +180,8 @@ namespace
 		artdaq::FragmentPtrs incomingFrags;
 		bool result{ false };
 		while ((result = generator_->getNext(incomingFrags)) &&
-			   incomingFrags.empty()) {
+			   incomingFrags.empty())
+		{
 		}
 		for (auto&& frag : incomingFrags)
 		{
@@ -260,13 +261,13 @@ namespace
 			{
 				done |= !gen.getNext(frags);
 			}
-			TLOG(TLVL_TRACE) << "There are " << std::to_string(frags.size()) << " Fragments in event " << std::to_string(event_count) << "." ;
+			TLOG(TLVL_TRACE) << "There are " << std::to_string(frags.size()) << " Fragments in event " << std::to_string(event_count) << ".";
 			artdaq::Fragment::sequence_id_t current_sequence_id = -1;
 			for (auto& val : frags)
 			{
 				if (reset_sequenceID)
 				{
-					TLOG(TLVL_DEBUG) << "Setting fragment sequence id to " << std::to_string(event_count) ;
+					TLOG(TLVL_DEBUG) << "Setting fragment sequence id to " << std::to_string(event_count);
 					val->setSequenceID(event_count);
 				}
 				if (current_sequence_id ==
@@ -284,17 +285,29 @@ namespace
 						<< current_sequence_id
 						<< ".\n";
 				}
-				artdaq::FragmentPtr tempFrag;
-				auto sts = store.AddFragment(std::move(val), 1000000, tempFrag);
-				if (!sts)
+
+				bool sts = false;
+				auto loop_count = 0;
+				while (!sts)
 				{
-					TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!" ;
-					store.endOfData();
-					exit(1);
+					artdaq::FragmentPtr tempFrag;
+					sts = store.AddFragment(std::move(val), 1000000, tempFrag);
+					if (!sts && event_count <= 10 && loop_count < 100)
+					{
+						TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!";
+						store.endOfData();
+						exit(1);
+					}
+					val = std::move(tempFrag);
+					if (!sts)
+					{
+						loop_count++;
+						usleep(10000);
+					}
 				}
 			}
 			frags.clear();
-			TLOG(TLVL_TRACE) << "Event " << std::to_string(event_count) << " END" ;
+			TLOG(TLVL_TRACE) << "Event " << std::to_string(event_count) << " END";
 		}
 		for (auto& gen : generators)
 		{

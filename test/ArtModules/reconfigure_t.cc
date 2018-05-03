@@ -74,6 +74,7 @@ int main(int argc, char* argv[])
 					if (!sts && event_count <= 10 && loop_count < 100)
 					{
 						TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!";
+						events->endOfData();
 						exit(1);
 					}
 					frag = std::move(tempFrag);
