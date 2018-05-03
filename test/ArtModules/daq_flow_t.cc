@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 					frag = std::move(tempFrag);
 					if (!sts)
 					{
-						lop_count++;
+						loop_count++;
 						usleep(10000);
 					}
 				}
