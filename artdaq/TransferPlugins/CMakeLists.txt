@@ -8,31 +8,12 @@ art_make( BASENAME_ONLY
   NO_PLUGINS
   SUBDIRS detail
   EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc TCPSocket_transfer.cc Autodetect_transfer.cc
-  DICT_DICTIONARIES
-  ${ART_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
   artdaq-core_Utilities
   artdaq-core_Data
   artdaq_DAQdata
-  art_Framework_Core
-  art_Framework_IO_Sources
-  art_Framework_Principal
-  art_Persistency_Provenance
-  art_Utilities
-  cetlib
-  ${CETLIB_EXCEPT}
-  fhiclcpp
-  ${MESSAGEFACILITY_LIBS}
-  ${ROOT_CINTEX}
-  ${ROOT_RIO}
-  ${ROOT_CORE}
-  ${ROOT_NET}
-  ${ROOT_REFLEX}
-  ${Boost_THREAD_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
-  ${TBB}
   )
-  
+
 
 simple_plugin(Shmem "transfer"
   artdaq_TransferPlugins
@@ -51,6 +32,7 @@ simple_plugin(Multicast "transfer"
 
 simple_plugin(TCPSocket "transfer"
   artdaq_TransferPlugins
+  ${Boost_THREAD_LIBRARY}
   pthread
 )
 

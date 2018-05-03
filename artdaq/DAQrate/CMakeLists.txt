@@ -21,8 +21,9 @@ art_make(BASENAME_ONLY
   ${MESSAGEFACILITY_LIBS}
   ${CLHEP}
   ${Boost_THREAD_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY} 
+  ${Boost_SYSTEM_LIBRARY}
   pthread
+  ${ROOT_CORE}
   )
 
 install_headers(SUBDIRS detail)

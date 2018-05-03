@@ -4,8 +4,6 @@ art_make( BASENAME_ONLY
   LIB_LIBRARIES
   ${ARTDAQ-CORE_DATA}
   ${ARTDAQ-CORE_GENERATORS}
-  ${ART_PERSISTENCY_COMMON}
-  ${ART_UTILITIES}
   ${FHICLCPP}
   ${CETLIB}
   ${CETLIB_EXCEPT}
@@ -15,7 +13,7 @@ art_make( BASENAME_ONLY
   )
 
 simple_plugin(GenericFragmentSimulator "generator"
-  artdaq_DAQdata 
+  artdaq_DAQdata
   artdaq-core_Data
   ${ARTDAQ-CORE_GENERATORS}
   ${CETLIB_EXCEPT}

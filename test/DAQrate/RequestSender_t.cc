@@ -208,9 +208,9 @@ BOOST_AUTO_TEST_CASE(Requests)
 	}
 
 	// SetRequestMode and AddRequest BOTH send requests...
+	start_time = std::chrono::steady_clock::now();
 	t.SetRequestMode(artdaq::detail::RequestMessageMode::EndOfRun);
 	t.AddRequest(2, 0x20);
-	start_time = std::chrono::steady_clock::now();
 	rv = poll(ufds, 1, 1000);
 	if (rv > 0)
 	{

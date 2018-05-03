@@ -10,7 +10,6 @@ art_make_exec(StateResponder
   LIBRARIES
   artdaq_Application
   artdaq_ExternalComms
-  ${MPI_C_LIBRARIES}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -21,8 +20,6 @@ art_make_exec(genToArt
   artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq-core_Utilities
   artdaq-core_Generators
-  art_Framework_Art
-  canvas
   ${FHICLCPP}
   ${CETLIB}
   ${CETLIB_EXCEPT}
@@ -49,7 +46,7 @@ cet_test(genToArt_outToBinaryFileOutput_t HANDBUILT
 
 #cet_test(genToArt_outToBinaryNetOutput_t HANDBUILT
 #  TEST_EXEC mpirun
-#  TEST_ARGS genToArt -c genToArt_outToBinaryNetOutput_t.fcl :  s_r_handles 1 
+#  TEST_ARGS genToArt -c genToArt_outToBinaryNetOutput_t.fcl :  s_r_handles 1
 #  DATAFILES fcl/genToArt_outToBinaryNetOutput_t.fcl)
-  
+
 install_source()

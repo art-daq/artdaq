@@ -58,6 +58,7 @@ simple_plugin(TransferOutput "module"
   cetlib
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
+  ${TBB}
 )
 
 simple_plugin(TransferInput "source"
@@ -65,6 +66,7 @@ simple_plugin(TransferInput "source"
   artdaq-core_Data_dict
   artdaq_TransferPlugins
   artdaq_ArtModules
+  ${TBB}
 )
 
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
@@ -88,6 +90,7 @@ simple_plugin(NetMonInput "source"
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}
+  ${TBB}
 )
 
 simple_plugin(RootNetOutput "module"
@@ -99,6 +102,7 @@ simple_plugin(RootNetOutput "module"
   cetlib
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
+  ${TBB}
 )
 
 simple_plugin(BinaryNetOutput "module"

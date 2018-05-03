@@ -3,34 +3,33 @@
 
 # Nominally a test exec (no MPI) but we want this to be available to other packages.
 art_make_exec(NAME artdaqDriver
-    SOURCE
-    driver.cc
+	SOURCE
+	driver.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq-core_Utilities
   artdaq-core_Generators
-  art_Framework_Art
   ${FHICLCPP}
   ${CETLIB}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
 art_make_exec(NAME fhicl_test
-    SOURCE
-    fhicl_test.cc
-    LIBRARIES
-    ${FHICLCPP}
-    ${CETLIB}
-    ${CETLIB_EXCEPT}
-    ${MF_MESSAGELOGGER}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    )
+	SOURCE
+	fhicl_test.cc
+	LIBRARIES
+	${FHICLCPP}
+	${CETLIB}
+	${CETLIB_EXCEPT}
+	${MF_MESSAGELOGGER}
+	${Boost_PROGRAM_OPTIONS_LIBRARY}
+	)
 
   art_make_exec(NAME artdaq
-    SOURCE
-    artdaq.cc
+	SOURCE
+	artdaq.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
   artdaq_DAQrate
@@ -38,7 +37,6 @@ art_make_exec(NAME fhicl_test
   artdaq_BuildInfo
   artdaq-core_Utilities
   artdaq-core_Generators
-  art_Framework_Art
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -46,8 +44,8 @@ art_make_exec(NAME fhicl_test
   )
 
   art_make_exec(NAME boardreader
-    SOURCE
-    boardreader.cc
+	SOURCE
+	boardreader.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
   artdaq_DAQrate
@@ -55,7 +53,6 @@ art_make_exec(NAME fhicl_test
   artdaq_BuildInfo
   artdaq-core_Utilities
   artdaq-core_Generators
-  art_Framework_Art
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -63,8 +60,8 @@ art_make_exec(NAME fhicl_test
   )
 
   art_make_exec(NAME eventbuilder
-    SOURCE
-    eventbuilder.cc
+	SOURCE
+	eventbuilder.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
   artdaq_DAQrate
@@ -72,7 +69,6 @@ art_make_exec(NAME fhicl_test
   artdaq_BuildInfo
   artdaq-core_Utilities
   artdaq-core_Generators
-  art_Framework_Art
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -80,8 +76,8 @@ art_make_exec(NAME fhicl_test
   )
 
   art_make_exec(NAME datalogger
-    SOURCE
-    datalogger.cc
+	SOURCE
+	datalogger.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
   artdaq_DAQrate
@@ -89,7 +85,6 @@ art_make_exec(NAME fhicl_test
   artdaq_BuildInfo
   artdaq-core_Utilities
   artdaq-core_Generators
-  art_Framework_Art
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -97,8 +92,8 @@ art_make_exec(NAME fhicl_test
   )
 
   art_make_exec(NAME dispatcher
-    SOURCE
-    dispatcher.cc
+	SOURCE
+	dispatcher.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
   artdaq_DAQrate
@@ -106,7 +101,6 @@ art_make_exec(NAME fhicl_test
   artdaq_BuildInfo
   artdaq-core_Utilities
   artdaq-core_Generators
-  art_Framework_Art
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -114,17 +108,17 @@ art_make_exec(NAME fhicl_test
   )
 
   art_make_exec(NAME requestReceiver
-      SOURCE requestReceiver.cc
-      LIBRARIES
-      artdaq_Application
-      ${Boost_PROGRAM_OPTIONS_LIBRARY}
+	  SOURCE requestReceiver.cc
+	  LIBRARIES
+	  artdaq_Application
+	  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
   art_make_exec(NAME requestSender
-      SOURCE requestSender.cc
-      LIBRARIES
-      artdaq_Application
-      ${Boost_PROGRAM_OPTIONS_LIBRARY}
+	  SOURCE requestSender.cc
+	  LIBRARIES
+	  artdaq_Application
+	  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
   art_make_exec(NAME routing_master
@@ -159,13 +153,13 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
   )
 
 art_make_exec(NAME tracemf
-    SOURCE
-    tracemf.cc
-    LIBRARIES
-    artdaq_DAQdata
+	SOURCE
+	tracemf.cc
+	LIBRARIES
+	artdaq_DAQdata
 	artdaq-core_Utilities
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    )
+	${Boost_PROGRAM_OPTIONS_LIBRARY}
+	)
 
 	art_make_exec(NAME PrintSharedMemory
 	SOURCE PrintSharedMemory.cc
