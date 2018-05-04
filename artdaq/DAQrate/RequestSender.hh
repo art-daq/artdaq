@@ -40,7 +40,7 @@ namespace artdaq
 			fhicl::Atom<int> request_port{ fhicl::Name{"request_port"}, fhicl::Comment{"Port to send DataRequests on"},3001 };
 			fhicl::Atom<size_t> request_delay_ms{ fhicl::Name{"request_delay_ms"}, fhicl::Comment{"How long to wait before sending new DataRequests"}, 10 };
 			fhicl::Atom<size_t> request_shutdown_timeout_us{ fhicl::Name{ "request_shutdown_timeout_us"},fhicl::Comment{"How long to wait for pending requests to be sent at shutdown"}, 100000 };
-			fhicl::Atom<std::string> output_address{ fhicl::Name{ "output_address"}, fhicl::Comment{"Use this hostname for multicast output(to assign to the proper NIC)" }, "0.0.0.0" };
+			fhicl::Atom<std::string> output_address{ fhicl::Name{ "multicast_interface_ip"}, fhicl::Comment{"Use this hostname for multicast output(to assign to the proper NIC)" }, "0.0.0.0" };
 			fhicl::Atom<std::string> request_address{ fhicl::Name{"request_address"}, fhicl::Comment{ "Multicast address to send DataRequests to" }, "227.128.12.26" };
 			fhicl::Table<RoutingTokenConfig> routing_token_config{ fhicl::Name{"routing_token_config"}, fhicl::Comment{"FHiCL table containing RoutingToken configuration"} };
 		};
@@ -74,7 +74,7 @@ namespace artdaq
 		 * "request_port" (Default: 3001): Port to send DataRequests on
 		 * "request_delay_ms" (Default: 10): How long to wait before sending new DataRequests
 		 * "request_shutdown_timeout_us" (Default: 100000 us): How long to wait for pending requests to be sent at shutdown
-		 * "output_address" (Default: "0.0.0.0"): Use this hostname for multicast output (to assign to the proper NIC)
+		 * "multicast_interface_ip" (Default: "0.0.0.0"): Use this hostname for multicast output (to assign to the proper NIC)
 		 * "request_address" (Default: "227.128.12.26"): Multicast address to send DataRequests to
 		 * "routing_token_config" (Default: Empty table): FHiCL table containing RoutingToken configuration
 		 *   "use_routing_master" (Default: false): Whether to send tokens to a RoutingMaster

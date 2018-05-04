@@ -45,6 +45,7 @@ artdaq::RequestReceiver::RequestReceiver()
 artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
 	: request_port_(ps.get<int>("request_port", 3001))
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
+	, multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", "0.0.0.0"))
 	, running_(false)
 	, requests_()
 	, request_timing_()
@@ -78,7 +79,12 @@ void artdaq::RequestReceiver::setupRequestListener()
 	memset(&si_me_request, 0, sizeof(si_me_request));
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(request_port_);
-	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
+	auto sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), si_me_request.sin_addr);
+	if (sts == -1)
+	{
+		TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_out_addr_;
+		exit(1);
+	}
 	if (bind(request_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << request_port_ << ", err=" << strerror(errno) ;

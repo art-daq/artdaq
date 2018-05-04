@@ -23,7 +23,7 @@ namespace artdaq
 		, request_port_(pset.get<int>("request_port", 3001))
 		, request_delay_(pset.get<size_t>("request_delay_ms", 10) * 1000)
 		, request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
-		, multicast_out_addr_(pset.get<std::string>("output_address", "0.0.0.0"))
+		, multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
 	{

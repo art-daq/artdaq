@@ -22,6 +22,7 @@ namespace artdaq
 		{
 			fhicl::Atom<int> request_port{ fhicl::Name{"request_port"}, fhicl::Comment{"Port to listen for request messages on"}, 3001 };
 			fhicl::Atom<std::string> request_addr{ fhicl::Name{"request_address"}, fhicl::Comment{"Multicast address to listen for request messages on"}, "227.128.12.26" };
+			fhicl::Atom<std::string> output_address{ fhicl::Name{ "multicast_interface_ip" }, fhicl::Comment{ "Use this hostname for multicast (to assign to the proper NIC)" }, "0.0.0.0" };
 			fhicl::Atom<size_t> end_of_run_timeout_ms{ fhicl::Name{"end_of_run_quiet_timeout_ms"}, fhicl::Comment{"Amount of time (in ms) to wait for no new requests when a Stop transition is pending"}, 1000 };
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
@@ -85,6 +86,7 @@ namespace artdaq
 		// are the FHiCL variable names with a "_" appended
 		int request_port_;
 		std::string request_addr_;
+		std::string multicast_out_addr_;
 		bool running_;
 
 		//Socket parameters
