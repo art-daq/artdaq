@@ -187,7 +187,14 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 
 		TLOG(11) << "Recieved packet on Request channel" ;
 		artdaq::detail::RequestHeader hdr_buffer;
-		recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
+		auto sts = recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
+		if (sts < 0)
+		{
+			TLOG(TLVL_ERROR) << "Error receiving request message header err=" << strerror(errno);
+			close(request_socket_);
+			request_socket_ = -1;
+			continue;
+		}
 		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer.header ;
 		if (!hdr_buffer.isValid()) continue;
 
@@ -203,7 +210,16 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		size_t recvd = 0;
 		while (recvd < sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count)
 		{
-			recvd += recv(request_socket_, reinterpret_cast<uint8_t*>(&pkt_buffer[0]) + recvd, sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count - recvd, 0);
+			ssize_t this_recv = recv(request_socket_, reinterpret_cast<uint8_t*>(&pkt_buffer[0]) + recvd, sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count - recvd, 0);
+			if (this_recv < 0)
+			{
+				TLOG(TLVL_ERROR) << "Error receiving request message data err=" << strerror(errno);
+				close(request_socket_);
+				request_socket_ = -1;
+				continue;
+
+			}
+			recvd += this_recv;
 		}
 		bool anyNew = false;
 

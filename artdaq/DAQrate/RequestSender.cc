@@ -160,6 +160,7 @@ namespace artdaq
 	void RequestSender::do_send_request_()
 	{
 		if (!send_requests_) return;
+		if (request_socket_ == -1) setup_requests_();
 		
 		TLOG(TLVL_TRACE) << "Waiting for " << request_delay_ << " microseconds.";
 		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
@@ -183,16 +184,20 @@ namespace artdaq
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error sending request message header err=" << strerror(errno);
+			request_socket_ = 1;
+			request_sending_--;
+			return;
 		}
 		size_t sent = 0;
 		while (sent < sizeof(detail::RequestPacket) * message.size())
 		{
-			if (request_socket_ == -1) setup_requests_();
 			ssize_t thisSent = sendto(request_socket_, reinterpret_cast<uint8_t*>(message.buffer()) + sent, sizeof(detail::RequestPacket) * message.size() - sent, 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
 			if (thisSent < 0)
 			{
 				TLOG(TLVL_ERROR) << "Error sending request message data err=" << strerror(errno);
 				request_socket_ = -1;
+				request_sending_--;
+				return;
 			}
 			sent += thisSent;
 		}
