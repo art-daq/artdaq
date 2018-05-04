@@ -235,6 +235,11 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 				throw;
 			}
 			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ " << std::to_string(ev_counter()) ;
+			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
+			{
+			  TLOG(20) << "getNext: getNext_() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
+				   << ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
+			}
 		}
 	}
 	catch (const cet::exception& e)
@@ -528,6 +533,11 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 
 			data_thread_running_ = false;
 			return;
+		}
+		for (auto dataIter = newDataBuffer_.begin(); dataIter != newDataBuffer_.end(); ++dataIter)
+		{
+		  TLOG(20) << "getDataLoop: getNext_() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
+			   << ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
 		}
 
 		if (metricMan)
