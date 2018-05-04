@@ -155,7 +155,7 @@ private: // methods
 
 	// Receiver should listen for connections
 	void start_listen_thread_();
-	void listen_();
+	static void listen_(int port, size_t rcvbuf);
 
 	int calculate_port_() const { 
 		return destination_rank() + ((partition_number_ % 22) * 1000) + 10000;

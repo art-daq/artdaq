@@ -125,7 +125,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	TLOG(5) << GetTraceName() << ": receiveFragmentHeader: BEGIN";
 	int ret_rank = RECV_TIMEOUT;
 
-	if (connected_fds_[source_rank()].size() == 0)
+	if (getConnectedFDCount(source_rank()) == 0)
 	{ // what if just listen_fd??? 
 		if (++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
@@ -765,7 +765,7 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 		if (listen_thread_ && listen_thread_->joinable()) listen_thread_->join();
 		listen_thread_refcount_ = 1;
 		TLOG(TLVL_INFO) << GetTraceName() << ": Starting Listener Thread";
-		listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, this);
+		listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, calculate_port_(), rcvbuf_);
 	}
 	else
 	{
@@ -773,7 +773,7 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 	}
 }
 
-void artdaq::TCPSocketTransfer::listen_()
+void artdaq::TCPSocketTransfer::listen_(int port, size_t rcvbuf)
 {
 	int listen_fd = -1;
 	while (listen_thread_refcount_ > 0)
@@ -782,7 +782,7 @@ void artdaq::TCPSocketTransfer::listen_()
 		if (listen_fd == -1)
 		{
 			TLOG(TLVL_DEBUG) << "listen_: Opening listener";
-			listen_fd = TCP_listen_fd(calculate_port_(), rcvbuf_);
+			listen_fd = TCP_listen_fd(port, rcvbuf);
 		}
 		if (listen_fd == -1)
 		{
@@ -805,7 +805,7 @@ void artdaq::TCPSocketTransfer::listen_()
 			int fd;
 			TLOG(TLVL_DEBUG) << "listen_: Calling accept";
 			fd = accept(listen_fd, (sockaddr *)&un, &arglen);
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": Done with accept";
+			TLOG(TLVL_DEBUG) << "listen_: Done with accept";
 
 			TLOG(TLVL_DEBUG) << "listen_: Reading connect message";
 			socklen_t lenlen = sizeof(tv);
@@ -850,11 +850,12 @@ void artdaq::TCPSocketTransfer::listen_()
 	auto it = connected_fds_.begin();
 	while (it != connected_fds_.end())
 	{
-		auto rank_it = it->second.begin();
-		while (rank_it != it->second.end())
+		auto& fd_set = it->second;
+		auto rank_it = fd_set.begin();
+		while (rank_it != fd_set.end())
 		{
 			close(*rank_it);
-			rank_it = it->second.erase(rank_it);
+			rank_it = fd_set.erase(rank_it);
 		}
 		it = connected_fds_.erase(it);
 	}
