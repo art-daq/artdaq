@@ -42,7 +42,7 @@ namespace artdaq
 			fhicl::Atom<size_t> request_shutdown_timeout_us{ fhicl::Name{ "request_shutdown_timeout_us"},fhicl::Comment{"How long to wait for pending requests to be sent at shutdown"}, 100000 };
 			fhicl::Atom<std::string> output_address{ fhicl::Name{ "output_address"}, fhicl::Comment{"Use this hostname for multicast output(to assign to the proper NIC)" }, "0.0.0.0" };
 			fhicl::Atom<std::string> request_address{ fhicl::Name{"request_address"}, fhicl::Comment{ "Multicast address to send DataRequests to" }, "227.128.12.26" };
-			fhicl::Table<RoutingTokenConfig> routing_token_config{ fhicl::Name{"routing_token_config}"}, fhicl::Comment{"FHiCL table containing RoutingToken configuration"} };
+			fhicl::Table<RoutingTokenConfig> routing_token_config{ fhicl::Name{"routing_token_config"}, fhicl::Comment{"FHiCL table containing RoutingToken configuration"} };
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;

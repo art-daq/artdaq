@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 		fhicl::Atom<artdaq::Fragment::timestamp_t> timestamp_scale{ fhicl::Name{"timestamp_scale"}, fhicl::Comment{"Amount to increment timestamp for each request"}, 1 };
 	};
 
-	auto pset = LoadParameterSet<artdaq::RequestSender::Config>(argc, argv, "sender", "This test application sends Data Request messages and optionally receives them to detect issues in the network transport");
+	auto pset = LoadParameterSet<Config>(argc, argv, "sender", "This test application sends Data Request messages and optionally receives them to detect issues in the network transport");
 
 	int rc = 0;
 
