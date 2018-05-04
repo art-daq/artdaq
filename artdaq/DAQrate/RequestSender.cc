@@ -101,7 +101,8 @@ namespace artdaq
 			if (multicast_out_addr_ != "localhost")
 			{
 				struct in_addr addr;
-				sts = ResolveHost(multicast_out_addr_.c_str(), addr);
+				sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), addr);
+				//sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 				if (sts == -1)
 				{
 					TLOG(TLVL_ERROR) << "Unable to resolve multicast interface address, err=" << strerror(errno) ;

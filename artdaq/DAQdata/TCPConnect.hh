@@ -22,6 +22,13 @@
  */
 int ResolveHost(char const* host_in, in_addr& addr);
 /**
+ * \brief Convert an IP address to the network address of the interface sharing the subnet mask
+ * \param host_in IP to resolve
+ * \param[out] addr in_addr object populated with resolved host
+ * \return 0 if success, -1 if gethostbyname fails, 2 if defaulted to 0.0.0.0 (No matching interfaces)
+ */
+int GetInterfaceForNetwork(char const* host_in, in_addr& addr);
+/**
  * \brief Convert a string hostname and port to a sockaddr_in suitable for socket communication
  * \param host_in Name or IP of host to resolve
  * \param dflt_port POrt to populate in output
