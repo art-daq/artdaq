@@ -27,6 +27,7 @@ namespace artdaq
 		, multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
+		, request_sending_(0)
 	{
 		TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
 		setup_requests_();
