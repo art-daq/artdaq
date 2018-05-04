@@ -79,12 +79,7 @@ void artdaq::RequestReceiver::setupRequestListener()
 	memset(&si_me_request, 0, sizeof(si_me_request));
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(request_port_);
-	auto sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), si_me_request.sin_addr);
-	if (sts == -1)
-	{
-		TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_out_addr_;
-		exit(1);
-	}
+	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind(request_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << request_port_ << ", err=" << strerror(errno) ;
@@ -101,6 +96,11 @@ void artdaq::RequestReceiver::setupRequestListener()
 			exit(1);
 		}
 		sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), mreq.imr_interface);
+		if (sts == -1)
+		{
+			TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_out_addr_;
+			exit(1);
+		}
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 		{
 			TLOG(TLVL_ERROR) << "Unable to join multicast group, err=" << strerror(errno) ;
