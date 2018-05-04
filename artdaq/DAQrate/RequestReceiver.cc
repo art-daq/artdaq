@@ -100,7 +100,7 @@ void artdaq::RequestReceiver::setupRequestListener()
 			TLOG(TLVL_ERROR) << "Unable to resolve multicast request address, err=" << strerror(errno) ;
 			exit(1);
 		}
-		auto sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), mreq.imr_interface);
+		sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), mreq.imr_interface);
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 		{
 			TLOG(TLVL_ERROR) << "Unable to join multicast group, err=" << strerror(errno) ;
