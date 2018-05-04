@@ -132,6 +132,7 @@ namespace artdaq
 		mutable std::mutex request_mutex_;
 		mutable std::mutex request_send_mutex_;
 		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_;
+		std::string request_address_;
 		int request_port_;
 		size_t request_delay_;
 		size_t request_shutdown_timeout_us_;
@@ -144,10 +145,10 @@ namespace artdaq
 		int token_port_;
 		int token_socket_;
 		std::string token_address_;
-		std::atomic<bool> request_sending_;
+		std::atomic<int> request_sending_;
 
 	private:
-		void setup_requests_(std::string trigger_addr);
+		void setup_requests_();
 
 		void do_send_request_();
 

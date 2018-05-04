@@ -20,6 +20,7 @@ namespace artdaq
 	RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 		: send_requests_(pset.get<bool>("send_requests", false))
 		, active_requests_()
+		, request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
 		, request_port_(pset.get<int>("request_port", 3001))
 		, request_delay_(pset.get<size_t>("request_delay_ms", 10) * 1000)
 		, request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
@@ -28,7 +29,7 @@ namespace artdaq
 		, token_socket_(-1)
 	{
 		TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
-		setup_requests_(pset.get<std::string>("request_address", "227.128.12.26"));
+		setup_requests_();
 
 		auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
 		send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
@@ -41,15 +42,15 @@ namespace artdaq
 
 	RequestSender::~RequestSender()
 	{
-		TLOG(TLVL_TRACE) << "Shutting down RequestSender: Waiting for requests to be sent";
+		TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for requests to be sent";
 
 		auto start_time = std::chrono::steady_clock::now();
 
-		while (request_sending_ && request_shutdown_timeout_us_ > TimeUtils::GetElapsedTimeMicroseconds(start_time))
+		while (request_sending_ > 0 && request_shutdown_timeout_us_ > TimeUtils::GetElapsedTimeMicroseconds(start_time))
 		{
 			usleep(1000);
 		}
-		TLOG(TLVL_TRACE) << "Shutting down RequestSender";
+		TLOG(TLVL_INFO) << "Shutting down RequestSender";
 		if (request_socket_ > 0)
 		{
 			shutdown(request_socket_, 2);
@@ -70,7 +71,7 @@ namespace artdaq
 	}
 
 	void
-		RequestSender::setup_requests_(std::string request_address)
+		RequestSender::setup_requests_()
 	{
 		if (send_requests_)
 		{
@@ -80,7 +81,7 @@ namespace artdaq
 				TLOG(TLVL_ERROR) << "I failed to create the socket for sending Data Requests! err=" << strerror(errno);
 				exit(1);
 			}
-			int sts = ResolveHost(request_address.c_str(), request_port_, request_addr_);
+			int sts = ResolveHost(request_address_.c_str(), request_port_, request_addr_);
 			if (sts == -1)
 			{
 				TLOG(TLVL_ERROR) << "Unable to resolve Data Request address, err=" << strerror(errno);
@@ -159,6 +160,7 @@ namespace artdaq
 	void RequestSender::do_send_request_()
 	{
 		if (!send_requests_) return;
+		
 		TLOG(TLVL_TRACE) << "Waiting for " << request_delay_ << " microseconds.";
 		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
 
@@ -185,14 +187,17 @@ namespace artdaq
 		size_t sent = 0;
 		while (sent < sizeof(detail::RequestPacket) * message.size())
 		{
+			if (request_socket_ == -1) setup_requests_();
 			ssize_t thisSent = sendto(request_socket_, reinterpret_cast<uint8_t*>(message.buffer()) + sent, sizeof(detail::RequestPacket) * message.size() - sent, 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
 			if (thisSent < 0)
 			{
 				TLOG(TLVL_ERROR) << "Error sending request message data err=" << strerror(errno);
+				request_socket_ = -1;
 			}
 			sent += thisSent;
 		}
-		request_sending_ = false;
+		TLOG(TLVL_TRACE) << "Done sending request";
+		request_sending_--;
 	}
 
 	void RequestSender::send_routing_token_(int nSlots)
@@ -232,7 +237,7 @@ namespace artdaq
 	{
 		if (!send_requests_) return;
 		if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
-		request_sending_ = true;
+		request_sending_++;
 		boost::thread request([=] { do_send_request_(); });
 		request.detach();
 	}
