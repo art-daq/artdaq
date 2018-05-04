@@ -16,7 +16,17 @@ int main(int argc, char* argv[])
 
 	int rc = 0;
 
-	artdaq::RequestReceiver recvr(pset);
+	fhicl::ParameterSet tempPset;
+	if (pset.has_key("request_receiver"))
+	{
+		tempPset = pset.get<fhicl::ParameterSet>("request_receiver");
+	}
+	else
+	{
+		tempPset = pset;
+	}
+
+	artdaq::RequestReceiver recvr(tempPset);
 	recvr.startRequestReceiverThread();
 
 	while (true)
