@@ -200,7 +200,11 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		}
 
 		std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-		recv(request_socket_, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
+		size_t recvd = 0;
+		while (recvd < sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count)
+		{
+			recvd += recv(request_socket_, reinterpret_cast<uint8_t*>(&pkt_buffer[0]) + recvd, sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count - recvd, 0);
+		}
 		bool anyNew = false;
 
 			if (should_stop_) break;
