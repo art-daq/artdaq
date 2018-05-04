@@ -110,16 +110,6 @@ namespace artdaq
 				}
 
 				int yes = 1;
-				if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
-				{
-					TLOG(TLVL_ERROR) << "Unable to enable port reuse on request socket, err=" << strerror(errno) ;
-					exit(1);
-				}
-				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &yes, sizeof(yes)) < 0)
-				{
-					TLOG(TLVL_ERROR) << "Unable to enable multicast loopback on request socket, err=" << strerror(errno) ;
-					exit(1);
-				}
 				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 				{
 					TLOG(TLVL_ERROR) << "Cannot set outgoing interface, err=" << strerror(errno) ;
@@ -127,6 +117,16 @@ namespace artdaq
 				}
 			}
 			int yes = 1;
+			if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
+			{
+				TLOG(TLVL_ERROR) << "Unable to enable port reuse on request socket, err=" << strerror(errno);
+				exit(1);
+			}
+			if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &yes, sizeof(yes)) < 0)
+			{
+				TLOG(TLVL_ERROR) << "Unable to enable multicast loopback on request socket, err=" << strerror(errno);
+				exit(1);
+			}
 			if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
 			{
 				TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast, err=" << strerror(errno) ;

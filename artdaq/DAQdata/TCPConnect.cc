@@ -124,10 +124,14 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 
 			if (ifa->ifa_addr->sa_family == AF_INET)
 			{
-				auto if_addr = (struct sockaddr_in*)&ifa->ifa_addr;
+				auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
 				auto sa = (struct sockaddr_in *) ifa->ifa_netmask;
+
+				TLOG(15) << "IF: " << ifa->ifa_name << " Desired: " << desired_host.s_addr << " netmask: " << sa->sin_addr.s_addr << " this interface: " << if_addr->sin_addr.s_addr;
+
 				if ((if_addr->sin_addr.s_addr & sa->sin_addr.s_addr) == (desired_host.s_addr & sa->sin_addr.s_addr))
 				{
+					TLOG(TLVL_INFO) << "Using interface " << ifa->ifa_name;
 					memcpy(&addr, &if_addr->sin_addr, sizeof(addr));
 					break;
 				}
