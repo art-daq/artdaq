@@ -185,12 +185,12 @@ namespace artdaq
 		size_t sent = 0;
 		while (sent < sizeof(detail::RequestPacket) * message.size())
 		{
-			size_t thisSent = sendto(request_socket_, reinterpret_cast<uint8_t*>(message.buffer()) + sent, sizeof(detail::RequestPacket) * message.size() - sent, 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
+			ssize_t thisSent = sendto(request_socket_, reinterpret_cast<uint8_t*>(message.buffer()) + sent, sizeof(detail::RequestPacket) * message.size() - sent, 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
 			if (thisSent < 0)
 			{
 				TLOG(TLVL_ERROR) << "Error sending request message data err=" << strerror(errno);
 			}
-			sent == thisSent;
+			sent += thisSent;
 		}
 		request_sending_ = false;
 	}
