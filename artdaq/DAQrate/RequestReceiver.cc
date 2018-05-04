@@ -159,15 +159,25 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 	{
 		TLOG(16) << "receiveRequestsLoop: Polling Request socket for new requests" ;
 
+		if (request_socket_ == -1)
+		{
+			setupRequestListener();
+		}
+
 		int ms_to_wait = 10;
 		struct pollfd ufds[1];
 		ufds[0].fd = request_socket_;
-		ufds[0].events = POLLIN | POLLPRI;
+		ufds[0].events = POLLIN | POLLPRI | POLLERR;
 		int rv = poll(ufds, 1, ms_to_wait);
 
 		// Continue loop if no message received or message does not have correct event ID
 		if (rv <= 0 || (ufds[0].revents != POLLIN && ufds[0].revents != POLLPRI)) 
 		{
+			if (rv == 1 && (ufds[0].revents == POLLNVAL || ufds[0].revents == POLLERR))
+			{
+				close(request_socket_);
+				request_socket_ = -1;
+			}
 			if (request_stop_requested_ && TimeUtils::GetElapsedTimeMilliseconds(request_stop_timeout_) > end_of_run_timeout_ms_)
 			{
 				break;
