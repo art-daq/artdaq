@@ -109,7 +109,6 @@ namespace artdaq
 					exit(1);
 				}
 
-				int yes = 1;
 				if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 				{
 					TLOG(TLVL_ERROR) << "Cannot set outgoing interface, err=" << strerror(errno) ;
