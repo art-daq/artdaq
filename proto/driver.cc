@@ -131,12 +131,26 @@ int main(int argc, char * argv[]) try
 				}
 				break;
 			}
-			artdaq::FragmentPtr tempFrag;
-			auto sts = event_manager.AddFragment(std::move(val), 1000000, tempFrag);
-			if (!sts)
+
+			auto start_time = std::chrono::steady_clock::now();
+			bool sts = false;
+			auto loop_count = 0;
+			while (!sts)
 			{
-				TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art process status!";
-				exit(1);
+				artdaq::FragmentPtr tempFrag;
+				sts = event_manager.AddFragment(std::move(val), 1000000, tempFrag);
+				if (!sts && event_count <= 10 && loop_count > 100)
+				{
+					TLOG(TLVL_ERROR) << "Fragment was not added after " << artdaq::TimeUtils::GetElapsedTime(start_time) << " s. Check art thread status!";
+					event_manager.endOfData();
+					exit(1);
+				}
+				val = std::move(tempFrag);
+				if (!sts)
+				{
+					loop_count++;
+					//usleep(10000);
+				}
 			}
 		}
 		frags.clear();

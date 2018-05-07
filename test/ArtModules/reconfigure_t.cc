@@ -65,15 +65,17 @@ int main(int argc, char* argv[])
 			for (auto&& frag : frags)
 			{
 				assert(frag != nullptr);
+
+				auto start_time = std::chrono::steady_clock::now();
 				bool sts = false;
 				auto loop_count = 0;
 				while (!sts)
 				{
 					artdaq::FragmentPtr tempFrag;
 					sts = events->AddFragment(std::move(frag), 1000000, tempFrag);
-					if (!sts && event_count <= 10 && loop_count < 100)
+					if (!sts && event_count <= 10 && loop_count > 100)
 					{
-						TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!";
+						TLOG(TLVL_ERROR) << "Fragment was not added after " << artdaq::TimeUtils::GetElapsedTime(start_time) << " s. Check art thread status!";
 						events->endOfData();
 						exit(1);
 					}

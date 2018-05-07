@@ -285,16 +285,17 @@ namespace
 						<< current_sequence_id
 						<< ".\n";
 				}
-
+				
+				auto start_time = std::chrono::steady_clock::now();
 				bool sts = false;
 				auto loop_count = 0;
 				while (!sts)
 				{
 					artdaq::FragmentPtr tempFrag;
 					sts = store.AddFragment(std::move(val), 1000000, tempFrag);
-					if (!sts && event_count <= 10 && loop_count < 100)
+					if (!sts && event_count <= 10 && loop_count > 100)
 					{
-						TLOG(TLVL_ERROR) << "Fragment was not added after 1s. Check art thread status!";
+						TLOG(TLVL_ERROR) << "Fragment was not added after " << artdaq::TimeUtils::GetElapsedTime(start_time) << " s. Check art thread status!";
 						store.endOfData();
 						exit(1);
 					}
