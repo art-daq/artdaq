@@ -26,6 +26,8 @@ art_make_exec(genToArt
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+  cet_script(setupMpichPlugin.sh)
+
 # Make sure tests have correct environment settings.
 include(CetTest)
 # If you explicitly include CetTest in a subdirectory, you will need to
