@@ -341,15 +341,16 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	boost::thread thread([&] { RunArt(current_art_config_file_, pid); });
 	thread.detach();
 
-
-	while (GetAttachedCount() - initialCount < 1 && TimeUtils::GetElapsedTime(startTime) < 5)
+	auto currentCount = GetAttachedCount() - initialCount;
+	while (currentCount < 1 && pid <= 0 && TimeUtils::GetElapsedTime(startTime) < 5)
 	{
-		usleep(1000);
+		usleep(10000); 
+		currentCount = GetAttachedCount() - initialCount;
 	}
-	if (GetAttachedCount() - initialCount < 1 || pid <= 0)
+	if (currentCount < 1 || pid <= 0)
 	{
 		TLOG(TLVL_WARNING) << "art process has not started after 5s. Check art configuration!"
-			<< " (pid=" << pid << ", attachedCount=" << std::to_string(GetAttachedCount() - initialCount) << ")";
+			<< " (pid=" << pid << ", attachedCount=" << currentCount << ")";
 		return 0;
 	}
 	else
