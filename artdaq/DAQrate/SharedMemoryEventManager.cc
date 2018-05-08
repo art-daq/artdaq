@@ -342,7 +342,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	thread.detach();
 
 	auto currentCount = GetAttachedCount() - initialCount;
-	while (currentCount < 1 && pid <= 0 && TimeUtils::GetElapsedTime(startTime) < 5)
+	while ((currentCount < 1 || pid <= 0) && TimeUtils::GetElapsedTime(startTime) < 5)
 	{
 		usleep(10000); 
 		currentCount = GetAttachedCount() - initialCount;
@@ -371,7 +371,14 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 
 	for (auto pid = pids.begin(); pid != pids.end();)
 	{
-		if (kill(*pid, 0) < 0)
+		// 08-May-2018, KAB: protect against killing invalid PIDS
+		if (*pid <= 0)
+		{
+			TLOG(TLVL_WARNING) << "Removing an invalid PID (" << *pid
+			                   << ") from the shutdown list."; 
+			pid = pids.erase(pid);
+		}
+		else if (kill(*pid, 0) < 0)
 		{
 			pid = pids.erase(pid);
 		}
@@ -390,6 +397,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 	TLOG(TLVL_TRACE) << "Gently informing art processes that it is time to shut down";
 	for (auto pid : pids)
 	{
+		TLOG(TLVL_TRACE) << "Sending SIGQUIT to pid " << pid;
 		kill(pid, SIGQUIT);
 	}
 
