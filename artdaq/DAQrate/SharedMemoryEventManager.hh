@@ -359,6 +359,7 @@ namespace artdaq {
 
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
+		std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
 		int broadcast_timeout_ms_;
 
 		std::atomic<int> run_event_count_;
