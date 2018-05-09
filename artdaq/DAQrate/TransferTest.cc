@@ -261,10 +261,10 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 		TLOG(7) << "do_receiving: Counter is " << counter << ", calling recvFragment";
 		int senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
 		auto before_receive = std::chrono::steady_clock::now();
-		init_wait_metric += std::chrono::duration_cast<artdaq::TimeUtils::seconds>(before_receive - start_loop).count();
 
 		auto ignoreFragPtr = receiver.recvFragment(senderSlot);
 		auto after_receive = std::chrono::steady_clock::now();
+		init_wait_metric += std::chrono::duration_cast<artdaq::TimeUtils::seconds>(before_receive - start_loop).count();
 		size_t thisSize = 0;
 		if (senderSlot >= artdaq::TransferInterface::RECV_SUCCESS && ignoreFragPtr)
 		{
