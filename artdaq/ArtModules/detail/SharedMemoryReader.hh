@@ -196,6 +196,11 @@ namespace artdaq
 				{
 					keep_looping = false;
 					auto start_time = std::chrono::steady_clock::now();
+					while (!got_event && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 1000)
+					{
+						// BURN CPU for 1 ms!
+						got_event = incoming_events->ReadyForRead();
+					}
 					while (!got_event && TimeUtils::GetElapsedTime(start_time) < waiting_time)
 					{
 						got_event = incoming_events->ReadyForRead();
