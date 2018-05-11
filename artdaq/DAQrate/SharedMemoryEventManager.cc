@@ -684,7 +684,23 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary)
 		if (!processAnyway) return;
 	}
 	TLOG(TLVL_INFO) << "Will roll over when I reach Sequence ID " << boundary;
-	subrun_rollover_event_ = boundary;
+
+	// JCF, May-11-2018
+
+	// subrun_rollover_event_ is used in check_pending_buffers to
+	// trigger an endSubrun()/startSubrun(), but if the last event
+	// sent was right before the boundary we might as well switch
+	// to the new subrun here
+
+	if (boundary == last_released_event_ + 1) {
+	  TLOG(TLVL_INFO) << "rolloverSubrun: Last released event had sequence id " << last_released_event_ << \
+	    ", boundary is sequence id " << boundary << ", so will start a new subrun here";
+	  endSubrun();
+	  startSubrun();
+	  subrun_rollover_event_ = std::numeric_limits<sequence_id_t>::max();
+	} else {
+	  subrun_rollover_event_ = boundary;
+	}
 }
 
 void artdaq::SharedMemoryEventManager::sendMetrics()
@@ -915,7 +931,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 		if (hdr->sequence_id >= subrun_rollover_event_)
 		{
-			TLOG(TLVL_INFO) << "Subrun rollover reached at event " << hdr->sequence_id << " (boundary=" << subrun_rollover_event_ << ").";
+		  TLOG(TLVL_INFO) << "Subrun rollover reached at event " << hdr->sequence_id << " (boundary=" << subrun_rollover_event_ << "), last released event is " << last_released_event_ << ".";
 			endSubrun();
 			startSubrun();
 		}
