@@ -119,7 +119,7 @@ int main(int argc, char * argv[]) try
 	// speed as the limiting factor
 	while ((commandable_gen && commandable_gen->getNext(frags)) ||
 		(gen && gen->getNext(frags))) {
-		TLOG(50) << "driver main: getNext returned frags.size()=" << std::to_string(frags.size()) << " current event_count=" << event_count;
+		TLOG(50) << "driver main: getNext returned frags.size()=" << frags.size() << " current event_count=" << event_count;
 		for (auto & val : frags) {
 			if (val->sequenceID() != previous_sequence_id) {
 				++event_count;

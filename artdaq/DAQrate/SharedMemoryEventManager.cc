@@ -37,6 +37,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, art_processes_()
 	, restart_art_(false)
 	, always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
+	, manual_art_(pset.get<bool>("manual_art", false))
 	, current_art_pset_(art_pset)
 	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
 	, art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 100000))
@@ -220,7 +221,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id))
 	{
 		hdr->is_complete = frag_count == released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
-}
+	}
 #endif
 
 	complete_buffer_(buffer);
@@ -265,16 +266,28 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		strcpy(filename, config_file->getFileName().c_str());
 
 		std::vector<char*> args{ (char*)"art", (char*)"-c", filename, NULL };
+		pid_t pid = 0;
 
-
-		auto pid = fork();
-		if (pid == 0)
-		{ /* child */
-			execvp("art", &args[0]);
+		if (!manual_art_)
+		{
+			pid = fork();
+			if (pid == 0)
+			{ /* child */
+				execvp("art", &args[0]);
+				delete[] filename;
+				exit(1);
+			}
 			delete[] filename;
-			exit(1);
 		}
-		delete[] filename;
+		else
+		{
+			//Using cin/cout here to ensure console is active (artdaqDriver)
+			std::cout << "Please run the following command in a separate terminal:" << std::endl
+				<< "art -c " << config_file->getFileName() << std::endl
+				<< "Then, in a third terminal, execute: \"ps aux|grep [a]rt -c " << config_file->getFileName() << "\" and note the PID of the art process." << std::endl
+				<< "Finally, return to this window and enter the pid: " << std::endl;
+			std::cin >> pid;
+		}
 		pid_out = pid;
 
 		TLOG(TLVL_INFO) << "PID of new art process is " << pid;
@@ -346,12 +359,17 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	thread.detach();
 
 	auto currentCount = GetAttachedCount() - initialCount;
-	while ((currentCount < 1 || pid <= 0) && TimeUtils::GetElapsedTime(startTime) < 5)
+	while ((currentCount < 1 || pid <= 0) && (TimeUtils::GetElapsedTime(startTime) < 5 || manual_art_))
 	{
 		usleep(10000);
 		currentCount = GetAttachedCount() - initialCount;
 	}
-	if (currentCount < 1 || pid <= 0)
+	if ((currentCount < 1 || pid <= 0) && manual_art_)
+	{
+		TLOG(TLVL_WARNING) << "Manually-started art process has not connected to shared memory or has bad PID: connected:" << currentCount << ", PID:" << pid;
+		return 0;
+	}
+	else if (currentCount < 1 || pid <= 0)
 	{
 		TLOG(TLVL_WARNING) << "art process has not started after 5s. Check art configuration!"
 			<< " (pid=" << pid << ", attachedCount=" << currentCount << ")";
@@ -843,7 +861,7 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 	auto hdr = getEventHeader_(buffer);
 	if (hdr->is_complete)
 	{
-		TLOG(TLVL_DEBUG) << "complete_buffer_: This fragment completes event " <<hdr->sequence_id << ".";
+		TLOG(TLVL_DEBUG) << "complete_buffer_: This fragment completes event " << hdr->sequence_id << ".";
 
 		if (requests_)
 		{
@@ -1000,7 +1018,7 @@ void artdaq::SharedMemoryEventManager::SetInitFragment(FragmentPtr frag)
 	{
 		init_fragment_.swap(frag);
 		send_init_frag_();
-	}
+}
 }
 
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103

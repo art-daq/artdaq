@@ -181,7 +181,7 @@ namespace artdaq
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		std::lock_guard<std::mutex> lk2(request_send_mutex_);
-		TLOG(TLVL_TRACE) << "Sending request for " << std::to_string(message.size()) << " events to multicast group " << str;
+		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error sending request message header err=" << strerror(errno);

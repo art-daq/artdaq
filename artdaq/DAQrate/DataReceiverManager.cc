@@ -13,6 +13,8 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	, stop_requested_time_(0)
 	, source_threads_()
 	, source_plugins_()
+	, source_metric_data_()
+	, source_metric_send_time_()
 	, enabled_sources_()
 	, running_sources_()
 	, recv_frag_count_()
@@ -30,7 +32,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 
 	if (non_reliable_mode_enabled_)
 	{
-		TLOG(TLVL_WARNING) << "DataReceiverManager is configured to drop data after " << std::to_string(non_reliable_mode_retry_count_)
+		TLOG(TLVL_WARNING) << "DataReceiverManager is configured to drop data after " << non_reliable_mode_retry_count_
 			<< " failed attempts to put data into the SharedMemoryEventManager! If this is unexpected, please check your configuration!";
 	}
 
@@ -72,6 +74,8 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 			auto source_rank = transfer->source_rank();
 			if (enabled_srcs_empty) enabled_sources_.insert(source_rank);
 			source_plugins_[source_rank] = std::move(transfer);
+			source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
+			source_metric_data_[source_rank] = source_metric_data();
 		}
 		catch (cet::exception ex)
 		{
@@ -120,7 +124,7 @@ void artdaq::DataReceiverManager::start_threads()
 
 void artdaq::DataReceiverManager::stop_threads()
 {
-	TLOG(TLVL_TRACE) << "stop_threads: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount());
+	TLOG(TLVL_TRACE) << "stop_threads: BEGIN: Setting stop_requested to true, frags=" << count() << ", bytes=" << byteCount();
 
 	stop_requested_time_ = TimeUtils::gettimeofday_us();
 	stop_requested_ = true;
@@ -137,7 +141,6 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
 	std::chrono::steady_clock::time_point start_time, after_header, before_body;
 	int ret;
-	double delta_t, hdr_delta_t, store_delta_t, data_delta_t;
 	detail::RawFragmentHeader header;
 	size_t endOfDataCount = -1;
 	auto sleep_time = receive_timeout_ / 100 > 100000 ? 100000 : receive_timeout_ / 100;
@@ -189,7 +192,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (loc == nullptr)
 			{
 				// Could not enqueue event!
-				TLOG(TLVL_ERROR) << "runReceiver_: Could not get data location for event " << std::to_string(header.sequence_id);
+				TLOG(TLVL_ERROR) << "runReceiver_: Could not get data location for event " << header.sequence_id;
 				continue;
 			}
 			before_body = std::chrono::steady_clock::now();
@@ -204,39 +207,50 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 
 			shm_manager_->DoneWritingFragment(header);
-			TLOG(TLVL_TRACE) << "Done receiving fragment with sequence ID " << std::to_string(header.sequence_id) << " from rank " << source_rank;
+			TLOG(TLVL_TRACE) << "Done receiving fragment with sequence ID " << header.sequence_id << " from rank " << source_rank;
 
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, header.word_count * sizeof(RawDataType));
 			recv_seq_count_.setSlot(source_rank, header.sequence_id);
 			if (endOfDataCount != static_cast<size_t>(-1))
 			{
-				TLOG(TLVL_DEBUG) << "Received fragment " << std::to_string(header.sequence_id) << " from rank " << source_rank
-					<< " (" << std::to_string(recv_frag_count_.slotCount(source_rank)) << "/" << std::to_string(endOfDataCount) << ")";
+				TLOG(TLVL_DEBUG) << "Received fragment " << header.sequence_id << " from rank " << source_rank
+					<< " (" << recv_frag_count_.slotCount(source_rank) << "/" << endOfDataCount << ")";
 			}
 
-			if (metricMan)
+
+			source_metric_data_[source_rank].delta_t += TimeUtils::GetElapsedTime(start_time);
+			source_metric_data_[source_rank].hdr_delta_t += TimeUtils::GetElapsedTime(start_time, after_header);
+			source_metric_data_[source_rank].store_delta_t += TimeUtils::GetElapsedTime(after_header, before_body);
+			source_metric_data_[source_rank].data_delta_t += TimeUtils::GetElapsedTime(before_body);
+
+			source_metric_data_[source_rank].data_size += header.word_count * sizeof(RawDataType);
+			source_metric_data_[source_rank].header_size += header.num_words() * sizeof(RawDataType);
+
+			if (metricMan && TimeUtils::GetElapsedTime(source_metric_send_time_[source_rank]) > 1)
 			{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
 				TLOG(6) << "runReceiver_: Sending receive stats";
-				delta_t = TimeUtils::GetElapsedTime(start_time);
-				hdr_delta_t = TimeUtils::GetElapsedTime(start_time, after_header);
-				store_delta_t = TimeUtils::GetElapsedTime(after_header, before_body);
-				data_delta_t = TimeUtils::GetElapsedTime(before_body);
-				metricMan->sendMetric("Total Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Total Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(header.word_count * sizeof(RawDataType)), "B", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Total Receive Rate From Rank " + std::to_string(source_rank), header.word_count * sizeof(RawDataType) / delta_t, "B/s", 5, MetricMode::Average);
+				metricMan->sendMetric("Total Receive Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].delta_t, "s", 5, MetricMode::Accumulate);
+				metricMan->sendMetric("Total Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(source_metric_data_[source_rank].data_size), "B", 5, MetricMode::Accumulate);
+				metricMan->sendMetric("Total Receive Rate From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].data_size / source_metric_data_[source_rank].delta_t, "B/s", 5, MetricMode::Average);
 
-				metricMan->sendMetric("Header Receive Time From Rank " + std::to_string(source_rank), hdr_delta_t, "s", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Header Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(header.num_words() * sizeof(RawDataType)), "B", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Header Receive Rate From Rank " + std::to_string(source_rank), header.num_words() * sizeof(RawDataType) / hdr_delta_t, "B/s", 5, MetricMode::Average);
+				metricMan->sendMetric("Header Receive Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].hdr_delta_t, "s", 5, MetricMode::Accumulate);
+				metricMan->sendMetric("Header Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(source_metric_data_[source_rank].header_size), "B", 5, MetricMode::Accumulate);
+				metricMan->sendMetric("Header Receive Rate From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].header_size / source_metric_data_[source_rank].hdr_delta_t, "B/s", 5, MetricMode::Average);
 
-				metricMan->sendMetric("Shared Memory Wait Time From Rank " + std::to_string(source_rank), store_delta_t, "s", 5, MetricMode::Accumulate);
+				auto payloadSize = source_metric_data_[source_rank].data_size - source_metric_data_[source_rank].header_size;
+				metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].data_delta_t, "s", 5, MetricMode::Accumulate);
+				metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(payloadSize), "B", 5, MetricMode::Accumulate);
+				metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), payloadSize / source_metric_data_[source_rank].data_delta_t, "B/s", 5, MetricMode::Average);
 
-				metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), data_delta_t, "s", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>((header.word_count - header.num_words()) * sizeof(RawDataType)), "B", 5, MetricMode::Accumulate);
-				metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), (header.word_count - header.num_words()) * sizeof(RawDataType) / data_delta_t, "B/s", 5, MetricMode::Average);
 				metricMan->sendMetric("Data Receive Count From Rank " + std::to_string(source_rank), recv_frag_count_.slotCount(source_rank), "fragments", 3, MetricMode::LastPoint);
+
+				metricMan->sendMetric("Shared Memory Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].store_delta_t, "s", 5, MetricMode::Accumulate);
+
 				TLOG(6) << "runReceiver_: Done sending receive stats";
+
+				source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
+				source_metric_data_[source_rank] = source_metric_data();
 			}
 		}
 		else if (header.type == Fragment::EndOfDataFragmentType || header.type == Fragment::InitFragmentType || header.type == Fragment::EndOfRunFragmentType || header.type == Fragment::EndOfSubrunFragmentType || header.type == Fragment::ShutdownFragmentType)
@@ -257,8 +271,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			case Fragment::EndOfDataFragmentType:
 				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 				endOfDataCount = *(frag->dataBegin());
-				TLOG(TLVL_DEBUG) << "EndOfData Fragment indicates that " << std::to_string(endOfDataCount) << " fragments are expected from rank " << source_rank
-					<< " (recvd " << std::to_string(recv_frag_count_.slotCount(source_rank)) << ").";
+				TLOG(TLVL_DEBUG) << "EndOfData Fragment indicates that " << endOfDataCount << " fragments are expected from rank " << source_rank
+					<< " (recvd " << recv_frag_count_.slotCount(source_rank) << ").";
 				break;
 			case Fragment::InitFragmentType:
 				TLOG(TLVL_DEBUG) << "Received Init Fragment from rank " << source_rank << ".";

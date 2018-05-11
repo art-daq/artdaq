@@ -238,7 +238,7 @@ send_init_message()
 	//  Stream the ParameterSetRegistry.
 	//
 	unsigned long ps_cnt = fhicl::ParameterSetRegistry::size();
-	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): parameter set count: " << std::to_string(ps_cnt);
+	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): parameter set count: " << ps_cnt;
 	msg.WriteULong(ps_cnt);
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): Streaming parameter sets ...";
 	for (
@@ -327,7 +327,7 @@ send_init_message()
 	//    ProcessHistoryMap;
 	const art::ProcessHistoryMap& phm = phr;
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): " <<
-		"phm: size: " << std::to_string(phm.size());
+		"phm: size: " << phm.size();
 	msg.WriteObjectAny(&phm, process_history_map_class);
 	TLOG(TLVL_TRACE) << " TransferOutput static send_init_message(): " <<
 		"Finished streaming ProcessHistoryRegistry.";
@@ -337,7 +337,7 @@ send_init_message()
 	//
 #if 0
 	TLOG(TLVL_DEBUG) << "TransferOutput static send_init_message(): " <<
-		"Streaming ParentageRegistry ... sz=" << std::to_string(msg.Length());
+		"Streaming ParentageRegistry ... sz=" << msg.Length();
 #endif
 	art::ParentageMap parentageMap{};
 	for (auto const& pr : art::ParentageRegistry::get())
@@ -353,7 +353,7 @@ send_init_message()
 	TLOG(TLVL_TRACE) << "After WriteObjectAny ParentageMap";
 #if 0
 	TLOG(TLVL_DEBUG) << "TransferOutput: TransferOutput static send_init_message(): " <<
-		"Finished streaming ParentageRegistry." << " sts=" << sts << ", sz=" << std::to_string(msg.Length());
+		"Finished streaming ParentageRegistry." << " sts=" << sts << ", sz=" << msg.Length();
 #endif
 
 	//
@@ -431,7 +431,7 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//
 	{
 		TLOG(TLVL_TRACE) << " TransferOutput::writeDataProducts(...): "
-			"Streaming product count: " << std::to_string(prd_cnt);
+			"Streaming product count: " << prd_cnt;
 		msg.WriteULong(prd_cnt);
 		TLOG(TLVL_TRACE) << " TransferOutput::writeDataProducts(...): "
 			"Finished streaming product count.";
@@ -843,7 +843,7 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 					"phr: id: '" + OS.str() + "'";
 				OS.str("");
 				TLOG(TLVL_TRACE) << " TransferOutput::writeSubRun: "
-					"phr: data.size(): " << std::to_string(I->second.data().size());
+					"phr: data.size(): " << I->second.data().size();
 				if (I->second.data().size())
 				{
 					I->second.data().back().id().print(OS);
@@ -915,7 +915,7 @@ art::TransferOutput::writeSubRun(SubRunPrincipal& srp)
 void
 art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 {
-	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << std::to_string(sequenceId) << ", type=" << std::to_string(messageType) << ", length=" << std::to_string(msg.Length());
+	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << sequenceId << ", type=" << messageType << ", length=" << msg.Length();
 	artdaq::NetMonHeader header;
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment

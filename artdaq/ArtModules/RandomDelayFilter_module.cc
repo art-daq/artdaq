@@ -185,7 +185,7 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 	case DistType::Fixed:
 		break;
 	}
-	TLOG(TLVL_DEBUG) << "Simulating processing of event " << e.event() << " by delaying " << std::to_string(delay) << "ms." ;
+	TLOG(TLVL_DEBUG) << "Simulating processing of event " << e.event() << " by delaying " << delay << "ms." ;
 
 	usleep(1000 * (1 - load_factor_) * delay);
 

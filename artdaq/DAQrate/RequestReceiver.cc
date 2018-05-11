@@ -231,15 +231,15 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
 			{
 				TLOG(TLVL_ERROR) << "Received conflicting request for SeqID "
-					<< std::to_string(buffer.sequence_id) << "!"
-					<< " Old ts=" << std::to_string(requests_[buffer.sequence_id])
-					<< ", new ts=" << std::to_string(buffer.timestamp) << ". Keeping OLD!" ;
+					<< buffer.sequence_id << "!"
+					<< " Old ts=" << requests_[buffer.sequence_id]
+					<< ", new ts=" << buffer.timestamp << ". Keeping OLD!" ;
 			}
 			else if (!requests_.count(buffer.sequence_id))
 			{
 				int delta = buffer.sequence_id - highest_seen_request_;
-				TLOG(11) << "Recieved request for sequence ID " << std::to_string(buffer.sequence_id)
-					<< " and timestamp " << std::to_string(buffer.timestamp) << " (delta: " << delta << ")" ;
+				TLOG(11) << "Recieved request for sequence ID " << buffer.sequence_id
+					<< " and timestamp " << buffer.timestamp << " (delta: " << delta << ")" ;
 				if (delta < 0)
 				{
 					TLOG(11) << "Already serviced this request! Ignoring..." ;

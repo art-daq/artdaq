@@ -177,15 +177,15 @@ namespace artdaq
 		 * \brief Constructs a name suitable for TRACE messages
 		 * \return The unique_label and a SEND/RECV identifier
 		 */
-		std::string GetTraceName() const { return unique_label_ + (role_ == Role::kSend ? "_SEND" : "_RECV"); }
-	private:
+		#define GetTraceName() unique_label_ << (role_ == Role::kSend ? "_SEND" : "_RECV")
+
+	protected:
 		const Role role_;
 
 		const int source_rank_;
 		const int destination_rank_;
 		const std::string unique_label_;
 
-	protected:
 		size_t buffer_count_; ///< The number of Fragment transfers the TransferInterface can handle simultaneously
 		const size_t max_fragment_size_words_; ///< The maximum size of the transferred Fragment objects, in artdaq::Fragment::RawDataType words
 		const short partition_number_; ///< The partition number of the DAQ

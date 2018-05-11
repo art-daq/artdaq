@@ -130,7 +130,7 @@ int artdaq::TransferTest::runTest()
 
 std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 {
-	TLOG(7) << "do_sending entered RawFragmentHeader::num_words()=" << std::to_string(artdaq::detail::RawFragmentHeader::num_words());
+	TLOG(7) << "do_sending entered RawFragmentHeader::num_words()=" << artdaq::detail::RawFragmentHeader::num_words();
 
 	size_t totalSize = 0;
 	double totalTime = 0;
@@ -148,7 +148,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 		{
 			if (*(frag.dataBegin() + ii) != ii + 1)
 			{
-				TLOG(TLVL_ERROR) << "Data corruption detected! (" << std::to_string(*(frag.dataBegin() + ii)) << " != " << std::to_string(ii + 1) << ") Aborting!";
+				TLOG(TLVL_ERROR) << "Data corruption detected! (" << (*(frag.dataBegin() + ii)) << " != " << (ii + 1) << ") Aborting!";
 				exit(1);
 			}
 		}
@@ -164,7 +164,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 	for (int ii = 0; ii < sends_each_sender_; ++ii)
 	{
 		auto loop_start = std::chrono::steady_clock::now();
-		TLOG(7) << "sender rank " << my_rank << " #" << ii << " resized bytes=" << std::to_string(frag.sizeBytes());
+		TLOG(7) << "sender rank " << my_rank << " #" << ii << " resized bytes=" << frag.sizeBytes();
 		totalSize += frag.sizeBytes();
 
 		//unsigned sndDatSz = data_size_wrds;
@@ -204,7 +204,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			{
 				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
 				{
-					TLOG(TLVL_ERROR) << "Input Data corruption detected! (" << std::to_string(*(frag.dataBegin() + jj)) << " != " << std::to_string(ii + jj + 2) << " at position " << ii << ") Aborting!";
+					TLOG(TLVL_ERROR) << "Input Data corruption detected! (" << *(frag.dataBegin() + jj) << " != " << ii + jj + 2 << " at position " << ii << ") Aborting!";
 					exit(1);
 				}
 			}
@@ -287,7 +287,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 				}
 				counter--;
 				TLOG(TLVL_INFO) << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter
-					<< " with seqID " << std::to_string(ignoreFragPtr->sequenceID()) << " from Sender " << senderSlot << " (Expecting " << counter << " more)";
+					<< " with seqID " << ignoreFragPtr->sequenceID() << " from Sender " << senderSlot << " (Expecting " << counter << " more)";
 				thisSize = ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
 				totalSize += thisSize;
 				if (validate_mode_)
@@ -296,7 +296,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 					{
 						if (*(ignoreFragPtr->dataBegin() + ii) != ignoreFragPtr->sequenceID() + ii + 1)
 						{
-							TLOG(TLVL_ERROR) << "Output Data corruption detected! (" << std::to_string(*(ignoreFragPtr->dataBegin() + ii)) << " != " << std::to_string(ignoreFragPtr->sequenceID() + ii + 1) << " at position " << ii << ") Aborting!";
+							TLOG(TLVL_ERROR) << "Output Data corruption detected! (" << *(ignoreFragPtr->dataBegin() + ii) << " != " << (ignoreFragPtr->sequenceID() + ii + 1) << " at position " << ii << ") Aborting!";
 							exit(1);
 						}
 					}

@@ -134,7 +134,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	}
 	not_connected_count_ = 0;
 
-	TLOG(5) << GetTraceName() << ": receiveFragmentHeader timeout_usec=" << std::to_string(timeout_usec);
+	TLOG(5) << GetTraceName() << ": receiveFragmentHeader timeout_usec=" << timeout_usec;
 	//void* buff=alloca(max_fragment_size_words_*8);
 	size_t byte_cnt = 0;
 	int sts;
@@ -346,7 +346,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	bool done = false;
 	while (!done)
 	{
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
+		TLOG(9) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
 		if (num_fds_ready <= 0)
 		{
@@ -526,7 +526,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		return CopyStatus::kTimeout;
 	}
 	timeoutMessageArmed_ = true;
-	TLOG(14) << GetTraceName() << ": send_timeout_usec is " << std::to_string(send_timeout_usec) << ", currently unused.";
+	TLOG(14) << GetTraceName() << ": send_timeout_usec is " << send_timeout_usec << ", currently unused.";
 
 	//TLOG(TLVL_DEBUG) << GetTraceName() << ": sendData_: Determining write size" ;
 	uint32_t total_to_write_bytes = 0;
@@ -571,8 +571,10 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 
 		// need to do blocking algorithm -- including throttled block notifications
 	do_again:
-		TLOG(14) << GetTraceName() << ": sendFragment b4 writev " << std::setw(7) << std::to_string(total_written_bytes) << " total_written_bytes send_fd_=" << send_fd_ << " in_idx=" << std::to_string(in_iov_idx)
-			<< " iovcnt=" << std::to_string(out_iov_idx) << " 1st.len=" << std::to_string(iovv[0].iov_len);
+#ifndef __OPTIMIZE__ // This can be an expensive TRACE call (even if disabled) due to multiplicity of calls
+		TLOG(14) << GetTraceName() << ": sendFragment b4 writev " << std::setw(7) << total_written_bytes << " total_written_bytes send_fd_=" << send_fd_ << " in_idx=" << in_iov_idx
+			<< " iovcnt=" << out_iov_idx << " 1st.len=" << iovv[0].iov_len;
+#endif
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " calling writev" ;
 		sts = writev(send_fd_, &(iovv[0]), out_iov_idx);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " done with writev" ;
@@ -596,7 +598,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		else if (sts != this_write_bytes)
 		{
 			// we'll loop around -- with
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": sendFragment writev sts(" << std::to_string(sts) << ")!=requested_send_bytes(" << std::to_string(this_write_bytes) << ")";
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": sendFragment writev sts(" << sts << ")!=requested_send_bytes(" << this_write_bytes << ")";
 			total_written_bytes += sts; // add sts to total_written_bytes now as sts is adjusted next
 			// find which iovs are done
 			for (ii = 0; (size_t)sts >= iovv[ii].iov_len; ++ii)
@@ -628,14 +630,16 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 				}
 			}
 			++out_iov_idx; // done with
-			TLOG(TLVL_TRACE) << GetTraceName() << ": sendFragment writev sts!=: this_write_bytes=" << std::to_string(this_write_bytes)
-				<< " out_iov_idx=" << std::to_string(out_iov_idx)
-				<< " additional=" << std::to_string(additional)
+			TLOG(TLVL_TRACE) << GetTraceName() << ": sendFragment writev sts!=: this_write_bytes=" << this_write_bytes
+				<< " out_iov_idx=" << out_iov_idx
+				<< " additional=" << additional
 				<< " ii=" << ii;
 		}
 		else
 		{
-			TLOG(TLVL_TRACE) << GetTraceName() << ": sendFragment writev sts(" << std::to_string(sts) << ")==requested_send_bytes(" << std::to_string(this_write_bytes) << ")";
+#ifndef __OPTIMIZE__ // This can be an expensive TRACE call (even if disabled) due to multiplicity of calls
+			TLOG(TLVL_TRACE) << GetTraceName() << ": sendFragment writev sts(" << sts << ")==requested_send_bytes(" << this_write_bytes << ")";
+#endif
 			total_written_bytes += sts;
 			--out_iov_idx; // make it the index of the last iovv
 			iovv[out_iov_idx].iov_base = (uint8_t*)(iovv[out_iov_idx].iov_base) + iovv[out_iov_idx].iov_len;
@@ -675,7 +679,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	}
 	sts = total_written_bytes - sizeof(MessHead);
 
-	TLOG(14) << GetTraceName() << ": sendFragment sts=" << std::to_string(sts);
+	TLOG(14) << GetTraceName() << ": sendFragment sts=" << sts;
 	return TransferInterface::CopyStatus::kSuccess;
 }
 
