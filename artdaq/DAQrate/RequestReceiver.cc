@@ -1,4 +1,5 @@
-#define TRACE_NAME "RequestReceiver"
+#define TRACE_NAME (app_name + "_RequestReceiver").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQdata/Globals.hh"
@@ -185,7 +186,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			continue;
 		}
 
-		TLOG(11) << "Recieved packet on Request channel" ;
+		TLOG(11) << "Received packet on Request channel" ;
 		artdaq::detail::RequestHeader hdr_buffer;
 		auto sts = recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
 		if (sts < 0)
@@ -238,7 +239,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			else if (!requests_.count(buffer.sequence_id))
 			{
 				int delta = buffer.sequence_id - highest_seen_request_;
-				TLOG(11) << "Recieved request for sequence ID " << std::to_string(buffer.sequence_id)
+				TLOG(11) << "Received request for sequence ID " << std::to_string(buffer.sequence_id)
 					<< " and timestamp " << std::to_string(buffer.timestamp) << " (delta: " << delta << ")" ;
 				if (delta < 0)
 				{

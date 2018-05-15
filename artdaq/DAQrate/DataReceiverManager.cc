@@ -1,6 +1,6 @@
 #include <chrono>
 
-#define TRACE_NAME "DataReceiverManager"
+#define TRACE_NAME (app_name + "_DataReceiverManager").c_str()
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"

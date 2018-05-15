@@ -1,4 +1,4 @@
-#define TRACE_NAME "RequestSender"
+#define TRACE_NAME (app_name + "_RequestSender").c_str()
 #include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #include "artdaq/DAQrate/RequestSender.hh"
 #include <utility>
