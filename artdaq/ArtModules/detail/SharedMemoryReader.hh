@@ -110,7 +110,7 @@ namespace artdaq
 				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string() ;
 				//for(auto& type : fragment_type_map_)
 				//{
-				//	TLOG_INFO("SharedMemoryReader") << "Fragment Type " << type.second << " has typeid " << std::to_string(type.first) ;
+				//	TLOG_INFO("SharedMemoryReader") << "Fragment Type " << type.second << " has typeid " << type.first ;
 				//}
 			}
 
@@ -196,13 +196,18 @@ namespace artdaq
 				{
 					keep_looping = false;
 					auto start_time = std::chrono::steady_clock::now();
+					while (!got_event && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 1000)
+					{
+						// BURN CPU for 1 ms!
+						got_event = incoming_events->ReadyForRead();
+					}
 					while (!got_event && TimeUtils::GetElapsedTime(start_time) < waiting_time)
 					{
 						got_event = incoming_events->ReadyForRead();
 						if (!got_event)
 						{
 							usleep(sleepTimeUsec);
-							//TLOG_INFO("SharedMemoryReader") << "Waited " << std::to_string(TimeUtils::GetElapsedTime(start_time)) << " of " << std::to_string(waiting_time) ;
+							//TLOG_INFO("SharedMemoryReader") << "Waited " << TimeUtils::GetElapsedTime(start_time) << " of " << waiting_time ;
 						}
 					}
 					if (!got_event)
@@ -233,7 +238,7 @@ namespace artdaq
 					return false;
 				}
 				auto firstFragmentType = *fragmentTypes.begin();
-				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << std::to_string(firstFragmentType) << " (" << fragment_type_map_[firstFragmentType] << ")" ;
+				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << firstFragmentType << " (" << fragment_type_map_[firstFragmentType] << ")" ;
 
 				// We return false, indicating we're done reading, if:
 				//   1) we did not obtain an event, because we timed out and were
@@ -395,7 +400,7 @@ namespace artdaq
 					}
 				}
 				incoming_events->ReleaseBuffer();
-				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << std::to_string(bytesRead) << " qsize=" << std::to_string(qsize) << " cap=" << std::to_string(incoming_events->size()) << " metricMan=" << (void*)metricMan ;
+				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << incoming_events->size() << " metricMan=" << (void*)metricMan ;
 				if (metricMan)
 				{
 					metricMan->sendMetric("bytesRead", bytesRead, "B", 5, MetricMode::Accumulate, "", true);

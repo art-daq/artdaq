@@ -188,7 +188,7 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 		host = std::string("127.0.0.1");
 		port = dflt_port;
 	}
-	TLOG(TLVL_INFO) << "Resolving host " << host << ", on port " << std::to_string(port);
+	TLOG(TLVL_INFO) << "Resolving host " << host << ", on port " << port;
 
 	if (host == "localhost") host = "127.0.0.1";
 
@@ -264,7 +264,7 @@ int TCPConnect(char const* host_in
 		len = 0;
 		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
 		if (len < (sndbufsiz * 2))
-			TLOG(TLVL_WARNING) << "SNDBUF " << len << " not expected (" << sndbufsiz << " sts/errno=" << sts << "/" << errno;
+			TLOG(TLVL_WARNING) << "SNDBUF " << len << " not expected (" << sndbufsiz << " sts/errno=" << sts << "/" << errno << ")";
 		else
 			TLOG(TLVL_DEBUG) << "SNDBUF " << len << " sts/errno=" << sts << "/" << errno;
 	}

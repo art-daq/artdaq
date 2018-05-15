@@ -100,6 +100,7 @@ namespace artdaq {
 			fhicl::Atom<size_t> broadcast_buffer_count{ fhicl::Name{ "broadcast_buffer_count"}, fhicl::Comment{"Buffers in the broadcast shared memory segment"}, 10 };
 			fhicl::Atom<size_t> broadcast_buffer_size{ fhicl::Name{ "broadcast_buffer_size"}, fhicl::Comment{"Size of the buffers in the broadcast shared memory segment"}, 0x100000 };
 			fhicl::Atom<bool> use_art{ fhicl::Name{ "use_art"}, fhicl::Comment{"Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)"}, true };
+			fhicl::Atom<bool> manual_art{ fhicl::Name{"manual_art"}, fhicl::Comment{"Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind"}, false };
 
 			fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;
 		};
@@ -136,6 +137,7 @@ namespace artdaq {
 		 * "broadcast_buffer_count" (Default: 10): Buffers in the broadcast shared memory segment
 		 * "broadcast_buffer_size" (Default: 0x100000): Size of the buffers in the broadcast shared memory segment
 		 * "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
+		 * "manual_art" (Default: false): Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind
 		 * "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers.
 																		 (TUNING: Should be slightly longer than the mean art processing time, but not so long that the Stop transition times out)
 		 * \endverbatim
@@ -359,6 +361,7 @@ namespace artdaq {
 
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
+		std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
 		int broadcast_timeout_ms_;
 
 		std::atomic<int> run_event_count_;
@@ -369,6 +372,7 @@ namespace artdaq {
 		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
 		bool always_restart_art_;
+		bool manual_art_;
 		fhicl::ParameterSet current_art_pset_;
 		std::shared_ptr<art_config_file> current_art_config_file_;
 		double minimum_art_lifetime_s_;

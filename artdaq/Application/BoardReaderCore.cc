@@ -294,7 +294,7 @@ void artdaq::BoardReaderCore::process_fragments()
 		delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 		statsHelper_.addSample(INPUT_WAIT_STAT_KEY, delta_time);
 
-		TLOG(16) << "process_fragments INPUT_WAIT=" << std::to_string(delta_time);
+		TLOG(16) << "process_fragments INPUT_WAIT=" << delta_time;
 
 		if (!active) { break; }
 		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
@@ -329,9 +329,9 @@ void artdaq::BoardReaderCore::process_fragments()
 			prev_seq_id_ = sequence_id;
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
-			TLOG(17) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment start";
+			TLOG(17) << "process_fragments seq=" << sequence_id << " sendFragment start";
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
-			TLOG(17) << "process_fragments seq=" << std::to_string(sequence_id) << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
+			TLOG(17) << "process_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 				artdaq::MonitoredQuantity::getCurrentTime() - startTime);

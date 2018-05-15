@@ -16,7 +16,7 @@ int main(int argc, char * argv[])
 
     for(auto& p : pset.get_all_keys()) {
 	  std::cout << "Key " << p << " has string value " << pset.get<std::string>(p) 
-          << " and uint64_t value " << std::to_string(pset.get<uint64_t>(p)) 
+          << " and uint64_t value " << pset.get<uint64_t>(p) 
           << " ( hex 0x" << std::hex << pset.get<uint64_t>(p) << " )."
           << std::endl;
     }

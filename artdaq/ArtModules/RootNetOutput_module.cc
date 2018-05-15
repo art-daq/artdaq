@@ -255,7 +255,7 @@ send_init_message()
 	TLOG(TLVL_SENDINIT_VERBOSE2) << "RootNetOutput static send_init_message(): Dumping ProcessHistoryRegistry ...";
 	//typedef std::map<const ProcessHistoryID,ProcessHistory>
 	//    ProcessHistoryMap;
-	TLOG(TLVL_SENDINIT_VERBOSE2) << "RootNetOutput static send_init_message(): phr: size: " << std::to_string(phr.size());
+	TLOG(TLVL_SENDINIT_VERBOSE2) << "RootNetOutput static send_init_message(): phr: size: " << phr.size();
 	for (auto I = phr.begin(), E = phr.end(); I != E; ++I)
 	{
 		std::ostringstream OS;
@@ -269,7 +269,7 @@ send_init_message()
 	//typedef std::map<const ProcessHistoryID,ProcessHistory>
 	//    ProcessHistoryMap;
 	const art::ProcessHistoryMap& phm = phr;
-	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): phm: size: " << std::to_string(phm.size());
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): phm: size: " << phm.size();
 	msg.WriteObjectAny(&phm, process_history_map_class);
 	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Finished streaming ProcessHistoryRegistry.";
 
@@ -298,7 +298,7 @@ send_init_message()
 		TLOG(TLVL_ERROR) << "Could not get handle to NetMonTransportService!";
 		return;
 	}
-	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Sending the init message to " << std::to_string(transport->dataReceiverCount()) << " data receivers ...";
+	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Sending the init message to " << transport->dataReceiverCount() << " data receivers ...";
 	for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx)
 	{
 		transport->sendMessage(idx, artdaq::Fragment::InitFragmentType, msg);
@@ -750,7 +750,7 @@ art::RootNetOutput::writeSubRun(SubRunPrincipal& srp)
 			I->first.print(OS);
 			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: phr: id: '" << OS.str() << "'";
 			OS.str("");
-			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: phr: data.size():  " << std::to_string(I->second.data().size());
+			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: phr: data.size():  " << I->second.data().size();
 			if (I->second.data().size())
 			{
 				I->second.data().back().id().print(OS);
@@ -796,7 +796,7 @@ art::RootNetOutput::writeSubRun(SubRunPrincipal& srp)
 		TLOG(TLVL_ERROR) << "Could not get handle to NetMonTransportService!";
 		return;
 	}
-	TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: Sending the EndOfSubrun message to " << std::to_string(transport->dataReceiverCount()) << " data receivers ...";
+	TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: Sending the EndOfSubrun message to " << transport->dataReceiverCount() << " data receivers ...";
 	for (size_t idx = 0; idx < transport->dataReceiverCount(); ++idx)
 	{
 		transport->sendMessage(idx, artdaq::Fragment::EndOfSubrunFragmentType, msg);

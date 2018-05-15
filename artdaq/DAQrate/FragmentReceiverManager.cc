@@ -11,6 +11,8 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 	: stop_requested_(false)
 	, source_threads_()
 	, source_plugins_()
+	, source_metric_data_()
+	, source_metric_send_time_()
 	, enabled_sources_()
 	, fragment_store_()
 	, recv_frag_count_()
@@ -47,6 +49,8 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 			if (enabled_srcs_empty) enabled_sources_.insert(source_rank);
 			source_plugins_[source_rank] = std::move(transfer);
 			fragment_store_[source_rank];
+			source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
+			source_metric_data_[source_rank] = std::pair<size_t, double>();
 		}
 		catch (cet::exception ex)
 		{
@@ -70,7 +74,7 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 artdaq::FragmentReceiverManager::~FragmentReceiverManager()
 {
 	TLOG(TLVL_DEBUG) << "Destructor" ;
-	TLOG(5) << "~FragmentReceiverManager: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount()) ;
+	TLOG(5) << "~FragmentReceiverManager: BEGIN: Setting stop_requested to true, frags=" << count() << ", bytes=" << byteCount() ;
 	stop_requested_ = true;
 
 	TLOG(5) << "~FragmentReceiverManager: Notifying all threads" ;
@@ -110,17 +114,17 @@ int artdaq::FragmentReceiverManager::get_next_source_() const
 	if (ready_sources.size()) {
 		auto iter = ready_sources.find(last_source_);
 		if (iter == ready_sources.end() || ++iter == ready_sources.end()) {
-			TLOG(TLVL_DEBUG) << "get_next_source returning " << *ready_sources.begin();
+			TLOG(10) << "get_next_source returning " << *ready_sources.begin();
 			last_source_ = *ready_sources.begin();
 			return *ready_sources.begin();
 		}
 
-		TLOG(TLVL_DEBUG) << "get_next_source returning " << *iter;
+		TLOG(10) << "get_next_source returning " << *iter;
 		last_source_ = *iter;
 		return *iter;
 	}	
 
-	TLOG(TLVL_DEBUG) << "get_next_source returning -1";
+	TLOG(10) << "get_next_source returning -1";
 	return -1;
 }
 
@@ -138,7 +142,7 @@ void artdaq::FragmentReceiverManager::start_threads()
 
 artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, size_t timeout_usec)
 {
-	TLOG(5) <<"recvFragment entered tmo=" << std::to_string(timeout_usec) << " us" ;
+	TLOG(5) <<"recvFragment entered tmo=" << timeout_usec << " us" ;
 
 	if (timeout_usec == 0) timeout_usec = 1000000;
 
@@ -156,7 +160,7 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 		ready = fragments_ready_();
 		if (running_sources_.size() == 0) break;
 	}
-	TLOG(5) << "recvFragment fragment_ready_=" << ready << " after waited=" << std::to_string( waited) ;
+	TLOG(5) << "recvFragment fragment_ready_=" << ready << " after waited=" <<  waited ;
 	if (!ready)
 	{
 		TLOG(5)  << "recvFragment: No fragments ready, returning empty" ;
@@ -170,7 +174,7 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 	rank = current_source;
 
 	if (current_fragment != nullptr)
-		TLOG(5) << "recvFragment: Done  rank="<< rank <<", fragment size="<<std::to_string(current_fragment->size()) << " words, seqId="  << std::to_string( current_fragment->sequenceID()) ;
+		TLOG(5) << "recvFragment: Done  rank="<< rank <<", fragment size="<<std::to_string(current_fragment->size()) << " words, seqId="  <<  current_fragment->sequenceID() ;
 	return current_fragment;
 }
 
@@ -247,15 +251,20 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 			continue;
 		}
 
+		auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
+		source_metric_data_[source_rank].first += fragment->size() * sizeof(RawDataType);
+		source_metric_data_[source_rank].second += delta_t;
 
-
-		if (metricMan)
-		{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
+		if (metricMan && TimeUtils::GetElapsedTime(source_metric_send_time_[source_rank]) > 1)
+		{
 			TLOG(6) << "runReceiver_: Sending receive stats" ;
-			auto delta_t = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::steady_clock::now() - start_time).count();
-			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 1, MetricMode::Accumulate);
-			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(fragment->size() * sizeof(RawDataType)), "B", 1, MetricMode::Accumulate);
-			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), fragment->size() * sizeof(RawDataType) / delta_t, "B/s", 1, MetricMode::Average);
+			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].second, "s", 1, MetricMode::Accumulate);
+			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(source_metric_data_[source_rank].first), "B", 1, MetricMode::Accumulate);
+			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].first / source_metric_data_[source_rank].second, "B/s", 1, MetricMode::Average);
+
+			source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
+			source_metric_data_[source_rank].first = 0;
+			source_metric_data_[source_rank].second = 0.0;
 		}
 
 

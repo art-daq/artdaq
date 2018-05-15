@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	{
 		for (auto req : recvr.GetRequests())
 		{
-			TLOG(TLVL_INFO) << "Received Request for Sequence ID " << std::to_string(req.first) << ", timestamp " << std::to_string(req.second) ;
+			TLOG(TLVL_INFO) << "Received Request for Sequence ID " << req.first << ", timestamp " << req.second ;
 		}
 		recvr.ClearRequests();
 		usleep(10000);
