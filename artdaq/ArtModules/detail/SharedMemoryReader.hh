@@ -329,7 +329,7 @@ namespace artdaq
 				}
 				outE = pmaker.makeEventPrincipal(evtHeader->run_id,
 												 evtHeader->subrun_id,
-												 evtHeader->sequence_id,
+												 evtHeader->event_id,
 												 currentTime);
 
 				// insert the Fragments of each type into the EventPrincipal

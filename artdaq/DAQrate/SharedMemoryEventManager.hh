@@ -91,6 +91,7 @@ namespace artdaq {
 			fhicl::Atom<size_t> art_analyzer_count{ fhicl::Name{ "art_analyzer_count"}, fhicl::Comment{"Number of art procceses to start"}, 1 };
 			fhicl::Atom<size_t> expected_fragments_per_event{ fhicl::Name{ "expected_fragments_per_event"}, fhicl::Comment{"Number of Fragments to expect per event"} };
 			fhicl::Atom<bool> update_run_ids_on_new_fragment{ fhicl::Name{ "update_run_ids_on_new_fragment"}, fhicl::Comment{"Whether the run and subrun ID of an event should be updated whenever a Fragment is added."}, true };
+			fhicl::Atom<bool> use_sequence_id_for_event_number{ fhicl::Name{"use_sequence_id_for_event_number"}, fhicl::Comment{"Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers"}, true };
 			fhicl::Atom<bool> send_init_fragments{ fhicl::Name{ "send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true };
 			fhicl::Atom<int> incomplete_event_report_interval_ms{ fhicl::Name{ "incomplete_event_report_interval_ms"}, fhicl::Comment{"Interval at which an incomplete event report should be written"}, -1 };
 			fhicl::Atom<int> fragment_broadcast_timeout_ms{ fhicl::Name{ "fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000 };
@@ -127,6 +128,7 @@ namespace artdaq {
 		 * "art_analyzer_count" (Default: 1): Number of art procceses to start
 		 * "expected_fragments_per_event" (REQUIRED): Number of Fragments to expect per event
 		 * "update_run_ids_on_new_fragment" (Default: true): Whether the run and subrun ID of an event should be updated whenever a Fragment is added.
+		 * "use_sequence_id_for_event_number" (Default: true): Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers
 		 * "use_art" (Default: true): Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)
 		 * "overwite_mode" (Default: false): Whether new data is allowed to overwrite buffers in the "Full" state
 		 * "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
@@ -351,6 +353,7 @@ namespace artdaq {
 		std::unordered_map<Fragment::sequence_id_t, size_t> released_incomplete_events_;
 
 		bool update_run_ids_;
+		bool use_sequence_id_for_event_number_;
 		bool overwrite_mode_;
 		bool send_init_fragments_;
 		bool running_;

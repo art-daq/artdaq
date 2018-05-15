@@ -22,6 +22,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, subrun_rollover_event_(Fragment::InvalidSequenceID)
 	, last_released_event_(0)
 	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
+	, use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
 	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
 	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
 	, running_(false)
@@ -841,6 +842,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
 	hdr->subrun_id = subrun_id_;
+	hdr->event_id = use_sequence_id_for_event_number_ ? static_cast<uint32_t>(seqID) : static_cast<uint32_t>(timestamp);
 	hdr->sequence_id = seqID;
 	buffer_writes_pending_[new_buffer] = 0;
 	IncrementWritePos(new_buffer, sizeof(detail::RawEventHeader));
