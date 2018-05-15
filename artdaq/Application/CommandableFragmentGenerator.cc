@@ -211,6 +211,11 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_TRACE) << "getNext: Calling applyRequests" ;
 			result = applyRequests(output);
 			TLOG(TLVL_TRACE) << "getNext: Done with applyRequests result=" << std::boolalpha << result;
+			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
+			{
+			  TLOG(20) << "getNext: applyRequests() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
+			           << ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
+			}
 
 			if (exception())
 			{
@@ -803,7 +808,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 	// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
 	for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
 	{
-		TLOG(9) << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" ;
+		TLOG(9) << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container with sequence ID " << ev_counter() ;
 		cfl.addFragment(*it);
 		it = dataBuffer_.erase(it);
 	}
@@ -911,7 +916,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 					continue;
 				}
 
-				TLOG(9) << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container" ;
+				TLOG(9) << "ApplyRequests: Adding Fragment with timestamp " << std::to_string((*it)->timestamp()) << " to Container with sequence ID " << req->first;
 				cfl.addFragment(*it);
 
 				if (uniqueWindows_)
