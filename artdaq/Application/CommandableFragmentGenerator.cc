@@ -877,12 +877,13 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		TLOG(9) << "ApplyRequests: min is " << std::to_string(min) << ", max is " << std::to_string(max)
 			<< " and last point in buffer is " << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)) << " (sz=" << std::to_string(dataBuffer_.size()) << ")" ;
 		bool windowClosed = dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max;
-		bool windowTimeout = TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) > window_close_timeout_us_;
+		bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) > window_close_timeout_us_;
 		if (windowTimeout)
 		{
-			TLOG(TLVL_WARNING) << "A timeout occurred waiting for data to close the request window (max=" << std::to_string(max)
-				<< ", buffer=" << std::to_string((dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0))
-				<< " (if no buffer in memory, this is shown as a 0)). Time waiting: "
+			TLOG(TLVL_WARNING) << "A timeout occurred waiting for data to close the request window ({" << min << "-" << max
+				<< "}, buffer={" << (dataBuffer_.size() > 0 ? dataBuffer_.front()->timestamp() : 0) << "-" 
+				<< (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)
+				<< "} ). Time waiting: "
 				<< TimeUtils::GetElapsedTimeMicroseconds(last_window_send_time_) << " us "
 				<< "(> " << std::to_string(window_close_timeout_us_) << " us)." ;
 
