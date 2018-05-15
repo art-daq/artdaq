@@ -283,7 +283,7 @@ void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqI
 		{
 			if (*it == highest_seen_request_ + request_increment_)
 			{
-				highest_seen_request_ += request_increment_;
+				highest_seen_request_ = *it;
 				it = out_of_order_requests_.erase(it);
 			}
 			else
@@ -296,7 +296,7 @@ void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqI
 	{
 		highest_seen_request_ = reqID;
 	}
-	TLOG(18) << "RemoveRequest: Setting highest_seen_request_ to " << highest_seen_request_;
+	TLOG(18) << "RemoveRequest: reqID=" << reqID << " Setting highest_seen_request_ to " << highest_seen_request_;
 
 	if (metricMan)
 	{
