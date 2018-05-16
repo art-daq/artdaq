@@ -417,85 +417,111 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 		return;
 	}
 
-	TLOG(TLVL_TRACE) << "Gently informing art processes that it is time to shut down";
-	for (auto pid : pids)
+	if (!manual_art_)
 	{
-		TLOG(TLVL_TRACE) << "Sending SIGQUIT to pid " << pid;
-		kill(pid, SIGQUIT);
-	}
-
-	int graceful_wait_ms = 5000;
-	int int_wait_ms = 1000;
-
-	TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
-	for (int ii = 0; ii < graceful_wait_ms; ++ii)
-	{
-		usleep(1000);
-
-		for (auto pid = pids.begin(); pid != pids.end();)
+		TLOG(TLVL_TRACE) << "Gently informing art processes that it is time to shut down";
+		for (auto pid : pids)
 		{
-			if (kill(*pid, 0) < 0)
-			{
-				pid = pids.erase(pid);
-			}
-			else
-			{
-				++pid;
-			}
+			TLOG(TLVL_TRACE) << "Sending SIGQUIT to pid " << pid;
+			kill(pid, SIGQUIT);
 		}
-		if (pids.size() == 0)
+
+		int graceful_wait_ms = 5000;
+		int int_wait_ms = 1000;
+
+		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
+		for (int ii = 0; ii < graceful_wait_ms; ++ii)
 		{
-			TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
-			return;
-		}
-	}
+			usleep(1000);
 
-	TLOG(TLVL_TRACE) << "Insisting that the art processes shut down";
-	for (auto pid : pids)
-	{
-		kill(pid, SIGINT);
-	}
-
-	TLOG(TLVL_TRACE) << "Waiting up to " << int_wait_ms << " ms for all art processes to exit";
-	for (int ii = graceful_wait_ms; ii < graceful_wait_ms + int_wait_ms; ++ii)
-	{
-		usleep(1000);
-
-		for (auto pid = pids.begin(); pid != pids.end();)
-		{
-			if (kill(*pid, 0) < 0)
+			for (auto pid = pids.begin(); pid != pids.end();)
 			{
-				pid = pids.erase(pid);
+				if (kill(*pid, 0) < 0)
+				{
+					pid = pids.erase(pid);
+				}
+				else
+				{
+					++pid;
+				}
 			}
-			else
+			if (pids.size() == 0)
 			{
-				++pid;
+				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
+				return;
 			}
 		}
 
-		if (pids.size() == 0)
+		TLOG(TLVL_TRACE) << "Insisting that the art processes shut down";
+		for (auto pid : pids)
 		{
-			TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
-			return;
+			kill(pid, SIGINT);
+		}
+
+		TLOG(TLVL_TRACE) << "Waiting up to " << int_wait_ms << " ms for all art processes to exit";
+		for (int ii = graceful_wait_ms; ii < graceful_wait_ms + int_wait_ms; ++ii)
+		{
+			usleep(1000);
+
+			for (auto pid = pids.begin(); pid != pids.end();)
+			{
+				if (kill(*pid, 0) < 0)
+				{
+					pid = pids.erase(pid);
+				}
+				else
+				{
+					++pid;
+				}
+			}
+
+			if (pids.size() == 0)
+			{
+				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
+				return;
+			}
+		}
+
+		TLOG(TLVL_TRACE) << "Killing remaning art processes with extreme prejudice";
+		while (pids.size() > 0)
+		{
+			kill(*pids.begin(), SIGKILL);
+			usleep(1000);
+
+			for (auto pid = pids.begin(); pid != pids.end();)
+			{
+				if (kill(*pid, 0) < 0)
+				{
+					pid = pids.erase(pid);
+				}
+				else
+				{
+					++pid;
+				}
+			}
 		}
 	}
-
-	TLOG(TLVL_TRACE) << "Killing remaning art processes with extreme prejudice";
-	while (pids.size() > 0)
+	else
 	{
-		kill(*pids.begin(), SIGKILL);
-		usleep(1000);
-
-		for (auto pid = pids.begin(); pid != pids.end();)
+		std::cout << "Please shut down all art processes, then hit return/enter" << std::endl;
+		while (pids.size() > 0)
 		{
-			if (kill(*pid, 0) < 0)
+			std::cout << "The following PIDs are running: ";
+			for (auto pid = pids.begin(); pid != pids.end();)
 			{
-				pid = pids.erase(pid);
+				if (kill(*pid, 0) < 0)
+				{
+					pid = pids.erase(pid);
+				}
+				else
+				{
+					std::cout << *pid << " ";
+					++pid;
+				}
 			}
-			else
-			{
-				++pid;
-			}
+			std::cout << std::endl;
+			std::string ignored;
+			std::cin >> ignored;
 		}
 	}
 }
