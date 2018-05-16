@@ -392,24 +392,29 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 	//current_art_config_file_ = nullptr;
 	//current_art_pset_ = fhicl::ParameterSet();
 
-	for (auto pid = pids.begin(); pid != pids.end();)
-	{
-		// 08-May-2018, KAB: protect against killing invalid PIDS
-		if (*pid <= 0)
+	auto check_pids = [&](bool print){
+
+		for (auto pid = pids.begin(); pid != pids.end();)
 		{
-			TLOG(TLVL_WARNING) << "Removing an invalid PID (" << *pid
-				<< ") from the shutdown list.";
-			pid = pids.erase(pid);
+			// 08-May-2018, KAB: protect against killing invalid PIDS
+			if (*pid <= 0)
+			{
+				TLOG(TLVL_WARNING) << "Removing an invalid PID (" << *pid
+					<< ") from the shutdown list.";
+				pid = pids.erase(pid);
+			}
+			else if (kill(*pid, 0) < 0)
+			{
+				pid = pids.erase(pid);
+			}
+			else
+			{
+				if(print) std::cout << *pid << " ";
+				++pid;
+			}
 		}
-		else if (kill(*pid, 0) < 0)
-		{
-			pid = pids.erase(pid);
-		}
-		else
-		{
-			++pid;
-		}
-	}
+	};
+	check_pids(false);
 	if (pids.size() == 0)
 	{
 		TLOG(14) << "All art processes already exited, nothing to do.";
@@ -434,17 +439,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 		{
 			usleep(1000);
 
-			for (auto pid = pids.begin(); pid != pids.end();)
-			{
-				if (kill(*pid, 0) < 0)
-				{
-					pid = pids.erase(pid);
-				}
-				else
-				{
-					++pid;
-				}
-			}
+			check_pids(false);
 			if (pids.size() == 0)
 			{
 				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
@@ -463,17 +458,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 		{
 			usleep(1000);
 
-			for (auto pid = pids.begin(); pid != pids.end();)
-			{
-				if (kill(*pid, 0) < 0)
-				{
-					pid = pids.erase(pid);
-				}
-				else
-				{
-					++pid;
-				}
-			}
+			check_pids(false);
 
 			if (pids.size() == 0)
 			{
@@ -488,17 +473,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 			kill(*pids.begin(), SIGKILL);
 			usleep(1000);
 
-			for (auto pid = pids.begin(); pid != pids.end();)
-			{
-				if (kill(*pid, 0) < 0)
-				{
-					pid = pids.erase(pid);
-				}
-				else
-				{
-					++pid;
-				}
-			}
+			check_pids(false);
 		}
 	}
 	else
@@ -507,18 +482,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 		while (pids.size() > 0)
 		{
 			std::cout << "The following PIDs are running: ";
-			for (auto pid = pids.begin(); pid != pids.end();)
-			{
-				if (kill(*pid, 0) < 0)
-				{
-					pid = pids.erase(pid);
-				}
-				else
-				{
-					std::cout << *pid << " ";
-					++pid;
-				}
-			}
+			check_pids(true);
 			std::cout << std::endl;
 			std::string ignored;
 			std::cin >> ignored;
