@@ -98,6 +98,12 @@ namespace artdaq
 			std::unique_lock<std::mutex> lk(request_mutex_);
 			return request_cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms), [this]() { return requests_.size() > 0; });
 		}
+
+		std::chrono::steady_clock::time_point GetRequestTime(artdaq::Fragment::sequence_id_t reqID)
+		{
+			std::unique_lock<std::mutex> lk(request_mutex_);
+			return request_timing_.count(reqID) ? request_timing_[reqID] : std::chrono::steady_clock::now();
+		}
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
