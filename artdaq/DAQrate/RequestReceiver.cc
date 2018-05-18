@@ -247,7 +247,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 				int delta = buffer.sequence_id - highest_seen_request_;
 				TLOG(11) << "Recieved request for sequence ID " << buffer.sequence_id
 					<< " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
-				if (delta < 0 || out_of_order_requests_.count(buffer.sequence_id))
+				if (delta <= 0 || out_of_order_requests_.count(buffer.sequence_id))
 				{
 					TLOG(11) << "Already serviced this request! Ignoring...";
 				}
