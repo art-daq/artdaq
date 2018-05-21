@@ -25,6 +25,8 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
 
+#define USE_ACKS 0
+
 namespace artdaq
 {
 	class TCPSocketTransfer;
@@ -148,7 +150,10 @@ private: // methods
 	// Thread to drive reconnect_ requests
 	void stats_connect_();
 
+#if USE_ACKS
 	void receive_ack_(int fd);
+	void send_ack_(int fd);
+#endif
 
 	// Sender is responsible for connecting to receiver
 	void connect_();

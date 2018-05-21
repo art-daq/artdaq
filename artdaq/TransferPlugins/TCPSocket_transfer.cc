@@ -428,8 +428,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					TLOG(11) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
 					TLOG(9) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
 
-					MessHead mh = { 0,MessHead::ack_v0,htons(source_rank()),{ htonl(ACK_MAGIC) } };
-					write(active_receive_fd_, &mh, sizeof(mh));
+#if USE_ACKS
+					send_ack_(active_receive_fd_);
+#endif
 
 					done = true; // no more polls
 					break; // no more read of ready fds
@@ -444,8 +445,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			TLOG(11) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
 			TLOG(9) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
 
-			MessHead mh = { 0,MessHead::ack_v0,htons(source_rank()),{ htonl(ACK_MAGIC) } };
-			write(active_receive_fd_, &mh, sizeof(mh));
+#if USE_ACKS
+			send_ack_(active_receive_fd_);
+#endif
 
 			done = true; // no more polls
 		}
@@ -508,7 +510,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 		usleep(1000);
 	}
 
+#if USE_ACKS
 	receive_ack_(send_fd_);
+#endif
 	
 	TLOG(12) << GetTraceName() << ": sendFragment returning kSuccess";
 	return sts;
@@ -785,6 +789,7 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 	}
 }
 
+#if USE_ACKS
 void artdaq::TCPSocketTransfer::receive_ack_(int fd)
 {
 	MessHead mh;
@@ -798,6 +803,7 @@ void artdaq::TCPSocketTransfer::receive_ack_(int fd)
 	{
 		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong message header length received! (actual " << sts << " != " << sizeof(mh) << " expected)";
 		close(fd);
+		send_fd_ = -1;
 		return;
 	}
 
@@ -807,15 +813,24 @@ void artdaq::TCPSocketTransfer::receive_ack_(int fd)
 	{
 		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Received ack for different sender! Rank=" << my_rank << ", hdr=" << mh.source_id;
 		close(fd);
+		send_fd_ = -1;
 		return;
 	}
 	if (ntohl(mh.conn_magic) != ACK_MAGIC || !(mh.message_type == MessHead::ack_v0)) // Allow for future connect message versions
 	{
 		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong magic bytes in header!";
 		close(fd);
+		send_fd_ = -1;
 		return;
 	}
 }
+
+void artdaq::TCPSocketTransfer::send_ack_(int fd)
+{
+	MessHead mh = { 0,MessHead::ack_v0,htons(source_rank()),{ htonl(ACK_MAGIC) } };
+	write(fd, &mh, sizeof(mh));
+}
+#endif
 
 void artdaq::TCPSocketTransfer::listen_(int port, size_t rcvbuf)
 {
