@@ -508,6 +508,8 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 		usleep(1000);
 	}
 
+	receive_ack_(send_fd_);
+	
 	TLOG(12) << GetTraceName() << ": sendFragment returning kSuccess";
 	return sts;
 }
@@ -680,17 +682,10 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 
 	if (blocking)
 	{
-		blocking = false;
-	}
-	else
-	{
-		fcntl(send_fd_, F_SETFL, 0); // clear O_NONBLOCK
+		blocking = false; 
+		fcntl(send_fd_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 	}
 	sts = total_written_bytes - sizeof(MessHead);
-
-	receive_ack_(send_fd_);
-
-	if (send_fd_ >= 0) fcntl(send_fd_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 
 	TLOG(14) << GetTraceName() << ": sendFragment sts=" << sts;
 	return TransferInterface::CopyStatus::kSuccess;
@@ -794,7 +789,9 @@ void artdaq::TCPSocketTransfer::receive_ack_(int fd)
 {
 	MessHead mh;
 	uint64_t mark_us = TimeUtils::gettimeofday_us();
+	fcntl(send_fd_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 	auto sts = read(fd, &mh, sizeof(mh));
+	fcntl(send_fd_, F_SETFL, 0); // clear O_NONBLOCK
 	uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
 	TLOG(17) << GetTraceName() << ": receive_ack_: Read of ack message took " << delta_us << " microseconds.";
 	if (sts != sizeof(mh))
