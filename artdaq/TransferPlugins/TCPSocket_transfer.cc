@@ -727,7 +727,8 @@ void artdaq::TCPSocketTransfer::connect_()
 						  , sndbuf_bytes);
 	connect_state = 0;
 	blocking = 0;
-	TLOG(TLVL_DEBUG) << GetTraceName() << ": connect_ " + hostMap_[destination_rank()].hostname + ":" << calculate_port_() << " send_fd_=" << send_fd_;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": connect_ " + hostMap_[destination_rank()].hostname + ":" << calculate_port_()
+	                 << " send_fd_=" << send_fd_ << " (rank=" << destination_rank() << ",partition=" << partition_number_ << ")";
 	if (send_fd_ != -1)
 	{
 		// write connect msg
@@ -764,7 +765,8 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 	{
 		if (listen_thread_ && listen_thread_->joinable()) listen_thread_->join();
 		listen_thread_refcount_ = 1;
-		TLOG(TLVL_INFO) << GetTraceName() << ": Starting Listener Thread";
+		TLOG(TLVL_INFO) << GetTraceName() << ": Starting Listener Thread for port " << calculate_port_()
+		                << " (rank=" << destination_rank() << ",partition=" << partition_number_ << ")";
 		listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, calculate_port_(), rcvbuf_);
 	}
 	else
@@ -778,7 +780,7 @@ void artdaq::TCPSocketTransfer::listen_(int port, size_t rcvbuf)
 	int listen_fd = -1;
 	while (listen_thread_refcount_ > 0)
 	{
-		TLOG(TLVL_TRACE) << "listen_: Listening/accepting new connections";
+		TLOG(TLVL_TRACE) << "listen_: Listening/accepting new connections on port " << port;
 		if (listen_fd == -1)
 		{
 			TLOG(TLVL_DEBUG) << "listen_: Opening listener";
