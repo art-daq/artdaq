@@ -46,8 +46,6 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, rcvbuf_(pset.get<size_t>("tcp_receive_buffer_size", 0))
 	, sndbuf_(max_fragment_size_words_ * sizeof(artdaq::RawDataType) * buffer_count_)
 	, send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
-	, stats_connect_stop_(false)
-	, stats_connect_thread_(std::bind(&TCPSocketTransfer::stats_connect_, this))
 	, timeoutMessageArmed_(true)
 	, not_connected_count_(0)
 	, receive_err_threshold_(pset.get<size_t>("receive_socket_disconnected_max_count", 1000))
@@ -56,10 +54,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	TLOG(TLVL_DEBUG) << GetTraceName() << " Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend");
 	auto masterPortOffset = pset.get<int>("offset_all_ports", 0);
 	hostMap_ = MakeHostMap(pset, masterPortOffset);
-
-	std::function<void()> function = std::bind(&TCPSocketTransfer::reconnect_, this);
-	tmo_.add_periodic("reconnect", NULL, function, 200/*millisec*/);
-
+	
 	if (role == TransferInterface::Role::kReceive)
 	{
 		// Wait for sender to connect...
@@ -79,9 +74,6 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": Shutting down TCPSocketTransfer";
-	stats_connect_stop_ = true;
-	stopstatscv_.notify_all();
-	stats_connect_thread_.join();
 
 	if (role() == TransferInterface::Role::kSend)
 	{
@@ -478,6 +470,7 @@ bool artdaq::TCPSocketTransfer::isRunning()
 // the Fragment was sent OR -1 if to none.
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(Fragment&& frag, size_t send_timeout_usec)
 {
+	reconnect_();
 	TLOG(12) << GetTraceName() << ": sendFragment begin";
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
 
@@ -695,44 +688,6 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	return TransferInterface::CopyStatus::kSuccess;
 }
 
-//=============================================
-
-void artdaq::TCPSocketTransfer::stats_connect_() // thread
-{
-	std::cv_status sts;
-	while (!stats_connect_stop_)
-	{
-		std::string desc;
-		void* tag;
-		std::function<void()> function;
-		uint64_t ts_us;
-
-		int msdly = tmo_.get_next_timeout_msdly();
-
-		if (msdly <= 0)
-			msdly = 2000;
-
-		std::unique_lock<std::mutex> lck(stopstatscvm_);
-		sts = stopstatscv_.wait_until(lck
-									  , std::chrono::system_clock::now()
-									  + std::chrono::milliseconds(msdly));
-		TLOG(15) << GetTraceName() << ": thread1 after wait_until(msdly=" << msdly << ") - sts=" << static_cast<int>(sts);
-
-		if (sts == std::cv_status::no_timeout)
-			break;
-
-		auto sts = tmo_.get_next_expired_timeout(desc, &tag, function, &ts_us);
-
-		while (sts != -1 && desc != "")
-		{
-			if (function != NULL)
-				function();
-
-			sts = tmo_.get_next_expired_timeout(desc, &tag, function, &ts_us);
-		}
-	}
-}
-
 void artdaq::TCPSocketTransfer::connect_()
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": Connecting sender socket";
@@ -769,8 +724,11 @@ void artdaq::TCPSocketTransfer::connect_()
 
 void artdaq::TCPSocketTransfer::reconnect_()
 {
+	if (send_fd_ == -1 && role() == TransferInterface::Role::kSend)
+	{
 	TLOG(TLVL_TRACE) << GetTraceName() << ": check/reconnect";
-	if (send_fd_ == -1 && role() == TransferInterface::Role::kSend) return connect_();
+		return connect_();
+	}
 }
 
 void artdaq::TCPSocketTransfer::start_listen_thread_()

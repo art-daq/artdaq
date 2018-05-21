@@ -203,6 +203,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	std::unique_lock<std::mutex> lk(buffer_mutexes_[buffer]);
 	//TraceLock lk(buffer_mutexes_[buffer], 50, "DoneWritingFragment");
 
+	TLOG(TLVL_DEBUG) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << " (type " << (int)frag.type << ")";
 	auto hdr = getEventHeader_(buffer);
 	if (update_run_ids_)
 	{

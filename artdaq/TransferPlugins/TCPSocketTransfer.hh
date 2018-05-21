@@ -127,14 +127,7 @@ private:
 
 	volatile unsigned connect_state : 1; // 0=not "connected" (initial msg not sent)
 	unsigned blocking : 1; // compatible with bool (true/false)
-
-
-	Timeout tmo_;
-	bool stats_connect_stop_;
-	boost::thread stats_connect_thread_;
-	std::condition_variable stopstatscv_;
-	std::mutex stopstatscvm_; // protects 'stopcv'
-
+	
 	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
     size_t not_connected_count_; // Number of times returned RECV_TIMEOUT because no receive sockets open
     size_t receive_err_threshold_; // Number of times TO print RECV_TIMEOUT before starting to return DATA_END
@@ -146,10 +139,7 @@ private: // methods
 	CopyStatus sendData_(const void* buf, size_t bytes, size_t tmo);
 
 	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo);
-
-	// Thread to drive reconnect_ requests
-	void stats_connect_();
-
+	
 #if USE_ACKS
 	void receive_ack_(int fd);
 	void send_ack_(int fd);
