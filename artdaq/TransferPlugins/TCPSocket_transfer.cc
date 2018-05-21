@@ -791,10 +791,10 @@ void artdaq::TCPSocketTransfer::receive_ack_(int fd)
 	uint64_t mark_us = TimeUtils::gettimeofday_us();
 	auto sts = read(fd, &mh, sizeof(mh));
 	uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
-	TLOG(TLVL_DEBUG) << "listen_: Read of ack message took " << delta_us << " microseconds.";
+	TLOG(17) << GetTraceName() << ": receive_ack_: Read of ack message took " << delta_us << " microseconds.";
 	if (sts != sizeof(mh))
 	{
-		TLOG(TLVL_DEBUG) << "listen_: Wrong message header length received!";
+		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong message header length received!";
 		close(fd);
 		return;
 	}
@@ -803,13 +803,13 @@ void artdaq::TCPSocketTransfer::receive_ack_(int fd)
 	mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
 	if (mh.source_id != my_rank)
 	{
-		TLOG(TLVL_ERROR) << GetTraceName() << ": Received ack for different sender! Rank=" << my_rank << ", hdr=" << mh.source_id;
+		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Received ack for different sender! Rank=" << my_rank << ", hdr=" << mh.source_id;
 		close(fd);
 		return;
 	}
 	if (ntohl(mh.conn_magic) != ACK_MAGIC || !(mh.message_type == MessHead::ack_v0)) // Allow for future connect message versions
 	{
-		TLOG(TLVL_DEBUG) << "listen_: Wrong magic bytes in header!";
+		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong magic bytes in header!";
 		close(fd);
 		return;
 	}
