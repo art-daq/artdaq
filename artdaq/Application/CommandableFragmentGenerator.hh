@@ -302,6 +302,12 @@ namespace artdaq
 		*/
 		size_t ev_counter() const { return ev_counter_.load(); }
 
+		/// <summary>
+		/// Get the current request mode of the CommandableFragmentGenerator
+		/// </summary>
+		/// <returns>Current RequestMode of the CFG</returns>
+		RequestMode request_mode() const { return mode_; }
+
 		//
 		// State-machine related interface below.
 		//
