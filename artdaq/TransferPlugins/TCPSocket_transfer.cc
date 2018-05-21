@@ -681,11 +681,16 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	if (blocking)
 	{
 		blocking = false;
+	}
+	else
+	{
 		fcntl(send_fd_, F_SETFL, 0); // clear O_NONBLOCK
 	}
 	sts = total_written_bytes - sizeof(MessHead);
 
 	receive_ack_(send_fd_);
+
+	if (send_fd_ >= 0) fcntl(send_fd_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 
 	TLOG(14) << GetTraceName() << ": sendFragment sts=" << sts;
 	return TransferInterface::CopyStatus::kSuccess;
@@ -794,7 +799,7 @@ void artdaq::TCPSocketTransfer::receive_ack_(int fd)
 	TLOG(17) << GetTraceName() << ": receive_ack_: Read of ack message took " << delta_us << " microseconds.";
 	if (sts != sizeof(mh))
 	{
-		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong message header length received!";
+		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong message header length received! (actual " << sts << " != " << sizeof(mh) << " expected)";
 		close(fd);
 		return;
 	}
