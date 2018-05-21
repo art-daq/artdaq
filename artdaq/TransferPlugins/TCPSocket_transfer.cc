@@ -428,6 +428,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					TLOG(11) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
 					TLOG(9) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
 
+					MessHead mh = { 0,MessHead::ack_v0,htons(source_rank()),{ htonl(ACK_MAGIC) } };
+					write(active_receive_fd_, &mh, sizeof(mh));
+
 					done = true; // no more polls
 					break; // no more read of ready fds
 				}
@@ -440,6 +443,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			ret_rank = source_rank();
 			TLOG(11) << GetTraceName() << ": receiveFragmentData done sts=" << sts << " src=" << ret_rank;
 			TLOG(9) << GetTraceName() << ": receiveFragmentData: Done receiving fragment. Moving into output.";
+
+			MessHead mh = { 0,MessHead::ack_v0,htons(source_rank()),{ htonl(ACK_MAGIC) } };
+			write(active_receive_fd_, &mh, sizeof(mh));
 
 			done = true; // no more polls
 		}
@@ -679,6 +685,8 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	}
 	sts = total_written_bytes - sizeof(MessHead);
 
+	receive_ack_(send_fd_);
+
 	TLOG(14) << GetTraceName() << ": sendFragment sts=" << sts;
 	return TransferInterface::CopyStatus::kSuccess;
 }
@@ -774,6 +782,36 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 	else
 	{
 		listen_thread_refcount_++;
+	}
+}
+
+void artdaq::TCPSocketTransfer::receive_ack_(int fd)
+{
+	MessHead mh;
+	uint64_t mark_us = TimeUtils::gettimeofday_us();
+	auto sts = read(fd, &mh, sizeof(mh));
+	uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
+	TLOG(TLVL_DEBUG) << "listen_: Read of ack message took " << delta_us << " microseconds.";
+	if (sts != sizeof(mh))
+	{
+		TLOG(TLVL_DEBUG) << "listen_: Wrong message header length received!";
+		close(fd);
+		return;
+	}
+
+	// check for "magic" and valid source_id(aka rank)
+	mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
+	if (mh.source_id != my_rank)
+	{
+		TLOG(TLVL_ERROR) << GetTraceName() << ": Received ack for different sender! Rank=" << my_rank << ", hdr=" << mh.source_id;
+		close(fd);
+		return;
+	}
+	if (ntohl(mh.conn_magic) != ACK_MAGIC || !(mh.message_type == MessHead::ack_v0)) // Allow for future connect message versions
+	{
+		TLOG(TLVL_DEBUG) << "listen_: Wrong magic bytes in header!";
+		close(fd);
+		return;
 	}
 }
 

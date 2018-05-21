@@ -148,6 +148,8 @@ private: // methods
 	// Thread to drive reconnect_ requests
 	void stats_connect_();
 
+	void receive_ack_(int fd);
+
 	// Sender is responsible for connecting to receiver
 	void connect_();
 
