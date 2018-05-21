@@ -238,7 +238,7 @@ namespace artdaq
 					return false;
 				}
 				auto firstFragmentType = *fragmentTypes.begin();
-				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << firstFragmentType << " (" << fragment_type_map_[firstFragmentType] << ")" ;
+				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " (" << fragment_type_map_[firstFragmentType] << ")" ;
 
 				// We return false, indicating we're done reading, if:
 				//   1) we did not obtain an event, because we timed out and were

@@ -93,7 +93,7 @@ sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
 	ostream.close();
 #endif
 
-	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << sequenceId << ", type=" << messageType << ", length=" << msg.Length() ;
+	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << sequenceId << ", type=" << (int)messageType << ", length=" << msg.Length() ;
 	artdaq::NetMonHeader header;
 	header.data_length = static_cast<uint64_t>(msg.Length());
 	artdaq::Fragment
