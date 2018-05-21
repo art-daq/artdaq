@@ -789,9 +789,9 @@ void artdaq::TCPSocketTransfer::receive_ack_(int fd)
 {
 	MessHead mh;
 	uint64_t mark_us = TimeUtils::gettimeofday_us();
-	fcntl(send_fd_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
-	auto sts = read(fd, &mh, sizeof(mh));
 	fcntl(send_fd_, F_SETFL, 0); // clear O_NONBLOCK
+	auto sts = read(fd, &mh, sizeof(mh));
+	fcntl(send_fd_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 	uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
 	TLOG(17) << GetTraceName() << ": receive_ack_: Read of ack message took " << delta_us << " microseconds.";
 	if (sts != sizeof(mh))
