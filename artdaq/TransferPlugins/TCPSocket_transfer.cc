@@ -159,7 +159,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			std::vector<pollfd> pollfds;
 			{
 				std::unique_lock<std::mutex> lk(connected_fd_mutex_);
-				size_t fd_count = connected_fds_[source_rank()].size();
+				fd_count = connected_fds_[source_rank()].size();
 				pollfds.resize(fd_count);
 				auto iter = connected_fds_[source_rank()].begin();
 				for (size_t ii = 0; ii < fd_count; ++ii)
@@ -473,10 +473,10 @@ bool artdaq::TCPSocketTransfer::isRunning()
 // the Fragment was sent OR -1 if to none.
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(Fragment&& frag, size_t send_timeout_usec)
 {
-	reconnect_();
 	TLOG(12) << GetTraceName() << ": sendFragment begin";
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
 
+	reconnect_();
 	// Send Fragment Header
 
 	iovec iov = { reinterpret_cast<void*>(grab_ownership_frag.headerAddress()),
