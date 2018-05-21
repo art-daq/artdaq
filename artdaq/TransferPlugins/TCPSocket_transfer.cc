@@ -155,17 +155,20 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	{
 		if (active_receive_fd_ == -1)
 		{
-			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
-			size_t fd_count = connected_fds_[source_rank()].size();
-			auto iter = connected_fds_[source_rank()].begin();
-			std::vector<pollfd> pollfds(fd_count);
-			for (size_t ii = 0; ii < fd_count; ++ii)
+			size_t fd_count = 0;
+			std::vector<pollfd> pollfds;
 			{
-				pollfds[ii].events = POLLIN | POLLERR;
-				pollfds[ii].fd = *iter;
-				++iter;
+				std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+				size_t fd_count = connected_fds_[source_rank()].size();
+				pollfds.resize(fd_count);
+				auto iter = connected_fds_[source_rank()].begin();
+				for (size_t ii = 0; ii < fd_count; ++ii)
+				{
+					pollfds[ii].events = POLLIN | POLLERR;
+					pollfds[ii].fd = *iter;
+					++iter;
+				}
 			}
-
 			//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragment: Polling fd to see if there's data" ;
 			int num_fds_ready = poll(&pollfds[0], fd_count, timeout_ms);
 			if (num_fds_ready <= 0)

@@ -149,6 +149,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	while (!(stop_requested_ && TimeUtils::gettimeofday_us() - stop_requested_time_ > stop_timeout_ms_ * 1000) && enabled_sources_.count(source_rank))
 	{
 		TLOG(16) << "runReceiver_: Begin loop";
+		std::this_thread::yield();
 
 		// Don't stop receiving until we haven't received anything for 1 second
 		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank) && !source_plugins_[source_rank]->isRunning())
@@ -292,7 +293,6 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				break;
 			}
 		}
-
 	}
 
 
