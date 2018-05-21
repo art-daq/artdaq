@@ -52,7 +52,7 @@ TCP_listen_fd(int port, int rcvbuf)
 	sts = bind(listener_fd, (struct sockaddr *)&sin, sizeof(sin));
 	if (sts == -1)
 	{
-		TLOG(TLVL_ERROR) << "Could not bind socket! Exiting with code 3!";
+		TLOG(TLVL_ERROR) << "Could not bind socket for port " << port << "! Exiting with code 3!";
 		perror("bind error");
 		exit(3);
 	}
