@@ -83,13 +83,13 @@ public:
 	 * \brief Get the list of enabled sources
 	 * \return The list of enabled sources
 	 */
-	std::set<int> enabled_sources() const { return enabled_sources_; }
+	std::set<int> enabled_sources() const;
 
 	/**
 	 * \brief Get the list of sources which are still receiving data
 	 * \return std::set containing ranks of sources which are still receiving data
 	 */
-	std::set<int> running_sources() const { return running_sources_; }
+	std::set<int> running_sources() const;
 
 	/**
 	 * \brief Get a handle to the SharedMemoryEventManager connected to this DataReceiverManager
@@ -126,8 +126,8 @@ private:
 
 	std::unordered_map<int, source_metric_data> source_metric_data_;
 	std::unordered_map<int, std::chrono::steady_clock::time_point> source_metric_send_time_;
-	std::set<int> enabled_sources_;
-	std::set<int> running_sources_;
+	std::unordered_map<int, std::atomic<bool>> enabled_sources_;
+	std::unordered_map<int, std::atomic<bool>> running_sources_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
 	detail::FragCounter recv_frag_size_; // Number of bytes received per source.
