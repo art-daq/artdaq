@@ -281,7 +281,7 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 				// are used in data transfers, etc. within the art process.
 				std::string envVarKey = "ARTDAQ_PARTITION_NUMBER";
 				std::string envVarValue = std::to_string(Globals::GetPartitionNumber());
-				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 0) != 0)
+				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 1) != 0)
 				{
 					TLOG(TLVL_ERROR) << "Error setting environment variable \"" << envVarKey
 					                 << "\" in the environment of a child art process. "
