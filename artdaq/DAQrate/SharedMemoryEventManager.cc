@@ -275,6 +275,21 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 			pid = fork();
 			if (pid == 0)
 			{ /* child */
+				// 23-May-2018, KAB: added the setting of the partition number env var
+				// in the environment of the child art process so that Globals.hh
+				// will pick it up there and provide it to the artdaq classes that
+				// are used in data transfers, etc. within the art process.
+				std::string envVarKey = "ARTDAQ_PARTITION_NUMBER";
+				std::string envVarValue = std::to_string(Globals::GetPartitionNumber());
+				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 0) != 0)
+				{
+					TLOG(TLVL_ERROR) << "Error setting environment variable \"" << envVarKey
+					                 << "\" in the environment of a child art process. "
+					                 << "This may result in incorrect TCP port number "
+					                 << "assignments or other issues, and data may "
+					                 << "not flow through the system correctly.";
+				}
+
 				execvp("art", &args[0]);
 				delete[] filename;
 				exit(1);
