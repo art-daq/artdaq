@@ -83,13 +83,13 @@ public:
 	 * \brief Get the list of enabled sources
 	 * \return The list of enabled sources
 	 */
-	std::set<int> enabled_sources() const { return enabled_sources_; }
+	std::set<int> enabled_sources() const;
 
 	/**
 	 * \brief Get the list of sources which are still receiving data
 	 * \return std::set containing ranks of sources which are still receiving data
 	 */
-	std::set<int> running_sources() const { return running_sources_; }
+	std::set<int> running_sources() const;
 
 	/**
 	 * \brief Get a handle to the SharedMemoryEventManager connected to this DataReceiverManager
@@ -112,8 +112,22 @@ private:
 
 	std::map<int, boost::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
-	std::set<int> enabled_sources_;
-	std::set<int> running_sources_;
+
+	struct source_metric_data
+	{
+		source_metric_data() : delta_t(0), hdr_delta_t(0), store_delta_t(0), data_delta_t(0), data_size(0), header_size(0) {}
+		double delta_t;
+		double hdr_delta_t;
+		double store_delta_t;
+		double data_delta_t;
+		size_t data_size;
+		size_t header_size;
+	};
+
+	std::unordered_map<int, source_metric_data> source_metric_data_;
+	std::unordered_map<int, std::chrono::steady_clock::time_point> source_metric_send_time_;
+	std::unordered_map<int, std::atomic<bool>> enabled_sources_;
+	std::unordered_map<int, std::atomic<bool>> running_sources_;
 
 	detail::FragCounter recv_frag_count_; // Number of frags received per source.
 	detail::FragCounter recv_frag_size_; // Number of bytes received per source.

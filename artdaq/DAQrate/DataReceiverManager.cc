@@ -42,7 +42,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	{
 		for (auto& s : enabled_srcs)
 		{
-			enabled_sources_.insert(s);
+			enabled_sources_[s] = true;
 		}
 	}
 
@@ -70,7 +70,9 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs_mod, s,
 				TransferInterface::Role::kReceive));
 			auto source_rank = transfer->source_rank();
-			if (enabled_srcs_empty) enabled_sources_.insert(source_rank);
+			if (enabled_srcs_empty) enabled_sources_[source_rank] = true;
+			else if (!enabled_sources_.count(source_rank)) enabled_sources_[source_rank] = false;
+			running_sources_[source_rank] = false;
 			source_plugins_[source_rank] = std::move(transfer);
 		}
 		catch (cet::exception ex)
@@ -108,9 +110,9 @@ void artdaq::DataReceiverManager::start_threads()
 	for (auto& source : source_plugins_)
 	{
 		auto& rank = source.first;
-		if (enabled_sources_.count(rank))
+		if (enabled_sources_.count(rank) && enabled_sources_[rank].load())
 		{
-			running_sources_.insert(rank);
+			running_sources_[rank] = true;
 			boost::thread::attributes attrs;
 			attrs.set_stack_size(4096 * 500); // 2000 KB
 			source_threads_[rank] = boost::thread(attrs, boost::bind(&DataReceiverManager::runReceiver_, this, rank));
@@ -133,6 +135,26 @@ void artdaq::DataReceiverManager::stop_threads()
 	}
 }
 
+std::set<int> artdaq::DataReceiverManager::enabled_sources() const
+{
+	std::set<int> output;
+	for (auto& src : enabled_sources_)
+	{
+		if (src.second) output.insert(src.first);
+	}
+	return output;
+}
+
+std::set<int> artdaq::DataReceiverManager::running_sources() const
+{
+	std::set<int> output;
+	for (auto& src : running_sources_)
+	{
+		if (src.second) output.insert(src.first);
+	}
+	return output;
+}
+
 void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
 	std::chrono::steady_clock::time_point start_time, after_header, before_body;
@@ -146,13 +168,13 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	while (!(stop_requested_ && TimeUtils::gettimeofday_us() - stop_requested_time_ > stop_timeout_ms_ * 1000) && enabled_sources_.count(source_rank))
 	{
 		TLOG(16) << "runReceiver_: Begin loop";
+		std::this_thread::yield();
 
 		// Don't stop receiving until we haven't received anything for 1 second
 		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank) && !source_plugins_[source_rank]->isRunning())
 		{
 			TLOG(TLVL_DEBUG) << "runReceiver_: End of Data conditions met, ending runReceiver loop";
-			running_sources_.erase(source_rank);
-			return;
+			break;
 		}
 
 		start_time = std::chrono::steady_clock::now();
@@ -278,9 +300,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				break;
 			}
 		}
-
 	}
 
 
-	running_sources_.erase(source_rank);
+	running_sources_[source_rank] = false;
 }
