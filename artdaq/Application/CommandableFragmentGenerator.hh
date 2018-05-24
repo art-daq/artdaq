@@ -92,8 +92,8 @@ namespace artdaq
 			fhicl::Atom<Fragment::timestamp_t> stale_request_timeout { fhicl::Name{"stale_request_timeout"            }, fhicl::Comment{"How long should request messages be retained"}, 0xFFFFFFFF };
 			fhicl::Atom<Fragment::type_t> expected_fragment_type     { fhicl::Name{"expected_fragment_type"           }, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType) };
 			fhicl::Atom<bool> request_windows_are_unique             { fhicl::Name{"request_windows_are_unique"       }, fhicl::Comment{"Whether Fragments should be removed from the buffer when matched to a request window"}, true };
-			fhicl::Atom<size_t> missing_request_window_timeout_us    { fhicl::Name{"missing_request_window_timeout_us"}, fhicl::Comment{"How long to wait for a missing request in Window mode (measured from the last time data was sent)"}, 1000000 };
-			fhicl::Atom<size_t> window_close_timeout_us              { fhicl::Name{"window_close_timeout_us"          }, fhicl::Comment{"How long to wait for the end of the data buffer to pass the end of a request window (measured from the last time data was sent)"}, 2000000 };
+			fhicl::Atom<size_t> missing_request_window_timeout_us    { fhicl::Name{"missing_request_window_timeout_us"}, fhicl::Comment{"How long to track missing requests in the \"out - of - order Windows\" list"}, 1000000 };
+			fhicl::Atom<size_t> window_close_timeout_us              { fhicl::Name{"window_close_timeout_us"          }, fhicl::Comment{"How long to wait for the end of the data buffer to pass the end of a request window (measured from the time the request was received)"}, 2000000 };
 			fhicl::Atom<bool> separate_data_thread                   { fhicl::Name{"separate_data_thread"             }, fhicl::Comment{"Whether data collection should proceed on its own thread. Required for all data request processing"}, false };
 			fhicl::Atom<size_t> sleep_on_no_data_us                  { fhicl::Name{"sleep_on_no_data_us"              }, fhicl::Comment{"How long to sleep after calling getNext_ if no data is returned"}, 0 };
 			fhicl::Atom<int> data_buffer_depth_fragments             { fhicl::Name{"data_buffer_depth_fragments"      }, fhicl::Comment{"How many Fragments to store in the buffer"}, 1000 };
@@ -127,8 +127,8 @@ namespace artdaq
 		 * "request_window_width" (Default: 0): For Window request mode, the window will be timestamp - offset to timestamp - offset + width
 		 * "stale_request_timeout" (Default: -1): How long should request messages be retained
 		 * "request_windows_are_unique" (Default: true): Whether Fragments should be removed from the buffer when matched to a request window
-		 * "missing_request_window_timeout_us" (Default: 1000000): How long to wait for a missing request in Window mode (measured from the last time data was sent)
-		 * "window_close_timeout_us" (Default: 2000000): How long to wait for the end of the data buffer to pass the end of a request window (measured from the last time data was sent)
+		 * "missing_request_window_timeout_us" (Default: 1000000): How long to track missing requests in the "out-of-order Windows" list
+		 * "window_close_timeout_us" (Default: 2000000): How long to wait for the end of the data buffer to pass the end of a request window (measured from the time the request was received)
 		 * "expected_fragment_type" (Default: 231, EmptyFragmentType): The type of Fragments this CFG will be generating. "Empty" will auto-detect type based on Fragments generated.
 		 * "separate_data_thread" (Default: false): Whether data collection should proceed on its own thread. Required for all data request processing
 		 * "sleep_on_no_data_us" (Default: 0 (no sleep)): How long to sleep after calling getNext_ if no data is returned
@@ -228,6 +228,21 @@ namespace artdaq
 		void sendEmptyFragments(FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests);
 
 		/**
+		 * \brief Check the windows_sent_ooo_ map for sequence IDs that may be removed
+		 * \param seq Sequence ID of current window
+		 */
+		void checkOutOfOrderWindows(Fragment::sequence_id_t seq);
+
+		/**
+		 * \brief Access the windows_sent_ooo_ map
+		 * \return windows_sent_ooo_ map
+		 */
+		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> getOutOfOrderWindowList() const
+		{
+			return windows_sent_ooo_;
+		}
+
+		/**
 		 * \brief Function that launches the data thread (getDataLoop())
 		 */
 		void startDataThread();
@@ -280,6 +295,12 @@ namespace artdaq
 		{
 			return fragment_ids_;
 		}
+
+		/**
+		* \brief Get the current value of the event counter
+		* \return The current value of the event counter
+		*/
+		size_t ev_counter() const { return ev_counter_.load(); }
 
 		//
 		// State-machine related interface below.
@@ -442,12 +463,6 @@ namespace artdaq
 		int fragment_id() const;
 
 		/**
-		 * \brief Get the current value of the event counter
-		 * \return The current value of the event counter
-		 */
-		size_t ev_counter() const { return ev_counter_.load(); }
-
-		/**
 		 * \brief Increment the event counter, if the current RequestMode allows it
 		 * \param step Amount to increment the event counter by
 		 * \param force Force incrementing the event Counter
@@ -500,10 +515,7 @@ namespace artdaq
 		Fragment::type_t expectedType_;
 		size_t maxFragmentCount_;
 		bool uniqueWindows_;
-		std::chrono::steady_clock::time_point missing_request_time_;
-		std::chrono::steady_clock::time_point last_window_send_time_;
-		bool last_window_send_time_set_;
-		std::set<Fragment::sequence_id_t> windows_sent_ooo_;
+		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> windows_sent_ooo_;
 		size_t missing_request_window_timeout_us_;
 		size_t window_close_timeout_us_;
 
