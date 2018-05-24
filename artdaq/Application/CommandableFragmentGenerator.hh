@@ -92,7 +92,7 @@ namespace artdaq
 			fhicl::Atom<Fragment::timestamp_t> stale_request_timeout { fhicl::Name{"stale_request_timeout"            }, fhicl::Comment{"How long should request messages be retained"}, 0xFFFFFFFF };
 			fhicl::Atom<Fragment::type_t> expected_fragment_type     { fhicl::Name{"expected_fragment_type"           }, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType) };
 			fhicl::Atom<bool> request_windows_are_unique             { fhicl::Name{"request_windows_are_unique"       }, fhicl::Comment{"Whether Fragments should be removed from the buffer when matched to a request window"}, true };
-			fhicl::Atom<size_t> missing_request_window_timeout_us    { fhicl::Name{"missing_request_window_timeout_us"}, fhicl::Comment{"How long to track missing requests in the \"out - of - order Windows\" list"}, 1000000 };
+			fhicl::Atom<size_t> missing_request_window_timeout_us    { fhicl::Name{"missing_request_window_timeout_us"}, fhicl::Comment{"How long to track missing requests in the \"out - of - order Windows\" list"}, 5000000 };
 			fhicl::Atom<size_t> window_close_timeout_us              { fhicl::Name{"window_close_timeout_us"          }, fhicl::Comment{"How long to wait for the end of the data buffer to pass the end of a request window (measured from the time the request was received)"}, 2000000 };
 			fhicl::Atom<bool> separate_data_thread                   { fhicl::Name{"separate_data_thread"             }, fhicl::Comment{"Whether data collection should proceed on its own thread. Required for all data request processing"}, false };
 			fhicl::Atom<size_t> sleep_on_no_data_us                  { fhicl::Name{"sleep_on_no_data_us"              }, fhicl::Comment{"How long to sleep after calling getNext_ if no data is returned"}, 0 };
@@ -127,7 +127,7 @@ namespace artdaq
 		 * "request_window_width" (Default: 0): For Window request mode, the window will be timestamp - offset to timestamp - offset + width
 		 * "stale_request_timeout" (Default: -1): How long should request messages be retained
 		 * "request_windows_are_unique" (Default: true): Whether Fragments should be removed from the buffer when matched to a request window
-		 * "missing_request_window_timeout_us" (Default: 1000000): How long to track missing requests in the "out-of-order Windows" list
+		 * "missing_request_window_timeout_us" (Default: 5000000): How long to track missing requests in the "out-of-order Windows" list
 		 * "window_close_timeout_us" (Default: 2000000): How long to wait for the end of the data buffer to pass the end of a request window (measured from the time the request was received)
 		 * "expected_fragment_type" (Default: 231, EmptyFragmentType): The type of Fragments this CFG will be generating. "Empty" will auto-detect type based on Fragments generated.
 		 * "separate_data_thread" (Default: false): Whether data collection should proceed on its own thread. Required for all data request processing
@@ -301,6 +301,12 @@ namespace artdaq
 		* \return The current value of the event counter
 		*/
 		size_t ev_counter() const { return ev_counter_.load(); }
+
+		/// <summary>
+		/// Get the current request mode of the CommandableFragmentGenerator
+		/// </summary>
+		/// <returns>Current RequestMode of the CFG</returns>
+		RequestMode request_mode() const { return mode_; }
 
 		//
 		// State-machine related interface below.

@@ -148,7 +148,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
 
 	// check if we should skip the sequence ID test...
-	skip_seqId_test_ = (generator_ptr_->fragmentIDs().size() > 1);
+	skip_seqId_test_ = (generator_ptr_->fragmentIDs().size() > 1 || generator_ptr_->request_mode() != RequestMode::Ignored);
 
 	verbose_ = fr_pset.get<bool>("verbose", true);
 

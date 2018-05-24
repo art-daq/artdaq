@@ -90,7 +90,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
 	, uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
 	, windows_sent_ooo_()
-	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 1000000))
+	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
 	, window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
 	, sleep_on_no_data_us_(ps.get<size_t>("sleep_on_no_data_us", 0))
