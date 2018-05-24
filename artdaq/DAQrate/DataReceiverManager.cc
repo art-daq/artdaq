@@ -141,13 +141,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	detail::RawFragmentHeader header;
 	size_t endOfDataCount = -1;
 	auto sleep_time = receive_timeout_ / 100 > 100000 ? 100000 : receive_timeout_ / 100;
-	auto receive_timeout = receive_timeout_;
 	auto max_retries = non_reliable_mode_retry_count_ * ceil(receive_timeout_ / sleep_time);
 
 	while (!(stop_requested_ && TimeUtils::gettimeofday_us() - stop_requested_time_ > stop_timeout_ms_ * 1000) && enabled_sources_.count(source_rank))
 	{
 		TLOG(16) << "runReceiver_: Begin loop";
-		if (stop_requested_) { receive_timeout = stop_timeout_ms_; }
 
 		// Don't stop receiving until we haven't received anything for 1 second
 		if (endOfDataCount <= recv_frag_count_.slotCount(source_rank) && !source_plugins_[source_rank]->isRunning())
@@ -159,8 +157,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 		start_time = std::chrono::steady_clock::now();
 
-		TLOG(16) << "runReceiver_: Calling receiveFragmentHeader tmo=" << receive_timeout;
-		ret = source_plugins_[source_rank]->receiveFragmentHeader(header, receive_timeout);
+		TLOG(16) << "runReceiver_: Calling receiveFragmentHeader tmo=" << receive_timeout_;
+		ret = source_plugins_[source_rank]->receiveFragmentHeader(header, receive_timeout_);
 		TLOG(16) << "runReceiver_: Done with receiveFragmentHeader, ret=" << ret << " (should be " << source_rank << ")";
 		if (ret != source_rank)
 		{
@@ -176,7 +174,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			TLOG(TLVL_TRACE) << "Received Fragment Header from rank " << source_rank << ".";
 			RawDataType* loc = nullptr;
 			size_t retries = 0;
-			while (loc == nullptr)//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout) 
+			while (loc == nullptr)//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_) 
 			{
 				loc = shm_manager_->WriteFragmentHeader(header);
 				if (loc == nullptr) usleep(sleep_time);
