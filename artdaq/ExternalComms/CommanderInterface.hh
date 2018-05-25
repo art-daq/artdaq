@@ -15,9 +15,14 @@ namespace artdaq
 	class CommanderInterface
 	{
 	public:
+		/// <summary>
+		/// Configuration of the CommanderInterface. May be used for parameter validation
+		/// </summary>
 		struct Config
 		{
+			/// "id" (Default: 0): Integer ID number of this Commandable.May be constrained by plugin types(i.e.XMLRPC port number).
 			fhicl::Atom<int> id{ fhicl::Name{"id"}, fhicl::Comment{"The unique ID associated with this Commander plugin. (ex. XMLRPC Port number)"}, 0 };
+			/// "commanderPluginType" (REQUIRED): The type of Commander plugin to load
 			fhicl::Atom<std::string> commanderPluginType{ fhicl::Name{"commanderPluginType"}, fhicl::Comment{"String identifying the name of the CommanderInterface plugin to load"} };
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
@@ -26,14 +31,8 @@ namespace artdaq
 
 		/**
 		 * \brief CommanderInterface Constructor
-		 * \param ps ParameterSet used for configuring the CommanderInterface
+		 * \param ps ParameterSet used for configuring the CommanderInterface. See artdaq::CommanderInterface::Config
 		 * \param commandable artdaq::Commandable object to send transition commands to
-		 *
-		 * \verbatim
-		 * CommanderInterface accepts the following Parameters:
-		   "commanderPluginType": The type of Commander plugin to load
-		   "id": Integer ID number of this Commandable. May be constrained by plugin types (i.e. XMLRPC port number).
-		 * \endverbatim
 		 */
 		CommanderInterface(const fhicl::ParameterSet& ps, artdaq::Commandable& commandable)
 			: _commandable(commandable)

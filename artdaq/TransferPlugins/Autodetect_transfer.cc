@@ -75,7 +75,6 @@ namespace artdaq
 		/**
 		* \brief Send a Fragment in reliable mode, using the underlying transfer plugin
 		* \param fragment The Fragment to send
-		* \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
 		* \return A TransferInterface::CopyStatus result variable
 		*/
 		CopyStatus moveFragment(artdaq::Fragment&& fragment) override

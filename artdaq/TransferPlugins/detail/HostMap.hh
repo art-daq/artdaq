@@ -14,25 +14,45 @@ namespace artdaq {
 
 	struct HostMap
 	{
+		/// <summary>
+		/// Entries in the host_map should have these parameters. May be used for parameter validation
+		/// </summary>
 		struct HostConfig
 		{
+			/// "rank": Rank index
 			fhicl::Atom<int> rank{ fhicl::Name{"rank"}, fhicl::Comment{"Rank index"} };
+			/// "host": Hostname for artdaq application with this rank
 			fhicl::Atom<std::string> host{ fhicl::Name{"host"}, fhicl::Comment{"Hostname for artdaq application with this rank"} };
+			/// "portOffset" (Default: 5500): DEPRECATED : Port offset of this artdaq application
 			fhicl::Atom<int> portOffset{ fhicl::Name{"portOffset"},fhicl::Comment{"DEPRECATED: Port offset of this artdaq application"}, 5500 };
 		};
+		/// <summary>
+		/// Template for the host_map configuration parameter.
+		/// </summary>
 		struct Config
 		{
+			/// <summary>
+			/// List of artdaq applications by rank and location. See artdaq::HostMap::HostConfig
+			/// </summary>
 			fhicl::Sequence<fhicl::Table<HostConfig>> host_map{ fhicl::Name("host_map"), fhicl::Comment("List of artdaq applications by rank and location") };
 		};
 	};
 
+	/// <summary>
+	/// Entry in the host map
+	/// </summary>
 	struct DestinationInfo
 	{
-		std::string hostname;
-		int portOffset;
+		std::string hostname; ///< Hostname of the application
+		int portOffset; ///< DEPRECATED: Port offset of this artdaq application
 	};
-	typedef std::map<int, DestinationInfo> hostMap_t;
+	typedef std::map<int, DestinationInfo> hostMap_t; ///< The host_map is a map associating ranks with artdaq::DestinationInfo objects
 
+	/// <summary>
+	/// Create a list of HostMap::HostConfig ParameterSets from a hostMap_t map
+	/// </summary>
+	/// <param name="input">Input hostMap_t</param>
+	/// <returns>std::vector containing HostMap::HostConfig ParameterSets</returns>
 	inline std::vector<fhicl::ParameterSet> MakeHostMapPset(std::map<int, DestinationInfo> input)
 	{
 		std::vector<fhicl::ParameterSet> output;
@@ -47,7 +67,14 @@ namespace artdaq {
 		return output;
 	}
 
-	inline hostMap_t MakeHostMap(fhicl::ParameterSet pset, int masterPortOffset = 0, hostMap_t output = hostMap_t())
+	/// <summary>
+	/// Make a hostMap_t from a HostMap::Config ParameterSet
+	/// </summary>
+	/// <param name="pset">fhicl::ParameterSet containing a HostMap::Config</param>
+	/// <param name="masterPortOffset">Port offset to apply to all entries (Default 0)</param>
+	/// <param name="map">Input map for consistency checking (Default: hostMap_t())</param>
+	/// <returns>hostMap_t object</returns>
+	inline hostMap_t MakeHostMap(fhicl::ParameterSet pset, int masterPortOffset = 0, hostMap_t map = hostMap_t())
 	{
 		if (pset.has_key("host_map")) {
 			auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
@@ -58,14 +85,14 @@ namespace artdaq {
 				info.hostname = ps.get<std::string>("host", "localhost");
 				info.portOffset = ps.get<int>("portOffset", 5500) + masterPortOffset;
 
-				if (output.count(rank) && (output[rank].hostname != info.hostname || output[rank].portOffset != info.portOffset))
+				if (map.count(rank) && (map[rank].hostname != info.hostname || map[rank].portOffset != info.portOffset))
 				{
 					TLOG(TLVL_ERROR) << "Inconsistent host maps supplied! Check configuration! There may be TCPSocket-related failures!";
 				}
-				output[rank] = info;
+				map[rank] = info;
 			}
 		}
-		return output;
+		return map;
 	}
 }
 

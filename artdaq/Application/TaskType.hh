@@ -24,6 +24,11 @@ namespace artdaq
 			UnknownTask
 		};
 
+		/// <summary>
+		/// Convert a string to a TaskType (Used by artdaq.cc)
+		/// </summary>
+		/// <param name="task">Name of the task</param>
+		/// <returns>Corresponding TaskType or TaskType::UnknownTask if no match</returns>
 		TaskType StringToTaskType(std::string task)
 		{
 			if (task.size() < 1) return TaskType::UnknownTask;
@@ -39,6 +44,11 @@ namespace artdaq
 			return TaskType::UnknownTask;
 		}
 
+		/// <summary>
+		/// Convert an integer to the corresponding TaskType
+		/// </summary>
+		/// <param name="task">Enumeration identifier of Task</param>
+		/// <returns>Corresponding TaskType or TaskType::UnknownTask if no match</returns>
 		TaskType IntToTaskType(int task)
 		{
 			if (task > 0 && task <= 5)
@@ -47,6 +57,11 @@ namespace artdaq
 			return TaskType::UnknownTask;
 		}
 
+		/// <summary>
+		/// Convert a TaskType to string representation
+		/// </summary>
+		/// <param name="task">TaskType to convert</param>
+		/// <returns>String represenation of Task name</returns>
 		std::string TaskTypeToString(TaskType task)
 		{
 			switch (task)

@@ -30,32 +30,57 @@ namespace artdaq
 class artdaq::DataSenderManager
 {
 public:
-
+	/// <summary>
+	/// Configuration for Routing table reception
+	/// 
+	/// This configuration should be the same for all processes receiving routing tables from a given RoutingMaster.
+	/// </summary>
 	struct RoutingTableConfig
 	{
+		///   "use_routing_master" (Default: false): True if using the Routing Master
 		fhicl::Atom<bool> use_routing_master{ fhicl::Name{ "use_routing_master"}, fhicl::Comment{ "True if using the Routing Master"}, false };
+		///   "table_update_port" (Default: 35556): Port that table updates should arrive on
 		fhicl::Atom<int> table_port{ fhicl::Name{ "table_update_port"}, fhicl::Comment{ "Port that table updates should arrive on" },35556 };
+		///   "table_update_address" (Default: "227.128.12.28"): Address that table updates should arrive on
 		fhicl::Atom<std::string> table_address{ fhicl::Name{ "table_update_address"}, fhicl::Comment{ "Address that table updates should arrive on" }, "227.128.12.28" };
+		///   "table_acknowledge_port" (Default: 35557): Port that acknowledgements should be sent to
 		fhicl::Atom<int> ack_port{ fhicl::Name{ "table_acknowledge_port" },fhicl::Comment{ "Port that acknowledgements should be sent to" },35557 };
+		///   "routing_master_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
 		fhicl::Atom<std::string> ack_address{ fhicl::Name{ "routing_master_hostname"}, fhicl::Comment{ "Host that acknowledgements should be sent to" },"localhost" };
+		///   "routing_timeout_ms" (Default: 1000): Time to wait for a routing table update if the table is exhausted
 		fhicl::Atom<int> routing_timeout_ms{ fhicl::Name{"routing_timeout_ms"}, fhicl::Comment{"Time to wait (in ms) for a routing table update if the table is exhausted"}, 1000 };
+		///   "routing_retry_count" (Default: 5): Number of times to retry calculating destination before giving up (DROPPING DATA!)
 		fhicl::Atom<int> routing_retry_count{ fhicl::Name{"routing_retry_count"}, fhicl::Comment{"Number of times to retry getting destination from routing table"}, 5 };
 	};
 
+	/// <summary>
+	/// Configuration for transfers to destinations
+	/// </summary>
 	struct DestinationsConfig
 	{
+		/// Example Configuration for transfer to destination. See artdaq::TransferInterface::Config
 		fhicl::OptionalTable<artdaq::TransferInterface::Config> dest{ fhicl::Name{"d1"}, fhicl::Comment{"Configuration for transfer to destination"} };
 	};
 
+	/// <summary>
+	/// Configuration of DataSenderManager. May be used for parameter validation
+	/// </summary>
 	struct Config
 	{
+		/// "broadcast_sends" (Default: false): Send all Fragments to all destinations
 		fhicl::Atom<bool> broadcast_sends{ fhicl::Name{"broadcast_sends"}, fhicl::Comment{"Send all Fragments to all destinations"}, false };
+		/// "nonblocking_sends" (Default: false): If true, will use non-reliable mode of TransferInterface plugins
 		fhicl::Atom<bool> nonblocking_sends{ fhicl::Name{"nonblocking_sends"}, fhicl::Comment{"Whether sends should block. Used for DL->DISP connection."}, false };
+		/// "send_timeout_usec" (Default: 5000000 (5 seconds): Timeout for sends in non-reliable modes (broadcast and nonblocking)
 		fhicl::Atom<size_t> send_timeout_us{ fhicl::Name{"send_timeout_usec"}, fhicl::Comment{"Timeout for sends in non-reliable modes (broadcast and nonblocking)"},5000000 };
+		/// "send_retry_count" (Default: 2): Number of times to retry a send in non-reliable mode
 		fhicl::Atom<size_t> send_retry_count{ fhicl::Name{"send_retry_count"}, fhicl::Comment{"Number of times to retry a send in non-reliable mode"}, 2 };
-		fhicl::OptionalTable<RoutingTableConfig> routing_table_config{ fhicl::Name{"routing_table_config"} };
+		fhicl::OptionalTable<RoutingTableConfig> routing_table_config{ fhicl::Name{"routing_table_config"} }; ///< Configuration for Routing Table reception. See artdaq::DataSenderManager::RoutingTableConfig
+		/// "destinations" (Default: Empty ParameterSet): FHiCL table for TransferInterface configurations for each destaintion. See artdaq::DataSenderManager::DestinationsConfig
+	    ///   NOTE: "destination_rank" MUST be specified (and unique) for each destination!
 		fhicl::OptionalTable<DestinationsConfig> destinations{ fhicl::Name{"destinations"} };
-		fhicl::TableFragment<artdaq::HostMap::Config> host_map;
+		fhicl::TableFragment<artdaq::HostMap::Config> host_map; ///< Optional host_map configuration (Can also be specified in each DestinationsConfig entry. See artdaq::HostMap::Config
+	    /// enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified, all destinations will be enabled.
 		fhicl::Sequence<size_t> enabled_destinations{ fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destiantion ranks to activate (must be defined in destinations block)"}, std::vector<size_t>() };
 	};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
@@ -64,27 +89,7 @@ public:
 
 	/**
 	 * \brief DataSenderManager Constructor
-	 * \param ps ParameterSet used to configure the DataSenderManager
-	 *
-	 * \verbatim
-	 * DataSenderManager accepts the following Parameters:
-	 * "broadcast_sends" (Default: false): Send all Fragments to all destinations
-	 * "nonblocking_sends" (Default: false): If true, will use non-reliable mode of TransferInterface plugins
-	 * "send_timeout_usec" (Default: 5000000 (5 seconds): Timeout for sends in non-reliable modes (broadcast and nonblocking)
-	 * "send_retry_count" (Default: 2): Number of times to retry a send in non-reliable mode
-	 * "routing_table_config" (Default: Empty ParameterSet): FHiCL table for RoutingMaster parameters
-	 *   "use_routing_master" (Default: false): True if using the Routing Master
-	 *   "table_update_port" (Default: 35556): Port that table updates should arrive on
-	 *   "table_update_address" (Default: "227.128.12.28"): Address that table updates should arrive on
-	 *   "table_acknowledge_port" (Default: 35557): Port that acknowledgements should be sent to
-	 *   "routing_master_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
-	 *   "routing_timeout_ms" (Default: 1000): Time to wait for a routing table update if the table is exhausted
-	 *   "routing_retry_count" (Default: 5): Number of times to retry calculating destination before giving up (DROPPING DATA!)
-	 * "destinations" (Default: Empty ParameterSet): FHiCL table for TransferInterface configurations for each destaintion
-	 *   NOTE: "destination_rank" MUST be specified (and unique) for each destination!
-	 * "enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified,
-	 * all destinations will be enabled.
-	 * \endverbatim
+	 * \param ps ParameterSet used to configure the DataSenderManager. See artdaq::DataSenderManager::Config
 	 */
 	explicit DataSenderManager(const fhicl::ParameterSet& ps);
 
