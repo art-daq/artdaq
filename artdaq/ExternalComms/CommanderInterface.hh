@@ -252,7 +252,7 @@ namespace artdaq
 
 #define DEFINE_ARTDAQ_COMMANDER(klass)                                \
   EXTERN_C_FUNC_DECLARE_START                                      \
-    std::unique_ptr<artdaq::CommanderInterface> make(fhicl::ParameterSet const & ps, \
+	std::unique_ptr<artdaq::CommanderInterface> make(fhicl::ParameterSet const & ps, \
 								 artdaq::Commandable& commandable) { \
 	return std::unique_ptr<artdaq::CommanderInterface>(new klass(ps, commandable)); \
 }}
