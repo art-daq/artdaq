@@ -54,7 +54,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	TLOG(TLVL_DEBUG) << GetTraceName() << " Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend");
 	auto masterPortOffset = pset.get<int>("offset_all_ports", 0);
 	hostMap_ = MakeHostMap(pset, masterPortOffset);
-	
+
 	if (role == TransferInterface::Role::kReceive)
 	{
 		// Wait for sender to connect...
@@ -164,7 +164,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				auto iter = connected_fds_[source_rank()].begin();
 				for (size_t ii = 0; ii < fd_count; ++ii)
 				{
-					pollfds[ii].events = POLLIN | POLLERR;
+					pollfds[ii].events = POLLIN | POLLPRI | POLLERR;
 					pollfds[ii].fd = *iter;
 					++iter;
 				}
@@ -198,11 +198,19 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			short anomolous_events = 0;
 			for (size_t ii = index; ii < index + pollfds.size(); ++ii)
 			{
-				if (pollfds[index % pollfds.size()].revents & (POLLIN | POLLPRI | POLLHUP | POLLERR))
+				if (pollfds[index % pollfds.size()].revents & (POLLIN | POLLPRI))
 				{
 					active_index = index % pollfds.size();
 					active_receive_fd_ = pollfds[active_index].fd;
 					break;
+				}
+				else if (pollfds[index % pollfds.size()].revents & (POLLHUP | POLLERR))
+				{
+					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Poll returned POLLHUP or POLLERR, indicating problems with the sender. Closing socket.";
+					close(pollfds[index].fd);
+					std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+					connected_fds_[source_rank()].erase(pollfds[index].fd);
+					continue;
 				}
 				else if (pollfds[index % pollfds.size()].revents & (POLLNVAL))
 				{
@@ -357,7 +365,11 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			break;
 		}
 
-		if (pollfd_s.revents & (POLLNVAL))
+		if (pollfd_s.revents & (POLLIN | POLLPRI))
+		{
+			// Expected, don't have to check revents any further
+		}
+		else if (pollfd_s.revents & (POLLNVAL))
 		{
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: FD is closed, most likely because the peer went away. Removing from fd list.";
 			close(active_receive_fd_);
@@ -366,13 +378,21 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			active_receive_fd_ = -1;
 			break;
 		}
-		else if (!(pollfd_s.revents & (POLLIN | POLLPRI | POLLERR)))
+		else if (pollfd_s.revents & (POLLHUP | POLLERR))
+		{
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Poll returned POLLHUP or POLLERR, indicating problems with the sender. Closing socket.";
+			close(pollfd_s.fd);
+			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+			connected_fds_[source_rank()].erase(pollfd_s.fd);
+			break;
+		}
+		else
 		{
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Wrong event received from pollfd: " << pollfd_s.revents;
 			close(active_receive_fd_);
 			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 			connected_fds_[source_rank()].erase(active_receive_fd_);
-			continue;
+			break;
 		}
 
 		if (state == SocketState::Metadata)
@@ -509,7 +529,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 #if USE_ACKS
 	receive_ack_(send_fd_);
 #endif
-	
+
 	TLOG(12) << GetTraceName() << ": sendFragment returning kSuccess";
 	return sts;
 }
@@ -682,7 +702,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 
 	if (blocking)
 	{
-		blocking = false; 
+		blocking = false;
 		fcntl(send_fd_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 	}
 	sts = total_written_bytes - sizeof(MessHead);
@@ -729,7 +749,7 @@ void artdaq::TCPSocketTransfer::reconnect_()
 {
 	if (send_fd_ == -1 && role() == TransferInterface::Role::kSend)
 	{
-	TLOG(TLVL_TRACE) << GetTraceName() << ": check/reconnect";
+		TLOG(TLVL_TRACE) << GetTraceName() << ": check/reconnect";
 		return connect_();
 	}
 }
