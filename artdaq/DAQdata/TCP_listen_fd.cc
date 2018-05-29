@@ -5,7 +5,8 @@
 //  $RCSfile: TCP_listen_fd.cpp,v $
 //  rev="$Revision: 1.3 $$Date: 2010/06/04 14:00:32 $";
 
-#define TRACE_NAME "TCP_listen_fd"
+#define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 
 #include <stdio.h>		// printf
 #include <stdlib.h>		// exit
@@ -16,7 +17,6 @@
 #include <netdb.h>              /* gethostbyname */
 #include <errno.h>				// errno
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 
 int
