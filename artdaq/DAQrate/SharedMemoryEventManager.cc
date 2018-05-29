@@ -977,10 +977,10 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	{
 
 		metricMan->sendMetric("Event Rate", counter, "Events/s", 1, MetricMode::Rate);
-		metricMan->sendMetric("Events Released to art (run)", run_event_count_, "Events", 1, MetricMode::LastPoint);
-		metricMan->sendMetric("Incomplete Events Released to art (run)", run_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
-		metricMan->sendMetric("Events Released to art (subrun)", subrun_event_count_, "Events", 2, MetricMode::LastPoint);
-		metricMan->sendMetric("Incomplete Events Released to art (subrun)", subrun_incomplete_event_count_, "Events", 2, MetricMode::LastPoint);
+		metricMan->sendMetric("Events Released to art this run", run_event_count_, "Events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Incomplete Events Released to art this run", run_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Events Released to art this subrun", subrun_event_count_, "Events", 2, MetricMode::LastPoint);
+		metricMan->sendMetric("Incomplete Events Released to art this subrun", subrun_incomplete_event_count_, "Events", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Event Size", eventSize, "Bytes", 1, MetricMode::Average);
 
 		if (TimeUtils::GetElapsedTimeMilliseconds(last_shmem_buffer_metric_update_) > 500) // Limit to 2 Hz updates
