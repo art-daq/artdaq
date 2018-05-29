@@ -60,8 +60,9 @@ namespace artdaq
 
 		/**
 		* \brief Stop the data request receiver thread (receiveRequestsLoop)
+		* \param force Whether to suppress any error messages (used if called from destructor)
 		*/
-		void stopRequestReceiverThread();
+		void stopRequestReceiverThread(bool force = false);
 
 		/**
 		* \brief Function that launches the data request receiver thread (receiveRequestsLoop())
