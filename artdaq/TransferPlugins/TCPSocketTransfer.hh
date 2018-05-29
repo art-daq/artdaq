@@ -150,6 +150,8 @@ private: // methods
 
 	void reconnect_();
 
+	int disconnect_receive_socket_(int fd, std::string msg = "");
+
 	// Receiver should listen for connections
 	void start_listen_thread_();
 	static void listen_(int port, size_t rcvbuf);
