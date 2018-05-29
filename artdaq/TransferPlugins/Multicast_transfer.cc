@@ -1,4 +1,5 @@
-#define TRACE_NAME "MulticastTransfer"
+#define TRACE_NAME (app_name + "_MulticastTransfer").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
