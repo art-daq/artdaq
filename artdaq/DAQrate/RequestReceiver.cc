@@ -179,7 +179,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		// Continue loop if no message received or message does not have correct event ID
 		if (rv <= 0 || (ufds[0].revents != POLLIN && ufds[0].revents != POLLPRI))
 		{
-			if (rv == 1 && (ufds[0].revents == POLLNVAL || ufds[0].revents == POLLERR))
+			if (rv == 1 && (ufds[0].revents & (POLLNVAL | POLLERR | POLLHUP)))
 			{
 				close(request_socket_);
 				request_socket_ = -1;
