@@ -398,7 +398,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			byte_cnt = mh.byte_count - offset;
 		}
 
-		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Reading " << byte_cnt << " bytes from socket" ;
+		TLOG(10) << GetTraceName() << ": receiveFragmentData: Reading " << byte_cnt << " bytes from socket into " << (void*)buff;
 		sts = read(active_receive_fd_, buff, byte_cnt);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Done with read" ;
 

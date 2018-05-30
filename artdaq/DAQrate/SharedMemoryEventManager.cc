@@ -564,7 +564,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	if (!success)
 	{
 		TLOG(TLVL_TRACE) << "endOfData: Clearing buffers to make room for EndOfData Fragment";
-		for (size_t ii = 0; ii < size(); ++ii)
+		for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
 		{
 			broadcasts_.MarkBufferEmpty(ii, true);
 		}
@@ -602,6 +602,11 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	for (size_t ii = 0; ii < size(); ++ii)
 	{
 		MarkBufferEmpty(ii, true);
+	}
+	TLOG(TLVL_TRACE) << "endOfData: Clearing broadcast buffers";
+	for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
+	{
+		broadcasts_.MarkBufferEmpty(ii, true);
 	}
 	released_incomplete_events_.clear();
 
