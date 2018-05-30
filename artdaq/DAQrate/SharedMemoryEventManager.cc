@@ -10,10 +10,10 @@ std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
-						  pset.get<size_t>("buffer_count"),
-						  pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
-						  pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
-						  !pset.get<bool>("broadcast_mode", false))
+		pset.get<size_t>("buffer_count"),
+		pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
+		pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
+		!pset.get<bool>("broadcast_mode", false))
 	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
 	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
 	, queue_size_(pset.get<size_t>("buffer_count"))
@@ -45,9 +45,9 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, requests_(nullptr)
 	, data_pset_(pset)
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
-				  pset.get<size_t>("broadcast_buffer_count", 10),
-				  pset.get<size_t>("broadcast_buffer_size", 0x100000),
-				  pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
+		pset.get<size_t>("broadcast_buffer_count", 10),
+		pset.get<size_t>("broadcast_buffer_size", 0x100000),
+		pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
 {
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
@@ -181,14 +181,23 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 	buffer_writes_pending_[buffer]++;
 	std::unique_lock<std::mutex> lk(buffer_mutexes_[buffer]);
 	//TraceLock lk(buffer_mutexes_[buffer], 50, "WriteFragmentHeader");
+	auto hdrpos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));
 	Write(buffer, &frag, frag.num_words() * sizeof(RawDataType));
 
 	auto pos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));
 	if (frag.word_count - frag.num_words() > 0)
 	{
-		IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
-	}
+		auto sts = IncrementWritePos(buffer, (frag.word_count - frag.num_words()) * sizeof(RawDataType));
 
+		if (!sts)
+		{
+			reinterpret_cast<detail::RawFragmentHeader*>(hdrpos)->word_count = frag.num_words();
+			reinterpret_cast<detail::RawFragmentHeader*>(hdrpos)->type = Fragment::InvalidFragmentType;
+			TLOG(TLVL_ERROR) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the current buffer for this Fragment! (Keeping header)";
+			dropped_data_.reset(new Fragment(frag.word_count - frag.num_words()));
+			return dropped_data_->dataBegin();
+		}
+	}
 	TLOG(14) << "WriteFragmentHeader END";
 	return pos;
 
@@ -393,7 +402,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 	//current_art_config_file_ = nullptr;
 	//current_art_pset_ = fhicl::ParameterSet();
 
-	auto check_pids = [&](bool print){
+	auto check_pids = [&](bool print) {
 
 		for (auto pid = pids.begin(); pid != pids.end();)
 		{
@@ -410,7 +419,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 			}
 			else
 			{
-				if(print) std::cout << *pid << " ";
+				if (print) std::cout << *pid << " ";
 				++pid;
 			}
 		}
@@ -651,9 +660,9 @@ bool artdaq::SharedMemoryEventManager::endRun()
 {
 	TLOG(TLVL_INFO) << "Ending run " << run_id_;
 	FragmentPtr	endOfRunFrag(new
-							 Fragment(static_cast<size_t>
-							 (ceil(sizeof(my_rank) /
-								   static_cast<double>(sizeof(Fragment::value_type))))));
+		Fragment(static_cast<size_t>
+		(ceil(sizeof(my_rank) /
+			static_cast<double>(sizeof(Fragment::value_type))))));
 
 	TLOG(TLVL_DEBUG) << "Broadcasting EndOfRun Fragment";
 	endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
@@ -671,9 +680,9 @@ bool artdaq::SharedMemoryEventManager::endSubrun()
 	TLOG(TLVL_INFO) << "Ending subrun " << subrun_id_;
 	std::unique_ptr<artdaq::Fragment>
 		endOfSubrunFrag(new
-						Fragment(static_cast<size_t>
-						(ceil(sizeof(my_rank) /
-							  static_cast<double>(sizeof(Fragment::value_type))))));
+			Fragment(static_cast<size_t>
+			(ceil(sizeof(my_rank) /
+				static_cast<double>(sizeof(Fragment::value_type))))));
 
 	TLOG(TLVL_DEBUG) << "Broadcasting EndOfSubrun Fragment";
 	endOfSubrunFrag->setSequenceID(subrun_rollover_event_);
@@ -716,13 +725,14 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary)
 	// to the new subrun here
 
 	if (boundary == last_released_event_ + 1) {
-	  TLOG(TLVL_INFO) << "rolloverSubrun: Last released event had sequence id " << last_released_event_ << \
-	    ", boundary is sequence id " << boundary << ", so will start a new subrun here";
-	  endSubrun();
-	  startSubrun();
-	  subrun_rollover_event_ = std::numeric_limits<sequence_id_t>::max();
-	} else {
-	  subrun_rollover_event_ = boundary;
+		TLOG(TLVL_INFO) << "rolloverSubrun: Last released event had sequence id " << last_released_event_ << \
+			", boundary is sequence id " << boundary << ", so will start a new subrun here";
+		endSubrun();
+		startSubrun();
+		subrun_rollover_event_ = std::numeric_limits<sequence_id_t>::max();
+	}
+	else {
+		subrun_rollover_event_ = boundary;
 	}
 }
 
@@ -956,7 +966,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 		if (hdr->sequence_id >= subrun_rollover_event_)
 		{
-		  TLOG(TLVL_INFO) << "Subrun rollover reached at event " << hdr->sequence_id << " (boundary=" << subrun_rollover_event_ << "), last released event is " << last_released_event_ << ".";
+			TLOG(TLVL_INFO) << "Subrun rollover reached at event " << hdr->sequence_id << " (boundary=" << subrun_rollover_event_ << "), last released event is " << last_released_event_ << ".";
 			endSubrun();
 			startSubrun();
 		}
@@ -1027,7 +1037,7 @@ void artdaq::SharedMemoryEventManager::SetInitFragment(FragmentPtr frag)
 	{
 		init_fragment_.swap(frag);
 		send_init_frag_();
-}
+	}
 }
 
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
