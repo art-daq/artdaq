@@ -611,6 +611,11 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	{
 		MarkBufferEmpty(ii, true);
 	}
+	TLOG(TLVL_TRACE) << "endOfData: Clearing broadcast buffers";
+	for (size_t ii = 0; ii < size(); ++ii)
+	{
+		broadcasts_.MarkBufferEmpty(ii, true);
+	}
 	released_incomplete_events_.clear();
 
 	TLOG(TLVL_TRACE) << "endOfData: Shutting down RequestReceiver";
