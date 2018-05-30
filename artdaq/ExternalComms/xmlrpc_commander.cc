@@ -18,7 +18,8 @@
 #include <limits>
 #include <memory>
 #include <cstdint>
-#define TRACE_NAME "xmlrpc_commander"
+#define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 #include "tracemf.h"
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -32,7 +33,6 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
-#include "artdaq/DAQdata/Globals.hh"
  //#include "artdaq/Application/LoadParameterSet.hh"
 
 namespace {
