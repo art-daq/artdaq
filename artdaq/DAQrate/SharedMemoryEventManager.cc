@@ -35,6 +35,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, run_incomplete_event_count_(0)
 	, subrun_event_count_(0)
 	, subrun_incomplete_event_count_(0)
+	, oversize_fragment_count_(0)
+	, maximum_oversize_fragment_count_(pset.get<int>("maximum_oversize_fragment_count", 1))
 	, art_processes_()
 	, restart_art_(false)
 	, always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
@@ -195,6 +197,14 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			reinterpret_cast<detail::RawFragmentHeader*>(hdrpos)->type = Fragment::InvalidFragmentType;
 			TLOG(TLVL_ERROR) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the current buffer for this Fragment! (Keeping header)";
 			dropped_data_.reset(new Fragment(frag.word_count - frag.num_words()));
+
+			oversize_fragment_count_++;
+
+			if (oversize_fragment_count_ >= maximum_oversize_fragment_count_)
+			{
+				throw cet::exception("Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!");
+			}
+
 			return dropped_data_->dataBegin();
 		}
 	}
@@ -677,6 +687,7 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	TLOG(TLVL_INFO) << "Run " << run_id_ << " has ended. There were " << run_event_count_ << " events in this run.";
 	run_event_count_ = 0;
 	run_incomplete_event_count_ = 0;
+	oversize_fragment_count_ = 0;
 	return true;
 }
 
