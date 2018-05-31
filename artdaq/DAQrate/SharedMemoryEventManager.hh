@@ -106,8 +106,8 @@ namespace artdaq {
 			fhicl::Atom<size_t> art_analyzer_count{ fhicl::Name{ "art_analyzer_count"}, fhicl::Comment{"Number of art procceses to start"}, 1 };
 			/// "expected_fragments_per_event" (REQUIRED) : Number of Fragments to expect per event
 			fhicl::Atom<size_t> expected_fragments_per_event{ fhicl::Name{ "expected_fragments_per_event"}, fhicl::Comment{"Number of Fragments to expect per event"} };
-			/// "maximum_oversize_fragment_count" (Default: 1): Maximum number of over-size Fragments to drop before throwing an exception. Default is 1, which means to throw an exception if any over-size Fragments are dropped.
-			fhicl::Atom<int> maximum_oversize_fragment_count{ fhicl::Name{"maximum_oversize_fragment_count"}, fhicl::Comment{"Maximum number of over-size Fragments to drop before throwing an exception."},1 };
+			/// "maximum_oversize_fragment_count" (Default: 1): Maximum number of over-size Fragments to drop before throwing an exception. Default is 1, which means to throw an exception if any over-size Fragments are dropped. Set to 0 to disable.
+			fhicl::Atom<int> maximum_oversize_fragment_count{ fhicl::Name{"maximum_oversize_fragment_count"}, fhicl::Comment{"Maximum number of over-size Fragments to drop before throwing an exception.  Default is 1, which means to throw an exception if any over-size Fragments are dropped. Set to 0 to disable."},1 };
 			/// "update_run_ids_on_new_fragment" (Default: true) : Whether the run and subrun ID of an event should be updated whenever a Fragment is added.
 			fhicl::Atom<bool> update_run_ids_on_new_fragment{ fhicl::Name{ "update_run_ids_on_new_fragment"}, fhicl::Comment{"Whether the run and subrun ID of an event should be updated whenever a Fragment is added."}, true };
 			/// "use_sequence_id_for_event_number" (Default: true): Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers

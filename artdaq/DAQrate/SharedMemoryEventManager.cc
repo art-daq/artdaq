@@ -200,7 +200,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 			oversize_fragment_count_++;
 
-			if (oversize_fragment_count_ >= maximum_oversize_fragment_count_)
+			if (maximum_oversize_fragment_count_ > 0 && oversize_fragment_count_ >= maximum_oversize_fragment_count_)
 			{
 				throw cet::exception("Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!");
 			}
