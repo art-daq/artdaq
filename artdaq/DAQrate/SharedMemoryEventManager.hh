@@ -31,7 +31,7 @@ namespace artdaq {
 			: dir_name_("/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()))
 			, file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 		{
-			mkdir(dir_name_.c_str(), S_IRWXU); // Allowed to fail if directory already exists
+			mkdir(dir_name_.c_str(), 0777); // Allowed to fail if directory already exists
 
 			std::ofstream of(file_name_, std::ofstream::trunc);
 			of << ps.to_string();
