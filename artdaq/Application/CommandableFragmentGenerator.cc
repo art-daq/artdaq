@@ -45,7 +45,7 @@
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	: mutex_()
-	, requestReceiver_(new RequestReceiver())
+	, requestReceiver_(nullptr)
 	, windowOffset_(0)
 	, windowWidth_(0)
 	, staleTimeout_(Fragment::InvalidTimestamp)
@@ -84,6 +84,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
 	: mutex_()
+	, requestReceiver_(nullptr)
 	, windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
 	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
