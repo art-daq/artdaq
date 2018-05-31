@@ -292,6 +292,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				break;
 			case Fragment::EndOfSubrunFragmentType:
 				//shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
+				TLOG(TLVL_DEBUG) << "Received EndOfSubrun Fragment from rank " << source_rank
+						 << " with sequence_id " << header.sequence_id << ".";
 				if (header.sequence_id != Fragment::InvalidSequenceID) shm_manager_->rolloverSubrun(header.sequence_id);
 				else shm_manager_->rolloverSubrun(recv_seq_count_.slotCount(source_rank));
 				break;

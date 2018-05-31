@@ -709,7 +709,8 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary)
 			logLevel = TLVL_WARNING;
 			processAnyway = true;
 		}
-		TLOG(logLevel) << "Subrun rollover requested for event that is in the past. (delta = " << (last_released_event_ - boundary) << ").";
+		TLOG(logLevel) << "Subrun rollover requested for event that is in the past. (last_released_event="
+			       << last_released_event_ << ",requested_rollover_boundary=" << boundary << ").";
 		if (!processAnyway) return;
 	}
 	TLOG(TLVL_INFO) << "Will roll over when I reach Sequence ID " << boundary;

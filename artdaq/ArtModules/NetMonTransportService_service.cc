@@ -155,7 +155,9 @@ receiveMessage(TBufferFile*& msg)
 		//      pointer
 		if (!got_event || firstFragmentType == artdaq::Fragment::EndOfDataFragmentType)
 		{
-			TLOG(TLVL_DEBUG) << "Received shutdown message, returning" ;
+			TLOG(TLVL_DEBUG) << "Received shutdown message, returning from receiveMessage "
+					 << "(debug: got_event=" << got_event << ",fragType=" << (int)firstFragmentType
+					 << ",EODFragType=" << (int)artdaq::Fragment::EndOfDataFragmentType << ")";
 			incoming_events_->ReleaseBuffer();
 			msg = nullptr;
 			return;
