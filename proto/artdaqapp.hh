@@ -74,6 +74,13 @@ namespace artdaq {
 			}
 			TLOG_DEBUG(app_name + "Main") << "Setting application name to " << app_name;
 
+			// 23-May-2018, KAB: added lookup of the partition number from the command line arguments.
+			if (config_ps.has_key("partition_number"))
+			{
+				artdaq::Globals::partition_number_ = config_ps.get<int>("partition_number");
+			}
+			TLOG_DEBUG(app_name + "Main") << "Setting partition number to " << artdaq::Globals::partition_number_;
+
 			TLOG_DEBUG(app_name + "Main") << "artdaq version " <<
 				artdaq::GetPackageBuildInfo::getPackageBuildInfo().getPackageVersion()
 				<< ", built " <<

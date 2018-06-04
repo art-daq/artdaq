@@ -34,6 +34,7 @@ namespace artdaq
 		static int my_rank_; ///< The rank of the current application
 		static MetricManager* metricMan_; ///< A handle to MetricManager
 		static std::string app_name_; ///< The name of the current application, to be used in logging and metrics
+		static int partition_number_; ///< The partition number of the current application
 
 		static std::string mftrace_module_; ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
 		static std::string mftrace_iteration_; ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
@@ -70,17 +71,28 @@ namespace artdaq
 		*/
 		static int GetPartitionNumber()
 		{
-			auto part = getenv("ARTDAQ_PARTITION_NUMBER"); // 0-127
 			uint32_t part_u = 0;
-			if (part != nullptr)
+
+			// 23-May-2018, KAB: added the option to return the partition number data member
+			// and gave it precedence over the env var since it is typcally based on information
+			// that the user specified on the command line.
+			if (partition_number_ >= 0)
 			{
-				try
+				part_u = static_cast<uint32_t>(partition_number_);
+			}
+			else
+			{
+				auto part = getenv("ARTDAQ_PARTITION_NUMBER"); // 0-127
+				if (part != nullptr)
 				{
-					auto part_s = std::string(part);
-					part_u = static_cast<uint32_t>(std::stoll(part_s, 0, 0));
+					try
+					{
+						auto part_s = std::string(part);
+						part_u = static_cast<uint32_t>(std::stoll(part_s, 0, 0));
+					}
+					catch (std::invalid_argument) {}
+					catch (std::out_of_range) {}
 				}
-				catch (std::invalid_argument) {}
-				catch (std::out_of_range) {}
 			}
 
 			return (part_u & 0x7F);
