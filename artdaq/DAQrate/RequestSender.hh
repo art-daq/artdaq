@@ -27,22 +27,39 @@ namespace artdaq
 	class RequestSender
 	{
 	public:
+		/// <summary>
+		/// Configuration for Routing token sending
+		/// 
+		/// This configuration should be the same for all processes sending routing tokens to a given RoutingMaster.
+		/// </summary>
 		struct RoutingTokenConfig
 		{
+			/// "use_routing_master" (Default: false) : Whether to send tokens to a RoutingMaster
 			fhicl::Atom<bool> use_routing_master{ fhicl::Name{ "use_routing_master" }, fhicl::Comment{ "True if using the Routing Master" }, false };
+			/// "routing_token_port" (Default: 35555) : Port to send tokens on
 			fhicl::Atom<int> routing_token_port{ fhicl::Name{ "routing_token_port" },fhicl::Comment{ "Port to send tokens on" },35555 };
+			/// "routing_master_hostname" (Default: "localhost") : Hostname or IP of RoutingMaster
 			fhicl::Atom<std::string> routing_token_host{ fhicl::Name{ "routing_master_hostname" }, fhicl::Comment{ "Hostname or IP of RoutingMaster" },"localhost" };
 		};
 
+		/// <summary>
+		/// Configuration of the RequestSender. May be used for parameter validation
+		/// </summary>
 		struct Config
 		{
+			/// "send_requests" (Default: false): Whether to send DataRequests when new sequence IDs are seen
 			fhicl::Atom<bool> send_requests{ fhicl::Name{ "send_requests" }, fhicl::Comment{ "Enable sending Data Request messages" }, false };
+			/// "request_port" (Default: 3001): Port to send DataRequests on
 			fhicl::Atom<int> request_port{ fhicl::Name{"request_port"}, fhicl::Comment{"Port to send DataRequests on"},3001 };
+			/// "request_delay_ms" (Default: 10): How long to wait before sending new DataRequests
 			fhicl::Atom<size_t> request_delay_ms{ fhicl::Name{"request_delay_ms"}, fhicl::Comment{"How long to wait before sending new DataRequests"}, 10 };
+			/// "request_shutdown_timeout_us" (Default: 100000 us): How long to wait for pending requests to be sent at shutdown
 			fhicl::Atom<size_t> request_shutdown_timeout_us{ fhicl::Name{ "request_shutdown_timeout_us"},fhicl::Comment{"How long to wait for pending requests to be sent at shutdown"}, 100000 };
+			/// "multicast_interface_ip" (Default: "0.0.0.0"): Use this hostname for multicast output (to assign to the proper NIC)
 			fhicl::Atom<std::string> output_address{ fhicl::Name{ "multicast_interface_ip"}, fhicl::Comment{"Use this hostname for multicast output(to assign to the proper NIC)" }, "0.0.0.0" };
+			/// "request_address" (Default: "227.128.12.26"): Multicast address to send DataRequests to
 			fhicl::Atom<std::string> request_address{ fhicl::Name{"request_address"}, fhicl::Comment{ "Multicast address to send DataRequests to" }, "227.128.12.26" };
-			fhicl::Table<RoutingTokenConfig> routing_token_config{ fhicl::Name{"routing_token_config"}, fhicl::Comment{"FHiCL table containing RoutingToken configuration"} };
+			fhicl::Table<RoutingTokenConfig> routing_token_config{ fhicl::Name{"routing_token_config"}, fhicl::Comment{"FHiCL table containing RoutingToken configuration"} }; ///< Configuration for sending RoutingTokens. See artdaq::RequestSender::RoutingTokenConfig
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
@@ -66,21 +83,7 @@ namespace artdaq
 
 		/**
 		 * \brief RequestSender Constructor
-		 * \param pset ParameterSet used to configured RequestSender
-		 *
-		 * \verbatim
-		 * RequestSender accepts the following Parameters:
-		 * "send_requests" (Default: false): Whether to send DataRequests when new sequence IDs are seen
-		 * "request_port" (Default: 3001): Port to send DataRequests on
-		 * "request_delay_ms" (Default: 10): How long to wait before sending new DataRequests
-		 * "request_shutdown_timeout_us" (Default: 100000 us): How long to wait for pending requests to be sent at shutdown
-		 * "multicast_interface_ip" (Default: "0.0.0.0"): Use this hostname for multicast output (to assign to the proper NIC)
-		 * "request_address" (Default: "227.128.12.26"): Multicast address to send DataRequests to
-		 * "routing_token_config" (Default: Empty table): FHiCL table containing RoutingToken configuration
-		 *   "use_routing_master" (Default: false): Whether to send tokens to a RoutingMaster
-		 *   "routing_token_port" (Default: 35555): Port to send tokens on
-		 *   "routing_master_hostname" (Default: "localhost"): Hostname or IP of RoutingMaster
-		 * \endverbatim
+		 * \param pset ParameterSet used to configured RequestSender. See artdaq::RequestSender::Config
 		 */
 		RequestSender(const fhicl::ParameterSet& pset);
 		/**

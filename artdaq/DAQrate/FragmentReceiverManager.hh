@@ -98,6 +98,8 @@ private:
 
 	std::map<int, boost::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
+	std::unordered_map<int, std::pair<size_t, double>> source_metric_data_;
+	std::unordered_map<int, std::chrono::steady_clock::time_point> source_metric_send_time_;
 	std::set<int> enabled_sources_;
 	std::set<int> running_sources_;
 

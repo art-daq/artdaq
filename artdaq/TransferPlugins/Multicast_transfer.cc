@@ -85,6 +85,7 @@ namespace artdaq
 		/**
 		* \brief Copy a Fragment to the destination. Multicast is always unreliable
 		* \param fragment Fragment to copy
+		* \param send_timeout_usec How long to try to send before discarding data
 		* \return CopyStatus detailing result of copy
 		*/
 		CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec) override;

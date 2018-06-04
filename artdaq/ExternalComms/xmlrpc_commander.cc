@@ -36,11 +36,14 @@
  //#include "artdaq/Application/LoadParameterSet.hh"
 
 namespace {
+	/// <summary>
+	/// Wrapper for XMLRPC environment construction/destruction
+	/// </summary>
 	class env_wrap {
 	public:
 		env_wrap() { xmlrpc_env_init(&this->env_c); };
 		~env_wrap() { xmlrpc_env_clean(&this->env_c); };
-		xmlrpc_env env_c;
+		xmlrpc_env env_c; ///< XMLRPC Environment
 	};
 } // namespace
 static xmlrpc_c::paramList

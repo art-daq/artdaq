@@ -350,7 +350,7 @@ namespace
 		str << "{";
 		while (iter != tmpFrag->dataEnd())
 		{
-			str << std::to_string(*iter) << ", ";
+			str << *iter << ", ";
 			++iter;
 
 		}
@@ -404,7 +404,7 @@ namespace
 		str2 << "{";
 		while (iter2 != h->front().dataEnd())
 		{
-			str2 << std::to_string(*iter2) << ", ";
+			str2 << *iter2 << ", ";
 			++iter2;
 
 		}

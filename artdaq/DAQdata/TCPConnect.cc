@@ -24,6 +24,7 @@
 
 #include <string>
 #include <regex>
+#include <map>
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
@@ -69,6 +70,146 @@ int ResolveHost(char const* host_in, in_addr& addr)
 		addr = *(struct in_addr *)(hostent_sp->h_addr_list[0]);
 	}
 	return 0;
+}
+
+int GetIPOfInterface(std::string interface_name, in_addr& addr)
+{
+	int sts = 0;
+
+	TLOG(TLVL_INFO) << "Finding address for interface " << interface_name;
+
+	bzero((char *)&addr, sizeof(addr));
+
+	struct ifaddrs *ifaddr, *ifa;
+
+	if (getifaddrs(&ifaddr) == -1)
+	{
+		perror("getifaddrs");
+		return -1;
+	}
+
+	/* Walk through linked list, maintaining head pointer so we
+	can free list later */
+
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+	{
+		if (ifa->ifa_addr == NULL)
+			continue;
+
+		/* For an AF_INET* interface address, display the address */
+
+		if (ifa->ifa_addr->sa_family == AF_INET)
+		{
+			auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
+
+			TLOG(15) << "IF: " << ifa->ifa_name << " Desired: " << interface_name << " IP: " << if_addr->sin_addr.s_addr;
+
+			if (std::string(ifa->ifa_name) == interface_name)
+			{
+				TLOG(TLVL_INFO) << "Interface " << ifa->ifa_name << " matches " << interface_name << " IP: " << if_addr->sin_addr.s_addr;
+				memcpy(&addr, &if_addr->sin_addr, sizeof(addr));
+				break;
+			}
+		}
+	}
+	if (ifa == NULL)
+	{
+		TLOG(TLVL_WARNING) << "No matches for if " << interface_name << ", using 0.0.0.0";
+		inet_aton("0.0.0.0", &addr);
+		sts = 2;
+	}
+
+	freeifaddrs(ifaddr);
+
+	return sts;
+}
+
+int AutodetectPrivateInterface(in_addr& addr)
+{
+
+	int sts = 0;
+
+	bzero((char *)&addr, sizeof(addr));
+
+	struct ifaddrs *ifaddr, *ifa;
+
+	enum ip_preference : int {
+		IP_192 = 1,
+		IP_172 = 2,
+		IP_10 = 3,
+		IP_131 =4
+	};
+
+	struct in_addr addr_192, addr_172, addr_10, addr_131, nm_16, nm_12, nm_8;
+	inet_aton("192.168.0.0", &addr_192);
+	inet_aton("172.16.0.0", &addr_172);
+	inet_aton("10.0.0.0", &addr_10);
+	inet_aton("131.225.0.0", &addr_131);
+	inet_aton("255.255.0.0", &nm_16);
+	inet_aton("255.240.0.0", &nm_12);
+	inet_aton("255.0.0.0", &nm_8);
+
+	std::map<ip_preference, in_addr> preference_map;
+
+	if (getifaddrs(&ifaddr) == -1)
+	{
+		perror("getifaddrs");
+		return -1;
+	}
+
+	/* Walk through linked list, maintaining head pointer so we
+	can free list later */
+
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+	{
+		if (ifa->ifa_addr == NULL)
+			continue;
+
+		/* For an AF_INET* interface address, display the address */
+
+		if (ifa->ifa_addr->sa_family == AF_INET)
+		{
+			auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
+
+			TLOG(15) << "IF: " << ifa->ifa_name << " IP: " << if_addr->sin_addr.s_addr;
+
+			if (preference_map.count(IP_192) == 0 && (if_addr->sin_addr.s_addr & nm_16.s_addr) == addr_192.s_addr)
+			{
+				preference_map[IP_192];
+				memcpy(&preference_map[IP_192], &if_addr->sin_addr, sizeof(addr));
+			}
+			else if (preference_map.count(IP_172) == 0 && (if_addr->sin_addr.s_addr & nm_12.s_addr) == addr_172.s_addr)
+			{
+				preference_map[IP_172];
+				memcpy(&preference_map[IP_172], &if_addr->sin_addr, sizeof(addr));
+			}
+			else if (preference_map.count(IP_10) == 0 && (if_addr->sin_addr.s_addr & nm_8.s_addr) == addr_10.s_addr)
+			{
+				preference_map[IP_10];
+				memcpy(&preference_map[IP_10], &if_addr->sin_addr, sizeof(addr));
+			}
+			else if (preference_map.count(IP_131) == 0 && (if_addr->sin_addr.s_addr & nm_16.s_addr) == addr_131.s_addr)
+			{
+				preference_map[IP_131];
+				memcpy(&preference_map[IP_131], &if_addr->sin_addr, sizeof(addr));
+			}
+		}
+	}
+
+	if (preference_map.size() == 0)
+	{
+		TLOG(TLVL_WARNING) << "AutodetectPrivateInterface: No matches, using 0.0.0.0";
+		inet_aton("0.0.0.0", &addr);
+		sts = 2;
+	}
+	else
+	{
+		memcpy(&addr, &preference_map.begin()->second, sizeof(addr));
+	}
+
+	freeifaddrs(ifaddr);
+
+	return sts;
 }
 
 // Return sts, put result in addr
@@ -188,7 +329,7 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 		host = std::string("127.0.0.1");
 		port = dflt_port;
 	}
-	TLOG(TLVL_INFO) << "Resolving host " << host << ", on port " << std::to_string(port);
+	TLOG(TLVL_INFO) << "Resolving host " << host << ", on port " << port;
 
 	if (host == "localhost") host = "127.0.0.1";
 
@@ -213,9 +354,9 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 // return connection fd.
 // 
 int TCPConnect(char const* host_in
-			   , int dflt_port
-			   , long flags
-			   , int sndbufsiz)
+	, int dflt_port
+	, long flags
+	, int sndbufsiz)
 {
 	int s_fd, sts;
 	struct sockaddr_in sin;
@@ -264,7 +405,7 @@ int TCPConnect(char const* host_in
 		len = 0;
 		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
 		if (len < (sndbufsiz * 2))
-			TLOG(TLVL_WARNING) << "SNDBUF " << len << " not expected (" << sndbufsiz << " sts/errno=" << sts << "/" << errno;
+			TLOG(TLVL_WARNING) << "SNDBUF " << len << " not expected (" << sndbufsiz << " sts/errno=" << sts << "/" << errno << ")";
 		else
 			TLOG(TLVL_DEBUG) << "SNDBUF " << len << " sts/errno=" << sts << "/" << errno;
 	}

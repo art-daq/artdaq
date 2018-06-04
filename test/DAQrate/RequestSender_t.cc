@@ -15,11 +15,11 @@ BOOST_AUTO_TEST_SUITE(RequestSender_test)
 
 #define TRACE_REQUIRE_EQUAL(l,r) do { \
 if(l == r) { \
-TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << std::to_string(l) << ") equals " << #r << " (" << std::to_string(r) << ")...YES!" ; \
+TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!" ; \
 } \
 else \
 { \
-	TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << std::to_string(l) << ") equals " << #r << " (" << std::to_string(r) << ")...NO!" ; \
+	TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!" ; \
 } \
   BOOST_REQUIRE_EQUAL(l, r); \
 } while(0)
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind(request_socket, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
-		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << std::to_string(REQUEST_PORT) ;
+		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << REQUEST_PORT ;
 		BOOST_REQUIRE_EQUAL(true, false);
 		return;
 	}

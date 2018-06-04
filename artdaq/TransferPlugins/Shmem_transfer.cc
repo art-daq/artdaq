@@ -91,7 +91,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 		if (fragment.type() != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG(8) << GetTraceName() << ": Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << std::to_string(fragment.sequenceID()) << ", source_rank=" << source_rank() ;
+			TLOG(8) << GetTraceName() << ": Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << fragment.sequenceID() << ", source_rank=" << source_rank() ;
 		}
 
 		return source_rank();
@@ -135,7 +135,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG(8) << GetTraceName() << ": Recvd fragment header from shmem, type=" << (int)header.type << ", sequenceID=" << std::to_string(header.sequence_id) << ", source_rank=" << source_rank() ;
+			TLOG(8) << GetTraceName() << ": Recvd fragment header from shmem, type=" << (int)header.type << ", sequenceID=" << header.sequence_id << ", source_rank=" << source_rank() ;
 		}
 
 		return source_rank();
@@ -182,7 +182,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	shm_manager_->SetRank(my_rank);
 	// wait for the shm to become free, if requested     
 
-	TLOG(5) << GetTraceName() << ": Sending fragment with seqID=" << std::to_string(fragment.sequenceID()) ;
+	TLOG(5) << GetTraceName() << ": Sending fragment with seqID=" << fragment.sequenceID() ;
 	artdaq::RawDataType* fragAddr = fragment.headerAddress();
 	size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 
@@ -190,20 +190,20 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	// invalid events (and large, invalid events)                                            
 	if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
 	{
-		TLOG(5) << GetTraceName() << ": Writing fragment with seqID=" << std::to_string(fragment.sequenceID());
+		TLOG(5) << GetTraceName() << ": Writing fragment with seqID=" << fragment.sequenceID();
 		auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode, send_timeout_usec);
 		if (sts == -3)
 		{
-			TLOG(TLVL_WARNING) << GetTraceName() << ": Timeout writing fragment with seqID=" << std::to_string(fragment.sequenceID());
+			TLOG(TLVL_WARNING) << GetTraceName() << ": Timeout writing fragment with seqID=" << fragment.sequenceID();
 			return CopyStatus::kTimeout;
 		}
 		if (sts != 0)
 		{
-			TLOG(TLVL_WARNING) << GetTraceName() << ": Error writing fragment with seqID=" << std::to_string(fragment.sequenceID());
+			TLOG(TLVL_WARNING) << GetTraceName() << ": Error writing fragment with seqID=" << fragment.sequenceID();
 			return CopyStatus::kErrorNotRequiringException;
 		}
 
-		TLOG(5) << GetTraceName() << ": Successfully sent Fragment with seqID=" << std::to_string(fragment.sequenceID());
+		TLOG(5) << GetTraceName() << ": Successfully sent Fragment with seqID=" << fragment.sequenceID();
 		return CopyStatus::kSuccess;
 	}
 	else

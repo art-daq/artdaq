@@ -27,7 +27,8 @@ struct MessHead
 		data_v0,
 		data_more_v0,
 		stop_v0,
-		routing_v0
+		routing_v0,
+		ack_v0
 	};
 
 	MessType message_type; ///< Message Type
@@ -44,4 +45,5 @@ struct MessHead
  * \brief Magic Bytes to put in header
  */
 #define CONN_MAGIC 0xcafefeca
+#define ACK_MAGIC 0xbeeffeed
 #endif // SRSockets_hh

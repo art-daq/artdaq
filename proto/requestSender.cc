@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 				auto reqs = receiver->GetRequests();
 				if (reqs.count(seq))
 				{
-					TLOG(TLVL_INFO) << "Received Request for Sequence ID " << std::to_string(seq) << ", timestamp " << std::to_string(reqs[seq]);
+					TLOG(TLVL_INFO) << "Received Request for Sequence ID " << seq << ", timestamp " << reqs[seq];
 					receiver->RemoveRequest(seq);
 					sender.RemoveRequest(seq);
 					recvd = true;
