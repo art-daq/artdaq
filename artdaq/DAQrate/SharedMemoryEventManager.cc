@@ -636,11 +636,12 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	{
 		MarkBufferEmpty(ii, true);
 	}
-	TLOG(TLVL_TRACE) << "endOfData: Clearing broadcast buffers";
-	for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
-	{
-		broadcasts_.MarkBufferEmpty(ii, true);
-	}
+	// ELF 06/04/2018: Cannot clear broadcasts here, we want the EndOfDataFragment to persist until it's time to start art again...
+	// TLOG(TLVL_TRACE) << "endOfData: Clearing broadcast buffers";
+	// for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
+	// {
+	// 	broadcasts_.MarkBufferEmpty(ii, true);
+	// }
 	released_incomplete_events_.clear();
 
 	TLOG(TLVL_TRACE) << "endOfData: Shutting down RequestReceiver";
@@ -656,6 +657,11 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
 	running_ = true;
 	init_fragment_.reset(nullptr);
+	TLOG(TLVL_TRACE) << "startRun: Clearing broadcast buffers";
+	for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
+	{
+		broadcasts_.MarkBufferEmpty(ii, true);
+	}
 	StartArt();
 	run_id_ = runID;
 	subrun_id_ = 1;
