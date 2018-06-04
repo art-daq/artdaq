@@ -190,6 +190,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (ret >= 0) {
 				TLOG(TLVL_WARNING) << "Received Fragment from rank " << ret << ", but was expecting one from rank " << source_rank << "!";
 			}
+			else if(ret == TransferInterface::DATA_END)
+			  {
+				TLOG(TLVL_ERROR) << "Transfer Plugin returned DATA_END, ending receive loop!";
+				break;
+			  }
 			continue; // Receive timeout or other oddness
 		}
 

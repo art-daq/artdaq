@@ -18,13 +18,22 @@ namespace artdaq
 	class TransferInterface
 	{
 	public:
+		/// <summary>
+		/// Configuration of the TransferInterface. May be used for parameter validation
+		/// </summary>
 		struct Config
 		{
+			/// "source_rank" (Default: my_rank) : The rank that data is coming from
 			fhicl::Atom<int> source_rank{ fhicl::Name{"source_rank"}, fhicl::Comment{"The rank that data is coming from"}, my_rank };
+			/// "destination_rank" (Default: my_rank) : The rank that data is going to
 			fhicl::Atom<int> destination_rank{ fhicl::Name{ "destination_rank"}, fhicl::Comment{"The rank that data is going to"}, my_rank };
+			/// "unique_label" (Default: "transfer_between_[source_rank]_and_[destination_rank]") : A label that uniquely identifies the TransferInterface instance
 			fhicl::Atom<std::string> unique_label{ fhicl::Name{"unique_label"}, fhicl::Comment{"A label that uniquely identifies the TransferInterface instance"},"transfer_between_[source_rank]_and_[destination_rank]" };
+			/// "buffer_count" (Default: 10) : How many Fragments can the TransferInterface handle simultaneously
 			fhicl::Atom<size_t>	buffer_count{ fhicl::Name{"buffer_count"}, fhicl::Comment{"How many Fragments can the TransferInterface handle simultaneously"},10 };
+			/// "max_fragment_size_words" (Default: 1024) : The maximum Fragment size expected.May be used for static memory allocation, and will cause errors if larger Fragments are sent.
 			fhicl::Atom<size_t> max_fragment_size{ fhicl::Name{"max_fragment_size_words" }, fhicl::Comment{ "The maximum Fragment size expected.May be used for static memory allocation, and will cause errors if larger Fragments are sent." }, 1024 };
+			/// "partition_number" (Default: 0) : Partition that this TransferInterface is a part of
 			fhicl::Atom<short> partition_number{ fhicl::Name{"partition_number"},fhicl::Comment{"Partition that this TransferInterface is a part of"}, 0 };
 
 		};
@@ -32,7 +41,10 @@ namespace artdaq
 		using Parameters = fhicl::WrappedTable<Config>;
 #endif
 
-		enum : int
+		/// <summary>
+		/// Return codes from receive operations
+		/// </summary>
+		enum ReceiveReturnCode : int
 		{
 			DATA_END = -2222,///< Value that is to be returned when a Transfer plugin determines that no more data will be arriving.
 			RECV_TIMEOUT = -1111, ///< Value to be returned upon receive timeout.
@@ -59,6 +71,11 @@ namespace artdaq
 			kErrorNotRequiringException ///< Some error occurred, but no exception was thrown
 		};
 
+		/// <summary>
+		/// Convert a CopyStatus variable to its string represenatation
+		/// </summary>
+		/// <param name="in">CopyStatus to convert</param>
+		/// <returns>String representation of CopyStatus</returns>
 		static std::string CopyStatusToString(CopyStatus in)
 		{
 			switch (in)
@@ -73,19 +90,8 @@ namespace artdaq
 
 		/**
 		 * \brief TransferInterface Constructor
-		 * \param ps ParameterSet used for configuring the TransferInterface
+		 * \param ps ParameterSet used for configuring the TransferInterface. See artdaq::TransferInterface::Config
 		 * \param role Role of the TransferInterface (See TransferInterface::Role)
-		 *
-		 * \verbatim
-		 * TransferInterface accepts the following Parameters:
-		 * "source_rank" (Default: my_rank): The rank that data is coming from
-		 * "destination_rank" (Default: my_rank): The rank that data is going to
-		 * "unique_label" (Default: "transfer_between_[source_rank]_and_[destination_rank]"): A label that uniquely identifies the TransferInterface instance
-		 * "buffer_count" (Default: 10): How many Fragments can the TransferInterface handle simultaneously
-		 * "max_fragment_size_words" (Default: 1024): The maximum Fragment size expected. May be used for static memory allocation, and will cause errors
-		 * if larger Fragments are sent.
-		 * "partition_number" (Default: 0): Partition that this TransferInterface is a part of
-		 * \endverbatim
 		 */
 		TransferInterface(const fhicl::ParameterSet& ps, Role role);
 
@@ -172,19 +178,16 @@ namespace artdaq
 		virtual bool isRunning() { return false; }
 
 
-
-		/**
-		 * \brief Constructs a name suitable for TRACE messages
-		 * \return The unique_label and a SEND/RECV identifier
-		 */
+		/** \cond */
 		#define GetTraceName() unique_label_ << (role_ == Role::kSend ? "_SEND" : "_RECV")
+		 /** \endcond */
 
 	protected:
-		const Role role_;
+		const Role role_; ///< Whether this instance of TransferInterface is a sender or receiver
 
-		const int source_rank_;
-		const int destination_rank_;
-		const std::string unique_label_;
+		const int source_rank_; ///< Rank of source
+		const int destination_rank_; ///< Rank of destination
+		const std::string unique_label_; ///< Unique label of transfer (ideally the same on sender and receiver)
 
 		size_t buffer_count_; ///< The number of Fragment transfers the TransferInterface can handle simultaneously
 		const size_t max_fragment_size_words_; ///< The maximum size of the transferred Fragment objects, in artdaq::Fragment::RawDataType words
@@ -199,16 +202,19 @@ namespace artdaq
 	};
 }
 
+/** \cond */
+
 #ifndef EXTERN_C_FUNC_DECLARE_START
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 
 #define DEFINE_ARTDAQ_TRANSFER(klass)                                \
   EXTERN_C_FUNC_DECLARE_START                                      \
-std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const & ps, \
-								 artdaq::TransferInterface::Role role) { \
+std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const & ps, artdaq::TransferInterface::Role role) { \
 	return std::unique_ptr<artdaq::TransferInterface>(new klass(ps, role)); \
 }}
+
+/** \endcond */
 
 
 #endif /* artdaq_ArtModules_TransferInterface.hh */

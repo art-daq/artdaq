@@ -251,25 +251,35 @@ public:
 	virtual void InRunExit();
 
 	/**
-	* \brief Get the TRACE mask for the given trace name
+	* \brief Get the TRACE mask for the given TRACE name
+	* If name is "ALL", then all TRACE masks will be printed
 	*
 	* This function is implemented in Commandable, derived classes may override if necessary.
+	* \param name TRACE name to print mask for. "ALL" prints all TRACE masks
+	* \return TRACE mask of the given TRACE name
 	*/
-	virtual std::string do_trace_get(std::string const&);
+	virtual std::string do_trace_get(std::string const& name);
 
 	/**
-	* \brief Set the given TRACE mask for the given trace name
+	* \brief Set the given TRACE mask for the given TRACE name
 	*
 	* This function is implemented in Commandable, derived classes may override if necessary.
+	* \param type Type of TRACE mask to set (either M, S, or T)
+	* \param name Name of the TRACE level to set mask for
+	* \param mask Mask to set
+	* \return Whether the command succeeded (always true)
 	*/
-	virtual bool do_trace_set(std::string const&, std::string const&, uint64_t);
+	virtual bool do_trace_set(std::string const& type, std::string const& name, uint64_t mask);
 
 	/**
 	* \brief Run a module-defined command with the given parameter string
 	*
 	* This function is a No-Op. Derived classes should override it.
+	* \param command Name of the command to run (implementation-defined)
+	* \param args Any arguments for the command (implementation-defined)
+	* \return Whether the command succeeded (always true)
 	*/
-	virtual bool do_meta_command(std::string const&, std::string const&);
+	virtual bool do_meta_command(std::string const& command, std::string const& args);
 
 protected:
 	/**

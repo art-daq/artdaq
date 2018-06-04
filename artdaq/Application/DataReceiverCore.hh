@@ -115,6 +115,7 @@ public:
 	/**
 	* \brief Rollover the subrun after the given event
 	* \param eventNum Sequence ID of boundary
+	* \return True event_store_ptr is valid
 	*/
 	bool rollover_subrun(uint64_t eventNum);
 	

@@ -36,9 +36,8 @@ namespace artdaq
 		static std::string app_name_; ///< The name of the current application, to be used in logging and metrics
 		static int partition_number_; ///< The partition number of the current application
 
-		// MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
-		static std::string mftrace_module_;
-		static std::string mftrace_iteration_;
+		static std::string mftrace_module_; ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
+		static std::string mftrace_iteration_; ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
 
 		/**
 		 * \brief Seed the C random number generator with the current time (if that has not been done already) and generate a random value

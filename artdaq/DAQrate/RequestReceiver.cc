@@ -116,13 +116,13 @@ void artdaq::RequestReceiver::setupRequestListener()
 
 artdaq::RequestReceiver::~RequestReceiver()
 {
-	stopRequestReceiverThread();
+	stopRequestReceiverThread(true);
 }
 
-void artdaq::RequestReceiver::stopRequestReceiverThread()
+void artdaq::RequestReceiver::stopRequestReceiverThread(bool force)
 {
 	std::unique_lock<std::mutex> lk(state_mutex_);
-	if (!request_received_)
+	if (!request_received_ && !force)
 	{
 		TLOG(TLVL_ERROR) << "Stop request received by RequestReceiver, but no requests have ever been received." << std::endl
 			<< "Check that UDP port " << request_port_ << " is open in the firewall config.";
@@ -130,7 +130,12 @@ void artdaq::RequestReceiver::stopRequestReceiverThread()
 	should_stop_ = true;
 	TLOG(TLVL_DEBUG) << "Joining requestThread";
 	if (requestThread_.joinable()) requestThread_.join();
-	while (running_) usleep(10000);
+	bool once = true;
+	while (running_) {
+		if (once) TLOG(TLVL_ERROR) << "running_ is true after thread join! Should NOT happen";
+		once = false;
+		usleep(10000);
+	}
 
 	if (request_socket_ != -1)
 	{
@@ -179,7 +184,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		// Continue loop if no message received or message does not have correct event ID
 		if (rv <= 0 || (ufds[0].revents != POLLIN && ufds[0].revents != POLLPRI))
 		{
-			if (rv == 1 && (ufds[0].revents == POLLNVAL || ufds[0].revents == POLLERR))
+			if (rv == 1 && (ufds[0].revents & (POLLNVAL | POLLERR | POLLHUP)))
 			{
 				close(request_socket_);
 				request_socket_ = -1;

@@ -156,6 +156,10 @@ public:
 	 */
 	static DataSenderManager* GetDataSenderManagerPtr() { return sender_ptr_.get(); }
 
+	/// <summary>
+	/// Get the number of Fragments processed this run
+	/// </summary>
+	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 private:
 	Commandable& parent_application_;

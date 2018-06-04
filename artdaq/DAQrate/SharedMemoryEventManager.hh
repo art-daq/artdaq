@@ -31,7 +31,7 @@ namespace artdaq {
 			: dir_name_("/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()))
 			, file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 		{
-			mkdir(dir_name_.c_str(), S_IRWXU); // Allowed to fail if directory already exists
+			mkdir(dir_name_.c_str(), 0777); // Allowed to fail if directory already exists
 
 			std::ofstream of(file_name_, std::ofstream::trunc);
 			of << ps.to_string();
@@ -77,33 +77,65 @@ namespace artdaq {
 		typedef Fragment::sequence_id_t sequence_id_t; ///< Copy Fragment::sequence_id_t into local scope
 		typedef std::map<sequence_id_t, RawEvent_ptr> EventMap; ///< An EventMap is a map of RawEvent_ptr objects, keyed by sequence ID
 
+		/// <summary>
+		/// Configuration of the SharedMemoryEventManager. May be used for parameter validation
+		/// </summary>
 		struct Config
 		{
+			/// "max_event_size_bytes" REQUIRED: Maximum event size(all Fragments), in bytes
+			/// Either max_fragment_size_bytes or max_event_size_bytes must be specified
 			fhicl::Atom<size_t> max_event_size_bytes{ fhicl::Name{ "max_event_size_bytes"}, fhicl::Comment{"Maximum event size (all Fragments), in bytes"} };
+			/// "stale_buffer_timeout_usec" (Default: event_queue_wait_time * 1, 000, 000) : Maximum amount of time elapsed before a buffer is marked as abandoned.Time is reset each time an operation is performed on the buffer.
 			fhicl::Atom<size_t> stale_buffer_timeout_usec{ fhicl::Name{ "stale_buffer_timeout_usec"}, fhicl::Comment{"Maximum amount of time elapsed before a buffer is marked as abandoned. Time is reset each time an operation is performed on the buffer."}, 5000000 };
+			/// "overwite_mode" (Default: false): Whether new data is allowed to overwrite buffers in the "Full" state
 			fhicl::Atom<bool> overwrite_mode{ fhicl::Name{ "overwrite_mode"}, fhicl::Comment{"Whether buffers are allowed to be overwritten when safe (state == Full or Reading)"}, false };
+			/// "restart_crashed_art_processes" (Default: true) : Whether to automatically restart art processes that fail for any reason
 			fhicl::Atom<bool> restart_crashed_art_processes{ fhicl::Name{"restart_crashed_art_processes"}, fhicl::Comment{"Whether to automatically restart art processes that fail for any reason"}, true };
+			/// "shared_memory_key" (Default 0xBEE70000 + PID) : Key to use for shared memory access
 			fhicl::Atom<uint32_t> shared_memory_key{ fhicl::Name{ "shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid() };
+			/// "buffer_count" REQUIRED: Number of events in the Shared Memory(incomplete + pending art)
 			fhicl::Atom<size_t> buffer_count{ fhicl::Name{ "buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"} };
+			/// "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
+			/// Either max_fragment_size_bytes or max_event_size_bytes must be specified
 			fhicl::Atom<size_t> max_fragment_size_bytes{ fhicl::Name{ "max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"} };
+			/// "event_queue_wait_time" (Default: 5) : Amount of time(in seconds) an event can exist in shared memory before being released to art.Used as input to default parameter of "stale_buffer_timeout_usec".
 			fhicl::Atom<size_t> event_queue_wait_time{ fhicl::Name{ "event_queue_wait_time"}, fhicl::Comment{"Amount of time (in seconds) an event can exist in shared memory before being released to art. Used as input to default parameter of \"stale_buffer_timeout_usec\"."}, 5 };
+			/// "broadcast_mode" (Default: false) : When true, buffers are not marked Empty when read, but return to Full state.Buffers are overwritten in order received.
 			fhicl::Atom<bool> broadcast_mode{ fhicl::Name{ "broadcast_mode"}, fhicl::Comment{"When true, buffers are not marked Empty when read, but return to Full state. Buffers are overwritten in order received."}, false };
+			/// "art_analyzer_count" (Default: 1) : Number of art procceses to start
 			fhicl::Atom<size_t> art_analyzer_count{ fhicl::Name{ "art_analyzer_count"}, fhicl::Comment{"Number of art procceses to start"}, 1 };
+			/// "expected_fragments_per_event" (REQUIRED) : Number of Fragments to expect per event
 			fhicl::Atom<size_t> expected_fragments_per_event{ fhicl::Name{ "expected_fragments_per_event"}, fhicl::Comment{"Number of Fragments to expect per event"} };
+			/// "maximum_oversize_fragment_count" (Default: 1): Maximum number of over-size Fragments to drop before throwing an exception. Default is 1, which means to throw an exception if any over-size Fragments are dropped. Set to 0 to disable.
+			fhicl::Atom<int> maximum_oversize_fragment_count{ fhicl::Name{"maximum_oversize_fragment_count"}, fhicl::Comment{"Maximum number of over-size Fragments to drop before throwing an exception.  Default is 1, which means to throw an exception if any over-size Fragments are dropped. Set to 0 to disable."},1 };
+			/// "update_run_ids_on_new_fragment" (Default: true) : Whether the run and subrun ID of an event should be updated whenever a Fragment is added.
 			fhicl::Atom<bool> update_run_ids_on_new_fragment{ fhicl::Name{ "update_run_ids_on_new_fragment"}, fhicl::Comment{"Whether the run and subrun ID of an event should be updated whenever a Fragment is added."}, true };
+			/// "use_sequence_id_for_event_number" (Default: true): Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers
 			fhicl::Atom<bool> use_sequence_id_for_event_number{ fhicl::Name{"use_sequence_id_for_event_number"}, fhicl::Comment{"Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers"}, true };
+			/// "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 			fhicl::Atom<bool> send_init_fragments{ fhicl::Name{ "send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true };
+			/// "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
 			fhicl::Atom<int> incomplete_event_report_interval_ms{ fhicl::Name{ "incomplete_event_report_interval_ms"}, fhicl::Comment{"Interval at which an incomplete event report should be written"}, -1 };
+			/// "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
+		    /// A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 			fhicl::Atom<int> fragment_broadcast_timeout_ms{ fhicl::Name{ "fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000 };
+			/// "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
 			fhicl::Atom<double> minimum_art_lifetime_s{ fhicl::Name{ "minimum_art_lifetime_s"}, fhicl::Comment{"Amount of time that an art process should run to not be considered \"DOA\""}, 2.0 };
+			/// "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers.
+			///																 (TUNING: Should be slightly longer than the mean art processing time, but not so long that the Stop transition times out)
 			fhicl::Atom<size_t> expected_art_event_processing_time_us{ fhicl::Name{ "expected_art_event_processing_time_us"}, fhicl::Comment{"During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers."}, 100000 };
+			/// "broadcast_shared_memory_key" (Default: 0xCEE7000 + PID): Key to use for broadcast shared memory access
 			fhicl::Atom<uint32_t> broadcast_shared_memory_key{ fhicl::Name{ "broadcast_shared_memory_key"}, fhicl::Comment{""}, 0xCEE70000 + getpid() };
+			/// "broadcast_buffer_count" (Default: 10): Buffers in the broadcast shared memory segment
 			fhicl::Atom<size_t> broadcast_buffer_count{ fhicl::Name{ "broadcast_buffer_count"}, fhicl::Comment{"Buffers in the broadcast shared memory segment"}, 10 };
+			/// "broadcast_buffer_size" (Default: 0x100000): Size of the buffers in the broadcast shared memory segment
 			fhicl::Atom<size_t> broadcast_buffer_size{ fhicl::Name{ "broadcast_buffer_size"}, fhicl::Comment{"Size of the buffers in the broadcast shared memory segment"}, 0x100000 };
+			/// "use_art" (Default: true): Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)
 			fhicl::Atom<bool> use_art{ fhicl::Name{ "use_art"}, fhicl::Comment{"Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)"}, true };
+			/// "manual_art" (Default: false): Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind
 			fhicl::Atom<bool> manual_art{ fhicl::Name{"manual_art"}, fhicl::Comment{"Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind"}, false };
 
-			fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;
+			fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig; ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
@@ -111,38 +143,8 @@ namespace artdaq {
 
 		/**
 		 * \brief SharedMemoryEventManager Constructor
-		 * \param pset ParameterSet used to configure SharedMemoryEventManager
-		 * \param art_pset ParameterSet used to configure art
-		 *
-		 * \verbatim
-		 * SharedMemoryEventManager accepts the following Parameters:
-		 *
-		 * "shared_memory_key" (Default 0xBEE70000 + PID): Key to use for shared memory access
-		 * "buffer_count" REQUIRED: Number of events in the Shared Memory (incomplete + pending art)
-		 * "max_event_size_bytes" REQUIRED: Maximum event size (all Fragments), in bytes
-		 *  OR "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
-		 * "stale_buffer_timeout_usec" (Default: event_queue_wait_time * 1,000,000): Maximum amount of time elapsed before a buffer is marked as abandoned. Time is reset each time an operation is performed on the buffer.
-		 * "event_queue_wait_time" (Default: 5): Amount of time (in seconds) an event can exist in shared memory before being released to art. Used as input to default parameter of "stale_buffer_timeout_usec".
-		 * "restart_crashed_art_processes" (Default: true): Whether to automatically restart art processes that fail for any reason
-		 * "broadcast_mode" (Default: false): When true, buffers are not marked Empty when read, but return to Full state. Buffers are overwritten in order received.
-		 * "art_analyzer_count" (Default: 1): Number of art procceses to start
-		 * "expected_fragments_per_event" (REQUIRED): Number of Fragments to expect per event
-		 * "update_run_ids_on_new_fragment" (Default: true): Whether the run and subrun ID of an event should be updated whenever a Fragment is added.
-		 * "use_sequence_id_for_event_number" (Default: true): Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers
-		 * "use_art" (Default: true): Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)
-		 * "overwite_mode" (Default: false): Whether new data is allowed to overwrite buffers in the "Full" state
-		 * "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
-		 * "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
-		 * A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
-		 * "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
-		 * "broadcast_shared_memory_key" (Default: 0xCEE7000 + PID): Key to use for broadcast shared memory access
-		 * "broadcast_buffer_count" (Default: 10): Buffers in the broadcast shared memory segment
-		 * "broadcast_buffer_size" (Default: 0x100000): Size of the buffers in the broadcast shared memory segment
-		 * "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
-		 * "manual_art" (Default: false): Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind
-		 * "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers.
-																		 (TUNING: Should be slightly longer than the mean art processing time, but not so long that the Stop transition times out)
-		 * \endverbatim
+		 * \param pset ParameterSet used to configure SharedMemoryEventManager. See artdaq::SharedMemoryEventManager::Config for description of parameters
+		 * \param art_pset ParameterSet used to configure art. See art::Config for description of expected document format
 		 */
 		SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
 		/**
@@ -371,6 +373,8 @@ namespace artdaq {
 		std::atomic<int> run_incomplete_event_count_;
 		std::atomic<int> subrun_event_count_;
 		std::atomic<int> subrun_incomplete_event_count_;
+		std::atomic<int> oversize_fragment_count_;
+		int maximum_oversize_fragment_count_;
 
 		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
@@ -399,7 +403,7 @@ namespace artdaq {
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;
-		};
-	}
+	};
+}
 
 #endif //ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH

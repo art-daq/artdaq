@@ -43,6 +43,13 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	try
 	{
 		evb_pset = daq_pset.get<fhicl::ParameterSet>("event_builder");
+
+		// We are going to change the default from true to false for the "send_init_fragments" parameter
+		// EventBuilders almost always do NOT receive init Fragments from upstream to send to art
+		if (!evb_pset.has_key("send_init_fragments"))
+		{
+			evb_pset.put<bool>("send_init_fragments", false);
+		}
 	}
 	catch (...)
 	{
