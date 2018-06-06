@@ -34,7 +34,7 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 	{
 		for (auto& s : enabled_srcs)
 		{
-			enabled_sources_.insert(s);
+			enabled_sources_[s] = true;
 		}
 	}
 
@@ -46,7 +46,9 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s,
 																				  TransferInterface::Role::kReceive));
 			auto source_rank = transfer->source_rank();
-			if (enabled_srcs_empty) enabled_sources_.insert(source_rank);
+			if (enabled_srcs_empty) enabled_sources_[source_rank] = true;
+			else if (!enabled_sources_.count(source_rank)) enabled_sources_[source_rank] = false;
+			running_sources_[source_rank] = false;
 			source_plugins_[source_rank] = std::move(transfer);
 			fragment_store_[source_rank];
 			source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
@@ -135,6 +137,7 @@ void artdaq::FragmentReceiverManager::start_threads()
 		auto& rank = source.first;
 		if (enabled_sources_.count(rank))
 		{
+			running_sources_[rank] = true;
 			source_threads_[rank] = boost::thread(&FragmentReceiverManager::runReceiver_, this, rank);
 		}
 	}
@@ -158,7 +161,7 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 		}
 		waited += wait_amount;
 		ready = fragments_ready_();
-		if (running_sources_.size() == 0) break;
+		if (running_sources().size() == 0) break;
 	}
 	TLOG(5) << "recvFragment fragment_ready_=" << ready << " after waited=" <<  waited ;
 	if (!ready)
@@ -178,9 +181,28 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 	return current_fragment;
 }
 
+std::set<int> artdaq::FragmentReceiverManager::running_sources() const
+{
+	std::set<int> output;
+	for (auto& src : running_sources_)
+	{
+		if (src.second) output.insert(src.first);
+	}
+	return output;
+}
+
+std::set<int> artdaq::FragmentReceiverManager::enabled_sources() const
+{
+	std::set<int> output;
+	for (auto& src : enabled_sources_)
+	{
+		if (src.second) output.insert(src.first);
+	}
+	return output;
+}
+
 void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 {
-	running_sources_.insert(source_rank);
 	while (!stop_requested_ && enabled_sources_.count(source_rank))
 	{
 		TLOG(16) << "runReceiver_ "<< source_rank << ": Begin loop" ;
@@ -198,14 +220,14 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		}
 		if (stop_requested_)
 		{
-			running_sources_.erase(source_rank);
+			running_sources_[source_rank] = false;
 			return;
 		}
 
 		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank) && !source_plugins_[source_rank]->isRunning())
 		{
 			TLOG(TLVL_DEBUG) << "runReceiver_: EndOfData conditions satisfied, ending receive loop";
-			running_sources_.erase(source_rank);
+			running_sources_[source_rank] = false;
 			return;
 		}
 
@@ -274,5 +296,5 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 	}
 
-	running_sources_.erase(source_rank);
+	running_sources_[source_rank] = false;
 }

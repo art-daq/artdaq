@@ -85,7 +85,13 @@ public:
 	 * \brief Get the list of enabled sources
 	 * \return The list of enabled sources
 	 */
-	std::set<int> enabled_sources() const { return enabled_sources_; }
+	std::set<int> enabled_sources() const;
+
+	/**
+	* \brief Get the list of sources which are still receiving data
+	* \return std::set containing ranks of sources which are still receiving data
+	*/
+	std::set<int> running_sources() const;
 
 private:
 	void runReceiver_(int);
@@ -100,8 +106,8 @@ private:
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 	std::unordered_map<int, std::pair<size_t, double>> source_metric_data_;
 	std::unordered_map<int, std::chrono::steady_clock::time_point> source_metric_send_time_;
-	std::set<int> enabled_sources_;
-	std::set<int> running_sources_;
+	std::unordered_map<int, std::atomic<bool>> enabled_sources_;
+	std::unordered_map<int, std::atomic<bool>> running_sources_;
 
 	std::map<int, FragmentStoreElement> fragment_store_;
 
