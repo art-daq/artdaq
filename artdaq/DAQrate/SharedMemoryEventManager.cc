@@ -303,10 +303,10 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 1) != 0)
 				{
 					TLOG(TLVL_ERROR) << "Error setting environment variable \"" << envVarKey
-					                 << "\" in the environment of a child art process. "
-					                 << "This may result in incorrect TCP port number "
-					                 << "assignments or other issues, and data may "
-					                 << "not flow through the system correctly.";
+						<< "\" in the environment of a child art process. "
+						<< "This may result in incorrect TCP port number "
+						<< "assignments or other issues, and data may "
+						<< "not flow through the system correctly.";
 				}
 
 				execvp("art", &args[0]);
@@ -1017,7 +1017,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		eventSize += BufferDataSize(buf);
 		pending_buffers_.erase(buf);
 	}
-	eventSize /= counter;
+	if (counter > 0)	eventSize /= counter;
 
 	TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
 	if (metricMan)
@@ -1028,7 +1028,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		metricMan->sendMetric("Incomplete Events Released to art this run", run_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Events Released to art this subrun", subrun_event_count_, "Events", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Incomplete Events Released to art this subrun", subrun_incomplete_event_count_, "Events", 2, MetricMode::LastPoint);
-		metricMan->sendMetric("Event Size", eventSize, "Bytes", 1, MetricMode::Average);
+		if (eventSize > 0)		metricMan->sendMetric("Event Size", eventSize, "Bytes", 1, MetricMode::Average);
 
 		if (TimeUtils::GetElapsedTimeMilliseconds(last_shmem_buffer_metric_update_) > 500) // Limit to 2 Hz updates
 		{
