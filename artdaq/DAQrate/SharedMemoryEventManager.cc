@@ -959,7 +959,10 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		eventSize += BufferDataSize(buf);
 		pending_buffers_.erase(buf);
 	}
-	eventSize /= counter;
+
+	if (counter > 0) {
+	  eventSize /= counter;
+	}
 
 	TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
 	if (metricMan)
@@ -973,7 +976,9 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		metricMan->sendMetric("Incomplete Events Released to art (run)", run_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Events Released to art (subrun)", subrun_event_count_, "Events", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Incomplete Events Released to art (subrun)", subrun_incomplete_event_count_, "Events", 2, MetricMode::LastPoint);
-		metricMan->sendMetric("Event Size", eventSize, "Bytes", 1, MetricMode::Average);
+		if (eventSize > 0) {
+		  metricMan->sendMetric("Event Size", eventSize, "Bytes", 1, MetricMode::Average);
+		}
 
 		metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
