@@ -978,6 +978,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		metricMan->sendMetric("Incomplete Events Released to art (subrun)", subrun_incomplete_event_count_, "Events", 2, MetricMode::LastPoint);
 		if (eventSize > 0) {
 		  metricMan->sendMetric("Event Size", eventSize, "Bytes", 1, MetricMode::Average);
+		  metricMan->sendMetric("Average Event Size", eventSize, "Bytes", 1, MetricMode::Average);
 		}
 
 		metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
