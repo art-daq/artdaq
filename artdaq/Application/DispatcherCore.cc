@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <bitset>
 
+#include <signal.h>
+
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -91,6 +93,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 {
 	TLOG(TLVL_DEBUG) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"" ;
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+	check_filters_();
 	
 	try
 	{
@@ -160,6 +163,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 {
 	TLOG(TLVL_DEBUG) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"" ;
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+	check_filters_();
 
 	try
 	{
@@ -359,4 +363,28 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 
 	TLOG(TLVL_DEBUG) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string() ;
 	return generated_pset;
+}
+
+void artdaq::DispatcherCore::check_filters_()
+{
+	auto it = registered_monitors_.begin();
+	while (it != registered_monitors_.end())
+	{
+		if (!event_store_ptr_) 
+		{
+			registered_monitor_pids_.erase(it->first);
+			it = registered_monitors_.erase(it);
+		}
+		else 
+		{
+			auto pid = registered_monitor_pids_[it->first];
+			auto sts = kill(pid, 0);
+			if (sts < 0) {
+				registered_monitor_pids_.erase(it->first);
+				it = registered_monitors_.erase(it);
+				continue;
+			}
+		}
+		++it;
+	}
 }

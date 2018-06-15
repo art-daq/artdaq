@@ -92,6 +92,7 @@ public:
 private:
 	fhicl::ParameterSet generate_filter_fhicl_(); 
 	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet skel, std::string label, fhicl::ParameterSet pset);
+	void check_filters_();
 
 	std::mutex dispatcher_transfers_mutex_;
 	std::unordered_map<std::string, fhicl::ParameterSet> registered_monitors_;
