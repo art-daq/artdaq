@@ -101,7 +101,7 @@ bool artdaq::DataReceiverCore::stop()
 {
 	logMessage_("Stopping run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) +
 	            ", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
-	bool endSucceeded;
+	bool endSucceeded = false;
 	int attemptsToEnd;
 	receiver_ptr_->stop_threads();
 
@@ -114,7 +114,6 @@ bool artdaq::DataReceiverCore::stop()
 	if (!run_is_paused_.load())
 	{
 		TLOG(TLVL_DEBUG) << "Ending subrun " << event_store_ptr_->subrunID();
-		endSucceeded = false;
 		attemptsToEnd = 1;
 		endSucceeded = event_store_ptr_->endSubrun();
 		while (!endSucceeded && attemptsToEnd < 3)
@@ -132,7 +131,6 @@ bool artdaq::DataReceiverCore::stop()
 	}
 
 	TLOG(TLVL_DEBUG) << "Ending run " << event_store_ptr_->runID();
-	endSucceeded = false;
 	attemptsToEnd = 1;
 	endSucceeded = event_store_ptr_->endRun();
 	while (!endSucceeded && attemptsToEnd < 3)
@@ -148,7 +146,6 @@ bool artdaq::DataReceiverCore::stop()
 	}
 	TLOG(TLVL_DEBUG) << "Done Ending run " << event_store_ptr_->runID();
 
-	endSucceeded = false;
 	attemptsToEnd = 1;
 	TLOG(TLVL_DEBUG) << "stop: Calling EventStore::endOfData" ;
 	endSucceeded = event_store_ptr_->endOfData();

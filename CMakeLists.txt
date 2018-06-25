@@ -39,10 +39,11 @@ cet_set_compiler_flags(DIAGS VIGILANT
   EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64
 )
 
-#string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
-#if( ${BTYPE_UC} MATCHES "DEBUG" )
-#  cet_add_compiler_flags(-fsanitize=address)
-#endif()
+string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
+if( ${BTYPE_UC} MATCHES "DEBUG" )
+  #cet_add_compiler_flags(-fsanitize=thread -ltsan -Wno-unused-command-line-argument)
+  cet_add_compiler_flags(-fsanitize=address -lasan -Wno-unused-command-line-argument)
+endif()
 
 cet_report_compiler_flags()
 

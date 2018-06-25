@@ -283,14 +283,14 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		send_init_frag_();
 		TLOG(TLVL_INFO) << "Starting art process with config file " << config_file->getFileName();
 
-		char* filename = new char[config_file->getFileName().length() + 1];
-		strcpy(filename, config_file->getFileName().c_str());
-
-		std::vector<char*> args{ (char*)"art", (char*)"-c", filename, NULL };
 		pid_t pid = 0;
 
 		if (!manual_art_)
 		{
+			char* filename = new char[config_file->getFileName().length() + 1];
+			strcpy(filename, config_file->getFileName().c_str());
+
+			std::vector<char*> args{ (char*)"art", (char*)"-c", filename, NULL };
 			pid = fork();
 			if (pid == 0)
 			{ /* child */

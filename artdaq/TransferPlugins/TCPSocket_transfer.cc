@@ -300,7 +300,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Done receiving fragment header. Moving into output.";
 
 					done = true; // no more polls
-					break; // no more read of ready fds
+					//break; // no more read of ready fds
 				}
 			}
 		}
@@ -435,7 +435,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 #endif
 
 					done = true; // no more polls
-					break; // no more read of ready fds
+					//break; // no more read of ready fds
 				}
 			}
 		}

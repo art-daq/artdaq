@@ -735,9 +735,11 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	auto hdr = r.ReadHeader(errflag);
 	BOOST_REQUIRE_EQUAL(errflag, false);
 	BOOST_REQUIRE(hdr != nullptr);
-	BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
-	BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
-	BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
+	if (hdr != nullptr) { // Make static analyzer happy
+		BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
+		BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
+		BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
+	}
 	auto frags = r.GetFragmentsByType(errflag, artdaq::Fragment::EndOfSubrunFragmentType);
 	BOOST_REQUIRE_EQUAL(errflag, false);
 	BOOST_REQUIRE_EQUAL(frags->size(), 1);
@@ -749,9 +751,11 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	hdr = r.ReadHeader(errflag);
 	BOOST_REQUIRE_EQUAL(errflag, false);
 	BOOST_REQUIRE(hdr != nullptr);
-	BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
-	BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
-	BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
+	if (hdr != nullptr) { // Make static analyzer happy
+		BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
+		BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
+		BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
+	}
 	frags = r.GetFragmentsByType(errflag, artdaq::Fragment::EndOfRunFragmentType);
 	BOOST_REQUIRE_EQUAL(errflag, false);
 	BOOST_REQUIRE_EQUAL(frags->size(), 1);
