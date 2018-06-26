@@ -49,7 +49,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
 		pset.get<size_t>("broadcast_buffer_count", 10),
 		pset.get<size_t>("broadcast_buffer_size", 0x100000),
-		pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
+		pset.get<int>("fragment_broadcast_timeout_ms", 3000) * 1000 * pset.get<size_t>("broadcast_buffer_count", 10), false)
 {
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
