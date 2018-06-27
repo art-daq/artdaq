@@ -874,15 +874,16 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		}
 		if (windowClosed || !data_thread_running_ || windowTimeout)
 		{
-			TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Buffered or Window-requested Fragments";
+			TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Window-requested Fragments";
 			frags.emplace_back(new artdaq::Fragment(req->first, fragment_id()));
 			frags.back()->setTimestamp(ts);
 			ContainerFragmentLoader cfl(*frags.back());
 
 			if (!windowClosed) cfl.set_missing_data(true);
-			if (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min)
+			if (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > max)
 			{
-				TLOG(TLVL_DEBUG) << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer";
+				TLOG(TLVL_DEBUG) << "Request Window does not match any of the data in the buffer (requestWindowRange=["
+				                 << min << "," << max << "],firstDataTimestamp=" << dataBuffer_.front()->timestamp();
 				cfl.set_missing_data(true);
 			}
 
