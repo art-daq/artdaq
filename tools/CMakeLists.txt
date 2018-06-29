@@ -4,7 +4,9 @@ include(CetTest)
 # re-initialize the test environment.
 cet_test_env("FHICL_FILE_PATH=.")
 
-install_scripts( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh )
+install_scripts( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh disk_stats.sh)
+
+art_make_exec( periodic_cmd_stats )
 
 art_make_exec(StateResponder
   LIBRARIES

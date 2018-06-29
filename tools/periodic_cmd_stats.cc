@@ -20,7 +20,7 @@ other stats specified by --stats options\n\
 options:\n\
 --cmd=        can have multiple\n\
 --Cmd=        run cmd, but dont graph CPU (can have multiple)\n\
---pid=        graph comma sep. list of pids (getting cmd from /proc/)\n\
+--pid=        graph comma or space sep. list of pids (getting cmd from /proc/)\n\
 --disk=       automatically build --stat for disk(s)\n\
 --stat=       desc?file?linespec?fieldspec?multiplier?rate\n\
 		      builtin = CPUnode,Cached,Dirty\n\
@@ -107,6 +107,14 @@ int           opt_fault=0;
 
 std::vector<pid_t> g_pid_vec;
 
+void charreplace( char* instr, char oldc, char newc )
+{
+	while (*instr) {
+		if (*instr == oldc)
+			*instr=newc;
+		++instr;
+	}
+}
 
 
 void parse_args( int argc, char	*argv[] )
@@ -155,7 +163,10 @@ void parse_args( int argc, char	*argv[] )
 		case 'p': opt_period=optarg;                                     break;
 		case 'w': opt_wait=1;                                            break;
 		case 'f': opt_fault=1;                                           break;
-		case 'P': if(opt_pid.size())opt_pid=opt_pid+","+optarg;else opt_pid=optarg;break;
+		case 'P': charreplace(optarg,' ',',');
+			      if(opt_pid.size())opt_pid=opt_pid+","+optarg;
+			      else opt_pid=optarg;
+			      break;
 		case 1:   opt_ymax=strtoul(optarg,NULL,0);                       break;
 		case 2:   opt_yincr=strtoul(optarg,NULL,0);                      break;
 		case 3:   opt_y2max=strtoul(optarg,NULL,0);                      break;
@@ -408,7 +419,7 @@ else       set terminal x11 size width,height\n\
 plot \"< awk '/^#" DATA_START "/,/NEVER HAPPENS/' \".thisFile "
 
 
-void sigchld_sigaction( int signo, siginfo_t *info, void *context )
+void sigchld_sigaction( int signo, siginfo_t *info, void *context __attribute__((__unused__)) )
 {
 	/* see man sigaction for description of siginfo_t */
 	for (size_t ii=0; ii < g_pid_vec.size(); ++ii) {
@@ -484,11 +495,18 @@ void cleanup( void )
 		kill( *pid, SIGHUP );
 	}
 }
+#if (defined(__cplusplus)&&(__cplusplus>=201103L)) || (defined(__STDC_VERSION__)&&(__STDC_VERSION__>=201112L))
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wunused-parameter"   /* b/c of TRACE_XTRA_UNUSED */
+#endif
 void sigint_sigaction( int signo, siginfo_t *info, void *context )
 {
 	cleanup();
 	exit( 1 );
 }
+#if (defined(__cplusplus)&&(__cplusplus>=201103L)) || (defined(__STDC_VERSION__)&&(__STDC_VERSION__>=201112L))
+# pragma GCC diagnostic pop
+#endif
 
 
 int
@@ -525,7 +543,7 @@ main(  int	argc
 	   sometimes effect the read or write calls for the following AWK forks.
 	   So, use SIG_IGN+SA_NOCLDWAIT.
 	 */
-	struct sigaction sigaction_s={{0}};
+	struct sigaction sigaction_s;
 #ifndef DO_SIGCHLD
 # define DO_SIGCHLD 1
 #endif
@@ -536,6 +554,7 @@ main(  int	argc
     sigaction_s.sa_handler = SIG_IGN;
 	sigaction_s.sa_flags = SA_NOCLDWAIT;
 #endif
+	sigemptyset(&sigaction_s.sa_mask);
     sigaction( SIGCHLD, &sigaction_s, NULL );
 
     sigaction_s.sa_sigaction = sigint_sigaction;
@@ -695,7 +714,7 @@ main(  int	argc
 			stats.push_back(statstr);
 			stat_spec.clear();
 			string_addto_vector( statstr, stat_spec, '?' );
-			graphs.push_back( stat_spec[s_desc] );
+			//graphs.push_back( stat_spec[s_desc] ); // don't add read by default -- can be added with --graph
 		}
 	}
 
@@ -713,7 +732,7 @@ main(  int	argc
 
 	std::vector<long>        pre_vals;
 	std::vector<double>      multipliers;
-	std::vector<std::string> spec2[stats.size()];
+	std::vector<std::vector<std::string>> spec2(stats.size());
 	std::vector<std::string> awkCmd;
 
 	std::string header_str( "#" DATA_START "\n#_______time_______" );
