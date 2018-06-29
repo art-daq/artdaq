@@ -3,11 +3,14 @@
 
 #include <sstream>
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQdata/PortManager.hh"
 
 #define my_rank artdaq::Globals::my_rank_
 #define app_name artdaq::Globals::app_name_
 #define metricMan artdaq::Globals::metricMan_
+#define portMan artdaq::Globals::portMan_
 #define seedAndRandom() artdaq::Globals::seedAndRandom_()
+#define GetPartitionNumber() artdaq::Globals::getPartitionNumber_()
 
 #define mftrace_iteration artdaq::Globals::mftrace_iteration_
 #define mftrace_module artdaq::Globals::mftrace_module_
@@ -33,6 +36,7 @@ namespace artdaq
 	public:
 		static int my_rank_; ///< The rank of the current application
 		static MetricManager* metricMan_; ///< A handle to MetricManager
+		static PortManager* portMan_; ///< A handle to PortManager
 		static std::string app_name_; ///< The name of the current application, to be used in logging and metrics
 		static int partition_number_; ///< The partition number of the current application
 
@@ -69,7 +73,7 @@ namespace artdaq
 		* \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
 		* \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
 		*/
-		static int GetPartitionNumber()
+		static int getPartitionNumber_()
 		{
 			uint32_t part_u = 0;
 
@@ -93,6 +97,7 @@ namespace artdaq
 					catch (std::invalid_argument) {}
 					catch (std::out_of_range) {}
 				}
+				partition_number_ = part_u & 0x7F;
 			}
 
 			return (part_u & 0x7F);

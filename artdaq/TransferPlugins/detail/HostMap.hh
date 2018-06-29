@@ -23,8 +23,6 @@ namespace artdaq {
 			fhicl::Atom<int> rank{ fhicl::Name{"rank"}, fhicl::Comment{"Rank index"} };
 			/// "host": Hostname for artdaq application with this rank
 			fhicl::Atom<std::string> host{ fhicl::Name{"host"}, fhicl::Comment{"Hostname for artdaq application with this rank"} };
-			/// "portOffset" (Default: 5500): DEPRECATED : Port offset of this artdaq application
-			fhicl::Atom<int> portOffset{ fhicl::Name{"portOffset"},fhicl::Comment{"DEPRECATED: Port offset of this artdaq application"}, 5500 };
 		};
 		/// <summary>
 		/// Template for the host_map configuration parameter.
@@ -38,30 +36,21 @@ namespace artdaq {
 		};
 	};
 
-	/// <summary>
-	/// Entry in the host map
-	/// </summary>
-	struct DestinationInfo
-	{
-		std::string hostname; ///< Hostname of the application
-		int portOffset; ///< DEPRECATED: Port offset of this artdaq application
-	};
-	typedef std::map<int, DestinationInfo> hostMap_t; ///< The host_map is a map associating ranks with artdaq::DestinationInfo objects
+	typedef std::map<int, std::string> hostMap_t; ///< The host_map is a map associating ranks with artdaq::DestinationInfo objects
 
 	/// <summary>
 	/// Create a list of HostMap::HostConfig ParameterSets from a hostMap_t map
 	/// </summary>
 	/// <param name="input">Input hostMap_t</param>
 	/// <returns>std::vector containing HostMap::HostConfig ParameterSets</returns>
-	inline std::vector<fhicl::ParameterSet> MakeHostMapPset(std::map<int, DestinationInfo> input)
+	inline std::vector<fhicl::ParameterSet> MakeHostMapPset(std::map<int, std::string> input)
 	{
 		std::vector<fhicl::ParameterSet> output;
 		for (auto& rank : input)
 		{
 			fhicl::ParameterSet rank_output;
 			rank_output.put<int>("rank", rank.first);
-			rank_output.put<std::string>("host", rank.second.hostname);
-			rank_output.put<int>("portOffset", rank.second.portOffset);
+			rank_output.put<std::string>("host", rank.second);
 			output.push_back(rank_output);
 		}
 		return output;
@@ -74,22 +63,20 @@ namespace artdaq {
 	/// <param name="masterPortOffset">Port offset to apply to all entries (Default 0)</param>
 	/// <param name="map">Input map for consistency checking (Default: hostMap_t())</param>
 	/// <returns>hostMap_t object</returns>
-	inline hostMap_t MakeHostMap(fhicl::ParameterSet pset, int masterPortOffset = 0, hostMap_t map = hostMap_t())
+	inline hostMap_t MakeHostMap(fhicl::ParameterSet pset, hostMap_t map = hostMap_t())
 	{
 		if (pset.has_key("host_map")) {
 			auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 			for (auto& ps : hosts)
 			{
 				auto rank = ps.get<int>("rank", TransferInterface::RECV_TIMEOUT);
-				DestinationInfo info;
-				info.hostname = ps.get<std::string>("host", "localhost");
-				info.portOffset = ps.get<int>("portOffset", 5500) + masterPortOffset;
+				auto hostname = ps.get<std::string>("host", "localhost");
 
-				if (map.count(rank) && (map[rank].hostname != info.hostname || map[rank].portOffset != info.portOffset))
+				if (map.count(rank) && (map[rank] != hostname ))
 				{
 					TLOG(TLVL_ERROR) << "Inconsistent host maps supplied! Check configuration! There may be TCPSocket-related failures!";
 				}
-				map[rank] = info;
+				map[rank] = hostname;
 			}
 		}
 		return map;

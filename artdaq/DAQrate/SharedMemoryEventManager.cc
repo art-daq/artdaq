@@ -299,7 +299,7 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 				// will pick it up there and provide it to the artdaq classes that
 				// are used in data transfers, etc. within the art process.
 				std::string envVarKey = "ARTDAQ_PARTITION_NUMBER";
-				std::string envVarValue = std::to_string(Globals::GetPartitionNumber());
+				std::string envVarValue = std::to_string(GetPartitionNumber());
 				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 1) != 0)
 				{
 					TLOG(TLVL_ERROR) << "Error setting environment variable \"" << envVarKey

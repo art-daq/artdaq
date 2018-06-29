@@ -1,8 +1,6 @@
 #ifndef artdaq_Application_MPI2_RoutingMasterApp_hh
 #define artdaq_Application_MPI2_RoutingMasterApp_hh
 
-#include <future>
-
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/RoutingMasterCore.hh"
 
@@ -123,7 +121,7 @@ public:
 
 private:
 	std::unique_ptr<artdaq::RoutingMasterCore> routing_master_ptr_;
-	std::future<size_t> routing_master_future_;
+	boost::thread routing_master_thread_;
 };
 
 #endif /* artdaq_Application_MPI2_RoutingMasterApp_hh */

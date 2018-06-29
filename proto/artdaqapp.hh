@@ -40,6 +40,7 @@ namespace artdaq {
 			fhicl::Atom<int> run_number{ fhicl::Name{"run_number"}, fhicl::Comment{"Run number to use for automatic run"}, 101 };
 			/// "transition_timeout" (Default: 30): Timeout to use for automatic transitions
 			fhicl::Atom<uint64_t> transition_timeout{ fhicl::Name{"transition_timeout"}, fhicl::Comment{"Timeout to use for automatic transitions"}, 30 };
+			fhicl::TableFragment<artdaq::PortManager::Config> portsConfig; ///< Configuration for artdaq Ports
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
@@ -53,6 +54,7 @@ namespace artdaq {
 		static void runArtdaqApp(detail::TaskType task, fhicl::ParameterSet const& config_ps)
 		{
 			app_name = config_ps.get<std::string>("application_name", detail::TaskTypeToString(task));
+			portMan = new artdaq::PortManager(config_ps);
 
 			if (config_ps.get<bool>("replace_image_name", config_ps.get<bool>("rin", false)))
 			{

@@ -52,8 +52,6 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, receive_err_wait_us_(pset.get<size_t>("receive_socket_disconnected_wait_us", 10000))
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << " Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend");
-	auto masterPortOffset = pset.get<int>("offset_all_ports", 0);
-	hostMap_ = MakeHostMap(pset, masterPortOffset);
 
 	if (role == TransferInterface::Role::kReceive)
 	{
@@ -64,6 +62,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	}
 	else
 	{
+		hostMap_ = MakeHostMap(pset);
 		TLOG(TLVL_DEBUG) << GetTraceName() << ": Connecting to destination";
 		connect_();
 		TLOG(TLVL_DEBUG) << GetTraceName() << ": Done Connecting";
@@ -707,8 +706,13 @@ void artdaq::TCPSocketTransfer::connect_()
 	{
 		TLOG(TLVL_DEBUG) << GetTraceName() << ": Connecting sender socket";
 		int sndbuf_bytes = static_cast<int>(sndbuf_);
-		send_fd_ = TCPConnect(hostMap_[destination_rank()].hostname.c_str()
-			, calculate_port_()
+
+		if (!portMan) {
+			portMan = new PortManager(fhicl::ParameterSet());
+		}
+
+		send_fd_ = TCPConnect(hostMap_[destination_rank()].c_str()
+			, portMan->GetTCPSocketTransferPort(destination_rank())
 			, O_NONBLOCK
 			, sndbuf_bytes);
 		if (send_fd_ == -1)
@@ -716,7 +720,7 @@ void artdaq::TCPSocketTransfer::connect_()
 	}
 	connect_state = 0;
 	blocking = 0;
-	TLOG(TLVL_DEBUG) << GetTraceName() << ": connect_ " + hostMap_[destination_rank()].hostname + ":" << calculate_port_() << " send_fd_=" << send_fd_;
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": connect_ " + hostMap_[destination_rank()] + ":" << portMan->GetTCPSocketTransferPort(destination_rank()) << " send_fd_=" << send_fd_;
 	if (send_fd_ != -1)
 	{
 		// write connect msg
@@ -757,7 +761,19 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 		if (listen_thread_ && listen_thread_->joinable()) listen_thread_->join();
 		listen_thread_refcount_ = 1;
 		TLOG(TLVL_INFO) << GetTraceName() << ": Starting Listener Thread";
-		listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, calculate_port_(), rcvbuf_);
+
+		if (!portMan) {
+			portMan = new PortManager(fhicl::ParameterSet());
+		}
+		try {
+			listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, portMan->GetTCPSocketTransferPort(destination_rank()), rcvbuf_);
+		}
+		catch (const boost::exception& e)
+		{
+			TLOG(TLVL_ERROR) << "Caught boost::exception starting TCP Socket Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+			std::cerr << "Caught boost::exception starting TCP Socket Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+			exit(5);
+		}
 	}
 	else
 	{
@@ -813,7 +829,7 @@ void artdaq::TCPSocketTransfer::listen_(int port, size_t rcvbuf)
 	int listen_fd = -1;
 	while (listen_thread_refcount_ > 0)
 	{
-		TLOG(TLVL_TRACE) << "listen_: Listening/accepting new connections";
+		TLOG(TLVL_TRACE) << "listen_: Listening/accepting new connections on port " << port;
 		if (listen_fd == -1)
 		{
 			TLOG(TLVL_DEBUG) << "listen_: Opening listener";

@@ -5,7 +5,7 @@
 /**
 * Default constructor.
 */
-artdaq::RoutingMasterApp::RoutingMasterApp( )
+artdaq::RoutingMasterApp::RoutingMasterApp()
 {
 }
 
@@ -52,9 +52,17 @@ bool artdaq::RoutingMasterApp::do_start(art::RunID id, uint64_t timeout, uint64_
 		report_string_.append(".");
 	}
 
-	routing_master_future_ =
-		std::async(std::launch::async, &RoutingMasterCore::process_event_table,
-			routing_master_ptr_.get());
+	boost::thread::attributes attrs;
+	attrs.set_stack_size(4096 * 2000); // 8 MB
+	try {
+		routing_master_thread_ = boost::thread(attrs, boost::bind(&RoutingMasterCore::process_event_table, routing_master_ptr_.get()));
+	}
+	catch (const boost::exception& e)
+	{
+		TLOG(TLVL_ERROR) << "Caught boost::exception starting RoutingMasterCore thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+		std::cerr << "Caught boost::exception starting RoutingMasterCore thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(5);
+	}
 
 	return external_request_status_;
 }
@@ -70,13 +78,9 @@ bool artdaq::RoutingMasterApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		return false;
 	}
 
-	if (routing_master_future_.valid())
-	{
-		int number_of_table_entries_sent = routing_master_future_.get();
-		TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
-			<< "Number of table entries sent = " << number_of_table_entries_sent
-			<< "." ;
-	}
+	TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
+		<< "Number of table entries sent = " << routing_master_ptr_->get_update_count()
+		<< ".";
 
 	return external_request_status_;
 }
@@ -91,13 +95,10 @@ bool artdaq::RoutingMasterApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 	}
 
-	if (routing_master_future_.valid())
-	{
-		int number_of_table_entries_sent = routing_master_future_.get();
-		TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
-			<< "Number of table entries sent = " << number_of_table_entries_sent
-			<< "." ;
-	}
+	TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
+		<< "Number of table entries sent = " << routing_master_ptr_->get_update_count()
+		<< ".";
+
 
 	return external_request_status_;
 }
@@ -112,9 +113,19 @@ bool artdaq::RoutingMasterApp::do_resume(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 	}
 
-	routing_master_future_ =
-		std::async(std::launch::async, &RoutingMasterCore::process_event_table,
-			routing_master_ptr_.get());
+	boost::thread::attributes attrs;
+	attrs.set_stack_size(4096 * 2000); // 8000 KB
+
+	TLOG(TLVL_INFO) << "Starting Routing Master thread";
+	try {
+		routing_master_thread_ = boost::thread(attrs, boost::bind(&RoutingMasterCore::process_event_table, routing_master_ptr_.get()));
+	}
+	catch (boost::exception const& e)
+	{
+		std::cerr << "Exception encountered starting Routing Master thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(3);
+	}
+	TLOG(TLVL_INFO) << "Started Routing Master thread";
 
 	return external_request_status_;
 }
@@ -158,7 +169,7 @@ bool artdaq::RoutingMasterApp::do_reinitialize(fhicl::ParameterSet const& pset, 
 
 void artdaq::RoutingMasterApp::BootedEnter()
 {
-	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." ;
+	TLOG_DEBUG(app_name + "App") << "Booted state entry action called.";
 
 	// the destruction of any existing RoutingMasterCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

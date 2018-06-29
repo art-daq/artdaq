@@ -31,6 +31,8 @@ int main(int argc, char* argv[])
 	auto fhicl = std::string(argv[2]);
 	make_ParameterSet(fhicl, lookup_policy, ps);
 
+	if (ps.has_key("partition_number")) artdaq::Globals::partition_number_ = ps.get<int>("partition_number");
+
 	artdaq::TransferTest theTest(ps);
 	theTest.runTest();
 

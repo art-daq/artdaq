@@ -97,22 +97,10 @@ artdaq::AutodetectTransfer::AutodetectTransfer(const fhicl::ParameterSet& pset, 
 	: TransferInterface(pset, role)
 {
 	TLOG(TLVL_INFO) << GetTraceName() << ": Begin AutodetectTransfer constructor" ;
-	std::string srcHost, destHost;
-	auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
-	for (auto& ps : hosts)
-	{
-		auto rank = ps.get<int>("rank", -1);
-		if (rank == source_rank())
-		{
-			srcHost = ps.get<std::string>("host", "localhost");
-		}
-		if (rank == destination_rank())
-		{
-			destHost = ps.get<std::string>("host", "localhost");
-		}
-	}
-	TLOG(TLVL_DEBUG) << GetTraceName() << ": srcHost=" << srcHost << ", destHost=" << destHost ;
-	if (srcHost == destHost)
+	auto hosts = MakeHostMap(pset);
+
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": srcHost=" << hosts[source_rank()] << ", destHost=" << hosts[destination_rank()];
+	if (hosts[source_rank()] == hosts[destination_rank()])
 	{
 		TLOG(TLVL_INFO) << GetTraceName() << ": Constructing ShmemTransfer" ;
 		theTransfer_.reset(new ShmemTransfer(pset, role));

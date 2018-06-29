@@ -28,7 +28,7 @@ namespace artdaq {
 		 * \param ps ParameterSet to write to temporary file
 		 */
 		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/)
-			: dir_name_("/tmp/partition_" + std::to_string(Globals::GetPartitionNumber()))
+			: dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
 			, file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 		{
 			mkdir(dir_name_.c_str(), 0777); // Allowed to fail if directory already exists

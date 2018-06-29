@@ -303,7 +303,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		}
 
 		metricMan->sendMetric("Last Timestamp", timestamp, "Ticks", 1,
-							  MetricMode::LastPoint, app_name);
+			MetricMode::LastPoint, app_name);
 	}
 
 	return result;
@@ -495,14 +495,30 @@ void artdaq::CommandableFragmentGenerator::startDataThread()
 {
 	if (dataThread_.joinable()) dataThread_.join();
 	TLOG(TLVL_INFO) << "Starting Data Receiver Thread";
-	dataThread_ = boost::thread(&CommandableFragmentGenerator::getDataLoop, this);
+	try {
+		dataThread_ = boost::thread(&CommandableFragmentGenerator::getDataLoop, this);
+	}
+	catch (const boost::exception& e)
+	{
+		TLOG(TLVL_ERROR) << "Caught boost::exception starting Data Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+		std::cerr << "Caught boost::exception starting Data Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(5);
+	}
 }
 
 void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 {
 	if (monitoringThread_.joinable()) monitoringThread_.join();
 	TLOG(TLVL_INFO) << "Starting Hardware Monitoring Thread";
-	monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
+	try {
+		monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
+	}
+	catch (const boost::exception& e)
+	{
+		TLOG(TLVL_ERROR) << "Caught boost::exception starting Hardware Monitoring thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+		std::cerr << "Caught boost::exception starting Hardware Monitoring thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(5);
+	}
 }
 
 std::string artdaq::CommandableFragmentGenerator::printMode_()
@@ -546,7 +562,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
+				"Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
 			set_exception(true);
 
 			data_thread_running_ = false;

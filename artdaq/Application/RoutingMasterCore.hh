@@ -132,19 +132,18 @@ public:
 	/**
 	 * \brief Main loop of the RoutingMasterCore. Determines when to send the next table update,
 	 * asks the RoutingMasterPolicy for the table to send, and sends it.
-	 * \return Number of table updates sent
 	 */
-	size_t process_event_table();
+	void process_event_table();
 
 	/**
 	 * \brief Sends a detail::RoutingPacket to the table receivers
 	 * \param table The detail::RoutingPacket to send
-	 * 
+	 *
 	 * send_event_table checks the table update socket and the acknowledge socket before
 	 * sending the table update the first time. It then enters a loop where it sends the table
 	 * update, then waits for acknowledgement packets. It keeps track of which senders have sent
 	 * their acknowledgement packets, and discards duplicate acks. It leaves this loop once all
-	 * senders have sent a valid acknowledgement packet. 
+	 * senders have sent a valid acknowledgement packet.
 	 */
 	void send_event_table(detail::RoutingPacket table);
 
@@ -154,6 +153,12 @@ public:
 	*
 	*/
 	std::string report(std::string const&) const;
+
+	/**
+	* \brief Get the number of table updates sent by this RoutingMaster this run
+	* \return The number of table updates sent by this RoutingMaster this run
+	*/
+	size_t get_update_count() const { return table_update_count_; }
 
 private:
 	void receive_tokens_();
@@ -170,7 +175,7 @@ private:
 	size_t current_table_interval_ms_;
 	std::atomic<size_t> table_update_count_;
 	std::atomic<size_t> received_token_count_;
-	std::unordered_map<int,size_t> received_token_counter_;
+	std::unordered_map<int, size_t> received_token_counter_;
 
 	std::vector<int> sender_ranks_;
 	size_t num_receivers_;

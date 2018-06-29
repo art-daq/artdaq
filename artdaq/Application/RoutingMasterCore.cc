@@ -234,7 +234,7 @@ bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, ui
 	return initialize(pset, e, f);
 }
 
-size_t artdaq::RoutingMasterCore::process_event_table()
+void artdaq::RoutingMasterCore::process_event_table()
 {
 	if (rt_priority_ > 0)
 	{
@@ -311,8 +311,6 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 	}
 
 	metricMan_.do_stop();
-
-	return table_update_count_;
 }
 
 void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
@@ -603,8 +601,19 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 void artdaq::RoutingMasterCore::start_recieve_token_thread_()
 {
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
+	boost::thread::attributes attrs;
+	attrs.set_stack_size(4096 * 2000); // 8000 KB
+	
 	TLOG(TLVL_INFO) << "Starting Token Reception Thread" ;
-	ev_token_receive_thread_ = boost::thread(&RoutingMasterCore::receive_tokens_, this);
+	try {
+		ev_token_receive_thread_ = boost::thread(attrs, boost::bind(&RoutingMasterCore::receive_tokens_, this));
+	}
+	catch(boost::exception const& e)
+	{
+		std::cerr << "Exception encountered starting Token Reception thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(3);
+	}
+	TLOG(TLVL_INFO) << "Started Token Reception Thread";
 }
 
 std::string artdaq::RoutingMasterCore::report(std::string const&) const

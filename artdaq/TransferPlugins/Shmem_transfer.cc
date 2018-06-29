@@ -32,8 +32,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 		throw cet::exception("ConfigurationException", "Buffer Count is too large for Shmem transfer!");
 	}
 
-	auto partition = partition_number_ + 1; // Can't be 0
-	if (partition > 127) partition = 127; // Can't be > 127
+	auto partition = GetPartitionNumber() + 1; // Can't be 0
 
 	auto shmKey = pset.get<uint32_t>("shm_key_offset", 0) + (partition << 24) + ((source_rank() & 0xFFF) << 12) + (destination_rank() & 0xFFF);
 

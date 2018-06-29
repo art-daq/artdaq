@@ -204,6 +204,7 @@ int AutodetectPrivateInterface(in_addr& addr)
 	}
 	else
 	{
+		TLOG(TLVL_INFO) << "AutodetectPrivateInterface: Using " << inet_ntoa(addr);
 		memcpy(&addr, &preference_map.begin()->second, sizeof(addr));
 	}
 

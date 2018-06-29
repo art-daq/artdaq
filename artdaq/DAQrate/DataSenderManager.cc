@@ -49,7 +49,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	for (auto& d : dests.get_pset_names())
 	{
 		auto dest_pset = dests.get<fhicl::ParameterSet>(d);
-		host_map = MakeHostMap(dest_pset, 0, host_map);
+		host_map = MakeHostMap(dest_pset, host_map);
 	}
 	auto host_map_pset = MakeHostMapPset(host_map);
 	fhicl::ParameterSet dests_mod;
@@ -173,7 +173,15 @@ void artdaq::DataSenderManager::startTableReceiverThread_()
 {
 	if (routing_thread_.joinable()) routing_thread_.join();
 	TLOG(TLVL_INFO) << "Starting Routing Thread";
-	routing_thread_ = boost::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
+	try {
+		routing_thread_ = boost::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
+	}
+	catch (const boost::exception& e)
+	{
+		TLOG(TLVL_ERROR) << "Caught boost::exception starting Routing Table Receive thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+		std::cerr << "Caught boost::exception starting Routing Table Receive thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(5);
+	}
 }
 void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 {

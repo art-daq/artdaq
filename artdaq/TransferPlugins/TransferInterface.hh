@@ -33,9 +33,6 @@ namespace artdaq
 			fhicl::Atom<size_t>	buffer_count{ fhicl::Name{"buffer_count"}, fhicl::Comment{"How many Fragments can the TransferInterface handle simultaneously"},10 };
 			/// "max_fragment_size_words" (Default: 1024) : The maximum Fragment size expected.May be used for static memory allocation, and will cause errors if larger Fragments are sent.
 			fhicl::Atom<size_t> max_fragment_size{ fhicl::Name{"max_fragment_size_words" }, fhicl::Comment{ "The maximum Fragment size expected.May be used for static memory allocation, and will cause errors if larger Fragments are sent." }, 1024 };
-			/// "partition_number" (Default: 0) : Partition that this TransferInterface is a part of
-			fhicl::Atom<short> partition_number{ fhicl::Name{"partition_number"},fhicl::Comment{"Partition that this TransferInterface is a part of"}, 0 };
-
 		};
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
@@ -48,7 +45,8 @@ namespace artdaq
 		{
 			DATA_END = -2222,///< Value that is to be returned when a Transfer plugin determines that no more data will be arriving.
 			RECV_TIMEOUT = -1111, ///< Value to be returned upon receive timeout.
-			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= RECV_SUCCESS
+			NO_RANK_INFO = -1, ///< Will be returned from a successful receive that does not know the source rank (Transfer to OM art process)
+			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= NO_RANK_INFO
 		};
 
 		/**
@@ -191,7 +189,6 @@ namespace artdaq
 
 		size_t buffer_count_; ///< The number of Fragment transfers the TransferInterface can handle simultaneously
 		const size_t max_fragment_size_words_; ///< The maximum size of the transferred Fragment objects, in artdaq::Fragment::RawDataType words
-		const short partition_number_; ///< The partition number of the DAQ
 
 	protected:
 		/**

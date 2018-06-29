@@ -53,7 +53,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	for (auto& s : srcs.get_pset_names())
 	{
 		auto src_pset = srcs.get<fhicl::ParameterSet>(s);
-		host_map = MakeHostMap(src_pset, 0, host_map);
+		host_map = MakeHostMap(src_pset, host_map);
 	}
 	auto host_map_pset = MakeHostMapPset(host_map);
 	fhicl::ParameterSet srcs_mod;
@@ -118,8 +118,16 @@ void artdaq::DataReceiverManager::start_threads()
 		{
 			running_sources_[rank] = true;
 			boost::thread::attributes attrs;
-			attrs.set_stack_size(4096 * 500); // 2000 KB
-			source_threads_[rank] = boost::thread(attrs, boost::bind(&DataReceiverManager::runReceiver_, this, rank));
+			attrs.set_stack_size(4096 * 2000); // 2000 KB
+			try {
+				source_threads_[rank] = boost::thread(attrs, boost::bind(&DataReceiverManager::runReceiver_, this, rank));
+			}
+			catch (const boost::exception& e)
+			{
+				TLOG(TLVL_ERROR) << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+				std::cerr << "Caught boost::exception starting Receiver " << rank << " thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+				exit(5);
+			}
 		}
 	}
 }
@@ -190,11 +198,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (ret >= 0) {
 				TLOG(TLVL_WARNING) << "Received Fragment from rank " << ret << ", but was expecting one from rank " << source_rank << "!";
 			}
-			else if(ret == TransferInterface::DATA_END)
-			  {
+			else if (ret == TransferInterface::DATA_END)
+			{
 				TLOG(TLVL_ERROR) << "Transfer Plugin returned DATA_END, ending receive loop!";
 				break;
-			  }
+			}
 			continue; // Receive timeout or other oddness
 		}
 

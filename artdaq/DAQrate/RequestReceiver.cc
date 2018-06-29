@@ -160,7 +160,15 @@ void artdaq::RequestReceiver::startRequestReceiverThread()
 	}
 
 	TLOG(TLVL_INFO) << "Starting Request Reception Thread";
+	try{
 	requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
+}
+catch (const boost::exception& e)
+{
+	TLOG(TLVL_ERROR) << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+	std::cerr << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+	exit(5);
+}
 	running_ = true;
 }
 
