@@ -1270,7 +1270,7 @@ private:								\
 
 		try
 		{
-			myClient.call(serverUrl_, "daq." + command, "ss", &result, arg1, arg2);
+			myClient.call(serverUrl_, "daq." + command, "ss", &result, arg1.c_str(), arg2.c_str());
 		}
 		catch (...)
 		{
@@ -1297,7 +1297,7 @@ private:								\
 
 		try
 		{
-			myClient.call(serverUrl_, "daq." + command, "ssi", &result, arg1, arg2, arg3);
+			myClient.call(serverUrl_, "daq." + command, "ssi", &result, arg1.c_str(), arg2.c_str(), arg3);
 		}
 		catch (...)
 		{
