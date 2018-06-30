@@ -4,6 +4,7 @@ art_make( BASENAME_ONLY
   LIB_LIBRARIES
   ${ARTDAQ-CORE_DATA}
   ${ARTDAQ-CORE_GENERATORS}
+  artdaq-utilities_Plugins
   ${FHICLCPP}
   ${CETLIB}
   ${CETLIB_EXCEPT}

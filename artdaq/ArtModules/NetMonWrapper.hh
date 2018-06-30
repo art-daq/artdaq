@@ -5,6 +5,7 @@
 #include "artdaq/ArtModules/NetMonTransportService.h"
 
 #include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "fhiclcpp/fwd.h"
 
 #include <TBufferFile.h>
@@ -36,8 +37,20 @@ namespace art
 		 * needed for this class to implement the interface the
 		 * ArtdaqInput templatized input source expects
 		 */
-		NetMonWrapper(const fhicl::ParameterSet&)
+		NetMonWrapper(const fhicl::ParameterSet& pset)
 		{
+			try {
+				if (metricMan)
+				{
+					metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()));
+					metricMan->do_start();
+				}
+			}
+			catch (...)
+			{
+				artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "Error loading metrics in NetMonWrapper");
+			}
+
 			ServiceHandle<NetMonTransportService> transport;
 			transport->listen();
 		}

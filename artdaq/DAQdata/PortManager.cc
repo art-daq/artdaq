@@ -4,7 +4,7 @@
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include <sstream>
 
-artdaq::PortManager::PortManager(fhicl::ParameterSet const& ps)
+artdaq::PortManager::PortManager()
 	: base_configured_(false)
 	, multicasts_configured_(false)
 	, routing_tokens_configured_(false)
@@ -32,7 +32,6 @@ artdaq::PortManager::PortManager(fhicl::ParameterSet const& ps)
 	, routing_table_group_pattern_("227.129.PPP.SSS")
 	, multicast_transfer_group_pattern_("227.130.14.PPP")
 {
-	UpdateConfiguration(ps);
 }
 
 void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)

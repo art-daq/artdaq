@@ -170,9 +170,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 {
 	try
 	{
-		if (portMan == nullptr) {
-			portMan = new PortManager(pset);
-		}
+		portMan->UpdateConfiguration(pset);
 		auto port = portMan->GetMulticastTransferPort(source_rank());
 		auto multicast_address = boost::asio::ip::address::from_string(portMan->GetMulticastTransferGroupAddress());
 		auto local_address = boost::asio::ip::address::from_string(pset.get<std::string>("local_address"));

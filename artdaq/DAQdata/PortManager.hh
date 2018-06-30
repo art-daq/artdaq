@@ -63,7 +63,7 @@ namespace artdaq {
 		using Parameters = fhicl::WrappedTable<Config>;
 #endif
 
-		PortManager(fhicl::ParameterSet const& ps);
+		PortManager();
 		void UpdateConfiguration(fhicl::ParameterSet const& ps);
 
 		int GetRoutingTokenPort(int subsystemID = 0);

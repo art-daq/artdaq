@@ -2,6 +2,7 @@
 #define artdaq_ArtModules_detail_SharedMemoryReader_hh
 
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "art/Framework/Core/Frameworkfwd.h"
 
 #include "art/Framework/Core/FileBlock.h"
@@ -73,8 +74,8 @@ namespace artdaq
 			 * \endverbatim
 			 */
 			SharedMemoryReader(fhicl::ParameterSet const& ps,
-							   art::ProductRegistryHelper& help,
-							   art::SourceHelper const& pm)
+				art::ProductRegistryHelper& help,
+				art::SourceHelper const& pm)
 				: pmaker(pm)
 				, waiting_time(ps.get<double>("waiting_time", 86400.0))
 				, resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
@@ -86,6 +87,18 @@ namespace artdaq
 				, fragment_type_map_(getDefaultTypes())
 				, readNext_calls_(0)
 			{
+				try {
+					if (metricMan)
+					{
+						metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()));
+						metricMan->do_start();
+					}
+				}
+				catch (...)
+				{
+					ExceptionHandler(ExceptionHandlerRethrow::no, "Error loading metrics in SharedMemoryReader()");
+				}
+
 				// For testing
 				//if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") || (ps.has_key("expected_fragments_per_event") && ps.has_key("max_fragment_size_bytes"))))
 				//{
@@ -107,7 +120,7 @@ namespace artdaq
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container" + it->second);
 				}
-				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string() ;
+				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string();
 				//for(auto& type : fragment_type_map_)
 				//{
 				//	TLOG_INFO("SharedMemoryReader") << "Fragment Type " << type.second << " has typeid " << type.first ;
@@ -123,9 +136,9 @@ namespace artdaq
 			 * This constructor calls the three-parameter constructor, the art::MasterProductRegistry parameter is discarded.
 			 */
 			SharedMemoryReader(fhicl::ParameterSet const& ps,
-							   art::ProductRegistryHelper& help,
-							   art::SourceHelper const& pm,
-							   art::MasterProductRegistry&) : SharedMemoryReader(ps, help, pm)
+				art::ProductRegistryHelper& help,
+				art::SourceHelper const& pm,
+				art::MasterProductRegistry&) : SharedMemoryReader(ps, help, pm)
 			{}
 
 			/**
@@ -144,7 +157,7 @@ namespace artdaq
 			 */
 			void readFile(std::string const&, art::FileBlock*& fb)
 			{
-				TLOG_ARB(5, "SharedMemoryReader") <<"readFile enter/start";
+				TLOG_ARB(5, "SharedMemoryReader") << "readFile enter/start";
 				fb = new art::FileBlock(art::FileFormatVersion(1, "RawEvent2011"), "nothing");
 			}
 
@@ -165,12 +178,12 @@ namespace artdaq
 			 * \return Whether an event was returned
 			 */
 			bool readNext(art::RunPrincipal* const & inR,
-						  art::SubRunPrincipal* const & inSR,
-						  art::RunPrincipal*& outR,
-						  art::SubRunPrincipal*& outSR,
-						  art::EventPrincipal*& outE)
+				art::SubRunPrincipal* const & inSR,
+				art::RunPrincipal*& outR,
+				art::SubRunPrincipal*& outSR,
+				art::EventPrincipal*& outE)
 			{
-				TLOG_DEBUG("SharedMemoryReader") << "readNext BEGIN" ;
+				TLOG_DEBUG("SharedMemoryReader") << "readNext BEGIN";
 				/*if (outputFileCloseNeeded) {
 				outputFileCloseNeeded = false;
 				return false;
@@ -213,18 +226,18 @@ namespace artdaq
 					if (!got_event)
 					{
 						TLOG_INFO("SharedMemoryReader")
-							<< "InputFailure: Reading timed out in SharedMemoryReader::readNext()" ;
+							<< "InputFailure: Reading timed out in SharedMemoryReader::readNext()";
 						keep_looping = resume_after_timeout;
 					}
 				}
 
 				if (!got_event)
 				{
-					TLOG_INFO("SharedMemoryReader") << "Did not receive an event from Shared Memory, returning false" ;
+					TLOG_INFO("SharedMemoryReader") << "Did not receive an event from Shared Memory, returning false";
 					shutdownMsgReceived = true;
 					return false;
 				}
-				TLOG_DEBUG("SharedMemoryReader") << "Got Event!" ;
+				TLOG_DEBUG("SharedMemoryReader") << "Got Event!";
 
 				auto errflag = false;
 				auto evtHeader = incoming_events->ReadHeader(errflag);
@@ -233,12 +246,12 @@ namespace artdaq
 				if (errflag) goto start; // Buffer was changed out from under reader!
 				if (fragmentTypes.size() == 0)
 				{
-					TLOG_ERROR("SharedMemoryReader") << "Event has no Fragments! Aborting!" ;
+					TLOG_ERROR("SharedMemoryReader") << "Event has no Fragments! Aborting!";
 					incoming_events->ReleaseBuffer();
 					return false;
 				}
 				auto firstFragmentType = *fragmentTypes.begin();
-				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " (" << fragment_type_map_[firstFragmentType] << ")" ;
+				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " (" << fragment_type_map_[firstFragmentType] << ")";
 
 				// We return false, indicating we're done reading, if:
 				//   1) we did not obtain an event, because we timed out and were
@@ -247,7 +260,7 @@ namespace artdaq
 				//      pointer
 				if (firstFragmentType == Fragment::EndOfDataFragmentType)
 				{
-					TLOG_DEBUG("SharedMemoryReader") << "Received shutdown message, returning false" ;
+					TLOG_DEBUG("SharedMemoryReader") << "Received shutdown message, returning false";
 					shutdownMsgReceived = true;
 					incoming_events->ReleaseBuffer();
 					return false;
@@ -264,7 +277,7 @@ namespace artdaq
 				if (inR == 0 || inR->run() != evtHeader->run_id)
 				{
 					outR = pmaker.makeRunPrincipal(evtHeader->run_id,
-												   currentTime);
+						currentTime);
 				}
 
 				if (firstFragmentType == Fragment::EndOfRunFragmentType)
@@ -282,8 +295,8 @@ namespace artdaq
 					if (inR == 0 || inR->run() != evtHeader->run_id)
 					{
 						outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id,
-														   evtHeader->subrun_id,
-														   currentTime);
+							evtHeader->subrun_id,
+							currentTime);
 						art::EventID const evid(art::EventID::flushEvent(outSR->id()));
 						outE = pmaker.makeEventPrincipal(evid, currentTime);
 					}
@@ -305,8 +318,8 @@ namespace artdaq
 						else
 						{
 							outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id,
-															   evtHeader->subrun_id,
-															   currentTime);
+								evtHeader->subrun_id,
+								currentTime);
 							art::EventID const evid(art::EventID::flushEvent(outSR->id()));
 							outE = pmaker.makeEventPrincipal(evid, currentTime);
 							// Possible error condition
@@ -324,13 +337,13 @@ namespace artdaq
 				if (inSR == 0 || subrun_check != inSR->id())
 				{
 					outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id,
-													   evtHeader->subrun_id,
-													   currentTime);
+						evtHeader->subrun_id,
+						currentTime);
 				}
 				outE = pmaker.makeEventPrincipal(evtHeader->run_id,
-												 evtHeader->subrun_id,
-												 evtHeader->event_id,
-												 currentTime);
+					evtHeader->subrun_id,
+					evtHeader->event_id,
+					currentTime);
 
 				// insert the Fragments of each type into the EventPrincipal
 				std::map<Fragment::type_t, std::string>::const_iterator iter_end =
@@ -372,35 +385,35 @@ namespace artdaq
 							for (auto& type : derived_fragments)
 							{
 								put_product_in_principal(std::move(type.second),
-														 *outE,
-														 pretend_module_name,
-														 type.first);
+									*outE,
+									pretend_module_name,
+									type.first);
 							}
 
 						}
 						else
 						{
 							put_product_in_principal(std::move(product),
-													 *outE,
-													 pretend_module_name,
-													 iter->second);
+								*outE,
+								pretend_module_name,
+								iter->second);
 						}
 					}
 					else
 					{
 						put_product_in_principal(std::move(product),
-												 *outE,
-												 pretend_module_name,
-												 unidentified_instance_name);
+							*outE,
+							pretend_module_name,
+							unidentified_instance_name);
 						TLOG_WARNING("SharedMemoryReader")
 							<< "UnknownFragmentType: The product instance name mapping for fragment type \""
 							<< ((int)type_code) << "\" is not known. Fragments of this "
 							<< "type will be stored in the event with an instance name of \""
-							<< unidentified_instance_name << "\"." ;
+							<< unidentified_instance_name << "\".";
 					}
 				}
 				incoming_events->ReleaseBuffer();
-				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << incoming_events->size() << " metricMan=" << (void*)metricMan ;
+				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << incoming_events->size() << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
 				{
 					metricMan->sendMetric("bytesRead", bytesRead, "B", 5, MetricMode::Accumulate, "", true);

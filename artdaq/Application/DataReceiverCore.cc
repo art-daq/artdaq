@@ -17,7 +17,6 @@ artdaq::DataReceiverCore::DataReceiverCore()
 	, run_is_paused_(false)
 {
 	TLOG(TLVL_DEBUG) << "Constructor" ;
-	metricMan = &metricMan_;
 }
 
 artdaq::DataReceiverCore::~DataReceiverCore()
@@ -39,7 +38,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	}
 	try
 	{
-		metricMan_.initialize(metric_pset, app_name);
+		metricMan->initialize(metric_pset, app_name);
 	}
 	catch (...)
 	{
@@ -56,6 +55,11 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	{
 		art_pset.erase("daq");
 	}
+
+	fhicl::ParameterSet art_source_pset = art_pset.get<fhicl::ParameterSet>("source");
+	art_source_pset.put<fhicl::ParameterSet>("metrics", metric_pset);
+	art_pset.erase("source");
+	art_pset.put<fhicl::ParameterSet>("source", art_source_pset);
 
 	fhicl::ParameterSet data_tmp = data_pset;
 	if (data_pset.has_key("expected_events_per_bunch"))
@@ -89,7 +93,7 @@ bool artdaq::DataReceiverCore::start(art::RunID id)
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 	run_is_paused_.store(false);
-	metricMan_.do_start();
+	metricMan->do_start();
 	event_store_ptr_->startRun(id.run());
 	receiver_ptr_->start_threads();
 
@@ -191,7 +195,7 @@ bool artdaq::DataReceiverCore::resume()
 {
 	logMessage_("Resuming run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	pause_requested_.store(false);
-	metricMan_.do_start();
+	metricMan->do_start();
 	event_store_ptr_->startSubrun();
 	run_is_paused_.store(false);
 	logMessage_("Completed the Resume transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
@@ -225,7 +229,7 @@ bool artdaq::DataReceiverCore::shutdown()
 	event_store_ptr_.reset();
 
 	TLOG(TLVL_DEBUG) << "shutdown: Shutting down MetricManager" ;
-	metricMan_.shutdown();
+	metricMan->shutdown();
 
 	TLOG(TLVL_DEBUG) << "shutdown: Complete" ;
 	logMessage_("Completed Shutdown transition");
