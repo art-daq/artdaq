@@ -90,7 +90,7 @@ namespace artdaq
 				try {
 					if (metricMan)
 					{
-						metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()));
+						metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "artdaqart");
 						metricMan->do_start();
 					}
 				}

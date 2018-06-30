@@ -58,7 +58,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 
 	try {
 		if (metricMan) {
-			metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()));
+			metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "Online Monitor");
 			metricMan->do_start();
 		}
 	}

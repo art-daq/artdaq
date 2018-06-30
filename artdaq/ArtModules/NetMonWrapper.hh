@@ -42,7 +42,7 @@ namespace art
 			try {
 				if (metricMan)
 				{
-					metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()));
+					metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "artdaqart");
 					metricMan->do_start();
 				}
 			}
