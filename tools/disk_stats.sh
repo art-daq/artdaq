@@ -3,8 +3,8 @@
  # Jun 28, 2018. "TERMS AND CONDITIONS" governing this file are in the README
  # or COPYING file. If you do not have such a file, one can be obtained by
  # contacting Ron or Fermi Lab in Batavia IL, 60510, phone: 630-840-3000.
- # $RCSfile: .emacs.gnu,v $
- # rev='$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $'
+ # $RCSfile: disk_stats.sh,v $
+ # rev='$Revision: 1.2 $$Date: 2018/06/30 02:57:58 $'
 
 USAGE="\
   usage: `basename $0` <drive.fcl> <directories>...
@@ -42,12 +42,22 @@ for dd in $dirs;do
     pids="${pids:+$pids }$!"
     cd $dirsav
 done
-
-sleep 4 # allow time for all art processes to start -- perhaps loading (libraries off of nfs
-
-# see if artdaqDriver processes are up (via kill -0)
-for pp in $pids;do
-    kill -0 $pp || { echo "Error - artdaqDriver process no running"; exit 1; }
+num_pids=`echo $pids | wc -w`
+sleep 1
+# see if artdaqDriver processes are (still) up (via kill -0)
+start=`date +%s`
+while true;do
+    ok=1
+    for pp in $pids;do
+        kill -0 $pp >/dev/null 2>&1 || { ok=0; sleep 1; break; } 
+    done
+    now=`date +%s`
+    test $ok -eq 1 -o `expr \( $now - $start \)` -gt 10 && break;
 done
+test $ok -eq 0 && { echo "Error - processes took more than 10 seonds to start. Check artdaqDriver output files."; exit 1; }
+sleep 1; # allow time for all art processes to start -- perhaps loading (libraries off of nfs
+psout=`ps aux`
+num_art=`echo "$psout" | grep ' art ' | wc -l`
+echo num_art=$num_art
 
 periodic_cmd_stats --comment="$fcl_file" --pid="`pidof artdaqDriver`,`pidof art`" --disk=$disks
