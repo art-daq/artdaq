@@ -10,7 +10,7 @@ USAGE="\
   usage: `basename $0` <drive.fcl> <directories>...
 example:
   rm -fr /data[0123]/disk_stat_test; mkdir /data{0,1,2,3}/disk_stat_test;\\
-  `basename $0` \$ARTDAQ_DEMO_DIR/tools/fcl/driver_test1a.fcl /data{0,1,2,3}/disk_stat_test;\
+  `basename $0` \$ARTDAQ_DEMO_DIR/tools/fcl/driver_test1a.fcl /data{0,1,2,3}/disk_stat_test;\\
   gnuplot -e png=0 \`/bin/ls -t periodic_*_stats.out|head -1\`
 NOTES:
   This test will start artdaqDriver processes for each directory specified.
@@ -43,11 +43,11 @@ for dd in $dirs;do
     cd $dirsav
 done
 
-sleep 5 # allow time for all art processes to start
+sleep 4 # allow time for all art processes to start -- perhaps loading (libraries off of nfs
 
 # see if artdaqDriver processes are up (via kill -0)
 for pp in $pids;do
     kill -0 $pp || { echo "Error - artdaqDriver process no running"; exit 1; }
 done
 
-periodic_cmd_stats --pid="`pidof artdaqDriver`,`pidof art`" --disk=$disks
+periodic_cmd_stats --comment="$fcl_file" --pid="`pidof artdaqDriver`,`pidof art`" --disk=$disks

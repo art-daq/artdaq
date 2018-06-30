@@ -95,6 +95,7 @@ std::string   opt_stats;
 std::string   opt_outdir("");
 std::string   opt_graph("CPUnode,Cached,Dirty,Free"); // CPU+ will always be graphed
 const char*   opt_period="5.0";
+std::string   opt_comment;
 int           opt_pre=6;	// number of periods to sleepB4exec
 int           opt_post=6;
 int           opt_ymin=0;
@@ -144,6 +145,7 @@ void parse_args( int argc, char	*argv[] )
 			{ "post",          required_argument,0,     6 },
 			{ "graph",         required_argument,0,     7 },
 			{ "yrange",        required_argument,0,     8 },
+			{ "comment",       required_argument,0,     9 },
 			{     0,              0,             0,     0 }
 		};
 		opt = getopt_long( argc, argv, "?hvqVi:c:C:d:s:o:p:P:wf",
@@ -183,6 +185,7 @@ void parse_args( int argc, char	*argv[] )
 				  } else
 					  opt_yincr=(opt_ymax-opt_ymin)/5;
 				  break;
+		case 9:   opt_comment=optarg;                                    break;
 		default:
 			printf( "?? getopt returned character code 0%o ??\n", opt );
 			exit( 1 );
@@ -387,7 +390,7 @@ if(!exists('height')) height=384\n\
 thisPid=system('echo `ps -p$$ -oppid=`')\n\
 thisFile=system('ls -l /proc/'.thisPid.\"/fd | grep -v pipe: | tail -1  | sed -e 's/.*-> //'\")\n\
 \n\
-set title \"Disk Write Rate and %%CPU vs. time\\n%s %s %s\\ncmd: %s\"\n\
+set title \"Disk Write Rate and %%CPU vs. time\\n%s %s %s%s\" # cmd and/or comment at end\n\
 set xdata time\n\
 tfmt='%%Y-%%m-%%dT%%H:%%M:%%S'     # try to use consistent format\n\
 set timefmt '%%Y-%%m-%%dT%%H:%%M:%%S'\n\
@@ -741,9 +744,14 @@ main(  int	argc
 	//FILE *outfp=stdout;
 	FILE *outfp = fdopen(outfd,"w");
 
+	std::string cmd_comment("");
+	if (opt_cmd.size())
+		cmd_comment += "\\ncmd: "+opt_cmd[0];
+	if (opt_comment.size())
+		cmd_comment += "\\ncomment: " + opt_comment;
 	fprintf( outfp, GNUPLOT_PREFIX, opt_ymin, opt_ymax,  opt_yincr,  opt_y2max,  opt_y2incr
 	        , run_time, hostname.c_str(), ubuf.release
-	        , opt_cmd.size()?opt_cmd[0].c_str():""
+	        , cmd_comment.c_str()
 	        , "disk write MB/s" );
 
 	uint64_t t_start=gettimeofday_us();
