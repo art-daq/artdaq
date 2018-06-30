@@ -428,25 +428,25 @@ namespace artdaq
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg ;
+				TLOG(TLVL_ERROR) << msg;
 			}
 			catch (art::Exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg ;
+				TLOG(TLVL_ERROR) << msg;
 			}
 			catch (cet::exception& er)
 			{
 				std::string msg = exception_msg(er, _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg ;
+				TLOG(TLVL_ERROR) << msg;
 			}
 			catch (...)
 			{
 				std::string msg = exception_msg("Unknown exception", _help);
 				*retvalP = xmlrpc_c::value_string(msg);
-				TLOG(TLVL_ERROR) << msg ;
+				TLOG(TLVL_ERROR) << msg;
 			}
 		}
 		else
@@ -915,7 +915,7 @@ private:								\
 		{
 			TLOG(TLVL_INFO) << "A shutdown command was sent "
 				<< "with parameter "
-				<< paramString << "\"" ;
+				<< paramString << "\"";
 			_server->terminate();
 		}
 	private:
@@ -931,7 +931,21 @@ private:								\
 		, serverUrl_(ps.get<std::string>("server_url", ""))
 		, server(nullptr)
 	{
-		//std::cout << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_ << std::endl;
+		TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
+		if (serverUrl_.find("http") == std::string::npos)
+		{
+			serverUrl_ = "http://" + serverUrl_;
+		}
+		if (serverUrl_.find(std::to_string(port_)) == std::string::npos && serverUrl_.find(':', 7) == std::string::npos)
+		{
+			serverUrl_ = serverUrl_ + ":" + std::to_string(port_);
+		}
+		if (serverUrl_.find("RPC2") == std::string::npos)
+		{
+			serverUrl_ = serverUrl_ + "/RPC2";
+		}
+		TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
+
 	}
 
 	void xmlrpc_commander::run_server() try
@@ -951,13 +965,14 @@ private:								\
 		c_registryPPP = (xmlrpc_registry ***)(((char*)&registry) + sizeof(girmem::autoObject));
 
 #define register_method2(m,ss)											\
-		xmlrpc_c::method * ptr_ ## m(dynamic_cast<xmlrpc_c::method *>(new m ## _(*this))); \
+		xmlrpc_c::method* ptr_ ## m(dynamic_cast<xmlrpc_c::method*>(new m ## _(*this))); \
+		std::string m##signature = ptr_ ## m->signature(), m##help = ptr_ ## m->help(); \
 		methodInfo.methodName      = "daq." #m;					\
 		methodInfo.methodFunction  = &c_executeMethod;	\
 		methodInfo.serverInfo      = ptr_ ## m;				\
 		methodInfo.stackSize       = ss;						\
-		methodInfo.signatureString = ptr_ ## m ->signature().c_str();	\
-		methodInfo.help            = ptr_ ## m ->help().c_str();	\
+		methodInfo.signatureString = &m##signature[0];	\
+		methodInfo.help            = &m##help[0];	\
 		xmlrpc_env_init(&env);										\
 		xmlrpc_registry_add_method3(&env,**c_registryPPP,&methodInfo);	\
 		if(env.fault_occurred)throw(girerr::error(env.fault_string));	\
@@ -1049,7 +1064,7 @@ private:								\
 		registry.setShutdown(&shutdown_obj);
 #endif
 
-		TLOG(TLVL_DEBUG) << "running server" ;
+		TLOG(TLVL_DEBUG) << "running server";
 
 		// JCF, 6/3/15
 
@@ -1059,32 +1074,33 @@ private:								\
 
 		try
 		{
+			running_ = true;
 			server->run();
+			running_ = false;
 		}
 		catch (...)
 		{
-			TLOG(TLVL_WARNING) << "server threw an exception; closing the socket and rethrowing" ;
+			TLOG(TLVL_WARNING) << "server threw an exception; closing the socket and rethrowing";
+			running_ = false;
 			close(socket_file_descriptor);
 			throw;
 		}
 
 		close(socket_file_descriptor);
-		TLOG(TLVL_DEBUG) << "server terminated" ;
+		TLOG(TLVL_DEBUG) << "server terminated";
 	}
 	catch (...)
 	{
 		throw;
 	}
 
-
-	std::string xmlrpc_commander::send_register_monitor(std::string monitor_fhicl)
+	std::string xmlrpc_commander::send_command_(std::string command)
 	{
 		if (serverUrl_ == "")
 		{
 			std::stringstream errmsg;
-			errmsg << "Problem attempting XML-RPC call: No server URL set!";
-			ExceptionHandler(ExceptionHandlerRethrow::yes,
-				errmsg.str());
+			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
 
 		}
 		xmlrpc_c::clientSimple myClient;
@@ -1092,50 +1108,275 @@ private:								\
 
 		try
 		{
-			myClient.call(serverUrl_, "daq.register_monitor", "s", &result, monitor_fhicl.c_str());
+			myClient.call(serverUrl_, "daq." + command, "", &result);
 		}
 		catch (...)
 		{
 			std::stringstream errmsg;
-			errmsg << "Problem attempting XML-RPC call on host " << serverUrl_
+			errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
 				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
-			ExceptionHandler(ExceptionHandlerRethrow::yes,
-				errmsg.str());
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
 		}
 
 		return xmlrpc_c::value_string(result);
 	}
 
-	std::string xmlrpc_commander::send_unregister_monitor(std::string monitor_label)
+	std::string xmlrpc_commander::send_command_(std::string command, std::string arg)
 	{
 		if (serverUrl_ == "")
 		{
 			std::stringstream errmsg;
-			errmsg << "Problem attempting XML-RPC call: No server URL set!";
-			ExceptionHandler(ExceptionHandlerRethrow::yes,
-				errmsg.str());
+			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
 
 		}
-
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
 
 		try
 		{
-			myClient.call(serverUrl_, "daq.unregister_monitor", "s", &result, monitor_label.c_str());
+			myClient.call(serverUrl_, "daq." + command, "s", &result, arg.c_str());
 		}
 		catch (...)
 		{
 			std::stringstream errmsg;
-			errmsg << "Problem attempting to unregister monitor via XML-RPC call on host " << serverUrl_
-				<< "; possible causes are that the monitor label \""
-				<< monitor_label
-				<< "\" is unrecognized by contacted process or process at requested port doesn't exist";
-			ExceptionHandler(ExceptionHandlerRethrow::no, errmsg.str());
+			errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
 		}
 
 		return xmlrpc_c::value_string(result);
+	}
 
+	std::string xmlrpc_commander::send_command_(std::string command, fhicl::ParameterSet pset, uint64_t timestamp, uint64_t timeout)
+	{
+		if (serverUrl_ == "")
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+
+		}
+		xmlrpc_c::clientSimple myClient;
+		xmlrpc_c::value result;
+
+		try
+		{
+			myClient.call(serverUrl_, "daq." + command, "sii", &result, pset.to_string().c_str(), timestamp, timeout);
+		}
+		catch (...)
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+		}
+
+		return xmlrpc_c::value_string(result);
+	}
+
+	std::string artdaq::xmlrpc_commander::send_command_(std::string command, uint64_t a, uint64_t b)
+	{
+		if (serverUrl_ == "")
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+
+		}
+		xmlrpc_c::clientSimple myClient;
+		xmlrpc_c::value result;
+
+		try
+		{
+			myClient.call(serverUrl_, "daq." + command, "ii", &result, a,b);
+		}
+		catch (...)
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+		}
+
+		return xmlrpc_c::value_string(result);
+	}
+
+	std::string artdaq::xmlrpc_commander::send_command_(std::string command, art::RunID r, uint64_t a, uint64_t b)
+	{
+		if (serverUrl_ == "")
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+
+		}
+		xmlrpc_c::clientSimple myClient;
+		xmlrpc_c::value result;
+
+		try
+		{
+			myClient.call(serverUrl_, "daq." + command, "iii", &result, r, a, b);
+		}
+		catch (...)
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+		}
+
+		return xmlrpc_c::value_string(result);
+	}
+
+	std::string artdaq::xmlrpc_commander::send_command_(std::string command, uint64_t arg1)
+	{
+		if (serverUrl_ == "")
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+
+		}
+		xmlrpc_c::clientSimple myClient;
+		xmlrpc_c::value result;
+
+		try
+		{
+			myClient.call(serverUrl_, "daq." + command, "i", &result, arg1);
+		}
+		catch (...)
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+		}
+
+		return xmlrpc_c::value_string(result);
+	}
+
+	std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::string arg1, std::string arg2)
+	{
+		if (serverUrl_ == "")
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+
+		}
+		xmlrpc_c::clientSimple myClient;
+		xmlrpc_c::value result;
+
+		try
+		{
+			myClient.call(serverUrl_, "daq." + command, "ss", &result, arg1.c_str(), arg2.c_str());
+		}
+		catch (...)
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+		}
+
+		return xmlrpc_c::value_string(result);
+	}
+
+	std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::string arg1, std::string arg2, uint64_t arg3)
+	{
+		if (serverUrl_ == "")
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+
+		}
+		xmlrpc_c::clientSimple myClient;
+		xmlrpc_c::value result;
+
+		try
+		{
+			myClient.call(serverUrl_, "daq." + command, "ssi", &result, arg1.c_str(), arg2.c_str(), arg3);
+		}
+		catch (...)
+		{
+			std::stringstream errmsg;
+			errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+				<< "; possible causes are malformed FHiCL or nonexistent process at requested port";
+			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+		}
+
+		return xmlrpc_c::value_string(result);
+	}
+
+	std::string xmlrpc_commander::send_register_monitor(std::string monitor_fhicl)
+	{
+		return send_command_("register_monitor", monitor_fhicl);
+	}
+	std::string xmlrpc_commander::send_unregister_monitor(std::string monitor_label)
+	{
+		return send_command_("unregister_monitor", monitor_label);
+	}
+	std::string artdaq::xmlrpc_commander::send_init(fhicl::ParameterSet ps, uint64_t a, uint64_t b)
+	{
+		return send_command_("init", ps, a, b);
+	}
+	std::string artdaq::xmlrpc_commander::send_soft_init(fhicl::ParameterSet ps, uint64_t a, uint64_t b)
+	{
+		return send_command_("soft_init", ps, a, b);
+	}
+	std::string xmlrpc_commander::send_reinit(fhicl::ParameterSet ps, uint64_t a, uint64_t b)
+	{
+		return send_command_("reinit", ps, a, b);
+	}
+	std::string xmlrpc_commander::send_start(art::RunID r, uint64_t a, uint64_t b)
+	{
+		return send_command_("start", r, a, b);
+	}
+	std::string xmlrpc_commander::send_pause(uint64_t a, uint64_t b)
+	{
+		return send_command_("pause", a, b);
+	}
+	std::string xmlrpc_commander::send_resume(uint64_t a, uint64_t b)
+	{
+		return send_command_("resume", a, b);
+	}
+	std::string xmlrpc_commander::send_stop(uint64_t a, uint64_t b)
+	{
+		return send_command_("stop", a, b);
+	}
+	std::string xmlrpc_commander::send_shutdown(uint64_t a)
+	{
+		return send_command_("shutdown", a);
+	}
+	std::string xmlrpc_commander::send_status()
+	{
+		return send_command_("status");
+	}
+	std::string xmlrpc_commander::send_report(std::string what)
+	{
+		return send_command_("report", what);
+	}
+	std::string xmlrpc_commander::send_legal_commands()
+	{
+		return send_command_("legal_commands");
+	}
+	std::string xmlrpc_commander::send_trace_get(std::string name)
+	{
+		return send_command_("trace_get", name);
+	}
+	std::string xmlrpc_commander::send_trace_set(std::string name, std::string which, uint64_t mask)
+	{
+		return send_command_("trace_set", name, which, mask);
+	}
+	std::string xmlrpc_commander::send_meta_command(std::string command, std::string arg)
+	{
+		return send_command_("meta_command", command, arg);
+	}
+	std::string xmlrpc_commander::send_rollover_subrun(uint64_t when)
+	{
+		return send_command_("rollover_subrun", when);
 	}
 } // namespace artdaq
 

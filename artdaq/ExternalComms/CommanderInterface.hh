@@ -233,6 +233,12 @@ namespace artdaq
 		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_rollover_subrun(uint64_t);
 
+
+		/// <summary>
+		/// Determine whether the Commander plugin is ready to accept commands
+		/// </summary>
+		/// <returns>True if running, false otherwise</returns>
+		bool GetStatus() { return running_.load(); }
 	private:
 
 	public:
@@ -243,6 +249,7 @@ namespace artdaq
 
 	protected:
 		int _id; ///< ID Number of this Commander
+		std::atomic<bool> running_; ///< Whether the server is running and able to respond to requests
 	};
 }
 
