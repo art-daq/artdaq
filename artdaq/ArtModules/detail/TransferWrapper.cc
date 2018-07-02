@@ -137,7 +137,10 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 				}
 				else
 				{
-					TLOG(TLVL_WARNING) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again" ;
+					// 02-Jun-2018, KAB: added status/result printout
+					// to-do: add another else clause that explicitly checks for RECV_TIMEOUT
+					TLOG(TLVL_WARNING) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again"
+							   << ", status = " << result;
 
 				}
 			}
