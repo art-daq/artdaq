@@ -245,7 +245,7 @@ namespace artdaq {
 		 * \brief Shutdown a set of art processes
 		 * \param pids PIDs of the art processes
 		 */
-		void ShutdownArtProcesses(std::set<pid_t> pids);
+		void ShutdownArtProcesses(std::set<pid_t>& pids);
 
 		/**
 		 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
@@ -376,10 +376,11 @@ namespace artdaq {
 		std::atomic<int> oversize_fragment_count_;
 		int maximum_oversize_fragment_count_;
 
+		mutable std::mutex art_process_mutex_;
 		std::set<pid_t> art_processes_;
 		std::atomic<bool> restart_art_;
 		bool always_restart_art_;
-		bool manual_art_;
+		std::atomic<bool> manual_art_;
 		fhicl::ParameterSet current_art_pset_;
 		std::shared_ptr<art_config_file> current_art_config_file_;
 		double minimum_art_lifetime_s_;

@@ -160,15 +160,15 @@ void artdaq::RequestReceiver::startRequestReceiverThread()
 	}
 
 	TLOG(TLVL_INFO) << "Starting Request Reception Thread";
-	try{
-	requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
-}
-catch (const boost::exception& e)
-{
-	TLOG(TLVL_ERROR) << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-	std::cerr << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
-	exit(5);
-}
+	try {
+		requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
+	}
+	catch (const boost::exception& e)
+	{
+		TLOG(TLVL_ERROR) << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+		std::cerr << "Caught boost::exception starting Request Receiver thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(5);
+	}
 	running_ = true;
 }
 
@@ -248,6 +248,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		{
 			TLOG(20) << "Request Packet: hdr=" << buffer.header << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
 			if (!buffer.isValid()) continue;
+			std::unique_lock<std::mutex> tlk(request_mutex_);
 			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
 			{
 				TLOG(TLVL_ERROR) << "Received conflicting request for SeqID "
@@ -266,7 +267,6 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 				}
 				else
 				{
-					std::unique_lock<std::mutex> tlk(request_mutex_);
 					requests_[buffer.sequence_id] = buffer.timestamp;
 					request_timing_[buffer.sequence_id] = std::chrono::steady_clock::now();
 					anyNew = true;

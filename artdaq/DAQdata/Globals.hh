@@ -12,10 +12,10 @@
 #define seedAndRandom() artdaq::Globals::seedAndRandom_()
 #define GetPartitionNumber() artdaq::Globals::getPartitionNumber_()
 
-#define mftrace_iteration artdaq::Globals::mftrace_iteration_
-#define mftrace_module artdaq::Globals::mftrace_module_
-#define SetMFModuleName(name) mftrace_module = name
-#define SetMFIteration(name) mftrace_iteration = name
+#define GetMFIteration() artdaq::Globals::GetMFIteration_()
+#define GetMFModuleName() artdaq::Globals::GetMFModuleName_()
+#define SetMFModuleName(name) artdaq::Globals::SetMFModuleName_(name)
+#define SetMFIteration(name) artdaq::Globals::SetMFIteration_(name)
 
 //https://stackoverflow.com/questions/21594140/c-how-to-ensure-different-random-number-generation-in-c-when-program-is-execut
 #include <fcntl.h>
@@ -40,6 +40,7 @@ namespace artdaq
 		static std::string app_name_; ///< The name of the current application, to be used in logging and metrics
 		static int partition_number_; ///< The partition number of the current application
 
+		static std::mutex mftrace_mutex_;
 		static std::string mftrace_module_; ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
 		static std::string mftrace_iteration_; ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
 
@@ -101,6 +102,30 @@ namespace artdaq
 			}
 
 			return (part_u & 0x7F);
+		}
+
+		static std::string GetMFIteration_()
+		{
+			std::unique_lock<std::mutex> lk(mftrace_mutex_);
+			return mftrace_iteration_;
+		}
+
+		static std::string GetMFModuleName_()
+		{
+			std::unique_lock<std::mutex> lk(mftrace_mutex_);
+			return mftrace_module_;
+		}
+
+		static void SetMFIteration_(std::string name)
+		{
+			std::unique_lock<std::mutex> lk(mftrace_mutex_);
+			mftrace_iteration_ = name;
+		}
+
+		static void SetMFModuleName_(std::string name)
+		{
+			std::unique_lock<std::mutex> lk(mftrace_mutex_);
+			mftrace_module_ = name;
 		}
 	};
 }

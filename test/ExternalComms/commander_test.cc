@@ -73,4 +73,6 @@ int main(int argc, char** argv)
 
 	sts = commander->send_shutdown(arg);
 	TLOG(TLVL_DEBUG) << "shutdown res=" << sts << ", DONE";
+
+	if(commanderThread.joinable()) commanderThread.join();
 }

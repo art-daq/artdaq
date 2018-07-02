@@ -172,7 +172,7 @@ private:
 	size_t max_table_update_interval_ms_;
 	size_t max_ack_cycle_count_;
 	detail::RoutingMasterMode routing_mode_;
-	size_t current_table_interval_ms_;
+	std::atomic<size_t> current_table_interval_ms_;
 	std::atomic<size_t> table_update_count_;
 	std::atomic<size_t> received_token_count_;
 	std::unordered_map<int, size_t> received_token_counter_;

@@ -6,5 +6,6 @@ std::unique_ptr<artdaq::PortManager> artdaq::Globals::portMan_ = std::make_uniqu
 std::string artdaq::Globals::app_name_ = "";
 int artdaq::Globals::partition_number_ = -1;
 
+std::mutex artdaq::Globals::mftrace_mutex_;
 std::string artdaq::Globals::mftrace_iteration_ = "Booted";
 std::string artdaq::Globals::mftrace_module_ = "DAQ";

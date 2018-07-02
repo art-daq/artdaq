@@ -331,7 +331,10 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		siginfo_t status;
 		auto sts = waitid(P_PID, pid, &status, WEXITED);
 		TLOG(TLVL_INFO) << "Removing PID " << pid << " from process list";
-		art_processes_.erase(pid);
+		{
+			std::unique_lock<std::mutex> lk(art_process_mutex_);
+			art_processes_.erase(pid);
+		}
 		if (sts < 0)
 		{
 			TLOG(TLVL_WARNING) << "Error occurred in waitid for art process " << pid << ": " << errno << " (" << strerror(errno) << ").";
@@ -421,7 +424,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 
 }
 
-void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids)
+void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pids)
 {
 	restart_art_ = false;
 	//current_art_config_file_ = nullptr;
@@ -432,6 +435,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t> pids
 		for (auto pid = pids.begin(); pid != pids.end();)
 		{
 			// 08-May-2018, KAB: protect against killing invalid PIDS
+
+			std::unique_lock<std::mutex> lk(art_process_mutex_);
 			if (*pid <= 0)
 			{
 				TLOG(TLVL_WARNING) << "Removing an invalid PID (" << *pid
