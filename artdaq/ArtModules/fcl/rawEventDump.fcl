@@ -26,13 +26,14 @@ outputs:
   {
     module_type: FileDumperOutput
     wantProductFriendlyClassName: true
+    onlyIfPresent: true
   }
 }
 
 source:
 {
   module_type: RootInput
-  fileNames: [ "/tmp/artdaqdemo_eb00_20130501000000.root" ]
+  fileNames: [ "/tmp/artdaqdemo.root" ]
 }
 
 process_name: EVTDUMP
