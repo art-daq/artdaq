@@ -83,6 +83,7 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 		return false;
 	}
+	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
 
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG) << "do_stop(uint64_t, uint64_t): "
@@ -102,6 +103,7 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 	}
 
+	if(fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG) << "do_pause(uint64_t, uint64_t): "
 		<< "Number of fragments sent = " << number_of_fragments_sent
@@ -135,6 +137,7 @@ bool artdaq::BoardReaderApp::do_shutdown(uint64_t timeout)
 {
 	report_string_ = "";
 	external_request_status_ = fragment_receiver_ptr_->shutdown(timeout);
+	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
 	if (!external_request_status_)
 	{
 		report_string_ = "Error shutting down ";

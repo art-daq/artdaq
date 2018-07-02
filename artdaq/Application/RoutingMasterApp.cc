@@ -78,6 +78,8 @@ bool artdaq::RoutingMasterApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		return false;
 	}
 
+	if (routing_master_thread_.joinable()) routing_master_thread_.join();
+
 	TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
 		<< "Number of table entries sent = " << routing_master_ptr_->get_update_count()
 		<< ".";
@@ -94,6 +96,7 @@ bool artdaq::RoutingMasterApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_ = "Error pausing ";
 		report_string_.append(app_name + ".");
 	}
+	if (routing_master_thread_.joinable()) routing_master_thread_.join();
 
 	TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
 		<< "Number of table entries sent = " << routing_master_ptr_->get_update_count()
