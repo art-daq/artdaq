@@ -178,14 +178,14 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 	table_update_count_ = 0;
 	received_token_count_ = 0;
 
-	TLOG(TLVL_DEBUG) << "Started run " << std::to_string(run_id_.run()) ;
+	TLOG(TLVL_DEBUG) << "Started run " << run_id_.run() ;
 	return true;
 }
 
 bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Stopping run " << std::to_string(run_id_.run())
-		<< " after " << std::to_string(table_update_count_) << " table updates."
+	TLOG(TLVL_DEBUG) << "Stopping run " << run_id_.run()
+		<< " after " << table_update_count_ << " table updates."
 		<< " and " << received_token_count_ << " received tokens." ;
 	stop_requested_.store(true);
 	return true;
@@ -193,7 +193,7 @@ bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 
 bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Pausing run " << std::to_string(run_id_.run())
+	TLOG(TLVL_DEBUG) << "Pausing run " << run_id_.run()
 		<< " after " << table_update_count_ << " table updates."
 		<< " and " << received_token_count_ << " received tokens." ;
 	pause_requested_.store(true);
@@ -234,7 +234,7 @@ bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, ui
 	return initialize(pset, e, f);
 }
 
-size_t artdaq::RoutingMasterCore::process_event_table()
+void artdaq::RoutingMasterCore::process_event_table()
 {
 	if (rt_priority_ > 0)
 	{
@@ -260,7 +260,7 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 		if (status != 0)
 		{
 			TLOG(TLVL_ERROR)
-				<< "Failed to set realtime priority to " << std::to_string(rt_priority_)
+				<< "Failed to set realtime priority to " << rt_priority_
 				<< ", return code = " << status ;
 		}
 #pragma GCC diagnostic pop
@@ -286,7 +286,7 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 				++table_update_count_;
 				delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TABLE_UPDATES_STAT_KEY, delta_time);
-				TLOG(16) << "process_fragments TABLE_UPDATES_STAT_KEY=" << std::to_string(delta_time) ;
+				TLOG(16) << "process_fragments TABLE_UPDATES_STAT_KEY=" << delta_time ;
 			}
 			else
 			{
@@ -311,8 +311,6 @@ size_t artdaq::RoutingMasterCore::process_event_table()
 	}
 
 	metricMan_.do_stop();
-
-	return table_update_count_;
 }
 
 void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
@@ -323,7 +321,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (table_socket_ < 0)
 		{
-			TLOG(TLVL_ERROR) << "I failed to create the socket for sending Data Requests! Errno: " << std::to_string(errno) ;
+			TLOG(TLVL_ERROR) << "I failed to create the socket for sending Data Requests! Errno: " << errno ;
 			exit(1);
 		}
 		auto sts = ResolveHost(send_tables_address_.c_str(), send_tables_port_, send_tables_addr_);
@@ -358,13 +356,13 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			}
 			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 			{
-				TLOG(TLVL_ERROR) << "Cannot set outgoing interface. Errno: " << std::to_string(errno) ;
+				TLOG(TLVL_ERROR) << "Cannot set outgoing interface. Errno: " << errno ;
 				exit(1);
 			}
 		}
 		if (setsockopt(table_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
 		{
-			TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast. Errno: " << std::to_string(errno) ;
+			TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast. Errno: " << errno ;
 			exit(1);
 		}
 	}
@@ -414,7 +412,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
-		TLOG(TLVL_DEBUG) << "Sending table information for " << std::to_string(header.nEntries) << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ ;
+		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ ;
 		if (sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_)) < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error sending request message header" ;
@@ -428,7 +426,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 
 		auto first = packet[0].sequence_id;
 		auto last = packet.rbegin()->sequence_id;
-		TLOG(TLVL_DEBUG) << "Expecting acks to have first= " << std::to_string(first) << ", and last= " << std::to_string(last) ;
+		TLOG(TLVL_DEBUG) << "Expecting acks to have first= " << first << ", and last= " << last ;
 
 
 		auto startTime = std::chrono::steady_clock::now();
@@ -439,7 +437,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			{
 				if (counter > max_ack_cycle_count_ && table_update_count_ > 0)
 				{
-					TLOG(TLVL_ERROR) << "Did not receive acks from all senders after resending table " << std::to_string(counter)
+					TLOG(TLVL_ERROR) << "Did not receive acks from all senders after resending table " << counter
 						<< " times during the table_update_interval. Check the status of the senders!" ;
 					break;
 				}
@@ -467,11 +465,11 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				}
 				else
 				{
-					TLOG(TLVL_DEBUG) << "Ack packet from rank " << buffer.rank << " has first= " << std::to_string(buffer.first_sequence_id)
-						<< " and last= " << std::to_string(buffer.last_sequence_id) ;
+					TLOG(TLVL_DEBUG) << "Ack packet from rank " << buffer.rank << " has first= " << buffer.first_sequence_id
+						<< " and last= " << buffer.last_sequence_id ;
 					if (acks.count(buffer.rank) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 					{
-						TLOG(TLVL_DEBUG) << "Received table update acknowledgement from sender with rank " << std::to_string(buffer.rank) << "." ;
+						TLOG(TLVL_DEBUG) << "Received table update acknowledgement from sender with rank " << buffer.rank << "." ;
 						acks[buffer.rank] = true;
 						TLOG(TLVL_DEBUG) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; })
 							<< " acks outstanding" ;
@@ -535,7 +533,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			exit(EXIT_FAILURE);
 		}
 
-		TLOG(TLVL_DEBUG) << "Received " << std::to_string(nfds) << " events" ;
+		TLOG(TLVL_DEBUG) << "Received " << nfds << " events" ;
 		for (auto n = 0; n < nfds; ++n)
 		{
 			if (receive_token_events_[n].data.fd == token_socket_)
@@ -572,7 +570,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				}
 				else
 				{
-					TLOG(TLVL_DEBUG) << "Received token from " << std::to_string(buff.rank) << " indicating " << buff.new_slots_free << " slots are free." ;
+					TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free." ;
 					received_token_count_ += buff.new_slots_free;
 					if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
 					{
@@ -603,8 +601,19 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 void artdaq::RoutingMasterCore::start_recieve_token_thread_()
 {
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
+	boost::thread::attributes attrs;
+	attrs.set_stack_size(4096 * 2000); // 8000 KB
+	
 	TLOG(TLVL_INFO) << "Starting Token Reception Thread" ;
-	ev_token_receive_thread_ = boost::thread(&RoutingMasterCore::receive_tokens_, this);
+	try {
+		ev_token_receive_thread_ = boost::thread(attrs, boost::bind(&RoutingMasterCore::receive_tokens_, this));
+	}
+	catch(boost::exception const& e)
+	{
+		std::cerr << "Exception encountered starting Token Reception thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(3);
+	}
+	TLOG(TLVL_INFO) << "Started Token Reception Thread";
 }
 
 std::string artdaq::RoutingMasterCore::report(std::string const&) const
