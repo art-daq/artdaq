@@ -88,7 +88,10 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 	{
 		auto sts = shm_manager_->ReadFragment(fragment);
 
-		if (sts != 0) return RECV_TIMEOUT;
+		if (sts != 0) {
+		  TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragment, returning...";
+		  return RECV_TIMEOUT;
+		}
 
 		if (fragment.type() != artdaq::Fragment::DataFragmentType)
 		{
@@ -132,7 +135,10 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 	{
 		auto sts = shm_manager_->ReadFragmentHeader(header);
 
-		if (sts != 0) return RECV_TIMEOUT;
+		if (sts != 0) {
+		  TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragmentHeader, returning...";
+		  return RECV_TIMEOUT;
+		}
 
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
@@ -151,7 +157,10 @@ int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t 
 
 	TLOG(TLVL_TRACE) << GetTraceName() << ": Return status from ReadFragmentData is " << sts ;
 
-	if (sts != 0) return RECV_TIMEOUT;
+	if (sts != 0) {
+	  TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragmentData, returning...";
+	  return RECV_TIMEOUT;
+	}
 
 	return source_rank();
 
