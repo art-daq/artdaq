@@ -228,7 +228,7 @@ namespace artdaq {
 		/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 		 */
-		void RunArt(std::shared_ptr<art_config_file> config_file, pid_t& pid_out);
+		void RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<pid_t> pid_out);
 		/**
 		 * \brief Start all the art processes
 		 */

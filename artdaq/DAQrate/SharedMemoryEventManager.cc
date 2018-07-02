@@ -275,7 +275,7 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCountInBuffer(int buffer, Fr
 	return count;
 }
 
-void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> config_file, pid_t& pid_out)
+void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<pid_t> pid_out)
 {
 	do
 	{
@@ -324,7 +324,7 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 				<< "Finally, return to this window and enter the pid: " << std::endl;
 			std::cin >> pid;
 		}
-		pid_out = pid;
+		*pid_out = pid;
 
 		TLOG(TLVL_INFO) << "PID of new art process is " << pid;
 		art_processes_.insert(pid);
@@ -390,25 +390,25 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 		current_art_pset_ = pset;
 		current_art_config_file_ = std::make_shared<art_config_file>(pset/*, GetKey(), GetBroadcastKey()*/);
 	}
-	pid_t pid = -1;
+	std::shared_ptr<pid_t> pid(new pid_t(-1));
 	boost::thread thread([&] { RunArt(current_art_config_file_, pid); });
 	thread.detach();
 
 	auto currentCount = GetAttachedCount() - initialCount;
-	while ((currentCount < 1 || pid <= 0) && (TimeUtils::GetElapsedTime(startTime) < 5 || manual_art_))
+	while ((currentCount < 1 || *pid <= 0) && (TimeUtils::GetElapsedTime(startTime) < 5 || manual_art_))
 	{
 		usleep(10000);
 		currentCount = GetAttachedCount() - initialCount;
 	}
-	if ((currentCount < 1 || pid <= 0) && manual_art_)
+	if ((currentCount < 1 || *pid <= 0) && manual_art_)
 	{
 		TLOG(TLVL_WARNING) << "Manually-started art process has not connected to shared memory or has bad PID: connected:" << currentCount << ", PID:" << pid;
 		return 0;
 	}
-	else if (currentCount < 1 || pid <= 0)
+	else if (currentCount < 1 || *pid <= 0)
 	{
 		TLOG(TLVL_WARNING) << "art process has not started after 5s. Check art configuration!"
-			<< " (pid=" << pid << ", attachedCount=" << currentCount << ")";
+			<< " (pid=" << *pid << ", attachedCount=" << currentCount << ")";
 		return 0;
 	}
 	else
@@ -416,7 +416,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 		TLOG(TLVL_INFO) << std::setw(4) << std::fixed << "art initialization took "
 			<< TimeUtils::GetElapsedTime(startTime) << " seconds.";
 
-		return pid;
+		return *pid;
 	}
 
 }
