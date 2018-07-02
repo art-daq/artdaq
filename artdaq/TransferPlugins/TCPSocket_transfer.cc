@@ -250,7 +250,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		{
 			//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Reading data" ;
 			buff = reinterpret_cast<uint8_t*>(&header) + offset;
-			byte_cnt = mh.byte_count - offset;
+			byte_cnt = target_bytes - offset;
 		}
 
 		if (byte_cnt > 0)
@@ -280,6 +280,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					mh.byte_count = ntohl(mh.byte_count);
 					mh.source_id = ntohs(mh.source_id);
 					target_bytes = mh.byte_count;
+					TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Expected header size = " << target_bytes << ", sizeof(RawFragmentHeader) = " << sizeof(artdaq::detail::RawFragmentHeader);
+					assert(target_bytes == sizeof(artdaq::detail::RawFragmentHeader) || target_bytes == 0);
 
 					if (mh.message_type == MessHead::stop_v0)
 					{
