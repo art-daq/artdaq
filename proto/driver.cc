@@ -73,8 +73,6 @@ int main(int argc, char * argv[]) try
 	std::unique_ptr<artdaq::CommandableFragmentGenerator> commandable_gen =
 		dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>(gen);
 
-	artdaq::MetricManager metricMan_;
-	metricMan = &metricMan_;
 	my_rank = 0;
 	// pull out the Metric part of the ParameterSet
 	fhicl::ParameterSet metric_pset;
@@ -87,8 +85,8 @@ int main(int argc, char * argv[]) try
 		TLOG(TLVL_INFO) << "No metric plugins appear to be defined";
 	}
 	try {
-		metricMan_.initialize(metric_pset, "artdaqDriver");
-		metricMan_.do_start();
+		metricMan->initialize(metric_pset, "artdaqDriver");
+		metricMan->do_start();
 	}
 	catch (...) {
 	}
@@ -200,7 +198,7 @@ int main(int argc, char * argv[]) try
 			<< "onto the queue.";
 	}
 
-	metricMan_.do_stop();
+	metricMan->do_stop();
 	return 0;
 }
 catch (std::string & x)

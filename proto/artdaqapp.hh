@@ -54,7 +54,7 @@ namespace artdaq {
 		static void runArtdaqApp(detail::TaskType task, fhicl::ParameterSet const& config_ps)
 		{
 			app_name = config_ps.get<std::string>("application_name", detail::TaskTypeToString(task));
-			portMan = new artdaq::PortManager(config_ps);
+			portMan->UpdateConfiguration(config_ps);
 
 			if (config_ps.get<bool>("replace_image_name", config_ps.get<bool>("rin", false)))
 			{

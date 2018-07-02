@@ -38,7 +38,6 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application) :
 	statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
-	metricMan = &metricMan_;
 }
 
 artdaq::BoardReaderCore::~BoardReaderCore()
@@ -91,7 +90,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 	try
 	{
-		metricMan_.initialize(metric_pset, app_name);
+		metricMan->initialize(metric_pset, app_name);
 	}
 	catch (...)
 	{
@@ -140,7 +139,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 		return false;
 	}
-	metricMan_.setPrefix(generator_ptr_->metricsReportingInstanceName());
+	metricMan->setPrefix(generator_ptr_->metricsReportingInstanceName());
 
 	rt_priority_ = fr_pset.get<int>("rt_priority", 0);
 
@@ -165,7 +164,7 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	prev_seq_id_ = 0;
 	statsHelper_.resetStatistics();
 
-	metricMan_.do_start();
+	metricMan->do_start();
 	generator_ptr_->StartCmd(id.run(), timeout, timestamp);
 	run_id_ = id;
 
@@ -200,7 +199,7 @@ bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 {
 	logMessage_("Resuming run " + boost::lexical_cast<std::string>(run_id_.run()));
 	pause_requested_.store(false);
-	metricMan_.do_start();
+	metricMan->do_start();
 	generator_ptr_->ResumeCmd(timeout, timestamp);
 	logMessage_("Completed the Resume transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
 	return true;
@@ -211,7 +210,7 @@ bool artdaq::BoardReaderCore::shutdown(uint64_t)
 	logMessage_("Starting Shutdown transition");
 	generator_ptr_->joinThreads(); // Cleanly shut down the CommandableFragmentGenerator
 	generator_ptr_.reset(nullptr);
-	metricMan_.shutdown();
+	metricMan->shutdown();
 	logMessage_("Completed Shutdown transition");
 	return true;
 }
@@ -356,7 +355,7 @@ void artdaq::BoardReaderCore::process_fragments()
 	// 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
 	// processing fragments loop so that metrics correctly go to zero when
 	// there is no data flowing
-	metricMan_.do_stop();
+	metricMan->do_stop();
 
 	sender_ptr_.reset(nullptr);
 }
@@ -488,10 +487,10 @@ void artdaq::BoardReaderCore::sendMetrics_()
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-		metricMan_.sendMetric("Fragment Count", static_cast<unsigned long>(stats.fullSampleCount), "fragments", 1, MetricMode::LastPoint);
-		metricMan_.sendMetric("Fragment Rate", stats.recentSampleRate, "fragments/sec", 1, MetricMode::Average);
-		metricMan_.sendMetric("Average Fragment Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/fragment", 2, MetricMode::Average);
-		metricMan_.sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);
+		metricMan->sendMetric("Fragment Count", static_cast<unsigned long>(stats.fullSampleCount), "fragments", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Fragment Rate", stats.recentSampleRate, "fragments/sec", 1, MetricMode::Average);
+		metricMan->sendMetric("Average Fragment Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/fragment", 2, MetricMode::Average);
+		metricMan->sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);
 	}
 
 	// 31-Dec-2014, KAB - Just a reminder that using "fragmentCount" in the
@@ -506,28 +505,28 @@ void artdaq::BoardReaderCore::sendMetrics_()
 		getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Avg Input Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
+		metricMan->sendMetric("Avg Input Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Avg BoardReader Sync Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
+		metricMan->sendMetric("Avg BoardReader Sync Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Avg Output Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
+		metricMan->sendMetric("Avg Output Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(FRAGMENTS_PER_READ_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
-		metricMan_.sendMetric("Avg Frags Per Read", mqPtr->getRecentValueAverage(), "fragments/read", 4, MetricMode::Average);
+		metricMan->sendMetric("Avg Frags Per Read", mqPtr->getRecentValueAverage(), "fragments/read", 4, MetricMode::Average);
 	}
 }
 

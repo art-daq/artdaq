@@ -35,8 +35,8 @@ namespace artdaq
 	{
 	public:
 		static int my_rank_; ///< The rank of the current application
-		static MetricManager* metricMan_; ///< A handle to MetricManager
-		static PortManager* portMan_; ///< A handle to PortManager
+		static std::unique_ptr<MetricManager> metricMan_; ///< A handle to MetricManager
+		static std::unique_ptr<PortManager> portMan_; ///< A handle to PortManager
 		static std::string app_name_; ///< The name of the current application, to be used in logging and metrics
 		static int partition_number_; ///< The partition number of the current application
 

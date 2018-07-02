@@ -56,6 +56,18 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 						 "TransferWrapper: failure in call to MakeTransferPlugin");
 	}
 
+	try {
+		if (metricMan) {
+			metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "Online Monitor");
+			metricMan->do_start();
+		}
+	}
+	catch (...)
+	{
+		ExceptionHandler(ExceptionHandlerRethrow::no,			"TransferWrapper: could not configure metrics");
+	}
+
+
 	fhicl::ParameterSet new_pset(pset);
 	if (!new_pset.has_key("server_url")) {
 		new_pset.put<std::string>("server_url", serverUrl_);

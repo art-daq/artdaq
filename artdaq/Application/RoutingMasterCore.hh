@@ -191,8 +191,6 @@ private:
 
 	std::string buildStatisticsString_() const;
 
-	artdaq::MetricManager metricMan_;
-
 	void sendMetrics_();
 
 

@@ -149,8 +149,6 @@ protected:
 	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
 	bool verbose_; ///< Whether to log transition messages
 	
-	MetricManager metricMan_; ///< MetricManager concrete instance (for Globals.hh::metricMan)
-	
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag
 	 * \param text Message to log

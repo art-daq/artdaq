@@ -707,10 +707,6 @@ void artdaq::TCPSocketTransfer::connect_()
 		TLOG(TLVL_DEBUG) << GetTraceName() << ": Connecting sender socket";
 		int sndbuf_bytes = static_cast<int>(sndbuf_);
 
-		if (!portMan) {
-			portMan = new PortManager(fhicl::ParameterSet());
-		}
-
 		send_fd_ = TCPConnect(hostMap_[destination_rank()].c_str()
 			, portMan->GetTCPSocketTransferPort(destination_rank())
 			, O_NONBLOCK
@@ -762,9 +758,6 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 		listen_thread_refcount_ = 1;
 		TLOG(TLVL_INFO) << GetTraceName() << ": Starting Listener Thread";
 
-		if (!portMan) {
-			portMan = new PortManager(fhicl::ParameterSet());
-		}
 		try {
 			listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, portMan->GetTCPSocketTransferPort(destination_rank()), rcvbuf_);
 		}

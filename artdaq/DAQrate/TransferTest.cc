@@ -25,7 +25,6 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	, partition_number_(psi.get<int>("partition_number", rand() % 0x7F))
 {
 	TLOG(10) << "CONSTRUCTOR";
-	metricMan = &metricMan_;
 
 	if (fragment_size_ < artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType))
 	{
@@ -43,8 +42,8 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	try
 	{
 		std::string name = "TransferTest" + std::to_string(my_rank);
-		metricMan_.initialize(metric_pset, name);
-		metricMan_.do_start();
+		metricMan->initialize(metric_pset, name);
+		metricMan->do_start();
 	}
 	catch (...) {}
 
@@ -122,8 +121,8 @@ int artdaq::TransferTest::runTest()
 	auto duration = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(std::chrono::steady_clock::now() - start_time_).count();
 	TLOG(TLVL_INFO) << (my_rank < senders_ ? "Sent " : "Received ") << result.first << " bytes in " << duration << " seconds ( " << formatBytes(result.first / duration) << "/s )." << std::endl;
 	TLOG(TLVL_INFO) << "Rate of " << (my_rank < senders_ ? "sending" : "receiving") << ": " << formatBytes(result.first / result.second) << "/s." << std::endl;
-	metricMan_.do_stop();
-	metricMan_.shutdown();
+	metricMan->do_stop();
+	metricMan->shutdown();
 	TLOG(11) << "runTest DONE";
 	return 0;
 }
