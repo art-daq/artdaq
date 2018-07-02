@@ -60,4 +60,5 @@ psout=`ps aux`
 num_art=`echo "$psout" | grep ' art ' | wc -l`
 echo num_art=$num_art
 
-periodic_cmd_stats --comment="$fcl_file" --pid="`pidof artdaqDriver`,`pidof art`" --disk=$disks
+periodic_cmd_stats --comment="$fcl_file" --pid="`pidof artdaqDriver`,`pidof art`"\
+ --disk=$disks --sys-iowait

@@ -40,7 +40,8 @@ options:\n\
 --y2max=\n\
 --y2incr=\n\
 --pause=0\n\
---wait,-w\n\
+--sys-iowait,-w     include the system iowait on the graph\n\
+--cmd-iowait      include cmd iowait on the graph\n\
 --fault,-f\n\
 ", basename(argv[0]),basename(argv[0]),basename(argv[0]),basename(argv[0]),opt_period
 
@@ -103,7 +104,8 @@ int           opt_ymax=2000;
 int           opt_yincr=200;
 int           opt_y2max=200;
 int           opt_y2incr=20;
-int           opt_wait=0;
+int           opt_sys_iowait=0;
+int           opt_cmd_iowait=0;
 int           opt_fault=0;
 
 std::vector<pid_t> g_pid_vec;
@@ -134,7 +136,7 @@ void parse_args( int argc, char	*argv[] )
 			{ "stat",          required_argument,0,    's' },
 			{ "out-dir",       required_argument,0,    'o' },
 			{ "period",        required_argument,0,    'p' },
-            { "wait",          no_argument,      0,    'w' },
+            { "sys-iowait",    no_argument,      0,    'w' },
             { "fault",         no_argument,      0,    'f' },
 			{ "pid",           required_argument,0,    'P' },
 			{ "ymax",          required_argument,0,     1 },
@@ -146,6 +148,7 @@ void parse_args( int argc, char	*argv[] )
 			{ "graph",         required_argument,0,     7 },
 			{ "yrange",        required_argument,0,     8 },
 			{ "comment",       required_argument,0,     9 },
+			{ "cmd-iowait",    no_argument,      0,    10 },
 			{     0,              0,             0,     0 }
 		};
 		opt = getopt_long( argc, argv, "?hvqVi:c:C:d:s:o:p:P:wf",
@@ -163,7 +166,7 @@ void parse_args( int argc, char	*argv[] )
 		case 's': if(opt_stats.size())opt_stats=opt_stats+","+optarg;else opt_stats=optarg;break;
 		case 'o': opt_outdir=std::string(optarg)+"/";                    break;
 		case 'p': opt_period=optarg;                                     break;
-		case 'w': opt_wait=1;                                            break;
+		case 'w': opt_sys_iowait=1;                                            break;
 		case 'f': opt_fault=1;                                           break;
 		case 'P': charreplace(optarg,' ',',');
 			      if(opt_pid.size())opt_pid=opt_pid+","+optarg;
@@ -186,6 +189,7 @@ void parse_args( int argc, char	*argv[] )
 					  opt_yincr=(opt_ymax-opt_ymin)/5;
 				  break;
 		case 9:   opt_comment=optarg;                                    break;
+		case 10:  opt_cmd_iowait=1;                                      break;
 		default:
 			printf( "?? getopt returned character code 0%o ??\n", opt );
 			exit( 1 );
@@ -293,6 +297,7 @@ cpu="0"
  */
 static int g_devnullfd=-1;
 
+// Run the awk script specified in awk_cmd on the file
 std::string AWK( std::string const &awk_cmd, const char *file, const char *input )
 {
 	char readbuf[1024];
@@ -627,7 +632,7 @@ main(  int	argc
 		stats.push_back( ss );
 
 		snprintf( desc, sizeof(desc), "WaitBlkIOcmd%zd", ii );
-		if (opt_wait) graphs.push_back( desc );
+		if (opt_cmd_iowait) graphs.push_back( desc );
 		snprintf(  ss, sizeof(ss), "%s?%s?NR==1?$42?1?yes", desc, pidfile[ii].c_str() );
 		stats.push_back( ss );
 
@@ -683,7 +688,7 @@ main(  int	argc
 		stats.push_back( ss );
 
 		snprintf( desc, sizeof(desc), "WaitBlkIOpid%zd", ii );
-		if (opt_wait) graphs.push_back( desc );
+		if (opt_cmd_iowait) graphs.push_back( desc );
 		snprintf(  ss, sizeof(ss), "%s?%s?NR==1?$42?1?yes", desc, pidfile[ii].c_str() );
 		stats.push_back( ss );
 
@@ -695,7 +700,7 @@ main(  int	argc
 	
 
 	stats.push_back("CPUnode");
-	if (opt_wait) { stats.push_back("IOWait"); graphs.push_back("IOWait"); }
+	stats.push_back("IOWait");  if (opt_sys_iowait) { graphs.push_back("IOWait"); }
 	stats.push_back("Cached");
 	stats.push_back("Dirty");
 	stats.push_back("Free");
