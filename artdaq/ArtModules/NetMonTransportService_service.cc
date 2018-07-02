@@ -302,8 +302,9 @@ receiveInitMessage(TBufferFile*& msg)
 	}
 
 	auto header = topFrag.metadata<artdaq::NetMonHeader>();
-	TLOG(TLVL_TRACE) << "receiveInitMessage: Copying Fragment into TBufferFile: message length: " << std::to_string(header->data_length) ;
-	auto buffer = static_cast<char *>(malloc(header->data_length));
+	TLOG(TLVL_TRACE) << "receiveInitMessage: Copying Fragment into TBufferFile: message length: " << header->data_length ;
+	auto buffer = new char[header->data_length];
+	//auto buffer = static_cast<char *>(malloc(header->data_length)); // Fix alloc-dealloc-mismatch
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 
 #if DUMP_RECEIVE_MESSAGE
