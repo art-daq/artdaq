@@ -951,7 +951,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		}
 		if (hdr->sequence_id > last_released_event_) last_released_event_ = hdr->sequence_id;
 
-		TLOG(TLVL_DEBUG) << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art.";
+		TLOG(TLVL_DEBUG) << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art, "
+                                 << "event_size=" << BufferDataSize(buf) << ", buffer_size=" << BufferSize();
 		MarkBufferFull(buf);
 		subrun_event_count_++;
 		run_event_count_++;
@@ -993,7 +994,7 @@ void artdaq::SharedMemoryEventManager::send_init_frag_()
 {
 	if (init_fragment_ != nullptr)
 	{
-		TLOG(TLVL_TRACE) << "Sending init Fragment to art...";
+		TLOG(TLVL_INFO) << "Broadcasting init fragment to all art subprocesses...";
 
 #if 0
 		std::string fileName = "receiveInitMessage_" + std::to_string(my_rank) + ".bin";
