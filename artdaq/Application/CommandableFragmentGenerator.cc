@@ -627,7 +627,6 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			TLOG(TLVL_INFO) << "Data flow has stopped. Ending data collection thread";
 			data_thread_running_ = false;
 			if (requestReceiver_) requestReceiver_->ClearRequests();
-			dataBuffer_.clear();
 			newDataBuffer_.clear();
 			return;
 		}
@@ -987,6 +986,12 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		default:
 			applyRequestsIgnoredMode(frags);
 			break;
+		}
+
+		if (!data_thread_running_ || force_stop_)
+		{
+			TLOG(TLVL_INFO) << "Data thread has stopped; Clearing data buffer";
+			dataBuffer_.clear();
 		}
 
 		getDataBufferStats();
