@@ -117,7 +117,7 @@ namespace artdaq {
 			/// "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
 			fhicl::Atom<int> incomplete_event_report_interval_ms{ fhicl::Name{ "incomplete_event_report_interval_ms"}, fhicl::Comment{"Interval at which an incomplete event report should be written"}, -1 };
 			/// "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
-		    /// A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
+			/// A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 			fhicl::Atom<int> fragment_broadcast_timeout_ms{ fhicl::Name{ "fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000 };
 			/// "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
 			fhicl::Atom<double> minimum_art_lifetime_s{ fhicl::Name{ "minimum_art_lifetime_s"}, fhicl::Comment{"Amount of time that an art process should run to not be considered \"DOA\""}, 2.0 };
@@ -228,7 +228,7 @@ namespace artdaq {
 		/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 		 */
-		void RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<pid_t> pid_out);
+		void RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<std::atomic<pid_t>> pid_out);
 		/**
 		 * \brief Start all the art processes
 		 */
@@ -340,6 +340,13 @@ namespace artdaq {
 		 * \return Pointer to the data payload of the "dropped data" fragment
 		 */
 		RawDataType* GetDroppedDataAddress() { return dropped_data_->dataBegin(); }
+
+	private:
+		size_t get_art_process_count_() 
+		{
+			std::unique_lock<std::mutex> lk(art_process_mutex_);
+			return art_processes_.size();
+		}
 
 	private:
 		size_t num_art_processes_;

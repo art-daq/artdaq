@@ -172,7 +172,7 @@ private:
 
 	static std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 
-	size_t fragment_count_;
+	std::atomic<size_t> fragment_count_;
 	artdaq::Fragment::sequence_id_t prev_seq_id_;
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;

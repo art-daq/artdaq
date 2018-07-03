@@ -19,6 +19,7 @@ namespace artdaq
 {
 	RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 		: send_requests_(pset.get<bool>("send_requests", false))
+		, initialized_(false)
 		, active_requests_()
 		, request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
 		, request_port_(pset.get<int>("request_port", 3001))
@@ -38,18 +39,23 @@ namespace artdaq
 		token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
 		setup_tokens_();
 		TLOG(12) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
+		initialized_ = true;
 	}
 
 
 	RequestSender::~RequestSender()
 	{
-		TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for requests to be sent";
+		TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for " << request_sending_.load() << " requests to be sent";
 
 		auto start_time = std::chrono::steady_clock::now();
 
-		while (request_sending_ > 0 && request_shutdown_timeout_us_ > TimeUtils::GetElapsedTimeMicroseconds(start_time))
+		while (request_sending_.load() > 0 && request_shutdown_timeout_us_ + request_delay_ > TimeUtils::GetElapsedTimeMicroseconds(start_time))
 		{
 			usleep(1000);
+		}
+		{
+			std::unique_lock<std::mutex> lk(request_mutex_);
+			std::unique_lock<std::mutex> lk2(request_send_mutex_);
 		}
 		TLOG(TLVL_INFO) << "Shutting down RequestSender";
 		if (request_socket_ > 0)
@@ -71,8 +77,7 @@ namespace artdaq
 		SendRequest(true);
 	}
 
-	void
-		RequestSender::setup_requests_()
+	void RequestSender::setup_requests_()
 	{
 		if (send_requests_)
 		{
@@ -160,16 +165,19 @@ namespace artdaq
 
 	void RequestSender::do_send_request_()
 	{
-		if (!send_requests_) return;
+		if (!send_requests_) {
+			request_sending_--;
+			return;
+		}
 		if (request_socket_ == -1) setup_requests_();
-		
+
 		TLOG(TLVL_TRACE) << "Waiting for " << request_delay_ << " microseconds.";
 		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
 
 		TLOG(TLVL_TRACE) << "Creating RequestMessage";
 		detail::RequestMessage message;
 		{
-			std::lock_guard<std::mutex> lk(request_mutex_);
+			std::unique_lock<std::mutex> lk(request_mutex_);
 			for (auto& req : active_requests_)
 			{
 				TLOG(12, "RequestSender") << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second;
@@ -180,12 +188,12 @@ namespace artdaq
 		message.header()->mode = request_mode_;
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-		std::lock_guard<std::mutex> lk2(request_send_mutex_);
+		std::unique_lock<std::mutex> lk2(request_send_mutex_);
 		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
 		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error sending request message header err=" << strerror(errno);
-			request_socket_ = 1;
+			request_socket_ = -1;
 			request_sending_--;
 			return;
 		}
@@ -233,6 +241,7 @@ namespace artdaq
 
 	void RequestSender::SendRoutingToken(int nSlots)
 	{
+		while (!initialized_) usleep(1000);
 		if (!send_routing_tokens_) return;
 		boost::thread token([=] { send_routing_token_(nSlots); });
 		token.detach();
@@ -241,6 +250,8 @@ namespace artdaq
 
 	void RequestSender::SendRequest(bool endOfRunOnly)
 	{
+		while (!initialized_) usleep(1000);
+
 		if (!send_requests_) return;
 		if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
 		request_sending_++;
@@ -250,6 +261,8 @@ namespace artdaq
 
 	void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
 	{
+		while (!initialized_) usleep(1000);
+
 		{
 			std::lock_guard<std::mutex> lk(request_mutex_);
 			if (!active_requests_.count(seqID)) active_requests_[seqID] = timestamp;
@@ -259,6 +272,7 @@ namespace artdaq
 
 	void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)
 	{
+		while (!initialized_) usleep(1000);
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		active_requests_.erase(seqID);
 	}

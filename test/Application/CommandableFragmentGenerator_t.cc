@@ -94,7 +94,7 @@ private:
 	std::atomic<size_t> fireCount_;
 	std::atomic<bool> hwFail_;
 	artdaq::Fragment::timestamp_t ts_;
-	bool hw_stop_;
+	std::atomic<bool> hw_stop_;
 };
 
 artdaqtest::CommandableFragmentGeneratorTest::CommandableFragmentGeneratorTest(const fhicl::ParameterSet& ps)
@@ -103,7 +103,10 @@ artdaqtest::CommandableFragmentGeneratorTest::CommandableFragmentGeneratorTest(c
 	, hwFail_(false)
 	, ts_(0)
 	, hw_stop_(false)
-{}
+{
+	metricMan->initialize(ps);
+	metricMan->do_start();
+}
 
 bool
 artdaqtest::CommandableFragmentGeneratorTest::getNext_(artdaq::FragmentPtrs& frags)

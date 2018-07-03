@@ -1,6 +1,8 @@
 #ifndef artdaq_Application_TaskType_hh
 #define artdaq_Application_TaskType_hh
 
+#include "artdaq/DAQdata/Globals.hh"
+
 /**
  * \brief The artdaq namespace
  */
@@ -29,7 +31,7 @@ namespace artdaq
 		/// </summary>
 		/// <param name="task">Name of the task</param>
 		/// <returns>Corresponding TaskType or TaskType::UnknownTask if no match</returns>
-		TaskType StringToTaskType(std::string task)
+		TaskType StringToTaskType(std::string const& task)
 		{
 			if (task.size() < 1) return TaskType::UnknownTask;
 			if (task[0] == 'b' || task[0] == 'B') return TaskType::BoardReaderTask;
@@ -49,7 +51,7 @@ namespace artdaq
 		/// </summary>
 		/// <param name="task">Enumeration identifier of Task</param>
 		/// <returns>Corresponding TaskType or TaskType::UnknownTask if no match</returns>
-		TaskType IntToTaskType(int task)
+		TaskType IntToTaskType(int const& task)
 		{
 			if (task > 0 && task <= 5)
 				return static_cast<TaskType>(task);
@@ -62,7 +64,7 @@ namespace artdaq
 		/// </summary>
 		/// <param name="task">TaskType to convert</param>
 		/// <returns>String represenation of Task name</returns>
-		std::string TaskTypeToString(TaskType task)
+		std::string TaskTypeToString(TaskType const& task)
 		{
 			switch (task)
 			{
@@ -80,6 +82,12 @@ namespace artdaq
 				break;
 			}
 			return "Unknown";
+		}
+
+
+		inline TraceStreamer& operator<<(TraceStreamer& x, TaskType r)
+		{
+			return x << TaskTypeToString(r);
 		}
 	}
 

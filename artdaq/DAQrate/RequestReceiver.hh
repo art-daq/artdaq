@@ -114,7 +114,10 @@ namespace artdaq
 		/// Get the number of requests currently stored in the RequestReceiver
 		/// </summary>
 		/// <returns>The number of requests stored in the RequestReceiver</returns>
-		size_t size() { return requests_.size(); }
+		size_t size() { 
+			std::unique_lock<std::mutex> tlk(request_mutex_);
+			return requests_.size(); 
+		}
 
 		/// <summary>
 		/// Wait for a new request message, up to the timeout given

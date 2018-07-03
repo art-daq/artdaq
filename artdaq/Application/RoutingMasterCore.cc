@@ -271,9 +271,8 @@ void artdaq::RoutingMasterCore::process_event_table()
 	auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
 	auto nextSendTime = startTime;
 	double delta_time;
-	while (true)
+	while (!stop_requested_ && !pause_requested_)
 	{
-		if (stop_requested_ || pause_requested_) { break; }
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
 		if (startTime >= nextSendTime)

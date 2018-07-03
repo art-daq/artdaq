@@ -275,7 +275,7 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCountInBuffer(int buffer, Fr
 	return count;
 }
 
-void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<pid_t> pid_out)
+void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<std::atomic<pid_t>> pid_out)
 {
 	do
 	{
@@ -327,7 +327,10 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 		*pid_out = pid;
 
 		TLOG(TLVL_INFO) << "PID of new art process is " << pid;
-		art_processes_.insert(pid);
+		{
+			std::unique_lock<std::mutex> lk(art_process_mutex_);
+			art_processes_.insert(pid);
+		}
 		siginfo_t status;
 		auto sts = waitid(P_PID, pid, &status, WEXITED);
 		TLOG(TLVL_INFO) << "Removing PID " << pid << " from process list";
@@ -393,7 +396,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 		current_art_pset_ = pset;
 		current_art_config_file_ = std::make_shared<art_config_file>(pset/*, GetKey(), GetBroadcastKey()*/);
 	}
-	std::shared_ptr<pid_t> pid(new pid_t(-1));
+	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
 	boost::thread thread([&] { RunArt(current_art_config_file_, pid); });
 	thread.detach();
 
@@ -583,7 +586,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	auto end_of_data_wait_us = art_event_processing_time_us_ * size();
 
 	// We will wait until no buffer has been read for the end of data wait seconds, or no art processes are left.
-	while (lastReadCount > 0 && (end_of_data_wait_us == 0 || TimeUtils::GetElapsedTimeMicroseconds(start) < end_of_data_wait_us) && art_processes_.size() > 0)
+	while (lastReadCount > 0 && (end_of_data_wait_us == 0 || TimeUtils::GetElapsedTimeMicroseconds(start) < end_of_data_wait_us) && get_art_process_count_() > 0)
 	{
 		auto temp = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
 		if (temp != lastReadCount)
@@ -594,7 +597,8 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		}
 		if (lastReadCount > 0) usleep(art_event_processing_time_us_);
 	}
-	TLOG(TLVL_TRACE) << "endOfData: After wait for outstanding buffers. Still outstanding: " << lastReadCount << ", time waited: " << TimeUtils::GetElapsedTime(start) << " s / " << (end_of_data_wait_us / 1000000.0) << " s, art process count: " << art_processes_.size();
+	TLOG(TLVL_TRACE) << "endOfData: After wait for outstanding buffers. Still outstanding: " << lastReadCount << ", time waited: " 
+		<< TimeUtils::GetElapsedTime(start) << " s / " << (end_of_data_wait_us / 1000000.0) << " s, art process count: " << get_art_process_count_();
 
 	TLOG(TLVL_TRACE) << "endOfData: Broadcasting EndOfData Fragment";
 	FragmentPtr outFrag = Fragment::eodFrag(GetBufferCount());
@@ -610,9 +614,9 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	}
 	auto endOfDataProcessingStart = std::chrono::steady_clock::now();
 
-	if (art_processes_.size() > 0)
+	if (get_art_process_count_() > 0)
 	{
-		TLOG(TLVL_DEBUG) << "Allowing " << art_processes_.size() << " art processes the chance to end gracefully";
+		TLOG(TLVL_DEBUG) << "Allowing " << get_art_process_count_() << " art processes the chance to end gracefully";
 		if (end_of_data_wait_us == 0)
 		{
 			TLOG(TLVL_DEBUG) << "Expected art event processing time not specified. Waiting up to 100s for art to end gracefully.";
@@ -623,13 +627,14 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		for (size_t ii = 0; ii < sleep_count; ++ii)
 		{
 			usleep(10000);
-			if (art_processes_.size() == 0) break;
+			if (get_art_process_count_() == 0) break;
 		}
 	}
 
-	while (art_processes_.size() > 0)
+	while (get_art_process_count_() > 0)
 	{
-		TLOG(TLVL_DEBUG) << "There are " << art_processes_.size() << " art processes remaining. Proceeding to shutdown.";
+		TLOG(TLVL_DEBUG) << "There are " << get_art_process_count_() << " art processes remaining. Proceeding to shutdown.";
+
 		ShutdownArtProcesses(art_processes_);
 	}
 	TLOG(TLVL_INFO) << "It took " << TimeUtils::GetElapsedTime(endOfDataProcessingStart) << " s for all art processes to close after sending EndOfData Fragment";

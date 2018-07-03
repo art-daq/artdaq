@@ -541,7 +541,7 @@ namespace artdaq
 		boost::thread monitoringThread_;
 		int64_t monitoringInterval_; // Microseconds
 		std::chrono::steady_clock::time_point lastMonitoringCall_;
-		bool isHardwareOK_;
+		std::atomic<bool> isHardwareOK_;
 
 		FragmentPtrs dataBuffer_;
 		FragmentPtrs newDataBuffer_;

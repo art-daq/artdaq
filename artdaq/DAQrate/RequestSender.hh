@@ -132,6 +132,7 @@ namespace artdaq
 
 		// Request stuff
 		bool send_requests_;
+		std::atomic<bool> initialized_;
 		mutable std::mutex request_mutex_;
 		mutable std::mutex request_send_mutex_;
 		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_;
