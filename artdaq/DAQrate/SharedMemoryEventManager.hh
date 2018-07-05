@@ -32,8 +32,21 @@ namespace artdaq {
 			, file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 		{
 			mkdir(dir_name_.c_str(), 0777); // Allowed to fail if directory already exists
-
+			
 			std::ofstream of(file_name_, std::ofstream::trunc);
+			if (of.fail()) {
+				// Probably a permissions error...
+				dir_name_ = "/tmp/partition_" + std::to_string(GetPartitionNumber()) + "_" + std::to_string(getuid());
+				mkdir(dir_name_.c_str(), 0777); // Allowed to fail if directory already exists
+				file_name_ = dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl";
+				
+				of.open(file_name_, std::ofstream::trunc);
+				if (of.fail())
+				{
+					TLOG(TLVL_ERROR) << "Failed to open configuration file after two attemps! ABORTING!";
+					exit(46);
+				}
+			}
 			of << ps.to_string();
 
 			//if (ps.has_key("services.NetMonTransportServiceInterface"))
