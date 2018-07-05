@@ -209,12 +209,48 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	fhicl::ParameterSet generated_physics_analyzers;
 	fhicl::ParameterSet generated_physics_producers;
 	fhicl::ParameterSet generated_physics_filters;
+	std::unordered_map<std::string, std::vector<std::string>> generated_physics_filter_paths;
 
 	TLOG(TLVL_DEBUG) << "merge_parameter_sets_: Generating fhicl for monitor " << label ;
 
 	try
 	{
 		auto path = pset.get<std::vector<std::string>>("path");
+
+		auto filters = pset.get<std::vector<fhicl::ParameterSet>>("filter_paths", std::vector<fhicl::ParameterSet>());
+		for (auto& filter : filters)
+		{
+			try {
+				auto name = filter.get<std::string>("name");
+				auto path = filter.get<std::vector<std::string>>("path");
+				if (generated_physics_filter_paths.count(name))
+				{
+					bool matched = generated_physics_filter_paths[name].size() == path.size();
+					for (size_t ii = 0; matched && ii < generated_physics_filter_paths[name].size(); ++ii)
+					{
+						matched = matched && path[ii] == generated_physics_filter_paths[name][ii];
+					}
+
+					if (matched)
+					{
+						// Path is already configured
+						continue;
+					}
+					else
+					{
+						auto newname = label + name;
+						generated_physics_filter_paths[newname] = path;
+					}
+				}
+				else
+				{
+					generated_physics_filter_paths[name] = path;
+				}
+			}
+			catch (...)
+			{
+			}
+		}
 
 		// outputs section
 		auto outputs = pset.get<fhicl::ParameterSet>("outputs");
@@ -241,6 +277,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 
 		//physics section
 		auto physics_pset = pset.get<fhicl::ParameterSet>("physics");
+
 		if (physics_pset.has_key("analyzers"))
 		{
 			auto analyzers = physics_pset.get<fhicl::ParameterSet>("analyzers");
@@ -342,6 +379,11 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	generated_physics.put("analyzers", generated_physics_analyzers);
 	generated_physics.put("producers", generated_physics_producers);
 	generated_physics.put("filters", generated_physics_filters);
+
+	for (auto& path : generated_physics_filter_paths)
+	{
+		generated_physics.put(path.first, path.second);
+	}
 
 	generated_pset.put("physics", generated_physics);
 
