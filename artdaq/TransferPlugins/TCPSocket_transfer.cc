@@ -48,7 +48,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
 	, timeoutMessageArmed_(true)
 	, last_recv_time_()
-	, receive_disconnected_wait_s_(pset.get<double>("receive_socket_disconnected_wait_s", 30.0))
+	, receive_disconnected_wait_s_(pset.get<double>("receive_socket_disconnected_wait_s", 10.0))
 	, receive_err_wait_us_(pset.get<size_t>("receive_socket_disconnected_wait_us", 10000))
 	, receive_socket_has_been_connected_(false)
 {
@@ -161,6 +161,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		timeout_ms = (timeout_usec + 999) / 1000; // want at least 1 ms
 
 	bool done = false;
+	bool noDataWarningSent = false;
 	while (!done && getConnectedFDCount(source_rank()) > 0)
 	{
 		if (active_receive_fd_ == -1)
@@ -274,6 +275,18 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket " << " (errno=" << errno << ": " << strerror(errno) << ")";
 			active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_);
 		}
+		else if (sts == 0)
+		{
+			if (!noDataWarningSent) {
+				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: No data received, is the sender still sending?!?";
+				noDataWarningSent = true;
+			}
+			if (TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_)
+			{
+				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: No data received within timeout, aborting!";
+				return RECV_TIMEOUT;
+			}
+		}
 		else
 		{
 			// see if we're done (with this state)
@@ -355,6 +368,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	pollfd_s.fd = active_receive_fd_;
 
 	bool done = false;
+	bool noDataWarningSent = false;
 	while (!done)
 	{
 		TLOG(9) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
@@ -417,6 +431,18 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket"
 				<< " (errno=" << errno << ": " << strerror(errno) << ")";
 			disconnect_receive_socket_(pollfd_s.fd);
+		}
+		else if (sts == 0)
+		{
+			if (!noDataWarningSent) {
+				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data received, is the sender still sending?!?";
+				noDataWarningSent = true;
+			}
+			if (TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_)
+			{
+				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: No data received within timeout, aborting!";
+				return RECV_TIMEOUT;
+			}
 		}
 		else
 		{
