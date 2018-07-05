@@ -129,9 +129,10 @@ private:
 	unsigned blocking : 1; // compatible with bool (true/false)
 	
 	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
-    size_t not_connected_count_; // Number of times returned RECV_TIMEOUT because no receive sockets open
-    size_t receive_err_threshold_; // Number of times TO print RECV_TIMEOUT before starting to return DATA_END
+    std::chrono::steady_clock::time_point last_recv_time_; // Time of last successful receive
+    double receive_disconnected_wait_s_; // How long to wait between messages before returning DATA_END
     size_t receive_err_wait_us_; // Amount of time to wait if there are no connected receive sockets
+	std::atomic<bool> receive_socket_has_been_connected_; // Whether the receiver has ever been connected to a sender
 
 private: // methods
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);

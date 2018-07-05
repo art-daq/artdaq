@@ -47,9 +47,10 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, sndbuf_(max_fragment_size_words_ * sizeof(artdaq::RawDataType) * buffer_count_)
 	, send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
 	, timeoutMessageArmed_(true)
-	, not_connected_count_(0)
-	, receive_err_threshold_(pset.get<size_t>("receive_socket_disconnected_max_count", 1000))
+	, last_recv_time_()
+	, receive_disconnected_wait_s_(pset.get<double>("receive_socket_disconnected_wait_s", 30.0))
 	, receive_err_wait_us_(pset.get<size_t>("receive_socket_disconnected_wait_us", 10000))
+	, receive_socket_has_been_connected_(false)
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << " Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend");
 
@@ -119,14 +120,21 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	TLOG(5) << GetTraceName() << ": receiveFragmentHeader: BEGIN";
 	int ret_rank = RECV_TIMEOUT;
 
+	// Don't bomb out until received at least one connection...
 	if (getConnectedFDCount(source_rank()) == 0)
 	{ // what if just listen_fd??? 
-		if (++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
+		if (receive_socket_has_been_connected_ && TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_) 
+		{ 
+			TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: senders have been disconnected for "
+				<< TimeUtils::GetElapsedTime(last_recv_time_) << " s (receive_socket_disconnected_wait_s = " << receive_disconnected_wait_s_ << " s). RETURNING DATA_END!";
+			return DATA_END; 
+		}
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
 		usleep(receive_err_wait_us_);
 		return RECV_TIMEOUT;
 	}
-	not_connected_count_ = 0;
+	receive_socket_has_been_connected_ = true;
+	last_recv_time_ = std::chrono::steady_clock::now();
 
 	TLOG(5) << GetTraceName() << ": receiveFragmentHeader timeout_usec=" << timeout_usec;
 	//void* buff=alloca(max_fragment_size_words_*8);
