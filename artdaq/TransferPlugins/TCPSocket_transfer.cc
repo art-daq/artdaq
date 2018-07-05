@@ -47,9 +47,10 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, sndbuf_(max_fragment_size_words_ * sizeof(artdaq::RawDataType) * buffer_count_)
 	, send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
 	, timeoutMessageArmed_(true)
-	, not_connected_count_(0)
-	, receive_err_threshold_(pset.get<size_t>("receive_socket_disconnected_max_count", 1000))
+	, last_recv_time_()
+	, receive_disconnected_wait_s_(pset.get<double>("receive_socket_disconnected_wait_s", 10.0))
 	, receive_err_wait_us_(pset.get<size_t>("receive_socket_disconnected_wait_us", 10000))
+	, receive_socket_has_been_connected_(false)
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << " Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend");
 	auto masterPortOffset = pset.get<int>("offset_all_ports", 0);
@@ -120,16 +121,23 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	TLOG(5) << GetTraceName() << ": receiveFragmentHeader: BEGIN";
 	int ret_rank = RECV_TIMEOUT;
 
+	// Don't bomb out until received at least one connection...
 	if (getConnectedFDCount(source_rank()) == 0)
 	{ // what if just listen_fd??? 
-		if (++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
+		if (receive_socket_has_been_connected_ && TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_) 
+		{ 
+			TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: senders have been disconnected for "
+				<< TimeUtils::GetElapsedTime(last_recv_time_) << " s (receive_socket_disconnected_wait_s = " << receive_disconnected_wait_s_ << " s). RETURNING DATA_END!";
+			return DATA_END; 
+		}
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
 		usleep(receive_err_wait_us_);
 		return RECV_TIMEOUT;
 	}
-	not_connected_count_ = 0;
+	receive_socket_has_been_connected_ = true;
+	last_recv_time_ = std::chrono::steady_clock::now();
 
-	TLOG(5) << GetTraceName() << ": receiveFragmentHeader timeout_usec=" << std::to_string(timeout_usec);
+	TLOG(5) << GetTraceName() << ": receiveFragmentHeader timeout_usec=" << timeout_usec;
 	//void* buff=alloca(max_fragment_size_words_*8);
 	size_t byte_cnt = 0;
 	int sts;
@@ -154,6 +162,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		timeout_ms = (timeout_usec + 999) / 1000; // want at least 1 ms
 
 	bool done = false;
+	bool noDataWarningSent = false;
 	while (!done && getConnectedFDCount(source_rank()) > 0)
 	{
 		if (active_receive_fd_ == -1)
@@ -251,7 +260,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		{
 			//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Reading data" ;
 			buff = reinterpret_cast<uint8_t*>(&header) + offset;
-			byte_cnt = mh.byte_count - offset;
+			byte_cnt = target_bytes - offset;
 		}
 
 		if (byte_cnt > 0)
@@ -267,6 +276,18 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket " << " (errno=" << errno << ": " << strerror(errno) << ")";
 			active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_);
 		}
+		else if (sts == 0)
+		{
+			if (!noDataWarningSent) {
+				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: No data received, is the sender still sending?!?";
+				noDataWarningSent = true;
+			}
+			if (TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_)
+			{
+				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: No data received within timeout, aborting!";
+				return RECV_TIMEOUT;
+			}
+		}
 		else
 		{
 			// see if we're done (with this state)
@@ -281,6 +302,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					mh.byte_count = ntohl(mh.byte_count);
 					mh.source_id = ntohs(mh.source_id);
 					target_bytes = mh.byte_count;
+					TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Expected header size = " << target_bytes << ", sizeof(RawFragmentHeader) = " << sizeof(artdaq::detail::RawFragmentHeader);
+					//assert(target_bytes == sizeof(artdaq::detail::RawFragmentHeader) || target_bytes == 0);
 
 					if (mh.message_type == MessHead::stop_v0)
 					{
@@ -300,7 +323,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Done receiving fragment header. Moving into output.";
 
 					done = true; // no more polls
-					break; // no more read of ready fds
+					//break; // no more read of ready fds
 				}
 			}
 		}
@@ -346,9 +369,10 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	pollfd_s.fd = active_receive_fd_;
 
 	bool done = false;
+	bool noDataWarningSent = false;
 	while (!done)
 	{
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
+		TLOG(9) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
 		if (num_fds_ready <= 0)
 		{
@@ -398,16 +422,30 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			byte_cnt = mh.byte_count - offset;
 		}
 
-		TLOG(10) << GetTraceName() << ": receiveFragmentData: Reading " << byte_cnt << " bytes from socket into " << (void*)buff;
+		TLOG(10) << GetTraceName() << ": receiveFragmentData: Reading " << byte_cnt << " bytes from socket "
+		         << active_receive_fd_ << " into " << (void*)buff;
 		sts = read(active_receive_fd_, buff, byte_cnt);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Done with read" ;
 
-		TLOG(10) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state) << " read=" << sts;
+		TLOG(10) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state) << " read=" << sts
+		         << ", socket = " << active_receive_fd_;
 		if (sts < 0)
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket"
-				<< " (errno=" << errno << ": " << strerror(errno) << ")";
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket "
+			                 << active_receive_fd_ << " (errno=" << errno << ": " << strerror(errno) << ")";
 			disconnect_receive_socket_(pollfd_s.fd);
+		}
+		else if (sts == 0)
+		{
+			if (!noDataWarningSent) {
+				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data received, is the sender still sending?!?";
+				noDataWarningSent = true;
+			}
+			if (TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_)
+			{
+				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: No data received within timeout, aborting!";
+				return RECV_TIMEOUT;
+			}
 		}
 		else
 		{
@@ -435,7 +473,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 #endif
 
 					done = true; // no more polls
-					break; // no more read of ready fds
+					//break; // no more read of ready fds
 				}
 			}
 		}
@@ -541,7 +579,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		return CopyStatus::kTimeout;
 	}
 	timeoutMessageArmed_ = true;
-	TLOG(14) << GetTraceName() << ": send_timeout_usec is " << std::to_string(send_timeout_usec) << ", currently unused.";
+	TLOG(14) << GetTraceName() << ": send_timeout_usec is " << send_timeout_usec << ", currently unused.";
 
 	//TLOG(TLVL_DEBUG) << GetTraceName() << ": sendData_: Determining write size" ;
 	uint32_t total_to_write_bytes = 0;
@@ -586,8 +624,10 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 
 		// need to do blocking algorithm -- including throttled block notifications
 	do_again:
-		TLOG(14) << GetTraceName() << ": sendFragment b4 writev " << std::setw(7) << std::to_string(total_written_bytes) << " total_written_bytes send_fd_=" << send_fd_ << " in_idx=" << std::to_string(in_iov_idx)
-			<< " iovcnt=" << std::to_string(out_iov_idx) << " 1st.len=" << std::to_string(iovv[0].iov_len);
+#ifndef __OPTIMIZE__ // This can be an expensive TRACE call (even if disabled) due to multiplicity of calls
+		TLOG(14) << GetTraceName() << ": sendFragment b4 writev " << std::setw(7) << total_written_bytes << " total_written_bytes send_fd_=" << send_fd_ << " in_idx=" << in_iov_idx
+			<< " iovcnt=" << out_iov_idx << " 1st.len=" << iovv[0].iov_len;
+#endif
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " calling writev" ;
 		sts = writev(send_fd_, &(iovv[0]), out_iov_idx);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " done with writev" ;
@@ -611,7 +651,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		else if (sts != this_write_bytes)
 		{
 			// we'll loop around -- with
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": sendFragment writev sts(" << std::to_string(sts) << ")!=requested_send_bytes(" << std::to_string(this_write_bytes) << ")";
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": sendFragment writev sts(" << sts << ")!=requested_send_bytes(" << this_write_bytes << ")";
 			total_written_bytes += sts; // add sts to total_written_bytes now as sts is adjusted next
 			// find which iovs are done
 			for (ii = 0; (size_t)sts >= iovv[ii].iov_len; ++ii)
@@ -643,14 +683,16 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 				}
 			}
 			++out_iov_idx; // done with
-			TLOG(TLVL_TRACE) << GetTraceName() << ": sendFragment writev sts!=: this_write_bytes=" << std::to_string(this_write_bytes)
-				<< " out_iov_idx=" << std::to_string(out_iov_idx)
-				<< " additional=" << std::to_string(additional)
+			TLOG(TLVL_TRACE) << GetTraceName() << ": sendFragment writev sts!=: this_write_bytes=" << this_write_bytes
+				<< " out_iov_idx=" << out_iov_idx
+				<< " additional=" << additional
 				<< " ii=" << ii;
 		}
 		else
 		{
-			TLOG(TLVL_TRACE) << GetTraceName() << ": sendFragment writev sts(" << std::to_string(sts) << ")==requested_send_bytes(" << std::to_string(this_write_bytes) << ")";
+#ifndef __OPTIMIZE__ // This can be an expensive TRACE call (even if disabled) due to multiplicity of calls
+			TLOG(TLVL_TRACE) << GetTraceName() << ": sendFragment writev sts(" << sts << ")==requested_send_bytes(" << this_write_bytes << ")";
+#endif
 			total_written_bytes += sts;
 			--out_iov_idx; // make it the index of the last iovv
 			iovv[out_iov_idx].iov_base = (uint8_t*)(iovv[out_iov_idx].iov_base) + iovv[out_iov_idx].iov_len;
