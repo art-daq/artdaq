@@ -209,7 +209,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		after_header = std::chrono::steady_clock::now();
 
 		if (Fragment::isUserFragmentType(header.type) || header.type == Fragment::DataFragmentType || header.type == Fragment::EmptyFragmentType || header.type == Fragment::ContainerFragmentType) {
-			TLOG(TLVL_TRACE) << "Received Fragment Header from rank " << source_rank << ".";
+			TLOG(TLVL_TRACE) << "Received Fragment Header from rank " << source_rank << ", sequence ID " << header.sequence_id << ", timestamp " << header.timestamp;
 			RawDataType* loc = nullptr;
 			size_t retries = 0;
 			while (loc == nullptr)//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_) 
@@ -231,7 +231,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 			before_body = std::chrono::steady_clock::now();
 
-			TLOG(16) << "runReceiver_: Calling receiveFragmentData";
+			TLOG(16) << "runReceiver_: Calling receiveFragmentData from rank " << source_rank << ", sequence ID " << header.sequence_id << ", timestamp " << header.timestamp;
 			auto ret2 = source_plugins_[source_rank]->receiveFragmentData(loc, header.word_count - header.num_words());
 			TLOG(16) << "runReceiver_: Done with receiveFragmentData, ret2=" << ret2 << " (should be " << source_rank << ")";
 
