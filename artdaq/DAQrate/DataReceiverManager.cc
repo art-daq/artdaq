@@ -157,7 +157,7 @@ std::set<int> artdaq::DataReceiverManager::running_sources() const
 
 void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
-	std::chrono::steady_clock::time_point start_time, after_header, before_body, end_time;
+	std::chrono::steady_clock::time_point start_time, after_header, before_body, end_time = std::chrono::steady_clock::now();
 	int ret;
 	double delta_t, hdr_delta_t, store_delta_t, data_delta_t;
 	detail::RawFragmentHeader header;
