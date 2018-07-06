@@ -12,10 +12,6 @@
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 //#include "art/Persistency/Provenance/BranchIDListHelper.h"
-#if ART_HEX_VERSION < 0x20900
-#include "art/Persistency/Provenance/BranchIDListRegistry.h"
-#include "canvas/Utilities/GetPassID.h"
-#endif
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 #include "canvas/Persistency/Provenance/EventID.h"
@@ -72,9 +68,6 @@ public:
 								   std::string const& processName,
 								   fhicl::ParameterSet const& moduleParams,
 								   std::string const& release = art::getReleaseVersion()
-#if ART_HEX_VERSION < 0x20800
-								   , std::string const& pass = art::getPassID()
-#endif
 		);
 
 	/**
@@ -117,9 +110,6 @@ void
 MPRGlobalTestFixture::finalize()
 {
 	productRegistry_.setFrozen();
-#if ART_HEX_VERSION < 0x20900
-	art::BranchIDListRegistry::updateFromProductRegistry(productRegistry_);
-#endif
 	art::ProductMetaData::create_instance(productRegistry_);
 }
 
@@ -129,9 +119,6 @@ fake_single_module_process(std::string const& tag,
 						   std::string const& processName,
 						   fhicl::ParameterSet const& moduleParams,
 						   std::string const& release
-#if ART_HEX_VERSION < 0x20800	
-						   , std::string const& pass
-#endif
 )
 {
 	fhicl::ParameterSet processParams;

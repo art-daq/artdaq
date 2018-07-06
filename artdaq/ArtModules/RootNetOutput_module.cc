@@ -2,10 +2,6 @@
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
-#if ART_HEX_VERSION < 0x20900
-#include "art/Persistency/Provenance/BranchIDListRegistry.h"
-#include "canvas/Persistency/Provenance/BranchIDList.h"
-#endif
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 
@@ -223,27 +219,7 @@ send_init_message()
 		art::ProductMetaData::instance().productList());
 	msg.WriteObjectAny(&productList, product_list_class);
 	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Finished streaming MasterProductRegistry.";
-
-#if ART_HEX_VERSION < 0x20900
-	//
-	//  Dump The BranchIDListRegistry
-	//
-	art::BranchIDLists const * bilr =
-		&art::BranchIDListRegistry::instance().data();
-	TLOG(TLVL_SENDINIT_VERBOSE1) << "RootNetOutput static send_init_message(): Content of BranchIDLists";
-	int max_bli = bilr->size();
-	TLOG(TLVL_SENDINIT_VERBOSE1) << "RootNetOutput static send_init_message(): max_bli: " << max_bli;
-	for (int i = 0; i < max_bli; ++i)
-	{
-		int max_prdidx = (*bilr)[i].size();
-		TLOG(TLVL_SENDINIT_VERBOSE1) << "RootNetOutput static send_init_message(): max_prdidx: " << max_prdidx;
-		for (int j = 0; j < max_prdidx; ++j)
-		{
-			TLOG(TLVL_SENDINIT_VERBOSE1) << "RootNetOutput static send_init_message(): bli: " << i << " prdidx: " << j << " bid: 0x" << std::hex << static_cast<unsigned long>((*bilr)[i][j]) << std::dec;
-		}
-	}
-#endif
-
+	
 	art::ProcessHistoryMap phr;
 	for (auto const& pr : art::ProcessHistoryRegistry::get())
 	{
@@ -342,7 +318,6 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
-#if ART_HEX_VERSION > 0x20800
 		auto const& productDescription = I->second->productDescription();
 		auto const& refs = keptProducts()[productDescription.branchType()];
 		bool found = false;
@@ -358,13 +333,6 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 		{
 			continue;
 		}
-#else
-		if (I->second->productUnavailable() || !selected(I->second->productDescription()))
-		{
-			continue;
-		}
-
-#endif
 		++prd_cnt;
 	}
 	//
@@ -388,7 +356,6 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 	//std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
-#if ART_HEX_VERSION > 0x20800
 		auto const& productDescription = I->second->productDescription();
 		auto const& refs = keptProducts()[productDescription.branchType()];
 		bool found = false;
@@ -404,13 +371,6 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 		{
 			continue;
 		}
-#else
-		if (I->second->productUnavailable() || !selected(I->second->productDescription()))
-		{
-			continue;
-		}
-
-#endif
 		const BranchDescription& bd(I->second->productDescription());
 		bkv.push_back(new BranchKey(bd));
 		TLOG(TLVL_WRITEDATAPRODUCTS_VERBOSE) << "RootNetOutput::writeDataProducts(...): Dumping branch key           of class: '"
@@ -443,11 +403,8 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			<< "' procnm: '"
 			<< bd.processName()
 			<< "'";
-#if ART_HEX_VERSION > 0x20800
+
 		OutputHandle oh = principal.getForOutput(bd.productID(), true);
-#else
-		OutputHandle oh = principal.getForOutput(bd.branchID(), true);
-#endif
 		const EDProduct* prd = oh.wrapper();
 		TLOG(TLVL_WRITEDATAPRODUCTS) << "Class for branch " << bd.wrappedName() << " is " << (void*)TClass::GetClass(bd.wrappedName().c_str());
 		msg.WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));

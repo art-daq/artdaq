@@ -4,9 +4,7 @@
 #include <string>
 #include <fhiclcpp/fwd.h>
 #include "fhiclcpp/types/Atom.h"
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
-# include "fhiclcpp/types/ConfigurationTable.h"
-#endif
+#include "fhiclcpp/types/ConfigurationTable.h"
 #include <netinet/in.h>
 
 #define DEFAULT_BASE 10000
@@ -59,9 +57,7 @@ namespace artdaq {
 			fhicl::Atom<std::string> multicast_transfer_pattern{ fhicl::Name{ "multicast_transfer_pattern" }, fhicl::Comment{"Pattern to use to generate Multicast Transfer group address. PPP => Partition Number, SSS => Subsystem ID (default 0), RRR => Rank"},"227.130.14.PPP" };
 
 		};
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
-#endif
 
 		PortManager();
 		void UpdateConfiguration(fhicl::ParameterSet const& ps);

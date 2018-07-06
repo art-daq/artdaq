@@ -150,9 +150,7 @@ namespace artdaq {
 
 			fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig; ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
 		};
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
-#endif
 
 		/**
 		 * \brief SharedMemoryEventManager Constructor

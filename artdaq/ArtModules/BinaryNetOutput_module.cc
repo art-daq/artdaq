@@ -178,12 +178,8 @@ write(EventPrincipal& ep)
 
 	auto result_handles = std::vector<art::GroupQueryResult>();
 
-#if ART_HEX_VERSION < 0x20906
-	ep.getManyByType(art::TypeID(typeid(RawEvent)), result_handles);
-#else
 	auto const& wrapped = art::WrappedTypeID::make<RawEvent>();
 	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
-#endif
 
 	for (auto const& result_handle : result_handles)
 	{

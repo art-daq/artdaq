@@ -50,9 +50,7 @@ public:
 		///	*   Fragment IDs will be starting_fragment_id to starting_fragment_id + fragments_per_event.
 		fhicl::Atom<Fragment::fragment_id_t> starting_fragment_id{ fhicl::Name{"starting_fragment_id"}, fhicl::Comment{"The first Fragment ID handled by this GenericFragmentSimulator."}, 0 };
 	};
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 	using Parameters = fhicl::WrappedTable<Config>;
-#endif
 
 	/**
 	 * \brief GenericFragmentSimulator Constructor

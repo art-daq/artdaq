@@ -83,9 +83,7 @@ public:
 	    /// enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified, all destinations will be enabled.
 		fhicl::Sequence<size_t> enabled_destinations{ fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destiantion ranks to activate (must be defined in destinations block)"}, std::vector<size_t>() };
 	};
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 	using Parameters = fhicl::WrappedTable<Config>;
-#endif
 
 	/**
 	 * \brief DataSenderManager Constructor

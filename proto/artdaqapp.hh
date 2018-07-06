@@ -42,9 +42,7 @@ namespace artdaq {
 			fhicl::Atom<uint64_t> transition_timeout{ fhicl::Name{"transition_timeout"}, fhicl::Comment{"Timeout to use for automatic transitions"}, 30 };
 			fhicl::TableFragment<artdaq::PortManager::Config> portsConfig; ///< Configuration for artdaq Ports
 		};
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
-#endif
 
 		/// <summary>
 		/// Run an artdaq Application

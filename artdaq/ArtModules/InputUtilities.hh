@@ -8,10 +8,6 @@
 #include "art/Framework/IO/Sources/SourceHelper.h"
 #include "art/Framework/IO/Sources/SourceTraits.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
-#if ART_HEX_VERSION < 0x20900
-#include "art/Persistency/Provenance/BranchIDListRegistry.h"
-#include "canvas/Persistency/Provenance/BranchIDList.h"
-#endif
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"

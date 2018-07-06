@@ -138,7 +138,5 @@ namespace artdaq
 #include "fhiclcpp/types/Table.h"
 #include "fhiclcpp/types/Sequence.h"
 #include "fhiclcpp/types/TableFragment.h"
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
-# include "fhiclcpp/types/ConfigurationTable.h"
-#endif
+#include "fhiclcpp/types/ConfigurationTable.h"
 #endif // ARTDAQ_DAQDATA_GLOBALS_HH

@@ -1,7 +1,5 @@
 
-if( ${ART_HEX_VERSION} GREATER 0x20906 )
     add_subdirectory(RootDAQOutput)
-endif()
 
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules

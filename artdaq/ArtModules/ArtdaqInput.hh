@@ -6,10 +6,6 @@
 #include "art/Framework/IO/Sources/SourceTraits.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 
-#if ART_HEX_VERSION < 0x20900
-#include "art/Persistency/Provenance/BranchIDListRegistry.h"
-#include "canvas/Persistency/Provenance/BranchIDList.h"
-#endif
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
@@ -223,37 +219,7 @@ ArtdaqInput(const fhicl::ParameterSet& ps,
 	art::ProductList* productlist = ReadObjectAny<art::ProductList>(msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
 	helper.productList(productlist);
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
-
-#if ART_HEX_VERSION < 0x20900
-	if (art::debugit() >= 1)
-	{
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: before BranchIDLists";
-
-		BranchIDLists const * bil = &BranchIDListRegistry::instance().data();
-		int max_bli = bil->size();
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: max_bli: " << max_bli;
-		for (int i = 0; i < max_bli; ++i)
-		{
-			int max_prdidx = (*bil)[i].size();
-			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: max_prdidx: " << max_prdidx;
-			for (int j = 0; j < max_prdidx; ++j)
-			{
-				TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput:"
-					<< " bli: "
-					<< i
-					<< " prdidx: "
-					<< j
-					<< " bid: 0x"
-					<< std::hex
-					<< static_cast<unsigned long>((*bil)[i][j])
-					<< std::dec;
-			}
-		}
-	}
-#endif
-
-
-
+	
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory";
 	art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInput::ArtdaqInput");
 	printProcessMap(*phm, "ArtdaqInput's ProcessHistoryMap");

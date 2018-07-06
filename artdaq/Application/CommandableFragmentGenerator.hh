@@ -136,9 +136,8 @@ namespace artdaq
 			fhicl::Atom<std::string> request_mode                    { fhicl::Name{"request_mode"                     }, fhicl::Comment{"The mode by which the CommandableFragmentGenerator will process reqeusts"}, "ignored" };
 			fhicl::TableFragment<artdaq::RequestReceiver::Config> receiverConfig; ///< Configuration for the Request Receiver. See artdaq::RequestReceiver::Config
 		};
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
-#endif
+
 		/**
 		 * \brief CommandableFragmentGenerator default constructor
 		 *

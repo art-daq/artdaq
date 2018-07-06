@@ -9,7 +9,7 @@ simple_plugin(FragmentSniffer "module"
   ${CETLIB}
   ${CETLIB_EXCEPT}
   )
-  
+
 #get_cmake_property(_variableNames VARIABLES)
 #foreach (_variableName ${_variableNames})
 #    message(STATUS "${_variableName}=${${_variableName}}")
@@ -35,7 +35,7 @@ cet_test(shared_memory_reader_t USE_BOOST_UNIT
   art_Utilities
   ${artVersionLib}
   )
-endif()
+  endif()
 
 cet_test(daq_flow_t
   LIBRARIES
@@ -64,7 +64,7 @@ cet_test(daq_flow_t
   TEST_ARGS -c daq_flow_t.fcl
   DATAFILES daq_flow_t.fcl
   )
-  
+
 # Wait for an input for a second, then exit.
 cet_test(read_files_t HANDBUILT
   TEST_EXEC art_ut

@@ -31,9 +31,7 @@ public:
 		fhicl::Atom<double> init_fragment_timeout{ fhicl::Name{"init_fragment_timeout_seconds"}, fhicl::Comment{"Amount of time to wait, in seconds, for init Fragment to arrive"}, 1.0 };
 		fhicl::TableFragment<artdaq::DataSenderManager::Config> dataSenderConfig; ///< Configuration for DataSenderManager. See artdaq::DataSenderManager::Config
 	};
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 	using Parameters = fhicl::WrappedTable<Config>;
-#endif
 
 
 	/**

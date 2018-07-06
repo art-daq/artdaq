@@ -5,9 +5,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 #include "fhiclcpp/types/ConfigurationTable.h"
-#endif
 
 #include <mutex>
 #include <condition_variable>
@@ -37,9 +35,7 @@ namespace artdaq
 			/// "request_increment" (Default: 1) : Expected increment of sequence ID between each request
 			fhicl::Atom<artdaq::Fragment::sequence_id_t> request_increment{ fhicl::Name{"request_increment"}, fhicl::Comment{"Expected increment of sequence ID between each request"}, 1 };
 		};
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 		using Parameters = fhicl::WrappedTable<Config>;
-#endif
 
 		/**
 		 * \brief RequestReceiver Default Constructor
