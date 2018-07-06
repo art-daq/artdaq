@@ -163,6 +163,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 	detail::RawFragmentHeader header;
 	size_t endOfDataCount = -1;
 	auto sleep_time = receive_timeout_ / 100 > 100000 ? 100000 : receive_timeout_ / 100;
+	if (sleep_time < 5000) sleep_time = 5000;
 	auto max_retries = non_reliable_mode_retry_count_ * ceil(receive_timeout_ / sleep_time);
 
 	while (!(stop_requested_ && TimeUtils::gettimeofday_us() - stop_requested_time_ > stop_timeout_ms_ * 1000) && enabled_sources_.count(source_rank))
@@ -187,6 +188,13 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (ret >= 0) {
 				TLOG(TLVL_WARNING) << "Received Fragment from rank " << ret << ", but was expecting one from rank " << source_rank << "!";
 			}
+			else if (ret == TransferInterface::DATA_END)
+			{
+				TLOG(TLVL_ERROR) << "Transfer Plugin returned DATA_END, ending receive loop!";
+				break;
+			}
+
+			usleep(sleep_time);
 			continue; // Receive timeout or other oddness
 		}
 
