@@ -121,6 +121,7 @@ private:
 		double store_delta_t;
 		double data_delta_t;
 		double dead_t;
+		size_t data_point_count;
 		size_t data_size;
 		size_t header_size;
 	};
