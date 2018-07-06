@@ -115,7 +115,7 @@ private:
 
 	struct source_metric_data
 	{
-		source_metric_data() : delta_t(0), hdr_delta_t(0), store_delta_t(0), data_delta_t(0), data_size(0), header_size(0) {}
+		source_metric_data() : delta_t(0), hdr_delta_t(0), store_delta_t(0), data_delta_t(0),dead_t(0), data_point_count(0), data_size(0), header_size(0) {}
 		double delta_t;
 		double hdr_delta_t;
 		double store_delta_t;

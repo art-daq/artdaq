@@ -282,8 +282,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 				metricMan->sendMetric("Data Receive Count From Rank " + std::to_string(source_rank), recv_frag_count_.slotCount(source_rank), "fragments", 3, MetricMode::LastPoint);
 
-				metricMan->sendMetric("Avg Shared Memory Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].store_delta_t / source_metric_data_[source_rank].data_point_count, "s", 3, MetricMode::Average);
 				metricMan->sendMetric("Total Shared Memory Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].store_delta_t, "s", 3, MetricMode::Accumulate);
+				metricMan->sendMetric("Avg Shared Memory Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].store_delta_t / source_metric_data_[source_rank].data_point_count, "s", 3, MetricMode::Average);
 				metricMan->sendMetric("Avg Fragment Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].dead_t / source_metric_data_[source_rank].data_point_count, "s", 3, MetricMode::Average);
 
 				TLOG(6) << "runReceiver_: Done sending receive stats";
