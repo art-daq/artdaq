@@ -169,7 +169,7 @@ std::set<int> artdaq::DataReceiverManager::running_sources() const
 
 void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 {
-	std::chrono::steady_clock::time_point start_time, after_header, before_body;
+	std::chrono::steady_clock::time_point start_time, after_header, before_body, end_time;
 	int ret;
 	detail::RawFragmentHeader header;
 	size_t endOfDataCount = -1;
@@ -252,7 +252,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					<< " (" << recv_frag_count_.slotCount(source_rank) << "/" << endOfDataCount << ")";
 			}
 
-
+			source_metric_data_[source_rank].dead_t += TimeUtils::GetElapsedTime(end_time, start_time);
 			source_metric_data_[source_rank].delta_t += TimeUtils::GetElapsedTime(start_time);
 			source_metric_data_[source_rank].hdr_delta_t += TimeUtils::GetElapsedTime(start_time, after_header);
 			source_metric_data_[source_rank].store_delta_t += TimeUtils::GetElapsedTime(after_header, before_body);
@@ -279,13 +279,16 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 				metricMan->sendMetric("Data Receive Count From Rank " + std::to_string(source_rank), recv_frag_count_.slotCount(source_rank), "fragments", 3, MetricMode::LastPoint);
 
-				metricMan->sendMetric("Shared Memory Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].store_delta_t, "s", 5, MetricMode::Accumulate);
+				metricMan->sendMetric("Shared Memory Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].store_delta_t, "s", 3, MetricMode::Accumulate);
+				metricMan->sendMetric("Fragment Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].dead_t, "s", 3, MetricMode::Accumulate);
 
 				TLOG(6) << "runReceiver_: Done sending receive stats";
 
 				source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
 				source_metric_data_[source_rank] = source_metric_data();
 			}
+
+			end_time = std::chrono::steady_clock::now();
 		}
 		else if (header.type == Fragment::EndOfDataFragmentType || header.type == Fragment::InitFragmentType || header.type == Fragment::EndOfRunFragmentType || header.type == Fragment::EndOfSubrunFragmentType || header.type == Fragment::ShutdownFragmentType)
 		{
