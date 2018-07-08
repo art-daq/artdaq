@@ -123,12 +123,12 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	// Don't bomb out until received at least one connection...
 	if (getConnectedFDCount(source_rank()) == 0)
 	{ // what if just listen_fd??? 
-		if (receive_socket_has_been_connected_ && TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_) 
-		{ 
-			TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: senders have been disconnected for "
-				<< TimeUtils::GetElapsedTime(last_recv_time_) << " s (receive_socket_disconnected_wait_s = " << receive_disconnected_wait_s_ << " s). RETURNING DATA_END!";
-			return DATA_END; 
-		}
+	//	if (receive_socket_has_been_connected_ && TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_) 
+	//	{ 
+//			TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: senders have been disconnected for "
+//				<< TimeUtils::GetElapsedTime(last_recv_time_) << " s (receive_socket_disconnected_wait_s = " << receive_disconnected_wait_s_ << " s). RETURNING DATA_END!";
+//			return DATA_END; 
+//		}
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
 		usleep(receive_err_wait_us_);
 		return RECV_TIMEOUT;
