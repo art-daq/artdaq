@@ -30,7 +30,7 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 
 	if (non_reliable_mode_enabled_)
 	{
-		TLOG(TLVL_WARNING) << "DataReceiverManager is configured to drop data after " << std::to_string(non_reliable_mode_retry_count_)
+		TLOG(TLVL_WARNING) << "DataReceiverManager is configured to drop data after " << non_reliable_mode_retry_count_
 			<< " failed attempts to put data into the SharedMemoryEventManager! If this is unexpected, please check your configuration!";
 	}
 
@@ -122,7 +122,7 @@ void artdaq::DataReceiverManager::start_threads()
 
 void artdaq::DataReceiverManager::stop_threads()
 {
-	TLOG(TLVL_TRACE) << "stop_threads: BEGIN: Setting stop_requested to true, frags=" << std::to_string(count()) << ", bytes=" << std::to_string(byteCount());
+	TLOG(TLVL_TRACE) << "stop_threads: BEGIN: Setting stop_requested to true, frags=" << count() << ", bytes=" << byteCount();
 
 	stop_requested_time_ = TimeUtils::gettimeofday_us();
 	stop_requested_ = true;
@@ -218,7 +218,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (loc == nullptr)
 			{
 				// Could not enqueue event!
-				TLOG(TLVL_ERROR) << "runReceiver_: Could not get data location for event " << std::to_string(header.sequence_id);
+				TLOG(TLVL_ERROR) << "runReceiver_: Could not get data location for event " << header.sequence_id;
 				continue;
 			}
 			before_body = std::chrono::steady_clock::now();
@@ -233,15 +233,15 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 
 			shm_manager_->DoneWritingFragment(header);
-			TLOG(TLVL_TRACE) << "Done receiving fragment with sequence ID " << std::to_string(header.sequence_id) << " from rank " << source_rank;
+			TLOG(TLVL_TRACE) << "Done receiving fragment with sequence ID " << header.sequence_id << " from rank " << source_rank;
 
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, header.word_count * sizeof(RawDataType));
 			recv_seq_count_.setSlot(source_rank, header.sequence_id);
 			if (endOfDataCount != static_cast<size_t>(-1))
 			{
-				TLOG(TLVL_DEBUG) << "Received fragment " << std::to_string(header.sequence_id) << " from rank " << source_rank
-					<< " (" << std::to_string(recv_frag_count_.slotCount(source_rank)) << "/" << std::to_string(endOfDataCount) << ")";
+				TLOG(TLVL_DEBUG) << "Received fragment " << header.sequence_id << " from rank " << source_rank
+					<< " (" << recv_frag_count_.slotCount(source_rank) << "/" << endOfDataCount << ")";
 			}
 
 			after_body = std::chrono::steady_clock::now();
@@ -305,8 +305,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			case Fragment::EndOfDataFragmentType:
 				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 				endOfDataCount = *(frag->dataBegin());
-				TLOG(TLVL_DEBUG) << "EndOfData Fragment indicates that " << std::to_string(endOfDataCount) << " fragments are expected from rank " << source_rank
-					<< " (recvd " << std::to_string(recv_frag_count_.slotCount(source_rank)) << ").";
+				TLOG(TLVL_DEBUG) << "EndOfData Fragment indicates that " << endOfDataCount << " fragments are expected from rank " << source_rank
+					<< " (recvd " << recv_frag_count_.slotCount(source_rank) << ").";
 				break;
 			case Fragment::InitFragmentType:
 				TLOG(TLVL_DEBUG) << "Received Init Fragment from rank " << source_rank << ".";
