@@ -129,7 +129,6 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 		<< ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
 
 	complete_buffer_(buffer);
-	if (requests_) requests_->SendRequest(true);
 
 	TLOG(TLVL_TRACE) << "AddFragment END";
 	return true;
@@ -246,7 +245,6 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 #endif
 
 	complete_buffer_(buffer);
-	if (requests_) requests_->SendRequest(true);
 	TLOG(TLVL_TRACE) << "DoneWritingFragment END";
 }
 
@@ -904,7 +902,6 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		{
 			requests_->AddRequest(seqID, timestamp);
 		}
-		requests_->SendRequest();
 	}
 	TLOG(14) << "getBufferForSequenceID " << seqID << " returning newly initialized buffer " << new_buffer;
 	return new_buffer;
