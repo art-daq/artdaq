@@ -25,7 +25,9 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
 
+#ifndef USE_ACKS
 #define USE_ACKS 0
+#endif
 
 namespace artdaq
 {
@@ -133,6 +135,8 @@ private:
     double receive_disconnected_wait_s_; // How long to wait between messages before returning DATA_END
     size_t receive_err_wait_us_; // Amount of time to wait if there are no connected receive sockets
 	std::atomic<bool> receive_socket_has_been_connected_; // Whether the receiver has ever been connected to a sender
+	std::atomic<int> send_ack_diff_; // Number of sends - number of acks received. Not allowed to exceed buffer_count.
+	std::unique_ptr<boost::thread> ack_listen_thread_; // Thread to listen for ack messages on the sender
 
 private: // methods
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
@@ -142,7 +146,7 @@ private: // methods
 	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo);
 	
 #if USE_ACKS
-	void receive_ack_(int fd);
+	void receive_acks_();
 	void send_ack_(int fd);
 #endif
 

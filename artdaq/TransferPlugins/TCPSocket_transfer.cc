@@ -51,6 +51,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, receive_disconnected_wait_s_(pset.get<double>("receive_socket_disconnected_wait_s", 10.0))
 	, receive_err_wait_us_(pset.get<size_t>("receive_socket_disconnected_wait_us", 10000))
 	, receive_socket_has_been_connected_(false)
+	, send_ack_diff_(0)
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << " Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend");
 
@@ -88,6 +89,7 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 			write(send_fd_, &mh, sizeof(mh));
 		}
 		close(send_fd_);
+		send_fd_ = -1;
 	}
 	else
 	{
@@ -103,15 +105,17 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 				}
 				connected_fds_.erase(source_rank());
 			}
+			if (ack_listen_thread_ && ack_listen_thread_->joinable()) ack_listen_thread_->join();
 		}
 
 		std::unique_lock<std::mutex> lk(listen_thread_mutex_);
 		listen_thread_refcount_--;
-		if (listen_thread_refcount_ == 0 && listen_thread_ && listen_thread_->joinable())
+		if (listen_thread_refcount_ <= 0 && listen_thread_ && listen_thread_->joinable())
 		{
 			listen_thread_->join();
 		}
 	}
+
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": End of Destructor";
 }
 
@@ -521,6 +525,11 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	reconnect_();
 	// Send Fragment Header
 
+#if USE_ACKS
+	// Wait for fragments to be received
+	while (static_cast<size_t>(send_ack_diff_) > buffer_count_) usleep(10000);
+#endif
+
 	iovec iov = { reinterpret_cast<void*>(grab_ownership_frag.headerAddress()),
 		detail::RawFragmentHeader::num_words() * sizeof(RawDataType) };
 
@@ -549,7 +558,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	}
 
 #if USE_ACKS
-	receive_ack_(send_fd_);
+	send_ack_diff_++;
 #endif
 
 	TLOG(12) << GetTraceName() << ": sendFragment returning kSuccess";
@@ -773,6 +782,21 @@ void artdaq::TCPSocketTransfer::connect_()
 			// consider it all connected/established
 			connect_state = 1;
 		}
+
+#if USE_ACKS
+		if (ack_listen_thread_ && ack_listen_thread_->joinable()) ack_listen_thread_->join();
+		TLOG(TLVL_INFO) << GetTraceName() << ": Starting Ack Listener Thread";
+
+		try {
+			ack_listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::receive_acks_, this);
+		}
+		catch (const boost::exception& e)
+		{
+			TLOG(TLVL_ERROR) << "Caught boost::exception starting TCP Socket Ack Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+			std::cerr << "Caught boost::exception starting TCP Socket Ack Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+			exit(5);
+		}
+#endif
 	}
 }
 
@@ -811,38 +835,62 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 }
 
 #if USE_ACKS
-void artdaq::TCPSocketTransfer::receive_ack_(int fd)
+void artdaq::TCPSocketTransfer::receive_acks_()
 {
-	MessHead mh;
-	uint64_t mark_us = TimeUtils::gettimeofday_us();
-	fcntl(send_fd_, F_SETFL, 0); // clear O_NONBLOCK
-	auto sts = read(fd, &mh, sizeof(mh));
-	fcntl(send_fd_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
-	uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
-	TLOG(17) << GetTraceName() << ": receive_ack_: Read of ack message took " << delta_us << " microseconds.";
-	if (sts != sizeof(mh))
+	while (send_fd_ >= 0)
 	{
-		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong message header length received! (actual " << sts << " != " << sizeof(mh) << " expected)";
-		close(fd);
-		send_fd_ = -1;
-		return;
-	}
+		pollfd pollfd_s;
+		pollfd_s.events = POLLIN | POLLPRI;
+		pollfd_s.fd = send_fd_;
 
-	// check for "magic" and valid source_id(aka rank)
-	mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
-	if (mh.source_id != my_rank)
-	{
-		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Received ack for different sender! Rank=" << my_rank << ", hdr=" << mh.source_id;
-		close(fd);
-		send_fd_ = -1;
-		return;
-	}
-	if (ntohl(mh.conn_magic) != ACK_MAGIC || !(mh.message_type == MessHead::ack_v0)) // Allow for future connect message versions
-	{
-		TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong magic bytes in header!";
-		close(fd);
-		send_fd_ = -1;
-		return;
+		TLOG(18) << GetTraceName() << ": receive_acks_: Polling fd to see if there's data";
+		int num_fds_ready = poll(&pollfd_s, 1, 1000);
+		if (num_fds_ready <= 0)
+		{
+			if (num_fds_ready == 0)
+			{
+				TLOG(18) << GetTraceName() << ": receive_acks_: No data on receive socket";
+				continue;
+			}
+
+			TLOG(TLVL_ERROR) << "Error in poll: errno=" << errno;
+			break;
+		}
+
+		if (pollfd_s.revents & (POLLIN | POLLPRI))
+		{
+			// Expected, don't have to check revents any further
+		}
+		else
+		{
+			TLOG(TLVL_DEBUG) << GetTraceName() << ": receive_acks_: Wrong event received from pollfd: " << pollfd_s.revents;
+			break;
+		}
+
+		MessHead mh;
+		auto sts = read(send_fd_, &mh, sizeof(mh));
+
+		if (sts != sizeof(mh))
+		{
+			TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong message header length received! (actual " << sts << " != " << sizeof(mh) << " expected)";
+			continue;
+		}
+
+		// check for "magic" and valid source_id(aka rank)
+		mh.source_id = ntohs(mh.source_id); // convert here as it is reference several times
+		if (mh.source_id != my_rank)
+		{
+			TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Received ack for different sender! Rank=" << my_rank << ", hdr=" << mh.source_id;
+			continue;
+		}
+		if (ntohl(mh.conn_magic) != ACK_MAGIC || !(mh.message_type == MessHead::ack_v0)) // Allow for future connect message versions
+		{
+			TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong magic bytes in header!";
+			continue;
+		}
+
+		TLOG(17) << GetTraceName() << ": receive_acks_: Received ack message, diff is now " << (send_ack_diff_.load() - 1);
+		send_ack_diff_--;
 	}
 }
 
