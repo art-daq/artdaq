@@ -366,7 +366,7 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 			TLOG((restart_art_ ? TLVL_WARNING : TLVL_ERROR))
 				<< "art process " << pid << " " << exit_type << " " << status.si_status
 				<< (status.si_code == CLD_DUMPED ? " (core dumped)" : "")
-				<< " after " << std::setprecision(2) << art_lifetime << " seconds, "
+				<< " after running for " << std::setprecision(2) << std::fixed << art_lifetime << " seconds, "
 				<< (restart_art_ ? "restarting" : "not restarting");
 		}
 	} while (restart_art_);
