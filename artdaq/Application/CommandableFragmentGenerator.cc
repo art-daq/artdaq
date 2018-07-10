@@ -219,6 +219,11 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_TRACE) << "getNext: Calling applyRequests";
 			result = applyRequests(output);
 			TLOG(TLVL_TRACE) << "getNext: Done with applyRequests result=" << std::boolalpha << result;
+			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
+			{
+			  TLOG(20) << "getNext: applyRequests() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
+			           << ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
+			}
 
 			if (exception())
 			{
@@ -381,7 +386,6 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 	std::unique_lock<std::mutex> lk(mutex_);
 	stop();
 
-
 	TLOG(TLVL_DEBUG) << "Joining dataThread";
 	if (dataThread_.joinable()) dataThread_.join();
 	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
@@ -401,7 +405,6 @@ void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t t
 	std::unique_lock<std::mutex> lk(mutex_);
 
 	pause();
-
 
 	TLOG(TLVL_DEBUG) << "Joining dataThread";
 	if (dataThread_.joinable()) dataThread_.join();
@@ -574,7 +577,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-				"Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
+							 "Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
 			set_exception(true);
 
 			data_thread_running_ = false;
@@ -850,7 +853,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 	// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
 	for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
 	{
-		TLOG(TLVL_APPLYREQUESTS) << "ApplyRequests: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
+		TLOG(TLVL_APPLYREQUESTS) << "ApplyRequests: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container with sequence ID " << ev_counter();
 		cfl.addFragment(*it);
 		it = dataBuffer_.erase(it);
 	}
@@ -897,15 +900,16 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		}
 		if (windowClosed || !data_thread_running_ || windowTimeout)
 		{
-			TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Buffered or Window-requested Fragments";
+			TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Window-requested Fragments";
 			frags.emplace_back(new artdaq::Fragment(req->first, fragment_id()));
 			frags.back()->setTimestamp(ts);
 			ContainerFragmentLoader cfl(*frags.back());
 
 			if (!windowClosed) cfl.set_missing_data(true);
-			if (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min)
+			if (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > max)
 			{
-				TLOG(TLVL_DEBUG) << "Request Window covers data that is either before data collection began or has fallen off the end of the buffer";
+				TLOG(TLVL_DEBUG) << "Request Window does not match any of the data in the buffer (requestWindowRange=["
+				                 << min << "," << max << "],firstDataTimestamp=" << dataBuffer_.front()->timestamp();
 				cfl.set_missing_data(true);
 			}
 
@@ -1079,3 +1083,4 @@ void artdaq::CommandableFragmentGenerator::checkOutOfOrderWindows(artdaq::Fragme
 		}
 	}
 }
+

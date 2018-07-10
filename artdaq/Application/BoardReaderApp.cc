@@ -137,6 +137,8 @@ bool artdaq::BoardReaderApp::do_shutdown(uint64_t timeout)
 {
 	report_string_ = "";
 	external_request_status_ = fragment_receiver_ptr_->shutdown(timeout);
+        // 02-Jun-2018, ELF & KAB: it's very, very unlikely that the following call is needed,
+        // but just in case...
 	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
 	if (!external_request_status_)
 	{

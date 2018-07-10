@@ -550,6 +550,7 @@ readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
 
 	if (!msg)
 	{
+		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext got an empty message";
 		shutdownMsgReceived_ = true;
 		return false;
 	}

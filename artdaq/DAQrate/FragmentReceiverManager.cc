@@ -1,9 +1,9 @@
-#define TRACE_NAME "FragmentReceiverManager"
+#define TRACE_NAME (app_name + "_FragmentReceiverManager").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 
 #include <chrono>
 
 #include "artdaq/DAQrate/FragmentReceiverManager.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "cetlib_except/exception.h"
 

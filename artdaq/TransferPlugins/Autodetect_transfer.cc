@@ -1,4 +1,5 @@
-#define TRACE_NAME "AutodetectTransfer"
+#define TRACE_NAME (app_name + "_AutodetectTransfer").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/TransferPlugins/TCPSocketTransfer.hh"

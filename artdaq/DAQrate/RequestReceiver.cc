@@ -1,4 +1,5 @@
-#define TRACE_NAME "RequestReceiver"
+#define TRACE_NAME (app_name + "_RequestReceiver").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQdata/Globals.hh"

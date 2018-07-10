@@ -7,18 +7,18 @@
 // ELF 3/22/18:
 // We may want to separate these onto different levels later, 
 // but I think the TRACE_NAME separation is enough for now...
-#define TLVL_INIT TLVL_TRACE
-#define TLVL_STOP TLVL_TRACE
+#define TLVL_INIT TLVL_INFO
+#define TLVL_STOP TLVL_INFO
 #define TLVL_STATUS TLVL_TRACE
-#define TLVL_START TLVL_TRACE
-#define TLVL_PAUSE TLVL_TRACE
-#define TLVL_RESUME TLVL_TRACE
-#define TLVL_SHUTDOWN TLVL_TRACE
-#define TLVL_ROLLOVER TLVL_TRACE
-#define TLVL_SOFT_INIT TLVL_TRACE
-#define TLVL_REINIT TLVL_TRACE
-#define TLVL_INRUN_FAILURE TLVL_TRACE
-#define TLVL_LEGAL_COMMANDS TLVL_TRACE
+#define TLVL_START TLVL_INFO
+#define TLVL_PAUSE TLVL_INFO
+#define TLVL_RESUME TLVL_INFO
+#define TLVL_SHUTDOWN TLVL_INFO
+#define TLVL_ROLLOVER TLVL_INFO
+#define TLVL_SOFT_INIT TLVL_INFO
+#define TLVL_REINIT TLVL_INFO
+#define TLVL_INRUN_FAILURE TLVL_INFO
+#define TLVL_LEGAL_COMMANDS TLVL_INFO
 
 artdaq::Commandable::Commandable() : fsm_(*this)
 , primary_mutex_()

@@ -768,7 +768,8 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary)
 			logLevel = TLVL_WARNING;
 			processAnyway = true;
 		}
-		TLOG(logLevel) << "Subrun rollover requested for event that is in the past. (delta = " << (last_released_event_ - boundary) << ").";
+		TLOG(logLevel) << "Subrun rollover requested for event that is in the past. (last_released_event="
+			       << last_released_event_ << ",requested_rollover_boundary=" << boundary << ").";
 		if (!processAnyway) return;
 	}
 	TLOG(TLVL_INFO) << "Will roll over when I reach Sequence ID " << boundary;
@@ -1028,7 +1029,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		}
 		if (hdr->sequence_id > last_released_event_) last_released_event_ = hdr->sequence_id;
 
-		TLOG(TLVL_DEBUG) << "Releasing event " << hdr->sequence_id << " in buffer " << buf << " to art.";
+		TLOG(TLVL_DEBUG) << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art, "
+                                 << "event_size=" << BufferDataSize(buf) << ", buffer_size=" << BufferSize();
 		MarkBufferFull(buf);
 		subrun_event_count_++;
 		run_event_count_++;
@@ -1058,8 +1060,11 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 			metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
-			metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
-			metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
+            if(total > 0) 
+            {
+			    metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
+			    metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
+            }
 
 			last_shmem_buffer_metric_update_ = std::chrono::steady_clock::now();
 	}
@@ -1070,7 +1075,7 @@ void artdaq::SharedMemoryEventManager::send_init_frag_()
 {
 	if (init_fragment_ != nullptr)
 	{
-		TLOG(TLVL_TRACE) << "Sending init Fragment to art...";
+		TLOG(TLVL_INFO) << "Broadcasting init fragment to all art subprocesses...";
 
 #if 0
 		std::string fileName = "receiveInitMessage_" + std::to_string(my_rank) + ".bin";
