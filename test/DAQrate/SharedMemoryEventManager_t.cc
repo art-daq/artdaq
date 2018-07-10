@@ -575,7 +575,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
-		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress());
+		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(1));
 #endif
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);

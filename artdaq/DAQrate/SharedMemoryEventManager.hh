@@ -350,7 +350,7 @@ namespace artdaq {
 		 * \brief Gets the address of the "dropped data" fragment. Used for testing.
 		 * \return Pointer to the data payload of the "dropped data" fragment
 		 */
-		RawDataType* GetDroppedDataAddress() { return dropped_data_->dataBegin(); }
+		RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { return dropped_data_[frag]->dataBegin(); }
 
 	private:
 		size_t get_art_process_count_() 
@@ -360,6 +360,7 @@ namespace artdaq {
 		}
 
 	private:
+
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;
 		size_t const queue_size_;
@@ -385,6 +386,14 @@ namespace artdaq {
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
+		
+		struct MetricData {
+			MetricData() : event_count(0), event_size(0) {}
+			size_t event_count;
+			size_t event_size;
+		};
+		MetricData metric_data_;
+
 		int broadcast_timeout_ms_;
 
 		std::atomic<int> run_event_count_;
@@ -408,7 +417,7 @@ namespace artdaq {
 		fhicl::ParameterSet data_pset_;
 
 		FragmentPtr init_fragment_;
-		FragmentPtr dropped_data_; ///< Used for when data comes in badly out-of-sequence
+		std::unordered_map<Fragment::fragment_id_t, FragmentPtr> dropped_data_; ///< Used for when data comes in badly out-of-sequence
 
 		bool broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag);
 
