@@ -1052,7 +1052,6 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			metricMan->sendMetric("Events Released to art this subrun", subrun_event_count_, "Events", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Incomplete Events Released to art this subrun", subrun_incomplete_event_count_, "Events", 2, MetricMode::LastPoint);
 
-			last_shmem_buffer_metric_update_ = std::chrono::steady_clock::now();
 			auto full = ReadReadyCount();
 			auto empty = WriteReadyCount(overwrite_mode_);
 			auto total = size();
@@ -1061,6 +1060,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
+
+			last_shmem_buffer_metric_update_ = std::chrono::steady_clock::now();
 	}
 	TLOG(TLVL_TRACE) << "check_pending_buffers_ END";
 }
