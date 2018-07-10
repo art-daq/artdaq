@@ -218,8 +218,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			while (loc == nullptr)//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_) 
 			{
 				loc = shm_manager_->WriteFragmentHeader(header);
+				if (loc == nullptr && stop_requested_) return;
 				if (loc == nullptr) usleep(sleep_time);
-				if (stop_requested_) return;
 				retries++;
 				if (non_reliable_mode_enabled_ && retries > max_retries)
 				{
