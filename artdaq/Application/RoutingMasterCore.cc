@@ -548,6 +548,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				}
 
 				receive_token_addrs_[conn_sock] = std::string(inet_ntoa(addr.sin_addr));
+				TLOG(TLVL_DEBUG) << "New fd is " << conn_sock << " for receiver at " << receive_token_addrs_[conn_sock];
 				struct epoll_event ev;
 				ev.events = EPOLLIN | EPOLLET;
 				ev.data.fd = conn_sock;
@@ -559,12 +560,21 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			}
 			else
 			{
+				if (receive_token_events_[n].events & (EPOLLRDHUP | EPOLLERR | EPOLLHUP))
+				{
+					TLOG(TLVL_DEBUG) << "Closing connection on fd " << receive_token_events_[n].data.fd << " (" << receive_token_addrs_[receive_token_events_[n].data.fd] << ")";
+					receive_token_addrs_.erase(receive_token_events_[n].data.fd);
+					close(receive_token_events_[n].data.fd);
+					epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, NULL);
+					continue;
+				}
+
 				auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
 				detail::RoutingToken buff;
 				auto sts = read(receive_token_events_[n].data.fd, &buff, sizeof(detail::RoutingToken));
 				if (sts != sizeof(detail::RoutingToken) || buff.header != TOKEN_MAGIC)
 				{
-					TLOG(TLVL_ERROR) << "Received invalid token from " << receive_token_addrs_[receive_token_events_[n].data.fd] ;
+					TLOG(TLVL_ERROR) << "Received invalid token from " << receive_token_addrs_[receive_token_events_[n].data.fd] << " sts=" << sts;
 				}
 				else
 				{
