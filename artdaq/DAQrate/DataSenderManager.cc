@@ -329,12 +329,12 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 		if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
 		{
 			TLOG(TLVL_ERROR) << "Bad Omen: I don't have routing information for seqID " << sequence_id
-				<< " and the Routing Master did not send a table update in routing_timeout (" << routing_timeout_ms_ << ")!";
+				<< " and the Routing Master did not send a table update in routing_timeout_ms window (" << routing_timeout_ms_ << " ms)!";
 		}
 		else
 		{
 			TLOG(TLVL_ERROR) << "Bad Omen: I don't have routing information for send number " << sent_frag_count_.count()
-				<< " and the Routing Master did not send a table update in routing_timeout (" << routing_timeout_ms_ << ")!";
+				<< " and the Routing Master did not send a table update in routing_timeout_ms window (" << routing_timeout_ms_ << " ms)!";
 		}
 	}
 	else
