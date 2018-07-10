@@ -439,7 +439,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 						<< " times during the table_update_interval. Check the status of the senders!" ;
 					break;
 				}
-				TLOG(TLVL_WARNING) << "Did not receive acks from all senders within the table_ack_wait_time. Resending table update" ;
+				TLOG(TLVL_WARNING) << "Did not receive acks from all senders within the timeout (" << table_ack_wait_time_ms << " ms). Resending table update" ;
 				break;
 			}
 
