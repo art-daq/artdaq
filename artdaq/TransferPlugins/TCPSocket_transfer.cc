@@ -339,7 +339,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 int artdaq::TCPSocketTransfer::disconnect_receive_socket_(int fd, std::string msg)
 {
-	TLOG(TLVL_DEBUG) << GetTraceName() << ": disconnect_receive_socket_: " << msg << " Closing socket " << fd;
+	TLOG(TLVL_WARNING) << GetTraceName() << ": disconnect_receive_socket_: " << msg << " Closing socket " << fd;
 	close(fd);
 	std::unique_lock<std::mutex> lk(connected_fd_mutex_);
 	if (connected_fds_.count(source_rank()))
@@ -381,7 +381,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			if (num_fds_ready == 0)
 			{
-				TLOG(9) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT";
+				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT";
 				active_receive_fd_ = -1;
 				return RECV_TIMEOUT;
 			}
@@ -407,7 +407,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		}
 		else
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Wrong event received from pollfd: " << pollfd_s.revents;
+			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: Wrong event received from pollfd: " << pollfd_s.revents;
 			disconnect_receive_socket_(pollfd_s.fd);
 			break;
 		}
@@ -432,7 +432,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		TLOG(10) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state) << " read=" << sts;
 		if (sts < 0)
 		{
-			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket"
+			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket"
 				<< " (errno=" << errno << ": " << strerror(errno) << ")";
 			disconnect_receive_socket_(pollfd_s.fd);
 		}
