@@ -154,10 +154,12 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		timeout_ms = (timeout_usec + 999) / 1000; // want at least 1 ms
 
 	bool done = false;
+	int loop_guard = 0;
 	while (!done && getConnectedFDCount(source_rank()) > 0)
 	{
 		if (active_receive_fd_ == -1)
 		{
+			loop_guard = 0;
 			size_t fd_count = 0;
 			std::vector<pollfd> pollfds;
 			{
@@ -202,6 +204,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				{
 					active_index = pollfd_index;
 					active_receive_fd_ = pollfds[active_index].fd;
+					active_revents_ = pollfds[active_index].revents;;
 					break;
 				}
 				else if (pollfds[pollfd_index].revents & (POLLHUP | POLLERR))
@@ -240,6 +243,14 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				timeout_ms = ((timeout_usec - delta_us) + 999) / 1000; // want at least 1 ms
 			}
 		}
+		if (loop_guard > 10) {usleep(1000);}
+		if (++loop_guard > 10010)
+		{
+			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: loop guard triggered, returning RECV_TIMEOUT";
+			usleep(receive_err_wait_us_);
+			active_receive_fd_ = -1;
+			return RECV_TIMEOUT;
+		}
 
 		if (state == SocketState::Metadata)
 		{
@@ -253,6 +264,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			buff = reinterpret_cast<uint8_t*>(&header) + offset;
 			byte_cnt = mh.byte_count - offset;
 		}
+		//if (byte_cnt > sizeof(MessHead))
+		//	{
+		//	TLOG(TLVL_ERROR) << "Invalid byte count for read (count=" << byte_cnt
+		//			 << ",offset=" << offset << ",mh.byte_count=" << mh.byte_count
+		//			 << "), skipping read and returning RECV_TIMEOUT";
+		//	return RECV_TIMEOUT;
+		//}
 
 		if (byte_cnt > 0)
 		{
@@ -260,6 +278,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			sts = read(active_receive_fd_, buff, byte_cnt);
 			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Done with read";
 		}
+		if (sts > 0) {loop_guard = 0;}
 
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state) << " read=" << sts;
 		if (sts < 0)
@@ -345,11 +364,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	pollfd_s.events = POLLIN | POLLPRI | POLLERR;
 	pollfd_s.fd = active_receive_fd_;
 
+	int loop_guard = 0;
 	bool done = false;
 	while (!done)
 	{
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
+		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polled fd to see if there's data"
+				 << ", num_fds_ready = " << num_fds_ready;
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0)
@@ -403,6 +424,19 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Done with read" ;
 
 		TLOG(10) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state) << " read=" << sts;
+
+		if (sts == 0)
+		{
+		  if (loop_guard > 10) {usleep(1000);}
+		  if (++loop_guard > 10010)
+		  {
+		    TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: loop guard triggered, returning RECV_TIMEOUT";
+		    active_receive_fd_ = -1;
+		    return RECV_TIMEOUT;
+		  }
+		}
+		else {loop_guard = 0;}
+
 		if (sts < 0)
 		{
 			TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket"
