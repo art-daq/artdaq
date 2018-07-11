@@ -181,6 +181,9 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 		" after " + boost::lexical_cast<std::string>(fragment_count_) + " fragments.");
 	stop_requested_.store(true);
 	generator_ptr_->StopCmd(timeout, timestamp);
+
+	sender_ptr_->StopSender();
+
 	logMessage_("Completed the Stop transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
 	return true;
 }

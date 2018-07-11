@@ -135,6 +135,12 @@ public:
 	 * \return The current size of the Routing Table. Note that the Routing Table is trimmed after each successful send.
 	 */
 	size_t GetRoutingTableEntryCount() const;
+
+	/**
+	 * \brief Stop the DataSenderManager, aborting any sends in progress
+	 */
+	void StopSender() { should_stop_ = true; }
+
 private:
 
 	// Calculate where the fragment with this sequenceID should go.
