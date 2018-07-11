@@ -384,6 +384,12 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 	should_stop_.store(true);
 	std::unique_lock<std::mutex> lk(mutex_);
 	stop();
+
+
+	TLOG(TLVL_DEBUG) << "Joining dataThread";
+	if (dataThread_.joinable()) dataThread_.join();
+	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
+	if (monitoringThread_.joinable()) monitoringThread_.join();
 	TLOG(TLVL_TRACE) << "Stop command complete.";
 }
 
@@ -399,6 +405,12 @@ void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t t
 	std::unique_lock<std::mutex> lk(mutex_);
 
 	pause();
+
+
+	TLOG(TLVL_DEBUG) << "Joining dataThread";
+	if (dataThread_.joinable()) dataThread_.join();
+	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
+	if (monitoringThread_.joinable()) monitoringThread_.join();
 	TLOG(TLVL_TRACE) << "Pause Command complete.";
 }
 
