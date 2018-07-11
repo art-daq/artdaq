@@ -178,6 +178,14 @@ receiveMessage(TBufferFile*& msg)
 
 		TLOG(TLVL_TRACE) << "receiveMessage: Getting all Fragments" ;
 		recvd_fragments_ = incoming_events_->GetFragmentsByType(errflag, artdaq::Fragment::InvalidFragmentType);
+		if (!recvd_fragments_)
+		{
+			TLOG(TLVL_ERROR) << "Error retrieving Fragments from shared memory! Aborting!";
+			incoming_events_->ReleaseBuffer();
+			msg = nullptr;
+			return;
+
+		}
 		/* Events coming out of the EventStore are not sorted but need to be
 		   sorted by sequence ID before they can be passed to art.
 		*/
