@@ -108,6 +108,7 @@ private:
 	int send_fd_;
 	int active_receive_fd_;
 	int last_active_receive_fd_;
+	short active_revents_;
 
 	union
 	{
