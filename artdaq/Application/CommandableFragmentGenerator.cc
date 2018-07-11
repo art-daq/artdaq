@@ -323,6 +323,7 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	if (force_stop_) return true;
 
 	// check_stop returns true if the CFG should stop. We should wait for the RequestReceiver to stop before stopping.
+	TLOG(TLVL_DEBUG) << "should_stop is true, force_stop_ is false, requestReceiver_->isRunning() is" << requestReceiver_->isRunning();
 	return !requestReceiver_->isRunning();
 }
 
@@ -379,18 +380,18 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
-	if (requestReceiver_ && requestReceiver_->isRunning()) requestReceiver_->stopRequestReceiverThread();
+	if (requestReceiver_ && requestReceiver_->isRunning()) {
+		TLOG(TLVL_DEBUG) << "Stopping Request receiver thread BEGIN";
+		requestReceiver_->stopRequestReceiverThread();
+		TLOG(TLVL_DEBUG) << "Stopping Request receiver thread END";
+	}
 
 	stopNoMutex();
 	should_stop_.store(true);
 	std::unique_lock<std::mutex> lk(mutex_);
 	stop();
 
-	TLOG(TLVL_DEBUG) << "Joining dataThread";
-	if (dataThread_.joinable()) dataThread_.join();
-	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
-	if (monitoringThread_.joinable()) monitoringThread_.join();
-	TLOG(TLVL_TRACE) << "Stop command complete.";
+	joinThreads();
 }
 
 void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t timestamp)
@@ -398,19 +399,13 @@ void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t t
 	TLOG(TLVL_TRACE) << "Pause Command received.";
 	timeout_ = timeout;
 	timestamp_ = timestamp;
-	if (requestReceiver_->isRunning()) requestReceiver_->stopRequestReceiverThread();
+	//if (requestReceiver_->isRunning()) requestReceiver_->stopRequestReceiverThread();
 
 	pauseNoMutex();
 	should_stop_.store(true);
 	std::unique_lock<std::mutex> lk(mutex_);
 
 	pause();
-
-	TLOG(TLVL_DEBUG) << "Joining dataThread";
-	if (dataThread_.joinable()) dataThread_.join();
-	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
-	if (monitoringThread_.joinable()) monitoringThread_.join();
-	TLOG(TLVL_TRACE) << "Pause Command complete.";
 }
 
 void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t timestamp)
@@ -428,9 +423,9 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 	resume();
 
 	std::unique_lock<std::mutex> lk(mutex_);
-	if (useDataThread_) startDataThread();
-	if (useMonitoringThread_) startMonitoringThread();
-	if (mode_ != RequestMode::Ignored && !requestReceiver_->isRunning()) requestReceiver_->startRequestReceiverThread();
+	//if (useDataThread_) startDataThread();
+	//if (useMonitoringThread_) startMonitoringThread();
+	//if (mode_ != RequestMode::Ignored && !requestReceiver_->isRunning()) requestReceiver_->startRequestReceiverThread();
 	TLOG(TLVL_TRACE) << "Resume Command complete.";
 }
 
@@ -1079,6 +1074,7 @@ void artdaq::CommandableFragmentGenerator::checkOutOfOrderWindows(artdaq::Fragme
 		}
 		else
 		{
+			TLOG(TLVL_CHECKWINDOWS) << "checkOutOfOrderWindows: Out-of-order window " << it->first << " waiting. Current event counter = " << ev_counter();
 			++it;
 		}
 	}
