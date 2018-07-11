@@ -51,6 +51,8 @@ public:
 		fhicl::Atom<int> routing_timeout_ms{ fhicl::Name{"routing_timeout_ms"}, fhicl::Comment{"Time to wait (in ms) for a routing table update if the table is exhausted"}, 1000 };
 		///   "routing_retry_count" (Default: 5): Number of times to retry calculating destination before giving up (DROPPING DATA!)
 		fhicl::Atom<int> routing_retry_count{ fhicl::Name{"routing_retry_count"}, fhicl::Comment{"Number of times to retry getting destination from routing table"}, 5 };
+		///   "routing_table_max_size" (Default: 1000): Maximum number of entries in the routing table
+		fhicl::Atom<size_t> routing_table_max_size{ fhicl::Name{"routing_table_max_size"}, fhicl::Comment{"Maximum number of entries in the routing table"}, 1000 };
 	};
 
 	/// <summary>
@@ -168,6 +170,7 @@ private:
 	int ack_socket_;
 	int table_socket_;
 	std::map<Fragment::sequence_id_t, int> routing_table_;
+	size_t routing_table_max_size_;
 	mutable std::mutex routing_mutex_;
 	boost::thread routing_thread_;
 	mutable std::atomic<size_t> routing_wait_time_;

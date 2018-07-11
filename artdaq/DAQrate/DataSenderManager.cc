@@ -27,6 +27,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
+	, routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
 
@@ -452,7 +453,15 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest
 			<< "! This event has been lost: " << seqID;
 	}
-	if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
+
+	{
+		std::unique_lock<std::mutex> lck(routing_mutex_);
+		while (routing_table_.size() > routing_table_max_size_)
+		{
+			routing_table_.erase(routing_table_.begin());
+		}
+	}
+	/*if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
 		&& routing_table_.find(seqID - 1) != routing_table_.end())
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
@@ -462,7 +471,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(sent_frag_count_.count()));
-	}
+	}*/
 
 
 	auto delta_t = TimeUtils::GetElapsedTime(start_time);
