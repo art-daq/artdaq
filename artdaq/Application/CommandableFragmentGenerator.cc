@@ -613,6 +613,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		if (!data || force_stop_)
 		{
 			TLOG(TLVL_INFO) << "Data flow has stopped. Ending data collection thread";
+			std::unique_lock<std::mutex> lock(dataBufferMutex_);
 			data_thread_running_ = false;
 			if (requestReceiver_) requestReceiver_->ClearRequests();
 			dataBuffer_.clear();
