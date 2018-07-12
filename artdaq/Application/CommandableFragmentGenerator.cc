@@ -580,8 +580,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		}
 		for (auto dataIter = newDataBuffer_.begin(); dataIter != newDataBuffer_.end(); ++dataIter)
 		{
-			TLOG(TLVL_GETDATALOOP_VERBOSE) << "getDataLoop: getNext_() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
-				<< ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
+			TLOG(TLVL_GETDATALOOP_VERBOSE) << "getDataLoop: getNext_() returned fragment with timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
 		}
 
 		if (metricMan)
