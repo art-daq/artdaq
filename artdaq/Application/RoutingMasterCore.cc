@@ -572,7 +572,11 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
 				detail::RoutingToken buff;
 				auto sts = read(receive_token_events_[n].data.fd, &buff, sizeof(detail::RoutingToken));
-				if (sts != sizeof(detail::RoutingToken) || buff.header != TOKEN_MAGIC)
+				if (sts == 0)
+				{
+					TLOG(TLVL_INFO) << "Received 0-size token from " << receive_token_addrs_[receive_token_events_[n].data.fd];
+				}
+				else if (sts != sizeof(detail::RoutingToken) || buff.header != TOKEN_MAGIC)
 				{
 					TLOG(TLVL_ERROR) << "Received invalid token from " << receive_token_addrs_[receive_token_events_[n].data.fd] << " sts=" << sts;
 				}
