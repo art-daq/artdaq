@@ -93,6 +93,8 @@ private:
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;
 	std::unique_ptr<std::vector<artdaq::Fragment>> recvd_fragments_;
+
+	void setupEventReceiver_();
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService, NetMonTransportServiceInterface, LEGACY)

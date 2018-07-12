@@ -39,12 +39,11 @@ NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
 	, data_pset_(pset)
 	, init_received_(false)
 	, sender_ptr_(nullptr)
-	, incoming_events_(new artdaq::SharedMemoryEventReceiver(pset.get<int>("shared_memory_key", 0xBEE70000 + getppid()), pset.get<int>("broadcast_shared_memory_key", 0xCEE70000 + getppid())))
+	, incoming_events_(nullptr)
 	, recvd_fragments_(nullptr)
 {
 	TLOG(TLVL_TRACE) << "NetMonTransportService CONSTRUCTOR" ;
 	if (pset.has_key("rank")) my_rank = pset.get<int>("rank");
-	else my_rank = incoming_events_->GetRank();
 
 	init_timeout_s_ = pset.get<double>("init_fragment_timeout_seconds", 1.0);
 }
@@ -66,6 +65,12 @@ void
 NetMonTransportService::
 listen()
 {
+	if (!incoming_events_)
+	{
+		incoming_events_.reset(new artdaq::SharedMemoryEventReceiver(data_pset_.get<int>("shared_memory_key", 0xBEE70000 + getppid()), data_pset_.get<int>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
+		if (data_pset_.has_key("rank")) my_rank = data_pset_.get<int>("rank");
+		else my_rank = incoming_events_->GetRank();
+	}
 	return;
 }
 
@@ -109,6 +114,7 @@ void
 NetMonTransportService::
 receiveMessage(TBufferFile*& msg)
 {
+	listen();
 	TLOG(TLVL_TRACE) << "receiveMessage BEGIN" ;
 	while (recvd_fragments_ == nullptr)
 	{
@@ -234,6 +240,7 @@ void
 NetMonTransportService::
 receiveInitMessage(TBufferFile*& msg)
 {
+	listen();
 	TLOG(TLVL_TRACE) << "receiveInitMessage BEGIN" ;
 	if (recvd_fragments_ == nullptr)
 	{
