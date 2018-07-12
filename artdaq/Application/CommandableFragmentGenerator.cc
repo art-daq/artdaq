@@ -358,6 +358,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	timestamp_ = timestamp;
 	ev_counter_.store(1);
 	should_stop_.store(false);
+	force_stop_.store(false);
 	exception_.store(false);
 	run_number_ = run;
 	subrun_number_ = 1;
