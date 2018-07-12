@@ -915,7 +915,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			// If the dataBuffer has size 0, then windowClosed will be false
 			if (!windowClosed || (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min))
 			{
-				TLOG(TLVL_DEBUG) << "Request window starts before and/or ends after the current data buffer, setting ContainterFragment's missing_data flag!"
+				TLOG(TLVL_DEBUG) << "Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
 					<< " (requestWindowRange=[" << min << "," << max << "], "
 					<< "buffer={" << (dataBuffer_.size() > 0 ? dataBuffer_.front()->timestamp() : 0) << "-"
 					<< (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0) << "}";
