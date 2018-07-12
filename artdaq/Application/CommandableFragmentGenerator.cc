@@ -188,6 +188,7 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
 	if (monitoringThread_.joinable()) monitoringThread_.join();
 	requestReceiver_.reset(nullptr);
+	TLOG(TLVL_DEBUG) << "joinThreads complete";
 }
 
 bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
@@ -289,7 +290,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 	if (!result)
 	{
-		TLOG(TLVL_DEBUG) << "stopped ";
+		TLOG(TLVL_DEBUG) << "getNext: Either getNext_ or applyRequests returned false, stopping";
 	}
 
 	if (metricMan && !output.empty())
@@ -323,7 +324,7 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	if (force_stop_) return true;
 
 	// check_stop returns true if the CFG should stop. We should wait for the RequestReceiver to stop before stopping.
-	TLOG(TLVL_DEBUG) << "should_stop is true, force_stop_ is false, requestReceiver_->isRunning() is" << requestReceiver_->isRunning();
+	TLOG(TLVL_DEBUG) << "should_stop is true, force_stop_ is false, requestReceiver_->isRunning() is " << std::boolalpha << requestReceiver_->isRunning();
 	return !requestReceiver_->isRunning();
 }
 
@@ -393,6 +394,7 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 	stop();
 
 	joinThreads();
+	TLOG(TLVL_TRACE) << "Stop Command complete.";
 }
 
 void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t timestamp)
@@ -639,6 +641,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			data_thread_running_ = false;
 			if (requestReceiver_) requestReceiver_->ClearRequests();
 			newDataBuffer_.clear();
+			TLOG(TLVL_INFO) << "getDataLoop: Ending thread";
 			return;
 		}
 	}

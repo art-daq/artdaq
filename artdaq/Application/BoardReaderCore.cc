@@ -361,6 +361,7 @@ void artdaq::BoardReaderCore::process_fragments()
 	metricMan->do_stop();
 
 	sender_ptr_.reset(nullptr);
+	TLOG(TLVL_DEBUG) << "process_fragments loop end";
 }
 
 std::string artdaq::BoardReaderCore::report(std::string const& which) const

@@ -129,13 +129,15 @@ void artdaq::RequestReceiver::stopRequestReceiverThread(bool force)
 			<< "Check that UDP port " << request_port_ << " is open in the firewall config.";
 	}
 	should_stop_ = true;
-	TLOG(TLVL_DEBUG) << "Joining requestThread";
-	if (requestThread_.joinable()) requestThread_.join();
-	bool once = true;
-	while (running_) {
-		if (once) TLOG(TLVL_ERROR) << "running_ is true after thread join! Should NOT happen";
-		once = false;
-		usleep(10000);
+	if (running_) {
+		TLOG(TLVL_DEBUG) << "Joining requestThread";
+		if (requestThread_.joinable()) requestThread_.join();
+		bool once = true;
+		while (running_) {
+			if (once) TLOG(TLVL_ERROR) << "running_ is true after thread join! Should NOT happen";
+			once = false;
+			usleep(10000);
+		}
 	}
 
 	if (request_socket_ != -1)
