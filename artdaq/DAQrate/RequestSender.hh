@@ -101,7 +101,13 @@ namespace artdaq
 		 * \return Current RequestMessageMode of the RequestSender
 		 */
 		detail::RequestMessageMode GetRequestMode() const { return request_mode_; }
-		
+
+		/**
+		 * \brief Send a request message containing all current requests
+		 * \param endOfRunOnly Whether the request should only be sent in EndOfRun RequestMessageMode (default: false)
+		 */
+		void SendRequest(bool endOfRunOnly = false);
+
 		/**
 		 * \brief Add a request to the request list
 		 * \param seqID Sequence ID for request
@@ -122,23 +128,16 @@ namespace artdaq
 		void SendRoutingToken(int nSlots);
 	private:
 
+		// Request stuff
 		bool send_requests_;
 		std::atomic<bool> initialized_;
-		std::atomic<bool> stop_requested_;
-		std::atomic<bool> request_sending_thread_running_;
-
 		mutable std::mutex request_mutex_;
 		mutable std::mutex request_send_mutex_;
 		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_;
-		boost::thread request_sending_thread_;
-
 		std::string request_address_;
 		int request_port_;
-
 		size_t request_delay_;
 		size_t request_shutdown_timeout_us_;
-		double request_send_interval_s_;
-
 		int request_socket_;
 		struct sockaddr_in request_addr_;
 		std::string multicast_out_addr_;
@@ -148,6 +147,7 @@ namespace artdaq
 		int token_port_;
 		int token_socket_;
 		std::string token_address_;
+		std::atomic<int> request_sending_;
 
 	private:
 		void setup_requests_();

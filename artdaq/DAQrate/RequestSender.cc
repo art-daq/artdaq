@@ -20,17 +20,15 @@ namespace artdaq
 	RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 		: send_requests_(pset.get<bool>("send_requests", false))
 		, initialized_(false)
-		, stop_requested_(false)
-		, request_sending_thread_running_(false)
 		, active_requests_()
 		, request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
 		, request_port_(pset.get<int>("request_port", 3001))
 		, request_delay_(pset.get<size_t>("request_delay_ms", 10) * 1000)
 		, request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
-		, request_send_interval_s_(pset.get<double>("request_send_interval_s", 0.5))
 		, multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
+		, request_sending_(0)
 	{
 		TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
 		setup_requests_();
@@ -47,14 +45,17 @@ namespace artdaq
 
 	RequestSender::~RequestSender()
 	{
-		TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for requests to be sent";
-		stop_requested_ = true;
+		TLOG(TLVL_INFO) << "Shutting down RequestSender: Waiting for " << request_sending_.load() << " requests to be sent";
 
 		auto start_time = std::chrono::steady_clock::now();
 
-		while (request_sending_thread_running_.load() > 0 && request_shutdown_timeout_us_ + request_delay_ > TimeUtils::GetElapsedTimeMicroseconds(start_time))
+		while (request_sending_.load() > 0 && request_shutdown_timeout_us_ + request_delay_ > TimeUtils::GetElapsedTimeMicroseconds(start_time))
 		{
 			usleep(1000);
+		}
+		{
+			std::unique_lock<std::mutex> lk(request_mutex_);
+			std::unique_lock<std::mutex> lk2(request_send_mutex_);
 		}
 		TLOG(TLVL_INFO) << "Shutting down RequestSender";
 		if (request_socket_ > 0)
@@ -67,13 +68,13 @@ namespace artdaq
 			shutdown(token_socket_, 2);
 			close(token_socket_);
 		}
-		if (request_sending_thread_.joinable()) request_sending_thread_.join();
 	}
 
 
 	void RequestSender::SetRequestMode(detail::RequestMessageMode mode)
 	{
 		request_mode_ = mode;
+		SendRequest(true);
 	}
 
 	void RequestSender::setup_requests_()
@@ -137,12 +138,11 @@ namespace artdaq
 				TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast, err=" << strerror(errno);
 				exit(1);
 			}
-
-			request_sending_thread_ = boost::thread(&RequestSender::do_send_request_, this);
 		}
 	}
 
-	void RequestSender::setup_tokens_()
+	void
+		RequestSender::setup_tokens_()
 	{
 		if (send_routing_tokens_)
 		{
@@ -165,61 +165,53 @@ namespace artdaq
 
 	void RequestSender::do_send_request_()
 	{
-		request_sending_thread_running_ = true;
-		auto last_send_time = std::chrono::steady_clock::now();
+		if (!send_requests_) {
+			request_sending_--;
+			return;
+		}
+		if (request_socket_ == -1) setup_requests_();
 
-		while (!stop_requested_) {
-			if (!send_requests_) {
-				break;
-			}
-			if (request_socket_ == -1) setup_requests_();
+		TLOG(TLVL_TRACE) << "Waiting for " << request_delay_ << " microseconds.";
+		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
 
-
-			if (TimeUtils::GetElapsedTime(last_send_time) > request_send_interval_s_)
+		TLOG(TLVL_TRACE) << "Creating RequestMessage";
+		detail::RequestMessage message;
+		{
+			std::unique_lock<std::mutex> lk(request_mutex_);
+			for (auto& req : active_requests_)
 			{
-				TLOG(TLVL_TRACE) << "Creating RequestMessage";
-				detail::RequestMessage message;
-				{
-					std::unique_lock<std::mutex> lk(request_mutex_);
-					for (auto& req : active_requests_)
-					{
-						TLOG(12) << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second << " to request message";
-						message.addRequest(req.first, req.second);
-					}
-				}
-				TLOG(TLVL_TRACE) << "Setting mode flag in Message Header";
-				message.header()->mode = request_mode_;
-				char str[INET_ADDRSTRLEN];
-				inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-				std::unique_lock<std::mutex> lk2(request_send_mutex_);
-				TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
-				if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
-				{
-					TLOG(TLVL_ERROR) << "Error sending request message header err=" << strerror(errno);
-					request_socket_ = -1;
-					continue;
-				}
-				size_t sent = 0;
-				while (sent < sizeof(detail::RequestPacket) * message.size())
-				{
-					ssize_t thisSent = sendto(request_socket_, reinterpret_cast<uint8_t*>(message.buffer()) + sent, sizeof(detail::RequestPacket) * message.size() - sent, 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
-					if (thisSent < 0)
-					{
-						TLOG(TLVL_ERROR) << "Error sending request message data err=" << strerror(errno);
-						request_socket_ = -1;
-						continue;
-					}
-					sent += thisSent;
-				}
-				TLOG(TLVL_TRACE) << "Done sending request";
-				last_send_time = std::chrono::steady_clock::now();
-			}
-			else
-			{
-				usleep(static_cast<size_t>(request_send_interval_s_ * 1000));
+				TLOG(12) << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second << " to request message";
+				message.addRequest(req.first, req.second);
 			}
 		}
-		request_sending_thread_running_ = false;
+		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header";
+		message.header()->mode = request_mode_;
+		char str[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
+		std::unique_lock<std::mutex> lk2(request_send_mutex_);
+		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
+		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
+		{
+			TLOG(TLVL_ERROR) << "Error sending request message header err=" << strerror(errno);
+			request_socket_ = -1;
+			request_sending_--;
+			return;
+		}
+		size_t sent = 0;
+		while (sent < sizeof(detail::RequestPacket) * message.size())
+		{
+			ssize_t thisSent = sendto(request_socket_, reinterpret_cast<uint8_t*>(message.buffer()) + sent, sizeof(detail::RequestPacket) * message.size() - sent, 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
+			if (thisSent < 0)
+			{
+				TLOG(TLVL_ERROR) << "Error sending request message data err=" << strerror(errno);
+				request_socket_ = -1;
+				request_sending_--;
+				return;
+			}
+			sent += thisSent;
+		}
+		TLOG(TLVL_TRACE) << "Done sending request";
+		request_sending_--;
 	}
 
 	void RequestSender::send_routing_token_(int nSlots)
@@ -259,12 +251,20 @@ namespace artdaq
 		usleep(0); // Give up time slice
 	}
 
-	void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
+	void RequestSender::SendRequest(bool endOfRunOnly)
 	{
 		while (!initialized_) usleep(1000);
 
-		TLOG(TLVL_TRACE) << "Waiting for " << request_delay_ << " microseconds.";
-		std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
+		if (!send_requests_) return;
+		if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
+		request_sending_++;
+		boost::thread request([=] { do_send_request_(); });
+		request.detach();
+	}
+
+	void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
+	{
+		while (!initialized_) usleep(1000);
 
 		{
 			std::lock_guard<std::mutex> lk(request_mutex_);
@@ -273,6 +273,7 @@ namespace artdaq
 				active_requests_[seqID] = timestamp;
 			}
 		}
+		SendRequest();
 	}
 
 	void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)

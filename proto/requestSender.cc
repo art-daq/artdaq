@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
 	for (auto ii = 0; ii < num_requests; ++ii)
 	{
 		sender.AddRequest(seq, ts);
+		sender.SendRequest();
 
 		if (receiver)
 		{
