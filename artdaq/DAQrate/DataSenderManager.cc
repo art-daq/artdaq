@@ -28,6 +28,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, ack_socket_(-1)
 	, table_socket_(-1)
 	, routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
+  , highest_sequence_id_routed_(0)
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
 
@@ -328,7 +329,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 			}
 			else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count()))
 			{
-				if (sequence_id > highest_sequence_id_routed_) highest_sequence_id_routed_ = sent_frag_count_.count();
+			  if (sent_frag_count_.count()) > highest_sequence_id_routed_) highest_sequence_id_routed_ = sent_frag_count_.count();
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 				return routing_table_.at(sent_frag_count_.count());
 			}
