@@ -83,9 +83,15 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 		return false;
 	}
-	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
+	if (fragment_processing_thread_.joinable())
+	{
+		TLOG(TLVL_DEBUG) << "Joining fragment processing thread";
+		fragment_processing_thread_.join();
+	}
 
-	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
+	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
+	int number_of_fragments_sent = -1;
+	if(fragment_receiver_ptr_) number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG) << "do_stop(uint64_t, uint64_t): "
 		<< "Number of fragments sent = " << number_of_fragments_sent
 		<< ".";
