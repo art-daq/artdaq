@@ -177,6 +177,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 artdaq::CommandableFragmentGenerator::~CommandableFragmentGenerator()
 {
 	joinThreads();
+	requestReceiver_.reset(nullptr);
 }
 
 void artdaq::CommandableFragmentGenerator::joinThreads()
@@ -187,7 +188,6 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 	if (dataThread_.joinable()) dataThread_.join();
 	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
 	if (monitoringThread_.joinable()) monitoringThread_.join();
-	requestReceiver_.reset(nullptr);
 	TLOG(TLVL_DEBUG) << "joinThreads complete";
 }
 
