@@ -180,9 +180,13 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 	logMessage_("Stopping run " + boost::lexical_cast<std::string>(run_id_.run()) +
 		" after " + boost::lexical_cast<std::string>(fragment_count_) + " fragments.");
 	stop_requested_.store(true);
-	generator_ptr_->StopCmd(timeout, timestamp);
 
-	sender_ptr_->StopSender();
+	TLOG(TLVL_DEBUG) << "Stopping CommandableFragmentGenerator BEGIN";
+	generator_ptr_->StopCmd(timeout, timestamp);
+	TLOG(TLVL_DEBUG) << "Stopping CommandableFragmentGenerator END";
+
+	TLOG(TLVL_DEBUG) << "Stopping DataSenderManager";
+	if(sender_ptr_) sender_ptr_->StopSender();
 
 	logMessage_("Completed the Stop transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
 	return true;
