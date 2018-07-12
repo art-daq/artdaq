@@ -132,9 +132,15 @@ public:
 
 	/**
 	 * \brief Gets the current size of the Routing Table, in case other parts of the system want to use this information
-	 * \return The current size of the Routing Table. Note that the Routing Table is trimmed after each successful send.
+	 * \return The current size of the Routing Table.
 	 */
 	size_t GetRoutingTableEntryCount() const;
+
+	/**
+	 * \brief Gets the number of sends remaining in the routing table, in case other parts of the system want to use this information
+	 * \return The number of sends remaining in the routing table
+	 */
+	size_t GetRemainingRoutingTableEntries() const;
 
 	/**
 	 * \brief Stop the DataSenderManager, aborting any sends in progress
@@ -183,6 +189,8 @@ private:
 
 	int routing_timeout_ms_;
 	int routing_retry_count_;
+
+	mutable std::atomic<uint64_t> highest_sequence_id_routed_;
 };
 
 inline
