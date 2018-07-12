@@ -551,6 +551,10 @@ std::string artdaq::CommandableFragmentGenerator::printMode_()
 	return "ERROR";
 }
 
+
+//
+// The "useDataThread_" thread
+//
 void artdaq::CommandableFragmentGenerator::getDataLoop()
 {
 	data_thread_running_ = true;
