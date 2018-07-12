@@ -901,11 +901,12 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			frags.back()->setTimestamp(ts);
 			ContainerFragmentLoader cfl(*frags.back());
 
-			if (!windowClosed) cfl.set_missing_data(true);
-			if (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > max)
+			if (!windowClosed || (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min))
 			{
-				TLOG(TLVL_DEBUG) << "Request Window does not match any of the data in the buffer (requestWindowRange=["
-				                 << min << "," << max << "],firstDataTimestamp=" << dataBuffer_.front()->timestamp();
+				TLOG(TLVL_DEBUG) << "Request Window does not match the data in the buffer (requestWindowRange=["
+					<< min << "," << max << "], buffer={" << (dataBuffer_.size() > 0 ? dataBuffer_.front()->timestamp() : 0) << "-"
+					<< (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)
+					<< "}";
 				cfl.set_missing_data(true);
 			}
 
