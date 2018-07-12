@@ -221,8 +221,8 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_TRACE) << "getNext: Done with applyRequests result=" << std::boolalpha << result;
 			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
 			{
-			  TLOG(20) << "getNext: applyRequests() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
-			           << ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
+				TLOG(20) << "getNext: applyRequests() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
+					<< ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
 			}
 
 			if (exception())
@@ -573,7 +573,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
+				"Exception thrown by fragment generator in CommandableFragmentGenerator::getDataLoop; setting exception state to \"true\"");
 			set_exception(true);
 
 			data_thread_running_ = false;
@@ -915,10 +915,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			// If the dataBuffer has size 0, then windowClosed will be false
 			if (!windowClosed || (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min))
 			{
-				TLOG(TLVL_DEBUG) << "Request Window does not match the data in the buffer (requestWindowRange=["
-					<< min << "," << max << "], buffer={" << (dataBuffer_.size() > 0 ? dataBuffer_.front()->timestamp() : 0) << "-"
-					<< (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)
-					<< "}";
+				TLOG(TLVL_DEBUG) << "Request window starts before and/or ends after the current data buffer, setting ContainterFragment's missing_data flag!"
+					<< " (requestWindowRange=[" << min << "," << max << "], "
+					<< "buffer={" << (dataBuffer_.size() > 0 ? dataBuffer_.front()->timestamp() : 0) << "-"
+					<< (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0) << "}";
 				cfl.set_missing_data(true);
 			}
 
