@@ -901,6 +901,18 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			frags.back()->setTimestamp(ts);
 			ContainerFragmentLoader cfl(*frags.back());
 
+			// In the spirit of NOvA's MegaPool: (RS = Request start (min), RE = Request End (max))
+			//  --- | Buffer Start | --- | Buffer End | ---
+			//1. RS RE |           |     |            | 
+			//2. RS |              |  RE |            |   
+			//3. RS |              |     |            | RE
+			//4.    |              | RS RE |          |
+			//5.    |              | RS  |            | RE
+			//6.    |              |     |            | RS RE
+			//
+			// If RE (or RS) is after the end of the buffer, we wait for window_close_timeout_us_. If we're here, then that means that windowClosed is false, and the missing_data flag should be set.
+			// If RS (or RE) is before the start of the buffer, then missing_data should be set to true, as data is assumed to arrive in the buffer in timestamp order
+			// If the dataBuffer has size 0, then windowClosed will be false
 			if (!windowClosed || (dataBuffer_.size() > 0 && dataBuffer_.front()->timestamp() > min))
 			{
 				TLOG(TLVL_DEBUG) << "Request Window does not match the data in the buffer (requestWindowRange=["
