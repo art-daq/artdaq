@@ -298,7 +298,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 	if (use_routing_master_)
 	{
 		auto start = std::chrono::steady_clock::now();
-		while (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_))
+		while (!should_stop_ && (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_)))
 		{
 			std::unique_lock<std::mutex> lck(routing_mutex_);
 			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id))
@@ -316,13 +316,13 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 		if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
 		{
-			TLOG(TLVL_ERROR) << "Bad Omen: I don't have routing information for seqID " << std::to_string(sequence_id)
-				<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!";
+			TLOG(TLVL_WARNING) << "Bad Omen: I don't have routing information for seqID " << sequence_id
+				<< " and the Routing Master did not send a table update in routing_timeout_ms window (" << routing_timeout_ms_ << " ms)!";
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Bad Omen: I don't have routing information for send number " << std::to_string(sent_frag_count_.count())
-				<< " and the Routing Master did not send a table update in routing_timeout (" << std::to_string(routing_timeout_ms_) << ")!";
+			TLOG(TLVL_WARNING) << "Bad Omen: I don't have routing information for send number " << sent_frag_count_.count()
+				<< " and the Routing Master did not send a table update in routing_timeout_ms window (" << routing_timeout_ms_ << " ms)!";
 		}
 	}
 	else
@@ -397,7 +397,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				sts = destinations_[dest]->copyFragment(frag, send_timeout_us_);
 				if (sts != TransferInterface::CopyStatus::kSuccess && TimeUtils::GetElapsedTime(lastWarnTime) >= 1)
 				{
-					TLOG(TLVL_ERROR) << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
+					TLOG(TLVL_WARNING) << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
 					lastWarnTime = std::chrono::steady_clock::now();
 				}
 			}
@@ -407,21 +407,19 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		}
 		else
 		{
-			TLOG(TLVL_WARNING) << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID;
+			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID;
 		}
 	}
 	else
 	{
-		auto count = routing_retry_count_;
-		while (dest == TransferInterface::RECV_TIMEOUT && count > 0)
+		auto start = std::chrono::steady_clock::now();
+		while (!should_stop_ && dest == TransferInterface::RECV_TIMEOUT)
 		{
 			dest = calcDest_(seqID);
 			if (dest == TransferInterface::RECV_TIMEOUT)
 			{
-				count--;
-				TLOG(TLVL_WARNING) << "Could not get destination for seqID "
-					<< std::to_string(seqID) << ", send number " << sent_frag_count_.count()
-					<< (count > 0 ? ", retrying." : ".");
+				TLOG(TLVL_WARNING) << "Could not get destination for seqID " << seqID << ", send number " << sent_frag_count_.count() << ", retrying. Waited " << TimeUtils::GetElapsedTime(start) << " s for routing information.";
+				usleep(10000);
 			}
 		}
 		if (dest != TransferInterface::RECV_TIMEOUT && destinations_.count(dest) && enabled_destinations_.count(dest))
@@ -439,7 +437,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			outsts = sts;
 		}
 		else
-			TLOG(TLVL_WARNING) << "calcDest returned invalid destination rank " << dest
+			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest
 			<< "! This event has been lost: " << seqID;
 	}
 	if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
