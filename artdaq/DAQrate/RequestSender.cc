@@ -150,7 +150,7 @@ namespace artdaq
 			int retry = 5;
 			while (retry > 0 && token_socket_ < 0)
 			{
-				token_socket_ = TCPConnect(token_address_.c_str(), token_port_);
+				token_socket_ = TCPConnect(token_address_.c_str(), token_port_, 0, sizeof(detail::RoutingToken));
 				if (token_socket_ < 0) usleep(100000);
 				retry--;
 			}
@@ -239,7 +239,10 @@ namespace artdaq
 			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
 			if (res == -1)
 			{
-				usleep(1000);
+				close(token_socket_);
+				token_socket_ = -1;
+				sts = 0;
+				setup_tokens_();
 				continue;
 			}
 			sts += res;
