@@ -49,6 +49,9 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 	}
 
 	hostMap_t host_map = MakeHostMap(pset);
+	size_t tcp_receive_buffer_size = pset.get<size_t>("tcp_receive_buffer_size", 0);
+	size_t max_fragment_size_words = pset.get<size_t>("max_fragment_size_words", 0);
+
 	auto srcs = pset.get<fhicl::ParameterSet>("sources", fhicl::ParameterSet());
 	for (auto& s : srcs.get_pset_names())
 	{
@@ -62,6 +65,16 @@ artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset
 		auto src_pset = srcs.get<fhicl::ParameterSet>(s);
 		src_pset.erase("host_map");
 		src_pset.put<std::vector<fhicl::ParameterSet>>("host_map", host_map_pset);
+
+		if (tcp_receive_buffer_size != 0 && !src_pset.has_key("tcp_receive_buffer_size"))
+		{
+			src_pset.put<size_t>("tcp_receive_buffer_size", tcp_receive_buffer_size);
+		}
+		if (max_fragment_size_words != 0 && !src_pset.has_key("max_fragment_size_words"))
+		{
+			src_pset.put<size_t>("max_fragment_size_words", max_fragment_size_words);
+		}
+
 		srcs_mod.put<fhicl::ParameterSet>(s, src_pset);
 	}
 

@@ -46,6 +46,8 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 
 
 	hostMap_t host_map = MakeHostMap(pset);
+	size_t tcp_send_buffer_size = pset.get<size_t>("tcp_send_buffer_size", 0);
+	size_t max_fragment_size_words = pset.get<size_t>("max_fragment_size_words", 0);
 
 	auto dests = pset.get<fhicl::ParameterSet>("destinations", fhicl::ParameterSet());
 	for (auto& d : dests.get_pset_names())
@@ -60,6 +62,16 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 		auto dest_pset = dests.get<fhicl::ParameterSet>(d);
 		dest_pset.erase("host_map");
 		dest_pset.put<std::vector<fhicl::ParameterSet>>("host_map", host_map_pset);
+
+		if (tcp_send_buffer_size != 0 && !dest_pset.has_key("tcp_send_buffer_size"))
+		{
+			dest_pset.put<size_t>("tcp_send_buffer_size", tcp_send_buffer_size);
+		}
+		if (max_fragment_size_words != 0 && !dest_pset.has_key("max_fragment_size_words"))
+		{
+			dest_pset.put<size_t>("max_fragment_size_words", max_fragment_size_words);
+		}
+
 		dests_mod.put<fhicl::ParameterSet>(d, dest_pset);
 	}
 
