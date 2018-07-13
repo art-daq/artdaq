@@ -358,14 +358,14 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	timeout_ = timeout;
 	timestamp_ = timestamp;
 	ev_counter_.store(1);
+    windows_sent_ooo_.clear();
+	dataBuffer_.clear();
 	should_stop_.store(false);
 	force_stop_.store(false);
 	exception_.store(false);
 	run_number_ = run;
 	subrun_number_ = 1;
 	latest_exception_report_ = "none";
-	dataBuffer_.clear();
-	windows_sent_ooo_.clear();
 
 	start();
 
@@ -419,9 +419,10 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 
 	subrun_number_ += 1;
 	should_stop_ = false;
-
+    {
+        std::unique_lock<std::mutex> lk(dataBufferMutex_);
 	dataBuffer_.clear();
-
+    }
 	// no lock required: thread not started yet
 	resume();
 
