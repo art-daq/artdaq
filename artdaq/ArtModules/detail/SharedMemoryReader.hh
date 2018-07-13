@@ -199,7 +199,11 @@ namespace artdaq
 				//      should stop.
 				// In any case, if we time out, we emit an informational message.
 
-				if (shutdownMsgReceived) return false;
+				if (shutdownMsgReceived) 
+				  {
+					TLOG_INFO("SharedMemoryReader") << "Shutdown Message received, returning false (should exit art)";
+					return false;
+				  }
 
 			start:
 				bool keep_looping = true;
@@ -208,6 +212,7 @@ namespace artdaq
 				if (sleepTimeUsec > 100000) sleepTimeUsec = 100000; // Don't wait longer than 1/10th of a second
 				while (keep_looping)
 				{
+				  TLOG_TRACE("SharedMemoryReader") << "ReadyForRead loops BEGIN";
 					keep_looping = false;
 					auto start_time = std::chrono::steady_clock::now();
 					while (!got_event && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 1000)
@@ -215,6 +220,7 @@ namespace artdaq
 						// BURN CPU for 1 ms!
 						got_event = incoming_events->ReadyForRead();
 					}
+					TLOG_TRACE("SharedMemoryReader") << "ReadyForRead spin end, poll begin";
 					while (!got_event && TimeUtils::GetElapsedTime(start_time) < waiting_time)
 					{
 						got_event = incoming_events->ReadyForRead();
@@ -224,6 +230,7 @@ namespace artdaq
 							//TLOG_INFO("SharedMemoryReader") << "Waited " << TimeUtils::GetElapsedTime(start_time) << " of " << waiting_time ;
 						}
 					}
+					TLOG_TRACE("SharedMemoryReader") << "ReadyForRead loops END";
 					if (!got_event)
 					{
 						TLOG_INFO("SharedMemoryReader")
