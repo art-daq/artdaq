@@ -1042,9 +1042,9 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	metric_data_.event_count += counter;
 	metric_data_.event_size += eventSize;
 
-	TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
 	if (metricMan && TimeUtils::GetElapsedTimeMilliseconds(last_shmem_buffer_metric_update_) > 500) // Limit to 2 Hz updates
 	{
+			TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
 			metricMan->sendMetric("Event Rate", metric_data_.event_count, "Events/s", 1, MetricMode::Rate);
 			if (metric_data_.event_count > 0)		metricMan->sendMetric("Average Event Size", metric_data_.event_size / metric_data_.event_count, "Bytes", 1, MetricMode::Average);
 			metric_data_ = MetricData();
@@ -1057,6 +1057,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			auto full = ReadReadyCount();
 			auto empty = WriteReadyCount(overwrite_mode_);
 			auto total = size();
+			TLOG(TLVL_DEBUG) << "Buffer usage: full=" << full << ", empty=" << empty << ", total=" << total;
 
 			metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
