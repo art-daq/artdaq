@@ -149,7 +149,9 @@ protected:
 	bool verbose_; ///< Whether to log transition messages
 	
 	MetricManager metricMan_; ///< MetricManager concrete instance (for Globals.hh::metricMan)
-	
+
+	fhicl::ParameterSet art_pset_;
+
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag
 	 * \param text Message to log

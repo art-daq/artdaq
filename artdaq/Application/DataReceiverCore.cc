@@ -47,14 +47,14 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 						 "Error loading metrics in DataReceiverCore::initialize()");
 	}
 
-	fhicl::ParameterSet art_pset = pset;
-	if(art_pset.has_key("art"))
+	art_pset_ = pset;
+	if(art_pset_.has_key("art"))
 	{
-		art_pset = art_pset.get<fhicl::ParameterSet>("art");
+		art_pset_ = art_pset_.get<fhicl::ParameterSet>("art");
 	}
 	else
 	{
-		art_pset.erase("daq");
+		art_pset_.erase("daq");
 	}
 
 	fhicl::ParameterSet data_tmp = data_pset;
@@ -76,7 +76,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		exit(1);
 	}
 
-	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, art_pset));
+	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, art_pset_));
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
 
@@ -86,6 +86,12 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 bool artdaq::DataReceiverCore::start(art::RunID id)
 {
 	logMessage_("Starting run " + boost::lexical_cast<std::string>(id.run()));
+
+        // 13-Jul-2018, KAB: this call is simply a test of resetting the art_pset at
+        // begin-run time.  It will be updated as we add more logic to build up the
+        // art_pset dynamically.
+	event_store_ptr_->UpdateArtConfiguration(art_pset_);
+
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 	run_is_paused_.store(false);
