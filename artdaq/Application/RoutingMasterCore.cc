@@ -288,7 +288,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 			}
 			else
 			{
-				TLOG(TLVL_WARNING) << "No tokens received in this update interval! This is most likely a Very Bad Thing!" ;
+			  TLOG(TLVL_WARNING) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!" ;
 			}
 			auto max_tokens = policy_->GetMaxNumberOfTokens();
 			if (max_tokens > 0)
@@ -560,48 +560,64 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			}
 			else
 			{
-				if (receive_token_events_[n].events & (EPOLLRDHUP | EPOLLERR | EPOLLHUP))
+			  /*if (receive_token_events_[n].events & (EPOLLRDHUP | EPOLLERR | EPOLLHUP))
 				{
 					TLOG(TLVL_DEBUG) << "Closing connection on fd " << receive_token_events_[n].data.fd << " (" << receive_token_addrs_[receive_token_events_[n].data.fd] << ")";
 					receive_token_addrs_.erase(receive_token_events_[n].data.fd);
 					close(receive_token_events_[n].data.fd);
 					epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, NULL);
 					continue;
-				}
+					}*/
 
 				auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
-				detail::RoutingToken buff;
-				auto sts = read(receive_token_events_[n].data.fd, &buff, sizeof(detail::RoutingToken));
-				if (sts == 0)
-				{
-					TLOG(TLVL_INFO) << "Received 0-size token from " << receive_token_addrs_[receive_token_events_[n].data.fd];
-				}
-				else if (sts != sizeof(detail::RoutingToken) || buff.header != TOKEN_MAGIC)
-				{
-					TLOG(TLVL_ERROR) << "Received invalid token from " << receive_token_addrs_[receive_token_events_[n].data.fd] << " sts=" << sts;
-				}
-				else
-				{
-					TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free." ;
-					received_token_count_ += buff.new_slots_free;
-					if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
-					{
-						policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
-					}
-					else if (routing_mode_ == detail::RoutingMasterMode::RouteBySendCount)
-					{
-						if (!received_token_counter_.count(buff.rank)) received_token_counter_[buff.rank] = 0;
-						received_token_counter_[buff.rank] += buff.new_slots_free;
-						TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size() << "." ;
-						while (received_token_counter_[buff.rank] >= sender_ranks_.size())
-						{
-							TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size()
-								<< "... Sending token to policy" ;
-							policy_->AddReceiverToken(buff.rank, 1);
-							received_token_counter_[buff.rank] -= sender_ranks_.size();
-						}
-					}
-				}
+				bool reading = true;
+				int sts = 0;
+				while(reading)
+				  {
+					detail::RoutingToken buff;
+					sts += read(receive_token_events_[n].data.fd, &buff, sizeof(detail::RoutingToken) - sts);
+					if (sts == 0)
+					  {
+						TLOG(TLVL_INFO) << "Received 0-size token from " << receive_token_addrs_[receive_token_events_[n].data.fd];
+						reading = false;
+					  }
+					else if(sts < 0)
+					  {
+						TLOG(TLVL_ERROR) << "Error reading from token socket: sts=" << sts << ", errno=" << errno;
+						receive_token_addrs_.erase(receive_token_events_[n].data.fd);
+						close(receive_token_events_[n].data.fd);
+						epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, NULL);
+						reading = false;
+					  }
+					else if (sts == sizeof(detail::RoutingToken) && buff.header != TOKEN_MAGIC)
+					  {
+						TLOG(TLVL_ERROR) << "Received invalid token from " << receive_token_addrs_[receive_token_events_[n].data.fd] << " sts=" << sts;
+						reading = false;
+					  }
+					else if(sts == sizeof(detail::RoutingToken))
+					  {
+						sts = 0;
+						TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free." ;
+						received_token_count_ += buff.new_slots_free;
+						if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
+						  {
+							policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
+						  }
+						else if (routing_mode_ == detail::RoutingMasterMode::RouteBySendCount)
+						  {
+							if (!received_token_counter_.count(buff.rank)) received_token_counter_[buff.rank] = 0;
+							received_token_counter_[buff.rank] += buff.new_slots_free;
+							TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size() << "." ;
+							while (received_token_counter_[buff.rank] >= sender_ranks_.size())
+							  {
+								TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size()
+												 << "... Sending token to policy" ;
+								policy_->AddReceiverToken(buff.rank, 1);
+								received_token_counter_[buff.rank] -= sender_ranks_.size();
+							  }
+						  }
+					  }
+				  }
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
 
