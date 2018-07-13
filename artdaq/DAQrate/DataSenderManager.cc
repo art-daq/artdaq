@@ -79,7 +79,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	{
 		try
 		{
-			auto transfer = MakeTransferPlugin(dests, d, TransferInterface::Role::kSend);
+			auto transfer = MakeTransferPlugin(dests_mod, d, TransferInterface::Role::kSend);
 			auto destination_rank = transfer->destination_rank();
 			destinations_.emplace(destination_rank, std::move(transfer));
 			destination_metric_data_[destination_rank] = std::pair<size_t, double>();
