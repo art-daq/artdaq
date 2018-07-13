@@ -1054,13 +1054,18 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			metricMan->sendMetric("Events Released to art this subrun", subrun_event_count_, "Events", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Incomplete Events Released to art this subrun", subrun_incomplete_event_count_, "Events", 2, MetricMode::LastPoint);
 
-			auto full = ReadReadyCount();
-			auto empty = WriteReadyCount(overwrite_mode_);
+			auto bufferReport = GetBufferReport();
+			int full = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) {return p.second == BufferSemaphoreFlags::Full; });
+			int empty = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) {return p.second == BufferSemaphoreFlags::Empty; });
+			int writing = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) {return p.second == BufferSemaphoreFlags::Writing; });
+			int reading = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) {return p.second == BufferSemaphoreFlags::Reading; });
 			auto total = size();
-			TLOG(TLVL_DEBUG) << "Buffer usage: full=" << full << ", empty=" << empty << ", total=" << total;
+			TLOG(TLVL_DEBUG) << "Buffer usage: full=" << full << ", empty=" << empty << ", writing=" << writing << ", reading=" << reading << ", total=" << total;
 
 			metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
+			metricMan->sendMetric("Shared Memory Pending Buffers", writing, "buffers", 2, MetricMode::LastPoint);
+			metricMan->sendMetric("Shared Memory Reading Buffers", reading, "buffers", 2, MetricMode::LastPoint);
             if(total > 0) 
             {
 			    metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
