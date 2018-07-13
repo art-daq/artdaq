@@ -883,11 +883,6 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 	{
 		TLOG(TLVL_DEBUG) << "complete_buffer_: This fragment completes event " << hdr->sequence_id << ".";
 
-		if (requests_)
-		{
-			requests_->RemoveRequest(hdr->sequence_id);
-			requests_->SendRoutingToken(1);
-		}
 		{
 		        TLOG(TLVL_BUFFER) << "complete_buffer_ moving " << buffer << " from active to pending.";
 
@@ -902,6 +897,11 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 					  << WriteReadyCount(false) << ","
 					  << pending_buffers_.size() << ","
 					  << active_buffers_.size() << ")";
+		}
+		if (requests_)
+		{
+			requests_->RemoveRequest(hdr->sequence_id);
+			requests_->SendRoutingToken(1);
 		}
 	}
 	check_pending_buffers_();
