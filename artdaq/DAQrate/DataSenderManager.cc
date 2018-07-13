@@ -75,7 +75,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 		dests_mod.put<fhicl::ParameterSet>(d, dest_pset);
 	}
 
-	for (auto& d : dests.get_pset_names())
+	for (auto& d : dests_mod.get_pset_names())
 	{
 		try
 		{
