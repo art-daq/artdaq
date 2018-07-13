@@ -28,7 +28,8 @@ struct MessHead
 		data_more_v0,
 		stop_v0,
 		routing_v0,
-		ack_v0
+		ack_v0,
+		header_v0
 	};
 
 	MessType message_type; ///< Message Type

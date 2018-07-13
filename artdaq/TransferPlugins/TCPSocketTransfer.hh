@@ -142,9 +142,9 @@ private:
 private: // methods
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
 
-	CopyStatus sendData_(const void* buf, size_t bytes, size_t tmo);
+	CopyStatus sendData_(const void* buf, size_t bytes, size_t tmo, bool isHeader = false);
 
-	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo);
+	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo, bool isHeader = false);
 	
 #if USE_ACKS
 	void receive_acks_();

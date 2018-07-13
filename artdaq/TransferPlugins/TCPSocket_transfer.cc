@@ -256,7 +256,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				timeout_ms = ((timeout_usec - delta_us) + 999) / 1000; // want at least 1 ms
 			}
 		}
-		if (loop_guard > 10) {usleep(1000);}
+		if (loop_guard > 10) { usleep(1000); }
 		if (++loop_guard > 10010)
 		{
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: loop guard triggered, returning RECV_TIMEOUT";
@@ -291,7 +291,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			sts = read(active_receive_fd_, buff, byte_cnt);
 			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Done with read";
 		}
-		if (sts > 0) {loop_guard = 0;}
+		if (sts > 0) { loop_guard = 0; }
 
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state) << " read=" << sts;
 		if (sts < 0)
@@ -326,11 +326,16 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 					mh.source_id = ntohs(mh.source_id);
 					target_bytes = mh.byte_count;
 					TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Expected header size = " << target_bytes << ", sizeof(RawFragmentHeader) = " << sizeof(artdaq::detail::RawFragmentHeader);
-					assert(target_bytes == sizeof(artdaq::detail::RawFragmentHeader) || target_bytes == 0);
+					//assert(target_bytes == sizeof(artdaq::detail::RawFragmentHeader) || target_bytes == 0);
 
 					if (mh.message_type == MessHead::stop_v0)
 					{
 						active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_, "Stop Message received.");
+					}
+					else if (mh.message_type == MessHead::data_v0 || mh.message_type == MessHead::data_more_v0)
+					{
+						TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Message header indicates that Fragment data follows when I was expecting a Fragment header!";
+						active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_, "Desync detected");
 					}
 
 					if (target_bytes == 0)
@@ -399,7 +404,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		TLOG(9) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
 		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polled fd to see if there's data"
-				 << ", num_fds_ready = " << num_fds_ready;
+			<< ", num_fds_ready = " << num_fds_ready;
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0)
@@ -456,15 +461,15 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 
 		if (sts == 0)
 		{
-		  if (loop_guard > 10) {usleep(1000);}
-		  if (++loop_guard > 10010)
-		  {
-		    TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: loop guard triggered, returning RECV_TIMEOUT";
-		    active_receive_fd_ = -1;
-		    return RECV_TIMEOUT;
-		  }
+			if (loop_guard > 10) { usleep(1000); }
+			if (++loop_guard > 10010)
+			{
+				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: loop guard triggered, returning RECV_TIMEOUT";
+				active_receive_fd_ = -1;
+				return RECV_TIMEOUT;
+			}
 		}
-		else {loop_guard = 0;}
+		else { loop_guard = 0; }
 
 		if (sts < 0)
 		{
@@ -498,7 +503,14 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					mh.byte_count = ntohl(mh.byte_count);
 					mh.source_id = ntohs(mh.source_id);
 					target_bytes = mh.byte_count;
+
+
+					if (mh.message_type == MessHead::header_v0)
+					{
+						TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: Message header indicates that a Fragment header follows when I was expecting Fragment data!";
+						active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_, "Desync detected");
 				}
+			}
 				else
 				{
 					ret_rank = source_rank();
@@ -512,7 +524,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					done = true; // no more polls
 					//break; // no more read of ready fds
 				}
-			}
+				}
 		}
 
 		// Check if we were asked to do a 0-size receive
@@ -569,13 +581,13 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	iovec iov = { reinterpret_cast<void*>(grab_ownership_frag.headerAddress()),
 		detail::RawFragmentHeader::num_words() * sizeof(RawDataType) };
 
-	auto sts = sendData_(&iov, 1, send_retry_timeout_us_);
+	auto sts = sendData_(&iov, 1, send_retry_timeout_us_, true);
 	auto start_time = std::chrono::steady_clock::now();
 	//If it takes more than 10 seconds to write a Fragment header, give up
 	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
 		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
-		sts = sendData_(&iov, 1, send_retry_timeout_us_);
+		sts = sendData_(&iov, 1, send_retry_timeout_us_, true);
 		usleep(1000);
 	}
 	if (sts != CopyStatus::kSuccess) return sts;
@@ -583,7 +595,8 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	// Send Fragment Data
 
 	iov = { reinterpret_cast<void*>(grab_ownership_frag.headerAddress() + detail::RawFragmentHeader::num_words()),
-		grab_ownership_frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType) };
+		grab_ownership_frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType)
+};
 	sts = sendData_(&iov, 1, send_retry_timeout_us_);
 	start_time = std::chrono::steady_clock::now();
 	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
@@ -601,14 +614,14 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	return sts;
 }
 
-artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const void* buf, size_t bytes, size_t send_timeout_usec)
+artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const void* buf, size_t bytes, size_t send_timeout_usec, bool isHeader)
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": sendData_ Converting buf to iovec";
 	iovec iov = { (void*)buf, bytes };
 	return sendData_(&iov, 1, send_timeout_usec);
 }
 
-artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const struct iovec* iov, int iovcnt, size_t send_timeout_usec)
+artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const struct iovec* iov, int iovcnt, size_t send_timeout_usec, bool isHeader)
 {
 	// check all connected??? -- currently just check fd!=-1
 	if (send_fd_ == -1)
@@ -634,7 +647,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		total_to_write_bytes += iov[ii].iov_len;
 	}
 	//TLOG(TLVL_DEBUG) << GetTraceName() << ": sendData_: Constructing Message Header" ;
-	MessHead mh = { 0,MessHead::data_v0,htons(source_rank()),{htonl(total_to_write_bytes)} };
+	MessHead mh = { 0,isHeader ? MessHead::header_v0 : MessHead::data_v0,htons(source_rank()),{htonl(total_to_write_bytes)} };
 	iov_in[0].iov_base = &mh;
 	iov_in[0].iov_len = sizeof(mh);
 	total_to_write_bytes += sizeof(mh);
@@ -833,8 +846,8 @@ void artdaq::TCPSocketTransfer::connect_()
 			exit(5);
 		}
 #endif
+		}
 	}
-}
 
 void artdaq::TCPSocketTransfer::reconnect_()
 {
@@ -923,11 +936,11 @@ void artdaq::TCPSocketTransfer::receive_acks_()
 		{
 			TLOG(TLVL_ERROR) << GetTraceName() << ": receive_ack_: Wrong magic bytes in header!";
 			continue;
-		}
+	}
 
 		TLOG(17) << GetTraceName() << ": receive_acks_: Received ack message, diff is now " << (send_ack_diff_.load() - 1);
 		send_ack_diff_--;
-	}
+}
 }
 
 void artdaq::TCPSocketTransfer::send_ack_(int fd)
