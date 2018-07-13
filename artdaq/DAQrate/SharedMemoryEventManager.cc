@@ -939,15 +939,15 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 	{
 		TLOG(TLVL_DEBUG) << "complete_buffer_: This fragment completes event " << hdr->sequence_id << ".";
 
-		if (requests_)
-		{
-			requests_->RemoveRequest(hdr->sequence_id);
-			requests_->SendRoutingToken(1);
-		}
 		{
 			std::unique_lock<std::mutex> lk(sequence_id_mutex_);
 			active_buffers_.erase(buffer);
 			pending_buffers_.insert(buffer);
+		}
+		if (requests_)
+		{
+			requests_->RemoveRequest(hdr->sequence_id);
+			requests_->SendRoutingToken(1);
 		}
 	}
 	check_pending_buffers_();
