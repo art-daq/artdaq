@@ -141,6 +141,7 @@ receiveMessage(TBufferFile*& msg)
 		TLOG(TLVL_TRACE) << "receiveMessage: Getting Fragment types" ;
 		auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
 		if (errflag) { // Buffer was changed out from under reader!
+			incoming_events_->ReleaseBuffer();
 			msg = nullptr;
 			return;
 		}
@@ -260,12 +261,14 @@ receiveInitMessage(TBufferFile*& msg)
 			incoming_events_->ReadHeader(errflag);
 			if (errflag) { // Buffer was changed out from under reader!
 				TLOG(TLVL_ERROR) << "receiveInitMessage: Error receiving message!" ;
+				incoming_events_->ReleaseBuffer();
 				msg = nullptr;
 				return;
 			}
 			TLOG(TLVL_TRACE) << "receiveInitMessage: Getting Fragment types" ;
 			auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
 			if (errflag) { // Buffer was changed out from under reader!
+				incoming_events_->ReleaseBuffer();
 				msg = nullptr;
 				TLOG(TLVL_ERROR) << "receiveInitMessage: Error receiving message!" ;
 				return;
@@ -306,6 +309,8 @@ receiveInitMessage(TBufferFile*& msg)
 		*/
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(),
 			artdaq::fragmentSequenceIDCompare);
+
+		incoming_events_->ReleaseBuffer();
 	}
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage: Returning top Fragment" ;
