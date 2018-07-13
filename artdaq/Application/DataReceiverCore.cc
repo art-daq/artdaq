@@ -46,8 +46,6 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 						 "Error loading metrics in DataReceiverCore::initialize()");
 	}
 
-	fhicl::ParameterSet rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
-
 	fhicl::ParameterSet art_pset = pset;
 	if(art_pset.has_key("art"))
 	{
@@ -58,28 +56,8 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		art_pset.erase("daq");
 	}
 
-	if (art_pset.has_key("services"))
-	{
-		fhicl::ParameterSet art_services_pset = art_pset.get<fhicl::ParameterSet>("services");
-
-		auto names = art_services_pset.get_pset_names();
-		for (size_t ii = 0; ii < names.size(); ++ii)
-		{
-			auto key = names[ii];
-			if (art_services_pset.get<fhicl::ParameterSet>(key).get<std::string>("service_provider") == "NetMonTransportService")
-			{
-				fhicl::ParameterSet netMon_pset = art_services_pset.get<fhicl::ParameterSet>(key);
-				netMon_pset.put("routing_token_config", rmConfig);
-				art_services_pset.erase(key);
-				art_services_pset.put(key, netMon_pset);
-			}
-		}
-	}
-
-
 	fhicl::ParameterSet art_source_pset = art_pset.get<fhicl::ParameterSet>("source");
 	art_source_pset.put<fhicl::ParameterSet>("metrics", metric_pset);
-	art_source_pset.put<fhicl::ParameterSet>("routing_token_config", rmConfig);
 	art_pset.erase("source");
 	art_pset.put<fhicl::ParameterSet>("source", art_source_pset);
 

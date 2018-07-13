@@ -27,6 +27,20 @@ namespace artdaq
 	class RequestSender
 	{
 	public:
+		/// <summary>
+		/// Configuration for Routing token sending
+		/// 
+		/// This configuration should be the same for all processes sending routing tokens to a given RoutingMaster.
+		/// </summary>
+		struct RoutingTokenConfig
+		{
+			/// "use_routing_master" (Default: false) : Whether to send tokens to a RoutingMaster
+			fhicl::Atom<bool> use_routing_master{ fhicl::Name{ "use_routing_master" }, fhicl::Comment{ "True if using the Routing Master" }, false };
+			/// "routing_token_port" (Default: 35555) : Port to send tokens on
+			fhicl::Atom<int> routing_token_port{ fhicl::Name{ "routing_token_port" },fhicl::Comment{ "Port to send tokens on" },35555 };
+			/// "routing_master_hostname" (Default: "localhost") : Hostname or IP of RoutingMaster
+			fhicl::Atom<std::string> routing_token_host{ fhicl::Name{ "routing_master_hostname" }, fhicl::Comment{ "Hostname or IP of RoutingMaster" },"localhost" };
+		};
 
 		/// <summary>
 		/// Configuration of the RequestSender. May be used for parameter validation
@@ -45,6 +59,7 @@ namespace artdaq
 			fhicl::Atom<std::string> output_address{ fhicl::Name{ "multicast_interface_ip"}, fhicl::Comment{"Use this hostname for multicast output(to assign to the proper NIC)" }, "0.0.0.0" };
 			/// "request_address" (Default: "227.128.12.26"): Multicast address to send DataRequests to
 			fhicl::Atom<std::string> request_address{ fhicl::Name{"request_address"}, fhicl::Comment{ "Multicast address to send DataRequests to" }, "227.128.12.26" };
+			fhicl::Table<RoutingTokenConfig> routing_token_config{ fhicl::Name{"routing_token_config"}, fhicl::Comment{"FHiCL table containing RoutingToken configuration"} }; ///< Configuration for sending RoutingTokens. See artdaq::RequestSender::RoutingTokenConfig
 		};
 		using Parameters = fhicl::WrappedTable<Config>;
 
@@ -106,6 +121,11 @@ namespace artdaq
 		 */
 		void RemoveRequest(Fragment::sequence_id_t seqID);
 
+		/**
+		 * \brief Send a RoutingToken message indicating that slots are available
+		 * \param nSlots Number of slots available
+		 */
+		void SendRoutingToken(int nSlots);
 	private:
 
 		// Request stuff
@@ -122,12 +142,21 @@ namespace artdaq
 		struct sockaddr_in request_addr_;
 		std::string multicast_out_addr_;
 		detail::RequestMessageMode request_mode_;
+
+		bool send_routing_tokens_;
+		int token_port_;
+		int token_socket_;
+		std::string token_address_;
 		std::atomic<int> request_sending_;
 
 	private:
 		void setup_requests_();
 
 		void do_send_request_();
+
+		void setup_tokens_();
+
+		void send_routing_token_(int nSlots);
 	};
 }
 #endif /* artdaq_DAQrate_RequestSender_hh */

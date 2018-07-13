@@ -4,7 +4,6 @@
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Utilities/TraceLock.hh"
-#include "artdaq/DAQrate/TokenSender.hh"
 #include <sys/wait.h>
 
 std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
@@ -688,10 +687,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	subrun_rollover_event_ = Fragment::InvalidSequenceID;
 	last_released_event_ = 0;
 	requests_.reset(new RequestSender(data_pset_));
-
-	TokenSender ts(data_pset_);
-	ts.SendRoutingToken(queue_size_);
-
+	if (requests_) requests_->SendRoutingToken(queue_size_);
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
 		<< ", max queue size = "
 		<< queue_size_
@@ -951,6 +947,7 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 		if (requests_)
 		{
 			requests_->RemoveRequest(hdr->sequence_id);
+			requests_->SendRoutingToken(1);
 		}
 	}
 	check_pending_buffers_();
@@ -976,6 +973,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				if (requests_)
 				{
 					requests_->RemoveRequest(hdr->sequence_id);
+					requests_->SendRoutingToken(1);
 				}
 				active_buffers_.erase(buf);
 				pending_buffers_.insert(buf);

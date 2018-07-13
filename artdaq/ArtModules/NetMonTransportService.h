@@ -5,7 +5,6 @@
 
 #include "artdaq/ArtModules/NetMonTransportServiceInterface.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/DAQrate/TokenSender.hh"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 
 // ----------------------------------------------------------------------
@@ -94,7 +93,6 @@ private:
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;
 	std::unique_ptr<std::vector<artdaq::Fragment>> recvd_fragments_;
-	std::unique_ptr<artdaq::TokenSender> token_sender_;
 
 	void setupEventReceiver_();
 };
