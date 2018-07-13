@@ -618,7 +618,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": sendData_ Converting buf to iovec";
 	iovec iov = { (void*)buf, bytes };
-	return sendData_(&iov, 1, send_timeout_usec);
+	return sendData_(&iov, 1, send_timeout_usec, isHeader);
 }
 
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const struct iovec* iov, int iovcnt, size_t send_timeout_usec, bool isHeader)
