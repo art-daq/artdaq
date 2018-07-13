@@ -534,12 +534,13 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_ps
 
 bool artdaq::SharedMemoryEventManager::endOfData()
 {
+	running_ = false;
 	init_fragment_.reset(nullptr);
-	TLOG(TLVL_TRACE) << "SharedMemoryEventManager::endOfData";
+	TLOG(TLVL_DEBUG) << "SharedMemoryEventManager::endOfData";
 	restart_art_ = false;
 
 	size_t initialStoreSize = GetIncompleteEventCount();
-	TLOG(TLVL_TRACE) << "endOfData: Flushing " << initialStoreSize
+	TLOG(TLVL_DEBUG) << "endOfData: Flushing " << initialStoreSize
 		<< " stale events from the SharedMemoryEventManager.";
 	int counter = initialStoreSize;
 	while (active_buffers_.size() > 0 && counter > 0)
@@ -547,11 +548,11 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		complete_buffer_(*active_buffers_.begin());
 		counter--;
 	}
-	TLOG(TLVL_TRACE) << "endOfData: Done flushing, there are now " << GetIncompleteEventCount()
+	TLOG(TLVL_DEBUG) << "endOfData: Done flushing, there are now " << GetIncompleteEventCount()
 		<< " stale events in the SharedMemoryEventManager.";
 
 
-	TLOG(TLVL_TRACE) << "Waiting for " << (ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_))) << " outstanding buffers...";
+	TLOG(TLVL_DEBUG) << "Waiting for " << (ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_))) << " outstanding buffers...";
 	auto start = std::chrono::steady_clock::now();
 	auto lastReadCount = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
 	auto end_of_data_wait_us = art_event_processing_time_us_ * size();
@@ -568,14 +569,15 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		}
 		if (lastReadCount > 0) usleep(art_event_processing_time_us_);
 	}
-	TLOG(TLVL_TRACE) << "endOfData: After wait for outstanding buffers. Still outstanding: " << lastReadCount << ", time waited: " << TimeUtils::GetElapsedTime(start) << " s / " << (end_of_data_wait_us / 1000000.0) << " s, art process count: " << art_processes_.size();
+	TLOG(TLVL_TRACE) << "endOfData: After wait for outstanding buffers. Still outstanding: " << lastReadCount << ", time waited: "
+                         << TimeUtils::GetElapsedTime(start) << " s / " << (end_of_data_wait_us / 1000000.0) << " s, art process count: " << art_processes_.size();
 
-	TLOG(TLVL_TRACE) << "endOfData: Broadcasting EndOfData Fragment";
+	TLOG(TLVL_DEBUG) << "endOfData: Broadcasting EndOfData Fragment";
 	FragmentPtr outFrag = Fragment::eodFrag(GetBufferCount());
 	bool success = broadcastFragment_(std::move(outFrag), outFrag);
 	if (!success)
 	{
-		TLOG(TLVL_TRACE) << "endOfData: Clearing buffers to make room for EndOfData Fragment";
+		TLOG(TLVL_DEBUG) << "endOfData: Clearing buffers to make room for EndOfData Fragment";
 		for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
 		{
 			broadcasts_.MarkBufferEmpty(ii, true);
@@ -606,11 +608,11 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		TLOG(TLVL_DEBUG) << "There are " << std::to_string(art_processes_.size()) << " art processes remaining. Proceeding to shutdown.";
 		ShutdownArtProcesses(art_processes_);
 	}
-	TLOG(TLVL_INFO) << "It took " << TimeUtils::GetElapsedTime(endOfDataProcessingStart) << " s for all art processes to close after sending EndOfData Fragment";
+	TLOG(TLVL_DEBUG) << "It took " << TimeUtils::GetElapsedTime(endOfDataProcessingStart) << " s for all art processes to close after sending EndOfData Fragment";
 
 	ResetAttachedCount();
 
-	TLOG(TLVL_TRACE) << "endOfData: Clearing buffers";
+	TLOG(TLVL_DEBUG) << "endOfData: Clearing buffers";
 	for (size_t ii = 0; ii < size(); ++ii)
 	{
 		MarkBufferEmpty(ii, true);
@@ -622,12 +624,11 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	}
 	released_incomplete_events_.clear();
 
-	TLOG(TLVL_TRACE) << "endOfData: Shutting down RequestReceiver";
+	TLOG(TLVL_DEBUG) << "endOfData: Shutting down RequestReceiver";
 	requests_.reset(nullptr);
 
-	TLOG(TLVL_TRACE) << "endOfData END";
+	TLOG(TLVL_DEBUG) << "endOfData END";
 	TLOG(TLVL_INFO) << "EndOfData Complete. There were " << GetLastSeenBufferID() << " buffers processed.";
-	running_ = false;
 	return true;
 }
 
@@ -921,7 +922,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		if (ResetBuffer(buf) && !pending_buffers_.count(buf))
 		{
 			auto hdr = getEventHeader_(buf);
-			if (active_buffers_.count(buf) && buffer_writes_pending_[buf].load() == 0)
+			if (active_buffers_.count(buf) && (buffer_writes_pending_[buf].load() == 0 || !running_))
 			{
 				if (requests_)
 				{
