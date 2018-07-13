@@ -16,6 +16,10 @@ cet_test(FragCounter_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate
   )
 
+  cet_test(TokenSender_t USE_BOOST_UNIT
+  LIBRARIES artdaq_DAQrate
+  )
+
   cet_test(SharedMemoryEventManager_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate
   )

@@ -25,6 +25,7 @@
 #include <string>
 #include <map>
 #include "artdaq-core/Data/RawEvent.hh"
+#include "artdaq/DAQrate/TokenSender.hh"
 
 namespace artdaq
 {
@@ -56,6 +57,7 @@ namespace artdaq
 			bool shutdownMsgReceived; ///< Whether a shutdown message has been received
 			bool outputFileCloseNeeded; ///< If an explicit output file close message is needed
 			size_t bytesRead; ///< running total of number of bytes received
+			std::unique_ptr<TokenSender> token_sender_; ///< To send tokens when done with buffers
 			//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
 			//std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control Fragments)
 
@@ -84,6 +86,7 @@ namespace artdaq
 				, shutdownMsgReceived(false)
 				, outputFileCloseNeeded(false)
 				, bytesRead(0)
+				, token_sender_(new TokenSender(ps))
 				, fragment_type_map_(getDefaultTypes())
 				, readNext_calls_(0)
 			{
@@ -249,6 +252,7 @@ namespace artdaq
 				{
 					TLOG_ERROR("SharedMemoryReader") << "Event has no Fragments! Aborting!";
 					incoming_events->ReleaseBuffer();
+					if (token_sender_) token_sender_->SendRoutingToken(1);
 					return false;
 				}
 				auto firstFragmentType = *fragmentTypes.begin();
@@ -414,6 +418,7 @@ namespace artdaq
 					}
 				}
 				incoming_events->ReleaseBuffer();
+				if (token_sender_) token_sender_->SendRoutingToken(1);
 				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << incoming_events->size() << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
 				{

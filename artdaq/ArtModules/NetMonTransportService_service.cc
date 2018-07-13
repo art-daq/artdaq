@@ -41,6 +41,7 @@ NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
 	, sender_ptr_(nullptr)
 	, incoming_events_(nullptr)
 	, recvd_fragments_(nullptr)
+	, token_sender_(new artdaq::TokenSender(pset))
 {
 	TLOG(TLVL_TRACE) << "NetMonTransportService CONSTRUCTOR" ;
 	if (pset.has_key("rank")) my_rank = pset.get<int>("rank");
@@ -201,6 +202,7 @@ receiveMessage(TBufferFile*& msg)
 
 		TLOG(TLVL_TRACE) << "receiveMessage: Releasing buffer" ;
 		incoming_events_->ReleaseBuffer();
+		if (token_sender_) token_sender_->SendRoutingToken(1);
 	}
 
 	// Do not process data until Init Fragment received!
