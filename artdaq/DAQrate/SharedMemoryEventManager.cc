@@ -6,6 +6,8 @@
 #include "artdaq-core/Utilities/TraceLock.hh"
 #include <sys/wait.h>
 
+#define TLVL_BUFFER 40
+
 std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
@@ -839,7 +841,15 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	IncrementWritePos(new_buffer, sizeof(detail::RawEventHeader));
 	SetMFIteration("Sequence ID " + std::to_string(seqID));
 
+	TLOG(TLVL_BUFFER) << "getBufferForSequenceID placing " << new_buffer << " to active.";
 	active_buffers_.insert(new_buffer);
+	TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
+			  << size() << ","
+			  << ReadReadyCount() << ","
+			  << WriteReadyCount(true) - WriteReadyCount(false) - ReadReadyCount() << ","
+			  << WriteReadyCount(false) << ","
+			  << pending_buffers_.size() << ","
+			  << active_buffers_.size() << ")";
 
 	if (requests_)
 	{
@@ -878,9 +888,19 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 			requests_->SendRoutingToken(1);
 		}
 		{
+		        TLOG(TLVL_BUFFER) << "complete_buffer_ moving " << buffer << " from active to pending.";
+
 			std::unique_lock<std::mutex> lk(sequence_id_mutex_);
 			active_buffers_.erase(buffer);
 			pending_buffers_.insert(buffer);
+
+			TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
+					  << size() << ","
+					  << ReadReadyCount() << ","
+					  << WriteReadyCount(true) - WriteReadyCount(false) - ReadReadyCount() << ","
+					  << WriteReadyCount(false) << ","
+					  << pending_buffers_.size() << ","
+					  << active_buffers_.size() << ")";
 		}
 	}
 	check_pending_buffers_();
@@ -908,8 +928,17 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 					requests_->RemoveRequest(hdr->sequence_id);
 					requests_->SendRoutingToken(1);
 				}
+				TLOG(TLVL_BUFFER) << "check_pending_buffers_ moving buffer " << buf << " from active to pending";
 				active_buffers_.erase(buf);
 				pending_buffers_.insert(buf);
+				TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
+						  << size() << ","
+						  << ReadReadyCount() << ","
+						  << WriteReadyCount(true) - WriteReadyCount(false) - ReadReadyCount() << ","
+						  << WriteReadyCount(false) << ","
+						  << pending_buffers_.size() << ","
+						  << active_buffers_.size() << ")";
+
 				subrun_incomplete_event_count_++;
 				run_incomplete_event_count_++;
 				if (metricMan) metricMan->sendMetric("Incomplete Event Rate", 1, "events/s", 3, MetricMode::Rate);
@@ -964,12 +993,21 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 		TLOG(TLVL_DEBUG) << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art, "
                                  << "event_size=" << BufferDataSize(buf) << ", buffer_size=" << BufferSize();
+		
+		TLOG(TLVL_BUFFER) << "check_pending_buffers_ removing buffer " << buf << " moving from pending to full";
 		MarkBufferFull(buf);
 		subrun_event_count_++;
 		run_event_count_++;
 		counter++;
 		eventSize += BufferDataSize(buf);
 		pending_buffers_.erase(buf);
+		TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
+				  << size() << ","
+				  << ReadReadyCount() << ","
+				  << WriteReadyCount(true) - WriteReadyCount(false) - ReadReadyCount() << ","
+				  << WriteReadyCount(false) << ","
+				  << pending_buffers_.size() << ","
+				  << active_buffers_.size() << ")";
 	}
 
 	metric_data_.event_count += counter;
