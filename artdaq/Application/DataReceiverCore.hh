@@ -3,6 +3,7 @@
 
 #include <string>
 #include <atomic>
+#include <map>
 
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
@@ -151,6 +152,7 @@ protected:
 	MetricManager metricMan_; ///< MetricManager concrete instance (for Globals.hh::metricMan)
 
 	fhicl::ParameterSet art_pset_;
+	std::map<std::string, std::string> config_archive_entries_;
 
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag
