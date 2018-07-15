@@ -494,6 +494,19 @@ bool artdaq::Commandable::do_rollover_subrun(uint64_t)
 	return external_request_status_;
 }
 
+bool artdaq::Commandable::do_add_config_archive_entry(std::string const& key, std::string const& value)
+{
+	TLOG(TLVL_DEBUG) << "do_add_config_archive_entry called: key=" << key << ", value=" << value;
+	return true;
+}
+
+bool artdaq::Commandable::do_clear_config_archive()
+{
+	TLOG(TLVL_DEBUG) << "do_clear_config_archive called.";
+	external_request_status_ = true;
+	return external_request_status_;
+}
+
 // *********************
 // *** Utility methods. 
 // *********************
