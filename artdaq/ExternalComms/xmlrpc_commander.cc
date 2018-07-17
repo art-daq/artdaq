@@ -897,6 +897,59 @@ private:								\
 		}
 	};
 
+	/**
+	* \brief add_config_archive_entry_ Command class
+	*/
+	class add_config_archive_entry_ : public cmd_
+	{
+	public:
+		/**
+		* \brief add_config_archive_entry_ Constructor
+		* \param c xmlrpc_commander to send transition commands to
+		*/
+		add_config_archive_entry_(xmlrpc_commander& c) :
+			cmd_(c, "s:ss", "Add an entry to the configuration archive list")
+		{}
+
+	private:
+		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+		{
+			try
+			{
+				getParam<std::string>(paramList, 0);
+				getParam<std::string>(paramList, 1);
+			}
+			catch (...)
+			{
+				*retvalP = xmlrpc_c::value_string("The add_config_archive_entry command expects a string key and a string value");
+				return true;
+			}
+
+			return _c._commandable.do_add_config_archive_entry(getParam<std::string>(paramList, 0), getParam<std::string>(paramList, 1));
+		}
+	};
+
+	/**
+	* \brief clear_config_archive_ Command class
+	*/
+	class clear_config_archive_ : public cmd_
+	{
+	public:
+		/**
+		* \brief clear_config_archive_ Constructor
+		* \param c xmlrpc_commander to send transition commands to
+		*/
+		clear_config_archive_(xmlrpc_commander& c) :
+			cmd_(c, "s:n", "Clear the configuration archive list")
+		{}
+
+	private:
+		bool execute_(xmlrpc_c::paramList const&, xmlrpc_c::value* const)
+		{
+			return _c._commandable.do_clear_config_archive();
+		}
+	};
+
 	// JCF, 9/4/14
 
 	// Not sure if anyone was planning to resurrect this code by changing
@@ -976,6 +1029,8 @@ private:								\
 		register_method(trace_get);
 		register_method(meta_command);
 		register_method(rollover_subrun);
+		register_method(add_config_archive_entry);
+		register_method(clear_config_archive);
 
 		register_method(shutdown);
 

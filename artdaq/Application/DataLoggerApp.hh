@@ -96,6 +96,18 @@ public:
 	 */
 	std::string report(std::string const& which) const override;
 
+	/**
+	* \brief Add the specified configuration archive entry to the DataLoggerCore
+	* \return Whether the command succeeded
+	*/
+	bool do_add_config_archive_entry(std::string const&, std::string const&) override;
+
+	/**
+	* \brief Clear the configuration archive list in the DataLoggerCore
+	* \return Whether the command succeeded
+	*/
+	bool do_clear_config_archive() override;
+
 
 private:
 	std::unique_ptr<DataLoggerCore> DataLogger_ptr_;

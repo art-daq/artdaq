@@ -335,6 +335,17 @@ namespace artdaq {
 		 */
 		RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { return dropped_data_[frag]->dataBegin(); }
 
+		/**
+		 * \brief Updates the internally-stored copy of the art configuration.
+		 * \param art_pset ParameterSet used to configure art
+		 *
+		 * This method updates the internally-stored copy of the art configuration, but it does not
+		 * restart art processes.  So, if this method is called while art processes are running, it will
+		 * have no effect until the next restart, such as the next Start of run.  Typically, this
+		 * method is intended to be called between runs, when no art processes are running.
+		 */
+		void UpdateArtConfiguration(fhicl::ParameterSet art_pset);
+
 	private:
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;

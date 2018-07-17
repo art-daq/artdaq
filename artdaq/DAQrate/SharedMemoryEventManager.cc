@@ -1104,6 +1104,17 @@ void artdaq::SharedMemoryEventManager::SetInitFragment(FragmentPtr frag)
 	}
 }
 
+void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSet art_pset)
+{
+	TLOG(TLVL_DEBUG) << "UpdateArtConfiguration BEGIN";
+	if (art_pset != current_art_pset_ || !current_art_config_file_)
+	{
+		current_art_pset_ = art_pset;
+		current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
+	}
+	TLOG(TLVL_DEBUG) << "UpdateArtConfiguration END";
+}
+
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
 FHICL_PROVIDE_ALLOWED_CONFIGURATION(artdaq::SharedMemoryEventManager)
 #endif

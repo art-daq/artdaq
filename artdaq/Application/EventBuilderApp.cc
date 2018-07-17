@@ -185,3 +185,31 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
 
 	return resultString;
 }
+
+bool artdaq::EventBuilderApp::do_add_config_archive_entry(std::string const& key, std::string const& value)
+{
+	report_string_ = "";
+	external_request_status_ = event_builder_ptr_->add_config_archive_entry(key, value);
+	if (!external_request_status_)
+	{
+		report_string_ = "Error adding config entry with key ";
+		report_string_.append(key + " and value \"");
+		report_string_.append(value + "\" in");
+		report_string_.append(app_name + ".");
+	}
+
+	return external_request_status_;
+}
+
+bool artdaq::EventBuilderApp::do_clear_config_archive()
+{
+	report_string_ = "";
+	external_request_status_ = event_builder_ptr_->clear_config_archive();
+	if (!external_request_status_)
+	{
+		report_string_ = "Error clearing the configuration archive in ";
+		report_string_.append(app_name + ".");
+	}
+
+	return external_request_status_;
+}
