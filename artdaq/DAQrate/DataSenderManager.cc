@@ -25,6 +25,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
+        , fStatusPub((app_name+"_DataSenderManager").c_str(),pset)
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
 
@@ -40,6 +41,8 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	routing_timeout_ms_ = (rmConfig.get<int>("routing_timeout_ms", 1000));
 	routing_retry_count_ = rmConfig.get<int>("routing_retry_count", 5);
 
+	issue_inhibits_ = pset.get<bool>("issue_inhibits",false);
+	if(issue_inhibits_) fStatusPub.BindPublisher();
 
 	hostMap_t host_map = MakeHostMap(pset);
 
@@ -279,6 +282,12 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				TLOG(TLVL_DEBUG) << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
 				TLOG(TLVL_DEBUG) << "There are now " << routing_table_.size() << " entries in the Routing Table";
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
+
+				if(issue_inhibits_)
+				  {
+				    if(routing_table_.size()==0) fStatusPub.PublishBadStatus("ZeroTokens");
+				    else fStatusPub.PublishGoodStatus("AvailableTokens");
+				  }
 			}
 		}
 	}
@@ -459,6 +468,11 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(sent_frag_count_.count()));
 	}
+	if(issue_inhibits_)
+	  {
+	    if(routing_table_.size()==0) fStatusPub.PublishBadStatus("ZeroTokens");
+	    else fStatusPub.PublishGoodStatus("AvailableTokens");
+	  }
 	if (metricMan)
 	{//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
 		TLOG(5) << "sendFragment: sending metrics";

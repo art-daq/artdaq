@@ -18,6 +18,9 @@
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
 
+//include for the InhibitMaster StatusPublisher
+#include "dune-artdaq-InhibitMaster/StatusPublisher.hh"
+
 namespace artdaq
 {
 	class DataSenderManager;
@@ -183,6 +186,11 @@ private:
 	int routing_retry_count_;
 
 	mutable std::atomic<uint64_t> highest_sequence_id_routed_;
+
+        //StatusPublisher for InhibitMaster
+        bool issue_inhibits_;
+        artdaq::StatusPublisher fStatusPub;
+
 };
 
 inline

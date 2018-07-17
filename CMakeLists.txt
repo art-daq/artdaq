@@ -68,6 +68,8 @@ find_ups_product( tbb v4_1 )
 find_ups_product( xmlrpc_c v1_25_18 )
 find_ups_root( v5_34_20 )
 
+find_ups_product( dune_artdaq_InhibitMaster v0_01_00 )
+
 # Include at the top level to make sure include directory is visible
 # everywhere.
 include(ProcessSmc)
