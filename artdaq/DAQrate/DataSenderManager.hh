@@ -175,6 +175,7 @@ private:
 	int ack_socket_;
 	int table_socket_;
 	std::map<Fragment::sequence_id_t, int> routing_table_;
+	size_t routing_table_max_size_;
 	mutable std::mutex routing_mutex_;
 	boost::thread routing_thread_;
 	mutable std::atomic<size_t> routing_wait_time_;
