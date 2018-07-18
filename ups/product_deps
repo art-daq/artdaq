@@ -27,7 +27,6 @@ xmlrpc_c		v1_39_10d
 artdaq_ganglia_plugin   v1_02_11        -       optional
 artdaq_epics_plugin     v1_02_05        -       optional
 artdaq_mfextensions     v1_03_01        -       optional
-dune_artdaq_InhibitMaster v0_01_01
 cetbuildtools		v7_02_01	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
@@ -35,23 +34,23 @@ end_product_list
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
-qualifier		art		artdaq_core    	   artdaq_utilities	xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions dune_artdaq_InhibitMaster
-c2:s67:debug		c2:debug	c2:s67:debug	   c2:s67:debug		c2:debug	c2:s67:debug		c2:s67:debug       	c2:s67:debug	    c2:debug
-c2:s67:prof		c2:prof 	c2:s67:prof	   c2:s67:prof		c2:prof		c2:s67:prof		c2:s67:prof		c2:s67:prof	    c2:prof
-e17:s67:debug		e17:debug	e17:s67:debug	   e17:s67:debug	e17:debug	e17:s67:debug		e17:s67:debug       	e17:s67:debug	    e17:debug
-e17:s67:prof		e17:prof 	e17:s67:prof	   e17:s67:prof		e17:prof	e17:s67:prof		e17:s67:prof		e17:s67:prof	    e17:prof
-e15:s67:debug		e15:debug	e15:s67:debug	   e15:s67:debug	e15:debug	e15:s67:debug		e15:s67:debug       	e15:s67:debug	    e15:debug
-e15:s67:prof		e15:prof 	e15:s67:prof	   e15:s67:prof		e15:prof	e15:s67:prof		e15:s67:prof		e15:s67:prof	    e15:prof
-c2:s64:debug		c2:debug	c2:s64:debug	   c2:s64:debug		c2:debug	c2:s64:debug		c2:s64:debug       	c2:s64:debug	    c2:debug
-c2:s64:prof		c2:prof 	c2:s64:prof	   c2:s64:prof		c2:prof		c2:s64:prof		c2:s64:prof		c2:s64:prof	    c2:prof
-e15:s64:debug		e15:debug	e15:s64:debug	   e15:s64:debug	e15:debug	e15:s64:debug		e15:s64:debug       	e15:s64:debug	    e15:debug
-e15:s64:prof		e15:prof 	e15:s64:prof	   e15:s64:prof		e15:prof	e15:s64:prof		e15:s64:prof		e15:s64:prof	    e15:prof
-e15:s65:debug		e15:debug	e15:s65:debug	   e15:s65:debug	e15:debug	e15:s65:debug		e15:s65:debug       	e15:s65:debug	    e15:debug
-e15:s65:prof		e15:prof 	e15:s65:prof	   e15:s65:prof		e15:prof	e15:s65:prof		e15:s65:prof		e15:s65:prof	    e15:prof
-e14:s50:debug		e14:debug	e14:s50:debug	   e14:s50:debug	e14:debug	e14:s50:debug		e14:s50:debug       	e14:s50:debug	    e14:debug
-e14:s50:prof		e14:prof 	e14:s50:prof	   e14:s50:prof		e14:prof	e14:s50:prof		e14:s50:prof		e14:s50:prof	    e14:prof
-nu:e14:s50:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	e14:debug	e14:s50:debug		e14:s50:debug      	e14:s50:debug	    e14:debug
-nu:e14:s50:prof		nu:e14:prof 	nu:e14:s50:prof	   e14:s50:prof		e14:prof	e14:s50:prof		e14:s50:prof		e14:s50:prof	    e14:prof
+qualifier		art		artdaq_core    	   artdaq_utilities	xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions
+c2:s67:debug		c2:debug	c2:s67:debug	   c2:s67:debug		c2:debug	c2:s67:debug		c2:s67:debug       	c2:s67:debug
+c2:s67:prof		c2:prof 	c2:s67:prof	   c2:s67:prof		c2:prof		c2:s67:prof		c2:s67:prof		c2:s67:prof
+e17:s67:debug		e17:debug	e17:s67:debug	   e17:s67:debug	e17:debug	e17:s67:debug		e17:s67:debug       	e17:s67:debug
+e17:s67:prof		e17:prof 	e17:s67:prof	   e17:s67:prof		e17:prof	e17:s67:prof		e17:s67:prof		e17:s67:prof
+e15:s67:debug		e15:debug	e15:s67:debug	   e15:s67:debug	e15:debug	e15:s67:debug		e15:s67:debug       	e15:s67:debug
+e15:s67:prof		e15:prof 	e15:s67:prof	   e15:s67:prof		e15:prof	e15:s67:prof		e15:s67:prof		e15:s67:prof
+c2:s64:debug		c2:debug	c2:s64:debug	   c2:s64:debug		c2:debug	c2:s64:debug		c2:s64:debug       	c2:s64:debug
+c2:s64:prof		c2:prof 	c2:s64:prof	   c2:s64:prof		c2:prof		c2:s64:prof		c2:s64:prof		c2:s64:prof
+e15:s64:debug		e15:debug	e15:s64:debug	   e15:s64:debug	e15:debug	e15:s64:debug		e15:s64:debug       	e15:s64:debug
+e15:s64:prof		e15:prof 	e15:s64:prof	   e15:s64:prof		e15:prof	e15:s64:prof		e15:s64:prof		e15:s64:prof
+e15:s65:debug		e15:debug	e15:s65:debug	   e15:s65:debug	e15:debug	e15:s65:debug		e15:s65:debug       	e15:s65:debug
+e15:s65:prof		e15:prof 	e15:s65:prof	   e15:s65:prof		e15:prof	e15:s65:prof		e15:s65:prof		e15:s65:prof
+e14:s50:debug		e14:debug	e14:s50:debug	   e14:s50:debug	e14:debug	e14:s50:debug		e14:s50:debug       	e14:s50:debug
+e14:s50:prof		e14:prof 	e14:s50:prof	   e14:s50:prof		e14:prof	e14:s50:prof		e14:s50:prof		e14:s50:prof
+nu:e14:s50:debug	nu:e14:debug	nu:e14:s50:debug   e14:s50:debug	e14:debug	e14:s50:debug		e14:s50:debug      	e14:s50:debug
+nu:e14:s50:prof		nu:e14:prof 	nu:e14:s50:prof	   e14:s50:prof		e14:prof	e14:s50:prof		e14:s50:prof		e14:s50:prof
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:

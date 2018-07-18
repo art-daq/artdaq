@@ -17,7 +17,6 @@ art_make(BASENAME_ONLY
   artdaq-core_Core
   artdaq-core_Data
   artdaq-core_Utilities
-  InhibitMaster_CommonTools
   ${FHICLCPP}
   ${MESSAGEFACILITY_LIBS}
   ${CLHEP}
