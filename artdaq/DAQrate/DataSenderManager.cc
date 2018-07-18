@@ -25,6 +25,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
+	, routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
 
@@ -244,6 +245,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				}
 				auto thisSeqID = first;
 
+				{
+				std::unique_lock<std::mutex> lck(routing_mutex_);
 				if (routing_table_.count(last) == 0)
 				{
 					for (auto entry : buffer)
@@ -268,6 +271,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 						routing_table_[entry.sequence_id] = entry.destination_rank;
 						TLOG(TLVL_DEBUG) << "DataSenderManager " << std::to_string(my_rank) << ": received update: SeqID " << std::to_string(entry.sequence_id) << " -> Rank " << std::to_string(entry.destination_rank);
 					}
+				}
 				}
 
 				artdaq::detail::RoutingAckPacket ack;
@@ -304,6 +308,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 	if (use_routing_master_)
 	{
 		auto start = std::chrono::steady_clock::now();
+		TLOG(15) << "calcDest_ use_routing_master check for routing info for seqID="<<sequence_id<<" routing_timeout_ms="<<routing_timeout_ms_<<" should_stop_="<<should_stop_;
 		while (!should_stop_ && (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_)))
 		{
 			std::unique_lock<std::mutex> lck(routing_mutex_);
@@ -448,7 +453,14 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest
 			<< "! This event has been lost: " << seqID;
 	}
-	if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
+	{
+		std::unique_lock<std::mutex> lck(routing_mutex_);
+		while (routing_table_.size() > routing_table_max_size_)
+		{
+			routing_table_.erase(routing_table_.begin());
+		}
+	}
+	/*if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
 		&& routing_table_.find(seqID - 1) != routing_table_.end())
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
@@ -458,7 +470,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		routing_table_.erase(routing_table_.begin(), routing_table_.find(sent_frag_count_.count()));
-	}
+	}*/
 	if (metricMan)
 	{//&& sent_frag_count_.slotCount(dest) % 100 == 0) {
 		TLOG(5) << "sendFragment: sending metrics";

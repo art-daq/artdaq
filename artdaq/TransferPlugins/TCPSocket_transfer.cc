@@ -122,7 +122,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 	if (getConnectedFDCount(source_rank()) == 0)
 	{ // what if just listen_fd??? 
-		if (++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
+		//if (++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
 		usleep(receive_err_wait_us_);
 		return RECV_TIMEOUT;
