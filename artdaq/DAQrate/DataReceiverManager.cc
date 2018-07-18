@@ -282,7 +282,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 			if (metricMan && TimeUtils::GetElapsedTime(source_metric_send_time_[source_rank]) > 1)
 			{//&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
-				TLOG(6) << "runReceiver_: Sending receive stats";
+				TLOG(6) << "runReceiver_: Sending receive stats for rank " << source_rank;
 				metricMan->sendMetric("Total Receive Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].delta_t, "s", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Total Receive Size From Rank " + std::to_string(source_rank), static_cast<unsigned long>(source_metric_data_[source_rank].data_size), "B", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Total Receive Rate From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].data_size / source_metric_data_[source_rank].delta_t, "B/s", 5, MetricMode::Average);
@@ -302,7 +302,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				metricMan->sendMetric("Avg Shared Memory Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].store_delta_t / source_metric_data_[source_rank].data_point_count, "s", 3, MetricMode::Average);
 				metricMan->sendMetric("Avg Fragment Wait Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].dead_t / source_metric_data_[source_rank].data_point_count, "s", 3, MetricMode::Average);
 
-				TLOG(6) << "runReceiver_: Done sending receive stats";
+				TLOG(6) << "runReceiver_: Done sending receive stats for rank " << source_rank;
 
 				source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
 				source_metric_data_[source_rank] = source_metric_data();
