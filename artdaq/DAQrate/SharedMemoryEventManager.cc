@@ -51,6 +51,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 				  pset.get<size_t>("broadcast_buffer_count", 10),
 				  pset.get<size_t>("broadcast_buffer_size", 0x100000),
 				  pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
+  , limit_sent_tokens_(pset.get<bool>("limit_sent_tokens",false))
 {
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
@@ -655,7 +656,17 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	subrun_rollover_event_ = Fragment::InvalidSequenceID;
 	last_released_event_ = 0;
 	requests_.reset(new RequestSender(data_pset_));
-	if (requests_) requests_->SendRoutingToken(queue_size_);
+	if (requests_) {
+	  
+	  if(limit_sent_tokens_)
+	    requests_->SendRoutingToken(queue_size_/2<1?1:queue_size_/2);
+
+	  else
+	    requests_->SendRoutingToken(queue_size_);
+
+	  no_buffers_free_for_routing_=false;
+
+	}
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
 		<< ", max queue size = "
 		<< queue_size_
@@ -921,7 +932,34 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 		if (requests_)
 		{
 			requests_->RemoveRequest(hdr->sequence_id);
-			requests_->SendRoutingToken(1);
+			
+			//Wes 18 Jul 2018.
+			//How limiting here is supposed to work:
+			//If there are truly empty buffers after we move an event to 'pending' (that's ready to be read)
+			//then we send a routing token.
+			//If there are no more empty buffers, but it's the first time, we send one last token so that we
+			//continue to push data through.
+			//If there are no more empty buffers, and this is not the first time this is true (unlikely?), we don't send a token.
+			//This way, if we fill up, and then clear out, we should still have at least one event push through the system to
+			//send new tokens. This is in lieu of a dedicated thread/mechanism by which to send tokens when we know we have empty spots.
+			if(limit_sent_tokens_){
+			  if(WriteReadyCount(overwrite_mode_)>0){
+			    requests_->SendRoutingToken(1);
+			    no_buffers_free_for_routing_ = false;
+			    TLOG(TLVL_BUFFER) << "There are buffers free for new events. Routing token sent.";
+			  }
+			  else if(!no_buffers_free_for_routing_){
+			    requests_->SendRoutingToken(1);
+			    no_buffers_free_for_routing_ = true;			    
+			    TLOG(TLVL_BUFFER) << "There are no more buffers free for new events. Last routing token sent.";
+			  }
+			  else{
+			    TLOG(TLVL_BUFFER) << "There are no buffers free for new events. No routing token sent.";
+			  }
+			}
+			else{
+			  requests_->SendRoutingToken(1);
+			}
 		}
 	}
 	check_pending_buffers_();
@@ -947,7 +985,35 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				if (requests_)
 				{
 					requests_->RemoveRequest(hdr->sequence_id);
-					requests_->SendRoutingToken(1);
+
+					//Wes 18 Jul 2018.
+					//How limiting here is supposed to work:
+					//If there are truly empty buffers after we move an event to 'pending' (that's ready to be read)
+					//then we send a routing token.
+					//If there are no more empty buffers, but it's the first time, we send one last token so that we
+					//continue to push data through.
+					//If there are no more empty buffers, and this is not the first time this is true (unlikely?), we don't send a token.
+					//This way, if we fill up, and then clear out, we should still have at least one event push through the system to
+					//send new tokens. This is in lieu of a dedicated thread/mechanism by which to send tokens when we know we have empty spots.
+					if(limit_sent_tokens_){
+					  if(WriteReadyCount(overwrite_mode_)>0){
+					    requests_->SendRoutingToken(1);
+					    no_buffers_free_for_routing_ = false;
+					    TLOG(TLVL_BUFFER) << "There are buffers free for new events. Routing token sent.";
+					  }
+					  else if(!no_buffers_free_for_routing_){
+					    requests_->SendRoutingToken(1);
+					    no_buffers_free_for_routing_ = true;			    
+					    TLOG(TLVL_BUFFER) << "There are no more buffers free for new events. Last routing token sent.";
+					  }
+					  else{
+					    TLOG(TLVL_BUFFER) << "There are no buffers free for new events. No routing token sent.";
+					  }
+					}
+					else{
+					  requests_->SendRoutingToken(1);
+					}
+
 				}
 				TLOG(TLVL_BUFFER) << "check_pending_buffers_ moving buffer " << buf << " from active to pending";
 				active_buffers_.erase(buf);
