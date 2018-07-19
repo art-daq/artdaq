@@ -281,6 +281,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 
 				TLOG(TLVL_DEBUG) << "Sending RoutingAckPacket with first= " << std::to_string(first) << " and last= " << std::to_string(last) << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
 				TLOG(TLVL_DEBUG) << "There are now " << routing_table_.size() << " entries in the Routing Table";
+				if(routing_table_.size()>0) TLOG(TLVL_DEBUG) << "Last routing table entry is seqID=" << routing_table_.rbegin()->first; 
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 
 			}
@@ -297,13 +298,14 @@ size_t artdaq::DataSenderManager::GetRoutingTableEntryCount() const
 size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 {
 	std::unique_lock<std::mutex> lck(routing_mutex_);
-	return std::distance(routing_table_.find(highest_sequence_id_routed_), routing_table_.end());
+	size_t dist = std::distance(routing_table_.find(highest_sequence_id_routed_), routing_table_.end());
+	return (dist==0)? dist : dist-1;
 }
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
 {
 	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
-	if (enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
+	if (!use_routing_master_ && enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
 
 	if (use_routing_master_)
 	{
@@ -311,6 +313,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 		TLOG(15) << "calcDest_ use_routing_master check for routing info for seqID="<<sequence_id<<" routing_timeout_ms="<<routing_timeout_ms_<<" should_stop_="<<should_stop_;
 		while (!should_stop_ && (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_)))
 		{
+		  {
 			std::unique_lock<std::mutex> lck(routing_mutex_);
 			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id))
 			{
@@ -324,6 +327,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 				return routing_table_.at(sent_frag_count_.count());
 			}
+		  }
 			usleep(routing_timeout_ms_ * 10);
 		}
 		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
