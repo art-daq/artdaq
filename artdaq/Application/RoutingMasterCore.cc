@@ -406,7 +406,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 	auto counter = 0U;
 	auto start_time = std::chrono::steady_clock::now();
-	while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0)
+	while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0 && !stop_requested_)
 	{
 		// Send table update
 		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
