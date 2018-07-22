@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_02_00
+parent artdaq  v3_02_00_pdune_22Jul
 defaultqual    e15:s64
 
 # These optional lines define the installed directories where
@@ -21,8 +21,8 @@ art             v2_11_01        s67
 art 		v2_10_03	s65
 art             v2_10_02        s64
 art             v2_07_03        s50
-artdaq_core 		v3_02_01
-artdaq_utilities        v1_04_06
+artdaq_core 		v3_02_01_pdune_22Jul
+artdaq_utilities        v1_04_06_pdune_22Jul
 xmlrpc_c		v1_39_10d
 artdaq_ganglia_plugin   v1_02_11        -       optional
 artdaq_epics_plugin     v1_02_05        -       optional
