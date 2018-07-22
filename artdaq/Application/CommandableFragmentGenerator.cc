@@ -239,7 +239,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 				TLOG(TLVL_ERROR) << "Stopping CFG because the hardware reports bad status!";
 				return false;
 			}
-			TLOG(TLVL_TRACE) << "getNext: Calling getNext_ " << ev_counter();
+			TLOG(TLVL_TRACE) << "getNext: Calling getNext_ w/ ev_counter()=" << ev_counter();
 			try
 			{
 				result = getNext_(output);
@@ -248,7 +248,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			{
 				throw;
 			}
-			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ " << ev_counter();
+			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
 			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
 			{
 				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
