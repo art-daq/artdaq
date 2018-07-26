@@ -404,27 +404,31 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 	auto counter = 0U;
 	auto start_time = std::chrono::steady_clock::now();
-	while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0)
+	while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0 && !stop_requested_)
 	{
 		// Send table update
 		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
 		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ ;
-		if (sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_)) < 0)
+		TRACE(16,"headerData:0x%016lx%016lx packetData:0x%016lx%016lx"
+		      ,((unsigned long*)&header)[0],((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0],((unsigned long*)&packet[0])[1] );
+		auto hdrsts = sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
+		if (hdrsts != sizeof(detail::RoutingPacketHeader))
 		{
-			TLOG(TLVL_ERROR) << "Error sending request message header" ;
+			TLOG(TLVL_ERROR) << "Error sending routing message header. hdrsts=" << hdrsts;
 		}
-		if (sendto(table_socket_, &packet[0], packetSize, 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_)) < 0)
+		auto pktsts = sendto(table_socket_, &packet[0], packetSize, 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
+		if (pktsts != (ssize_t)packetSize)
 		{
-			TLOG(TLVL_ERROR) << "Error sending request message data" ;
+			TLOG(TLVL_ERROR) << "Error sending routing message data. hdrsts="<<hdrsts<<" pktsts="<<pktsts;
 		}
 
 		// Collect acks
 
 		auto first = packet[0].sequence_id;
 		auto last = packet.rbegin()->sequence_id;
-		TLOG(TLVL_DEBUG) << "Expecting acks to have first= " << first << ", and last= " << last ;
+		TLOG(TLVL_DEBUG) << "Sent " << hdrsts <<"+"<< pktsts << ". Expecting acks to have first= " << first << ", and last= " << last ;
 
 
 		auto startTime = std::chrono::steady_clock::now();
