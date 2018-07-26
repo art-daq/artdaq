@@ -190,27 +190,25 @@ namespace artdaq
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		std::unique_lock<std::mutex> lk2(request_send_mutex_);
 		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
-		if (sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_)) < 0)
+		auto hdrsts=sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
+		if (hdrsts != sizeof(detail::RequestHeader))
 		{
-			TLOG(TLVL_ERROR) << "Error sending request message header err=" << strerror(errno);
+			TLOG(TLVL_ERROR) << "Error sending request message header err=" << strerror(errno)<< "hdrsts="<<hdrsts;
 			request_socket_ = -1;
 			request_sending_--;
 			return;
 		}
-		size_t sent = 0;
-		while (sent < sizeof(detail::RequestPacket) * message.size())
+		auto thisSent = sendto(  request_socket_, reinterpret_cast<uint8_t*>(message.buffer())
+		                          , sizeof(detail::RequestPacket) * message.size()
+		                          , 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_) );
+		if (thisSent != (ssize_t)(sizeof(detail::RequestPacket) * message.size()) )
 		{
-			ssize_t thisSent = sendto(request_socket_, reinterpret_cast<uint8_t*>(message.buffer()) + sent, sizeof(detail::RequestPacket) * message.size() - sent, 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
-			if (thisSent < 0)
-			{
-				TLOG(TLVL_ERROR) << "Error sending request message data err=" << strerror(errno);
-				request_socket_ = -1;
-				request_sending_--;
-				return;
-			}
-			sent += thisSent;
+			TLOG(TLVL_ERROR) << "Error sending request message data err=" << strerror(errno)<<" hdrsts="<<hdrsts<<" pktsts="<<thisSent;
+			request_socket_ = -1;
+			request_sending_--;
+			return;
 		}
-		TLOG(TLVL_TRACE) << "Done sending request";
+		TLOG(TLVL_TRACE) << "Done sending request hdrsts="<<hdrsts<<" pktsts="<<thisSent;
 		request_sending_--;
 	}
 
