@@ -591,7 +591,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	TLOG(TLVL_DEBUG) << "Waiting for " << (ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_))) << " outstanding buffers...";
 	auto start = std::chrono::steady_clock::now();
 	auto lastReadCount = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
-	auto end_of_data_wait_us = art_event_processing_time_us_ * size();
+	auto end_of_data_wait_us = art_event_processing_time_us_ * lastReadCount;//size();
 
 	auto outstanding_buffer_wait_time = art_event_processing_time_us_ > 100000 ? 100000 : art_event_processing_time_us_;
 
@@ -605,7 +605,10 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 			lastReadCount = temp;
 			start = std::chrono::steady_clock::now();
 		}
-		if (lastReadCount > 0) usleep(outstanding_buffer_wait_time);
+		if (lastReadCount > 0) {
+			TRACE(19,"About to sleep %lu us - lastReadCount=%lu size=%lu end_of_data_wait_us=%lu",outstanding_buffer_wait_time,lastReadCount,size(),end_of_data_wait_us );
+			usleep(outstanding_buffer_wait_time);
+		}
 	}
 	TLOG(TLVL_DEBUG) << "endOfData: After wait for outstanding buffers. Still outstanding: " << lastReadCount << ", time waited: "
 		<< TimeUtils::GetElapsedTime(start) << " s / " << (end_of_data_wait_us / 1000000.0) << " s, art process count: " << get_art_process_count_();
