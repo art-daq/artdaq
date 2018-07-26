@@ -439,10 +439,9 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}
-		else
-		{
-			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID;
-		}
+		else if (!should_stop_)
+			TLOG(TLVL_ERROR) << "(in non_blocking) calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID
+							 << ". enabled_destinantions_.size()="<<enabled_destinations_.size();
 	}
 	else
 	{
@@ -470,9 +469,9 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			sent_frag_count_.incSlot(dest);
 			outsts = sts;
 		}
-		else
-			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest
-			<< "! This event has been lost: " << seqID;
+		else if (!should_stop_)
+			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID
+							 << ". enabled_destinantions_.size()="<<enabled_destinations_.size();
 	}
 
 	{
