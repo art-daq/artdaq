@@ -567,7 +567,7 @@ bool artdaq::TCPSocketTransfer::isRunning()
 // the Fragment was sent OR -1 if to none.
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(Fragment&& frag, size_t send_timeout_usec)
 {
-	TLOG(12) << GetTraceName() << ": sendFragment begin";
+	TLOG(12) << GetTraceName() << ": sendFragment begin send of fragment with sequenceID="<<frag.sequenceID();
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
 
 	reconnect_();
@@ -610,7 +610,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	send_ack_diff_++;
 #endif
 
-	TLOG(12) << GetTraceName() << ": sendFragment returning kSuccess";
+	TLOG(12) << GetTraceName() << ": sendFragment returning Success";
 	return sts;
 }
 

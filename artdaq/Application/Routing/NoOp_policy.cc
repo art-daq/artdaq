@@ -1,7 +1,8 @@
 #include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
 #include "artdaq/Application/Routing/PolicyMacros.hh"
 #include "fhiclcpp/ParameterSet.h"
-
+#include "tracemf.h"
+#define TRACE_NAME "NoOp_policy"
 namespace artdaq
 {
 	/**
@@ -32,6 +33,7 @@ namespace artdaq
 
 	detail::RoutingPacket NoOpPolicy::GetCurrentTable()
 	{
+		TLOG(12) << "NoOpPolicy::GetCurrentTable start";
 		auto tokens = getTokensSnapshot();
 		detail::RoutingPacket output;
 		for(auto token : *tokens.get())
@@ -39,6 +41,7 @@ namespace artdaq
 			output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, token));
 		}
 
+		TLOG(12) << "NoOpPolicy::GetCurrentTable return";
 		return output;
 	}
 }

@@ -144,6 +144,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 
 void artdaq::DataSenderManager::setupTableListener_()
 {
+	int sts;
 	table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (table_socket_ < 0)
 	{
@@ -162,7 +163,13 @@ void artdaq::DataSenderManager::setupTableListener_()
 	memset(&si_me_request, 0, sizeof(si_me_request));
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(table_port_);
-	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
+	//si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
+	struct in_addr          in_addr_s;
+	sts = inet_aton(table_address_.c_str(), &in_addr_s );
+	if (sts == 0)
+	{   TLOG(TLVL_ERROR) << "inet_aton says table_address "<<table_address_<<" is invalid";
+	}
+	si_me_request.sin_addr.s_addr = in_addr_s.s_addr;
 	if (bind(table_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << table_port_;
@@ -170,7 +177,7 @@ void artdaq::DataSenderManager::setupTableListener_()
 	}
 
 	struct ip_mreq mreq;
-	int sts = ResolveHost(table_address_.c_str(), mreq.imr_multiaddr);
+	sts = ResolveHost(table_address_.c_str(), mreq.imr_multiaddr);
 	if (sts == -1)
 	{
 		TLOG(TLVL_ERROR) << "Unable to resolve multicast address for table updates";
@@ -242,11 +249,22 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			artdaq::detail::RoutingPacketHeader hdr;
 
 			TLOG(TLVL_DEBUG) << "Going to receive RoutingPacketHeader";
-			auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, NULL, NULL);
-			TLOG(TLVL_DEBUG) << "Received " << stss << " bytes. (sizeof(RoutingPacketHeader) == " << sizeof(detail::RoutingPacketHeader);
+			struct sockaddr_in from;
+			socklen_t          len=sizeof(from);
+			auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, (struct sockaddr*)&from, &len );
+			TLOG(TLVL_DEBUG) << "Received " << stss << " hdr bytes. (sizeof(RoutingPacketHeader) == " << sizeof(detail::RoutingPacketHeader)
+							 << " from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
 
-			TLOG(TLVL_DEBUG) << "Checking for valid header";
-			if (hdr.header == ROUTING_MAGIC)
+			TRACE(TLVL_DEBUG,"Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx",hdr.nEntries,((unsigned long*)&hdr)[0],((unsigned long*)&hdr)[1]);
+			if (hdr.header != ROUTING_MAGIC)
+			{
+				TLOG(TLVL_TRACE) << "non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)="<<stss;
+			}
+			else if (stss != sizeof(artdaq::detail::RoutingPacketHeader))
+			{
+				TLOG(TLVL_TRACE) << "non-RoutingPacket received. size(bytes)="<<stss;
+			}
+			else
 			{
 				if (routing_master_mode_ != detail::RoutingMasterMode::INVALID && routing_master_mode_ != hdr.mode)
 				{
@@ -257,9 +275,10 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
 				TLOG(TLVL_DEBUG) << "Receiving data buffer";
-				auto sts = recv(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
+				auto sts = recvfrom(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0, (struct sockaddr*)&from, &len );
 				assert(static_cast<size_t>(sts) == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-				TLOG(6) << "Received a packet of " << sts << " bytes";
+				TLOG(TLVL_DEBUG) << "Received " << sts << " pkt bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+				TRACE(6,"Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx",sts,((unsigned long*)&buffer[0])[0],((unsigned long*)&buffer[0])[1]);
 
 				first = buffer[0].sequence_id;
 				last = buffer[buffer.size() - 1].sequence_id;

@@ -510,6 +510,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 		{
 			TLOG(TLVL_DEBUG) << "Opening token listener socket" ;
 			token_socket_ = TCP_listen_fd(receive_token_port_, 3 * sizeof(detail::RoutingToken));
+			fcntl(token_socket_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 
 			if (token_epoll_fd_ != -1) close(token_epoll_fd_);
 			struct epoll_event ev;
@@ -544,6 +545,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				sockaddr_in addr;
 				socklen_t arglen = sizeof(addr);
 				auto conn_sock = accept(token_socket_, (struct sockaddr *)&addr, &arglen);
+				fcntl(conn_sock, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 
 				if (conn_sock == -1)
 				{
@@ -583,6 +585,11 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 					if (sts == 0)
 					  {
 						TLOG(TLVL_INFO) << "Received 0-size token from " << receive_token_addrs_[receive_token_events_[n].data.fd];
+						reading = false;
+					  }
+					else if(sts < 0 && errno == EAGAIN)
+					  {
+						TLOG(TLVL_DEBUG) << "No more tokens from this rank. Continuing poll loop.";
 						reading = false;
 					  }
 					else if(sts < 0)
