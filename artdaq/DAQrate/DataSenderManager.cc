@@ -397,11 +397,11 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			TLOG(TLVL_TRACE) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
 			// Gross, we have to copy.
 			Fragment fragCopy(frag);
-			auto sts = destinations_[bdest]->copyFragment(fragCopy, send_timeout_us_);
+			auto sts = destinations_[bdest]->moveFragment(std::move(fragCopy));
 			size_t retries = 0; // Tried once, so retries < send_retry_count_ will have it retry send_retry_count_ times
 			while (sts == TransferInterface::CopyStatus::kTimeout && retries < send_retry_count_)
 			{
-				sts = destinations_[bdest]->copyFragment(fragCopy, send_timeout_us_);
+				sts = destinations_[bdest]->moveFragment(std::move(fragCopy));
 				retries++;
 			}
 			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
