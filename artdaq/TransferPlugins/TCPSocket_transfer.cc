@@ -409,9 +409,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			if (num_fds_ready == 0)
 			{
-				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT (Will result in \"Unexpected return code error\")";
-				active_receive_fd_ = -1;
-				return RECV_TIMEOUT;
+				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data from " << source_rank() << " in 1000 ms!"
+				                   << " State = " << (state == SocketState::Metadata ? "Metadata" : "Data") << ", recvd/total=" << offset << "/" << target_bytes << " (delta=" << target_bytes - offset << ")";
+				continue;
 			}
 
 			TLOG(TLVL_ERROR) << "Error in poll: errno=" << errno;
