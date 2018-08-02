@@ -380,7 +380,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	int ret_rank = RECV_TIMEOUT;
 	if (active_receive_fd_ == -1)
 	{ // what if just listen_fd??? 
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Receive socket not connected, returning RECV_TIMEOUT";
+		TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: Receive socket not connected, returning RECV_TIMEOUT (Will result in \"Unexpected return code error\")";
 		return RECV_TIMEOUT;
 	}
 
@@ -409,7 +409,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			if (num_fds_ready == 0)
 			{
-				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT";
+				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT (Will result in \"Unexpected return code error\")";
 				active_receive_fd_ = -1;
 				return RECV_TIMEOUT;
 			}
