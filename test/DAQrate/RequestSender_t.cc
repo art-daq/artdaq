@@ -27,8 +27,6 @@ else \
 BOOST_AUTO_TEST_CASE(Construct)
 {
 	artdaq::configureMessageFacility("RequestSender_t", true, true);
-	metricMan->initialize(fhicl::ParameterSet());
-	metricMan->do_start();
 	TLOG(TLVL_INFO) << "Construct Test Case BEGIN" ;
 	fhicl::ParameterSet pset;
 	artdaq::RequestSender t(pset);
@@ -39,8 +37,6 @@ BOOST_AUTO_TEST_CASE(Construct)
 BOOST_AUTO_TEST_CASE(Tokens)
 {
 	artdaq::configureMessageFacility("RequestSender_t", true, true);
-	metricMan->initialize(fhicl::ParameterSet());
-	metricMan->do_start();
 	TLOG(TLVL_INFO) << "Tokens Test Case BEGIN" ;
 	const int TOKEN_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	TLOG(TLVL_DEBUG) << "Opening token listener socket" ;
@@ -97,8 +93,6 @@ BOOST_AUTO_TEST_CASE(Tokens)
 BOOST_AUTO_TEST_CASE(Requests)
 {
 	artdaq::configureMessageFacility("RequestSender_t", true, true);
-	metricMan->initialize(fhicl::ParameterSet());
-	metricMan->do_start();
 	TLOG(TLVL_INFO) << "Requests Test Case BEGIN" ;
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
@@ -368,6 +362,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 
 	close(request_socket);
 	TLOG(TLVL_INFO) << "Requests Test Case END";
+	metricMan.reset(nullptr);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
