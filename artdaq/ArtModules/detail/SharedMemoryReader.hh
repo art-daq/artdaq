@@ -145,7 +145,9 @@ namespace artdaq
 			/**
 			 * \brief SharedMemoryReader destructor
 			 */
-			virtual ~SharedMemoryReader() = default;
+			virtual ~SharedMemoryReader() {
+				artdaq::Globals::CleanUpGlobals();
+			}
 
 			/**
 			 * \brief Emulate closing a file. No-Op.

@@ -127,6 +127,12 @@ namespace artdaq
 			std::unique_lock<std::mutex> lk(mftrace_mutex_);
 			mftrace_module_ = name;
 		}
+
+		static void CleanUpGlobals()
+		{
+			metricMan_.reset(nullptr);
+			portMan_.reset(nullptr);
+		}
 	};
 }
 

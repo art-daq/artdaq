@@ -127,7 +127,9 @@ namespace artdaq {
 
 			auto commander = artdaq::MakeCommanderPlugin(config_ps, *comm.get());
 			commander->run_server();
+			artdaq::Globals::CleanUpGlobals();
 		}
+
 	};
 }
 

@@ -319,4 +319,5 @@ artdaq::TransferWrapper::~TransferWrapper()
 							 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
 		}
 	}
+	artdaq::Globals::CleanUpGlobals();
 }
