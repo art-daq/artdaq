@@ -62,6 +62,7 @@ namespace art
 		{
 			ServiceHandle<NetMonTransportService> transport;
 			transport->disconnect();
+			artdaq::Globals::CleanUpGlobals();
 		}
 
 		/**

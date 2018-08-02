@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 
 	close(request_socket);
 	TLOG(TLVL_INFO) << "Requests Test Case END";
-	metricMan.reset(nullptr);
+	artdaq::Globals::CleanUpGlobals();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
