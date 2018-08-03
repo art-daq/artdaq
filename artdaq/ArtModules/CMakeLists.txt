@@ -1,5 +1,5 @@
 
-if( ${ART_HEX_VERSION} LESS 0x20906 )
+if( ${ART_HEX_VERSION} GREATER 0x20906 )
     add_subdirectory(RootDAQOutput)
 endif()
 
