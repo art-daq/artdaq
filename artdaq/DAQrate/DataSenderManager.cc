@@ -44,7 +44,6 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	routing_timeout_ms_ = (rmConfig.get<int>("routing_timeout_ms", 1000));
 	routing_retry_count_ = rmConfig.get<int>("routing_retry_count", 5);
 
-
 	hostMap_t host_map = MakeHostMap(pset);
 	size_t tcp_send_buffer_size = pset.get<size_t>("tcp_send_buffer_size", 0);
 	size_t max_fragment_size_words = pset.get<size_t>("max_fragment_size_words", 0);
@@ -290,6 +289,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				}
 				auto thisSeqID = first;
 
+				{
+				std::unique_lock<std::mutex> lck(routing_mutex_);
 				if (routing_table_.count(last) == 0)
 				{
 					for (auto entry : buffer)
@@ -315,6 +316,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 						TLOG(TLVL_DEBUG) << "DataSenderManager " << my_rank << ": received update: SeqID " << entry.sequence_id << " -> Rank " << entry.destination_rank;
 					}
 				}
+				}
 
 				artdaq::detail::RoutingAckPacket ack;
 				ack.rank = my_rank;
@@ -323,7 +325,9 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 
 				TLOG(TLVL_DEBUG) << "Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
 				TLOG(TLVL_DEBUG) << "There are now " << routing_table_.size() << " entries in the Routing Table";
+				if(routing_table_.size()>0) TLOG(TLVL_DEBUG) << "Last routing table entry is seqID=" << routing_table_.rbegin()->first; 
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
+
 			}
 		}
 	}
@@ -338,19 +342,22 @@ size_t artdaq::DataSenderManager::GetRoutingTableEntryCount() const
 size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 {
 	std::unique_lock<std::mutex> lck(routing_mutex_);
-	return std::distance(routing_table_.find(highest_sequence_id_routed_), routing_table_.end());
+	size_t dist = std::distance(routing_table_.find(highest_sequence_id_routed_), routing_table_.end());
+	return (dist==0)? dist : dist-1;
 }
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
 {
 	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
-	if (enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
+	if (!use_routing_master_ && enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
 
 	if (use_routing_master_)
 	{
 		auto start = std::chrono::steady_clock::now();
+		TLOG(15) << "calcDest_ use_routing_master check for routing info for seqID="<<sequence_id<<" routing_timeout_ms="<<routing_timeout_ms_<<" should_stop_="<<should_stop_;
 		while (!should_stop_ && (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_)))
 		{
+		  {
 			std::unique_lock<std::mutex> lck(routing_mutex_);
 			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id))
 			{
@@ -364,6 +371,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 				return routing_table_.at(sent_frag_count_.count());
 			}
+		  }
 			usleep(routing_timeout_ms_ * 10);
 		}
 		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
@@ -493,6 +501,13 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 							 << ". enabled_destinantions_.size()="<<enabled_destinations_.size();
 	}
 
+	{
+		std::unique_lock<std::mutex> lck(routing_mutex_);
+		while (routing_table_.size() > routing_table_max_size_)
+		{
+			routing_table_.erase(routing_table_.begin());
+		}
+	}
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		while (routing_table_.size() > routing_table_max_size_)

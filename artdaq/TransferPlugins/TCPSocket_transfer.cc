@@ -126,13 +126,14 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 	// Don't bomb out until received at least one connection...
 	if (getConnectedFDCount(source_rank()) == 0)
-	{ // what if just listen_fd??? 
-	//	if (receive_socket_has_been_connected_ && TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_) 
-	//	{ 
-//			TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: senders have been disconnected for "
-//				<< TimeUtils::GetElapsedTime(last_recv_time_) << " s (receive_socket_disconnected_wait_s = " << receive_disconnected_wait_s_ << " s). RETURNING DATA_END!";
-//			return DATA_END; 
-//		}
+	{ 	// what if just listen_fd??? 
+		//	if (receive_socket_has_been_connected_ && TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_) 
+		//	{ 
+		//			TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: senders have been disconnected for "
+		//				<< TimeUtils::GetElapsedTime(last_recv_time_) << " s (receive_socket_disconnected_wait_s = " << receive_disconnected_wait_s_ << " s). RETURNING DATA_END!";
+		//			return DATA_END; 
+		//		}
+		//if (++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
 		usleep(receive_err_wait_us_);
 		return RECV_TIMEOUT;
@@ -380,7 +381,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	int ret_rank = RECV_TIMEOUT;
 	if (active_receive_fd_ == -1)
 	{ // what if just listen_fd??? 
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Receive socket not connected, returning RECV_TIMEOUT";
+		TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: Receive socket not connected, returning RECV_TIMEOUT (Will result in \"Unexpected return code error\")";
 		return RECV_TIMEOUT;
 	}
 
@@ -409,7 +410,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			if (num_fds_ready == 0)
 			{
-				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT";
+				TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: No data on receive socket, returning RECV_TIMEOUT (Will result in \"Unexpected return code error\")";
 				active_receive_fd_ = -1;
 				return RECV_TIMEOUT;
 			}

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <atomic>
+#include <map>
 
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
@@ -132,6 +133,26 @@ public:
 	*/
 	std::string report(std::string const& which) const;
 
+	/**
+	* \brief Add the specified key and value to the configuration archive list.
+	* \param key String key to be used
+	* \param key String value to be stored
+	*/
+	bool add_config_archive_entry(std::string const& key, std::string const& value)
+	{
+		config_archive_entries_[key] = value;
+		return true;
+	}
+
+	/**
+	* \brief Clear the configuration archive list.
+	*/
+	bool clear_config_archive()
+	{
+		config_archive_entries_.clear();
+		return config_archive_entries_.empty();
+	}
+
 protected:
 	/**
 	 * \brief Initialize the DataReceiverCore (should be called from initialize() overrides
@@ -149,6 +170,9 @@ protected:
 	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
 	bool verbose_; ///< Whether to log transition messages
 	
+	fhicl::ParameterSet art_pset_;
+	std::map<std::string, std::string> config_archive_entries_;
+
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag
 	 * \param text Message to log

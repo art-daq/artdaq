@@ -191,6 +191,7 @@ private:
 	int routing_retry_count_;
 
 	mutable std::atomic<uint64_t> highest_sequence_id_routed_;
+
 };
 
 inline

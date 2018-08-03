@@ -352,6 +352,17 @@ namespace artdaq {
 		 */
 		RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { return dropped_data_[frag]->dataBegin(); }
 
+		/**
+		 * \brief Updates the internally-stored copy of the art configuration.
+		 * \param art_pset ParameterSet used to configure art
+		 *
+		 * This method updates the internally-stored copy of the art configuration, but it does not
+		 * restart art processes.  So, if this method is called while art processes are running, it will
+		 * have no effect until the next restart, such as the next Start of run.  Typically, this
+		 * method is intended to be called between runs, when no art processes are running.
+		 */
+		void UpdateArtConfiguration(fhicl::ParameterSet art_pset);
+
 	private:
 		size_t get_art_process_count_() 
 		{
@@ -431,7 +442,10 @@ namespace artdaq {
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;
-	};
-}
+
+	        bool limit_sent_tokens_;
+	        bool no_buffers_free_for_routing_; 
+		};
+	}
 
 #endif //ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
