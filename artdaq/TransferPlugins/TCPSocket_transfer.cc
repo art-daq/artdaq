@@ -397,7 +397,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	pollfd_s.events = POLLIN | POLLPRI | POLLERR;
 	pollfd_s.fd = active_receive_fd_;
 
-	int loop_guard = 0;
+	int loop_guard = 0, poll_loop_guard = 0;
 	bool done = false;
 	bool noDataWarningSent = false;
 	while (!done)
@@ -412,6 +412,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			{
 				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data from " << source_rank() << " in 1000 ms!"
 				                   << " State = " << (state == SocketState::Metadata ? "Metadata" : "Data") << ", recvd/total=" << offset << "/" << target_bytes << " (delta=" << target_bytes - offset << ")";
+				
+				if (++poll_loop_guard > 5)
+				{
+					TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: poll loop guard triggered, returning RECV_TIMEOUT";
+					active_receive_fd_ = -1;
+					return RECV_TIMEOUT;
+				}
 				continue;
 			}
 
@@ -419,6 +426,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			active_receive_fd_ = -1;
 			break;
 		}
+		else { poll_loop_guard = 0; }
 
 		if (pollfd_s.revents & (POLLIN | POLLPRI))
 		{

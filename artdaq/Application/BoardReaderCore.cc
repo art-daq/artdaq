@@ -359,12 +359,13 @@ void artdaq::BoardReaderCore::process_fragments()
 		frags.clear();
 	}
 
+	sender_ptr_.reset(nullptr);
+
 	// 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
 	// processing fragments loop so that metrics correctly go to zero when
 	// there is no data flowing
 	metricMan->do_stop();
 
-	sender_ptr_.reset(nullptr);
 	TLOG(TLVL_DEBUG) << "process_fragments loop end";
 }
 

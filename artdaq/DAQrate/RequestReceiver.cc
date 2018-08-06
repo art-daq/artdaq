@@ -207,7 +207,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			continue;
 		}
 
-		TLOG(11) << "Recieved packet on Request channel";
+		TLOG(11) << "Received packet on Request channel";
 		artdaq::detail::RequestHeader hdr_buffer;
 		auto sts = recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
 		if (sts < 0)
@@ -217,7 +217,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			request_socket_ = -1;
 			continue;
 		}
-		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer.header;
+		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer.header /*<< std::dec*/;
 		if (!hdr_buffer.isValid()) continue;
 
 		request_received_ = true;
@@ -249,7 +249,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 
 		for (auto& buffer : pkt_buffer)
 		{
-			TLOG(20) << "Request Packet: hdr=" << buffer.header << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
+			TLOG(20) << "Request Packet: hdr=" << /*std::dec <<*/ buffer.header << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
 			if (!buffer.isValid()) continue;
 			std::unique_lock<std::mutex> tlk(request_mutex_);
 			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
@@ -262,7 +262,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			else if (!requests_.count(buffer.sequence_id))
 			{
 				int delta = buffer.sequence_id - highest_seen_request_;
-				TLOG(11) << "Recieved request for sequence ID " << buffer.sequence_id
+				TLOG(11) << "Received request for sequence ID " << buffer.sequence_id
 					<< " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
 				if (delta <= 0 || out_of_order_requests_.count(buffer.sequence_id))
 				{

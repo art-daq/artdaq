@@ -209,19 +209,19 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 	{
 		if (should_stop_)
 		{
-			TLOG(TLVL_DEBUG) << "receiveTableUpdatesLoop: should_stop is " << std::boolalpha << should_stop_ << ", stopping";
+			TLOG(TLVL_DEBUG) << __func__ << ": should_stop is " << std::boolalpha << should_stop_ << ", stopping";
 			return;
 		}
 
-		TLOG(TLVL_TRACE) << "DataSenderManager::receiveTableUpdatesLoop: Polling Request socket for new requests";
+		TLOG(TLVL_TRACE) << __func__ << ": Polling table socket for new routes";
 		if (table_socket_ == -1)
 		{
-			TLOG(TLVL_DEBUG) << "Opening table listener socket";
+			TLOG(TLVL_DEBUG) << __func__ << ": Opening table listener socket";
 			setupTableListener_();
 		}
 		if (table_socket_ == -1)
 		{
-			TLOG(TLVL_DEBUG) << "The listen socket was not opened successfully.";
+			TLOG(TLVL_DEBUG) << __func__ << ": The listen socket was not opened successfully.";
 			return;
 		}
 		if (ack_socket_ == -1)
@@ -230,10 +230,10 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			auto sts = ResolveHost(ack_address_.c_str(), ack_port_, ack_addr_);
 			if (sts == -1)
 			{
-				TLOG(TLVL_ERROR) << "Unable to resolve routing_master_address";
+				TLOG(TLVL_ERROR) << __func__ << ": Unable to resolve routing_master_address";
 				exit(1);
 			}
-			TLOG(TLVL_DEBUG) << "Ack socket is fd " << ack_socket_;
+			TLOG(TLVL_DEBUG) << __func__ << ": Ack socket is fd " << ack_socket_;
 		}
 
 		struct pollfd fd;
@@ -247,44 +247,44 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			auto last = artdaq::Fragment::InvalidSequenceID;
 			artdaq::detail::RoutingPacketHeader hdr;
 
-			TLOG(TLVL_DEBUG) << "Going to receive RoutingPacketHeader";
+			TLOG(TLVL_DEBUG) << __func__ << ": Going to receive RoutingPacketHeader";
 			struct sockaddr_in from;
 			socklen_t          len=sizeof(from);
 			auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, (struct sockaddr*)&from, &len );
-			TLOG(TLVL_DEBUG) << "Received " << stss << " hdr bytes. (sizeof(RoutingPacketHeader) == " << sizeof(detail::RoutingPacketHeader)
+			TLOG(TLVL_DEBUG) << __func__ << ": Received " << stss << " hdr bytes. (sizeof(RoutingPacketHeader) == " << sizeof(detail::RoutingPacketHeader)
 							 << " from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
 
-			TRACE(TLVL_DEBUG,"Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx",hdr.nEntries,((unsigned long*)&hdr)[0],((unsigned long*)&hdr)[1]);
+			TRACE(TLVL_DEBUG,"receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx",hdr.nEntries,((unsigned long*)&hdr)[0],((unsigned long*)&hdr)[1]);
 			if (hdr.header != ROUTING_MAGIC)
 			{
-				TLOG(TLVL_TRACE) << "non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)="<<stss;
+				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)="<<stss;
 			}
 			else if (stss != sizeof(artdaq::detail::RoutingPacketHeader))
 			{
-				TLOG(TLVL_TRACE) << "non-RoutingPacket received. size(bytes)="<<stss;
+				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. size(bytes)="<<stss;
 			}
 			else
 			{
 				if (routing_master_mode_ != detail::RoutingMasterMode::INVALID && routing_master_mode_ != hdr.mode)
 				{
-					TLOG(TLVL_ERROR) << "Received table has different RoutingMasterMode than expected!";
+					TLOG(TLVL_ERROR) << __func__ << ": Received table has different RoutingMasterMode than expected!";
 					exit(1);
 				}
 				routing_master_mode_ = hdr.mode;
 
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
-				TLOG(TLVL_DEBUG) << "Receiving data buffer";
+				TLOG(TLVL_DEBUG) << __func__ << ": Receiving data buffer";
 				auto sts = recvfrom(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0, (struct sockaddr*)&from, &len );
 				assert(static_cast<size_t>(sts) == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-				TLOG(TLVL_DEBUG) << "Received " << sts << " pkt bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
-				TRACE(6,"Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx",sts,((unsigned long*)&buffer[0])[0],((unsigned long*)&buffer[0])[1]);
+				TLOG(TLVL_DEBUG) << __func__ << ": Received " << sts << " pkt bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+				TRACE(6,"receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx",sts,((unsigned long*)&buffer[0])[0],((unsigned long*)&buffer[0])[1]);
 
 				first = buffer[0].sequence_id;
 				last = buffer[buffer.size() - 1].sequence_id;
 
 				if (first + hdr.nEntries - 1 != last)
 				{
-					TLOG(TLVL_ERROR) << "Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
+					TLOG(TLVL_ERROR) << __func__ << ": Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
 					continue;
 				}
 				auto thisSeqID = first;
@@ -297,7 +297,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 					{
 						if (thisSeqID != entry.sequence_id)
 						{
-							TLOG(TLVL_ERROR) << "Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!";
+							TLOG(TLVL_ERROR) << __func__ << ": Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!";
 							last = thisSeqID - 1;
 							break;
 						}
@@ -306,14 +306,15 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 						{
 							if (routing_table_[entry.sequence_id] != entry.destination_rank)
 							{
-								TLOG(TLVL_ERROR) << "Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
+								TLOG(TLVL_ERROR) << __func__ << ": Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
 									<< " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
 									<< " I will use the original value!";
 							}
 							continue;
 						}
 						routing_table_[entry.sequence_id] = entry.destination_rank;
-						TLOG(TLVL_DEBUG) << "DataSenderManager " << my_rank << ": received update: SeqID " << entry.sequence_id << " -> Rank " << entry.destination_rank;
+						TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
+										 << " -> Rank " << entry.destination_rank;
 					}
 				}
 				}
@@ -323,9 +324,9 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				ack.first_sequence_id = first;
 				ack.last_sequence_id = last;
 
-				TLOG(TLVL_DEBUG) << "Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
-				TLOG(TLVL_DEBUG) << "There are now " << routing_table_.size() << " entries in the Routing Table";
-				if(routing_table_.size()>0) TLOG(TLVL_DEBUG) << "Last routing table entry is seqID=" << routing_table_.rbegin()->first; 
+				TLOG(TLVL_DEBUG) << __func__ << ": Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
+				TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
+				if(routing_table_.size()>0) TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first; 
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 
 			}
