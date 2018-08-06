@@ -122,7 +122,10 @@ namespace artdaq
 		/// <returns>True if any requests are present in the request map</returns>
 		bool WaitForRequests(int timeout_ms)
 		{
-			std::unique_lock<std::mutex> lk(request_mutex_);
+			std::unique_lock<std::mutex> lk(request_mutex_); // Lock needed by wait_for
+			// See if we have to wait at all
+			if (requests_.size() > 0) return true;
+			// If we do have to wait, check requests_.size to make sure we're not being notified spuriously
 			return request_cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms), [this]() { return requests_.size() > 0; });
 		}
 
