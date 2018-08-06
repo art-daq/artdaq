@@ -29,6 +29,7 @@ namespace artdaq
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
 		, request_sending_(0)
+	        , tokens_sent_(0)
 	{
 		TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
 		setup_requests_();
@@ -237,6 +238,7 @@ namespace artdaq
 			}
 			sts += res;
 		}
+		tokens_sent_ += nSlots;
 		TLOG(TLVL_TRACE) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
 	}
 
