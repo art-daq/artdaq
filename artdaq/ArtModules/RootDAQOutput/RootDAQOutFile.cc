@@ -568,6 +568,7 @@ art::RootDAQOutFile::requestsToCloseFile()
 void
 art::RootDAQOutFile::writeOne(EventPrincipal const& e)
 {
+  TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeOne";
   // Auxiliary branch.
   // Note: pEventAux_ must be set before calling fillBranches
   // since it gets written out in that routine.
@@ -575,7 +576,9 @@ art::RootDAQOutFile::writeOne(EventPrincipal const& e)
   // Because getting the data may cause an exception to be
   // thrown we want to do that first before writing anything
   // to the file about this event.
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::writeOne before fillBranches call";
   fillBranches<InEvent>(e, pEventProductProvenanceVector_);
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::writeOne after fillBranches call";
   // History branch.
   History historyForOutput{e.history()};
   historyForOutput.addEventSelectionEntry(om_->selectorConfig());
@@ -598,6 +601,7 @@ art::RootDAQOutFile::writeOne(EventPrincipal const& e)
   // Add event to index
   fileIndex_.addEntry(pEventAux_->id(), fp_.eventEntryNumber());
   fp_.update<Granularity::Event>(status_);
+  TLOG(TLVL_TRACE) << "End of RootDAQOutFile::writeOne";
 }
 
 void
@@ -862,6 +866,7 @@ void
 art::RootDAQOutFile::fillBranches(Principal const& principal,
                                   vector<ProductProvenance>* vpp)
 {
+  TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::fillBranches";
   bool const fastCloning = (BT == InEvent) && wasFastCloned_;
   detail::KeptProvenance keptProvenance{
     dropMetaData_, dropMetaDataForDroppedData_, branchesWithStoredHistory_};
@@ -917,8 +922,11 @@ art::RootDAQOutFile::fillBranches(Principal const& principal,
     }
   }
   vpp->assign(keptProvenance.begin(), keptProvenance.end());
+  TLOG(TLVL_DEBUG) << "RootDAQOutFile::fillBranches before fillTree call";
   treePointers_[BT]->fillTree();
+  TLOG(TLVL_DEBUG) << "RootDAQOutFile::fillBranches after fillTree call";
   vpp->clear();
+  TLOG(TLVL_TRACE) << "End of RootDAQOutFile::fillBranches";
 }
 
 void
