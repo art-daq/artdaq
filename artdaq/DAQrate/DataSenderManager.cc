@@ -503,17 +503,14 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
-		while (routing_table_.size() > routing_table_max_size_)
-		{
-			routing_table_.erase(routing_table_.begin());
-		}
-	}
-	{
-		std::unique_lock<std::mutex> lck(routing_mutex_);
-		while (routing_table_.size() > routing_table_max_size_)
-		{
-			routing_table_.erase(routing_table_.begin());
-		}
+	//	while (routing_table_.size() > routing_table_max_size_)
+	//	{
+	//		routing_table_.erase(routing_table_.begin());
+	//	}
+	if(routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
+		routing_table_.erase(routing_table_.find(seqID));
+	else
+	  routing_table_.erase(routing_table_.find(sent_frag_count_.count()));
 	}
 	/*if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
 		&& routing_table_.find(seqID - 1) != routing_table_.end())
