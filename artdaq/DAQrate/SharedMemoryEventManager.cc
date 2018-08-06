@@ -1031,11 +1031,6 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 			  requests_->SendRoutingToken(1);
 			}
 		}
-		if (requests_)
-		{
-			requests_->RemoveRequest(hdr->sequence_id);
-			requests_->SendRoutingToken(1);
-		}
 	}
 	check_pending_buffers_();
 }
