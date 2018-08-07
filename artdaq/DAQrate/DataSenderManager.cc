@@ -345,7 +345,7 @@ size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 	std::unique_lock<std::mutex> lck(routing_mutex_);
 	// Find the distance from the next highest sequence ID to the end of the list
 	size_t dist = std::distance(routing_table_.upper_bound(highest_sequence_id_routed_), routing_table_.end());
-	return (dist==0)? dist : dist-1;
+	return dist; // If dist == 1, there is one entry left.
 }
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
@@ -367,11 +367,11 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 				return routing_table_.at(sequence_id);
 			}
-			else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count()))
+			else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count() + 1))
 			{
-				if (sent_frag_count_.count() > highest_sequence_id_routed_) highest_sequence_id_routed_ = sent_frag_count_.count();
+				if (sent_frag_count_.count() + 1 > highest_sequence_id_routed_) highest_sequence_id_routed_ = sent_frag_count_.count() + 1;
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
-				return routing_table_.at(sent_frag_count_.count());
+				return routing_table_.at(sent_frag_count_.count() + 1);
 			}
 		  }
 			usleep(routing_timeout_ms_ * 10);
