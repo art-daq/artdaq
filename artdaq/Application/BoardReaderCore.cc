@@ -317,12 +317,12 @@ void artdaq::BoardReaderCore::process_fragments()
 			SetMFIteration("Sequence ID " + std::to_string(sequence_id));
 			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
 
-			if ((fragment_count_ % 250) == 0)
+			/*if ((fragment_count_ % 250) == 0)
 			{
 				TLOG(TLVL_DEBUG)
 					<< "Sending fragment " << fragment_count_
 					<< " with sequence id " << sequence_id << ".";
-			}
+			}*/
 
 			// check for continous sequence IDs
 			if (!skip_seqId_test_ && abs(static_cast<int64_t>(sequence_id) - static_cast<int64_t>(prev_seq_id_)) > 1)
@@ -348,11 +348,11 @@ void artdaq::BoardReaderCore::process_fragments()
 				std::string statString = buildStatisticsString_();
 				TLOG(TLVL_DEBUG) << statString;
 			}
-			if (fragment_count_ == 1 || readyToReport)
+			if (fragment_count_ % 250 == 1 || readyToReport)
 			{
 				TLOG(TLVL_DEBUG)
 					<< "Sending fragment " << fragment_count_
-					<< " with sequence id " << sequence_id << ".";
+					<< " with SeqID " << sequence_id << ".";
 			}
 		}
 		if (statsHelper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
