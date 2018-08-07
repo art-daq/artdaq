@@ -345,7 +345,7 @@ size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 	std::unique_lock<std::mutex> lck(routing_mutex_);
 	// Find the distance from the next highest sequence ID to the end of the list
 	size_t dist = std::distance(routing_table_.upper_bound(highest_sequence_id_routed_), routing_table_.end());
-	return dist; // If dist == 1, there is one entry left.
+	return (dist==0)? dist : dist-1;
 }
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
