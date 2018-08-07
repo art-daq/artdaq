@@ -343,7 +343,7 @@ size_t artdaq::DataSenderManager::GetRoutingTableEntryCount() const
 size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 {
 	std::unique_lock<std::mutex> lck(routing_mutex_);
-	size_t dist = std::distance(routing_table_.find(highest_sequence_id_routed_), routing_table_.end());
+	size_t dist = std::distance(routing_table_.find(highest_sequence_id_routed_ + 1), routing_table_.end());
 	return (dist==0)? dist : dist-1;
 }
 
