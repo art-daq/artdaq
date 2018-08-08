@@ -509,9 +509,9 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	//	{
 	//		routing_table_.erase(routing_table_.begin());
 	//	}
-	if(routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
+	if(routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.find(seqID) != routing_table_.end())
 		routing_table_.erase(routing_table_.find(seqID));
-	else
+	else if(routing_table_.find(sent_frag_count_.count()) != routing_table_.end())
 	  routing_table_.erase(routing_table_.find(sent_frag_count_.count()));
 	}
 	/*if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
