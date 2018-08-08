@@ -345,7 +345,7 @@ size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 	std::unique_lock<std::mutex> lck(routing_mutex_);
 	// Find the distance from the next highest sequence ID to the end of the list
 	size_t dist = std::distance(routing_table_.upper_bound(highest_sequence_id_routed_), routing_table_.end());
-	return (dist==0)? dist : dist-1;
+	return dist; // If dist == 1, there is one entry left.
 }
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
@@ -509,9 +509,9 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	//	{
 	//		routing_table_.erase(routing_table_.begin());
 	//	}
-	if(routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
+	if(routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.find(seqID) != routing_table_.end())
 		routing_table_.erase(routing_table_.find(seqID));
-	else
+	else if(routing_table_.find(sent_frag_count_.count()) != routing_table_.end())
 	  routing_table_.erase(routing_table_.find(sent_frag_count_.count()));
 	}
 	/*if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
