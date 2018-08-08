@@ -177,8 +177,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 				*++it = sndDatSz;*/
 
 		auto send_start = std::chrono::steady_clock::now();
-		auto stspair = sender.sendFragment(std::move(frag));
 		TLOG(TLVL_DEBUG) << "Sender " << my_rank << " sending fragment " << ii;
+		auto stspair = sender.sendFragment(std::move(frag));
 		auto after_send = std::chrono::steady_clock::now();
 		TLOG(TLVL_TRACE) << "Sender " << my_rank << " sent fragment " << ii;
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
