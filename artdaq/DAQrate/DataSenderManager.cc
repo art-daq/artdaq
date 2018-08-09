@@ -547,7 +547,10 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		{
 			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 2, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)
+			{
 				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 2, MetricMode::Average);
+				routing_wait_time_ = 0;
+			}
 		}
 	}
 	TLOG(5) << "sendFragment: Done sending fragment " << seqID;
