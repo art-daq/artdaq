@@ -318,7 +318,7 @@ void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqI
 		}
 		TLOG(10) << "RemoveRequest: reqID=" << reqID << " Setting highest_seen_request_ to " << highest_seen_request_;
 	}
-	if (metricMan)
+	if (metricMan && request_timing_.count(reqID))
 	{
 		metricMan->sendMetric("Request Response Time", TimeUtils::GetElapsedTime(request_timing_[reqID]), "seconds", 2, MetricMode::Average);
 	}
