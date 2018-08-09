@@ -814,6 +814,7 @@ void artdaq::TCPSocketTransfer::connect_()
 			sndbuf_bytes = INT_MAX;
 			TLOG(TLVL_WARNING) << "Requested SNDBUF " << sndbuf_ << " too large, setting to INT_MAX: " << INT_MAX;
 		}
+        TLOG(TLVL_DEBUG) << "Requested SNDBUF is " << sndbuf_bytes;
 
 		send_fd_ = TCPConnect(hostMap_[destination_rank()].c_str()
 			, portMan->GetTCPSocketTransferPort(destination_rank())
