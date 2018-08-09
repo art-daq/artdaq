@@ -51,7 +51,7 @@ public:
 	 * "pass_filter_percentage" (Default: 100): The fraction of events which will pass the filter
      * "distribution_type" (Default: "Uniform"): The distribution to sample for delays (Uniform, Normal, Exponential, Fixed)
 	 * "cpu_load_ratio" (Default: 0.5): The fraction of the delay time which should be active (spinning) versis passive (sleeping)
-	 * "random_seed" (Default: 271828): The seed for the ditribution
+	 * "random_seed" (Default: time(0)): The seed for the ditribution
 	 */
 	explicit RandomDelayFilter(fhicl::ParameterSet const& p);
 
@@ -122,7 +122,7 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 	, sigma_ms_(p.get<double>("sigma_delay_ms", 100))
 	, pass_factor_(p.get<int>("pass_filter_percentage", 100))
 	, load_factor_(p.get<double>("cpu_load_ratio", 0.5))
-	, engine_(p.get<int64_t>("random_seed", 271828))
+	, engine_(p.get<int64_t>("random_seed", time(0)))
 	, pass_distn_(new std::uniform_int_distribution<int>(0, 100))
 {
 	// Set limits on parameters
