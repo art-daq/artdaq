@@ -631,13 +631,15 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				  }
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
-			}
-		}
-			if (statsHelper_.statsRollingWindowHasMoved()) {
+				bool readyToReport = statsHelper_.readyToReport(delta_time);
+				if (readyToReport)
+				{
 				std::string statString = buildStatisticsString_();
-				TLOG(TLVL_DEBUG) << statString; 
+					TLOG(TLVL_INFO) << statString;
 				sendMetrics_();
 			}
+	}
+}
 	}
 }
 
