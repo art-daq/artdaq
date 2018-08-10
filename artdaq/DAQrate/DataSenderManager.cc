@@ -27,6 +27,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
+	, routing_table_last_(0)
 	, routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
 	, highest_sequence_id_routed_(0)
 {
@@ -312,6 +313,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 							}
 							continue;
 						}
+						if (entry.sequence_id < last) continue;
 						routing_table_[entry.sequence_id] = entry.destination_rank;
 						TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
 										 << " -> Rank " << entry.destination_rank;
@@ -323,6 +325,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				ack.rank = my_rank;
 				ack.first_sequence_id = first;
 				ack.last_sequence_id = last;
+
+				if (last > routing_table_last_) routing_table_last_ = last;
 
 				TLOG(TLVL_DEBUG) << __func__ << ": Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
 				TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
