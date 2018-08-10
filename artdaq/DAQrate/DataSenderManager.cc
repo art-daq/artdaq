@@ -331,7 +331,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				auto counter = 0;
 				for (auto& entry : routing_table_)
 				{
-					TLOG(45) << "Routing Table Entry" << counter << ": " << entry.first << " -> " << entry.second;
+					TLOG(45) << "Routing Table Entry " << counter << ": " << entry.first << " -> " << entry.second;
 					counter++;
 				}
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
