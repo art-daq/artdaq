@@ -327,6 +327,13 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				TLOG(TLVL_DEBUG) << __func__ << ": Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
 				TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
 				if(routing_table_.size()>0) TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first; 
+
+				auto counter = 0;
+				for (auto& entry : routing_table_)
+				{
+					TLOG(45) << "Routing Table Entry" << counter << ": " << entry.first << " -> " << entry.second;
+					counter++;
+				}
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 
 			}
