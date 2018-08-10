@@ -404,7 +404,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	{
 		TLOG(9) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polled fd to see if there's data"
+		TLOG(TLVL_TRACE) << GetTraceName() << ": receiveFragmentData: Polled fd to see if there's data"
 			<< ", num_fds_ready = " << num_fds_ready;
 		if (num_fds_ready <= 0)
 		{
