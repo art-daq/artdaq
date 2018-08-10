@@ -28,6 +28,8 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, ack_socket_(-1)
 	, table_socket_(-1)
 	, routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
+	, routing_wait_time_(0)
+	, routing_wait_time_count_(0)
 	, highest_sequence_id_routed_(0)
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
@@ -364,13 +366,15 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id))
 			{
 				if (sequence_id > highest_sequence_id_routed_) highest_sequence_id_routed_ = sequence_id;
-				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
+				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start)); 
+				routing_wait_time_count_++;
 				return routing_table_.at(sequence_id);
 			}
 			else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count() + 1))
 			{
 				if (sent_frag_count_.count() + 1 > highest_sequence_id_routed_) highest_sequence_id_routed_ = sent_frag_count_.count() + 1;
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
+				routing_wait_time_count_++;
 				return routing_table_.at(sent_frag_count_.count() + 1);
 			}
 		  }
@@ -548,8 +552,9 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 2, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)
 			{
-				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 2, MetricMode::Average);
+				metricMan->sendMetric("Avg Routing Wait Time", static_cast<double>(routing_wait_time_.load()/routing_wait_time_count_.load()) / 1000000, "s", 2, MetricMode::Average);
 				routing_wait_time_ = 0;
+				routing_wait_time_count_ = 0;
 			}
 		}
 	}
