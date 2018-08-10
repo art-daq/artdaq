@@ -742,6 +742,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer()
 				{
 					if ((*it)->timestamp() < min)
 					{
+						TLOG(TLVL_CHECKDATABUFFER) << "checkDataBuffer: Dropping Fragment with timestamp " << (*it)->timestamp() << " from data buffer (timeout=" << staleTimeout_ << ", min=" << min << ")";
 						it = dataBuffer_.erase(it);
 					}
 					else
