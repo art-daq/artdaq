@@ -252,8 +252,8 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		hdr->subrun_id = subrun_id_;
 	}
 
-	TLOG(TLVL_TRACE) << "DoneWritingFragment: Incrementing WritePos by 0 to update buffer touch time";
-	IncrementWritePos(buffer, 0);
+	TLOG(TLVL_TRACE) << "DoneWritingFragment: Updating buffer touch time";
+	TouchBuffer(buffer);
 
 	buffer_writes_pending_[buffer]--;
 	if (buffer_writes_pending_[buffer] != 0)
