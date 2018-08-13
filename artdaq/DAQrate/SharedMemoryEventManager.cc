@@ -252,6 +252,9 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		hdr->subrun_id = subrun_id_;
 	}
 
+	TLOG(TLVL_TRACE) << "DoneWritingFragment: Incrementing WritePos by 0 to update buffer touch time";
+	IncrementWritePos(buffer, 0);
+
 	buffer_writes_pending_[buffer]--;
 	if (buffer_writes_pending_[buffer] != 0)
 	{
@@ -1047,6 +1050,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	auto buffers = GetBuffersOwnedByManager();
 	for (auto buf : buffers)
 	{
+		std::unique_lock<std::mutex> lk(buffer_mutexes_[buf]);
 		if (ResetBuffer(buf) && !pending_buffers_.count(buf))
 		{
 			auto hdr = getEventHeader_(buf);
