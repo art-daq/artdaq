@@ -313,7 +313,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 							}
 							continue;
 						}
-						if (entry.sequence_id < last) continue;
+						if (entry.sequence_id < routing_table_last_) continue;
 						routing_table_[entry.sequence_id] = entry.destination_rank;
 						TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
 										 << " -> Rank " << entry.destination_rank;
