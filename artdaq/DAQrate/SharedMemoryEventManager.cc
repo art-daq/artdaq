@@ -235,7 +235,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
 	if (buffer == -1) Detach(true, "SharedMemoryEventManager", "getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!");
 	if (buffer == -2) { return; }
-
+	{
 	TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtaining buffer_mutexes lock for buffer " << buffer;
 
 	std::unique_lock<std::mutex> lk(buffer_mutexes_[buffer]);
@@ -270,7 +270,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		hdr->is_complete = frag_count == released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
 	}
 #endif
-
+	}
 	complete_buffer_(buffer);
 	if (requests_) requests_->SendRequest(true);
 	TLOG(TLVL_TRACE) << "DoneWritingFragment END";
