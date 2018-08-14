@@ -363,6 +363,10 @@ namespace artdaq {
 		 */
 		void UpdateArtConfiguration(fhicl::ParameterSet art_pset);
 
+		/**
+		 * \brief Check for buffers which are ready to be marked incomplete and released to art and issue tokens for any buffers which are avaialble
+		 */
+		void CheckPendingBuffers() { check_pending_buffers_(); }
 	private:
 		size_t get_art_process_count_() 
 		{
