@@ -261,6 +261,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	TLOG(TLVL_TRACE) << "Done writing fragment, and no other writer. Doing bookkeeping steps.";
 	auto frag_count = GetFragmentCount(frag.sequence_id);
 	hdr->is_complete = frag_count == num_fragments_per_event_;
+	TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << frag_count << "/" << num_fragments_per_event_;
 #if ART_SUPPORTS_DUPLICATE_EVENTS
 	if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id))
 	{
