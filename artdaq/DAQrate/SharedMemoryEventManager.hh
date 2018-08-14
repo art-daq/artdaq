@@ -442,9 +442,6 @@ namespace artdaq {
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;
-
-	        bool limit_sent_tokens_;
-	        bool no_buffers_free_for_routing_; 
 		};
 	}
 
