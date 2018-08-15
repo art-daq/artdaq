@@ -1099,12 +1099,21 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	if (requests_)
 	{
 		auto outstanding_tokens = requests_->GetSentTokenCount() - run_event_count_;
-		auto tokens_to_send = WriteReadyCount(overwrite_mode_) - outstanding_tokens;
+		auto available_buffers = WriteReadyCount(overwrite_mode_);
 
-		while (tokens_to_send > 0)
+		TLOG(TLVL_TRACE) << "check_pending_buffers_: outstanding_tokens: " << outstanding_tokens << ", available_buffers: " << available_buffers
+			<< ", tokens_to_send: " << available_buffers - outstanding_tokens;
+
+		if (available_buffers > outstanding_tokens)
 		{
-			requests_->SendRoutingToken(1);
-			tokens_to_send--;
+			auto tokens_to_send = available_buffers - outstanding_tokens;
+
+			while (tokens_to_send > 0)
+			{
+				TLOG(35) << "check_pending_buffers_: Sending a Routing Token";
+				requests_->SendRoutingToken(1);
+				tokens_to_send--;
+			}
 		}
 	}
 
