@@ -366,7 +366,13 @@ namespace artdaq {
 		/**
 		 * \brief Check for buffers which are ready to be marked incomplete and released to art and issue tokens for any buffers which are avaialble
 		 */
-		void CheckPendingBuffers() { check_pending_buffers_(); }
+		void CheckPendingBuffers() 
+		{ 
+			TLOG(TLVL_TRACE) << "CheckPendingBuffers: Obtaining sequence_id_mutex_";
+			std::unique_lock<std::mutex> lk(sequence_id_mutex_);
+				TLOG(TLVL_TRACE) << "CheckPendingBuffers: Obtained sequence_id_mutex_";
+			check_pending_buffers_(lk);
+		}
 	private:
 		size_t get_art_process_count_() 
 		{
@@ -442,7 +448,7 @@ namespace artdaq {
 		bool hasFragments_(int buffer);
 		void complete_buffer_(int buffer);
 		bool bufferComparator(int bufA, int bufB);
-		void check_pending_buffers_(std::unique_lock<std::mutex> const& lock = std::unique_lock<std::mutex>(sequence_id_mutex_));
+		void check_pending_buffers_(std::unique_lock<std::mutex> const& lock);
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;

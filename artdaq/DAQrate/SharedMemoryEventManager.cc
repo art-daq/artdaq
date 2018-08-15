@@ -997,7 +997,7 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 			requests_->RemoveRequest(hdr->sequence_id);
 		}
 	}
-	check_pending_buffers_();
+	CheckPendingBuffers();
 }
 
 bool artdaq::SharedMemoryEventManager::bufferComparator(int bufA, int bufB)
