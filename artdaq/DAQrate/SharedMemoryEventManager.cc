@@ -992,6 +992,10 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 					  << pending_buffers_.size() << ","
 					  << active_buffers_.size() << ")";
 		}
+		if (requests_)
+		{
+			requests_->RemoveRequest(hdr->sequence_id);
+		}
 	}
 	check_pending_buffers_();
 }
@@ -1014,6 +1018,10 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			auto hdr = getEventHeader_(buf);
 			if (active_buffers_.count(buf) && (buffer_writes_pending_[buf].load() == 0 || !running_))
 			{
+				if (requests_)
+				{
+					requests_->RemoveRequest(hdr->sequence_id);
+				}
 				TLOG(TLVL_BUFFER) << "check_pending_buffers_ moving buffer " << buf << " from active to pending";
 				active_buffers_.erase(buf);
 				pending_buffers_.insert(buf);
