@@ -366,13 +366,8 @@ namespace artdaq {
 		/**
 		 * \brief Check for buffers which are ready to be marked incomplete and released to art and issue tokens for any buffers which are avaialble
 		 */
-		void CheckPendingBuffers() 
-		{ 
-			TLOG(TLVL_TRACE) << "CheckPendingBuffers: Obtaining sequence_id_mutex_";
-			std::unique_lock<std::mutex> lk(sequence_id_mutex_);
-				TLOG(TLVL_TRACE) << "CheckPendingBuffers: Obtained sequence_id_mutex_";
-			check_pending_buffers_(lk);
-		}
+		void CheckPendingBuffers();
+
 	private:
 		size_t get_art_process_count_() 
 		{
