@@ -1005,6 +1005,14 @@ bool artdaq::SharedMemoryEventManager::bufferComparator(int bufA, int bufB)
 	return getEventHeader_(bufA)->sequence_id < getEventHeader_(bufB)->sequence_id;
 }
 
+void artdaq::SharedMemoryEventManager::CheckPendingBuffers()
+{
+	TLOG(TLVL_BUFLCK) << "CheckPendingBuffers: Obtaining sequence_id_mutex_";
+	std::unique_lock<std::mutex> lk(sequence_id_mutex_);
+	TLOG(TLVL_BUFLCK) << "CheckPendingBuffers: Obtained sequence_id_mutex_";
+	check_pending_buffers_(lk);
+}
+
 void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<std::mutex> const& lock)
 {
 	TLOG(TLVL_TRACE) << "check_pending_buffers_ BEGIN Locked=" << std::boolalpha << lock.owns_lock();
