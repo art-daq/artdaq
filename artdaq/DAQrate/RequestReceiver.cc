@@ -266,7 +266,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 					<< " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
 				if (delta <= 0 || out_of_order_requests_.count(buffer.sequence_id))
 				{
-					TLOG(11) << "Already serviced this request! Ignoring...";
+					TLOG(11) << "Already serviced this request ( sequence ID " << buffer.sequence_id << ")! Ignoring...";
 				}
 				else
 				{
@@ -287,7 +287,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 
 void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)
 {
-	TLOG(10) << "RemoveRequest: Removing request with id " << reqID;
+	TLOG(10) << "RemoveRequest: Removing request for id " << reqID;
 	std::unique_lock<std::mutex> lk(request_mutex_);
 	requests_.erase(reqID);
 
