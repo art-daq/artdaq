@@ -223,7 +223,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		}
 
 		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]);
-		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header /*<< std::dec*/ << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header /*<< std::dec*/ << ", packet_count: " << hdr_buffer->packet_count << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
 		if (!hdr_buffer->isValid()) continue;
 
 		request_received_ = true;
