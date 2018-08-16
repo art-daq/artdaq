@@ -2,6 +2,7 @@
 #define artdaq_DAQrate_detail_RequestMessage_hh
 
 #include "artdaq-core/Data/Fragment.hh"
+#define MAX_REQUEST_MESSAGE_SIZE 65000
 
 namespace artdaq
 {
@@ -89,6 +90,7 @@ struct artdaq::detail::RequestHeader
 	/** The magic bytes for the request header */
 	uint32_t header; //HEDR, or 0x48454452
 	uint32_t packet_count; ///< The number of RequestPackets in this Request message
+	int      rank; ///< Rank of the sender
 	RequestMessageMode mode; ///< Communicates additional information to the Request receiver
 
 	/**
@@ -96,6 +98,7 @@ struct artdaq::detail::RequestHeader
 	 */
 	RequestHeader() : header(0x48454452)
 		, packet_count(0)
+		, rank(my_rank)
 		, mode(RequestMessageMode::Normal)
 	{}
 
@@ -119,21 +122,27 @@ public:
 		, packets_()
 	{}
 
-	/**
-	 * \brief Get a pointer to the RequestHeader, filling in the current size of the message
-	 * \return A pointer to the RequestHeader
-	 */
-	RequestHeader* header()
+	std::vector<uint8_t> GetMessage()
 	{
+		auto size = sizeof(RequestHeader) + packets_.size() * sizeof(RequestPacket);
 		header_.packet_count = packets_.size();
-		return &header_;
+		assert(size < MAX_REQUEST_MESSAGE_SIZE);
+		auto output = std::vector<uint8_t>(size);
+		memcpy(&output[0], &header_, sizeof(RequestHeader));
+		memcpy(&output[sizeof(RequestHeader)], &packets_[0], packets_.size() * sizeof(RequestPacket));
+		
+		return output;
 	}
 
 	/**
-	 * \brief Get a pointer to the first RequestPacket in contiguous storage
-	 * \return Pointer to the first Request Packet
+	 * \brief Set the Request Message Mode for this request
+	 * \param mode Mode for this Request Message
 	 */
-	RequestPacket* buffer() { return &packets_[0]; }
+	void setMode(RequestMessageMode mode)
+	{
+		header_.mode = mode;
+	}
+
 	/**
 	 * \brief Get the number of RequestPackets in the RequestMessage
 	 * \return The number of RequestPackets in the RequestMessage

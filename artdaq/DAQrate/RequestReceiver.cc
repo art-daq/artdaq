@@ -28,6 +28,8 @@
 #include <iomanip>
 #include <algorithm>
 #include <sys/poll.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::RequestReceiver::RequestReceiver()
@@ -208,8 +210,10 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		}
 
 		TLOG(11) << "Received packet on Request channel";
-		artdaq::detail::RequestHeader hdr_buffer;
-		auto sts = recv(request_socket_, &hdr_buffer, sizeof(hdr_buffer), 0);
+		std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+		struct sockaddr_in from;
+		socklen_t          len = sizeof(from);
+		auto sts = recvfrom(request_socket_, &buffer[0], MAX_REQUEST_MESSAGE_SIZE, 0, (struct sockaddr*)&from, &len);
 		if (sts < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error receiving request message header err=" << strerror(errno);
@@ -217,32 +221,21 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			request_socket_ = -1;
 			continue;
 		}
-		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer.header /*<< std::dec*/;
-		if (!hdr_buffer.isValid()) continue;
+
+		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]);
+		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header /*<< std::dec*/ << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+		if (!hdr_buffer->isValid()) continue;
 
 		request_received_ = true;
-		if (hdr_buffer.mode == artdaq::detail::RequestMessageMode::EndOfRun)
+		if (hdr_buffer->mode == artdaq::detail::RequestMessageMode::EndOfRun)
 		{
 			TLOG(TLVL_INFO) << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests...";
 			request_stop_timeout_ = std::chrono::steady_clock::now();
 			request_stop_requested_ = true;
 		}
 
-		std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-		size_t recvd = 0;
-		while (recvd < sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count)
-		{
-			ssize_t this_recv = recv(request_socket_, reinterpret_cast<uint8_t*>(&pkt_buffer[0]) + recvd, sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count - recvd, 0);
-			if (this_recv < 0)
-			{
-				TLOG(TLVL_ERROR) << "Error receiving request message data err=" << strerror(errno);
-				close(request_socket_);
-				request_socket_ = -1;
-				continue;
-
-			}
-			recvd += this_recv;
-		}
+		std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer->packet_count);
+		memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer->packet_count);
 		bool anyNew = false;
 
 		if (should_stop_) break;
