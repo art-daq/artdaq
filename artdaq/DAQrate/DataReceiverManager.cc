@@ -254,9 +254,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (ret != ret2) {
 				TLOG(TLVL_ERROR) << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
 				//throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
-				TLOG(TLVL_ERROR) << "FATAL ERROR RECEIVING FRAGMENT DATA!!! This application will now exit!";
-				shm_manager_->endOfData();
-				exit(22);
+				continue;
 			}
 
 			shm_manager_->DoneWritingFragment(header);
