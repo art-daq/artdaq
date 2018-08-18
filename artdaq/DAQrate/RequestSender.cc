@@ -271,6 +271,7 @@ namespace artdaq
 	{
 		while (!initialized_) usleep(1000);
 		std::lock_guard<std::mutex> lk(request_mutex_);
+		TLOG(12) << "Removing request for sequence ID " << seqID << " from request list.";
 		active_requests_.erase(seqID);
 	}
 }
