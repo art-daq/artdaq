@@ -359,6 +359,6 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		}
 	}
 
-
+	TLOG(TLVL_DEBUG) << "runReceiver_ " << source_rank << " receive loop exited";
 	running_sources_[source_rank] = false;
 }
