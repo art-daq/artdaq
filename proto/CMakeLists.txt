@@ -13,6 +13,7 @@ art_make_exec(NAME artdaqDriver
   artdaq-core_Generators
   ${FHICLCPP}
   ${CETLIB}
+  ${ROOT_CORE}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 

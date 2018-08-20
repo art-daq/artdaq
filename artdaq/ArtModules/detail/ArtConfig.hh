@@ -5,7 +5,7 @@
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq/ArtModules/RootNetOutput.hh"
 #include "art/Framework/Core/OutputModule.h"
-# include "art/Framework/IO/ClosingCriteria.h"
+#include "art/Framework/IO/ClosingCriteria.h"
 
 namespace art {
 	/// <summary>

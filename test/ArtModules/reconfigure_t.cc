@@ -8,6 +8,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 #include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/ArtModules/detail/ArtConfig.hh"
 
 #include <cstddef>
 #include <iostream>

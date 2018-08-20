@@ -1218,7 +1218,3 @@ void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSe
 	}
 	TLOG(TLVL_DEBUG) << "UpdateArtConfiguration END";
 }
-
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
-FHICL_PROVIDE_ALLOWED_CONFIGURATION(artdaq::SharedMemoryEventManager)
-#endif

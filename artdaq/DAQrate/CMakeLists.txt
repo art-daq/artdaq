@@ -19,11 +19,9 @@ art_make(BASENAME_ONLY
   artdaq-core_Utilities
   ${FHICLCPP}
   ${MESSAGEFACILITY_LIBS}
-  ${CLHEP}
   ${Boost_THREAD_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   pthread
-  ${ROOT_CORE}
   )
 
 install_headers(SUBDIRS detail)
