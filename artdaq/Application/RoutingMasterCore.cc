@@ -166,13 +166,13 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 
 bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 {
+	run_id_ = id;
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
 	statsHelper_.resetStatistics();
 
 	metricMan->do_start();
-	run_id_ = id;
 	table_update_count_ = 0;
 	received_token_count_ = 0;
 
