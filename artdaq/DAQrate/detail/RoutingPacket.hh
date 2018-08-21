@@ -100,6 +100,7 @@ struct artdaq::detail::RoutingToken
 	uint32_t header; ///< The magic bytes that help validate the RoutingToken
 	int rank; ///< The rank from which the RoutingToken came
 	unsigned new_slots_free; ///< The number of slots free in the token sender (usually 1)
+	unsigned run_number; ///< The Run with which this token should be associated
 };
 
 #endif //artdaq_Application_Routing_RoutingPacket_hh

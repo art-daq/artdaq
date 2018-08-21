@@ -28,7 +28,7 @@ TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
 artdaq::RoutingMasterCore::RoutingMasterCore() 
 	: received_token_counter_()
 	, shutdown_requested_(false)
-	, stop_requested_(false)
+	, stop_requested_(true)
 	, pause_requested_(false)
 	, token_socket_(-1)
 	, table_socket_(-1)
@@ -170,7 +170,6 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 	pause_requested_.store(false);
 
 	statsHelper_.resetStatistics();
-	policy_->Reset();
 
 	metricMan->do_start();
 	run_id_ = id;
@@ -187,6 +186,7 @@ bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 		<< " after " << table_update_count_ << " table updates."
 		<< " and " << received_token_count_ << " received tokens." ;
 	stop_requested_.store(true);
+	run_id_ = art::RunID::flushRun();
 	return true;
 }
 
@@ -201,8 +201,7 @@ bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 
 bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Resuming run " << run_id_.run() ;
-	policy_->Reset();
+	TLOG(TLVL_DEBUG) << "Resuming run " << run_id_.run();
 	pause_requested_.store(false);
 	metricMan->do_start();
 	return true;
@@ -308,6 +307,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 		}
 	}
 
+	policy_->Reset();
 	metricMan->do_stop();
 }
 
@@ -536,6 +536,11 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			exit(EXIT_FAILURE);
 		}
 
+		while (stop_requested_ && !shutdown_requested_)
+		{
+			usleep(10000);
+		}
+
 		TLOG(TLVL_DEBUG) << "Received " << nfds << " events" ;
 		for (auto n = 0; n < nfds; ++n)
 		{
@@ -608,7 +613,13 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 					else if(sts == sizeof(detail::RoutingToken))
 					  {
 						sts = 0;
-						TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free." ;
+						TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free. (run=" << buff.run_number << ")" ;
+						if (buff.run_number != run_id_.run())
+						{
+							TLOG(TLVL_WARNING) << "Received token from a different run number! Current = " << run_id_.run() << ", token = " << buff.run_number;
+						}
+						else 
+						{
 						received_token_count_ += buff.new_slots_free;
 						if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
 						  {
@@ -628,6 +639,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 							  }
 						  }
 					  }
+				  }
 				  }
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
