@@ -258,7 +258,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 
 			if (stss > static_cast<ssize_t>(sizeof(hdr)))
 			{
-				memcpy(&hdr, &buf[0], sizeof(hdr));
+				memcpy(&hdr, &buf[0], sizeof(artdaq::detail::RoutingPacketHeader));
 			}
 			else 
 			{
@@ -270,10 +270,6 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			if (hdr.header != ROUTING_MAGIC)
 			{
 				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)="<<stss;
-			}
-			else if (stss != sizeof(artdaq::detail::RoutingPacketHeader))
-			{
-				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. size(bytes)="<<stss;
 			}
 			else
 			{
