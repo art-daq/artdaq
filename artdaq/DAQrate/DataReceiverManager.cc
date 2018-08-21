@@ -259,6 +259,13 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (ret != ret2) {
 				TLOG(TLVL_ERROR) << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
 				TLOG(TLVL_ERROR) << "Error receiving data from rank " << source_rank << ", data has been lost! Event " << header.sequence_id << " will most likely be Incomplete!";
+
+				// Mark the Fragment as invalid
+				/* \todo Make a RawFragmentHeader field that marks it as invalid while maintaining previous type! */
+				auto hdrLoc = reinterpret_cast<artdaq::detail::RawFragmentHeader*>(loc - artdaq::detail::RawFragmentHeader::num_words());
+				hdrLoc->type = Fragment::InvalidFragmentType;
+
+				shm_manager_->DoneWritingFragment(header);
 				//throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
 				continue;
 			}
