@@ -616,7 +616,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 						TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free. (run=" << buff.run_number << ")" ;
 						if (buff.run_number != run_id_.run())
 						{
-							TLOG(TLVL_WARNING) << "Received token from a different run number! Current = " << run_id_.run() << ", token = " << buff.run_number;
+							TLOG(TLVL_DEBUG) << "Received token from a different run number! Current = " << run_id_.run() << ", token = " << buff.run_number << ", ignoring";
 						}
 						else 
 						{
