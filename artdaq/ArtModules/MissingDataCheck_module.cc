@@ -61,6 +61,8 @@ public:
    * 
    */
   void analyze(art::Event const& e) override;
+
+  void endJob() override;
   
 private:
   std::string raw_data_label_;
@@ -129,6 +131,7 @@ artdaq::MissingDataCheck::MissingDataCheck(fhicl::ParameterSet const& pset)
     fragtree_->Branch("missing_data",&missing_data_,"missing_data/I");
   }
 }
+
 
 void artdaq::MissingDataCheck::analyze(art::Event const& e)
 {
@@ -231,6 +234,56 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
     evtree_->Fill();
   }
 
+}
+
+void artdaq::MissingDataCheck::endJob()
+{
+  if(verbosity_>0){
+    std::cout << "---------------------------------------------------" << std::endl;
+    std::cout << "----------- MISSING DATA CHECK SUMMARY ------------" << std::endl;
+    std::cout << "---------------------------------------------------" << std::endl;
+
+    std::cout << "Total events processed: " << evtree_->GetEntries() << std::endl;
+
+    unsigned int run;    evtree_->SetBranchAddress("run",&run);
+    unsigned int subrun; evtree_->SetBranchAddress("subrun",&subrun);
+    unsigned int event;  evtree_->SetBranchAddress("event",&event);
+    int n_frag_exp; evtree_->SetBranchAddress("n_frag_exp",&n_frag_exp);
+    unsigned int n_frag; evtree_->SetBranchAddress("n_frag",&n_frag);
+    unsigned int n_miss_data; evtree_->SetBranchAddress("n_miss_data",&n_miss_data);
+
+    std::cout << "Events missing fragments:\t\t" 
+	      << evtree_->GetEntries("n_frag<n_frag_exp") 
+	      << " / " << evtree_->GetEntries() << std::endl;
+    if(evtree_->GetEntries("n_frag<n_frag_exp")>0){
+      for(int i=0; i<evtree_->GetEntries(); ++i)
+	{
+	  evtree_->GetEvent(i);
+	  if((int)n_frag<n_frag_exp){
+	    std::cout << "\tEvent (" << run << "," << subrun << "," << event << ")"
+		      << " is missing " << n_frag_exp-n_frag << " fragments."
+		      << std::endl;
+	  }
+	}
+    }
+    std::cout << "Events missing data in fragments:\t"
+	      << evtree_->GetEntries("n_miss_data>0")
+	      << " / " << evtree_->GetEntries() << std::endl;
+    if(evtree_->GetEntries("n_miss_data>0")>0){
+      for(int i=0; i<evtree_->GetEntries(); ++i)
+	{
+	  evtree_->GetEvent(i);
+	  if(n_miss_data>0){
+	    std::cout << "\tEvent (" << run << "," << subrun << "," << event << ")"
+		      << " has " << n_miss_data << " fragments missing data."
+		      << std::endl;
+	  }
+	}
+    }
+
+    std::cout << "---------------------------------------------------" << std::endl;
+    std::cout << "---------------------------------------------------" << std::endl;
+  }
 }
 
 DEFINE_ART_MODULE(artdaq::MissingDataCheck)
