@@ -362,7 +362,9 @@ namespace artdaq
 				{
 					std::map<Fragment::type_t, std::string>::const_iterator iter =
 						fragment_type_map_.find(type_code);
+					TLOG_TRACE("SharedMemoryReader") << "Before GetFragmentsByType call, type is " << (int)type_code;
 					auto product = incoming_events->GetFragmentsByType(errflag, type_code);
+					TLOG_TRACE("SharedMemoryReader") << "After GetFragmentsByType call";
 					if (errflag) goto start; // Buffer was changed out from under reader!
 					for (auto &frag : *product)
 						bytesRead += frag.sizeBytes();
@@ -422,6 +424,8 @@ namespace artdaq
 							<< unidentified_instance_name << "\".";
 					}
 				}
+				TLOG_TRACE("SharedMemoryReader") << "After putting fragments in event";
+
 				incoming_events->ReleaseBuffer();
 				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << incoming_events->size() << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
@@ -430,6 +434,7 @@ namespace artdaq
 					metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / incoming_events->size()), "%", 5, MetricMode::LastPoint, "", true);
 				}
 
+				TLOG_TRACE("SharedMemoryReader") << "Returning from readNext";
 				return true;
 			}
 
