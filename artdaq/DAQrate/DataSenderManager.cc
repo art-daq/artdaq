@@ -550,11 +550,13 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		if (use_routing_master_)
 		{
 			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 2, MetricMode::LastPoint);
-			if (routing_wait_time_ > 0)
+
+			auto routingWaitTime = routing_wait_time_.exchange(0);
+			auto routingWaitCount = routing_wait_time_count_.exchange(0);
+
+			if (routingWaitTime > 0 && routingWaitCount > 0)
 			{
-				metricMan->sendMetric("Avg Routing Wait Time", static_cast<double>(routing_wait_time_.load()/routing_wait_time_count_.load()) / 1000000, "s", 2, MetricMode::Average);
-				routing_wait_time_ = 0;
-				routing_wait_time_count_ = 0;
+				metricMan->sendMetric("Avg Routing Wait Time", static_cast<double>(routingWaitTime / routingWaitCount) / 1000000, "s", 2, MetricMode::Average);
 			}
 		}
 	}
