@@ -308,6 +308,8 @@ void artdaq::RoutingMasterCore::process_event_table()
 		}
 	}
 
+	TLOG(TLVL_DEBUG) << "stop_requested_ is " << stop_requested_ << ", pause_requested_ is " << pause_requested_ << ", exiting process_event_table loop";
+	policy_->Reset();
 	metricMan->do_stop();
 }
 
@@ -342,6 +344,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 
 			if (setsockopt(table_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 			{
+				TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on table update socket";
 				throw art::Exception(art::errors::Configuration) <<
 					"RoutingMasterCore: Unable to enable port reuse on table update socket" << std::endl;
 				exit(1);
@@ -380,6 +383,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto yes = 1;
 		if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 		{
+			TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on ack socket. errno=" << errno;
 			throw art::Exception(art::errors::Configuration) <<
 				"RoutingMasterCore: Unable to enable port reuse on ack socket" << std::endl;
 			exit(1);
@@ -390,6 +394,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 		if (bind(ack_socket_, reinterpret_cast<struct sockaddr *>(&si_me_request), sizeof(si_me_request)) == -1)
 		{
+			TLOG(TLVL_ERROR) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << ", errno=" << errno;
 			throw art::Exception(art::errors::Configuration) <<
 				"RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;
 			exit(1);
@@ -503,7 +508,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 
 void artdaq::RoutingMasterCore::receive_tokens_()
 {
-	while (!shutdown_requested_)
+	auto consecutive_failure_count = 0;
+	while (!shutdown_requested_ && consecutive_failure_count < 1000)
 	{
 		TLOG(TLVL_DEBUG) << "Receive Token loop start" ;
 		if (token_socket_ == -1)
@@ -525,16 +531,27 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 		}
 		if (token_socket_ == -1 || token_epoll_fd_ == -1)
 		{
-			TLOG(TLVL_DEBUG) << "One of the listen sockets was not opened successfully." ;
-			return;
+			TLOG(TLVL_DEBUG) << "One of the listen sockets was not opened successfully, retrying" ;
+			usleep(10000);
+			consecutive_failure_count++;
+			continue;
 		}
 
 		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), current_table_interval_ms_);
 		if (nfds == -1)
 		{
-			perror("epoll_wait");
-			exit(EXIT_FAILURE);
+			TLOG(TLVL_ERROR) << "Error occurred in epoll_wait: " << errno << ", retrying";
+			//exit(EXIT_FAILURE);
+			usleep(10000);
+			consecutive_failure_count++;
+			continue;
 		}
+
+		while (stop_requested_ && !shutdown_requested_)
+		{
+			usleep(10000);
+		}
+		consecutive_failure_count = 0;
 
 		TLOG(TLVL_DEBUG) << "Received " << nfds << " events" ;
 		for (auto n = 0; n < nfds; ++n)
@@ -549,7 +566,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 
 				if (conn_sock == -1)
 				{
-					perror("accept");
+					TLOG(TLVL_ERROR) << "An error occurred accepting token socket: " << errno << ", exiting";
 					exit(EXIT_FAILURE);
 				}
 
@@ -560,7 +577,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				ev.data.fd = conn_sock;
 				if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
 				{
-					perror("epoll_ctl: conn_sock");
+					TLOG(TLVL_ERROR) << "Cannot add token socket to epoll, exiting! errno=" << errno;
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -640,6 +657,12 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			}
 	}
 }
+	}
+
+	if (!shutdown_requested_) // We failed too many times setting up or polling the sockets
+	{
+		TLOG(TLVL_ERROR) << "Too many errors creating or polling sockets! Exiting!";
+		exit(EXIT_FAILURE);
 	}
 }
 
