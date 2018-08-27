@@ -537,12 +537,15 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			continue;
 		}
 
+		TLOG(TLVL_TRACE) << "Calling epoll_wait with parameters fd: " << token_epoll_fd_ << ", events[0]=" << (void*)&receive_token_events_[0] << ", events.size=" << receive_token_events_.size() << ", tmo=" << current_table_interval_ms_;
 		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), current_table_interval_ms_);
 		if (nfds == -1)
 		{
 			TLOG(TLVL_ERROR) << "Error occurred in epoll_wait: " << errno << ", retrying";
 			//exit(EXIT_FAILURE);
 			usleep(10000);
+			close(token_socket_);
+			token_socket_ = -1;
 			consecutive_failure_count++;
 			continue;
 		}
