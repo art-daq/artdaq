@@ -730,6 +730,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer()
 			// Eliminate extra fragments
 			while (dataBufferIsTooLarge())
 			{
+				TLOG(TLVL_CHECKDATABUFFER) << "checkDataBuffer: Dropping Fragment with timestamp " << (*dataBuffer_.begin())->timestamp() << " from data buffer (Buffer over-size)";
 				dataBuffer_.erase(dataBuffer_.begin());
 				getDataBufferStats();
 			}
@@ -742,6 +743,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer()
 				{
 					if ((*it)->timestamp() < min)
 					{
+						TLOG(TLVL_CHECKDATABUFFER) << "checkDataBuffer: Dropping Fragment with timestamp " << (*it)->timestamp() << " from data buffer (timeout=" << staleTimeout_ << ", min=" << min << ")";
 						it = dataBuffer_.erase(it);
 					}
 					else

@@ -173,8 +173,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
+			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
 			artdaq::detail::RequestHeader hdr_buffer;
-			recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
+			recv(request_socket, &buffer[0], buffer.size(), 0);
+			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
 								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::Normal));
@@ -183,7 +185,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			{
 
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-				recv(request_socket, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
+				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
 
 				for (auto& buffer : pkt_buffer)
 				{
@@ -225,9 +227,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
+			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
 			artdaq::detail::RequestHeader hdr_buffer;
-			auto sts = recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
-			TRACE_REQUIRE_EQUAL(sts, sizeof(hdr_buffer));
+			recv(request_socket, &buffer[0], buffer.size(), 0);
+			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
 								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
@@ -236,8 +239,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			{
 
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-				sts = recv(request_socket, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
-				TRACE_REQUIRE_EQUAL(static_cast<size_t>(sts), static_cast<size_t>(sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count));
+				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
 
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 0);
@@ -275,8 +277,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
+			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
 			artdaq::detail::RequestHeader hdr_buffer;
-			recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
+			recv(request_socket, &buffer[0], buffer.size(), 0);
+			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
 								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
@@ -285,7 +289,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			{
 
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-				recv(request_socket, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
+				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
 
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 0);
@@ -328,8 +332,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
 			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
 			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
+			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
 			artdaq::detail::RequestHeader hdr_buffer;
-			recv(request_socket, &hdr_buffer, sizeof(hdr_buffer), 0);
+			recv(request_socket, &buffer[0], buffer.size(), 0);
+			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
 								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
@@ -338,7 +344,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 			{
 
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
-				recv(request_socket, &pkt_buffer[0], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count, 0);
+				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
 
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 3);

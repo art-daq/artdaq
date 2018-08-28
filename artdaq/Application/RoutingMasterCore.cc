@@ -631,9 +631,15 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				  }
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
-
+				bool readyToReport = statsHelper_.readyToReport(delta_time);
+				if (readyToReport)
+				{
+				std::string statString = buildStatisticsString_();
+					TLOG(TLVL_INFO) << statString;
+				sendMetrics_();
 			}
-		}
+	}
+}
 	}
 }
 
@@ -719,7 +725,7 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
-		metricMan->sendMetric("Table Update Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::Accumulate);
+		metricMan->sendMetric("Table Update Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Table Update Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
 		metricMan->sendMetric("Average Sender Acknowledgement Time", (mqPtr->getRecentValueSum() / sender_ranks_.size()), "seconds", 3, MetricMode::Average);
 	}
@@ -729,7 +735,7 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
-		metricMan->sendMetric("Receiver Token Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::Accumulate);
+		metricMan->sendMetric("Receiver Token Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Receiver Token Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
 		metricMan->sendMetric("Total Receiver Token Wait Time", mqPtr->getRecentValueSum(), "seconds", 3, MetricMode::Average);
 	}
