@@ -546,6 +546,14 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			usleep(10000);
 			close(token_socket_);
 			token_socket_ = -1;
+
+			auto it = receive_token_addrs_.begin();
+			while (it != receive_token_addrs_.end())
+			{
+				close(it->first);
+				it = receive_token_addrs_.erase(it);
+			}
+
 			consecutive_failure_count++;
 			continue;
 		}
