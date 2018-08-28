@@ -142,7 +142,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
   timeLow_ = e.time().timeLow();
 
   //print basic run info
-  if(verbosity_>0)
+  if(verbosity_>2)
     std::cout << "Processing:" 
 	      << "  Run " << e.run() 
 	      << ", Subrun " << e.subRun() 
@@ -155,9 +155,9 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
   e.getManyByType(fragmentHandles);
 
   //print basic fragment number info
-  if(verbosity_>0){
+  if(verbosity_>2){
     std::cout << "\tFound " << fragmentHandles.size() << " fragment collections." << std::endl;
-    if(verbosity_>1){
+    if(verbosity_>2){
       for(auto const& h : fragmentHandles)
 	std::cout << "\t\tCollection " << h.provenance()->productInstanceName()
 		  << ":\t" << h->size() << " fragments." << std::endl;
@@ -177,7 +177,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
   if(expected_n_fragments_==-1)
     expected_n_fragments_=total_n_frags_;
 
-  if(verbosity_>0){
+  if(verbosity_>2){
     std::cout << "\tTotal fragments = " << total_n_frags_ 
 	      << " / " << expected_n_fragments_ << std::endl;
     std::cout << "\tTotal data size in fragments = " << total_data_size_ << std::endl;
@@ -223,7 +223,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 
   }
   
-  if(verbosity_>0){
+  if(verbosity_>2){
     std::cout << "\tTotal container fragments = " << total_n_CFs_
 	      << " of which " << total_n_CFs_missing_ << " have missing data."
 	      << std::endl;
@@ -243,7 +243,8 @@ void artdaq::MissingDataCheck::endJob()
     std::cout << "----------- MISSING DATA CHECK SUMMARY ------------" << std::endl;
     std::cout << "---------------------------------------------------" << std::endl;
 
-    std::cout << "Total events processed: " << evtree_->GetEntries() << std::endl;
+    std::cout << "Total events processed: " << evtree_->GetEntries()
+	      << ", expected fragments: " << expected_n_fragments_ << std::endl;
 
     unsigned int run;    evtree_->SetBranchAddress("run",&run);
     unsigned int subrun; evtree_->SetBranchAddress("subrun",&subrun);
@@ -255,8 +256,9 @@ void artdaq::MissingDataCheck::endJob()
     std::cout << "Events missing fragments:\t\t" 
 	      << evtree_->GetEntries("n_frag<n_frag_exp") 
 	      << " / " << evtree_->GetEntries() << std::endl;
-    if(evtree_->GetEntries("n_frag<n_frag_exp")>0){
-      for(int i=0; i<evtree_->GetEntries(); ++i)
+    if(verbosity_>1){
+      if(evtree_->GetEntries("n_frag<n_frag_exp")>0){
+        for(int i=0; i<evtree_->GetEntries(); ++i)
 	{
 	  evtree_->GetEvent(i);
 	  if((int)n_frag<n_frag_exp){
@@ -265,12 +267,14 @@ void artdaq::MissingDataCheck::endJob()
 		      << std::endl;
 	  }
 	}
+      }
     }
     std::cout << "Events missing data in fragments:\t"
 	      << evtree_->GetEntries("n_miss_data>0")
 	      << " / " << evtree_->GetEntries() << std::endl;
-    if(evtree_->GetEntries("n_miss_data>0")>0){
-      for(int i=0; i<evtree_->GetEntries(); ++i)
+    if(verbosity_>1){
+      if(evtree_->GetEntries("n_miss_data>0")>0){
+	for(int i=0; i<evtree_->GetEntries(); ++i)
 	{
 	  evtree_->GetEvent(i);
 	  if(n_miss_data>0){
@@ -279,6 +283,7 @@ void artdaq::MissingDataCheck::endJob()
 		      << std::endl;
 	  }
 	}
+      }
     }
 
     std::cout << "---------------------------------------------------" << std::endl;
