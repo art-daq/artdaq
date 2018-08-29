@@ -107,6 +107,22 @@ namespace artdaq
 		}
 
 		/// <summary>
+		/// Get the current requests, then clear the map
+		/// </summary>
+		/// <returns>Map relating sequence IDs to timestamps</returns>
+		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetAndClearRequests()
+		{
+			std::unique_lock<std::mutex> lk(request_mutex_);
+			std::map<artdaq::Fragment::sequence_id_t, Fragment::timestamp_t> out;
+			for (auto& in : requests_)
+			{
+				out[in.first] = in.second;
+			}
+			requests_.clear();
+			return out;
+		}
+
+		/// <summary>
 		/// Get the number of requests currently stored in the RequestReceiver
 		/// </summary>
 		/// <returns>The number of requests stored in the RequestReceiver</returns>

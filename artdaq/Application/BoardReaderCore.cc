@@ -346,7 +346,7 @@ void artdaq::BoardReaderCore::process_fragments()
 			if (readyToReport)
 			{
 				std::string statString = buildStatisticsString_();
-				TLOG(TLVL_DEBUG) << statString;
+				TLOG(TLVL_INFO) << statString;
 			}
 			if (fragment_count_ % 250 == 1 || readyToReport)
 			{
