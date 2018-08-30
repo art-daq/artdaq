@@ -337,11 +337,19 @@ int main(int argc, char* argv[])
 	auto host_map = rr.GetHostMap();
 
 	size_t collection_time_ms = init_ps.get<size_t>("collection_time_ms", 1000);
-	size_t graph_width = init_ps.get<size_t>("graph_width", 40);
+	size_t max_graph_width = init_ps.get<size_t>("max_graph_width", 100);
 	bool print_verbose = init_ps.get<bool>("print_verbose_info", true);
+	bool verbose_clear_screen = init_ps.get<bool>("clear_screen", true);
+
+	auto blue = "\033[34m";
+	auto cyan = "\033[36m";
+	auto green = "\033[32m";
+	auto yellow = "\033[93m";
+	auto red = "\033[31m";
 
 	metricMan->initialize(metric_ps, "RoutingReceiver");
 	metricMan->do_start();
+	if (print_verbose && verbose_clear_screen) std::cout << "\033[2J";
 
 	std::map<int, int> receiver_table = std::map<int,int>();
 
@@ -353,13 +361,35 @@ int main(int argc, char* argv[])
 
 		if (this_table.size() > 0)
 		{
+			auto graph_width = this_table.size();
+			auto n = 1; // n becomes entries per graph character
+			auto graph_width_orig = graph_width;
+			while (graph_width > max_graph_width)
+			{
+				n++;
+				graph_width = graph_width_orig / n;
+			}
+
 			for (auto& entry : this_table)
 			{
 				receiver_table[entry.second]++;
 			}
 
+			auto average_entries_per_receiver = this_table.size() / receiver_table.size();
+			auto offset = 2 * n; // Offset is 2 characters, in entries
+
+			auto cyan_threshold = ((average_entries_per_receiver - offset) / 2) / n;
+			auto green_threshold = (average_entries_per_receiver - offset) / n;
+			auto yellow_threshold = (average_entries_per_receiver + offset) / n;
+			auto red_threshold = (2 * average_entries_per_receiver) / n;
+
+			TLOG(TLVL_TRACE) << "CT: " << cyan_threshold << ", GT: " << green_threshold << ", YT: " << yellow_threshold << ", RT: " << red_threshold;
+
 			std::ostringstream report;
 			std::ostringstream verbose_report;
+
+			if (print_verbose && verbose_clear_screen) std::cout << "\033[;H\033[J";
+
 			report << artdaq::TimeUtils::gettimeofday_us() << ": " << this_table.size() << " Entries, ";
 			for (auto& receiver : receiver_table)
 			{
@@ -369,29 +399,23 @@ int main(int argc, char* argv[])
 				{
 					verbose_report << receiver.first << ": " << receiver.second << " (" << percent << "%)\t[";
 
-					auto percent_scaled = percent * graph_width / 100;
-
-					auto blue = "\033[34m";
-					auto cyan = "\033[36m";
-					auto green = "\033[32m";
-					auto yellow = "\033[93m";
-					auto red = "\033[31m";
-
-					for (size_t ii = 0; ii < percent_scaled; ++ii)
+					size_t graph_characters = receiver.second / n;
+					
+					for (size_t ii = 0; ii < graph_characters; ++ii)
 					{
-						if (ii < graph_width / 5)
+						if (ii < cyan_threshold)
 						{
 							verbose_report << blue;
 						}
-						else if (ii < 2 * graph_width / 5)
+						else if (ii < green_threshold)
 						{
 							verbose_report << cyan;
 						}
-						else if (ii < 3 * graph_width / 5)
+						else if (ii < yellow_threshold)
 						{
 							verbose_report << green;
 						}
-						else if (ii < 4 * graph_width / 5)
+						else if (ii < red_threshold)
 						{
 							verbose_report << yellow;
 						}
@@ -401,7 +425,7 @@ int main(int argc, char* argv[])
 						}
 						verbose_report << "|";
 					}
-					std::string spaces = std::string(graph_width - percent_scaled, ' ');
+					std::string spaces = std::string(graph_width - graph_characters, ' ');
 					verbose_report << "\033[0m" << spaces << "]" << std::endl;
 				}
 				receiver.second = 0;
