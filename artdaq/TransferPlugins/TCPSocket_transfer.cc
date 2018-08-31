@@ -628,7 +628,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	send_ack_diff_++;
 #endif
 
-	TLOG(12) << GetTraceName() << ": sendFragment returning " << sts;
+	TLOG(12) << GetTraceName() << ": sendFragment returning " << CopyStatusToString(sts);
 	return sts;
 }
 
