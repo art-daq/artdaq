@@ -23,7 +23,13 @@ namespace artdaq
 		explicit RoundRobinPolicy(fhicl::ParameterSet ps)
 			: RoutingMasterPolicy(ps)
 			, minimum_participants_(ps.get<int>("minimum_participants", -1))
-		{}
+		{
+			if (minimum_participants_ == 0)
+			{
+				TLOG(TLVL_WARNING) << "minimum_participants == 0 is undefined. Setting to 1. If you wish to instead enable strict Round-Robin mode, set minimum_participants to -1!";
+				minimum_participants_ = 1;
+		}
+		}
 
 		/**
 		 * \brief Default virtual Destructor
@@ -59,7 +65,7 @@ namespace artdaq
 		TLOG(13) << "RoundRobinPolicy::GetCurrentTable table size is " << table.size() << ", token list size is " << tokens->size();
 
 		detail::RoutingPacket output;
-		auto endCondition = table.size() < (minimum_participants_ >= 0 ? minimum_participants_ + 1 : GetReceiverCount());
+		auto endCondition = table.size() < (minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount());
 		TLOG(15) << "RoundRobinPolicy::GetCurrentTable initial endCondition is " << endCondition;
 
 		while (!endCondition)
@@ -73,7 +79,7 @@ namespace artdaq
 				if (table[it->first] <= 0) it = table.erase(it);
 				else ++it;
 			}
-			endCondition = table.size() < (minimum_participants_ >= 0 ? minimum_participants_ + 1 : GetReceiverCount());
+			endCondition = table.size() < (minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount());
 		}
 
 		for(auto r : table)
