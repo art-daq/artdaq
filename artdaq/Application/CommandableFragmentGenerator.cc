@@ -659,6 +659,12 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 	auto startwait = std::chrono::steady_clock::now();
 	auto first = true;
 	auto lastwaittime = 0ULL;
+
+	{
+		std::unique_lock<std::mutex> lock(dataBufferMutex_);
+		getDataBufferStats();
+	}
+
 	while (dataBufferIsTooLarge())
 	{
 		if (!circularDataBufferMode_)
@@ -693,9 +699,21 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 		else
 		{
 			std::unique_lock<std::mutex> lock(dataBufferMutex_);
-			TLOG(TLVL_WAITFORBUFFERREADY) << "waitForDataBufferReady: Dropping Fragment with timestamp " << (*dataBuffer_.begin())->timestamp() << " from data buffer (Buffer over-size, circular data buffer mode)";
-			dataBuffer_.erase(dataBuffer_.begin());
-			getDataBufferStats();
+			getDataBufferStats(); // Re-check under lock
+			if (dataBufferIsTooLarge())
+			{
+				if (dataBuffer_.begin() == dataBuffer_.end())
+				{
+					TLOG(TLVL_WARNING) << "Data buffer is reported as too large, but doesn't contain any Fragments! Possible corrupt memory!";
+					continue;
+				}
+				if (*dataBuffer_.begin())
+				{
+					TLOG(TLVL_WAITFORBUFFERREADY) << "waitForDataBufferReady: Dropping Fragment with timestamp " << (*dataBuffer_.begin())->timestamp() << " from data buffer (Buffer over-size, circular data buffer mode)";
+				}
+				dataBuffer_.erase(dataBuffer_.begin());
+				getDataBufferStats();
+			}
 
 		}
 	}
