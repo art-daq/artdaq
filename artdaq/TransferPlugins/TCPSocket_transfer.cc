@@ -602,9 +602,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	auto sts = sendData_(&iov, 1, send_retry_timeout_us_, true);
 	auto start_time = std::chrono::steady_clock::now();
 	//If it takes more than 10 seconds to write a Fragment header, give up
-	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
+	while (sts == CopyStatus::kTimeout && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
-		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
+		TLOG(13) << GetTraceName() << ": sendFragment: Timeout sending fragment";
 		sts = sendData_(&iov, 1, send_retry_timeout_us_, true);
 		usleep(1000);
 	}
@@ -617,9 +617,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 };
 	sts = sendData_(&iov, 1, send_retry_timeout_us_);
 	start_time = std::chrono::steady_clock::now();
-	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
+	while (sts == CopyStatus::kTimeout && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
-		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
+		TLOG(13) << GetTraceName() << ": sendFragment: Timeout sending fragment";
 		sts = sendData_(&iov, 1, send_retry_timeout_us_);
 		usleep(1000);
 	}
@@ -628,7 +628,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	send_ack_diff_++;
 #endif
 
-	TLOG(12) << GetTraceName() << ": sendFragment returning Success";
+	TLOG(12) << GetTraceName() << ": sendFragment returning " << sts;
 	return sts;
 }
 
