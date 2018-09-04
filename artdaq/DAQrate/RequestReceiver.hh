@@ -118,7 +118,10 @@ namespace artdaq
 			{
 				out[in.first] = in.second;
 			}
+			highest_seen_request_ = requests_.end()->first; 
+			out_of_order_requests_.clear();
 			requests_.clear();
+			request_timing_.clear();
 			return out;
 		}
 
