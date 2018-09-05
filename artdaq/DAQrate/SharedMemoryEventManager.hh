@@ -407,8 +407,8 @@ namespace artdaq {
 		struct MetricData {
 			MetricData() : event_count(0), event_size(0), event_time(0.0) {}
 			size_t event_count;
-			double event_time;
 			size_t event_size;
+			double event_time;
 		};
 		MetricData metric_data_;
 
