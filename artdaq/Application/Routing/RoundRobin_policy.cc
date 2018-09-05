@@ -18,17 +18,12 @@ namespace artdaq
 		 * \param ps ParameterSet used to configure RoundRobinPolicy
 		 * 
 		 * RoundRobinPolicy accepts the following Parameter:
-		 * "minimum_participants" (Default: -1): Minimum number of receivers to distribute between. -1 (default) makes the minumum equal to the number of configured receivers (strict Round-Robin mode)
+		 * "minimum_participants" (Default: 0): Minimum number of receivers to distribute between. Use negative number to indicate how many can be missing from total.
 		 */
 		explicit RoundRobinPolicy(fhicl::ParameterSet ps)
 			: RoutingMasterPolicy(ps)
-			, minimum_participants_(ps.get<int>("minimum_participants", -1))
+			, minimum_participants_(ps.get<int>("minimum_participants", 0))
 		{
-			if (minimum_participants_ == 0)
-			{
-				TLOG(TLVL_WARNING) << "minimum_participants == 0 is undefined. Setting to 1. If you wish to instead enable strict Round-Robin mode, set minimum_participants to -1!";
-				minimum_participants_ = 1;
-		}
 		}
 
 		/**
@@ -65,7 +60,13 @@ namespace artdaq
 		TLOG(13) << "RoundRobinPolicy::GetCurrentTable table size is " << table.size() << ", token list size is " << tokens->size();
 
 		detail::RoutingPacket output;
-		auto endCondition = table.size() < (minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount());
+
+		// If 0 or negative, add minimum_participants_ to GetRecevierCount to ensure that it's correct
+		auto minimum = minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount() + minimum_participants_;
+		if (minimum < 1) minimum = 1; // Can't go below 1
+
+
+		auto endCondition = table.size() < minimum;
 		TLOG(15) << "RoundRobinPolicy::GetCurrentTable initial endCondition is " << endCondition;
 
 		while (!endCondition)
@@ -79,7 +80,7 @@ namespace artdaq
 				if (table[it->first] <= 0) it = table.erase(it);
 				else ++it;
 			}
-			endCondition = table.size() < (minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount());
+			endCondition = table.size() < minimum;
 		}
 
 		for(auto r : table)
