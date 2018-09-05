@@ -29,10 +29,12 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
 	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
 	, running_(false)
-	, buffer_writes_pending_()
+	, buffer_writes_pending_(pset.get<size_t>("buffer_count"))
+	, buffer_mutexes_(pset.get<size_t>("buffer_count"), std::mutex())
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	, last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
+	, event_timing_(pset.get<size_t>("buffer_count"))
 	, metric_data_()
 	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
 	, run_event_count_(0)
@@ -924,6 +926,9 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	std::unique_lock<std::mutex> buffer_lk(buffer_mutexes_[new_buffer]);
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtained buffer_mutexes lock for buffer " << new_buffer;
 	//TraceLock(buffer_mutexes_[new_buffer], 34, "getBufferForSequenceID");
+
+	event_timing_[new_buffer] = std::chrono::steady_clock::now();
+
 	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
@@ -1085,6 +1090,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 	auto counter = 0;
 	double eventSize = 0;
+	double eventTime = 0;
 	for (auto buf : sorted_buffers)
 	{
 		auto hdr = getEventHeader_(buf);
@@ -1107,6 +1113,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		run_event_count_++;
 		counter++;
 		eventSize += BufferDataSize(buf);
+		eventTime += TimeUtils::GetElapsedTime(event_timing_[buf]);
 		pending_buffers_.erase(buf);
 		TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
 				  << size() << ","
@@ -1140,12 +1147,16 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 	metric_data_.event_count += counter;
 	metric_data_.event_size += eventSize;
+	metric_data_.event_time += eventTime;
 
 	if (metricMan && TimeUtils::GetElapsedTimeMilliseconds(last_shmem_buffer_metric_update_) > 500) // Limit to 2 Hz updates
 	{
 			TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
 			metricMan->sendMetric("Event Rate", metric_data_.event_count, "Events/s", 1, MetricMode::Rate);
-			if (metric_data_.event_count > 0)		metricMan->sendMetric("Average Event Size", metric_data_.event_size / metric_data_.event_count, "Bytes", 1, MetricMode::Average);
+		if (metric_data_.event_count > 0) {
+			metricMan->sendMetric("Average Event Size", metric_data_.event_size / metric_data_.event_count, "Bytes", 1, MetricMode::Average);
+			metricMan->sendMetric("Average Event Building Time", metric_data_.event_time / metric_data_.event_count, "s", 1, MetricMode::Average);
+		}
 			metric_data_ = MetricData();
 
 			metricMan->sendMetric("Events Released to art this run", run_event_count_, "Events", 1, MetricMode::LastPoint);

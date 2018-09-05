@@ -395,17 +395,19 @@ namespace artdaq {
 		bool send_init_fragments_;
 		bool running_;
 
-		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
-		std::unordered_map<int, std::mutex> buffer_mutexes_;
+		std::vector<std::atomic<int>> buffer_writes_pending_;
+		std::vector<std::mutex> buffer_mutexes_;
 		static std::mutex sequence_id_mutex_;
 
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
+		std::vector<std::chrono::steady_clock::time_point> event_timing_;
 		
 		struct MetricData {
-			MetricData() : event_count(0), event_size(0) {}
+			MetricData() : event_count(0), event_size(0), event_time(0.0) {}
 			size_t event_count;
+			double event_time;
 			size_t event_size;
 		};
 		MetricData metric_data_;
