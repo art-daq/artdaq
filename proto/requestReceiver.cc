@@ -31,11 +31,10 @@ int main(int argc, char* argv[])
 
 	while (true)
 	{
-		for (auto req : recvr.GetRequests())
+		for (auto req : recvr.GetAndClearRequests())
 		{
 			TLOG(TLVL_INFO) << "Received Request for Sequence ID " << req.first << ", timestamp " << req.second ;
 		}
-		recvr.ClearRequests();
 		usleep(10000);
 	}
 

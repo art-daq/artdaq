@@ -292,7 +292,10 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			sts = read(active_receive_fd_, buff, byte_cnt);
 			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Done with read";
 		}
-		if (sts > 0) { loop_guard = 0; }
+		if (sts > 0) { 
+			loop_guard = 0;
+			last_recv_time_ = std::chrono::steady_clock::now();
+		}
 
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state) << " read=" << sts;
 		if (sts < 0)
@@ -397,25 +400,27 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	pollfd_s.events = POLLIN | POLLPRI | POLLERR;
 	pollfd_s.fd = active_receive_fd_;
 
-	int loop_guard = 0, poll_loop_guard = 0;
+	int loop_guard = 0;
 	bool done = false;
 	bool noDataWarningSent = false;
+	last_recv_time_ = std::chrono::steady_clock::now();
 	while (!done)
 	{
 		TLOG(9) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polled fd to see if there's data"
+		TLOG(TLVL_TRACE) << GetTraceName() << ": receiveFragmentData: Polled fd to see if there's data"
 			<< ", num_fds_ready = " << num_fds_ready;
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0)
 			{
-				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data from " << source_rank() << " in 1000 ms!"
+				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data from " << source_rank() << " in " << TimeUtils::GetElapsedTimeMilliseconds(last_recv_time_) << " ms!"
 				                   << " State = " << (state == SocketState::Metadata ? "Metadata" : "Data") << ", recvd/total=" << offset << "/" << target_bytes << " (delta=" << target_bytes - offset << ")";
 				
-				if (++poll_loop_guard > 5)
+				if (TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_)
 				{
-					TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: poll loop guard triggered, returning RECV_TIMEOUT";
+					TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data received within timeout (" << TimeUtils::GetElapsedTime(last_recv_time_) << " / " << receive_disconnected_wait_s_ << " ), returning RECV_TIMEOUT";
+					disconnect_receive_socket_(active_receive_fd_, "No data on this socket within timeout");
 					active_receive_fd_ = -1;
 					return RECV_TIMEOUT;
 				}
@@ -426,7 +431,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			active_receive_fd_ = -1;
 			break;
 		}
-		else { poll_loop_guard = 0; }
+		else { last_recv_time_ = std::chrono::steady_clock::now(); }
 
 		if (pollfd_s.revents & (POLLIN | POLLPRI))
 		{
@@ -478,7 +483,11 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 				return RECV_TIMEOUT;
 			}
 		}
-		else { loop_guard = 0; }
+		else if(sts > 0)
+		{
+			loop_guard = 0;
+			last_recv_time_ = std::chrono::steady_clock::now();
+		 }
 
 		if (sts < 0)
 		{

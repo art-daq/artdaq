@@ -217,6 +217,11 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				TLOG(TLVL_ERROR) << "Transfer Plugin returned DATA_END, ending receive loop!";
 				break;
 			}
+			if ((*running_sources_.begin()).first == source_rank) // Only do this for the first sender in the running_sources_ map
+			{
+				TLOG(TLVL_DEBUG) << "Calling SMEM::CheckPendingBuffers from DRM receiver thread for " << source_rank << " to make sure that things aren't stuck";
+				shm_manager_->CheckPendingBuffers();
+			}
 
 			usleep(sleep_time);
 			continue; // Receive timeout or other oddness
@@ -253,7 +258,9 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 			if (ret != ret2) {
 				TLOG(TLVL_ERROR) << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
-				throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
+				TLOG(TLVL_ERROR) << "Error receiving data from rank " << source_rank << ", data has been lost! Event " << header.sequence_id << " will most likely be Incomplete!";
+				//throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
+				continue;
 			}
 
 			shm_manager_->DoneWritingFragment(header);
@@ -354,6 +361,6 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 		}
 	}
 
-
+	TLOG(TLVL_DEBUG) << "runReceiver_ " << source_rank << " receive loop exited";
 	running_sources_[source_rank] = false;
 }
