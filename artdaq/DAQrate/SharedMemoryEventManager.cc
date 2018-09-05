@@ -30,7 +30,6 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
 	, running_(false)
 	, buffer_writes_pending_(pset.get<size_t>("buffer_count"))
-	, buffer_mutexes_(pset.get<size_t>("buffer_count"), std::mutex())
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	, last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())

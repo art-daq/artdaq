@@ -396,7 +396,7 @@ namespace artdaq {
 		bool running_;
 
 		std::vector<std::atomic<int>> buffer_writes_pending_;
-		std::vector<std::mutex> buffer_mutexes_;
+		std::unordered_map<int, std::mutex> buffer_mutexes_;
 		static std::mutex sequence_id_mutex_;
 
 		int incomplete_event_report_interval_ms_;
