@@ -64,6 +64,13 @@ namespace artdaq
 		 * \brief Reset the policy, setting the next sequence ID to be used to 1
 		 */
 		void Reset() { next_sequence_id_ = 1; }
+
+		Fragment::sequence_id_t GetNextSequenceID() const { return next_sequence_id_; }
+		size_t GetHeldTokenCount() const
+		{
+			std::unique_lock<std::mutex> lk(tokens_mutex_);
+			return tokens_.size();
+		}
 	protected:
 		Fragment::sequence_id_t next_sequence_id_; ///< The next sequence ID to be assigned
 
