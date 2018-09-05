@@ -17,8 +17,6 @@ FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
 const std::string artdaq::BoardReaderCore::
 INPUT_WAIT_STAT_KEY("BoardReaderCoreInputWaitTime");
 const std::string artdaq::BoardReaderCore::
-BRSYNC_WAIT_STAT_KEY("BoardReaderCoreBRSyncWaitTime");
-const std::string artdaq::BoardReaderCore::
 OUTPUT_WAIT_STAT_KEY("BoardReaderCoreOutputWaitTime");
 const std::string artdaq::BoardReaderCore::
 FRAGMENTS_PER_READ_STAT_KEY("BoardReaderCoreFragmentsPerRead");
@@ -35,7 +33,6 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application) :
 	TLOG(TLVL_DEBUG) << "Constructor";
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PROCESSED_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
-	statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
 }
@@ -452,14 +449,6 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().
-		getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
-	{
-		oss << ", BRsync wait time = "
-			<< (mqPtr->getRecentValueSum() / fragmentCount) << " sec";
-	}
-
-	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
@@ -516,14 +505,7 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	{
 		metricMan->sendMetric("Avg Input Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
-
-	mqPtr = artdaq::StatisticsCollection::getInstance().
-		getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
-	{
-		metricMan->sendMetric("Avg BoardReader Sync Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
-	}
-
+	
 	mqPtr = artdaq::StatisticsCollection::getInstance().
 		getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
