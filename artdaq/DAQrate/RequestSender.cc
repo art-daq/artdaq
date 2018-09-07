@@ -177,6 +177,7 @@ namespace artdaq
 
 		TLOG(TLVL_TRACE) << "Creating RequestMessage";
 		detail::RequestMessage message;
+		message.setRank(my_rank);
 		{
 			std::unique_lock<std::mutex> lk(request_mutex_);
 			for (auto& req : active_requests_)
