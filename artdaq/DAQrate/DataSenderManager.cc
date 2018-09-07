@@ -554,6 +554,6 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			}
 		}
 	}
-	TLOG(5) << "sendFragment: Done sending fragment " << seqID;
+	TLOG(5) << "sendFragment: Done sending fragment " << seqID << " to dest="<<dest;
 	return std::make_pair(dest, outsts);
 }   // artdaq::DataSenderManager::sendFragment
