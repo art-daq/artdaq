@@ -423,11 +423,12 @@ namespace artdaq
 					}
 				}
 				incoming_events->ReleaseBuffer();
-				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << incoming_events->size() << " metricMan=" << (void*)metricMan.get();
+				auto qcap = incoming_events->size();
+				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
 				{
 					metricMan->sendMetric("bytesRead", bytesRead, "B", 5, MetricMode::Accumulate, "", true);
-					metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / incoming_events->size()), "%", 5, MetricMode::LastPoint, "", true);
+					if (qcap > 0) metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / qcap), "%", 5, MetricMode::LastPoint, "", true);
 				}
 
 				return true;
