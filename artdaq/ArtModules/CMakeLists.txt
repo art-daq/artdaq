@@ -69,7 +69,8 @@ simple_plugin(TransferInput "source"
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
 
 simple_plugin(EventDump "module"
-MF_MessageLogger
+  artdaq-core_Data
+  MF_MessageLogger
   ${CETLIB_EXCEPT})
 
 simple_plugin(MissingDataCheck "module"
