@@ -1153,7 +1153,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
 			metricMan->sendMetric("Event Rate", metric_data_.event_count, "Events/s", 1, MetricMode::Rate);
 		if (metric_data_.event_count > 0) {
-			metricMan->sendMetric("Average Event Size", metric_data_.event_size / metric_data_.event_count, "Bytes", 1, MetricMode::Average);
+			metricMan->sendMetric("Average Event Size", static_cast<double>(metric_data_.event_size) / metric_data_.event_count, "Bytes", 1, MetricMode::Average);
 			metricMan->sendMetric("Average Event Building Time", metric_data_.event_time / metric_data_.event_count, "s", 1, MetricMode::Average);
 		}
 			metric_data_ = MetricData();
