@@ -108,6 +108,8 @@ namespace artdaq
 				incoming_events.reset(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()), ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
 				my_rank = incoming_events->GetRank();
 
+				help.reconstitutes<detail::RawEventHeader, art::InEvent>(pretend_module_name, "RawEventHeader");
+
 				help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 				for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
 				{
@@ -354,6 +356,11 @@ namespace artdaq
 					evtHeader->subrun_id,
 					evtHeader->event_id,
 					currentTime);
+
+				auto artHdrPtr = std::unique_ptr<detail::RawEventHeader>(new detail::RawEventHeader());
+				memcpy(artHdrPtr.get(), incoming_events->ReadHeader(errflag), sizeof(detail::RawEventHeader));
+				if (errflag) goto start; // Buffer was changed out from under reader!
+				put_product_in_principal(std::move(artHdrPtr), *outE, pretend_module_name, "RawEventHeader");
 
 				// insert the Fragments of each type into the EventPrincipal
 				std::map<Fragment::type_t, std::string>::const_iterator iter_end =

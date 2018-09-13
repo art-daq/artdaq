@@ -12,6 +12,7 @@
 #include "canvas/Utilities/Exception.h"
 
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Data/RawEvent.hh"
 
 #include <algorithm>
 #include <cassert>
@@ -69,6 +70,20 @@ artdaq::EventDump::EventDump(fhicl::ParameterSet const& pset)
 void artdaq::EventDump::analyze(art::Event const& e)
 {
 	mf::LogDebug("EventDump") << "Dumping Event " << e.event();
+
+	art::Handle<detail::RawEventHeader> header_handle;
+	e.getByLabel(raw_data_label_, "RawEventHeader", header_handle);
+
+	if (header_handle.isValid())
+	{
+		std::ostringstream ostr;
+		RawEvent(*header_handle).print(ostr);
+		mf::LogInfo("EventDump") << "Event Header: " << ostr.str();
+	}
+	else
+	{
+		mf::LogWarning("EventDump") << "Unable to read RawEventHeader for event " << e.event();
+	}
 }
 
 DEFINE_ART_MODULE(artdaq::EventDump)

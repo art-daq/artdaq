@@ -71,6 +71,8 @@ simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
 
 simple_plugin(EventDump "module"
 MF_MessageLogger
+  artdaq-core_Data
+  artdaq-core_Data_dict
   ${CETLIB_EXCEPT})
 
 simple_plugin(NetMonInput "source"
