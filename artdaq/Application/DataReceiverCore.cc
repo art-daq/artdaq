@@ -287,11 +287,11 @@ bool artdaq::DataReceiverCore::rollover_subrun(uint64_t boundary)
 
 std::string artdaq::DataReceiverCore::report(std::string const& which) const
 {
-	if (which == "incomplete_event_count")
+	if (which == "open_event_count")
 	{
 		if (event_store_ptr_ != nullptr)
 		{
-			return boost::lexical_cast<std::string>(event_store_ptr_->GetIncompleteEventCount());
+			return boost::lexical_cast<std::string>(event_store_ptr_->GetOpenEventCount());
 		}
 		else
 		{

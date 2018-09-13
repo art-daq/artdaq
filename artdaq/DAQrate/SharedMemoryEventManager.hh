@@ -127,8 +127,8 @@ namespace artdaq {
 			fhicl::Atom<bool> use_sequence_id_for_event_number{ fhicl::Name{"use_sequence_id_for_event_number"}, fhicl::Comment{"Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers"}, true };
 			/// "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 			fhicl::Atom<bool> send_init_fragments{ fhicl::Name{ "send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true };
-			/// "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
-			fhicl::Atom<int> incomplete_event_report_interval_ms{ fhicl::Name{ "incomplete_event_report_interval_ms"}, fhicl::Comment{"Interval at which an incomplete event report should be written"}, -1 };
+			/// "open_event_report_interval_ms" (Default: -1): Interval at which an open event report should be written
+			fhicl::Atom<int> open_event_report_interval_ms{ fhicl::Name{ "open_event_report_interval_ms"}, fhicl::Comment{"Interval at which an open event report should be written"}, -1 };
 			/// "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
 			/// A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 			fhicl::Atom<int> fragment_broadcast_timeout_ms{ fhicl::Name{ "fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000 };
@@ -200,7 +200,7 @@ namespace artdaq {
 		* \brief Returns the number of buffers which contain data but are not yet complete
 		* \return The number of buffers which contain data but are not yet complete
 		*/
-		size_t GetIncompleteEventCount() { return active_buffers_.size(); }
+		size_t GetOpenEventCount() { return active_buffers_.size(); }
 
 		/**
 		* \brief Returns the number of events which are complete but waiting on lower sequenced events to finish
@@ -399,8 +399,8 @@ namespace artdaq {
 		std::unordered_map<int, std::mutex> buffer_mutexes_;
 		static std::mutex sequence_id_mutex_;
 
-		int incomplete_event_report_interval_ms_;
-		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
+		int open_event_report_interval_ms_;
+		std::chrono::steady_clock::time_point last_open_event_report_time_;
 		std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
 		
 		struct MetricData {

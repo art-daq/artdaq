@@ -30,8 +30,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
 	, running_(false)
 	, buffer_writes_pending_()
-	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
-	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+	, open_event_report_interval_ms_(pset.get<int>("open_event_report_interval_ms", pset.get<int>("incomplete_event_report_interval_ms", -1)))
+	, last_open_event_report_time_(std::chrono::steady_clock::now())
 	, last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
 	, metric_data_()
 	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
@@ -591,7 +591,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	TLOG(TLVL_DEBUG) << "SharedMemoryEventManager::endOfData";
 	restart_art_ = false;
 
-	size_t initialStoreSize = GetIncompleteEventCount();
+	size_t initialStoreSize = GetOpenEventCount();
 	TLOG(TLVL_DEBUG) << "endOfData: Flushing " << initialStoreSize
 		<< " stale events from the SharedMemoryEventManager.";
 	int counter = initialStoreSize;
@@ -600,7 +600,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		complete_buffer_(*active_buffers_.begin());
 		counter--;
 	}
-	TLOG(TLVL_DEBUG) << "endOfData: Done flushing, there are now " << GetIncompleteEventCount()
+	TLOG(TLVL_DEBUG) << "endOfData: Done flushing, there are now " << GetOpenEventCount()
 		<< " stale events in the SharedMemoryEventManager.";
 
 
@@ -820,16 +820,16 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 {
 	if (metricMan)
 	{
-		metricMan->sendMetric("Open Event Count", GetIncompleteEventCount(), "events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Open Event Count", GetOpenEventCount(), "events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Pending Event Count", GetPendingEventCount(), "events", 1, MetricMode::LastPoint);
 	}
 
-	if (incomplete_event_report_interval_ms_ > 0 && GetLockedBufferCount())
+	if (open_event_report_interval_ms_ > 0 && GetLockedBufferCount())
 	{
-		if (TimeUtils::GetElapsedTimeMilliseconds(last_incomplete_event_report_time_) < static_cast<size_t>(incomplete_event_report_interval_ms_))
+		if (TimeUtils::GetElapsedTimeMilliseconds(last_open_event_report_time_) < static_cast<size_t>(open_event_report_interval_ms_))
 			return;
 
-		last_incomplete_event_report_time_ = std::chrono::steady_clock::now();
+		last_open_event_report_time_ = std::chrono::steady_clock::now();
 		std::ostringstream oss;
 		oss << "Open Events (expecting " << num_fragments_per_event_ << " Fragments): ";
 		for (auto& ev : active_buffers_)
