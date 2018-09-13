@@ -820,7 +820,7 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 {
 	if (metricMan)
 	{
-		metricMan->sendMetric("Incomplete Event Count", GetIncompleteEventCount(), "events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Open Event Count", GetIncompleteEventCount(), "events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Pending Event Count", GetPendingEventCount(), "events", 1, MetricMode::LastPoint);
 	}
 
@@ -831,11 +831,11 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 
 		last_incomplete_event_report_time_ = std::chrono::steady_clock::now();
 		std::ostringstream oss;
-		oss << "Incomplete Events (" << num_fragments_per_event_ << "): ";
+		oss << "Open Events (expecting " << num_fragments_per_event_ << " Fragments): ";
 		for (auto& ev : active_buffers_)
 		{
 			auto hdr = getEventHeader_(ev);
-			oss << hdr->sequence_id << " (" << GetFragmentCount(hdr->sequence_id) << "), ";
+			oss << hdr->sequence_id << " (has " << GetFragmentCount(hdr->sequence_id) << " Fragments), ";
 		}
 		TLOG(TLVL_DEBUG) << oss.str();
 	}
