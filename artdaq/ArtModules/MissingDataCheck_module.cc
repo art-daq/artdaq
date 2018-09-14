@@ -219,6 +219,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
       for(auto const& f : *h){
 
 	if(instance_name.compare(0,4,"Data")==0 || 
+	   instance_name.compare(0,4,"Error")==0 || 
 	   instance_name.compare(0,6,"Broken")==0)
 	  ++total_n_frags_broken_;
 
