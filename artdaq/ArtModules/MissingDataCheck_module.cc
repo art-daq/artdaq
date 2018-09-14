@@ -83,10 +83,12 @@ private:
   unsigned int total_n_CFs_;
   unsigned int total_n_CFs_missing_;
   unsigned int total_n_frags_in_CFs_;
+  unsigned int total_n_frags_broken_;
 
 
   unsigned int frag_id_;
   unsigned int seq_id_;
+  unsigned int frag_type_;
   int contained_frags_;
   unsigned int frag_data_size_;
   int missing_data_;
@@ -116,6 +118,7 @@ artdaq::MissingDataCheck::MissingDataCheck(fhicl::ParameterSet const& pset)
     evtree_->Branch("n_cont_frag",&total_n_CFs_,"n_cont_frag/i");
     evtree_->Branch("n_miss_data",&total_n_CFs_missing_,"n_miss_data/i");
     evtree_->Branch("n_frag_in_cont",&total_n_frags_in_CFs_,"n_frag_in_cont/i");
+    evtree_->Branch("n_frag_broken",&total_n_frags_broken_,"n_frag_broken/i");
 
     fragtree_ = tfs->make<TTree>("fragtree","MissingDataCheck Fragment Tree");
     fragtree_->Branch("run",&run_,"run/i");
@@ -126,6 +129,7 @@ artdaq::MissingDataCheck::MissingDataCheck(fhicl::ParameterSet const& pset)
 
     fragtree_->Branch("frag_id",&frag_id_,"frag_id/i");
     fragtree_->Branch("seq_id",&seq_id_,"seq_id/i");
+    fragtree_->Branch("frag_type",&frag_type_,"frag_type/i");
     fragtree_->Branch("frag_data_size",&frag_data_size_,"frag_data_size/i");
     fragtree_->Branch("contained_frags",&contained_frags_,"contained_frags/I");
     fragtree_->Branch("missing_data",&missing_data_,"missing_data/I");
@@ -187,6 +191,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
   total_n_CFs_=0;
   total_n_CFs_missing_=0;
   total_n_frags_in_CFs_=0;
+  total_n_frags_broken_=0;
   for(auto const& h : fragmentHandles){
     std::string instance_name = h.provenance()->productInstanceName();
     
@@ -201,6 +206,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 	total_n_frags_in_CFs_ += cf.block_count();
 	frag_id_ = f.fragmentID();
 	seq_id_ = f.sequenceID();
+	frag_type_ = f.type();
 	contained_frags_ = cf.block_count();
 	missing_data_ = cf.missing_data()?1:0;
 	frag_data_size_ = f.dataSizeBytes();
@@ -211,8 +217,15 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 
     else{
       for(auto const& f : *h){
+
+	if(instance_name.compare(0,4,"Data")==0 || 
+	   instance_name.compare(0,4,"Error")==0 || 
+	   instance_name.compare(0,6,"Broken")==0)
+	  ++total_n_frags_broken_;
+
 	frag_id_ = f.fragmentID();
 	seq_id_ = f.sequenceID();
+	frag_type_ = f.type();
 	contained_frags_ = -1;
 	missing_data_ = -1;
 	frag_data_size_ = f.dataSizeBytes();
@@ -251,6 +264,7 @@ void artdaq::MissingDataCheck::endJob()
     unsigned int event;  evtree_->SetBranchAddress("event",&event);
     int n_frag_exp; evtree_->SetBranchAddress("n_frag_exp",&n_frag_exp);
     unsigned int n_frag; evtree_->SetBranchAddress("n_frag",&n_frag);
+    unsigned int n_frag_broken; evtree_->SetBranchAddress("n_frag_broken",&n_frag_broken);
     unsigned int n_miss_data; evtree_->SetBranchAddress("n_miss_data",&n_miss_data);
 
     std::cout << "Events missing fragments:\t\t" 
@@ -268,6 +282,20 @@ void artdaq::MissingDataCheck::endJob()
 	  }
 	}
       }
+    }
+    std::cout << "Events with broken fragments:\t\t" 
+	      << evtree_->GetEntries("n_frag_broken>0") 
+	      << " / " << evtree_->GetEntries() << std::endl;
+    if(evtree_->GetEntries("n_frag_broken>0")>0){
+      for(int i=0; i<evtree_->GetEntries(); ++i)
+	{
+	  evtree_->GetEvent(i);
+	  if(n_frag_broken > 0){
+	    std::cout << "\tEvent (" << run << "," << subrun << "," << event << ")"
+		      << " has " << n_frag_broken << " fragments."
+		      << std::endl;
+	  }
+	}
     }
     std::cout << "Events missing data in fragments:\t"
 	      << evtree_->GetEntries("n_miss_data>0")
