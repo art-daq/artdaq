@@ -87,17 +87,6 @@ namespace artdaq
 				, fragment_type_map_(getDefaultTypes())
 				, readNext_calls_(0)
 			{
-				try {
-					if (metricMan)
-					{
-						metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "artdaqart");
-						metricMan->do_start();
-					}
-				}
-				catch (...)
-				{
-					ExceptionHandler(ExceptionHandlerRethrow::no, "Error loading metrics in SharedMemoryReader()");
-				}
 
 				// For testing
 				//if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") || (ps.has_key("expected_fragments_per_event") && ps.has_key("max_fragment_size_bytes"))))
@@ -107,6 +96,18 @@ namespace artdaq
 				//}
 				incoming_events.reset(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()), ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
 				my_rank = incoming_events->GetRank();
+
+				try {
+					if (metricMan)
+					{
+						metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "art" + std::to_string(my_rank));
+						metricMan->do_start();
+					}
+				}
+				catch (...)
+				{
+					ExceptionHandler(ExceptionHandlerRethrow::no, "Error loading metrics in SharedMemoryReader()");
+				}
 
 				help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 				for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
