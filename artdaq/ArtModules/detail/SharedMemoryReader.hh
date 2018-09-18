@@ -100,7 +100,7 @@ namespace artdaq
 				try {
 					if (metricMan)
 					{
-						metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "art" + std::to_string(my_rank));
+						metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "art" + std::to_string(my_rank) + "_" + incoming_events.GetMyId());
 						metricMan->do_start();
 					}
 				}
