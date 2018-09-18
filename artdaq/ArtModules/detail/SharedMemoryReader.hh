@@ -85,6 +85,7 @@ namespace artdaq
 				, shutdownMsgReceived(false)
 				, outputFileCloseNeeded(false)
 				, bytesRead(0)
+				, last_read_time(std::chrono::steady_clock::now())
 				, fragment_type_map_(getDefaultTypes())
 				, readNext_calls_(0)
 			{
@@ -454,7 +455,7 @@ namespace artdaq
 				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
 				{
-					metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(read_start_time, last_read_time), "s", 2, MetricMode::Average);
+					metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time), "s", 2, MetricMode::Average);
 					metricMan->sendMetric("Avg Input Wait Time", artdaq::TimeUtils::GetElapsedTime(read_start_time, got_event_time), "s", 3, MetricMode::Average);
 					metricMan->sendMetric("Avg Read Time", artdaq::TimeUtils::GetElapsedTime(got_event_time, read_finish_time), "s", 3, MetricMode::Average);
 					metricMan->sendMetric("bytesRead", bytesRead, "B", 3, MetricMode::LastPoint);
