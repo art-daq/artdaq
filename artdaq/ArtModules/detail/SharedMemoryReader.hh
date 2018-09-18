@@ -96,7 +96,7 @@ namespace artdaq
 				//}
 				incoming_events.reset(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()), ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
 				my_rank = incoming_events->GetRank();
-				app_name = std::string(getenv("ARTDAQ_APPLICATION_NAME")) + "_art" + std::to_string(incoming_events.GetMyId());
+				app_name = std::string(getenv("ARTDAQ_APPLICATION_NAME")) + "_art" + std::to_string(incoming_events->GetMyId());
 
 				try {
 					if (metricMan)
