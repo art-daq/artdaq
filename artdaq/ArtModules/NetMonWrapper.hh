@@ -45,7 +45,7 @@ namespace art
 			try {
 				if (metricMan)
 				{
-					metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "art" + std::string(my_rank));
+					metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), app_name);
 					metricMan->do_start();
 				}
 			}
