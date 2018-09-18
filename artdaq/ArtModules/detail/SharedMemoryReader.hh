@@ -56,6 +56,7 @@ namespace artdaq
 			bool shutdownMsgReceived; ///< Whether a shutdown message has been received
 			bool outputFileCloseNeeded; ///< If an explicit output file close message is needed
 			size_t bytesRead; ///< running total of number of bytes received
+			std::chrono::steady_clock::time_point last_read_time; ///< Time last read was completed
 			//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
 			//std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control Fragments)
 
@@ -209,6 +210,7 @@ namespace artdaq
 					return false;
 				  }
 
+				auto read_start_time = std::chrono::steady_clock::now();
 			start:
 				bool keep_looping = true;
 				bool got_event = false;
@@ -250,6 +252,7 @@ namespace artdaq
 					return false;
 				}
 				TLOG_DEBUG("SharedMemoryReader") << "Got Event!";
+				auto got_event_time = std::chrono::steady_clock::now();
 
 				auto errflag = false;
 				auto evtHeader = incoming_events->ReadHeader(errflag);
@@ -444,14 +447,21 @@ namespace artdaq
 							<< unidentified_instance_name << "\".";
 					}
 				}
+
+				auto read_finish_time = std::chrono::steady_clock::now();
 				incoming_events->ReleaseBuffer();
-				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << incoming_events->size() << " metricMan=" << (void*)metricMan.get();
+                auto qcap = incoming_events->size();
+				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
 				{
-					metricMan->sendMetric("bytesRead", bytesRead, "B", 5, MetricMode::Accumulate, "", true);
-					metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / incoming_events->size()), "%", 5, MetricMode::LastPoint, "", true);
+					metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time), "s", 2, MetricMode::Average);
+					metricMan->sendMetric("Avg Input Wait Time", artdaq::TimeUtils::GetElapsedTime(read_start_time, got_event_time), "s", 3, MetricMode::Average);
+					metricMan->sendMetric("Avg Read Time", artdaq::TimeUtils::GetElapsedTime(got_event_time, read_finish_time), "s", 3, MetricMode::Average);
+					metricMan->sendMetric("bytesRead", bytesRead, "B", 3, MetricMode::LastPoint);
+					if (qcap > 0) metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / qcap), "%", 5, MetricMode::LastPoint);
 				}
 
+				last_read_time = read_finish_time;
 				return true;
 			}
 
