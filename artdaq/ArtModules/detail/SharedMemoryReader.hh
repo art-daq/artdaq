@@ -454,14 +454,14 @@ namespace artdaq
 				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
 				{
-					metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time), "s", 2, MetricMode::Average);
+					metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(read_start_time, last_read_time), "s", 2, MetricMode::Average);
 					metricMan->sendMetric("Avg Input Wait Time", artdaq::TimeUtils::GetElapsedTime(read_start_time, got_event_time), "s", 3, MetricMode::Average);
 					metricMan->sendMetric("Avg Read Time", artdaq::TimeUtils::GetElapsedTime(got_event_time, read_finish_time), "s", 3, MetricMode::Average);
 					metricMan->sendMetric("bytesRead", bytesRead, "B", 3, MetricMode::LastPoint);
 					if (qcap > 0) metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / qcap), "%", 5, MetricMode::LastPoint);
 				}
 
-				last_read_time = read_finish_time;
+				last_read_time = std::chrono::steady_clock::now();
 				return true;
 			}
 
