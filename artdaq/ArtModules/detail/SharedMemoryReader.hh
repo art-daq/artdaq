@@ -283,7 +283,27 @@ namespace artdaq
 																  // Check the number of fragments in the RawEvent.  If we have a single
 																  // fragment and that fragment is marked as EndRun or EndSubrun we'll create
 																  // the special principals for that.
-				art::Timestamp currentTime = time(0);
+				art::Timestamp currentTime = 0;
+#if 0
+				art::TimeValue_t lo_res_time = time(0);
+				TLOG_ARB(15, "SharedMemoryReader") << "lo_res_time = " << lo_res_time;
+				currentTime = ((lo_res_time & 0xffffffff) << 32);
+#endif
+				timespec hi_res_time;
+				int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
+				TLOG_ARB(15, "SharedMemoryReader") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
+				                                   << " tv_nsec = " << hi_res_time.tv_nsec
+				                                   << " (retcode = " << retcode << ")";
+				if (retcode == 0)
+				{
+					currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) |
+					  (hi_res_time.tv_nsec & 0xffffffff);
+				}
+				else
+				{
+					TLOG_ERROR("SharedMemoryReader") << "Unable to fetch a high-resolution time with clock_gettime for art::Event Timestamp. "
+					                                 << "The art::Event Timestamp will be zero for event " << evtHeader->event_id;
+				}
 
 				// make new run if inR is 0 or if the run has changed
 				if (inR == 0 || inR->run() != evtHeader->run_id)
