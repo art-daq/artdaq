@@ -15,6 +15,7 @@ artdaq::DataReceiverCore::DataReceiverCore()
 	: stop_requested_(false)
 	, pause_requested_(false)
 	, run_is_paused_(false)
+	, config_archive_entries_()
 {
 	TLOG(TLVL_DEBUG) << "Constructor" ;
 }
@@ -81,6 +82,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	}
 
 	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, art_pset));
+	art_pset_ = art_pset;
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
 
@@ -90,6 +92,26 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 bool artdaq::DataReceiverCore::start(art::RunID id)
 {
 	logMessage_("Starting run " + boost::lexical_cast<std::string>(id.run()));
+
+	// 13-Jul-2018, KAB: added code to update the art_pset inside the event store
+	// with configuration archive information
+	// so that the config info will be stored in the output art/ROOT file.
+	// (Note that we don't bother looping over the config_archive_entries if that
+	// map is empty, but we *do* still update the art configuration with art_pset_
+	// at each begin-run because the config archive may be non-empty one time through
+	// and then empty the next time.)
+	fhicl::ParameterSet temp_pset = art_pset_;
+	if (! config_archive_entries_.empty())
+	{
+		fhicl::ParameterSet config_pset;
+		for (auto& entry : config_archive_entries_)
+		{
+			config_pset.put(entry.first, entry.second);
+		}
+		temp_pset.put_or_replace("configuration_documents", config_pset);
+	}
+	event_store_ptr_->UpdateArtConfiguration(temp_pset);
+
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 	run_is_paused_.store(false);

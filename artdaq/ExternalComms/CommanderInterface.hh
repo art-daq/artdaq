@@ -75,6 +75,8 @@ namespace artdaq
 		/// trace_set
 		/// meta_command
 		/// rollover_subrun
+		/// add_config_archive_entry
+		/// clear_config_archive
 		/// 
 		/// See the send_* functions for more details on each command. Not all commands are valid for all applications/states.
 		/// run_server should return a string indicating success or failure to the transport mechanism when it is done processing a command.
@@ -231,12 +233,35 @@ namespace artdaq
 		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string send_rollover_subrun(uint64_t);
 
-
 		/// <summary>
 		/// Determine whether the Commander plugin is ready to accept commands
 		/// </summary>
 		/// <returns>True if running, false otherwise</returns>
 		bool GetStatus() { return running_.load(); }
+
+		/// <summary>
+		/// Using the transport mechanism, send an add_config_archive_entry command
+		/// 
+		/// This will cause the receiver to add the specified key and value to its list of
+		/// configuration archive information, which is stored in the art/ROOT files that are
+		/// written by various processes in the system.
+		/// This command accepts configuration key and value strings.
+		///
+		/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.add_config_archive_entry "EventBuilder1" "daq: {verbose: true}"
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
+		virtual std::string add_config_archive_entry(std::string, std::string);
+
+		/// <summary>
+		/// Using the transport mechanism, send a clear_config_archive command
+		/// 
+		/// This will cause the receiver to clear its list of configuration archive information.
+		///
+		/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.clear_config_archive
+		/// </summary>
+		/// <returns>Command result: "SUCCESS" if succeeded</returns>
+		virtual std::string clear_config_archive();
+
 	private:
 
 	public:

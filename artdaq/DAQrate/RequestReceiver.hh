@@ -107,6 +107,22 @@ namespace artdaq
 		}
 
 		/// <summary>
+		/// Get the current requests, then clear the map
+		/// </summary>
+		/// <returns>Map relating sequence IDs to timestamps</returns>
+		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetAndClearRequests()
+		{
+			std::unique_lock<std::mutex> lk(request_mutex_);
+			std::map<artdaq::Fragment::sequence_id_t, Fragment::timestamp_t> out;
+			for (auto& in : requests_)
+			{
+				out[in.first] = in.second;
+			}
+			requests_.clear();
+			return out;
+		}
+
+		/// <summary>
 		/// Get the number of requests currently stored in the RequestReceiver
 		/// </summary>
 		/// <returns>The number of requests stored in the RequestReceiver</returns>
@@ -122,7 +138,10 @@ namespace artdaq
 		/// <returns>True if any requests are present in the request map</returns>
 		bool WaitForRequests(int timeout_ms)
 		{
-			std::unique_lock<std::mutex> lk(request_mutex_);
+			std::unique_lock<std::mutex> lk(request_mutex_); // Lock needed by wait_for
+			// See if we have to wait at all
+			if (requests_.size() > 0) return true;
+			// If we do have to wait, check requests_.size to make sure we're not being notified spuriously
 			return request_cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms), [this]() { return requests_.size() > 0; });
 		}
 

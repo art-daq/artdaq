@@ -23,12 +23,13 @@ namespace artdaq
 		, active_requests_()
 		, request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
 		, request_port_(pset.get<int>("request_port", 3001))
-		, request_delay_(pset.get<size_t>("request_delay_ms", 10) * 1000)
+		, request_delay_(pset.get<size_t>("request_delay_ms", 0) * 1000)
 		, request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
 		, multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
 		, request_sending_(0)
+	        , tokens_sent_(0)
 	{
 		TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
 		setup_requests_();
@@ -185,30 +186,21 @@ namespace artdaq
 			}
 		}
 		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header";
-		message.header()->mode = request_mode_;
+		message.setMode(request_mode_);
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		std::unique_lock<std::mutex> lk2(request_send_mutex_);
 		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
-		auto hdrsts=sendto(request_socket_, message.header(), sizeof(detail::RequestHeader), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
-		if (hdrsts != sizeof(detail::RequestHeader))
+		auto buf = message.GetMessage();
+		auto sts=sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
+		if (sts < 0 || static_cast<size_t>(sts) != buf.size())
 		{
-			TLOG(TLVL_ERROR) << "Error sending request message header err=" << strerror(errno)<< "hdrsts="<<hdrsts;
+			TLOG(TLVL_ERROR) << "Error sending request message err=" << strerror(errno)<< "sts="<<sts;
 			request_socket_ = -1;
 			request_sending_--;
 			return;
 		}
-		auto thisSent = sendto(  request_socket_, reinterpret_cast<uint8_t*>(message.buffer())
-		                          , sizeof(detail::RequestPacket) * message.size()
-		                          , 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_) );
-		if (thisSent != (ssize_t)(sizeof(detail::RequestPacket) * message.size()) )
-		{
-			TLOG(TLVL_ERROR) << "Error sending request message data err=" << strerror(errno)<<" hdrsts="<<hdrsts<<" pktsts="<<thisSent;
-			request_socket_ = -1;
-			request_sending_--;
-			return;
-		}
-		TLOG(TLVL_TRACE) << "Done sending request hdrsts="<<hdrsts<<" pktsts="<<thisSent;
+		TLOG(TLVL_TRACE) << "Done sending request sts="<<sts;
 		request_sending_--;
 	}
 
@@ -237,6 +229,7 @@ namespace artdaq
 			}
 			sts += res;
 		}
+		tokens_sent_ += nSlots;
 		TLOG(TLVL_TRACE) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
 	}
 
@@ -278,6 +271,7 @@ namespace artdaq
 	{
 		while (!initialized_) usleep(1000);
 		std::lock_guard<std::mutex> lk(request_mutex_);
+		TLOG(12) << "Removing request for sequence ID " << seqID << " from request list.";
 		active_requests_.erase(seqID);
 	}
 }

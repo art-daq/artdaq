@@ -126,6 +126,12 @@ namespace artdaq
 		 * \param nSlots Number of slots available
 		 */
 		void SendRoutingToken(int nSlots);
+
+		/**
+		 * \brief Get the count of number of tokens sent
+		 * \return The number of tokens sent by RequestSender
+		 */
+		size_t GetSentTokenCount() const { return tokens_sent_.load(); }
 	private:
 
 		// Request stuff
@@ -148,6 +154,7 @@ namespace artdaq
 		int token_socket_;
 		std::string token_address_;
 		std::atomic<int> request_sending_;
+		std::atomic<size_t> tokens_sent_;
 
 	private:
 		void setup_requests_();

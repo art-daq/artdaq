@@ -352,6 +352,22 @@ namespace artdaq {
 		 */
 		RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { return dropped_data_[frag]->dataBegin(); }
 
+		/**
+		 * \brief Updates the internally-stored copy of the art configuration.
+		 * \param art_pset ParameterSet used to configure art
+		 *
+		 * This method updates the internally-stored copy of the art configuration, but it does not
+		 * restart art processes.  So, if this method is called while art processes are running, it will
+		 * have no effect until the next restart, such as the next Start of run.  Typically, this
+		 * method is intended to be called between runs, when no art processes are running.
+		 */
+		void UpdateArtConfiguration(fhicl::ParameterSet art_pset);
+
+		/**
+		 * \brief Check for buffers which are ready to be marked incomplete and released to art and issue tokens for any buffers which are avaialble
+		 */
+		void CheckPendingBuffers();
+
 	private:
 		size_t get_art_process_count_() 
 		{
@@ -427,11 +443,11 @@ namespace artdaq {
 		bool hasFragments_(int buffer);
 		void complete_buffer_(int buffer);
 		bool bufferComparator(int bufA, int bufB);
-		void check_pending_buffers_(std::unique_lock<std::mutex> const& lock = std::unique_lock<std::mutex>(sequence_id_mutex_));
+		void check_pending_buffers_(std::unique_lock<std::mutex> const& lock);
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;
-	};
-}
+		};
+	}
 
 #endif //ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH

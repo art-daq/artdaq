@@ -281,7 +281,8 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 		}
 		if (ifa == NULL)
 		{
-			TLOG(TLVL_WARNING) << "No matches for ip " << host << ", using 0.0.0.0";
+			if (host != std::string("0.0.0.0"))
+			    TLOG(TLVL_WARNING) << "No matches for ip " << host << ", using 0.0.0.0";
 			inet_aton("0.0.0.0", &addr);
 			sts = 2;
 		}

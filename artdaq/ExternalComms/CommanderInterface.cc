@@ -106,4 +106,16 @@ namespace artdaq {
 		return "NOT IMPLEMENTED";
 	}
 
+	inline std::string CommanderInterface::add_config_archive_entry(std::string, std::string)
+	{
+#pragma message "Using default implementation of add_config_archive_entry!"
+		return "NOT IMPLEMENTED";
+	}
+
+	inline std::string CommanderInterface::clear_config_archive()
+	{
+#pragma message "Using default implementation of clear_config_archive!"
+		return "NOT IMPLEMENTED";
+	}
+
 } //namespace artdaq

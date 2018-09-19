@@ -281,6 +281,20 @@ public:
 	*/
 	virtual bool do_meta_command(std::string const& command, std::string const& args);
 
+	/**
+	* \brief Add the specified key-value pair to the configuration archive list
+	*
+	* This function is a No-Op. Derived classes should override it.
+	*/
+	virtual bool do_add_config_archive_entry(std::string const&, std::string const&);
+
+	/**
+	* \brief Clears the configuration archive list
+	*
+	* This function is a No-Op. Derived classes should override it.
+	*/
+	virtual bool do_clear_config_archive();
+
 protected:
 	/**
 	 * \brief Return the name of the current state

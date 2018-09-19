@@ -126,13 +126,14 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 	// Don't bomb out until received at least one connection...
 	if (getConnectedFDCount(source_rank()) == 0)
-	{ // what if just listen_fd??? 
-	//	if (receive_socket_has_been_connected_ && TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_) 
-	//	{ 
-//			TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: senders have been disconnected for "
-//				<< TimeUtils::GetElapsedTime(last_recv_time_) << " s (receive_socket_disconnected_wait_s = " << receive_disconnected_wait_s_ << " s). RETURNING DATA_END!";
-//			return DATA_END; 
-//		}
+	{ 	// what if just listen_fd??? 
+		//	if (receive_socket_has_been_connected_ && TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_) 
+		//	{ 
+		//			TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentHeader: senders have been disconnected for "
+		//				<< TimeUtils::GetElapsedTime(last_recv_time_) << " s (receive_socket_disconnected_wait_s = " << receive_disconnected_wait_s_ << " s). RETURNING DATA_END!";
+		//			return DATA_END; 
+		//		}
+		//if (++not_connected_count_ > receive_err_threshold_) { return DATA_END; }
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader: Receive socket not connected, returning RECV_TIMEOUT";
 		usleep(receive_err_wait_us_);
 		return RECV_TIMEOUT;
@@ -291,7 +292,10 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			sts = read(active_receive_fd_, buff, byte_cnt);
 			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Done with read";
 		}
-		if (sts > 0) { loop_guard = 0; }
+		if (sts > 0) { 
+			loop_guard = 0;
+			last_recv_time_ = std::chrono::steady_clock::now();
+		}
 
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state) << " read=" << sts;
 		if (sts < 0)
@@ -399,18 +403,27 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	int loop_guard = 0;
 	bool done = false;
 	bool noDataWarningSent = false;
+	last_recv_time_ = std::chrono::steady_clock::now();
 	while (!done)
 	{
 		TLOG(9) << GetTraceName() << ": receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
-		TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Polled fd to see if there's data"
+		TLOG(TLVL_TRACE) << GetTraceName() << ": receiveFragmentData: Polled fd to see if there's data"
 			<< ", num_fds_ready = " << num_fds_ready;
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0)
 			{
-				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data from " << source_rank() << " in 1000 ms!"
+				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data from " << source_rank() << " in " << TimeUtils::GetElapsedTimeMilliseconds(last_recv_time_) << " ms!"
 				                   << " State = " << (state == SocketState::Metadata ? "Metadata" : "Data") << ", recvd/total=" << offset << "/" << target_bytes << " (delta=" << target_bytes - offset << ")";
+				
+				if (TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_)
+				{
+					TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data received within timeout (" << TimeUtils::GetElapsedTime(last_recv_time_) << " / " << receive_disconnected_wait_s_ << " ), returning RECV_TIMEOUT";
+					disconnect_receive_socket_(active_receive_fd_, "No data on this socket within timeout");
+					active_receive_fd_ = -1;
+					return RECV_TIMEOUT;
+				}
 				continue;
 			}
 
@@ -418,6 +431,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			active_receive_fd_ = -1;
 			break;
 		}
+		else { last_recv_time_ = std::chrono::steady_clock::now(); }
 
 		if (pollfd_s.revents & (POLLIN | POLLPRI))
 		{
@@ -469,7 +483,11 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 				return RECV_TIMEOUT;
 			}
 		}
-		else { loop_guard = 0; }
+		else if(sts > 0)
+		{
+			loop_guard = 0;
+			last_recv_time_ = std::chrono::steady_clock::now();
+		 }
 
 		if (sts < 0)
 		{
@@ -567,7 +585,7 @@ bool artdaq::TCPSocketTransfer::isRunning()
 // the Fragment was sent OR -1 if to none.
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(Fragment&& frag, size_t send_timeout_usec)
 {
-	TLOG(12) << GetTraceName() << ": sendFragment begin";
+	TLOG(12) << GetTraceName() << ": sendFragment begin send of fragment with sequenceID="<<frag.sequenceID();
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
 
 	reconnect_();
@@ -584,9 +602,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	auto sts = sendData_(&iov, 1, send_retry_timeout_us_, true);
 	auto start_time = std::chrono::steady_clock::now();
 	//If it takes more than 10 seconds to write a Fragment header, give up
-	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
+	while (sts == CopyStatus::kTimeout && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
-		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
+		TLOG(13) << GetTraceName() << ": sendFragment: Timeout sending fragment";
 		sts = sendData_(&iov, 1, send_retry_timeout_us_, true);
 		usleep(1000);
 	}
@@ -599,9 +617,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 };
 	sts = sendData_(&iov, 1, send_retry_timeout_us_);
 	start_time = std::chrono::steady_clock::now();
-	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
+	while (sts == CopyStatus::kTimeout && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
-		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
+		TLOG(13) << GetTraceName() << ": sendFragment: Timeout sending fragment";
 		sts = sendData_(&iov, 1, send_retry_timeout_us_);
 		usleep(1000);
 	}
@@ -610,7 +628,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	send_ack_diff_++;
 #endif
 
-	TLOG(12) << GetTraceName() << ": sendFragment returning kSuccess";
+	TLOG(12) << GetTraceName() << ": sendFragment returning " << CopyStatusToString(sts);
 	return sts;
 }
 
@@ -800,6 +818,12 @@ void artdaq::TCPSocketTransfer::connect_()
 	{
 		TLOG(TLVL_DEBUG) << GetTraceName() << ": Connecting sender socket";
 		int sndbuf_bytes = static_cast<int>(sndbuf_);
+		if (sndbuf_ > INT_MAX)
+		{
+			sndbuf_bytes = INT_MAX;
+			TLOG(TLVL_WARNING) << "Requested SNDBUF " << sndbuf_ << " too large, setting to INT_MAX: " << INT_MAX;
+		}
+        TLOG(TLVL_DEBUG) << "Requested SNDBUF is " << sndbuf_bytes;
 
 		send_fd_ = TCPConnect(hostMap_[destination_rank()].c_str()
 			, portMan->GetTCPSocketTransferPort(destination_rank())

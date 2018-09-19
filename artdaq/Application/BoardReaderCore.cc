@@ -317,12 +317,12 @@ void artdaq::BoardReaderCore::process_fragments()
 			SetMFIteration("Sequence ID " + std::to_string(sequence_id));
 			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
 
-			if ((fragment_count_ % 250) == 0)
+			/*if ((fragment_count_ % 250) == 0)
 			{
 				TLOG(TLVL_DEBUG)
 					<< "Sending fragment " << fragment_count_
 					<< " with sequence id " << sequence_id << ".";
-			}
+			}*/
 
 			// check for continous sequence IDs
 			if (!skip_seqId_test_ && abs(static_cast<int64_t>(sequence_id) - static_cast<int64_t>(prev_seq_id_)) > 1)
@@ -346,25 +346,26 @@ void artdaq::BoardReaderCore::process_fragments()
 			if (readyToReport)
 			{
 				std::string statString = buildStatisticsString_();
-				TLOG(TLVL_DEBUG) << statString;
+				TLOG(TLVL_INFO) << statString;
 			}
-			if (fragment_count_ == 1 || readyToReport)
+			if (fragment_count_ % 250 == 1 || readyToReport)
 			{
 				TLOG(TLVL_DEBUG)
 					<< "Sending fragment " << fragment_count_
-					<< " with sequence id " << sequence_id << ".";
+					<< " with SeqID " << sequence_id << ".";
 			}
 		}
 		if (statsHelper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
 		frags.clear();
 	}
 
+	sender_ptr_.reset(nullptr);
+
 	// 11-May-2015, KAB: call MetricManager::do_stop whenever we exit the
 	// processing fragments loop so that metrics correctly go to zero when
 	// there is no data flowing
 	metricMan->do_stop();
 
-	sender_ptr_.reset(nullptr);
 	TLOG(TLVL_DEBUG) << "process_fragments loop end";
 }
 

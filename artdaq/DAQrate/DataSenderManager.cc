@@ -27,6 +27,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, should_stop_(false)
 	, ack_socket_(-1)
 	, table_socket_(-1)
+	, routing_table_last_(0)
 	, routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
 	, highest_sequence_id_routed_(0)
 {
@@ -43,7 +44,6 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	ack_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
 	routing_timeout_ms_ = (rmConfig.get<int>("routing_timeout_ms", 1000));
 	routing_retry_count_ = rmConfig.get<int>("routing_retry_count", 5);
-
 
 	hostMap_t host_map = MakeHostMap(pset);
 	size_t tcp_send_buffer_size = pset.get<size_t>("tcp_send_buffer_size", 0);
@@ -144,6 +144,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 
 void artdaq::DataSenderManager::setupTableListener_()
 {
+	int sts;
 	table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (table_socket_ < 0)
 	{
@@ -162,7 +163,14 @@ void artdaq::DataSenderManager::setupTableListener_()
 	memset(&si_me_request, 0, sizeof(si_me_request));
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(table_port_);
-	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
+	//si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
+	struct in_addr          in_addr_s;
+	sts = inet_aton(table_address_.c_str(), &in_addr_s );
+	if (sts == 0)
+	{
+		TLOG(TLVL_ERROR) << "inet_aton says table_address " << table_address_ << " is invalid";
+	}
+	si_me_request.sin_addr.s_addr = in_addr_s.s_addr;
 	if (bind(table_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << table_port_;
@@ -170,7 +178,7 @@ void artdaq::DataSenderManager::setupTableListener_()
 	}
 
 	struct ip_mreq mreq;
-	int sts = ResolveHost(table_address_.c_str(), mreq.imr_multiaddr);
+	sts = ResolveHost(table_address_.c_str(), mreq.imr_multiaddr);
 	if (sts == -1)
 	{
 		TLOG(TLVL_ERROR) << "Unable to resolve multicast address for table updates";
@@ -203,19 +211,19 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 	{
 		if (should_stop_)
 		{
-			TLOG(TLVL_DEBUG) << "receiveTableUpdatesLoop: should_stop is " << std::boolalpha << should_stop_ << ", stopping";
+			TLOG(TLVL_DEBUG) << __func__ << ": should_stop is " << std::boolalpha << should_stop_ << ", stopping";
 			return;
 		}
 
-		TLOG(TLVL_TRACE) << "DataSenderManager::receiveTableUpdatesLoop: Polling Request socket for new requests";
+		TLOG(TLVL_TRACE) << __func__ << ": Polling table socket for new routes";
 		if (table_socket_ == -1)
 		{
-			TLOG(TLVL_DEBUG) << "Opening table listener socket";
+			TLOG(TLVL_DEBUG) << __func__ << ": Opening table listener socket";
 			setupTableListener_();
 		}
 		if (table_socket_ == -1)
 		{
-			TLOG(TLVL_DEBUG) << "The listen socket was not opened successfully.";
+			TLOG(TLVL_DEBUG) << __func__ << ": The listen socket was not opened successfully.";
 			return;
 		}
 		if (ack_socket_ == -1)
@@ -224,10 +232,10 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			auto sts = ResolveHost(ack_address_.c_str(), ack_port_, ack_addr_);
 			if (sts == -1)
 			{
-				TLOG(TLVL_ERROR) << "Unable to resolve routing_master_address";
+				TLOG(TLVL_ERROR) << __func__ << ": Unable to resolve routing_master_address";
 				exit(1);
 			}
-			TLOG(TLVL_DEBUG) << "Ack socket is fd " << ack_socket_;
+			TLOG(TLVL_DEBUG) << __func__ << ": Ack socket is fd " << ack_socket_;
 		}
 
 		struct pollfd fd;
@@ -241,43 +249,57 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			auto last = artdaq::Fragment::InvalidSequenceID;
 			artdaq::detail::RoutingPacketHeader hdr;
 
-			TLOG(TLVL_DEBUG) << "Going to receive RoutingPacketHeader";
-			auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, NULL, NULL);
-			TLOG(TLVL_DEBUG) << "Received " << stss << " bytes. (sizeof(RoutingPacketHeader) == " << sizeof(detail::RoutingPacketHeader);
+			TLOG(TLVL_DEBUG) << __func__ << ": Going to receive RoutingPacketHeader";
+			struct sockaddr_in from;
+			socklen_t          len=sizeof(from);
+			auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, (struct sockaddr*)&from, &len );
+			TLOG(TLVL_DEBUG) << __func__ << ": Received " << stss << " hdr bytes. (sizeof(RoutingPacketHeader) == " << sizeof(detail::RoutingPacketHeader)
+							 << " from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
 
-			TLOG(TLVL_DEBUG) << "Checking for valid header";
-			if (hdr.header == ROUTING_MAGIC)
+			TRACE(TLVL_DEBUG,"receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx",hdr.nEntries,((unsigned long*)&hdr)[0],((unsigned long*)&hdr)[1]);
+			if (hdr.header != ROUTING_MAGIC)
+			{
+				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)="<<stss;
+			}
+			else if (stss != sizeof(artdaq::detail::RoutingPacketHeader))
+			{
+				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. size(bytes)="<<stss;
+			}
+			else
 			{
 				if (routing_master_mode_ != detail::RoutingMasterMode::INVALID && routing_master_mode_ != hdr.mode)
 				{
-					TLOG(TLVL_ERROR) << "Received table has different RoutingMasterMode than expected!";
+					TLOG(TLVL_ERROR) << __func__ << ": Received table has different RoutingMasterMode than expected!";
 					exit(1);
 				}
 				routing_master_mode_ = hdr.mode;
 
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
-				TLOG(TLVL_DEBUG) << "Receiving data buffer";
-				auto sts = recv(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0);
+				TLOG(TLVL_DEBUG) << __func__ << ": Receiving data buffer";
+				auto sts = recvfrom(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0, (struct sockaddr*)&from, &len );
 				assert(static_cast<size_t>(sts) == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-				TLOG(6) << "Received a packet of " << sts << " bytes";
+				TLOG(TLVL_DEBUG) << __func__ << ": Received " << sts << " pkt bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+				TRACE(6,"receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx",sts,((unsigned long*)&buffer[0])[0],((unsigned long*)&buffer[0])[1]);
 
 				first = buffer[0].sequence_id;
 				last = buffer[buffer.size() - 1].sequence_id;
 
 				if (first + hdr.nEntries - 1 != last)
 				{
-					TLOG(TLVL_ERROR) << "Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
+					TLOG(TLVL_ERROR) << __func__ << ": Skipping this RoutingPacket because the first (" << first << ") and last (" << last << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
 					continue;
 				}
 				auto thisSeqID = first;
 
+				{
+				std::unique_lock<std::mutex> lck(routing_mutex_);
 				if (routing_table_.count(last) == 0)
 				{
 					for (auto entry : buffer)
 					{
 						if (thisSeqID != entry.sequence_id)
 						{
-							TLOG(TLVL_ERROR) << "Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!";
+							TLOG(TLVL_ERROR) << __func__ << ": Aborting processing of this RoutingPacket because I encountered an inconsistent entry (seqid=" << entry.sequence_id << ", expected=" << thisSeqID << ")!";
 							last = thisSeqID - 1;
 							break;
 						}
@@ -286,14 +308,27 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 						{
 							if (routing_table_[entry.sequence_id] != entry.destination_rank)
 							{
-								TLOG(TLVL_ERROR) << "Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
+								TLOG(TLVL_ERROR) << __func__ << ": Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
 									<< " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
 									<< " I will use the original value!";
 							}
 							continue;
 						}
+						if (entry.sequence_id < routing_table_last_) continue;
 						routing_table_[entry.sequence_id] = entry.destination_rank;
-						TLOG(TLVL_DEBUG) << "DataSenderManager " << my_rank << ": received update: SeqID " << entry.sequence_id << " -> Rank " << entry.destination_rank;
+						TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
+										 << " -> Rank " << entry.destination_rank;
+					}
+				}
+					
+					TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
+					if (routing_table_.size() > 0) TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+
+					auto counter = 0;
+					for (auto& entry : routing_table_)
+					{
+						TLOG(45) << "Routing Table Entry" << counter << ": " << entry.first << " -> " << entry.second;
+						counter++;
 					}
 				}
 
@@ -302,8 +337,9 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				ack.first_sequence_id = first;
 				ack.last_sequence_id = last;
 
-				TLOG(TLVL_DEBUG) << "Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
-				TLOG(TLVL_DEBUG) << "There are now " << routing_table_.size() << " entries in the Routing Table";
+				if (last > routing_table_last_) routing_table_last_ = last;
+
+				TLOG(TLVL_DEBUG) << __func__ << ": Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 			}
 		}
@@ -319,19 +355,23 @@ size_t artdaq::DataSenderManager::GetRoutingTableEntryCount() const
 size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 {
 	std::unique_lock<std::mutex> lck(routing_mutex_);
-	return std::distance(routing_table_.find(highest_sequence_id_routed_), routing_table_.end());
+	// Find the distance from the next highest sequence ID to the end of the list
+	size_t dist = std::distance(routing_table_.upper_bound(highest_sequence_id_routed_), routing_table_.end());
+	return dist; // If dist == 1, there is one entry left.
 }
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
 {
 	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
-	if (enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
+	if (!use_routing_master_ && enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
 
 	if (use_routing_master_)
 	{
 		auto start = std::chrono::steady_clock::now();
+		TLOG(15) << "calcDest_ use_routing_master check for routing info for seqID="<<sequence_id<<" routing_timeout_ms="<<routing_timeout_ms_<<" should_stop_="<<should_stop_;
 		while (!should_stop_ && (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_)))
 		{
+		  {
 			std::unique_lock<std::mutex> lck(routing_mutex_);
 			if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id))
 			{
@@ -339,12 +379,13 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 				return routing_table_.at(sequence_id);
 			}
-			else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count()))
+			else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count() + 1))
 			{
-				if (sent_frag_count_.count() > highest_sequence_id_routed_) highest_sequence_id_routed_ = sent_frag_count_.count();
+				if (sent_frag_count_.count() + 1 > highest_sequence_id_routed_) highest_sequence_id_routed_ = sent_frag_count_.count() + 1;
 				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
-				return routing_table_.at(sent_frag_count_.count());
+				return routing_table_.at(sent_frag_count_.count() + 1);
 			}
+		  }
 			usleep(routing_timeout_ms_ * 10);
 		}
 		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
@@ -476,22 +517,15 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
-		while (routing_table_.size() > routing_table_max_size_)
-		{
-			routing_table_.erase(routing_table_.begin());
-		}
+	//	while (routing_table_.size() > routing_table_max_size_)
+	//	{
+	//		routing_table_.erase(routing_table_.begin());
+	//	}
+	if(routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.find(seqID) != routing_table_.end())
+		routing_table_.erase(routing_table_.find(seqID));
+	else if(routing_table_.find(sent_frag_count_.count()) != routing_table_.end())
+	  routing_table_.erase(routing_table_.find(sent_frag_count_.count()));
 	}
-	/*if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID
-		&& routing_table_.find(seqID - 1) != routing_table_.end())
-	{
-		std::unique_lock<std::mutex> lck(routing_mutex_);
-		routing_table_.erase(routing_table_.begin(), routing_table_.find(seqID - 1));
-	}
-	else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount)
-	{
-		std::unique_lock<std::mutex> lck(routing_mutex_);
-		routing_table_.erase(routing_table_.begin(), routing_table_.find(sent_frag_count_.count()));
-	}*/
 
 
 	auto delta_t = TimeUtils::GetElapsedTime(start_time);
@@ -512,9 +546,12 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 
 		if (use_routing_master_)
 		{
-			metricMan->sendMetric("Routing Table Size", routing_table_.size(), "events", 2, MetricMode::LastPoint);
+			metricMan->sendMetric("Routing Table Size", GetRoutingTableEntryCount(), "events", 2, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)
+			{
 				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 2, MetricMode::Average);
+				routing_wait_time_ = 0;
+			}
 		}
 	}
 	TLOG(5) << "sendFragment: Done sending fragment " << seqID;
