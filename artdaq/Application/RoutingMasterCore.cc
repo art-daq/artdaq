@@ -486,7 +486,9 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 						else
 						{
 							TLOG(TLVL_WARNING) << "Received acknowledgement from rank " << buffer.rank
-								<< " that had incorrect sequence ID information. Discarding." ;
+											   << " that had incorrect sequence ID information. Discarding."
+								" Expect first/last=" << first <<"/"<< last <<
+								" recvd=" << buffer.first_sequence_id <<"/"<< buffer.last_sequence_id;
 						}
 					}
 				}

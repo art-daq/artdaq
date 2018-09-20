@@ -380,7 +380,7 @@ int artdaq::TCPSocketTransfer::disconnect_receive_socket_(int fd, std::string ms
 
 int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, size_t)
 {
-	TLOG(9) << GetTraceName() << ": receiveFragmentData: BEGIN";
+	TLOG(19) << GetTraceName() << ": receiveFragmentData: BEGIN";
 	int ret_rank = RECV_TIMEOUT;
 	if (active_receive_fd_ == -1)
 	{ // what if just listen_fd??? 
@@ -527,8 +527,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					{
 						TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: Message header indicates that a Fragment header follows when I was expecting Fragment data!";
 						active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_, "Desync detected");
+					}
 				}
-			}
 				else
 				{
 					ret_rank = source_rank();
@@ -542,7 +542,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					done = true; // no more polls
 					//break; // no more read of ready fds
 				}
-				}
+			}
 		}
 
 		// Check if we were asked to do a 0-size receive
@@ -564,7 +564,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	last_active_receive_fd_ = active_receive_fd_;
 	active_receive_fd_ = -1;
 
-	TLOG(9) << GetTraceName() << ": receiveFragmentData: Returning " << ret_rank;
+	TLOG(9) << GetTraceName() << ": receiveFragmentData: Returning rank " << ret_rank;
 	return ret_rank;
 }
 
