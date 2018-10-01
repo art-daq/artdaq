@@ -135,20 +135,19 @@ namespace artdaq
 		virtual int receiveFragmentData(RawDataType* destination, size_t wordCount) = 0;
 
 		/**
-		* \brief Copy a Fragment to the destination. May not necessarily be reliable
-		* \param fragment Fragment to copy
+		* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
+		* \param fragment Fragment to transfer
 		* \param send_timeout_usec Timeout for send, in microseconds
-		* \return CopyStatus detailing result of copy
+		* \return CopyStatus detailing result of transfer
 		*/
-		virtual CopyStatus copyFragment(artdaq::Fragment const& fragment, size_t send_timeout_usec) = 0;
+		virtual CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment, size_t send_timeout_usec) = 0;
 
-		// Move fragment (should be reliable)
 		/**
-		* \brief Move a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
-		* \param fragment Fragment to move
+		* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
+		* \param fragment Fragment to transfer
 		* \return CopyStatus detailing result of copy
 		*/
-		virtual CopyStatus moveFragment(artdaq::Fragment&& fragment) = 0;
+		virtual CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& fragment) = 0;
 
 		/**
 		 * \brief Get the unique label of this TransferInterface instance

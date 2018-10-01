@@ -89,14 +89,14 @@ namespace artdaq
 		* \param send_timeout_usec How long to try to send before discarding data
 		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus copyFragment(artdaq::Fragment const& fragment, size_t send_timeout_usec) override;
+		CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment, size_t send_timeout_usec) override;
 
 		/**
 		* \brief Move a Fragment to the destination. Multicast is always unreliable
 		* \param fragment Fragment to move
 		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus moveFragment(artdaq::Fragment&& fragment) override;
+		CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& fragment) override;
 
 		/**
 		* \brief Determine whether the TransferInterface plugin is able to send/receive data
@@ -406,13 +406,13 @@ int artdaq::MulticastTransfer::receiveFragmentData(RawDataType* destination, siz
 
 // Reliable transport is undefined for multicast; just use copy
 artdaq::TransferInterface::CopyStatus
-artdaq::MulticastTransfer::moveFragment(artdaq::Fragment&& f)
+artdaq::MulticastTransfer::transfer_fragment_reliable_mode(artdaq::Fragment&& f)
 {
-	return copyFragment(f, 100000000);
+	return transfer_fragment_min_blocking_mode(f, 100000000);
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::MulticastTransfer::copyFragment(artdaq::Fragment const& fragment,
+artdaq::MulticastTransfer::transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment,
 	size_t send_timeout_usec)
 {
 	assert(TransferInterface::role() == Role::kSend);

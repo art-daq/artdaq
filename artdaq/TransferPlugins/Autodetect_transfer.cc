@@ -68,9 +68,9 @@ namespace artdaq
 		 * \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
 		 * \return A TransferInterface::CopyStatus result variable
 		 */
-		CopyStatus copyFragment(artdaq::Fragment const& fragment, size_t send_timeout_usec) override
+		CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment, size_t send_timeout_usec) override
 		{
-			return theTransfer_->copyFragment(fragment, send_timeout_usec);
+			return theTransfer_->transfer_fragment_min_blocking_mode(fragment, send_timeout_usec);
 		}
 
 		/**
@@ -78,9 +78,9 @@ namespace artdaq
 		* \param fragment The Fragment to send
 		* \return A TransferInterface::CopyStatus result variable
 		*/
-		CopyStatus moveFragment(artdaq::Fragment&& fragment) override
+		CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& fragment) override
 		{
-			return theTransfer_->moveFragment(std::move(fragment));
+			return theTransfer_->transfer_fragment_reliable_mode(std::move(fragment));
 		}
 
 		/**

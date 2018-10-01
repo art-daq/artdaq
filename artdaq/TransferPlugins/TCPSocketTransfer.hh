@@ -79,19 +79,19 @@ public:
 	int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
 
 	/**
-	* \brief Copy a Fragment to the destination. Same implementation as moveFragment, as TCP is always reliable
-	* \param frag Fragment to copy
-	* \param timeout_usec Timeout for send, in microseconds
-	* \return CopyStatus detailing result of copy
+	* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
+	* \param fragment Fragment to transfer
+	* \param send_timeout_usec Timeout for send, in microseconds
+	* \return CopyStatus detailing result of transfer
 	*/
-	CopyStatus copyFragment(Fragment const& frag, size_t timeout_usec) override { return sendFragment_(Fragment(frag), timeout_usec); }
+	CopyStatus transfer_fragment_min_blocking_mode(Fragment const& frag, size_t timeout_usec) override { return sendFragment_(Fragment(frag), timeout_usec); }
 
 	/**
-	* \brief Move a Fragment to the destination.
-	* \param frag Fragment to move
+	* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
+	* \param fragment Fragment to transfer
 	* \return CopyStatus detailing result of copy
 	*/
-	CopyStatus moveFragment(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
+	CopyStatus transfer_fragment_reliable_mode(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
 
 	/**
 	* \brief Determine whether the TransferInterface plugin is able to send/receive data
