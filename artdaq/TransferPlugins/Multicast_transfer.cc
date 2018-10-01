@@ -89,7 +89,7 @@ namespace artdaq
 		* \param send_timeout_usec How long to try to send before discarding data
 		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec) override;
+		CopyStatus copyFragment(artdaq::Fragment const& fragment, size_t send_timeout_usec) override;
 
 		/**
 		* \brief Move a Fragment to the destination. Multicast is always unreliable
@@ -412,7 +412,7 @@ artdaq::MulticastTransfer::moveFragment(artdaq::Fragment&& f)
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::MulticastTransfer::copyFragment(artdaq::Fragment& fragment,
+artdaq::MulticastTransfer::copyFragment(artdaq::Fragment const& fragment,
 	size_t send_timeout_usec)
 {
 	assert(TransferInterface::role() == Role::kSend);

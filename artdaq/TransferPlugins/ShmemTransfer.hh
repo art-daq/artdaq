@@ -67,7 +67,7 @@ namespace artdaq
 		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus copyFragment(Fragment& fragment, size_t send_timeout_usec) override;
+		CopyStatus copyFragment(Fragment const& fragment, size_t send_timeout_usec) override;
 
 		/**
 		* \brief Move a Fragment to the destination.

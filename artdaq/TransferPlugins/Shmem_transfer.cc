@@ -167,9 +167,9 @@ int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t 
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::ShmemTransfer::copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec)
+artdaq::ShmemTransfer::copyFragment(artdaq::Fragment const& fragment, size_t send_timeout_usec)
 {
-	return sendFragment(std::move(fragment), send_timeout_usec, false);
+	return sendFragment(Fragment(fragment), send_timeout_usec, false);
 }
 
 artdaq::TransferInterface::CopyStatus

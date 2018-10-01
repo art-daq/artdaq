@@ -84,7 +84,7 @@ public:
 	* \param timeout_usec Timeout for send, in microseconds
 	* \return CopyStatus detailing result of copy
 	*/
-	CopyStatus copyFragment(Fragment& frag, size_t timeout_usec) override { return sendFragment_(std::move(frag), timeout_usec); }
+	CopyStatus copyFragment(Fragment const& frag, size_t timeout_usec) override { return sendFragment_(Fragment(frag), timeout_usec); }
 
 	/**
 	* \brief Move a Fragment to the destination.

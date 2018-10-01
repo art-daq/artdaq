@@ -140,7 +140,7 @@ namespace artdaq
 		* \param send_timeout_usec Timeout for send, in microseconds
 		* \return CopyStatus detailing result of copy
 		*/
-		virtual CopyStatus copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec) = 0;
+		virtual CopyStatus copyFragment(artdaq::Fragment const& fragment, size_t send_timeout_usec) = 0;
 
 		// Move fragment (should be reliable)
 		/**
