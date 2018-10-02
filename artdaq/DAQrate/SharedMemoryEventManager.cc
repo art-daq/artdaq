@@ -419,8 +419,8 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	if (pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = pset;
-		if(manual_art_)	current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
-		else current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
+		if(manual_art_)	current_art_config_file_ = std::make_shared<art_config_file>(pset, GetKey(), GetBroadcastKey());
+		else current_art_config_file_ = std::make_shared<art_config_file>(pset);
 	}
 	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
 	boost::thread thread([&] { RunArt(current_art_config_file_, pid); });
