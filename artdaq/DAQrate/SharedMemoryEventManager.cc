@@ -69,7 +69,9 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 		TLOG(TLVL_INFO) << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:true";
 		TLOG(TLVL_TRACE) << "art_pset is " << art_pset.to_string();
 	}
-	current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
+
+	if(manual_art_)	current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+	else current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 
 	if (overwrite_mode_ && num_art_processes_ > 0)
 	{
@@ -417,7 +419,8 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	if (pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(pset/*, GetKey(), GetBroadcastKey()*/);
+		if(manual_art_)	current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+		else current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 	}
 	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
 	boost::thread thread([&] { RunArt(current_art_config_file_, pid); });
@@ -572,7 +575,8 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_ps
 	if (art_pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = art_pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
+		if(manual_art_)	current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+		else current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 	}
 
 	if (n_art_processes != -1)
@@ -1214,7 +1218,8 @@ void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSe
 	if (art_pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = art_pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
+		if(manual_art_)	current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+		else current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 	}
 	TLOG(TLVL_DEBUG) << "UpdateArtConfiguration END";
 }

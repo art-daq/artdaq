@@ -27,7 +27,7 @@ namespace artdaq {
 		 * \brief art_config_file Constructor
 		 * \param ps ParameterSet to write to temporary file
 		 */
-		art_config_file(fhicl::ParameterSet ps/*, uint32_t shm_key, uint32_t broadcast_key*/)
+		art_config_file(fhicl::ParameterSet ps, uint32_t shm_key = 0, uint32_t broadcast_key = 0)
 			: dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
 			, file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 		{
@@ -49,19 +49,22 @@ namespace artdaq {
 			}
 			of << ps.to_string();
 
-			//if (ps.has_key("services.NetMonTransportServiceInterface"))
-			//{
-			//	of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
-			//	of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-			//	of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
-			//}
+			if (ps.has_key("services.NetMonTransportServiceInterface"))
+			{
+			  TLOG(TLVL_INFO) << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into NetMonTransportService config";
+				if(shm_key > 0) of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
+				if(broadcast_key > 0) of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
+			}
 			if (!ps.has_key("services.message"))
 			{
 				of << " services.message: { " << generateMessageFacilityConfiguration("art") << "} ";
 			}
-			//of << " source.shared_memory_key: 0x" << std::hex << shm_key;
-			//of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-			//of << " source.rank: " << std::dec << my_rank;
+
+			  TLOG(TLVL_INFO) << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into source config";
+			if(shm_key > 0) of << " source.shared_memory_key: 0x" << std::hex << shm_key;
+			if(broadcast_key > 0) of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
+
+			of.flush();
 			of.close();
 		}
 		~art_config_file()
