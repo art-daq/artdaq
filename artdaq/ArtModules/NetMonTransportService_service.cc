@@ -68,7 +68,15 @@ listen()
 	if (!incoming_events_)
 	{
 		incoming_events_.reset(new artdaq::SharedMemoryEventReceiver(data_pset_.get<int>("shared_memory_key", 0xBEE70000 + getppid()), data_pset_.get<int>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
-		app_name = std::string(getenv("ARTDAQ_APPLICATION_NAME")) + "_art" + std::to_string(incoming_events_->GetMyId());
+
+		char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
+		std::string artapp_str = "";
+		if (artapp_env != NULL)
+		{
+			artapp_str = std::string(artapp_env) + "_";
+		}
+
+		app_name = artapp_str + "art" + std::to_string(incoming_events_->GetMyId());
 
 		if (data_pset_.has_key("rank")) my_rank = data_pset_.get<int>("rank");
 		else my_rank = incoming_events_->GetRank();
