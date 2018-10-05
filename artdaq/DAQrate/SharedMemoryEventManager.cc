@@ -357,7 +357,19 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 			art_processes_.insert(pid);
 		}
 		siginfo_t status;
-		auto sts = waitid(P_PID, pid, &status, WEXITED);
+		auto sts = 0;
+		if(!manual_art_)
+		  {
+		sts = waitid(P_PID, pid, &status, WEXITED);
+		  }
+		else
+		  {
+		    while(kill(pid, 0) >= 0) usleep(10000);
+
+		    TLOG(TLVL_INFO) << "Faking good exit status, please see art process for actual exit status!";
+		    status.si_code = CLD_EXITED;
+		    status.si_status = 0;
+		  }
 		TLOG(TLVL_INFO) << "Removing PID " << pid << " from process list";
 		{
 			std::unique_lock<std::mutex> lk(art_process_mutex_);
