@@ -377,9 +377,10 @@ namespace artdaq
 					evtHeader->event_id,
 					currentTime);
 
-				auto artHdrPtr = std::unique_ptr<detail::RawEventHeader>(new detail::RawEventHeader());
-				memcpy(artHdrPtr.get(), incoming_events->ReadHeader(errflag), sizeof(detail::RawEventHeader));
+                auto artHdrPtr = std::unique_ptr<detail::RawEventHeader>(new detail::RawEventHeader());
+				auto daqHdrPtr = incoming_events->ReadHeader(errflag);
 				if (errflag) goto start; // Buffer was changed out from under reader!
+				memcpy(artHdrPtr.get(), daqHdrPtr, sizeof(detail::RawEventHeader));
 				put_product_in_principal(std::move(artHdrPtr), *outE, pretend_module_name, "RawEventHeader");
 
 				// insert the Fragments of each type into the EventPrincipal
