@@ -178,13 +178,13 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 	table_update_count_ = 0;
 	received_token_count_ = 0;
 
-	TLOG(TLVL_DEBUG) << "Started run " << run_id_.run() ;
+	TLOG(TLVL_INFO) << "Started run " << run_id_.run() ;
 	return true;
 }
 
 bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Stopping run " << run_id_.run()
+	TLOG(TLVL_INFO) << "Stopping run " << run_id_.run()
 		<< " after " << table_update_count_ << " table updates."
 		<< " and " << received_token_count_ << " received tokens." ;
 	stop_requested_.store(true);
@@ -193,7 +193,7 @@ bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 
 bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Pausing run " << run_id_.run()
+	TLOG(TLVL_INFO) << "Pausing run " << run_id_.run()
 		<< " after " << table_update_count_ << " table updates."
 		<< " and " << received_token_count_ << " received tokens." ;
 	pause_requested_.store(true);
@@ -202,7 +202,7 @@ bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 
 bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Resuming run " << run_id_.run() ;
+	TLOG(TLVL_INFO) << "Resuming run " << run_id_.run() ;
 	policy_->Reset();
 	pause_requested_.store(false);
 	metricMan->do_start();
@@ -220,7 +220,7 @@ bool artdaq::RoutingMasterCore::shutdown(uint64_t)
 
 bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
-	TLOG(TLVL_DEBUG) << "soft_initialize method called with "
+	TLOG(TLVL_INFO) << "soft_initialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\"." ;
 	return initialize(pset, e, f);
@@ -228,7 +228,7 @@ bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset,
 
 bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
-	TLOG(TLVL_DEBUG) << "reinitialize method called with "
+	TLOG(TLVL_INFO) << "reinitialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\"." ;
 	return initialize(pset, e, f);
@@ -289,7 +289,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 			}
 			else
 			{
-			  TLOG(TLVL_WARNING) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!" ;
+			  TLOG(TLVL_DEBUG) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!" ;
 			}
 			auto max_tokens = policy_->GetMaxNumberOfTokens();
 			if (max_tokens > 0)
