@@ -4,7 +4,7 @@
 #include "fhiclcpp/ParameterSet.h"
 
 artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
-	: next_sequence_id_(0)
+	: next_sequence_id_(1)
 	, tokens_()
 	, max_token_count_(0)
 {
