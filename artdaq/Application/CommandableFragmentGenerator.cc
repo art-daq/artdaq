@@ -56,6 +56,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	, missing_request_window_timeout_us_(1000000)
 	, window_close_timeout_us_(2000000)
 	, useDataThread_(false)
+	, circularDataBufferMode_(false)
 	, sleep_on_no_data_us_(0)
 	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
@@ -94,6 +95,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
 	, window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
 	, useDataThread_(ps.get<bool>("separate_data_thread", false))
+	, circularDataBufferMode_(ps.get<bool>("circular_buffer_mode", false))
 	, sleep_on_no_data_us_(ps.get<size_t>("sleep_on_no_data_us", 0))
 	, data_thread_running_(false)
 	, dataBufferDepthFragments_(0)
@@ -660,34 +662,63 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 	auto startwait = std::chrono::steady_clock::now();
 	auto first = true;
 	auto lastwaittime = 0ULL;
+
+	{
+		std::unique_lock<std::mutex> lock(dataBufferMutex_);
+		getDataBufferStats();
+	}
+
 	while (dataBufferIsTooLarge())
 	{
-		if (should_stop())
+		if (!circularDataBufferMode_)
 		{
-			TLOG(TLVL_DEBUG) << "Run ended while waiting for buffer to shrink!";
-			std::unique_lock<std::mutex> lock(dataBufferMutex_);
-			getDataBufferStats();
-			dataCondition_.notify_all();
-			data_thread_running_ = false;
-			return false;
-		}
-		auto waittime = TimeUtils::GetElapsedTimeMilliseconds(startwait);
+			if (should_stop())
+			{
+				TLOG(TLVL_DEBUG) << "Run ended while waiting for buffer to shrink!";
+				std::unique_lock<std::mutex> lock(dataBufferMutex_);
+				getDataBufferStats();
+				dataCondition_.notify_all();
+				data_thread_running_ = false;
+				return false;
+			}
+			auto waittime = TimeUtils::GetElapsedTimeMilliseconds(startwait);
 
-		if (first || (waittime != lastwaittime && waittime % 1000 == 0))
-		{
-			TLOG(TLVL_WARNING) << "Bad Omen: Data Buffer has exceeded its size limits. "
-				<< "(seq_id=" << ev_counter()
-				<< ", frags=" << dataBufferDepthFragments_ << "/" << maxDataBufferDepthFragments_
-				<< ", szB=" << dataBufferDepthBytes_ << "/" << maxDataBufferDepthBytes_ << ")";
-			TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
-			first = false;
+			if (first || (waittime != lastwaittime && waittime % 1000 == 0))
+			{
+				TLOG(TLVL_WARNING) << "Bad Omen: Data Buffer has exceeded its size limits. "
+					<< "(seq_id=" << ev_counter()
+					<< ", frags=" << dataBufferDepthFragments_ << "/" << maxDataBufferDepthFragments_
+					<< ", szB=" << dataBufferDepthBytes_ << "/" << maxDataBufferDepthBytes_ << ")";
+				TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
+				first = false;
+			}
+			if (waittime % 5 && waittime != lastwaittime)
+			{
+				TLOG(TLVL_WAITFORBUFFERREADY) << "getDataLoop: Data Retreival paused for " << waittime << " ms waiting for data buffer to drain";
+			}
+			lastwaittime = waittime;
+			usleep(1000);
 		}
-		if (waittime % 5 && waittime != lastwaittime)
+		else
 		{
-			TLOG(TLVL_WAITFORBUFFERREADY) << "getDataLoop: Data Retreival paused for " << waittime << " ms waiting for data buffer to drain";
+			std::unique_lock<std::mutex> lock(dataBufferMutex_);
+			getDataBufferStats(); // Re-check under lock
+			if (dataBufferIsTooLarge())
+			{
+				if (dataBuffer_.begin() == dataBuffer_.end())
+				{
+					TLOG(TLVL_WARNING) << "Data buffer is reported as too large, but doesn't contain any Fragments! Possible corrupt memory!";
+					continue;
+				}
+				if (*dataBuffer_.begin())
+				{
+					TLOG(TLVL_WAITFORBUFFERREADY) << "waitForDataBufferReady: Dropping Fragment with timestamp " << (*dataBuffer_.begin())->timestamp() << " from data buffer (Buffer over-size, circular data buffer mode)";
+				}
+				dataBuffer_.erase(dataBuffer_.begin());
+				getDataBufferStats();
+			}
+
 		}
-		lastwaittime = waittime;
-		usleep(1000);
 	}
 	return true;
 }
