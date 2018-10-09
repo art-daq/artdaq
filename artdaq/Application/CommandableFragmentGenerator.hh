@@ -106,6 +106,8 @@ namespace artdaq
 			fhicl::Atom<size_t> window_close_timeout_us              { fhicl::Name{"window_close_timeout_us"          }, fhicl::Comment{"How long to wait for the end of the data buffer to pass the end of a request window (measured from the time the request was received)"}, 2000000 };
 			/// "separate_data_thread" (Default: false) : Whether data collection should proceed on its own thread.Required for all data request processing
 			fhicl::Atom<bool> separate_data_thread                   { fhicl::Name{"separate_data_thread"             }, fhicl::Comment{"Whether data collection should proceed on its own thread. Required for all data request processing"}, false };
+			/// "circular_buffer_mode" (Default: false) : Whether the data buffer should be treated as a circular buffer on the input side (i.e. old fragments are automatically discarded when the buffer is full to always call getNext_).
+			fhicl::Atom<bool> circular_buffer_mode                   { fhicl::Name{"circular_buffer_mode"             }, fhicl::Comment{"Whether the data buffer should be treated as a circular buffer on the input side (i.e. old fragments are automatically discarded when the buffer is full to always call getNext_)."}, false };
 			/// "sleep_on_no_data_us" (Default: 0 (no sleep)) : How long to sleep after calling getNext_ if no data is returned
 			fhicl::Atom<size_t> sleep_on_no_data_us                  { fhicl::Name{"sleep_on_no_data_us"              }, fhicl::Comment{"How long to sleep after calling getNext_ if no data is returned"}, 0 };
 			/// "data_buffer_depth_fragments" (Default: 1000) : How many Fragments to store in the buffer
@@ -526,6 +528,7 @@ namespace artdaq
 		size_t window_close_timeout_us_;
 
 		bool useDataThread_;
+		bool circularDataBufferMode_;
 		size_t sleep_on_no_data_us_;
 		std::atomic<bool> data_thread_running_;
 		boost::thread dataThread_;
