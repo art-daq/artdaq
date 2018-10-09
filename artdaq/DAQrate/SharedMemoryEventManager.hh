@@ -363,6 +363,11 @@ namespace artdaq {
 		 */
 		void UpdateArtConfiguration(fhicl::ParameterSet art_pset);
 
+		/**
+		 * \brief Check for buffers which are ready to be marked incomplete and released to art and issue tokens for any buffers which are avaialble
+		 */
+		void CheckPendingBuffers();
+
 	private:
 		size_t get_art_process_count_() 
 		{
@@ -438,13 +443,10 @@ namespace artdaq {
 		bool hasFragments_(int buffer);
 		void complete_buffer_(int buffer);
 		bool bufferComparator(int bufA, int bufB);
-		void check_pending_buffers_(std::unique_lock<std::mutex> const& lock = std::unique_lock<std::mutex>(sequence_id_mutex_));
+		void check_pending_buffers_(std::unique_lock<std::mutex> const& lock);
 
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;
-
-	        bool limit_sent_tokens_;
-	        bool no_buffers_free_for_routing_; 
 		};
 	}
 

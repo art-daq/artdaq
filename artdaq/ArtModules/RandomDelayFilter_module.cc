@@ -46,12 +46,12 @@ public:
 	 * RandomDelayFilter accepts the following Parametrs:
 	 * "minimum_delay_ms" (Default: 0): The minimum amount of time to delay, in ms
 	 * "maximum_delay_ms" (Default: 1000): The maximum amount of time to delay, in ms
-	 * "mean_delay_ms" (Default: 500): If using a normal distribution for delay times, the mean of the distribution, in ms
-	 * "sigma_delay_ms" (Default: 100): If using a normal distribution for delay times, the sigma of the distribution, in ms
+	 * "mean_delay_ms" (Default: 500): If using a non-uniform distribution for delay times, the mean of the distribution, in ms (This value will be used for Fixed delays)
+	 * "sigma_delay_ms" (Default: 100): If using a Normal distribution for delay times, the sigma of the distribution, in ms
 	 * "pass_filter_percentage" (Default: 100): The fraction of events which will pass the filter
-	 * "cpu_load_ratio" (Default: 1.0): The fraction of the delay time which should be active (spinning) versis passive (sleeping)
-	 * "use_normal_distribution" (Default: false): Use a normal distribution for delay times, versus a uniform one
-	 * "random_seed" (Default: 271828): The seed for the ditribution
+     * "distribution_type" (Default: "Uniform"): The distribution to sample for delays (Uniform, Normal, Exponential, Fixed)
+	 * "cpu_load_ratio" (Default: 0.5): The fraction of the delay time which should be active (spinning) versis passive (sleeping)
+	 * "random_seed" (Default: time(0)): The seed for the ditribution
 	 */
 	explicit RandomDelayFilter(fhicl::ParameterSet const& p);
 
@@ -121,8 +121,8 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 	, mean_ms_(p.get<double>("mean_delay_ms", 500))
 	, sigma_ms_(p.get<double>("sigma_delay_ms", 100))
 	, pass_factor_(p.get<int>("pass_filter_percentage", 100))
-	, load_factor_(p.get<double>("cpu_load_ratio", 1.0))
-	, engine_(p.get<int64_t>("random_seed", 271828))
+	, load_factor_(p.get<double>("cpu_load_ratio", 0.5))
+	, engine_(p.get<int64_t>("random_seed", time(0)))
 	, pass_distn_(new std::uniform_int_distribution<int>(0, 100))
 {
 	// Set limits on parameters
@@ -136,20 +136,30 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 	if (mean_ms_ < 0) mean_ms_ = 0;
 	if (sigma_ms_ < 0) sigma_ms_ = 0;
 
-	auto type = p.get<std::string>("delay_distribution_type", "Uniform");
+	auto type = p.get<std::string>("distribution_type", "Uniform");
 	assert(type.size() >= 1);
 	switch (type[0])
 	{
 	case 'n':
 	case 'N':
-		TLOG(TLVL_INFO) << "Generating delay times using Normal distribution with mean " << mean_ms_ << " ms, std. dev. " << sigma_ms_ << " ms, and offset " << min_ms_ << ".";
+	  TLOG(TLVL_INFO) << "Generating delay times using Normal distribution with mean " << mean_ms_ << " ms, std. dev. " << sigma_ms_ << " ms, min " << min_ms_ << " ms and max " << max_ms_ << "ms.";
 		distribution_type_ = DistType::Normal;
+		if(mean_ms_ < min_ms_) { 
+		  TLOG(TLVL_WARNING) << "Mean is smaller than min, setting to min";
+		  mean_ms_ = min_ms_;
+		}
+		mean_ms_ -= min_ms_; // When we sample the distribution, we offset by min_ms_
 		normal_distn_.reset(new std::normal_distribution<double>(mean_ms_, sigma_ms_));
 		break;
 	case 'e':
 	case 'E':
-		TLOG(TLVL_INFO) << "Generating delay times using Exponential distribution with mean " << mean_ms_ << " ms and offset " <<  min_ms_ << ".";
+	  TLOG(TLVL_INFO) << "Generating delay times using Exponential distribution with mean " << mean_ms_ << " ms, min " << min_ms_ << " ms and max " << max_ms_ << " ms.";
 		distribution_type_ = DistType::Exponential;
+		if(mean_ms_ < min_ms_) { 
+		  TLOG(TLVL_WARNING) << "Mean is smaller than min, setting to min";
+		  mean_ms_ = min_ms_;
+		}
+		mean_ms_ -= min_ms_; // When we sample the distribution, we offset by min_ms_
 		if (mean_ms_ == 0) mean_ms_ = 1;
 		exponential_distn_.reset(new std::exponential_distribution<double>(1/mean_ms_));
 		break;
@@ -171,6 +181,7 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 bool artdaq::RandomDelayFilter::filter(art::Event& e)
 {
 	double delay = min_ms_;
+	do {
 	switch (distribution_type_)
 	{
 	case DistType::Normal:
@@ -185,6 +196,7 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 	case DistType::Fixed:
 		break;
 	}
+	} while(delay > max_ms_ && delay < min_ms_);
 	TLOG(TLVL_DEBUG) << "Simulating processing of event " << e.event() << " by delaying " << delay << "ms." ;
 
 	usleep(1000 * (1 - load_factor_) * delay);
