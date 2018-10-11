@@ -565,8 +565,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			std::cout << "The following PIDs are running: ";
 			check_pids(true);
 			std::cout << std::endl;
-			std::string ignored;
-			std::cin >> ignored;
+			usleep(500000);
 		}
 	}
 }
