@@ -1062,24 +1062,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 		}
 	}
-
-	Fragment::sequence_id_t lowestSeqId = Fragment::InvalidSequenceID;
-
-	// Only use "weak ordering" when buffers are available for writing
-	if (ReadyForWrite(false))
-	{
-		for (auto buf : active_buffers_)
-		{
-			auto hdr = getEventHeader_(buf);
-			TLOG(TLVL_TRACE) << "Buffer: " << buf << ", SeqID: " << hdr->sequence_id << ", ACTIVE";
-			if (hdr->sequence_id < lowestSeqId)
-			{
-				lowestSeqId = hdr->sequence_id;
-			}
-		}
-		TLOG(TLVL_TRACE) << "Lowest SeqID held: " << lowestSeqId;
-	}
-
+	
 	std::list<int> sorted_buffers(pending_buffers_.begin(), pending_buffers_.end());
 	sorted_buffers.sort([this](int a, int b) { return bufferComparator(a, b); });
 
@@ -1088,7 +1071,6 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	for (auto buf : sorted_buffers)
 	{
 		auto hdr = getEventHeader_(buf);
-		if (hdr->sequence_id > lowestSeqId) break;
 
 		if (hdr->sequence_id >= subrun_rollover_event_)
 		{
