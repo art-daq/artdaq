@@ -75,10 +75,10 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(secondTable[3].destination_rank, 4);
-	BOOST_REQUIRE_EQUAL(secondTable[0].sequence_id, 0);
-	BOOST_REQUIRE_EQUAL(secondTable[1].sequence_id, 1);
-	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 2);
-	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 3);
+	BOOST_REQUIRE_EQUAL(secondTable[0].sequence_id, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[1].sequence_id, 2);
+	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 3);
+	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 4);
 
 	rr->AddReceiverToken(1, 0);
 
@@ -92,8 +92,8 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 
 	BOOST_REQUIRE_EQUAL(fourthTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(fourthTable[1].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(fourthTable[0].sequence_id, 4);
-	BOOST_REQUIRE_EQUAL(fourthTable[1].sequence_id, 5);
+	BOOST_REQUIRE_EQUAL(fourthTable[0].sequence_id, 5);
+	BOOST_REQUIRE_EQUAL(fourthTable[1].sequence_id, 6);
 
 	rr->AddReceiverToken(1, 2);
 	rr->AddReceiverToken(2, 2);
