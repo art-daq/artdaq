@@ -348,7 +348,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			{
 			case Fragment::EndOfDataFragmentType:
 				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
-				if(endOfDataCount == -1 ) endOfDataCount = *(frag->dataBegin());
+				if(endOfDataCount == static_cast<size_t>(-1) ) endOfDataCount = *(frag->dataBegin());
                 else endOfDataCount += *(frag->dataBegin());
 				TLOG(TLVL_DEBUG) << "EndOfData Fragment indicates that " << endOfDataCount << " fragments are expected from rank " << source_rank
 					<< " (recvd " << recv_frag_count_.slotCount(source_rank) << ").";
