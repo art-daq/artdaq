@@ -18,12 +18,13 @@ namespace artdaq
 		 * \param ps ParameterSet used to configure RoundRobinPolicy
 		 * 
 		 * RoundRobinPolicy accepts the following Parameter:
-		 * "use_all_tokens" (Default: false): Whether to use all tokens or to stop when we can no longer complete a "turn"
+		 * "minimum_participants" (Default: 0): Minimum number of receivers to distribute between. Use negative number to indicate how many can be missing from total.
 		 */
 		explicit RoundRobinPolicy(fhicl::ParameterSet ps)
 			: RoutingMasterPolicy(ps)
-			, use_all_tokens_(ps.get<bool>("use_all_tokens", false))
-		{}
+			, minimum_participants_(ps.get<int>("minimum_participants", 0))
+		{
+		}
 
 		/**
 		 * \brief Default virtual Destructor
@@ -41,7 +42,7 @@ namespace artdaq
 		detail::RoutingPacket GetCurrentTable() override;
 
 	private:
-		bool use_all_tokens_;
+		int minimum_participants_;
 	};
 
 	detail::RoutingPacket RoundRobinPolicy::GetCurrentTable()
@@ -59,7 +60,13 @@ namespace artdaq
 		TLOG(13) << "RoundRobinPolicy::GetCurrentTable table size is " << table.size() << ", token list size is " << tokens->size();
 
 		detail::RoutingPacket output;
-		auto endCondition = table.size() < (use_all_tokens_ ? 1 : GetReceiverCount());
+
+		// If 0 or negative, add minimum_participants_ to GetRecevierCount to ensure that it's correct
+		auto minimum = minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount() + minimum_participants_;
+		if (minimum < 1) minimum = 1; // Can't go below 1
+
+
+		auto endCondition = table.size() < minimum;
 		TLOG(15) << "RoundRobinPolicy::GetCurrentTable initial endCondition is " << endCondition;
 
 		while (!endCondition)
@@ -73,7 +80,7 @@ namespace artdaq
 				if (table[it->first] <= 0) it = table.erase(it);
 				else ++it;
 			}
-			endCondition = table.size() < (use_all_tokens_ ? 1 : GetReceiverCount());
+			endCondition = table.size() < minimum;
 		}
 
 		for(auto r : table)
