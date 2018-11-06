@@ -109,9 +109,9 @@ artdaq::RTIDDS::RTIDDS(std::string name, IOType iotype, std::string max_size) :
 	}
 }
 
-void artdaq::RTIDDS::moveFragmentToDDS_(artdaq::Fragment&& fragment) { copyFragmentToDDS_(fragment); }
+void artdaq::RTIDDS::transfer_fragment_reliable_mode_via_DDS_(artdaq::Fragment&& fragment) { transfer_fragment_min_blocking_mode_via_DDS_(fragment); }
 
-void artdaq::RTIDDS::copyFragmentToDDS_(artdaq::Fragment& fragment)
+void artdaq::RTIDDS::transfer_fragment_min_blocking_mode_via_DDS_(artdaq::Fragment const& fragment)
 {
 	// check if a fragment of this type has already been copied
 	size_t fragmentType = fragment.type();

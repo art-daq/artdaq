@@ -167,13 +167,13 @@ int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t 
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::ShmemTransfer::copyFragment(artdaq::Fragment& fragment, size_t send_timeout_usec)
+artdaq::ShmemTransfer::transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment, size_t send_timeout_usec)
 {
-	return sendFragment(std::move(fragment), send_timeout_usec, false);
+	return sendFragment(Fragment(fragment), send_timeout_usec, false);
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::ShmemTransfer::moveFragment(artdaq::Fragment&& fragment)
+artdaq::ShmemTransfer::transfer_fragment_reliable_mode(artdaq::Fragment&& fragment)
 {
 	return sendFragment(std::move(fragment), 0, true);
 }

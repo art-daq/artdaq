@@ -1,5 +1,4 @@
-
-    add_subdirectory(RootDAQOutput)
+add_subdirectory(RootDAQOutput)
 
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
@@ -45,6 +44,7 @@ simple_plugin(RawInput "source"
   art_Persistency_Provenance
   art_Utilities
   MF_MessageLogger
+  rt
 )
 
 simple_plugin(TransferOutput "module"
@@ -70,8 +70,21 @@ simple_plugin(TransferInput "source"
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
 
 simple_plugin(EventDump "module"
-MF_MessageLogger
+  artdaq-core_Data
+  MF_MessageLogger
   ${CETLIB_EXCEPT})
+
+simple_plugin(MissingDataCheck "module"
+  artdaq-core_Data
+  artdaq-core_Data_dict
+  MF_MessageLogger
+  art_Framework_Services_Registry
+  art_Framework_Services_Optional
+  art_Framework_Services_Optional_TFileService_service
+  ${ROOT_BASIC_LIB_LIST}
+  ${CETLIB_EXCEPT}
+)
+
 
 simple_plugin(NetMonInput "source"
   artdaq-core_Data
