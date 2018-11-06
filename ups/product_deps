@@ -26,6 +26,8 @@ xmlrpc_c		v1_39_10d
 artdaq_ganglia_plugin   v1_02_11b        -       optional
 artdaq_epics_plugin     v1_02_05b        -       optional
 artdaq_mfextensions     v1_03_02a        -       optional
+swig            v3_0_12c         -       optional
+nodejs          v4_5_0          -       optional
 cetbuildtools		v7_02_01	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
