@@ -129,6 +129,13 @@ void artdaq::DataReceiverManager::start_threads()
 		auto& rank = source.first;
 		if (enabled_sources_.count(rank) && enabled_sources_[rank].load())
 		{
+			source_metric_data_[rank] = source_metric_data();
+			source_metric_send_time_[rank] = std::chrono::steady_clock::now();
+
+			recv_frag_count_.setSlot(rank, 0);
+			recv_frag_size_.setSlot(rank,0);
+			recv_seq_count_.setSlot(rank,0);
+
 			running_sources_[rank] = true;
 			boost::thread::attributes attrs;
 			attrs.set_stack_size(4096 * 2000); // 2000 KB
@@ -341,7 +348,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			{
 			case Fragment::EndOfDataFragmentType:
 				shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
-				endOfDataCount = *(frag->dataBegin());
+				if(endOfDataCount == static_cast<size_t>(-1) ) endOfDataCount = *(frag->dataBegin());
+                else endOfDataCount += *(frag->dataBegin());
 				TLOG(TLVL_DEBUG) << "EndOfData Fragment indicates that " << endOfDataCount << " fragments are expected from rank " << source_rank
 					<< " (recvd " << recv_frag_count_.slotCount(source_rank) << ").";
 				break;
