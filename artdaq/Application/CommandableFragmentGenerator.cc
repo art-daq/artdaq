@@ -360,8 +360,11 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	timeout_ = timeout;
 	timestamp_ = timestamp;
 	ev_counter_.store(1);
-    windows_sent_ooo_.clear();
+	windows_sent_ooo_.clear();
+	{
+	std::unique_lock<std::mutex> lock(dataBufferMutex_);
 	dataBuffer_.clear();
+	}
 	should_stop_.store(false);
 	force_stop_.store(false);
 	exception_.store(false);
@@ -759,6 +762,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer()
 		if ((mode_ == RequestMode::Buffer || mode_ == RequestMode::Window))
 		{
 			// Eliminate extra fragments
+			getDataBufferStats();
 			while (dataBufferIsTooLarge())
 			{
 				TLOG(TLVL_CHECKDATABUFFER) << "checkDataBuffer: Dropping Fragment with timestamp " << (*dataBuffer_.begin())->timestamp() << " from data buffer (Buffer over-size)";
