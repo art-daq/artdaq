@@ -16,7 +16,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	, receivers_(psi.get<int>("num_receivers"))
 	, sending_threads_(psi.get<int>("sending_threads", 1))
 	, sends_each_sender_(psi.get<int>("sends_per_sender"))
-	, receives_each_receiver_(senders_ * sending_threads_ * sends_each_sender_ / receivers_)
+	, receives_each_receiver_(0)
 	, buffer_count_(psi.get<int>("buffer_count", 10))
 	, error_count_max_(psi.get<int>("max_errors_before_abort", 3))
 	, fragment_size_(psi.get<size_t>("fragment_size", 0x100000))
@@ -49,18 +49,30 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 
 	std::string type(psi.get<std::string>("transfer_plugin_type", "Shmem"));
 
-	if (receivers_ > 0)
+	bool broadcast_mode = psi.get<bool>("broadcast_sends", false);
+	if (broadcast_mode)
 	{
-		if (senders_ * sends_each_sender_ % receivers_ != 0)
+		receives_each_receiver_ = senders_ * sending_threads_ * sends_each_sender_;
+	}
+	else
+	{
+		if (receivers_ > 0)
 		{
-			TLOG(TLVL_TRACE) << "Adding sends so that sends_each_sender * num_sending_ranks is a multiple of num_receiving_ranks" << std::endl;
-			while (senders_ * sends_each_sender_ % receivers_ != 0)
+			if (senders_ * sending_threads_ * sends_each_sender_ % receivers_ != 0)
 			{
-				sends_each_sender_++;
+				TLOG(TLVL_TRACE) << "Adding sends so that sends_each_sender * num_sending_ranks is a multiple of num_receiving_ranks" << std::endl;
+				while (senders_ * sends_each_sender_ % receivers_ != 0)
+				{
+					sends_each_sender_++;
+				}
+				receives_each_receiver_ = senders_ * sending_threads_ * sends_each_sender_ / receivers_;
+				TLOG(TLVL_TRACE) << "sends_each_sender is now " << sends_each_sender_ << std::endl;
+				psi.put_or_replace("sends_per_sender", sends_each_sender_);
 			}
-			receives_each_receiver_ = senders_ * sends_each_sender_ / receivers_;
-			TLOG(TLVL_TRACE) << "sends_each_sender is now " << sends_each_sender_ << std::endl;
-			psi.put_or_replace("sends_per_sender", sends_each_sender_);
+			else
+			{
+				receives_each_receiver_ = senders_ * sending_threads_ * sends_each_sender_ / receivers_;
+			}
 		}
 	}
 
@@ -244,7 +256,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	size_t totalSize = 0;
 	double totalTime = 0;
 	bool first = true;
-	int activeSenders = senders_ * sending_threads_;
+	bool nonblocking_mode = ps_.get<bool>("nonblocking_sends", false);
+	std::atomic<int> activeSenders(senders_ * sending_threads_);
 	auto end_loop = std::chrono::steady_clock::now();
 
 	auto recv_size_metric = 0.0;
@@ -254,10 +267,10 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	int metric_send_interval = receives_each_receiver_ / 1000 > 1 ? receives_each_receiver_ : 1;
 
 	// Only abort when there are no senders if were's > 90% done
-	while ((activeSenders > 0 || counter > receives_each_receiver_ / 10) && counter > 0)
+	while ((activeSenders > 0 || (counter > receives_each_receiver_ / 10 && !nonblocking_mode)) && counter > 0)
 	{
 		auto start_loop = std::chrono::steady_clock::now();
-		TLOG(7) << "do_receiving: Counter is " << counter << ", calling recvFragment";
+		TLOG(7) << "do_receiving: Counter is " << counter << ", calling recvFragment (activeSenders=" << activeSenders << ")";
 		int senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
 		auto before_receive = std::chrono::steady_clock::now();
 
@@ -332,7 +345,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 		end_loop = std::chrono::steady_clock::now();
 	}
 
-	if (counter != 0)
+	if (counter != 0 && !nonblocking_mode)
 	{
 		TLOG(TLVL_ERROR) << "Did not receive all expected Fragments! Missing " << counter << " Fragments!";
 		exit(counter);
