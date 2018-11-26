@@ -2,6 +2,7 @@
 #define artdaq_DAQrate_detail_RoutingPacket_hh
 
 #include "artdaq-core/Data/Fragment.hh"
+#define MAX_ROUTING_TABLE_SIZE 65000
 
 namespace artdaq
 {

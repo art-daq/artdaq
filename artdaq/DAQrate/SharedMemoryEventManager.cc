@@ -460,11 +460,11 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 
 	auto check_pids = [&](bool print) {
 
+		std::unique_lock<std::mutex> lk(art_process_mutex_);
 		for (auto pid = pids.begin(); pid != pids.end();)
 		{
 			// 08-May-2018, KAB: protect against killing invalid PIDS
 
-			std::unique_lock<std::mutex> lk(art_process_mutex_);
 			if (*pid <= 0)
 			{
 				TLOG(TLVL_WARNING) << "Removing an invalid PID (" << *pid
@@ -482,8 +482,12 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			}
 		}
 	};
+	auto count_pids = [&]() {
+		std::unique_lock<std::mutex> lk(art_process_mutex_);
+		return pids.size();
+	};
 	check_pids(false);
-	if (pids.size() == 0)
+	if (count_pids() == 0)
 	{
 		TLOG(14) << "All art processes already exited, nothing to do.";
 		usleep(1000);
@@ -492,11 +496,14 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 
 	if (!manual_art_)
 	{
-		TLOG(TLVL_TRACE) << "Gently informing art processes that it is time to shut down";
-		for (auto pid : pids)
 		{
-			TLOG(TLVL_TRACE) << "Sending SIGQUIT to pid " << pid;
-			kill(pid, SIGQUIT);
+			TLOG(TLVL_TRACE) << "Gently informing art processes that it is time to shut down";
+			std::unique_lock<std::mutex> lk(art_process_mutex_);
+			for (auto pid : pids)
+			{
+				TLOG(TLVL_TRACE) << "Sending SIGQUIT to pid " << pid;
+				kill(pid, SIGQUIT);
+			}
 		}
 
 		int graceful_wait_ms = 5000;
@@ -508,17 +515,20 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			usleep(1000);
 
 			check_pids(false);
-			if (pids.size() == 0)
+			if (count_pids() == 0)
 			{
 				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
 				return;
 			}
 		}
 
-		TLOG(TLVL_TRACE) << "Insisting that the art processes shut down";
-		for (auto pid : pids)
 		{
-			kill(pid, SIGINT);
+			TLOG(TLVL_TRACE) << "Insisting that the art processes shut down";
+			std::unique_lock<std::mutex> lk(art_process_mutex_);
+			for (auto pid : pids)
+			{
+				kill(pid, SIGINT);
+			}
 		}
 
 		TLOG(TLVL_TRACE) << "Waiting up to " << int_wait_ms << " ms for all art processes to exit";
@@ -528,7 +538,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 
 			check_pids(false);
 
-			if (pids.size() == 0)
+			if (count_pids() == 0)
 			{
 				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
 				return;
@@ -536,18 +546,20 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 		}
 
 		TLOG(TLVL_TRACE) << "Killing remaning art processes with extreme prejudice";
-		while (pids.size() > 0)
+		while (count_pids() > 0)
 		{
-			kill(*pids.begin(), SIGKILL);
-			usleep(1000);
-
+			{
+				std::unique_lock<std::mutex> lk(art_process_mutex_);
+				kill(*pids.begin(), SIGKILL);
+				usleep(1000);
+			}
 			check_pids(false);
 		}
 	}
 	else
 	{
 		std::cout << "Please shut down all art processes, then hit return/enter" << std::endl;
-		while (pids.size() > 0)
+		while (count_pids() > 0)
 		{
 			std::cout << "The following PIDs are running: ";
 			check_pids(true);
