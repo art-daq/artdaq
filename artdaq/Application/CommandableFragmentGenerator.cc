@@ -43,46 +43,6 @@
 #define TLVL_SENDEMPTYFRAGMENTS 19
 #define TLVL_CHECKWINDOWS 14
 
-artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
-	: mutex_()
-	, requestReceiver_(nullptr)
-	, windowOffset_(0)
-	, windowWidth_(0)
-	, staleTimeout_(Fragment::InvalidTimestamp)
-	, expectedType_(Fragment::EmptyFragmentType)
-	, maxFragmentCount_(std::numeric_limits<size_t>::max())
-	, uniqueWindows_(true)
-	, windows_sent_ooo_()
-	, missing_request_window_timeout_us_(1000000)
-	, window_close_timeout_us_(2000000)
-	, useDataThread_(false)
-	, circularDataBufferMode_(false)
-	, sleep_on_no_data_us_(0)
-	, data_thread_running_(false)
-	, dataBufferDepthFragments_(0)
-	, dataBufferDepthBytes_(0)
-	, maxDataBufferDepthFragments_(1000)
-	, maxDataBufferDepthBytes_(1000)
-	, useMonitoringThread_(false)
-	, monitoringInterval_(0)
-	, lastMonitoringCall_()
-	, isHardwareOK_(true)
-	, dataBuffer_()
-	, newDataBuffer_()
-	, run_number_(-1)
-	, subrun_number_(-1)
-	, timeout_(std::numeric_limits<uint64_t>::max())
-	, timestamp_(std::numeric_limits<uint64_t>::max())
-	, should_stop_(false)
-	, exception_(false)
-	, force_stop_(false)
-	, latest_exception_report_("none")
-	, ev_counter_(1)
-	, board_id_(-1)
-	, instance_name_for_metrics_("FragmentGenerator")
-	, sleep_on_stop_us_(0)
-{}
-
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
 	: mutex_()
 	, requestReceiver_(nullptr)
@@ -98,16 +58,12 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	, circularDataBufferMode_(ps.get<bool>("circular_buffer_mode", false))
 	, sleep_on_no_data_us_(ps.get<size_t>("sleep_on_no_data_us", 0))
 	, data_thread_running_(false)
-	, dataBufferDepthFragments_(0)
-	, dataBufferDepthBytes_(0)
 	, maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
 	, maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
 	, useMonitoringThread_(ps.get<bool>("separate_monitoring_thread", false))
 	, monitoringInterval_(ps.get<int64_t>("hardware_poll_interval_us", 0))
 	, lastMonitoringCall_()
 	, isHardwareOK_(true)
-	, dataBuffer_()
-	, newDataBuffer_()
 	, run_number_(-1)
 	, subrun_number_(-1)
 	, timeout_(std::numeric_limits<uint64_t>::max())
@@ -123,26 +79,35 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	board_id_ = ps.get<int>("board_id");
 	instance_name_for_metrics_ = "BoardReader." + boost::lexical_cast<std::string>(board_id_);
 
-	fragment_ids_ = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
+	auto fragment_ids = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
 
 	TLOG(TLVL_TRACE) << "artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(ps)";
 	int fragment_id = ps.get<int>("fragment_id", -99);
 
 	if (fragment_id != -99)
 	{
-		if (fragment_ids_.size() != 0)
+		if (fragment_ids.size() != 0)
 		{
 			latest_exception_report_ = "Error in CommandableFragmentGenerator: can't both define \"fragment_id\" and \"fragment_ids\" in FHiCL document";
 			throw cet::exception(latest_exception_report_);
 		}
 		else
 		{
-			fragment_ids_.emplace_back(fragment_id);
+			fragment_ids.emplace_back(fragment_id);
 		}
 	}
 
+	for (auto& id : fragment_ids)
+	{
+		dataBuffers_.emplace(std::make_pair(id, DataBuffer()));
+		dataBuffers_[id].DataBufferDepthBytes = 0;
+		dataBuffers_[id].DataBufferDepthFragments = 0;
+		dataBuffers_[id].DataBuffer.emplace_back(FragmentPtr(new Fragment()));
+		(*dataBuffers_[id].DataBuffer.begin())->setSystemType(Fragment::EmptyFragmentType);
+	}
+
 	sleep_on_stop_us_ = ps.get<int>("sleep_on_stop_us", 0);
-	
+
 	std::string modeString = ps.get<std::string>("request_mode", "ignored");
 	if (modeString == "single" || modeString == "Single")
 	{
@@ -327,18 +292,6 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	return !requestReceiver_->isRunning();
 }
 
-int artdaq::CommandableFragmentGenerator::fragment_id() const
-{
-	if (fragment_ids_.size() != 1)
-	{
-		throw cet::exception("Error in CommandableFragmentGenerator: can't call fragment_id() unless member fragment_ids_ vector is length 1");
-	}
-	else
-	{
-		return fragment_ids_[0];
-	}
-}
-
 size_t artdaq::CommandableFragmentGenerator::ev_counter_inc(size_t step, bool force)
 {
 	if (force || mode_ == RequestMode::Ignored)
@@ -358,11 +311,13 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	timestamp_ = timestamp;
 	ev_counter_.store(1);
 	windows_sent_ooo_.clear();
+
+	for (auto& id : dataBuffers_)
 	{
-	std::unique_lock<std::mutex> lock(dataBufferMutex_);
-	dataBufferDepthBytes_ = 0;
-	dataBufferDepthFragments_ = 0;
-	dataBuffer_.clear();
+		std::unique_lock<std::mutex> lock(id.second.Mutex);
+		id.second.DataBuffer.clear();
+		id.second.DataBufferDepthBytes = 0;
+		id.second.DataBufferDepthFragments = 0;
 	}
 	should_stop_.store(false);
 	force_stop_.store(false);
@@ -423,11 +378,13 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 
 	subrun_number_ += 1;
 	should_stop_ = false;
+
+	for (auto& id : dataBuffers_)
     {
-        std::unique_lock<std::mutex> lk(dataBufferMutex_);
-		dataBufferDepthBytes_ = 0;
-		dataBufferDepthFragments_ = 0;
-	dataBuffer_.clear();
+        std::unique_lock<std::mutex> lk(id.second.Mutex);
+		id.second.DataBufferDepthBytes = 0;
+		id.second.DataBufferDepthFragments = 0;
+		id.second.DataBuffer.clear();
     }
 	// no lock required: thread not started yet
 	resume();

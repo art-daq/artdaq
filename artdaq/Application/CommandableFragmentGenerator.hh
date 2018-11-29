@@ -141,13 +141,6 @@ namespace artdaq
 		using Parameters = fhicl::WrappedTable<Config>;
 
 		/**
-		 * \brief CommandableFragmentGenerator default constructor
-		 *
-		 * This constructor default-initializes all parameters
-		 */
-		CommandableFragmentGenerator();
-
-		/**
 		 * \brief CommandableFragmentGenerator Constructor
 		 * \param ps ParameterSet used to configure CommandableFragmentGenerator. See artdaq::CommandableFragmentGenerator::Config.
 		 */
@@ -295,7 +288,14 @@ namespace artdaq
 		 */
 		std::vector<Fragment::fragment_id_t> fragmentIDs() override
 		{
-			return fragment_ids_;
+			std::vector<Fragment::fragment_id_t> output;
+
+			for (auto& id : dataBuffers_)
+			{
+				output.push_back(id.first);
+			}
+
+			return output;
 		}
 
 		/**
@@ -462,14 +462,7 @@ namespace artdaq
 		 * \return The current board_id
 		 */
 		int board_id() const { return board_id_; }
-
-		/**
-		 * \brief Get the current Fragment ID, if there is only one
-		 * \return The current fragment ID, if the re is only one
-		 * \exception cet::exception if the Fragment IDs list has more than one member
-		 */
-		int fragment_id() const;
-
+		
 		/**
 		 * \brief Increment the event counter, if the current RequestMode allows it
 		 * \param step Amount to increment the event counter by
@@ -534,8 +527,6 @@ namespace artdaq
 		boost::thread dataThread_;
 
 		std::condition_variable dataCondition_;
-		std::atomic<int> dataBufferDepthFragments_;
-		std::atomic<size_t> dataBufferDepthBytes_;
 		int maxDataBufferDepthFragments_;
 		size_t maxDataBufferDepthBytes_;
 
@@ -545,11 +536,15 @@ namespace artdaq
 		std::chrono::steady_clock::time_point lastMonitoringCall_;
 		std::atomic<bool> isHardwareOK_;
 
-		FragmentPtrs dataBuffer_;
-		FragmentPtrs newDataBuffer_;
-		std::mutex dataBufferMutex_;
+		struct DataBuffer {
+			std::atomic<int> DataBufferDepthFragments;
+			std::atomic<size_t> DataBufferDepthBytes;
+			FragmentPtrs DataBuffer;
+			std::mutex Mutex;
+		};
 
-		std::vector<artdaq::Fragment::fragment_id_t> fragment_ids_;
+		std::unordered_map<artdaq::Fragment::fragment_id_t, DataBuffer> dataBuffers_;
+		FragmentPtrs newDataBuffer_;
 
 		// In order to support the state-machine related behavior, all
 		// CommandableFragmentGenerators must be able to remember a run number and a
