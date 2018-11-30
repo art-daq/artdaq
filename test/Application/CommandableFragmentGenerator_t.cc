@@ -530,6 +530,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<std::string>("request_mode", "window");
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
 	ps.put<size_t>("window_close_timeout_us", 500000);
@@ -600,7 +601,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	BOOST_REQUIRE_EQUAL(fps.size(), 1);
 
 	// Also, missing request timeout
-	auto list = gen.getOutOfOrderWindowList();
+	auto list = gen.GetSentWindowList(1);
 	BOOST_REQUIRE_EQUAL(list.size(), 1);
 	BOOST_REQUIRE_EQUAL(list.begin()->first, 4);
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
@@ -625,10 +626,10 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	gen.setFireCount(12);
 	gen.waitForFrags();
 	t.AddRequest(5, 4);
-	list = gen.getOutOfOrderWindowList(); // Out-of-order list is only updated in getNext calls
+	list = gen.GetSentWindowList(1); // Out-of-order list is only updated in getNext calls
 	BOOST_REQUIRE_EQUAL(list.size(), 1);
 	sts = gen.getNext(fps);
-	list = gen.getOutOfOrderWindowList(); // Out-of-order list is only updated in getNext calls
+	list = gen.GetSentWindowList(1);
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
 	BOOST_REQUIRE_EQUAL(list.size(), 0);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -664,7 +665,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
 	fps.clear();
 
-	list = gen.getOutOfOrderWindowList();
+	 list = gen.GetSentWindowList(1);
 	BOOST_REQUIRE_EQUAL(list.size(), 1);
 	BOOST_REQUIRE_EQUAL(list.begin()->first, 7);
 
@@ -685,7 +686,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	fps.clear();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 8);
 
-	list = gen.getOutOfOrderWindowList();
+	list = gen.GetSentWindowList(1);
 	BOOST_REQUIRE_EQUAL(list.size(), 0);
 
 	usleep(1500000);
@@ -721,6 +722,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
@@ -781,6 +783,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<std::string>("request_mode", "window");
 	ps.put("request_delay_ms", DELAY_TIME);
 	ps.put("send_requests", true);
@@ -842,6 +845,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
 	ps.put("request_delay_ms", DELAY_TIME);
@@ -951,6 +955,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
 	ps.put("request_delay_ms", DELAY_TIME);
@@ -1011,6 +1016,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
 	ps.put("request_delay_ms", DELAY_TIME);
@@ -1100,6 +1106,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
 	ps.put("request_delay_ms", DELAY_TIME);
