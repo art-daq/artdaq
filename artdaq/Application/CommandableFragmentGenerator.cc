@@ -186,6 +186,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
 			{
 				TLOG(20) << "getNext: applyRequests() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
+					<< ", type = " << (*dataIter)->typeString() << ", id = " << std::to_string((*dataIter)->fragmentID())
 					<< ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
 			}
 
@@ -215,6 +216,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
 			{
 				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
+					<< ", type = " << (*dataIter)->typeString() << ", id = " << std::to_string((*dataIter)->fragmentID())
 					<< ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
 			}
 		}
@@ -882,18 +884,18 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 }
 
 
-void  artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts)
+void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts)
 {
-	TLOG(TLVL_APPLYREQUESTS) << "applyRequests: Checking that data exists for request window " << seq;
+	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Checking that data exists for request window " << seq;
 	Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 	Fragment::timestamp_t max = min + windowWidth_;
-	TLOG(TLVL_APPLYREQUESTS) << "ApplyRequests: min is " << min << ", max is " << max
+	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: min is " << min << ", max is " << max
 		<< " and last point in buffer is " << (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.back()->timestamp() : 0) << " (sz=" << dataBuffers_[id].DataBuffer.size() << ")";
 	bool windowClosed = dataBuffers_[id].DataBuffer.size() > 0 && dataBuffers_[id].DataBuffer.back()->timestamp() >= max;
 	bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestReceiver_->GetRequestTime(seq)) > window_close_timeout_us_;
 	if (windowTimeout)
 	{
-		TLOG(TLVL_WARNING) << "applyRequests: A timeout occurred waiting for data to close the request window ({" << min << "-" << max
+		TLOG(TLVL_WARNING) << "applyRequestsWindowMode_CheckAndFillDataBuffer: A timeout occurred waiting for data to close the request window ({" << min << "-" << max
 			<< "}, buffer={" << (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.front()->timestamp() : 0) << "-"
 			<< (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.back()->timestamp() : 0)
 			<< "} ). Time waiting: "
@@ -902,7 +904,7 @@ void  artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFill
 	}
 	if (windowClosed || !data_thread_running_ || windowTimeout)
 	{
-		TLOG(TLVL_DEBUG) << "applyRequests: Creating ContainerFragment for Window-requested Fragments";
+		TLOG(TLVL_DEBUG) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Creating ContainerFragment for Window-requested Fragments";
 		frags.emplace_back(new artdaq::Fragment(seq, id));
 		frags.back()->setTimestamp(ts);
 		ContainerFragmentLoader cfl(*frags.back());
@@ -921,7 +923,7 @@ void  artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFill
 		// If the dataBuffer has size 0, then windowClosed will be false
 		if (!windowClosed || (dataBuffers_[id].DataBuffer.size() > 0 && dataBuffers_[id].DataBuffer.front()->timestamp() > min))
 		{
-			TLOG(TLVL_DEBUG) << "applyRequests: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
+			TLOG(TLVL_DEBUG) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
 				<< " (requestWindowRange=[" << min << "," << max << "], "
 				<< "buffer={" << (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.front()->timestamp() : 0) << "-"
 				<< (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.back()->timestamp() : 0) << "}";
@@ -938,7 +940,7 @@ void  artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFill
 				continue;
 			}
 
-			TLOG(TLVL_APPLYREQUESTS) << "applyRequests: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
+			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
 			cfl.addFragment(*it);
 
 			if (uniqueWindows_)
@@ -979,7 +981,9 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 
 		for (auto& id : dataBuffers_)
 		{
-			applyRequestsWindowMode_CheckAndFillDataBuffer(frags, id.first, req->first, req->second);
+			if (!id.second.WindowsSent.count(req->first)) {
+				applyRequestsWindowMode_CheckAndFillDataBuffer(frags, id.first, req->first, req->second);
+			}
 		}
 		checkSentWindows(req->first);
 		++req;
