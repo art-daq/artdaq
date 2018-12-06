@@ -610,6 +610,9 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 				}
 				getDataBufferStats(frag_id);
 			}
+			else {
+				break;
+			}
 		}
 
 		{
