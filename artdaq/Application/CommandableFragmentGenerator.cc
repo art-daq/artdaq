@@ -670,7 +670,7 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady(Fragment::frag
 			if (first || (waittime != lastwaittime && waittime % 1000 == 0))
 			{
 				TLOG(TLVL_WARNING) << "Bad Omen: Data Buffer has exceeded its size limits. "
-					<< "(seq_id=" << ev_counter()
+					<< "(seq_id=" << ev_counter() << ", frag_id=" << id
 					<< ", frags=" << dataBuffers_[id].DataBufferDepthFragments << "/" << maxDataBufferDepthFragments_
 					<< ", szB=" << dataBuffers_[id].DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")";
 				TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
@@ -846,7 +846,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 		}
 		else
 		{
-			sendEmptyFragment(frags, ev_counter(), "No data for");
+			sendEmptyFragment(frags, ev_counter(), id.first, "No data for");
 		}
 	}
 	requestReceiver_->RemoveRequest(ev_counter());
@@ -1082,17 +1082,14 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	return true;
 }
 
-bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtrs& frags, size_t seqId, std::string desc)
+bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtrs& frags, size_t seqId, Fragment::fragment_id_t fragmentId, std::string desc)
 {
 	TLOG(TLVL_WARNING) << desc << " sequence ID " << seqId << ", sending empty fragment";
-	for (auto& fid : dataBuffers_)
-	{
 		auto frag = new Fragment();
 		frag->setSequenceID(seqId);
-		frag->setFragmentID(fid.first);
+	frag->setFragmentID(fragmentId);
 		frag->setSystemType(Fragment::EmptyFragmentType);
 		frags.emplace_back(FragmentPtr(frag));
-	}
 	return true;
 }
 
@@ -1103,7 +1100,10 @@ void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPt
 		TLOG(TLVL_SENDEMPTYFRAGMENTS) << "Sending Empty Fragments for Sequence IDs from " << ev_counter() << " up to but not including " << requests.begin()->first;
 		while (requests.begin()->first > ev_counter())
 		{
-			sendEmptyFragment(frags, ev_counter(), "Missed request for");
+			for (auto& fid : dataBuffers_)
+			{
+				sendEmptyFragment(frags, ev_counter(), fid.first, "Missed request for");
+			}
 			ev_counter_inc(1, true);
 		}
 	}

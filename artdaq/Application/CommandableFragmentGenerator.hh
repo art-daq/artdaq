@@ -212,10 +212,11 @@ namespace artdaq
 		 * \brief Send an EmptyFragmentType Fragment
 		 * \param[out] frags Output list to append EmptyFragmentType to
 		 * \param sequenceId Sequence ID of Empty Fragment
+		 * \param fragmentId Fragment ID of Empty Fragment
 		 * \param desc Message to log with reasoning for sending Empty Fragment
 		 * \return True if no exceptions
 		 */
-		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, std::string desc);
+		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, Fragment::fragment_id_t fragmentId, std::string desc);
 
 		/**
 		 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
