@@ -998,8 +998,13 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 
 	// Check sent windows for requests that can be removed
 	for (auto& id : dataBuffers_) {
+		std::set<artdaq::Fragment::sequence_id_t> seqs;
 		for (auto& seq : id.second.WindowsSent) {
-			checkSentWindows(seq.first);
+			seqs.insert(seq.first);
+		}
+		for (auto& seq : seqs)
+		{
+			checkSentWindows(seq);
 		}
 	}
 }
