@@ -533,7 +533,6 @@ namespace artdaq
 		Fragment::timestamp_t windowWidth_;
 		Fragment::timestamp_t staleTimeout_;
 		Fragment::type_t expectedType_;
-		size_t maxFragmentCount_;
 		bool uniqueWindows_;
 		size_t missing_request_window_timeout_us_;
 		size_t window_close_timeout_us_;
