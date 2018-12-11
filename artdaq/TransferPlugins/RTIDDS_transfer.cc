@@ -49,22 +49,20 @@ namespace artdaq
 									   size_t receiveTimeout) override;
 
 		/**
-		* \brief Copy a Fragment to the destination.
-		* \param fragment Fragment to copy
-		* \param send_timeout_usec Timeout for send, in microseconds. Default size_t::MAX_VALUE
-		* \return CopyStatus detailing result of copy
+		* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
+		* \param fragment Fragment to transfer
+		* \param send_timeout_usec Timeout for send, in microseconds
+		* \return CopyStatus detailing result of transfer
 		*/
-		CopyStatus copyFragment(artdaq::Fragment& fragment,
+		CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment,
 										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
 		/**
-		* \brief Move a Fragment to the destination.
-		* \param fragment Fragment to move
-		* \param send_timeout_usec Timeout for send, in microseconds. Default size_t::MAX_VALUE
+		* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
+		* \param fragment Fragment to transfer
 		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus moveFragment(artdaq::Fragment&& fragment,
-										size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
+		CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& fragment) override;
 
 		/**
 		* \brief Determine whether the TransferInterface plugin is able to send/receive data
@@ -124,21 +122,19 @@ int artdaq::RTIDDSTransfer::receiveFragment(artdaq::Fragment& fragment,
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::RTIDDSTransfer::moveFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec)
+artdaq::RTIDDSTransfer::transfer_fragment_reliable_mode(artdaq::Fragment&& fragment)
 {
-	(void)&send_timeout_usec; // No-op to get the compiler not to complain about unused parameter
-
-	rtidds_writer_->moveFragmentToDDS_(std::move(fragment));
+	rtidds_writer_->transfer_fragment_reliable_mode_via_DDS_(std::move(fragment));
 	return CopyStatus::kSuccess;
 }
 
 artdaq::TransferInterface::CopyStatus
-artdaq::RTIDDSTransfer::copyFragment(artdaq::Fragment& fragment,
+artdaq::RTIDDSTransfer::transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment,
 									 size_t send_timeout_usec)
 {
 	(void) &send_timeout_usec; // No-op to get the compiler not to complain about unused parameter
 
-	rtidds_writer_->copyFragmentToDDS_(fragment);
+	rtidds_writer_->transfer_fragment_min_blocking_mode_via_DDS_(fragment);
 	return CopyStatus::kSuccess;
 }
 
