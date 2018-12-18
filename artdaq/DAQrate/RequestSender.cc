@@ -186,7 +186,7 @@ namespace artdaq
 				message.addRequest(req.first, req.second);
 			}
 		}
-		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header";
+		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
 		message.setMode(request_mode_);
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
