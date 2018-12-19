@@ -55,15 +55,15 @@ namespace artdaq
 		void setupRequestListener();
 
 		/**
-		* \brief Stop the data request receiver thread (receiveRequestsLoop)
+		* \brief Disables (stops) the reception of data requests
 		* \param force Whether to suppress any error messages (used if called from destructor)
 		*/
-		void stopRequestReceiverThread(bool force = false);
+		void stopRequestReception(bool force = false);
 
 		/**
-		* \brief Function that launches the data request receiver thread (receiveRequestsLoop())
+		* \brief Enables (starts) the reception of data requests
 		*/
-		void startRequestReceiverThread();
+		void startRequestReception();
 
 		/**
 		* \brief This function receives data request packets, adding new requests to the request list

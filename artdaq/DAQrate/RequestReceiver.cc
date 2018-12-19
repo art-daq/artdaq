@@ -121,10 +121,10 @@ void artdaq::RequestReceiver::setupRequestListener()
 
 artdaq::RequestReceiver::~RequestReceiver()
 {
-	stopRequestReceiverThread(true);
+	stopRequestReception(true);
 }
 
-void artdaq::RequestReceiver::stopRequestReceiverThread(bool force)
+void artdaq::RequestReceiver::stopRequestReception(bool force)
 {
 	std::unique_lock<std::mutex> lk(state_mutex_);
 	if (!request_received_ && !force)
@@ -153,7 +153,7 @@ void artdaq::RequestReceiver::stopRequestReceiverThread(bool force)
 	highest_seen_request_ = 0;
 }
 
-void artdaq::RequestReceiver::startRequestReceiverThread()
+void artdaq::RequestReceiver::startRequestReception()
 {
 	std::unique_lock<std::mutex> lk(state_mutex_);
 	if (requestThread_.joinable()) requestThread_.join();

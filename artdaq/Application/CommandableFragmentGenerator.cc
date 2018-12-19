@@ -377,8 +377,11 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	if (mode_ != RequestMode::Ignored && !requestReceiver_->isRunning()) requestReceiver_->startRequestReceiverThread();
-	if (requestReceiver_) {requestReceiver_->SetRunNumber(static_cast<uint32_t>(run));}
+	if (mode_ != RequestMode::Ignored)
+	{
+		requestReceiver_->SetRunNumber(static_cast<uint32_t>(run));
+		requestReceiver_->startRequestReception();
+	}
 	TLOG(TLVL_TRACE) << "Start Command complete.";
 }
 
@@ -388,10 +391,10 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
-	if (requestReceiver_ && requestReceiver_->isRunning()) {
-		TLOG(TLVL_DEBUG) << "Stopping Request receiver thread BEGIN";
-		requestReceiver_->stopRequestReceiverThread();
-		TLOG(TLVL_DEBUG) << "Stopping Request receiver thread END";
+	if (requestReceiver_) {
+		TLOG(TLVL_DEBUG) << "Stopping Request reception BEGIN";
+		requestReceiver_->stopRequestReception();
+		TLOG(TLVL_DEBUG) << "Stopping Request reception END";
 	}
 
 	stopNoMutex();
