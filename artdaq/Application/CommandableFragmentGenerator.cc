@@ -378,6 +378,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
 	if (mode_ != RequestMode::Ignored && !requestReceiver_->isRunning()) requestReceiver_->startRequestReceiverThread();
+	if (requestReceiver_) {requestReceiver_->SetRunNumber(static_cast<uint32_t>(run));}
 	TLOG(TLVL_TRACE) << "Start Command complete.";
 }
 

@@ -132,6 +132,12 @@ namespace artdaq
 		 * \return The number of tokens sent by RequestSender
 		 */
 		size_t GetSentTokenCount() const { return tokens_sent_.load(); }
+
+		/**
+		 * \brief Set the run number to be used in request messages
+		 * \param run Run number
+		 */
+		void SetRunNumber(uint32_t run) { run_number_ = run; }
 	private:
 
 		// Request stuff
@@ -155,6 +161,7 @@ namespace artdaq
 		std::string token_address_;
 		std::atomic<int> request_sending_;
 		std::atomic<size_t> tokens_sent_;
+		uint32_t run_number_;
 
 	private:
 		void setup_requests_();

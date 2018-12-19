@@ -159,6 +159,12 @@ namespace artdaq
 			std::unique_lock<std::mutex> lk(request_mutex_);
 			return request_timing_.count(reqID) ? request_timing_[reqID] : std::chrono::steady_clock::now();
 		}
+
+		/// <summary>
+		/// Sets the current run number
+		/// </summary>
+		/// <param name="run">The current run number</param>
+		void SetRunNumber(uint32_t run) {run_number_ = run;}
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
@@ -166,6 +172,7 @@ namespace artdaq
 		std::string request_addr_;
 		std::string multicast_out_addr_;
 		bool running_;
+		uint32_t run_number_;
 
 		//Socket parameters
 		int request_socket_;
