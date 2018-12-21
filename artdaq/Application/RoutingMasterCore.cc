@@ -415,25 +415,25 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
+		assert(packetSize + sizeof(header) < MAX_ROUTING_TABLE_SIZE);
+		std::vector<uint8_t> buffer(packetSize + sizeof(header));
+		memcpy(&buffer[0], &header, sizeof(detail::RoutingPacketHeader));
+		memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
+
 		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ ;
 		TRACE(16,"headerData:0x%016lx%016lx packetData:0x%016lx%016lx"
 		      ,((unsigned long*)&header)[0],((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0],((unsigned long*)&packet[0])[1] );
-		auto hdrsts = sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
-		if (hdrsts != sizeof(detail::RoutingPacketHeader))
+		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
+		if (sts != static_cast<ssize_t>(buffer.size()))
 		{
-			TLOG(TLVL_ERROR) << "Error sending routing message header. hdrsts=" << hdrsts;
-		}
-		auto pktsts = sendto(table_socket_, &packet[0], packetSize, 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
-		if (pktsts != (ssize_t)packetSize)
-		{
-			TLOG(TLVL_ERROR) << "Error sending routing message data. hdrsts="<<hdrsts<<" pktsts="<<pktsts;
+			TLOG(TLVL_ERROR) << "Error sending routing table. sts=" << sts;
 		}
 
 		// Collect acks
 
 		auto first = packet[0].sequence_id;
 		auto last = packet.rbegin()->sequence_id;
-		TLOG(TLVL_DEBUG) << "Sent " << hdrsts <<"+"<< pktsts << ". Expecting acks to have first= " << first << ", and last= " << last ;
+		TLOG(TLVL_DEBUG) << "Sent " << sts << " bytes. Expecting acks to have first= " << first << ", and last= " << last ;
 
 
 		auto startTime = std::chrono::steady_clock::now();
