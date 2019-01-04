@@ -459,7 +459,7 @@ namespace artdaq
 
 				auto read_finish_time = std::chrono::steady_clock::now();
 				incoming_events->ReleaseBuffer();
-                auto qcap = incoming_events->size();
+				auto qcap = incoming_events->size();
 				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
 				{
