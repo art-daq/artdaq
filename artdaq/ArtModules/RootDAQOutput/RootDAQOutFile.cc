@@ -576,9 +576,7 @@ art::RootDAQOutFile::writeOne(EventPrincipal const& e)
   // Because getting the data may cause an exception to be
   // thrown we want to do that first before writing anything
   // to the file about this event.
-  TLOG(TLVL_TRACE) << "RootDAQOutFile::writeOne before fillBranches call";
   fillBranches<InEvent>(e, pEventProductProvenanceVector_);
-  TLOG(TLVL_TRACE) << "RootDAQOutFile::writeOne after fillBranches call";
   // History branch.
   History historyForOutput{e.history()};
   historyForOutput.addEventSelectionEntry(om_->selectorConfig());
