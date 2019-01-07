@@ -44,6 +44,7 @@ simple_plugin(RawInput "source"
   art_Persistency_Provenance
   art_Utilities
   MF_MessageLogger
+  rt
 )
 
 simple_plugin(TransferOutput "module"
