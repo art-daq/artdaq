@@ -333,6 +333,13 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 						<< "assignments or other issues, and data may "
 						<< "not flow through the system correctly.";
 				}
+				envVarKey = "ARTDAQ_APPLICATION_NAME";
+				envVarValue = app_name;
+				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 1) != 0)
+				{
+					TLOG(TLVL_DEBUG) << "Error setting environment variable \"" << envVarKey
+						<< "\" in the environment of a child art process. ";
+				}
 
 				execvp("art", &args[0]);
 				delete[] filename;
