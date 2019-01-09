@@ -82,7 +82,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 	if (header_handle.isValid())
 	{
 		std::ostringstream ostr;
-		RawEvent(*header_handle).print(ostr);
+		header_handle->print(ostr);
 		std::cout << "Event Header: " << ostr.str() << std::endl;
 	}
 	else
