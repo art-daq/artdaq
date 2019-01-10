@@ -231,7 +231,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		request_received_ = true;
 
 		// 19-Dec-2018, KAB: added check on current run number
-		if (hdr_buffer->run_number != run_number_)
+		if (run_number_ != 0 && hdr_buffer->run_number != run_number_)
 		{
 			TLOG(TLVL_WARNING) << "Received a Request Message with the wrong run number ("
 			                   << hdr_buffer->run_number << "), expected " << run_number_
