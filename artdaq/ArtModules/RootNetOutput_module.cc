@@ -3,7 +3,9 @@
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
+#if ART_HEX_VERSION < 0x30000
 #include "art/Persistency/Provenance/ProductMetaData.h"
+#endif
 
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
@@ -44,6 +46,21 @@
 #define TLVL_WRITESUBRUN 14
 #define TLVL_WRITESUBRUN_VERBOSE 35
 
+#if ART_HEX_VERSION < 0x30000
+#define RUN_AUX aux
+#define SUBRUN_AUX aux
+#define EVENT_AUX aux
+#define RUN_ID id
+#define SUBRUN_ID id
+#define EVENT_ID id
+#else
+#define RUN_AUX runAux
+#define SUBRUN_AUX subRunAux
+#define EVENT_AUX eventAux
+#define RUN_ID runID
+#define SUBRUN_ID subRunID
+#define EVENT_ID eventID
+#endif
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/ArtModules/NetMonTransportService.h"
@@ -215,8 +232,7 @@ send_init_message()
 	//  Stream the MasterProductRegistry.
 	//
 	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Streaming MasterProductRegistry ...";
-	art::ProductList productList(
-		art::ProductMetaData::instance().productList());
+	art::ProductList productList(art::ProductMetaData::instance().productList());
 	msg.WriteObjectAny(&productList, product_list_class);
 	TLOG(TLVL_SENDINIT) << "RootNetOutput static send_init_message(): Finished streaming MasterProductRegistry.";
 	
@@ -321,15 +337,21 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 		auto const& productDescription = I->second->productDescription();
 		auto const& refs = keptProducts()[productDescription.branchType()];
 		bool found = false;
-		for (auto const& ref : refs)
-		{
-			if (*ref == productDescription)
-			{
+		for (auto const& ref : refs) {
+#if ART_HEX_VERSION < 0x30000
+                  if (*ref == productDescription) {
+#else
+                  if (ref.second == productDescription) {
+#endif
 				found = true;
 				break;
 			}
 		}
+#if ART_HEX_VERSION < 0x30000
 		if (I->second->productUnavailable() || !found)
+#else
+                  if (!I->second->productAvailable() || !found)
+#endif
 		{
 			continue;
 		}
@@ -359,15 +381,21 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 		auto const& productDescription = I->second->productDescription();
 		auto const& refs = keptProducts()[productDescription.branchType()];
 		bool found = false;
-		for (auto const& ref : refs)
-		{
-			if (*ref == productDescription)
-			{
+		for (auto const& ref : refs) {
+#if ART_HEX_VERSION < 0x30000
+                  if (*ref == productDescription) {
+#else
+                  if (ref.second == productDescription) {
+#endif
 				found = true;
 				break;
 			}
 		}
+		#if ART_HEX_VERSION < 0x30000
 		if (I->second->productUnavailable() || !found)
+			#else
+		if (!I->second->productAvailable() || !found)
+		#endif
 		{
 			continue;
 		}
@@ -418,7 +446,11 @@ writeDataProducts(TBufferFile& msg, const Principal& principal,
 			<< "' procnm: '"
 			<< bd.processName()
 			<< "'";
+		#if ART_HEX_VERSION < 0x30000
 		const ProductProvenance* prdprov = I->second->productProvenancePtr().get();
+		#else
+		const ProductProvenance* prdprov = I->second->productProvenance().get();
+		#endif
 		msg.WriteObjectAny(prdprov, prdprov_class);
 	}
 	TLOG(TLVL_WRITEDATAPRODUCTS) << "End:   RootNetOutput::writeDataProducts(...)";
@@ -484,7 +516,7 @@ write(EventPrincipal& ep)
 	//  Write RunAuxiliary.
 	//
 	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Streaming RunAuxiliary ...";
-	msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().aux(),
+	msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().RUN_AUX(),
 		run_aux_class);
 	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming RunAuxiliary.";
 
@@ -492,7 +524,7 @@ write(EventPrincipal& ep)
 	//  Write SubRunAuxiliary.
 	//
 	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Streaming SubRunAuxiliary ...";
-	msg.WriteObjectAny(&ep.subRunPrincipal().aux(),
+	msg.WriteObjectAny(&ep.subRunPrincipal().SUBRUN_AUX(),
 		subrun_aux_class);
 	TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming SubRunAuxiliary.";
 
@@ -501,7 +533,7 @@ write(EventPrincipal& ep)
 	//
 	{
 		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Streaming EventAuxiliary ...";
-		msg.WriteObjectAny(&ep.aux(), event_aux_class);
+		msg.WriteObjectAny(&ep.EVENT_AUX(), event_aux_class);
 		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Finished streaming EventAuxiliary.";
 	}
 	//
@@ -528,7 +560,7 @@ write(EventPrincipal& ep)
 			return;
 		}
 		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Sending a message ...";
-		transport->sendMessage(ep.id().event(), artdaq::Fragment::DataFragmentType, msg);
+		transport->sendMessage(ep.EVENT_ID().event(), artdaq::Fragment::DataFragmentType, msg);
 		TLOG(TLVL_WRITE) << "RootNetOutput::write(const EventPrincipal& ep): Message sent.";
 	}
 	//
@@ -600,18 +632,18 @@ writeRun(RunPrincipal& rp)
 				TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: phr: data.back().id(): '" << OS.str() << "'";
 			}
 		}
-		if (!rp.aux().processHistoryID().isValid())
+		if (!rp.RUN_AUX().processHistoryID().isValid())
 		{
 			TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: ProcessHistoryID: 'INVALID'";
 		}
 		else
 		{
 			std::ostringstream OS;
-			rp.aux().processHistoryID().print(OS);
+			rp.RUN_AUX().processHistoryID().print(OS);
 			TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: ProcessHistoryID: '" << OS.str() << "'";
 			OS.str("");
 			const ProcessHistory& processHistory =
-				ProcessHistoryRegistry::get(rp.aux().processHistoryID());
+				ProcessHistoryRegistry::get(rp.RUN_AUX().processHistoryID());
 			if (processHistory.data().size())
 			{
 				// FIXME: Print something special on invalid id() here!
@@ -621,7 +653,7 @@ writeRun(RunPrincipal& rp)
 				TLOG(TLVL_WRITERUN_VERBOSE) << "writeRun: ProcessConfiguration: '" << processHistory.data().back();
 			}
 		}
-		msg.WriteObjectAny(&rp.aux(), run_aux_class);
+		msg.WriteObjectAny(&rp.RUN_AUX(), run_aux_class);
 		TLOG(TLVL_WRITERUN) << "writeRun: streamed RunAuxiliary.";
 	}
 	//
@@ -714,18 +746,18 @@ art::RootNetOutput::writeSubRun(SubRunPrincipal& srp)
 				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: phr: data.back().id(): '" << OS.str() << "'";
 			}
 		}
-		if (!srp.aux().processHistoryID().isValid())
+		if (!srp.SUBRUN_AUX().processHistoryID().isValid())
 		{
 			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: ProcessHistoryID: 'INVALID'";
 		}
 		else
 		{
 			std::ostringstream OS;
-			srp.aux().processHistoryID().print(OS);
+			srp.SUBRUN_AUX().processHistoryID().print(OS);
 			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: ProcessHistoryID: '" << OS.str() << "'";
 			OS.str("");
 			ProcessHistory processHistory;
-			ProcessHistoryRegistry::get(srp.aux().processHistoryID(), processHistory);
+			ProcessHistoryRegistry::get(srp.SUBRUN_AUX().processHistoryID(), processHistory);
 			if (processHistory.data().size())
 			{
 				// FIXME: Print something special on invalid id() here!
@@ -736,7 +768,7 @@ art::RootNetOutput::writeSubRun(SubRunPrincipal& srp)
 				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "RootNetOutput::writeSubRun: ProcessConfiguration: '" << OS.str();
 			}
 		}
-		msg.WriteObjectAny(&srp.aux(), subrun_aux_class);
+		msg.WriteObjectAny(&srp.SUBRUN_AUX(), subrun_aux_class);
 		TLOG(TLVL_WRITESUBRUN) << "RootNetOutput::writeSubRun: streamed SubRunAuxiliary.";
 	}
 	//
