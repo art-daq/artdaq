@@ -16,7 +16,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/RoutingMasterCore.hh"
-#include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 

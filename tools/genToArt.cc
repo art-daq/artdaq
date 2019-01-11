@@ -16,7 +16,7 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"

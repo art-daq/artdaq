@@ -5,7 +5,7 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragment.hh"
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
 
 #define MULTICAST_MODE 0
