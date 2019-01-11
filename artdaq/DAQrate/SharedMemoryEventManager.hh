@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <sys/stat.h>
 #include "fhiclcpp/fwd.h"
-#include "artdaq/Application/StatisticsHelper.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/DAQrate/detail/ArtConfig.hh"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
 

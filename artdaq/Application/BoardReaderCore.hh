@@ -8,7 +8,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/Application/StatisticsHelper.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq

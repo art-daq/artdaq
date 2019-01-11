@@ -19,7 +19,6 @@ art_make_library( LIBRARY_NAME artdaq_Application
   DispatcherCore.cc
   RoutingMasterApp.cc
   RoutingMasterCore.cc
-  StatisticsHelper.cc
   LIBRARIES
   artdaq_DAQrate
   artdaq-core_Data
