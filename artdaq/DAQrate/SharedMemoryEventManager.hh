@@ -84,7 +84,10 @@ namespace artdaq {
 	 */
 	class SharedMemoryEventManager : public SharedMemoryManager
 	{
-	public:
+         public:
+          static const std::string FRAGMENTS_RECEIVED_STAT_KEY;    ///< Key for Fragments Received MonitoredQuantity
+          static const std::string EVENTS_RELEASED_STAT_KEY;  ///< Key for the Events Released MonitoredQuantity
+
 		typedef RawEvent::run_id_t run_id_t; ///< Copy RawEvent::run_id_t into local scope
 		typedef RawEvent::subrun_id_t subrun_id_t; ///< Copy RawEvent::subrun_id_t into local scope
 		typedef Fragment::sequence_id_t sequence_id_t; ///< Copy Fragment::sequence_id_t into local scope
@@ -373,7 +376,9 @@ namespace artdaq {
 		{
 			std::unique_lock<std::mutex> lk(art_process_mutex_);
 			return art_processes_.size();
-		}
+        }
+		
+        std::string buildStatisticsString_() const;
 
 	private:
 
@@ -408,7 +413,8 @@ namespace artdaq {
 			size_t event_count;
 			size_t event_size;
 		};
-		MetricData metric_data_;
+        MetricData metric_data_;
+        StatisticsHelper statsHelper_;
 
 		int broadcast_timeout_ms_;
 

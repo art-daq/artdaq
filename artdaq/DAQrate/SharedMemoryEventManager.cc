@@ -10,6 +10,10 @@
 #define TLVL_BUFLCK 41
 
 std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
+const std::string artdaq::SharedMemoryEventManager::
+FRAGMENTS_RECEIVED_STAT_KEY("SharedMemoryEventManagerFragmentsReceived");
+const std::string artdaq::SharedMemoryEventManager::
+EVENTS_RELEASED_STAT_KEY("SharedMemoryEventManagerEventsReleased");
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
@@ -91,6 +95,11 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	SetRank(my_rank);
 	TLOG(TLVL_DEBUG) << "Writer Rank is " << GetRank();
 
+        statsHelper_.addMonitoredQuantityName(FRAGMENTS_RECEIVED_STAT_KEY);
+        statsHelper_.addMonitoredQuantityName(EVENTS_RELEASED_STAT_KEY);
+
+        // fetch the monitoring parameters and create the MonitoredQuantity instances
+        statsHelper_.createCollectors(pset, 100, 30.0, 60.0, EVENTS_RELEASED_STAT_KEY);
 
 	TLOG(TLVL_TRACE) << "END CONSTRUCTOR";
 }
@@ -137,6 +146,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	if (requests_) requests_->SendRequest(true);
 
 	TLOG(TLVL_TRACE) << "AddFragment END";
+        statsHelper_.addSample(FRAGMENTS_RECEIVED_STAT_KEY, frag.word_count * sizeof(RawDataType));
 	return true;
 }
 
@@ -235,6 +245,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	if (buffer == -1) Detach(true, "SharedMemoryEventManager", "getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!");
 	if (buffer == -2) { return; }
 
+        statsHelper_.addSample(FRAGMENTS_RECEIVED_STAT_KEY, frag.word_count * sizeof(RawDataType));
 	{
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtaining buffer_mutexes lock for buffer " << buffer;
 
@@ -719,7 +730,8 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
 	running_ = true;
-	init_fragment_.reset(nullptr);
+  init_fragment_.reset(nullptr);
+  statsHelper_.resetStatistics();
 	TLOG(TLVL_TRACE) << "startRun: Clearing broadcast buffers";
 	for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
 	{
@@ -1112,15 +1124,17 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		}
 		if (hdr->sequence_id > last_released_event_) last_released_event_ = hdr->sequence_id;
 
+                auto thisEventSize = BufferDataSize(buf);
 		TLOG(TLVL_DEBUG) << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art, "
-			<< "event_size=" << BufferDataSize(buf) << ", buffer_size=" << BufferSize();
+			<< "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
+                statsHelper_.addSample(EVENTS_RELEASED_STAT_KEY, thisEventSize);
 
 		TLOG(TLVL_BUFFER) << "check_pending_buffers_ removing buffer " << buf << " moving from pending to full";
 		MarkBufferFull(buf);
 		subrun_event_count_++;
 		run_event_count_++;
 		counter++;
-		eventSize += BufferDataSize(buf);
+		eventSize += thisEventSize;
 		pending_buffers_.erase(buf);
 		TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
 			<< size() << ","
@@ -1152,6 +1166,11 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			}
 		}
 	}
+		
+    if (statsHelper_.readyToReport(run_event_count_)) {
+         std::string statString = buildStatisticsString_();
+          TLOG(TLVL_INFO) << statString;
+    }
 
 	metric_data_.event_count += counter;
 	metric_data_.event_size += eventSize;
@@ -1232,6 +1251,45 @@ void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSe
 		current_art_config_file_ = std::make_shared<art_config_file>(art_pset/*, GetKey(), GetBroadcastKey()*/);
 	}
 	TLOG(TLVL_DEBUG) << "UpdateArtConfiguration END";
+}
+
+std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const {
+  std::ostringstream oss;
+  oss << app_name << " statistics:" << std::endl;
+
+  artdaq::MonitoredQuantityPtr mqPtr =
+      artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(EVENTS_RELEASED_STAT_KEY);
+  if (mqPtr.get() != 0) {
+    artdaq::MonitoredQuantityStats stats;
+    mqPtr->getStats(stats);
+    oss << "  Event statistics: " << stats.recentSampleCount << " events released at " << stats.recentSampleRate
+        << " events/sec, effective data rate = "
+        << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+        << " MB/sec, monitor window = " << stats.recentDuration
+        << " sec, min::max event size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+        << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
+    if (stats.recentSampleRate > 0.0) {
+    oss << "  Average time per event: ";
+      oss << " elapsed time = " << (1.0 / stats.recentSampleRate) << " sec";
+    }
+  }
+
+  mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_RECEIVED_STAT_KEY);
+  if (mqPtr.get() != 0) {
+    artdaq::MonitoredQuantityStats stats;
+    mqPtr->getStats(stats);
+    oss << "  Fragment statistics: " << stats.recentSampleCount << " fragments received at " << stats.recentSampleRate
+        << " fragments/sec, effective data rate = "
+        << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+        << " MB/sec, monitor window = " << stats.recentDuration
+        << " sec, min::max event size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+        << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
+  }
+
+  oss << "  Event counts: Run -- Total: " << run_event_count_ << ", Incomplete: " << run_incomplete_event_count_
+      << ", Subrun -- Total: " << subrun_event_count_ << ", Incomplete: " << subrun_incomplete_event_count_
+      << std::endl;
+  return oss.str();
 }
 
 #if MESSAGEFACILITY_HEX_VERSION >= 0x20103
