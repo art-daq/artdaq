@@ -200,7 +200,7 @@ private:
 	int send_tables_port_;
 	int receive_acks_port_;
 	std::string send_tables_address_;
-	std::string receive_address_;
+	std::string multicast_out_hostname_;
 	struct sockaddr_in send_tables_addr_;
 	std::vector<epoll_event> receive_ack_events_;
 	std::vector<epoll_event> receive_token_events_;
