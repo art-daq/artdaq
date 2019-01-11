@@ -1270,7 +1270,7 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const {
         << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
     if (stats.recentSampleRate > 0.0) {
     oss << "  Average time per event: ";
-      oss << " elapsed time = " << (1.0 / stats.recentSampleRate) << " sec";
+      oss << " elapsed time = " << (1.0 / stats.recentSampleRate) << " sec" << std::endl;
     }
   }
 
@@ -1282,7 +1282,7 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const {
         << " fragments/sec, effective data rate = "
         << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
         << " MB/sec, monitor window = " << stats.recentDuration
-        << " sec, min::max event size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+        << " sec, min::max fragment size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
         << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
   }
 
