@@ -1167,7 +1167,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		}
 	}
 		
-    if (statsHelper_.readyToReport(run_event_count_)) {
+    if (statsHelper_.readyToReport()) {
          std::string statString = buildStatisticsString_();
           TLOG(TLVL_INFO) << statString;
     }

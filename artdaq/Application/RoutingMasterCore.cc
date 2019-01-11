@@ -645,7 +645,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				  }
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
-				bool readyToReport = statsHelper_.readyToReport(delta_time);
+				bool readyToReport = statsHelper_.readyToReport();
 				if (readyToReport)
 				{
 				std::string statString = buildStatisticsString_();
