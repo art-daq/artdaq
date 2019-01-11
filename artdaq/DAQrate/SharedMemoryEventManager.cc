@@ -1286,8 +1286,8 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const {
         << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
   }
 
-  oss << "  Event counts: Run -- Total: " << run_event_count_ << ", Incomplete: " << run_incomplete_event_count_
-      << ", Subrun -- Total: " << subrun_event_count_ << ", Incomplete: " << subrun_incomplete_event_count_
+  oss << "  Event counts: Run -- " << run_event_count_ << " Total, " << run_incomplete_event_count_ << " Incomplete."
+      << "  Subrun -- "  << subrun_event_count_ << " Total, " << subrun_incomplete_event_count_ << " Incomplete. "
       << std::endl;
   return oss.str();
 }
