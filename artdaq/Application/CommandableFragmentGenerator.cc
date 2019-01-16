@@ -931,7 +931,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 		Fragment::timestamp_t max = min + windowWidth_;
 		TLOG(TLVL_APPLYREQUESTS) << "ApplyRequests: min is " << min << ", max is " << max
-			<< " and last point in buffer is " << (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0) << " (sz=" << dataBuffer_.size() << ")";
+		                         << " and first/last points in buffer are " << (dataBuffer_.size() > 0 ? dataBuffer_.front()->timestamp() : 0)
+		                         << "/" << (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)
+		                         << " (sz=" << dataBuffer_.size() << " [" << dataBufferDepthBytes_.load()
+		                         << "/" << maxDataBufferDepthBytes_ << "])";
 		bool windowClosed = dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max;
 		bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestReceiver_->GetRequestTime(req->first)) > window_close_timeout_us_;
 		if (windowTimeout)
@@ -973,6 +976,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 
 			// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
 			// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
+			int fragCount = 0;
 			for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
 			{
 				Fragment::timestamp_t fragT = (*it)->timestamp();
@@ -982,7 +986,9 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 					continue;
 				}
 
-				TLOG(TLVL_APPLYREQUESTS) << "applyRequests: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
+				TLOG(TLVL_APPLYREQUESTS) << "applyRequests: Adding (" << (++fragCount) << "th) Fragment with timestamp "
+                                                         << (*it)->timestamp() << " and sizeBytes " << (*it)->sizeBytes()
+                                                         << " to Container for sequence ID " << req->first;
 				cfl.addFragment(*it);
 
 				if (uniqueWindows_)
