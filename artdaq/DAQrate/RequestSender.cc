@@ -148,12 +148,15 @@ namespace artdaq
 		if (send_routing_tokens_)
 		{
 			TLOG(TLVL_DEBUG) << "Creating Routing Token sending socket";
-			int retry = 5;
-			while (retry > 0 && token_socket_ < 0)
+			auto start_time = std::chrono::steady_clock::now();
+			while (token_socket_ < 0 && TimeUtils::GetElapsedTime(start_time) < 30)
 			{
 				token_socket_ = TCPConnect(token_address_.c_str(), token_port_, 0, sizeof(detail::RoutingToken));
-				if (token_socket_ < 0) usleep(100000);
-				retry--;
+				if (token_socket_ < 0)
+				{
+					TLOG(TLVL_TRACE) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Master to open token socket";
+					usleep(100000);
+				}
 			}
 			if (token_socket_ < 0)
 			{
@@ -205,7 +208,7 @@ namespace artdaq
 		request_sending_--;
 	}
 
-	void RequestSender::send_routing_token_(int nSlots)
+	void RequestSender::send_routing_token_(int nSlots, int run_number)
 	{
 		TLOG(TLVL_TRACE) << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_;
 		if (!send_routing_tokens_) return;
@@ -214,13 +217,14 @@ namespace artdaq
 		token.header = TOKEN_MAGIC;
 		token.rank = my_rank;
 		token.new_slots_free = nSlots;
+		token.run_number = run_number;
 
 		TLOG(TLVL_TRACE) << "Sending RoutingToken to " << token_address_ << ":" << token_port_;
 		size_t sts = 0;
 		while (sts < sizeof(detail::RoutingToken))
 		{
 			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
-			if (res == -1)
+			if (res < 0)
 			{
 				close(token_socket_);
 				token_socket_ = -1;
@@ -234,11 +238,11 @@ namespace artdaq
 		TLOG(TLVL_TRACE) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
 	}
 
-	void RequestSender::SendRoutingToken(int nSlots)
+	void RequestSender::SendRoutingToken(int nSlots, int run_number)
 	{
 		while (!initialized_) usleep(1000);
 		if (!send_routing_tokens_) return;
-		boost::thread token([=] { send_routing_token_(nSlots); });
+		boost::thread token([=] { send_routing_token_(nSlots, run_number); });
 		token.detach();
 		usleep(0); // Give up time slice
 	}
