@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 	}
 
 	artdaq::RequestReceiver recvr(tempPset);
-	recvr.startRequestReceiverThread();
+	recvr.startRequestReception();
 
 	while (true)
 	{
