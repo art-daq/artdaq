@@ -40,6 +40,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	use_routing_master_ = rmConfig.get<bool>("use_routing_master", false);
 	table_port_ = rmConfig.get<int>("table_update_port", 35556);
 	table_address_ = rmConfig.get<std::string>("table_update_address", "227.128.12.28");
+	table_multicast_interface_ = rmConfig.get<std::string>("table_update_multicast_interface", "localhost");
 	ack_port_ = rmConfig.get<int>("table_acknowledge_port", 35557);
 	ack_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
 	routing_timeout_ms_ = (rmConfig.get<int>("routing_timeout_ms", 1000));
@@ -184,7 +185,12 @@ void artdaq::DataSenderManager::setupTableListener_()
 		TLOG(TLVL_ERROR) << "Unable to resolve multicast address for table updates";
 		exit(1);
 	}
-	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+	sts = GetInterfaceForNetwork(table_multicast_interface_.c_str(), mreq.imr_interface);
+	if (sts == -1)
+	{
+		TLOG(TLVL_ERROR) << "Unable to resolve multicast interface for table updates" << table_multicast_interface_;
+		exit(1);
+	}
 	if (setsockopt(table_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 	{
 		TLOG(TLVL_ERROR) << "Unable to join multicast group";
