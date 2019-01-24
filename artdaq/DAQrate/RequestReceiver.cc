@@ -50,7 +50,7 @@ artdaq::RequestReceiver::RequestReceiver()
 artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
 	: request_port_(ps.get<int>("request_port", 3001))
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
-	, multicast_out_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
+	, multicast_in_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
 	, running_(false)
 	, requests_()
 	, request_timing_()
@@ -102,10 +102,10 @@ void artdaq::RequestReceiver::setupRequestListener()
 			TLOG(TLVL_ERROR) << "Unable to resolve multicast request address, err=" << strerror(errno);
 			exit(1);
 		}
-		sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), mreq.imr_interface);
+		sts = GetInterfaceForNetwork(multicast_in_addr_.c_str(), mreq.imr_interface);
 		if (sts == -1)
 		{
-			TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_out_addr_;
+			TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_in_addr_;
 			exit(1);
 		}
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
