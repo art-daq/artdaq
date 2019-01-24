@@ -221,7 +221,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			return;
 		}
 
-		TLOG(TLVL_TRACE) << __func__ << ": Polling table socket for new routes";
+		TLOG(TLVL_TRACE) << __func__ << ": Polling table socket for new routes (interface,address,port = "
+		                 << table_multicast_interface_ << "," << table_address_ << "," << table_port_ << ")";
 		if (table_socket_ == -1)
 		{
 			TLOG(TLVL_DEBUG) << __func__ << ": Opening table listener socket";

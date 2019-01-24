@@ -67,7 +67,8 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
 
 void artdaq::RequestReceiver::setupRequestListener()
 {
-	TLOG(TLVL_INFO) << "Setting up request listen socket, rank=" << my_rank << ", address=" << request_addr_ << ":" << request_port_;
+	TLOG(TLVL_INFO) << "Setting up request listen socket, rank=" << my_rank << ", address=" << request_addr_ << ":" << request_port_
+	                << ", multicast interface=" << multicast_in_addr_;
 	request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (request_socket_ < 0)
 	{
