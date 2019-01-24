@@ -415,7 +415,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		memcpy(&buffer[0], &header, sizeof(detail::RoutingPacketHeader));
 		memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
 
-		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ ;
+		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << ", outgoing interface " << multicast_out_hostname_;
 		TRACE(16,"headerData:0x%016lx%016lx packetData:0x%016lx%016lx"
 		      ,((unsigned long*)&header)[0],((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0],((unsigned long*)&packet[0])[1] );
 		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
