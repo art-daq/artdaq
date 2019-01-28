@@ -17,8 +17,9 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-art             v2_11_01        s67
-art 		v2_10_03	s65
+art             v2_11_05    s73
+art             v2_11_01    s67
+art 		    v2_10_03	s65
 art             v2_10_02        s64
 artdaq_core 		v3_04_03
 artdaq_utilities        v1_04_08
@@ -34,6 +35,10 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		art		artdaq_core    	   artdaq_utilities	xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions
+c2:s73:debug		c2:debug	c2:s73:debug	   c2:s73:debug		c2:debug	c2:s73:debug		c2:s73:debug       	c2:s73:debug
+c2:s73:prof		c2:prof 	c2:s73:prof	   c2:s73:prof		c2:prof		c2:s73:prof		c2:s73:prof		c2:s73:prof
+e17:s73:debug		e17:debug	e17:s73:debug	   e17:s73:debug	e17:debug	e17:s73:debug		e17:s73:debug       	e17:s73:debug
+e17:s73:prof		e17:prof 	e17:s73:prof	   e17:s73:prof		e17:prof	e17:s73:prof		e17:s73:prof		e17:s73:prof
 c2:s67:debug		c2:debug	c2:s67:debug	   c2:s67:debug		c2:debug	c2:s67:debug		c2:s67:debug       	c2:s67:debug
 c2:s67:prof		c2:prof 	c2:s67:prof	   c2:s67:prof		c2:prof		c2:s67:prof		c2:s67:prof		c2:s67:prof
 e17:s67:debug		e17:debug	e17:s67:debug	   e17:s67:debug	e17:debug	e17:s67:debug		e17:s67:debug       	e17:s67:debug
