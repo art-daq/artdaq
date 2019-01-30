@@ -202,7 +202,7 @@ void perror_exit( const char *msg, ... )
 	va_list ap;va_start(ap,msg);
 	vsnprintf( buf, sizeof(buf), msg, ap );
 	va_end(ap);
-	TRACE( 0, buf );
+	TRACE( 0, "%s", buf );
 	perror( buf ); exit(1);
 }
 
@@ -315,7 +315,7 @@ std::string AWK( std::string const &awk_cmd, const char *file, const char *input
 	}
 	//int iofd[3]={infd,-1,g_devnullfd};
 	int iofd[3]={infd,-1,2};// make stdin=infd, create pipr for stdout, inherit stderr
-	TRACE( 3, "AWK b4 fork_execv input=%p", input );
+	TRACE( 3, "AWK b4 fork_execv input=%p", (void*)input );
 	char *env[1];
 	env[0]=NULL;				// mainly do not want big LD_LIBRARY_PATH
 	pid=fork_execv(0,0/*closeCnt*/,0,iofd,"/bin/gawk",argv_,env);
@@ -337,7 +337,7 @@ std::string AWK( std::string const &awk_cmd, const char *file, const char *input
 	} else {
 		while ((bytes=read(iofd[1],&readbuf[tot_bytes],sizeof(readbuf)-tot_bytes)) > 0)
 			tot_bytes+=bytes;
-		TRACE( 3, "AWK after read tot=%zd bytes=%zd [0]=0x%x input=%p", tot_bytes, bytes, readbuf[0], input );
+		TRACE( 3, "AWK after read tot=%zd bytes=%zd [0]=0x%x input=%p", tot_bytes, bytes, readbuf[0], (void*)input );
 	}
 	readbuf[tot_bytes>=0?tot_bytes:0]='\0';
 	close(iofd[1]);
@@ -817,14 +817,14 @@ exit\n" );
 	fprintf( outfp, "cmds:\n" );
 	for (size_t ii=0; ii<opt_cmd.size(); ++ii) {
 		std::string ss=opt_cmd[ii]+"\n";
-		fprintf( outfp, ss.c_str() );
+		fprintf( outfp, "%s", ss.c_str() );
 	}
 
 	// print the specs
 	fprintf( outfp, "stats:\n" );
 	for (size_t ii=0; ii<stats.size(); ++ii) {
 		std::string ss=stats[ii]+"\n";
-		fprintf( outfp, ss.c_str() );
+		fprintf( outfp, "%s", ss.c_str() );
 	}
 
 	// now print header
@@ -853,7 +853,7 @@ exit\n" );
 		gettimeofday( &tv, NULL );
 		strftime( str, sizeof(str), "%FT%T", localtime(&tv.tv_sec) );
 		//fprintf(outfp, "%s.%ld", str, tv.tv_usec/100000 );
-		fprintf(outfp, str );
+		fprintf(outfp, "%s", str );
 		std::string prv_file("");
 		for (size_t ii=0; ii<stats.size(); ++ii) {
 			TRACE( 3, "main lp=%d start stat%zd", lp, ii );

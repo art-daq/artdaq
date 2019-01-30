@@ -39,10 +39,13 @@ namespace art
 		 */
 		NetMonWrapper(const fhicl::ParameterSet& pset)
 		{
+			ServiceHandle<NetMonTransportService> transport;
+			transport->listen();
+
 			try {
 				if (metricMan)
 				{
-					metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "artdaqart");
+					metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), app_name);
 					metricMan->do_start();
 				}
 			}
@@ -50,9 +53,6 @@ namespace art
 			{
 				artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "Error loading metrics in NetMonWrapper");
 			}
-
-			ServiceHandle<NetMonTransportService> transport;
-			transport->listen();
 		}
 
 		/**

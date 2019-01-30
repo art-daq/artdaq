@@ -247,23 +247,29 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 		{
 			auto first = artdaq::Fragment::InvalidSequenceID;
 			auto last = artdaq::Fragment::InvalidSequenceID;
+			std::vector<uint8_t> buf(MAX_ROUTING_TABLE_SIZE);
 			artdaq::detail::RoutingPacketHeader hdr;
 
 			TLOG(TLVL_DEBUG) << __func__ << ": Going to receive RoutingPacketHeader";
 			struct sockaddr_in from;
 			socklen_t          len=sizeof(from);
-			auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, (struct sockaddr*)&from, &len );
-			TLOG(TLVL_DEBUG) << __func__ << ": Received " << stss << " hdr bytes. (sizeof(RoutingPacketHeader) == " << sizeof(detail::RoutingPacketHeader)
-							 << " from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+			auto stss = recvfrom(table_socket_, &buf[0], MAX_ROUTING_TABLE_SIZE, 0, (struct sockaddr*)&from, &len );
+			TLOG(TLVL_DEBUG) << __func__ << ": Received " << stss << " bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+
+			if (stss > static_cast<ssize_t>(sizeof(hdr)))
+			{
+				memcpy(&hdr, &buf[0], sizeof(artdaq::detail::RoutingPacketHeader));
+			}
+			else 
+			{
+				TLOG(TLVL_TRACE) << __func__ << ": Incorrect size received. Discarding.";
+				continue;
+			}
 
 			TRACE(TLVL_DEBUG,"receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx",hdr.nEntries,((unsigned long*)&hdr)[0],((unsigned long*)&hdr)[1]);
 			if (hdr.header != ROUTING_MAGIC)
 			{
 				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)="<<stss;
-			}
-			else if (stss != sizeof(artdaq::detail::RoutingPacketHeader))
-			{
-				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. size(bytes)="<<stss;
 			}
 			else
 			{
@@ -275,11 +281,9 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				routing_master_mode_ = hdr.mode;
 
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
-				TLOG(TLVL_DEBUG) << __func__ << ": Receiving data buffer";
-				auto sts = recvfrom(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0, (struct sockaddr*)&from, &len );
-				assert(static_cast<size_t>(sts) == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-				TLOG(TLVL_DEBUG) << __func__ << ": Received " << sts << " pkt bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
-				TRACE(6,"receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx",sts,((unsigned long*)&buffer[0])[0],((unsigned long*)&buffer[0])[1]);
+				assert(static_cast<size_t>(stss) == sizeof(artdaq::detail::RoutingPacketHeader) + sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
+				memcpy(&buffer[0], &buf[sizeof(artdaq::detail::RoutingPacketHeader)], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
+				TRACE(6,"receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx",stss,((unsigned long*)&buffer[0])[0],((unsigned long*)&buffer[0])[1]);
 
 				first = buffer[0].sequence_id;
 				last = buffer[buffer.size() - 1].sequence_id;
@@ -560,6 +564,6 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			}
 		}
 	}
-	TLOG(5) << "sendFragment: Done sending fragment " << seqID;
+	TLOG(5) << "sendFragment: Done sending fragment " << seqID << " to dest="<<dest;
 	return std::make_pair(dest, outsts);
 }   // artdaq::DataSenderManager::sendFragment
