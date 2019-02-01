@@ -144,6 +144,15 @@ public:
 	}
 
 	/**
+	 * \brief Set the rank in the header for this request. This will be the rank from which the request originates.
+	 * \param rank Rank for this Request Message
+	 */
+	void setRank(int rank)
+	{
+		header_.rank = rank;
+	}
+
+	/**
 	 * \brief Get the number of RequestPackets in the RequestMessage
 	 * \return The number of RequestPackets in the RequestMessage
 	 */
