@@ -132,7 +132,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 	{
 		if (destinations_.count(dest))
 		{
-			auto sts = destinations_[dest]->moveFragment(std::move(*Fragment::eodFrag(sent_frag_count_.slotCount(dest))));
+			auto sts = destinations_[dest]->transfer_fragment_reliable_mode(std::move(*Fragment::eodFrag(sent_frag_count_.slotCount(dest))));
 			if (sts != TransferInterface::CopyStatus::kSuccess) TLOG(TLVL_ERROR) << "Error sending EOD Fragment to sender rank " << dest;
 			//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 		}
@@ -247,23 +247,29 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 		{
 			auto first = artdaq::Fragment::InvalidSequenceID;
 			auto last = artdaq::Fragment::InvalidSequenceID;
+			std::vector<uint8_t> buf(MAX_ROUTING_TABLE_SIZE);
 			artdaq::detail::RoutingPacketHeader hdr;
 
 			TLOG(TLVL_DEBUG) << __func__ << ": Going to receive RoutingPacketHeader";
 			struct sockaddr_in from;
 			socklen_t          len=sizeof(from);
-			auto stss = recvfrom(table_socket_, &hdr, sizeof(artdaq::detail::RoutingPacketHeader), 0, (struct sockaddr*)&from, &len );
-			TLOG(TLVL_DEBUG) << __func__ << ": Received " << stss << " hdr bytes. (sizeof(RoutingPacketHeader) == " << sizeof(detail::RoutingPacketHeader)
-							 << " from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+			auto stss = recvfrom(table_socket_, &buf[0], MAX_ROUTING_TABLE_SIZE, 0, (struct sockaddr*)&from, &len );
+			TLOG(TLVL_DEBUG) << __func__ << ": Received " << stss << " bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+
+			if (stss > static_cast<ssize_t>(sizeof(hdr)))
+			{
+				memcpy(&hdr, &buf[0], sizeof(artdaq::detail::RoutingPacketHeader));
+			}
+			else 
+			{
+				TLOG(TLVL_TRACE) << __func__ << ": Incorrect size received. Discarding.";
+				continue;
+			}
 
 			TRACE(TLVL_DEBUG,"receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx",hdr.nEntries,((unsigned long*)&hdr)[0],((unsigned long*)&hdr)[1]);
 			if (hdr.header != ROUTING_MAGIC)
 			{
 				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)="<<stss;
-			}
-			else if (stss != sizeof(artdaq::detail::RoutingPacketHeader))
-			{
-				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. size(bytes)="<<stss;
 			}
 			else
 			{
@@ -275,11 +281,9 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				routing_master_mode_ = hdr.mode;
 
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
-				TLOG(TLVL_DEBUG) << __func__ << ": Receiving data buffer";
-				auto sts = recvfrom(table_socket_, &buffer[0], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries, 0, (struct sockaddr*)&from, &len );
-				assert(static_cast<size_t>(sts) == sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-				TLOG(TLVL_DEBUG) << __func__ << ": Received " << sts << " pkt bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
-				TRACE(6,"receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx",sts,((unsigned long*)&buffer[0])[0],((unsigned long*)&buffer[0])[1]);
+				assert(static_cast<size_t>(stss) == sizeof(artdaq::detail::RoutingPacketHeader) + sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
+				memcpy(&buffer[0], &buf[sizeof(artdaq::detail::RoutingPacketHeader)], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
+				TRACE(6,"receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx",stss,((unsigned long*)&buffer[0])[0],((unsigned long*)&buffer[0])[1]);
 
 				first = buffer[0].sequence_id;
 				last = buffer[buffer.size() - 1].sequence_id;
@@ -437,12 +441,18 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		{
 			TLOG(TLVL_TRACE) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
 			// Gross, we have to copy.
-			Fragment fragCopy(frag);
-			auto sts = destinations_[bdest]->moveFragment(std::move(fragCopy));
+			auto sts = TransferInterface::CopyStatus::kTimeout;
 			size_t retries = 0; // Tried once, so retries < send_retry_count_ will have it retry send_retry_count_ times
 			while (sts == TransferInterface::CopyStatus::kTimeout && retries < send_retry_count_)
 			{
-				sts = destinations_[bdest]->moveFragment(std::move(fragCopy));
+				if (!non_blocking_mode_)
+				{
+					sts = destinations_[bdest]->transfer_fragment_reliable_mode(Fragment(frag));
+				}
+				else
+				{
+					sts = destinations_[bdest]->transfer_fragment_min_blocking_mode(frag, send_timeout_us_);
+				}
 				retries++;
 			}
 			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
@@ -469,7 +479,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			size_t retries = 0; // Have NOT yet tried, so retries <= send_retry_count_ will have it RETRY send_retry_count_ times
 			while (sts != TransferInterface::CopyStatus::kSuccess && retries <= send_retry_count_)
 			{
-				sts = destinations_[dest]->copyFragment(frag, send_timeout_us_);
+				sts = destinations_[dest]->transfer_fragment_min_blocking_mode(frag, send_timeout_us_);
 				if (sts != TransferInterface::CopyStatus::kSuccess && TimeUtils::GetElapsedTime(lastWarnTime) >= 1)
 				{
 					TLOG(TLVL_WARNING) << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
@@ -501,7 +511,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			TLOG(5) << "DataSenderManager::sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 
-			sts = destinations_[dest]->moveFragment(std::move(frag));
+			sts = destinations_[dest]->transfer_fragment_reliable_mode(std::move(frag));
 			if (sts != TransferInterface::CopyStatus::kSuccess)
 				TLOG(TLVL_ERROR) << "sendFragment: Sending fragment " << seqID << " to destination "
 				<< dest << " failed! Data has been lost!";
@@ -554,6 +564,6 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			}
 		}
 	}
-	TLOG(5) << "sendFragment: Done sending fragment " << seqID;
+	TLOG(5) << "sendFragment: Done sending fragment " << seqID << " to dest="<<dest;
 	return std::make_pair(dest, outsts);
 }   // artdaq::DataSenderManager::sendFragment

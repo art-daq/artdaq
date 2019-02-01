@@ -125,7 +125,7 @@ art::TransferOutput::
 {
 	TLOG(TLVL_DEBUG) << "Begin: TransferOutput::~TransferOutput()";
 
-	auto sts = transfer_->moveFragment(std::move(*artdaq::Fragment::eodFrag(0)));
+	auto sts = transfer_->transfer_fragment_reliable_mode(std::move(*artdaq::Fragment::eodFrag(0)));
 	if (sts != artdaq::TransferInterface::CopyStatus::kSuccess) TLOG(TLVL_ERROR) << "Error sending EOD Fragment!";
 	transfer_.reset(nullptr);
 	TLOG(TLVL_DEBUG) << "End: TransferOutput::~TransferOutput()";
@@ -872,7 +872,7 @@ art::TransferOutput::sendMessage_(uint64_t sequenceId, uint8_t messageType, TBuf
 	size_t retries = 0;
 	while (sts != artdaq::TransferInterface::CopyStatus::kSuccess && retries <= send_retry_count_)
 	{
-		sts = transfer_->copyFragment(fragment, send_timeout_us_);
+		sts = transfer_->transfer_fragment_min_blocking_mode(fragment, send_timeout_us_);
 		retries++;
 	}
 
