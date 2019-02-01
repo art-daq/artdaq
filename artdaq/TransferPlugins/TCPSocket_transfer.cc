@@ -380,7 +380,7 @@ int artdaq::TCPSocketTransfer::disconnect_receive_socket_(int fd, std::string ms
 
 int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, size_t)
 {
-	TLOG(9) << GetTraceName() << ": receiveFragmentData: BEGIN";
+	TLOG(19) << GetTraceName() << ": receiveFragmentData: BEGIN";
 	int ret_rank = RECV_TIMEOUT;
 	if (active_receive_fd_ == -1)
 	{ // what if just listen_fd??? 
@@ -527,8 +527,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					{
 						TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: Message header indicates that a Fragment header follows when I was expecting Fragment data!";
 						active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_, "Desync detected");
+					}
 				}
-			}
 				else
 				{
 					ret_rank = source_rank();
@@ -542,7 +542,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					done = true; // no more polls
 					//break; // no more read of ready fds
 				}
-				}
+			}
 		}
 
 		// Check if we were asked to do a 0-size receive
@@ -564,7 +564,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	last_active_receive_fd_ = active_receive_fd_;
 	active_receive_fd_ = -1;
 
-	TLOG(9) << GetTraceName() << ": receiveFragmentData: Returning " << ret_rank;
+	TLOG(9) << GetTraceName() << ": receiveFragmentData: Returning rank " << ret_rank;
 	return ret_rank;
 }
 
@@ -602,9 +602,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	auto sts = sendData_(&iov, 1, send_retry_timeout_us_, true);
 	auto start_time = std::chrono::steady_clock::now();
 	//If it takes more than 10 seconds to write a Fragment header, give up
-	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
+	while (sts == CopyStatus::kTimeout && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
-		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
+		TLOG(13) << GetTraceName() << ": sendFragment: Timeout sending fragment";
 		sts = sendData_(&iov, 1, send_retry_timeout_us_, true);
 		usleep(1000);
 	}
@@ -617,9 +617,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 };
 	sts = sendData_(&iov, 1, send_retry_timeout_us_);
 	start_time = std::chrono::steady_clock::now();
-	while (sts != CopyStatus::kSuccess && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
+	while (sts == CopyStatus::kTimeout && (send_timeout_usec == 0 || TimeUtils::GetElapsedTimeMicroseconds(start_time) < send_timeout_usec) && TimeUtils::GetElapsedTimeMicroseconds(start_time) < 10000000)
 	{
-		TLOG(13) << GetTraceName() << ": sendFragment: Timeout or Error sending fragment";
+		TLOG(13) << GetTraceName() << ": sendFragment: Timeout sending fragment";
 		sts = sendData_(&iov, 1, send_retry_timeout_us_);
 		usleep(1000);
 	}
@@ -628,7 +628,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	send_ack_diff_++;
 #endif
 
-	TLOG(12) << GetTraceName() << ": sendFragment returning Success";
+	TLOG(12) << GetTraceName() << ": sendFragment returning " << CopyStatusToString(sts);
 	return sts;
 }
 

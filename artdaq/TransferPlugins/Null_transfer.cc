@@ -59,19 +59,19 @@ namespace artdaq
 		}
 
 		/**
-		 * \brief Pretend to copy a Fragment to a destination
+		 * \brief Pretend to send a Fragment to a destination
 		 * \return CopyStatus::kSuccess (No-Op)
 		 */
-		CopyStatus copyFragment(artdaq::Fragment&, size_t) override
+		CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const&, size_t) override
 		{
 			return CopyStatus::kSuccess;
 		}
 
 		/**
-		* \brief Pretend to move a Fragment to a destination
+		* \brief Pretend to send a Fragment to a destination
 		* \return CopyStatus::kSuccess (No-Op)
 		*/
-		CopyStatus moveFragment(artdaq::Fragment&&) override
+		CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&&) override
 		{
 			return CopyStatus::kSuccess;
 		}

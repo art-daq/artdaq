@@ -61,7 +61,7 @@ TCP_listen_fd(int port, int rcvbuf)
 	int len = 0;
 	socklen_t arglen = sizeof(len);
 	sts = getsockopt(listener_fd, SOL_SOCKET, SO_RCVBUF, &len, &arglen);
-	TLOG(TLVL_WARNING) << "RCVBUF initial: " << len << " sts/errno=" << sts << "/" << errno << " arglen=" << arglen << " rcvbuf=" << rcvbuf << " listener_fd=" << listener_fd;
+	TLOG(TLVL_INFO) << "RCVBUF initial: " << len << " sts/errno=" << sts << "/" << errno << " arglen=" << arglen << " rcvbuf=" << rcvbuf << " listener_fd=" << listener_fd;
 	if (rcvbuf > 0)
 	{
 		len = rcvbuf;
