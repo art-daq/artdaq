@@ -102,7 +102,8 @@ void artdaq::EventDump::analyze(art::Event const& e)
             int jdx = 1;
             for (auto const& frag : *handle){
               std::cout << "  " << jdx << ") fragment ID " << frag.fragmentID() << " has type "
-                        << (int) frag.type() << " and timestamp " << frag.timestamp();
+                        << (int) frag.type() << ", timestamp " << frag.timestamp()
+                        << ", and sizeBytes " << frag.sizeBytes();
 
               if (instance_name.compare(0,9,"Container")==0) {
                 artdaq::ContainerFragment cf(frag);
@@ -112,7 +113,8 @@ void artdaq::EventDump::analyze(art::Event const& e)
                 if (verbosity_ > 1) {
                   for (size_t idx = 0; idx < cf.block_count(); ++idx) {
                     std::cout << "    " << (idx+1) << ") fragment type " << (int) (cf.at(idx))->type()
-                              << " fragment timestamp " << (cf.at(idx))->timestamp() << std::endl;
+                              << ", timestamp " << (cf.at(idx))->timestamp()
+                              << ", and sizeBytes " << (cf.at(idx))->sizeBytes() << std::endl;
                   }
                 }
               }
