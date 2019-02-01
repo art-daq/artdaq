@@ -55,3 +55,10 @@ void artdaq::RoutingMasterPolicy::addUnusedTokens(std::unique_ptr<std::deque<int
 	}
 	if (tokens_.size() > max_token_count_) max_token_count_ = tokens_.size();
 }
+
+void artdaq::RoutingMasterPolicy::Reset()
+{
+	next_sequence_id_ = 1;
+	std::unique_lock<std::mutex> lk(tokens_mutex_);
+	tokens_.clear();
+}
