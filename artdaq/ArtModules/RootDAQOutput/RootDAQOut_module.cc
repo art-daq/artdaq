@@ -31,6 +31,8 @@
 #include "fhiclcpp/types/OptionalAtom.h"
 #include "fhiclcpp/types/Table.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "tracemf.h"			// TLOG
+#define TRACE_NAME "RootDAQOut"
 
 #include <iomanip>
 #include <memory>
@@ -443,7 +445,7 @@ art::RootDAQOut::finishEndFile()
   fstats_.recordFileClose();
   lastClosedFileName_ =
     fRenamer_.maybeRenameFile(currentFileName, filePattern_);
-  detail::logFileAction("Closed output file ", lastClosedFileName_);
+  TLOG(TLVL_INFO) << __func__ << ": Closed output file \"" << lastClosedFileName_ << "\"";
   rpm_.invoke(&ResultsProducer::doClear);
 }
 
@@ -525,7 +527,7 @@ art::RootDAQOut::doOpenFile()
                                      dropMetaDataForDroppedData_,
                                      fastCloningEnabled_);
   fstats_.recordFileOpen();
-  detail::logFileAction("Opened output file with pattern ", filePattern_);
+  TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
 
 string const&

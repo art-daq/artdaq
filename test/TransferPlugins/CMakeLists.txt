@@ -96,3 +96,46 @@ artdaq_TransferPlugins
 	DATAFILES fcl/transfer_driver_shmem_empty.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
 	)
+
+
+  cet_test(transfer_driver_tcp_nonblocking_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_tcp_nonblocking.fcl 2
+	DATAFILES fcl/transfer_driver_tcp_nonblocking.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+	)
+
+  cet_test(transfer_driver_shmem_nonblocking_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_shmem_nonblocking.fcl 2
+	DATAFILES fcl/transfer_driver_shmem_nonblocking.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+	)
+
+  cet_test(transfer_driver_tcp_nonblocking_broadcast_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_tcp_nonblocking_broadcast.fcl 4
+	DATAFILES fcl/transfer_driver_tcp_nonblocking_broadcast.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+	)
+
+  cet_test(transfer_driver_shmem_nonblocking_broadcast_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_shmem_nonblocking_broadcast.fcl 4
+	DATAFILES fcl/transfer_driver_shmem_nonblocking_broadcast.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+	)
+
+  cet_test(transfer_driver_tcp_broadcast_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_tcp_broadcast.fcl 4
+	DATAFILES fcl/transfer_driver_tcp_broadcast.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+	)
+
+  cet_test(transfer_driver_shmem_broadcast_t HANDBUILT
+	TEST_EXEC runTransferTest.sh
+	TEST_ARGS transfer_driver_shmem_broadcast.fcl 4
+	DATAFILES fcl/transfer_driver_shmem_broadcast.fcl
+  #TEST_PROPERTIES RUN_SERIAL 1
+	)
