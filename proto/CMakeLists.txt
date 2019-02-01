@@ -133,6 +133,17 @@ art_make_exec(NAME fhicl_test
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
+  art_make_exec(NAME routingReceiver
+  SOURCE
+  routingReceiver.cc
+  LIBRARIES
+  artdaq_Application
+  artdaq_BuildInfo
+  artdaq_ExternalComms
+  ${FHICLCPP}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
 art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins

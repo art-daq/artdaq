@@ -200,6 +200,8 @@ int main(int argc, char * argv[]) try
 	}
 
 	metricMan->do_stop();
+
+	artdaq::Globals::CleanUpGlobals();
 	return 0;
 }
 catch (std::string & x)

@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 		testFrag.setTimestamp(0x100);
 		testFrag.setSystemType(artdaq::Fragment::DataFragmentType);
 
-		transfer.moveFragment(std::move(testFrag));
+		transfer.transfer_fragment_reliable_mode(std::move(testFrag));
 
 		sleep(1);
 		BOOST_REQUIRE_EQUAL(t.count(), 1);
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 
 		artdaq::FragmentPtr eodFrag = artdaq::Fragment::eodFrag(1);
 
-		transfer.moveFragment(std::move(*(eodFrag.get())));
+		transfer.transfer_fragment_reliable_mode(std::move(*(eodFrag.get())));
 	}
 	sleep(2);
 	BOOST_REQUIRE_EQUAL(t.count(), 1);
