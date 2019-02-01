@@ -252,6 +252,9 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 			hdr->subrun_id = subrun_id_;
 		}
 
+		TLOG(TLVL_TRACE) << "DoneWritingFragment: Updating buffer touch time";
+		TouchBuffer(buffer);
+
 		buffer_writes_pending_[buffer]--;
 		if (buffer_writes_pending_[buffer] != 0)
 		{
@@ -332,6 +335,13 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 						<< "This may result in incorrect TCP port number "
 						<< "assignments or other issues, and data may "
 						<< "not flow through the system correctly.";
+				}
+				envVarKey = "ARTDAQ_APPLICATION_NAME";
+				envVarValue = app_name;
+				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 1) != 0)
+				{
+					TLOG(TLVL_DEBUG) << "Error setting environment variable \"" << envVarKey
+						<< "\" in the environment of a child art process. ";
 				}
 
 				execvp("art", &args[0]);
@@ -621,7 +631,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	TLOG(TLVL_DEBUG) << "Waiting for " << (ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_))) << " outstanding buffers...";
 	auto start = std::chrono::steady_clock::now();
 	auto lastReadCount = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
-	auto end_of_data_wait_us = art_event_processing_time_us_ * lastReadCount;//size();
+	auto end_of_data_wait_us = art_event_processing_time_us_ * (lastReadCount > 0 ? lastReadCount : 1);//size();
 
 	auto outstanding_buffer_wait_time = art_event_processing_time_us_ > 100000 ? 100000 : art_event_processing_time_us_;
 
@@ -720,10 +730,14 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	subrun_id_ = 1;
 	subrun_rollover_event_ = Fragment::InvalidSequenceID;
 	last_released_event_ = 0;
+	run_event_count_ = 0;
+	run_incomplete_event_count_ = 0;
+	subrun_event_count_ = 0;
+	subrun_incomplete_event_count_ = 0;
 	requests_.reset(new RequestSender(data_pset_));
 	if (requests_)
 	{
-	    requests_->SendRoutingToken(queue_size_);
+	    requests_->SendRoutingToken(queue_size_, run_id_);
 	}
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
 		<< ", max queue size = "
@@ -740,6 +754,8 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 void artdaq::SharedMemoryEventManager::startSubrun()
 {
 	++subrun_id_;
+	subrun_event_count_ = 0;
+	subrun_incomplete_event_count_ = 0;
 	subrun_rollover_event_ = Fragment::InvalidSequenceID;
 	if (metricMan)
 	{
@@ -764,6 +780,8 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	TLOG(TLVL_INFO) << "Run " << run_id_ << " has ended. There were " << run_event_count_ << " events in this run.";
 	run_event_count_ = 0;
 	run_incomplete_event_count_ = 0;
+	subrun_event_count_ = 0;
+	subrun_incomplete_event_count_ = 0;
 	oversize_fragment_count_ = 0;
 	return true;
 }
@@ -1115,6 +1133,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 	if (requests_)
 	{
+		TLOG(TLVL_TRACE) << "Sent tokens: " << requests_->GetSentTokenCount() << ", Event count: " << run_event_count_;
 		auto outstanding_tokens = requests_->GetSentTokenCount() - run_event_count_;
 		auto available_buffers = WriteReadyCount(overwrite_mode_);
 
@@ -1128,7 +1147,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			while (tokens_to_send > 0)
 			{
 				TLOG(35) << "check_pending_buffers_: Sending a Routing Token";
-				requests_->SendRoutingToken(1);
+				requests_->SendRoutingToken(1, run_id_);
 				tokens_to_send--;
 			}
 		}
