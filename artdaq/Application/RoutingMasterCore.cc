@@ -30,7 +30,7 @@ CURRENT_TABLE_INTERVAL_STAT_KEY("RoutingMasterCoreCurrentTableInterval");
 artdaq::RoutingMasterCore::RoutingMasterCore() 
 	: received_token_counter_()
 	, shutdown_requested_(false)
-	, stop_requested_(false)
+	, stop_requested_(true)
 	, pause_requested_(false)
 	, token_socket_(-1)
 	, table_socket_(-1)
@@ -171,33 +171,33 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 
 bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 {
+	run_id_ = id;
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
 	statsHelper_.resetStatistics();
-	policy_->Reset();
 
 	metricMan->do_start();
-	run_id_ = id;
 	table_update_count_ = 0;
 	received_token_count_ = 0;
 
-	TLOG(TLVL_DEBUG) << "Started run " << run_id_.run() ;
+	TLOG(TLVL_INFO) << "Started run " << run_id_.run() ;
 	return true;
 }
 
 bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Stopping run " << run_id_.run()
+	TLOG(TLVL_INFO) << "Stopping run " << run_id_.run()
 		<< " after " << table_update_count_ << " table updates."
 		<< " and " << received_token_count_ << " received tokens." ;
 	stop_requested_.store(true);
+	run_id_ = art::RunID::flushRun();
 	return true;
 }
 
 bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Pausing run " << run_id_.run()
+	TLOG(TLVL_INFO) << "Pausing run " << run_id_.run()
 		<< " after " << table_update_count_ << " table updates."
 		<< " and " << received_token_count_ << " received tokens." ;
 	pause_requested_.store(true);
@@ -206,8 +206,7 @@ bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 
 bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 {
-	TLOG(TLVL_DEBUG) << "Resuming run " << run_id_.run() ;
-	policy_->Reset();
+	TLOG(TLVL_DEBUG) << "Resuming run " << run_id_.run();
 	pause_requested_.store(false);
 	metricMan->do_start();
 	return true;
@@ -224,7 +223,7 @@ bool artdaq::RoutingMasterCore::shutdown(uint64_t)
 
 bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
-	TLOG(TLVL_DEBUG) << "soft_initialize method called with "
+	TLOG(TLVL_INFO) << "soft_initialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\"." ;
 	return initialize(pset, e, f);
@@ -232,7 +231,7 @@ bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset,
 
 bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
-	TLOG(TLVL_DEBUG) << "reinitialize method called with "
+	TLOG(TLVL_INFO) << "reinitialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
 		<< "\"." ;
 	return initialize(pset, e, f);
@@ -315,6 +314,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 		}
 	}
 
+	policy_->Reset();
 	metricMan->do_stop();
 }
 
@@ -417,25 +417,25 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
+		assert(packetSize + sizeof(header) < MAX_ROUTING_TABLE_SIZE);
+		std::vector<uint8_t> buffer(packetSize + sizeof(header));
+		memcpy(&buffer[0], &header, sizeof(detail::RoutingPacketHeader));
+		memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
+
 		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ ;
 		TRACE(16,"headerData:0x%016lx%016lx packetData:0x%016lx%016lx"
 		      ,((unsigned long*)&header)[0],((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0],((unsigned long*)&packet[0])[1] );
-		auto hdrsts = sendto(table_socket_, &header, sizeof(detail::RoutingPacketHeader), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
-		if (hdrsts != sizeof(detail::RoutingPacketHeader))
+		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
+		if (sts != static_cast<ssize_t>(buffer.size()))
 		{
-			TLOG(TLVL_ERROR) << "Error sending routing message header. hdrsts=" << hdrsts;
-		}
-		auto pktsts = sendto(table_socket_, &packet[0], packetSize, 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
-		if (pktsts != (ssize_t)packetSize)
-		{
-			TLOG(TLVL_ERROR) << "Error sending routing message data. hdrsts="<<hdrsts<<" pktsts="<<pktsts;
+			TLOG(TLVL_ERROR) << "Error sending routing table. sts=" << sts;
 		}
 
 		// Collect acks
 
 		auto first = packet[0].sequence_id;
 		auto last = packet.rbegin()->sequence_id;
-		TLOG(TLVL_DEBUG) << "Sent " << hdrsts <<"+"<< pktsts << ". Expecting acks to have first= " << first << ", and last= " << last ;
+		TLOG(TLVL_DEBUG) << "Sent " << sts << " bytes. Expecting acks to have first= " << first << ", and last= " << last ;
 
 
 		auto startTime = std::chrono::steady_clock::now();
@@ -493,7 +493,9 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 						else
 						{
 							TLOG(TLVL_WARNING) << "Received acknowledgement from rank " << buffer.rank
-								<< " that had incorrect sequence ID information. Discarding." ;
+							                   << " that had incorrect sequence ID information. Discarding."
+							                   << " Expected first/last=" << first <<"/"<< last
+							                   << " recvd=" << buffer.first_sequence_id <<"/"<< buffer.last_sequence_id;
 						}
 					}
 				}
@@ -541,6 +543,11 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 		{
 			perror("epoll_wait");
 			exit(EXIT_FAILURE);
+		}
+
+		while (stop_requested_ && !shutdown_requested_)
+		{
+			usleep(10000);
 		}
 
 		TLOG(TLVL_DEBUG) << "Received " << nfds << " events" ;
@@ -615,7 +622,13 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 					else if(sts == sizeof(detail::RoutingToken))
 					  {
 						sts = 0;
-						TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free." ;
+						TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free. (run=" << buff.run_number << ")" ;
+						if (buff.run_number != run_id_.run())
+						{
+							TLOG(TLVL_DEBUG) << "Received token from a different run number! Current = " << run_id_.run() << ", token = " << buff.run_number << ", ignoring (n=" << buff.new_slots_free << ")";
+						}
+						else 
+						{
 						received_token_count_ += buff.new_slots_free;
 						if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
 						  {
@@ -635,6 +648,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 							  }
 						  }
 					  }
+				  }
 				  }
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
@@ -727,24 +741,27 @@ std::string artdaq::RoutingMasterCore::buildStatisticsString_() const
 
 void artdaq::RoutingMasterCore::sendMetrics_()
 {
-	auto mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TABLE_UPDATES_STAT_KEY);
-	if (mqPtr.get() != nullptr)
+	if (metricMan)
 	{
-		artdaq::MonitoredQuantityStats stats;
-		mqPtr->getStats(stats);
-		metricMan->sendMetric("Table Update Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::LastPoint);
-		metricMan->sendMetric("Table Update Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
-		metricMan->sendMetric("Average Sender Acknowledgement Time", (mqPtr->getRecentValueSum() / sender_ranks_.size()), "seconds", 3, MetricMode::Average);
-	}
+		auto mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TABLE_UPDATES_STAT_KEY);
+		if (mqPtr.get() != nullptr)
+		{
+			artdaq::MonitoredQuantityStats stats;
+			mqPtr->getStats(stats);
+			metricMan->sendMetric("Table Update Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::LastPoint);
+			metricMan->sendMetric("Table Update Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
+			metricMan->sendMetric("Average Sender Acknowledgement Time", (mqPtr->getRecentValueSum() / sender_ranks_.size()), "seconds", 3, MetricMode::Average);
+		}
 
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TOKENS_RECEIVED_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		artdaq::MonitoredQuantityStats stats;
-		mqPtr->getStats(stats);
-		metricMan->sendMetric("Receiver Token Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::LastPoint);
-		metricMan->sendMetric("Receiver Token Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
-		metricMan->sendMetric("Total Receiver Token Wait Time", mqPtr->getRecentValueSum(), "seconds", 3, MetricMode::Average);
+		mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TOKENS_RECEIVED_STAT_KEY);
+		if (mqPtr.get() != nullptr)
+		{
+			artdaq::MonitoredQuantityStats stats;
+			mqPtr->getStats(stats);
+			metricMan->sendMetric("Receiver Token Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::LastPoint);
+			metricMan->sendMetric("Receiver Token Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
+			metricMan->sendMetric("Total Receiver Token Wait Time", mqPtr->getRecentValueSum(), "seconds", 3, MetricMode::Average);
+		}
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(CURRENT_TABLE_INTERVAL_STAT_KEY);

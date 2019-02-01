@@ -90,12 +90,12 @@ namespace artdaq
 		{
 			/// "generator" (REQUIRED) Name of the CommandableFragmentGenerator plugin to load
 			fhicl::Atom<std::string> generator_type                  { fhicl::Name{"generator"                        }, fhicl::Comment{"Name of the CommandableFragmentGenerator plugin to load"} };
-			/// "request_window_offset" (Default: 0) : Request messages contain a timestamp.For Window request mode, start the window this far before the timestamp in the request
+			/// "request_window_offset" (Default: 0) : Request messages contain a timestamp. For Window request mode, start the window this far before the timestamp in the request
 			fhicl::Atom<Fragment::timestamp_t> request_window_offset { fhicl::Name{"request_window_offset"            }, fhicl::Comment{"Request messages contain a timestamp. For Window request mode, start the window this far before the timestamp in the request"}, 0 };
 			/// "request_window_width" (Default: 0) : For Window request mode, the window will be timestamp - offset to timestamp - offset + width
 			fhicl::Atom<Fragment::timestamp_t> request_window_width  { fhicl::Name{"request_window_width"             }, fhicl::Comment{"For Window request mode, the window will be timestamp - offset to timestamp - offset + width"}, 0 };
-			/// "stale_request_timeout" (Default: -1) : How long should request messages be retained
-			fhicl::Atom<Fragment::timestamp_t> stale_request_timeout { fhicl::Name{"stale_request_timeout"            }, fhicl::Comment{"How long should request messages be retained"}, 0xFFFFFFFF };
+			/// "stale_request_timeout" (Default: -1) : Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded
+			fhicl::Atom<Fragment::timestamp_t> stale_request_timeout { fhicl::Name{"stale_request_timeout"            }, fhicl::Comment{"Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded"}, 0xFFFFFFFF };
 			/// "expected_fragment_type" (Default: 231, EmptyFragmentType) : The type of Fragments this CFG will be generating. "Empty" will auto - detect type based on Fragments generated.
 			fhicl::Atom<Fragment::type_t> expected_fragment_type     { fhicl::Name{"expected_fragment_type"           }, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType) };
 			/// "request_windows_are_unique" (Default: true) : Whether Fragments should be removed from the buffer when matched to a request window
@@ -106,12 +106,14 @@ namespace artdaq
 			fhicl::Atom<size_t> window_close_timeout_us              { fhicl::Name{"window_close_timeout_us"          }, fhicl::Comment{"How long to wait for the end of the data buffer to pass the end of a request window (measured from the time the request was received)"}, 2000000 };
 			/// "separate_data_thread" (Default: false) : Whether data collection should proceed on its own thread.Required for all data request processing
 			fhicl::Atom<bool> separate_data_thread                   { fhicl::Name{"separate_data_thread"             }, fhicl::Comment{"Whether data collection should proceed on its own thread. Required for all data request processing"}, false };
+			/// "circular_buffer_mode" (Default: false) : Whether the data buffer should be treated as a circular buffer on the input side (i.e. old fragments are automatically discarded when the buffer is full to always call getNext_).
+			fhicl::Atom<bool> circular_buffer_mode                   { fhicl::Name{"circular_buffer_mode"             }, fhicl::Comment{"Whether the data buffer should be treated as a circular buffer on the input side (i.e. old fragments are automatically discarded when the buffer is full to always call getNext_)."}, false };
 			/// "sleep_on_no_data_us" (Default: 0 (no sleep)) : How long to sleep after calling getNext_ if no data is returned
 			fhicl::Atom<size_t> sleep_on_no_data_us                  { fhicl::Name{"sleep_on_no_data_us"              }, fhicl::Comment{"How long to sleep after calling getNext_ if no data is returned"}, 0 };
-			/// "data_buffer_depth_fragments" (Default: 1000) : How many Fragments to store in the buffer
-			fhicl::Atom<int> data_buffer_depth_fragments             { fhicl::Name{"data_buffer_depth_fragments"      }, fhicl::Comment{"How many Fragments to store in the buffer"}, 1000 };
-			/// "data_buffer_depth_mb" (Default: 1000) : The maximum size of the data buffer in MB
-			fhicl::Atom<size_t> data_buffer_depth_mb                 { fhicl::Name{"data_buffer_depth_mb"             }, fhicl::Comment{"The maximum size of the data buffer in MB"}, 1000 };
+			/// "data_buffer_depth_fragments" (Default: 1000) : The max fragments which can be stored before dropping occurs
+			fhicl::Atom<int> data_buffer_depth_fragments             { fhicl::Name{"data_buffer_depth_fragments"      }, fhicl::Comment{"The max fragments which can be stored before dropping occurs"}, 1000 };
+			/// "data_buffer_depth_mb" (Default: 1000) : The max cumulative size in megabytes of the fragments which can be stored before dropping occurs
+			fhicl::Atom<size_t> data_buffer_depth_mb                 { fhicl::Name{"data_buffer_depth_mb"             }, fhicl::Comment{"The max cumulative size in megabytes of the fragments which can be stored before dropping occurs"}, 1000 };
 			/// "separate_monitoring_thread" (Default: false) : Whether a thread that calls the checkHWStatus_ method should be created
 			fhicl::Atom<bool> separate_monitoring_thread             { fhicl::Name{"separate_monitoring_thread"       }, fhicl::Comment{"Whether a thread that calls the checkHWStatus_ method should be created"}, false };
 			/// "hardware_poll_interval_us" (Default: 0) : If a separate monitoring thread is used, how often should it call checkHWStatus_
@@ -526,6 +528,7 @@ namespace artdaq
 		size_t window_close_timeout_us_;
 
 		bool useDataThread_;
+		bool circularDataBufferMode_;
 		size_t sleep_on_no_data_us_;
 		std::atomic<bool> data_thread_running_;
 		boost::thread dataThread_;

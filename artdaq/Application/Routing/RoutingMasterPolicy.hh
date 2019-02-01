@@ -61,9 +61,9 @@ namespace artdaq
 		void AddReceiverToken(int rank, unsigned new_slots_free);
 
 		/**
-		 * \brief Reset the policy, setting the next sequence ID to be used to 1
+		 * \brief Reset the policy, setting the next sequence ID to be used to 1, and removing any tokens
 		 */
-		void Reset() { next_sequence_id_ = 1; }
+		void Reset();
 
 		Fragment::sequence_id_t GetNextSequenceID() const { return next_sequence_id_; }
 		size_t GetHeldTokenCount() const
@@ -71,7 +71,8 @@ namespace artdaq
 			std::unique_lock<std::mutex> lk(tokens_mutex_);
 			return tokens_.size();
 		}
-	protected:
+
+    protected:
 		Fragment::sequence_id_t next_sequence_id_; ///< The next sequence ID to be assigned
 
 		std::unique_ptr<std::deque<int>> getTokensSnapshot(); ///< Gets the current token list, used for building Routing Tables

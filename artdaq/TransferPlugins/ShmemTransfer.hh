@@ -62,19 +62,19 @@ namespace artdaq
 		int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
 
 		/**
-		* \brief Copy a Fragment to the destination. May be unreliable
-		* \param fragment Fragment to copy
+		* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
+		* \param fragment Fragment to transfer
 		* \param send_timeout_usec Timeout for send, in microseconds
-		* \return CopyStatus detailing result of copy
+		* \return CopyStatus detailing result of transfer
 		*/
-		CopyStatus copyFragment(Fragment& fragment, size_t send_timeout_usec) override;
+		CopyStatus transfer_fragment_min_blocking_mode(Fragment const& fragment, size_t send_timeout_usec) override;
 
 		/**
-		* \brief Move a Fragment to the destination.
-		* \param fragment Fragment to move
-		* \return CopyStatus detailing result of move
+		* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
+		* \param fragment Fragment to transfer
+		* \return CopyStatus detailing result of copy
 		*/
-		CopyStatus moveFragment(Fragment&& fragment) override;
+		CopyStatus transfer_fragment_reliable_mode(Fragment&& fragment) override;
 
 		/**
 		* \brief Determine whether the TransferInterface plugin is able to send/receive data
