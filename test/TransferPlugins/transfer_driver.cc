@@ -34,8 +34,8 @@ int main(int argc, char* argv[])
 	if (ps.has_key("partition_number")) artdaq::Globals::partition_number_ = ps.get<int>("partition_number");
 
 	artdaq::TransferTest theTest(ps);
-	theTest.runTest();
+	auto ret = theTest.runTest();
 
-	TLOG(TLVL_INFO) << "END" ;
-	return 0;
+	TLOG(TLVL_INFO) << "END: retcode=" << ret;
+	return ret;
 }

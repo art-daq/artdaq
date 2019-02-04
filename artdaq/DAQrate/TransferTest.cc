@@ -23,6 +23,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	, ps_()
 	, validate_mode_(psi.get<bool>("validate_data_mode", false))
 	, partition_number_(psi.get<int>("partition_number", rand() % 0x7F))
+    , return_code_(0)
 {
 	TLOG(10) << "CONSTRUCTOR";
 
@@ -136,7 +137,7 @@ int artdaq::TransferTest::runTest()
 	metricMan->do_stop();
 	metricMan->shutdown();
 	TLOG(11) << "runTest DONE";
-	return 0;
+	return return_code_;
 }
 
 std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
@@ -160,7 +161,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			if (*(frag.dataBegin() + ii) != ii + 1)
 			{
 				TLOG(TLVL_ERROR) << "Data corruption detected! (" << (*(frag.dataBegin() + ii)) << " != " << (ii + 1) << ") Aborting!";
-				exit(1);
+				return_code_ = -1;
+                return std::make_pair(0, 0.0);
 			}
 		}
 	}
@@ -201,7 +203,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			if (error_count >= error_count_max_)
 			{
 				TLOG(TLVL_ERROR) << "Too many errors sending fragments! Aborting... (sent=" << ii << "/" << sends_each_sender_ << ")";
-				exit(sends_each_sender_ - ii);
+				return_code_ = sends_each_sender_ - ii;
+                return std::make_pair(0, 0.0);
 			}
 		}
 
@@ -216,7 +219,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
 				{
 					TLOG(TLVL_ERROR) << "Input Data corruption detected! (" << *(frag.dataBegin() + jj) << " != " << ii + jj + 2 << " at position " << ii << ") Aborting!";
-					exit(1);
+                    return_code_ = -2;
+                    return std::make_pair(0, 0.0);
 				}
 			}
 		}
@@ -309,7 +313,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 						if (*(ignoreFragPtr->dataBegin() + ii) != ignoreFragPtr->sequenceID() + ii + 1)
 						{
 							TLOG(TLVL_ERROR) << "Output Data corruption detected! (" << *(ignoreFragPtr->dataBegin() + ii) << " != " << (ignoreFragPtr->sequenceID() + ii + 1) << " at position " << ii << ") Aborting!";
-							exit(1);
+                            return_code_ = -3;
+                            return std::make_pair(0, 0.0);
 						}
 					}
 				}
@@ -347,8 +352,9 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 
 	if (counter != 0 && !nonblocking_mode)
 	{
-		TLOG(TLVL_ERROR) << "Did not receive all expected Fragments! Missing " << counter << " Fragments!";
-		exit(counter);
+          TLOG(TLVL_ERROR) << "Did not receive all expected Fragments! Missing " << counter << " Fragments!";
+          return_code_ = counter;
+          return std::make_pair(0, 0.0);
 	}
 
 	return std::make_pair(totalSize, totalTime);

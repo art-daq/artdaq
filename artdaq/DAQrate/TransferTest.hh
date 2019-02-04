@@ -42,6 +42,8 @@ namespace artdaq
 		 */
 		int runTest();
 
+		int returnCode() { return return_code_; }
+
 	private:
 		std::pair<size_t, double> do_sending(int thread_index);
 
@@ -64,6 +66,8 @@ namespace artdaq
 		fhicl::ParameterSet ps_;
 		bool validate_mode_;
 		int partition_number_;
+
+		int return_code_;
 	};
 
 	inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)

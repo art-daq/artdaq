@@ -36,5 +36,6 @@ for jj in ${PIDS[@]}; do
   rc=$(($rc + $?))
 done
 
+echo "Exiting with status $rc"
 exit $rc
 
