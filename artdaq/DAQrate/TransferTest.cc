@@ -161,7 +161,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			if (*(frag.dataBegin() + ii) != ii + 1)
 			{
 				TLOG(TLVL_ERROR) << "Data corruption detected! (" << (*(frag.dataBegin() + ii)) << " != " << (ii + 1) << ") Aborting!";
-				return_code_ = -1;
+				return_code_ = 255;
                 return std::make_pair(0, 0.0);
 			}
 		}
@@ -219,7 +219,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
 				{
 					TLOG(TLVL_ERROR) << "Input Data corruption detected! (" << *(frag.dataBegin() + jj) << " != " << ii + jj + 2 << " at position " << ii << ") Aborting!";
-                    return_code_ = -2;
+                    return_code_ = 254;
                     return std::make_pair(0, 0.0);
 				}
 			}
