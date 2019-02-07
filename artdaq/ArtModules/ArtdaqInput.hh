@@ -301,7 +301,12 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 	std::unique_ptr<art::RunAuxiliary> run_aux;
 	std::unique_ptr<art::SubRunAuxiliary> subrun_aux;
 	std::unique_ptr<art::EventAuxiliary> event_aux;
-	std::shared_ptr<History> history;
+    std::shared_ptr<History> history;
+
+    // Establish default 'results'
+    outR = 0;
+    outSR = 0;
+    outE = 0;
 
 	if (msg_type_code == 2)
 	{ // EndRun message.
@@ -389,8 +394,9 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 			// input run number does not match the event run number.
 			TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: making RunPrincipal ...";
 			outR = pm_.makeRunPrincipal(*run_aux.get());
-		}
-		if ((inSR == nullptr) || !inSR->id().isValid() || (inSR->subRun() != event_aux->subRun()))
+        }
+        art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
+        if (inSR == 0 || subrun_check != inSR->id())
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the event subRun number.
