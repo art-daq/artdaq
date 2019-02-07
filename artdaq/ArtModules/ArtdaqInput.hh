@@ -395,7 +395,7 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 			TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: making RunPrincipal ...";
 			outR = pm_.makeRunPrincipal(*run_aux.get());
         }
-        art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
+        art::SubRunID subrun_check(event_aux->run(), event_aux->subRun());
         if (inSR == 0 || subrun_check != inSR->id())
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
