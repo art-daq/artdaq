@@ -390,11 +390,11 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 
 		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
                                             << "inR: " << (void*)inR << " run/expected "
-                                            << (inR ? inR->run() : "invalid") << "/" << event_aux->run();
+                                            << (inR ? std::to_string(inR->run()) : "invalid") << "/" << event_aux->run();
                 TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
                                             << "inSR: " << (void*)inSR << " run/expected "
-                                            << (inSR ? inSR->run() : "invalid") << "/" << event_aux->run() 
-					<< ", subrun/expected " << (inSR ? inSR->subRun() : "invalid") << "/"
+                                            << (inSR ? std::to_string(inSR->run()) : "invalid") << "/" << event_aux->run() 
+					<< ", subrun/expected " << (inSR ? std::to_string(inSR->subRun()) : "invalid") << "/"
                     << event_aux->subRun();
 
 		if ((inR == nullptr) || !inR->id().isValid() || (inR->run() != event_aux->run()))
