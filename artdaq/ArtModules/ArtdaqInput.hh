@@ -388,6 +388,15 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 			throw art::Exception(art::errors::Unknown) << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
 		}
 
+		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
+                                            << "inR: " << (void*)inR << " run/expected "
+                                            << (inR ? inR->run() : "invalid") << "/" << event_aux->run();
+                TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
+                                            << "inSR: " << (void*)inSR << " run/expected "
+                                            << (inSR ? inSR->run() : "invalid") << "/" << event_aux->run() 
+					<< ", subrun/expected " << (inSR ? inSR->subRun() : "invalid") << "/"
+                    << event_aux->subRun();
+
 		if ((inR == nullptr) || !inR->id().isValid() || (inR->run() != event_aux->run()))
 		{
 			// New run, either we have no input RunPrincipal, or the
