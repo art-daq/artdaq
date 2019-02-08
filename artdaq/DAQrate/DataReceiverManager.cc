@@ -168,18 +168,24 @@ void artdaq::DataReceiverManager::stop_threads()
 		usleep(10000);
           if (TimeUtils::GetElapsedTime(last_report) > 1.0) 
 		  {
-                  TLOG(TLVL_DEBUG) << "Waited " << TimeUtils::GetElapsedTime(wait_start) << " s for " << initial_count
+                  TLOG(TLVL_DEBUG) << "stop_threads: Waited " << TimeUtils::GetElapsedTime(wait_start) << " s for " << initial_count
                              << " receiver threads to end (" << running_sources().size() << " remain)";
             last_report = std::chrono::steady_clock::now();
 		  }
 	}
+        if (running_sources().size()) {
+		TLOG(TLVL_WARNING) << "stop_threads: Timeout expired while waiting for all receiver threads to end. There are "
+                             << running_sources().size() << " threads remaining.";
+        }
 
 	TLOG(TLVL_TRACE) << "stop_threads: Joining " << source_threads_.size() << " receiver threads";
-	for (auto& s : source_threads_)
+        for (auto it = source_threads_.begin(); it != source_threads_.end(); ++it)
 	{
-        TLOG(TLVL_TRACE) << "stop_threads: Joining thread for source_rank " << s.first;
-		auto& thread = s.second;
-		if (thread.joinable()) thread.join();
+        TLOG(TLVL_TRACE) << "stop_threads: Joining thread for source_rank " << (*it).first;
+          if ((*it).second.joinable())
+          (*it).second.join();
+        else
+          TLOG(TLVL_ERROR) << "stop_threads: Thread for source rank " << (*it).first << " is not joinable!";
 	}
 }
 
@@ -391,8 +397,6 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 		}
 	}
-
-	source_plugins_[source_rank]->flush_buffers();
 
 	TLOG(TLVL_DEBUG) << "runReceiver_ " << source_rank << " receive loop exited";
 	running_sources_[source_rank] = false;
