@@ -402,6 +402,7 @@ namespace artdaq {
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 		std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
+        std::chrono::steady_clock::time_point last_backpressure_report_time_;
 		
 		struct MetricData {
 			MetricData() : event_count(0), event_size(0) {}

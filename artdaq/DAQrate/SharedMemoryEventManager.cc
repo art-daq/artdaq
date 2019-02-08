@@ -33,6 +33,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	, last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
+    , last_backpressure_report_time_(std::chrono::steady_clock::now())
 	, metric_data_()
 	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
 	, run_event_count_(0)
@@ -167,7 +168,16 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 	if (buffer < 0)
 	{
-		if (buffer == -1 && !dropIfNoBuffersAvailable) return nullptr;
+		if (buffer == -1 && !dropIfNoBuffersAvailable) 
+		{
+            std::unique_lock<std::mutex> bp_lk(sequence_id_mutex_);
+			if (TimeUtils::GetElapsedTime(last_backpressure_report_time_) > 1.0) 
+			{
+                TLOG(TLVL_WARNING) << "Back-pressure condition: All Shared Memory buffers are full!";
+                last_backpressure_report_time_ = std::chrono::steady_clock::now();
+			}
+			return nullptr;
+		}
 		if (buffer == -2)
 		{
 			TLOG(TLVL_ERROR) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because data taking has already passed this event.";
