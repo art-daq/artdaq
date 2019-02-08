@@ -34,6 +34,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	, last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
     , last_backpressure_report_time_(std::chrono::steady_clock::now())
+    , last_fragment_header_write_time_(std::chrono::steady_clock::now())
 	, metric_data_()
 	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
 	, run_event_count_(0)
@@ -173,7 +174,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
             std::unique_lock<std::mutex> bp_lk(sequence_id_mutex_);
 			if (TimeUtils::GetElapsedTime(last_backpressure_report_time_) > 1.0) 
 			{
-                TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_backpressure_report_time_) << " s!";
+                TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_fragment_header_write_time_) << " s!";
                 last_backpressure_report_time_ = std::chrono::steady_clock::now();
 			}
 			return nullptr;
@@ -193,6 +194,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 	}
 
     last_backpressure_report_time_ = std::chrono::steady_clock::now();
+    last_fragment_header_write_time_ = std::chrono::steady_clock::now();
 	// Increment this as soon as we know we want to use the buffer
 	buffer_writes_pending_[buffer]++;
 
