@@ -159,9 +159,24 @@ void artdaq::DataReceiverManager::stop_threads()
 	stop_requested_time_ = TimeUtils::gettimeofday_us();
 	stop_requested_ = true;
 
-	TLOG(TLVL_TRACE) << "stop_threads: Joining all threads";
+	TLOG(TLVL_TRACE) << "stop_threads: Waiting for " << running_sources_.size()                         << " running receiver threads to stop";
+	auto wait_start = std::chrono::steady_clock::now();
+    auto last_report = std::chrono::steady_clock::now();
+	while (running_sources().size() && TimeUtils::GetElapsedTime(wait_start) < 60.0)
+	{
+		ulseep(10000);
+          if (TimeUtils::GetElapsedTime(last_report) > 1.0) 
+		  {
+                  TLOG(TLVL_DEBUG) << "Waited " << TimeUtils::GetElapsedTime(wait_start)
+                                   << " s for all receiver threads to end";
+            last_report = std::chrono::steady_clock::now();
+		  }
+	}
+
+	TLOG(TLVL_TRACE) << "stop_threads: Joining " << source_threads_.size() << " receiver threads";
 	for (auto& s : source_threads_)
 	{
+        TLOG(TLVL_TRACE) << "stop_threads: Joining thread for source_rank " << s.first;
 		auto& thread = s.second;
 		if (thread.joinable()) thread.join();
 	}
