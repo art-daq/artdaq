@@ -248,7 +248,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				TLOG(TLVL_ERROR) << "Transfer Plugin returned DATA_END, ending receive loop!";
 				break;
 			}
-			if ((*running_sources_.begin()).first == source_rank) // Only do this for the first sender in the running_sources_ map
+			if (*running_sources().begin() == source_rank) // Only do this for the first sender in the running_sources_ map
 			{
 				TLOG(TLVL_DEBUG) << "Calling SMEM::CheckPendingBuffers from DRM receiver thread for " << source_rank << " to make sure that things aren't stuck";
 				shm_manager_->CheckPendingBuffers();
@@ -267,7 +267,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			while (loc == nullptr)//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_) 
 			{
 				loc = shm_manager_->WriteFragmentHeader(header);
-				if (loc == nullptr && stop_requested_) return;
+                if (loc == nullptr && stop_requested_) break;
+                          
 				if (loc == nullptr) usleep(sleep_time);
 				retries++;
 				if (non_reliable_mode_enabled_ && retries > max_retries)
