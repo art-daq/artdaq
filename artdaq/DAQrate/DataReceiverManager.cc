@@ -187,6 +187,7 @@ void artdaq::DataReceiverManager::stop_threads()
         else
           TLOG(TLVL_ERROR) << "stop_threads: Thread for source rank " << (*it).first << " is not joinable!";
 	}
+        source_threads_.clear(); // To prevent error messages from shutdown-after-stop
 
 		TLOG(TLVL_TRACE) << "stop_threads: END";
 }
