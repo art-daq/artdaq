@@ -159,7 +159,8 @@ void artdaq::DataReceiverManager::stop_threads()
 	stop_requested_time_ = TimeUtils::gettimeofday_us();
 	stop_requested_ = true;
 
-	TLOG(TLVL_TRACE) << "stop_threads: Waiting for " << running_sources_.size()                         << " running receiver threads to stop";
+        auto initial_count = running_sources().size();
+        TLOG(TLVL_TRACE) << "stop_threads: Waiting for " << initial_count << " running receiver threads to stop";
 	auto wait_start = std::chrono::steady_clock::now();
     auto last_report = std::chrono::steady_clock::now();
 	while (running_sources().size() && TimeUtils::GetElapsedTime(wait_start) < 60.0)
@@ -167,8 +168,8 @@ void artdaq::DataReceiverManager::stop_threads()
 		usleep(10000);
           if (TimeUtils::GetElapsedTime(last_report) > 1.0) 
 		  {
-                  TLOG(TLVL_DEBUG) << "Waited " << TimeUtils::GetElapsedTime(wait_start)
-                                   << " s for all receiver threads to end";
+                  TLOG(TLVL_DEBUG) << "Waited " << TimeUtils::GetElapsedTime(wait_start) << " s for " << initial_count
+                             << " receiver threads to end (" << running_sources().size() << " remain)";
             last_report = std::chrono::steady_clock::now();
 		  }
 	}
@@ -390,6 +391,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 		}
 	}
+
+	source_plugins_[source_rank]->flush_buffers();
 
 	TLOG(TLVL_DEBUG) << "runReceiver_ " << source_rank << " receive loop exited";
 	running_sources_[source_rank] = false;
