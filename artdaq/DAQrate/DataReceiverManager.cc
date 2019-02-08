@@ -187,6 +187,8 @@ void artdaq::DataReceiverManager::stop_threads()
         else
           TLOG(TLVL_ERROR) << "stop_threads: Thread for source rank " << (*it).first << " is not joinable!";
 	}
+
+		TLOG(TLVL_TRACE) << "stop_threads: END";
 }
 
 std::set<int> artdaq::DataReceiverManager::enabled_sources() const
