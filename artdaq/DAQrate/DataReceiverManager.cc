@@ -267,6 +267,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			while (loc == nullptr)//&& TimeUtils::GetElapsedTimeMicroseconds(after_header)) < receive_timeout_) 
 			{
 				loc = shm_manager_->WriteFragmentHeader(header);
+
+                // Break here and outside of the loop to go to the cleanup steps at the end of runReceiver_
                 if (loc == nullptr && stop_requested_) break;
                           
 				if (loc == nullptr) usleep(sleep_time);
@@ -276,6 +278,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					loc = shm_manager_->WriteFragmentHeader(header, true);
 				}
             }
+            // Break here to go to cleanup at the end of runReceiver_
             if (loc == nullptr && stop_requested_) break;
 			if (loc == nullptr)
 			{
