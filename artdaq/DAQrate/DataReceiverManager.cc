@@ -164,7 +164,7 @@ void artdaq::DataReceiverManager::stop_threads()
     auto last_report = std::chrono::steady_clock::now();
 	while (running_sources().size() && TimeUtils::GetElapsedTime(wait_start) < 60.0)
 	{
-		ulseep(10000);
+		usleep(10000);
           if (TimeUtils::GetElapsedTime(last_report) > 1.0) 
 		  {
                   TLOG(TLVL_DEBUG) << "Waited " << TimeUtils::GetElapsedTime(wait_start)
