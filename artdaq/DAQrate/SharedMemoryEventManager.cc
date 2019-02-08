@@ -173,7 +173,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
             std::unique_lock<std::mutex> bp_lk(sequence_id_mutex_);
 			if (TimeUtils::GetElapsedTime(last_backpressure_report_time_) > 1.0) 
 			{
-                TLOG(TLVL_WARNING) << "Back-pressure condition: All Shared Memory buffers are full!";
+                TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_backpressure_report_time_) << " s!";
                 last_backpressure_report_time_ = std::chrono::steady_clock::now();
 			}
 			return nullptr;
@@ -192,6 +192,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		return dropped_data_[frag.fragment_id]->dataBegin();
 	}
 
+    last_backpressure_report_time_ = std::chrono::steady_clock::now();
 	// Increment this as soon as we know we want to use the buffer
 	buffer_writes_pending_[buffer]++;
 
