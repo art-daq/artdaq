@@ -10,6 +10,7 @@
 #define TLVL_BUFLCK 41
 
 std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
+std::mutex artdaq::SharedMemoryEventManager::subrun_rollover_mutex_;
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
 	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
@@ -836,15 +837,14 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary)
 	// sent was right before the boundary we might as well switch
 	// to the new subrun here
 
+        std::unique_lock<std::mutex> lk(subrun_rollover_mutex_);
+        subrun_rollover_event_ = boundary;
+
 	if (boundary == last_released_event_ + 1) {
 		TLOG(TLVL_INFO) << "rolloverSubrun: Last released event had sequence id " << last_released_event_ << \
 			", boundary is sequence id " << boundary << ", so will start a new subrun here";
 		endSubrun();
 		startSubrun();
-		subrun_rollover_event_ = std::numeric_limits<sequence_id_t>::max();
-	}
-	else {
-		subrun_rollover_event_ = boundary;
 	}
 }
 
@@ -1104,11 +1104,14 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	{
 		auto hdr = getEventHeader_(buf);
 
+		{
+			std::unique_lock<std::mutex> lk(subrun_rollover_mutex_);
 		if (hdr->sequence_id >= subrun_rollover_event_)
 		{
 			TLOG(TLVL_INFO) << "Subrun rollover reached at event " << hdr->sequence_id << " (boundary=" << subrun_rollover_event_ << "), last released event is " << last_released_event_ << ".";
 			endSubrun();
 			startSubrun();
+		}
 		}
 		if (hdr->sequence_id > last_released_event_) last_released_event_ = hdr->sequence_id;
 

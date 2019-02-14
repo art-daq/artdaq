@@ -383,6 +383,7 @@ namespace artdaq {
 		run_id_t run_id_;
 		subrun_id_t subrun_id_;
 		sequence_id_t subrun_rollover_event_;
+        static std::mutex subrun_rollover_mutex_;
 		sequence_id_t last_released_event_;
 
 		std::set<int> active_buffers_;
