@@ -53,6 +53,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
                   pset.get<size_t>("broadcast_buffer_size", 0x100000),
                   pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
 {
+	subrun_event_map_[0] = 1;
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 	broadcasts_.SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
 
@@ -116,7 +117,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	{
 		hdr->run_id = run_id_;
 	}
-	hdr->subrun_id = getSubrunForSequenceID_(frag.sequence_id);
+	hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
 
 	TLOG(TLVL_TRACE) << "AddFragment before Write calls";
 	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
@@ -245,7 +246,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		{
 			hdr->run_id = run_id_;
 		}
-		hdr->subrun_id = getSubrunForSequenceID_(frag.sequence_id);
+		hdr->subrun_id = GetSubrunForSequenceID(frag.sequence_id);
 
 		TLOG(TLVL_TRACE) << "DoneWritingFragment: Updating buffer touch time";
 		TouchBuffer(buffer);
@@ -761,6 +762,7 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	{
 		std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 		subrun_event_map_.clear();
+		subrun_event_map_[0] = 1;
 	}
 	return true;
 }
@@ -778,6 +780,21 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 	{
 		subrun_event_map_.erase(subrun_event_map_.begin());
 	}
+}
+
+void artdaq::SharedMemoryEventManager::rolloverSubrun()
+{
+	Fragment::sequence_id_t seqID = 0;
+	subrun_id_t subrun = 0;
+	{
+		std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
+		for (auto& it : subrun_event_map_)
+		{
+			if (it.first >= seqID) seqID = it.first + 1;
+			if (it.second >= subrun) subrun = it.second + 1;
+		}
+	}
+	rolloverSubrun(seqID, subrun);
 }
 
 void artdaq::SharedMemoryEventManager::sendMetrics()
@@ -827,7 +844,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragment_(FragmentPtr frag, Frag
 	TLOG(TLVL_DEBUG) << "broadcastFragment_: Filling in RawEventHeader";
 	auto hdr = reinterpret_cast<detail::RawEventHeader*>(broadcasts_.GetBufferStart(buffer));
 	hdr->run_id = run_id_;
-	hdr->subrun_id = getSubrunForSequenceID_(frag->sequenceID());
+	hdr->subrun_id = GetSubrunForSequenceID(frag->sequenceID());
 	hdr->sequence_id = frag->sequenceID();
 	hdr->is_complete = true;
 	broadcasts_.IncrementWritePos(buffer, sizeof(detail::RawEventHeader));
@@ -847,7 +864,7 @@ artdaq::detail::RawEventHeader* artdaq::SharedMemoryEventManager::getEventHeader
 	return reinterpret_cast<detail::RawEventHeader*>(GetBufferStart(buffer));
 }
 
-artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::getSubrunForSequenceID_(Fragment::sequence_id_t seqID)
+artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::GetSubrunForSequenceID(Fragment::sequence_id_t seqID)
 {
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 
@@ -857,7 +874,7 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 		++it;
 	}
 
-	if (it == subrun_event_map_.end()) return subrun_event_map_.end()->second;
+	if (it == subrun_event_map_.end()) return subrun_event_map_.rbegin()->second;
 	return it->second;
 }
 
@@ -905,7 +922,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
-	hdr->subrun_id = getSubrunForSequenceID_(seqID);
+	hdr->subrun_id = GetSubrunForSequenceID(seqID);
 	hdr->event_id = use_sequence_id_for_event_number_ ? static_cast<uint32_t>(seqID) : static_cast<uint32_t>(timestamp);
 	hdr->sequence_id = seqID;
 	buffer_writes_pending_[new_buffer] = 0;
