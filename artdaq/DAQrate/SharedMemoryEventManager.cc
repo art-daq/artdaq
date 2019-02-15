@@ -869,13 +869,16 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 
 	auto it = subrun_event_map_.begin();
+	subrun_id_t subrun = 1;
+
 	while (it->first < seqID && it != subrun_event_map_.end())
 	{
+		subrun = it->second;
 		++it;
 	}
 
-	if (it == subrun_event_map_.end()) return subrun_event_map_.rbegin()->second;
-	return it->second;
+	TLOG(TLVL_DEBUG) << "GetSubrunForSequenceID returning subrun " << subrun << " for sequence ID " << seqID;
+	return subrun;
 }
 
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
