@@ -885,17 +885,18 @@ private:								\
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 		rollover_subrun_(xmlrpc_commander& c) :
-			cmd_(c, "s:i", "create a new subrun")
+			cmd_(c, "s:i:i", "create a new subrun")
 		{}
 
 		/** Default timeout for command */
 		static const uint64_t defaultSequenceID = 0xFFFFFFFFFFFFFFFF;
+	    static const uint32_t defaultSubrunNumber = 1;
 
 	private:
 
 		bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)
 		{
-			auto ret = _c._commandable.do_rollover_subrun(getParam<uint64_t>(paramList, 0, defaultSequenceID));
+			auto ret = _c._commandable.do_rollover_subrun(getParam<uint64_t>(paramList, 0, defaultSequenceID), getParam<uint32_t>(paramList, 1, defaultSubrunNumber));
 			return ret;
 		}
 	};
@@ -1429,9 +1430,9 @@ private:								\
 	{
 		return send_command_("meta_command", command, arg);
 	}
-	std::string xmlrpc_commander::send_rollover_subrun(uint64_t when)
+	std::string xmlrpc_commander::send_rollover_subrun(uint64_t when, uint32_t sr)
 	{
-		return send_command_("rollover_subrun", when);
+		return send_command_("rollover_subrun", when, sr);
 	}
 } // namespace artdaq
 
