@@ -807,7 +807,7 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary)
 	// Generated EndOfSubrun Fragments have Sequence ID 0 and should be ignored
 	if (boundary == 0 || boundary == Fragment::InvalidSequenceID) return;
 
-	if (boundary < last_released_event_ + 1)
+	if (boundary < last_released_event_)
 	{
 		auto logLevel = TLVL_ERROR;
 		bool processAnyway = false;
@@ -832,7 +832,7 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary)
         std::unique_lock<std::mutex> lk(subrun_rollover_mutex_);
         subrun_rollover_event_ = boundary;
 
-	if (boundary <= last_released_event_ + 1)
+	if (boundary <= last_released_event_)
 	{
 		TLOG(TLVL_INFO) << "rolloverSubrun: Last released event had sequence id " << last_released_event_ << ", boundary is sequence id " << boundary << ", so will start a new subrun here";
 		endSubrun();
