@@ -885,7 +885,7 @@ private:								\
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 		rollover_subrun_(xmlrpc_commander& c) :
-			cmd_(c, "s:i:i", "create a new subrun")
+			cmd_(c, "s:ii", "create a new subrun")
 		{}
 
 		/** Default timeout for command */
