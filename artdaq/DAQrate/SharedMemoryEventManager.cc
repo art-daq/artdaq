@@ -871,7 +871,7 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 	auto it = subrun_event_map_.begin();
 	subrun_id_t subrun = 1;
 
-	while (it->first < seqID && it != subrun_event_map_.end())
+	while (it->first <= seqID && it != subrun_event_map_.end())
 	{
 		subrun = it->second;
 		++it;
