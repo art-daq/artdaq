@@ -395,7 +395,7 @@ namespace artdaq {
 		bool send_init_fragments_;
 		bool running_;
 
-		std::vector<std::atomic<int>> buffer_writes_pending_;
+		std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
 		std::unordered_map<int, std::mutex> buffer_mutexes_;
 		static std::mutex sequence_id_mutex_;
 

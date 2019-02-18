@@ -29,7 +29,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
 	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
 	, running_(false)
-	, buffer_writes_pending_(pset.get<size_t>("buffer_count"))
+	, buffer_writes_pending_()
 	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
 	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
 	, last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
@@ -1166,12 +1166,13 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 	if (metricMan && TimeUtils::GetElapsedTimeMilliseconds(last_shmem_buffer_metric_update_) > 500) // Limit to 2 Hz updates
 	{
-			TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
-			metricMan->sendMetric("Event Rate", metric_data_.event_count, "Events/s", 1, MetricMode::Rate);
+		TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
+		metricMan->sendMetric("Event Rate", metric_data_.event_count, "Events/s", 1, MetricMode::Rate);
 		if (metric_data_.event_count > 0) {
 			metricMan->sendMetric("Average Event Size", static_cast<double>(metric_data_.event_size) / metric_data_.event_count, "Bytes", 1, MetricMode::Average);
 			metricMan->sendMetric("Average Event Building Time", metric_data_.event_time / metric_data_.event_count, "s", 1, MetricMode::Average);
 		}
+        metric_data_ = MetricData();
 
 		metricMan->sendMetric("Events Released to art this run", run_event_count_, "Events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Incomplete Events Released to art this run", run_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
