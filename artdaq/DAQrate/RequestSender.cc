@@ -30,6 +30,7 @@ namespace artdaq
 		, token_socket_(-1)
 		, request_sending_(0)
 	        , tokens_sent_(0)
+	        , run_number_(0)
 	{
 		TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
 		setup_requests_();
@@ -181,6 +182,7 @@ namespace artdaq
 		TLOG(TLVL_TRACE) << "Creating RequestMessage";
 		detail::RequestMessage message;
 		message.setRank(my_rank);
+		message.setRunNumber(run_number_);
 		{
 			std::unique_lock<std::mutex> lk(request_mutex_);
 			for (auto& req : active_requests_)
@@ -189,7 +191,7 @@ namespace artdaq
 				message.addRequest(req.first, req.second);
 			}
 		}
-		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header";
+		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
 		message.setMode(request_mode_);
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
