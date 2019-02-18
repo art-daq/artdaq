@@ -708,7 +708,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	// }
 	released_incomplete_events_.clear();
 
-	TLOG(TLVL_DEBUG) << "endOfData: Shutting down RequestReceiver";
+	TLOG(TLVL_DEBUG) << "endOfData: Shutting down RequestSender";
 	requests_.reset(nullptr);
 
 	TLOG(TLVL_DEBUG) << "endOfData END";
@@ -737,6 +737,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	requests_.reset(new RequestSender(data_pset_));
 	if (requests_)
 	{
+	    requests_->SetRunNumber(static_cast<uint32_t>(run_id_));
 	    requests_->SendRoutingToken(queue_size_, run_id_);
 	}
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
