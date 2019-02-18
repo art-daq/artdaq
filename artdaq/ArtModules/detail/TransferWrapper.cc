@@ -130,7 +130,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 					receivedFragment = true;
 					fragments_received++;
 
-					static size_t cntr = 1;
+					static size_t cntr = 0;
 					auto mod = ++cntr % 10;
 					auto suffix = "-th";
 					if (mod == 1) suffix = "-st";
