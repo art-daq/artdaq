@@ -55,15 +55,15 @@ namespace artdaq
 		void setupRequestListener();
 
 		/**
-		* \brief Stop the data request receiver thread (receiveRequestsLoop)
+		* \brief Disables (stops) the reception of data requests
 		* \param force Whether to suppress any error messages (used if called from destructor)
 		*/
-		void stopRequestReceiverThread(bool force = false);
+		void stopRequestReception(bool force = false);
 
 		/**
-		* \brief Function that launches the data request receiver thread (receiveRequestsLoop())
+		* \brief Enables (starts) the reception of data requests
 		*/
-		void startRequestReceiverThread();
+		void startRequestReception();
 
 		/**
 		* \brief This function receives data request packets, adding new requests to the request list
@@ -118,7 +118,10 @@ namespace artdaq
 			{
 				out[in.first] = in.second;
 			}
+			if(requests_.size()) {highest_seen_request_ = requests_.rbegin()->first;}
+			out_of_order_requests_.clear();
 			requests_.clear();
+			request_timing_.clear();
 			return out;
 		}
 
@@ -155,6 +158,12 @@ namespace artdaq
 			std::unique_lock<std::mutex> lk(request_mutex_);
 			return request_timing_.count(reqID) ? request_timing_[reqID] : std::chrono::steady_clock::now();
 		}
+
+		/// <summary>
+		/// Sets the current run number
+		/// </summary>
+		/// <param name="run">The current run number</param>
+		void SetRunNumber(uint32_t run) {run_number_ = run;}
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
@@ -162,6 +171,7 @@ namespace artdaq
 		std::string request_addr_;
 		std::string multicast_out_addr_;
 		bool running_;
+		uint32_t run_number_;
 
 		//Socket parameters
 		int request_socket_;

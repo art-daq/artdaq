@@ -53,16 +53,16 @@ public:
 	 * 
 	 * This function may be non-reliable, and induces a memcpy of the Fragment
 	 */
-	void copyFragmentToDDS_(artdaq::Fragment& fragment);
+	void transfer_fragment_min_blocking_mode_via_DDS_(artdaq::Fragment const& fragment);
 
 	/**
 	 * \brief Move a Fragment to DDS
 	 * \param fragment Fragment to move
 	 * 
 	 * This function should be reliable, and minimize copies.
-	 * Currently implemented via copyFragmentToDDS_
+	 * Currently implemented via transfer_fragment_min_blocking_mode_via_DDS_
 	 */
-	void moveFragmentToDDS_(artdaq::Fragment&& fragment);
+	void transfer_fragment_reliable_mode_via_DDS_(artdaq::Fragment&& fragment);
 
 	/**
 	 * \brief A class that reads data from DDS
