@@ -31,8 +31,9 @@
 #include "fhiclcpp/types/OptionalAtom.h"
 #include "fhiclcpp/types/Table.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "artdaq/DAQdata/Globals.hh"
 #include "tracemf.h"			// TLOG
-#define TRACE_NAME "RootDAQOut"
+#define TRACE_NAME (app_name + "_RootDAQOut").c_str()
 
 #include <iomanip>
 #include <memory>
