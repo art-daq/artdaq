@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	socklen_t arglen = sizeof(addr);
 	auto conn_sock = accept(token_socket, (struct sockaddr*)&addr, &arglen);
 
-	t.SendRoutingToken(120);
+	t.SendRoutingToken(120, 130);
 
 	artdaq::detail::RoutingToken buff;
 	auto sts = read(conn_sock, &buff, sizeof(artdaq::detail::RoutingToken));
@@ -77,16 +77,18 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	TRACE_REQUIRE_EQUAL(sts, sizeof(artdaq::detail::RoutingToken));
 	TRACE_REQUIRE_EQUAL(buff.header, TOKEN_MAGIC);
 	TRACE_REQUIRE_EQUAL(buff.new_slots_free, 120);
+	TRACE_REQUIRE_EQUAL(buff.run_number, 130);
 	TRACE_REQUIRE_EQUAL(buff.rank, 0);
 
 	my_rank = 13;
-	t.SendRoutingToken(335);
+	t.SendRoutingToken(335, 17);
 
 	sts = read(conn_sock, &buff, sizeof(artdaq::detail::RoutingToken));
 
 	TRACE_REQUIRE_EQUAL(sts, sizeof(artdaq::detail::RoutingToken));
 	TRACE_REQUIRE_EQUAL(buff.header, TOKEN_MAGIC);
 	TRACE_REQUIRE_EQUAL(buff.new_slots_free, 335);
+	TRACE_REQUIRE_EQUAL(buff.run_number, 17);
 	TRACE_REQUIRE_EQUAL(buff.rank, 13);
 
 	close(conn_sock);

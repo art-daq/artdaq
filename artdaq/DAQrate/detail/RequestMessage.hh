@@ -91,6 +91,7 @@ struct artdaq::detail::RequestHeader
 	uint32_t header; //HEDR, or 0x48454452
 	uint32_t packet_count; ///< The number of RequestPackets in this Request message
 	int      rank; ///< Rank of the sender
+	uint32_t run_number; ///< The Run with which this request should be associated
 	RequestMessageMode mode; ///< Communicates additional information to the Request receiver
 
 	/**
@@ -99,6 +100,7 @@ struct artdaq::detail::RequestHeader
 	RequestHeader() : header(0x48454452)
 		, packet_count(0)
 		, rank(my_rank)
+		, run_number(0)
 		, mode(RequestMessageMode::Normal)
 	{}
 
@@ -141,6 +143,25 @@ public:
 	void setMode(RequestMessageMode mode)
 	{
 		header_.mode = mode;
+	}
+
+	/**
+	 * \brief Set the rank in the header for this request. This will be the rank from which the request originates.
+	 * \param rank Rank for this Request Message
+	 */
+	void setRank(int rank)
+	{
+		header_.rank = rank;
+	}
+
+	/**
+	 * \brief Set the run number in the header for this request.
+	 * This will be the Run for which the request is valid.
+	 * \param run Run number for this Request Message
+	 */
+	void setRunNumber(int run)
+	{
+		header_.run_number = run;
 	}
 
 	/**

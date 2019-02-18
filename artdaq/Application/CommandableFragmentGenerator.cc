@@ -311,7 +311,6 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	timeout_ = timeout;
 	timestamp_ = timestamp;
 	ev_counter_.store(1);
-
 	{
 		std::unique_lock<std::mutex> lk(dataBuffersMutex_);
 		for (auto& id : dataBuffers_)
@@ -336,7 +335,11 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	if (mode_ != RequestMode::Ignored && !requestReceiver_->isRunning()) requestReceiver_->startRequestReceiverThread();
+	if (mode_ != RequestMode::Ignored)
+	{
+		requestReceiver_->SetRunNumber(static_cast<uint32_t>(run));
+		requestReceiver_->startRequestReception();
+	}
 	TLOG(TLVL_TRACE) << "Start Command complete.";
 }
 
@@ -346,10 +349,10 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
-	if (requestReceiver_ && requestReceiver_->isRunning()) {
-		TLOG(TLVL_DEBUG) << "Stopping Request receiver thread BEGIN";
-		requestReceiver_->stopRequestReceiverThread();
-		TLOG(TLVL_DEBUG) << "Stopping Request receiver thread END";
+	if (requestReceiver_) {
+		TLOG(TLVL_DEBUG) << "Stopping Request reception BEGIN";
+		requestReceiver_->stopRequestReception();
+		TLOG(TLVL_DEBUG) << "Stopping Request reception END";
 	}
 
 	stopNoMutex();
@@ -892,10 +895,13 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillD
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Checking that data exists for request window " << seq;
 	Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 	Fragment::timestamp_t max = min + windowWidth_;
-	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: min is " << min << ", max is " << max
-		<< " and last point in buffer is " << (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.back()->timestamp() : 0) << " (sz=" << dataBuffers_[id].DataBuffer.size() << ")";
-	bool windowClosed = dataBuffers_[id].DataBuffer.size() > 0 && dataBuffers_[id].DataBuffer.back()->timestamp() >= max;
-	bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestReceiver_->GetRequestTime(seq)) > window_close_timeout_us_;
+		TLOG(TLVL_APPLYREQUESTS) << "ApplyRequestsWindowsMode_CheckAndFillDataBuffer: min is " << min << ", max is " << max
+		                         << " and first/last points in buffer are " << (dataBuffer_.size() > 0 ? dataBuffer_.front()->timestamp() : 0)
+		                         << "/" << (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)
+		                         << " (sz=" << dataBuffer_.size() << " [" << dataBufferDepthBytes_.load()
+		                         << "/" << maxDataBufferDepthBytes_ << "])";
+		bool windowClosed = dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max;
+		bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestReceiver_->GetRequestTime(req->first)) > window_close_timeout_us_;
 	if (windowTimeout)
 	{
 		TLOG(TLVL_WARNING) << "applyRequestsWindowMode_CheckAndFillDataBuffer: A timeout occurred waiting for data to close the request window ({" << min << "-" << max

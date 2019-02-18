@@ -124,14 +124,21 @@ namespace artdaq
 		/**
 		 * \brief Send a RoutingToken message indicating that slots are available
 		 * \param nSlots Number of slots available
+		 * \param run_number Run number for token
 		 */
-		void SendRoutingToken(int nSlots);
+		void SendRoutingToken(int nSlots, int run_number);
 
 		/**
 		 * \brief Get the count of number of tokens sent
 		 * \return The number of tokens sent by RequestSender
 		 */
 		size_t GetSentTokenCount() const { return tokens_sent_.load(); }
+
+		/**
+		 * \brief Set the run number to be used in request messages
+		 * \param run Run number
+		 */
+		void SetRunNumber(uint32_t run) { run_number_ = run; }
 	private:
 
 		// Request stuff
@@ -155,6 +162,7 @@ namespace artdaq
 		std::string token_address_;
 		std::atomic<int> request_sending_;
 		std::atomic<size_t> tokens_sent_;
+		uint32_t run_number_;
 
 	private:
 		void setup_requests_();
@@ -163,7 +171,7 @@ namespace artdaq
 
 		void setup_tokens_();
 
-		void send_routing_token_(int nSlots);
+		void send_routing_token_(int nSlots, int run_number);
 	};
 }
 #endif /* artdaq_DAQrate_RequestSender_hh */
