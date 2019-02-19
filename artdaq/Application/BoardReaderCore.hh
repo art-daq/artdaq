@@ -163,7 +163,7 @@ public:
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 
 
-	CommandableFragmentGenerator const* GetGeneratorPointer() {
+	CommandableFragmentGenerator* const GetGeneratorPointer() {
           if (generator_ptr_) return generator_ptr_.get();
          else return nullptr;
 	}
