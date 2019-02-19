@@ -161,7 +161,14 @@ public:
 	/// </summary>
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
-private:
+
+
+	CommandableFragmentGenerator const* GetGeneratorPointer() {
+          if (generator_ptr_) return generator_ptr_.get();
+         else return nullptr;
+	}
+
+	private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
 	art::RunID run_id_;
