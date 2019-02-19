@@ -628,9 +628,9 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 				// While here, if for some strange reason more than one event's worth of data is returned from getNext_...
 				while (newDataBuffer_.size() >= fragment_ids_.size())
 				{
-                                  dataBuffer_.clear();
                                   dataBufferDepthBytes_ = 0;
                                   dataBufferDepthFragments_ = 0;
+                                  dataBuffer_.clear();
 					auto it = newDataBuffer_.begin();
 					std::advance(it, fragment_ids_.size());
 					dataBuffer_.splice(dataBuffer_.end(), newDataBuffer_, newDataBuffer_.begin(), it);
