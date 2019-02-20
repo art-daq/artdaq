@@ -81,6 +81,12 @@ namespace artdaq
 		* \return True if the TransferInterface plugin is currently able to send/receive data
 		*/
 		bool isRunning() override;
+
+                /**
+                 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
+                 * ended.
+                 */
+                void flush_buffers() override;
 	private:
 		CopyStatus sendFragment(Fragment&& fragment,
 			size_t send_timeout_usec, bool reliable = false);
