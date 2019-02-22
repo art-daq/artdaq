@@ -365,10 +365,15 @@ struct SharedMemoryReader {
     outE = pmaker.makeEventPrincipal(evtHeader->run_id, evtHeader->subrun_id, evtHeader->event_id, currentTime);
 
 				// insert the Fragments of each type into the EventPrincipal
-    std::map<Fragment::type_t, std::string>::const_iterator iter_end = fragment_type_map_.end();
-    for (auto& type_code : fragmentTypes) {
-      std::map<Fragment::type_t, std::string>::const_iterator iter = fragment_type_map_.find(type_code);
+				std::map<Fragment::type_t, std::string>::const_iterator iter_end =
+					fragment_type_map_.end();
+				for (auto& type_code : fragmentTypes)
+				{
+					std::map<Fragment::type_t, std::string>::const_iterator iter =
+						fragment_type_map_.find(type_code);
+					TLOG_TRACE("SharedMemoryReader") << "Before GetFragmentsByType call, type is " << (int)type_code;
 					auto product = incoming_events->GetFragmentsByType(errflag, type_code);
+					TLOG_TRACE("SharedMemoryReader") << "After GetFragmentsByType call";
 					if (errflag) goto start; // Buffer was changed out from under reader!
       for (auto& frag : *product) bytesRead += frag.sizeBytes();
       if (iter != iter_end) {
@@ -405,6 +410,7 @@ struct SharedMemoryReader {
             << "type will be stored in the event with an instance name of \"" << unidentified_instance_name << "\".";
 					}
 				}
+				TLOG_TRACE("SharedMemoryReader") << "After putting fragments in event";
 
 				auto read_finish_time = std::chrono::steady_clock::now();
 				incoming_events->ReleaseBuffer();
@@ -424,6 +430,7 @@ struct SharedMemoryReader {
                               MetricMode::LastPoint);
 				}
 
+				TLOG_TRACE("SharedMemoryReader") << "Returning from readNext";
 				last_read_time = std::chrono::steady_clock::now();
 				return true;
 			}
