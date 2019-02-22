@@ -772,9 +772,9 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 	// Generated EndOfSubrun Fragments have Sequence ID 0 and should be ignored
 	if (boundary == 0 || boundary == Fragment::InvalidSequenceID) return;
 
-	TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
-
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
+	
+    TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
 	subrun_event_map_[boundary] = subrun;
 	while (subrun_event_map_.size() > max_subrun_event_map_length_)
 	{
