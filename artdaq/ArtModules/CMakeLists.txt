@@ -57,6 +57,7 @@ simple_plugin(TransferOutput "module"
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
   ${TBB}
+  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(TransferInput "source"
@@ -65,6 +66,7 @@ simple_plugin(TransferInput "source"
   artdaq_TransferPlugins
   artdaq_ArtModules
   ${TBB}
+  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
@@ -104,6 +106,7 @@ simple_plugin(NetMonInput "source"
   cetlib
   ${CETLIB_EXCEPT}
   ${TBB}
+  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(RootNetOutput "module"
@@ -116,6 +119,7 @@ simple_plugin(RootNetOutput "module"
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
   ${TBB}
+  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(BinaryNetOutput "module"
