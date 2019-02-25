@@ -1,4 +1,5 @@
 #define TRACE_NAME "BinaryNetOutput"
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
@@ -13,7 +14,6 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 
 #include <unistd.h>

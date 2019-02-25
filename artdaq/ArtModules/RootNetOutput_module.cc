@@ -30,6 +30,7 @@
 #include "fhiclcpp/ParameterSetRegistry.h"
 
 #define TRACE_NAME "RootNetOutput"
+#include "artdaq/DAQdata/Globals.hh"
 
 #define TLVL_OPENFILE 5
 #define TLVL_CLOSEFILE 6
@@ -64,7 +65,6 @@
 
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq/ArtModules/NetMonTransportService.h"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 
 #include <iomanip>
@@ -350,7 +350,7 @@ void art::RootNetOutput::writeDataProducts(TBufferFile& msg, const Principal& pr
     const BranchDescription& bd(I->second->productDescription());
 #if ART_HEX_VERSION >= 0x30000
     msg.WriteObjectAny(&bd, TClass::GetClass("art::BranchDescription"), true);
-#endif
+#else
     bkv.push_back(new BranchKey(bd));
     TLOG(TLVL_WRITEDATAPRODUCTS_VERBOSE)
         << "RootNetOutput::writeDataProducts(...): Dumping branch key           of class: '"
@@ -361,6 +361,7 @@ void art::RootNetOutput::writeDataProducts(TBufferFile& msg, const Principal& pr
                                  << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
                                  << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
     msg.WriteObjectAny(bkv.back(), branch_key_class);
+#endif
     TLOG(TLVL_WRITEDATAPRODUCTS) << "RootNetOutput::writeDataProducts(...): "
                                     "Streaming product            of class: '"
                                  << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"

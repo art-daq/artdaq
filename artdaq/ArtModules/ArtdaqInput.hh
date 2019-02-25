@@ -23,6 +23,7 @@
 #include "canvas/Persistency/Provenance/ProcessHistoryID.h"
 #include "canvas/Persistency/Provenance/ProductList.h"
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
+#include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/DebugMacros.h"
 
 #include "fhiclcpp/ParameterSet.h"
@@ -440,20 +441,25 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
   //
   //  Read the data products.
   //
-#if ART_HEX_VERSION < 0x30000
-  const ProductList& productList = ProductMetaData::instance().productList();
-#endif
+#if ART_HEX_VERSION >= 0x30000
+
+  std::vector<std::unique_ptr<EDProduct>> products;
+  std::vector<std::unique_ptr<const ProductProvenance>> prod_provs;
+  ProductDescriptions prds;
 
   for (unsigned long I = 0; I < prd_cnt; ++I) {
-    std::unique_ptr<BranchKey> bk;
-
-#if ART_HEX_VERSION >= 0x30000
     TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading branch description";
     std::unique_ptr<BranchDescription> bd_ptr;
     bd_ptr.reset(ReadObjectAny<BranchDescription>(msg, "art::BranchDescription", "ArtdaqInput::readDataProducts"));
-    const BranchDescription& bd = *(bd_ptr.get());
-#endif
+    const BranchDescription& bd = BranchDescription(*(bd_ptr.get()));
 
+    // Declare this product to art
+    prds.emplace_back(*(bd_ptr.get()));
+
+#else
+  const ProductList& productList = ProductMetaData::instance().productList();
+  for (unsigned long I = 0; I < prd_cnt; ++I) {
+    std::unique_ptr<BranchKey> bk;
     {
       TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading branch key.";
       bk.reset(ReadObjectAny<BranchKey>(msg, "art::BranchKey", "ArtdaqInput::readDataProducts"));
@@ -464,7 +470,6 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
                                   << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
                                   << bk->processName_;
     }
-#if ART_HEX_VERSION < 0x30000
     ProductList::const_iterator iter;
     {
       TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: looking up product ...";
@@ -505,10 +510,23 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
       TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading product provenance.";
       prdprov.reset(ReadObjectAny<ProductProvenance>(msg, "art::ProductProvenance", "ArtdaqInput::readDataProducts"));
     }
+#if ART_HEX_VERSION >= 0x30000
+    products.emplace_back(std::move(prd));
+    prod_provs.emplace_back(std::move(prdprov));
+  }
+
+  ProductTables table(prds);
+  outPrincipal->createGroupsForProducedProducts(table);
+
+  for (size_t ii = 0; ii < prds.size(); ++ii) {
+    auto bd = prds[ii];
+    auto prd = std::move(products[ii]);
+    auto prdprov = std::move(prod_provs[ii]);
+#endif
     {
       TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: inserting product: class: '" << bd.friendlyClassName()
                                   << "' modlbl: '" << bd.moduleLabel() << "' instnm: '" << bd.productInstanceName()
-                                  << "' procnm: '" << bd.processName();
+                                  << "' procnm: '" << bd.processName() << "' id: '" << bd.productID() << "'";
       putInPrincipal(outPrincipal, std::move(prd), bd, std::move(prdprov));
     }
   }
@@ -521,7 +539,7 @@ void art::ArtdaqInput<U>::putInPrincipal(RunPrincipal*& rp, std::unique_ptr<EDPr
 #if ART_HEX_VERSION < 0x30000
   rp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forRun(rp->RUN_ID()));
 #else
-  rp->put(bd, std::move(prdprov), std::move(prd),  std::make_unique<RangeSet>(RangeSet::forRun(rp->RUN_ID())));
+  rp->put(bd, std::move(prdprov), std::move(prd), std::make_unique<RangeSet>(RangeSet::forRun(rp->RUN_ID())));
 #endif
 }
 
@@ -532,7 +550,7 @@ void art::ArtdaqInput<U>::putInPrincipal(SubRunPrincipal*& srp, std::unique_ptr<
 #if ART_HEX_VERSION < 0x30000
   srp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forSubRun(srp->SUBRUN_ID()));
 #else
-  srp->put(bd, std::move(prdprov), std::move(prd), std::make_unique<RangeSet>( RangeSet::forSubRun(srp->SUBRUN_ID())));
+  srp->put(bd, std::move(prdprov), std::move(prd), std::make_unique<RangeSet>(RangeSet::forSubRun(srp->SUBRUN_ID())));
 #endif
 }
 
