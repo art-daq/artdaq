@@ -746,6 +746,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	requests_.reset(new RequestSender(data_pset_));
 	if (requests_)
 	{
+	        requests_->SetRunNumber(static_cast<uint32_t>(run_id_));
 		requests_->SendRoutingToken(queue_size_, run_id_);
 	}
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
