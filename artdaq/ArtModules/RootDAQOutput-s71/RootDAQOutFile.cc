@@ -1143,10 +1143,12 @@ art::RootDAQOutFile::createDatabaseTables()
                         "RootDAQOutFile::fillBranches(principal, vpp):")
           << "Attempt to write a product with uninitialized provenance!\n";
           }
-  TLOG(TLVL_TRACE) << "End of RootDAQOutFile::fillBranches";}
 
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::fillBranches before fillTree call";
     treePointers_[BT]->fillTree();
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::fillBranches after fillTree call";
     vpp->clear();
+  TLOG(TLVL_TRACE) << "End of RootDAQOutFile::fillBranches";}
   }
 
 } // namespace art
