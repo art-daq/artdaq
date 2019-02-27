@@ -209,16 +209,16 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
     fhicl::ParameterSetRegistry::put(pset);
   }
   TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: finished reading parameter sets.";
+
+#if ART_HEX_VERSION < 0x30000
   //
   //  Read the MasterProductRegistry.
   //
-
-#if ART_HEX_VERSION < 0x30000
   art::ProductList* productlist = ReadObjectAny<art::ProductList>(
       msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
   helper.productList(productlist);
-#endif
   TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
+#endif
 
   TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory";
   art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
