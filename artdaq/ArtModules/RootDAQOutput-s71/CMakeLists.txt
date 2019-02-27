@@ -35,6 +35,7 @@ art_make( BASENAME_ONLY
   ${ROOT_REFLEX}
   ${Boost_DATE_TIME_LIBRARY}
   ${TBB}
+${HEP_CONCURRENCY}
   )
 
 simple_plugin(RootDAQOut "module"

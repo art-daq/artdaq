@@ -2,7 +2,7 @@
 if ( ${ART_HEX_VERSION} LESS 0x21200)
 	add_subdirectory(RootDAQOutput)
 elseif ( ${ART_HEX_VERSION} GREATER 0x30000)
-	add_subdirectory(RootDAQOutput_s71)
+	add_subdirectory(RootDAQOutput-s71)
 endif()
 
 art_make( BASENAME_ONLY
