@@ -1,16 +1,14 @@
 
+#include <TBufferFile.h>
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/OutputHandle.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-#include <TBufferFile.h>
 
-namespace art
-{
-	class RootNetOutput;
+namespace art {
+class RootNetOutput;
 }
-
 
 /**
  * \brief An art::OutputModule which sends events using DataSenderManager.
@@ -45,6 +43,10 @@ private:
 
 	virtual void endJob();
 
+	virtual void beginRun(RunPrincipal const&);
+
+	virtual void beginSubRun(SubRunPrincipal const&);
+
 	virtual void write(EventPrincipal&);
 
 	virtual void writeRun(RunPrincipal&);
@@ -53,6 +55,11 @@ private:
 
 	void writeDataProducts(TBufferFile&, const Principal&, std::vector<BranchKey*>&);
 
+	void extractProducts_(Principal const&);
+
+	void send_init_message();
+
 private:
 	bool initMsgSent_;
+	ProductList productList_;
 };
