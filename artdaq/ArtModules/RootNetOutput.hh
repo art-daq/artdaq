@@ -1,10 +1,4 @@
-
-#include <TBufferFile.h>
-#include "art/Framework/Core/OutputModule.h"
-#include "art/Framework/Principal/EventPrincipal.h"
-#include "art/Framework/Principal/OutputHandle.h"
-#include "art/Framework/Principal/RunPrincipal.h"
-#include "art/Framework/Principal/SubRunPrincipal.h"
+#include "artdaq/ArtModules/ArtdaqOutput.hh"
 
 namespace art {
 class RootNetOutput;
@@ -15,7 +9,7 @@ class RootNetOutput;
  * This module is designed for transporting Fragment-wrapped art::Events after
  * they have been read into art, for example between the EventBuilder and the Aggregator.
  */
-class art::RootNetOutput : public OutputModule
+class art::RootNetOutput : public ArtdaqOutput
 {
 public:
 	/**

@@ -157,7 +157,7 @@ private:
 	bool outputFileCloseNeeded_;
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
-	std::unique_ptr<ProductList> productList_;
+	ProductList* productList_;
 };
 
 template<typename U>
@@ -218,13 +218,13 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	//
 	//  Read the MasterProductRegistry.
 	//
-	art::ProductList* productlist = ReadObjectAny<art::ProductList>(
+	productList_ = ReadObjectAny<art::ProductList>(
 	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
-	productList_.reset(productlist);
+	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
-	helper.productList(productlist);
+	helper.productList(productList_);
 #else
-	helper.productList(std::unique_ptr<art::ProductList>(productList_.get()));
+	helper.productList(std::unique_ptr<art::ProductList>(productList_));
 #endif
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
 
