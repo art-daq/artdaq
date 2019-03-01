@@ -709,7 +709,7 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 
 void art::ArtdaqOutput::extractProducts_(Principal const& principal)
 {
-	TLOG(TLVL_EXTRACTPRODUCTS) << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal)";
+  TLOG(TLVL_EXTRACTPRODUCTS) << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal) sz=" << principal.size();
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
 		auto const& productDescription = I->second->productDescription();
@@ -717,7 +717,7 @@ void art::ArtdaqOutput::extractProducts_(Principal const& principal)
 
 		if (!productList_.count(branchKey))
 		{
-			TLOG(TLVL_EXTRACTPRODUCTS_VERBOSE) << "ArtdaqOutput::extractPRoducts_:"
+			TLOG(TLVL_EXTRACTPRODUCTS_VERBOSE) << "ArtdaqOutput::extractProducts_:"
 			                                   << "Adding branch key to productList of class: '"
 			                                   << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
 			                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'";

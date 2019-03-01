@@ -220,6 +220,7 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	//
 	productList_ = ReadObjectAny<art::ProductList>(
 	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
 	helper.productList(productList_);
