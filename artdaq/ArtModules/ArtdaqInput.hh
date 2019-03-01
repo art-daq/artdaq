@@ -167,6 +167,14 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 {
 	artdaq::configureMessageFacility("artdaqart");
 
+#if 1
+	volatile bool loop = true;
+	while (loop)
+	{
+		usleep(1000);
+	}
+#endif
+
 	// JCF, May-27-2016
 
 	// Something will have to be done about the labeling of this class,
@@ -223,9 +231,10 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
-	helper.productList(productList_);
+	auto productListTmp = new art::ProductList(*productList_);
+	helper.productList(productListTmp);
 #else
-	helper.productList(std::unique_ptr<art::ProductList>(productList_));
+	helper.productList(std::make_unique<art::ProductList>(*productList_));
 #endif
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
 
