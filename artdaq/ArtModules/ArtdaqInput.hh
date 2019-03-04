@@ -157,13 +157,13 @@ private:
 	bool outputFileCloseNeeded_;
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
-	ProductList* productList_;
+	ProductList productList_;
 };
 
 template<typename U>
 art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegistryHelper& helper,
                                  art::SourceHelper const& pm)
-    : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm), communicationWrapper_(ps), productList_(nullptr)
+    : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm), communicationWrapper_(ps), productList_()
 {
 	artdaq::configureMessageFacility("artdaqart");
 
@@ -226,15 +226,14 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	//
 	//  Read the MasterProductRegistry.
 	//
-	productList_ = ReadObjectAny<art::ProductList>(
+	productList_ = *ReadObjectAny<art::ProductList>(
 	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_.size();
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
-	auto productListTmp = new art::ProductList(*productList_);
-	helper.productList(productListTmp);
+	helper.productList(&productList_);
 #else
-	helper.productList(std::make_unique<art::ProductList>(*productList_));
+	helper.productList(std::unique_ptr<art::ProductList>(&productList_));
 #endif
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
 
@@ -493,8 +492,8 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
 		ProductList::const_iterator iter;
 		{
 			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: looking up product ...";
-			iter = productList_->find(*bk);
-			if (iter == productList_->end())
+			iter = productList_.find(*bk);
+			if (iter == productList_.end())
 			{
 				throw art::Exception(art::errors::ProductNotFound)
 				    << "No product is registered for\n"
