@@ -387,7 +387,6 @@ private:
 	size_t const num_fragments_per_event_;
 	size_t const queue_size_;
 	run_id_t run_id_;
-        subrun_id_t subrun_id_;
 
 	std::map<sequence_id_t, subrun_id_t> subrun_event_map_;
 	size_t max_subrun_event_map_length_;

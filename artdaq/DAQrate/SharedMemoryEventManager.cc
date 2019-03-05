@@ -22,7 +22,6 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
 	, queue_size_(pset.get<size_t>("buffer_count"))
 	, run_id_(0)
-	, subrun_id_(0)
 	, max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
 	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
 	, use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
