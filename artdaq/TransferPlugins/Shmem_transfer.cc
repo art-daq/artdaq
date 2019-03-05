@@ -247,6 +247,14 @@ bool artdaq::ShmemTransfer::isRunning()
 
 }
 
+void artdaq::ShmemTransfer::flush_buffers()
+{
+	for (size_t ii = 0; ii < shm_manager_->size(); ++ii) 
+	{
+		shm_manager_->MarkBufferEmpty(ii, true);
+	}
+}
+
 DEFINE_ARTDAQ_TRANSFER(artdaq::ShmemTransfer)
 
 // Local Variables:
