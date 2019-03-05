@@ -487,7 +487,7 @@ bool artdaq::Commandable::do_meta_command(std::string const& cmd, std::string co
 	return true;
 }
 
-bool artdaq::Commandable::do_rollover_subrun(uint64_t)
+bool artdaq::Commandable::do_rollover_subrun(uint64_t, uint32_t)
 {
 	TLOG(TLVL_DEBUG) << "do_rollover_subrun called.";
 	external_request_status_ = true;
