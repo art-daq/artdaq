@@ -36,6 +36,7 @@ artdaq::RequestReceiver::RequestReceiver()
 	: request_port_(3001)
 	, request_addr_("227.128.12.26")
 	, running_(false)
+	, run_number_(0)
 	, requests_()
 	, request_timing_()
 	, request_stop_requested_(false)
@@ -52,6 +53,7 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
 	, multicast_out_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
 	, running_(false)
+	, run_number_(0)
 	, requests_()
 	, request_timing_()
 	, request_stop_requested_(false)
@@ -119,10 +121,10 @@ void artdaq::RequestReceiver::setupRequestListener()
 
 artdaq::RequestReceiver::~RequestReceiver()
 {
-	stopRequestReceiverThread(true);
+	stopRequestReception(true);
 }
 
-void artdaq::RequestReceiver::stopRequestReceiverThread(bool force)
+void artdaq::RequestReceiver::stopRequestReception(bool force)
 {
 	std::unique_lock<std::mutex> lk(state_mutex_);
 	if (!request_received_ && !force)
@@ -151,7 +153,7 @@ void artdaq::RequestReceiver::stopRequestReceiverThread(bool force)
 	highest_seen_request_ = 0;
 }
 
-void artdaq::RequestReceiver::startRequestReceiverThread()
+void artdaq::RequestReceiver::startRequestReception()
 {
 	std::unique_lock<std::mutex> lk(state_mutex_);
 	if (requestThread_.joinable()) requestThread_.join();
@@ -223,10 +225,20 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		}
 
 		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]);
-		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header << std::dec << ", packet_count: " << hdr_buffer->packet_count << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header << std::dec << ", packet_count: " << hdr_buffer->packet_count << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port << ", run number: " << hdr_buffer->run_number;
 		if (!hdr_buffer->isValid()) continue;
 
 		request_received_ = true;
+
+		// 19-Dec-2018, KAB: added check on current run number
+		if (run_number_ != 0 && hdr_buffer->run_number != run_number_)
+		{
+			TLOG(TLVL_WARNING) << "Received a Request Message with the wrong run number ("
+			                   << hdr_buffer->run_number << "), expected " << run_number_
+			                   << ", ignoring this request.";
+			continue;
+		}
+
 		if (hdr_buffer->mode == artdaq::detail::RequestMessageMode::EndOfRun)
 		{
 			TLOG(TLVL_INFO) << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests...";
