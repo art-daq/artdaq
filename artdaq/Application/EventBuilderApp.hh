@@ -94,9 +94,10 @@ public:
 	/**
 	* \brief Rollover the subrun after the given event
 	* \param eventNum Sequence ID of boundary
+	* \param subrunNum Number of new subrun
 	* \return True event_store_ptr is valid
 	*/
-	bool do_rollover_subrun(uint64_t eventNum) override;
+	bool do_rollover_subrun(uint64_t eventNum, uint32_t subrunNum) override;
 
 	/**
 	* \brief Action taken upon entering the "Booted" state

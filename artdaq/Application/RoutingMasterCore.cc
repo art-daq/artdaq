@@ -45,6 +45,7 @@ artdaq::RoutingMasterCore::RoutingMasterCore()
 artdaq::RoutingMasterCore::~RoutingMasterCore()
 {
 	TLOG(TLVL_DEBUG) << "Destructor" ;
+	artdaq::StatisticsCollection::getInstance().requestStop();
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 }
 
