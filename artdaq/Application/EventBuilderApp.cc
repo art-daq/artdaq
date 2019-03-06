@@ -128,11 +128,11 @@ bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, u
 	return external_request_status_;
 }
 
-bool artdaq::EventBuilderApp::do_rollover_subrun(uint64_t boundary)
+bool artdaq::EventBuilderApp::do_rollover_subrun(uint64_t boundary, uint32_t subrun)
 {
-	TLOG(TLVL_DEBUG) << "do_rollover_subrun BEGIN boundary=" << boundary;
+	TLOG(TLVL_DEBUG) << "do_rollover_subrun BEGIN boundary=" << boundary << ", subrun=" << subrun;
 	report_string_ = "";
-	external_request_status_ = event_builder_ptr_->rollover_subrun(boundary);
+	external_request_status_ = event_builder_ptr_->rollover_subrun(boundary, subrun);
 	if (!external_request_status_)
 	{
 		report_string_ = "Error rolling over subrun in ";
