@@ -172,6 +172,11 @@ namespace artdaq
 		 */
 		virtual bool isRunning() { return false; }
 
+		/**
+		 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has ended.
+		 */
+		virtual void flush_buffers() = 0;
+
 
 		/** \cond */
 		#define GetTraceName() unique_label_ << (role_ == Role::kSend ? "_SEND" : "_RECV")

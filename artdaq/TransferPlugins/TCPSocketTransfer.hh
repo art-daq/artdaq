@@ -97,8 +97,15 @@ public:
 	* \brief Determine whether the TransferInterface plugin is able to send/receive data
 	* \return True if the TransferInterface plugin is currently able to send/receive data
 	*/
-	bool isRunning() override;
-private:
+        bool isRunning() override;
+
+        /**
+         * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
+         * ended.
+         */
+        void flush_buffers() override;
+
+       private:
 
 	static std::atomic<int> listen_thread_refcount_;
 	static std::mutex listen_thread_mutex_;
