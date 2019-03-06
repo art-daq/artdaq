@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 	TLOG(TLVL_DEBUG) << "pause res=" << sts << ", sending resume";
 	sts = commander->send_resume(arg,arg);
 	TLOG(TLVL_DEBUG) << "resume res=" << sts << ", sending rollover_subrun";
-	sts = commander->send_rollover_subrun(arg);
+	sts = commander->send_rollover_subrun(arg, arg);
 	TLOG(TLVL_DEBUG) << "rollover_subrun res=" << sts << ", sending stop";
 	sts = commander->send_stop(arg,arg);
 	TLOG(TLVL_DEBUG) << "stop res=" << sts << ", sending reinit";
