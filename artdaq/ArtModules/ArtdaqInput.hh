@@ -301,7 +301,12 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 	std::unique_ptr<art::RunAuxiliary> run_aux;
 	std::unique_ptr<art::SubRunAuxiliary> subrun_aux;
 	std::unique_ptr<art::EventAuxiliary> event_aux;
-	std::shared_ptr<History> history;
+    std::shared_ptr<History> history;
+
+    // Establish default 'results'
+    outR = 0;
+    outSR = 0;
+    outE = 0;
 
 	if (msg_type_code == 2)
 	{ // EndRun message.
@@ -383,14 +388,24 @@ readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg,
 			throw art::Exception(art::errors::Unknown) << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
 		}
 
+		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
+                                            << "inR: " << (void*)inR << " run/expected "
+                                            << (inR ? std::to_string(inR->run()) : "invalid") << "/" << event_aux->run();
+                TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
+                                            << "inSR: " << (void*)inSR << " run/expected "
+                                            << (inSR ? std::to_string(inSR->run()) : "invalid") << "/" << event_aux->run() 
+					<< ", subrun/expected " << (inSR ? std::to_string(inSR->subRun()) : "invalid") << "/"
+                    << event_aux->subRun();
+
 		if ((inR == nullptr) || !inR->id().isValid() || (inR->run() != event_aux->run()))
 		{
 			// New run, either we have no input RunPrincipal, or the
 			// input run number does not match the event run number.
 			TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: making RunPrincipal ...";
 			outR = pm_.makeRunPrincipal(*run_aux.get());
-		}
-		if ((inSR == nullptr) || !inSR->id().isValid() || (inSR->subRun() != event_aux->subRun()))
+        }
+        art::SubRunID subrun_check(event_aux->run(), event_aux->subRun());
+        if (inSR == 0 || subrun_check != inSR->id())
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the event subRun number.
