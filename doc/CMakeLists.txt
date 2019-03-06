@@ -6,4 +6,7 @@ create_doxygen_documentation(EXCLUDE
 	artdaq/ArtModules/RootDAQOutput/RootDAQOut_module.cc
 	artdaq/ArtModules/RootDAQOutput/detail/KeptProvenance.h
 	artdaq/ArtModules/RootDAQOutput/detail/KeptProvenance.cc
+	DEPENDS
+	artdaq_core
+	artdaq_utilities
 )
