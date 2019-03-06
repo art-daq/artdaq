@@ -47,7 +47,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 	, manual_art_(pset.get<bool>("manual_art", false))
 	, current_art_pset_(art_pset)
 	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
-	, art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 100000))
+	, art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 1000000))
 	, requests_(nullptr)
 	, data_pset_(pset)
 	, dropped_data_()
