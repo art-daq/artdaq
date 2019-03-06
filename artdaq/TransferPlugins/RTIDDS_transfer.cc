@@ -77,7 +77,13 @@ namespace artdaq
 			case TransferInterface::Role::kReceive:
 				return rtidds_reader_ != nullptr;
 			}
-		}
+                }
+
+                /**
+                 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
+                 * ended.
+                 */
+                void flush_buffers() override {}
 	private:
 		std::unique_ptr<artdaq::RTIDDS> rtidds_reader_;
 		std::unique_ptr<artdaq::RTIDDS> rtidds_writer_;
