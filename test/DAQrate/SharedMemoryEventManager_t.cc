@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(Construct)
 	artdaq::SharedMemoryEventManager t(pset, pset);
 
 	BOOST_REQUIRE_EQUAL(t.runID(), 0);
-	BOOST_REQUIRE_EQUAL(t.subrunID(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetSubrunForSequenceID(1), 1);
 	BOOST_REQUIRE_EQUAL(t.GetLockedBufferCount(), 0);
 	TLOG(TLVL_INFO) << "Test Construct END" ;
 }
@@ -715,21 +715,22 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 
 	t.startRun(1);
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
-	BOOST_REQUIRE_EQUAL(t.subrunID(), 1);
-	t.startSubrun();
+	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 1);
+	t.rolloverSubrun();
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
-	BOOST_REQUIRE_EQUAL(t.subrunID(), 2);
-	t.startSubrun();
+	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 2);
+	t.rolloverSubrun();
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
-	BOOST_REQUIRE_EQUAL(t.subrunID(), 3);
+	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 3);
 	t.startRun(3);
 	BOOST_REQUIRE_EQUAL(t.runID(), 3);
-	BOOST_REQUIRE_EQUAL(t.subrunID(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 1);
 
 
 	artdaq::SharedMemoryEventReceiver r(t.GetKey(), t.GetBroadcastKey());
-	t.endSubrun();
 	bool errflag = false;
+
+	t.endRun();
 	bool sts = r.ReadyForRead();
 	BOOST_REQUIRE_EQUAL(sts, true);
 	auto hdr = r.ReadHeader(errflag);
@@ -740,23 +741,7 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 		BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
 		BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
 	}
-	auto frags = r.GetFragmentsByType(errflag, artdaq::Fragment::EndOfSubrunFragmentType);
-	BOOST_REQUIRE_EQUAL(errflag, false);
-	BOOST_REQUIRE_EQUAL(frags->size(), 1);
-	r.ReleaseBuffer();
-
-	t.endRun();
-	sts = r.ReadyForRead();
-	BOOST_REQUIRE_EQUAL(sts, true);
-	hdr = r.ReadHeader(errflag);
-	BOOST_REQUIRE_EQUAL(errflag, false);
-	BOOST_REQUIRE(hdr != nullptr);
-	if (hdr != nullptr) { // Make static analyzer happy
-		BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
-		BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
-		BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
-	}
-	frags = r.GetFragmentsByType(errflag, artdaq::Fragment::EndOfRunFragmentType);
+	auto frags = r.GetFragmentsByType(errflag, artdaq::Fragment::EndOfRunFragmentType);
 	BOOST_REQUIRE_EQUAL(errflag, false);
 	BOOST_REQUIRE_EQUAL(frags->size(), 1);
 	r.ReleaseBuffer();

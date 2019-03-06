@@ -125,8 +125,7 @@ bool artdaq::DataReceiverCore::start(art::RunID id)
 
 bool artdaq::DataReceiverCore::stop()
 {
-	logMessage_("Stopping run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) +
-	            ", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
+	logMessage_("Stopping run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	bool endSucceeded = false;
 	int attemptsToEnd;
 	receiver_ptr_->stop_threads();
@@ -136,26 +135,7 @@ bool artdaq::DataReceiverCore::stop()
 	// exit (after the timeout), the lock will be released (in the
 	// processFragments method), and this method can continue.
 	stop_requested_.store(true);
-
-	if (!run_is_paused_.load())
-	{
-		TLOG(TLVL_DEBUG) << "Ending subrun " << event_store_ptr_->subrunID();
-		attemptsToEnd = 1;
-		endSucceeded = event_store_ptr_->endSubrun();
-		while (!endSucceeded && attemptsToEnd < 3)
-		{
-			++attemptsToEnd;
-			TLOG(TLVL_DEBUG) << "Retrying EventStore::endSubrun()" ;
-			endSucceeded = event_store_ptr_->endSubrun();
-		}
-		if (!endSucceeded)
-		{
-			TLOG(TLVL_ERROR)
-				<< "EventStore::endSubrun in stop method failed after three tries." ;
-		}
-		TLOG(TLVL_DEBUG) << "Done Ending subrun " << event_store_ptr_->subrunID();
-	}
-
+	
 	TLOG(TLVL_DEBUG) << "Ending run " << event_store_ptr_->runID();
 	attemptsToEnd = 1;
 	endSucceeded = event_store_ptr_->endRun();
@@ -189,25 +169,8 @@ bool artdaq::DataReceiverCore::stop()
 
 bool artdaq::DataReceiverCore::pause()
 {
-	logMessage_("Pausing run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) +
-	            ", subrun " + boost::lexical_cast<std::string>(event_store_ptr_->subrunID()));
+	logMessage_("Pausing run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	pause_requested_.store(true);
-
-	bool endSucceeded = false;
-	int attemptsToEnd = 1;
-	endSucceeded = event_store_ptr_->endSubrun();
-	while (!endSucceeded && attemptsToEnd < 3)
-	{
-		++attemptsToEnd;
-		TLOG(TLVL_DEBUG) << "Retrying EventStore::endSubrun()" ;
-		endSucceeded = event_store_ptr_->endSubrun();
-	}
-	if (!endSucceeded)
-	{
-		TLOG(TLVL_ERROR)
-			<< "EventStore::endSubrun in pause method failed after three tries." ;
-	}
-
 	run_is_paused_.store(true);
 	logMessage_("Completed the Pause transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
@@ -218,7 +181,7 @@ bool artdaq::DataReceiverCore::resume()
 	logMessage_("Resuming run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	pause_requested_.store(false);
 	metricMan->do_start();
-	event_store_ptr_->startSubrun();
+	event_store_ptr_->rolloverSubrun();
 	run_is_paused_.store(false);
 	logMessage_("Completed the Resume transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
@@ -275,11 +238,11 @@ bool artdaq::DataReceiverCore::reinitialize(fhicl::ParameterSet const& pset)
 	return initialize(pset);
 }
 
-bool artdaq::DataReceiverCore::rollover_subrun(uint64_t boundary)
+bool artdaq::DataReceiverCore::rollover_subrun(uint64_t boundary, uint32_t subrun)
 {
 	if (event_store_ptr_)
 	{
-		event_store_ptr_->rolloverSubrun(boundary);
+		event_store_ptr_->rolloverSubrun(boundary, subrun);
 		return true;
 	}
 	return false;
