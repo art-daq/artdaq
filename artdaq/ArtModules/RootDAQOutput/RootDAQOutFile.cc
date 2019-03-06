@@ -53,8 +53,9 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-#include "tracemf.h"				// TLOG
-#define TRACE_NAME "RootDAQOutFile"
+#include "artdaq/DAQdata/Globals.hh"
+#include "tracemf.h"			// TLOG
+#define TRACE_NAME (app_name + "_RootDAQOutFile").c_str()
 
 #include <algorithm>
 #include <utility>
@@ -568,6 +569,7 @@ art::RootDAQOutFile::requestsToCloseFile()
 void
 art::RootDAQOutFile::writeOne(EventPrincipal const& e)
 {
+  TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeOne";
   // Auxiliary branch.
   // Note: pEventAux_ must be set before calling fillBranches
   // since it gets written out in that routine.
@@ -598,6 +600,7 @@ art::RootDAQOutFile::writeOne(EventPrincipal const& e)
   // Add event to index
   fileIndex_.addEntry(pEventAux_->id(), fp_.eventEntryNumber());
   fp_.update<Granularity::Event>(status_);
+  TLOG(TLVL_TRACE) << "End of RootDAQOutFile::writeOne";
 }
 
 void
@@ -847,14 +850,19 @@ art::RootDAQOutFile::writeResults(ResultsPrincipal& resp)
 void
 art::RootDAQOutFile::writeTTrees()
 {
+  TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeTTrees";
   RootOutputTree::writeTTree(metaDataTree_);
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::writeTTrees after writing metaDataTree_";
   RootOutputTree::writeTTree(fileIndexTree_);
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::writeTTrees after writing fileIndexTree_";
   RootOutputTree::writeTTree(parentageTree_);
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::writeTTrees after writing parentageTree_";
   // Write out the tree corresponding to each BranchType
   for (int i = InEvent; i < NumBranchTypes; ++i) {
     auto const branchType = static_cast<BranchType>(i);
     treePointers_[branchType]->writeTree();
   }
+  TLOG(TLVL_TRACE) << "End of RootDAQOutFile::writeTTrees";
 }
 
 template <art::BranchType BT>
@@ -862,6 +870,7 @@ void
 art::RootDAQOutFile::fillBranches(Principal const& principal,
                                   vector<ProductProvenance>* vpp)
 {
+  TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::fillBranches";
   bool const fastCloning = (BT == InEvent) && wasFastCloned_;
   detail::KeptProvenance keptProvenance{
     dropMetaData_, dropMetaDataForDroppedData_, branchesWithStoredHistory_};
@@ -917,8 +926,11 @@ art::RootDAQOutFile::fillBranches(Principal const& principal,
     }
   }
   vpp->assign(keptProvenance.begin(), keptProvenance.end());
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::fillBranches before fillTree call";
   treePointers_[BT]->fillTree();
+  TLOG(TLVL_TRACE) << "RootDAQOutFile::fillBranches after fillTree call";
   vpp->clear();
+  TLOG(TLVL_TRACE) << "End of RootDAQOutFile::fillBranches";
 }
 
 void

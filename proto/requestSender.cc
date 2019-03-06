@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 	if (pset.get<bool>("use_receiver", false))
 	{
 		receiver.reset(new artdaq::RequestReceiver(pset.get<fhicl::ParameterSet>("receiver_config")));
-		receiver->startRequestReceiverThread();
+		receiver->startRequestReception();
 	}
 
 	auto seq = pset.get<artdaq::Fragment::sequence_id_t>("starting_sequence_id", 1);
