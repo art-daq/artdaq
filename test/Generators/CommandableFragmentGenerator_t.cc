@@ -221,6 +221,7 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 	t.AddRequest(1, 1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
@@ -301,6 +302,7 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 	t.AddRequest(1, 1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
@@ -406,6 +408,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 	t.AddRequest(1, 1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
@@ -537,6 +540,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 	t.AddRequest(1, 1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
@@ -728,6 +732,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
@@ -786,6 +791,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
@@ -848,6 +854,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
@@ -957,6 +964,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
@@ -1017,6 +1025,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
@@ -1106,6 +1115,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	ps.put("send_requests", true);
 
 	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
 
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);

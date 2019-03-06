@@ -359,7 +359,9 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	ev_counter_.store(1);
 	windows_sent_ooo_.clear();
 	{
-	std::unique_lock<std::mutex> lock(dataBufferMutex_);
+          std::unique_lock<std::mutex> lock(dataBufferMutex_);
+          dataBufferDepthBytes_ = 0;
+          dataBufferDepthFragments_ = 0;
 	dataBuffer_.clear();
 	}
 	should_stop_.store(false);
@@ -626,7 +628,9 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 				// While here, if for some strange reason more than one event's worth of data is returned from getNext_...
 				while (newDataBuffer_.size() >= fragment_ids_.size())
 				{
-					dataBuffer_.clear();
+                                  dataBufferDepthBytes_ = 0;
+                                  dataBufferDepthFragments_ = 0;
+                                  dataBuffer_.clear();
 					auto it = newDataBuffer_.begin();
 					std::advance(it, fragment_ids_.size());
 					dataBuffer_.splice(dataBuffer_.end(), newDataBuffer_, newDataBuffer_.begin(), it);
