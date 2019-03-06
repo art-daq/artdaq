@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_03_02
-defaultqual    e15:s64
+parent artdaq  v3_04_00
+defaultqual    e15:s65
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -21,13 +21,12 @@ art             v2_11_05    s73
 art             v3_01_00        s71
 art             v2_11_01    s67
 art 		    v2_10_03	s65
-art             v2_10_02        s64
-artdaq_core 		v3_04_09
-artdaq_utilities        v1_04_09
+artdaq_core 		v3_04_11
+artdaq_utilities        v1_04_10
 xmlrpc_c		v1_39_10d
-artdaq_ganglia_plugin   v1_02_12        -       optional
-artdaq_epics_plugin     v1_02_06        -       optional
-artdaq_mfextensions     v1_03_03        -       optional
+artdaq_ganglia_plugin   v1_02_13        -       optional
+artdaq_epics_plugin     v1_02_06a        -       optional
+artdaq_mfextensions     v1_03_03a        -       optional
 cetbuildtools		v7_02_01	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
@@ -54,10 +53,6 @@ c2:s65:debug		c2:debug	c2:s65:debug	   c2:s65:debug		c2:debug	c2:s65:debug		c2:s
 c2:s65:prof		c2:prof 	c2:s65:prof	   c2:s65:prof		c2:prof		c2:s65:prof		c2:s65:prof		c2:s65:prof
 e15:s65:debug		e15:debug	e15:s65:debug	   e15:s65:debug	e15:debug	e15:s65:debug		e15:s65:debug       	e15:s65:debug
 e15:s65:prof		e15:prof 	e15:s65:prof	   e15:s65:prof		e15:prof	e15:s65:prof		e15:s65:prof		e15:s65:prof
-c2:s64:debug		c2:debug	c2:s64:debug	   c2:s64:debug		c2:debug	c2:s64:debug		c2:s64:debug       	c2:s64:debug
-c2:s64:prof		c2:prof 	c2:s64:prof	   c2:s64:prof		c2:prof		c2:s64:prof		c2:s64:prof		c2:s64:prof
-e15:s64:debug		e15:debug	e15:s64:debug	   e15:s64:debug	e15:debug	e15:s64:debug		e15:s64:debug       	e15:s64:debug
-e15:s64:prof		e15:prof 	e15:s64:prof	   e15:s64:prof		e15:prof	e15:s64:prof		e15:s64:prof		e15:s64:prof
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:

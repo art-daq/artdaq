@@ -111,6 +111,8 @@ public:
 		fhicl::Atom<uint32_t> shared_memory_key{fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid()};
 		/// "buffer_count" REQUIRED: Number of events in the Shared Memory(incomplete + pending art)
 		fhicl::Atom<size_t> buffer_count{fhicl::Name{"buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"}};
+	  /// "max_subrun_lookup_table_size" (Default: 100): Maximum number of entries in the subrun rollover history
+	  fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"Maximum number of entries in the subrun rollover history"}, 100};
 		/// "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 		/// Either max_fragment_size_bytes or max_event_size_bytes must be specified
 		fhicl::Atom<size_t> max_fragment_size_bytes{fhicl::Name{"max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"}};
@@ -385,7 +387,6 @@ private:
 	size_t const num_fragments_per_event_;
 	size_t const queue_size_;
 	run_id_t run_id_;
-        subrun_id_t subrun_id_;
 
 	std::map<sequence_id_t, subrun_id_t> subrun_event_map_;
 	size_t max_subrun_event_map_length_;
