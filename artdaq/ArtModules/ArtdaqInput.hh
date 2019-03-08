@@ -167,7 +167,7 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 {
 	artdaq::configureMessageFacility("artdaqart");
 
-#if 1
+#if 0
 	volatile bool loop = true;
 	while (loop)
 	{
