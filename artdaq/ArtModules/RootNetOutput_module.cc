@@ -27,7 +27,7 @@
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
 
-#define TRACE_NAME "RootNetOutput"
+#define TRACE_NAME (app_name + "_RootNetOutput").c_str()
 
 #define TLVL_OPENFILE 5
 #define TLVL_CLOSEFILE 6
