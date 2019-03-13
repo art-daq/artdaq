@@ -453,7 +453,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				{
 					sts = destinations_[bdest]->transfer_fragment_min_blocking_mode(frag, send_timeout_us_);
 				}
-				retries++;
+				++retries;
 			}
 			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
 			sent_frag_count_.incSlot(bdest);
@@ -485,6 +485,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 					TLOG(TLVL_WARNING) << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
 					lastWarnTime = std::chrono::steady_clock::now();
 				}
+				++retries;
 			}
 			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
 			//sendFragTo(std::move(frag), dest);
