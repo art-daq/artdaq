@@ -51,12 +51,12 @@ public:
 		}
 		of << ps.to_string();
 
-		if (ps.has_key("services.NetMonTransportServiceInterface"))
-		{
+		//if (ps.has_key("services.NetMonTransportServiceInterface"))
+		//{
 		//	of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
 		//	of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-			of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
-		}
+		//	of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
+		//}
 		if (!ps.has_key("services.message"))
 		{
 			of << " services.message: { " << generateMessageFacilityConfiguration("art") << "} ";

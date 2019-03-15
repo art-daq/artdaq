@@ -139,7 +139,7 @@ protected:
 
 	void extractProducts_(Principal const&);
 
-	void send_init_message();
+	void send_init_message(History history);
 
 	virtual void SendMessage(artdaq::Fragment::sequence_id_t sequenceId, artdaq::Fragment::type_t messageType, TBufferFile& msg) = 0;
 
@@ -148,7 +148,7 @@ private:
 	ProductList productList_;
 };
 
-void art::ArtdaqOutput::send_init_message()
+void art::ArtdaqOutput::send_init_message(History history)
 {
 	TLOG(TLVL_SENDINIT) << "Begin: ArtdaqOutput::send_init_message()";
 	//
@@ -180,7 +180,6 @@ void art::ArtdaqOutput::send_init_message()
 	}
 	// static TClass* parentage_map_class = TClass::GetClass(
 	//    "std::map<const art::ParentageID,art::Parentage>");
-	// FIXME: Replace the "5" here with a use of the proper enum value!
 	static TClass* parentage_map_class = TClass::GetClass("art::ParentageMap");
 	if (parentage_map_class == nullptr)
 	{
@@ -188,6 +187,13 @@ void art::ArtdaqOutput::send_init_message()
 		                                                         "Could not get class for ParentageMap.";
 	}
 	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << (void*)parentage_map_class;
+
+	static TClass* history_class = TClass::GetClass("art::History");
+	if (history_class == nullptr)
+	{
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "
+		                                                         "Could not get TClass for art::History!";
+	}
 
 	//
 	//  Construct and send the init message.
@@ -205,12 +211,13 @@ void art::ArtdaqOutput::send_init_message()
 	//  Stream the ParameterSetRegistry.
 	//
 	unsigned long ps_cnt = fhicl::ParameterSetRegistry::size();
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): parameter set count: " + std::to_string(ps_cnt);
+	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): parameter set count: " << ps_cnt;
 	msg.WriteULong(ps_cnt);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming parameter sets ...";
 	for (auto I = std::begin(fhicl::ParameterSetRegistry::get()), E = std::end(fhicl::ParameterSetRegistry::get());
 	     I != E; ++I)
 	{
+		TLOG(TLVL_SENDINIT) << "Pset ID " << I->first << ": " << I->second.to_string();
 		std::string pset_str = I->second.to_string();
 		// msg.WriteObjectAny(&pset_str, string_class);
 		msg.WriteStdString(pset_str);
@@ -266,6 +273,10 @@ void art::ArtdaqOutput::send_init_message()
 	msg.WriteObjectAny(&parentageMap, parentage_map_class);
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming ParentageRegistry.";
+
+	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming History";
+	msg.WriteObjectAny(&history, history_class);
+	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Done streaming History";
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Sending init message";
 	SendMessage(0, artdaq::Fragment::InitFragmentType, msg);
@@ -417,7 +428,7 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 	TLOG(TLVL_WRITE) << "Begin: ArtdaqOutput::write(const EventPrincipal& ep)";
 	if (!initMsgSent_)
 	{
-		send_init_message();
+		send_init_message(ep.history());
 		initMsgSent_ = true;
 	}
 	//
@@ -518,10 +529,10 @@ void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
-		send_init_message();
+		send_init_message(rp.history());
 		initMsgSent_ = true;
 	}
-#if 1
+#if 0
 	//
 	//  Fetch the class dictionaries we need for
 	//  writing out the auxiliary information.
@@ -574,7 +585,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "Begin: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
-		send_init_message();
+		send_init_message(srp.history());
 		initMsgSent_ = true;
 	}
 	//

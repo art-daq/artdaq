@@ -107,6 +107,14 @@ struct SharedMemoryReader {
 
     app_name = artapp_str + "art" + std::to_string(incoming_events->GetMyId());
 
+	
+    artapp_env = getenv("ARTDAQ_RANK");
+	if (artapp_env != NULL && my_rank < 0)
+	{
+		 my_rank = std::atoi(artapp_env);
+	}
+	TLOG(TLVL_INFO) << "app_name is " << app_name << ", rank " << my_rank;
+
     try {
       if (metricMan) {
         metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), app_name);

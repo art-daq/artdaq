@@ -157,7 +157,8 @@ private:
 	bool outputFileCloseNeeded_;
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
-	ProductList productList_;
+	ProductList* productList_;
+	std::unique_ptr<History> history_;
 };
 
 template<typename U>
@@ -226,14 +227,14 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	//
 	//  Read the MasterProductRegistry.
 	//
-	productList_ = *ReadObjectAny<art::ProductList>(
+	productList_ = ReadObjectAny<art::ProductList>(
 	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_.size();
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
-	helper.productList(&productList_);
+	helper.productList(productList_);
 #else
-	helper.productList(std::unique_ptr<art::ProductList>(&productList_));
+	helper.productList(std::unique_ptr<art::ProductList>(productList_));
 #endif
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
 
@@ -251,6 +252,16 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ParentageMap";
 	ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInput::ArtdaqInput");
 	ParentageRegistry::put(*parentageMap);
+
+	//
+	// Read the History
+	//
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading History";
+	history_.reset(ReadObjectAny<History>(msg, "art::History", "ArtdaqInput::ArtdaqInput"));
+	if (!history_->processHistoryID().isValid())
+	{
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: History from init message is INVALID!";
+	}
 
 	//
 	//  Finished with init message.
@@ -429,6 +440,15 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 			throw art::Exception(art::errors::Unknown)
 			    << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
 		}
+		else if (!history_->processHistoryID().isValid())
+		{
+			history_.swap(history);
+		}
+		else if (!art::ProcessHistoryRegistry::get().count(history_->processHistoryID()) && 
+			art::ProcessHistoryRegistry::get().count(history->processHistoryID()))
+		{
+			history_.swap(history);
+		}
 
 		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
 		                            << "inR: " << (void*)inR << " run/expected "
@@ -455,7 +475,12 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux.get());
 		}
 		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: making EventPrincipal ...";
-		outE = pm_.makeEventPrincipal(*event_aux.get(), std::move(history));
+		auto historyPtr = std::unique_ptr<art::History>(new History(*(history_.get())));
+		if (!art::ProcessHistoryRegistry::get().count(history_->processHistoryID()))
+		{
+			TLOG_ARB(TLVL_WARNING, "ArtdaqInput") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
+		}
+		outE = pm_.makeEventPrincipal(*event_aux.get(), std::move(historyPtr));
 
 		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
 		                            << "finished processing Event message.";
@@ -492,8 +517,8 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
 		ProductList::const_iterator iter;
 		{
 			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: looking up product ...";
-			iter = productList_.find(*bk);
-			if (iter == productList_.end())
+			iter = productList_->find(*bk);
+			if (iter == productList_->end())
 			{
 				throw art::Exception(art::errors::ProductNotFound)
 				    << "No product is registered for\n"
