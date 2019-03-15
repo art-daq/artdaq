@@ -139,7 +139,7 @@ protected:
 
 	void extractProducts_(Principal const&);
 
-	void send_init_message(History history);
+	void send_init_message(History const& history);
 
 	virtual void SendMessage(artdaq::Fragment::sequence_id_t sequenceId, artdaq::Fragment::type_t messageType, TBufferFile& msg) = 0;
 
@@ -148,7 +148,7 @@ private:
 	ProductList productList_;
 };
 
-void art::ArtdaqOutput::send_init_message(History history)
+void art::ArtdaqOutput::send_init_message(History const& history)
 {
 	TLOG(TLVL_SENDINIT) << "Begin: ArtdaqOutput::send_init_message()";
 	//
