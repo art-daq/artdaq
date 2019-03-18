@@ -53,10 +53,12 @@
 #define EVENT_ID id
 #define SUBRUN_ID id
 #define RUN_ID id
+#define HISTORY_PTR_T std::shared_ptr<art::History>
 #else
 #define EVENT_ID eventID
 #define SUBRUN_ID subRunID
 #define RUN_ID runID
+#define HISTORY_PTR_T std::unique_ptr<art::History>
 #endif
 
 namespace art {
@@ -158,7 +160,7 @@ private:
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
 	ProductList* productList_;
-	std::unique_ptr<History> history_;
+	HISTORY_PTR_T history_;
 };
 
 template<typename U>
@@ -322,11 +324,7 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 	std::unique_ptr<art::SubRunAuxiliary> subrun_aux;
 	std::unique_ptr<art::EventAuxiliary> event_aux;
 
-#if ART_HEX_VERSION < 0x30000
-	std::shared_ptr<History> history;
-#else
-	std::unique_ptr<History> history;
-#endif
+	HISTORY_PTR_T history;
 
 	// Establish default 'results'
 	outR = 0;
@@ -475,7 +473,7 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux.get());
 		}
 		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: making EventPrincipal ...";
-		auto historyPtr = std::unique_ptr<art::History>(new History(*(history_.get())));
+		auto historyPtr = HISTORY_PTR_T(new History(*(history_.get())));
 		if (!art::ProcessHistoryRegistry::get().count(history_->processHistoryID()))
 		{
 			TLOG_ARB(TLVL_WARNING, "ArtdaqInput") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";

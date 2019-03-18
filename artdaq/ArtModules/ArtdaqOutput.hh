@@ -529,7 +529,11 @@ void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
+#if ART_HEX_VERSION < 0x30000
+	  send_init_message(art::History());
+#else
 		send_init_message(rp.history());
+#endif
 		initMsgSent_ = true;
 	}
 #if 0
@@ -585,7 +589,11 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "Begin: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
+#if ART_HEX_VERSION < 0x30000
+	  send_init_message(art::History());
+#else
 		send_init_message(srp.history());
+#endif
 		initMsgSent_ = true;
 	}
 	//
