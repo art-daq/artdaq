@@ -139,6 +139,8 @@ namespace artdaq
 		 * \param run Run number
 		 */
 		void SetRunNumber(uint32_t run) { run_number_ = run; }
+
+		bool RoutingTokenSendsEnabled() { return send_routing_tokens_; }
 	private:
 
 		// Request stuff

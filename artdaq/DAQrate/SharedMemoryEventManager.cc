@@ -1104,7 +1104,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		                  << active_buffers_.size() << ")";
 	}
 
-	if (requests_)
+	if (requests_ && requests_->RoutingTokenSendsEnabled())
 	{
 		TLOG(TLVL_TRACE) << "Sent tokens: " << requests_->GetSentTokenCount() << ", Event count: " << run_event_count_;
 		auto outstanding_tokens = requests_->GetSentTokenCount() - run_event_count_;
