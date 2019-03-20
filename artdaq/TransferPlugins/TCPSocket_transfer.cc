@@ -581,6 +581,13 @@ bool artdaq::TCPSocketTransfer::isRunning()
 	return false;
 }
 
+void artdaq::TCPSocketTransfer::flush_buffers()
+{
+	while(connected_fds_[source_rank()].size()) {
+		disconnect_receive_socket_(*connected_fds_[source_rank()].begin(), "Flushing connections");
+	}
+}
+
 // Send the given Fragment. Return the rank of the destination to which
 // the Fragment was sent OR -1 if to none.
 artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(Fragment&& frag, size_t send_timeout_usec)
