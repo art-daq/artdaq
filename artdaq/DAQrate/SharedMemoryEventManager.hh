@@ -2,17 +2,18 @@
 #define ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
 
 #include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
-#include "artdaq-core/Core/SharedMemoryManager.hh"
-#include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq/DAQrate/RequestSender.hh"
-#include <set>
+
+#include <sys/stat.h>
 #include <deque>
 #include <fstream>
 #include <iomanip>
-#include <sys/stat.h>
-#include "fhiclcpp/fwd.h"
+#include <set>
+#include "artdaq-core/Core/SharedMemoryManager.hh"
+#include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/Application/StatisticsHelper.hh"
+#include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/DAQrate/detail/ArtConfig.hh"
+#include "fhiclcpp/fwd.h"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 namespace artdaq {
@@ -34,7 +35,8 @@ namespace artdaq {
 			mkdir(dir_name_.c_str(), 0777); // Allowed to fail if directory already exists
 			
 			std::ofstream of(file_name_, std::ofstream::trunc);
-			if (of.fail()) {
+		if (of.fail())
+		{
 				// Probably a permissions error...
 				dir_name_ = "/tmp/partition_" + std::to_string(GetPartitionNumber()) + "_" + std::to_string(getuid());
 				mkdir(dir_name_.c_str(), 0777); // Allowed to fail if directory already exists
@@ -74,6 +76,7 @@ namespace artdaq {
 		 * \return The path of the temporary file
 		 */
 		std::string getFileName() const { return file_name_; }
+
 	private:
 		std::string dir_name_;
 		std::string file_name_;
@@ -108,6 +111,8 @@ namespace artdaq {
 			fhicl::Atom<uint32_t> shared_memory_key{ fhicl::Name{ "shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid() };
 			/// "buffer_count" REQUIRED: Number of events in the Shared Memory(incomplete + pending art)
 			fhicl::Atom<size_t> buffer_count{ fhicl::Name{ "buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"} };
+	  /// "max_subrun_lookup_table_size" (Default: 100): Maximum number of entries in the subrun rollover history
+	  fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"Maximum number of entries in the subrun rollover history"}, 100};
 			/// "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 			/// Either max_fragment_size_bytes or max_event_size_bytes must be specified
 			fhicl::Atom<size_t> max_fragment_size_bytes{ fhicl::Name{ "max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"} };
@@ -125,6 +130,8 @@ namespace artdaq {
 			fhicl::Atom<bool> update_run_ids_on_new_fragment{ fhicl::Name{ "update_run_ids_on_new_fragment"}, fhicl::Comment{"Whether the run and subrun ID of an event should be updated whenever a Fragment is added."}, true };
 			/// "use_sequence_id_for_event_number" (Default: true): Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers
 			fhicl::Atom<bool> use_sequence_id_for_event_number{ fhicl::Name{"use_sequence_id_for_event_number"}, fhicl::Comment{"Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers"}, true };
+		/// "max_subrun_event_map_length" (Default: 100): The maximum number of entries to store in the sequence ID-SubRun ID lookup table
+		fhicl::Atom<size_t> max_subrun_event_map_length{fhicl::Name{"max_subrun_event_map_length"}, fhicl::Comment{"The maximum number of entries to store in the sequence ID-SubRun ID lookup table"}, 100};
 			/// "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 			fhicl::Atom<bool> send_init_fragments{ fhicl::Name{ "send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true };
 			/// "open_event_report_interval_ms" (Default: -1): Interval at which an open event report should be written
@@ -215,10 +222,10 @@ namespace artdaq {
 		size_t GetLockedBufferCount() { return GetBuffersOwnedByManager().size(); }
 
 		/**
-		 * \brief Returns the number of events sent to art this subrun
-		 * \return The number of events sent to art this subrun
+		 * \brief Returns the number of events sent to art this run
+		 * \return The number of events sent to art this run
 		 */
-		size_t GetArtEventCount() { return subrun_event_count_; }
+	size_t GetArtEventCount() { return run_event_count_; }
 
 		/**
 		 * \brief Get the count of Fragments of a given type in an event
@@ -284,21 +291,10 @@ namespace artdaq {
 		void startRun(run_id_t runID);
 
 		/**
-		* \brief Start a new Subrun, incrementing the subrun number
-		*/
-		void startSubrun();
-
-		/**
 		 * \brief Get the current Run number
 		 * \return The current Run number
 		 */
 		run_id_t runID() const { return run_id_; }
-
-		/**
-		* \brief Get the current subrun number
-		* \return The current subrun number
-		*/
-		subrun_id_t subrunID() const { return subrun_id_; }
 
 		/**
 		* \brief Send an EndOfRunFragment to the art thread
@@ -307,16 +303,16 @@ namespace artdaq {
 		bool endRun();
 
 		/**
-		* \brief Send an EndOfSubRunFragment to the art thread
-		* \return True if enqueue successful
-		*/
-		bool endSubrun();
-
-		/**
 		 * \brief Rollover the subrun after the specified event
 		 * \param boundary sequence ID of the boundary (Event with seqID == boundary will be in new subrun)
+		 * \param subrun Subrun number of subrun after boundary
 		 */
-		void rolloverSubrun(sequence_id_t boundary);
+	void rolloverSubrun(sequence_id_t boundary, subrun_id_t subrun);
+
+	/** 
+		 * \brief Add a subrun transition immediately after the highest currently define sequence ID
+		 */
+	void rolloverSubrun();
 
 		/**
 		* \brief Send metrics to the MetricManager, if one has been instantiated in the application
@@ -327,7 +323,10 @@ namespace artdaq {
 		 * \brief Set the RequestMessageMode for all outgoing data requests
 		 * \param mode Mode to set
 		 */
-		void setRequestMode(detail::RequestMessageMode mode) { if (requests_) requests_->SetRequestMode(mode); }
+	void setRequestMode(detail::RequestMessageMode mode)
+	{
+		if (requests_) requests_->SetRequestMode(mode);
+	}
 
 		/**
 		 * \brief Set the overwrite flag (non-reliable data transfer) for the Shared Memory
@@ -368,6 +367,14 @@ namespace artdaq {
 		 */
 		void CheckPendingBuffers();
 
+	/**
+		 * \brief Get the subrun number that the given Sequence ID would be assigned to
+		 * \param seqID Sequence ID to check
+		 */
+	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
+
+	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
+
 	private:
 		size_t get_art_process_count_() 
 		{
@@ -376,14 +383,14 @@ namespace artdaq {
 		}
 
 	private:
-
 		size_t num_art_processes_;
 		size_t const num_fragments_per_event_;
 		size_t const queue_size_;
 		run_id_t run_id_;
-		subrun_id_t subrun_id_;
-		sequence_id_t subrun_rollover_event_;
-		sequence_id_t last_released_event_;
+
+	std::map<sequence_id_t, subrun_id_t> subrun_event_map_;
+	size_t max_subrun_event_map_length_;
+	static std::mutex subrun_event_map_mutex_;
 
 		std::set<int> active_buffers_;
 		std::set<int> pending_buffers_;
@@ -402,9 +409,14 @@ namespace artdaq {
 		int open_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_open_event_report_time_;
 		std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
+        std::chrono::steady_clock::time_point last_backpressure_report_time_;
+        std::chrono::steady_clock::time_point last_fragment_header_write_time_;
 		
-		struct MetricData {
-			MetricData() : event_count(0), event_size(0) {}
+
+	struct MetricData
+	{
+		MetricData()
+		    : event_count(0), event_size(0) {}
 			size_t event_count;
 			size_t event_size;
 		};
@@ -448,6 +460,6 @@ namespace artdaq {
 		void send_init_frag_();
 		SharedMemoryManager broadcasts_;
 		};
-	}
+}  // namespace artdaq
 
 #endif //ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
