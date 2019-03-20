@@ -28,10 +28,10 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	// here where another process creates the shared memory buffer
 	// between the first and second calls to shmget
 
-	if (buffer_count_ > 100)
+	/*if (buffer_count_ > 100)
 	{
 		throw cet::exception("ConfigurationException", "Buffer Count is too large for Shmem transfer!");
-	}
+	}*/
 
 	auto partition = GetPartitionNumber() + 1; // Can't be 0
 
