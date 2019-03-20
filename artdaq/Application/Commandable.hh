@@ -226,9 +226,10 @@ public:
 	/**
 	* \brief Perform the rollover_subrun transition.
 	* \param eventNum Sequence ID of boundary
+	* \param subrunNum New Subrun Number
 	* \return Whether the transition succeeded
 	*/
-	virtual bool do_rollover_subrun(uint64_t eventNum);
+	virtual bool do_rollover_subrun(uint64_t eventNum, uint32_t subrunNum);
 	
 	/**
 	 * \brief This function is called when an attempt is made to call an illegal transition
