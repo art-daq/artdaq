@@ -181,7 +181,7 @@ public:
 	/// Should be sent to all EventBuilders before the given event is processed.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_rollover_subrun(uint64_t) override;
+	std::string send_rollover_subrun(uint64_t, uint32_t) override;
 
 
 private:
