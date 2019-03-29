@@ -44,6 +44,10 @@
 
 using std::string;
 
+namespace {
+  std::string const dev_null{"/dev/null"};
+}
+
 namespace art {
   class RootDAQOut;
   class RootDAQOutFile;
@@ -136,6 +140,8 @@ public:
   void endRun(RunPrincipal const&) override;
 
 private:
+  std::string fileNameAtOpen() const;
+  std::string fileNameAtClose(std::string const& currentFileName);
   std::string const& lastClosedFileName() const override;
   void openFile(FileBlock const&) override;
   void respondToOpenInputFile(FileBlock const&) override;
@@ -325,6 +331,7 @@ art::RootDAQOut::respondToCloseInputFile(FileBlock const& fb)
 void
 art::RootDAQOut::write(EventPrincipal& ep)
 {
+  TLOG(10) << __func__ << ": enter; dropAllEvents_=" << dropAllEvents_;
   if (dropAllEvents_) {
     return;
   }
@@ -333,6 +340,7 @@ art::RootDAQOut::write(EventPrincipal& ep)
   }
   rootOutputFile_->writeOne(ep);
   fstats_.recordEvent(ep.id());
+  TLOG(9) << __func__ << ": return";
 }
 
 void
@@ -527,7 +535,7 @@ art::RootDAQOut::doOpenFile()
   }
   rootOutputFile_ =
     std::make_unique<RootDAQOutFile>(this,
-                                     unique_filename(tmpDir_ + "/RootDAQOut"),
+	                                 fileNameAtOpen(),
                                      fileProperties_,
                                      compressionLevel_,
 	                                 freePercent_,
@@ -541,6 +549,21 @@ art::RootDAQOut::doOpenFile()
                                      fastCloningEnabled_);
   fstats_.recordFileOpen();
   TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
+}
+
+string
+art::RootDAQOut::fileNameAtOpen() const
+{
+  return filePattern_ == dev_null ? dev_null :
+                                    unique_filename(tmpDir_ + "/RootOutput");
+}
+
+string
+art::RootDAQOut::fileNameAtClose(std::string const& currentFileName)
+{
+  return filePattern_ == dev_null ?
+           dev_null :
+           fRenamer_.maybeRenameFile(currentFileName, filePattern_);
 }
 
 string const&
