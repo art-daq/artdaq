@@ -42,6 +42,7 @@ namespace artdaq {
 			fhicl::Atom<uint64_t> transition_timeout{ fhicl::Name{"transition_timeout"}, fhicl::Comment{"Timeout to use for automatic transitions"}, 30 };
 			fhicl::TableFragment<artdaq::PortManager::Config> portsConfig; ///< Configuration for artdaq Ports
 		};
+	    /// Used for ParameterSet validation (if desired)
 		using Parameters = fhicl::WrappedTable<Config>;
 
 		/// <summary>
