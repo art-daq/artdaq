@@ -80,15 +80,15 @@ public:
 
 	/**
 	* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
-	* \param fragment Fragment to transfer
-	* \param send_timeout_usec Timeout for send, in microseconds
+	* \param frag Fragment to transfer
+	* \param timeout_usec Timeout for send, in microseconds
 	* \return CopyStatus detailing result of transfer
 	*/
 	CopyStatus transfer_fragment_min_blocking_mode(Fragment const& frag, size_t timeout_usec) override { return sendFragment_(Fragment(frag), timeout_usec); }
 
 	/**
 	* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
-	* \param fragment Fragment to transfer
+	* \param frag Fragment to transfer
 	* \return CopyStatus detailing result of copy
 	*/
 	CopyStatus transfer_fragment_reliable_mode(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
