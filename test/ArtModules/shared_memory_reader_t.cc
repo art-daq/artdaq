@@ -60,7 +60,6 @@ public:
 	 * \param processName Name of the process
 	 * \param moduleParams ParameterSet for the single module
 	 * \param release See art::ProcessConfiguration
-	 * \param pass See art::ProcessConfiguration
 	 * \return Pointer to created art::ProcessConfiguration object
 	 */
 	art::ProcessConfiguration*

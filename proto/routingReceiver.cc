@@ -19,11 +19,14 @@
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
 
-namespace artdaq
-{
+namespace artdaq {
+/**
+	 * \brief Class which receives routing tables and prints updates
+	 */
 	class RoutingReceiver
 	{
 	public:
+	/// Accepted configuration parameters for RoutingReceiver
 		struct Config
 		{
 			/// "collection_time_ms": Time to collect routing table updates between printing summaries
@@ -34,8 +37,13 @@ namespace artdaq
 			fhicl::Atom<size_t> graph_width{ fhicl::Name{ "graph_width" }, fhicl::Comment{ "Width of the summary graph" }, 40 };
 			fhicl::TableFragment<artdaq::artdaqapp::Config> artdaqAppConfig; ///< Configuration for artdaq Application (BoardReader, etc)
 		};
+	/// Used for ParameterSet validation (if desired)
 		using Parameters = fhicl::WrappedTable<Config>;
 
+	/**
+		 * \brief RoutingReceiver Constructor
+		 * \param pset ParameterSet used to configure RoutingReceiver (see RoutingReceiver::Config)
+		 */
 		explicit RoutingReceiver(fhicl::ParameterSet const& pset)
 			: should_stop_(false)
 			, table_socket_(-1)
@@ -55,6 +63,9 @@ namespace artdaq
 			if (use_routing_master_) startTableReceiverThread_();
 		}
 
+	/**
+		 * \brief RoutingReceiver Destructor
+		 */
 		~RoutingReceiver()
 		{
 			TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver BEGIN";
@@ -63,6 +74,10 @@ namespace artdaq
 			TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver END.";
 		}
 
+	/**
+		 * \brief Get the current routing table
+		 * \return A snapshot of the current routing table
+		 */
 		std::map<Fragment::sequence_id_t, int> GetRoutingTable()
 		{
 			std::unique_lock<std::mutex> lk(routing_mutex_);
@@ -70,6 +85,10 @@ namespace artdaq
 			return routing_table_copy;
 		}
 
+	/**
+	 * \brief Get the current routing table, additionally clearing all entries
+	 * \return A snapshot of the current routing table
+		 */
 		std::map<Fragment::sequence_id_t, int> GetAndClearRoutingTable()
 		{
 			std::unique_lock<std::mutex> lk(routing_mutex_);
@@ -78,6 +97,10 @@ namespace artdaq
 			return routing_table_copy;
 		}
 
+	/**
+		 * \brief Get the host map
+		 * \return The host map, relating ranks to hostnames
+		 */
 		hostMap_t GetHostMap() { return host_map_; }
 
 	private:

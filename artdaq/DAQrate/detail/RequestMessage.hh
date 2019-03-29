@@ -124,6 +124,10 @@ public:
 		, packets_()
 	{}
 
+	/**
+	 * \brief Get the contents of the RequestMessage
+	 * \return Vector of bytes corresponding to the full RequestMessage (may span multiple packets)
+	 */
 	std::vector<uint8_t> GetMessage()
 	{
 		auto size = sizeof(RequestHeader) + packets_.size() * sizeof(RequestPacket);

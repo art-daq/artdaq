@@ -30,12 +30,7 @@ namespace art
 		
 		/**
 		 * \brief NetMonWrapper Constructor
-		 *
-		 * JCF, May-31-2016
-		 *
-		 * Parameter set constructor argument is unused for now, but
-		 * needed for this class to implement the interface the
-		 * ArtdaqInput templatized input source expects
+		 * \param pset ParameterSet for NetMonWrapper
 		 */
 		NetMonWrapper(const fhicl::ParameterSet& pset)
 		{
