@@ -46,6 +46,8 @@
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 	: mutex_()
 	, requestReceiver_(nullptr)
+    , bufferModeKeepLatest_(false)
+    , bufferModeHasNewData_(false)
 	, windowOffset_(0)
 	, windowWidth_(0)
 	, staleTimeout_(Fragment::InvalidTimestamp)
@@ -85,7 +87,9 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator()
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
 	: mutex_()
-	, requestReceiver_(nullptr)
+    , requestReceiver_(nullptr)
+    , bufferModeKeepLatest_(ps.get<bool>("buffer_mode_keep_latest", false))
+    , bufferModeHasNewData_(false)
 	, windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
 	, windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
 	, staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
@@ -642,6 +646,14 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 				}
 				break;
 			case RequestMode::Buffer:
+				if (!bufferModeHasNewData_ && newDataBuffer_.size()) 
+				{
+					bufferModeHasNewData_ = true;
+					dataBufferDepthBytes_ = 0;
+					dataBufferDepthFragments_ = 0;
+					dataBuffer_.clear();
+				}
+				FALLTHROUGH;
 			case RequestMode::Ignored:
 			case RequestMode::Window:
 			default:
@@ -902,14 +914,19 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 	cfl.set_missing_data(false); // Buffer mode is never missing data, even if there IS no data.
 
 	// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
-	// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
 	for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
 	{
 		TLOG(TLVL_APPLYREQUESTS) << "ApplyRequests: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container with sequence ID " << ev_counter();
 		cfl.addFragment(*it);
+		if (bufferModeKeepLatest_ && dataBuffer_.size() == 1)
+		{
+			break;
+		}
 		dataBufferDepthBytes_ -= (*it)->sizeBytes();
 		it = dataBuffer_.erase(it);
+		
 	}
+	bufferModeHasNewData_ = false;
 	requestReceiver_->RemoveRequest(ev_counter());
 	ev_counter_inc(1, true);
 }

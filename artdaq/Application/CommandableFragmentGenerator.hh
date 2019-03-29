@@ -96,6 +96,8 @@ namespace artdaq
 			fhicl::Atom<Fragment::timestamp_t> request_window_width  { fhicl::Name{"request_window_width"             }, fhicl::Comment{"For Window request mode, the window will be timestamp - offset to timestamp - offset + width"}, 0 };
 			/// "stale_request_timeout" (Default: -1) : Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded
 			fhicl::Atom<Fragment::timestamp_t> stale_request_timeout { fhicl::Name{"stale_request_timeout"            }, fhicl::Comment{"Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded"}, 0xFFFFFFFF };
+			/// "buffer_mode_keep_latest" (Default: false): Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)
+		    fhicl::Atom<bool> buffer_mode_keep_latest                { fhicl::Name{"buffer_mode_keep_latest"          }, fhicl::Comment{"Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)"}, false};
 			/// "expected_fragment_type" (Default: 231, EmptyFragmentType) : The type of Fragments this CFG will be generating. "Empty" will auto - detect type based on Fragments generated.
 			fhicl::Atom<Fragment::type_t> expected_fragment_type     { fhicl::Name{"expected_fragment_type"           }, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType) };
 			/// "request_windows_are_unique" (Default: true) : Whether Fragments should be removed from the buffer when matched to a request window
@@ -518,6 +520,8 @@ namespace artdaq
 		std::unique_ptr<RequestReceiver> requestReceiver_;
 
 		RequestMode mode_;
+	    bool bufferModeKeepLatest_;
+		bool bufferModeHasNewData_;
 		Fragment::timestamp_t windowOffset_;
 		Fragment::timestamp_t windowWidth_;
 		Fragment::timestamp_t staleTimeout_;
