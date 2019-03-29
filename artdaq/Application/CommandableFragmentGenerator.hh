@@ -138,6 +138,7 @@ namespace artdaq
 			fhicl::Atom<std::string> request_mode                    { fhicl::Name{"request_mode"                     }, fhicl::Comment{"The mode by which the CommandableFragmentGenerator will process reqeusts"}, "ignored" };
 			fhicl::TableFragment<artdaq::RequestReceiver::Config> receiverConfig; ///< Configuration for the Request Receiver. See artdaq::RequestReceiver::Config
 		};
+	    /// Used for ParameterSet validation (if desired)
 		using Parameters = fhicl::WrappedTable<Config>;
 
 		/**
@@ -207,10 +208,10 @@ namespace artdaq
 
 		/**
 		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
-		 * \param[out] output list of FragmentPtr objects ready for transmission
+		 * \param[out] frags list of FragmentPtr objects ready for transmission
 		 * \return True if not stopped
 		 */
-		bool applyRequests(FragmentPtrs& output);
+	    bool applyRequests(FragmentPtrs& frags);
 
 		/**
 		 * \brief Send an EmptyFragmentType Fragment
