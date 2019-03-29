@@ -446,8 +446,8 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			TLOG(TLVL_TRACE) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
 			// Gross, we have to copy.
 			auto sts = TransferInterface::CopyStatus::kTimeout;
-			size_t retries = 0; // Tried once, so retries < send_retry_count_ will have it retry send_retry_count_ times
-			while (sts == TransferInterface::CopyStatus::kTimeout && retries < send_retry_count_)
+			size_t retries = 0; // Have NOT yet tried, so retries <= send_retry_count_ will have it RETRY send_retry_count_ times
+			while (sts == TransferInterface::CopyStatus::kTimeout && retries <= send_retry_count_)
 			{
 				if (!non_blocking_mode_)
 				{
@@ -457,7 +457,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				{
 					sts = destinations_[bdest]->transfer_fragment_min_blocking_mode(frag, send_timeout_us_);
 				}
-				retries++;
+				++retries;
 			}
 			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
 			sent_frag_count_.incSlot(bdest);
@@ -489,6 +489,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 					TLOG(TLVL_WARNING) << "sendFragment: Sending fragment " << seqID << " to destination " << dest << " failed! Retrying...";
 					lastWarnTime = std::chrono::steady_clock::now();
 				}
+				++retries;
 			}
 			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
 			//sendFragTo(std::move(frag), dest);
