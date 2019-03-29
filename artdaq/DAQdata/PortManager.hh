@@ -18,6 +18,9 @@
 #define DEFAULT_MULTICAST_GROUP_OFFSET 128
 
 namespace artdaq {
+	/**
+	 * \brief PortManager attempts to automatically detect interfaces and ports used for the various TCP and UDP sockets used by artdaq.
+	 */
 	class PortManager {
 	public:
 		/// <summary>
@@ -57,22 +60,92 @@ namespace artdaq {
 			fhicl::Atom<std::string> multicast_transfer_pattern{ fhicl::Name{ "multicast_transfer_pattern" }, fhicl::Comment{"Pattern to use to generate Multicast Transfer group address. PPP => Partition Number, SSS => Subsystem ID (default 0), RRR => Rank"},"227.130.14.PPP" };
 
 		};
+	    /// Used for ParameterSet validation (if desired)
 		using Parameters = fhicl::WrappedTable<Config>;
 
-		PortManager();
+		PortManager(); ///< PortManager Construator
+
+	    /**
+		 * \brief Override the default configuration
+		 * \param ps ParameterSet containing overridden parameters
+		 */
 		void UpdateConfiguration(fhicl::ParameterSet const& ps);
 
+		/**
+		 * \brief Get the port that should be used for Routing Tokens
+		 * \param subsystemID Subsystem that this artdaq process belongs to
+		 * \return Port number for Routing Tokens
+		 */
 		int GetRoutingTokenPort(int subsystemID = 0);
+
+	    /**
+		 * \brief Get the port that should be used for Routing Acknowledgements
+		 * \param subsystemID Subsystem that this artdaq process belongs to
+		 * \return Port number for Routing Acknowledgements
+		 */
 		int GetRoutingAckPort(int subsystemID = 0);
+
+	    /**
+		 * \brief Get the XMLRPC port for the given rank
+		 * \param rank Rank to get XMLRPC port for
+		 * \return XMLRPC port for the given rank
+		 */
 		int GetXMLRPCPort(int rank);
+
+	    /**
+		 * \brief Get the TCP Socket transfer port for the given rank
+		 * \param rank Rank to get TCP Socket transfer port for
+		 * \return TCP Socket transfer port for the given rank
+		 */
 		int GetTCPSocketTransferPort(int rank);
+
+		/**
+		 * \brief Get the port that should be used for multicast request messages
+		 * \return Port used for multicast request messages
+		 */
 		int GetRequestMessagePort();
+
+	    /**
+		 * \brief Get the multicast address for request messages
+		 * \param subsystemID Subsystem that this artdaq process belongs to
+		 * \return Multicast address for request messages
+		 */
 		std::string GetRequestMessageGroupAddress(int subsystemID = 0);
+
+		/**
+		 * \brief Get the port that should be used for multicast Routing Tables
+		 * \return Port used for multicast Routing Tables
+		 */
 		int GetRoutingTablePort();
+
+	    /**
+		 * \brief Get the multicast address for Routing Tables
+		 * \param subsystemID Subsystem that this artdaq process belongs to
+		 * \return Multicast address for Routing Tables
+		 */
 		std::string GetRoutingTableGroupAddress(int subsystemID = 0);
+
+	    /**
+		 * \brief Get the multicast transfer port for the given rank
+		 * \param rank Rank to get multicast transfer port for
+		 * \return multicast transfer port for the given rank
+		 */
 		int GetMulticastTransferPort(int rank);
+
+	    /**
+		 * \brief Get the multicast address for multicast transfers
+		 * \return Multicast address for multicast transfers
+		 */
 		std::string GetMulticastTransferGroupAddress();
 
+		/**
+		 * \brief Determine the output interface address, using the hints provided
+		 * \param interface_name If set, the name of the interface that should be used for multicast (e.g. "eth0"). Default: ""
+		 * \param interface_address If set, the address of the interface that should be used for multicast (e.g. 192.168.0.1). Default: ""
+		 * \return in_addr struct populated with selected interface's info
+		 *
+		 * If neither interface_name or interface_address are set, then the interface will be auto-detected, giving preference to private network addresses.
+		 */
 		in_addr GetMulticastOutputAddress(std::string interface_name = "", std::string interface_address = "");
 
 

@@ -35,6 +35,7 @@ namespace artdaq
 			/// "request_increment" (Default: 1) : Expected increment of sequence ID between each request
 			fhicl::Atom<artdaq::Fragment::sequence_id_t> request_increment{ fhicl::Name{"request_increment"}, fhicl::Comment{"Expected increment of sequence ID between each request"}, 1 };
 		};
+	    /// Used for ParameterSet validation (if desired)
 		using Parameters = fhicl::WrappedTable<Config>;
 
 		/**
