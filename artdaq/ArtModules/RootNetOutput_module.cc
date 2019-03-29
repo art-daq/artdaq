@@ -1,5 +1,5 @@
 
-#define TRACE_NAME "RootNetOutput"
+#define TRACE_NAME (app_name + "_RootNetOutput").c_str()
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 
 #include "artdaq/ArtModules/NetMonTransportService.h"
