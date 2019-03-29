@@ -34,6 +34,7 @@ namespace artdaq
 			/// "max_fragment_size_words" (Default: 1024) : The maximum Fragment size expected.May be used for static memory allocation, and will cause errors if larger Fragments are sent.
 			fhicl::Atom<size_t> max_fragment_size{ fhicl::Name{"max_fragment_size_words" }, fhicl::Comment{ "The maximum Fragment size expected.May be used for static memory allocation, and will cause errors if larger Fragments are sent." }, 1024 };
 		};
+	    /// Used for ParameterSet validation (if desired)
 		using Parameters = fhicl::WrappedTable<Config>;
 
 		/// <summary>

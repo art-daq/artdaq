@@ -25,6 +25,7 @@ namespace artdaq
 			/// "commanderPluginType" (REQUIRED): The type of Commander plugin to load
 			fhicl::Atom<std::string> commanderPluginType{ fhicl::Name{"commanderPluginType"}, fhicl::Comment{"String identifying the name of the CommanderInterface plugin to load"} };
 		};
+	    /// Used for ParameterSet validation (if desired)
 		using Parameters = fhicl::WrappedTable<Config>;
 
 		/**
