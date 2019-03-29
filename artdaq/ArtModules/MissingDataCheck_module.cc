@@ -62,6 +62,9 @@ public:
    */
   void analyze(art::Event const& e) override;
 
+  /**
+   * \brief This method is called at the end of the job, used to print a summary
+   */
   void endJob() override;
   
 private:
