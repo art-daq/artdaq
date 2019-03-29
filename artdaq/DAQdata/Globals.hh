@@ -40,7 +40,7 @@ namespace artdaq
 		static std::string app_name_; ///< The name of the current application, to be used in logging and metrics
 		static int partition_number_; ///< The partition number of the current application
 
-		static std::mutex mftrace_mutex_;
+		static std::mutex mftrace_mutex_; ///< Mutex to protect mftrace_module_ and mftrace_iteration_
 		static std::string mftrace_module_; ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
 		static std::string mftrace_iteration_; ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
 
@@ -104,30 +104,49 @@ namespace artdaq
 			return (part_u & 0x7F);
 		}
 
+		/**
+		 * \brief Get the current iteration for MessageFacility messages
+		 * \return The current iteration
+		 */
 		static std::string GetMFIteration_()
 		{
 			std::unique_lock<std::mutex> lk(mftrace_mutex_);
 			return mftrace_iteration_;
 		}
 
+		/**
+		 * \brief Get the current module name for MessageFacility messages
+		 * \return The current module name
+		 */
 		static std::string GetMFModuleName_()
 		{
 			std::unique_lock<std::mutex> lk(mftrace_mutex_);
 			return mftrace_module_;
 		}
 
+	    /**
+		 * \brief Set the current iteration for MessageFacility messages
+		 * \param name The current iteration
+		 */
 		static void SetMFIteration_(std::string name)
 		{
 			std::unique_lock<std::mutex> lk(mftrace_mutex_);
 			mftrace_iteration_ = name;
 		}
 
+	    /**
+		 * \brief Set the current module name for MessageFacility messages
+		 * \param name The current module name
+		 */
 		static void SetMFModuleName_(std::string name)
 		{
 			std::unique_lock<std::mutex> lk(mftrace_mutex_);
 			mftrace_module_ = name;
 		}
 
+		/**
+		 * \brief Clean up statically-allocated Manager class instances
+		 */
 		static void CleanUpGlobals()
 		{
 			metricMan_.reset(nullptr);
