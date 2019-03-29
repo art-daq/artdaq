@@ -157,6 +157,7 @@ public:
 
 		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;  ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
 	};
+	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
@@ -347,6 +348,7 @@ public:
 
 	/**
 		 * \brief Gets the address of the "dropped data" fragment. Used for testing.
+		 * \param frag Fragment ID to get "dropped data" for
 		 * \return Pointer to the data payload of the "dropped data" fragment
 		 */
 	RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { return dropped_data_[frag]->dataBegin(); }
@@ -370,9 +372,14 @@ public:
 	/**
 		 * \brief Get the subrun number that the given Sequence ID would be assigned to
 		 * \param seqID Sequence ID to check
+		 * \return Subrun number that the given sequence ID will be associated with 
 		 */
 	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
 
+	/**
+	 * \brief Get the current subrun number (Gets the last defined subrun)
+	 * \return Number of the subrun that corresponds to events with the maximum possible sequence ID.
+	 */
 	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
 private:
