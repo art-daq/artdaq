@@ -48,6 +48,12 @@ namespace artdaq
 		size_t GetReceiverCount() const { return receiver_ranks_.size(); }
 
 		/**
+		 * \brief Get the set of configured receivers
+		 * \return The configured receivers for this RoutingPolicy
+		 */
+		std::unordered_set<int> const& GetReceivers() const { return receiver_ranks_; }
+
+		/**
 		 * \brief Get the largest number of tokens that the RoutingMasterPolicy has seen at any one time
 		 * \return The largest number of tokens that the RoutingMasterPolicy has seen at any one time
 		 */
