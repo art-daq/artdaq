@@ -1,10 +1,10 @@
-#include <sys/un.h>
-#include <sys/time.h>
-#include <sys/epoll.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <pthread.h>
 #include <sched.h>
+#include <sys/epoll.h>
+#include <sys/time.h>
+#include <sys/un.h>
 #include <algorithm>
 
 #include "canvas/Utilities/Exception.h"
@@ -12,13 +12,14 @@
 
 #define TRACE_NAME (app_name + "_RoutingMasterCore").c_str() // include these 2 first -
 #include "artdaq/DAQdata/Globals.hh"   // to get tracemf.h before trace.h
+
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "artdaq/Application/RoutingMasterCore.hh"
 #include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
-#include "artdaq/DAQdata/TCP_listen_fd.hh"
+#include "artdaq/Application/RoutingMasterCore.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
+#include "artdaq/DAQdata/TCP_listen_fd.hh"
 
 const std::string artdaq::RoutingMasterCore::
 TABLE_UPDATES_STAT_KEY("RoutingMasterCoreTableUpdates");
@@ -68,7 +69,8 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 
 	if (daq_pset.has_key("rank"))
 	{
-		if (my_rank >= 0 && daq_pset.get<int>("rank") != my_rank) {
+		if (my_rank >= 0 && daq_pset.get<int>("rank") != my_rank)
+		{
 			TLOG(TLVL_WARNING) << "Routing Master rank specified at startup is different than rank specified at configure! Using rank received at configure!";
 		}
 		my_rank = daq_pset.get<int>("rank");
@@ -76,7 +78,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	if (my_rank == -1)
 	{
 		TLOG(TLVL_ERROR) << "Routing Master rank not specified at startup or in configuration! Aborting";
-		exit(1);
+		throw art::Exception(art::errors::Configuration) << "Routing Master rank not specified at startup or in configuration! Aborting";
 	}
 
 	try
@@ -96,7 +98,8 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	{
 		metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
 	}
-	catch (...) {} // OK if there's no metrics table defined in the FHiCL 
+	catch (...)
+	{}  // OK if there's no metrics table defined in the FHiCL
 
 	if (metric_pset.is_empty())
 	{
@@ -117,7 +120,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	if (policy_plugin_spec.length() == 0)
 	{
 		TLOG(TLVL_ERROR)
-			<< "No fragment generator (parameter name = \"policy\") was "
+		    << "No policy name (parameter name = \"policy\") was "
 			<< "specified in the policy ParameterSet.  The "
 			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\"." ;
 		return false;
@@ -161,7 +164,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	statsHelper_.createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
 
 	shutdown_requested_.store(false);
-	start_recieve_token_thread_();
+	start_receive_token_thread_();
 	return true;
 }
 
@@ -320,14 +323,14 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (table_socket_ < 0)
 		{
-			TLOG(TLVL_ERROR) << "I failed to create the socket for sending Data Requests! Errno: " << errno ;
-			exit(1);
+			TLOG(TLVL_ERROR) << "Failed to create the socket for sending table updates! Errno: " << errno;
+			throw art::Exception(art::errors::Configuration) << "Failed to create the socket for sending table updates! Errno: " << errno;
 		}
 		auto sts = ResolveHost(send_tables_address_.c_str(), send_tables_port_, send_tables_addr_);
 		if (sts == -1)
 		{
 			TLOG(TLVL_ERROR) << "Unable to resolve table_update_address" ;
-			exit(1);
+			throw art::Exception(art::errors::Configuration) << "Unable to resolve table_update_address";
 		}
 
 		auto yes = 1;
@@ -338,31 +341,31 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			sts = ResolveHost(receive_address_.c_str(), addr);
 			if (sts == -1)
 			{
-				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to resolve routing_master_address" << std::endl;;
+				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to resolve routing_master_address" << std::endl;
+				;
 			}
 
 			if (setsockopt(table_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 			{
-				throw art::Exception(art::errors::Configuration) <<
-					"RoutingMasterCore: Unable to enable port reuse on table update socket" << std::endl;
-				exit(1);
+				TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on table update socket";
+				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to enable port reuse on table update socket" << std::endl;
 			}
 
 			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &yes, sizeof(yes)) < 0)
 			{
 				TLOG(TLVL_ERROR) << "Unable to enable multicast loopback on table socket" ;
-				exit(1);
+				throw art::Exception(art::errors::Configuration) << "Unable to enable multicast loopback on table socket";
 			}
 			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 			{
 				TLOG(TLVL_ERROR) << "Cannot set outgoing interface. Errno: " << errno ;
-				exit(1);
+				throw art::Exception(art::errors::Configuration) << "Cannot set outgoing interface. Errno: " << errno;
 			}
 		}
 		if (setsockopt(table_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
 		{
 			TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast. Errno: " << errno ;
-			exit(1);
+			throw art::Exception(art::errors::Configuration) << "Cannot set request socket to broadcast. Errno: " << errno;
 		}
 	}
 
@@ -372,8 +375,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (ack_socket_ < 0)
 		{
+			TLOG(TLVL_ERROR) << "RoutingMasterCore: Error creating socket for receiving table update acks!";
 			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Error creating socket for receiving table update acks!" << std::endl;
-			exit(1);
 		}
 
 		struct sockaddr_in si_me_request;
@@ -381,9 +384,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto yes = 1;
 		if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 		{
-			throw art::Exception(art::errors::Configuration) <<
-				"RoutingMasterCore: Unable to enable port reuse on ack socket" << std::endl;
-			exit(1);
+			TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on ack socket";
+			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to enable port reuse on ack socket" << std::endl;
 		}
 		memset(&si_me_request, 0, sizeof(si_me_request));
 		si_me_request.sin_family = AF_INET;
@@ -391,9 +393,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 		if (bind(ack_socket_, reinterpret_cast<struct sockaddr *>(&si_me_request), sizeof(si_me_request)) == -1)
 		{
-			throw art::Exception(art::errors::Configuration) <<
-				"RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;
-			exit(1);
+			TLOG(TLVL_ERROR) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_;
+			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;
 		}
 		TLOG(TLVL_DEBUG) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_ ;
 	}
@@ -417,8 +418,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
 
 		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ ;
-		TRACE(16,"headerData:0x%016lx%016lx packetData:0x%016lx%016lx"
-		      ,((unsigned long*)&header)[0],((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0],((unsigned long*)&packet[0])[1] );
+	TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);
 		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
 		if (sts != static_cast<ssize_t>(buffer.size()))
 		{
@@ -478,7 +478,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 					else
 					{
 						TLOG(TLVL_ERROR) << "An unexpected error occurred during ack packet receive" ;
-						exit(2);
+					throw art::Exception(art::errors::LogicError) << "An unexpected error occurred during ack packet receive";
 					}
 				}
 				else
@@ -526,19 +526,25 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 		TLOG(TLVL_DEBUG) << "Receive Token loop start" ;
 		if (token_socket_ == -1)
 		{
+			if (token_epoll_fd_ != -1) close(token_epoll_fd_);
+
 			TLOG(TLVL_DEBUG) << "Opening token listener socket" ;
 			token_socket_ = TCP_listen_fd(receive_token_port_, 3 * sizeof(detail::RoutingToken));
 			fcntl(token_socket_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
 
-			if (token_epoll_fd_ != -1) close(token_epoll_fd_);
 			struct epoll_event ev;
 			token_epoll_fd_ = epoll_create1(0);
+			if (token_epoll_fd_ == -1)
+			{
+				TLOG(TLVL_ERROR) << "Error creating the epoll file descriptor, errno=" << errno;
+				throw art::Exception(art::errors::Configuration) << "Error creating the epoll file descriptor, errno=" << errno;
+			}
 			ev.events = EPOLLIN | EPOLLPRI;
 			ev.data.fd = token_socket_;
 			if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, token_socket_, &ev) == -1)
 			{
-				TLOG(TLVL_ERROR) << "Could not register listen socket to epoll fd" ;
-				exit(3);
+				TLOG(TLVL_ERROR) << "Could not register listen socket (" << token_socket_ << ") to epoll fd (" << token_epoll_fd_ << "), errno=" << errno;
+				throw art::Exception(art::errors::Configuration) << "Could not register listen socket (" << token_socket_ << ") to epoll fd (" << token_epoll_fd_ << "), errno=" << errno;
 			}
 		}
 		if (token_socket_ == -1 || token_epoll_fd_ == -1)
@@ -550,8 +556,8 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), current_table_interval_ms_);
 		if (nfds == -1)
 		{
-			perror("epoll_wait");
-			exit(EXIT_FAILURE);
+			TLOG(TLVL_ERROR) << "Error in epoll_wait. errno=" << errno;
+			throw art::Exception(art::errors::LogicError) << "Error in epoll_wait. errno=" << errno;
 		}
 
 		while (stop_requested_ && !shutdown_requested_)
@@ -572,8 +578,8 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 
 				if (conn_sock == -1)
 				{
-					perror("accept");
-					exit(EXIT_FAILURE);
+					TLOG(TLVL_ERROR) << "Socket is -1 after accept, errno=" << errno;
+					throw art::Exception(art::errors::LogicError) << "Socket is -1 after accept, errno=" << errno;
 				}
 
 				receive_token_addrs_[conn_sock] = std::string(inet_ntoa(addr.sin_addr));
@@ -583,8 +589,9 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				ev.data.fd = conn_sock;
 				if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
 				{
-					perror("epoll_ctl: conn_sock");
-					exit(EXIT_FAILURE);
+					TLOG(TLVL_ERROR) << "Error in epoll_ctl errno=" << errno << ", token_epoll_fd_=" << token_epoll_fd_ << ", conn_sock=" << conn_sock;
+
+					throw art::Exception(art::errors::LogicError) << "Error in epoll_ctl errno=" << errno << ", token_epoll_fd_=" << token_epoll_fd_ << ", conn_sock=" << conn_sock;
 				}
 			}
 			else
@@ -671,22 +678,24 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 	}
 }
 	}
+	TLOG(TLVL_INFO) << "Receive token thread shutting down";
 }
 
-void artdaq::RoutingMasterCore::start_recieve_token_thread_()
+void artdaq::RoutingMasterCore::start_receive_token_thread_()
 {
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
 	boost::thread::attributes attrs;
 	attrs.set_stack_size(4096 * 2000); // 8000 KB
 	
 	TLOG(TLVL_INFO) << "Starting Token Reception Thread" ;
-	try {
+	try
+	{
 		ev_token_receive_thread_ = boost::thread(attrs, boost::bind(&RoutingMasterCore::receive_tokens_, this));
 	}
 	catch(boost::exception const& e)
 	{
-		std::cerr << "Exception encountered starting Token Reception thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
-		exit(3);
+		TLOG(TLVL_ERROR) << "Exception encountered starting Token Reception thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		throw cet::exception("Thread Error") << "Exception encountered starting Token Reception thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
 	}
 	TLOG(TLVL_INFO) << "Started Token Reception Thread";
 }
@@ -696,9 +705,7 @@ std::string artdaq::RoutingMasterCore::report(std::string const&) const
 	std::string resultString;
 
 	// if we haven't been able to come up with any report so far, say so
-	auto tmpString = app_name + " run number = " + std::to_string(run_id_.run())
-		+ ", table updates sent = " + std::to_string(table_update_count_)
-		+ ", Receiver tokens received = " + std::to_string(received_token_count_);
+	auto tmpString = app_name + " run number = " + std::to_string(run_id_.run()) + ", table updates sent = " + std::to_string(table_update_count_) + ", Receiver tokens received = " + std::to_string(received_token_count_);
 	return tmpString;
 }
 

@@ -162,7 +162,7 @@ public:
 
 private:
 	void receive_tokens_();
-	void start_recieve_token_thread_();
+	void start_receive_token_thread_();
 
 	art::RunID run_id_;
 
