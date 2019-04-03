@@ -70,6 +70,7 @@ public:
 	*   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
 	*   "senders_send_by_send_count" (Default: false): If true, senders will use the current send count to lookup routing information in the table, instead of sequence ID.
 	*   "table_ack_retry_count" (Default: 5): The number of times the table will be resent while waiting for acknowledements
+	*   "table_entry_timeout_ms" (Default: 10000): The amount of time table entries are allowed to be routed. After this timeout expires, they will be removed from subsequent routing tables. Note that this will lead to data loss! (Value of 0 to disable)
 	*   "routing_token_port" (Default: 35555): The port on which to listen for RoutingToken packets
 	*   "table_update_port" (Default: 35556): The port on which to send table updates
 	*   "table_acknowledge_port" (Default: 35557): The port on which to listen for RoutingAckPacket datagrams
@@ -137,15 +138,15 @@ public:
 
 	/**
 	 * \brief Sends a detail::RoutingPacket to the table receivers
-	 * \param table The detail::RoutingPacket to send
+	 * \param packet The RoutingPacket to send
 	 *
 	 * send_event_table checks the table update socket and the acknowledge socket before
 	 * sending the table update the first time. It then enters a loop where it sends the table
 	 * update, then waits for acknowledgement packets. It keeps track of which senders have sent
 	 * their acknowledgement packets, and discards duplicate acks. It leaves this loop once all
-	 * senders have sent a valid acknowledgement packet.
+	 * senders have sent a valid acknowledgement packet, or if max_ack_cycle_count_ is exceeded.
 	 */
-	void send_event_table(detail::RoutingPacket table);
+	void send_event_table(detail::RoutingPacket packet);
 
 	/**
 	* \brief Send a report on the current status of the RoutingMasterCore
@@ -163,6 +164,7 @@ public:
 private:
 	void receive_tokens_();
 	void start_receive_token_thread_();
+	detail::RoutingPacket get_current_table_();
 
 	art::RunID run_id_;
 
@@ -171,11 +173,14 @@ private:
 
 	size_t max_table_update_interval_ms_;
 	size_t max_ack_cycle_count_;
+	size_t table_entry_timeout_ms_;
 	detail::RoutingMasterMode routing_mode_;
 	std::atomic<size_t> current_table_interval_ms_;
 	std::atomic<size_t> table_update_count_;
 	std::atomic<size_t> received_token_count_;
 	std::unordered_map<int, size_t> received_token_counter_;
+
+	std::map<std::chrono::steady_clock::time_point, detail::RoutingPacket> current_tables_;
 
 	std::vector<int> sender_ranks_;
 

@@ -186,6 +186,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
 	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
+	table_entry_timeout_ms_ = daq_pset.get<size_t>("table_entry_timeout_ms", 10000);
 	receive_token_port_ = daq_pset.get<int>("routing_token_port", 35555);
 	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
 	receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port", 35557);
@@ -312,7 +313,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 
 		if (startTime >= nextSendTime)
 		{
-			auto table = policy_->GetCurrentTable();
+			auto table = get_current_table_();
 			if (table.size() > 0)
 			{
 				send_event_table(table);
@@ -438,8 +439,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 	auto counter = 0U;
 	auto start_time = std::chrono::steady_clock::now();
-	while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0 && !stop_requested_)
-	{
+
 		// Send table update
 		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
@@ -463,8 +463,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto last = packet.rbegin()->sequence_id;
 		TLOG(TLVL_DEBUG) << "Sent " << sts << " bytes. Expecting acks to have first= " << first << ", and last= " << last ;
 
-
 		auto startTime = std::chrono::steady_clock::now();
+	auto timeout = false;
 		while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0)
 		{
 			auto table_ack_wait_time_ms = current_table_interval_ms_ / max_ack_cycle_count_;
@@ -492,6 +492,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				    ++ackIter;
 				  }
 				}
+			timeout = true;
 				break;
 			}
 
@@ -543,6 +544,10 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			}
 			usleep(table_ack_wait_time_ms * 1000 / 10);
 		}
+
+	if (!timeout)
+	{
+		current_tables_.clear();
 	}
 	if (metricMan)
 	{
@@ -815,4 +820,26 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 			metricMan->sendMetric("Total Receiver Token Wait Time", mqPtr->getRecentValueSum(), "seconds", 3, MetricMode::Average);
 		}
 	}
+}
+
+artdaq::detail::RoutingPacket artdaq::RoutingMasterCore::get_current_table_()
+{
+	auto now = std::chrono::steady_clock::now();
+	current_tables_[now] = policy_->GetCurrentTable();
+
+	detail::RoutingPacket output;
+
+	for (auto it = current_tables_.begin(); it != current_tables_.end(); ++it)
+	{
+		if (table_entry_timeout_ms_ > 0)
+		{
+			while (artdaq::TimeUtils::GetElapsedTimeMilliseconds(it->first, now) > table_entry_timeout_ms_)
+			{
+				it = current_tables_.erase(it);
+			}
+		}
+		output.insert(output.end(), it->second.begin(), it->second.end());
+	}
+
+	return output;
 }
