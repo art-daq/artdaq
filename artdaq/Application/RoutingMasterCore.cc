@@ -27,7 +27,18 @@ const std::string artdaq::RoutingMasterCore::
 TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
 
 artdaq::RoutingMasterCore::RoutingMasterCore() 
-	: received_token_counter_()
+    : rt_priority_(0)
+    , max_table_update_interval_ms_(0)
+    , max_ack_cycle_count_(0)
+    , table_entry_timeout_ms_(0)
+    , routing_mode_(detail::RoutingMasterMode::RouteBySendCount)
+    , current_table_interval_ms_(0)
+    , table_update_count_(0)
+    , received_token_count_(0)
+    , received_token_counter_()
+    , current_tables_()
+    , sender_ranks_()
+    , policy_(nullptr)
 	, shutdown_requested_(false)
 	, stop_requested_(true)
 	, pause_requested_(false)
@@ -44,7 +55,29 @@ artdaq::RoutingMasterCore::~RoutingMasterCore()
 {
 	TLOG(TLVL_DEBUG) << "Destructor" ;
 	artdaq::StatisticsCollection::getInstance().requestStop();
+	shutdown_requested_.store(true);
 	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
+
+	if (token_socket_ != -1)
+	{
+		close(token_socket_);
+		token_socket_ = -1;
+	}
+	if (table_socket_ != -1)
+	{
+		close(table_socket_);
+		table_socket_ = -1;
+	}
+	if (ack_socket_ != -1)
+	{
+		close(ack_socket_);
+		ack_socket_ = -1;
+	}
+	if (token_epoll_fd_ != -1)
+	{
+		close(token_epoll_fd_);
+		token_epoll_fd_ = -1;
+	}
 }
 
 bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
@@ -144,10 +177,9 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 
 	rt_priority_ = daq_pset.get<int>("rt_priority", 0);
 	sender_ranks_ = daq_pset.get<std::vector<int>>("sender_ranks");
-	num_receivers_ = policy_->GetReceiverCount();
 
 	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
-	receive_token_events_ = std::vector<epoll_event>(num_receivers_ + 1);
+	receive_token_events_ = std::vector<epoll_event>(policy_->GetReceiverCount() + 1);
 
 	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
 	routing_mode_ = mode ? detail::RoutingMasterMode::RouteBySendCount : detail::RoutingMasterMode::RouteBySequenceID;
@@ -641,7 +673,11 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 						TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free. (run=" << buff.run_number << ")" ;
 						if (buff.run_number != run_id_.run())
 						{
-							TLOG(TLVL_DEBUG) << "Received token from a different run number! Current = " << run_id_.run() << ", token = " << buff.run_number << ", ignoring (n=" << buff.new_slots_free << ")";
+							TLOG(TLVL_WARNING) << "Received token from a different run number! Current = " << run_id_.run() << ", token = " << buff.run_number << ", ignoring (n=" << buff.new_slots_free << ")";
+						}
+						else if (!policy_->GetReceivers().count(buff.rank))
+						{
+							TLOG(TLVL_WARNING) << "Received token from unregistered receiver rank ( " << buff.rank << " )! Ignoring (run " << buff.run_number << ", slots " << buff.new_slots_free << ")";
 						}
 						else 
 						{

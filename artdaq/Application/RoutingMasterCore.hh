@@ -178,7 +178,6 @@ private:
 	std::unordered_map<int, size_t> received_token_counter_;
 
 	std::vector<int> sender_ranks_;
-	size_t num_receivers_;
 
 	std::unique_ptr<RoutingMasterPolicy> policy_;
 
