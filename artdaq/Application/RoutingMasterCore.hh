@@ -23,6 +23,10 @@ namespace artdaq
 	class RoutingMasterCore;
 }
 
+namespace artdaqtest {
+   class RoutingMasterCoreTest;
+}
+
 /**
 * \brief RoutingMasterCore implements the state machine for the RoutingMaster artdaq application.
 * RoutingMasterCore collects tokens from receivers, and at regular intervals uses these tokens to build
@@ -30,6 +34,7 @@ namespace artdaq
 */
 class artdaq::RoutingMasterCore
 {
+	friend class artdaqtest::RoutingMasterCoreTest;  // For testing
 public:
 	static const std::string TABLE_UPDATES_STAT_KEY; ///< Key for Table Update count MonnitoredQuantity
 	static const std::string TOKENS_RECEIVED_STAT_KEY; ///< Key for the Tokens Received MonitoredQuantity
