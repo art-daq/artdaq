@@ -17,6 +17,11 @@ public:
 	explicit RoutingMasterCoreTest(artdaq::RoutingMasterCore& rm)
 	    : routing_master_(&rm) {}
 
+	~RoutingMasterCoreTest()
+	{
+		if (routing_master_thread_.joinable()) routing_master_thread_.join();
+	}
+
 	void call_receive_tokens_() { routing_master_->receive_tokens_(); }
 	void call_start_receive_token_thread_() { routing_master_->start_receive_token_thread_(); }
 	artdaq::detail::RoutingPacket call_get_current_table_() { return routing_master_->get_current_table_(); }
@@ -163,6 +168,11 @@ public:
 			{
 				memcpy(&hdr, &buf[0], sizeof(artdaq::detail::RoutingPacketHeader));
 			}
+			else if (stss == -1)
+			{
+				TLOG(TLVL_ERROR) << "Error in recvfrom: " << errno;
+				return artdaq::detail::RoutingPacket(0);
+			}
 			else
 			{
 				TLOG(TLVL_TRACE) << __func__ << ": Incorrect size received. Discarding.";
@@ -185,6 +195,12 @@ public:
 			assert(static_cast<size_t>(stss) == sizeof(artdaq::detail::RoutingPacketHeader) + sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
 			memcpy(&buffer[0], &buf[sizeof(artdaq::detail::RoutingPacketHeader)], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
 			TRACE(6, "receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx", stss, ((unsigned long*)&buffer[0])[0], ((unsigned long*)&buffer[0])[1]);
+
+			if (buffer[0].sequence_id + hdr.nEntries - 1 != buffer[buffer.size() - 1].sequence_id)
+			{
+				TLOG(TLVL_ERROR) << __func__ << ": Skipping this RoutingPacket because the first (" << buffer[0].sequence_id << ") and last (" << buffer[buffer.size() - 1].sequence_id << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
+				return artdaq::detail::RoutingPacket(0);
+			}
 
 			return buffer;
 		}
@@ -210,13 +226,21 @@ public:
 		ack.rank = rank;
 		ack.first_sequence_id = first;
 		ack.last_sequence_id = last;
-		
+
 		TLOG(TLVL_DEBUG) << __func__ << ": Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << get_receive_address_() << ", port " << get_receive_acks_port_() << " (rank = " << rank << ")";
 		sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr*)&ack_addr_, sizeof(ack_addr_));
 	}
 
+	void start_rmcore_table_thread()
+	{
+		boost::thread::attributes attrs;
+		attrs.set_stack_size(4096 * 2000);  // 8 MB
+		routing_master_thread_ = boost::thread(attrs, boost::bind(&artdaq::RoutingMasterCore::process_event_table, routing_master_));
+	}
+
 private:
 	artdaq::RoutingMasterCore* routing_master_;
+	boost::thread routing_master_thread_;
 
 	int table_socket_;
 	int ack_socket_;
@@ -264,57 +288,90 @@ BOOST_AUTO_TEST_CASE(StateMachine)
 
 	// All of these transitions should work without exceptions
 	std::unique_ptr<artdaq::RoutingMasterCore> coreptr(new artdaq::RoutingMasterCore());
+	std::unique_ptr<artdaqtest::RoutingMasterCoreTest> coretestptr(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 
 	// Standard flow
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
+	coretestptr->start_rmcore_table_thread();
 	coreptr->pause(0ULL, 0ULL);
 	coreptr->resume(0ULL, 0ULL);
 	coreptr->stop(0ULL, 0ULL);
 	coreptr->shutdown(0ULL);
 	coreptr.reset(nullptr);
+	coretestptr.reset(nullptr);
 
 	// Stop from pause
 	coreptr.reset(new artdaq::RoutingMasterCore());
+	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
+	coretestptr->start_rmcore_table_thread();
 	coreptr->pause(0ULL, 0ULL);
 	coreptr->stop(0ULL, 0ULL);
 	coreptr->shutdown(0ULL);
 	coreptr.reset(nullptr);
+	coretestptr.reset(nullptr);
 
 	// Shutdown from running
 	coreptr.reset(new artdaq::RoutingMasterCore());
+	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
+	coretestptr->start_rmcore_table_thread();
 	coreptr->shutdown(0ULL);
 	coreptr.reset(nullptr);
+	coretestptr.reset(nullptr);
 
 	// Shutdown from pause
 	coreptr.reset(new artdaq::RoutingMasterCore());
+	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
+	coretestptr->start_rmcore_table_thread();
 	coreptr->pause(0ULL, 0ULL);
 	coreptr->shutdown(0ULL);
 	coreptr.reset(nullptr);
+	coretestptr.reset(nullptr);
 
 	// Destruct from initialized
 	coreptr.reset(new artdaq::RoutingMasterCore());
+	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr.reset(nullptr);
+	coretestptr.reset(nullptr);
 
 	// Destruct from running
 	coreptr.reset(new artdaq::RoutingMasterCore());
+	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
+	coretestptr->start_rmcore_table_thread();
 	coreptr.reset(nullptr);
+	coretestptr.reset(nullptr);
 
 	// Destruct from paused
 	coreptr.reset(new artdaq::RoutingMasterCore());
+	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
+	coretestptr->start_rmcore_table_thread();
 	coreptr->pause(0ULL, 0ULL);
 	coreptr.reset(nullptr);
+	coretestptr.reset(nullptr);
+
+	// Standard flow
+	coreptr.reset(new artdaq::RoutingMasterCore());
+	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
+	coreptr->initialize(ps, 0ULL, 0ULL);
+	coreptr->start(art::RunID(1), 0ULL, 0ULL);
+	coretestptr->start_rmcore_table_thread();
+	coreptr->pause(0ULL, 0ULL);
+	coreptr->resume(0ULL, 0ULL);
+	coreptr->stop(0ULL, 0ULL);
+	coreptr->shutdown(0ULL);
+	coreptr.reset(nullptr);
+	coretestptr.reset(nullptr);
 
 	TLOG(TLVL_INFO) << "Test case StateMachine END";
 }
@@ -385,6 +442,7 @@ BOOST_AUTO_TEST_CASE(Tables)
 
 	artdaq::RoutingMasterCore core;
 	artdaqtest::RoutingMasterCoreTest coreTest(core);
+	my_rank = 2;
 
 	auto sts = core.initialize(ps, 0ULL, 0ULL);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -395,6 +453,25 @@ BOOST_AUTO_TEST_CASE(Tables)
 	sender_ps.put<fhicl::ParameterSet>("routing_token_config", sender_rm_ps);
 
 	artdaq::RequestSender rs(sender_ps);
+	rs.SendRoutingToken(10, 1);
+
+	core.start(art::RunID(1), 0ULL, 0ULL);
+	coreTest.start_rmcore_table_thread();
+
+	auto table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 10);
+
+	auto first = table[0].sequence_id;
+	auto last = table[table.size() - 1].sequence_id;
+	BOOST_REQUIRE_GT(last, first);
+	BOOST_REQUIRE_EQUAL(first, 1);
+	BOOST_REQUIRE_EQUAL(last, 10);
+	BOOST_REQUIRE_EQUAL(table[0].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(table[9].destination_rank, 2);
+
+	coreTest.sendAck(5, first, last);
+	coreTest.sendAck(6, first, last);
+	coreTest.sendAck(7, first, last);
 
 	TLOG(TLVL_INFO) << "Test case Tables END";
 }
