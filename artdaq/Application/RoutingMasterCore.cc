@@ -307,7 +307,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 	auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
 	auto nextSendTime = startTime;
 	double delta_time;
-	while (!stop_requested_ && !pause_requested_)
+	while (!stop_requested_ && !pause_requested_ && !shutdown_requested_)
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
@@ -326,14 +326,17 @@ void artdaq::RoutingMasterCore::process_event_table()
 			{
 				TLOG(TLVL_DEBUG) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!";
 			}
-			auto max_tokens = policy_->GetMaxNumberOfTokens();
-			if (max_tokens > 0)
+			if (policy_)
 			{
-				auto frac = table.size() / static_cast<double>(max_tokens);
-				if (frac > 0.75) current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
-				if (frac < 0.5) current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
-				if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
-				if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
+				auto max_tokens = policy_->GetMaxNumberOfTokens();
+				if (max_tokens > 0)
+				{
+					auto frac = table.size() / static_cast<double>(max_tokens);
+					if (frac > 0.75) current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
+					if (frac < 0.5) current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
+					if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
+					if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
+				}
 			}
 			nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
 			TLOG(TLVL_DEBUG) << "current_table_interval_ms is now " << current_table_interval_ms_;
@@ -344,8 +347,8 @@ void artdaq::RoutingMasterCore::process_event_table()
 		}
 	}
 
-	policy_->Reset();
-	metricMan->do_stop();
+	if(policy_) policy_->Reset();
+	if(metricMan) metricMan->do_stop();
 }
 
 void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
@@ -825,6 +828,7 @@ void artdaq::RoutingMasterCore::sendMetrics_()
 artdaq::detail::RoutingPacket artdaq::RoutingMasterCore::get_current_table_()
 {
 	auto now = std::chrono::steady_clock::now();
+	if (policy_ == nullptr) return detail::RoutingPacket(0);
 	current_tables_[now] = policy_->GetCurrentTable();
 
 	detail::RoutingPacket output;

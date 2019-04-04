@@ -15,7 +15,8 @@ class artdaqtest::RoutingMasterCoreTest
 {
 public:
 	explicit RoutingMasterCoreTest(artdaq::RoutingMasterCore& rm)
-	    : routing_master_(&rm) {}
+	    : routing_master_(&rm), table_socket_(-1), ack_socket_(-1)
+	{}
 
 	~RoutingMasterCoreTest()
 	{
@@ -76,7 +77,7 @@ public:
 		daq_ps.put<std::vector<int>>("sender_ranks", {5, 6, 7});
 
 		fhicl::ParameterSet policy_ps;
-		policy_ps.put<std::vector<int>>("receiver_ranks", {1, 2, 3, 4});
+		policy_ps.put<std::vector<int>>("receiver_ranks", {1, 2, 3, 8});
 		policy_ps.put<std::string>("policy", "NoOp");
 		daq_ps.put<fhicl::ParameterSet>("policy", policy_ps);
 		ps.put<fhicl::ParameterSet>("daq", daq_ps);
@@ -87,7 +88,7 @@ public:
 	void setupTableListener()
 	{
 		int sts;
-		int table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (table_socket_ < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error creating socket for receiving table updates!";
@@ -472,6 +473,8 @@ BOOST_AUTO_TEST_CASE(Tables)
 	coreTest.sendAck(5, first, last);
 	coreTest.sendAck(6, first, last);
 	coreTest.sendAck(7, first, last);
+
+	core.shutdown(0ULL);
 
 	TLOG(TLVL_INFO) << "Test case Tables END";
 }
