@@ -20,6 +20,7 @@ public:
 
 	~RoutingMasterCoreTest()
 	{
+		if (routing_master_ && !routing_master_->shutdown_requested_.load()) routing_master_->shutdown_requested_.store(true);
 		if (routing_master_thread_.joinable()) routing_master_thread_.join();
 	}
 
@@ -146,7 +147,7 @@ public:
 		if (table_socket_ == -1)
 		{
 			TLOG(TLVL_DEBUG) << __func__ << ": The listen socket was not opened successfully.";
-			return artdaq::detail::RoutingPacket(0);
+			throw cet::exception("SocketException") << "The listen socket was not opened successfully.";
 		}
 
 		struct pollfd fd;
@@ -172,24 +173,24 @@ public:
 			else if (stss == -1)
 			{
 				TLOG(TLVL_ERROR) << "Error in recvfrom: " << errno;
-				return artdaq::detail::RoutingPacket(0);
+				throw cet::exception("SocketException") << "Error in recvfrom: " << errno;
 			}
 			else
 			{
 				TLOG(TLVL_TRACE) << __func__ << ": Incorrect size received. Discarding.";
-				return artdaq::detail::RoutingPacket(0);
+				throw cet::exception("TableException") << "Incorrect size received. Discarding.";
 			}
 
 			TRACE(TLVL_DEBUG, "receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx", hdr.nEntries, ((unsigned long*)&hdr)[0], ((unsigned long*)&hdr)[1]);
 			if (hdr.header != ROUTING_MAGIC)
 			{
 				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)=" << stss;
-				return artdaq::detail::RoutingPacket(0);
+				throw cet::exception("TableException") << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)=" << stss;
 			}
 			if (get_routing_mode_() != artdaq::detail::RoutingMasterMode::INVALID && get_routing_mode_() != hdr.mode)
 			{
 				TLOG(TLVL_ERROR) << __func__ << ": Received table has different RoutingMasterMode than expected!";
-				return artdaq::detail::RoutingPacket(0);
+				throw cet::exception("TableException") << __func__ << ": Received table has different RoutingMasterMode than expected!";
 			}
 
 			artdaq::detail::RoutingPacket buffer(hdr.nEntries);
@@ -200,12 +201,13 @@ public:
 			if (buffer[0].sequence_id + hdr.nEntries - 1 != buffer[buffer.size() - 1].sequence_id)
 			{
 				TLOG(TLVL_ERROR) << __func__ << ": Skipping this RoutingPacket because the first (" << buffer[0].sequence_id << ") and last (" << buffer[buffer.size() - 1].sequence_id << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
-				return artdaq::detail::RoutingPacket(0);
+				throw cet::exception("TableException") << __func__ << ": Skipping this RoutingPacket because the first (" << buffer[0].sequence_id << ") and last (" << buffer[buffer.size() - 1].sequence_id << ") entries are inconsistent (sz=" << hdr.nEntries << ")!";
 			}
 
 			return buffer;
 		}
 		TLOG(TLVL_ERROR) << "Error receiving routing table from Routing master: " << errno;
+		throw cet::exception("TableException") << "Error receiving routing table from Routing master: " << errno;
 		return artdaq::detail::RoutingPacket(0);
 	}
 
@@ -473,6 +475,42 @@ BOOST_AUTO_TEST_CASE(Tables)
 	coreTest.sendAck(5, first, last);
 	coreTest.sendAck(6, first, last);
 	coreTest.sendAck(7, first, last);
+
+	my_rank = 1;
+	rs.SendRoutingToken(1, 1);
+	my_rank = 2;
+	rs.SendRoutingToken(1, 1);
+	my_rank = 3;
+	rs.SendRoutingToken(1, 1);
+	my_rank = 8;
+	rs.SendRoutingToken(1, 1);
+	my_rank = 3;
+	rs.SendRoutingToken(1, 1);
+	my_rank = 2;
+	rs.SendRoutingToken(1, 1);
+	my_rank = 1;
+	rs.SendRoutingToken(1, 1);
+
+	table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 7);
+	BOOST_REQUIRE_EQUAL(table[0].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(table[0].sequence_id, 11);
+	BOOST_REQUIRE_EQUAL(table[1].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(table[1].sequence_id, 12);
+	BOOST_REQUIRE_EQUAL(table[2].destination_rank, 3);
+	BOOST_REQUIRE_EQUAL(table[2].sequence_id, 13);
+	BOOST_REQUIRE_EQUAL(table[3].destination_rank, 8);
+	BOOST_REQUIRE_EQUAL(table[3].sequence_id, 14);
+	BOOST_REQUIRE_EQUAL(table[4].destination_rank, 3);
+	BOOST_REQUIRE_EQUAL(table[4].sequence_id, 15);
+	BOOST_REQUIRE_EQUAL(table[5].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(table[5].sequence_id, 16);
+	BOOST_REQUIRE_EQUAL(table[6].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(table[6].sequence_id, 17);
+
+	coreTest.sendAck(5, 11, 17);
+	coreTest.sendAck(6, 11, 17);
+	coreTest.sendAck(7, 11, 17);
 
 	core.shutdown(0ULL);
 

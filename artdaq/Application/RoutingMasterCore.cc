@@ -25,6 +25,8 @@ const std::string artdaq::RoutingMasterCore::
     TABLE_UPDATES_STAT_KEY("RoutingMasterCoreTableUpdates");
 const std::string artdaq::RoutingMasterCore::
     TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
+#define REPORT_FROM_TABLE_THREAD 1
+#define REPORT_FROM_TOKEN_THREAD 0  // This thread could be data-driven
 
 artdaq::RoutingMasterCore::RoutingMasterCore()
     : rt_priority_(0)
@@ -345,10 +347,20 @@ void artdaq::RoutingMasterCore::process_event_table()
 		{
 			usleep(current_table_interval_ms_ * 10);  // 1/100 of the table update interval
 		}
+
+#if REPORT_FROM_TABLE_THREAD
+		bool readyToReport = statsHelper_.readyToReport(delta_time);
+		if (readyToReport)
+		{
+			std::string statString = buildStatisticsString_();
+			TLOG(TLVL_INFO) << statString;
+			sendMetrics_();
+		}
+#endif
 	}
 
-	if(policy_) policy_->Reset();
-	if(metricMan) metricMan->do_stop();
+	if (policy_) policy_->Reset();
+	if (metricMan) metricMan->do_stop();
 }
 
 void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
@@ -712,6 +724,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 				}
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
+#if REPORT_FROM_TOKEN_THREAD
 				bool readyToReport = statsHelper_.readyToReport(delta_time);
 				if (readyToReport)
 				{
@@ -719,6 +732,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 					TLOG(TLVL_INFO) << statString;
 					sendMetrics_();
 				}
+#endif
 			}
 		}
 	}
