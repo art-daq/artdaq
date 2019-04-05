@@ -186,6 +186,7 @@ private:
 	std::unordered_map<int, size_t> received_token_counter_;
 
 	std::map<std::chrono::steady_clock::time_point, detail::RoutingPacket> current_tables_;
+	std::map<int, artdaq::Fragment::sequence_id_t> highest_sequence_id_acked_;
 
 	std::vector<int> sender_ranks_;
 

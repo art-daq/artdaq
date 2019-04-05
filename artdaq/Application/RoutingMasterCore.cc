@@ -39,6 +39,7 @@ artdaq::RoutingMasterCore::RoutingMasterCore()
     , received_token_count_(0)
     , received_token_counter_()
     , current_tables_()
+    , highest_sequence_id_acked_()
     , sender_ranks_()
     , policy_(nullptr)
     , shutdown_requested_(false)
@@ -359,6 +360,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 #endif
 	}
 
+	highest_sequence_id_acked_.clear();
 	if (policy_) policy_->Reset();
 	if (metricMan) metricMan->do_stop();
 }
@@ -447,10 +449,18 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		TLOG(TLVL_DEBUG) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_;
 	}
 
+	auto last = packet.rbegin()->sequence_id;
 	auto acks = std::unordered_map<int, bool>();
 	for (auto& r : sender_ranks_)
 	{
-		acks[r] = false;
+		if (highest_sequence_id_acked_.count(r) && highest_sequence_id_acked_[r] == last)
+		{
+			acks[r] = true;
+		}
+		else
+		{
+			acks[r] = false;
+		}
 	}
 	auto counter = 0U;
 	auto start_time = std::chrono::steady_clock::now();
@@ -475,7 +485,6 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	// Collect acks
 
 	auto first = packet[0].sequence_id;
-	auto last = packet.rbegin()->sequence_id;
 	TLOG(TLVL_DEBUG) << "Sent " << sts << " bytes. Expecting acks to have first= " << first << ", and last= " << last;
 
 	auto startTime = std::chrono::steady_clock::now();
@@ -537,6 +546,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				{
 					TLOG(TLVL_DEBUG) << "Received table update acknowledgement from sender with rank " << buffer.rank << ".";
 					acks[buffer.rank] = true;
+					assert(highest_sequence_id_acked_[buffer.rank] <= buffer.last_sequence_id);  // Tables always go forwards in time
+					highest_sequence_id_acked_[buffer.rank] = buffer.last_sequence_id;
 					TLOG(TLVL_DEBUG) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; })
 					                 << " acks outstanding";
 				}
