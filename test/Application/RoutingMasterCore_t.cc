@@ -38,6 +38,7 @@ public:
 	size_t const& get_max_table_update_interval_ms_() { return routing_master_->max_table_update_interval_ms_; }
 	size_t const& get_max_ack_cycle_count_() { return routing_master_->max_ack_cycle_count_; }
 	size_t const& get_table_entry_timeout_ms_() { return routing_master_->table_entry_timeout_ms_; }
+	void set_table_entry_timeout_ms_(size_t timeout) { routing_master_->table_entry_timeout_ms_ = timeout; }
 	artdaq::detail::RoutingMasterMode const& get_routing_mode_() { return routing_master_->routing_mode_; }
 	std::atomic<size_t> const& get_current_table_interval_ms_() { return routing_master_->current_table_interval_ms_; }
 	std::atomic<size_t> const& get_table_update_count_() { return routing_master_->table_update_count_; }
@@ -461,6 +462,7 @@ BOOST_AUTO_TEST_CASE(Tables)
 	core.start(art::RunID(1), 0ULL, 0ULL);
 	coreTest.start_rmcore_table_thread();
 
+	// Check that tables are sent
 	auto table = coreTest.receiveTableUpdate();
 	BOOST_REQUIRE_EQUAL(table.size(), 10);
 
@@ -475,7 +477,11 @@ BOOST_AUTO_TEST_CASE(Tables)
 	coreTest.sendAck(5, first, last);
 	coreTest.sendAck(6, first, last);
 	coreTest.sendAck(7, first, last);
+	usleep(100000);
 
+	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
+
+	// Check that NoOp policy is implemented
 	my_rank = 1;
 	rs.SendRoutingToken(1, 1);
 	my_rank = 2;
@@ -511,6 +517,64 @@ BOOST_AUTO_TEST_CASE(Tables)
 	coreTest.sendAck(5, 11, 17);
 	coreTest.sendAck(6, 11, 17);
 	coreTest.sendAck(7, 11, 17);
+	usleep(100000);
+
+	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
+
+	// Ack on resend should complete the table if no tokens received
+	rs.SendRoutingToken(10, 1);
+	table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 10);
+	coreTest.sendAck(5, 18, 27);
+	coreTest.sendAck(6, 18, 27);
+
+	usleep(10000);
+	table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 10);
+	coreTest.sendAck(7, 18, 27);
+	usleep(100000);
+
+	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
+
+	// Tables should be updated if new tokens arrive
+	rs.SendRoutingToken(10, 1);
+	table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 10);
+	coreTest.sendAck(5, 28, 37);
+	coreTest.sendAck(6, 28, 37);
+
+	rs.SendRoutingToken(10, 1);
+
+	usleep(100000);
+	table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 20);
+	coreTest.sendAck(5, 28, 47);
+	coreTest.sendAck(6, 28, 47);
+	coreTest.sendAck(7, 28, 47);
+	usleep(100000);
+
+	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
+
+	// Old entries should time out
+	coreTest.set_table_entry_timeout_ms_(10);
+	rs.SendRoutingToken(10, 1);
+	table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 10);
+	coreTest.sendAck(5, 48, 57);
+	coreTest.sendAck(6, 48, 57);
+
+	rs.SendRoutingToken(10, 1);
+
+	usleep(100000);
+	table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 10);
+	coreTest.sendAck(5, 58, 67);
+	coreTest.sendAck(6, 58, 67);
+	coreTest.sendAck(7, 58, 67);
+	usleep(100000);
+
+	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
+	
 
 	core.shutdown(0ULL);
 
