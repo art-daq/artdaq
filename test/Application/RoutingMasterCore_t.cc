@@ -599,11 +599,155 @@ BOOST_AUTO_TEST_CASE(Tables)
 	usleep(100000);
 
 	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
-	
 
 	core.shutdown(0ULL);
 
 	TLOG(TLVL_INFO) << "Test case Tables END";
+}
+
+BOOST_AUTO_TEST_CASE(Acks)
+{
+	TLOG(TLVL_INFO) << "Test case Acks BEGIN";
+	fhicl::ParameterSet ps = artdaqtest::RoutingMasterCoreTest::MakeRoutingMasterPset();
+
+	artdaq::RoutingMasterCore core;
+	artdaqtest::RoutingMasterCoreTest coreTest(core);
+	my_rank = 2;
+
+	auto sts = core.initialize(ps, 0ULL, 0ULL);
+	BOOST_REQUIRE_EQUAL(sts, true);
+
+	fhicl::ParameterSet sender_ps;
+	fhicl::ParameterSet sender_rm_ps;
+	sender_rm_ps.put<bool>("use_routing_master", true);
+	sender_ps.put<fhicl::ParameterSet>("routing_token_config", sender_rm_ps);
+
+	artdaq::RequestSender rs(sender_ps);
+	rs.SendRoutingToken(10, 1);
+
+	core.start(art::RunID(1), 0ULL, 0ULL);
+	coreTest.start_rmcore_table_thread();
+
+	TLOG(TLVL_INFO) << "Test case Acks: Check that acks are acknowledged when correct, and ignored if incorrect";
+	auto table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 10);
+
+	auto first = table[0].sequence_id;
+	auto last = table[table.size() - 1].sequence_id;
+	BOOST_REQUIRE_GT(last, first);
+	BOOST_REQUIRE_EQUAL(first, 1);
+	BOOST_REQUIRE_EQUAL(last, 10);
+	BOOST_REQUIRE_EQUAL(table[0].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(table[9].destination_rank, 2);
+
+	coreTest.sendAck(5, first, last);
+	coreTest.sendAck(6, first, last - 1);
+	coreTest.sendAck(8, first, last);
+	usleep(100000);
+
+	auto highest_seen_acks = coreTest.get_highest_sequence_id_acked_();
+	BOOST_REQUIRE_EQUAL(highest_seen_acks.size(), 1);
+	BOOST_REQUIRE_EQUAL(highest_seen_acks.count(5), 1);
+	BOOST_REQUIRE_EQUAL(highest_seen_acks[5], 10);
+
+	TLOG(TLVL_INFO) << "Test case Acks END";
+}
+
+BOOST_AUTO_TEST_CASE(StatisticsString)
+{
+	TLOG(TLVL_INFO) << "Test case StatisticsString BEGIN";
+	fhicl::ParameterSet ps = artdaqtest::RoutingMasterCoreTest::MakeRoutingMasterPset();
+
+	artdaq::RoutingMasterCore core;
+	artdaqtest::RoutingMasterCoreTest coreTest(core);
+	my_rank = 2;
+
+	auto sts = core.initialize(ps, 0ULL, 0ULL);
+	BOOST_REQUIRE_EQUAL(sts, true);
+
+	fhicl::ParameterSet sender_ps;
+	fhicl::ParameterSet sender_rm_ps;
+	sender_rm_ps.put<bool>("use_routing_master", true);
+	sender_ps.put<fhicl::ParameterSet>("routing_token_config", sender_rm_ps);
+
+	TLOG(TLVL_INFO) << "Test case StatisticsString: Running RoutingMaster";
+	artdaq::RequestSender rs(sender_ps);
+	rs.SendRoutingToken(10, 1);
+
+	core.start(art::RunID(1), 0ULL, 0ULL);
+	coreTest.start_rmcore_table_thread();
+
+	auto table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 10);
+
+	auto first = table[0].sequence_id;
+	auto last = table[table.size() - 1].sequence_id;
+	BOOST_REQUIRE_GT(last, first);
+	BOOST_REQUIRE_EQUAL(first, 1);
+	BOOST_REQUIRE_EQUAL(last, 10);
+	BOOST_REQUIRE_EQUAL(table[0].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(table[9].destination_rank, 2);
+
+	coreTest.sendAck(5, first, last);
+	coreTest.sendAck(6, first, last);
+	coreTest.sendAck(7, first, last);
+	usleep(100000);
+
+
+	TLOG(TLVL_INFO) << "Test case StatisticsString: Checking that StatisticsString is built correctly";
+	auto string = coreTest.call_buildStatisticsString_();
+	TLOG(TLVL_INFO) << string;
+	BOOST_REQUIRE(string.size() > 0);
+
+	TLOG(TLVL_INFO) << "Test case StatisticsString END";
+}
+
+BOOST_AUTO_TEST_CASE(RouteBySendCount)
+{
+	TLOG(TLVL_INFO) << "Test case RouteBySendCount BEGIN";
+	fhicl::ParameterSet tmp_ps = artdaqtest::RoutingMasterCoreTest::MakeRoutingMasterPset();
+
+	auto daq_ps = tmp_ps.get<fhicl::ParameterSet>("daq");
+	daq_ps.put<bool>("senders_send_by_send_count", true);
+	fhicl::ParameterSet ps;
+	ps.put<fhicl::ParameterSet>("daq", daq_ps);
+
+	artdaq::RoutingMasterCore core;
+	artdaqtest::RoutingMasterCoreTest coreTest(core);
+	my_rank = 2;
+
+	auto sts = core.initialize(ps, 0ULL, 0ULL);
+	BOOST_REQUIRE_EQUAL(sts, true);
+
+	fhicl::ParameterSet sender_ps;
+	fhicl::ParameterSet sender_rm_ps;
+	sender_rm_ps.put<bool>("use_routing_master", true);
+	sender_ps.put<fhicl::ParameterSet>("routing_token_config", sender_rm_ps);
+
+	artdaq::RequestSender rs(sender_ps);
+	rs.SendRoutingToken(10, 1);
+
+	core.start(art::RunID(1), 0ULL, 0ULL);
+	coreTest.start_rmcore_table_thread();
+
+	TLOG(TLVL_INFO) << "Test case RouteBySendCount: Checking that tables are released only when buffers are available for all senders";
+	auto table = coreTest.receiveTableUpdate();
+	BOOST_REQUIRE_EQUAL(table.size(), 3);
+
+	auto first = table[0].sequence_id;
+	auto last = table[table.size() - 1].sequence_id;
+	BOOST_REQUIRE_GT(last, first);
+	BOOST_REQUIRE_EQUAL(first, 1);
+	BOOST_REQUIRE_EQUAL(last, 3);
+	BOOST_REQUIRE_EQUAL(table[0].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(table[2].destination_rank, 2);
+
+	coreTest.sendAck(5, first, last);
+	coreTest.sendAck(6, first, last);
+	coreTest.sendAck(7, first, last);
+	usleep(100000);
+
+	TLOG(TLVL_INFO) << "Test case RouteBySendCount END";
 }
 
 BOOST_AUTO_TEST_SUITE_END()

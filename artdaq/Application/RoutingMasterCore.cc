@@ -856,7 +856,12 @@ artdaq::detail::RoutingPacket artdaq::RoutingMasterCore::get_current_table_()
 {
 	auto now = std::chrono::steady_clock::now();
 	if (policy_ == nullptr) return detail::RoutingPacket(0);
-	current_tables_[now] = policy_->GetCurrentTable();
+	auto table = policy_->GetCurrentTable();
+	if (table.size() > 0) 
+	{
+		TLOG(TLVL_DEBUG) << "Adding table with size " << table.size() << " to current_tables_ list";
+		current_tables_[now] = table;
+	}
 
 	detail::RoutingPacket output;
 
