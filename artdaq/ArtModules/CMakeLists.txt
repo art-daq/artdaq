@@ -1,8 +1,17 @@
 
 if ( ${ART_HEX_VERSION} LESS 0x21200)
 	add_subdirectory(RootDAQOutput)
+	set(ROOT_IO_LIBS art_Framework_IO_Root)
+	set(TFILE_SERVICE_LIB art_Framework_IO_Root_TFileService)
+elseif ( ${ART_HEX_VERSION} GREATER 0x30200)
+	add_subdirectory(RootDAQOutput-s81)
+	set(ROOT_IO_LIBS art_root_io)
+	set(ROOT_IO_TFILE art_root_io_tfile_support)
+	set(TFILE_SERVICE_LIB art_root_io_TFileService_service)
 elseif ( ${ART_HEX_VERSION} GREATER 0x30000)
-	add_subdirectory(RootDAQOutput-s71)
+    # Don't build anything!
+	set(ROOT_IO_LIBS art_Framework_IO_Root)
+	set(TFILE_SERVICE_LIB art_Framework_IO_Root_TFileService)
 endif()
 
 art_make( BASENAME_ONLY
@@ -20,8 +29,8 @@ art_make( BASENAME_ONLY
   artdaq_ExternalComms
   art_Framework_Core
   art_Framework_IO_Sources
-  art_Framework_IO_Root
-  art_Framework_IO_RootVersion
+  ${ROOT_IO_LIBS}
+  ${ROOT_IO_TFILE}
   art_Framework_IO
   art_Framework_Principal
   artdaq_ArtModules_NetMonTransportService_service
@@ -55,7 +64,7 @@ simple_plugin(RawInput "source"
 simple_plugin(TransferOutput "module"
   artdaq_TransferPlugins
   artdaq_ArtModules
-  art_Framework_IO_Root
+  ${ROOT_IO_LIBS}
   MF_MessageLogger
   fhiclcpp
   cetlib
@@ -88,9 +97,11 @@ simple_plugin(MissingDataCheck "module"
   MF_MessageLogger
   art_Persistency_Provenance
   art_Framework_Services_Registry
-  art_Framework_Services_Optional
-  art_Framework_Services_Optional_TFileService_service
+  ${ROOT_IO_LIBS}
+  ${ROOT_IO_TFILE}
+  ${TFILE_SERVICE_LIB}
   ${ROOT_BASIC_LIB_LIST}
+  ${ROOT_CORE}
   ${CETLIB_EXCEPT}
 )
 
@@ -117,7 +128,7 @@ simple_plugin(NetMonInput "source"
 simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
   artdaq-core_Data_dict
-  art_Framework_IO_Root
+  ${ROOT_IO_LIBS}
   MF_MessageLogger
   fhiclcpp
   cetlib

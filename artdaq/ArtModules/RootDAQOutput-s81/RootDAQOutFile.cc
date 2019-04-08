@@ -1,18 +1,9 @@
-#include "artdaq/ArtModules/RootDAQOutput-s71/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
 // vim: set sw=2 expandtab :
 
 #include "art/Framework/Core/OutputFileGranularity.h"
 #include "art/Framework/IO/ClosingCriteria.h"
 #include "art/Framework/IO/FileStatsCollector.h"
-#include "art/Framework/IO/Root/DropMetaData.h"
-#include "art/Framework/IO/Root/GetFileFormatEra.h"
-#include "art/Framework/IO/Root/GetFileFormatVersion.h"
-#include "art/Framework/IO/Root/RootDB/SQLErrMsg.h"
-#include "art/Framework/IO/Root/RootDB/TKeyVFSOpenPolicy.h"
-#include "art/Framework/IO/Root/RootFileBlock.h"
-#include "art/Framework/IO/Root/checkDictionaries.h"
-#include "art/Framework/IO/Root/detail/KeptProvenance.h"
-#include "art/Framework/IO/Root/detail/getObjectRequireDict.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/ResultsPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"
@@ -20,6 +11,15 @@
 #include "art/Framework/Services/System/DatabaseConnection.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Version/GetReleaseVersion.h"
+#include "art_root_io/DropMetaData.h"
+#include "art_root_io/GetFileFormatEra.h"
+#include "art_root_io/GetFileFormatVersion.h"
+#include "art_root_io/RootDB/SQLErrMsg.h"
+#include "art_root_io/RootDB/TKeyVFSOpenPolicy.h"
+#include "art_root_io/RootFileBlock.h"
+#include "art_root_io/checkDictionaries.h"
+#include "art_root_io/detail/KeptProvenance.h"
+#include "art_root_io/detail/getObjectRequireDict.h"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "canvas/Persistency/Provenance/BranchChildren.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
@@ -213,8 +213,6 @@ namespace {
     }
   }
 
-  using art::detail::RangeSetsSupported;
-
   // The purpose of 'maybeInvalidateRangeSet' is to support the
   // following situation.  Suppose process 1 creates three files with
   // one Run product each, all corresponding to the same Run.  Let's
@@ -255,11 +253,15 @@ namespace {
   // where 'x' represent a dummy product.  Upon aggregating D and E,
   // we obtain the correctly formed A+B+C product.
   template <BranchType BT>
-  enable_if_t<RangeSetsSupported<BT>::value, art::RangeSet>
+  art::RangeSet
   getRangeSet(art::OutputHandle const& oh,
               art::RangeSet const& principalRS,
               bool const producedInThisProcess)
   {
+    if constexpr (!art::detail::range_sets_supported(BT)) {
+      return art::RangeSet::invalid();
+    }
+
     auto rs = oh.isValid() ? oh.rangeOfValidity() : art::RangeSet::invalid();
     // Because a user can specify (e.g.):
     //   r.put(move(myProd), art::runFragment(myRangeSet));
@@ -278,29 +280,16 @@ namespace {
   }
 
   template <BranchType BT>
-  enable_if_t<!RangeSetsSupported<BT>::value, art::RangeSet>
-  getRangeSet(art::OutputHandle const&,
-              art::RangeSet const& /*principalRS*/,
-              bool const /*producedInThisProcess*/)
-  {
-    return art::RangeSet::invalid();
-  }
-
-  template <BranchType BT>
-  enable_if_t<!RangeSetsSupported<BT>::value>
-  setProductRangeSetID(art::RangeSet const& /*rs*/,
-                       sqlite3*,
-                       art::EDProduct*,
-                       map<unsigned, unsigned>& /*checksumToIndexLookup*/)
-  {}
-
-  template <BranchType BT>
-  enable_if_t<RangeSetsSupported<BT>::value>
+  void
   setProductRangeSetID(art::RangeSet const& rs,
                        sqlite3* db,
                        art::EDProduct* product,
                        map<unsigned, unsigned>& checksumToIndexLookup)
   {
+    if constexpr (!art::detail::range_sets_supported(BT)) {
+      return;
+    }
+
     if (!rs.is_valid()) { // Invalid range-sets not written to DB
       return;
     }
@@ -381,7 +370,7 @@ namespace art {
     }
     return result;
   }
-
+  
   RootDAQOutFile::RootDAQOutFile(OutputModule* om,
                                  string const& fileName,
                                  ClosingCriteria const& fileSwitchCriteria,
@@ -835,12 +824,10 @@ art::RootDAQOutFile::createDatabaseTables()
     for (auto const& kv : md) {
       fileCatalogMetadata.insert(kv.first, kv.second);
     }
+
     // Add our own specific information: File format and friends.
     fileCatalogMetadata.insert("file_format", "\"artroot\"");
-    fileCatalogMetadata.insert("file_format_era",
-                               cet::canonical_string(getFileFormatEra()));
-    fileCatalogMetadata.insert("file_format_version",
-                               std::to_string(getFileFormatVersion()));
+
     // File start time.
     namespace bpt = boost::posix_time;
     auto formatted_time = [](auto const& t) {
@@ -855,7 +842,7 @@ art::RootDAQOutFile::createDatabaseTables()
     // Run/subRun information.
     if (!stats.seenSubRuns().empty()) {
       auto I = find_if(md.crbegin(), md.crend(), [](auto const& p) {
-        return p.first == "run_type";
+        return p.first == "art.run_type";
       });
       if (I != md.crend()) {
         ostringstream buf;
@@ -873,17 +860,10 @@ art::RootDAQOutFile::createDatabaseTables()
     // Number of events.
     fileCatalogMetadata.insert("event_count",
                                std::to_string(stats.eventsThisFile()));
-    // first_event and last_event.
-    auto eidToTuple = [](EventID const& eid) -> string {
-      ostringstream eidStr;
-      eidStr << "[ " << eid.run() << ", " << eid.subRun() << ", " << eid.event()
-             << " ]";
-      return eidStr.str();
-    };
     fileCatalogMetadata.insert("first_event",
-                               eidToTuple(stats.lowestEventID()));
+                               std::to_string(stats.lowestEventID().event()));
     fileCatalogMetadata.insert("last_event",
-                               eidToTuple(stats.highestEventID()));
+                               std::to_string(stats.highestEventID().event()));
     // File parents.
     if (!stats.parents().empty()) {
       ostringstream pstring;
@@ -896,6 +876,24 @@ art::RootDAQOutFile::createDatabaseTables()
       pstring << " ]";
       fileCatalogMetadata.insert("parents", pstring.str());
     }
+
+    // The following need to be encapsulated in an art table
+    // first_event and last_event.
+    auto eidToTuple = [](EventID const& eid) -> string {
+      ostringstream eidStr;
+      eidStr << "[ " << eid.run() << ", " << eid.subRun() << ", " << eid.event()
+             << " ]";
+      return eidStr.str();
+    };
+    fileCatalogMetadata.insert("art.first_event",
+                               eidToTuple(stats.lowestEventID()));
+    fileCatalogMetadata.insert("art.last_event",
+                               eidToTuple(stats.highestEventID()));
+    fileCatalogMetadata.insert("art.file_format_era",
+                               cet::canonical_string(getFileFormatEra()));
+    fileCatalogMetadata.insert("art.file_format_version",
+                               std::to_string(getFileFormatVersion()));
+
     // Incoming stream-specific metadata overrides.
     for (auto const& kv : ssmd) {
       fileCatalogMetadata.insert(kv.first, kv.second);
@@ -954,7 +952,7 @@ art::RootDAQOutFile::createDatabaseTables()
 
   void
   RootDAQOutFile::writeTTrees()
-  { 
+  {
   TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeTTrees";
     RecursiveMutexSentry sentry{mutex_, __func__};
     RootOutputTree::writeTTree(metaDataTree_);
@@ -989,29 +987,19 @@ art::RootDAQOutFile::createDatabaseTables()
   }
 
   template <BranchType BT>
-  enable_if_t<!RangeSetsSupported<BT>::value, EDProduct const*>
-  RootDAQOutFile::getProduct(OutputHandle const& oh,
-                             RangeSet const&,
-                             string const& wrappedName)
-  {
-    RecursiveMutexSentry sentry{mutex_, __func__};
-    if (oh.isValid()) {
-      return oh.wrapper();
-    }
-    return dummyProductCache_.product(wrappedName);
-  }
-
-  template <BranchType BT>
-  enable_if_t<RangeSetsSupported<BT>::value, EDProduct const*>
+  EDProduct const*
   RootDAQOutFile::getProduct(OutputHandle const& oh,
                              RangeSet const& prunedProductRS,
                              string const& wrappedName)
   {
     RecursiveMutexSentry sentry{mutex_, __func__};
-    if (oh.isValid() && prunedProductRS.is_valid()) {
-      return oh.wrapper();
+    if constexpr (detail::range_sets_supported(BT)) {
+      if (!prunedProductRS.is_valid()) {
+        return dummyProductCache_.product(wrappedName);
+      }
     }
-    return dummyProductCache_.product(wrappedName);
+    return oh.isValid() ? oh.wrapper() :
+                          dummyProductCache_.product(wrappedName);
   }
 
   template <BranchType BT>
@@ -1109,7 +1097,7 @@ art::RootDAQOutFile::createDatabaseTables()
         // able to get a pointer to it from the passed principal and
         // write it out.
         auto const& rs = getRangeSet<BT>(oh, principalRS, produced);
-        if (RangeSetsSupported<BT>::value && !rs.is_valid()) {
+        if (detail::range_sets_supported(BT) && !rs.is_valid()) {
           // At this point we are now going to write out a dummy product
           // whose Wrapper present flag is false because the range set
           // got invalidated to present double counting when combining
@@ -1142,7 +1130,7 @@ art::RootDAQOutFile::createDatabaseTables()
         throw Exception(errors::LogicError,
                         "RootDAQOutFile::fillBranches(principal, vpp):")
           << "Attempt to write a product with uninitialized provenance!\n";
-          }
+      }
     }
 
   TLOG(TLVL_TRACE) << "RootDAQOutFile::fillBranches before fillTree call";

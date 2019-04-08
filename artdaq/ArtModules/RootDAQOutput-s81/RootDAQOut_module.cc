@@ -7,10 +7,6 @@
 #include "art/Framework/IO/ClosingCriteria.h"
 #include "art/Framework/IO/FileStatsCollector.h"
 #include "art/Framework/IO/PostCloseFileRenamer.h"
-#include "art/Framework/IO/Root/DropMetaData.h"
-#include "art/Framework/IO/Root/RootFileBlock.h"
-#include "artdaq/ArtModules/RootDAQOutput-s71/RootDAQOutFile.h"
-#include "art/Framework/IO/Root/detail/rootOutputConfigurationTools.h"
 #include "art/Framework/IO/detail/logFileAction.h"
 #include "art/Framework/IO/detail/validateFileNamePattern.h"
 #include "art/Framework/Principal/Event.h"
@@ -24,6 +20,11 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Utilities/parent_path.h"
 #include "art/Utilities/unique_filename.h"
+#include "art_root_io/DropMetaData.h"
+#include "art_root_io/RootFileBlock.h"
+#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
+#include "art_root_io/detail/rootOutputConfigurationTools.h"
+#include "art_root_io/setup.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/Exception.h"
@@ -180,13 +181,13 @@ namespace art {
 
     // Data Members.
   private:
-    mutable RecursiveMutex mutex_;
+    mutable RecursiveMutex mutex_{"RootDAQOut::mutex"};
     string const catalog_;
-    bool dropAllEvents_;
+    bool dropAllEvents_{false};
     bool dropAllSubRuns_;
     string const moduleLabel_;
-    int inputFileCount_;
-    unique_ptr<RootDAQOutFile> rootOutputFile_;
+    int inputFileCount_{};
+    unique_ptr<RootDAQOutFile> rootOutputFile_{nullptr};
     FileStatsCollector fstats_;
     PostCloseFileRenamer fRenamer_;
     string const filePattern_;
@@ -201,13 +202,13 @@ namespace art {
     int const basketSize_;
     DropMetaData dropMetaData_;
     bool dropMetaDataForDroppedData_;
-    bool fastCloningEnabled_;
+    bool fastCloningEnabled_{true};
     // Set false only for cases where we are guaranteed never to need historical
     // ParameterSet information in the downstream file, such as when mixing.
     bool writeParameterSets_;
     ClosingCriteria fileProperties_;
-    ProductDescriptions productsToProduce_;
-    ProductTables producedResultsProducts_;
+    ProductDescriptions productsToProduce_{};
+    ProductTables producedResultsProducts_{ProductTables::invalid()};
     RPManager rpm_;
   };
 
@@ -215,19 +216,14 @@ namespace art {
 
   RootDAQOut::RootDAQOut(Parameters const& config)
     : OutputModule{config().omConfig, config.get_PSet()}
-    , mutex_{"RootDAQOut::mutex_"}
     , catalog_{config().catalog()}
-    , dropAllEvents_{false}
     , dropAllSubRuns_{config().dropAllSubRuns()}
     , moduleLabel_{config.get_PSet().get<string>("module_label")}
-    , inputFileCount_{0}
-    , rootOutputFile_{}
     , fstats_{moduleLabel_, processName()}
     , fRenamer_{fstats_}
     , filePattern_{config().omConfig().fileName()}
     , tmpDir_{config().tmpDir() == default_tmpDir ? parent_path(filePattern_) :
                                                     config().tmpDir()}
-    , lastClosedFileName_{}
     , compressionLevel_{config().compressionLevel()}
   , freePercent_{config().freePercent()}
   , freeMB_{config().freeMB()}
@@ -237,18 +233,18 @@ namespace art {
     , basketSize_{config().basketSize()}
     , dropMetaData_{config().dropMetaData()}
     , dropMetaDataForDroppedData_{config().dropMetaDataForDroppedData()}
-    , fastCloningEnabled_{true}
     , writeParameterSets_{config().writeParameterSets()}
     , fileProperties_{(
         detail::validateFileNamePattern(
           config.get_PSet().has_key(config().fileProperties.name()),
         filePattern_), // comma operator!
         config().fileProperties())}
-    , productsToProduce_{}
-    , producedResultsProducts_{ProductTables::invalid()}
     , rpm_{config.get_PSet()}
   {
     TLOG(TLVL_INFO) << "RootDAQOut_module (s71 version) CONSTRUCTOR Start";
+    // Setup the streamers and error handlers.
+    root::setup();
+
     bool const dropAllEventsSet{config().dropAllEvents(dropAllEvents_)};
     dropAllEvents_ = detail::shouldDropEvents(
       dropAllEventsSet, dropAllEvents_, dropAllSubRuns_);

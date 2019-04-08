@@ -1,16 +1,16 @@
-#ifndef art_Framework_IO_Root_RootDAQOutFile_h
-#define art_Framework_IO_Root_RootDAQOutFile_h
+#ifndef art_root_io_RootDAQOutFile_h
+#define art_root_io_RootDAQOutFile_h
 // vim: set sw=2 expandtab :
 
 #include "art/Framework/Core/Frameworkfwd.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/IO/ClosingCriteria.h"
 #include "art/Framework/IO/FileStatsCollector.h"
-#include "art/Framework/IO/Root/DropMetaData.h"
-#include "art/Framework/IO/Root/RootOutputTree.h"
-#include "art/Framework/IO/Root/detail/DummyProductCache.h"
 #include "art/Framework/Principal/RangeSetsSupported.h"
 #include "art/Persistency/Provenance/Selections.h"
+#include "art_root_io/DropMetaData.h"
+#include "art_root_io/RootOutputTree.h"
+#include "art_root_io/detail/DummyProductCache.h"
 #include "boost/filesystem.hpp"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
@@ -35,10 +35,8 @@
 class TTree;
 
 namespace art {
-  class RootDAQOutFile;
-
   class ResultsPrincipal;
-  class RootOutput;
+  class RootDAQOut;
   class History;
   class FileBlock;
   class EventAuxiliary;
@@ -57,6 +55,7 @@ namespace art {
       explicit OutputItem(BranchDescription const& bd);
 
     public: // MEMBER FUNCTIONS
+
       std::string const& branchName() const;
       bool operator<(OutputItem const& rh) const;
 
@@ -92,6 +91,7 @@ namespace art {
     RootDAQOutFile& operator=(RootDAQOutFile&&) = delete;
 
   public: // MEMBER FUNCTIONS
+	void createDatabaseTables();
     void writeTTrees();
     void writeOne(EventPrincipal const&);
     void writeSubRun(SubRunPrincipal const&);
@@ -123,20 +123,12 @@ namespace art {
     bool maxSizeReached(unsigned const maxFileSize) const;
 
   private: // MEMBER FUNCTIONS
-	void createDatabaseTables();
-
     template <BranchType>
     void fillBranches(Principal const&, std::vector<ProductProvenance>*);
     template <BranchType BT>
-    std::enable_if_t<!detail::RangeSetsSupported<BT>::value, EDProduct const*>
-    getProduct(OutputHandle const&,
-               RangeSet const& productRS,
-               std::string const& wrappedName);
-    template <BranchType BT>
-    std::enable_if_t<detail::RangeSetsSupported<BT>::value, EDProduct const*>
-    getProduct(OutputHandle const&,
-               RangeSet const& productRS,
-               std::string const& wrappedName);
+    EDProduct const* getProduct(OutputHandle const&,
+                                RangeSet const& productRS,
+                                std::string const& wrappedName);
 
   private: // MEMBER DATA
     mutable hep::concurrency::RecursiveMutex mutex_;
@@ -191,4 +183,4 @@ namespace art {
 // Local Variables:
 // mode: c++
 // End:
-#endif /* art_Framework_IO_Root_RootDAQOutFile_h */
+#endif /* art_root_io_RootDAQOutFile_h */
