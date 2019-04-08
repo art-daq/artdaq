@@ -74,7 +74,7 @@ public:
 	*   "sender_ranks" (REQUIRED): List of ranks (integers) for the senders (that receive table updates)
 	*   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
 	*   "senders_send_by_send_count" (Default: false): If true, senders will use the current send count to lookup routing information in the table, instead of sequence ID.
-	*   "table_ack_retry_count" (Default: 5): The number of times the table will be resent while waiting for acknowledements
+	*   "table_ack_wait_time_us" (Default: 1000): The amount of time to wait between ack receive cycles
 	*   "table_entry_timeout_ms" (Default: 10000): The amount of time table entries are allowed to be routed. After this timeout expires, they will be removed from subsequent routing tables. Note that this will lead to data loss! (Value of 0 to disable)
 	*   "routing_token_port" (Default: 35555): The port on which to listen for RoutingToken packets
 	*   "table_update_port" (Default: 35556): The port on which to send table updates
@@ -177,7 +177,7 @@ private:
 	int rt_priority_;
 
 	size_t max_table_update_interval_ms_;
-	size_t max_ack_cycle_count_;
+	size_t table_ack_wait_time_us_;
 	size_t table_entry_timeout_ms_;
 	detail::RoutingMasterMode routing_mode_;
 	std::atomic<size_t> current_table_interval_ms_;

@@ -31,7 +31,7 @@ const std::string artdaq::RoutingMasterCore::
 artdaq::RoutingMasterCore::RoutingMasterCore()
     : rt_priority_(0)
     , max_table_update_interval_ms_(0)
-    , max_ack_cycle_count_(0)
+    , table_ack_wait_time_us_(0)
     , table_entry_timeout_ms_(0)
     , routing_mode_(detail::RoutingMasterMode::RouteBySendCount)
     , current_table_interval_ms_(0)
@@ -45,6 +45,7 @@ artdaq::RoutingMasterCore::RoutingMasterCore()
     , shutdown_requested_(false)
     , stop_requested_(true)
     , pause_requested_(false)
+    , token_epoll_fd_(-1)
     , token_socket_(-1)
     , table_socket_(-1)
     , ack_socket_(-1)
@@ -63,21 +64,25 @@ artdaq::RoutingMasterCore::~RoutingMasterCore()
 
 	if (token_socket_ != -1)
 	{
-		close(token_socket_);
+		TLOG(TLVL_DEBUG) << "Closing token_socket_ " << token_socket_;
+		    close(token_socket_);
 		token_socket_ = -1;
 	}
 	if (table_socket_ != -1)
 	{
+		TLOG(TLVL_DEBUG) << "Closing table_socket_ " << table_socket_;
 		close(table_socket_);
 		table_socket_ = -1;
 	}
 	if (ack_socket_ != -1)
 	{
+		TLOG(TLVL_DEBUG) << "Closing ack_socket_ " << ack_socket_;
 		close(ack_socket_);
 		ack_socket_ = -1;
 	}
 	if (token_epoll_fd_ != -1)
 	{
+		TLOG(TLVL_DEBUG) << "Closing token_epoll_fd_ " << token_epoll_fd_;
 		close(token_epoll_fd_);
 		token_epoll_fd_ = -1;
 	}
@@ -188,7 +193,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	routing_mode_ = mode ? detail::RoutingMasterMode::RouteBySendCount : detail::RoutingMasterMode::RouteBySequenceID;
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
-	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
+	table_ack_wait_time_us_ = daq_pset.get<size_t>("table_ack_wait_time_us", 1000);
 	table_entry_timeout_ms_ = daq_pset.get<size_t>("table_entry_timeout_ms", 10000);
 	receive_token_port_ = daq_pset.get<int>("routing_token_port", 35555);
 	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
@@ -462,7 +467,6 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			acks[r] = false;
 		}
 	}
-	auto counter = 0U;
 	auto start_time = std::chrono::steady_clock::now();
 
 	// Send table update
@@ -491,18 +495,9 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	auto timeout = false;
 	while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; }) > 0)
 	{
-		auto table_ack_wait_time_ms = current_table_interval_ms_ / max_ack_cycle_count_;
-		if (TimeUtils::GetElapsedTimeMilliseconds(startTime) > table_ack_wait_time_ms)
+		if (TimeUtils::GetElapsedTimeMilliseconds(startTime) > current_table_interval_ms_)
 		{
-			if (++counter > max_ack_cycle_count_ && table_update_count_ > 0)
-			{
-				TLOG(TLVL_WARNING) << "Did not receive acks from all senders after resending table " << counter
-				                   << " times during the table_update_interval. Check the status of the senders!";
-			}
-			else
-			{
-				TLOG(TLVL_WARNING) << "Did not receive acks from all senders within the timeout (" << table_ack_wait_time_ms << " ms). Resending table update";
-			}
+			TLOG(TLVL_WARNING) << "Did not receive acks from all senders within the timeout (" << current_table_interval_ms_ << " ms). Resending table update";
 
 			if (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; }) <= 3)
 			{
@@ -520,7 +515,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			break;
 		}
 
-		TLOG(20) << "send_event_table: Polling Request socket for new requests";
+		TLOG(20) << "send_event_table: Polling Ack socket for new acks";
 		auto ready = true;
 		while (ready)
 		{
@@ -568,7 +563,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				}
 			}
 		}
-		usleep(table_ack_wait_time_ms * 1000 / 10);
+
+		usleep(table_ack_wait_time_us_);
 	}
 
 	if (!timeout)
@@ -589,7 +585,12 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 		TLOG(TLVL_DEBUG) << "Receive Token loop start";
 		if (token_socket_ == -1)
 		{
-			if (token_epoll_fd_ != -1) close(token_epoll_fd_);
+			if (token_epoll_fd_ != -1)
+			{
+				TLOG(TLVL_DEBUG) << "Closing token_epoll_fd_ " << token_epoll_fd_;
+				close(token_epoll_fd_);
+				token_epoll_fd_ = -1;
+			}
 
 			TLOG(TLVL_DEBUG) << "Opening token listener socket";
 			token_socket_ = TCP_listen_fd(receive_token_port_, 3 * sizeof(detail::RoutingToken));
@@ -689,6 +690,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 					{
 						TLOG(TLVL_ERROR) << "Error reading from token socket: sts=" << sts << ", errno=" << errno;
 						receive_token_addrs_.erase(receive_token_events_[n].data.fd);
+						TLOG(TLVL_DEBUG) << "Closing receive_token_events_[n].data.fd " << receive_token_events_[n].data.fd;
 						close(receive_token_events_[n].data.fd);
 						epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, NULL);
 						reading = false;

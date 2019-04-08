@@ -36,7 +36,7 @@ public:
 	int const& get_rt_priority_() { return routing_master_->rt_priority_; }
 
 	size_t const& get_max_table_update_interval_ms_() { return routing_master_->max_table_update_interval_ms_; }
-	size_t const& get_max_ack_cycle_count_() { return routing_master_->max_ack_cycle_count_; }
+	size_t const& get_table_ack_wait_time_us_() { return routing_master_->table_ack_wait_time_us_; }
 	size_t const& get_table_entry_timeout_ms_() { return routing_master_->table_entry_timeout_ms_; }
 	void set_table_entry_timeout_ms_(size_t timeout) { routing_master_->table_entry_timeout_ms_ = timeout; }
 	artdaq::detail::RoutingMasterMode const& get_routing_mode_() { return routing_master_->routing_mode_; }
@@ -46,6 +46,7 @@ public:
 	std::unordered_map<int, size_t> const& get_received_token_counter_() { return routing_master_->received_token_counter_; }
 
 	std::map<std::chrono::steady_clock::time_point, artdaq::detail::RoutingPacket> const& get_current_tables_() { return routing_master_->current_tables_; }
+	std::map<int, artdaq::Fragment::sequence_id_t> const& get_highest_sequence_id_acked_() { return routing_master_->highest_sequence_id_acked_; }
 
 	std::vector<int> const& get_sender_ranks_() { return routing_master_->sender_ranks_; }
 
@@ -279,7 +280,7 @@ BOOST_AUTO_TEST_CASE(Initialize)
 	BOOST_REQUIRE(coreTest.get_policy_() != nullptr);
 	BOOST_REQUIRE_EQUAL(coreTest.get_policy_()->GetReceiverCount(), 4);
 	BOOST_REQUIRE_EQUAL(coreTest.get_sender_ranks_().size(), 3);
-	BOOST_REQUIRE_EQUAL(coreTest.get_max_ack_cycle_count_(), 5);
+	BOOST_REQUIRE_EQUAL(coreTest.get_table_ack_wait_time_us_(), 1000);
 
 	core.shutdown(0ULL);
 	TLOG(TLVL_INFO) << "Test case Initialize END";
@@ -294,7 +295,7 @@ BOOST_AUTO_TEST_CASE(StateMachine)
 	std::unique_ptr<artdaq::RoutingMasterCore> coreptr(new artdaq::RoutingMasterCore());
 	std::unique_ptr<artdaqtest::RoutingMasterCoreTest> coretestptr(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 
-	// Standard flow
+	TLOG(TLVL_INFO) << "Test case StateMachine: Standard control flow";
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
 	coretestptr->start_rmcore_table_thread();
@@ -302,10 +303,11 @@ BOOST_AUTO_TEST_CASE(StateMachine)
 	coreptr->resume(0ULL, 0ULL);
 	coreptr->stop(0ULL, 0ULL);
 	coreptr->shutdown(0ULL);
+	usleep(10000);
 	coreptr.reset(nullptr);
 	coretestptr.reset(nullptr);
 
-	// Stop from pause
+	TLOG(TLVL_INFO) << "Test case StateMachine: Stop from Paused";
 	coreptr.reset(new artdaq::RoutingMasterCore());
 	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
@@ -314,20 +316,22 @@ BOOST_AUTO_TEST_CASE(StateMachine)
 	coreptr->pause(0ULL, 0ULL);
 	coreptr->stop(0ULL, 0ULL);
 	coreptr->shutdown(0ULL);
+	usleep(10000);
 	coreptr.reset(nullptr);
 	coretestptr.reset(nullptr);
 
-	// Shutdown from running
+	TLOG(TLVL_INFO) << "Test case StateMachine: Shutdown from Running";
 	coreptr.reset(new artdaq::RoutingMasterCore());
 	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
 	coretestptr->start_rmcore_table_thread();
 	coreptr->shutdown(0ULL);
+	usleep(10000);
 	coreptr.reset(nullptr);
 	coretestptr.reset(nullptr);
 
-	// Shutdown from pause
+	TLOG(TLVL_INFO) << "Test case StateMachine: Shutdown from Paused";
 	coreptr.reset(new artdaq::RoutingMasterCore());
 	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
@@ -335,36 +339,40 @@ BOOST_AUTO_TEST_CASE(StateMachine)
 	coretestptr->start_rmcore_table_thread();
 	coreptr->pause(0ULL, 0ULL);
 	coreptr->shutdown(0ULL);
+	usleep(10000);
 	coreptr.reset(nullptr);
 	coretestptr.reset(nullptr);
 
-	// Destruct from initialized
+	TLOG(TLVL_INFO) << "Test case StateMachine: Destruct from Initialized";
 	coreptr.reset(new artdaq::RoutingMasterCore());
 	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
+	usleep(10000);
 	coreptr.reset(nullptr);
 	coretestptr.reset(nullptr);
 
-	// Destruct from running
+	TLOG(TLVL_INFO) << "Test case StateMachine: Destruct from Running";
 	coreptr.reset(new artdaq::RoutingMasterCore());
 	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
 	coretestptr->start_rmcore_table_thread();
+	usleep(10000);
 	coreptr.reset(nullptr);
 	coretestptr.reset(nullptr);
 
-	// Destruct from paused
+	TLOG(TLVL_INFO) << "Test case StateMachine: Destruct from Paused";
 	coreptr.reset(new artdaq::RoutingMasterCore());
 	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
 	coreptr->start(art::RunID(1), 0ULL, 0ULL);
 	coretestptr->start_rmcore_table_thread();
 	coreptr->pause(0ULL, 0ULL);
+	usleep(10000);
 	coreptr.reset(nullptr);
 	coretestptr.reset(nullptr);
 
-	// Standard flow
+	TLOG(TLVL_INFO) << "Test case StateMachine: Standard control flow";
 	coreptr.reset(new artdaq::RoutingMasterCore());
 	coretestptr.reset(new artdaqtest::RoutingMasterCoreTest(*coreptr.get()));
 	coreptr->initialize(ps, 0ULL, 0ULL);
@@ -374,6 +382,7 @@ BOOST_AUTO_TEST_CASE(StateMachine)
 	coreptr->resume(0ULL, 0ULL);
 	coreptr->stop(0ULL, 0ULL);
 	coreptr->shutdown(0ULL);
+	usleep(10000);
 	coreptr.reset(nullptr);
 	coretestptr.reset(nullptr);
 
@@ -399,7 +408,7 @@ BOOST_AUTO_TEST_CASE(SendTokens)
 	artdaq::RequestSender rs(sender_ps);
 
 	my_rank = 3;
-	// This token will be held until after the start of the run
+	TLOG(TLVL_INFO) << "Test case SendTokens: Tokens received before run start are queued";
 	rs.SendRoutingToken(1, 1);
 	usleep(100000);
 	BOOST_REQUIRE_EQUAL(coreTest.get_received_token_count_(), 0);
@@ -412,26 +421,29 @@ BOOST_AUTO_TEST_CASE(SendTokens)
 	usleep(100000);
 	BOOST_REQUIRE_EQUAL(coreTest.get_received_token_count_(), 2);
 
-	//This token should be ignored, as it is for the wrong run
+	TLOG(TLVL_INFO) << "Test case SendTokens: Tokens for the wrong run are ignored";
 	rs.SendRoutingToken(1, 5);
 	usleep(100000);
 	BOOST_REQUIRE_EQUAL(coreTest.get_received_token_count_(), 2);
 
-	// This token should be ignored, as it is not from a registered receiver
+	TLOG(TLVL_INFO) << "Test case SendTokens: Tokens from a unregistered receiver are ignored";
 	my_rank = 10;
 	rs.SendRoutingToken(1, 1);
 	usleep(100000);
 	BOOST_REQUIRE_EQUAL(coreTest.get_received_token_count_(), 2);
 
+	TLOG(TLVL_INFO) << "Test case SendTokens: Tokens are accepted regardless of rank";
 	my_rank = 8;
 	rs.SendRoutingToken(1, 1);
 	usleep(100000);
 	BOOST_REQUIRE_EQUAL(coreTest.get_received_token_count_(), 3);
 
+	TLOG(TLVL_INFO) << "Test case SendTokens: Tokens containing 0 slots free are handled properly";
 	rs.SendRoutingToken(0, 1);
 	usleep(100000);
 	BOOST_REQUIRE_EQUAL(coreTest.get_received_token_count_(), 3);
 
+	TLOG(TLVL_INFO) << "Test case SendTokens: Tokens containing multiple slots free are handled properly";
 	rs.SendRoutingToken(10, 1);
 	usleep(100000);
 	BOOST_REQUIRE_EQUAL(coreTest.get_received_token_count_(), 13);
@@ -462,7 +474,7 @@ BOOST_AUTO_TEST_CASE(Tables)
 	core.start(art::RunID(1), 0ULL, 0ULL);
 	coreTest.start_rmcore_table_thread();
 
-	// Check that tables are sent
+	TLOG(TLVL_INFO) << "Test case Tables: Checking that tables can be sent and acknowledged";
 	auto table = coreTest.receiveTableUpdate();
 	BOOST_REQUIRE_EQUAL(table.size(), 10);
 
@@ -481,21 +493,28 @@ BOOST_AUTO_TEST_CASE(Tables)
 
 	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
 
-	// Check that NoOp policy is implemented
+	TLOG(TLVL_INFO) << "Test case Tables: Checking table contents when using NoOp Policy";
 	my_rank = 1;
 	rs.SendRoutingToken(1, 1);
+	usleep(10000);
 	my_rank = 2;
 	rs.SendRoutingToken(1, 1);
+	usleep(10000);
 	my_rank = 3;
 	rs.SendRoutingToken(1, 1);
+	usleep(10000);
 	my_rank = 8;
 	rs.SendRoutingToken(1, 1);
+	usleep(10000);
 	my_rank = 3;
 	rs.SendRoutingToken(1, 1);
+	usleep(10000);
 	my_rank = 2;
 	rs.SendRoutingToken(1, 1);
+	usleep(10000);
 	my_rank = 1;
 	rs.SendRoutingToken(1, 1);
+	usleep(10000);
 
 	table = coreTest.receiveTableUpdate();
 	BOOST_REQUIRE_EQUAL(table.size(), 7);
@@ -521,7 +540,7 @@ BOOST_AUTO_TEST_CASE(Tables)
 
 	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
 
-	// Ack on resend should complete the table if no tokens received
+	TLOG(TLVL_INFO) << "Test case Tables: Ack on resend should complete the table if no additional tokens received";
 	rs.SendRoutingToken(10, 1);
 	table = coreTest.receiveTableUpdate();
 	BOOST_REQUIRE_EQUAL(table.size(), 10);
@@ -536,32 +555,38 @@ BOOST_AUTO_TEST_CASE(Tables)
 
 	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
 
-	// Tables should be updated if new tokens arrive
+	TLOG(TLVL_INFO) << "Test case Tables: Tables should be updated if new tokens arrive, new table will require re-ack";
 	rs.SendRoutingToken(10, 1);
 	table = coreTest.receiveTableUpdate();
 	BOOST_REQUIRE_EQUAL(table.size(), 10);
 	coreTest.sendAck(5, 28, 37);
 	coreTest.sendAck(6, 28, 37);
+	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 1);
 
 	rs.SendRoutingToken(10, 1);
 
 	usleep(100000);
 	table = coreTest.receiveTableUpdate();
 	BOOST_REQUIRE_EQUAL(table.size(), 20);
+	coreTest.sendAck(7, 28, 47);
+	usleep(100000);
+	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 2);
+
+	TLOG(TLVL_INFO) << "Test case Tables: Finishing ack of expanded table";
 	coreTest.sendAck(5, 28, 47);
 	coreTest.sendAck(6, 28, 47);
-	coreTest.sendAck(7, 28, 47);
 	usleep(100000);
 
 	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 0);
 
-	// Old entries should time out
+	TLOG(TLVL_INFO) << "Test case Tables: Ensuring that unacknowledged entries time out correctly";
 	coreTest.set_table_entry_timeout_ms_(10);
 	rs.SendRoutingToken(10, 1);
 	table = coreTest.receiveTableUpdate();
 	BOOST_REQUIRE_EQUAL(table.size(), 10);
 	coreTest.sendAck(5, 48, 57);
 	coreTest.sendAck(6, 48, 57);
+	BOOST_REQUIRE_EQUAL(coreTest.get_current_tables_().size(), 1);
 
 	rs.SendRoutingToken(10, 1);
 
