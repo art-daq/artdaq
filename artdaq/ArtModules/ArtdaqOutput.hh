@@ -12,6 +12,9 @@
 #if ART_HEX_VERSION < 0x30000
 #include "art/Persistency/Provenance/ProductMetaData.h"
 #endif
+#if ART_HEX_VERSION >= 0x30200
+#include "art_root_io/setup.h"
+#endif
 
 #include <algorithm>
 #include <iterator>
@@ -94,7 +97,11 @@ class art::ArtdaqOutput : public art::OutputModule
 {
 public:
 	explicit ArtdaqOutput(fhicl::ParameterSet const& ps)
-	    : OutputModule(ps), initMsgSent_(false), productList_() {}
+	    : OutputModule(ps), initMsgSent_(false), productList_() {
+		#if ART_HEX_VERSION >= 0x30200
+		root::setup(); 
+		#endif
+	}
 
 	virtual ~ArtdaqOutput() = default;
 
@@ -227,7 +234,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	//
 	//  Stream the MasterProductRegistry.
 	//
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming Product List ...";
+	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming Product List sz=" << productList_.size() << "...";
 	msg.WriteObjectAny(&productList_, product_list_class);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming Product List.";
 

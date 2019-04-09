@@ -10,6 +10,9 @@
 #include "art/Persistency/Provenance/MasterProductRegistry.h"
 #include "art/Persistency/Provenance/ProductMetaData.h"
 #endif
+#if ART_HEX_VERSION >= 0x30200
+#include "art_root_io/setup.h"
+#endif
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 
 #include "canvas/Persistency/Common/EDProduct.h"
@@ -169,6 +172,10 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
     : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm), communicationWrapper_(ps), productList_()
 {
 	artdaq::configureMessageFacility("artdaqart");
+
+#if ART_HEX_VERSION >= 0x30200
+	root::setup();
+#endif
 
 #if 0
 	volatile bool loop = true;
