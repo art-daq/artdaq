@@ -705,7 +705,9 @@ void art::ArtdaqOutput::extractProducts_(Principal const& principal[[gnu::unused
 			TLOG(TLVL_EXTRACTPRODUCTS_VERBOSE) << "ArtdaqOutput::extractProducts_:"
 			                                   << "Adding branch key to productList of class: '"
 			                                   << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
-			                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'";
+			                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'"
+				<< ", description: " << productDescription.wrappedName();
+
 			productList_[branchKey] = productDescription;
 		}
 	}

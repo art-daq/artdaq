@@ -232,6 +232,17 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	productList_ = ReadObjectAny<art::ProductList>(
 	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
+
+	#ifndef __OPTIMIZE__
+	for (auto I = productList_->begin(), E= productList_->end();I != E;++I)
+	{
+		TLOG_ARB(50, "ArtdaqInput") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
+		                            << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+		                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
+		                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
+	}
+	#endif
+
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
 	helper.productList(productList_);
@@ -442,8 +453,8 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 		{
 			history_.swap(history);
 		}
-		else if (!art::ProcessHistoryRegistry::get().count(history_->processHistoryID()) && 
-			art::ProcessHistoryRegistry::get().count(history->processHistoryID()))
+		else if (!art::ProcessHistoryRegistry::get().count(history_->processHistoryID()) &&
+		         art::ProcessHistoryRegistry::get().count(history->processHistoryID()))
 		{
 			history_.swap(history);
 		}
@@ -506,12 +517,11 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
 			bk.reset(ReadObjectAny<BranchKey>(msg, "art::BranchKey", "ArtdaqInput::readDataProducts"));
 		}
 
-		if (art::debugit() >= 1)
-		{
+#ifndef __OPTIMIZE__
 			TLOG_ARB(13, "ArtdaqInput") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
 			                            << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
 			                            << bk->processName_;
-		}
+#endif
 		ProductList::const_iterator iter;
 		{
 			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: looking up product ...";
@@ -542,8 +552,7 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
 			void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
 			auto pp = reinterpret_cast<EDProduct*>(p);
 
-			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: After ReadObjectAny(prd): p=" << p
-			                            << ", EDProduct::isPresent: " << pp->isPresent();
+			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: After ReadObjectAny(prd): p=" << p << ", EDProduct::isPresent: " << pp->isPresent();
 			prd.reset(pp);
 			p = nullptr;
 		}
