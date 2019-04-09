@@ -2,7 +2,7 @@
 if ( ${ART_HEX_VERSION} LESS 0x21200)
 	add_subdirectory(RootDAQOutput)
 	set(ROOT_IO_LIBS art_Framework_IO_Root)
-	set(TFILE_SERVICE_LIB art_Framework_IO_Root_TFileService)
+	set(TFILE_SERVICE_LIB art_Framework_Services_Optional_TFileService_service art_Framework_Services_Optional)
 elseif ( ${ART_HEX_VERSION} GREATER 0x30200)
 	add_subdirectory(RootDAQOutput-s81)
 	set(ROOT_IO_LIBS art_root_io)
@@ -11,7 +11,7 @@ elseif ( ${ART_HEX_VERSION} GREATER 0x30200)
 elseif ( ${ART_HEX_VERSION} GREATER 0x30000)
     # Don't build anything!
 	set(ROOT_IO_LIBS art_Framework_IO_Root)
-	set(TFILE_SERVICE_LIB art_Framework_IO_Root_TFileService)
+	set(TFILE_SERVICE_LIB art_Framework_Services_Optional_TFileService_service art_Framework_Services_Optional)
 endif()
 
 art_make( BASENAME_ONLY

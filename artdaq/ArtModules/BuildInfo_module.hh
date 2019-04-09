@@ -76,9 +76,11 @@ private:
 };
 
 template<std::string* instanceName, typename... Pkgs>
-BuildInfo<instanceName, Pkgs...>::BuildInfo(fhicl::ParameterSet const& ps)
-    : EDProducer(ps)
-    , packages_(new std::vector<PackageBuildInfo>())
+BuildInfo<instanceName, Pkgs...>::BuildInfo(fhicl::ParameterSet const& ps) : 
+	#if ART_HEX_VERSION >= 0x30200
+	EDProducer(ps),
+	#endif
+    packages_(new std::vector<PackageBuildInfo>())
     , instanceName_(ps.get<std::string>("instance_name", *instanceName))
 {
 	fill_packages<Pkgs...>::doit(*packages_);
