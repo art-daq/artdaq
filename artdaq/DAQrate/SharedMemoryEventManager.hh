@@ -154,6 +154,10 @@ public:
 		fhicl::Atom<bool> use_art{fhicl::Name{"use_art"}, fhicl::Comment{"Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)"}, true};
 		/// "manual_art" (Default: false): Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind
 		fhicl::Atom<bool> manual_art{fhicl::Name{"manual_art"}, fhicl::Comment{"Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind"}, false};
+		/// "maximum_fragment_override_count" (Default: 1000): The maximum number of expected fragment ID overrides to retain
+		fhicl::Atom<size_t> maximum_fragment_override_count{fhicl::Name{"maximum_fragment_override_count"}, fhicl::Comment{"The maximum number of fragment ID overrides to retain"}, 1000};
+		/// "expected_fragment_ids" (Default: None): List of Fragment IDs which should be expected for each event. Overridable on a per-event basis and updateable
+		fhicl::Sequence<Fragment::fragment_id_t> expected_fragment_ids { fhicl::Name{"expected_fragment_ids"}, fhicl::Comment{"List of Fragment IDs which should be expected for each event. Overridable on a per-event basis and updateable"}, std::vector<Fragment::fragment_id_t>() };
 
 		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;  ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
 	};
@@ -382,6 +386,21 @@ public:
 	 */
 	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
+	/**
+	 * \brief Override the expected Fragment IDs for a specific event
+	 * \param seqID Event Sequence Number
+	 * \param frags std::set of Fragment_id_t indicating Fragment IDs which should be present for event
+	 */
+	void OverrideFragmentIDsForEvent(Fragment::sequence_id_t seqID, std::set<Fragment::fragment_id_t> frags);
+
+	/**
+	 * \brief Update the list of Fragment IDs which should be present unless overridden
+	 * \param frags std::set of Fragment_id_t indicating Fragment IDs which should be present for all events
+	 */
+	void SetDefaultFragmentIDs(std::set<Fragment::fragment_id_t> frags) { 
+		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+		default_fragment_ids_ = frags; }
+
 private:
 	size_t get_art_process_count_()
 	{
@@ -391,7 +410,12 @@ private:
 
 private:
 	size_t num_art_processes_;
-	size_t const num_fragments_per_event_;
+	size_t const max_fragments_per_event_;
+	mutable std::mutex fragment_ids_mutex_;
+	std::set<Fragment::fragment_id_t> default_fragment_ids_;
+	std::map<Fragment::sequence_id_t, std::set<Fragment::fragment_id_t>> fragment_id_overrides_;
+	size_t max_fragment_override_list_size_;
+	std::unordered_map<Fragment::sequence_id_t, std::map<Fragment::fragment_id_t, bool>> in_progress_fragment_ids_;
 	size_t const queue_size_;
 	run_id_t run_id_;
 

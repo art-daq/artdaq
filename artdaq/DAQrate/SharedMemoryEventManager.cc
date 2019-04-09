@@ -13,49 +13,53 @@ std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
 std::mutex artdaq::SharedMemoryEventManager::subrun_event_map_mutex_;
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
-	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
-		pset.get<size_t>("buffer_count"),
-		pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
-		pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
-		!pset.get<bool>("broadcast_mode", false))
-	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
-	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
-	, queue_size_(pset.get<size_t>("buffer_count"))
-	, run_id_(0)
-	, max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
-	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
-	, use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
-	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
-	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
-	, running_(false)
-	, buffer_writes_pending_()
-	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
-	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-	, last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
-        , last_backpressure_report_time_(std::chrono::steady_clock::now())
-        , last_fragment_header_write_time_(std::chrono::steady_clock::now())
-	, metric_data_()
-	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
-	, run_event_count_(0)
-	, run_incomplete_event_count_(0)
-	, subrun_event_count_(0)
-	, subrun_incomplete_event_count_(0)
-	, oversize_fragment_count_(0)
-	, maximum_oversize_fragment_count_(pset.get<int>("maximum_oversize_fragment_count", 1))
-	, art_processes_()
-	, restart_art_(false)
-	, always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
-	, manual_art_(pset.get<bool>("manual_art", false))
-	, current_art_pset_(art_pset)
-	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
-	, art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 1000000))
-	, requests_(nullptr)
-	, data_pset_(pset)
-	, dropped_data_()
-	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
-		pset.get<size_t>("broadcast_buffer_count", 10),
-		pset.get<size_t>("broadcast_buffer_size", 0x100000),
-		pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
+    : SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
+                          pset.get<size_t>("buffer_count"),
+                          pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
+                          pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
+                          !pset.get<bool>("broadcast_mode", false))
+    , num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
+    , max_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
+    , default_fragment_ids_()
+    , fragment_id_overrides_()
+    , max_fragment_override_list_size_(pset.get<size_t>("maximum_fragment_override_count", 1000))
+    , in_progress_fragment_ids_()
+    , queue_size_(pset.get<size_t>("buffer_count"))
+    , run_id_(0)
+    , max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
+    , update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
+    , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
+    , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
+    , send_init_fragments_(pset.get<bool>("send_init_fragments", true))
+    , running_(false)
+    , buffer_writes_pending_()
+    , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
+    , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+    , last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
+    , last_backpressure_report_time_(std::chrono::steady_clock::now())
+    , last_fragment_header_write_time_(std::chrono::steady_clock::now())
+    , metric_data_()
+    , broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
+    , run_event_count_(0)
+    , run_incomplete_event_count_(0)
+    , subrun_event_count_(0)
+    , subrun_incomplete_event_count_(0)
+    , oversize_fragment_count_(0)
+    , maximum_oversize_fragment_count_(pset.get<int>("maximum_oversize_fragment_count", 1))
+    , art_processes_()
+    , restart_art_(false)
+    , always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
+    , manual_art_(pset.get<bool>("manual_art", false))
+    , current_art_pset_(art_pset)
+    , minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
+    , art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 1000000))
+    , requests_(nullptr)
+    , data_pset_(pset)
+    , dropped_data_()
+    , broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
+                  pset.get<size_t>("broadcast_buffer_count", 10),
+                  pset.get<size_t>("broadcast_buffer_size", 0x100000),
+                  pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
 {
 	subrun_event_map_[0] = 1;
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
@@ -87,6 +91,15 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
 		buffer_writes_pending_[ii] = 0;
 	}
 
+	if (pset.has_key("expected_fragment_ids"))
+	{
+		auto conf = pset.get<std::vector<Fragment::fragment_id_t>>("expected_fragment_ids");
+		for (auto f : conf)
+		{
+			default_fragment_ids_.insert(f);
+		}
+	}
+
 	if (!IsValid()) throw cet::exception(app_name + "_SharedMemoryEventManager") << "Unable to attach to Shared Memory!";
 
 	TLOG(TLVL_TRACE) << "Setting Writer rank to " << my_rank;
@@ -112,8 +125,26 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	if (buffer == -1) return false;
 	if (buffer == -2)
 	{
-		TLOG(TLVL_ERROR) << "Dropping event because data taking has already passed this event number: " << frag.sequence_id;
+		TLOG(TLVL_ERROR) << "Dropping fragment because data taking has already passed this event number: " << frag.sequence_id;
 		return true;
+	}
+
+	{
+		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+		if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
+		{
+			if (!in_progress_fragment_ids_[frag.sequence_id].count(frag.fragment_id))
+			{
+				TLOG(TLVL_ERROR) << "Dropping fragment because " << frag.fragment_id << " is not in the list of expected Fragment IDs for event " << frag.sequence_id << "!";
+				return true;
+			}
+			if (in_progress_fragment_ids_[frag.sequence_id][frag.fragment_id])
+			{
+				TLOG(TLVL_ERROR) << "Dropping fragment because " << frag.fragment_id << " has already been added to event " << frag.sequence_id << "!";
+				return true;
+			}
+			in_progress_fragment_ids_[frag.sequence_id][frag.fragment_id] = true;
+		}
 	}
 
 	auto hdr = getEventHeader_(buffer);
@@ -127,12 +158,27 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
 
 	TLOG(TLVL_TRACE) << "Checking for complete event";
-	auto fragmentCount = GetFragmentCount(frag.sequence_id);
-	hdr->is_complete = fragmentCount == num_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
-	TLOG(TLVL_TRACE) << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
-	                 << ", fragmentCount=" << fragmentCount
-	                 << ", num_fragments_per_event=" << num_fragments_per_event_
-	                 << ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
+	{
+		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+		if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
+		{
+			size_t count = std::count_if(in_progress_fragment_ids_[frag.sequence_id].begin(), in_progress_fragment_ids_[frag.sequence_id].end(), [](std::pair<Fragment::fragment_id_t, bool> p) { return p.second; });
+			hdr->is_complete = count == in_progress_fragment_ids_[frag.sequence_id].size() && buffer_writes_pending_[buffer] == 0;
+			TLOG(TLVL_TRACE) << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
+			                 << ", fragmentCount=" << count
+			                 << ", expected=" << in_progress_fragment_ids_[frag.sequence_id].size()
+			                 << ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
+		}
+		else
+		{
+			auto fragmentCount = GetFragmentCount(frag.sequence_id);
+			hdr->is_complete = fragmentCount == max_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
+			TLOG(TLVL_TRACE) << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
+			                 << ", fragmentCount=" << fragmentCount
+			                 << ", max_fragments_per_event=" << max_fragments_per_event_
+			                 << ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
+		}
+	}
 
 	complete_buffer_(buffer);
 	if (requests_) requests_->SendRequest(true);
@@ -168,13 +214,13 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 	if (buffer < 0)
 	{
-		if (buffer == -1 && !dropIfNoBuffersAvailable) 
+		if (buffer == -1 && !dropIfNoBuffersAvailable)
 		{
-            std::unique_lock<std::mutex> bp_lk(sequence_id_mutex_);
-			if (TimeUtils::GetElapsedTime(last_backpressure_report_time_) > 1.0) 
+			std::unique_lock<std::mutex> bp_lk(sequence_id_mutex_);
+			if (TimeUtils::GetElapsedTime(last_backpressure_report_time_) > 1.0)
 			{
-                TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_fragment_header_write_time_) << " s!";
-                last_backpressure_report_time_ = std::chrono::steady_clock::now();
+				TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_fragment_header_write_time_) << " s!";
+				last_backpressure_report_time_ = std::chrono::steady_clock::now();
 			}
 			return nullptr;
 		}
@@ -192,8 +238,28 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		return dropped_data_[frag.fragment_id]->dataBegin();
 	}
 
-    last_backpressure_report_time_ = std::chrono::steady_clock::now();
-    last_fragment_header_write_time_ = std::chrono::steady_clock::now();
+	{
+		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+		if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
+		{
+			if (!in_progress_fragment_ids_[frag.sequence_id].count(frag.fragment_id))
+			{
+				TLOG(TLVL_ERROR) << "Dropping event because " << frag.fragment_id << " is not in the list of expected Fragment IDs for event " << frag.sequence_id << "!";
+				TLOG(6) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into " << (void*)dropped_data_[frag.fragment_id]->dataBegin() << " sz=" << dropped_data_[frag.fragment_id]->dataSizeBytes();
+				return dropped_data_[frag.fragment_id]->dataBegin();
+			}
+			if (in_progress_fragment_ids_[frag.sequence_id][frag.fragment_id])
+			{
+				TLOG(TLVL_ERROR) << "Dropping event because " << frag.fragment_id << " has already been added to event " << frag.sequence_id << "!";
+				TLOG(6) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into " << (void*)dropped_data_[frag.fragment_id]->dataBegin() << " sz=" << dropped_data_[frag.fragment_id]->dataSizeBytes();
+				return dropped_data_[frag.fragment_id]->dataBegin();
+			}
+			in_progress_fragment_ids_[frag.sequence_id][frag.fragment_id] = true;
+		}
+	}
+
+	last_backpressure_report_time_ = std::chrono::steady_clock::now();
+	last_fragment_header_write_time_ = std::chrono::steady_clock::now();
 	// Increment this as soon as we know we want to use the buffer
 	buffer_writes_pending_[buffer]++;
 
@@ -273,9 +339,21 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 			return;
 		}
 		TLOG(TLVL_TRACE) << "Done writing fragment, and no other writer. Doing bookkeeping steps.";
-		auto frag_count = GetFragmentCount(frag.sequence_id);
-		hdr->is_complete = frag_count == num_fragments_per_event_;
-		TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << frag_count << "/" << num_fragments_per_event_;
+		{
+			std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+			if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
+			{
+				size_t count = std::count_if(in_progress_fragment_ids_[frag.sequence_id].begin(), in_progress_fragment_ids_[frag.sequence_id].end(), [](std::pair<Fragment::fragment_id_t, bool> p) { return p.second; });
+				hdr->is_complete = count == in_progress_fragment_ids_[frag.sequence_id].size() && buffer_writes_pending_[buffer] == 0;
+				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << count << "/" << in_progress_fragment_ids_[frag.sequence_id].size();
+			}
+			else
+			{
+				auto fragmentCount = GetFragmentCount(frag.sequence_id);
+				hdr->is_complete = fragmentCount == max_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
+				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << fragmentCount << "/" << max_fragments_per_event_;
+			}
+		}
 #if ART_SUPPORTS_DUPLICATE_EVENTS
 		if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id))
 		{
@@ -741,12 +819,17 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 		subrun_event_map_.clear();
 		subrun_event_map_[0] = 1;
 	}
+	{
+		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+		fragment_id_overrides_.clear();
+		in_progress_fragment_ids_.clear();
+	}
 	run_event_count_ = 0;
 	run_incomplete_event_count_ = 0;
 	requests_.reset(new RequestSender(data_pset_));
 	if (requests_)
 	{
-	        requests_->SetRunNumber(static_cast<uint32_t>(run_id_));
+		requests_->SetRunNumber(static_cast<uint32_t>(run_id_));
 		requests_->SendRoutingToken(queue_size_, run_id_);
 	}
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
@@ -780,6 +863,11 @@ bool artdaq::SharedMemoryEventManager::endRun()
 		subrun_event_map_.clear();
 		subrun_event_map_[0] = 1;
 	}
+	{
+		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+		fragment_id_overrides_.clear();
+		in_progress_fragment_ids_.clear();
+	}
 	return true;
 }
 
@@ -789,8 +877,8 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 	if (boundary == 0 || boundary == Fragment::InvalidSequenceID) return;
 
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
-	
-    TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
+
+	TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
 	subrun_event_map_[boundary] = subrun;
 	while (subrun_event_map_.size() > max_subrun_event_map_length_)
 	{
@@ -828,13 +916,24 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 
 		last_incomplete_event_report_time_ = std::chrono::steady_clock::now();
 		std::ostringstream oss;
-		oss << "Incomplete Events (" << num_fragments_per_event_ << "): ";
+		oss << "Incomplete Events (" << max_fragments_per_event_ << "): ";
 		for (auto& ev : active_buffers_)
 		{
 			auto hdr = getEventHeader_(ev);
 			oss << hdr->sequence_id << " (" << GetFragmentCount(hdr->sequence_id) << "), ";
 		}
 		TLOG(TLVL_DEBUG) << oss.str();
+
+		std::ostringstream oss2;
+		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+		for (auto& ev : in_progress_fragment_ids_)
+		{
+			oss2 << ev.first << ": ";
+			for (auto& fragment_id : ev.second)
+			{
+				oss2 << "ID " << fragment_id.first << " [" << (fragment_id.second ? "X" : " ") << "], ";
+			}
+		}
 	}
 }
 
@@ -899,6 +998,22 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 	return subrun;
 }
 
+void artdaq::SharedMemoryEventManager::OverrideFragmentIDsForEvent(Fragment::sequence_id_t seqID, std::set<Fragment::fragment_id_t> frags)
+{
+	std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+	if (fragment_id_overrides_.count(seqID))
+	{
+		TLOG(TLVL_WARNING) << "Sequence ID " << seqID << " already has overridden Fragment IDs!";
+	}
+
+	fragment_id_overrides_[seqID] = frags;
+
+	while (fragment_id_overrides_.size() > max_fragment_override_list_size_)
+	{
+		fragment_id_overrides_.erase(fragment_id_overrides_.begin());
+	}
+}
+
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
 {
 	TLOG(14) << "getBufferForSequenceID " << seqID << " BEGIN";
@@ -950,6 +1065,26 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	IncrementWritePos(new_buffer, sizeof(detail::RawEventHeader));
 	SetMFIteration("Sequence ID " + std::to_string(seqID));
 
+	{
+		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+		auto fragment_ids = default_fragment_ids_;
+		if (fragment_id_overrides_.count(seqID))
+		{
+			fragment_ids = fragment_id_overrides_[seqID];
+		}
+
+		in_progress_fragment_ids_[seqID] = std::map<Fragment::fragment_id_t, bool>();
+		for (auto fragment_id : fragment_ids)
+		{
+			in_progress_fragment_ids_[seqID][fragment_id] = false;
+		}
+
+		if (fragment_id_overrides_.count(seqID))
+		{
+			fragment_id_overrides_.erase(seqID);
+		}
+	}
+
 	TLOG(TLVL_BUFFER) << "getBufferForSequenceID placing " << new_buffer << " to active.";
 	active_buffers_.insert(new_buffer);
 	TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
@@ -995,6 +1130,15 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 	if (hdr->is_complete)
 	{
 		TLOG(TLVL_DEBUG) << "complete_buffer_: This fragment completes event " << hdr->sequence_id << ".";
+
+		{
+			std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+			if (in_progress_fragment_ids_.count(hdr->sequence_id))
+			{
+				TLOG(TLVL_BUFFER) << "complete_buffer_: Removing hdr->sequence_id from in_progress_fragment_ids_";
+				in_progress_fragment_ids_.erase(hdr->sequence_id);
+			}
+		}
 
 		{
 			TLOG(TLVL_BUFFER) << "complete_buffer_ moving " << buffer << " from active to pending.";
@@ -1066,7 +1210,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				if (metricMan) metricMan->sendMetric("Incomplete Event Rate", 1, "events/s", 3, MetricMode::Rate);
 				if (!released_incomplete_events_.count(hdr->sequence_id))
 				{
-					released_incomplete_events_[hdr->sequence_id] = num_fragments_per_event_ - GetFragmentCountInBuffer(buf);
+					released_incomplete_events_[hdr->sequence_id] = max_fragments_per_event_ - GetFragmentCountInBuffer(buf);
 				}
 				else
 				{
