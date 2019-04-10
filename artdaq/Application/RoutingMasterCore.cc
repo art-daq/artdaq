@@ -288,7 +288,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 			}
 			else
 			{
-			  TLOG(TLVL_DEBUG) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!" ;
+				TLOG(TLVL_TRACE) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!" ;
 			}
 			auto max_tokens = policy_->GetMaxNumberOfTokens();
 			if (max_tokens > 0)
@@ -300,7 +300,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 				if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
 			}
 			nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
-			TLOG(TLVL_DEBUG) << "current_table_interval_ms is now " << current_table_interval_ms_ ;
+			TLOG(TLVL_TRACE) << "current_table_interval_ms is now " << current_table_interval_ms_ ;
 		}
 		else
 		{
@@ -385,6 +385,14 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				"RoutingMasterCore: Unable to enable port reuse on ack socket" << std::endl;
 			exit(1);
 		}
+
+		// 10-Apr-2019, KAB: debugging information about the size of the receive buffer
+		int sts;
+		int len = 0;
+		socklen_t arglen = sizeof(len);
+		sts = getsockopt(ack_socket_, SOL_SOCKET, SO_RCVBUF, &len, &arglen);
+		TLOG(TLVL_INFO) << "ACK RCVBUF initial: " << len << " sts/errno=" << sts << "/" << errno << " arglen=" << arglen;
+
 		memset(&si_me_request, 0, sizeof(si_me_request));
 		si_me_request.sin_family = AF_INET;
 		si_me_request.sin_port = htons(receive_acks_port_);
@@ -411,6 +419,17 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
+		// 10-Apr-2019, KAB: added information on which senders have already acknowledged this update
+		for (auto ackIter=acks.begin(); ackIter != acks.end(); ++ackIter)
+		{
+			TLOG(27) << "Table update already acknowledged? rank " << ackIter->first << " is " << ackIter->second
+			         << " (size of 'already_acknowledged_ranks bitset is " << (8*sizeof(header.already_acknowledged_ranks)) << ")";
+			if (ackIter->first < static_cast<int>(8*sizeof(header.already_acknowledged_ranks)))
+			{
+				if (ackIter->second) {header.already_acknowledged_ranks.set(ackIter->first);}
+			}
+		}
+
 		assert(packetSize + sizeof(header) < MAX_ROUTING_TABLE_SIZE);
 		std::vector<uint8_t> buffer(packetSize + sizeof(header));
 		memcpy(&buffer[0], &header, sizeof(detail::RoutingPacketHeader));
@@ -430,7 +449,6 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto first = packet[0].sequence_id;
 		auto last = packet.rbegin()->sequence_id;
 		TLOG(TLVL_DEBUG) << "Sent " << sts << " bytes. Expecting acks to have first= " << first << ", and last= " << last ;
-
 
 		auto startTime = std::chrono::steady_clock::now();
 		while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) > 0)
@@ -484,7 +502,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				else
 				{
 					TLOG(TLVL_DEBUG) << "Ack packet from rank " << buffer.rank << " has first= " << buffer.first_sequence_id
-						<< " and last= " << buffer.last_sequence_id ;
+					                 << " and last= " << buffer.last_sequence_id << ", packet_size=" << sizeof(detail::RoutingAckPacket);
 					if (acks.count(buffer.rank) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 					{
 						TLOG(TLVL_DEBUG) << "Received table update acknowledgement from sender with rank " << buffer.rank << "." ;
@@ -523,7 +541,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 {
 	while (!shutdown_requested_)
 	{
-		TLOG(TLVL_DEBUG) << "Receive Token loop start" ;
+		TLOG(TLVL_TRACE) << "Receive Token loop start" ;
 		if (token_socket_ == -1)
 		{
 			TLOG(TLVL_DEBUG) << "Opening token listener socket" ;
@@ -559,7 +577,7 @@ void artdaq::RoutingMasterCore::receive_tokens_()
 			usleep(10000);
 		}
 
-		TLOG(TLVL_DEBUG) << "Received " << nfds << " events" ;
+		TLOG(TLVL_TRACE) << "Received " << nfds << " events" ;
 		for (auto n = 0; n < nfds; ++n)
 		{
 			if (receive_token_events_[n].data.fd == token_socket_)
