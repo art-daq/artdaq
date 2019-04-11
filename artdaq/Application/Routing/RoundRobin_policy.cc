@@ -70,6 +70,7 @@ namespace artdaq
 		// ends up with a large positive value.
 		int minimum = minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount() + minimum_participants_;
 		if (minimum < 1) minimum = 1; // Can't go below 1
+	    if (minimum > GetReceiverCount()) minimum = GetReceiverCount(); // Can't go above receiver count
 
 		bool endCondition = table.size() < static_cast<size_t>(minimum);
 		TLOG(15) << "RoundRobinPolicy::GetCurrentTable initial endCondition is " << endCondition << ", minimum is " << minimum;
