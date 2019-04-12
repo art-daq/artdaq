@@ -182,7 +182,27 @@ public:
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_rollover_subrun(uint64_t, uint32_t) override;
+	
+	    /// <summary>
+	/// Using the transport mechansm, send a override_fragment_ids command
+	///
+	/// This will cause the recevier to override the set of expected Fragment IDs for the given event
+	///
+	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.override_fragment_ids I/3053 array/(i/1,i/2,i/4)
+	/// </summary>
+	/// <returns>Command result: "SUCCESS" if succeeded</returns>
+	std::string send_override_fragment_ids(uint64_t, std::vector<uint32_t>) override;
 
+	/// <summary>
+	/// Using the transport mechansm, send a update_default_fragment_ids command
+	///
+	/// This will cause the recevier to update the set of expected Fragment IDs at the given event boundary
+	/// The previous defaults will be used for sequence IDs below the given ID.
+	///
+	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.update_default_fragment_ids I/3053 array/(i/1,i/2,i/4)
+	/// </summary>
+	/// <returns>Command result: "SUCCESS" if succeeded</returns>
+	std::string send_update_default_fragment_ids(uint64_t, std::vector<uint32_t>) override;
 
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
@@ -200,6 +220,7 @@ private:
 	std::string send_command_(std::string, uint64_t);
 	std::string send_command_(std::string, std::string, std::string);
 	std::string send_command_(std::string, std::string, std::string, uint64_t);
+	std::string send_command_(std::string command, uint64_t a, std::vector<uint32_t> b);
 
 public:
 	std::timed_mutex mutex_; ///< XMLRPC mutex

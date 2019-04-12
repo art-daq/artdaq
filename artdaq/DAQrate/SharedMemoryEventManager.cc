@@ -1014,6 +1014,21 @@ void artdaq::SharedMemoryEventManager::OverrideFragmentIDsForEvent(Fragment::seq
 	}
 }
 
+void artdaq::SharedMemoryEventManager::SetDefaultFragmentIDs(std::set<Fragment::fragment_id_t> frags, Fragment::sequence_id_t when)
+{
+	std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
+	auto seqID = in_progress_fragment_ids_.end()->first;
+
+	while (seqID < when)
+	{
+		if (!fragment_id_overrides_.count(seqID) && !in_progress_fragment_ids_.count(seqID)) {
+			fragment_id_overrides_[seqID] = default_fragment_ids_;
+		}
+		seqID++;
+	}
+	default_fragment_ids_ = frags;
+}
+
 int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
 {
 	TLOG(14) << "getBufferForSequenceID " << seqID << " BEGIN";

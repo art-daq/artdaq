@@ -396,10 +396,9 @@ public:
 	/**
 	 * \brief Update the list of Fragment IDs which should be present unless overridden
 	 * \param frags std::set of Fragment_id_t indicating Fragment IDs which should be present for all events
+	 * \param when Sequence ID when the change should take effect. Default of 0 indicates change should take effect immediately.
 	 */
-	void SetDefaultFragmentIDs(std::set<Fragment::fragment_id_t> frags) { 
-		std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
-		default_fragment_ids_ = frags; }
+	void SetDefaultFragmentIDs(std::set<Fragment::fragment_id_t> frags, Fragment::sequence_id_t when = 0);
 
 private:
 	size_t get_art_process_count_()

@@ -1,17 +1,17 @@
 #ifndef artdaq_Application_Commandable_hh
 #define artdaq_Application_Commandable_hh
 
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
 
-#include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
+
 #include "artdaq/Application/Commandable_sm.h"  // must be included after others
 
-namespace artdaq
-{
-	class Commandable;
+namespace artdaq {
+class Commandable;
 }
 
 /**
@@ -89,7 +89,7 @@ public:
 	* \return Whether the transition was successful
 	*/
 	bool shutdown(uint64_t timeout);
-	
+
 	/**
 	* \brief Processes the soft-initialize request
 	* \param pset ParameterSet used to configure the Commandable
@@ -230,7 +230,7 @@ public:
 	* \return Whether the transition succeeded
 	*/
 	virtual bool do_rollover_subrun(uint64_t eventNum, uint32_t subrunNum);
-	
+
 	/**
 	 * \brief This function is called when an attempt is made to call an illegal transition
 	 * \param trans The transition that was attempted
@@ -298,6 +298,22 @@ public:
 	*/
 	virtual bool do_clear_config_archive();
 
+	/**
+	 * \brief Override the Fragment ID list for a given event
+	 * \return Whether the command succeeded (always true)
+	 *
+	* This function is a No-Op. Derived classes should override it.
+	 */
+	virtual bool do_override_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags);
+
+	/**
+	 * \brief Update the Fragment ID list at the given event
+	 * \return Whether the command succeeded (always true)
+	 *
+	* This function is a No-Op. Derived classes should override it.
+	 */
+	virtual bool do_update_default_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags);
+
 protected:
 	/**
 	 * \brief Return the name of the current state
@@ -305,9 +321,9 @@ protected:
 	 */
 	std::string current_state() const;
 
-	CommandableContext fsm_; ///< The generated State Machine (using smc_compiler)
-	bool external_request_status_; ///< Whether the last command succeeded
-	std::string report_string_; ///< Status information about the last command
+	CommandableContext fsm_;        ///< The generated State Machine (using smc_compiler)
+	bool external_request_status_;  ///< Whether the last command succeeded
+	std::string report_string_;     ///< Status information about the last command
 
 private:
 	// 06-May-2015, KAB: added a mutex to be used in avoiding problems when

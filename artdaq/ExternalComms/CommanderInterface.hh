@@ -78,6 +78,8 @@ namespace artdaq
 		/// rollover_subrun
 		/// add_config_archive_entry
 		/// clear_config_archive
+		/// override_fragment_ids
+		/// update_default_fragment_ids
 		/// 
 		/// See the send_* functions for more details on each command. Not all commands are valid for all applications/states.
 		/// run_server should return a string indicating success or failure to the transport mechanism when it is done processing a command.
@@ -262,6 +264,27 @@ namespace artdaq
 		/// </summary>
 		/// <returns>Command result: "SUCCESS" if succeeded</returns>
 		virtual std::string clear_config_archive();
+
+	    /// <summary>
+	    /// Using the transport mechansm, send a override_fragment_ids command
+	    ///
+	    /// This will cause the recevier to override the set of expected Fragment IDs for the given event
+	    ///
+	    /// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.override_fragment_ids I/3053 array/(i/1,i/2,i/4)
+	    /// </summary>
+	    /// <returns>Command result: "SUCCESS" if succeeded</returns>
+	    virtual std::string send_override_fragment_ids(uint64_t, std::vector<uint32_t>);
+
+	    /// <summary>
+	    /// Using the transport mechansm, send a update_default_fragment_ids command
+	    ///
+	    /// This will cause the recevier to update the set of expected Fragment IDs at the given event boundary
+	    /// The previous defaults will be used for sequence IDs below the given ID.
+	    ///
+	    /// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.update_default_fragment_ids I/3053 array/(i/1,i/2,i/4)
+	    /// </summary>
+	    /// <returns>Command result: "SUCCESS" if succeeded</returns>
+	    virtual std::string send_update_default_fragment_ids(uint64_t, std::vector<uint32_t>);
 
 	private:
 

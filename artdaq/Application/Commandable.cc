@@ -507,6 +507,18 @@ bool artdaq::Commandable::do_clear_config_archive()
 	return external_request_status_;
 }
 
+bool artdaq::Commandable::do_override_fragment_ids(uint64_t, std::vector<uint32_t>)
+{
+	TLOG(TLVL_DEBUG) << "do_override_fragment_ids called.";
+	external_request_status_ = true;
+	return external_request_status_;
+}
+bool artdaq::Commandable::do_update_default_fragment_ids(uint64_t, std::vector<uint32_t>)
+{
+	TLOG(TLVL_DEBUG) << "do_update_default_fragment_ids called.";
+	external_request_status_ = true;
+	return external_request_status_;
+}
 // *********************
 // *** Utility methods. 
 // *********************

@@ -113,9 +113,20 @@ namespace artdaq {
 	}
 
 	inline std::string CommanderInterface::clear_config_archive()
-	{
+    {
 #pragma message "Using default implementation of clear_config_archive!"
-		return "NOT IMPLEMENTED";
+	    return "NOT IMPLEMENTED";
 	}
 
-} //namespace artdaq
+	inline std::string CommanderInterface::send_override_fragment_ids(uint64_t, std::vector<uint32_t>)
+    {
+#pragma message "Using default implementation of override_fragment_ids!"
+	    return "NOT IMPLEMENTED";
+    }
+
+    inline std::string CommanderInterface::send_update_default_fragment_ids(uint64_t, std::vector<uint32_t>)
+    {
+#pragma message "Using default implementation of update_default_fragment_ids!"
+	    return "NOT IMPLEMENTED";
+    }
+    } //namespace artdaq
