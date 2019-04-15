@@ -111,8 +111,8 @@ public:
 		fhicl::Atom<uint32_t> shared_memory_key{fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid()};
 		/// "buffer_count" REQUIRED: Number of events in the Shared Memory(incomplete + pending art)
 		fhicl::Atom<size_t> buffer_count{fhicl::Name{"buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"}};
-	  /// "max_subrun_lookup_table_size" (Default: 100): Maximum number of entries in the subrun rollover history
-	  fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"Maximum number of entries in the subrun rollover history"}, 100};
+		/// "max_subrun_lookup_table_size" (Default: 100): Maximum number of entries in the subrun rollover history
+		fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"Maximum number of entries in the subrun rollover history"}, 100};
 		/// "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 		/// Either max_fragment_size_bytes or max_event_size_bytes must be specified
 		fhicl::Atom<size_t> max_fragment_size_bytes{fhicl::Name{"max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"}};
@@ -154,10 +154,10 @@ public:
 		fhicl::Atom<bool> use_art{fhicl::Name{"use_art"}, fhicl::Comment{"Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)"}, true};
 		/// "manual_art" (Default: false): Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind
 		fhicl::Atom<bool> manual_art{fhicl::Name{"manual_art"}, fhicl::Comment{"Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind"}, false};
-		/// "maximum_fragment_override_count" (Default: 1000): The maximum number of expected fragment ID overrides to retain
-		fhicl::Atom<size_t> maximum_fragment_override_count{fhicl::Name{"maximum_fragment_override_count"}, fhicl::Comment{"The maximum number of fragment ID overrides to retain"}, 1000};
+		/// "maximum_fragment_history_count" (Default: 1000): The maximum number of fragment ID sets to retain
+		fhicl::Atom<size_t> maximum_fragment_override_count{fhicl::Name{"maximum_fragment_history_count"}, fhicl::Comment{"The maximum number of fragment ID sets to retain"}, 1000};
 		/// "expected_fragment_ids" (Default: None): List of Fragment IDs which should be expected for each event. Overridable on a per-event basis and updateable
-		fhicl::Sequence<Fragment::fragment_id_t> expected_fragment_ids { fhicl::Name{"expected_fragment_ids"}, fhicl::Comment{"List of Fragment IDs which should be expected for each event. Overridable on a per-event basis and updateable"}, std::vector<Fragment::fragment_id_t>() };
+		fhicl::Sequence<Fragment::fragment_id_t> expected_fragment_ids{fhicl::Name{"expected_fragment_ids"}, fhicl::Comment{"List of Fragment IDs which should be expected for each event. Overridable on a per-event basis and updateable"}, std::vector<Fragment::fragment_id_t>()};
 
 		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;  ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
 	};
@@ -413,8 +413,8 @@ private:
 	mutable std::mutex fragment_ids_mutex_;
 	std::set<Fragment::fragment_id_t> default_fragment_ids_;
 	std::map<Fragment::sequence_id_t, std::set<Fragment::fragment_id_t>> fragment_id_overrides_;
-	size_t max_fragment_override_list_size_;
-	std::unordered_map<Fragment::sequence_id_t, std::map<Fragment::fragment_id_t, bool>> in_progress_fragment_ids_;
+	size_t max_fragment_id_list_size_;
+	std::map<Fragment::sequence_id_t, std::map<Fragment::fragment_id_t, bool>> in_progress_fragment_ids_;
 	size_t const queue_size_;
 	run_id_t run_id_;
 
@@ -439,9 +439,8 @@ private:
 	int incomplete_event_report_interval_ms_;
 	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 	std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
-        std::chrono::steady_clock::time_point last_backpressure_report_time_;
-        std::chrono::steady_clock::time_point last_fragment_header_write_time_;
-
+	std::chrono::steady_clock::time_point last_backpressure_report_time_;
+	std::chrono::steady_clock::time_point last_fragment_header_write_time_;
 
 	struct MetricData
 	{
@@ -456,8 +455,8 @@ private:
 
 	std::atomic<int> run_event_count_;
 	std::atomic<int> run_incomplete_event_count_;
-        std::atomic<int> subrun_event_count_;
-        std::atomic<int> subrun_incomplete_event_count_;
+	std::atomic<int> subrun_event_count_;
+	std::atomic<int> subrun_incomplete_event_count_;
 	std::atomic<int> oversize_fragment_count_;
 	int maximum_oversize_fragment_count_;
 
@@ -481,7 +480,7 @@ private:
 
 	detail::RawEventHeader* getEventHeader_(int buffer);
 
-	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp);
+	int getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp = Fragment::InvalidTimestamp, Fragment::fragment_id_t fragID = Fragment::InvalidFragmentID);
 	bool hasFragments_(int buffer);
 	void complete_buffer_(int buffer);
 	bool bufferComparator(int bufA, int bufB);
