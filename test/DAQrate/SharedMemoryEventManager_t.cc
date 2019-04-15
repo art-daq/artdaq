@@ -722,6 +722,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	{
+		TLOG(TLVL_INFO) << "Testing default Fragment IDs functionality";
 		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
@@ -809,6 +810,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
 
 		frag->setSequenceID(4);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -817,6 +819,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
 
 		frag->setFragmentID(3);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc3 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -826,6 +829,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 
 		frag->setSequenceID(3);
 		frag->setFragmentID(2);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc4 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -834,6 +838,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
 
 		frag->setFragmentID(0);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc5 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc5, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -842,8 +847,8 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		BOOST_REQUIRE_EQUAL(fragLoc4 + frag->size(), fragLoc5);
 	}
 	{
-		TLOG(TLVL_INFO) << "Checking that changing default works correctly";
-		t.SetDefaultFragmentIDs({1, 3}, 0);
+		TLOG(TLVL_INFO) << "Checking that changing default works correctly (immediate mode)";
+		t.SetDefaultFragmentIDs({1, 3});
 
 		frag->setSequenceID(5);  // Expect 1, 3 for this event
 		frag->setFragmentID(0);
@@ -856,6 +861,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 4);
 		
 		frag->setFragmentID(3);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc3 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -864,12 +870,63 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 4);
 
 		frag->setFragmentID(1);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc4 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 4);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 5);
 		BOOST_REQUIRE_EQUAL(fragLoc3 + frag->size(), fragLoc4);
+	}
+	{
+		TLOG(TLVL_INFO) << "Checking that changing default works correctly (delayed mode)";
+		t.SetDefaultFragmentIDs({4, 5}, 7);
+		frag->setSequenceID(6);  // Expect 1, 3 for this event
+		frag->setFragmentID(4);
+		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto fragLoc = t.WriteFragmentHeader(hdr);
+		BOOST_REQUIRE_EQUAL(fragLoc, t.GetDroppedDataAddress(4));  // Expect Fragment ID 4 to be dropped
+		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+		t.DoneWritingFragment(hdr);
+		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 5);
+
+		frag->setSequenceID(7);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto fragLoc2 = t.WriteFragmentHeader(hdr);
+		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+		t.DoneWritingFragment(hdr);
+		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(7), 1);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 5);
+
+		frag->setFragmentID(5);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto fragLoc3 = t.WriteFragmentHeader(hdr);
+		memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+		t.DoneWritingFragment(hdr);
+		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 6);
+		BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);
+
+		frag->setSequenceID(6);
+		frag->setFragmentID(1);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto fragLoc4 = t.WriteFragmentHeader(hdr);
+		memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+		t.DoneWritingFragment(hdr);
+		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(6), 1);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 6);
+
+		frag->setFragmentID(3);
+		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto fragLoc5 = t.WriteFragmentHeader(hdr);
+		memcpy(fragLoc5, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+		t.DoneWritingFragment(hdr);
+		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 7);
+		BOOST_REQUIRE_EQUAL(fragLoc4 + frag->size(), fragLoc5);
 	}
 
 	TLOG(TLVL_INFO) << "Test FragmentIDChecking END";
