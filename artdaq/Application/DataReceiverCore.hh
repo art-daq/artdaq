@@ -156,6 +156,26 @@ public:
 		return config_archive_entries_.empty();
 	}
 
+	/**
+	 * \brief Override the expected Fragment IDs for a specific event
+	 * \param seqID Event Sequence Number
+	 * \param frags std::set of Fragment_id_t indicating Fragment IDs which should be present for event
+	 */
+	void OverrideFragmentIDsForEvent(Fragment::sequence_id_t seqID, std::set<Fragment::fragment_id_t> frags)
+	{
+		if (event_store_ptr_) event_store_ptr_->OverrideFragmentIDsForEvent(seqID, frags);
+	}
+
+	/**
+	 * \brief Update the list of Fragment IDs which should be present unless overridden
+	 * \param frags std::set of Fragment_id_t indicating Fragment IDs which should be present for all events
+	 * \param when Sequence ID when the change should take effect. Default of 0 indicates change should take effect immediately.
+	 */
+	void SetDefaultFragmentIDs(std::set<Fragment::fragment_id_t> frags, Fragment::sequence_id_t when = 0)
+	{
+		if (event_store_ptr_) event_store_ptr_->SetDefaultFragmentIDs(frags, when);
+	}
+
 protected:
 	/**
 	 * \brief Initialize the DataReceiverCore (should be called from initialize() overrides

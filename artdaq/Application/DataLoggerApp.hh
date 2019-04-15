@@ -108,6 +108,18 @@ public:
 	*/
 	bool do_clear_config_archive() override;
 
+	/**
+	 * \brief Override the Fragment ID list for a given event
+	 * \return Whether the command succeeded (always true)
+	 */
+	bool do_override_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags) override;
+
+	/**
+	 * \brief Update the Fragment ID list at the given event
+	 * \return Whether the command succeeded (always true)
+	 */
+	bool do_update_default_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags) override;
+
 
 private:
 	std::unique_ptr<DataLoggerCore> DataLogger_ptr_;

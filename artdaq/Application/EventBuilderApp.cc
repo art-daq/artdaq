@@ -213,3 +213,37 @@ bool artdaq::EventBuilderApp::do_clear_config_archive()
 
 	return external_request_status_;
 }
+
+bool artdaq::EventBuilderApp::do_override_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags)
+{
+	report_string_ = "";
+	external_request_status_ = true;
+
+	std::set<Fragment::fragment_id_t> frags_set;
+	for (auto& f : frags)
+	{
+		if (!frags_set.count(f))
+			frags_set.insert(f);
+	}
+		
+	event_builder_ptr_->OverrideFragmentIDsForEvent(seqID, frags_set);
+
+	return external_request_status_;
+}
+
+bool artdaq::EventBuilderApp::do_update_default_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags)
+{
+	report_string_ = "";
+	external_request_status_ = true;
+
+	std::set<Fragment::fragment_id_t> frags_set;
+	for (auto& f : frags)
+	{
+		if (!frags_set.count(f))
+			frags_set.insert(f);
+	}
+		
+	event_builder_ptr_->SetDefaultFragmentIDs(frags_set, seqID);
+
+	return external_request_status_;
+}

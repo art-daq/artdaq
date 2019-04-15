@@ -1,9 +1,9 @@
-#define TRACE_NAME (app_name + "_DataLoggerApp").c_str() // include these 2 first -
+#define TRACE_NAME (app_name + "_DataLoggerApp").c_str()  // include these 2 first -
 #include "artdaq/DAQdata/Globals.hh"
 
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include <iostream>
 
@@ -47,7 +47,7 @@ bool artdaq::DataLoggerApp::do_start(art::RunID id, uint64_t, uint64_t)
 		report_string_.append(boost::lexical_cast<std::string>(id.run()));
 		report_string_.append(".");
 	}
-	
+
 	return external_request_status_;
 }
 
@@ -121,7 +121,10 @@ std::string artdaq::DataLoggerApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else { return "Success"; }
+		else
+		{
+			return "Success";
+		}
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
@@ -170,6 +173,38 @@ bool artdaq::DataLoggerApp::do_clear_config_archive()
 		report_string_ = "Error clearing the configuration archive in ";
 		report_string_.append(app_name + ".");
 	}
+
+	return external_request_status_;
+}
+
+bool artdaq::DataLoggerApp::do_override_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags)
+{
+	report_string_ = "";
+	external_request_status_ = true;
+
+	std::set<Fragment::fragment_id_t> frags_set;
+	for (auto& f : frags)
+	{
+		if (!frags_set.count(f))
+		frags_set.insert(f);
+	}
+
+	DataLogger_ptr_->OverrideFragmentIDsForEvent(seqID, frags_set);
+
+	return external_request_status_;
+}
+
+bool artdaq::DataLoggerApp::do_update_default_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags)
+{
+	report_string_ = "";
+	external_request_status_ = true;
+	std::set<Fragment::fragment_id_t> frags_set;
+	for (auto& f : frags)
+	{
+		if (!frags_set.count(f))
+		frags_set.insert(f);
+	}
+	DataLogger_ptr_->SetDefaultFragmentIDs(frags_set, seqID);
 
 	return external_request_status_;
 }
