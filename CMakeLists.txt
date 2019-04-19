@@ -178,8 +178,9 @@ add_subdirectory(proto)
 # Useful tools and scripts.
 add_subdirectory(tools)
 
-# doc - Documentation
-add_subdirectory(doc)
+# JCF: at Alessandro Thea's request, disable Doxygen in builds
+# # doc - Documentation
+# add_subdirectory(doc)
 
 # ups - table and config files
 add_subdirectory(ups)
