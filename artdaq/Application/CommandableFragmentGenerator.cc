@@ -935,6 +935,12 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		if (requests.size() == 0) break;
 
 		auto ts = req->second;
+		if (ts == Fragment::InvalidTimestamp)
+		{
+			TLOG(TLVL_ERROR) << "applyRequestsWindowMode: Received InvalidTimestamp in request " << req->first << ", cannot apply! Check that push-mode BRs are filling appropriate timestamps in their Fragments!";
+			req = requests.erase(req);
+			continue;
+		}
 		TLOG(TLVL_APPLYREQUESTS) << "applyRequests: Checking that data exists for request window " << req->first;
 		Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 		Fragment::timestamp_t max = min + windowWidth_;
