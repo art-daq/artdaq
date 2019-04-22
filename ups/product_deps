@@ -22,7 +22,7 @@ art             v2_11_01    s67
 art_root_io     v1_00_04    s82
 artdaq_core 		v3_04_11
 artdaq_utilities        v1_04_10
-xmlrpc_c		v1_39_10d
+xmlrpc_c		v1_51_03
 artdaq_ganglia_plugin   v1_02_13        -       optional
 artdaq_epics_plugin     v1_02_06a        -       optional
 artdaq_mfextensions     v1_03_03a        -       optional
@@ -34,8 +34,12 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		art			art_root_io		artdaq_core		artdaq_utilities	xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_mfextensions
+c7:s82:debug	-			c7:debug		c7:s82:debug	c7:s82:debug		c7:debug	c7:s82:debug			c7:s82:debug       	c7:s82:debug
+c7:s82:prof		- 			c7:prof			c7:s82:prof		c7:s82:prof			c7:prof		c7:s82:prof				c7:s82:prof			c7:s82:prof
 c2:s82:debug	-			c2:debug		c2:s82:debug	c2:s82:debug		c2:debug	c2:s82:debug			c2:s82:debug       	c2:s82:debug
 c2:s82:prof		- 			c2:prof			c2:s82:prof		c2:s82:prof			c2:prof		c2:s82:prof				c2:s82:prof			c2:s82:prof
+e19:s82:debug	-			e19:debug		e19:s82:debug	e19:s82:debug		e19:debug	e19:s82:debug			e19:s82:debug      	e19:s82:debug
+e19:s82:prof	- 			e19:prof		e19:s82:prof	e19:s82:prof		e19:prof	e19:s82:prof			e19:s82:prof		e19:s82:prof
 e17:s82:debug	-			e17:debug		e17:s82:debug	e17:s82:debug		e17:debug	e17:s82:debug			e17:s82:debug      	e17:s82:debug
 e17:s82:prof	- 			e17:prof		e17:s82:prof	e17:s82:prof		e17:prof	e17:s82:prof			e17:s82:prof		e17:s82:prof
 c2:s73:debug	c2:debug	-				c2:s73:debug	c2:s73:debug		c2:debug	c2:s73:debug			c2:s73:debug       	c2:s73:debug
