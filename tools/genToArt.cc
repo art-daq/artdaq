@@ -249,11 +249,11 @@ namespace
 		store.startRun(gta_pset.get<int>("run_number", 1000));
 
 		auto const events_to_generate =
-			gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", -1);
+	        gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", artdaq::Fragment::InvalidSequenceID);
 		auto const reset_sequenceID = pset.get<bool>("reset_sequenceID", true);
 		bool done = false;
 		for (artdaq::Fragment::sequence_id_t event_count = 1;
-			(events_to_generate == static_cast<decltype(events_to_generate)>(-1)
+			(events_to_generate == artdaq::Fragment::InvalidSequenceID
 			 || event_count <= events_to_generate) && (!done);
 			 ++event_count)
 		{
