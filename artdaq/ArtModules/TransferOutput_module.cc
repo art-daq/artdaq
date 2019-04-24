@@ -33,7 +33,12 @@ class art::TransferOutput : public ArtdaqOutput {
 
  protected:
 
-	 
+	 /// <summary>
+	 /// Send a message using the Transfer Plugin
+	 /// </summary>
+	 /// <param name="sequenceId">Sequence ID of message</param>
+	 /// <param name="messageType">Type of message</param>
+	 /// <param name="msg">Contents of message</param>
   virtual void SendMessage(artdaq::Fragment::sequence_id_t sequenceId, artdaq::Fragment::type_t messageType, TBufferFile & msg);
 
  private:

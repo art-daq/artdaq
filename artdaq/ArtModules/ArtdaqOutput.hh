@@ -93,9 +93,16 @@ namespace art {
 class ArtdaqOutput;
 }
 
+/// <summary>
+/// This is the base class for artdaq OutputModules, providing the serialization interface for art Events.
+/// </summary>
 class art::ArtdaqOutput : public art::OutputModule
 {
 public:
+	/// <summary>
+	/// ArtdaqOutput Constructor
+	/// </summary>
+	/// <param name="ps">ParameterSet used to configure art::OutputModule</param>
 	explicit ArtdaqOutput(fhicl::ParameterSet const& ps)
 	    : OutputModule(ps), initMsgSent_(false), productList_() {
 		#if ART_HEX_VERSION >= 0x30200
@@ -103,51 +110,137 @@ public:
 		#endif
 	}
 
+	/// <summary>
+	/// Destructor
+	/// </summary>
 	virtual ~ArtdaqOutput() = default;
 
 protected:
+	/// <summary>
+	/// Perform actions necessary for opening files. No-op, but derived classes may override
+	/// </summary>
 	virtual void openFile(FileBlock const&)
 	{
 		TLOG(TLVL_OPENFILE) << "Begin/End: ArtdaqOutput::openFile(const FileBlock&)";
 	}
 
+	/// <summary>
+	/// Perform actions necessary for closing files. No-op, but derived classes may override
+	/// </summary>
 	virtual void closeFile() { TLOG(TLVL_CLOSEFILE) << "Begin/End: ArtdaqOutput::closeFile()"; }
 
+	/// <summary>
+	/// Perform actions nesessary after closing the input file. No-op, but derived classes may override
+	/// </summary>
 	virtual void respondToCloseInputFile(FileBlock const&)
 	{
 		TLOG(TLVL_RESPONDTOCLOSEINPUTFILE) << "Begin/End: ArtdaqOutput::"
 		                                      "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
+	/// <summary>
+	/// Perform actions necessary after closing the output file(s). No-op, but derived classes may override
+	/// </summary>
 	virtual void respondToCloseOutputFiles(FileBlock const&)
 	{
 		TLOG(TLVL_RESPONDTOCLOSEOUTPUTFILE) << "Begin/End: ArtdaqOutput::"
 		                                       "respondToCloseOutputFiles(FileBlock const&)";
 	}
 
+	/// <summary>
+	/// Perform End-of-Job actions. No-op, but derived classes may override
+	/// </summary>
 	virtual void endJob()
 	{
 		TLOG(TLVL_ENDJOB) << "Begin/End: ArtdaqOutput::endJob()";
 	}
 
-	virtual void beginRun(RunPrincipal const& rp) final { extractProducts_(rp); }
+	/// <summary>
+	/// Perform Begin Run actions. Derived classes should implement beginRun_ instead.
+	/// </summary>
+	/// <param name="rp">RunPrincipal of new run</param>
+	virtual void beginRun(RunPrincipal const& rp) final
+	{
+		extractProducts_(rp);
+		beginRun_(rp);
+	}
+	/// <summary>
+	/// Perform Begin Run actions. No-op, but derived classes may override
+	/// </summary>
+	virtual void beginRun_(RunPrincipal const& ) {}
 
-	virtual void beginSubRun(SubRunPrincipal const& srp) final { extractProducts_(srp); }
+	/// <summary>
+	/// Perform Begin SubRun actions. Derived classes should implement beginSubRun_ instead.
+	/// </summary>
+	/// <param name="srp">SubRunPrincipal of new subrun</param>
+	virtual void beginSubRun(SubRunPrincipal const& srp) final
+	{
+		extractProducts_(srp);
+		beginSubRun_(srp);
+	}
+	/// <summary>
+	/// Perform Begin SubRun actions. No-op, but derived classes may override
+	/// </summary>
+	virtual void beginSubRun_(SubRunPrincipal const& ) {}
 
-	virtual void event(EventPrincipal const& ep) final { extractProducts_(ep); }
+	/// <summary>
+	/// Perform actions for each event. Derived classes should implement event_ instead.
+	/// </summary>
+	/// <param name="ep">EventPrincipal of event</param>
+	virtual void event(EventPrincipal const& ep) final
+	{
+		extractProducts_(ep);
+		event_(ep);
+	}
+	/// <summary>
+	/// Perform actions for each event. No-op, but derived classes may override
+	/// </summary>
+	virtual void event_(EventPrincipal const& ) {}
 
-	virtual void write(EventPrincipal&) final;
+	/// <summary>
+	/// Write an EventPrincipal to TBufferFile and send
+	/// </summary>
+	/// <param name="ep">EventPrincipal to write</param>
+	virtual void write(EventPrincipal& ep) final;
 
-	virtual void writeRun(RunPrincipal&) final;
+	/// <summary>
+	/// Write a RunPrincipal to TBufferFile and send
+	/// </summary>
+	/// <param name="rp">RunPrincipal to write</param>
+	virtual void writeRun(RunPrincipal& rp) final;
 
-	virtual void writeSubRun(SubRunPrincipal&) final;
+	/// <summary>
+	/// Write a SubRunPrincipal to TBufferFile and send
+	/// </summary>
+	/// <param name="srp">SubRunPrincipal to write</param>
+	virtual void writeSubRun(SubRunPrincipal& srp) final;
 
-	void writeDataProducts(TBufferFile&, const Principal&, std::vector<BranchKey*>&);
+	/// <summary>
+	/// Extract the data products from a Principal and write them to the TBufferFile
+	/// </summary>
+	/// <param name="msg">Output TBufferFile</param>
+	/// <param name="principal">Principal from which to extract products</param>
+	/// <param name="bkv">Branch Keys for data products</param>
+	void writeDataProducts(TBufferFile& msg, const Principal& principal, std::vector<BranchKey*>& bkv);
 
-	void extractProducts_(Principal const&);
+	/// <summary>
+	/// Extract the list of Products from the given Principal
+	/// </summary>
+	/// <param name="principal">Principal to extract products from</param>
+	void extractProducts_(Principal const& principal);
 
+	/// <summary>
+	/// Send an init message downstream. Use the given History for initializing downstream art processes.
+	/// </summary>
+	/// <param name="history">History to use for downstream art processes</param>
 	void send_init_message(History const& history);
 
+	/// <summary>
+	/// Send the serialized art Event downstream. Artdaq output modules should define this function.
+	/// </summary>
+	/// <param name="sequenceId">Sequence ID to use for event (event number)</param>
+	/// <param name="messageType">Message Type (Fragment::DataFragmentType for events, other System types for control messages)</param>
+	/// <param name="msg">Serialized art Event</param>
 	virtual void SendMessage(artdaq::Fragment::sequence_id_t sequenceId, artdaq::Fragment::type_t messageType, TBufferFile& msg) = 0;
 
 private:

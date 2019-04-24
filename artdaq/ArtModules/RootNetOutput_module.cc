@@ -32,6 +32,12 @@ public:
 	~RootNetOutput();
 
 protected:
+	/// <summary>
+	/// Send a message using DataSenderManager
+	/// </summary>
+	/// <param name="sequence_id">Sequence ID of message</param>
+	/// <param name="messageType">Type of message</param>
+	/// <param name="msg">Contents of message</param>
 	virtual void SendMessage(artdaq::Fragment::sequence_id_t sequence_id, artdaq::Fragment::type_t messageType, TBufferFile& msg);
 };
 
