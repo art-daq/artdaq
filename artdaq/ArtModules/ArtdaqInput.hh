@@ -195,7 +195,6 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	                           << "const fhicl::ParameterSet& ps, "
 	                           << "art::ProductRegistryHelper& helper, "
 	                           << "const art::SourceHelper& pm)";
-	(void)helper;
 
 	TLOG_ARB(5, "ArtdaqInput") << "Going to receive init message";
 	std::unique_ptr<TBufferFile> msg(nullptr);
@@ -496,7 +495,7 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 		auto historyPtr = HISTORY_PTR_T(new History(*(history_to_use_.get())));
 		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
 		{
-			TLOG_ARB(TLVL_WARNING, "ArtdaqInput") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
+			TLOG_WARNING("ArtdaqInput") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
 		}
 		outE = pm_.makeEventPrincipal(*event_aux.get(), std::move(historyPtr));
 
