@@ -163,7 +163,7 @@ private:
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
 	ProductList* productList_;
-	HISTORY_PTR_T history_;
+	HISTORY_PTR_T history_to_use_;
 };
 
 template<typename U>
@@ -277,8 +277,8 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	// Read the History
 	//
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading History";
-	history_.reset(ReadObjectAny<History>(msg, "art::History", "ArtdaqInput::ArtdaqInput"));
-	if (!history_->processHistoryID().isValid())
+	history_to_use_.reset(ReadObjectAny<History>(msg, "art::History", "ArtdaqInput::ArtdaqInput"));
+	if (!history_to_use_->processHistoryID().isValid())
 	{
 		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: History from init message is INVALID!";
 	}
@@ -342,7 +342,7 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 	std::unique_ptr<art::SubRunAuxiliary> subrun_aux;
 	std::unique_ptr<art::EventAuxiliary> event_aux;
 
-	HISTORY_PTR_T history;
+	HISTORY_PTR_T history_from_event;
 
 	// Establish default 'results'
 	outR = 0;
@@ -447,23 +447,25 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 		event_aux.reset(
 		    ReadObjectAny<art::EventAuxiliary>(msg, "art::EventAuxiliary", "ArtdaqInput::readAndConstructPrincipal"));
 
-		history.reset(ReadObjectAny<art::History>(msg, "art::History", "ArtdaqInput::readAndConstructPrincipal"));
-		printProcessHistoryID("readAndConstructPrincipal", history.get());
+		history_from_event.reset(ReadObjectAny<art::History>(msg, "art::History", "ArtdaqInput::readAndConstructPrincipal"));
+		printProcessHistoryID("readAndConstructPrincipal", history_from_event.get());
 
-		// Can probably improve on error choice of "art::errors:Unknown"
-		if (!history->processHistoryID().isValid())
+		// Every event should have a valid history
+		if (!history_from_event->processHistoryID().isValid())
 		{
 			throw art::Exception(art::errors::Unknown)
 			    << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
 		}
-		else if (!history_->processHistoryID().isValid())
+		// If our stored history is invalid, use this Event's history
+		else if (!history_to_use_->processHistoryID().isValid())
 		{
-			history_.swap(history);
+			history_to_use_.swap(history_from_event);
 		}
-		else if (!art::ProcessHistoryRegistry::get().count(history_->processHistoryID()) &&
-		         art::ProcessHistoryRegistry::get().count(history->processHistoryID()))
+		// If our stored history doesn't match our ProcessHistoryRegistry, then used this Event's history
+		else if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()) &&
+		         art::ProcessHistoryRegistry::get().count(history_from_event->processHistoryID()))
 		{
-			history_.swap(history);
+			history_to_use_.swap(history_from_event);
 		}
 
 		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: "
@@ -491,8 +493,8 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux.get());
 		}
 		TLOG_ARB(11, "ArtdaqInput") << "readAndConstructPrincipal: making EventPrincipal ...";
-		auto historyPtr = HISTORY_PTR_T(new History(*(history_.get())));
-		if (!art::ProcessHistoryRegistry::get().count(history_->processHistoryID()))
+		auto historyPtr = HISTORY_PTR_T(new History(*(history_to_use_.get())));
+		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
 		{
 			TLOG_ARB(TLVL_WARNING, "ArtdaqInput") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
 		}
