@@ -1,6 +1,6 @@
 #define TRACE_NAME "RoutingMasterPolicy"
 
-#include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)

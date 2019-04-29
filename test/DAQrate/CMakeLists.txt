@@ -26,4 +26,3 @@ cet_test(requestsender HANDBUILT
   TEST_ARGS -c requestsender.fcl
   DATAFILES requestsender.fcl
   )
-

@@ -54,6 +54,7 @@ TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
 	, send_ack_diff_(0)
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << " Constructor: pset=" << pset.to_string() << ", role=" << (role == TransferInterface::Role::kReceive ? "kReceive" : "kSend");
+	connection_was_lost_ = false;
 
 	if (role == TransferInterface::Role::kReceive)
 	{
@@ -596,6 +597,12 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendFragment_(F
 	artdaq::Fragment grab_ownership_frag = std::move(frag);
 
 	reconnect_();
+	if (send_fd_ == -1 && connection_was_lost_)
+	{
+		TLOG(TLVL_INFO) << GetTraceName() << ": reconnection attempt failed, returning quickly.";
+		return TransferInterface::CopyStatus::kErrorNotRequiringException;
+	}
+
 	// Send Fragment Header
 
 #if USE_ACKS
@@ -726,6 +733,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 			connect_state = 0; // any write error closes
 			close(send_fd_);
 			send_fd_ = -1;
+			connection_was_lost_ = true;
 			return TransferInterface::CopyStatus::kErrorNotRequiringException;
 		}
 		else if (sts != this_write_bytes)
@@ -830,14 +838,17 @@ void artdaq::TCPSocketTransfer::connect_()
 			sndbuf_bytes = INT_MAX;
 			TLOG(TLVL_WARNING) << "Requested SNDBUF " << sndbuf_ << " too large, setting to INT_MAX: " << INT_MAX;
 		}
-        TLOG(TLVL_DEBUG) << "Requested SNDBUF is " << sndbuf_bytes;
+		TLOG(TLVL_DEBUG) << "Requested SNDBUF is " << sndbuf_bytes;
 
 		send_fd_ = TCPConnect(hostMap_[destination_rank()].c_str()
 			, portMan->GetTCPSocketTransferPort(destination_rank())
 			, O_NONBLOCK
 			, sndbuf_bytes);
 		if (send_fd_ == -1)
-			usleep(send_retry_timeout_us_);
+		{
+			if (connection_was_lost_) {break;}
+			else {usleep(send_retry_timeout_us_);}
+		}
 	}
 	connect_state = 0;
 	blocking = 0;
@@ -861,6 +872,7 @@ void artdaq::TCPSocketTransfer::connect_()
 			TLOG(TLVL_INFO) << GetTraceName() << ": connect_: Successfully connected";
 			// consider it all connected/established
 			connect_state = 1;
+			connection_was_lost_ = false;
 		}
 
 #if USE_ACKS
