@@ -5,7 +5,7 @@
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq/Application/makeCommandableFragmentGenerator.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 #include <pthread.h>

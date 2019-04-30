@@ -3,12 +3,12 @@
 
 #include <string>
 
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/Application/StatisticsHelper.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 namespace artdaq
