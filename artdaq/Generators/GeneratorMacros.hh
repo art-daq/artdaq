@@ -1,7 +1,7 @@
 #ifndef artdaq_Application_GeneratorMacros_hh
 #define artdaq_Application_GeneratorMacros_hh
 
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "fhiclcpp/fwd.h"
 
 #include "cetlib/compiler_macros.h"

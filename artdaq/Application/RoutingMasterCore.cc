@@ -16,7 +16,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/RoutingMasterCore.hh"
-#include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
@@ -445,13 +445,28 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			auto table_ack_wait_time_ms = current_table_interval_ms_ / max_ack_cycle_count_;
 			if (TimeUtils::GetElapsedTimeMilliseconds(startTime) > table_ack_wait_time_ms)
 			{
-				if (counter > max_ack_cycle_count_ && table_update_count_ > 0)
+				if (++counter > max_ack_cycle_count_ && table_update_count_ > 0)
 				{
-					TLOG(TLVL_ERROR) << "Did not receive acks from all senders after resending table " << counter
+					TLOG(TLVL_WARNING) << "Did not receive acks from all senders after resending table " << counter
 						<< " times during the table_update_interval. Check the status of the senders!" ;
-					break;
 				}
+				else
+				{
 				TLOG(TLVL_WARNING) << "Did not receive acks from all senders within the timeout (" << table_ack_wait_time_ms << " ms). Resending table update" ;
+				}
+
+				if (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) <= 3)
+				{
+				  auto ackIter = acks.begin();
+				  while (ackIter != acks.end())
+				  {
+				    if (! ackIter->second)
+				    {
+				      TLOG(TLVL_TRACE) << "Did not receive ack from rank " << ackIter->first;
+				    }
+				    ++ackIter;
+				  }
+				}
 				break;
 			}
 
