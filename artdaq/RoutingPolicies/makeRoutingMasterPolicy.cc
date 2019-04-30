@@ -1,6 +1,6 @@
-#include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
 
-#include "artdaq/Application/Routing/PolicyMacros.hh"
+#include "artdaq/RoutingPolicies/PolicyMacros.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "cetlib/BasicPluginFactory.h"
 

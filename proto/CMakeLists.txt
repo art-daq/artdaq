@@ -7,6 +7,7 @@ art_make_exec(NAME artdaqDriver
 	driver.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
+  artdaq_Generators
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq-core_Utilities
