@@ -8,21 +8,14 @@
 # Build this project's library:
 
 art_make(BASENAME_ONLY
-  LIBRARY_NAME artdaq_DAQrate
-  SUBDIRS detail
+  LIBRARY_NAME artdaq_Generators
+  NO_PLUGINS
   LIB_LIBRARIES
   artdaq_DAQdata
-  artdaq_TransferPlugins
-  artdaq-utilities_Plugins
-  artdaq-core_Core
+  artdaq_DAQrate
   artdaq-core_Data
-  artdaq-core_Utilities
-  ${FHICLCPP}
-  ${MESSAGEFACILITY_LIBS}
-  ${Boost_THREAD_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
-  pthread
   )
+simple_plugin(CompositeDriver "generator" artdaq_DAQdata artdaq_Generators)
 
 install_headers(SUBDIRS detail)
 install_source(SUBDIRS detail)

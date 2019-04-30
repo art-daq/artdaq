@@ -1,5 +1,5 @@
-#include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
-#include "artdaq/Application/Routing/PolicyMacros.hh"
+#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/PolicyMacros.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "tracemf.h"
 #define TRACE_NAME "NoOp_policy"

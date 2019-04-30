@@ -3,9 +3,8 @@
 #include "fhiclcpp/types/OptionalAtom.h"
 #include "fhiclcpp/types/OptionalTable.h"
 #include "artdaq/ArtModules/NetMonTransportService.h"
-#include "artdaq/ArtModules/RootNetOutput.hh"
 #include "art/Framework/Core/OutputModule.h"
-#include "art/Framework/IO/ClosingCriteria.h"
+# include "art/Framework/IO/ClosingCriteria.h"
 
 namespace art {
 	/// <summary>
@@ -93,7 +92,7 @@ namespace art {
 	/// </summary>
 	struct OutputsConfig
 	{
-		fhicl::OptionalTable<art::RootNetOutput::Config> rootNetOutput{ fhicl::Name{"rootNetOutput"} }; ///< For transferring data from EventBuilders to DataLoggers
+		fhicl::OptionalTable<art::OutputModule::Config> rootNetOutput{ fhicl::Name{"rootNetOutput"} }; ///< For transferring data from EventBuilders to DataLoggers
 		fhicl::OptionalTable<RootOutputConfig> normalOutput{ fhicl::Name{"normalOutput"} }; ///< Normal art/ROOT output
 		fhicl::OptionalTable<RootOutputConfig> rootDAQOutFile{ fhicl::Name{"rootDAQOutFile"} }; ///< art/ROOT output where the filename can be specified at initialization (e.g. to /dev/null), for testing
 	};
