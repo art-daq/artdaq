@@ -16,10 +16,10 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "artdaq/Application/Routing/makeRoutingMasterPolicy.hh"
 #include "artdaq/Application/RoutingMasterCore.hh"
-#include "artdaq/DAQdata/TCPConnect.hh"
+#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 
 const std::string artdaq::RoutingMasterCore::
     TABLE_UPDATES_STAT_KEY("RoutingMasterCoreTableUpdates");
