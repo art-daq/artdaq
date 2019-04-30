@@ -1,4 +1,4 @@
-#include "artdaq/Application/StatisticsHelper.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 
 // This class is really nothing more than a collection of code that
 // would be repeated throughout artdaq "application" classes if it
