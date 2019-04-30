@@ -31,61 +31,120 @@ namespace artdaq
 	namespace detail
 	{
 		/**
-		 * \brief The SMR_DefaultExperimentCustomization class provides default behavior for
-		 *        experiment-specific customizations in SharedMemoryReader.
+		 * \brief The DefaultFragmentTypeTranslator class provides default behavior
+		 *        for experiment-specific customizations in SharedMemoryReader.
 		 */
-		class SMR_DefaultExperimentCustomization
+		class DefaultFragmentTypeTranslator
 		{
-			public:
+		    public:
 
-			static std::vector<std::string>
-			experimentSpecificProductInstanceNames(std::map<Fragment::type_t, std::string> const& type_map)
+			DefaultFragmentTypeTranslator() : type_map_() {}
+			virtual ~DefaultFragmentTypeTranslator() = default;
+
+			/**
+			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
+			 */
+			virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
 			{
-				std::vector<std::string> expSpecNames;
-				for (auto it = type_map.begin(); it != type_map.end(); ++it)
+				type_map_ = type_map;
+			}
+
+			/**
+			 * \brief Adds an additional type to be translated.
+			 */
+			virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
+			{
+				type_map_[type_id] = type_name;
+			}
+
+			/**
+			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
+			 *        unidentified_instance_name if no translation can be found.
+			 */
+			virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
+			{
+				if (type_map_.count(type_id) > 0) {return type_map_[type_id];}
+				return unidentified_instance_name;
+			}
+
+			/**
+			 * \brief Returns the full set of product instance names which may be present in the data, based on
+			 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
+			 *        *does* include "container" types, if the container type mapping is part of the basic types.
+			 */
+			virtual std::set<std::string> GetAllProductInstanceNames()
+			{
+				std::set<std::string> output;
+				for (const auto& map_iter : type_map_)
 				{
-					TLOG_TRACE("SharedMemoryReader") << "Providing default (no) experiment-specific customization "
-					                                 << "of product instance name \"" << it->second << "\"";;
-#if 0
-					// This section of code is commented out, may be removed at some point, and is only
-					// included as an example of how an experiment might customize their product instance names.
-					std::string instanceName = it->second;
-					std::size_t foundPos = instanceName.find("TOY2");
-					if (foundPos != std::string::npos)
+					std::string instance_name = map_iter.second;
+					if (!output.count(instance_name))
 					{
-						std::string newName = instanceName + "01";
-						expSpecNames.push_back(newName);
-						TLOG_ARB(25, "SharedMemoryReader") << "Added custom product instance name \"" << newName << "\"";
+						output.insert(instance_name);
+						TLOG_TRACE("DefaultFragmentTypeTranslator") << "Adding product instance name \"" << map_iter.second
+						                                            << "\" to list of expected names";
 					}
-#endif
 				}
-				return expSpecNames;
+
+				auto container_type = type_map_.find(artdaq::Fragment::ContainerFragmentType);
+				if (container_type != type_map_.end())
+				{
+					std::string container_type_name = container_type->second;
+					std::set<std::string> tmp_copy = output;
+					for (const auto& set_iter : tmp_copy)
+					{
+						output.insert(container_type_name + set_iter);
+					}
+				}
+
+				return output;
 			}
 
-			static std::string experimentSpecificProductNameTranslation(std::string const& inputName)
+			/**
+			 * \brief Returns the product instance name for the specified fragment, based on the types that have
+			 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
+			 *        use of "container" types, if the container type mapping is part of the basic types.  If no
+			 *        mapping is found, the specified unidentified_instance_name is returned.
+			 */
+			virtual std::pair<bool, std::string>
+			GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
 			{
-#if 0
-				// This section of code is commented out, may be removed at some point, and is only
-				// included as an example of how an experiment might customize their product instance names.
-				std::string translatedName = inputName;
-				std::size_t foundPos = inputName.find("TOY2");
-				if (foundPos != std::string::npos)
+				auto type_map_end = type_map_.end();
+				bool success_code = true;
+				std::string instance_name;
+
+				auto primary_type = type_map_.find(fragment.type());
+				if (primary_type != type_map_end)
 				{
-					translatedName += "01";
-					TLOG_ARB(25, "SharedMemoryReader") << "translated product instance name \"" << inputName << "\" to \"" << translatedName << "\"";
+					instance_name = primary_type->second;
+					if (fragment.type() == artdaq::Fragment::ContainerFragmentType)
+					{
+						artdaq::ContainerFragment cf(fragment);
+						auto contained_type = type_map_.find(cf.fragment_type());
+						if (contained_type != type_map_end)
+						{
+							instance_name += contained_type->second;
+						}
+					}
 				}
-				return translatedName;
-#else
-				return inputName;
-#endif
+				else
+				{
+					instance_name = unidentified_instance_name;
+					success_code = false;
+				}
+
+				return std::make_pair(success_code, instance_name);
 			}
+
+		    protected:
+			std::map<Fragment::type_t, std::string> type_map_;
 		};
 
 		/**
 		 * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
 		 */
 		template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
-		         class TTT = artdaq::detail::SMR_DefaultExperimentCustomization >
+		         class FTT = artdaq::detail::DefaultFragmentTypeTranslator >
 		struct SharedMemoryReader
 		{
 			/**
@@ -138,7 +197,6 @@ namespace artdaq
 				, outputFileCloseNeeded(false)
 				, bytesRead(0)
 				, last_read_time(std::chrono::steady_clock::now())
-				, fragment_type_map_(getDefaultTypes())
 				, readNext_calls_(0)
 			{
 
@@ -173,30 +231,20 @@ namespace artdaq
 				}
 
 				help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
-				for (auto it = fragment_type_map_.begin(); it != fragment_type_map_.end(); ++it)
-				{
-					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
-					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container" + it->second);
-				}
+
+				translator_.SetBasicTypes(getDefaultTypes());
 				auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
 				for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
 				{
-					fragment_type_map_[it->first] = it->second;
-					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
-					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container" + it->second);
+					translator_.AddExtraType(it->first, it->second);
 				}
-				std::vector<std::string> expSpecProdInstNames = TTT::experimentSpecificProductInstanceNames(fragment_type_map_);
-				for (auto it = expSpecProdInstNames.begin(); it != expSpecProdInstNames.end(); ++it)
+				std::set<std::string> instance_names = translator_.GetAllProductInstanceNames();
+				for (const auto& set_iter : instance_names)
 				{
-					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, *it);
-					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container" + *it);
+					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, set_iter);
 				}
 
 				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string();
-				//for(auto& type : fragment_type_map_)
-				//{
-				//	TLOG_INFO("SharedMemoryReader") << "Fragment Type " << type.second << " has typeid " << type.first ;
-				//}
 			}
 
 			/**
@@ -334,8 +382,8 @@ namespace artdaq
 					return false;
 				}
 				auto firstFragmentType = *fragmentTypes.begin();
-				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " (" << fragment_type_map_[firstFragmentType] << ")";
-
+				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " ("
+				                                 << translator_.GetInstanceNameForType(firstFragmentType, unidentified_instance_name) << ")";
 				// We return false, indicating we're done reading, if:
 				//   1) we did not obtain an event, because we timed out and were
 				//      configured NOT to keep trying after a timeout, or
@@ -449,68 +497,41 @@ namespace artdaq
 					currentTime);
 
 				// insert the Fragments of each type into the EventPrincipal
-				std::map<Fragment::type_t, std::string>::const_iterator iter_end =
-					fragment_type_map_.end();
 				for (auto& type_code : fragmentTypes)
 				{
-					std::map<Fragment::type_t, std::string>::const_iterator iter =
-						fragment_type_map_.find(type_code);
 					TLOG_TRACE("SharedMemoryReader") << "Before GetFragmentsByType call, type is " << (int)type_code;
 					auto product = incoming_events->GetFragmentsByType(errflag, type_code);
-					TLOG_TRACE("SharedMemoryReader") << "After GetFragmentsByType call";
+					TLOG_TRACE("SharedMemoryReader") << "After GetFragmentsByType call, number of fragments is " << product->size();
 					if (errflag) goto start; // Buffer was changed out from under reader!
-					for (auto &frag : *product)
+
+					std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
+					for (auto& frag : *product)
+					{
 						bytesRead += frag.sizeBytes();
-					if (iter != iter_end)
-					{
-						if (type_code == artdaq::Fragment::ContainerFragmentType)
+
+						std::pair<bool, std::string> instance_name_result =
+							translator_.GetInstanceNameForFragment(frag, unidentified_instance_name);
+						std::string label = instance_name_result.second;
+						if (! instance_name_result.first)
 						{
-							std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
-
-							for (size_t ii = 0; ii < product->size(); ++ii)
-							{
-								ContainerFragment cf(product->at(ii));
-								auto contained_type = fragment_type_map_.find(cf.fragment_type());
-								std::string label = iter->second;
-								if (contained_type != iter_end)
-								{
-									label += contained_type->second;
-								}
-								if (!derived_fragments.count(label))
-								{
-									derived_fragments[label] = std::make_unique<Fragments>();
-								}
-								derived_fragments[label]->emplace_back(std::move(product->at(ii)));
-							}
-
-							for (auto& type : derived_fragments)
-							{
-								put_product_in_principal(std::move(type.second),
-									*outE,
-									pretend_module_name,
-									TTT::experimentSpecificProductNameTranslation(type.first));
-							}
-
+							TLOG_WARNING("SharedMemoryReader")
+							  << "UnknownFragmentType: The product instance name mapping for fragment type \""
+							  << ((int)type_code) << "\" is not known. Fragments of this "
+							  << "type will be stored in the event with an instance name of \""
+							  << unidentified_instance_name << "\".";
 						}
-						else
+						if (!derived_fragments.count(label))
 						{
-							put_product_in_principal(std::move(product),
-								*outE,
-								pretend_module_name,
-								TTT::experimentSpecificProductNameTranslation(iter->second));
+							derived_fragments[label] = std::make_unique<Fragments>();
 						}
+						derived_fragments[label]->emplace_back(std::move(frag));
 					}
-					else
+					for (auto& type : derived_fragments)
 					{
-						put_product_in_principal(std::move(product),
-							*outE,
-							pretend_module_name,
-							unidentified_instance_name);
-						TLOG_WARNING("SharedMemoryReader")
-							<< "UnknownFragmentType: The product instance name mapping for fragment type \""
-							<< ((int)type_code) << "\" is not known. Fragments of this "
-							<< "type will be stored in the event with an instance name of \""
-							<< unidentified_instance_name << "\".";
+						put_product_in_principal(std::move(type.second),
+						                         *outE,
+						                         pretend_module_name,
+						                         type.first);
 					}
 				}
 				TLOG_TRACE("SharedMemoryReader") << "After putting fragments in event";
@@ -533,8 +554,8 @@ namespace artdaq
 				return true;
 			}
 
-			std::map<Fragment::type_t, std::string> fragment_type_map_; ///< The Fragment type names that this SharedMemoryReader knows about
 			unsigned readNext_calls_; ///< The number of times readNext has been called
+			FTT translator_;
 		};
 	} // detail
 } // artdaq
