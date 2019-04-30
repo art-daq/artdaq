@@ -87,11 +87,11 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 			destination_metric_data_[destination_rank] = std::pair<size_t, double>();
 			destination_metric_send_time_[destination_rank] = std::chrono::steady_clock::now();
 		}
-		catch (std::invalid_argument)
+		catch (const std::invalid_argument&)
 		{
 			TLOG(TLVL_DEBUG) << "Invalid destination specification: " << d;
 		}
-		catch (cet::exception ex)
+		catch (const cet::exception& ex)
 		{
 			TLOG(TLVL_WARNING) << "Caught cet::exception: " << ex.what();
 		}
