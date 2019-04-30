@@ -111,6 +111,10 @@ message("-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH
 set(ART_HEX_VERSION 0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
 add_definitions(-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
 
+if( ${ART_HEX_VERSION} GREATER 0x30200 )
+	find_ups_product( art_root_io v1_00_00 )
+endif()
+
 
 string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" MESSAGEFACILITY_VERSION_LIST "$ENV{MESSAGEFACILITY_VERSION}")
 list(GET MESSAGEFACILITY_VERSION_LIST 0 MESSAGEFACILITY_MAJOR_VERSION)
@@ -162,7 +166,6 @@ else()
 endif()
 
 # macros for artdaq_dictionary and simple_plugin
-include(ArtDictionary)
 include(ArtMake)
 include(BuildPlugins)
 
