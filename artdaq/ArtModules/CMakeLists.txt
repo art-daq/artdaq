@@ -1,4 +1,18 @@
+
+if ( ${ART_HEX_VERSION} LESS 0x21200)
 add_subdirectory(RootDAQOutput)
+	set(ROOT_IO_LIBS art_Framework_IO_Root)
+	set(TFILE_SERVICE_LIB art_Framework_Services_Optional_TFileService_service art_Framework_Services_Optional)
+elseif ( ${ART_HEX_VERSION} GREATER 0x30200)
+	add_subdirectory(RootDAQOutput-s81)
+	set(ROOT_IO_LIBS art_root_io)
+	set(ROOT_IO_TFILE art_root_io_tfile_support)
+	set(TFILE_SERVICE_LIB art_root_io_TFileService_service)
+elseif ( ${ART_HEX_VERSION} GREATER 0x30000)
+    # Don't build anything!
+	set(ROOT_IO_LIBS art_Framework_IO_Root)
+	set(TFILE_SERVICE_LIB art_Framework_Services_Optional_TFileService_service art_Framework_Services_Optional)
+endif()
 
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
@@ -15,8 +29,8 @@ art_make( BASENAME_ONLY
   artdaq_ExternalComms
   art_Framework_Core
   art_Framework_IO_Sources
-  art_Framework_IO_Root
-  art_Framework_IO_RootVersion
+  ${ROOT_IO_LIBS}
+  ${ROOT_IO_TFILE}
   art_Framework_IO
   art_Framework_Principal
   artdaq_ArtModules_NetMonTransportService_service
@@ -50,13 +64,14 @@ simple_plugin(RawInput "source"
 simple_plugin(TransferOutput "module"
   artdaq_TransferPlugins
   artdaq_ArtModules
-  art_Framework_IO_Root
+  ${ROOT_IO_LIBS}
   MF_MessageLogger
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
   ${TBB}
+  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(TransferInput "source"
@@ -65,11 +80,14 @@ simple_plugin(TransferInput "source"
   artdaq_TransferPlugins
   artdaq_ArtModules
   ${TBB}
+  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
 
 simple_plugin(EventDump "module"
+  artdaq-core_Data
+  art_Persistency_Provenance
 MF_MessageLogger
   artdaq-core_Data
   artdaq-core_Data_dict
@@ -79,10 +97,13 @@ simple_plugin(MissingDataCheck "module"
   artdaq-core_Data
   artdaq-core_Data_dict
   MF_MessageLogger
+  art_Persistency_Provenance
   art_Framework_Services_Registry
-  art_Framework_Services_Optional
-  art_Framework_Services_Optional_TFileService_service
+  ${ROOT_IO_LIBS}
+  ${ROOT_IO_TFILE}
+  ${TFILE_SERVICE_LIB}
   ${ROOT_BASIC_LIB_LIST}
+  ${ROOT_CORE}
   ${CETLIB_EXCEPT}
 )
 
@@ -103,18 +124,20 @@ simple_plugin(NetMonInput "source"
   cetlib
   ${CETLIB_EXCEPT}
   ${TBB}
+  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
   artdaq-core_Data_dict
-  art_Framework_IO_Root
+  ${ROOT_IO_LIBS}
   MF_MessageLogger
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
   ${TBB}
+  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(BinaryNetOutput "module"
@@ -156,6 +179,7 @@ simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
   artdaq_BuildInfo
   artdaq-core_BuildInfo
+  art_Persistency_Provenance
   ${MF_MESSAGELOGGER}
   ${FHICLCPP}
   ${CETLIB}
@@ -165,6 +189,7 @@ simple_plugin(ArtdaqBuildInfo "module"
 simple_plugin(PrintBuildInfo "module"
   MF_MessageLogger
   fhiclcpp
+  art_Persistency_Provenance
   ${CETLIB}
   ${CETLIB_EXCEPT}
   )
