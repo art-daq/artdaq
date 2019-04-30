@@ -115,8 +115,11 @@ private:
 };
 
 
-artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
-	: min_ms_(p.get<double>("minimum_delay_ms", 0))
+artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p):
+	#if ART_HEX_VERSION >= 0x30200
+	 art::EDFilter(p),
+	#endif
+	 min_ms_(p.get<double>("minimum_delay_ms", 0))
 	, max_ms_(p.get<double>("maximum_delay_ms", 1000))
 	, mean_ms_(p.get<double>("mean_delay_ms", 500))
 	, sigma_ms_(p.get<double>("sigma_delay_ms", 100))
