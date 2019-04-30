@@ -13,49 +13,49 @@ std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
 std::mutex artdaq::SharedMemoryEventManager::subrun_event_map_mutex_;
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
-	: SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
-		pset.get<size_t>("buffer_count"),
-		pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
-		pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
-		!pset.get<bool>("broadcast_mode", false))
-	, num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
-	, num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
-	, queue_size_(pset.get<size_t>("buffer_count"))
-	, run_id_(0)
-	, max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
-	, update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
-	, use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
-	, overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
-	, send_init_fragments_(pset.get<bool>("send_init_fragments", true))
-	, running_(false)
-	, buffer_writes_pending_()
-	, incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
-	, last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-	, last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
-        , last_backpressure_report_time_(std::chrono::steady_clock::now())
-        , last_fragment_header_write_time_(std::chrono::steady_clock::now())
-	, metric_data_()
-	, broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
-	, run_event_count_(0)
-	, run_incomplete_event_count_(0)
-	, subrun_event_count_(0)
-	, subrun_incomplete_event_count_(0)
-	, oversize_fragment_count_(0)
-	, maximum_oversize_fragment_count_(pset.get<int>("maximum_oversize_fragment_count", 1))
-	, art_processes_()
-	, restart_art_(false)
-	, always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
-	, manual_art_(pset.get<bool>("manual_art", false))
-	, current_art_pset_(art_pset)
-	, minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
+    : SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
+                          pset.get<size_t>("buffer_count"),
+                          pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
+                          pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
+                          !pset.get<bool>("broadcast_mode", false))
+    , num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
+    , num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
+    , queue_size_(pset.get<size_t>("buffer_count"))
+    , run_id_(0)
+    , max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
+    , update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
+    , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
+    , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
+    , send_init_fragments_(pset.get<bool>("send_init_fragments", true))
+    , running_(false)
+    , buffer_writes_pending_()
+    , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
+    , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+    , last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
+    , last_backpressure_report_time_(std::chrono::steady_clock::now())
+    , last_fragment_header_write_time_(std::chrono::steady_clock::now())
+    , metric_data_()
+    , broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
+    , run_event_count_(0)
+    , run_incomplete_event_count_(0)
+    , subrun_event_count_(0)
+    , subrun_incomplete_event_count_(0)
+    , oversize_fragment_count_(0)
+    , maximum_oversize_fragment_count_(pset.get<int>("maximum_oversize_fragment_count", 1))
+    , art_processes_()
+    , restart_art_(false)
+    , always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
+    , manual_art_(pset.get<bool>("manual_art", false))
+    , current_art_pset_(art_pset)
+    , minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
 	, art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 1000000))
-	, requests_(nullptr)
-	, data_pset_(pset)
-	, dropped_data_()
-	, broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
-		pset.get<size_t>("broadcast_buffer_count", 10),
-		pset.get<size_t>("broadcast_buffer_size", 0x100000),
-		pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
+    , requests_(nullptr)
+    , data_pset_(pset)
+    , dropped_data_()
+    , broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
+                  pset.get<size_t>("broadcast_buffer_count", 10),
+                  pset.get<size_t>("broadcast_buffer_size", 0x100000),
+                  pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)
 {
 	subrun_event_map_[0] = 1;
 	SetMinWriteSize(sizeof(detail::RawEventHeader) + sizeof(detail::RawFragmentHeader));
@@ -168,13 +168,13 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 	if (buffer < 0)
 	{
-		if (buffer == -1 && !dropIfNoBuffersAvailable) 
+		if (buffer == -1 && !dropIfNoBuffersAvailable)
 		{
-            std::unique_lock<std::mutex> bp_lk(sequence_id_mutex_);
-			if (TimeUtils::GetElapsedTime(last_backpressure_report_time_) > 1.0) 
+			std::unique_lock<std::mutex> bp_lk(sequence_id_mutex_);
+			if (TimeUtils::GetElapsedTime(last_backpressure_report_time_) > 1.0)
 			{
-                TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_fragment_header_write_time_) << " s!";
-                last_backpressure_report_time_ = std::chrono::steady_clock::now();
+				TLOG(TLVL_WARNING) << app_name << ": Back-pressure condition: All Shared Memory buffers have been full for " << TimeUtils::GetElapsedTime(last_fragment_header_write_time_) << " s!";
+				last_backpressure_report_time_ = std::chrono::steady_clock::now();
 			}
 			return nullptr;
 		}
@@ -192,8 +192,8 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		return dropped_data_[frag.fragment_id]->dataBegin();
 	}
 
-    last_backpressure_report_time_ = std::chrono::steady_clock::now();
-    last_fragment_header_write_time_ = std::chrono::steady_clock::now();
+	last_backpressure_report_time_ = std::chrono::steady_clock::now();
+	last_fragment_header_write_time_ = std::chrono::steady_clock::now();
 	// Increment this as soon as we know we want to use the buffer
 	buffer_writes_pending_[buffer]++;
 
@@ -329,7 +329,16 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 			char* filename = new char[config_file->getFileName().length() + 1];
 			strcpy(filename, config_file->getFileName().c_str());
 
+#if DEBUG_ART
+			std::string debugArgS = "--config-out=" + app_name + "_art.out";
+			char* debugArg = new char[debugArgS.length() + 1];
+			strcpy(debugArg, debugArgS.c_str());
+
+			std::vector<char*> args{(char*)"art", (char*)"-c", filename, debugArg, NULL};
+#else
 			std::vector<char*> args{(char*)"art", (char*)"-c", filename, NULL};
+#endif
+
 			pid = fork();
 			if (pid == 0)
 			{ /* child */
@@ -349,6 +358,13 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 				}
 				envVarKey = "ARTDAQ_APPLICATION_NAME";
 				envVarValue = app_name;
+				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 1) != 0)
+				{
+					TLOG(TLVL_DEBUG) << "Error setting environment variable \"" << envVarKey
+					                 << "\" in the environment of a child art process. ";
+				}
+				envVarKey = "ARTDAQ_RANK";
+				envVarValue = std::to_string(my_rank);
 				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 1) != 0)
 				{
 					TLOG(TLVL_DEBUG) << "Error setting environment variable \"" << envVarKey
@@ -746,7 +762,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	requests_.reset(new RequestSender(data_pset_));
 	if (requests_)
 	{
-	        requests_->SetRunNumber(static_cast<uint32_t>(run_id_));
+		requests_->SetRunNumber(static_cast<uint32_t>(run_id_));
 		requests_->SendRoutingToken(queue_size_, run_id_);
 	}
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
@@ -789,8 +805,8 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 	if (boundary == 0 || boundary == Fragment::InvalidSequenceID) return;
 
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
-	
-    TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
+
+	TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
 	subrun_event_map_[boundary] = subrun;
 	while (subrun_event_map_.size() > max_subrun_event_map_length_)
 	{

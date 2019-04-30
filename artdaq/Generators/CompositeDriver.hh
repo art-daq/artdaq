@@ -2,7 +2,7 @@
 #define artdaq_Application_CompositeDriver_hh
 
 #include "fhiclcpp/fwd.h"
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include <vector>
 

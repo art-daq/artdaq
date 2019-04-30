@@ -1,6 +1,6 @@
-#include "artdaq/Application/makeCommandableFragmentGenerator.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
-#include "artdaq/Application/GeneratorMacros.hh"
+#include "artdaq/Generators/GeneratorMacros.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "cetlib/BasicPluginFactory.h"
 

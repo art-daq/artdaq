@@ -45,9 +45,9 @@ services:
               'MismatchedInputFiles','ProductDoesNotSupportViews',
               'ProductDoesNotSupportPtr','NotFound']
 #    wantSummary: true
-    wantTracer: true
+#    wantTracer: true
     handleEmptyRuns: true
     handleEmptySubRuns: true
-    enableSigInt: true
+#    enableSigInt: true
   }
 }

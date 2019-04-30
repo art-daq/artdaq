@@ -71,8 +71,8 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 				base_port_ = bp_tmp;
 			}
 		}
-		catch (std::invalid_argument) {}
-		catch (std::out_of_range) {}
+		catch (const std::invalid_argument&) {}
+		catch (const std::out_of_range&) {}
 	}
 
 	auto ppp = getenv("ARTDAQ_PORTS_PER_PARTITION"); //Environment overrides configuration
@@ -91,8 +91,8 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 				ports_per_partition_ = ppp_tmp;
 			}
 		}
-		catch (std::invalid_argument) {}
-		catch (std::out_of_range) {}
+		catch (const std::invalid_argument&) {}
+		catch (const std::out_of_range&) {}
 	}
 
 	if (!base_configured_ && (base_port_ != DEFAULT_BASE || ports_per_partition_ != DEFAULT_PORTS_PER_PARTITION))
