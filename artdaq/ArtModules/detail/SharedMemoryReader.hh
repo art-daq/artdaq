@@ -31,9 +31,61 @@ namespace artdaq
 	namespace detail
 	{
 		/**
+		 * \brief The SMR_DefaultExperimentCustomization class provides default behavior for
+		 *        experiment-specific customizations in SharedMemoryReader.
+		 */
+		class SMR_DefaultExperimentCustomization
+		{
+			public:
+
+			static std::vector<std::string>
+			experimentSpecificProductInstanceNames(std::map<Fragment::type_t, std::string> const& type_map)
+			{
+				std::vector<std::string> expSpecNames;
+				for (auto it = type_map.begin(); it != type_map.end(); ++it)
+				{
+					TLOG_TRACE("SharedMemoryReader") << "Providing default (no) experiment-specific customization "
+					                                 << "of product instance name \"" << it->second << "\"";;
+#if 0
+					// This section of code is commented out, may be removed at some point, and is only
+					// included as an example of how an experiment might customize their product instance names.
+					std::string instanceName = it->second;
+					std::size_t foundPos = instanceName.find("TOY2");
+					if (foundPos != std::string::npos)
+					{
+						std::string newName = instanceName + "01";
+						expSpecNames.push_back(newName);
+						TLOG_ARB(25, "SharedMemoryReader") << "Added custom product instance name \"" << newName << "\"";
+					}
+#endif
+				}
+				return expSpecNames;
+			}
+
+			static std::string experimentSpecificProductNameTranslation(std::string const& inputName)
+			{
+#if 0
+				// This section of code is commented out, may be removed at some point, and is only
+				// included as an example of how an experiment might customize their product instance names.
+				std::string translatedName = inputName;
+				std::size_t foundPos = inputName.find("TOY2");
+				if (foundPos != std::string::npos)
+				{
+					translatedName += "01";
+					TLOG_ARB(25, "SharedMemoryReader") << "translated product instance name \"" << inputName << "\" to \"" << translatedName << "\"";
+				}
+				return translatedName;
+#else
+				return inputName;
+#endif
+			}
+		};
+
+		/**
 		 * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
 		 */
-		template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap >
+		template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
+		         class TTT = artdaq::detail::SMR_DefaultExperimentCustomization >
 		struct SharedMemoryReader
 		{
 			/**
@@ -133,6 +185,13 @@ namespace artdaq
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, it->second);
 					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container" + it->second);
 				}
+				std::vector<std::string> expSpecProdInstNames = TTT::experimentSpecificProductInstanceNames(fragment_type_map_);
+				for (auto it = expSpecProdInstNames.begin(); it != expSpecProdInstNames.end(); ++it)
+				{
+					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, *it);
+					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, "Container" + *it);
+				}
+
 				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string();
 				//for(auto& type : fragment_type_map_)
 				//{
@@ -407,25 +466,21 @@ namespace artdaq
 						if (type_code == artdaq::Fragment::ContainerFragmentType)
 						{
 							std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
-							derived_fragments[iter->second] = std::make_unique<Fragments>();
 
 							for (size_t ii = 0; ii < product->size(); ++ii)
 							{
 								ContainerFragment cf(product->at(ii));
 								auto contained_type = fragment_type_map_.find(cf.fragment_type());
+								std::string label = iter->second;
 								if (contained_type != iter_end)
 								{
-									auto label = iter->second + contained_type->second;
-									if (!derived_fragments.count(label))
-									{
-										derived_fragments[label] = std::make_unique<Fragments>();
-									}
-									derived_fragments[label]->emplace_back(std::move(product->at(ii)));
+									label += contained_type->second;
 								}
-								else
+								if (!derived_fragments.count(label))
 								{
-									derived_fragments[iter->second]->emplace_back(std::move(product->at(ii)));
+									derived_fragments[label] = std::make_unique<Fragments>();
 								}
+								derived_fragments[label]->emplace_back(std::move(product->at(ii)));
 							}
 
 							for (auto& type : derived_fragments)
@@ -433,7 +488,7 @@ namespace artdaq
 								put_product_in_principal(std::move(type.second),
 									*outE,
 									pretend_module_name,
-									type.first);
+									TTT::experimentSpecificProductNameTranslation(type.first));
 							}
 
 						}
@@ -442,7 +497,7 @@ namespace artdaq
 							put_product_in_principal(std::move(product),
 								*outE,
 								pretend_module_name,
-								iter->second);
+								TTT::experimentSpecificProductNameTranslation(iter->second));
 						}
 					}
 					else
