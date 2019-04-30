@@ -3,7 +3,7 @@
 // Using LibraryManager, find the correct library and return an instance
 // of the specified generator.
 
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "fhiclcpp/fwd.h"
 
 #include <memory>

@@ -360,7 +360,7 @@ namespace artdaq
 		{
 			fhicl::make_ParameterSet(configString, pset);
 		}
-		catch (fhicl::exception e)
+		catch (const fhicl::exception& e)
 		{
 			if (getenv("FHICL_FILE_PATH") == nullptr)
 			{
