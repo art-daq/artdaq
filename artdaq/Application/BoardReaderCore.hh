@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
