@@ -20,7 +20,7 @@ product			version		optional
 art             v2_11_05    s73
 art             v2_11_01    s67
 art_root_io     v1_00_04    s82
-artdaq_core 		v3_04_15
+artdaq_core 		v3_04_16
 artdaq_utilities        v1_04_11
 xmlrpc_c		v1_51_03
 artdaq_ganglia_plugin   v1_02_14        -       optional
