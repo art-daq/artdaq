@@ -1,7 +1,7 @@
 #ifndef artdaq_Application_Routing_PolicyMacros_hh
 #define artdaq_Application_Routing_PolicyMacros_hh
 
-#include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 #include "fhiclcpp/fwd.h"
 #include "cetlib/compiler_macros.h"
 

@@ -331,7 +331,16 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 			char* filename = new char[config_file->getFileName().length() + 1];
 			strcpy(filename, config_file->getFileName().c_str());
 
+#if DEBUG_ART
+			std::string debugArgS = "--config-out=" + app_name + "_art.out";
+			char* debugArg = new char[debugArgS.length() + 1];
+			strcpy(debugArg, debugArgS.c_str());
+
+			std::vector<char*> args{(char*)"art", (char*)"-c", filename, debugArg, NULL};
+#else
 			std::vector<char*> args{ (char*)"art", (char*)"-c", filename, NULL };
+#endif
+
 			pid = fork();
 			if (pid == 0)
 			{ /* child */
@@ -355,6 +364,13 @@ void artdaq::SharedMemoryEventManager::RunArt(std::shared_ptr<art_config_file> c
 				{
 					TLOG(TLVL_DEBUG) << "Error setting environment variable \"" << envVarKey
 						<< "\" in the environment of a child art process. ";
+				}
+				envVarKey = "ARTDAQ_RANK";
+				envVarValue = std::to_string(my_rank);
+				if (setenv(envVarKey.c_str(), envVarValue.c_str(), 1) != 0)
+				{
+					TLOG(TLVL_DEBUG) << "Error setting environment variable \"" << envVarKey
+					                 << "\" in the environment of a child art process. ";
 				}
 
 				execvp("art", &args[0]);
