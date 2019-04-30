@@ -17,11 +17,12 @@ art_make_exec(StateResponder
 
 art_make_exec(genToArt
   LIBRARIES
-  artdaq_Application
+  artdaq_Generators
   artdaq_DAQrate
   artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq-core_Utilities
   artdaq-core_Generators
+  canvas
   ${FHICLCPP}
   ${CETLIB}
   ${CETLIB_EXCEPT}

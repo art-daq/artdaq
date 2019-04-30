@@ -3,7 +3,7 @@
 // Using LibraryManager, find the correct library and return an instance
 // of the specified generator.
 
-#include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 #include "fhiclcpp/fwd.h"
 
 #include <memory>
