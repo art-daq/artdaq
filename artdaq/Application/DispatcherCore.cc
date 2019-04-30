@@ -38,9 +38,16 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	TLOG(TLVL_DEBUG) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." ;
 
 	pset_ = pset;
+	// 04-Apr-2019, KAB: added support for art config params to be in an "art" block
+	if (pset_.has_key("art"))
+	{
+		pset_ = pset_.get<fhicl::ParameterSet>("art");
+	}
 	pset_.erase("outputs");
 	pset_.erase("physics");
 	pset_.erase("daq");
+
+	TLOG(TLVL_DEBUG) << "Pieces of the input pset that are saved for later: \"" << pset_.to_string() << "\"." ;
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;

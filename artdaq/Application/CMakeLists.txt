@@ -6,8 +6,6 @@ art_make_library( LIBRARY_NAME artdaq_Application
   SOURCE
   ${SMC_LIB_SOURCE}
   Commandable.cc
-  CommandableFragmentGenerator
-  makeCommandableFragmentGenerator
   BoardReaderApp.cc
   BoardReaderCore.cc
   EventBuilderCore.cc
@@ -19,12 +17,12 @@ art_make_library( LIBRARY_NAME artdaq_Application
   DispatcherCore.cc
   RoutingMasterApp.cc
   RoutingMasterCore.cc
-  StatisticsHelper.cc
   LIBRARIES
   artdaq_DAQrate
+  artdaq_Generators
   artdaq-core_Data
   artdaq-core_Utilities
-  artdaq_Application_Routing
+  artdaq_RoutingPolicies
   ${MF_MESSAGELOGGER}
   ${CETLIB}
   ${CETLIB_EXCEPT}
@@ -34,10 +32,7 @@ art_make_library( LIBRARY_NAME artdaq_Application
   ${FHICLCPP}
   )
 
-simple_plugin(CompositeDriver "generator" artdaq_DAQdata artdaq_Application)
 
 install_headers()
 install_source()
 install_fhicl()
-
-add_subdirectory(Routing)
