@@ -1,7 +1,7 @@
 #define TRACE_NAME (app_name + "_CommandableFragmentGenerator").c_str() // include these 2 first -
 #include "artdaq/DAQdata/Globals.hh"
 
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
