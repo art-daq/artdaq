@@ -25,6 +25,7 @@ namespace artdaq
 			/// "commanderPluginType" (REQUIRED): The type of Commander plugin to load
 			fhicl::Atom<std::string> commanderPluginType{ fhicl::Name{"commanderPluginType"}, fhicl::Comment{"String identifying the name of the CommanderInterface plugin to load"} };
 		};
+	    /// Used for ParameterSet validation (if desired)
 		using Parameters = fhicl::WrappedTable<Config>;
 
 		/**
@@ -231,7 +232,7 @@ namespace artdaq
 		/// Should be sent to all EventBuilders before the given event is processed.
 		/// </summary>
 		/// <returns>Command result: "SUCCESS" if succeeded</returns>
-		virtual std::string send_rollover_subrun(uint64_t);
+		virtual std::string send_rollover_subrun(uint64_t, uint32_t);
 
 		/// <summary>
 		/// Determine whether the Commander plugin is ready to accept commands

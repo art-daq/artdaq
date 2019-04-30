@@ -11,7 +11,7 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 #include "artdaq/DAQrate/DataReceiverManager.hh"
-#include "artdaq/Application/StatisticsHelper.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 
 namespace artdaq
 {
@@ -116,9 +116,10 @@ public:
 	/**
 	* \brief Rollover the subrun after the given event
 	* \param eventNum Sequence ID of boundary
+	* \param subrun Subrun number of new subrun
 	* \return True event_store_ptr is valid
 	*/
-	bool rollover_subrun(uint64_t eventNum);
+	bool rollover_subrun(uint64_t eventNum, uint32_t subrun);
 	
 	/**
 	* \brief Send a report on a given run-time quantity
@@ -136,7 +137,8 @@ public:
 	/**
 	* \brief Add the specified key and value to the configuration archive list.
 	* \param key String key to be used
-	* \param key String value to be stored
+	* \param value String value to be stored
+	* \return This function will always return true
 	*/
 	bool add_config_archive_entry(std::string const& key, std::string const& value)
 	{
@@ -146,6 +148,7 @@ public:
 
 	/**
 	* \brief Clear the configuration archive list.
+	* \return True if archive is empty after clear operation
 	*/
 	bool clear_config_archive()
 	{
@@ -170,8 +173,8 @@ protected:
 	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
 	bool verbose_; ///< Whether to log transition messages
 	
-	fhicl::ParameterSet art_pset_;
-	std::map<std::string, std::string> config_archive_entries_;
+	fhicl::ParameterSet art_pset_; ///< ParameterSet sent to art process
+	std::map<std::string, std::string> config_archive_entries_; ///< Additional strings to archive as part of the art configuration
 
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag

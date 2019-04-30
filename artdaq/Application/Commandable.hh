@@ -226,9 +226,10 @@ public:
 	/**
 	* \brief Perform the rollover_subrun transition.
 	* \param eventNum Sequence ID of boundary
+	* \param subrunNum New Subrun Number
 	* \return Whether the transition succeeded
 	*/
-	virtual bool do_rollover_subrun(uint64_t eventNum);
+	virtual bool do_rollover_subrun(uint64_t eventNum, uint32_t subrunNum);
 	
 	/**
 	 * \brief This function is called when an attempt is made to call an illegal transition
@@ -283,6 +284,7 @@ public:
 
 	/**
 	* \brief Add the specified key-value pair to the configuration archive list
+	* \return Whether the command succeeded (always true)
 	*
 	* This function is a No-Op. Derived classes should override it.
 	*/
@@ -290,6 +292,7 @@ public:
 
 	/**
 	* \brief Clears the configuration archive list
+	* \return Whether the command succeeded (always true)
 	*
 	* This function is a No-Op. Derived classes should override it.
 	*/

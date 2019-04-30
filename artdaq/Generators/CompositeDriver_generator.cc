@@ -1,9 +1,9 @@
 #define TRACE_NAME "CompositeDriver"
 
-#include "artdaq/Application/CompositeDriver.hh"
+#include "artdaq/Generators/CompositeDriver.hh"
 
-#include "artdaq/Application/GeneratorMacros.hh"
-#include "artdaq/Application/makeCommandableFragmentGenerator.hh"
+#include "artdaq/Generators/GeneratorMacros.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 #include <boost/algorithm/string.hpp>
