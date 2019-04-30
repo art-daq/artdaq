@@ -83,6 +83,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, art_pset));
 	art_pset_ = art_pset;
+	TLOG(TLVL_DEBUG) << "Resulting art_pset_: \"" << art_pset_.to_string() << "\"." ;
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
 

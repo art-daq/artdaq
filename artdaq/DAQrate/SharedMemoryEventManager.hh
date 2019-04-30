@@ -7,10 +7,10 @@
 #include <deque>
 #include <fstream>
 #include <iomanip>
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include <set>
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq/Application/StatisticsHelper.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/DAQrate/detail/ArtConfig.hh"
 #include "fhiclcpp/fwd.h"
