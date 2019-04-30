@@ -17,7 +17,7 @@ fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 	{
 		make_ParameterSet(psetOrFile, pset);
 	}
-	catch (fhicl::exception e)
+	catch (const fhicl::exception& e)
 	{
 		if (getenv("FHICL_FILE_PATH") == nullptr)
 			setenv("FHICL_FILE_PATH", ".", 0);

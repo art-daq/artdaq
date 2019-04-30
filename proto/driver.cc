@@ -18,7 +18,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
-#include "artdaq/Application/makeCommandableFragmentGenerator.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "cetlib/filepath_maker.h"
