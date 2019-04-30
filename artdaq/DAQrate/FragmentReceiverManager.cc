@@ -54,11 +54,11 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 			source_metric_send_time_[source_rank] = std::chrono::steady_clock::now();
 			source_metric_data_[source_rank] = std::pair<size_t, double>();
 		}
-		catch (cet::exception ex)
+		catch (const cet::exception& ex)
 		{
 			TLOG(TLVL_WARNING) << "cet::exception caught while setting up source " << s << ": " << ex.what();
 		}
-		catch (std::exception ex)
+		catch (const std::exception& ex)
 		{
 			TLOG(TLVL_WARNING) << "std::exception caught while setting up source " << s << ": " << ex.what();
 		}

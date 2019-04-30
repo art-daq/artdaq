@@ -1,8 +1,9 @@
 #define TRACE_NAME (app_name + "_RoundRobin_policy").c_str()
 #include "artdaq/DAQdata/Globals.hh"
 
-#include "artdaq/Application/Routing/RoutingMasterPolicy.hh"
-#include "artdaq/Application/Routing/PolicyMacros.hh"
+#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/PolicyMacros.hh"
+
 #include "fhiclcpp/ParameterSet.h"
 #include "tracemf.h"
 

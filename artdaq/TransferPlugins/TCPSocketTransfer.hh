@@ -137,6 +137,8 @@ public:
 
 	volatile unsigned connect_state : 1; // 0=not "connected" (initial msg not sent)
 	unsigned blocking : 1; // compatible with bool (true/false)
+
+	bool connection_was_lost_;
 	
 	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
     std::chrono::steady_clock::time_point last_recv_time_; // Time of last successful receive
