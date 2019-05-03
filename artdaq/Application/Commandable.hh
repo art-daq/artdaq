@@ -283,6 +283,7 @@ public:
 
 	/**
 	* \brief Add the specified key-value pair to the configuration archive list
+	* \return Whether the command succeeded (always true)
 	*
 	* This function is a No-Op. Derived classes should override it.
 	*/
@@ -290,6 +291,7 @@ public:
 
 	/**
 	* \brief Clears the configuration archive list
+	* \return Whether the command succeeded (always true)
 	*
 	* This function is a No-Op. Derived classes should override it.
 	*/

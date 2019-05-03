@@ -888,8 +888,8 @@ private:								\
 			cmd_(c, "s:i", "create a new subrun")
 		{}
 
-		/** Default timeout for command */
-		static const uint64_t defaultSequenceID = 0xFFFFFFFFFFFFFFFF;
+		static const uint64_t defaultSequenceID = 0xFFFFFFFFFFFFFFFF; ///< Default Sequence ID for command
+	    static const uint32_t defaultSubrunNumber = 1;  ///< Default subrun number for command
 
 	private:
 

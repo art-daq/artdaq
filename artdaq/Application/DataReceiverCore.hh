@@ -136,7 +136,8 @@ public:
 	/**
 	* \brief Add the specified key and value to the configuration archive list.
 	* \param key String key to be used
-	* \param key String value to be stored
+	* \param value String value to be stored
+	* \return This function will always return true
 	*/
 	bool add_config_archive_entry(std::string const& key, std::string const& value)
 	{
@@ -146,6 +147,7 @@ public:
 
 	/**
 	* \brief Clear the configuration archive list.
+	* \return True if archive is empty after clear operation
 	*/
 	bool clear_config_archive()
 	{
@@ -170,8 +172,8 @@ protected:
 	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
 	bool verbose_; ///< Whether to log transition messages
 	
-	fhicl::ParameterSet art_pset_;
-	std::map<std::string, std::string> config_archive_entries_;
+	fhicl::ParameterSet art_pset_; ///< ParameterSet sent to art process
+	std::map<std::string, std::string> config_archive_entries_; ///< Additional strings to archive as part of the art configuration
 
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag
