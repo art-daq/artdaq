@@ -92,6 +92,19 @@ namespace art {
       Atom<bool> writeParameterSets{Name("writeParameterSets"), true};
       fhicl::Table<ClosingCriteria::Config> fileProperties{
         Name("fileProperties")};
+	  Atom<int> firstLoggerRank{Name("firstLoggerRank"), -1};
+
+	  struct NewSubStringForApp
+	  {
+		  fhicl::Atom<string> appName{fhicl::Name("appName")};
+		  fhicl::Atom<string> newString{fhicl::Name("newString")};
+	  };
+	  struct FileNameSubstitution
+	  {
+		  fhicl::Atom<string> targetString{fhicl::Name("targetString")};
+		  fhicl::Sequence<fhicl::Table<NewSubStringForApp>> replacementList{fhicl::Name("replacementList")};
+	  };
+	  fhicl::OptionalSequence<fhicl::Table<FileNameSubstitution>> fileNameSubstitutions{Name("fileNameSubstitutions")};
 
       Config()
       {
@@ -173,7 +186,8 @@ namespace art {
     void writeProductDependencies() override;
     void finishEndFile() override;
     void doRegisterProducts(ProductDescriptions& productsToProduce,
-                            ModuleDescription const& md) override;
+	                        ModuleDescription const& md) override;
+	std::string modifyFilePattern(std::string const&, Config const&);
 
     // Member Functions -- Implementation Details.
   private:
@@ -221,8 +235,8 @@ namespace art {
     , moduleLabel_{config.get_PSet().get<string>("module_label")}
     , fstats_{moduleLabel_, processName()}
     , fRenamer_{fstats_}
-    , filePattern_{config().omConfig().fileName()}
-    , tmpDir_{config().tmpDir() == default_tmpDir ? parent_path(filePattern_) :
+      , filePattern_{modifyFilePattern(config().omConfig().fileName(), config())}
+      , tmpDir_{config().tmpDir() == default_tmpDir ? parent_path(filePattern_) :
                                                     config().tmpDir()}
     , compressionLevel_{config().compressionLevel()}
   , freePercent_{config().freePercent()}
@@ -658,6 +672,122 @@ namespace art {
     rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doEndRun(rp); });
   }
 
-} // namespace art
+  std::string
+  RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& config)
+  {
+	  TLOG(TLVL_DEBUG) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
+
+	  // fetch the firstLoggerRank and fileNameSubstitutions (if provided) for use in
+	  // substituting keywords in the filename pattern
+	  int firstLoggerRank = config.firstLoggerRank();
+	  std::vector<Config::FileNameSubstitution> subs;
+	  config.fileNameSubstitutions(subs);
+	  TLOG(TLVL_TRACE) << __func__ << ": firstLoggerRank=" << firstLoggerRank
+	                   << ", numberOfSubstitutionsProvided=" << subs.size();
+
+	  // initialization
+	  std::string modifiedPattern = inputPattern;
+	  std::string searchString;
+	  size_t targetLocation;
+	  int zeroBasedRelativeRank = my_rank;
+	  int oneBasedRelativeRank = my_rank + 1;
+	  if (firstLoggerRank >= 0)
+	  {
+		  zeroBasedRelativeRank -= firstLoggerRank;
+		  oneBasedRelativeRank -= firstLoggerRank;
+	  }
+	  TLOG(TLVL_TRACE) << __func__ << ": my_rank=" << my_rank << ", zeroBasedRelativeRank=" << zeroBasedRelativeRank
+	                   << ", oneBasedRelativeRank=" << oneBasedRelativeRank;
+
+	  // if the "ZeroBasedRelativeRank" keyword was specified in the filename pattern,
+	  // perform the substitution
+	  searchString = "${ZeroBasedRelativeRank}";
+	  targetLocation = modifiedPattern.find(searchString);
+	  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	  while (targetLocation != std::string::npos)
+	  {
+		  std::ostringstream oss;
+		  oss << zeroBasedRelativeRank;
+		  modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
+		  targetLocation = modifiedPattern.find(searchString);
+		  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	  }
+
+	  // if the "OneBasedRelativeRank" keyword was specified in the filename pattern,
+	  // perform the substitution
+	  searchString = "${OneBasedRelativeRank}";
+	  targetLocation = modifiedPattern.find(searchString);
+	  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	  while (targetLocation != std::string::npos)
+	  {
+		  std::ostringstream oss;
+		  oss << oneBasedRelativeRank;
+		  modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
+		  targetLocation = modifiedPattern.find(searchString);
+		  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	  }
+
+	  // if the "Rank" keyword was specified in the filename pattern,
+	  // perform the substitution
+	  searchString = "${Rank}";
+	  targetLocation = modifiedPattern.find(searchString);
+	  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	  while (targetLocation != std::string::npos)
+	  {
+		  std::ostringstream oss;
+		  oss << my_rank;
+		  modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
+		  targetLocation = modifiedPattern.find(searchString);
+		  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	  }
+
+	  // if one or more free-form substitutions were provided, we'll do them here
+	  for (uint32_t subIdx = 0; subIdx < subs.size(); ++subIdx)
+	  {
+		  // first look up the replacement string for this process's app_name
+		  const std::string BLAH = "none_provided";
+		  std::string newString = BLAH;
+		  std::vector<Config::NewSubStringForApp> replacementList = subs[subIdx].replacementList();
+		  for (uint32_t rdx = 0; rdx < replacementList.size(); ++rdx)
+		  {
+			  if (replacementList[rdx].appName() == artdaq::Globals::app_name_)
+			  {
+				  newString = replacementList[rdx].newString();
+				  break;
+			  }
+		  }
+		  TLOG(TLVL_TRACE) << __func__ << ": app_name=" << artdaq::Globals::app_name_ << ", newString=" << newString;
+		  if (newString != BLAH)
+		  {
+			  // first, add the expected surrounding text, and search for that
+			  searchString = "${" + subs[subIdx].targetString() + "}";
+			  targetLocation = modifiedPattern.find(searchString);
+			  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+			  while (targetLocation != std::string::npos)
+			  {
+				  modifiedPattern.replace(targetLocation, searchString.length(), newString);
+				  targetLocation = modifiedPattern.find(searchString);
+				  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+			  }
+
+			  // then, search for the provided string, verbatim, in case the user specified
+			  // the enclosing text in the configuration document
+			  searchString = subs[subIdx].targetString();
+			  targetLocation = modifiedPattern.find(searchString);
+			  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+			  while (targetLocation != std::string::npos)
+			  {
+				  modifiedPattern.replace(targetLocation, searchString.length(), newString);
+				  targetLocation = modifiedPattern.find(searchString);
+				  TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+			  }
+		  }
+	  }
+
+	  TLOG(TLVL_DEBUG) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
+	  return modifiedPattern;
+  }
+
+  } // namespace art
 
 DEFINE_ART_MODULE(art::RootDAQOut)
