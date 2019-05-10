@@ -63,14 +63,26 @@ namespace artdaq
 		TLOG(TLVL_INFO) << "Shutting down RequestSender: request_socket_: " << request_socket_ << ", token_socket_: " << token_socket_;
 		if (request_socket_ != -1)
 		{
-			shutdown(request_socket_, 2);
-			close(request_socket_);
+		    if (shutdown(request_socket_, 2) != 0 && errno == ENOTSOCK)
+		    {
+			    TLOG(TLVL_ERROR) << "Shutdown of request_socket_ resulted in ENOTSOCK. NOT Closing file descriptor!";
+		    }
+		    else
+		    {
+			    close(request_socket_);
+		    }
 		    request_socket_ = -1;
 		}
 		if (token_socket_ != -1)
 		{
-			shutdown(token_socket_, 2);
-			close(token_socket_);
+		    if(shutdown(token_socket_, 2) != 0 && errno == ENOTSOCK)
+		    {
+			    TLOG(TLVL_ERROR) << "Shutdown of token_socket_ resulted in ENOTSOCK. NOT Closing file descriptor!";
+		    }
+		    else
+		    {
+			    close(token_socket_);
+		    }
 		    token_socket_ = -1;
 		}
 	}
