@@ -60,7 +60,7 @@ namespace artdaq
 			std::unique_lock<std::mutex> lk(request_mutex_);
 			std::unique_lock<std::mutex> lk2(request_send_mutex_);
 		}
-		TLOG(TLVL_INFO) << "Shutting down RequestSender";
+		TLOG(TLVL_INFO) << "Shutting down RequestSender: request_socket_: " << request_socket_ << ", token_socket_: " << token_socket_;
 		if (request_socket_ != -1)
 		{
 			shutdown(request_socket_, 2);
