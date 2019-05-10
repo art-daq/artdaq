@@ -25,6 +25,7 @@ namespace artdaq
 		, request_port_(pset.get<int>("request_port", 3001))
 		, request_delay_(pset.get<size_t>("request_delay_ms", 0) * 1000)
 		, request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
+		, request_socket_(-1)
 		, multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
@@ -60,15 +61,17 @@ namespace artdaq
 			std::unique_lock<std::mutex> lk2(request_send_mutex_);
 		}
 		TLOG(TLVL_INFO) << "Shutting down RequestSender";
-		if (request_socket_ > 0)
+		if (request_socket_ != -1)
 		{
 			shutdown(request_socket_, 2);
 			close(request_socket_);
+		    request_socket_ = -1;
 		}
-		if (token_socket_ > 0)
+		if (token_socket_ != -1)
 		{
 			shutdown(token_socket_, 2);
 			close(token_socket_);
+		    token_socket_ = -1;
 		}
 	}
 
