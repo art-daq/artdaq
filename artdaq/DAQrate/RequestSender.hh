@@ -2,6 +2,7 @@
 #define artdaq_DAQrate_RequestSender_hh
 
 #include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
+
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
@@ -113,8 +114,9 @@ namespace artdaq
 		 * \brief Add a request to the request list
 		 * \param seqID Sequence ID for request
 		 * \param timestamp Timestamp to request
+		 * \param rank Destination rank for request. Default is -1, which will be replaced with my_rank
 		 */
-		void AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp);
+		void AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp, int rank = -1);
 
 		/**
 		 * \brief Remove a request from the request list
@@ -141,13 +143,13 @@ namespace artdaq
 		 */
 		void SetRunNumber(uint32_t run) { run_number_ = run; }
 	private:
-
+		
 		// Request stuff
 		bool send_requests_;
 		std::atomic<bool> initialized_;
 		mutable std::mutex request_mutex_;
 		mutable std::mutex request_send_mutex_;
-		std::map<Fragment::sequence_id_t, Fragment::timestamp_t> active_requests_;
+		std::map<Fragment::sequence_id_t, detail::RequestMessage> active_requests_;
 		std::string request_address_;
 		int request_port_;
 		size_t request_delay_;
@@ -164,6 +166,8 @@ namespace artdaq
 		std::atomic<int> request_sending_;
 		std::atomic<size_t> tokens_sent_;
 		uint32_t run_number_;
+
+		bool request_acknowledgements_;
 
 	private:
 		void setup_requests_();
