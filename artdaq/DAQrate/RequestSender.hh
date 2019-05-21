@@ -149,7 +149,7 @@ namespace artdaq
 		std::atomic<bool> initialized_;
 		mutable std::mutex request_mutex_;
 		mutable std::mutex request_send_mutex_;
-		std::map<Fragment::sequence_id_t, detail::RequestMessage> active_requests_;
+		std::map<Fragment::sequence_id_t, detail::RequestPacket> active_requests_;
 		std::string request_address_;
 		int request_port_;
 		size_t request_delay_;

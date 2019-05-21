@@ -83,10 +83,11 @@ public:
 	 */
 	bool isValid() const { return header == 0x54524947; }
 
-	std::ostream& operator<<(std::ostream& o) const {
-		return o << "Sequence ID " << sequence_id << ", Timestamp " << timestamp ", Rank " << rank;
-	}
 };
+inline std::ostream& operator<<(std::ostream& o, const artdaq::detail::RequestPacket r)
+{
+	return o << "Sequence ID " << r.sequence_id << ", Timestamp " << r.timestamp << ", Rank " << r.rank;
+}
 
 /**
  * \brief Header of a RequestMessage. Contains magic bytes for validation and a count of expected RequestPackets
@@ -118,7 +119,7 @@ struct artdaq::detail::RequestHeader
 	bool isValid() const { return header == 0x48454452; }
 };
 
-struct artdaq::detail::RequestAcknowledement
+struct artdaq::detail::RequestAcknowledgement
 {
 	uint32_t header;  ///< ACCK, or 0x4042424B
 	uint32_t packet_count;

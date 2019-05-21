@@ -195,7 +195,6 @@ void RequestSender::do_send_request_()
 
 	TLOG(TLVL_TRACE) << "Creating RequestMessage";
 	detail::RequestMessage message;
-	message.setRank(my_rank);
 	message.setRunNumber(run_number_);
 	message.setAcknowledge(request_acknowledgements_);
 	{
@@ -292,7 +291,7 @@ void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestam
 		if (!active_requests_.count(seqID))
 		{
 			TLOG(12) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
-			active_requests_[seqID] = RequestMessage(seqID, timestamp, rank);
+			active_requests_[seqID] = detail::RequestPacket(seqID, timestamp, rank);
 		}
 	}
 	SendRequest();
