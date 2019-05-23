@@ -132,7 +132,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				}
 
 				receive_token_addrs_[conn_sock] = std::string(inet_ntoa(addr.sin_addr));
-				TLOG(TLVL_DEBUG) << "New fd is " << conn_sock << " for receiver at " << receive_token_addrs_[conn_sock];
+				TLOG(TLVL_DEBUG) << "New fd is " << conn_sock << " for data-receiver at " << receive_token_addrs_[conn_sock];
 				struct epoll_event ev;
 				ev.events = EPOLLIN | EPOLLET;
 				ev.data.fd = conn_sock;
