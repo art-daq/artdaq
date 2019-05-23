@@ -168,6 +168,7 @@ namespace artdaq
 		uint32_t run_number_;
 
 		bool request_acknowledgements_;
+	    std::set<int> sender_ranks_;
 
 	private:
 		void setup_requests_();

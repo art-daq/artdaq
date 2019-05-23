@@ -226,35 +226,34 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			continue;
 		}
 
-		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]);
-		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header << std::dec << ", packet_count: " << hdr_buffer->packet_count << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port << ", run number: " << hdr_buffer->run_number;
-		if (!hdr_buffer->isValid()) continue;
+		auto message = artdaq::detail::RequestMessage(&buffer[0], sts);
+		TLOG(11) << "Received RequestMessage from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
+
+		if (!message.isValid()) continue;
 
 		request_received_ = true;
 
 		// 19-Dec-2018, KAB: added check on current run number
-		if (run_number_ != 0 && hdr_buffer->run_number != run_number_)
+		if (run_number_ != 0 && message.getRunNumber() != run_number_)
 		{
 			TLOG(TLVL_WARNING) << "Received a Request Message with the wrong run number ("
-			                   << hdr_buffer->run_number << "), expected " << run_number_
+			                   << message.getRunNumber() << "), expected " << run_number_
 			                   << ", ignoring this request.";
 			continue;
 		}
 
-		if (hdr_buffer->mode == artdaq::detail::RequestMessageMode::EndOfRun)
+		if (message.getMode() == artdaq::detail::RequestMessageMode::EndOfRun)
 		{
 			TLOG(TLVL_INFO) << "Received Request Message with the EndOfRun marker. (Re)Starting 1-second timeout for receiving all outstanding requests...";
 			request_stop_timeout_ = std::chrono::steady_clock::now();
 			request_stop_requested_ = true;
 		}
 
-		std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer->packet_count);
-		memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer->packet_count);
 		bool anyNew = false;
 
 		if (should_stop_) break;
 
-		for (auto& buffer : pkt_buffer)
+		for (auto& buffer : message.getRequests())
 		{
 			TLOG(20) << "Request Packet: hdr=" << /*std::dec <<*/ buffer.header << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
 			if (!buffer.isValid()) continue;
