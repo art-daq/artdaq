@@ -151,10 +151,10 @@ private:
 		std::string request_address_;
 		int request_port_;
 	int ack_port_;
-	std::string ack_address_;
 		size_t request_delay_;
 		size_t request_shutdown_timeout_us_;
 		int request_socket_;
+	    int ack_socket_;
 		struct sockaddr_in request_addr_;
 		std::string multicast_out_addr_;
 		detail::RequestMessageMode request_mode_;
@@ -163,12 +163,13 @@ private:
 		bool send_routing_tokens_;
 		int token_port_;
 		int token_socket_;
+
 		std::string token_address_;
 		std::atomic<int> request_sending_;
 		std::atomic<size_t> tokens_sent_;
 		uint32_t run_number_;
 
-		bool request_acknowledgements_;
+		std::atomic<bool> request_acknowledgements_;
 	    std::set<int> sender_ranks_;
 
 	private:

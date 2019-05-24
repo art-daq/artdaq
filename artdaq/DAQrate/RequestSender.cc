@@ -10,6 +10,7 @@
 #include <utility>
 #include "artdaq/DAQrate/RequestSender.hh"
 
+#include "RequestSender.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
@@ -23,9 +24,11 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     , active_requests_()
     , request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
     , request_port_(pset.get<int>("request_port", 3001))
+    , ack_port_(pset.get<int>("ack_port", 3002))
     , request_delay_(pset.get<size_t>("request_delay_ms", 0) * 1000)
     , request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
     , request_socket_(-1)
+    , ack_socket_(-1)
     , multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
     , request_mode_(detail::RequestMessageMode::Normal)
     , token_socket_(-1)
@@ -84,6 +87,12 @@ RequestSender::~RequestSender()
 			close(token_socket_);
 		}
 		token_socket_ = -1;
+	}
+	request_acknowledgements_.store(false);
+	if (ack_socket_ != -1)
+	{
+		close(ack_socket_);
+		ack_socket_ = -1;
 	}
 }
 
@@ -198,23 +207,32 @@ void RequestSender::do_send_request_()
 	message.setRunNumber(run_number_);
 	message.setAcknowledge(request_acknowledgements_);
 	{
-		std::unique_lock<std::mutex> lk(request_mutex_);
-		for (auto req = active_requests_.begin(); req != active_requests_.end(); ++req)
+		std::lock_guard<std::mutex> lk(request_mutex_);
+		for (auto req = active_requests_.begin(); req != active_requests_.end();)
 		{
-			while (request_acknowledgements_ && req != active_requests_.end() && !req->second.isActive())
+			if (request_acknowledgements_ && req != active_requests_.end() && !req->second.isActive())
 			{
 				TLOG(12) << "Removing request " << req->second << " because all configured senders have acknowledged it";
 				req = active_requests_.erase(req);
+				continue;
+			}
+			double elapsed = TimeUtils::GetElapsedTime(req->second.request_time);
+			if (elapsed > request_timeout_s_)
+			{
+				TLOG(12) << "Removing request " << req->second << " because it has timed out ( " << elapsed << " s/ " << request_timeout_s_ << " s)";
+				req = active_requests_.erase(req);
+				continue;
 			}
 			TLOG(12) << "Adding a request (" << req->second << ") to request message";
 			message.addRequest(req->second);
+			++req;
 		}
 	}
 	TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
 	message.setMode(request_mode_);
 	char str[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-	std::unique_lock<std::mutex> lk2(request_send_mutex_);
+	std::lock_guard<std::mutex> lk2(request_send_mutex_);
 	TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
 	auto buf = message.GetMessage();
 	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr*)&request_addr_, sizeof(request_addr_));
@@ -258,6 +276,94 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 	}
 	tokens_sent_ += nSlots;
 	TLOG(TLVL_TRACE) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
+}
+
+void RequestSender::setup_acknowledgements_()
+{
+	ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (ack_socket_ < 0)
+	{
+		throw cet::exception("ConfigurationError") << "RequestSender: Error creating socket for receiving acks!" << std::endl;
+		exit(1);
+	}
+
+	struct sockaddr_in si_me_request;
+
+	auto yes = 1;
+	if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
+	{
+		throw cet::exception("ConfigurationError") << "RequestSender: Unable to enable port reuse on ack socket" << std::endl;
+		exit(1);
+	}
+	memset(&si_me_request, 0, sizeof(si_me_request));
+	si_me_request.sin_family = AF_INET;
+	si_me_request.sin_port = htons(ack_port_);
+	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
+	if (bind(ack_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)
+	{
+		throw cet::exception("ConfigurationError") << "RequestSender: Cannot bind request socket to port " << ack_port_ << std::endl;
+		exit(1);
+	}
+	TLOG(TLVL_DEBUG) << "Listening for acks on 0.0.0.0 port " << ack_port_;
+}
+
+void RequestSender::receive_acknowledgements_()
+{
+	std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+
+	while (request_acknowledgements_.load())
+	{
+		// Reconnect ack socket, if necessary
+		if (ack_socket_ == -1)
+		{
+			setup_acknowledgements_();
+		}
+
+		auto sts = recvfrom(ack_socket_, &buffer[0], sizeof(buffer), MSG_DONTWAIT, NULL, NULL);
+		if (sts < 0)
+		{
+			if (errno == EWOULDBLOCK || errno == EAGAIN)
+			{
+				TLOG(20) << "receive_acknowledgements_: No more ack datagrams on ack socket.";
+			}
+			else
+			{
+				TLOG(TLVL_ERROR) << "receive_acknowledgements_: An unexpected error occurred during ack packet receive";
+				close(ack_socket_);
+				ack_socket_ = -1;
+			}
+		}
+		else
+		{
+			auto ack = *reinterpret_cast<detail::RequestAcknowledgement*>(&buffer[0]);
+			if (!ack.isValid())
+			{
+				TLOG(TLVL_WARNING) << "receive_acknowledgements_: Received ack message is invalid! Closing ack_socket and retrying";
+				close(ack_socket_);
+				ack_socket_ = -1;
+				continue;
+			}
+
+			TLOG(TLVL_DEBUG) << "Ack packet from rank " << ack.rank << " has run number " << ack.run_number << " and contains " << ack.packet_count << " entries";
+
+			if (ack.run_number != run_number_)
+			{
+				TLOG(TLVL_WARNING) << "receive_acknowledgements_: Received ack message is for the wrong run! Not processing";
+				continue;
+			}
+
+			std::lock_guard<std::mutex> lk(request_mutex_);
+			uint8_t* ptr = &buffer[sizeof(ack)];
+			for (size_t ii = 0; ii < ack.packet_count; ++ii)
+			{
+				auto id = *reinterpret_cast<Fragment::sequence_id_t*>(ptr);
+				TLOG(20) << "receive_acknowledgements_: Rank " << ack.rank << " acknowledges sequence_id " << id;
+
+				active_requests_[id].clearRank(ack.rank);
+			}
+		}
+		usleep(10000);
+	}
 }
 
 void RequestSender::SendRoutingToken(int nSlots, int run_number)

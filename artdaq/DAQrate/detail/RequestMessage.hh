@@ -134,7 +134,9 @@ public:
 	    , sequence_id(Fragment::InvalidSequenceID)
 	    , timestamp(Fragment::InvalidTimestamp)
 	    , activeRanks()
-	{}
+	{
+		clock_gettime(CLOCK_REALTIME, &request_time);
+	}
 
 	/**
 	 * \brief Create a RequestPacket using the given sequence ID and timestmap
@@ -205,6 +207,11 @@ public:
 		return activeRanks.at(rank);
 	}
 
+	void clearRank(int rank)
+	{
+		activeRanks.clear(rank);
+	}
+
 	void setActiveRanks(std::set<int> const& ranks)
 	{
 		for (auto& rank : ranks)
@@ -255,20 +262,12 @@ struct artdaq::detail::RequestAcknowledgement
 	uint32_t packet_count;
 	uint32_t run_number;
 	int rank;
-	Fragment::sequence_id_t first;
-	Fragment::sequence_id_t last;
 
-	RequestAcknowledgement()
-	    : header(0x4042424B)
-	    , packet_count(0)
-	    , run_number(0)
-	    , rank(my_rank)
-	    , first(0)
-	    , last(0) {}
-
-	RequestAcknowledgement(uint32_t count, uint32_t run, const Fragment::sequence_id_t& first_seq, const Fragment::sequence_id_t& last_seq)
-	    : header(0x4042424B), packet_count(count), run_number(run), rank(my_rank), first(first_seq), last(last_seq)
+	RequestAcknowledgement(uint32_t count = 0, uint32_t run = 0)
+	    : header(0x4042424B), packet_count(count), run_number(run), rank(my_rank)
 	{}
+
+	bool isValid() { return header == 0x4042424B; }
 };
 
 /**
