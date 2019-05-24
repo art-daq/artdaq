@@ -36,6 +36,7 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     , tokens_sent_(0)
     , run_number_(0)
     , request_acknowledgements_(pset.get<bool>("request_acknowledgements", false))
+    , sender_ranks_()
 {
 	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
 	setup_requests_();
@@ -44,6 +45,12 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 	send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
 	token_port_ = rmConfig.get<int>("routing_token_port", 35555);
 	token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
+
+	if (pset.has_key("sender_ranks"))
+	{
+		auto ranks = pset.get<std::vector<int>>("sender_ranks");
+		for (auto& rank : ranks) sender_ranks_.insert(rank);
+	}
 	setup_tokens_();
 	TLOG(12) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
 	initialized_ = true;

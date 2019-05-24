@@ -370,4 +370,132 @@ BOOST_AUTO_TEST_CASE(Requests)
 	artdaq::Globals::CleanUpGlobals();
 }
 
+BOOST_AUTO_TEST_CASE(Acknowledgements)
+{
+	artdaq::configureMessageFacility("RequestSender_t", true, true);
+	metricMan->initialize(fhicl::ParameterSet());
+	metricMan->do_start();
+	TLOG(TLVL_INFO) << "Acknowledgements Test Case BEGIN";
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int ACK_PORT = REQUEST_PORT + 1;
+	const int DELAY_TIME = 100;
+#if 0
+	const std::string MULTICAST_IP = "227.28.12.28";
+#else
+	const std::string MULTICAST_IP = "localhost";
+#endif
+	fhicl::ParameterSet pset;
+	pset.put("request_port", REQUEST_PORT);
+	pset.put("request_delay_ms", DELAY_TIME);
+	pset.put("send_requests", true);
+	pset.put("request_address", MULTICAST_IP);
+	pset.put("acknowledge_port", ACK_PORT);
+	pset.put("sender_ranks", {1, 2});
+	pset.put("request_acknowledgements", true);
+	artdaq::RequestSender t(pset);
+
+	TLOG(TLVL_DEBUG) << "Opening request listener socket";
+	auto request_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+	struct sockaddr_in si_me_request;
+
+	int yes = 1;
+	if (setsockopt(request_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
+	{
+		TLOG(TLVL_ERROR) << "Unable to set reuse on request socket";
+		BOOST_REQUIRE_EQUAL(true, false);
+		return;
+	}
+	memset(&si_me_request, 0, sizeof(si_me_request));
+	si_me_request.sin_family = AF_INET;
+	si_me_request.sin_port = htons(REQUEST_PORT);
+	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
+	if (bind(request_socket, (struct sockaddr*)&si_me_request, sizeof(si_me_request)) == -1)
+	{
+		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << REQUEST_PORT;
+		BOOST_REQUIRE_EQUAL(true, false);
+		return;
+	}
+
+	if (MULTICAST_IP != "localhost")
+	{
+		struct ip_mreq mreq;
+		int sts = ResolveHost(MULTICAST_IP.c_str(), mreq.imr_multiaddr);
+		if (sts == -1)
+		{
+			TLOG(TLVL_ERROR) << "Unable to resolve multicast request address";
+			BOOST_REQUIRE_EQUAL(true, false);
+			return;
+		}
+		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+		if (setsockopt(request_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
+		{
+			TLOG(TLVL_ERROR) << "Unable to join multicast group";
+			BOOST_REQUIRE_EQUAL(true, false);
+			return;
+		}
+	}
+
+	TLOG(TLVL_DEBUG) << "Sending request";
+	auto start_time = std::chrono::steady_clock::now();
+	t.AddRequest(0, 0x10);
+	struct pollfd ufds[1];
+
+	TLOG(TLVL_DEBUG) << "Receiving Request";
+	ufds[0].fd = request_socket;
+	ufds[0].events = POLLIN | POLLPRI;
+	int rv = poll(ufds, 1, 10000);
+	if (rv > 0)
+	{
+		if (ufds[0].revents == POLLIN || ufds[0].revents == POLLPRI)
+		{
+			auto delay_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
+			BOOST_REQUIRE_GE(delay_time, DELAY_TIME);
+			TLOG(TLVL_TRACE) << "Recieved packet on Request channel";
+			std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+			auto sts = recv(request_socket, &buffer[0], buffer.size(), 0);
+
+			artdaq::detail::RequestMessage message(&buffer[0], sts);
+
+			TRACE_REQUIRE_EQUAL(message.isValid(), true);
+			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(message.getMode()),
+			                    static_cast<uint8_t>(artdaq::detail::RequestMessageMode::Normal));
+			TRACE_REQUIRE_EQUAL(message.size(), 1);
+			if (message.isValid())
+			{
+				for (auto& buffer : message.getRequests())
+				{
+					TRACE_REQUIRE_EQUAL(buffer.isValid(), true);
+					TRACE_REQUIRE_EQUAL(buffer.sequence_id, 0);
+					TRACE_REQUIRE_EQUAL(buffer.timestamp, 0x10);
+				}
+			}
+			else
+			{
+				TLOG(TLVL_ERROR) << "Invalid request message received";
+				BOOST_REQUIRE_EQUAL(false, true);
+				return;
+			}
+		}
+		else
+		{
+			TLOG(TLVL_ERROR) << "Wrong event type from poll";
+			BOOST_REQUIRE_EQUAL(false, true);
+			return;
+		}
+	}
+	else
+	{
+		TLOG(TLVL_ERROR) << "Timeout occured waiting for request";
+		BOOST_REQUIRE_EQUAL(false, true);
+		return;
+	}
+
+
+	close(request_socket);
+	TLOG(TLVL_INFO) << "Acknowledgements Test Case END";
+	artdaq::Globals::CleanUpGlobals();
+}
+
+
 BOOST_AUTO_TEST_SUITE_END()
