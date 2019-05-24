@@ -1,6 +1,8 @@
 #ifndef artdaq_DAQrate_detail_RequestMessage_hh
 #define artdaq_DAQrate_detail_RequestMessage_hh
 
+#include "artdaq/DAQdata/Globals.hh"
+
 #include "artdaq-core/Data/Fragment.hh"
 #define MAX_REQUEST_MESSAGE_SIZE 65000
 
@@ -94,6 +96,15 @@ public:
 
 	std::vector<uint8_t> getData() const { return data_; }
 
+	bool any() const
+	{
+		for (auto& data : data_)
+		{
+			if (data != 0) return true;
+		}
+		return false;
+	}
+
 private:
 	std::vector<uint8_t> data_;
 };
@@ -113,6 +124,7 @@ public:
 	Fragment::timestamp_t timestamp;      ///< The timestamp of the request
 	int rank;                             ///< Rank of the sender
 	VectorBitset activeRanks;
+	struct timespec request_time;  ///< Wall-clock time that this request was generated at
 
 	/**
 	 * \brief Default Constructor
@@ -136,7 +148,9 @@ public:
 	    , timestamp(ts)
 	    , rank(dest_rank == -1 ? my_rank : dest_rank)
 	    , activeRanks()
-	{}
+	{
+		clock_gettime(CLOCK_REALTIME, &request_time);
+	}
 
 	RequestPacket(uint8_t*& ptr)
 	    : header(0)
@@ -180,6 +194,24 @@ public:
 	 * \return Whether the correct magic bytes were found
 	 */
 	bool isValid() const { return header == 0x54524947; }
+
+	bool isActive() const
+	{
+		return activeRanks.any();
+	}
+
+	bool hasRank(int rank) const
+	{
+		return activeRanks.at(rank);
+	}
+
+	void setActiveRanks(std::set<int> const& ranks)
+	{
+		for (auto& rank : ranks)
+		{
+			activeRanks.set(rank);
+		}
+	}
 };
 inline std::ostream& operator<<(std::ostream& o, const artdaq::detail::RequestPacket r)
 {
@@ -196,7 +228,6 @@ struct artdaq::detail::RequestHeader
 	uint32_t packet_count;         ///< The number of RequestPackets in this Request message
 	uint32_t run_number;           ///< The Run with which this request should be associated
 	RequestMessageMode mode;       ///< Communicates additional information to the Request receiver
-	struct timespec request_time;  ///< Wall-clock time that this request was generated at
 	bool request_acknowledgement;  ///< Whether this request should be acknowledged
 
 	/**
@@ -209,7 +240,6 @@ struct artdaq::detail::RequestHeader
 	    , mode(RequestMessageMode::Normal)
 	    , request_acknowledgement(false)
 	{
-		clock_gettime(CLOCK_REALTIME, &request_time);
 	}
 
 	/**
@@ -293,7 +323,11 @@ public:
 			// Do not go over MAX_REQUEST_MESSAGE_SIZE!
 			if (output.size() + arr.size() > MAX_REQUEST_MESSAGE_SIZE)
 			{
-				break;
+				if (arr.size() > MAX_REQUEST_MESSAGE_SIZE)
+				{
+					TLOG(TLVL_ERROR) << "Request is too large! sz=" << arr.size() << ", max=" << MAX_REQUEST_MESSAGE_SIZE;
+				}
+				continue;
 			}
 			std::move(arr.begin(), arr.end(), std::back_inserter(output));
 		}
@@ -322,7 +356,6 @@ public:
 
 	uint32_t getRunNumber() const { return header_.run_number; }
 	RequestMessageMode getMode() const { return header_.mode; }
-	struct timespec getRequestTime() const { return header_.request_time; }
 
 	/**
 	 * \brief Get the number of RequestPackets in the RequestMessage
@@ -371,7 +404,7 @@ public:
 		return true;
 	}
 
-	std::vector<RequestPacket> getRequests() const { return packets_; }
+	std::vector<RequestPacket> const& getRequests() const { return packets_; }
 
 private:
 	RequestHeader header_;

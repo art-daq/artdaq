@@ -9,18 +9,17 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Table.h"
 
-#include <map>
-#include <memory>
-#include <chrono>
-#include <future>
-#include <stdint.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <chrono>
+#include <future>
+#include <map>
+#include <memory>
 
-namespace artdaq
-{
+namespace artdaq {
 
 	/**
 	 * \brief The RequestSender contains methods used to send data requests and Routing tokens
@@ -91,7 +90,6 @@ namespace artdaq
 		 */
 		virtual ~RequestSender();
 
-
 		/**
 		 * \brief Set the mode for RequestMessages. Used to indicate when RequestSender should enter "EndOfRun" mode
 		 * \param mode Mode to set
@@ -142,8 +140,8 @@ namespace artdaq
 		 * \param run Run number
 		 */
 		void SetRunNumber(uint32_t run) { run_number_ = run; }
-	private:
 		
+private:
 		// Request stuff
 		bool send_requests_;
 		std::atomic<bool> initialized_;
@@ -152,12 +150,15 @@ namespace artdaq
 		std::map<Fragment::sequence_id_t, detail::RequestPacket> active_requests_;
 		std::string request_address_;
 		int request_port_;
+	int ack_port_;
+	std::string ack_address_;
 		size_t request_delay_;
 		size_t request_shutdown_timeout_us_;
 		int request_socket_;
 		struct sockaddr_in request_addr_;
 		std::string multicast_out_addr_;
 		detail::RequestMessageMode request_mode_;
+	double request_timeout_s_;
 
 		bool send_routing_tokens_;
 		int token_port_;
@@ -178,6 +179,10 @@ namespace artdaq
 		void setup_tokens_();
 
 		void send_routing_token_(int nSlots, int run_number);
+
+	void setup_acknowledgements_();
+
+	void receive_acknowledgements_();
 	};
-}
+}  // namespace artdaq
 #endif /* artdaq_DAQrate_RequestSender_hh */

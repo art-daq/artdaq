@@ -2,44 +2,46 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/DAQrate/RequestReceiver.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
 
-#include <limits>
 #include <iterator>
+#include <limits>
 
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 
-#include <fstream>
-#include <iomanip>
-#include <iterator>
-#include <iostream>
-#include <iomanip>
-#include <algorithm>
-#include <sys/poll.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/poll.h>
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include "RequestReceiver.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::RequestReceiver::RequestReceiver()
 	: request_port_(3001)
 	, request_addr_("227.128.12.26")
+    , multicast_out_addr_("0.0.0.0")
+    , ack_port_(3002)
+    , ack_address_("localhost")
 	, running_(false)
     , run_number_(0)
     , request_socket_(-1)
+    , ack_socket_(-1)
 	, requests_()
-	, request_timing_()
 	, request_stop_requested_(false)
 	, request_received_(false)
 	, end_of_run_timeout_ms_(1000)
@@ -53,11 +55,13 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
 	: request_port_(ps.get<int>("request_port", 3001))
 	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
 	, multicast_out_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
+    , ack_port_(ps.get<int>("acknowledgement_port", 3002))
+    , ack_address_(ps.get<std::string>("acknowledgement_address", "localhost"))
 	, running_(false)
 	, run_number_(0)
     , request_socket_(-1)
+    , ack_socket_(-1)
 	, requests_()
-	, request_timing_()
 	, request_stop_requested_(false)
 	, request_received_(false)
 	, end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
@@ -135,11 +139,13 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 			<< "Check that UDP port " << request_port_ << " is open in the firewall config.";
 	}
 	should_stop_ = true;
-	if (running_) {
+	if (running_)
+	{
 		TLOG(TLVL_DEBUG) << "Joining requestThread";
 		if (requestThread_.joinable()) requestThread_.join();
 		bool once = true;
-		while (running_) {
+		while (running_)
+		{
 			if (once) TLOG(TLVL_ERROR) << "running_ is true after thread join! Should NOT happen";
 			once = false;
 			usleep(10000);
@@ -150,6 +156,11 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 	{
 		close(request_socket_);
 		request_socket_ = -1;
+	}
+	if (ack_socket_ != -1)
+	{
+		close(ack_socket_);
+		ack_socket_ = -1;
 	}
 	request_received_ = false;
 	highest_seen_request_ = 0;
@@ -169,7 +180,8 @@ void artdaq::RequestReceiver::startRequestReception()
 	}
 
 	TLOG(TLVL_INFO) << "Starting Request Reception Thread";
-	try {
+	try
+	{
 		requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
 	}
 	catch (const boost::exception& e)
@@ -258,14 +270,14 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			TLOG(20) << "Request Packet: hdr=" << /*std::dec <<*/ buffer.header << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
 			if (!buffer.isValid()) continue;
 			std::unique_lock<std::mutex> tlk(request_mutex_);
-			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
+			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id].first.timestamp != buffer.timestamp)
 			{
 				TLOG(TLVL_ERROR) << "Received conflicting request for SeqID "
 					<< buffer.sequence_id << "!"
-					<< " Old ts=" << requests_[buffer.sequence_id]
+				                 << " Old ts=" << requests_[buffer.sequence_id].first.timestamp
 					<< ", new ts=" << buffer.timestamp << ". Keeping OLD!";
 			}
-			else if (!requests_.count(buffer.sequence_id))
+			else if (!requests_.count(buffer.sequence_id) && buffer.hasRank(my_rank))
 			{
 				int delta = buffer.sequence_id - highest_seen_request_;
 				TLOG(11) << "Received request for sequence ID " << buffer.sequence_id
@@ -276,14 +288,18 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 				}
 				else
 				{
-					requests_[buffer.sequence_id] = buffer.timestamp;
-					request_timing_[buffer.sequence_id] = std::chrono::steady_clock::now();
+					requests_[buffer.sequence_id] = std::make_pair(buffer, std::chrono::steady_clock::now());
 					anyNew = true;
 				}
 			}
 		}
 		if (anyNew)
 		{
+			// If we have new requests, acknowledge the whole message
+			if (message.getAcknowledge())
+			{
+				sendAcknowledgement(message);
+			}
 			request_cv_.notify_all();
 		}
 	}
@@ -291,12 +307,38 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 	running_ = false;
 }
 
+void artdaq::RequestReceiver::sendAcknowledgement(detail::RequestMessage message)
+{
+	if (ack_socket_ == -1)
+	{
+		ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		auto sts = ResolveHost(ack_address_.c_str(), ack_port_, ack_addr_);
+		if (sts == -1)
+		{
+			TLOG(TLVL_ERROR) << __func__ << ": Unable to resolve acknowledge_address";
+			exit(1);
+		}
+		TLOG(TLVL_DEBUG) << __func__ << ": Ack socket is fd " << ack_socket_;
+	}
+	auto reqs = message.getRequests();
+	Fragment::sequence_id_t first = reqs[0].sequence_id;
+	Fragment::sequence_id_t last = reqs.back().sequence_id;
+	detail::RequestAcknowledgement ack(message.size(), message.getRunNumber(), first, last);
+
+	TLOG(TLVL_DEBUG) << __func__ << ": Sending RequestAcknowledgement with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
+	sendto(ack_socket_, &ack, sizeof(artdaq::detail::RequestAcknowledgement), 0, (struct sockaddr*)&ack_addr_, sizeof(ack_addr_));
+}
+
 void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)
 {
 	TLOG(10) << "RemoveRequest: Removing request for id " << reqID;
 	std::unique_lock<std::mutex> lk(request_mutex_);
-	requests_.erase(reqID);
 
+	if (metricMan)
+	{
+		metricMan->sendMetric("Request Response Time", TimeUtils::GetElapsedTime(requests_[reqID].second), "seconds", 2, MetricMode::Average);
+	}
+	requests_.erase(reqID);
 	if (reqID > highest_seen_request_)
 	{
 		TLOG(10) << "RemoveRequest: out_of_order_requests_.size() == " << out_of_order_requests_.size() << ", reqID=" << reqID << ", expected=" << highest_seen_request_ + request_increment_;
@@ -322,11 +364,6 @@ void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqI
 		{
 			highest_seen_request_ = reqID;
 		}
-		TLOG(10) << "RemoveRequest: reqID=" << reqID << " Setting highest_seen_request_ to " << highest_seen_request_;
+		TLOG(10) << "RemoveRequest: reqID=" << reqID << " Set highest_seen_request_ to " << highest_seen_request_;
 	}
-	if (metricMan && request_timing_.count(reqID))
-	{
-		metricMan->sendMetric("Request Response Time", TimeUtils::GetElapsedTime(request_timing_[reqID]), "seconds", 2, MetricMode::Average);
-	}
-	request_timing_.erase(reqID);
 }

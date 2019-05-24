@@ -3,22 +3,21 @@
 
 #include <boost/thread.hpp>
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/ConfigurationTable.h"
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
-namespace artdaq
-{
+namespace artdaq {
 	/// <summary>
 	/// Receive data requests and make them available to CommandableFragmentGenerator or other interested parties. Track received requests and report errors when inconsistency is detected.
 	/// </summary>
 	class RequestReceiver
 	{
 	public:
-
 		/// <summary>
 		/// Configuration of the RequestReceiver. May be used for parameter validation
 		/// </summary>
@@ -71,17 +70,19 @@ namespace artdaq
 		*/
 		void receiveRequestsLoop();
 
+	void sendAcknowledgement(detail::RequestMessage message);
+
 		/// <summary>
 		/// Get the current requests
 		/// </summary>
 		/// <returns>Map relating sequence IDs to timestamps</returns>
-		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const
+	std::map<artdaq::Fragment::sequence_id_t, artdaq::detail::RequestPacket> GetRequests() const
 		{
 			std::unique_lock<std::mutex> lk(request_mutex_);
-			std::map<artdaq::Fragment::sequence_id_t, Fragment::timestamp_t> out;
+		std::map<artdaq::Fragment::sequence_id_t, artdaq::detail::RequestPacket> out;
 			for (auto& in : requests_)
 			{
-				out[in.first] = in.second;
+			out[in.second.first.sequence_id] = in.second.first;
 			}
 			return out;
 		}
@@ -111,18 +112,17 @@ namespace artdaq
 		/// Get the current requests, then clear the map
 		/// </summary>
 		/// <returns>Map relating sequence IDs to timestamps</returns>
-		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetAndClearRequests()
+	std::map<artdaq::Fragment::sequence_id_t, artdaq::detail::RequestPacket> GetAndClearRequests()
 		{
 			std::unique_lock<std::mutex> lk(request_mutex_);
-			std::map<artdaq::Fragment::sequence_id_t, Fragment::timestamp_t> out;
+		std::map<artdaq::Fragment::sequence_id_t, artdaq::detail::RequestPacket> out;
 			for (auto& in : requests_)
 			{
-				out[in.first] = in.second;
+			out[in.second.first.sequence_id] = in.second.first;
 			}
 			if(requests_.size()) {highest_seen_request_ = requests_.rbegin()->first;}
 			out_of_order_requests_.clear();
 			requests_.clear();
-			request_timing_.clear();
 			return out;
 		}
 
@@ -130,7 +130,8 @@ namespace artdaq
 		/// Get the number of requests currently stored in the RequestReceiver
 		/// </summary>
 		/// <returns>The number of requests stored in the RequestReceiver</returns>
-		size_t size() { 
+	size_t size()
+	{
 			std::unique_lock<std::mutex> tlk(request_mutex_);
 			return requests_.size(); 
 		}
@@ -157,7 +158,7 @@ namespace artdaq
 		std::chrono::steady_clock::time_point GetRequestTime(artdaq::Fragment::sequence_id_t reqID)
 		{
 			std::unique_lock<std::mutex> lk(request_mutex_);
-			return request_timing_.count(reqID) ? request_timing_[reqID] : std::chrono::steady_clock::now();
+		return requests_.count(reqID) ? requests_[reqID].second : std::chrono::steady_clock::now();
 		}
 
 		/// <summary>
@@ -165,19 +166,23 @@ namespace artdaq
 		/// </summary>
 		/// <param name="run">The current run number</param>
 		void SetRunNumber(uint32_t run) {run_number_ = run;}
+
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
 		int request_port_;
 		std::string request_addr_;
 		std::string multicast_out_addr_;
+	int ack_port_;
+	std::string ack_address_;
+	struct sockaddr_in ack_addr_;
 		bool running_;
 		uint32_t run_number_;
 
 		//Socket parameters
 		int request_socket_;
-		std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> requests_;
-		std::map<artdaq::Fragment::sequence_id_t, std::chrono::steady_clock::time_point> request_timing_;
+	int ack_socket_;
+	std::map<artdaq::Fragment::sequence_id_t, std::pair<artdaq::detail::RequestPacket, std::chrono::steady_clock::time_point>> requests_;
 		std::atomic<bool> request_stop_requested_;
 		std::chrono::steady_clock::time_point request_stop_timeout_;
 		std::atomic<bool> request_received_;
@@ -192,7 +197,6 @@ namespace artdaq
 		std::set<artdaq::Fragment::sequence_id_t> out_of_order_requests_;
 		artdaq::Fragment::sequence_id_t request_increment_;
 	};
-}
-
+}  // namespace artdaq
 
 #endif //ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH

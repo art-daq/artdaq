@@ -228,7 +228,7 @@ namespace artdaq
 		 * \param[out] frags Output list to append EmptyFragmentType to
 		 * \param requests List of requests to process
 		 */
-		void sendEmptyFragments(FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests);
+		void sendEmptyFragments(FragmentPtrs& frags, std::map<Fragment::sequence_id_t, artdaq::detail::RequestPacket>& requests);
 
 		/**
 		 * \brief Check the windows_sent_ooo_ map for sequence IDs that may be removed

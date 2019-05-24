@@ -1,7 +1,6 @@
 #define TRACE_NAME (app_name + "_RequestSender").c_str()
 #include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 
-#include "artdaq/DAQrate/RequestSender.hh"
 #include <dlfcn.h>
 #include <chrono>
 #include <cstring>
@@ -9,6 +8,7 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
+#include "artdaq/DAQrate/RequestSender.hh"
 
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
@@ -199,10 +199,15 @@ void RequestSender::do_send_request_()
 	message.setAcknowledge(request_acknowledgements_);
 	{
 		std::unique_lock<std::mutex> lk(request_mutex_);
-		for (auto& req : active_requests_)
+		for (auto req = active_requests_.begin(); req != active_requests_.end(); ++req)
 		{
-			TLOG(12) << "Adding a request (" << req.second << ") to request message";
-			message.addRequest(req.second);
+			while (request_acknowledgements_ && req != active_requests_.end() && !req->second.isActive())
+			{
+				TLOG(12) << "Removing request " << req->second << " because all configured senders have acknowledged it";
+				req = active_requests_.erase(req);
+			}
+			TLOG(12) << "Adding a request (" << req->second << ") to request message";
+			message.addRequest(req->second);
 		}
 	}
 	TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
@@ -221,13 +226,6 @@ void RequestSender::do_send_request_()
 		return;
 	}
 	TLOG(TLVL_TRACE) << "Done sending request sts=" << sts;
-
-	if (request_acknowledgements_)
-	{
-		TLOG(TLVL_TRACE) << "Collecting Request Acknowledgements";
-
-		TLOG(TLVL_TRACE) << "Done with acknowledgements";
-	}
 
 	request_sending_--;
 }
@@ -292,6 +290,7 @@ void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestam
 		{
 			TLOG(12) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
 			active_requests_[seqID] = detail::RequestPacket(seqID, timestamp, rank);
+			active_requests_[seqID].setActiveRanks(sender_ranks_);
 		}
 	}
 	SendRequest();

@@ -867,7 +867,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 			auto newfrag = std::unique_ptr<artdaq::Fragment>(new Fragment(ev_counter(), frag->fragmentID()));
 			newfrag->resize(frag->size() - detail::RawFragmentHeader::num_words());
 			memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
-			newfrag->setTimestamp(requests[ev_counter()]);
+			newfrag->setTimestamp(requests[ev_counter()].timestamp);
 			newfrag->setSequenceID(ev_counter());
 			frags.push_back(std::move(newfrag));
 		}
@@ -897,7 +897,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 
 	TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Buffered Fragments";
 	frags.emplace_back(new artdaq::Fragment(ev_counter(), fragment_id()));
-	frags.back()->setTimestamp(requests[ev_counter()]);
+	frags.back()->setTimestamp(requests[ev_counter()].timestamp);
 	ContainerFragmentLoader cfl(*frags.back());
 	cfl.set_missing_data(false); // Buffer mode is never missing data, even if there IS no data.
 
@@ -934,7 +934,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		}
 		if (requests.size() == 0) break;
 
-		auto ts = req->second;
+		auto ts = req->second.timestamp;
 		TLOG(TLVL_APPLYREQUESTS) << "applyRequests: Checking that data exists for request window " << req->first;
 		Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 		Fragment::timestamp_t max = min + windowWidth_;
@@ -1106,7 +1106,7 @@ bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtr
 	return true;
 }
 
-void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests)
+void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPtrs& frags, std::map<Fragment::sequence_id_t, artdaq::detail::RequestPacket>& requests)
 {
 	if (requests.size() > 0)
 	{
