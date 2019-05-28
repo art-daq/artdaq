@@ -390,7 +390,7 @@ BOOST_AUTO_TEST_CASE(Acknowledgements)
 	pset.put("send_requests", true);
 	pset.put("request_address", MULTICAST_IP);
 	pset.put("acknowledge_port", ACK_PORT);
-	pset.put("sender_ranks", {1, 2});
+	pset.put<std::vector<int>>("sender_ranks", {1, 2});
 	pset.put("request_acknowledgements", true);
 	artdaq::RequestSender t(pset);
 

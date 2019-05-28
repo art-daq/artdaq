@@ -42,21 +42,41 @@ inline std::ostream& operator<<(std::ostream& o, RequestMessageMode m)
 	return o;
 }
 
+/// <summary>
+/// A bitset-like construct using a variable-size backend
+/// </summary>
 class VectorBitset
 {
 public:
+	/// <summary>
+	/// Default Constructor
+	/// </summary>
 	VectorBitset()
 	    : data_() {}
 
+	/// <summary>
+	/// Construct a VectorBitset using an existing byte vector
+	/// </summary>
+	/// <param name="data">Byte vector to use for VectorBitset initial value</param>
 	VectorBitset(std::vector<uint8_t> data)
 	    : data_(data) {}
 
+	/// <summary>
+	/// Construct a VectorBitset using a memory region
+	/// </summary>
+	/// <param name="ptr">Pointer to the memory</param>
+	/// <param name="size">Number of bytes to copy</param>
 	VectorBitset(uint8_t* ptr, size_t size)
 	{
 		data_ = std::vector<uint8_t>(size);
 		memcpy(&data_[0], ptr, size);
 	}
 
+	/// <summary>
+	/// Read the given bit
+	/// </summary>
+	/// <param name="index">Index of the bit to read</param>
+	/// <returns>True if the bit is set, false otherwise</returns>
 	bool at(int index) const
 	{
 		size_t byte = index / 8;
@@ -65,6 +85,10 @@ public:
 		return (data_[byte] & (1 << bit)) != 0;
 	}
 
+	/// <summary>
+	/// Set the given bit, resizing the underlying storage if necessary
+	/// </summary>
+	/// <param name="index">Index of the bit to set</param>
 	void set(int index)
 	{
 		size_t byte = index / 8;
@@ -78,24 +102,42 @@ public:
 		data_[byte] |= (1 << bit);
 	}
 
+	/// <summary>
+	/// Clear the given bit
+	/// </summary>
+	/// <param name="index">Index of the bit to clear</param>
 	void clear(int index)
 	{
 		size_t byte = index / 8;
 		size_t bit = index % 8;
 
-		if (byte + 1 > data_.size())
+		if (byte + 1 <= data_.size())
 		{
-			data_.resize(byte + 1);
+			data_[byte] &= ~(1 << bit);
 		}
-
-		data_[byte] &= ~(1 << bit);
 	}
 
+	/// <summary>
+	/// Resize the underlying storage to the given number of bytes
+	/// </summary>
+	/// <param name="size">Number of bytes (8-bit words) to resize to</param>
 	void resize(size_t size) { data_.resize(size); }
+	/// <summary>
+	/// Get the size of the underlying storage, in bytes
+	/// </summary>
+	/// <returns>Size, in bytes, of the VectorBitset storage</returns>
 	size_t size() const { return data_.size(); }
 
+	/// <summary>
+	/// Get a copy of the storage vector
+	/// </summary>
+	/// <returns>Vector of bytes containing current state of the VectorBitset</returns>
 	std::vector<uint8_t> getData() const { return data_; }
 
+	/// <summary>
+	/// Determine if any bits are set in the VectorBitset
+	/// </summary>
+	/// <returns>True if any bits in the VectorBitset are set, false otherwise</returns>
 	bool any() const
 	{
 		for (auto& data : data_)
@@ -123,7 +165,7 @@ public:
 	Fragment::sequence_id_t sequence_id;  ///< The sequence ID that responses to this request should use
 	Fragment::timestamp_t timestamp;      ///< The timestamp of the request
 	int rank;                             ///< Rank of the sender
-	VectorBitset activeRanks;
+	VectorBitset activeRanks;             ///< VectorBitset representing ranks that are expected to respond to this RequestPacket
 	struct timespec request_time;  ///< Wall-clock time that this request was generated at
 
 	/**
@@ -154,6 +196,10 @@ public:
 		clock_gettime(CLOCK_REALTIME, &request_time);
 	}
 
+	/**
+	 * \brief Deserialize a RequestPacket that has been serialized using ToByteVector
+	 * \param ptr Pointer to memory containing RequestPacket data
+	 */
 	RequestPacket(uint8_t*& ptr)
 	    : header(0)
 	    , sequence_id(Fragment::InvalidSequenceID)
@@ -176,6 +222,10 @@ public:
 		ptr += activeRanksSize;
 	}
 
+	/**
+	 * \brief Serialize a RequestPacket to a vector of bytes, for sending
+	 * \return Vector of bytes representing request
+	 */
 	std::vector<uint8_t> ToByteVector() const
 	{
 		size_t size = sizeof(header) + sizeof(sequence_id) + sizeof(timestamp) + sizeof(rank) + sizeof(size_t) + activeRanks.size();
@@ -197,21 +247,38 @@ public:
 	 */
 	bool isValid() const { return header == 0x54524947; }
 
+	/**
+	 * \brief Determine if any ranks are marked as active for this RequestPacket
+	 * \return True if any ranks are in the activeRanks VectorBitset
+	 */
 	bool isActive() const
 	{
 		return activeRanks.any();
 	}
 
+	/**
+	 * \brief Determine if the given rank is present in the active ranks bitset
+	 * \param rank Rank to read
+	 * \return True if rank is in the active ranks bitset
+	 */
 	bool hasRank(int rank) const
 	{
 		return activeRanks.at(rank);
 	}
 
+	/**
+	 * \brief Clear the given rank from the active ranks bitset
+	 * \param rank Rank to clear
+	 */
 	void clearRank(int rank)
 	{
 		activeRanks.clear(rank);
 	}
 
+	/**
+	 * \brief Set the given ranks to active
+	 * \param ranks Ranks to set
+	 */
 	void setActiveRanks(std::set<int> const& ranks)
 	{
 		for (auto& rank : ranks)
@@ -220,6 +287,12 @@ public:
 		}
 	}
 };
+/**
+ * \brief Serialize a RequestPacket to a text stream (i.e. cout or TLOG)
+ * \param o Input ostream
+ * \param r RequestPacket to serialize
+ * \return Output ostream for continued stream operations
+ */
 inline std::ostream& operator<<(std::ostream& o, const artdaq::detail::RequestPacket r)
 {
 	return o << "Sequence ID " << r.sequence_id << ", Timestamp " << r.timestamp << ", Rank " << r.rank;
@@ -256,22 +329,34 @@ struct artdaq::detail::RequestHeader
 	bool isValid() const { return header == 0x48454452; }
 };
 
+/**
+ * \brief The RequestAcknowledgement class defines the contents of the message that receivers will send in response to a RequestMessage containing new requests
+ */
 struct artdaq::detail::RequestAcknowledgement
 {
 	uint32_t header;  ///< ACCK, or 0x4042424B
-	uint32_t packet_count;
-	uint32_t run_number;
-	int rank;
+	uint32_t packet_count; ///< Number of request packets being acknowledged (their sequence IDs follow this header)
+	uint32_t run_number; ///< Current Run number
+	int rank; ///< Rank of the acknowledging process
 
+	/// <summary>
+	/// Create a RequestAcknowledgement using the given parameters
+	/// </summary>
+	/// <param name="count">Number of requests being acknowledged</param>
+	/// <param name="run">Current Run number</param>
 	RequestAcknowledgement(uint32_t count = 0, uint32_t run = 0)
 	    : header(0x4042424B), packet_count(count), run_number(run), rank(my_rank)
 	{}
 
+	/// <summary>
+	/// Check the header word
+	/// </summary>
+	/// <returns>True if the header word matches expected value</returns>
 	bool isValid() { return header == 0x4042424B; }
 };
 
 /**
- * \brief A RequestMessage consists of a RequestHeader and zero or more RequestPackets. They will usually be sent in two calls to send()
+ * \brief A RequestMessage consists of a RequestHeader and zero or more RequestPackets.
  */
 class artdaq::detail::RequestMessage
 {
@@ -284,10 +369,15 @@ public:
 	    , packets_()
 	{}
 
+	/// <summary>
+	/// Construct a RequestMessage using the given pointer and size (For deserializing from recvfrom)
+	/// </summary>
+	/// <param name="packet">Pointer to memory containing serialized RequestMessage</param>
+	/// <param name="size">Size of the memory area</param>
 	RequestMessage(void* packet, size_t size)
 	    : header_(), packets_()
 	{
-		assert(size > sizeof(RequestHeader));
+		assert(size >= sizeof(RequestHeader));
 		memcpy(&header_, packet, sizeof(RequestHeader));
 		TLOG(11) << "Request header word: 0x" << std::hex << header_.header << std::dec << ", packet_count: " << header_.packet_count
 		         << ", run number: " << header_.run_number;
@@ -297,8 +387,10 @@ public:
 			packets_.reserve(header_.packet_count);
 
 			uint8_t* ptr = reinterpret_cast<uint8_t*>(packet) + sizeof(RequestHeader);
+			uint8_t* end = reinterpret_cast<uint8_t*>(packet) + size;
 			for (size_t ii = 0; ii < header_.packet_count; ++ii)
 			{
+				assert(ptr < end);
 				packets_.emplace_back(RequestPacket(ptr));
 				if (!packets_.back().isValid()) break;
 			}
@@ -353,7 +445,16 @@ public:
 		header_.run_number = run;
 	}
 
+	/// <summary>
+	/// Get the run number in the header for this reqeust
+	/// </summary>
+	/// <returns>Run number stored in the RequestHeader</returns>
 	uint32_t getRunNumber() const { return header_.run_number; }
+
+	/// <summary>
+	/// Get the RequestMessageMode of this RequestMessage
+	/// </summary>
+	/// <returns>RequestMessageMode stored in the RequestHeader</returns>
 	RequestMessageMode getMode() const { return header_.mode; }
 
 	/**
@@ -376,21 +477,37 @@ public:
 		packets_.emplace_back(RequestPacket(seq, time, rank));
 	}
 
+	/// <summary>
+	/// Add a RequestPacket to the RequestMessage
+	/// </summary>
+	/// <param name="packet">RequestPacket to add</param>
 	void addRequest(const RequestPacket& packet)
 	{
 		packets_.push_back(packet);
 	}
 
+	/// <summary>
+	/// Set the request_acknowledgement bit of the RequestHeader
+	/// </summary>
+	/// <param name="ack">Value to set</param>
 	void setAcknowledge(bool ack)
 	{
 		header_.request_acknowledgement = ack;
 	}
 
+	/// <summary>
+	/// Get the request_acknowledgement bit from the RequestHeader
+	/// </summary>
+	/// <returns>Value of the request_acknowledgement bit</returns>
 	bool getAcknowledge()
 	{
 		return header_.request_acknowledgement;
 	}
 
+	/// <summary>
+	/// Check the headers of the header and each packet
+	/// </summary>
+	/// <returns>True if all headers are valid, false otherwise</returns>
 	bool isValid()
 	{
 		if (!header_.isValid()) return false;
@@ -403,6 +520,10 @@ public:
 		return true;
 	}
 
+	/// <summary>
+	/// Get the requests in this RequestMessage
+	/// </summary>
+	/// <returns>Vector of RequestPacket instances</returns>
 	std::vector<RequestPacket> const& getRequests() const { return packets_; }
 
 private:

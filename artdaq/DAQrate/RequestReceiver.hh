@@ -70,6 +70,10 @@ namespace artdaq {
 		*/
 		void receiveRequestsLoop();
 
+		/// <summary>
+		/// Send an acknowledgement for the given RequestMessage
+		/// </summary>
+		/// <param name="message">Message to acknowledge</param>
 	void sendAcknowledgement(detail::RequestMessage message);
 
 		/// <summary>
