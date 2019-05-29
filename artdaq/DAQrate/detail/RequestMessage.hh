@@ -166,7 +166,7 @@ public:
 	Fragment::timestamp_t timestamp;      ///< The timestamp of the request
 	int rank;                             ///< Rank of the sender
 	VectorBitset activeRanks;             ///< VectorBitset representing ranks that are expected to respond to this RequestPacket
-	struct timespec request_time;  ///< Wall-clock time that this request was generated at
+	struct timespec request_time;         ///< Wall-clock time that this request was generated at
 
 	/**
 	 * \brief Default Constructor
@@ -334,10 +334,10 @@ struct artdaq::detail::RequestHeader
  */
 struct artdaq::detail::RequestAcknowledgement
 {
-	uint32_t header;  ///< ACCK, or 0x4042424B
-	uint32_t packet_count; ///< Number of request packets being acknowledged (their sequence IDs follow this header)
-	uint32_t run_number; ///< Current Run number
-	int rank; ///< Rank of the acknowledging process
+	uint32_t header;        ///< ACCK, or 0x4042424B
+	uint32_t packet_count;  ///< Number of request packets being acknowledged (their sequence IDs follow this header)
+	uint32_t run_number;    ///< Current Run number
+	int rank;               ///< Rank of the acknowledging process
 
 	/// <summary>
 	/// Create a RequestAcknowledgement using the given parameters

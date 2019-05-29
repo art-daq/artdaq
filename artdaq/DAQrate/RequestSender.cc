@@ -332,7 +332,7 @@ void RequestSender::receive_acknowledgements_()
 		TLOG(20) << "receive_acknowledgements_: Calling recvfrom on ack socket";
 		auto sts = recvfrom(ack_socket_, &buffer[0], sizeof(buffer), MSG_DONTWAIT, NULL, NULL);
 		TLOG(20) << "receive_acknowledgements_: recvfrom on ack socket done, sts=" << sts;
-		
+
 		if (sts < 0)
 		{
 			if (errno == EWOULDBLOCK || errno == EAGAIN)
