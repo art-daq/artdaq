@@ -277,7 +277,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 				                 << " Old ts=" << requests_[buffer.sequence_id].first.timestamp
 				                 << ", new ts=" << buffer.timestamp << ". Keeping OLD!";
 			}
-			else if (!requests_.count(buffer.sequence_id) && buffer.hasRank(my_rank))
+			else if (!requests_.count(buffer.sequence_id) && (!message.getAcknowledge() || buffer.hasRank(my_rank)))
 			{
 				int delta = buffer.sequence_id - highest_seen_request_;
 				TLOG(11) << "Received request for sequence ID " << buffer.sequence_id

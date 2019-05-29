@@ -24,18 +24,23 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     , active_requests_()
     , request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
     , request_port_(pset.get<int>("request_port", 3001))
-    , ack_port_(pset.get<int>("ack_port", 3002))
+    , ack_port_(pset.get<int>("acknowledgement_port", 3002))
     , request_delay_(pset.get<size_t>("request_delay_ms", 0) * 1000)
     , request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
     , request_socket_(-1)
     , ack_socket_(-1)
     , multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
     , request_mode_(detail::RequestMessageMode::Normal)
+    , request_timeout_s_(pset.get<double>("request_timeout_s", -1))
     , token_socket_(-1)
     , request_sending_(0)
+    , requests_sent_(0)
     , tokens_sent_(0)
     , run_number_(0)
     , request_acknowledgements_(pset.get<bool>("request_acknowledgements", false))
+    , receive_acknowledgements_enabled_(false)
+    , ack_thread_running_(false)
+    , ack_messages_received_(0)
     , sender_ranks_()
 {
 	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
@@ -95,12 +100,7 @@ RequestSender::~RequestSender()
 		}
 		token_socket_ = -1;
 	}
-	request_acknowledgements_.store(false);
-	if (ack_socket_ != -1)
-	{
-		close(ack_socket_);
-		ack_socket_ = -1;
-	}
+	StopAcknowledgementReception();
 }
 
 void RequestSender::SetRequestMode(detail::RequestMessageMode mode)
@@ -224,7 +224,7 @@ void RequestSender::do_send_request_()
 				continue;
 			}
 			double elapsed = TimeUtils::GetElapsedTime(req->second.request_time);
-			if (elapsed > request_timeout_s_)
+			if (elapsed > request_timeout_s_ && request_timeout_s_ > 0)
 			{
 				TLOG(12) << "Removing request " << req->second << " because it has timed out ( " << elapsed << " s/ " << request_timeout_s_ << " s)";
 				req = active_requests_.erase(req);
@@ -251,6 +251,7 @@ void RequestSender::do_send_request_()
 		return;
 	}
 	TLOG(TLVL_TRACE) << "Done sending request sts=" << sts;
+	requests_sent_++;
 
 	request_sending_--;
 }
@@ -287,6 +288,7 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 
 void RequestSender::setup_acknowledgements_()
 {
+	TLOG(TLVL_DEBUG) << "Creating Acknowledgement socket";
 	ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (ack_socket_ < 0)
 	{
@@ -317,8 +319,9 @@ void RequestSender::setup_acknowledgements_()
 void RequestSender::receive_acknowledgements_()
 {
 	std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
+	ack_thread_running_.store(true);
 
-	while (request_acknowledgements_.load())
+	while (request_acknowledgements_ && receive_acknowledgements_enabled_.load())
 	{
 		// Reconnect ack socket, if necessary
 		if (ack_socket_ == -1)
@@ -326,7 +329,10 @@ void RequestSender::receive_acknowledgements_()
 			setup_acknowledgements_();
 		}
 
+		TLOG(20) << "receive_acknowledgements_: Calling recvfrom on ack socket";
 		auto sts = recvfrom(ack_socket_, &buffer[0], sizeof(buffer), MSG_DONTWAIT, NULL, NULL);
+		TLOG(20) << "receive_acknowledgements_: recvfrom on ack socket done, sts=" << sts;
+		
 		if (sts < 0)
 		{
 			if (errno == EWOULDBLOCK || errno == EAGAIN)
@@ -352,6 +358,7 @@ void RequestSender::receive_acknowledgements_()
 			}
 
 			TLOG(TLVL_DEBUG) << "Ack packet from rank " << ack.rank << " has run number " << ack.run_number << " and contains " << ack.packet_count << " entries";
+			ack_messages_received_++;
 
 			if (ack.run_number != run_number_)
 			{
@@ -371,6 +378,7 @@ void RequestSender::receive_acknowledgements_()
 		}
 		usleep(10000);
 	}
+	ack_thread_running_.store(false);
 }
 
 void RequestSender::SendRoutingToken(int nSlots, int run_number)
@@ -382,12 +390,56 @@ void RequestSender::SendRoutingToken(int nSlots, int run_number)
 	usleep(0);  // Give up time slice
 }
 
+void RequestSender::StartAcknowledgementReception()
+{
+	if (!ack_thread_running_)
+	{
+		if (ack_thread_.joinable()) ack_thread_.join();
+		receive_acknowledgements_enabled_ = true;
+
+		TLOG(TLVL_INFO) << "Starting Acknowledgement Reception Thread";
+		try
+		{
+			ack_thread_ = boost::thread(&RequestSender::receive_acknowledgements_, this);
+		}
+		catch (const boost::exception& e)
+		{
+			TLOG(TLVL_ERROR) << "Caught boost::exception starting Acknowledgement Receive thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+			std::cerr << "Caught boost::exception starting Acknowledgement Receive thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+			exit(5);
+		}
+	}
+}
+
+void RequestSender::StopAcknowledgementReception()
+{
+	if (ack_thread_running_)
+	{
+		TLOG(TLVL_DEBUG) << "Stopping Acknowledgement reception thread";
+		receive_acknowledgements_enabled_.store(false);
+		if (ack_thread_.joinable()) ack_thread_.join();
+	}
+
+	if (ack_socket_ != -1)
+	{
+		TLOG(TLVL_DEBUG) << "Closing Acknowledgement reception socket";
+		close(ack_socket_);
+		ack_socket_ = -1;
+	}
+}
+
 void RequestSender::SendRequest(bool endOfRunOnly)
 {
 	while (!initialized_) usleep(1000);
 
 	if (!send_requests_) return;
 	if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
+
+	if (request_acknowledgements_ && !ack_thread_running_)
+	{
+		StartAcknowledgementReception();
+	}
+
 	request_sending_++;
 	boost::thread request([=] { do_send_request_(); });
 	request.detach();

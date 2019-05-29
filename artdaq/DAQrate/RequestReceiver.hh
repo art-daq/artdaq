@@ -25,10 +25,14 @@ namespace artdaq {
 		{
 			/// "request_port" (Default: 3001) : Port on which data requests will be received
 			fhicl::Atom<int> request_port{ fhicl::Name{"request_port"}, fhicl::Comment{"Port to listen for request messages on"}, 3001 };
-			/// "request_address" (Default: "227.128.12.26") : Address which CommandableFragmentGenerator will listen for requests on
+			/// "request_address" (Default: "227.128.12.26") : Address which RequestReceiver will listen for requests on
 			fhicl::Atom<std::string> request_addr{ fhicl::Name{"request_address"}, fhicl::Comment{"Multicast address to listen for request messages on"}, "227.128.12.26" };
 			/// "multicast_interface_ip" (Default: "0.0.0.0") : Use this hostname for multicast(to assign to the proper NIC)
 			fhicl::Atom<std::string> output_address{ fhicl::Name{ "multicast_interface_ip" }, fhicl::Comment{ "Use this hostname for multicast (to assign to the proper NIC)" }, "0.0.0.0" };
+			/// "acknowledgement_port" (Default: 3002) : Port to which acknowledgements will be sent, if requested
+		    fhicl::Atom<int> acknowledgement_port{fhicl::Name{"acknowledgement_port"}, fhicl::Comment{"Port to which acknowledgements will be sent, if requested"}, 3002};
+		    /// "acknowledgement_address" (Default: "localhost") : Address to send acknowledgements to
+		    fhicl::Atom<std::string> acknowledgement_address{fhicl::Name{"acknowledgement_address"}, fhicl::Comment{"Address to send acknowledgements to"}, "localhost"};			
 			/// "end_of_run_quiet_timeout_ms" (Default: 1000) : Time, in milliseconds, that the entire system must be quiet for check_stop to return true in request mode. **DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING!**
 			fhicl::Atom<size_t> end_of_run_timeout_ms{ fhicl::Name{"end_of_run_quiet_timeout_ms"}, fhicl::Comment{"Amount of time (in ms) to wait for no new requests when a Stop transition is pending"}, 1000 };
 			/// "request_increment" (Default: 1) : Expected increment of sequence ID between each request
