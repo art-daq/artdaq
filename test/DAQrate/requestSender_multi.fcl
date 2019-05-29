@@ -5,7 +5,7 @@
 	  send_requests: true
 
       ## Multicast address to send DataRequests to
-	  request_address: "227.128.12.56""
+	  request_address: "227.128.12.56"
 
       ## Port to send DataRequests on
       request_port: 3001  # default

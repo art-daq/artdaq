@@ -14,7 +14,7 @@ request_shutdown_timeout_us: 100000  # default
 multicast_interface_ip: "0.0.0.0"  # default
 
 ## Multicast address to send DataRequests to
-request_address: "227.128.12.42"  # default
+request_address: "227.128.12.45"  # default
 
 ## Whether to setup a RequestReceiver to verify that requests are being sent
 use_receiver: true
@@ -29,7 +29,7 @@ receiver_config: {
     request_port: 3001  # default
 
 	## Multicast address to listen for request messages on
-	request_address: "227.128.12.42"  # default
+	request_address: "227.128.12.45"  # default
 
 	## Use this hostname for multicast (to assign to the proper NIC)
 	multicast_interface_ip: "0.0.0.0"  # default

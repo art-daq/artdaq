@@ -372,13 +372,27 @@ void RequestSender::receive_acknowledgements_()
 			{
 				auto id = *reinterpret_cast<Fragment::sequence_id_t*>(ptr);
 				TLOG(6) << "receive_acknowledgements_: Rank " << ack.rank << " acknowledges sequence_id " << id;
-
+				ptr += sizeof(Fragment::sequence_id_t);
 				active_requests_[id].clearRank(ack.rank);
 			}
 		}
 		usleep(10000);
 	}
 	ack_thread_running_.store(false);
+}
+
+void RequestSender::ClearCompletedRequests()
+{
+	std::lock_guard<std::mutex> lk(request_mutex_);
+	for (auto req = active_requests_.begin(); req != active_requests_.end();)
+	{
+		if (request_acknowledgements_ && req != active_requests_.end() && !req->second.isActive())
+		{
+			TLOG(12) << "Removing request " << req->second << " because all configured senders have acknowledged it";
+			req = active_requests_.erase(req);
+			continue;
+		}
+	}
 }
 
 void RequestSender::SendRoutingToken(int nSlots, int run_number)

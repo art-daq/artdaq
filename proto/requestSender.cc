@@ -20,6 +20,7 @@ int main(int argc, char* argv[])
 		fhicl::TableFragment<artdaq::RequestSender::Config> senderConfig;
 		fhicl::Atom<bool> use_receiver{fhicl::Name{"use_receiver"}, fhicl::Comment{"Whether to setup a RequestReceiver to verify that requests are being sent"}, false};
 		fhicl::Atom<size_t> receiver_timeout_ms{fhicl::Name{"recevier_timeout_ms"}, fhicl::Comment{"Amount of time to wait for the receiver to receive a request message"}, 1000};
+		fhicl::Atom<size_t> request_sending_delay{fhicl::Name{"request_sending_delay"}, fhicl::Comment{"Amount of time to wait between each request message"}, 10000};
 		fhicl::Table<artdaq::RequestReceiver::Config> receiver_config{fhicl::Name{"receiver_config"}, fhicl::Comment{"Configuration for RequestReceiver, if used"}};
 		fhicl::Atom<int> num_requests{fhicl::Name{"num_requests"}, fhicl::Comment{"Number of requests to send"}};
 		fhicl::Atom<artdaq::Fragment::sequence_id_t> starting_sequence_id{fhicl::Name{"starting_sequence_id"}, fhicl::Comment{"Sequence ID of first request"}, 1};
@@ -59,6 +60,7 @@ int main(int argc, char* argv[])
 	auto ts = pset.get<artdaq::Fragment::timestamp_t>("starting_timestamp", 1);
 	auto ts_scale = pset.get<artdaq::Fragment::timestamp_t>("timestamp_scale", 1);
 	auto tmo = pset.get<size_t>("recevier_timeout_ms", 1000);
+	auto delay = pset.get<size_t>("request_sending_delay", 10000);
 
 	for (auto ii = 0; ii < num_requests; ++ii)
 	{
@@ -91,6 +93,7 @@ int main(int argc, char* argv[])
 
 		seq += seq_scale;
 		ts += ts_scale;
+		usleep(delay);
 	}
 
 	artdaq::Globals::CleanUpGlobals();

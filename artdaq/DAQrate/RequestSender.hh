@@ -169,6 +169,11 @@ public:
 	std::map<Fragment::sequence_id_t, detail::RequestPacket> GetActiveRequests() const { return active_requests_; }
 
 	/**
+	 * \brief Clear completed requests from the active requests list
+	 */
+	void ClearCompletedRequests();
+
+	/**
 	 * \brief Get the number of acks received
 	 * \return The number of acks received by this RequestSender
 	 */

@@ -6,6 +6,7 @@ for ii in `seq $nprocs`;do
   requestReceiver -c requestReceiver_r$ii.fcl & PIDS[$ii]=$!
 done
 
+sleep 2
 requestSender -c requestSender_multi.fcl
 
 rc=$?

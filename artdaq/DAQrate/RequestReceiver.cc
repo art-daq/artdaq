@@ -267,7 +267,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 
 		for (auto& buffer : message.getRequests())
 		{
-			TLOG(20) << "Request Packet: hdr=" << /*std::dec <<*/ buffer.header << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
+			TLOG(20) << "Request Packet: hdr=0x" << std::hex << buffer.header << std::dec << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
 			if (!buffer.isValid()) continue;
 			std::unique_lock<std::mutex> tlk(request_mutex_);
 			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id].first.timestamp != buffer.timestamp)
