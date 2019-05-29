@@ -371,7 +371,7 @@ void RequestSender::receive_acknowledgements_()
 			for (size_t ii = 0; ii < ack.packet_count; ++ii)
 			{
 				auto id = *reinterpret_cast<Fragment::sequence_id_t*>(ptr);
-				TLOG(20) << "receive_acknowledgements_: Rank " << ack.rank << " acknowledges sequence_id " << id;
+				TLOG(6) << "receive_acknowledgements_: Rank " << ack.rank << " acknowledges sequence_id " << id;
 
 				active_requests_[id].clearRank(ack.rank);
 			}

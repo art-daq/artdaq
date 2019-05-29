@@ -26,3 +26,9 @@ cet_test(requestsender HANDBUILT
   TEST_ARGS -c requestsender.fcl
   DATAFILES requestsender.fcl
   )
+  
+cet_test(requestsender_acks HANDBUILT
+  TEST_EXEC requestSender
+  TEST_ARGS -c requestsender_acks.fcl
+  DATAFILES requestsender_acks.fcl
+  )

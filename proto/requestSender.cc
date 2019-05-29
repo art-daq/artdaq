@@ -12,6 +12,8 @@ namespace bpo = boost::program_options;
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("RequestSenderApp");
+	metricMan->initialize(fhicl::ParameterSet());
+	metricMan->do_start();
 
 	struct Config
 	{
