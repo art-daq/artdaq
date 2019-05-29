@@ -17,7 +17,7 @@ multicast_interface_ip: "0.0.0.0"  # default
 request_address: "227.128.12.42"  # default
 
 ## Whether to setup a RequestReceiver to verify that requests are being sent
-use_receiver: true  # default
+use_receiver: true
 
 ## Amount of time to wait for the receiver to receive a request message
 recevier_timeout_ms: 1000  # default
@@ -39,6 +39,8 @@ receiver_config: {
 
 	## Expected increment of sequence ID between each request
 	request_increment: 1  # default
+acknowldegement_port: 3002
+acknowledgement_address: "localhost"
 }
 
 ## Number of requests to send
@@ -55,3 +57,8 @@ starting_timestamp: 1  # default
 
 ## Amount to increment timestamp for each request
 timestamp_scale: 1  # default
+
+request_sender_app_rank: 1
+sender_ranks: [ 1 ] 
+acknowldegement_port: 3002
+request_acknowledgements: true

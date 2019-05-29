@@ -1,17 +1,17 @@
-#define TRACE_NAME "RequestSender"
+#define TRACE_NAME "RequestSenderApp"
+#include "artdaq/DAQdata/Globals.hh"
 
 #include <boost/program_options.hpp>
 #include "fhiclcpp/make_ParameterSet.h"
 namespace bpo = boost::program_options;
 
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
 
 int main(int argc, char* argv[])
 {
-	artdaq::configureMessageFacility("RequestSender");
+	artdaq::configureMessageFacility("RequestSenderApp");
 
 	struct Config
 	{
@@ -27,6 +27,8 @@ int main(int argc, char* argv[])
 	};
 
 	auto pset = LoadParameterSet<Config>(argc, argv, "sender", "This test application sends Data Request messages and optionally receives them to detect issues in the network transport");
+
+	my_rank = pset.get<int>("request_sender_app_rank", 1);
 
 	int rc = 0;
 
@@ -60,9 +62,12 @@ int main(int argc, char* argv[])
 				auto reqs = receiver->GetRequests();
 				if (reqs.count(seq))
 				{
-					TLOG(TLVL_INFO) << "Received Request for Sequence ID " << seq << ", timestamp " << reqs[seq];
+					TLOG(TLVL_INFO) << "Received Request for Sequence ID " << seq << ": " << reqs[seq];
 					receiver->RemoveRequest(seq);
-					sender.RemoveRequest(seq);
+					if (!pset.get<bool>("request_acknowledgements", false))
+					{
+						sender.RemoveRequest(seq);
+					}
 					recvd = true;
 				}
 				else
@@ -76,5 +81,6 @@ int main(int argc, char* argv[])
 		ts += ts_scale;
 	}
 
+	artdaq::Globals::CleanUpGlobals();
 	return rc;
 }
