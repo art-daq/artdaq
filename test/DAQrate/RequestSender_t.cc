@@ -10,8 +10,14 @@
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
+/**
+ * \brief A BOOST_GLOBAL_FIXTURE class which handles calling artdaq::Globals::CleanUpGlobals() at the end of the test suite
+ */
 struct ArtdaqGlobals
 {
+	/**
+	 * \brief Global fixture destructor, called at the end of testing. Calls artdaq::Globals::CleanUpGlobals()
+	 */
 	~ArtdaqGlobals()
 	{
 		artdaq::Globals::CleanUpGlobals();

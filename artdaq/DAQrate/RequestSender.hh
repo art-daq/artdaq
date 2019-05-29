@@ -149,11 +149,35 @@ public:
 		 */
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
+	/**
+	 * \brief Start the Acknowledgement reception thread.
+	 *
+	 * If acknowledgements are being requested and the thread is not running when a request is sent, this method will be called automatically
+	 */
 	void StartAcknowledgementReception();
+	/**
+	 * \brief Stop the Acknowledgement reception thread.
+	 *
+	 * Automatically called in the RequestSender destructor
+	 */
 	void StopAcknowledgementReception();
 
+	/**
+	 * \brief Get the current active requests that RequestSender will send
+	 * \return A map of requests, indexed by sequence ID
+	 */
 	std::map<Fragment::sequence_id_t, detail::RequestPacket> GetActiveRequests() const { return active_requests_; }
+
+	/**
+	 * \brief Get the number of acks received
+	 * \return The number of acks received by this RequestSender
+	 */
 	size_t GetAckCount() const { return ack_messages_received_.load(); }
+	
+	/**
+	 * \brief Get the number of requests sent
+	 * \return The number of request messages sent by this RequestSender
+	 */
 	size_t GetRequestCount() const { return requests_sent_.load(); }
 
 private:
