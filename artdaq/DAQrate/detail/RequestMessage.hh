@@ -28,7 +28,7 @@ enum class RequestMessageMode : uint8_t
 		 * \param m RequestMessageMode to convert to string
 		 * \return o with string sent to it
 		 */
-inline std::ostream& operator<<(std::ostream& o, RequestMessageMode m)
+inline std::ostream& operator<<(std::ostream& o, const RequestMessageMode& m)
 {
 	switch (m)
 	{
@@ -40,6 +40,25 @@ inline std::ostream& operator<<(std::ostream& o, RequestMessageMode m)
 			break;
 	}
 	return o;
+}
+/**
+		 * \brief Converts the RequestMessageMode to a string and sends it to the output stream
+		 * \param t Stream to send string to
+		 * \param m RequestMessageMode to convert to string
+		 * \return t with string sent to it
+		 */
+inline TraceStreamer& operator<<(TraceStreamer& t, const RequestMessageMode& m)
+{
+	switch (m)
+	{
+		case RequestMessageMode::Normal:
+			t << "Normal";
+			break;
+		case RequestMessageMode::EndOfRun:
+			t << "EndOfRun";
+			break;
+	}
+	return t;
 }
 
 /// <summary>
@@ -288,14 +307,24 @@ public:
 	}
 };
 /**
- * \brief Serialize a RequestPacket to a text stream (i.e. cout or TLOG)
+ * \brief Serialize a RequestPacket to a text stream (i.e. cout)
  * \param o Input ostream
  * \param r RequestPacket to serialize
  * \return Output ostream for continued stream operations
  */
-inline std::ostream& operator<<(std::ostream& o, const artdaq::detail::RequestPacket r)
+inline std::ostream& operator<<(std::ostream& o, const artdaq::detail::RequestPacket& r)
 {
 	return o << "Sequence ID " << r.sequence_id << ", Timestamp " << r.timestamp << ", Rank " << r.rank;
+}
+/**
+ * \brief Serialize a RequestPacket to a TRACE statement
+ * \param t Input TRACE streamer
+ * \param r RequestPacket to serialize
+ * \return Output TraceStreamer for continued stream operations
+ */
+inline TraceStreamer& operator<<(TraceStreamer& t, const artdaq::detail::RequestPacket& r)
+{
+	return t << "Sequence ID " << r.sequence_id << ", Timestamp " << r.timestamp << ", Rank " << r.rank;
 }
 
 /**
