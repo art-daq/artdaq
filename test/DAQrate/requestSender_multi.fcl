@@ -1,0 +1,57 @@
+   ## Any parameters prefaced with '#' are optional.
+   sender: {
+
+      ## Enable sending Data Request messages
+	  send_requests: true
+
+      ## Multicast address to send DataRequests to
+	  request_address: "227.128.12.56""
+
+      ## Port to send DataRequests on
+      request_port: 3001  # default
+
+      ## Port to listen for acknowledgements, if requested
+      acknowledgement_port: 3002  # default
+
+      ## How long to wait before sending new DataRequests
+      request_delay_ms: 10  # default
+
+      ## How long to wait for pending requests to be sent at shutdown
+      request_shutdown_timeout_us: 100000  # default
+
+      ## Use this hostname for multicast output(to assign to the proper NIC)
+      multicast_interface_ip: "0.0.0.0"  # default
+
+      ## Amount of time, in seconds, to keep sending a request. Values <= 0 indicate no timeout.
+      request_timeout_s: -1.00000  # default
+
+      ## Whether to request acknowledgements for requests sent
+      request_acknowledgements: true
+
+      ## List of ranks to expect acknowledgements from
+      sender_ranks: [1,2,3,4]
+
+      ## Whether to setup a RequestReceiver to verify that requests are being sent
+      use_receiver: false  # default
+
+      ## Amount of time to wait for the receiver to receive a request message
+      recevier_timeout_ms: 1000  # default
+	  
+      ## Number of requests to send
+      num_requests: 1000
+
+      ## Sequence ID of first request
+      starting_sequence_id: 1  # default
+
+      ## Amount to increment Sequence ID for each request
+      sequence_id_scale: 1  # default
+
+      ## Timestamp of first request
+      starting_timestamp: 1  # default
+
+      ## Amount to increment timestamp for each request
+      timestamp_scale: 1  # default
+
+      ## Rank of the requestSender app
+      request_sender_app_rank: 0
+   }

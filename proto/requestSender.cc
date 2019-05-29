@@ -26,11 +26,21 @@ int main(int argc, char* argv[])
 		fhicl::Atom<artdaq::Fragment::sequence_id_t> sequence_id_scale{fhicl::Name{"sequence_id_scale"}, fhicl::Comment{"Amount to increment Sequence ID for each request"}, 1};
 		fhicl::Atom<artdaq::Fragment::timestamp_t> starting_timestamp{fhicl::Name{"starting_timestamp"}, fhicl::Comment{"Timestamp of first request"}, 1};
 		fhicl::Atom<artdaq::Fragment::timestamp_t> timestamp_scale{fhicl::Name{"timestamp_scale"}, fhicl::Comment{"Amount to increment timestamp for each request"}, 1};
+		fhicl::Atom<int> request_sender_app_rank{fhicl::Name{"request_sender_app_rank"}, fhicl::Comment{"Rank of the requestSender app"}, -1};
 	};
 
-	auto pset = LoadParameterSet<Config>(argc, argv, "sender", "This test application sends Data Request messages and optionally receives them to detect issues in the network transport");
+	auto tempPset = LoadParameterSet<Config>(argc, argv, "sender", "This test application sends Data Request messages and optionally receives them to detect issues in the network transport");
+	fhicl::ParameterSet pset;
+	if (tempPset.has_key("sender"))
+	{
+		pset = tempPset.get<fhicl::ParameterSet>("sender");
+	}
+	else
+	{
+		pset = tempPset;
+	}
 
-	my_rank = pset.get<int>("request_sender_app_rank", 1);
+	my_rank = pset.get<int>("request_sender_app_rank", -1);
 
 	int rc = 0;
 
