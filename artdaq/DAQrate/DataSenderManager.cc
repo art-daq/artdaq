@@ -433,11 +433,12 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	size_t fragSize = frag.sizeBytes();
 	TLOG(13) << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
 		<< ", seqID=" << seqID << ", type=" << frag.typeString();
-	auto outsts = TransferInterface::CopyStatus::kSuccess;
+	auto outsts = TransferInterface::CopyStatus::kDestinationFailure;
 	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType)
 	{
 		for (auto& bdest : enabled_destinations_)
 		{
+			outsts = TransferInterface::CopyStatus::kSuccess;
 			TLOG(TLVL_TRACE) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
 			// Gross, we have to copy.
 			auto sts = TransferInterface::CopyStatus::kTimeout;
@@ -486,7 +487,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				}
 				++retries;
 			}
-			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
+			outsts = sts;
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}

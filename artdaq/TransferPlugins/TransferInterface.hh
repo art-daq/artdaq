@@ -64,7 +64,8 @@ namespace artdaq
 		{
 			kSuccess, ///< The send operation completed successfully
 			kTimeout, ///< The send operation timed out
-			kErrorNotRequiringException ///< Some error occurred, but no exception was thrown
+			kErrorNotRequiringException, ///< Some error occurred, but no exception was thrown
+			kDestinationFailure, ///< There was a problem determiniing the destination for the Fragment
 		};
 
 		/// <summary>
@@ -79,6 +80,7 @@ namespace artdaq
 			case CopyStatus::kSuccess: return "Success";
 			case CopyStatus::kTimeout: return "Timeout";
 			case CopyStatus::kErrorNotRequiringException: return "Error";
+			case CopyStatus::kDestinationFailure: return "DestinationFailure";
 			default: return "UNKNOWN";
 			}
 			return "SWITCHERROR";
