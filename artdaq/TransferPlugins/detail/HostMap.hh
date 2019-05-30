@@ -5,7 +5,6 @@
 #include <vector>
 #include <map>
 #include "fhiclcpp/ParameterSet.h"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "fhiclcpp/types/Sequence.h"
 #include "fhiclcpp/types/Table.h"
 #include "fhiclcpp/types/Atom.h"
@@ -69,7 +68,7 @@ namespace artdaq {
 			auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 			for (auto& ps : hosts)
 			{
-				auto rank = ps.get<int>("rank", TransferInterface::NO_RANK_INFO);
+				auto rank = ps.get<int>("rank", -1);
 				auto hostname = ps.get<std::string>("host", "localhost");
 
 				if (map.count(rank) && (map[rank] != hostname ))
