@@ -43,6 +43,11 @@ int main(int argc, char* argv[])
 
 	my_rank = pset.get<int>("request_sender_app_rank", -1);
 
+	if (!pset.has_key("request_timeout_s"))
+	{
+		pset.put<int>("request_timeout_s", 3);
+	}
+
 	int rc = 0;
 
 	artdaq::RequestSender sender(pset);
@@ -96,6 +101,26 @@ int main(int argc, char* argv[])
 		usleep(delay);
 	}
 
+	TLOG(TLVL_INFO) << "Waiting for all requests to be acknowledged. Sent " << sender.GetRequestCount() << " requests and received " << sender.GetAckCount() << " acks.";
+
+	auto start_wait = std::chrono::steady_clock::now();
+	while (sender.GetActiveRequests().size())
+	{
+		if (artdaq::TimeUtils::GetElapsedTime(start_wait) > 5.0)
+		{
+			TLOG(TLVL_WARNING) << "Outstanding requests were not acknowledged after 5s. Shutting down.";
+			auto reqs = sender.GetActiveRequests();
+			for (auto& req : reqs)
+			{
+				TLOG(21) << "Request " << req.first << ": " << req.second << ".";
+			}
+			break;
+		}
+		sender.ClearCompletedRequests();
+		usleep(100000);
+	}
+
+	TLOG(TLVL_INFO) << "requestSender shutting down. Sent " << sender.GetRequestCount() << " requests and received " << sender.GetAckCount() << " acks.";
 	artdaq::Globals::CleanUpGlobals();
 	return rc;
 }
