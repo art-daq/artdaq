@@ -34,6 +34,6 @@ cet_test(requestsender_acks HANDBUILT
   )
 
 cet_test(requestsender_multi HANDBUILT
-    TEXT_EXEC runRequestSenderMultiTest.sh
+    TEST_EXEC runRequestSenderMultiTest.sh
     DATAFILES requestSender_multi.fcl requestReceiver_r1.fcl requestReceiver_r2.fcl requestReceiver_r3.fcl requestReceiver_r4.fcl
     )
