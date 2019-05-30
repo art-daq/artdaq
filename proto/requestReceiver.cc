@@ -36,18 +36,19 @@ int main(int argc, char* argv[])
 	}
 	my_rank = tempPset.get<int>("request_receiver_app_rank", -1);
 	auto count = tempPset.get<int>("request_count", -1);
+	auto counter = 0;
 
 	artdaq::RequestReceiver recvr(tempPset);
 	recvr.startRequestReception();
 
-	while (count != 0)
+	while (count <= 0 || counter < count)
 	{
 		if (my_rank == -1)
 		{
 			for (auto req : recvr.GetAndClearRequests())
 			{
 				TLOG(TLVL_INFO) << "Received Request for Sequence ID " << req.first << ": " << req.second;
-				count--;
+				counter++;
 			}
 		}
 		else
@@ -56,12 +57,13 @@ int main(int argc, char* argv[])
 			{
 				TLOG(TLVL_INFO) << "Received Request for Sequence ID " << req.first << ": " << req.second;
 				recvr.RemoveRequest(req.first);
-				count--;
+				counter++;
 			}
 		}
 		usleep(10000);
 	}
 
+	TLOG(TLVL_INFO) << "Shutting down requestReceiver rank=" << my_rank << ", received " << counter << "/" << count << " requests.";
 	artdaq::Globals::CleanUpGlobals();
 	return rc;
 }
