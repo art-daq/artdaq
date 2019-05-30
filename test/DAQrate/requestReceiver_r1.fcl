@@ -24,4 +24,6 @@ request_receiver: {
 
       ## Rank of this requestReceiver app
       request_receiver_app_rank: 1
+
+	  request_count: 1000
    }
