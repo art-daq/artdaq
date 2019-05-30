@@ -102,9 +102,10 @@ public:
 	/**
 	 * \brief Send the given Fragment. Return the rank of the destination to which the Fragment was sent.
 	 * \param frag Fragment to sent
+	 * \param dest_rank Rank Fragment should be sent to. artdaq::TransferInterface::NO_RANK_INFO (-1, default) indicates that DataSenderManager should determine destination
 	 * \return Pair containing Rank of destination for Fragment and the CopyStatus from the send call
 	 */
-	std::pair<int, TransferInterface::CopyStatus> sendFragment(Fragment&& frag);
+	std::pair<int, TransferInterface::CopyStatus> sendFragment(Fragment&& frag, int dest = artdaq::TransferInterface::NO_RANK_INFO);
 
 	/**
 	* \brief Return the count of Fragment objects sent by this DataSenderManagerq

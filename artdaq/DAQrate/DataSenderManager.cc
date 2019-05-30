@@ -366,7 +366,7 @@ size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
 {
-	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT; // No destinations configured.
+	if (enabled_destinations_.size() == 0) return TransferInterface::NO_RANK_INFO; // No destinations configured.
 	if (!use_routing_master_ && enabled_destinations_.size() == 1) return *enabled_destinations_.begin(); // Trivial case
 
 	if (use_routing_master_)
@@ -415,10 +415,10 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 		}
 		return *it;
 	}
-	return TransferInterface::RECV_TIMEOUT;
+	return TransferInterface::NO_RANK_INFO;
 }
 
-std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager::sendFragment(Fragment&& frag)
+std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager::sendFragment(Fragment&& frag, int dest)
 {
 	// Precondition: Fragment must be complete and consistent (including
 	// header information).
@@ -433,7 +433,6 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	size_t fragSize = frag.sizeBytes();
 	TLOG(13) << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
 		<< ", seqID=" << seqID << ", type=" << frag.typeString();
-	int dest = TransferInterface::RECV_TIMEOUT;
 	auto outsts = TransferInterface::CopyStatus::kSuccess;
 	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType)
 	{
@@ -462,16 +461,16 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	else if (non_blocking_mode_)
 	{
 		auto count = routing_retry_count_;
-		while (dest == TransferInterface::RECV_TIMEOUT && count > 0)
+		while (dest == TransferInterface::NO_RANK_INFO && count > 0)
 		{
 			dest = calcDest_(seqID);
-			if (dest == TransferInterface::RECV_TIMEOUT)
+			if (dest == TransferInterface::NO_RANK_INFO)
 			{
 				count--;
 				TLOG(TLVL_WARNING) << "Could not get destination for seqID " << seqID << (count > 0 ? ", retrying." : ".");
 			}
 		}
-		if (dest != TransferInterface::RECV_TIMEOUT && destinations_.count(dest) && enabled_destinations_.count(dest))
+		if (dest != TransferInterface::NO_RANK_INFO && destinations_.count(dest) && enabled_destinations_.count(dest))
 		{
 			TLOG(TLVL_TRACE) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
@@ -498,16 +497,16 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	else
 	{
 		auto start = std::chrono::steady_clock::now();
-		while (!should_stop_ && dest == TransferInterface::RECV_TIMEOUT)
+		while (!should_stop_ && dest == TransferInterface::NO_RANK_INFO)
 		{
 			dest = calcDest_(seqID);
-			if (dest == TransferInterface::RECV_TIMEOUT)
+			if (dest == TransferInterface::NO_RANK_INFO)
 			{
 				TLOG(TLVL_WARNING) << "Could not get destination for seqID " << seqID << ", send number " << sent_frag_count_.count() << ", retrying. Waited " << TimeUtils::GetElapsedTime(start) << " s for routing information.";
 				usleep(10000);
 			}
 		}
-		if (dest != TransferInterface::RECV_TIMEOUT && destinations_.count(dest) && enabled_destinations_.count(dest))
+		if (dest != TransferInterface::NO_RANK_INFO && destinations_.count(dest) && enabled_destinations_.count(dest))
 		{
 			TLOG(5) << "DataSenderManager::sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;

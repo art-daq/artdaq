@@ -69,7 +69,7 @@ namespace artdaq {
 			auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 			for (auto& ps : hosts)
 			{
-				auto rank = ps.get<int>("rank", TransferInterface::RECV_TIMEOUT);
+				auto rank = ps.get<int>("rank", TransferInterface::NO_RANK_INFO);
 				auto hostname = ps.get<std::string>("host", "localhost");
 
 				if (map.count(rank) && (map[rank] != hostname ))
