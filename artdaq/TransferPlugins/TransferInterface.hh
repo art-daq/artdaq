@@ -44,7 +44,7 @@ namespace artdaq
 		{
 			DATA_END = -2222,///< Value that is to be returned when a Transfer plugin determines that no more data will be arriving.
 			RECV_TIMEOUT = -1111, ///< Value to be returned upon receive timeout.
-			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= NO_RANK_INFO
+			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= RECV_SUCCESS for successful receive or retval < RECV_SUCCESS for errors
 		};
 
 		/**
