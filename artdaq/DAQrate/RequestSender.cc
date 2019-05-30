@@ -215,11 +215,12 @@ void RequestSender::do_send_request_()
 	message.setAcknowledge(request_acknowledgements_);
 	{
 		std::lock_guard<std::mutex> lk(request_mutex_);
-		for (auto req = active_requests_.begin(); req != active_requests_.end();)
+		auto req = active_requests_.begin();
+		while (req != active_requests_.end())
 		{
 			if (request_acknowledgements_ && req != active_requests_.end() && !req->second.isActive())
 			{
-				TLOG(12) << "Removing request " << req->second << " because all configured senders have acknowledged it";
+				TLOG(12) << "Removing request " << req->first << " (" << req->second << ") because all configured senders have acknowledged it";
 				req = active_requests_.erase(req);
 				continue;
 			}
@@ -330,7 +331,7 @@ void RequestSender::receive_acknowledgements_()
 		}
 
 		TLOG(20) << "receive_acknowledgements_: Calling recvfrom on ack socket";
-		auto sts = recvfrom(ack_socket_, &buffer[0], sizeof(buffer), MSG_DONTWAIT, NULL, NULL);
+		auto sts = recvfrom(ack_socket_, &buffer[0], MAX_REQUEST_MESSAGE_SIZE, MSG_DONTWAIT, NULL, NULL);
 		TLOG(20) << "receive_acknowledgements_: recvfrom on ack socket done, sts=" << sts;
 
 		if (sts < 0)
@@ -345,6 +346,7 @@ void RequestSender::receive_acknowledgements_()
 				close(ack_socket_);
 				ack_socket_ = -1;
 			}
+			usleep(10000);
 		}
 		else
 		{
@@ -357,7 +359,7 @@ void RequestSender::receive_acknowledgements_()
 				continue;
 			}
 
-			TLOG(TLVL_DEBUG) << "Ack packet from rank " << ack.rank << " has run number " << ack.run_number << " and contains " << ack.packet_count << " entries";
+			TLOG(TLVL_DEBUG) << "receive_acknowledgements_: Ack packet from rank " << ack.rank << " has run number " << ack.run_number << " and contains " << ack.packet_count << " entries";
 			ack_messages_received_++;
 
 			if (ack.run_number != run_number_)
@@ -367,16 +369,23 @@ void RequestSender::receive_acknowledgements_()
 			}
 
 			std::lock_guard<std::mutex> lk(request_mutex_);
-			uint8_t* ptr = &buffer[sizeof(ack)];
+			size_t offset = sizeof(ack);
 			for (size_t ii = 0; ii < ack.packet_count; ++ii)
 			{
-				auto id = *reinterpret_cast<Fragment::sequence_id_t*>(ptr);
-				TLOG(6) << "receive_acknowledgements_: Rank " << ack.rank << " acknowledges sequence_id " << id;
-				ptr += sizeof(Fragment::sequence_id_t);
-				active_requests_[id].clearRank(ack.rank);
+				if (offset >= static_cast<size_t>(sts))
+				{
+					TLOG(TLVL_WARNING) << "receive_acknowledgements_: UDP datagram corruption detected! offset/sts: " << offset << "/" << sts << ", at packet " << ii << " of " << ack.packet_count;
+					break;
+				}
+				auto seq = *reinterpret_cast<Fragment::sequence_id_t*>(&buffer[offset]);
+				TLOG(6) << "receive_acknowledgements_: Rank " << ack.rank << " acknowledges sequence_id " << seq;
+				if (active_requests_.count(seq))
+				{
+					active_requests_[seq].clearRank(ack.rank);
+				}
+				offset += sizeof(Fragment::sequence_id_t);
 			}
 		}
-		usleep(10000);
 	}
 	ack_thread_running_.store(false);
 }
@@ -384,14 +393,23 @@ void RequestSender::receive_acknowledgements_()
 void RequestSender::ClearCompletedRequests()
 {
 	std::lock_guard<std::mutex> lk(request_mutex_);
-	for (auto req = active_requests_.begin(); req != active_requests_.end();)
+	auto req = active_requests_.begin();
+	while (req != active_requests_.end())
 	{
 		if (request_acknowledgements_ && req != active_requests_.end() && !req->second.isActive())
 		{
-			TLOG(12) << "Removing request " << req->second << " because all configured senders have acknowledged it";
+			TLOG(12) << "Removing request " << req->first << " (" << req->second << ") because all configured senders have acknowledged it";
 			req = active_requests_.erase(req);
 			continue;
 		}
+		double elapsed = TimeUtils::GetElapsedTime(req->second.request_time);
+		if (elapsed > request_timeout_s_ && request_timeout_s_ > 0)
+		{
+			TLOG(12) << "Removing request " << req->second << " because it has timed out ( " << elapsed << " s/ " << request_timeout_s_ << " s)";
+			req = active_requests_.erase(req);
+			continue;
+		}
+		++req;
 	}
 }
 

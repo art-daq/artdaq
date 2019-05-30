@@ -285,6 +285,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 				if (delta <= 0 || out_of_order_requests_.count(buffer.sequence_id))
 				{
 					TLOG(11) << "Already serviced this request ( sequence ID " << buffer.sequence_id << ")! Ignoring...";
+					if (message.getAcknowledge() && buffer.hasRank(my_rank)) anyNew = true;
 				}
 				else
 				{
@@ -327,11 +328,11 @@ void artdaq::RequestReceiver::sendAcknowledgement(detail::RequestMessage message
 	assert(buffer.size() < MAX_REQUEST_MESSAGE_SIZE);
 	memcpy(&buffer[0], &ack, sizeof(ack));
 
-	uint8_t* ptr = &buffer[sizeof(ack)];
+	size_t offset = sizeof(ack);
 	for (auto& req : reqs)
 	{
-		memcpy(ptr, &req.sequence_id, sizeof(Fragment::sequence_id_t));
-		ptr += sizeof(Fragment::sequence_id_t);
+		memcpy(&(buffer[offset]), &req.sequence_id, sizeof(Fragment::sequence_id_t));
+		offset += sizeof(Fragment::sequence_id_t);
 	}
 
 	TLOG(TLVL_DEBUG) << __func__ << ": Sending RequestAcknowledgement with " << ack.packet_count << " entries to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
