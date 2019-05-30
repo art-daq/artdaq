@@ -3,6 +3,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 
+#include <set>
 #include "artdaq-core/Data/Fragment.hh"
 #define MAX_REQUEST_MESSAGE_SIZE 65000
 
@@ -51,10 +52,10 @@ inline TraceStreamer& operator<<(TraceStreamer& t, const RequestMessageMode& m)
 {
 	switch (m)
 	{
-		case RequestMessageMode::Normal:
+		case artdaq::detail::RequestMessageMode::Normal:
 			t << "Normal";
 			break;
-		case RequestMessageMode::EndOfRun:
+		case artdaq::detail::RequestMessageMode::EndOfRun:
 			t << "EndOfRun";
 			break;
 	}
@@ -108,7 +109,7 @@ public:
 	/// Set the given bit, resizing the underlying storage if necessary
 	/// </summary>
 	/// <param name="index">Index of the bit to set</param>
-	void set(int index)
+	void set(size_t index)
 	{
 		size_t byte = index / 8;
 		size_t bit = index % 8;
@@ -125,7 +126,7 @@ public:
 	/// Clear the given bit
 	/// </summary>
 	/// <param name="index">Index of the bit to clear</param>
-	void clear(int index)
+	void clear(size_t index)
 	{
 		size_t byte = index / 8;
 		size_t bit = index % 8;
@@ -166,17 +167,76 @@ public:
 		return false;
 	}
 
+	std::vector<size_t> getSetBits() const
+	{
+		std::vector<size_t> output;
+		for (size_t byte = 0; byte < data_.size(); ++byte)
+		{
+			for (size_t bit = 0; bit < 8; ++bit)
+			{
+				if ((data_[byte] & (1 << bit)) != 0)
+				{
+					output.push_back((8 * byte) + bit);
+				}
+			}
+		}
+		return output;
+	}
+
 private:
 	std::vector<uint8_t> data_;
 };
+/**
+ * \brief Serialize a VectorBitset to a text stream (i.e. cout)
+ * \param o Input ostream
+ * \param r VectorBitset to serialize
+ * \return Output ostream for continued stream operations
+ */
+inline std::ostream& operator<<(std::ostream& o, const VectorBitset& r)
+{
+	o << "[ ";
 
-}  // namespace detail
-}  // namespace artdaq
+	auto data = r.getSetBits();
+	if (data.size())
+	{
+		o << data[0];
+		for (size_t ii = 1; ii < data.size(); ++ii)
+		{
+			o << ", " << data[ii];
+		}
+	}
+
+	o << " ]";
+	return o;
+}
+/**
+ * \brief Serialize a VectorBitset to a TRACE statement
+ * \param o Input TRACE streamer
+ * \param r VectorBitset to serialize
+ * \return Output TraceStreamer for continued stream operations
+ */
+inline TraceStreamer& operator<<(TraceStreamer& o, const VectorBitset& r)
+{
+	o << "[ ";
+
+	auto data = r.getSetBits();
+	if (data.size())
+	{
+		o << data[0];
+		for (size_t ii = 1; ii < data.size(); ++ii)
+		{
+			o << ", " << data[ii];
+		}
+	}
+
+	o << " ]";
+	return o;
+}
 
 /**
  * \brief The RequestPacket contains information about a single data request
  */
-struct artdaq::detail::RequestPacket
+struct RequestPacket
 {
 public:
 	/** The magic bytes for the request packet */
@@ -312,9 +372,9 @@ public:
  * \param r RequestPacket to serialize
  * \return Output ostream for continued stream operations
  */
-inline std::ostream& operator<<(std::ostream& o, const artdaq::detail::RequestPacket& r)
+inline std::ostream& operator<<(std::ostream& o, const RequestPacket& r)
 {
-	return o << "Sequence ID " << r.sequence_id << ", Timestamp " << r.timestamp << ", Rank " << r.rank;
+	return o << "Sequence ID " << r.sequence_id << ", Timestamp " << r.timestamp << ", Rank " << r.rank << ", ActiveRanks: " << r.activeRanks;
 }
 /**
  * \brief Serialize a RequestPacket to a TRACE statement
@@ -322,15 +382,15 @@ inline std::ostream& operator<<(std::ostream& o, const artdaq::detail::RequestPa
  * \param r RequestPacket to serialize
  * \return Output TraceStreamer for continued stream operations
  */
-inline TraceStreamer& operator<<(TraceStreamer& t, const artdaq::detail::RequestPacket& r)
+inline TraceStreamer& operator<<(TraceStreamer& t, const RequestPacket& r)
 {
-	return t << "Sequence ID " << r.sequence_id << ", Timestamp " << r.timestamp << ", Rank " << r.rank;
+	return t << "Sequence ID " << r.sequence_id << ", Timestamp " << r.timestamp << ", Rank " << r.rank << ", ActiveRanks: " << r.activeRanks;
 }
 
 /**
  * \brief Header of a RequestMessage. Contains magic bytes for validation and a count of expected RequestPackets
  */
-struct artdaq::detail::RequestHeader
+struct RequestHeader
 {
 	/** The magic bytes for the request header */
 	uint32_t header;               ///< HEDR, or 0x48454452
@@ -361,7 +421,7 @@ struct artdaq::detail::RequestHeader
 /**
  * \brief The RequestAcknowledgement class defines the contents of the message that receivers will send in response to a RequestMessage containing new requests
  */
-struct artdaq::detail::RequestAcknowledgement
+struct RequestAcknowledgement
 {
 	uint32_t header;        ///< ACCK, or 0x4042424B
 	uint32_t packet_count;  ///< Number of request packets being acknowledged (their sequence IDs follow this header)
@@ -387,7 +447,7 @@ struct artdaq::detail::RequestAcknowledgement
 /**
  * \brief A RequestMessage consists of a RequestHeader and zero or more RequestPackets.
  */
-class artdaq::detail::RequestMessage
+class RequestMessage
 {
 public:
 	/**
@@ -559,5 +619,7 @@ private:
 	RequestHeader header_;
 	std::vector<RequestPacket> packets_;
 };
+}  // namespace detail
+}  // namespace artdaq
 
 #endif  // artdaq_DAQrate_detail_RequestMessage
