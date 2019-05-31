@@ -466,13 +466,16 @@ std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& w
 	childReport = report();
 	if (childReport.length() > 0) { return childReport; }
 
+	// ELF: 5/31/2019: Let BoardReaderCore's report handle this...
+	/*
 	// if we haven't been able to come up with any report so far, say so
 	std::string tmpString = "The \"" + which + "\" command is not ";
 	tmpString.append("currently supported by the ");
 	tmpString.append(metricsReportingInstanceName());
 	tmpString.append(" fragment generator.");
+	*/
 	TLOG(TLVL_TRACE) << "Report Command complete.";
-	return tmpString;
+	return ""; //tmpString;
 }
 
 // Default implemenetations of state functions
