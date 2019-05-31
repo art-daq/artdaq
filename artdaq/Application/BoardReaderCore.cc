@@ -1,16 +1,19 @@
 
 #define TRACE_NAME (app_name + "_BoardReaderCore").c_str() // include these 2 first -
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Application/TaskType.hh"
-#include "artdaq/Application/BoardReaderCore.hh"
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
-#include "canvas/Utilities/Exception.h"
-#include "cetlib_except/exception.h"
+
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
+#include "canvas/Utilities/Exception.h"
+#include "cetlib_except/exception.h"
+
+#include "artdaq/Application/BoardReaderCore.hh"
+#include "artdaq/Application/TaskType.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
+
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 const std::string artdaq::BoardReaderCore::
 FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
@@ -313,6 +316,10 @@ void artdaq::BoardReaderCore::process_fragments()
 					<< "This is most likely caused by a problem with the Fragment Generator!";
 				continue;
 			}
+			if (fragment_count_ == 0)
+			{
+				TLOG(TLVL_DEBUG) << "Received first Fragment from Fragment Generator, sequence ID " << fragPtr->sequenceID() << ", size = "  << fragPtr->sizeBytes() << " bytes.";
+			}
 			artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
 			SetMFIteration("Sequence ID " + std::to_string(sequence_id));
 			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
@@ -348,9 +355,13 @@ void artdaq::BoardReaderCore::process_fragments()
 				std::string statString = buildStatisticsString_();
 				TLOG(TLVL_INFO) << statString;
 			}
+			if (fragment_count_ == 1)
+			{
+				TLOG(TLVL_DEBUG) << "Sent first Fragment with SeqID " << sequence_id << ".";
+			}
 			if (fragment_count_ % 250 == 1 || readyToReport)
 			{
-				TLOG(TLVL_DEBUG)
+				TLOG(15)
 					<< "Sending fragment " << fragment_count_
 					<< " with SeqID " << sequence_id << ".";
 			}
@@ -386,7 +397,14 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 	// if we haven't been able to come up with any report so far, say so
 	std::string tmpString = app_name + " run number = ";
 	tmpString.append(boost::lexical_cast<std::string>(run_id_.run()));
+
+	tmpString.append(", Sent Fragment count = ");
+	tmpString.append(boost::lexical_cast<std::string>(fragment_count_));
+
+	if (which != "")
+	{
 	tmpString.append(". Command=\"" + which + "\" is not currently supported.");
+	}
 	return tmpString;
 }
 
