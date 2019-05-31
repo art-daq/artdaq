@@ -32,6 +32,8 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application) :
 	parent_application_(parent_application)
 	/*, local_group_comm_(local_group_comm)*/
 	, generator_ptr_(nullptr)
+    , run_id_(art::RunID::flushRun())
+    , fragment_count_(0)
 	, stop_requested_(false)
 	, pause_requested_(false)
 {
@@ -385,7 +387,7 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 	std::string resultString;
 
 	// pass the request to the FragmentGenerator instance, if it's available
-	if (generator_ptr_.get() != 0)
+	if (generator_ptr_.get() != 0 && which != "core")
 	{
 		resultString = generator_ptr_->ReportCmd(which);
 		if (resultString.length() > 0) { return resultString; }
@@ -401,7 +403,7 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 	tmpString.append(", Sent Fragment count = ");
 	tmpString.append(boost::lexical_cast<std::string>(fragment_count_));
 
-	if (which != "")
+	if (which != "" && which != "core")
 	{
 	tmpString.append(". Command=\"" + which + "\" is not currently supported.");
 	}
