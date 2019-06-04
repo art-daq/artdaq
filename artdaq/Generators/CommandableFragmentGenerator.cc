@@ -895,13 +895,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillD
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Checking that data exists for request window " << seq;
 	Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
 	Fragment::timestamp_t max = min + windowWidth_;
-		TLOG(TLVL_APPLYREQUESTS) << "ApplyRequestsWindowsMode_CheckAndFillDataBuffer: min is " << min << ", max is " << max
-		                         << " and first/last points in buffer are " << (dataBuffer_.size() > 0 ? dataBuffer_.front()->timestamp() : 0)
-		                         << "/" << (dataBuffer_.size() > 0 ? dataBuffer_.back()->timestamp() : 0)
-		                         << " (sz=" << dataBuffer_.size() << " [" << dataBufferDepthBytes_.load()
-		                         << "/" << maxDataBufferDepthBytes_ << "])";
-		bool windowClosed = dataBuffer_.size() > 0 && dataBuffer_.back()->timestamp() >= max;
-		bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestReceiver_->GetRequestTime(req->first)) > window_close_timeout_us_;
+	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: min is " << min << ", max is " << max
+		<< " and last point in buffer is " << (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.back()->timestamp() : 0) << " (sz=" << dataBuffers_[id].DataBuffer.size() << ")";
+	bool windowClosed = dataBuffers_[id].DataBuffer.size() > 0 && dataBuffers_[id].DataBuffer.back()->timestamp() >= max;
+	bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestReceiver_->GetRequestTime(seq)) > window_close_timeout_us_;
 	if (windowTimeout)
 	{
 		TLOG(TLVL_WARNING) << "applyRequestsWindowMode_CheckAndFillDataBuffer: A timeout occurred waiting for data to close the request window ({" << min << "-" << max
