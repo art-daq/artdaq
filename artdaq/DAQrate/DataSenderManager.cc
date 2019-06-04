@@ -551,9 +551,6 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), destination_metric_data_[dest].first / destination_metric_data_[dest].second, "B/s", 5, MetricMode::Average);
 		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::LastPoint);
 
-        metricMan->sendMetric("Rank", std::to_string(my_rank), "", 3, MetricMode::LastPoint);
-        metricMan->sendMetric("App Name", app_name, "", 3, MetricMode::LastPoint);
-
 		destination_metric_send_time_[dest] = std::chrono::steady_clock::now();
 		destination_metric_data_[dest].first = 0;
 		destination_metric_data_[dest].second = 0.0;
