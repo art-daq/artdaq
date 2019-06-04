@@ -148,6 +148,9 @@ public:
 	 */
 	void StopSender() { should_stop_ = true; }
 
+	void RemoveRoutingTableEntry(Fragment::sequence_id_t seq);
+	size_t GetSentSequenceIDCount(Fragment::sequence_id_t seq);
+
 private:
 
 	// Calculate where the fragment with this sequenceID should go.
@@ -183,6 +186,7 @@ private:
 	int ack_socket_;
 	int table_socket_;
 	std::map<Fragment::sequence_id_t, int> routing_table_;
+	std::map<Fragment::sequence_id_t, size_t> sent_sequence_id_count_;
 	Fragment::sequence_id_t routing_table_last_;
 	size_t routing_table_max_size_;
 	mutable std::mutex routing_mutex_;
