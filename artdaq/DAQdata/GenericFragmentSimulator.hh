@@ -89,9 +89,16 @@ public:
 	 * \param[out] output List of FragmentPtr objects to add the new Fragment to
 	 * \return Whether data taking should continue
 	 */
-	bool getNext(FragmentPtrs& output) override
+	bool getNext(PostmarkedFragmentPtrs& output) override
 	{
-		return getNext_(output);
+		FragmentPtrs frags;
+		bool sts = getNext_(frags);
+		for (auto& fragptr : frags)
+		{
+			std::pair<artdaq::FragmentPtr, int> fragptr_wdest = std::make_pair(std::move(fragptr), artdaq::Fragment::InvalidDestinationRank);
+			output.emplace_back(std::move(fragptr_wdest));
+		}
+		return sts;
 	}
 
 	/**

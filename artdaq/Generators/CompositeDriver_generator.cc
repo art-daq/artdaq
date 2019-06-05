@@ -127,7 +127,12 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
 	{
 		if (generator_active_list_[idx])
 		{
-			bool status = generator_list_[idx]->getNext(frags);
+			PostmarkedFragmentPtrs pmfrags;
+			bool status = generator_list_[idx]->getNext(pmfrags);
+			for (auto& fragptr_wdest : pmfrags)
+			{
+				frags.emplace_back(std::move(fragptr_wdest.first));
+			}
 
 			// 08-May-2015, KAB & JCF: if the generator getNext() method returns
 			// false (which indicates that the data flow has stopped) *and* the
