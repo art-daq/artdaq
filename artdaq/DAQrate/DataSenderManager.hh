@@ -161,8 +161,6 @@ private:
 private:
 
 	std::map<int, std::unique_ptr<artdaq::TransferInterface>> destinations_;
-	std::unordered_map<int, std::pair<size_t, double>> destination_metric_data_;
-	std::unordered_map<int, std::chrono::steady_clock::time_point> destination_metric_send_time_;
 	std::set<int> enabled_destinations_;
 
 	detail::FragCounter sent_frag_count_;
