@@ -26,25 +26,23 @@ const std::string artdaq::RoutingMasterCore::
 TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
 
 artdaq::RoutingMasterCore::RoutingMasterCore() 
-	: received_token_counter_()
-	, shutdown_requested_(false)
+	: shutdown_requested_(false)
 	, stop_requested_(true)
 	, pause_requested_(false)
-	, token_epoll_fd_(-1)
-	, token_socket_(-1)
+	, statsHelperPtr_(new artdaq::StatisticsHelper())
 	, table_socket_(-1)
 	, ack_socket_(-1)
 {
 	TLOG(TLVL_DEBUG) << "Constructor" ;
-	statsHelper_.addMonitoredQuantityName(TABLE_UPDATES_STAT_KEY);
-	statsHelper_.addMonitoredQuantityName(TOKENS_RECEIVED_STAT_KEY);
+	statsHelperPtr_->addMonitoredQuantityName(TABLE_UPDATES_STAT_KEY);
+	statsHelperPtr_->addMonitoredQuantityName(TOKENS_RECEIVED_STAT_KEY);
 }
 
 artdaq::RoutingMasterCore::~RoutingMasterCore()
 {
 	TLOG(TLVL_DEBUG) << "Destructor" ;
 	artdaq::StatisticsCollection::getInstance().requestStop();
-	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
+	token_receiver_->stopTokenReception(true);
 }
 
 bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
@@ -91,6 +89,17 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 		return false;
 	}
 
+	try
+	{
+		token_receiver_pset_ = daq_pset.get<fhicl::ParameterSet>("token_receiver");
+	}
+	catch (...)
+	{
+		TLOG(TLVL_ERROR)
+			<< "Unable to find the token_receiver parameters in the DAQ initialization ParameterSet: \"" + daq_pset.to_string() + "\"." ;
+		return false;
+	}
+
 	// pull out the Metric part of the ParameterSet
 	fhicl::ParameterSet metric_pset;
 	try
@@ -113,7 +122,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 						 "Error loading metrics in RoutingMasterCore::initialize()");
 	}
 
-	// create the requested CommandableFragmentGenerator
+	// create the requested RoutingPolicy
 	auto policy_plugin_spec = policy_pset_.get<std::string>("policy", "");
 	if (policy_plugin_spec.length() == 0)
 	{
@@ -142,27 +151,29 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 
 	rt_priority_ = daq_pset.get<int>("rt_priority", 0);
 	sender_ranks_ = daq_pset.get<std::vector<int>>("sender_ranks");
-	num_receivers_ = policy_->GetReceiverCount();
 
 	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
-	receive_token_events_ = std::vector<epoll_event>(num_receivers_ + 1);
 
 	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
 	routing_mode_ = mode ? detail::RoutingMasterMode::RouteBySendCount : detail::RoutingMasterMode::RouteBySequenceID;
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
 	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
-	receive_token_port_ = daq_pset.get<int>("routing_token_port", 35555);
 	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
 	receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port", 35557);
 	send_tables_address_ = daq_pset.get<std::string>("table_update_address", "227.128.12.28");
 	receive_address_ = daq_pset.get<std::string>("routing_master_hostname", "localhost");
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
-	statsHelper_.createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
+	statsHelperPtr_->createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
+
+	// create the requested TokenReceiver
+	token_receiver_.reset(new TokenReceiver(token_receiver_pset_, policy_, routing_mode_, sender_ranks_.size(), max_table_update_interval_ms_));
+	token_receiver_->setStatsHelper(statsHelperPtr_, TOKENS_RECEIVED_STAT_KEY);
+	token_receiver_->startTokenReception();
+	token_receiver_->pauseTokenReception();
 
 	shutdown_requested_.store(false);
-	start_recieve_token_thread_();
 	return true;
 }
 
@@ -172,11 +183,12 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
-	statsHelper_.resetStatistics();
+	statsHelperPtr_->resetStatistics();
 
 	metricMan->do_start();
 	table_update_count_ = 0;
-	received_token_count_ = 0;
+	token_receiver_->setRunNumber(run_id_.run());
+	token_receiver_->resumeTokenReception();
 
 	TLOG(TLVL_INFO) << "Started run " << run_id_.run() ;
 	return true;
@@ -186,8 +198,9 @@ bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 {
 	TLOG(TLVL_INFO) << "Stopping run " << run_id_.run()
 		<< " after " << table_update_count_ << " table updates."
-		<< " and " << received_token_count_ << " received tokens." ;
+		<< " and " << token_receiver_->getReceivedTokenCount() << " received tokens." ;
 	stop_requested_.store(true);
+	token_receiver_->pauseTokenReception();
 	run_id_ = art::RunID::flushRun();
 	return true;
 }
@@ -196,7 +209,7 @@ bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 {
 	TLOG(TLVL_INFO) << "Pausing run " << run_id_.run()
 		<< " after " << table_update_count_ << " table updates."
-		<< " and " << received_token_count_ << " received tokens." ;
+		<< " and " << token_receiver_->getReceivedTokenCount() << " received tokens." ;
 	pause_requested_.store(true);
 	return true;
 }
@@ -211,9 +224,9 @@ bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 
 bool artdaq::RoutingMasterCore::shutdown(uint64_t)
 {
-    shutdown_requested_.store(true);
-	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
-	policy_.reset(nullptr);
+	shutdown_requested_.store(true);
+	token_receiver_->stopTokenReception();
+	policy_.reset();
 	metricMan->shutdown();
 	return true;
 }
@@ -284,8 +297,16 @@ void artdaq::RoutingMasterCore::process_event_table()
 				send_event_table(table);
 				++table_update_count_;
 				delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
-				statsHelper_.addSample(TABLE_UPDATES_STAT_KEY, delta_time);
+				statsHelperPtr_->addSample(TABLE_UPDATES_STAT_KEY, delta_time);
 				TLOG(16) << "process_fragments TABLE_UPDATES_STAT_KEY=" << delta_time ;
+
+				bool readyToReport = statsHelperPtr_->readyToReport(0);
+				if (readyToReport)
+				{
+					std::string statString = buildStatisticsString_();
+					TLOG(TLVL_INFO) << statString;
+					sendMetrics_();
+				}
 			}
 			else
 			{
@@ -520,177 +541,6 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 }
 
-void artdaq::RoutingMasterCore::receive_tokens_()
-{
-	while (!shutdown_requested_)
-	{
-		TLOG(TLVL_DEBUG) << "Receive Token loop start" ;
-		if (token_socket_ == -1)
-		{
-			TLOG(TLVL_DEBUG) << "Opening token listener socket" ;
-			token_socket_ = TCP_listen_fd(receive_token_port_, 3 * sizeof(detail::RoutingToken));
-			fcntl(token_socket_, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
-
-			if (token_epoll_fd_ != -1) close(token_epoll_fd_);
-			struct epoll_event ev;
-			token_epoll_fd_ = epoll_create1(0);
-			ev.events = EPOLLIN | EPOLLPRI;
-			ev.data.fd = token_socket_;
-			if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, token_socket_, &ev) == -1)
-			{
-				TLOG(TLVL_ERROR) << "Could not register listen socket to epoll fd" ;
-				exit(3);
-			}
-		}
-		if (token_socket_ == -1 || token_epoll_fd_ == -1)
-		{
-			TLOG(TLVL_DEBUG) << "One of the listen sockets was not opened successfully." ;
-			return;
-		}
-
-		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), current_table_interval_ms_);
-		if (nfds == -1)
-		{
-			perror("epoll_wait");
-			exit(EXIT_FAILURE);
-		}
-
-		while (stop_requested_ && !shutdown_requested_)
-		{
-			usleep(10000);
-		}
-
-		TLOG(TLVL_DEBUG) << "Received " << nfds << " events" ;
-		for (auto n = 0; n < nfds; ++n)
-		{
-			if (receive_token_events_[n].data.fd == token_socket_)
-			{
-				TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket" ;
-				sockaddr_in addr;
-				socklen_t arglen = sizeof(addr);
-				auto conn_sock = accept(token_socket_, (struct sockaddr *)&addr, &arglen);
-				fcntl(conn_sock, F_SETFL, O_NONBLOCK); // set O_NONBLOCK
-
-				if (conn_sock == -1)
-				{
-					perror("accept");
-					exit(EXIT_FAILURE);
-				}
-
-				receive_token_addrs_[conn_sock] = std::string(inet_ntoa(addr.sin_addr));
-				TLOG(TLVL_DEBUG) << "New fd is " << conn_sock << " for receiver at " << receive_token_addrs_[conn_sock];
-				struct epoll_event ev;
-				ev.events = EPOLLIN | EPOLLET;
-				ev.data.fd = conn_sock;
-				if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
-				{
-					perror("epoll_ctl: conn_sock");
-					exit(EXIT_FAILURE);
-				}
-			}
-			else
-			{
-			  /*if (receive_token_events_[n].events & (EPOLLRDHUP | EPOLLERR | EPOLLHUP))
-				{
-					TLOG(TLVL_DEBUG) << "Closing connection on fd " << receive_token_events_[n].data.fd << " (" << receive_token_addrs_[receive_token_events_[n].data.fd] << ")";
-					receive_token_addrs_.erase(receive_token_events_[n].data.fd);
-					close(receive_token_events_[n].data.fd);
-					epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, NULL);
-					continue;
-					}*/
-
-				auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
-				bool reading = true;
-				int sts = 0;
-				while(reading)
-				  {
-					detail::RoutingToken buff;
-					sts += read(receive_token_events_[n].data.fd, &buff, sizeof(detail::RoutingToken) - sts);
-					if (sts == 0)
-					  {
-						TLOG(TLVL_INFO) << "Received 0-size token from " << receive_token_addrs_[receive_token_events_[n].data.fd];
-						reading = false;
-					  }
-					else if(sts < 0 && errno == EAGAIN)
-					  {
-						TLOG(TLVL_DEBUG) << "No more tokens from this rank. Continuing poll loop.";
-						reading = false;
-					  }
-					else if(sts < 0)
-					  {
-						TLOG(TLVL_ERROR) << "Error reading from token socket: sts=" << sts << ", errno=" << errno;
-						receive_token_addrs_.erase(receive_token_events_[n].data.fd);
-						close(receive_token_events_[n].data.fd);
-						epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, NULL);
-						reading = false;
-					  }
-					else if (sts == sizeof(detail::RoutingToken) && buff.header != TOKEN_MAGIC)
-					  {
-						TLOG(TLVL_ERROR) << "Received invalid token from " << receive_token_addrs_[receive_token_events_[n].data.fd] << " sts=" << sts;
-						reading = false;
-					  }
-					else if(sts == sizeof(detail::RoutingToken))
-					  {
-						sts = 0;
-						TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free. (run=" << buff.run_number << ")" ;
-						if (buff.run_number != run_id_.run())
-						{
-							TLOG(TLVL_DEBUG) << "Received token from a different run number! Current = " << run_id_.run() << ", token = " << buff.run_number << ", ignoring (n=" << buff.new_slots_free << ")";
-						}
-						else 
-						{
-						received_token_count_ += buff.new_slots_free;
-						if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
-						  {
-							policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
-						  }
-						else if (routing_mode_ == detail::RoutingMasterMode::RouteBySendCount)
-						  {
-							if (!received_token_counter_.count(buff.rank)) received_token_counter_[buff.rank] = 0;
-							received_token_counter_[buff.rank] += buff.new_slots_free;
-							TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size() << "." ;
-							while (received_token_counter_[buff.rank] >= sender_ranks_.size())
-							  {
-								TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << sender_ranks_.size()
-												 << "... Sending token to policy" ;
-								policy_->AddReceiverToken(buff.rank, 1);
-								received_token_counter_[buff.rank] -= sender_ranks_.size();
-							  }
-						  }
-					  }
-				  }
-				  }
-				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
-				statsHelper_.addSample(TOKENS_RECEIVED_STAT_KEY, delta_time);
-				bool readyToReport = statsHelper_.readyToReport(delta_time);
-				if (readyToReport)
-				{
-				std::string statString = buildStatisticsString_();
-					TLOG(TLVL_INFO) << statString;
-				sendMetrics_();
-			}
-	}
-}
-	}
-}
-
-void artdaq::RoutingMasterCore::start_recieve_token_thread_()
-{
-	if (ev_token_receive_thread_.joinable()) ev_token_receive_thread_.join();
-	boost::thread::attributes attrs;
-	attrs.set_stack_size(4096 * 2000); // 8000 KB
-	
-	TLOG(TLVL_INFO) << "Starting Token Reception Thread" ;
-	try {
-		ev_token_receive_thread_ = boost::thread(attrs, boost::bind(&RoutingMasterCore::receive_tokens_, this));
-	}
-	catch(boost::exception const& e)
-	{
-		std::cerr << "Exception encountered starting Token Reception thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
-		exit(3);
-	}
-	TLOG(TLVL_INFO) << "Started Token Reception Thread";
-}
 
 std::string artdaq::RoutingMasterCore::report(std::string const&) const
 {
@@ -699,7 +549,7 @@ std::string artdaq::RoutingMasterCore::report(std::string const&) const
 	// if we haven't been able to come up with any report so far, say so
 	auto tmpString = app_name + " run number = " + std::to_string(run_id_.run())
 		+ ", table updates sent = " + std::to_string(table_update_count_)
-		+ ", Receiver tokens received = " + std::to_string(received_token_count_);
+		+ ", Receiver tokens received = " + std::to_string(token_receiver_->getReceivedTokenCount());
 	return tmpString;
 }
 
