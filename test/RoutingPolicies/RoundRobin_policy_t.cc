@@ -8,6 +8,29 @@
 
 BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)
 
+BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
+{
+	fhicl::ParameterSet ps4, ps3, ps2;
+	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps4);
+	fhicl::make_ParameterSet("receiver_ranks: [7,8,9]", ps3);
+	fhicl::make_ParameterSet("receiver_ranks: [5,6]", ps2);
+
+	auto rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps4);
+	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
+
+        auto rrB = rrA;
+	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
+	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
+
+	rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps3);
+	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 3);
+	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
+
+        // force destructors to be run on first set of policies
+	rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps2);
+	rrB = artdaq::makeRoutingMasterPolicy("RoundRobin", ps2);
+}
+
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	fhicl::ParameterSet ps;
