@@ -142,13 +142,6 @@ namespace artdaq
 		using Parameters = fhicl::WrappedTable<Config>;
 
 		/**
-		 * \brief CommandableFragmentGenerator default constructor
-		 *
-		 * This constructor default-initializes all parameters
-		 */
-		CommandableFragmentGenerator();
-
-		/**
 		 * \brief CommandableFragmentGenerator Constructor
 		 * \param ps ParameterSet used to configure CommandableFragmentGenerator. See artdaq::CommandableFragmentGenerator::Config.
 		 */
@@ -206,6 +199,8 @@ namespace artdaq
 		/// <param name="frags">Ouput fragments</param>
 		void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
 
+		void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
+
 		/**
 		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
 		 * \param[out] frags list of FragmentPtr objects ready for transmission
@@ -217,10 +212,11 @@ namespace artdaq
 		 * \brief Send an EmptyFragmentType Fragment
 		 * \param[out] frags Output list to append EmptyFragmentType to
 		 * \param sequenceId Sequence ID of Empty Fragment
+		 * \param fragmentId Fragment ID of Empty Fragment
 		 * \param desc Message to log with reasoning for sending Empty Fragment
 		 * \return True if no exceptions
 		 */
-		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, std::string desc);
+		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, Fragment::fragment_id_t fragmentId, std::string desc);
 
 		/**
 		 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
@@ -234,17 +230,8 @@ namespace artdaq
 		 * \brief Check the windows_sent_ooo_ map for sequence IDs that may be removed
 		 * \param seq Sequence ID of current window
 		 */
-		void checkOutOfOrderWindows(Fragment::sequence_id_t seq);
-
-		/**
-		 * \brief Access the windows_sent_ooo_ map
-		 * \return windows_sent_ooo_ map
-		 */
-		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> getOutOfOrderWindowList() const
-		{
-			return windows_sent_ooo_;
-		}
-
+		void checkSentWindows(Fragment::sequence_id_t seq);
+		
 		/**
 		 * \brief Function that launches the data thread (getDataLoop())
 		 */
@@ -265,25 +252,39 @@ namespace artdaq
 		 * \brief Wait for the data buffer to drain (dataBufferIsTooLarge returns false), periodically reporting status.
 		 * \return True if wait ended without something else disrupting the run
 		 */
-		bool waitForDataBufferReady();
+		bool waitForDataBufferReady(Fragment::fragment_id_t id);
 
 		/**
 		 * \brief Test the configured constraints on the data buffer
 		 * \return Whether the data buffer is full
 		 */
-		bool dataBufferIsTooLarge();
+		bool dataBufferIsTooLarge(Fragment::fragment_id_t id);
 
 		/**
 		 * \brief Calculate the size of the dataBuffer and report appropriate metrics
 		 */
-		void getDataBufferStats();
+		void getDataBufferStats(Fragment::fragment_id_t id);
+
+		void getDataBuffersStats() { for (auto& id : dataBuffers_) getDataBufferStats(id.first); }
 
 		/**
 		 * \brief Perform data buffer pruning operations. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
 		 * In Window and Buffer RequestModes, this function discards the oldest Fragment objects until the data buffer is below its size constraints,
 		 * then also checks for stale Fragments, based on the timestamp of the most recent Fragment.
 		 */
-		void checkDataBuffer();
+		void checkDataBuffer(Fragment::fragment_id_t id);
+
+		void checkDataBuffers() {
+			for (auto& id : dataBuffers_) checkDataBuffer(id.first);
+		}
+
+		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> GetSentWindowList(Fragment::fragment_id_t id) {
+
+			if (!dataBuffers_.count(id)) {
+				throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot get Sent Windows for ID " << id << " because it does not exist!";
+			}
+			return dataBuffers_[id].WindowsSent;
+		}
 
 		/**
 		 * \brief This function regularly calls checkHWStatus_(), and sets the isHardwareOK flag accordingly.
@@ -296,7 +297,14 @@ namespace artdaq
 		 */
 		std::vector<Fragment::fragment_id_t> fragmentIDs() override
 		{
-			return fragment_ids_;
+			std::vector<Fragment::fragment_id_t> output;
+
+			for (auto& id : dataBuffers_)
+			{
+				output.push_back(id.first);
+			}
+
+			return output;
 		}
 
 		/**
@@ -446,6 +454,11 @@ namespace artdaq
 		 */
 		uint64_t timestamp() const { return timestamp_; }
 
+		artdaq::Fragment::fragment_id_t fragment_id() const {
+			if (dataBuffers_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << dataBuffers_.size() << " were declared!";
+			return (*dataBuffers_.begin()).first;
+		}
+
 		/**
 		 * \brief Get the current value of the should_stop flag
 		 * \return The current value of the should_stop flag
@@ -463,14 +476,7 @@ namespace artdaq
 		 * \return The current board_id
 		 */
 		int board_id() const { return board_id_; }
-
-		/**
-		 * \brief Get the current Fragment ID, if there is only one
-		 * \return The current fragment ID, if the re is only one
-		 * \exception cet::exception if the Fragment IDs list has more than one member
-		 */
-		int fragment_id() const;
-
+		
 		/**
 		 * \brief Increment the event counter, if the current RequestMode allows it
 		 * \param step Amount to increment the event counter by
@@ -510,6 +516,12 @@ namespace artdaq
 
 		std::mutex mutex_; ///< Mutex used to ensure that multiple transition commands do not run at the same time
 
+		size_t dataBufferFragmentCount_() {
+			size_t count = 0;
+			for (auto& id : dataBuffers_) count += id.second.DataBufferDepthFragments;
+			return count;
+		}
+
 	private:
 		// FHiCL-configurable variables. Note that the C++ variable names
 		// are the FHiCL variable names with a "_" appended
@@ -522,9 +534,7 @@ namespace artdaq
 		Fragment::timestamp_t windowWidth_;
 		Fragment::timestamp_t staleTimeout_;
 		Fragment::type_t expectedType_;
-		size_t maxFragmentCount_;
 		bool uniqueWindows_;
-		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> windows_sent_ooo_;
 		size_t missing_request_window_timeout_us_;
 		size_t window_close_timeout_us_;
 
@@ -535,8 +545,6 @@ namespace artdaq
 		boost::thread dataThread_;
 
 		std::condition_variable dataCondition_;
-		std::atomic<int> dataBufferDepthFragments_;
-		std::atomic<size_t> dataBufferDepthBytes_;
 		int maxDataBufferDepthFragments_;
 		size_t maxDataBufferDepthBytes_;
 
@@ -546,11 +554,16 @@ namespace artdaq
 		std::chrono::steady_clock::time_point lastMonitoringCall_;
 		std::atomic<bool> isHardwareOK_;
 
-		FragmentPtrs dataBuffer_;
-		FragmentPtrs newDataBuffer_;
-		std::mutex dataBufferMutex_;
+		struct DataBuffer {
+			std::atomic<int> DataBufferDepthFragments;
+			std::atomic<size_t> DataBufferDepthBytes;
+			std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> WindowsSent;
+			Fragment::sequence_id_t HighestRequestSeen;
+			FragmentPtrs DataBuffer;
+		};
 
-		std::vector<artdaq::Fragment::fragment_id_t> fragment_ids_;
+		std::mutex dataBuffersMutex_;
+		std::unordered_map<artdaq::Fragment::fragment_id_t, DataBuffer> dataBuffers_;
 
 		// In order to support the state-machine related behavior, all
 		// CommandableFragmentGenerators must be able to remember a run number and a
