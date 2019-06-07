@@ -222,21 +222,21 @@ bool artdaq::BoardReaderCore::shutdown(uint64_t)
 	return true;
 }
 
-bool artdaq::BoardReaderCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::BoardReaderCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_DEBUG) << "soft_initialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
-	return true;
+	                 << "\". Forwarding to initialize.";
+	return initialize(pset, timeout, timestamp);
 }
 
-bool artdaq::BoardReaderCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::BoardReaderCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_DEBUG) << "reinitialize method called with "
 		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
-	return true;
-}
+		<< "\". Forwarding to initalize.";
+	return initialize(pset, timeout, timestamp);
+	}
 
 void artdaq::BoardReaderCore::process_fragments()
 {
