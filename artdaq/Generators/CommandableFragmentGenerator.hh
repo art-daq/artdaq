@@ -165,10 +165,10 @@ namespace artdaq
 
 		/**
 		 * \brief getNext calls either applyRequests or getNext_ to get any data that is ready to be sent to the EventBuilders
-		 * \param output FragmentPtrs object containing Fragments ready for transmission
+		 * \param output PostmarkedFragmentPtrs object containing Fragments ready for transmission
 		 * \return Whether getNext completed without exceptions
 		 */
-		bool getNext(FragmentPtrs& output) override final;
+		bool getNext(PostmarkedFragmentPtrs& output) override final;
 
 
 		/// <summary>
@@ -176,37 +176,37 @@ namespace artdaq
 		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
 		/// </summary>
 		/// <param name="frags">Ouput fragments</param>
-		void applyRequestsIgnoredMode(artdaq::FragmentPtrs& frags);
+		void applyRequestsIgnoredMode(artdaq::PostmarkedFragmentPtrs& frags);
 
 		/// <summary>
 		/// Create fragments using data buffer for request mode Single.
 		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
 		/// </summary>
 		/// <param name="frags">Ouput fragments</param>
-		void applyRequestsSingleMode(artdaq::FragmentPtrs& frags);
+		void applyRequestsSingleMode(artdaq::PostmarkedFragmentPtrs& frags);
 
 		/// <summary>
 		/// Create fragments using data buffer for request mode Buffer.
 		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
 		/// </summary>
 		/// <param name="frags">Ouput fragments</param>
-		void applyRequestsBufferMode(artdaq::FragmentPtrs& frags);
+		void applyRequestsBufferMode(artdaq::PostmarkedFragmentPtrs& frags);
 
 		/// <summary>
 		/// Create fragments using data buffer for request mode Window.
 		/// Precondition: dataBufferMutex_ and request_mutex_ are locked
 		/// </summary>
 		/// <param name="frags">Ouput fragments</param>
-		void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
+		void applyRequestsWindowMode(artdaq::PostmarkedFragmentPtrs& frags);
 
-		void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
+		void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::PostmarkedFragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
 
 		/**
 		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
 		 * \param[out] frags list of FragmentPtr objects ready for transmission
 		 * \return True if not stopped
 		 */
-	    bool applyRequests(FragmentPtrs& frags);
+		bool applyRequests(PostmarkedFragmentPtrs& frags);
 
 		/**
 		 * \brief Send an EmptyFragmentType Fragment
@@ -216,7 +216,7 @@ namespace artdaq
 		 * \param desc Message to log with reasoning for sending Empty Fragment
 		 * \return True if no exceptions
 		 */
-		bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, Fragment::fragment_id_t fragmentId, std::string desc);
+		bool sendEmptyFragment(PostmarkedFragmentPtrs& frags, size_t sequenceId, Fragment::fragment_id_t fragmentId, std::string desc);
 
 		/**
 		 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
@@ -224,7 +224,7 @@ namespace artdaq
 		 * \param[out] frags Output list to append EmptyFragmentType to
 		 * \param requests List of requests to process
 		 */
-		void sendEmptyFragments(FragmentPtrs& frags, std::map<Fragment::sequence_id_t, artdaq::detail::RequestPacket>& requests);
+		void sendEmptyFragments(PostmarkedFragmentPtrs& frags, std::map<Fragment::sequence_id_t, artdaq::detail::RequestPacket>& requests);
 
 		/**
 		 * \brief Check the windows_sent_ooo_ map for sequence IDs that may be removed

@@ -154,7 +154,7 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 	TLOG(TLVL_DEBUG) << "joinThreads complete";
 }
 
-bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
+bool artdaq::CommandableFragmentGenerator::getNext(PostmarkedFragmentPtrs& output)
 {
 	bool result = true;
 
@@ -185,9 +185,9 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_TRACE) << "getNext: Done with applyRequests result=" << std::boolalpha << result;
 			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
 			{
-				TLOG(20) << "getNext: applyRequests() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
-					<< ", type = " << (*dataIter)->typeString() << ", id = " << std::to_string((*dataIter)->fragmentID())
-					<< ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
+				TLOG(20) << "getNext: applyRequests() returned fragment with sequenceID = " << (*dataIter).first->sequenceID()
+					<< ", type = " << (*dataIter).first->typeString() << ", id = " << std::to_string((*dataIter).first->fragmentID())
+					<< ", timestamp = " << (*dataIter).first->timestamp() << ", and sizeBytes = " << (*dataIter).first->sizeBytes();
 			}
 
 			if (exception())
@@ -206,7 +206,13 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_TRACE) << "getNext: Calling getNext_ w/ ev_counter()=" << ev_counter();
 			try
 			{
-				result = getNext_(output);
+				FragmentPtrs frags;
+				result = getNext_(frags);
+				for (auto& fragptr : frags)
+				{
+					std::pair<artdaq::FragmentPtr, int> fragptr_wdest = std::make_pair(std::move(fragptr), artdaq::Fragment::InvalidDestinationRank);
+					output.emplace_back(std::move(fragptr_wdest));
+				}
 			}
 			catch (...)
 			{
@@ -215,9 +221,9 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
 			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
 			{
-				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
-					<< ", type = " << (*dataIter)->typeString() << ", id = " << std::to_string((*dataIter)->fragmentID())
-					<< ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
+				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << (*dataIter).first->sequenceID()
+					<< ", type = " << (*dataIter).first->typeString() << ", id = " << std::to_string((*dataIter).first->fragmentID())
+					<< ", timestamp = " << (*dataIter).first->timestamp() << ", and sizeBytes = " << (*dataIter).first->sizeBytes();
 			}
 		}
 	}
@@ -260,15 +266,15 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 	if (metricMan && !output.empty())
 	{
-		auto timestamp = output.front()->timestamp();
+		auto timestamp = output.front().first->timestamp();
 
 		if (output.size() > 1)
 		{ // Only bother sorting if >1 entry                                            
 			for (auto& outputfrag : output)
 			{
-				if (outputfrag->timestamp() > timestamp)
+				if (outputfrag.first->timestamp() > timestamp)
 				{
-					timestamp = outputfrag->timestamp();
+					timestamp = outputfrag.first->timestamp();
 				}
 			}
 		}
@@ -798,20 +804,24 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 	}
 }
 
-void artdaq::CommandableFragmentGenerator::applyRequestsIgnoredMode(artdaq::FragmentPtrs& frags)
+void artdaq::CommandableFragmentGenerator::applyRequestsIgnoredMode(artdaq::PostmarkedFragmentPtrs& frags)
 {
 	// dataBuffersMutex_ is held by calling function
 	// We just copy everything that's here into the output.
 	TLOG(TLVL_APPLYREQUESTS) << "Mode is Ignored; Copying data to output";
 	for (auto& id : dataBuffers_) {
-		std::move(id.second.DataBuffer.begin(), id.second.DataBuffer.end(), std::inserter(frags, frags.end()));
+		for (auto& fragptr : id.second.DataBuffer)
+		{
+			std::pair<artdaq::FragmentPtr, int> fragptr_wdest = std::make_pair(std::move(fragptr), artdaq::Fragment::InvalidDestinationRank);
+			frags.emplace_back(std::move(fragptr_wdest));
+		}
 		id.second.DataBufferDepthBytes = 0;
 		id.second.DataBufferDepthFragments = 0;
 		id.second.DataBuffer.clear();
 	}
 }
 
-void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::FragmentPtrs& frags)
+void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::PostmarkedFragmentPtrs& frags)
 {
 	// We only care about the latest request received. Send empties for all others.
 	auto requests = requestReceiver_->GetRequests();
@@ -840,7 +850,8 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 				memcpy(newfrag->headerAddress(), frag->headerAddress(), frag->sizeBytes());
 				newfrag->setTimestamp(requests[ev_counter()].timestamp);
 				newfrag->setSequenceID(ev_counter());
-				frags.push_back(std::move(newfrag));
+                                std::pair<artdaq::FragmentPtr, int> pm_frag = std::make_pair(std::move(newfrag), artdaq::Fragment::InvalidDestinationRank);
+                                frags.emplace_back(std::move(pm_frag));
 			}
 		}
 		else
@@ -852,7 +863,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 	ev_counter_inc(1, true);
 }
 
-void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::FragmentPtrs& frags)
+void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::PostmarkedFragmentPtrs& frags)
 {
 	// We only care about the latest request received. Send empties for all others.
 	auto requests = requestReceiver_->GetRequests();
@@ -870,9 +881,12 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 	for (auto& id : dataBuffers_) {
 
 		TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Buffered Fragments";
-		frags.emplace_back(new artdaq::Fragment(ev_counter(), id.first));
-		frags.back()->setTimestamp(requests[ev_counter()].timestamp);
-		ContainerFragmentLoader cfl(*frags.back());
+
+		auto newfrag = std::unique_ptr<artdaq::Fragment>(new artdaq::Fragment(ev_counter(), id.first));
+		std::pair<artdaq::FragmentPtr, int> pm_frag = std::make_pair(std::move(newfrag), artdaq::Fragment::InvalidDestinationRank);
+		frags.emplace_back(std::move(pm_frag));
+		frags.back().first->setTimestamp(requests[ev_counter()].timestamp);
+		ContainerFragmentLoader cfl(*frags.back().first);
 		cfl.set_missing_data(false); // Buffer mode is never missing data, even if there IS no data.
 
 		// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
@@ -890,7 +904,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 }
 
 
-void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts)
+void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::PostmarkedFragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts)
 {
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Checking that data exists for request window " << seq;
 	Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
@@ -912,9 +926,11 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillD
 	if (windowClosed || !data_thread_running_ || windowTimeout)
 	{
 		TLOG(TLVL_DEBUG) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Creating ContainerFragment for Window-requested Fragments";
-		frags.emplace_back(new artdaq::Fragment(seq, id));
-		frags.back()->setTimestamp(ts);
-		ContainerFragmentLoader cfl(*frags.back());
+		auto newfrag = std::unique_ptr<artdaq::Fragment>(new artdaq::Fragment(seq, id));
+		std::pair<artdaq::FragmentPtr, int> pm_frag = std::make_pair(std::move(newfrag), artdaq::Fragment::InvalidDestinationRank);
+		frags.emplace_back(std::move(pm_frag));
+		frags.back().first->setTimestamp(ts);
+		ContainerFragmentLoader cfl(*frags.back().first);
 
 		// In the spirit of NOvA's MegaPool: (RS = Request start (min), RE = Request End (max))
 		//  --- | Buffer Start | --- | Buffer End | ---
@@ -948,7 +964,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillD
 			}
 
 			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
-			cfl.addFragment(*it);
+			cfl.addFragment((*it));
 
 			if (uniqueWindows_)
 			{
@@ -966,7 +982,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillD
 	}
 }
 
-void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::FragmentPtrs& frags)
+void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::PostmarkedFragmentPtrs& frags)
 {
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode BEGIN";
 
@@ -1009,7 +1025,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	}
 }
 
-bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& frags)
+bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::PostmarkedFragmentPtrs& frags)
 {
 	if (check_stop() || exception())
 	{
@@ -1087,18 +1103,19 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	return true;
 }
 
-bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::FragmentPtrs& frags, size_t seqId, Fragment::fragment_id_t fragmentId, std::string desc)
+bool artdaq::CommandableFragmentGenerator::sendEmptyFragment(artdaq::PostmarkedFragmentPtrs& frags, size_t seqId, Fragment::fragment_id_t fragmentId, std::string desc)
 {
 	TLOG(TLVL_WARNING) << desc << " sequence ID " << seqId << ", sending empty fragment";
-		auto frag = new Fragment();
-		frag->setSequenceID(seqId);
+        auto frag = std::unique_ptr<artdaq::Fragment>(new artdaq::Fragment());
+	frag->setSequenceID(seqId);
 	frag->setFragmentID(fragmentId);
-		frag->setSystemType(Fragment::EmptyFragmentType);
-		frags.emplace_back(FragmentPtr(frag));
+	frag->setSystemType(Fragment::EmptyFragmentType);
+        std::pair<artdaq::FragmentPtr, int> pm_frag = std::make_pair(std::move(frag), artdaq::Fragment::InvalidDestinationRank);
+        frags.emplace_back(std::move(pm_frag));
 	return true;
 }
 
-void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPtrs& frags, std::map<Fragment::sequence_id_t, artdaq::detail::RequestPacket>& requests)
+void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::PostmarkedFragmentPtrs& frags, std::map<Fragment::sequence_id_t, artdaq::detail::RequestPacket>& requests)
 {
 	if (requests.size() > 0)
 	{

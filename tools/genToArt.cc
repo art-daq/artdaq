@@ -104,7 +104,7 @@ namespace
 		 * \param[out] newFrags New Fragment objects are added to this list
 		 * \return Whether there is more data forthcoming
 		 */
-		bool getNext(artdaq::FragmentPtrs& newFrags);
+		bool getNext(artdaq::PostmarkedFragmentPtrs& newFrags);
 
 		/**
 		 * \brief Get the number of Fragment IDs handled by this generator
@@ -140,7 +140,7 @@ namespace
 		std::unique_ptr<artdaq::FragmentGenerator> generator_;
 		size_t const numFragIDs_;
 		std::map<artdaq::Fragment::fragment_id_t,
-			std::deque<artdaq::FragmentPtr>> frags_;
+			std::deque<artdaq::PostmarkedFragmentPtr>> frags_;
 	};
 
 	ThrottledGenerator::
@@ -156,7 +156,7 @@ namespace
 
 	bool
 		ThrottledGenerator::
-		getNext(artdaq::FragmentPtrs& newFrags)
+		getNext(artdaq::PostmarkedFragmentPtrs& newFrags)
 	{
 		if (frags_.size() && frags_.begin()->second.size())
 		{ // Something stored.
@@ -178,7 +178,7 @@ namespace
 		ThrottledGenerator::
 		generateFragments_()
 	{
-		artdaq::FragmentPtrs incomingFrags;
+		artdaq::PostmarkedFragmentPtrs incomingFrags;
 		bool result{ false };
 		while ((result = generator_->getNext(incomingFrags)) &&
 			   incomingFrags.empty())
@@ -186,7 +186,7 @@ namespace
 		}
 		for (auto&& frag : incomingFrags)
 		{
-			frags_[frag->fragmentID()].emplace_back(std::move(frag));
+			frags_[frag.first->fragmentID()].emplace_back(std::move(frag));
 		}
 		return result;
 	}
@@ -236,7 +236,7 @@ namespace
 									gen_ps);
 		}
 
-		artdaq::FragmentPtrs frags;
+		artdaq::PostmarkedFragmentPtrs frags;
 		auto eb_pset = gta_pset.get<fhicl::ParameterSet>("event_builder", {});
 		size_t expected_frags_per_event = 0;
 		for (auto& gen : generators)
@@ -269,19 +269,19 @@ namespace
 				if (reset_sequenceID)
 				{
 					TLOG(TLVL_DEBUG) << "Setting fragment sequence id to " << event_count;
-					val->setSequenceID(event_count);
+					val.first->setSequenceID(event_count);
 				}
 				if (current_sequence_id ==
 					static_cast<artdaq::Fragment::sequence_id_t>(-1))
 				{
-					current_sequence_id = val->sequenceID();
+					current_sequence_id = val.first->sequenceID();
 				}
-				else if (val->sequenceID() != current_sequence_id)
+				else if (val.first->sequenceID() != current_sequence_id)
 				{
 					throw art::Exception(art::errors::DataCorruption)
 						<< "Data corruption: apparently related fragments have "
 						<< " different sequence IDs: "
-						<< val->sequenceID()
+						<< val.first->sequenceID()
 						<< " and "
 						<< current_sequence_id
 						<< ".\n";
@@ -293,16 +293,16 @@ namespace
 				while (!sts)
 				{
 					artdaq::FragmentPtr tempFrag;
-					sts = store.AddFragment(std::move(val), 1000000, tempFrag);
+					sts = store.AddFragment(std::move(val.first), 1000000, tempFrag);
 					if (!sts && event_count <= 10 && loop_count > 100)
 					{
 						TLOG(TLVL_ERROR) << "Fragment was not added after " << artdaq::TimeUtils::GetElapsedTime(start_time) << " s. Check art thread status!";
 						store.endOfData();
 						exit(1);
 					}
-					val = std::move(tempFrag);
 					if (!sts)
 					{
+						val.first = std::move(tempFrag);
 						loop_count++;
 						usleep(10000);
 					}

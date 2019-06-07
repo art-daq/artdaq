@@ -90,7 +90,7 @@ int main(int argc, char * argv[]) try
 	}
 	catch (...) {
 	}
-	artdaq::FragmentPtrs frags;
+	artdaq::PostmarkedFragmentPtrs frags;
 	//////////////////////////////////////////////////////////////////////
 	// Note: we are constrained to doing all this here rather than
 	// encapsulated neatly in a function due to the lieftime issues
@@ -119,9 +119,9 @@ int main(int argc, char * argv[]) try
 		(gen && gen->getNext(frags))) {
 		TLOG(50) << "driver main: getNext returned frags.size()=" << frags.size() << " current event_count=" << event_count;
 		for (auto & val : frags) {
-			if (val->sequenceID() != previous_sequence_id) {
+			if (val.first->sequenceID() != previous_sequence_id) {
 				++event_count;
-				previous_sequence_id = val->sequenceID();
+				previous_sequence_id = val.first->sequenceID();
 			}
 			if (events_to_generate != 0 && event_count > events_to_generate) {
 				if (commandable_gen) {
@@ -136,16 +136,16 @@ int main(int argc, char * argv[]) try
 			while (!sts)
 			{
 				artdaq::FragmentPtr tempFrag;
-				sts = event_manager.AddFragment(std::move(val), 1000000, tempFrag);
+				sts = event_manager.AddFragment(std::move(val.first), 1000000, tempFrag);
 				if (!sts && event_count <= 10 && loop_count > 100)
 				{
 					TLOG(TLVL_ERROR) << "Fragment was not added after " << artdaq::TimeUtils::GetElapsedTime(start_time) << " s. Check art thread status!";
 					event_manager.endOfData();
 					exit(1);
 				}
-				val = std::move(tempFrag);
 				if (!sts)
 				{
+					val.first = std::move(tempFrag);
 					loop_count++;
 					//usleep(10000);
 				}

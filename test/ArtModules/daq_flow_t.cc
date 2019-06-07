@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-using artdaq::FragmentPtrs;
+using artdaq::PostmarkedFragmentPtrs;
 using artdaq::GenericFragmentSimulator;
 using artdaq::SharedMemoryEventManager;
 using std::size_t;
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 		GenericFragmentSimulator sim(pset);
 		SharedMemoryEventManager events(pset, pset);
 		events.startRun(RUN_ID);
-		FragmentPtrs frags;
+		PostmarkedFragmentPtrs frags;
 		size_t event_count = 0;
 		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);
 			for (auto&& frag : frags)
 			{
-				assert(frag != nullptr);
+				assert(frag.first != nullptr);
 
 				auto start_time = std::chrono::steady_clock::now();
 				bool sts = false;
@@ -67,16 +67,16 @@ int main(int argc, char* argv[])
 				while (!sts)
 				{
 					artdaq::FragmentPtr tempFrag;
-					sts = events.AddFragment(std::move(frag), 1000000, tempFrag);
+					sts = events.AddFragment(std::move(frag.first), 1000000, tempFrag);
 					if (!sts && event_count <= 10 && loop_count > 100)
 					{
 						TLOG(TLVL_ERROR) << "Fragment was not added after " << artdaq::TimeUtils::GetElapsedTime(start_time) << " s. Check art thread status!";
 						events.endOfData();
 						exit(1);
 					}
-					frag = std::move(tempFrag);
 					if (!sts)
 					{
+						frag.first = std::move(tempFrag);
 						loop_count++;
 						usleep(10000);
 					}

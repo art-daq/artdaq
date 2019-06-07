@@ -21,17 +21,17 @@ BOOST_AUTO_TEST_SUITE(GenericFragmentSimulator_t)
 		sim_config.put("want_random_payload_size", false);
 		sim_config.put("payload_size", FRAGMENT_SIZE);
 		artdaq::GenericFragmentSimulator sim(sim_config);
-		artdaq::FragmentPtrs fragments;
+		artdaq::PostmarkedFragmentPtrs fragments;
 		std::size_t num_events_seen = 0;
 		while (fragments.clear() , num_events_seen < NUM_EVENTS && sim.getNext(fragments))
 		{
 			BOOST_REQUIRE_EQUAL(fragments.size(), NUM_FRAGS_PER_EVENT);
-			for (auto&& fragptr : fragments)
+			for (auto&& pm_fragptr : fragments)
 			{
-				BOOST_CHECK(fragptr.get());
-				BOOST_CHECK_EQUAL(fragptr->sequenceID(), num_events_seen + 1);
-				BOOST_CHECK_EQUAL(fragptr->size(), FRAGMENT_SIZE + artdaq::detail::RawFragmentHeader::num_words());
-				BOOST_CHECK_EQUAL(fragptr->dataSize(), FRAGMENT_SIZE);
+				BOOST_CHECK(pm_fragptr.first.get());
+				BOOST_CHECK_EQUAL(pm_fragptr.first->sequenceID(), num_events_seen + 1);
+				BOOST_CHECK_EQUAL(pm_fragptr.first->size(), FRAGMENT_SIZE + artdaq::detail::RawFragmentHeader::num_words());
+				BOOST_CHECK_EQUAL(pm_fragptr.first->dataSize(), FRAGMENT_SIZE);
 			}
 			++num_events_seen;
 		}

@@ -276,7 +276,7 @@ void artdaq::BoardReaderCore::process_fragments()
 	TLOG(TLVL_DEBUG) << "Waiting for first fragment.";
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
-	artdaq::FragmentPtrs frags;
+	artdaq::PostmarkedFragmentPtrs frags;
 	auto targetFragCount = generator_ptr_->fragmentIDs().size();
 
 	bool active = true;
@@ -307,17 +307,17 @@ void artdaq::BoardReaderCore::process_fragments()
 		if (!active) { break; }
 		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
 
-		for (auto& fragPtr : frags)
+		for (auto& pmFragPtr : frags)
 		{
-			if (!fragPtr.get())
+			if (!pmFragPtr.first.get())
 			{
 				TLOG(TLVL_WARNING) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
 					<< "This is most likely caused by a problem with the Fragment Generator!";
 				continue;
 			}
-			artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
+			artdaq::Fragment::sequence_id_t sequence_id = pmFragPtr.first->sequenceID();
 			SetMFIteration("Sequence ID " + std::to_string(sequence_id));
-			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
+			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, pmFragPtr.first->size());
 
 			/*if ((fragment_count_ % 250) == 0)
 			{
@@ -338,7 +338,7 @@ void artdaq::BoardReaderCore::process_fragments()
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
 			TLOG(17) << "process_fragments seq=" << sequence_id << " sendFragment start";
-			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
+			auto res = sender_ptr_->sendFragment(std::move(*pmFragPtr.first));
 			if (sender_ptr_->GetSentSequenceIDCount(sequence_id) == targetFragCount)
 			{
 				sender_ptr_->RemoveRoutingTableEntry(sequence_id);
