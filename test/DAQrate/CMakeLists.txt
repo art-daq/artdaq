@@ -16,6 +16,10 @@ cet_test(FragCounter_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate
   )
 
+  cet_test(RequestMessage_t USE_BOOST_UNIT
+  LIBRARIES artdaq_DAQrate
+  )
+
   cet_test(SharedMemoryEventManager_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate
   )
@@ -32,6 +36,8 @@ cet_test(requestsender_acks HANDBUILT
   TEST_ARGS -c requestsender_acks.fcl
   DATAFILES requestsender_acks.fcl
   )
+
+cet_script(runRequestSenderMultiTest.sh)
 
 cet_test(requestsender_multi HANDBUILT
     TEST_EXEC runRequestSenderMultiTest.sh
