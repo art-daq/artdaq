@@ -1,6 +1,8 @@
 #ifndef artdaq_DAQrate_detail_RequestMessage_hh
 #define artdaq_DAQrate_detail_RequestMessage_hh
 
+// N.B. TRACE messages from the code in this file will appear in the TRACE log
+// with the TRACE_NAME of the source file which includes this header file.
 #include "artdaq/DAQdata/Globals.hh"
 
 #include <set>
@@ -246,6 +248,7 @@ public:
 	int rank;                             ///< Rank of the sender
 	VectorBitset activeRanks;             ///< VectorBitset representing ranks that are expected to respond to this RequestPacket
 	struct timespec request_time;         ///< Wall-clock time that this request was generated at
+	size_t serialized_size;               ///< If constructed by de-serializing a packet in memory, the size of the object in memory.  Zero, otherwise.
 
 	/**
 	 * \brief Default Constructor
@@ -255,6 +258,7 @@ public:
 	    , sequence_id(Fragment::InvalidSequenceID)
 	    , timestamp(Fragment::InvalidTimestamp)
 	    , activeRanks()
+	    , serialized_size(0)
 	{
 		clock_gettime(CLOCK_REALTIME, &request_time);
 	}
@@ -271,6 +275,7 @@ public:
 	    , timestamp(ts)
 	    , rank(dest_rank == -1 ? my_rank : dest_rank)
 	    , activeRanks()
+	    , serialized_size(0)
 	{
 		clock_gettime(CLOCK_REALTIME, &request_time);
 	}
@@ -279,13 +284,15 @@ public:
 	 * \brief Deserialize a RequestPacket that has been serialized using ToByteVector
 	 * \param ptr Pointer to memory containing RequestPacket data
 	 */
-	RequestPacket(uint8_t*& ptr)
+	RequestPacket(uint8_t* ptr)
 	    : header(0)
 	    , sequence_id(Fragment::InvalidSequenceID)
 	    , timestamp(Fragment::InvalidTimestamp)
 	    , rank(0)
 	    , activeRanks()
+	    , serialized_size(0)
 	{
+		uint8_t* input_ptr = ptr;
 		memcpy(&header, ptr, sizeof(header));
 		ptr += sizeof(header);
 		memcpy(&sequence_id, ptr, sizeof(sequence_id));
@@ -299,6 +306,7 @@ public:
 		ptr += sizeof(size_t);
 		activeRanks = VectorBitset(ptr, activeRanksSize);
 		ptr += activeRanksSize;
+		serialized_size = static_cast<size_t>(ptr - input_ptr);
 	}
 
 	/**
@@ -364,6 +372,15 @@ public:
 		{
 			activeRanks.set(rank);
 		}
+	}
+
+	/**
+	 * \brief Fetches the size of the buffer in memory that was used to construct this object
+	 * \return The size of the serialized packet that was used to construct this object, if it was constructed from a buffer in memory; or zero, if another type of constructor was used
+	 */
+	size_t serializedSize()
+	{
+		return serialized_size;
 	}
 };
 /**
@@ -466,7 +483,14 @@ public:
 	RequestMessage(void* packet, size_t size)
 	    : header_(), packets_()
 	{
-		assert(size >= sizeof(RequestHeader));
+		// 07-Jun-2019, KAB & ELF: Check that input size is valid. If not, we output an error message
+		// and exit the constructor early, marking the RequestMessage Invalid.
+		if (size < sizeof(RequestHeader))
+		{
+			TLOG(TLVL_ERROR) << "Invalid size specified in RequestMessage Constructor (too small): size = " << size << ", sizeof(RequestHeader) = " << sizeof(RequestHeader);
+			header_.header = 0;
+			return;
+		}
 		memcpy(&header_, packet, sizeof(RequestHeader));
 		TLOG(11) << "Request header word: 0x" << std::hex << header_.header << std::dec << ", packet_count: " << header_.packet_count
 		         << ", run number: " << header_.run_number;
@@ -477,11 +501,30 @@ public:
 
 			uint8_t* ptr = reinterpret_cast<uint8_t*>(packet) + sizeof(RequestHeader);
 			uint8_t* end = reinterpret_cast<uint8_t*>(packet) + size;
+			TLOG(21) << "Initial RequestMessage packet buffer ptr = 0x" << std::hex << ptr << std::dec;
 			for (size_t ii = 0; ii < header_.packet_count; ++ii)
 			{
-				assert(ptr < end);
 				packets_.emplace_back(RequestPacket(ptr));
-				if (!packets_.back().isValid()) break;
+				if (!packets_.back().isValid())
+				{
+					// 07-Jun-2019, KAB & ELF: added the dropping of the invalid packet
+					packets_.pop_back();
+					break;
+				}
+				ptr += packets_.back().serializedSize();
+				TLOG(21) << "Subsequent RequestMessage packet buffer ptr = 0x" << std::hex << ptr << std::dec << ", loop index = " << ii;
+
+				// 07-Jun-2019, KAB & ELF: Check that the current ptr is beyond the end of the packet buffer.
+				// If it is, we output an error message, stop processing the packet buffer, and drop the partial packet.
+				if (ptr >= end)
+				{
+					if (ii < (header_.packet_count-1) || ptr > end)
+					{
+						TLOG(TLVL_ERROR) << "The request packet pointer ran off the end of the packet buffer when trying to parse a RequestMessage; ptr = 0x" << std::hex << ptr << ", end = 0x" << end << ", start of packet buffer = 0x" << packet << std::dec << ", packet_count = " << header_.packet_count;
+						packets_.pop_back();
+						break;
+					}
+				}
 			}
 		}
 	}
