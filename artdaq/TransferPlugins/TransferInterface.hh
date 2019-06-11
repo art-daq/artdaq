@@ -44,8 +44,7 @@ namespace artdaq
 		{
 			DATA_END = -2222,///< Value that is to be returned when a Transfer plugin determines that no more data will be arriving.
 			RECV_TIMEOUT = -1111, ///< Value to be returned upon receive timeout.
-			NO_RANK_INFO = -1, ///< Will be returned from a successful receive that does not know the source rank (Transfer to OM art process)
-			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= NO_RANK_INFO
+			RECV_SUCCESS = 0 ///< For code clarity, things checking for successful receive should check retval >= RECV_SUCCESS for successful receive or retval < RECV_SUCCESS for errors
 		};
 
 		/**
@@ -65,7 +64,8 @@ namespace artdaq
 		{
 			kSuccess, ///< The send operation completed successfully
 			kTimeout, ///< The send operation timed out
-			kErrorNotRequiringException ///< Some error occurred, but no exception was thrown
+			kErrorNotRequiringException, ///< Some error occurred, but no exception was thrown
+			kDestinationFailure, ///< There was a problem determiniing the destination for the Fragment
 		};
 
 		/// <summary>
@@ -80,6 +80,7 @@ namespace artdaq
 			case CopyStatus::kSuccess: return "Success";
 			case CopyStatus::kTimeout: return "Timeout";
 			case CopyStatus::kErrorNotRequiringException: return "Error";
+			case CopyStatus::kDestinationFailure: return "DestinationFailure";
 			default: return "UNKNOWN";
 			}
 			return "SWITCHERROR";
