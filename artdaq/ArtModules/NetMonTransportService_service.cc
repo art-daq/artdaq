@@ -29,6 +29,8 @@
 #define DUMP_SEND_MESSAGE 0
 #define DUMP_RECEIVE_MESSAGE 0
 
+#define build_key(seed) seed + ((GetPartitionNumber() + 1) << 16) + (getppid() & 0xFFFF)
+
 static fhicl::ParameterSet empty_pset;
 
 NetMonTransportService::NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
@@ -62,8 +64,8 @@ void NetMonTransportService::listen()
 	if (!incoming_events_)
 	{
 		incoming_events_.reset(new artdaq::SharedMemoryEventReceiver(
-		    data_pset_.get<int>("shared_memory_key", 0xBEE70000 + getppid()),
-		    data_pset_.get<int>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
+		    data_pset_.get<int>("shared_memory_key", build_key(0xEE000000)),
+		    data_pset_.get<int>("broadcast_shared_memory_key", build_key(0xBB000000))));
 
 		char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
 		std::string artapp_str = "";

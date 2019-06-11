@@ -9,11 +9,13 @@
 #define TLVL_BUFFER 40
 #define TLVL_BUFLCK 41
 
+#define build_key(seed) seed + ((GetPartitionNumber() + 1) << 16) + (getpid() & 0xFFFF)
+
 std::mutex artdaq::SharedMemoryEventManager::sequence_id_mutex_;
 std::mutex artdaq::SharedMemoryEventManager::subrun_event_map_mutex_;
 
 artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset)
-    : SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", 0xBEE70000 + getpid()),
+    : SharedMemoryManager(pset.get<uint32_t>("shared_memory_key", build_key(0xEE000000)),
                           pset.get<size_t>("buffer_count"),
                           pset.has_key("max_event_size_bytes") ? pset.get<size_t>("max_event_size_bytes") : pset.get<size_t>("expected_fragments_per_event") * pset.get<size_t>("max_fragment_size_bytes"),
                           pset.get<size_t>("stale_buffer_timeout_usec", pset.get<size_t>("event_queue_wait_time", 5) * 1000000),
@@ -52,7 +54,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
     , requests_(nullptr)
     , data_pset_(pset)
     , dropped_data_()
-    , broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getpid()),
+    , broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key",build_key(0xBB000000)),
                   pset.get<size_t>("broadcast_buffer_count", 10),
                   pset.get<size_t>("broadcast_buffer_size", 0x100000),
                   pset.get<int>("expected_art_event_processing_time_us", 100000) * pset.get<size_t>("buffer_count"), false)

@@ -25,6 +25,8 @@
 #include <string>
 #include "artdaq-core/Data/RawEvent.hh"
 
+#define build_key(seed) seed + ((GetPartitionNumber() + 1) << 16) + (getppid() & 0xFFFF)
+
 namespace artdaq {
 namespace detail {
 /**
@@ -86,8 +88,8 @@ struct SharedMemoryReader
 		// getppid()), ps.get<int>("broadcast_buffer_count", 5), ps.get<size_t>("broadcast_buffer_size", 0x100000)));
 		//}
 		incoming_events.reset(
-		    new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()),
-		                                  ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
+		    new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", build_key(0xEE000000)),
+		                                  ps.get<uint32_t>("broadcast_shared_memory_key", build_key(0xBB000000))));
 		my_rank = incoming_events->GetRank();
 		TLOG(TLVL_INFO, "SharedMemoryReader") << "Rank set to " << my_rank;
 
