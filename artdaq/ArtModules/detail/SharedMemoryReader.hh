@@ -27,21 +27,32 @@
 
 namespace artdaq {
 namespace detail {
+
+typedef std::map<artdaq::Fragment::type_t, std::string> FragmentTypeMap;
+
 /**
-		 * \brief The DefaultFragmentTypeTranslator class provides default behavior
-		 *        for experiment-specific customizations in SharedMemoryReader.
-		 */
-class DefaultFragmentTypeTranslator
+ * \brief The FragmentTypeTranslator class provides default behavior
+ *        for experiment-specific customizations in SharedMemoryReader.
+ */
+class FragmentTypeTranslator
 {
+
 public:
-	DefaultFragmentTypeTranslator()
-	    : type_map_() {}
-	virtual ~DefaultFragmentTypeTranslator() = default;
+	FragmentTypeTranslator(fhicl::ParameterSet const& ps, FragmentTypeMap const& default_types)
+	    : type_map_(default_types) {
+
+		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
+		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
+		{
+			AddExtraType(it->first, it->second);
+		}
+	}
+	virtual ~FragmentTypeTranslator() = default;
 
 	/**
 			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
 			 */
-	virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
+	void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
 	{
 		type_map_ = type_map;
 	}
@@ -49,16 +60,16 @@ public:
 	/**
 			 * \brief Adds an additional type to be translated.
 			 */
-	virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
+	void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
 	{
 		type_map_[type_id] = type_name;
 	}
 
 	/**
-			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
+         * \brief Returns the basic translation for the specified type.  Defaults to the specified
 			 *        unidentified_instance_name if no translation can be found.
 			 */
-	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
+	std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
 	{
 		if (type_map_.count(type_id) > 0) { return type_map_[type_id]; }
 		return unidentified_instance_name;
@@ -140,8 +151,8 @@ protected:
 /**
 		 * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
 		 */
-template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
-         class FTT = artdaq::detail::DefaultFragmentTypeTranslator>
+template<FragmentTypeMap getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
+         class FTT = artdaq::detail::FragmentTypeTranslator>
 struct SharedMemoryReader
 {
 	/**
@@ -165,6 +176,9 @@ struct SharedMemoryReader
 	bool outputFileCloseNeeded;                                  ///< If an explicit output file close message is needed
 	size_t bytesRead;                                            ///< running total of number of bytes received
 	std::chrono::steady_clock::time_point last_read_time;        ///< Time last read was completed
+
+	unsigned readNext_calls_;  ///< The number of times readNext has been called
+	FTT translator_;
 	//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
 	// std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
 	// Fragments)
@@ -194,6 +208,7 @@ struct SharedMemoryReader
 	    , bytesRead(0)
 	    , last_read_time(std::chrono::steady_clock::now())
 	    , readNext_calls_(0)
+	    , translator_(ps, getDefaultTypes())
 	{
 		// For testing
 		// if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") ||
@@ -242,12 +257,6 @@ struct SharedMemoryReader
 
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 
-		translator_.SetBasicTypes(getDefaultTypes());
-		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
-		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
-		{
-			translator_.AddExtraType(it->first, it->second);
-		}
 		std::set<std::string> instance_names = translator_.GetAllProductInstanceNames();
 		for (const auto& set_iter : instance_names)
 		{
@@ -574,9 +583,6 @@ struct SharedMemoryReader
 		last_read_time = std::chrono::steady_clock::now();
 		return true;
 	}
-
-	unsigned readNext_calls_;  ///< The number of times readNext has been called
-	FTT translator_;
 };  // namespace detail
 }  // namespace detail
 }  // namespace artdaq
