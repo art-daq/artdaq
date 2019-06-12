@@ -95,8 +95,8 @@ namespace artdaq
 						auto part_s = std::string(part);
 						part_u = static_cast<uint32_t>(std::stoll(part_s, 0, 0));
 					}
-					catch (std::invalid_argument) {}
-					catch (std::out_of_range) {}
+					catch (const std::invalid_argument&) {}
+					catch (const std::out_of_range&) {}
 				}
 				partition_number_ = part_u & 0x7F;
 			}
