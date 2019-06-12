@@ -199,7 +199,7 @@ namespace artdaq
 		/// <param name="frags">Ouput fragments</param>
 		void applyRequestsWindowMode(artdaq::PostmarkedFragmentPtrs& frags);
 
-		void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::PostmarkedFragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
+		void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::PostmarkedFragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts, int rank);
 
 		/**
 		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list

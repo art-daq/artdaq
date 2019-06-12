@@ -34,9 +34,12 @@ namespace artdaq
 		 * \brief TokenReceiver Constructor 
 		 * \param ps ParameterSet used to configure TokenReceiver. See artdaq::TokenReceiver::Config
 		 * \param policy RoutingMasterPolicy that manages the received tokens
+		 * \param routing_mode Specifies whether to route by sequence ID or sent count
+		 * \param number_of_senders Number of configured data senders
+		 * \param poll_wait_msec Time (in milliseconds) to spend in each poll call waiting for tokens to arrive
 		 */
 		explicit TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingMasterPolicy> policy,
-		                       detail::RoutingMasterMode routing_mode, size_t number_of_senders, size_t update_interval_msec);
+		                       detail::RoutingMasterMode routing_mode, size_t number_of_senders, size_t poll_wait_msec);
 
 		/**
 		 * \brief TokenReceiver Destructor
@@ -94,7 +97,7 @@ namespace artdaq
 		std::shared_ptr<RoutingMasterPolicy> policy_;
 		detail::RoutingMasterMode routing_mode_;
 		size_t number_of_senders_;
-		size_t update_interval_msec_;
+		size_t poll_wait_msec_;
 
 		int token_socket_;
 		std::vector<epoll_event> receive_token_events_;

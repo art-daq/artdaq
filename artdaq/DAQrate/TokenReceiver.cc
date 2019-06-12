@@ -6,12 +6,12 @@
 #include <arpa/inet.h>
 
 artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingMasterPolicy> policy,
-                                     detail::RoutingMasterMode routing_mode, size_t number_of_senders, size_t update_interval_msec)
+                                     detail::RoutingMasterMode routing_mode, size_t number_of_senders, size_t poll_wait_msec)
 	: token_port_(ps.get<int>("routing_token_port", 35555))
 	, policy_(policy)
 	, routing_mode_(routing_mode)
 	, number_of_senders_(number_of_senders)
-	, update_interval_msec_(update_interval_msec)
+	, poll_wait_msec_(poll_wait_msec)
 	, token_socket_(-1)
 	, token_epoll_fd_(-1)
 	, thread_is_running_(false)
@@ -102,7 +102,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 			return;
 		}
 
-		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), update_interval_msec_);
+		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), poll_wait_msec_);
 		if (nfds == -1)
 		{
 			perror("epoll_wait");

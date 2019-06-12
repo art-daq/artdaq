@@ -836,6 +836,8 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Postm
 	// If no requests remain after sendEmptyFragments, return
 	if (requests.size() == 0 || !requests.count(ev_counter())) return;
 
+	// 12-Jun-2019, KAB: TODO: understand which request RANK should be returned with each fragment
+
 	for (auto& id : dataBuffers_) {
 		if (id.second.DataBuffer.size() > 0)
 		{
@@ -878,6 +880,8 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Postm
 	// If no requests remain after sendEmptyFragments, return
 	if (requests.size() == 0 || !requests.count(ev_counter())) return;
 
+	// 12-Jun-2019, KAB: TODO: understand which request RANK should be returned with each fragment
+
 	for (auto& id : dataBuffers_) {
 
 		TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Buffered Fragments";
@@ -904,7 +908,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Postm
 }
 
 
-void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::PostmarkedFragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts)
+void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::PostmarkedFragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts, int rank)
 {
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Checking that data exists for request window " << seq;
 	Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
@@ -927,7 +931,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillD
 	{
 		TLOG(TLVL_DEBUG) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Creating ContainerFragment for Window-requested Fragments";
 		auto newfrag = std::unique_ptr<artdaq::Fragment>(new artdaq::Fragment(seq, id));
-		std::pair<artdaq::FragmentPtr, int> pm_frag = std::make_pair(std::move(newfrag), artdaq::Fragment::InvalidDestinationRank);
+		std::pair<artdaq::FragmentPtr, int> pm_frag = std::make_pair(std::move(newfrag), rank);
 		frags.emplace_back(std::move(pm_frag));
 		frags.back().first->setTimestamp(ts);
 		ContainerFragmentLoader cfl(*frags.back().first);
@@ -1005,7 +1009,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Postm
 		for (auto& id : dataBuffers_)
 		{
 			if (!id.second.WindowsSent.count(req->first)) {
-				applyRequestsWindowMode_CheckAndFillDataBuffer(frags, id.first, req->first, req->second.timestamp);
+                          applyRequestsWindowMode_CheckAndFillDataBuffer(frags, id.first, req->first, req->second.timestamp, req->second.rank);
 			}
 		}
 		checkSentWindows(req->first);

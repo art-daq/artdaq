@@ -138,6 +138,17 @@ simple_plugin(RootNetOutput "module"
   ${HEP_CONCURRENCY}
 )
 
+simple_plugin(RoutingNetOutput "module"
+  artdaq_ArtModules
+  art_Framework_Services_Registry
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${CETLIB_EXCEPT}
+  ${ROOT_RIO}
+)
+
 simple_plugin(BinaryNetOutput "module"
   artdaq_ArtModules
   art_Framework_Services_Registry

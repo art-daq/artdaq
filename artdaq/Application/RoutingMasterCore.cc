@@ -127,7 +127,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	if (policy_plugin_spec.length() == 0)
 	{
 		TLOG(TLVL_ERROR)
-			<< "No fragment generator (parameter name = \"policy\") was "
+			<< "No policy type (parameter name = \"policy\") was "
 			<< "specified in the policy ParameterSet.  The "
 			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\"." ;
 		return false;

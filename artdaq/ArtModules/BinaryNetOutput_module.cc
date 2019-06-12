@@ -1,4 +1,4 @@
-#define TRACE_NAME "BinaryNetOutput"
+#define TRACE_NAME (app_name + "_BinaryNetOutput").c_str()
 #include "artdaq/DAQdata/Globals.hh"
 
 #include "art/Framework/Core/ModuleMacros.h"

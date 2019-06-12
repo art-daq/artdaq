@@ -86,6 +86,8 @@ public:
 		fhicl::TableFragment<artdaq::HostMap::Config> host_map; ///< Optional host_map configuration (Can also be specified in each DestinationsConfig entry. See artdaq::HostMap::Config
 	    /// enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified, all destinations will be enabled.
 		fhicl::Sequence<size_t> enabled_destinations{ fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destiantion ranks to activate (must be defined in destinations block)"}, std::vector<size_t>() };
+		/// "allow_default_round_robin_routing" (Default: true): Whether to allow default round robin routing if no other routing information is available
+		fhicl::Atom<bool> allow_default_round_robin_routing{ fhicl::Name{"allow_default_round_robin_routing"}, fhicl::Comment{"Allows default round robin routing"}, true };
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -177,6 +179,7 @@ private:
 	bool non_blocking_mode_;
 	size_t send_timeout_us_;
 	size_t send_retry_count_;
+	bool allow_default_round_robin_routing_;
 
 	bool use_routing_master_;
 	detail::RoutingMasterMode routing_master_mode_;

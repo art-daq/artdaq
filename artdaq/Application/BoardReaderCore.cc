@@ -338,7 +338,7 @@ void artdaq::BoardReaderCore::process_fragments()
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
 			TLOG(17) << "process_fragments seq=" << sequence_id << " sendFragment start";
-			auto res = sender_ptr_->sendFragment(std::move(*pmFragPtr.first));
+			auto res = sender_ptr_->sendFragment(std::move(*(pmFragPtr.first)), pmFragPtr.second);
 			if (sender_ptr_->GetSentSequenceIDCount(sequence_id) == targetFragCount)
 			{
 				sender_ptr_->RemoveRoutingTableEntry(sequence_id);

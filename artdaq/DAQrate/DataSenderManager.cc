@@ -23,6 +23,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	, non_blocking_mode_(pset.get<bool>("nonblocking_sends", false))
 	, send_timeout_us_(pset.get<size_t>("send_timeout_usec", 5000000))
 	, send_retry_count_(pset.get<size_t>("send_retry_count", 2))
+	, allow_default_round_robin_routing_(pset.get<bool>("allow_default_round_robin_routing", true))
 	, routing_master_mode_(detail::RoutingMasterMode::INVALID)
 	, should_stop_(false)
 	, ack_socket_(-1)
@@ -406,14 +407,17 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 	}
 	else
 	{
-		auto index = sequence_id % enabled_destinations_.size();
-		auto it = enabled_destinations_.begin();
-		for (; index > 0; --index)
+		if (allow_default_round_robin_routing_)
 		{
-			++it;
-			if (it == enabled_destinations_.end()) it = enabled_destinations_.begin();
+			auto index = sequence_id % enabled_destinations_.size();
+			auto it = enabled_destinations_.begin();
+			for (; index > 0; --index)
+			{
+				++it;
+				if (it == enabled_destinations_.end()) it = enabled_destinations_.begin();
+			}
+			return *it;
 		}
-		return *it;
 	}
 	return NO_RANK_INFO;
 }
