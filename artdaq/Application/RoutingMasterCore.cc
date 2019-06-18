@@ -95,9 +95,11 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	}
 	catch (...)
 	{
-		TLOG(TLVL_ERROR)
-			<< "Unable to find the token_receiver parameters in the DAQ initialization ParameterSet: \"" + daq_pset.to_string() + "\"." ;
-		return false;
+		// 18-Jun-2019, KAB: temporary hack to make testing systems with and without the RM a little easier
+		token_receiver_pset_ = daq_pset;
+		//TLOG(TLVL_ERROR)
+		//	<< "Unable to find the token_receiver parameters in the DAQ initialization ParameterSet: \"" + daq_pset.to_string() + "\"." ;
+		//return false;
 	}
 
 	// pull out the Metric part of the ParameterSet
