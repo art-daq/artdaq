@@ -105,6 +105,15 @@ simple_plugin(MissingDataCheck "module"
   ${CETLIB_EXCEPT}
 )
 
+simple_plugin(FragmentWatcher "module"
+  artdaq_DAQdata
+  artdaq-utilities_Plugins
+  art_Framework_Services_Registry
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+)
 
 simple_plugin(NetMonInput "source"
   artdaq-core_Data
