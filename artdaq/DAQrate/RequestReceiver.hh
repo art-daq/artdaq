@@ -50,7 +50,7 @@ public:
 		 * \brief RequestReceiver Constructor 
 		 * \param ps ParameterSet used to configure RequestReceiver. See artdaq::RequestReceiver::Config
 		 */
-	RequestReceiver(const fhicl::ParameterSet& ps);
+	RequestReceiver(const fhicl::ParameterSet& ps, bool trace_log_only = false);
 	virtual ~RequestReceiver();
 
 	/**
@@ -204,6 +204,7 @@ private:
 	std::atomic<artdaq::Fragment::sequence_id_t> highest_seen_request_;
 	std::set<artdaq::Fragment::sequence_id_t> out_of_order_requests_;
 	artdaq::Fragment::sequence_id_t request_increment_;
+	bool trace_log_only_;
 };
 }  // namespace artdaq
 

@@ -49,9 +49,10 @@ artdaq::RequestReceiver::RequestReceiver()
     , highest_seen_request_(0)
     , out_of_order_requests_()
     , request_increment_(1)
+    , trace_log_only_(false)
 {}
 
-artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
+artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps, bool trace_log_only)
     : request_port_(ps.get<int>("request_port", 3001))
     , request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
     , multicast_out_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
@@ -69,6 +70,7 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
     , highest_seen_request_(0)
     , out_of_order_requests_()
     , request_increment_(ps.get<artdaq::Fragment::sequence_id_t>("request_increment", 1))
+    , trace_log_only_(trace_log_only)
 {
 	setupRequestListener();
 }
@@ -282,15 +284,18 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 				int delta = buffer.sequence_id - highest_seen_request_;
 				TLOG(11) << "Received request for sequence ID " << buffer.sequence_id
 				         << " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
-				if (delta <= 0 || out_of_order_requests_.count(buffer.sequence_id))
+				if (!trace_log_only_)
 				{
-					TLOG(11) << "Already serviced this request ( sequence ID " << buffer.sequence_id << ")! Ignoring...";
-					if (message.getAcknowledge() && buffer.hasRank(my_rank)) anyNew = true;
-				}
-				else
-				{
-					requests_[buffer.sequence_id] = std::make_pair(buffer, std::chrono::steady_clock::now());
-					anyNew = true;
+					if (delta <= 0 || out_of_order_requests_.count(buffer.sequence_id))
+					{
+						TLOG(11) << "Already serviced this request ( sequence ID " << buffer.sequence_id << ")! Ignoring...";
+						if (message.getAcknowledge() && buffer.hasRank(my_rank)) anyNew = true;
+					}
+					else
+					{
+						requests_[buffer.sequence_id] = std::make_pair(buffer, std::chrono::steady_clock::now());
+						anyNew = true;
+					}
 				}
 			}
 		}
