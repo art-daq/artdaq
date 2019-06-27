@@ -327,6 +327,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			auto data_delta_t = TimeUtils::GetElapsedTime(before_body, after_body);
 			auto delta_t = TimeUtils::GetElapsedTime(start_time, after_body);
 			auto dead_t = TimeUtils::GetElapsedTime(end_time, start_time);
+			auto recv_wait_t = hdr_delta_t - latency;
 
 			auto data_size = header.word_count * sizeof(RawDataType);
 			auto header_size = header.num_words() * sizeof(RawDataType);
@@ -353,7 +354,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				metricMan->sendMetric("Avg Shared Memory Wait Time From Rank " + std::to_string(source_rank), store_delta_t, "s", 3, MetricMode::Average);
 				metricMan->sendMetric("Avg Fragment Wait Time From Rank " + std::to_string(source_rank), dead_t, "s", 3, MetricMode::Average);
 
-				metricMan->sendMetric("Fragment Latency at Receive", latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
+				metricMan->sendMetric("Fragment Latency at Receive From Rank " + std::to_string(source_rank), latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
+				metricMan->sendMetric("Header Receive Wait Time From Rank" + std::to_string(source_rank), recv_wait_t, "s", 4, MetricMode::Average | MetricMode::Maximum | MetricMode::Minimum);
 
 				TLOG(6) << "runReceiver_: Done sending receive stats for rank " << source_rank;
 			}
