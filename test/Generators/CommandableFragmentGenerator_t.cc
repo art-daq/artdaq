@@ -1205,6 +1205,7 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 
+	// Test that Fragment with matching Sequence ID and timestamp is returned
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
 	auto type = artdaq::Fragment::FirstUserFragmentType;
@@ -1217,11 +1218,13 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
+	// Test that no Fragment is returned when one does not exist in the buffer
 	t.AddRequest(2, 5);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
 
+	// Test that Fragment with matching Sequence ID and non-matching timestamp is returned
 	gen.setFireCount(1);
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
@@ -1234,6 +1237,7 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
+	// Test out-of-order requests, with non-matching timestamps
 	gen.setFireCount(2);
 	gen.waitForFrags();
 	t.AddRequest(4, 7);
