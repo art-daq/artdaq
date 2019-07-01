@@ -6,26 +6,25 @@
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
 
-#include <limits>
 #include <iterator>
+#include <limits>
 
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 
+#include <sys/poll.h>
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
-#include <iterator>
 #include <iostream>
-#include <iomanip>
-#include <algorithm>
-#include <sys/poll.h>
+#include <iterator>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 #define TLVL_GETNEXT 10
@@ -159,6 +158,10 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	else if (modeString.find("ignore") != std::string::npos || modeString.find("Ignore") != std::string::npos)
 	{
 		mode_ = RequestMode::Ignored;
+	}
+	else if (modeString.find("sequence") != std::string::npos || modeString.find("Sequence") != std::string::npos)
+	{
+		mode_ = RequestMode::SequenceID;
 	}
 	TLOG(TLVL_DEBUG) << "Request mode is " << printMode_();
 
@@ -341,7 +344,7 @@ int artdaq::CommandableFragmentGenerator::fragment_id() const
 
 size_t artdaq::CommandableFragmentGenerator::ev_counter_inc(size_t step, bool force)
 {
-	if (force || mode_ == RequestMode::Ignored)
+	if (force || mode_ == RequestMode::Ignored || mode_ == RequestMode::SequenceID)
 	{
 		TLOG(TLVL_EVCOUNTERINC) << "ev_counter_inc: Incrementing ev_counter from " << ev_counter() << " by " << step;
 		return ev_counter_.fetch_add(step);
@@ -390,7 +393,8 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
-	if (requestReceiver_) {
+	if (requestReceiver_)
+	{
 		TLOG(TLVL_DEBUG) << "Stopping Request reception BEGIN";
 		requestReceiver_->stopRequestReception();
 		TLOG(TLVL_DEBUG) << "Stopping Request reception END";
@@ -486,8 +490,7 @@ void artdaq::CommandableFragmentGenerator::pause()
 #pragma message "Using default implementation of CommandableFragmentGenerator::pause()"
 }
 
-void artdaq::CommandableFragmentGenerator::resume()
-{
+void artdaq::CommandableFragmentGenerator::resume(){
 #pragma message "Using default implementation of CommandableFragmentGenerator::resume()"
 }
 
@@ -519,7 +522,8 @@ void artdaq::CommandableFragmentGenerator::startDataThread()
 {
 	if (dataThread_.joinable()) dataThread_.join();
 	TLOG(TLVL_INFO) << "Starting Data Receiver Thread";
-	try {
+	try
+	{
 		dataThread_ = boost::thread(&CommandableFragmentGenerator::getDataLoop, this);
 	}
 	catch (const boost::exception& e)
@@ -534,7 +538,8 @@ void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 {
 	if (monitoringThread_.joinable()) monitoringThread_.join();
 	TLOG(TLVL_INFO) << "Starting Hardware Monitoring Thread";
-	try {
+	try
+	{
 		monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
 	}
 	catch (const boost::exception& e)
@@ -557,11 +562,12 @@ std::string artdaq::CommandableFragmentGenerator::printMode_()
 		return "Window";
 	case RequestMode::Ignored:
 		return "Ignored";
+		case RequestMode::SequenceID:
+			return "SequenceID";
 	}
 
 	return "ERROR";
 }
-
 
 //
 // The "useDataThread_" thread
@@ -644,6 +650,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			case RequestMode::Buffer:
 			case RequestMode::Ignored:
 			case RequestMode::Window:
+				case RequestMode::SequenceID:
 			default:
 				//dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
 				dataBufferDepthBytes_ += newDataBufferDepthBytes;
@@ -734,7 +741,6 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady()
 				dataBuffer_.erase(dataBuffer_.begin());
 				getDataBufferStats();
 			}
-
 		}
 	}
 	return true;
@@ -766,7 +772,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer()
 	dataCondition_.wait_for(lock, std::chrono::milliseconds(10));
 	if (dataBufferDepthFragments_ > 0)
 	{
-		if ((mode_ == RequestMode::Buffer || mode_ == RequestMode::Window))
+		if ((mode_ == RequestMode::Buffer || mode_ == RequestMode::Window || mode_ == RequestMode::SequenceID))
 		{
 			// Eliminate extra fragments
 			getDataBufferStats();
@@ -925,7 +931,6 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	{
 		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: processing request with sequence ID " << req->first << ", timestamp " << req->second;
 
-
 		while (req->first < ev_counter() && requests.size() > 0)
 		{
 			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: Clearing passed request for sequence ID " << req->first;
@@ -1021,6 +1026,45 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	}
 }
 
+void artdaq::CommandableFragmentGenerator::applyRequestsSequenceIDMode(artdaq::FragmentPtrs& frags)
+{
+	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode BEGIN";
+
+	auto requests = requestReceiver_->GetRequests();
+
+	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode: Starting request processing";
+	for (auto req = requests.begin(); req != requests.end();)
+	{
+		TLOG(TLVL_APPLYREQUESTS) << "applyRequests: Checking that data exists for request SequenceID " << req->first;
+
+		bool fragmentFound = false;
+		for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
+		{
+			auto seq = (*it)->sequenceID();
+			if (seq == req->first)
+			{
+				fragmentFound = true;
+				dataBufferDepthBytes_ -= (*it)->sizeBytes();
+				frags.push_back(std::move(*it));
+				it = dataBuffer_.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+		if (fragmentFound)
+		{
+			requestReceiver_->RemoveRequest(req->first);
+			req = requests.erase(req);
+		}
+		else
+		{
+			++req;
+		}
+	}
+}
+
 bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& frags)
 {
 	if (check_stop() || exception())
@@ -1071,6 +1115,9 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		case RequestMode::Buffer:
 			applyRequestsBufferMode(frags);
 			break;
+			case RequestMode::SequenceID:
+				applyRequestsSequenceIDMode(frags);
+				break;
 		case RequestMode::Ignored:
 		default:
 			applyRequestsIgnoredMode(frags);
@@ -1158,4 +1205,3 @@ void artdaq::CommandableFragmentGenerator::checkOutOfOrderWindows(artdaq::Fragme
 		}
 	}
 }
-

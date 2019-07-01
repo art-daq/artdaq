@@ -35,6 +35,7 @@ namespace artdaq
 		Single,
 		Buffer,
 		Window,
+		SequenceID,
 		Ignored
 	};
 
@@ -134,6 +135,7 @@ namespace artdaq
 			/// Single : The CommandableFragmentGenerator responds to each request with the latest Fragment it has received
 			/// Buffer : The CommandableFragmentGenerator responds to each request with all Fragments it has received since the last request
 			/// Window : The CommandableFragmentGenerator searches its data buffer for all Fragments whose timestamp falls within the request window
+			/// SequenceID:  The CommandableFragmentGenerator responds to each request with all Fragments that match the sequence ID in the request
 			/// </summary>
 			fhicl::Atom<std::string> request_mode                    { fhicl::Name{"request_mode"                     }, fhicl::Comment{"The mode by which the CommandableFragmentGenerator will process reqeusts"}, "ignored" };
 			fhicl::TableFragment<artdaq::RequestReceiver::Config> receiverConfig; ///< Configuration for the Request Receiver. See artdaq::RequestReceiver::Config
@@ -205,6 +207,13 @@ namespace artdaq
 		/// </summary>
 		/// <param name="frags">Ouput fragments</param>
 		void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
+
+	    /// <summary>
+	    /// Create fragments using data buffer for request mode SequenceID.
+	    /// Precondition: dataBufferMutex_ and request_mutex_ are locked
+	    /// </summary>
+	    /// <param name="frags">Ouput fragments</param>
+		void applyRequestsSequenceIDMode(artdaq::FragmentPtrs& frags);
 
 		/**
 		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
