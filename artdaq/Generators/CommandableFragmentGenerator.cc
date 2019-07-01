@@ -1035,14 +1035,16 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSequenceIDMode(artdaq::F
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode: Starting request processing";
 	for (auto req = requests.begin(); req != requests.end();)
 	{
-		TLOG(TLVL_APPLYREQUESTS) << "applyRequests: Checking that data exists for request SequenceID " << req->first;
+		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode: Checking that data exists for request SequenceID " << req->first;
 
 		bool fragmentFound = false;
 		for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
 		{
 			auto seq = (*it)->sequenceID();
+			TLOG(29) << "applyRequestsSequenceIDMode: Fragment SeqID " << seq << ", request ID " << req->first;
 			if (seq == req->first)
 			{
+				TLOG(29) << "applyRequestsSequenceIDMode: Adding Fragment to output";
 				fragmentFound = true;
 				dataBufferDepthBytes_ -= (*it)->sizeBytes();
 				frags.push_back(std::move(*it));
