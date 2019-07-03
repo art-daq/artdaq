@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_05_00
-defaultqual    e15:s67
+parent artdaq  v2019_07_03_protoDFO_pduneHacks
+defaultqual    e15:s64
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -19,9 +19,10 @@ bindir      fq_dir      bin
 product			version		optional
 art             v2_11_05    s73
 art             v2_11_01    s67
+art             v2_10_02    s64
 art_root_io     v1_00_04    s82
-artdaq_core 		v3_04_16
-artdaq_utilities        v1_04_11
+artdaq_core 		v2019_07_03_protoDFO_testing
+artdaq_utilities        v2019_07_03_protoDFO_testing
 xmlrpc_c		v1_51_03
 artdaq_ganglia_plugin   v1_02_14        -       optional
 artdaq_epics_plugin     v1_02_07        -       optional
@@ -53,6 +54,8 @@ e17:s67:debug	e17:debug	-		e17:s67:debug	e17:s67:debug		e17:debug	e17:s67:debug	
 e17:s67:prof	e17:prof 	-		e17:s67:prof	e17:s67:prof		e17:prof	e17:s67:prof		e17:s67:prof		e17:s67:prof		e17:s67:prof
 e15:s67:debug	e15:debug	-		e15:s67:debug	e15:s67:debug		e15:debug	e15:s67:debug		e15:s67:debug		e15:s67:debug		e15:s67:debug
 e15:s67:prof	e15:prof 	-		e15:s67:prof	e15:s67:prof		e15:prof	e15:s67:prof		e15:s67:prof		e15:s67:prof		e15:s67:prof
+e15:s64:debug	e15:debug	-		e15:s64:debug	e15:s64:debug		e15:debug	e15:s64:debug		e15:s64:debug		e15:s64:debug		e15:s64:debug
+e15:s64:prof	e15:prof 	-		e15:s64:prof	e15:s64:prof		e15:prof	e15:s64:prof		e15:s64:prof		e15:s64:prof		e15:s64:prof
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:
