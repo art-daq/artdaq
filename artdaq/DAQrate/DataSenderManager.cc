@@ -15,8 +15,6 @@
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	: destinations_()
-	, destination_metric_data_()
-	, destination_metric_send_time_()
 	, enabled_destinations_()
 	, sent_frag_count_()
 	, broadcast_sends_(pset.get<bool>("broadcast_sends", false))
@@ -82,8 +80,6 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 			auto transfer = MakeTransferPlugin(dests_mod, d, TransferInterface::Role::kSend);
 			auto destination_rank = transfer->destination_rank();
 			destinations_.emplace(destination_rank, std::move(transfer));
-			destination_metric_data_[destination_rank] = std::pair<size_t, double>();
-			destination_metric_send_time_[destination_rank] = std::chrono::steady_clock::now();
 		}
 		catch (const std::invalid_argument&)
 		{
@@ -455,6 +451,8 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	}
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
+	auto latency_s = frag.getLatency(true);
+	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
 	TLOG(13) << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
 		<< ", seqID=" << seqID << ", fragID=" << frag.fragmentID() << ", type=" << frag.typeString();
 	int dest = TransferInterface::RECV_TIMEOUT;
@@ -556,21 +554,16 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	}
 
 	auto delta_t = TimeUtils::GetElapsedTime(start_time);
-	destination_metric_data_[dest].first += fragSize;
-	destination_metric_data_[dest].second += delta_t;
 
-	if (metricMan && TimeUtils::GetElapsedTime(destination_metric_send_time_[dest]) > 1)
+	if (metricMan )
 	{
 		TLOG(5) << "sendFragment: sending metrics";
-		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), destination_metric_data_[dest].second, "s", 5, MetricMode::Accumulate);
-		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), destination_metric_data_[dest].first, "B", 5, MetricMode::Accumulate);
-		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), destination_metric_data_[dest].first / destination_metric_data_[dest].second, "B/s", 5, MetricMode::Average);
+		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 5, MetricMode::Accumulate);
+		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 5, MetricMode::Accumulate);
+		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 5, MetricMode::Average);
 		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::LastPoint);
-
-		destination_metric_send_time_[dest] = std::chrono::steady_clock::now();
-		destination_metric_data_[dest].first = 0;
-		destination_metric_data_[dest].second = 0.0;
-
+		metricMan->sendMetric("Fragment Latency at Send", latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
+		
 		if (use_routing_master_)
 		{
 			metricMan->sendMetric("Routing Table Size", GetRoutingTableEntryCount(), "events", 2, MetricMode::LastPoint);

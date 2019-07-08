@@ -396,6 +396,10 @@ struct SharedMemoryReader
 		}
 		outE = pmaker.makeEventPrincipal(evtHeader->run_id, evtHeader->subrun_id, evtHeader->event_id, currentTime);
 
+		double fragmentLatency = 0;
+		double fragmentLatencyMax = 0.0;
+		size_t fragmentCount = 0;
+
 		// insert the Fragments of each type into the EventPrincipal
 		std::map<Fragment::type_t, std::string>::const_iterator iter_end = fragment_type_map_.end();
 		for (auto& type_code : fragmentTypes)
@@ -405,7 +409,16 @@ struct SharedMemoryReader
 			auto product = incoming_events->GetFragmentsByType(errflag, type_code);
 			TLOG_TRACE("SharedMemoryReader") << "After GetFragmentsByType call";
 			if (errflag) goto start;  // Buffer was changed out from under reader!
-			for (auto& frag : *product) bytesRead += frag.sizeBytes();
+			for (auto& frag : *product)
+			{
+				bytesRead += frag.sizeBytes();
+				auto latency_s = frag.getLatency(true);
+				double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
+
+				fragmentLatency += latency;
+				fragmentCount++;
+				if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
+			}
 			if (iter != iter_end)
 			{
 				if (type_code == artdaq::Fragment::ContainerFragmentType)
@@ -470,6 +483,9 @@ struct SharedMemoryReader
 			if (qcap > 0)
 				metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / qcap), "%", 5,
 				                      MetricMode::LastPoint);
+
+			metricMan->sendMetric("SharedMemoryReader Latency", fragmentLatency / fragmentCount, "s", 4, MetricMode::Average);
+			metricMan->sendMetric("SharedMemoryReader Maximum Latency", fragmentLatencyMax, "s", 4, MetricMode::Maximum);
 		}
 
 		TLOG_TRACE("SharedMemoryReader") << "Returning from readNext";
