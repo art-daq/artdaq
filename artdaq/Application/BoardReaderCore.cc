@@ -277,6 +277,8 @@ void artdaq::BoardReaderCore::process_fragments()
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
 	artdaq::FragmentPtrs frags;
+	auto targetFragCount = generator_ptr_->fragmentIDs().size();
+
 	bool active = true;
 
 	while (active)
@@ -337,6 +339,10 @@ void artdaq::BoardReaderCore::process_fragments()
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
 			TLOG(17) << "process_fragments seq=" << sequence_id << " sendFragment start";
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
+			if (sender_ptr_->GetSentSequenceIDCount(sequence_id) == targetFragCount)
+			{
+				sender_ptr_->RemoveRoutingTableEntry(sequence_id);
+			}
 			TLOG(17) << "process_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
