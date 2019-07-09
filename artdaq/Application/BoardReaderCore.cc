@@ -1,6 +1,6 @@
 
-#define TRACE_NAME (app_name + "_BoardReaderCore").c_str() // include these 2 first -
-#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/Globals.hh" // include these 2 first -
+#define TRACE_NAME (app_name + "_BoardReaderCore").c_str()
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq-core/Data/Fragment.hh"

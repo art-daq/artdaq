@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_DataSenderManager").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_DataSenderManager").c_str()
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
