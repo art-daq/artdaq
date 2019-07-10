@@ -93,7 +93,7 @@ int main(int argc, char * argv[]) try
 	artdaq::FragmentPtrs frags;
 	//////////////////////////////////////////////////////////////////////
 	// Note: we are constrained to doing all this here rather than
-	// encapsulated neatly in a function due to the lieftime issues
+	// encapsulated neatly in a function due to the lifetime issues
 	// associated with async threads and std::string::c_str().
 	fhicl::ParameterSet event_builder_pset = pset.get<fhicl::ParameterSet>("event_builder");
 	fhicl::ParameterSet art_pset = pset.get<fhicl::ParameterSet>("art", pset);
