@@ -1721,7 +1721,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0)
+ 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
