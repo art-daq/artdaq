@@ -108,6 +108,7 @@ simple_plugin(MissingDataCheck "module"
 simple_plugin(FragmentWatcher "module"
   artdaq_DAQdata
   artdaq-utilities_Plugins
+  artdaq-core_Utilities
   art_Framework_Services_Registry
   art_Utilities
   MF_MessageLogger
