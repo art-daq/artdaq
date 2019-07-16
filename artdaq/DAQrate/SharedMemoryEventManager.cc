@@ -1,10 +1,10 @@
 
-#define TRACE_NAME (app_name + "_SharedMemoryEventManager").c_str()
-
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include <sys/wait.h>
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Utilities/TraceLock.hh"
+
+#define TRACE_NAME (app_name + "_SharedMemoryEventManager").c_str()
 
 #define TLVL_BUFFER 40
 #define TLVL_BUFLCK 41
