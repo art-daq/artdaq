@@ -348,7 +348,7 @@ void artdaq::BoardReaderCore::process_fragments()
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 				artdaq::MonitoredQuantity::getCurrentTime() - startTime);
 
-			bool readyToReport = statsHelper_.readyToReport(fragment_count_);
+			bool readyToReport = statsHelper_.readyToReport();
 			if (readyToReport)
 			{
 				std::string statString = buildStatisticsString_();

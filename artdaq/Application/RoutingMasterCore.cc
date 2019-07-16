@@ -224,7 +224,7 @@ bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 
 bool artdaq::RoutingMasterCore::shutdown(uint64_t)
 {
-	shutdown_requested_.store(true);
+    shutdown_requested_.store(true);
 	token_receiver_->stopTokenReception();
 	policy_.reset();
 	metricMan->shutdown();
@@ -300,7 +300,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 				statsHelperPtr_->addSample(TABLE_UPDATES_STAT_KEY, delta_time);
 				TLOG(16) << "process_fragments TABLE_UPDATES_STAT_KEY=" << delta_time ;
 
-				bool readyToReport = statsHelperPtr_->readyToReport(0);
+				bool readyToReport = statsHelperPtr_->readyToReport();
 				if (readyToReport)
 				{
 					std::string statString = buildStatisticsString_();
