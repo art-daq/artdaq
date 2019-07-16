@@ -1,9 +1,9 @@
-#define TRACE_NAME "TransferWrapper"
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME "TransferWrapper"
 
-#include "artdaq/ArtModules/detail/TransferWrapper.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/ArtModules/detail/TransferWrapper.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
@@ -21,7 +21,7 @@
 #include <string>
 
 namespace {
-	volatile std::sig_atomic_t gSignalStatus = 0; ///< Stores singal from signal handler
+volatile std::sig_atomic_t gSignalStatus = 0;  ///< Stores singal from signal handler
 }
 
 /**
@@ -38,29 +38,37 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , transfer_(nullptr)
     , commander_(nullptr)
     , pset_(pset)
-	, dispatcherHost_(pset.get<std::string>("dispatcherHost", "localhost"))
-	, dispatcherPort_(pset.get<std::string>("dispatcherPort", "5266"))
-	, serverUrl_(pset.get<std::string>("server_url", "http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2"))
-	, maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
-	, allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", { 226, 227, 229 }))
-	, quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
+    , dispatcherHost_(pset.get<std::string>("dispatcherHost", "localhost"))
+    , dispatcherPort_(pset.get<std::string>("dispatcherPort", "5266"))
+    , serverUrl_(pset.get<std::string>("server_url", "http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2"))
+    , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
+    , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
+    , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
     , multi_run_mode_(pset.get<bool>("allowMultipleRuns", false))
-	, monitorRegistered_(false)
+    , monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
 
 	try
 	{
 		if (metricMan)
-	{
+		{
 			metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), "Online Monitor");
 			metricMan->do_start();
 		}
 	}
 	catch (...)
 	{
-		ExceptionHandler(ExceptionHandlerRethrow::no,			"TransferWrapper: could not configure metrics");
+		ExceptionHandler(ExceptionHandlerRethrow::no, "TransferWrapper: could not configure metrics");
 	}
+
+	fhicl::ParameterSet new_pset(pset);
+	if (!new_pset.has_key("server_url"))
+	{
+		new_pset.put<std::string>("server_url", serverUrl_);
+	}
+	artdaq::Commandable c;
+	commander_ = MakeCommanderPlugin(new_pset, c);
 
 	registerMonitor();
 }
@@ -74,15 +82,37 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 
 	while (true && !gSignalStatus)
 	{
+		receivedFragment = false;
 		fragmentPtr = std::make_unique<artdaq::Fragment>();
+		auto start_wait = std::chrono::steady_clock::now();
 
 		while (!receivedFragment)
 		{
 			if (gSignalStatus)
 			{
-				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit" ;
+				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 				unregisterMonitor();
 				return;
+			}
+
+			if (TimeUtils::GetElapsedTime(start_wait) > 5)
+			{
+				auto sts = commander_->send_status();
+				TLOG(TLVL_DEBUG) << "Dispatcher status is " << sts;
+				if (sts != "Ready" && sts != "Running" && sts != "busy")
+				{
+					if (monitorRegistered_)
+					{
+						monitorRegistered_ = false;
+						initialized = false;
+					}
+					continue;
+				}
+				else if (!monitorRegistered_)
+				{
+					registerMonitor();
+				}
+				start_wait = std::chrono::steady_clock::now();
 			}
 
 			try
@@ -101,28 +131,29 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 					if (mod == 2) suffix = "-nd";
 					if (mod == 3) suffix = "-rd";
 					TLOG(TLVL_INFO) << "Received " << cntr << suffix << " event, "
-						<< "seqID == " << fragmentPtr->sequenceID()
-						<< ", type == " << fragmentPtr->typeString() ;
+					                << "seqID == " << fragmentPtr->sequenceID()
+					                << ", type == " << fragmentPtr->typeString();
 					continue;
 				}
 				else if (result == artdaq::TransferInterface::DATA_END)
 				{
 					TLOG(TLVL_ERROR) << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
 					unregisterMonitor();
-					return;
+					initialized = false;
+					continue;
 				}
 				else
 				{
 					// 02-Jun-2018, KAB: added status/result printout
 					// to-do: add another else clause that explicitly checks for RECV_TIMEOUT
 					TLOG(TLVL_WARNING) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again"
-							   << ", status = " << result;
+					                   << ", status = " << result;
 				}
 			}
 			catch (...)
 			{
 				ExceptionHandler(ExceptionHandlerRethrow::yes,
-								 "Problem receiving data in TransferWrapper::receiveMessage");
+				                 "Problem receiving data in TransferWrapper::receiveMessage");
 			}
 		}
 
@@ -132,7 +163,16 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			//{
 			//	unregisterMonitor();
 			//}
-			return;
+			if (multi_run_mode_)
+			{
+				unregisterMonitor();
+				initialized = false;
+				continue;
+			}
+			else
+			{
+				return;
+			}
 		}
 
 		try
@@ -141,8 +181,8 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 		}
 		catch (...)
 		{
-			ExceptionHandler(ExceptionHandlerRethrow::yes,
-							 "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
+			ExceptionHandler(quitOnFragmentIntegrityProblem_ ? ExceptionHandlerRethrow::yes : ExceptionHandlerRethrow::no,
+			                 "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
 		}
 
 		checkIntegrity(*fragmentPtr);
@@ -165,10 +205,10 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 }
 
 void artdaq::TransferWrapper::extractTBufferFile(const artdaq::Fragment& fragment,
-											std::unique_ptr<TBufferFile>& tbuffer)
+                                                 std::unique_ptr<TBufferFile>& tbuffer)
 {
 	const artdaq::NetMonHeader* header = fragment.metadata<artdaq::NetMonHeader>();
-	char* buffer = (char *)malloc(header->data_length);
+	char* buffer = (char*)malloc(header->data_length);
 	memcpy(buffer, fragment.dataBeginBytes(), header->data_length);
 
 	// TBufferFile takes ownership of the contents of memory passed to it
@@ -178,7 +218,7 @@ void artdaq::TransferWrapper::extractTBufferFile(const artdaq::Fragment& fragmen
 void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 {
 	const size_t artdaqheader = artdaq::detail::RawFragmentHeader::num_words() *
-		sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
+	                            sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
 	const size_t payload = static_cast<size_t>(fragment.dataEndBytes() - fragment.dataBeginBytes());
 	const size_t metadata = sizeof(artdaq::NetMonHeader);
 	const size_t totalsize = fragment.sizeBytes();
@@ -191,7 +231,7 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 		errmsg << "Error: artdaq fragment of type " << fragment.typeString() << ", sequence ID " << fragment.sequenceID() << " has internally inconsistent measures of its size, signalling data corruption: in bytes,"
 		       << " total size = " << totalsize << ", artdaq fragment header = " << artdaqheader << ", metadata = " << metadata << ", payload = " << payload;
 
-		TLOG(TLVL_ERROR) << errmsg.str() ;
+		TLOG(TLVL_ERROR) << errmsg.str();
 
 		if (quitOnFragmentIntegrityProblem_)
 		{
@@ -209,9 +249,9 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 	{
 		std::stringstream errmsg;
 		errmsg << "Error: artdaq fragment appears to have type "
-			<< type << ", not found in the allowed fragment types list";
+		       << type << ", not found in the allowed fragment types list";
 
-		TLOG(TLVL_ERROR) << errmsg.str() ;
+		TLOG(TLVL_ERROR) << errmsg.str();
 		if (quitOnFragmentIntegrityProblem_)
 		{
 			throw cet::exception("TransferWrapper") << errmsg.str();
@@ -236,16 +276,22 @@ void artdaq::TransferWrapper::registerMonitor()
 		                 "TransferWrapper: failure in call to MakeTransferPlugin");
 	}
 
-	fhicl::ParameterSet new_pset(pset_);
-	if (!new_pset.has_key("server_url"))
+	auto start = std::chrono::steady_clock::now();
+	auto sts = commander_->send_status();
+	while (sts != "Running")
 	{
-		new_pset.put<std::string>("server_url", serverUrl_);
+		if (gSignalStatus)
+		{
+			TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
+			return;
+		}
+		TLOG(TLVL_INFO) << "Waited " << TimeUtils::GetElapsedTime(start) << " s for Dispatcher to enter the Running state";
+		sleep(1);
+		sts = commander_->send_status();
 	}
 
 	auto dispatcherConfig = pset_.get<fhicl::ParameterSet>("dispatcher_config");
-	artdaq::Commandable c;
-	commander_.reset(nullptr);
-	commander_ = MakeCommanderPlugin(new_pset, c);
+
 	int retry = 3;
 
 	while (retry > 0)
@@ -275,33 +321,42 @@ void artdaq::TransferWrapper::unregisterMonitor()
 {
 	if (!monitorRegistered_)
 	{
-		throw cet::exception("TransferWrapper") << "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
+		TLOG(TLVL_WARNING) << "The function to unregister the monitor was called, but the monitor doesn't appear to be registered";
+		return;
+	}
+
+	auto sts = commander_->send_status();
+	if (sts != "Running" && sts != "Ready")
+	{
+		TLOG(TLVL_WARNING) << "The Dispatcher is not in the Running or Ready state, will not attempt to unregister";
+		return;
 	}
 
 	int retry = 3;
 	while (retry > 0)
 	{
 		TLOG(TLVL_INFO) << "Requesting that this monitor (" << transfer_->uniqueLabel()
-			<< ") be unregistered from the dispatcher aggregator";
+		                << ") be unregistered from the dispatcher aggregator";
 
 		auto status = commander_->send_unregister_monitor(transfer_->uniqueLabel());
 
-		TLOG(TLVL_INFO) << "Response from dispatcher is \""
-			<< status << "\"";
+		TLOG(TLVL_INFO) << "Response from dispatcher is \"" << status << "\"";
 
 		if (status == "Success")
 		{
-			monitorRegistered_ = false;
 			break;
 		}
 		else if (status == "busy")
-		{ }
+		{}
 		else
 		{
-			throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to unregister with dispatcher did not result in the \"Success\" response";
+			TLOG(TLVL_WARNING) << "The Dispatcher returned status " << status << " when attempting to unregister this monitor!";
+			//throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to unregister with dispatcher did not result in the \"Success\" response";
 		}
 		retry--;
+		usleep(500000);
 	}
+	monitorRegistered_ = false;
 }
 
 artdaq::TransferWrapper::~TransferWrapper()
@@ -315,7 +370,7 @@ artdaq::TransferWrapper::~TransferWrapper()
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
+			                 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
 		}
 	}
 	artdaq::Globals::CleanUpGlobals();
