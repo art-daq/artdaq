@@ -43,6 +43,8 @@ public:
 		fhicl::Atom<int> table_port{ fhicl::Name{ "table_update_port"}, fhicl::Comment{ "Port that table updates should arrive on" },35556 };
 		///   "table_update_address" (Default: "227.128.12.28"): Address that table updates should arrive on
 		fhicl::Atom<std::string> table_address{ fhicl::Name{ "table_update_address"}, fhicl::Comment{ "Address that table updates should arrive on" }, "227.128.12.28" };
+		///   "table_update_multicast_interface" (Default: "localhost"): Network interface that table updates should arrive on
+		fhicl::Atom<std::string> table_multicast_interface{ fhicl::Name{ "table_update_multicast_interface"}, fhicl::Comment{ "Network interface that table updates should arrive on" }, "localhost" };
 		///   "table_acknowledge_port" (Default: 35557): Port that acknowledgements should be sent to
 		fhicl::Atom<int> ack_port{ fhicl::Name{ "table_acknowledge_port" },fhicl::Comment{ "Port that acknowledgements should be sent to" },35557 };
 		///   "routing_master_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
@@ -178,6 +180,7 @@ private:
 	std::atomic<bool> should_stop_;
 	int table_port_;
 	std::string table_address_;
+	std::string table_multicast_interface_;
 	int ack_port_;
 	std::string ack_address_;
 	struct sockaddr_in ack_addr_;

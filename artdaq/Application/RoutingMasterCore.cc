@@ -162,7 +162,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
 	receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port", 35557);
 	send_tables_address_ = daq_pset.get<std::string>("table_update_address", "227.128.12.28");
-	receive_address_ = daq_pset.get<std::string>("routing_master_hostname", "localhost");
+	multicast_out_hostname_ = daq_pset.get<std::string>("routing_master_hostname", "localhost");
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelperPtr_->createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
@@ -353,11 +353,11 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		}
 
 		auto yes = 1;
-		if (receive_address_ != "localhost")
+		if (multicast_out_hostname_ != "localhost")
 		{
-			TLOG(TLVL_DEBUG) << "Making sure that multicast sending uses the correct interface for hostname " << receive_address_ ;
+			TLOG(TLVL_DEBUG) << "Making sure that multicast sending uses the correct interface for hostname " << multicast_out_hostname_ ;
 			struct in_addr addr;
-			sts = ResolveHost(receive_address_.c_str(), addr);
+			sts = ResolveHost(multicast_out_hostname_.c_str(), addr);
 			if (sts == -1)
 			{
 				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to resolve routing_master_address" << std::endl;;
@@ -457,7 +457,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		memcpy(&buffer[0], &header, sizeof(detail::RoutingPacketHeader));
 		memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
 
-		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ ;
+		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << ", outgoing interface " << multicast_out_hostname_;
 		TRACE(16,"headerData:0x%016lx%016lx packetData:0x%016lx%016lx"
 		      ,((unsigned long*)&header)[0],((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0],((unsigned long*)&packet[0])[1] );
 		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr *>(&send_tables_addr_), sizeof(send_tables_addr_));
@@ -485,7 +485,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				}
 				else
 				{
-					TLOG(TLVL_WARNING) << "Did not receive acks from all senders within the timeout (" << table_ack_wait_time_ms << " ms). Resending table update" ;
+				TLOG(TLVL_WARNING) << "Did not receive acks from all senders within the timeout (" << table_ack_wait_time_ms << " ms). Resending table update" ;
 				}
 
 				if (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) {return !p.second; }) <= 3)
