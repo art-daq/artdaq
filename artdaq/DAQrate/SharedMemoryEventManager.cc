@@ -1114,6 +1114,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 	for (auto buf : sorted_buffers)
 	{
 		auto hdr = getEventHeader_(buf);
+		auto thisEventSize = BufferDataSize(buf);
 
 		TLOG(TLVL_DEBUG) << "Releasing event " << std::to_string(hdr->sequence_id) << " in buffer " << buf << " to art, "
 			<< "event_size=" << thisEventSize << ", buffer_size=" << BufferSize();
