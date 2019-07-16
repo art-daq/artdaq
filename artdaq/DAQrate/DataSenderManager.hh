@@ -150,6 +150,9 @@ public:
 	 */
 	void StopSender() { should_stop_ = true; }
 
+	void RemoveRoutingTableEntry(Fragment::sequence_id_t seq);
+	size_t GetSentSequenceIDCount(Fragment::sequence_id_t seq);
+
 private:
 
 	// Calculate where the fragment with this sequenceID should go.
@@ -163,8 +166,6 @@ private:
 private:
 
 	std::map<int, std::unique_ptr<artdaq::TransferInterface>> destinations_;
-	std::unordered_map<int, std::pair<size_t, double>> destination_metric_data_;
-	std::unordered_map<int, std::chrono::steady_clock::time_point> destination_metric_send_time_;
 	std::set<int> enabled_destinations_;
 
 	detail::FragCounter sent_frag_count_;
@@ -186,6 +187,7 @@ private:
 	int ack_socket_;
 	int table_socket_;
 	std::map<Fragment::sequence_id_t, int> routing_table_;
+	std::map<Fragment::sequence_id_t, size_t> sent_sequence_id_count_;
 	Fragment::sequence_id_t routing_table_last_;
 	size_t routing_table_max_size_;
 	mutable std::mutex routing_mutex_;

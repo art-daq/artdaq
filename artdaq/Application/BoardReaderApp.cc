@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()
 #include "artdaq/Application/BoardReaderApp.hh"
 
 artdaq::BoardReaderApp::BoardReaderApp()

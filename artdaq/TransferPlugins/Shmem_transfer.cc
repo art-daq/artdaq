@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_ShmemTransfer").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_ShmemTransfer").c_str()
 
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
 #include "cetlib_except/exception.h"
