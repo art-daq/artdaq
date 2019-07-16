@@ -79,17 +79,20 @@ namespace artdaq
 
 		void checkIntegrity(const artdaq::Fragment&) const;
 
+		void registerMonitor();
 		void unregisterMonitor();
 
 		std::size_t timeoutInUsecs_;
 		std::unique_ptr<TransferInterface> transfer_;
 		std::unique_ptr<CommanderInterface> commander_;
+	    const fhicl::ParameterSet pset_;
 		const std::string dispatcherHost_;
 		const std::string dispatcherPort_;
 		const std::string serverUrl_;
 		const std::size_t maxEventsBeforeInit_;
 		const std::vector<int> allowedFragmentTypes_;
 		const bool quitOnFragmentIntegrityProblem_;
+	    const bool multi_run_mode_;
 		bool monitorRegistered_;
 	};
 }
