@@ -346,11 +346,18 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 
 				if (last > routing_table_last_) routing_table_last_ = last;
 
+				if (my_rank < static_cast<int>(8*sizeof(hdr.already_acknowledged_ranks)) && hdr.already_acknowledged_ranks.test(my_rank))
+				{
+					TLOG(TLVL_DEBUG) << __func__ << ": Skipping RoutingAckPacket since this Routing Table Update has already been acknowledged (my_rank = " << my_rank << ")";
+				}
+				else
+				{
 				TLOG(TLVL_DEBUG) << __func__ << ": Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 			}
 		}
 	}
+}
 }
 
 size_t artdaq::DataSenderManager::GetRoutingTableEntryCount() const
