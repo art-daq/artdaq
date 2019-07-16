@@ -300,7 +300,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 				statsHelperPtr_->addSample(TABLE_UPDATES_STAT_KEY, delta_time);
 				TLOG(16) << "process_fragments TABLE_UPDATES_STAT_KEY=" << delta_time ;
 
-				bool readyToReport = statsHelperPtr_->readyToReport(0);
+				bool readyToReport = statsHelperPtr_->readyToReport();
 				if (readyToReport)
 				{
 					std::string statString = buildStatisticsString_();
