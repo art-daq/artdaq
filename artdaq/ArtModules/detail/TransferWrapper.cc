@@ -44,6 +44,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
     , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
     , runningStateTimeout_(pset.get<double>("dispatcherConnectTimeout", 0))
+    , runningStateInterval_us_(pset.get<size_t>("dispatcherConnectRetryInterval_us", 1000000))
     , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
     , multi_run_mode_(pset.get<bool>("allowMultipleRuns", false))
     , monitorRegistered_(false)
@@ -61,6 +62,18 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no, "TransferWrapper: could not configure metrics");
+	}
+
+	// Clamp possible values
+	if (runningStateInterval_us_ < 1000)
+	{
+		TLOG(TLVL_WARNING) << "Invalid value " << runningStateInterval_us_ << " us detected for dispatcherConnectRetryInterval_us. Setting to 1000 us";
+		runningStateInterval_us_ = 1000;
+	}
+	if (runningStateInterval_us_ > 30000000)
+	{
+		TLOG(TLVL_WARNING) << "Invalid value " << runningStateInterval_us_ << " us detected for dispatcherConnectRetryInterval_us. Setting to 30,000,000 us";
+		runningStateInterval_us_ = 30000000;
 	}
 
 	fhicl::ParameterSet new_pset(pset);
@@ -260,7 +273,7 @@ void artdaq::TransferWrapper::registerMonitor()
 	}
 
 	auto start = std::chrono::steady_clock::now();
-	auto sts = commander_->send_status();
+	auto sts = getDispatcherStatus();
 	while (sts != "Running" && (runningStateTimeout_ == 0 || TimeUtils::GetElapsedTime(start) < runningStateTimeout_))
 	{
 		TLOG(TLVL_DEBUG) << "Dispatcher state: " << sts;
@@ -270,8 +283,8 @@ void artdaq::TransferWrapper::registerMonitor()
 			return;
 		}
 		TLOG(TLVL_INFO) << "Waited " << std::fixed << std::setprecision(2) << TimeUtils::GetElapsedTime(start) << " s / " << runningStateTimeout_ << " s for Dispatcher to enter the Running state";
-		usleep(250000);
-		sts = commander_->send_status();
+		usleep(runningStateInterval_us_);
+		sts = getDispatcherStatus();
 	}
 	if (sts != "Running") return;
 
@@ -310,7 +323,10 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		return;
 	}
 
-	auto sts = commander_->send_status();
+	std::string sts = getDispatcherStatus();
+
+	if (sts == "") return;
+
 	if (sts != "Running" && sts != "Ready")
 	{
 		TLOG(TLVL_WARNING) << "The Dispatcher is not in the Running or Ready state, will not attempt to unregister";
@@ -342,6 +358,19 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		usleep(500000);
 	}
 	monitorRegistered_ = false;
+}
+
+std::string artdaq::TransferWrapper::getDispatcherStatus()
+{
+	try
+	{
+		return commander_->send_status();
+	}
+	catch (std::exception ex)
+	{
+		TLOG(TLVL_WARNING) << "An exception was thrown trying to collect the Dispatcher's status. Most likely cause is the application is no longer running.";
+		return "";
+	}
 }
 
 artdaq::TransferWrapper::~TransferWrapper()
