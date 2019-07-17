@@ -24,10 +24,10 @@ art_root_io     v1_00_04    s82
 artdaq_core 		v2019_07_17_protoDFO_testing
 artdaq_utilities        v2019_07_03_protoDFO_testing
 xmlrpc_c		v1_51_03
-#artdaq_ganglia_plugin   v1_02_14        -       optional
-#artdaq_epics_plugin     v1_02_07        -       optional
-#artdaq_pcp_mmv_plugin   v1_00_00        -       optional
-#artdaq_mfextensions     v1_03_04        -       optional
+artdaq_ganglia_plugin   v1_02_14        -       optional
+artdaq_epics_plugin     v1_02_07        -       optional
+artdaq_pcp_mmv_plugin   v1_00_00        -       optional
+artdaq_mfextensions     v1_03_04        -       optional
 cetbuildtools		v7_12_01	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
