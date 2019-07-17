@@ -46,7 +46,9 @@ namespace artdaq
 		 * "dispatcherPort" (REQUIRED): The port that the Dispatcher Aggregator is running on
 		 * "maxEventsBeforeInit" (Default: 5): How many non-Init events to receive before raising an error
 		 * "allowedFragmentTypes" (Default: [226,227,229]): The Fragment type codes for expected Fragments
+		 * "dispatcherConnectTimeout" (Default: 0): Maximum amount of time (in seconds) to wait for the Dispatcher to reach the Running state. 0 to wait forever
 		 * "quitOnFragmentIntegrityProblem" (Default: true): If there is an inconsistency in the received Fragment, throw an exception and quit when true
+		 * "allowMultipleRuns" (Default: false): If true, will ignore EndOfData message and reconnect to the Dispatcher once the next run starts
 		 * "debugLevel" (Default: 0): Enables some additional messages
 		 * "transfer_plugin" (REQUIRED): Name of the TransferInterface plugin to load
 		 * 
@@ -91,6 +93,7 @@ namespace artdaq
 		const std::string serverUrl_;
 		const std::size_t maxEventsBeforeInit_;
 		const std::vector<int> allowedFragmentTypes_;
+	    const double runningStateTimeout_;
 		const bool quitOnFragmentIntegrityProblem_;
 	    const bool multi_run_mode_;
 		bool monitorRegistered_;

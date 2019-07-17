@@ -43,6 +43,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , serverUrl_(pset.get<std::string>("server_url", "http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2"))
     , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
     , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
+    , runningStateTimeout_(pset.get<double>("dispatcherConnectTimeout", 0))
     , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
     , multi_run_mode_(pset.get<bool>("allowMultipleRuns", false))
     , monitorRegistered_(false)
@@ -69,8 +70,6 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
 	}
 	artdaq::Commandable c;
 	commander_ = MakeCommanderPlugin(new_pset, c);
-
-	registerMonitor();
 }
 
 void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
@@ -84,7 +83,6 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 	{
 		receivedFragment = false;
 		fragmentPtr = std::make_unique<artdaq::Fragment>();
-		auto start_wait = std::chrono::steady_clock::now();
 
 		while (!receivedFragment)
 		{
@@ -94,25 +92,10 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 				unregisterMonitor();
 				return;
 			}
-
-			if (TimeUtils::GetElapsedTime(start_wait) > 5)
+			if (!monitorRegistered_)
 			{
-				auto sts = commander_->send_status();
-				TLOG(TLVL_DEBUG) << "Dispatcher status is " << sts;
-				if (sts != "Ready" && sts != "Running" && sts != "busy")
-				{
-					if (monitorRegistered_)
-					{
-						monitorRegistered_ = false;
-						initialized = false;
-					}
-					continue;
-				}
-				else if (!monitorRegistered_)
-				{
-					registerMonitor();
-				}
-				start_wait = std::chrono::steady_clock::now();
+				registerMonitor();
+				if (!monitorRegistered_) return;
 			}
 
 			try
@@ -278,17 +261,19 @@ void artdaq::TransferWrapper::registerMonitor()
 
 	auto start = std::chrono::steady_clock::now();
 	auto sts = commander_->send_status();
-	while (sts != "Running")
+	while (sts != "Running" && (runningStateTimeout_ == 0 || TimeUtils::GetElapsedTime(start) < runningStateTimeout_))
 	{
+		TLOG(TLVL_DEBUG) << "Dispatcher state: " << sts;
 		if (gSignalStatus)
 		{
 			TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 			return;
 		}
-		TLOG(TLVL_INFO) << "Waited " << TimeUtils::GetElapsedTime(start) << " s for Dispatcher to enter the Running state";
-		sleep(1);
+		TLOG(TLVL_INFO) << "Waited " << std::fixed << std::setprecision(2) << TimeUtils::GetElapsedTime(start) << " s / " << runningStateTimeout_ << " s for Dispatcher to enter the Running state";
+		usleep(250000);
 		sts = commander_->send_status();
 	}
+	if (sts != "Running") return;
 
 	auto dispatcherConfig = pset_.get<fhicl::ParameterSet>("dispatcher_config");
 
