@@ -33,7 +33,6 @@ art_make( BASENAME_ONLY
   ${ROOT_IO_TFILE}
   art_Framework_IO
   art_Framework_Principal
-  artdaq_ArtModules_NetMonTransportService_service
   art_Persistency_Provenance
   #  art_Persistency_RootDB
   canvas
@@ -120,7 +119,6 @@ simple_plugin(FragmentWatcher "module"
 simple_plugin(NetMonInput "source"
   artdaq-core_Data
   artdaq-core_Data_dict
-  artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
   artdaq-core_Utilities
   art_Framework_Core
@@ -151,7 +149,6 @@ simple_plugin(RootNetOutput "module"
 
 simple_plugin(BinaryNetOutput "module"
   artdaq_ArtModules
-  art_Framework_Services_Registry
   art_Utilities
   MF_MessageLogger
   fhiclcpp
@@ -163,25 +160,12 @@ simple_plugin(BinaryNetOutput "module"
 simple_plugin(BinaryFileOutput "module"
   artdaq_ArtModules
   art_Framework_IO
-  art_Framework_Services_Registry
   art_Utilities
   MF_MessageLogger
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}
   ${ROOT_RIO}
-)
-
-simple_plugin(NetMonTransportService "service"
-  artdaq-core_Data
-  artdaq-core_Data_dict
-  artdaq_DAQrate
-  art_Framework_Services_Registry
-  MF_MessageLogger
-  fhiclcpp
-  ${ROOT_RIO}
-  ${ROOT_NET}
-  ${ROOT_CORE}
 )
 
 simple_plugin(ArtdaqBuildInfo "module"

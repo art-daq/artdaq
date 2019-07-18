@@ -41,22 +41,23 @@ protected:
 	/// <param name="messageType">Type of message</param>
 	/// <param name="msg">Contents of message</param>
 	virtual void SendMessage(artdaq::Fragment::sequence_id_t sequence_id, artdaq::Fragment::type_t messageType, TBufferFile& msg);
+
+	std::unique_ptr<NetMonTransportService> transport_;
 };
 
 art::RootNetOutput::RootNetOutput(fhicl::ParameterSet const& ps)
-    : ArtdaqOutput(ps)
+    : ArtdaqOutput(ps), transport_(new NetMonTransportService(ps))
 {
 	TLOG(TLVL_DEBUG) << "Begin: RootNetOutput::RootNetOutput(ParameterSet const& ps)";
-	ServiceHandle<NetMonTransportService> transport;
-	transport->connect();
+	transport_->connect();
 	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::RootNetOutput(ParameterSet const& ps)";
 }
 
 art::RootNetOutput::~RootNetOutput()
 {
 	TLOG(TLVL_DEBUG) << "Begin: RootNetOutput::~RootNetOutput()";
-	ServiceHandle<NetMonTransportService> transport;
-	transport->disconnect();
+	transport_->disconnect();
+	transport_.reset(nullptr);
 	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::~RootNetOutput()";
 }
 
@@ -66,15 +67,14 @@ void art::RootNetOutput::SendMessage(artdaq::Fragment::sequence_id_t sequence_id
 	//  Send message.
 	//
 	{
-		ServiceHandle<NetMonTransportService> transport;
-		if (!transport.get())
+		if (!transport_.get())
 		{
 			TLOG(TLVL_ERROR) << "Could not get handle to NetMonTransportService!";
 			return;
 		}
 		TLOG(TLVL_WRITE) << "RootNetOutput::SendMessage Sending a message with type code "
 		                 << artdaq::detail::RawFragmentHeader::SystemTypeToString(messageType);
-		transport->sendMessage(sequence_id, messageType, msg);
+		transport_->sendMessage(sequence_id, messageType, msg);
 		TLOG(TLVL_WRITE) << "RootNetOutput::SendMessage: Message sent.";
 	}
 }

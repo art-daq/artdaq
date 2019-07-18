@@ -1,8 +1,6 @@
 #ifndef artdaq_ArtModules_NetMonTransportService_h
 #define artdaq_ArtModules_NetMonTransportService_h
 
-#include "art/Framework/Services/Registry/ServiceMacros.h"
-
 #include "artdaq/ArtModules/NetMonTransportServiceInterface.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
@@ -44,7 +42,7 @@ public:
 	 * \brief NetMonTransportService Constructor
 	 * \param pset ParameterSet used to configure NetMonTransportService and DataSenderManager. See NetMonTransportService::Config
 	 */
-	NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&);
+	NetMonTransportService(fhicl::ParameterSet const& pset);
 
 	/**
 	 * \brief Reconnect the NetMonTransportService.
@@ -98,7 +96,6 @@ private:
 	void setupEventReceiver_();
 };
 
-DECLARE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService, NetMonTransportServiceInterface, LEGACY)
 #endif /* artdaq_ArtModules_NetMonTransportService_h */
 
 // Local Variables:
