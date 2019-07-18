@@ -101,7 +101,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset) :
 	}
 }
 
-void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
+void artdaq::TransferWrapper::receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs)
 {
 	std::unique_ptr<artdaq::Fragment> fragmentPtr;
 	bool receivedFragment = false;
@@ -174,7 +174,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 
 		try
 		{
-			extractTBufferFile(*fragmentPtr, msg);
+			extractTBufferFile(*fragmentPtr, msgs);
 		}
 		catch (...)
 		{
@@ -205,14 +205,14 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 
 void
 artdaq::TransferWrapper::extractTBufferFile(const artdaq::Fragment& fragment,
-											std::unique_ptr<TBufferFile>& tbuffer)
+											std::list<std::unique_ptr<TBufferFile>>& tbuffers)
 {
 	const artdaq::NetMonHeader* header = fragment.metadata<artdaq::NetMonHeader>();
 	char* buffer = (char *)malloc(header->data_length);
 	memcpy(buffer, fragment.dataBeginBytes(), header->data_length);
 
 	// TBufferFile takes ownership of the contents of memory passed to it
-	tbuffer.reset(new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0));
+	tbuffers.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0));
 }
 
 void

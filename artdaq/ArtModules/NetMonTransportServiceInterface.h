@@ -49,7 +49,7 @@ public:
 	 * \brief Receive a message
 	 * \param[out] msg ROOT message data
 	 */
-	virtual void receiveMessage(TBufferFile*& msg) = 0;
+	virtual void receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs) = 0;
 
 	/**
 	* \brief Receive the init message

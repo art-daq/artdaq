@@ -146,7 +146,7 @@ private:
 	                               art::EventPrincipal*&);
 
 	template<class T>
-	void readDataProducts(std::unique_ptr<TBufferFile>&, T*&);
+	void readDataProducts(std::list<std::unique_ptr<TBufferFile>>&, T*&);
 
 	void putInPrincipal(RunPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
 	                    std::unique_ptr<const ProductProvenance>&&);
@@ -239,15 +239,15 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
 
-	#ifndef __OPTIMIZE__
-	for (auto I = productList_->begin(), E= productList_->end();I != E;++I)
+#ifndef __OPTIMIZE__
+	for (auto I = productList_->begin(), E = productList_->end(); I != E; ++I)
 	{
 		TLOG_ARB(50, "ArtdaqInput") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
 		                            << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
 		                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
 		                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 	}
-	#endif
+#endif
 
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
@@ -506,75 +506,78 @@ void art::ArtdaqInput<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>
 
 template<typename U>
 template<class T>
-void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
+void art::ArtdaqInput<U>::readDataProducts(std::list<std::unique_ptr<TBufferFile>>& msgs, T*& outPrincipal)
 {
-	unsigned long prd_cnt = 0;
+	for (auto& msg : msgs)
 	{
-		TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: reading data product count ...";
-		msg->ReadULong(prd_cnt);
-		TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: product count: " << prd_cnt;
-	}
-	//
-	//  Read the data products.
-	//
-	for (unsigned long I = 0; I < prd_cnt; ++I)
-	{
-		std::unique_ptr<BranchKey> bk;
+		unsigned long prd_cnt = 0;
 		{
-			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading branch key.";
-			bk.reset(ReadObjectAny<BranchKey>(msg, "art::BranchKey", "ArtdaqInput::readDataProducts"));
+			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: reading data product count ...";
+			msg->ReadULong(prd_cnt);
+			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: product count: " << prd_cnt;
 		}
+		//
+		//  Read the data products.
+		//
+		for (unsigned long I = 0; I < prd_cnt; ++I)
+		{
+			std::unique_ptr<BranchKey> bk;
+			{
+				TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading branch key.";
+				bk.reset(ReadObjectAny<BranchKey>(msg, "art::BranchKey", "ArtdaqInput::readDataProducts"));
+			}
 
 #ifndef __OPTIMIZE__
 			TLOG_ARB(13, "ArtdaqInput") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
 			                            << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
 			                            << bk->processName_;
 #endif
-		ProductList::const_iterator iter;
-		{
-			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: looking up product ...";
-			iter = productList_->find(*bk);
-			if (iter == productList_->end())
+			ProductList::const_iterator iter;
 			{
-				throw art::Exception(art::errors::ProductNotFound)
-				    << "No product is registered for\n"
-				    << "  process name:                '" << bk->processName_ << "'\n"
-				    << "  module label:                '" << bk->moduleLabel_ << "'\n"
-				    << "  product friendly class name: '" << bk->friendlyClassName_ << "'\n"
-				    << "  product instance name:       '" << bk->productInstanceName_ << "'\n";
+				TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: looking up product ...";
+				iter = productList_->find(*bk);
+				if (iter == productList_->end())
+				{
+					throw art::Exception(art::errors::ProductNotFound)
+					    << "No product is registered for\n"
+					    << "  process name:                '" << bk->processName_ << "'\n"
+					    << "  module label:                '" << bk->moduleLabel_ << "'\n"
+					    << "  product friendly class name: '" << bk->friendlyClassName_ << "'\n"
+					    << "  product instance name:       '" << bk->productInstanceName_ << "'\n";
+				}
 			}
-		}
-		// Note: This must be a reference to the unique copy in
-		//       the master product registry!
-		const BranchDescription& bd = iter->second;
-		std::unique_ptr<EDProduct> prd;
-		{
-			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading product with wrapped name: " << bd.wrappedName()
-			                            << ", TClass = " << (void*)TClass::GetClass(bd.wrappedName().c_str());
+			// Note: This must be a reference to the unique copy in
+			//       the master product registry!
+			const BranchDescription& bd = iter->second;
+			std::unique_ptr<EDProduct> prd;
+			{
+				TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading product with wrapped name: " << bd.wrappedName()
+				                            << ", TClass = " << (void*)TClass::GetClass(bd.wrappedName().c_str());
 
-			// JCF, May-25-2016
-			// Currently unclear why the templatized version of ReadObjectAny doesn't work here...
+				// JCF, May-25-2016
+				// Currently unclear why the templatized version of ReadObjectAny doesn't work here...
 
-			//	    prd.reset(ReadObjectAny<EDProduct>(msg, bd.wrappedName()));
+				//	    prd.reset(ReadObjectAny<EDProduct>(msg, bd.wrappedName()));
 
-			void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
-			auto pp = reinterpret_cast<EDProduct*>(p);
+				void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
+				auto pp = reinterpret_cast<EDProduct*>(p);
 
-			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: After ReadObjectAny(prd): p=" << p << ", EDProduct::isPresent: " << pp->isPresent();
-			prd.reset(pp);
-			p = nullptr;
-		}
-		std::unique_ptr<const ProductProvenance> prdprov;
-		{
-			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading product provenance.";
-			prdprov.reset(ReadObjectAny<ProductProvenance>(msg, "art::ProductProvenance", "ArtdaqInput::readDataProducts"));
-		}
+				TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: After ReadObjectAny(prd): p=" << p << ", EDProduct::isPresent: " << pp->isPresent();
+				prd.reset(pp);
+				p = nullptr;
+			}
+			std::unique_ptr<const ProductProvenance> prdprov;
+			{
+				TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: Reading product provenance.";
+				prdprov.reset(ReadObjectAny<ProductProvenance>(msg, "art::ProductProvenance", "ArtdaqInput::readDataProducts"));
+			}
 
-		{
-			TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: inserting product: class: '" << bd.friendlyClassName()
-			                            << "' modlbl: '" << bd.moduleLabel() << "' instnm: '" << bd.productInstanceName()
-			                            << "' procnm: '" << bd.processName() << "' id: '" << bd.productID() << "'";
-			putInPrincipal(outPrincipal, std::move(prd), bd, std::move(prdprov));
+			{
+				TLOG_ARB(12, "ArtdaqInput") << "readDataProducts: inserting product: class: '" << bd.friendlyClassName()
+				                            << "' modlbl: '" << bd.moduleLabel() << "' instnm: '" << bd.productInstanceName()
+				                            << "' procnm: '" << bd.processName() << "' id: '" << bd.productID() << "'";
+				putInPrincipal(outPrincipal, std::move(prd), bd, std::move(prdprov));
+			}
 		}
 	}
 }
@@ -633,10 +636,17 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 		return false;
 	}
 
-	std::unique_ptr<TBufferFile> msg;
-	communicationWrapper_.receiveMessage(msg);
+	std::list<std::unique_ptr<TBufferFile>> msgs;
+	communicationWrapper_.receiveMessage(msgs);
 
-	if (!msg)
+	if (msgs.size() == 0)
+	{
+		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext got an empty message";
+		shutdownMsgReceived_ = true;
+		return false;
+	}
+
+	if (!msgs.front())
 	{
 		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext got an empty message";
 		shutdownMsgReceived_ = true;
@@ -650,7 +660,7 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 	{
 		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext: "
 		                            << "getting message type code ...";
-		msg->ReadULong(msg_type_code);
+		msgs.front()->ReadULong(msg_type_code);
 		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext: "
 		                            << "message type: " << msg_type_code;
 	}
@@ -664,7 +674,7 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 		return false;
 	}
 
-	readAndConstructPrincipal(msg, msg_type_code, inR, inSR, outR, outSR, outE);
+	readAndConstructPrincipal(msgs.front(), msg_type_code, inR, inSR, outR, outSR, outE);
 	//
 	//  Read per-event metadata needed to construct principal.
 	//
@@ -672,7 +682,7 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 	{
 		// EndRun message.
 		// FIXME: We need to merge these into the input RunPrincipal.
-		readDataProducts(msg, outR);
+		readDataProducts(msgs, outR);
 		// Signal that we should close the input and output file.
 		TLOG_ARB(17, "ArtdaqInput") << "ArtdaqInput::readNext: "
 		                            << "returning false on EndRun message.";
@@ -702,7 +712,7 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 			}
 		}
 		// FIXME: We need to merge these into the input SubRunPrincipal.
-		readDataProducts(msg, outSR);
+		readDataProducts(msgs, outSR);
 		// Remember that we should ask for file close next time
 		// we are called.
 		outputFileCloseNeeded_ = true;
@@ -713,7 +723,7 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 	else if (msg_type_code == 4)
 	{
 		// Event message.
-		readDataProducts(msg, outE);
+		readDataProducts(msgs, outE);
 		TLOG_ARB(19, "ArtdaqInput") << "readNext: returning true on Event message.";
 		TLOG_ARB(19, "ArtdaqInput") << "End:   ArtdaqInput::readNext";
 		return true;

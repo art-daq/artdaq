@@ -75,7 +75,7 @@ public:
 	 * \brief Receive data from the ConcurrentQueue
 	 * \param[out] msg Received data
 	 */
-	void receiveMessage(TBufferFile*& msg) override;
+	void receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs) override;
 
 	void receiveInitMessage(TBufferFile*& msg) override;
 

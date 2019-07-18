@@ -65,17 +65,22 @@ namespace artdaq
 		 * \brief Receive a Fragment from the TransferInterface, and send it to art
 		 * \param[out] msg The message in art format
 		 */
-		void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+		void receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs);
 
 		/**
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
 		 * \param[out] msg The message in art format
 		 */
-		void receiveInitMessage(std::unique_ptr<TBufferFile>& msg) { receiveMessage(msg); }
+	    void receiveInitMessage(std::unique_ptr<TBufferFile>& msg)
+	    {
+		    std::list<std::unique_ptr<TBufferFile>> msgs;
+		    receiveMessage(msgs);
+		    msg = std::move(msgs.front());
+	    }
 
 	private:
 
-		void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>&);
+		void extractTBufferFile(const artdaq::Fragment&, std::list<std::unique_ptr<TBufferFile>>&);
 
 		void checkIntegrity(const artdaq::Fragment&) const;
 

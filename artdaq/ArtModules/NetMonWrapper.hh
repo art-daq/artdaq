@@ -61,7 +61,7 @@ public:
 		 * \brief Receive a message from the NetMonTransportService
 		 * \param[out] msg A pointer to the received message
 		 */
-		void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+	void receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs);
 
 	/**
 		* \brief Receive an init message from the NetMonTransportService

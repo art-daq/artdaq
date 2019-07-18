@@ -4,14 +4,12 @@
 
 #include <TBufferFile.h>
 
-void art::NetMonWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
+void art::NetMonWrapper::receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msg_ptr)
 {
 	TLOG(5) << "Receiving Fragment from NetMonTransportService" ;
-	TBufferFile* msg_ptr(nullptr);
 
 	transport_->receiveMessage(msg_ptr);
 
-	msg.reset(msg_ptr);
 	TLOG(5) << "Done Receiving Fragment from NetMonTransportService" ;
 }
 
