@@ -77,7 +77,7 @@ public:
 	 */
 	void receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs) override;
 
-	void receiveInitMessage(TBufferFile*& msg) override;
+	void receiveInitMessage(std::list<std::unique_ptr<TBufferFile>>& msgs) override;
 
 	/**
 	 * \brief Get the number of data receivers

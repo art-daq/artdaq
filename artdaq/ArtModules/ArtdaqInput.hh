@@ -169,7 +169,7 @@ private:
 template<typename U>
 art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegistryHelper& helper,
                                  art::SourceHelper const& pm)
-    : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm), communicationWrapper_(ps), productList_()
+    : shutdownMsgReceived_(false), outputFileCloseNeeded_(false), pm_(pm), communicationWrapper_(ps), productList_(nullptr)
 {
 	artdaq::configureMessageFacility("artdaqart");
 
@@ -197,89 +197,96 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	                           << "const art::SourceHelper& pm)";
 
 	TLOG_ARB(5, "ArtdaqInput") << "Going to receive init message";
-	std::unique_ptr<TBufferFile> msg(nullptr);
-	communicationWrapper_.receiveInitMessage(msg);
+	std::list<std::unique_ptr<TBufferFile>> msgs;
+	communicationWrapper_.receiveInitMessage(msgs);
 	TLOG_ARB(5, "ArtdaqInput") << "Init message received";
 
-	if (!msg)
+	if (msgs.size() == 0)
 	{
 		throw art::Exception(art::errors::DataCorruption) << "ArtdaqInput: Could not receive init message!";
 	}
 
-	// This first unsigned long is the message type code, ignored here in the constructor
-	unsigned long dummy = 0;
-	msg->ReadULong(dummy);
-
-	//
-	//  Read the ParameterSetRegistry.
-	//
-	unsigned long ps_cnt = 0;
-	msg->ReadULong(ps_cnt);
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: parameter set count: " << ps_cnt;
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: reading parameter sets ...";
-	for (unsigned long I = 0; I < ps_cnt; ++I)
+	for (auto& msg : msgs)
 	{
-		std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInput::ArtdaqInput");
-		msg->ReadStdString(pset_str);
+		// This first unsigned long is the message type code, ignored here in the constructor
+		unsigned long dummy = 0;
+		msg->ReadULong(dummy);
 
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: parameter set: " << pset_str;
+		//
+		//  Read the ParameterSetRegistry.
+		//
+		unsigned long ps_cnt = 0;
+		msg->ReadULong(ps_cnt);
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: parameter set count: " << ps_cnt;
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: reading parameter sets ...";
+		for (unsigned long I = 0; I < ps_cnt; ++I)
+		{
+			std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInput::ArtdaqInput");
+			msg->ReadStdString(pset_str);
 
-		fhicl::ParameterSet pset;
-		fhicl::make_ParameterSet(pset_str, pset);
-		// Force id calculation.
-		pset.id();
-		fhicl::ParameterSetRegistry::put(pset);
-	}
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: finished reading parameter sets.";
+			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: parameter set: " << pset_str;
 
-	//
-	//  Read the MasterProductRegistry.
-	//
-	productList_ = ReadObjectAny<art::ProductList>(
-	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
+			fhicl::ParameterSet pset;
+			fhicl::make_ParameterSet(pset_str, pset);
+			// Force id calculation.
+			pset.id();
+			fhicl::ParameterSetRegistry::put(pset);
+		}
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: finished reading parameter sets.";
 
+		//
+		//  Read the MasterProductRegistry.
+		//
+		auto thisProductList = ReadObjectAny<art::ProductList>(
+		    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << thisProductList->size();
+
+		bool productListInitialized = productList_ != nullptr;
+		if (!productListInitialized) productList_ = thisProductList;
+		for (auto I = thisProductList->begin(), E = thisProductList->end(); I != E; ++I)
+		{
 #ifndef __OPTIMIZE__
-	for (auto I = productList_->begin(), E = productList_->end(); I != E; ++I)
-	{
-		TLOG_ARB(50, "ArtdaqInput") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
-		                            << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
-		                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
-		                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
-	}
+			TLOG_ARB(50, "ArtdaqInput") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
+			                            << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+			                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
+			                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 #endif
+			if (productListInitialized)			productList_->emplace(*I);
+		}
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
 
-	// helper now owns productList_!
+		// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
-	helper.productList(productList_);
+		helper.productList(productList_);
 #else
-	helper.productList(std::unique_ptr<art::ProductList>(productList_));
+		helper.productList(std::unique_ptr<art::ProductList>(productList_));
 #endif
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
 
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory";
-	art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
-	    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInput::ArtdaqInput");
-	printProcessMap(*phm, "ArtdaqInput's ProcessHistoryMap");
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory";
+		art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
+		    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInput::ArtdaqInput");
+		printProcessMap(*phm, "ArtdaqInput's ProcessHistoryMap");
 
-	ProcessHistoryRegistry::put(*phm);
-	printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInput's ProcessHistoryRegistry");
+		ProcessHistoryRegistry::put(*phm);
+		printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInput's ProcessHistoryRegistry");
 
-	//
-	//  Read the ParentageRegistry.
-	//
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ParentageMap";
-	ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInput::ArtdaqInput");
-	ParentageRegistry::put(*parentageMap);
+		//
+		//  Read the ParentageRegistry.
+		//
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ParentageMap";
+		ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInput::ArtdaqInput");
+		ParentageRegistry::put(*parentageMap);
 
-	//
-	// Read the History
-	//
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading History";
-	history_to_use_.reset(ReadObjectAny<History>(msg, "art::History", "ArtdaqInput::ArtdaqInput"));
-	if (!history_to_use_->processHistoryID().isValid())
-	{
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: History from init message is INVALID!";
+		//
+		// Read the History
+		//
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading History";
+		history_to_use_.reset(ReadObjectAny<History>(msg, "art::History", "ArtdaqInput::ArtdaqInput"));
+		if (!history_to_use_->processHistoryID().isValid())
+		{
+			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: History from init message is INVALID!";
+		}
 	}
 
 	//
@@ -657,12 +664,24 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 	//  Read message type code.
 	//
 	unsigned long msg_type_code = 0;
+	unsigned long msg_type_code_tmp = 0;
+	for (auto& msg : msgs)
 	{
 		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext: "
 		                            << "getting message type code ...";
-		msgs.front()->ReadULong(msg_type_code);
+		msg->ReadULong(msg_type_code_tmp);
 		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext: "
-		                            << "message type: " << msg_type_code;
+		                            << "message type: " << msg_type_code_tmp;
+
+		if (msg_type_code == 0)
+			msg_type_code = msg_type_code_tmp;
+		else if (msg_type_code != msg_type_code_tmp)
+		{
+			TLOG_ARB(TLVL_ERROR, "ArtdaqInput") << "ArtdaqInput::readNext: Received conflicting message type codes! Aborting...";
+
+			shutdownMsgReceived_ = true;
+			return false;
+		}
 	}
 	if (msg_type_code == 5)
 	{
@@ -674,7 +693,10 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 		return false;
 	}
 
-	readAndConstructPrincipal(msgs.front(), msg_type_code, inR, inSR, outR, outSR, outE);
+	for (auto& msg : msgs)
+	{
+		readAndConstructPrincipal(msg, msg_type_code, inR, inSR, outR, outSR, outE);
+	}
 	//
 	//  Read per-event metadata needed to construct principal.
 	//

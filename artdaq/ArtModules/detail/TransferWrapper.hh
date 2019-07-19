@@ -71,11 +71,9 @@ namespace artdaq
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
 		 * \param[out] msg The message in art format
 		 */
-	    void receiveInitMessage(std::unique_ptr<TBufferFile>& msg)
+	    void receiveInitMessage(std::list<std::unique_ptr<TBufferFile>>& msgs)
 	    {
-		    std::list<std::unique_ptr<TBufferFile>> msgs;
 		    receiveMessage(msgs);
-		    msg = std::move(msgs.front());
 	    }
 
 	private:

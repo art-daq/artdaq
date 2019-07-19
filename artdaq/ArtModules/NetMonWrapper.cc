@@ -13,13 +13,11 @@ void art::NetMonWrapper::receiveMessage(std::list<std::unique_ptr<TBufferFile>>&
 	TLOG(5) << "Done Receiving Fragment from NetMonTransportService" ;
 }
 
-void art::NetMonWrapper::receiveInitMessage(std::unique_ptr<TBufferFile>& msg)
+void art::NetMonWrapper::receiveInitMessage(std::list<std::unique_ptr<TBufferFile>>& msg_ptr)
 {
 	TLOG(5) << "Receiving Init Fragment from NetMonTransportService" ;
-	TBufferFile* msg_ptr(nullptr);
 
 	transport_->receiveInitMessage(msg_ptr);
 
-	msg.reset(msg_ptr);
 	TLOG(5) << "Done Receiving Init Fragment from NetMonTransportService" ;
 }

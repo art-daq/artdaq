@@ -55,7 +55,7 @@ public:
 	* \brief Receive the init message
 	* \param[out] msg ROOT message data
 	*/
-	virtual void receiveInitMessage(TBufferFile*& msg) = 0;
+	virtual void receiveInitMessage(std::list<std::unique_ptr<TBufferFile>>& msgs) = 0;
 };
 
 DECLARE_ART_SERVICE_INTERFACE(NetMonTransportServiceInterface, LEGACY)
