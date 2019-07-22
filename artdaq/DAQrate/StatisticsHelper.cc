@@ -71,10 +71,9 @@ void artdaq::StatisticsHelper::resetStatistics()
 }
 
 bool artdaq::StatisticsHelper::
-readyToReport(size_t currentCount)
+readyToReport()
 {
-	if (primary_stat_ptr_.get() != 0 &&
-		(currentCount % reporting_interval_fragments_) == 0)
+	if (primary_stat_ptr_.get() != 0)
 	{
 		double fullDuration = primary_stat_ptr_->getFullDuration();
 		size_t reportIndex = (size_t)(fullDuration / reporting_interval_seconds_);

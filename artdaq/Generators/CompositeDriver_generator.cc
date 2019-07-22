@@ -165,32 +165,10 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
 
 bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pset)
 {
-	// pull out the relevant parts of the ParameterSet
-	fhicl::ParameterSet daq_pset;
-	try
-	{
-		daq_pset = pset.get<fhicl::ParameterSet>("daq");
-	}
-	catch (...)
-	{
-		TLOG(TLVL_ERROR)
-			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\"." ;
-		return false;
-	}
-	fhicl::ParameterSet fr_pset;
-	try
-	{
-		fr_pset = daq_pset.get<fhicl::ParameterSet>("fragment_receiver");
-	}
-	catch (...)
-	{
-		TLOG(TLVL_ERROR)
-			<< "Unable to find the fragment_receiver parameters in the DAQ "
-			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." ;
-		return false;
-	}
-
+	// pull out the relevant parts of the ParameterSet, if needed
+	fhicl::ParameterSet daq_pset = pset.get<fhicl::ParameterSet>("daq", pset);
+	fhicl::ParameterSet fr_pset = daq_pset.get<fhicl::ParameterSet>("fragment_receiver", daq_pset);
+	
 	// create the requested FragmentGenerator
 	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)
