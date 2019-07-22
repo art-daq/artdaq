@@ -253,15 +253,6 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 #endif
 			if (productListInitialized)			productList_->emplace(*I);
 		}
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
-
-		// helper now owns productList_!
-#if ART_HEX_VERSION < 0x30000
-		helper.productList(productList_);
-#else
-		helper.productList(std::unique_ptr<art::ProductList>(productList_));
-#endif
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
 
 		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory";
 		art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
@@ -288,6 +279,16 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: History from init message is INVALID!";
 		}
 	}
+
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
+
+	// helper now owns productList_!
+#if ART_HEX_VERSION < 0x30000
+	helper.productList(productList_);
+#else
+	helper.productList(std::unique_ptr<art::ProductList>(productList_));
+#endif
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
 
 	//
 	//  Finished with init message.

@@ -30,7 +30,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
     , update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
     , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
     , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
-    , send_init_fragments_(pset.get<bool>("send_init_fragments", true))
+    , init_fragment_count_(pset.get<size_t>("init_fragment_count", pset.get<bool>("send_init_fragments", true) ? 1 : 0))
     , running_(false)
     , buffer_writes_pending_()
     , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
@@ -1218,7 +1218,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 void artdaq::SharedMemoryEventManager::send_init_frags_()
 {
-	if (init_fragments_.size() != 0)
+	if (init_fragments_.size() >= init_fragment_count_)
 	{
 		TLOG(TLVL_INFO) << "Broadcasting init fragment to all art subprocesses...";
 
@@ -1232,9 +1232,9 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 		broadcastFragments_(init_fragments_);
 		TLOG(TLVL_TRACE) << "Init Fragment sent";
 	}
-	else if (send_init_fragments_)
+	else if (init_fragment_count_ > 0)
 	{
-		TLOG(TLVL_WARNING) << "Cannot send init fragment because I haven't yet received one!";
+		TLOG(TLVL_WARNING) << "Cannot send init fragments because I haven't yet received them!";
 	}
 }
 
