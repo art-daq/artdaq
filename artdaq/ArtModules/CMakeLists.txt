@@ -187,6 +187,7 @@ simple_plugin(NetMonTransportService "service"
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
   artdaq_BuildInfo
+  artdaq-utilities_BuildInfo
   artdaq-core_BuildInfo
   art_Persistency_Provenance
   ${MF_MESSAGELOGGER}
