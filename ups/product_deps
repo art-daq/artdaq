@@ -28,7 +28,7 @@ artdaq_ganglia_plugin   v1_02_14a        -       optional
 artdaq_epics_plugin     v1_02_08        -       optional
 artdaq_pcp_mmv_plugin   v1_00_00a        -       optional
 artdaq_mfextensions     v1_03_05        -       optional
-cetbuildtools		v7_12_01	-	only_for_build
+cetbuildtools		v7_13_02	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
 
