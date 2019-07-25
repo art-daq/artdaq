@@ -52,7 +52,7 @@ public:
 	/**
 			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
 			 */
-	void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
+	virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
 	{
 		type_map_ = type_map;
 	}
@@ -60,7 +60,7 @@ public:
 	/**
 			 * \brief Adds an additional type to be translated.
 			 */
-	void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
+	virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
 	{
 		type_map_[type_id] = type_name;
 	}
@@ -69,7 +69,7 @@ public:
          * \brief Returns the basic translation for the specified type.  Defaults to the specified
 			 *        unidentified_instance_name if no translation can be found.
 			 */
-	std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
+	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
 	{
 		if (type_map_.count(type_id) > 0) { return type_map_[type_id]; }
 		return unidentified_instance_name;
@@ -94,7 +94,7 @@ public:
 			}
 		}
 
-		auto container_type = type_map_.find(artdaq::Fragment::ContainerFragmentType);
+		auto container_type = type_map_.find(Fragment::type_t(artdaq::Fragment::ContainerFragmentType));
 		if (container_type != type_map_.end())
 		{
 			std::string container_type_name = container_type->second;
@@ -179,6 +179,7 @@ struct SharedMemoryReader
 
 	unsigned readNext_calls_;  ///< The number of times readNext has been called
 	FTT translator_;
+
 	//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
 	// std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
 	// Fragments)
@@ -197,9 +198,9 @@ struct SharedMemoryReader
 			 * "shared_memory_key" (Default: 0xBEE7): The key for the shared memory segment
 			 * \endverbatim
 			 */
-SharedMemoryReader(fhicl::ParameterSet const& ps,
-				art::ProductRegistryHelper& help,
-				art::SourceHelper const& pm)
+	SharedMemoryReader(fhicl::ParameterSet const& ps,
+	                   art::ProductRegistryHelper& help,
+	                   art::SourceHelper const& pm)
 	    : pmaker(pm)
 	    , waiting_time(ps.get<double>("waiting_time", 86400.0))
 	    , resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
@@ -259,17 +260,17 @@ SharedMemoryReader(fhicl::ParameterSet const& ps,
 
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 
-				translator_.SetBasicTypes(getDefaultTypes());
-				auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
+		translator_.SetBasicTypes(getDefaultTypes());
+		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
 		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
 		{
-					translator_.AddExtraType(it->first, it->second);
+			translator_.AddExtraType(it->first, it->second);
 		}
-				std::set<std::string> instance_names = translator_.GetAllProductInstanceNames();
-				for (const auto& set_iter : instance_names)
-				{
-					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, set_iter);
-				}
+		std::set<std::string> instance_names = translator_.GetAllProductInstanceNames();
+		for (const auto& set_iter : instance_names)
+		{
+			help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, set_iter);
+		}
 
 		TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string();
 	}
@@ -289,8 +290,8 @@ SharedMemoryReader(fhicl::ParameterSet const& ps,
 #endif
 
 	/**
-	 * \brief SharedMemoryReader destructor
-	 */
+			 * \brief SharedMemoryReader destructor
+			 */
 	virtual ~SharedMemoryReader() { artdaq::Globals::CleanUpGlobals(); }
 
 	/**
@@ -544,12 +545,12 @@ SharedMemoryReader(fhicl::ParameterSet const& ps,
 			for (auto& frag : *product)
 			{
 				bytesRead += frag.sizeBytes();
-	auto latency_s = frag.getLatency(true);
-	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
+				auto latency_s = frag.getLatency(true);
+				double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
 
-	fragmentLatency += latency;
-	fragmentCount++;
-	if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
+				fragmentLatency += latency;
+				fragmentCount++;
+				if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
 
 				std::pair<bool, std::string> instance_name_result =
 				    translator_.GetInstanceNameForFragment(frag, unidentified_instance_name);
@@ -603,9 +604,6 @@ SharedMemoryReader(fhicl::ParameterSet const& ps,
 		last_read_time = std::chrono::steady_clock::now();
 		return true;
 	}
-
-	unsigned readNext_calls_;  ///< The number of times readNext has been called
-			FTT translator_;
 };
 }  // namespace detail
 }  // namespace artdaq
