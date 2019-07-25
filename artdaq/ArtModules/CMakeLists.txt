@@ -86,6 +86,7 @@ simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
 
 simple_plugin(EventDump "module"
   artdaq-core_Data
+  artdaq-core_Utilities
   art_Persistency_Provenance
   MF_MessageLogger
   ${CETLIB_EXCEPT})
@@ -93,6 +94,7 @@ simple_plugin(EventDump "module"
 simple_plugin(MissingDataCheck "module"
   artdaq-core_Data
   artdaq-core_Data_dict
+  artdaq-core_Utilities
   MF_MessageLogger
   art_Persistency_Provenance
   art_Framework_Services_Registry
@@ -171,6 +173,7 @@ simple_plugin(BinaryFileOutput "module"
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
   artdaq_BuildInfo
+  artdaq-utilities_BuildInfo
   artdaq-core_BuildInfo
   art_Persistency_Provenance
   ${MF_MESSAGELOGGER}
