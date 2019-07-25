@@ -8,6 +8,29 @@
 
 BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)
 
+BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
+{
+	fhicl::ParameterSet ps4, ps3, ps2;
+	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps4);
+	fhicl::make_ParameterSet("receiver_ranks: [7,8,9]", ps3);
+	fhicl::make_ParameterSet("receiver_ranks: [5,6]", ps2);
+
+	auto rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps4);
+	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
+
+        auto rrB = rrA;
+	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
+	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
+
+	rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps3);
+	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 3);
+	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
+
+        // force destructors to be run on first set of policies
+	rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps2);
+	rrB = artdaq::makeRoutingMasterPolicy("RoundRobin", ps2);
+}
+
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	fhicl::ParameterSet ps;
@@ -107,6 +130,59 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	auto sixthTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(sixthTable.size(), 0);
 
+}
+
+BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
+{
+	fhicl::ParameterSet ps;
+	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: 5", ps);
+
+	auto rr = artdaq::makeRoutingMasterPolicy("RoundRobin", ps);
+
+	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
+
+	rr->Reset();
+	rr->AddReceiverToken(1, 1);
+	rr->AddReceiverToken(3, 1);
+	rr->AddReceiverToken(2, 1);
+	rr->AddReceiverToken(3, 1);
+	rr->AddReceiverToken(2, 1);
+	auto secondTable = rr->GetCurrentTable();
+	BOOST_REQUIRE_EQUAL(secondTable.size(), 3);
+	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 3);
+
+	rr->AddReceiverToken(1, 1);
+	auto thirdTable = rr->GetCurrentTable();
+	BOOST_REQUIRE_EQUAL(thirdTable.size(), 3);
+	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(thirdTable[2].destination_rank, 3);
+}
+
+BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
+{
+	fhicl::ParameterSet ps;
+	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: -5", ps);
+
+	auto rr = artdaq::makeRoutingMasterPolicy("RoundRobin", ps);
+
+	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
+
+	rr->Reset();
+	rr->AddReceiverToken(1, 1);
+	rr->AddReceiverToken(3, 1);
+	rr->AddReceiverToken(2, 1);
+	rr->AddReceiverToken(3, 1);
+	rr->AddReceiverToken(2, 1);
+	auto secondTable = rr->GetCurrentTable();
+	BOOST_REQUIRE_EQUAL(secondTable.size(), 5);
+	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
+
+	rr->AddReceiverToken(1, 1);
+	auto thirdTable = rr->GetCurrentTable();
+	BOOST_REQUIRE_EQUAL(thirdTable.size(), 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

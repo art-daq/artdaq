@@ -67,8 +67,13 @@ find_ups_product( TRACE v3_03_00 )
 find_ups_product( art v1_08_10 )
 find_ups_product( canvas v1_00_00 )
 find_ups_product( canvas_root_io v1_00_00 )
-find_ups_product( artdaq_core v1_03_01 )
-find_ups_product( artdaq_utilities v1_00_00)
+
+# JCF, May-9-2019
+# Removing ups product minimums for the artdaq packages so that
+# dev-versioning can be used on ProtoDUNE
+find_ups_product( artdaq_core ) # v1_03_01 )
+find_ups_product( artdaq_utilities ) # v1_00_00)
+
 find_ups_product( cetlib v1_08_00 )
 find_ups_product( cetpkgsupport v1_08_03 )
 find_ups_product( clhep v2_2_0_3 )
@@ -181,8 +186,9 @@ add_subdirectory(proto)
 # Useful tools and scripts.
 add_subdirectory(tools)
 
-# doc - Documentation
+if (NOT DEFINED ENV{DISABLE_DOXYGEN})
 add_subdirectory(doc)
+endif()
 
 # ups - table and config files
 add_subdirectory(ups)
