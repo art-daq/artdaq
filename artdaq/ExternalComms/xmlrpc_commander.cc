@@ -18,8 +18,8 @@
 #include <limits>
 #include <memory>
 #include <cstdint>
-#define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
 #include "tracemf.h"
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
