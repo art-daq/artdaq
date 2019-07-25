@@ -18,8 +18,8 @@
 #include <stdexcept>
 
 // product Includes
-#define TRACE_NAME (app_name + "_TCPSocketTransfer").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_TCPSocketTransfer").c_str()
 
 // artdaq Includes
 #include "artdaq/TransferPlugins/TCPSocketTransfer.hh"
