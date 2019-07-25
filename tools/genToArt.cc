@@ -11,10 +11,11 @@
 
 #define TRACE_NAME "genToArt"
 
+#include "artdaq-core/Data/detail/RawFragmentHeader.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "art/Framework/Art/artapp.h"
 #include "canvas/Utilities/Exception.h"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
@@ -249,11 +250,11 @@ namespace
 		store.startRun(gta_pset.get<int>("run_number", 1000));
 
 		auto const events_to_generate =
-	        gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", artdaq::Fragment::InvalidSequenceID);
+	        gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", 0xFFFFFFFFFFFFFFFF);
 		auto const reset_sequenceID = pset.get<bool>("reset_sequenceID", true);
 		bool done = false;
 		for (artdaq::Fragment::sequence_id_t event_count = 1;
-			(events_to_generate == artdaq::Fragment::InvalidSequenceID
+			(events_to_generate == 0xFFFFFFFFFFFFFFFF
 			 || event_count <= events_to_generate) && (!done);
 			 ++event_count)
 		{
