@@ -125,6 +125,8 @@ void NetMonTransportService::sendMessage(uint64_t sequenceId, uint8_t messageTyp
 
 	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
 	sender_ptr_->sendFragment(std::move(fragment));
+	// Events are unique in art, so this will be the only send with this sequence ID!
+	sender_ptr_->RemoveRoutingTableEntry(sequenceId);
 }
 
 void NetMonTransportService::receiveMessage(TBufferFile*& msg)

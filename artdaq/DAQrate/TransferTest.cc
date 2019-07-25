@@ -193,6 +193,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 		auto stspair = sender.sendFragment(std::move(frag));
 		auto after_send = std::chrono::steady_clock::now();
 		TLOG(TLVL_TRACE) << "Sender " << my_rank << " sent fragment " << ii;
+		sender.RemoveRoutingTableEntry(ii * sending_threads_ + index);
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
 		if (stspair.second != artdaq::TransferInterface::CopyStatus::kSuccess)
