@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_RequestSender").c_str()
 #include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
+#define TRACE_NAME (app_name + "_RequestSender").c_str()
 #include "artdaq/DAQrate/RequestSender.hh"
 #include <utility>
 #include <cstring>
@@ -211,7 +211,8 @@ namespace artdaq
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		std::unique_lock<std::mutex> lk2(request_send_mutex_);
-		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
+		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str
+		                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 		auto buf = message.GetMessage();
 		auto sts=sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
 		if (sts < 0 || static_cast<size_t>(sts) != buf.size())

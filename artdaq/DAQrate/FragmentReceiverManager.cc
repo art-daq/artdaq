@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_FragmentReceiverManager").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_FragmentReceiverManager").c_str()
 
 #include <chrono>
 
