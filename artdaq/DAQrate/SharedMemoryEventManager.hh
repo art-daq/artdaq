@@ -87,7 +87,10 @@ namespace artdaq {
 	 */
 	class SharedMemoryEventManager : public SharedMemoryManager
 	{
-	public:
+         public:
+          static const std::string FRAGMENTS_RECEIVED_STAT_KEY;    ///< Key for Fragments Received MonitoredQuantity
+          static const std::string EVENTS_RELEASED_STAT_KEY;  ///< Key for the Events Released MonitoredQuantity
+
 		typedef RawEvent::run_id_t run_id_t; ///< Copy RawEvent::run_id_t into local scope
 		typedef RawEvent::subrun_id_t subrun_id_t; ///< Copy RawEvent::subrun_id_t into local scope
 		typedef Fragment::sequence_id_t sequence_id_t; ///< Copy Fragment::sequence_id_t into local scope
@@ -387,7 +390,9 @@ namespace artdaq {
 		{
 			std::unique_lock<std::mutex> lk(art_process_mutex_);
 			return art_processes_.size();
-		}
+        }
+		
+        std::string buildStatisticsString_() const;
 
 	private:
 		size_t num_art_processes_;
@@ -415,18 +420,22 @@ namespace artdaq {
 
 		int incomplete_event_report_interval_ms_;
 		std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
-	    std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
-	    std::chrono::steady_clock::time_point last_backpressure_report_time_;
-	    std::chrono::steady_clock::time_point last_fragment_header_write_time_;
+		std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
+        std::chrono::steady_clock::time_point last_backpressure_report_time_;
+        std::chrono::steady_clock::time_point last_fragment_header_write_time_;
 		std::vector<std::chrono::steady_clock::time_point> event_timing_;
 		
-		struct MetricData {
-			MetricData() : event_count(0), event_size(0), event_time(0.0) {}
+
+	struct MetricData
+	{
+		MetricData()
+		    : event_count(0), event_size(0), event_time(0.0) {}
 			size_t event_count;
 			size_t event_size;
 			double event_time;
 		};
-		MetricData metric_data_;
+        MetricData metric_data_;
+        StatisticsHelper statsHelper_;
 
 		int broadcast_timeout_ms_;
 
