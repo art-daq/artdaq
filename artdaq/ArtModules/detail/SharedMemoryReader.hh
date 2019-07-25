@@ -31,283 +31,173 @@ namespace detail {
 		 * \brief The DefaultFragmentTypeTranslator class provides default behavior
 		 *        for experiment-specific customizations in SharedMemoryReader.
 		 */
-		class DefaultFragmentTypeTranslator
+class DefaultFragmentTypeTranslator
 {
-		    public:
+public:
+	DefaultFragmentTypeTranslator()
+	    : type_map_() {}
+	virtual ~DefaultFragmentTypeTranslator() = default;
 
-			DefaultFragmentTypeTranslator() : type_map_() {}
-			virtual ~DefaultFragmentTypeTranslator() = default;
-
-			/**
+	/**
 			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
 			 */
-			virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
+	virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
 	{
-				type_map_ = type_map;
-			}
+		type_map_ = type_map;
+	}
 
-			/**
+	/**
 			 * \brief Adds an additional type to be translated.
 			 */
-			virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
-			{
-				type_map_[type_id] = type_name;
-			}
+	virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
+	{
+		type_map_[type_id] = type_name;
+	}
 
-			/**
+	/**
 			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
 			 *        unidentified_instance_name if no translation can be found.
 			 */
-			virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
-			{
-				if (type_map_.count(type_id) > 0) {return type_map_[type_id];}
-				return unidentified_instance_name;
-			}
+	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
+	{
+		if (type_map_.count(type_id) > 0) { return type_map_[type_id]; }
+		return unidentified_instance_name;
+	}
 
-			/**
+	/**
 			 * \brief Returns the full set of product instance names which may be present in the data, based on
 			 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
 			 *        *does* include "container" types, if the container type mapping is part of the basic types.
 			 */
-			virtual std::set<std::string> GetAllProductInstanceNames()
+	virtual std::set<std::string> GetAllProductInstanceNames()
+	{
+		std::set<std::string> output;
+		for (const auto& map_iter : type_map_)
+		{
+			std::string instance_name = map_iter.second;
+			if (!output.count(instance_name))
 			{
-				std::set<std::string> output;
-				for (const auto& map_iter : type_map_)
-				{
-					std::string instance_name = map_iter.second;
-					if (!output.count(instance_name))
-					{
-						output.insert(instance_name);
-						TLOG_TRACE("DefaultFragmentTypeTranslator") << "Adding product instance name \"" << map_iter.second
-						                                            << "\" to list of expected names";
-					}
-				}
-
-				auto container_type = type_map_.find(Fragment::type_t(artdaq::Fragment::ContainerFragmentType));
-				if (container_type != type_map_.end())
-				{
-					std::string container_type_name = container_type->second;
-					std::set<std::string> tmp_copy = output;
-					for (const auto& set_iter : tmp_copy)
-					{
-						output.insert(container_type_name + set_iter);
-					}
-				}
-
-				return output;
+				output.insert(instance_name);
+				TLOG_TRACE("DefaultFragmentTypeTranslator") << "Adding product instance name \"" << map_iter.second
+				                                            << "\" to list of expected names";
 			}
+		}
 
-			/**
+		auto container_type = type_map_.find(Fragment::type_t(artdaq::Fragment::ContainerFragmentType));
+		if (container_type != type_map_.end())
+		{
+			std::string container_type_name = container_type->second;
+			std::set<std::string> tmp_copy = output;
+			for (const auto& set_iter : tmp_copy)
+			{
+				output.insert(container_type_name + set_iter);
+			}
+		}
+
+		return output;
+	}
+
+	/**
 			 * \brief Returns the product instance name for the specified fragment, based on the types that have
 			 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
 			 *        use of "container" types, if the container type mapping is part of the basic types.  If no
 			 *        mapping is found, the specified unidentified_instance_name is returned.
 			 */
-			virtual std::pair<bool, std::string>
-			GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
-			{
-				auto type_map_end = type_map_.end();
-				bool success_code = true;
-				std::string instance_name;
+	virtual std::pair<bool, std::string>
+	GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
+	{
+		auto type_map_end = type_map_.end();
+		bool success_code = true;
+		std::string instance_name;
 
-				auto primary_type = type_map_.find(fragment.type());
-				if (primary_type != type_map_end)
-				{
-					instance_name = primary_type->second;
-					if (fragment.type() == artdaq::Fragment::ContainerFragmentType)
-					{
-						artdaq::ContainerFragment cf(fragment);
-						auto contained_type = type_map_.find(cf.fragment_type());
-						if (contained_type != type_map_end)
-						{
-							instance_name += contained_type->second;
-						}
-					}
-				}
-				else
-				{
-					instance_name = unidentified_instance_name;
-					success_code = false;
-				}
-
-				return std::make_pair(success_code, instance_name);
-			}
-
-		    protected:
-			std::map<Fragment::type_t, std::string> type_map_;
-		};
-
-		/**
-		 * \brief The DefaultFragmentTypeTranslator class provides default behavior
-		 *        for experiment-specific customizations in SharedMemoryReader.
-		 */
-		class DefaultFragmentTypeTranslator
+		auto primary_type = type_map_.find(fragment.type());
+		if (primary_type != type_map_end)
 		{
-		    public:
-
-			DefaultFragmentTypeTranslator() : type_map_() {}
-			virtual ~DefaultFragmentTypeTranslator() = default;
-
-			/**
-			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
-			 */
-			virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
+			instance_name = primary_type->second;
+			if (fragment.type() == artdaq::Fragment::ContainerFragmentType)
 			{
-				type_map_ = type_map;
-			}
-
-			/**
-			 * \brief Adds an additional type to be translated.
-			 */
-			virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
-			{
-				type_map_[type_id] = type_name;
-			}
-
-			/**
-			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
-			 *        unidentified_instance_name if no translation can be found.
-			 */
-			virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
-			{
-				if (type_map_.count(type_id) > 0) {return type_map_[type_id];}
-				return unidentified_instance_name;
-			}
-
-			/**
-			 * \brief Returns the full set of product instance names which may be present in the data, based on
-			 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
-			 *        *does* include "container" types, if the container type mapping is part of the basic types.
-			 */
-			virtual std::set<std::string> GetAllProductInstanceNames()
-			{
-				std::set<std::string> output;
-				for (const auto& map_iter : type_map_)
+				artdaq::ContainerFragment cf(fragment);
+				auto contained_type = type_map_.find(cf.fragment_type());
+				if (contained_type != type_map_end)
 				{
-					std::string instance_name = map_iter.second;
-					if (!output.count(instance_name))
-					{
-						output.insert(instance_name);
-						TLOG_TRACE("DefaultFragmentTypeTranslator") << "Adding product instance name \"" << map_iter.second
-						                                            << "\" to list of expected names";
-					}
+					instance_name += contained_type->second;
 				}
-
-				auto container_type = type_map_.find(artdaq::Fragment::ContainerFragmentType);
-				if (container_type != type_map_.end())
-				{
-					std::string container_type_name = container_type->second;
-					std::set<std::string> tmp_copy = output;
-					for (const auto& set_iter : tmp_copy)
-					{
-						output.insert(container_type_name + set_iter);
-					}
-				}
-
-				return output;
 			}
-
-			/**
-			 * \brief Returns the product instance name for the specified fragment, based on the types that have
-			 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
-			 *        use of "container" types, if the container type mapping is part of the basic types.  If no
-			 *        mapping is found, the specified unidentified_instance_name is returned.
-			 */
-			virtual std::pair<bool, std::string>
-			GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
-			{
-				auto type_map_end = type_map_.end();
-				bool success_code = true;
-				std::string instance_name;
-
-				auto primary_type = type_map_.find(fragment.type());
-				if (primary_type != type_map_end)
-				{
-					instance_name = primary_type->second;
-					if (fragment.type() == artdaq::Fragment::ContainerFragmentType)
-					{
-						artdaq::ContainerFragment cf(fragment);
-						auto contained_type = type_map_.find(cf.fragment_type());
-						if (contained_type != type_map_end)
-						{
-							instance_name += contained_type->second;
-						}
-					}
-				}
-				else
-				{
-					instance_name = unidentified_instance_name;
-					success_code = false;
-				}
-
-				return std::make_pair(success_code, instance_name);
-			}
-
-		    protected:
-			std::map<Fragment::type_t, std::string> type_map_;
-		};
-
-		/**
-		 * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
-		 */
-		template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
-		         class FTT = artdaq::detail::DefaultFragmentTypeTranslator >
-		struct SharedMemoryReader
+		}
+		else
 		{
-			/**
-			 * \brief Copy Constructor is deleted
-			 */
-			SharedMemoryReader(SharedMemoryReader const&) = delete;
+			instance_name = unidentified_instance_name;
+			success_code = false;
+		}
 
-			/**
-			 * \brief Copy Assignment operator is deleted
-			 * \return SharedMemoryReader copy
-			 */
-			SharedMemoryReader& operator=(SharedMemoryReader const&) = delete;
+		return std::make_pair(success_code, instance_name);
+	}
 
-			art::SourceHelper const& pmaker; ///< An art::SourceHelper instance
-			std::unique_ptr<SharedMemoryEventReceiver> incoming_events; ///< The events from the EventStore
-			double waiting_time; ///< The amount of time to wait for an event from the queue
-			bool resume_after_timeout; ///< Whether to resume if the dequeue action times out
-			std::string pretend_module_name; ///< The module name to store data under
-			std::string unidentified_instance_name; ///< The name to use for unknown Fragment types
-			bool shutdownMsgReceived; ///< Whether a shutdown message has been received
-			bool outputFileCloseNeeded; ///< If an explicit output file close message is needed
-			size_t bytesRead; ///< running total of number of bytes received
-			std::chrono::steady_clock::time_point last_read_time; ///< Time last read was completed
-			//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
-	// std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
-	// Fragments)
+protected:
+	std::map<Fragment::type_t, std::string> type_map_;
+};
 
-			/**
-			 * \brief SharedMemoryReader Constructor
-			 * \param ps ParameterSet used for configuring SharedMemoryReader
-			 * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
-			 * \param pm art::SourceHelper used to initalize the SourceHelper member
-			 *
-			 * \verbatim
-			 * SharedMemoryReader accepts the following Parameters:
-			 * "waiting_time" (Default: 86400.0): The maximum amount of time to wait for an event from the queue
-			 * "resume_after_timeout" (Default: true): Whether to continue receiving data after a timeout
-			 * "raw_data_label" (Default: "daq"): The label to use for all raw data
-			 * "shared_memory_key" (Default: 0xBEE7): The key for the shared memory segment
-			 * \endverbatim
-			 */
-			SharedMemoryReader(fhicl::ParameterSet const& ps,
-				art::ProductRegistryHelper& help,
-				art::SourceHelper const& pm)
-				: pmaker(pm)
-				, waiting_time(ps.get<double>("waiting_time", 86400.0))
-				, resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
-				, pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))
-				, unidentified_instance_name("unidentified")
-				, shutdownMsgReceived(false)
-				, outputFileCloseNeeded(false)
-				, bytesRead(0)
-				, last_read_time(std::chrono::steady_clock::now())
-				, readNext_calls_(0)
-			{
-				// For testing
+/**
+ * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
+ */
+template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
+         class FTT = artdaq::detail::DefaultFragmentTypeTranslator>
+struct SharedMemoryReader
+{
+	/**
+   * \brief Copy Constructor is deleted
+   */
+	SharedMemoryReader(SharedMemoryReader const&) = delete;
+
+	/**
+   * \brief Copy Assignment operator is deleted
+   * \return SharedMemoryReader copy
+   */
+	SharedMemoryReader& operator=(SharedMemoryReader const&) = delete;
+
+	art::SourceHelper const& pmaker;                             ///< An art::SourceHelper instance
+	std::unique_ptr<SharedMemoryEventReceiver> incoming_events;  ///< The events from the EventStore
+	double waiting_time;                                         ///< The amount of time to wait for an event from the queue
+	bool resume_after_timeout;                                   ///< Whether to resume if the dequeue action times out
+	std::string pretend_module_name;                             ///< The module name to store data under
+	std::string unidentified_instance_name;                      ///< The name to use for unknown Fragment types
+	bool shutdownMsgReceived;                                    ///< Whether a shutdown message has been received
+	bool outputFileCloseNeeded;                                  ///< If an explicit output file close message is needed
+	size_t bytesRead;                                            ///< running total of number of bytes received
+	std::chrono::steady_clock::time_point last_read_time;        ///< Time last read was completed
+	                                                             // std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
+	                                                             // std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
+	                                                             // Fragments)
+
+	/**
+   * \brief SharedMemoryReader Constructor
+   * \param ps ParameterSet used for configuring SharedMemoryReader
+   * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
+   * \param pm art::SourceHelper used to initalize the SourceHelper member
+   *
+   * \verbatim
+   * SharedMemoryReader accepts the following Parameters:
+   * "waiting_time" (Default: 86400.0): The maximum amount of time to wait for an event from the queue
+   * "resume_after_timeout" (Default: true): Whether to continue receiving data after a timeout
+   * "raw_data_label" (Default: "daq"): The label to use for all raw data
+   * "shared_memory_key" (Default: 0xBEE7): The key for the shared memory segment
+   * \endverbatim
+   */
+	SharedMemoryReader(fhicl::ParameterSet const& ps,
+	                   art::ProductRegistryHelper& help,
+	                   art::SourceHelper const& pm)
+	    : pmaker(pm)
+	    , waiting_time(ps.get<double>("waiting_time", 86400.0))
+	    , resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
+	    , pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))
+	    , unidentified_instance_name("unidentified")
+	    , shutdownMsgReceived(false)
+	    , outputFileCloseNeeded(false)
+	    , bytesRead(0)
+	    , last_read_time(std::chrono::steady_clock::now())
+	    , readNext_calls_(0)
+	{
+		// For testing
 		// if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") ||
 		// (ps.has_key("expected_fragments_per_event") && ps.has_key("max_fragment_size_bytes"))))
 				//{
@@ -354,17 +244,17 @@ namespace detail {
 
 				help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 
-				translator_.SetBasicTypes(getDefaultTypes());
-				auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
-				for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
-				{
-					translator_.AddExtraType(it->first, it->second);
-				}
-				std::set<std::string> instance_names = translator_.GetAllProductInstanceNames();
-				for (const auto& set_iter : instance_names)
-				{
-					help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, set_iter);
-				}
+		translator_.SetBasicTypes(getDefaultTypes());
+		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
+		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
+		{
+			translator_.AddExtraType(it->first, it->second);
+		}
+		std::set<std::string> instance_names = translator_.GetAllProductInstanceNames();
+		for (const auto& set_iter : instance_names)
+		{
+			help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, set_iter);
+		}
 
 				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string();
 			}
@@ -478,41 +368,41 @@ namespace detail {
 					}
 				}
 
-				if (!got_event)
-				{
-					TLOG_INFO("SharedMemoryReader") << "Did not receive an event from Shared Memory, returning false";
-					shutdownMsgReceived = true;
-					return false;
-				}
-				TLOG_DEBUG("SharedMemoryReader") << "Got Event!";
-				auto got_event_time = std::chrono::steady_clock::now();
+		if (!got_event)
+		{
+			TLOG_INFO("SharedMemoryReader") << "Did not receive an event from Shared Memory, returning false";
+			shutdownMsgReceived = true;
+			return false;
+		}
+		TLOG_DEBUG("SharedMemoryReader") << "Got Event!";
+		auto got_event_time = std::chrono::steady_clock::now();
 
-				auto errflag = false;
-				auto evtHeader = incoming_events->ReadHeader(errflag);
-				if (errflag) goto start; // Buffer was changed out from under reader!
-				auto fragmentTypes = incoming_events->GetFragmentTypes(errflag);
-				if (errflag) goto start; // Buffer was changed out from under reader!
-				if (fragmentTypes.size() == 0)
-				{
-					TLOG_ERROR("SharedMemoryReader") << "Event has no Fragments! Aborting!";
-					incoming_events->ReleaseBuffer();
-					return false;
-				}
-				auto firstFragmentType = *fragmentTypes.begin();
-				TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " ("
-				                                 << translator_.GetInstanceNameForType(firstFragmentType, unidentified_instance_name) << ")";
-				// We return false, indicating we're done reading, if:
-				//   1) we did not obtain an event, because we timed out and were
-				//      configured NOT to keep trying after a timeout, or
-				//   2) the event we read was the end-of-data marker: a null
-				//      pointer
-				if (firstFragmentType == Fragment::EndOfDataFragmentType)
-				{
-					TLOG_DEBUG("SharedMemoryReader") << "Received shutdown message, returning false";
-					shutdownMsgReceived = true;
-					incoming_events->ReleaseBuffer();
-					return false;
-				}
+		auto errflag = false;
+		auto evtHeader = incoming_events->ReadHeader(errflag);
+		if (errflag) goto start;  // Buffer was changed out from under reader!
+		auto fragmentTypes = incoming_events->GetFragmentTypes(errflag);
+		if (errflag) goto start;  // Buffer was changed out from under reader!
+		if (fragmentTypes.size() == 0)
+		{
+			TLOG_ERROR("SharedMemoryReader") << "Event has no Fragments! Aborting!";
+			incoming_events->ReleaseBuffer();
+			return false;
+		}
+		auto firstFragmentType = *fragmentTypes.begin();
+		TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " ("
+		                                 << translator_.GetInstanceNameForType(firstFragmentType, unidentified_instance_name) << ")";
+		// We return false, indicating we're done reading, if:
+		//   1) we did not obtain an event, because we timed out and were
+		//      configured NOT to keep trying after a timeout, or
+		//   2) the event we read was the end-of-data marker: a null
+		//      pointer
+		if (firstFragmentType == Fragment::EndOfDataFragmentType)
+		{
+			TLOG_DEBUG("SharedMemoryReader") << "Received shutdown message, returning false";
+			shutdownMsgReceived = true;
+			incoming_events->ReleaseBuffer();
+			return false;
+		}
 
 				size_t qsize = incoming_events->ReadReadyCount(); // save the qsize at this point
 
@@ -627,50 +517,50 @@ namespace detail {
 		double fragmentLatencyMax = 0.0;
 		size_t fragmentCount = 0;
 
-				// insert the Fragments of each type into the EventPrincipal
-				for (auto& type_code : fragmentTypes)
+		// insert the Fragments of each type into the EventPrincipal
+		for (auto& type_code : fragmentTypes)
+		{
+			TLOG_TRACE("SharedMemoryReader") << "Before GetFragmentsByType call, type is " << (int)type_code;
+			auto product = incoming_events->GetFragmentsByType(errflag, type_code);
+			TLOG_TRACE("SharedMemoryReader") << "After GetFragmentsByType call, number of fragments is " << product->size();
+			if (errflag) goto start;  // Buffer was changed out from under reader!
+
+			std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
+			for (auto& frag : *product)
+			{
+				bytesRead += frag.sizeBytes();
+				auto latency_s = frag.getLatency(true);
+				double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
+
+				fragmentLatency += latency;
+				fragmentCount++;
+				if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
+
+				std::pair<bool, std::string> instance_name_result =
+				    translator_.GetInstanceNameForFragment(frag, unidentified_instance_name);
+				std::string label = instance_name_result.second;
+				if (!instance_name_result.first)
 				{
-					TLOG_TRACE("SharedMemoryReader") << "Before GetFragmentsByType call, type is " << (int)type_code;
-					auto product = incoming_events->GetFragmentsByType(errflag, type_code);
-					TLOG_TRACE("SharedMemoryReader") << "After GetFragmentsByType call, number of fragments is " << product->size();
-					if (errflag) goto start; // Buffer was changed out from under reader!
-
-					std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
-					for (auto& frag : *product)
-					{
-						bytesRead += frag.sizeBytes();
-	auto latency_s = frag.getLatency(true);
-	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
-
-	fragmentLatency += latency;
-	fragmentCount++;
-	if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
-
-						std::pair<bool, std::string> instance_name_result =
-							translator_.GetInstanceNameForFragment(frag, unidentified_instance_name);
-						std::string label = instance_name_result.second;
-						if (! instance_name_result.first)
-						{
-							TLOG_WARNING("SharedMemoryReader")
-		  << "UnknownFragmentType: The product instance name mapping for fragment type \"" << ((int)type_code)
-		  << "\" is not known. Fragments of this "
-		  << "type will be stored in the event with an instance name of \"" << unidentified_instance_name << "\".";
-						}
-						if (!derived_fragments.count(label))
-						{
-							derived_fragments[label] = std::make_unique<Fragments>();
-						}
-						derived_fragments[label]->emplace_back(std::move(frag));
-					}
-					for (auto& type : derived_fragments)
-					{
-						put_product_in_principal(std::move(type.second),
-						                         *outE,
-						                         pretend_module_name,
-						                         type.first);
-					}
+					TLOG_WARNING("SharedMemoryReader")
+					    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << ((int)type_code)
+					    << "\" is not known. Fragments of this "
+					    << "type will be stored in the event with an instance name of \"" << unidentified_instance_name << "\".";
 				}
-				TLOG_TRACE("SharedMemoryReader") << "After putting fragments in event";
+				if (!derived_fragments.count(label))
+				{
+					derived_fragments[label] = std::make_unique<Fragments>();
+				}
+				derived_fragments[label]->emplace_back(std::move(frag));
+			}
+			for (auto& type : derived_fragments)
+			{
+				put_product_in_principal(std::move(type.second),
+				                         *outE,
+				                         pretend_module_name,
+				                         type.first);
+			}
+		}
+		TLOG_TRACE("SharedMemoryReader") << "After putting fragments in event";
 
 				auto read_finish_time = std::chrono::steady_clock::now();
 				incoming_events->ReleaseBuffer();
@@ -699,9 +589,9 @@ namespace detail {
 				return true;
 			}
 
-			unsigned readNext_calls_; ///< The number of times readNext has been called
-			FTT translator_;
-		};
+	unsigned readNext_calls_;  ///< The number of times readNext has been called
+	FTT translator_;
+};
 }  // namespace detail
 }  // namespace artdaq
 
