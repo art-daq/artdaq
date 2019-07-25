@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_RequestSender").c_str()
 #include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
+#define TRACE_NAME (app_name + "_RequestSender").c_str()
 #include "artdaq/DAQrate/RequestSender.hh"
 #include <utility>
 #include <cstring>
@@ -25,6 +25,7 @@ namespace artdaq
 		, request_port_(pset.get<int>("request_port", 3001))
 		, request_delay_(pset.get<size_t>("request_delay_ms", 0) * 1000)
 		, request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
+		, request_socket_(-1)
 		, multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
 		, request_mode_(detail::RequestMessageMode::Normal)
 		, token_socket_(-1)
@@ -59,16 +60,30 @@ namespace artdaq
 			std::unique_lock<std::mutex> lk(request_mutex_);
 			std::unique_lock<std::mutex> lk2(request_send_mutex_);
 		}
-		TLOG(TLVL_INFO) << "Shutting down RequestSender";
-		if (request_socket_ > 0)
+		TLOG(TLVL_INFO) << "Shutting down RequestSender: request_socket_: " << request_socket_ << ", token_socket_: " << token_socket_;
+		if (request_socket_ != -1)
 		{
-			shutdown(request_socket_, 2);
-			close(request_socket_);
+		    if (shutdown(request_socket_, 2) != 0 && errno == ENOTSOCK)
+		    {
+			    TLOG(TLVL_ERROR) << "Shutdown of request_socket_ resulted in ENOTSOCK. NOT Closing file descriptor!";
+		    }
+		    else
+		    {
+			    close(request_socket_);
+		    }
+		    request_socket_ = -1;
 		}
-		if (token_socket_ > 0)
+		if (token_socket_ != -1)
 		{
-			shutdown(token_socket_, 2);
-			close(token_socket_);
+		    if(shutdown(token_socket_, 2) != 0 && errno == ENOTSOCK)
+		    {
+			    TLOG(TLVL_ERROR) << "Shutdown of token_socket_ resulted in ENOTSOCK. NOT Closing file descriptor!";
+		    }
+		    else
+		    {
+			    close(token_socket_);
+		    }
+		    token_socket_ = -1;
 		}
 	}
 
@@ -196,7 +211,8 @@ namespace artdaq
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 		std::unique_lock<std::mutex> lk2(request_send_mutex_);
-		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
+		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str
+		                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 		auto buf = message.GetMessage();
 		auto sts=sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
 		if (sts < 0 || static_cast<size_t>(sts) != buf.size())
