@@ -5,6 +5,8 @@ add_subdirectory(ExternalComms)
 add_subdirectory(ArtModules)
 add_subdirectory(BuildInfo)
 add_subdirectory(TransferPlugins)
+add_subdirectory(RoutingPolicies)
+add_subdirectory(Generators)
 
 if (${USING_RTIDDS})
 add_subdirectory(RTIDDS)

@@ -1,8 +1,8 @@
 #include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
 
-#define TRACE_NAME (app_name + "_DataReceiverCore").c_str() // include these 2 first -
-#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/Globals.hh" // include these 2 first -
+#define TRACE_NAME (app_name + "_DataReceiverCore").c_str()
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
@@ -83,6 +83,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, art_pset));
 	art_pset_ = art_pset;
+	TLOG(TLVL_DEBUG) << "Resulting art_pset_: \"" << art_pset_.to_string() << "\"." ;
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
 
@@ -135,7 +136,7 @@ bool artdaq::DataReceiverCore::stop()
 	// exit (after the timeout), the lock will be released (in the
 	// processFragments method), and this method can continue.
 	stop_requested_.store(true);
-	
+
 	TLOG(TLVL_DEBUG) << "Ending run " << event_store_ptr_->runID();
 	attemptsToEnd = 1;
 	endSucceeded = event_store_ptr_->endRun();

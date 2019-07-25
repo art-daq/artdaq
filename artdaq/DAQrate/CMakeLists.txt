@@ -17,8 +17,10 @@ art_make(BASENAME_ONLY
   artdaq-core_Core
   artdaq-core_Data
   artdaq-core_Utilities
+  artdaq_RoutingPolicies
   ${FHICLCPP}
   ${MESSAGEFACILITY_LIBS}
+  ${ART_UTILITIES}
   ${CLHEP}
   ${Boost_THREAD_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}

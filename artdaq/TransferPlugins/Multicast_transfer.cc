@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_MulticastTransfer").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_MulticastTransfer").c_str()
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
@@ -207,7 +207,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 
 			socket_->set_option(boost::asio::ip::udp::socket::reuse_address(true), ec);
 
-			if (ec != 0)
+			if (ec.value() != 0)
 			{
 				std::cerr << "boost::system::error_code with value " << ec << " was found in setting reuse_address option" << std::endl;
 			}
@@ -220,7 +220,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 
 			socket_->set_option(boost::asio::ip::multicast::join_group(multicast_address), ec);
 
-			if (ec != 0)
+			if (ec.value() != 0)
 			{
 				std::cerr << "boost::system::error_code with value " << ec << " was found in attempt to join multicast group" << std::endl;
 			}
@@ -564,7 +564,7 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	boost::system::error_code ec;
 	socket_->set_option(recv_buff_option, ec);
 
-	if (ec != 0)
+	if (ec.value() != 0)
 	{
 		std::cerr << "boost::system::error_code with value " << ec <<
 			" was found in attempt to change receive buffer" << std::endl;

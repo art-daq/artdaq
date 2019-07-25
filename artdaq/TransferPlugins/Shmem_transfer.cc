@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_ShmemTransfer").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_ShmemTransfer").c_str()
 
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
 #include "cetlib_except/exception.h"
@@ -48,7 +48,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	}
 	else
 	{
-		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, 0, 0);
+		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey);
 	}
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": Constructor END";
 }

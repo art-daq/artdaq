@@ -1,35 +1,142 @@
 #ifndef artdaq_ArtModules_detail_SharedMemoryReader_hh
 #define artdaq_ArtModules_detail_SharedMemoryReader_hh
 
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "art/Framework/Core/Frameworkfwd.h"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
+#include <sys/time.h>
 #include "art/Framework/Core/FileBlock.h"
 #include "art/Framework/Core/ProductRegistryHelper.h"
 #include "art/Framework/IO/Sources/SourceHelper.h"
+#include "art/Framework/IO/Sources/put_product_in_principal.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-#include "artdaq-core/Core/SharedMemoryManager.hh"
-#include "artdaq-core/Utilities/TimeUtils.hh"
-#include "fhiclcpp/ParameterSet.h"
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
-#include "art/Framework/IO/Sources/put_product_in_principal.h"
+#include "artdaq-core/Core/SharedMemoryManager.hh"
+#include "artdaq-core/Data/ContainerFragment.hh"
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
-#include <sys/time.h>
+#include "fhiclcpp/ParameterSet.h"
 
-
-#include <string>
 #include <map>
+#include <string>
 #include "artdaq-core/Data/RawEvent.hh"
 
-namespace artdaq
+namespace artdaq {
+namespace detail {
+/**
+		 * \brief The DefaultFragmentTypeTranslator class provides default behavior
+		 *        for experiment-specific customizations in SharedMemoryReader.
+		 */
+		class DefaultFragmentTypeTranslator
 {
-	namespace detail
+		    public:
+
+			DefaultFragmentTypeTranslator() : type_map_() {}
+			virtual ~DefaultFragmentTypeTranslator() = default;
+
+			/**
+			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
+			 */
+			virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
 	{
+				type_map_ = type_map;
+			}
+
+			/**
+			 * \brief Adds an additional type to be translated.
+			 */
+			virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
+			{
+				type_map_[type_id] = type_name;
+			}
+
+			/**
+			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
+			 *        unidentified_instance_name if no translation can be found.
+			 */
+			virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
+			{
+				if (type_map_.count(type_id) > 0) {return type_map_[type_id];}
+				return unidentified_instance_name;
+			}
+
+			/**
+			 * \brief Returns the full set of product instance names which may be present in the data, based on
+			 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
+			 *        *does* include "container" types, if the container type mapping is part of the basic types.
+			 */
+			virtual std::set<std::string> GetAllProductInstanceNames()
+			{
+				std::set<std::string> output;
+				for (const auto& map_iter : type_map_)
+				{
+					std::string instance_name = map_iter.second;
+					if (!output.count(instance_name))
+					{
+						output.insert(instance_name);
+						TLOG_TRACE("DefaultFragmentTypeTranslator") << "Adding product instance name \"" << map_iter.second
+						                                            << "\" to list of expected names";
+					}
+				}
+
+				auto container_type = type_map_.find(Fragment::type_t(artdaq::Fragment::ContainerFragmentType));
+				if (container_type != type_map_.end())
+				{
+					std::string container_type_name = container_type->second;
+					std::set<std::string> tmp_copy = output;
+					for (const auto& set_iter : tmp_copy)
+					{
+						output.insert(container_type_name + set_iter);
+					}
+				}
+
+				return output;
+			}
+
+			/**
+			 * \brief Returns the product instance name for the specified fragment, based on the types that have
+			 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
+			 *        use of "container" types, if the container type mapping is part of the basic types.  If no
+			 *        mapping is found, the specified unidentified_instance_name is returned.
+			 */
+			virtual std::pair<bool, std::string>
+			GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
+			{
+				auto type_map_end = type_map_.end();
+				bool success_code = true;
+				std::string instance_name;
+
+				auto primary_type = type_map_.find(fragment.type());
+				if (primary_type != type_map_end)
+				{
+					instance_name = primary_type->second;
+					if (fragment.type() == artdaq::Fragment::ContainerFragmentType)
+					{
+						artdaq::ContainerFragment cf(fragment);
+						auto contained_type = type_map_.find(cf.fragment_type());
+						if (contained_type != type_map_end)
+						{
+							instance_name += contained_type->second;
+						}
+					}
+				}
+				else
+				{
+					instance_name = unidentified_instance_name;
+					success_code = false;
+				}
+
+				return std::make_pair(success_code, instance_name);
+			}
+
+		    protected:
+			std::map<Fragment::type_t, std::string> type_map_;
+		};
+
 		/**
 		 * \brief The DefaultFragmentTypeTranslator class provides default behavior
 		 *        for experiment-specific customizations in SharedMemoryReader.
@@ -169,7 +276,8 @@ namespace artdaq
 			size_t bytesRead; ///< running total of number of bytes received
 			std::chrono::steady_clock::time_point last_read_time; ///< Time last read was completed
 			//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
-			//std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control Fragments)
+	// std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
+	// Fragments)
 
 			/**
 			 * \brief SharedMemoryReader Constructor
@@ -199,15 +307,21 @@ namespace artdaq
 				, last_read_time(std::chrono::steady_clock::now())
 				, readNext_calls_(0)
 			{
-
 				// For testing
-				//if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") || (ps.has_key("expected_fragments_per_event") && ps.has_key("max_fragment_size_bytes"))))
+		// if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") ||
+		// (ps.has_key("expected_fragments_per_event") && ps.has_key("max_fragment_size_bytes"))))
 				//{
-				//	data_shm.reset(new SharedMemoryManager(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()), ps.get<int>("buffer_count"), ps.has_key("max_event_size_bytes") ? ps.get<size_t>("max_event_size_bytes") : ps.get<size_t>("expected_fragments_per_event") * ps.get<size_t>("max_fragment_size_bytes")));
-				//	broadcast_shm.reset(new SharedMemoryManager(ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getppid()), ps.get<int>("broadcast_buffer_count", 5), ps.get<size_t>("broadcast_buffer_size", 0x100000)));
+		//	data_shm.reset(new SharedMemoryManager(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()),
+		// ps.get<int>("buffer_count"), ps.has_key("max_event_size_bytes") ? ps.get<size_t>("max_event_size_bytes") :
+		// ps.get<size_t>("expected_fragments_per_event") * ps.get<size_t>("max_fragment_size_bytes")));
+		//	broadcast_shm.reset(new SharedMemoryManager(ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 +
+		// getppid()), ps.get<int>("broadcast_buffer_count", 5), ps.get<size_t>("broadcast_buffer_size", 0x100000)));
 				//}
-				incoming_events.reset(new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()), ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
+		incoming_events.reset(
+		    new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()),
+		                                  ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
 				my_rank = incoming_events->GetRank();
+		TLOG(TLVL_INFO, "SharedMemoryReader") << "Rank set to " << my_rank;
 
 				char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
 				std::string artapp_str = "";
@@ -218,7 +332,15 @@ namespace artdaq
 
 				app_name = artapp_str + "art" + std::to_string(incoming_events->GetMyId());
 
-				try {
+		artapp_env = getenv("ARTDAQ_RANK");
+		if (artapp_env != NULL && my_rank < 0)
+		{
+			my_rank = std::atoi(artapp_env);
+		}
+		TLOG(TLVL_INFO) << "app_name is " << app_name << ", rank " << my_rank;
+
+		try
+		{
 					if (metricMan)
 					{
 						metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), app_name);
@@ -247,6 +369,7 @@ namespace artdaq
 				TLOG_INFO("SharedMemoryReader") << "SharedMemoryReader initialized with ParameterSet: " << ps.to_string();
 			}
 
+#if ART_HEX_VERSION < 0x30000
 			/**
 			 * \brief SharedMemoryReader Constructor
 			 * \param ps ParameterSet used for configuring SharedMemoryReader
@@ -255,18 +378,15 @@ namespace artdaq
 			 *
 			 * This constructor calls the three-parameter constructor, the art::MasterProductRegistry parameter is discarded.
 			 */
-			SharedMemoryReader(fhicl::ParameterSet const& ps,
-				art::ProductRegistryHelper& help,
-				art::SourceHelper const& pm,
-				art::MasterProductRegistry&) : SharedMemoryReader(ps, help, pm)
-			{}
+	SharedMemoryReader(fhicl::ParameterSet const& ps, art::ProductRegistryHelper& help, art::SourceHelper const& pm,
+	                   art::MasterProductRegistry&)
+	    : SharedMemoryReader(ps, help, pm) {}
+#endif
 
 			/**
 			 * \brief SharedMemoryReader destructor
 			 */
-			virtual ~SharedMemoryReader() {
-				artdaq::Globals::CleanUpGlobals();
-			}
+	virtual ~SharedMemoryReader() { artdaq::Globals::CleanUpGlobals(); }
 
 			/**
 			 * \brief Emulate closing a file. No-Op.
@@ -299,11 +419,8 @@ namespace artdaq
 			 * \param[out] outE Output art::EventPrincipal
 			 * \return Whether an event was returned
 			 */
-			bool readNext(art::RunPrincipal* const & inR,
-				art::SubRunPrincipal* const & inSR,
-				art::RunPrincipal*& outR,
-				art::SubRunPrincipal*& outSR,
-				art::EventPrincipal*& outE)
+	bool readNext(art::RunPrincipal* const& inR, art::SubRunPrincipal* const& inSR, art::RunPrincipal*& outR,
+	              art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 			{
 				TLOG_DEBUG("SharedMemoryReader") << "readNext BEGIN";
 				/*if (outputFileCloseNeeded) {
@@ -349,14 +466,14 @@ namespace artdaq
 						if (!got_event)
 						{
 							usleep(sleepTimeUsec);
-							//TLOG_INFO("SharedMemoryReader") << "Waited " << TimeUtils::GetElapsedTime(start_time) << " of " << waiting_time ;
+					// TLOG_INFO("SharedMemoryReader") << "Waited " << TimeUtils::GetElapsedTime(start_time) << " of " <<
+					// waiting_time ;
 						}
 					}
 					TLOG_TRACE("SharedMemoryReader") << "ReadyForRead loops END";
 					if (!got_event)
 					{
-						TLOG_INFO("SharedMemoryReader")
-							<< "InputFailure: Reading timed out in SharedMemoryReader::readNext()";
+				TLOG_INFO("SharedMemoryReader") << "InputFailure: Reading timed out in SharedMemoryReader::readNext()";
 						keep_looping = resume_after_timeout;
 					}
 				}
@@ -411,24 +528,22 @@ namespace artdaq
 				timespec hi_res_time;
 				int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
 				TLOG_ARB(15, "SharedMemoryReader") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
-				                                   << " tv_nsec = " << hi_res_time.tv_nsec
-				                                   << " (retcode = " << retcode << ")";
+		                                   << " tv_nsec = " << hi_res_time.tv_nsec << " (retcode = " << retcode << ")";
 				if (retcode == 0)
 				{
-					currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) |
-					  (hi_res_time.tv_nsec & 0xffffffff);
+			currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) | (hi_res_time.tv_nsec & 0xffffffff);
 				}
 				else
 				{
-					TLOG_ERROR("SharedMemoryReader") << "Unable to fetch a high-resolution time with clock_gettime for art::Event Timestamp. "
+			TLOG_ERROR("SharedMemoryReader")
+			    << "Unable to fetch a high-resolution time with clock_gettime for art::Event Timestamp. "
 					                                 << "The art::Event Timestamp will be zero for event " << evtHeader->event_id;
 				}
 
 				// make new run if inR is 0 or if the run has changed
 				if (inR == 0 || inR->run() != evtHeader->run_id)
 				{
-					outR = pmaker.makeRunPrincipal(evtHeader->run_id,
-						currentTime);
+			outR = pmaker.makeRunPrincipal(evtHeader->run_id, currentTime);
 				}
 
 				if (firstFragmentType == Fragment::EndOfRunFragmentType)
@@ -445,10 +560,12 @@ namespace artdaq
 					// Check if inR == 0 or is a new run
 					if (inR == 0 || inR->run() != evtHeader->run_id)
 					{
-						outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id,
-							evtHeader->subrun_id,
-							currentTime);
+				outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
+#if ART_HEX_VERSION > 0x30000
+				art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
+#else
 						art::EventID const evid(art::EventID::flushEvent(outSR->id()));
+#endif
 						outE = pmaker.makeEventPrincipal(evid, currentTime);
 					}
 					else
@@ -457,9 +574,17 @@ namespace artdaq
 						// subrun, then it must have been associated with a data event.  In that case, we need
 						// to generate a flush event with a valid run but flush subrun and event number in order
 						// to end the subrun.
+#if ART_HEX_VERSION > 0x30000
+				if (inSR != 0 && !inSR->subRunID().isFlush() && inSR->subRun() == evtHeader->subrun_id)
+#else
 						if (inSR != 0 && !inSR->id().isFlush() && inSR->subRun() == evtHeader->subrun_id)
+#endif
 						{
+#if ART_HEX_VERSION > 0x30000
+					art::EventID const evid(art::EventID::flushEvent(inR->runID()));
+#else
 							art::EventID const evid(art::EventID::flushEvent(inR->id()));
+#endif
 							outSR = pmaker.makeSubRunPrincipal(evid.subRunID(), currentTime);
 							outE = pmaker.makeEventPrincipal(evid, currentTime);
 							// If this is either a new or another empty subrun, then generate a flush event with
@@ -468,10 +593,12 @@ namespace artdaq
 						}
 						else
 						{
-							outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id,
-								evtHeader->subrun_id,
-								currentTime);
+					outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
+#if ART_HEX_VERSION > 0x30000
+					art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
+#else
 							art::EventID const evid(art::EventID::flushEvent(outSR->id()));
+#endif
 							outE = pmaker.makeEventPrincipal(evid, currentTime);
 							// Possible error condition
 							//} else {
@@ -485,16 +612,20 @@ namespace artdaq
 
 				// make new subrun if inSR is 0 or if the subrun has changed
 				art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
+#if ART_HEX_VERSION > 0x30000
+		if (inSR == 0 || subrun_check != inSR->subRunID())
+		{
+#else
 				if (inSR == 0 || subrun_check != inSR->id())
 				{
-					outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id,
-						evtHeader->subrun_id,
-						currentTime);
+#endif
+			outSR = pmaker.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
 				}
-				outE = pmaker.makeEventPrincipal(evtHeader->run_id,
-					evtHeader->subrun_id,
-					evtHeader->event_id,
-					currentTime);
+		outE = pmaker.makeEventPrincipal(evtHeader->run_id, evtHeader->subrun_id, evtHeader->event_id, currentTime);
+
+		double fragmentLatency = 0;
+		double fragmentLatencyMax = 0.0;
+		size_t fragmentCount = 0;
 
 				// insert the Fragments of each type into the EventPrincipal
 				for (auto& type_code : fragmentTypes)
@@ -508,6 +639,12 @@ namespace artdaq
 					for (auto& frag : *product)
 					{
 						bytesRead += frag.sizeBytes();
+	auto latency_s = frag.getLatency(true);
+	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
+
+	fragmentLatency += latency;
+	fragmentCount++;
+	if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
 
 						std::pair<bool, std::string> instance_name_result =
 							translator_.GetInstanceNameForFragment(frag, unidentified_instance_name);
@@ -515,10 +652,9 @@ namespace artdaq
 						if (! instance_name_result.first)
 						{
 							TLOG_WARNING("SharedMemoryReader")
-							  << "UnknownFragmentType: The product instance name mapping for fragment type \""
-							  << ((int)type_code) << "\" is not known. Fragments of this "
-							  << "type will be stored in the event with an instance name of \""
-							  << unidentified_instance_name << "\".";
+		  << "UnknownFragmentType: The product instance name mapping for fragment type \"" << ((int)type_code)
+		  << "\" is not known. Fragments of this "
+		  << "type will be stored in the event with an instance name of \"" << unidentified_instance_name << "\".";
 						}
 						if (!derived_fragments.count(label))
 						{
@@ -539,14 +675,23 @@ namespace artdaq
 				auto read_finish_time = std::chrono::steady_clock::now();
 				incoming_events->ReleaseBuffer();
 				auto qcap = incoming_events->size();
-				TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap << " metricMan=" << (void*)metricMan.get();
+		TLOG_ARB(10, "SharedMemoryReader") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap
+		                                   << " metricMan=" << (void*)metricMan.get();
 				if (metricMan)
 				{
-					metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time), "s", 2, MetricMode::Average);
-					metricMan->sendMetric("Avg Input Wait Time", artdaq::TimeUtils::GetElapsedTime(read_start_time, got_event_time), "s", 3, MetricMode::Average);
-					metricMan->sendMetric("Avg Read Time", artdaq::TimeUtils::GetElapsedTime(got_event_time, read_finish_time), "s", 3, MetricMode::Average);
+			metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time),
+			                      "s", 2, MetricMode::Average);
+			metricMan->sendMetric("Avg Input Wait Time", artdaq::TimeUtils::GetElapsedTime(read_start_time, got_event_time),
+			                      "s", 3, MetricMode::Average);
+			metricMan->sendMetric("Avg Read Time", artdaq::TimeUtils::GetElapsedTime(got_event_time, read_finish_time), "s",
+			                      3, MetricMode::Average);
 					metricMan->sendMetric("bytesRead", bytesRead, "B", 3, MetricMode::LastPoint);
-					if (qcap > 0) metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / qcap), "%", 5, MetricMode::LastPoint);
+			if (qcap > 0)
+				metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / qcap), "%", 5,
+				                      MetricMode::LastPoint);
+
+			metricMan->sendMetric("SharedMemoryReader Latency", fragmentLatency / fragmentCount, "s", 4, MetricMode::Average);
+			metricMan->sendMetric("SharedMemoryReader Maximum Latency", fragmentLatencyMax, "s", 4, MetricMode::Maximum);
 				}
 
 				TLOG_TRACE("SharedMemoryReader") << "Returning from readNext";
@@ -557,8 +702,7 @@ namespace artdaq
 			unsigned readNext_calls_; ///< The number of times readNext has been called
 			FTT translator_;
 		};
-	} // detail
-} // artdaq
-
+}  // namespace detail
+}  // namespace artdaq
 
 #endif /* artdaq_ArtModules_detail_SharedMemoryReader_hh */
