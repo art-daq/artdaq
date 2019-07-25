@@ -77,11 +77,10 @@ public:
 	void resetStatistics();
 
 	/**
-	 * \brief Determine if the reporting interval conditions have been met
-	 * \param currentCount Current Fragment count
+	 * \brief Determine if the reporting interval condition has been met
 	 * \return Whether the StatisticsHelper is ready to report
 	 */
-	bool readyToReport(size_t currentCount);
+	bool readyToReport();
 
 	/**
 	 * \brief Determine if the MonitoredQuantity "recent" window has changed since the last time this function was called

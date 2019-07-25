@@ -34,7 +34,7 @@ static fhicl::ParameterSet empty_pset;
 NetMonTransportService::NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
     : NetMonTransportServiceInterface(), data_pset_(pset), init_received_(false), sender_ptr_(nullptr), incoming_events_(nullptr), recvd_fragments_(nullptr)
 {
-	TLOG(TLVL_TRACE) << "NetMonTransportService CONSTRUCTOR";
+	TLOG(TLVL_TRACE) << "NetMonTransportService CONSTRUCTOR" ;
 
 	init_timeout_s_ = pset.get<double>("init_fragment_timeout_seconds", 1.0);
 }
@@ -52,7 +52,7 @@ void NetMonTransportService::connect()
 	while (my_rank == -1 && artdaq::TimeUtils::GetElapsedTime(start_time) < init_timeout_s_)
 	{
 		usleep(1000);
-	}
+}
 	sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
 }
 
@@ -80,7 +80,7 @@ void NetMonTransportService::listen()
 		{
 			TLOG(TLVL_TRACE) << "Setting rank from envrionment";
 			my_rank = std::atoi(artapp_env);
-		}
+	}
 		else
 		{
 			TLOG(TLVL_TRACE) << "Setting my_rank from shared memory";
@@ -102,7 +102,7 @@ void NetMonTransportService::sendMessage(uint64_t sequenceId, uint8_t messageTyp
 {
 	if (sender_ptr_ == nullptr)
 	{
-		TLOG(TLVL_DEBUG) << "Reconnecting DataSenderManager";
+		TLOG(TLVL_DEBUG) << "Reconnecting DataSenderManager" ;
 		connect();
 	}
 
@@ -123,15 +123,17 @@ void NetMonTransportService::sendMessage(uint64_t sequenceId, uint8_t messageTyp
 
 	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
 	sender_ptr_->sendFragment(std::move(fragment));
+	// Events are unique in art, so this will be the only send with this sequence ID!
+	sender_ptr_->RemoveRoutingTableEntry(sequenceId);
 }
 
 void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 {
 	listen();
-	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
+	TLOG(TLVL_TRACE) << "receiveMessage BEGIN" ;
 	while (recvd_fragments_ == nullptr)
 	{
-		TLOG(TLVL_TRACE) << "receiveMessage: Waiting for available buffer";
+		TLOG(TLVL_TRACE) << "receiveMessage: Waiting for available buffer" ;
 		bool keep_looping = true;
 		bool got_event = false;
 		while (keep_looping)
@@ -144,7 +146,7 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 			}
 		}
 
-		TLOG(TLVL_TRACE) << "receiveMessage: Reading buffer header";
+		TLOG(TLVL_TRACE) << "receiveMessage: Reading buffer header" ;
 		auto errflag = false;
 		incoming_events_->ReadHeader(errflag);
 		if (errflag)
@@ -152,7 +154,7 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 			msg = nullptr;
 			return;
 		}
-		TLOG(TLVL_TRACE) << "receiveMessage: Getting Fragment types";
+		TLOG(TLVL_TRACE) << "receiveMessage: Getting Fragment types" ;
 		auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
 		if (errflag)
 		{  // Buffer was changed out from under reader!
@@ -162,12 +164,12 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 		}
 		if (fragmentTypes.size() == 0)
 		{
-			TLOG(TLVL_ERROR) << "Event has no Fragments! Aborting!";
+			TLOG(TLVL_ERROR) << "Event has no Fragments! Aborting!" ;
 			incoming_events_->ReleaseBuffer();
 			msg = nullptr;
 			return;
 		}
-		TLOG(TLVL_TRACE) << "receiveMessage: Checking first Fragment type";
+		TLOG(TLVL_TRACE) << "receiveMessage: Checking first Fragment type" ;
 		auto firstFragmentType = *fragmentTypes.begin();
 
 		// We return false, indicating we're done reading, if:
@@ -178,15 +180,15 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 		if (!got_event || firstFragmentType == artdaq::Fragment::EndOfDataFragmentType)
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning from receiveMessage "
-			                 << "(debug: got_event=" << got_event << ",fragType=" << (int)firstFragmentType
-			                 << ",EODFragType=" << (int)artdaq::Fragment::EndOfDataFragmentType << ")";
+					 << "(debug: got_event=" << got_event << ",fragType=" << (int)firstFragmentType
+					 << ",EODFragType=" << (int)artdaq::Fragment::EndOfDataFragmentType << ")";
 			incoming_events_->ReleaseBuffer();
 			msg = nullptr;
 			return;
 		}
 		if (firstFragmentType == artdaq::Fragment::InitFragmentType)
 		{
-			TLOG(TLVL_DEBUG) << "Cannot receive InitFragments here, retrying";
+			TLOG(TLVL_DEBUG) << "Cannot receive InitFragments here, retrying" ;
 			incoming_events_->ReleaseBuffer();
 			continue;
 		}
@@ -194,12 +196,12 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 		else if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType ||
 		         firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType)
 		{
-			TLOG(TLVL_DEBUG) << "Ignoring EndOfRun or EndOfSubrun Fragment";
+			TLOG(TLVL_DEBUG) << "Ignoring EndOfRun or EndOfSubrun Fragment" ;
 			incoming_events_->ReleaseBuffer();
 			continue;
 		}
 
-		TLOG(TLVL_TRACE) << "receiveMessage: Getting all Fragments";
+		TLOG(TLVL_TRACE) << "receiveMessage: Getting all Fragments" ;
 		recvd_fragments_ = incoming_events_->GetFragmentsByType(errflag, artdaq::Fragment::InvalidFragmentType);
 		if (!recvd_fragments_)
 		{
@@ -209,11 +211,11 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 			return;
 		}
 		/* Events coming out of the EventStore are not sorted but need to be
-       sorted by sequence ID before they can be passed to art.
-    */
+		   sorted by sequence ID before they can be passed to art.
+		*/
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(), artdaq::fragmentSequenceIDCompare);
 
-		TLOG(TLVL_TRACE) << "receiveMessage: Releasing buffer";
+		TLOG(TLVL_TRACE) << "receiveMessage: Releasing buffer" ;
 		incoming_events_->ReleaseBuffer();
 	}
 
@@ -221,14 +223,14 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 	auto start = std::chrono::steady_clock::now();
 	while (!init_received_ && artdaq::TimeUtils::GetElapsedTime(start) < init_timeout_s_)
 	{
-		usleep(init_timeout_s_ * 1000000 / 100);  // Check 100 times
+		usleep(init_timeout_s_ * 1000000 / 100); // Check 100 times
 	}
 	if (!init_received_)
 	{
-		TLOG(TLVL_ERROR) << "Received data but no Init Fragment after " << init_timeout_s_ << " seconds. Art will crash.";
+		TLOG(TLVL_ERROR) << "Received data but no Init Fragment after " << init_timeout_s_ << " seconds. Art will crash." ;
 	}
 
-	TLOG(TLVL_TRACE) << "receiveMessage: Returning top Fragment";
+	TLOG(TLVL_TRACE) << "receiveMessage: Returning top Fragment" ;
 	artdaq::Fragment topFrag = std::move(recvd_fragments_->at(0));
 	recvd_fragments_->erase(recvd_fragments_->begin());
 	if (recvd_fragments_->size() == 0)
@@ -239,7 +241,7 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 	TLOG(TLVL_TRACE) << "receiveMessage: Copying Fragment into TBufferFile, length="
 	                 << topFrag.metadata<artdaq::NetMonHeader>()->data_length;
 	auto header = topFrag.metadata<artdaq::NetMonHeader>();
-	auto buffer = static_cast<char*>(malloc(header->data_length));
+	auto buffer = static_cast<char *>(malloc(header->data_length));
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 	msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
 
@@ -251,16 +253,16 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 	ostream.close();
 #endif
 
-	TLOG(TLVL_TRACE) << "receiveMessage END";
+	TLOG(TLVL_TRACE) << "receiveMessage END" ;
 }
 
 void NetMonTransportService::receiveInitMessage(TBufferFile*& msg)
 {
 	listen();
-	TLOG(TLVL_TRACE) << "receiveInitMessage BEGIN";
+	TLOG(TLVL_TRACE) << "receiveInitMessage BEGIN" ;
 	if (recvd_fragments_ == nullptr)
 	{
-		TLOG(TLVL_TRACE) << "receiveInitMessage: Waiting for available buffer";
+		TLOG(TLVL_TRACE) << "receiveInitMessage: Waiting for available buffer" ;
 
 		bool got_init = false;
 		auto errflag = false;
@@ -272,32 +274,32 @@ void NetMonTransportService::receiveInitMessage(TBufferFile*& msg)
 				got_event = incoming_events_->ReadyForRead(true);
 			}
 
-			TLOG(TLVL_TRACE) << "receiveInitMessage: Reading buffer header";
+			TLOG(TLVL_TRACE) << "receiveInitMessage: Reading buffer header" ;
 			incoming_events_->ReadHeader(errflag);
 			if (errflag)
 			{  // Buffer was changed out from under reader!
-				TLOG(TLVL_ERROR) << "receiveInitMessage: Error receiving message!";
+				TLOG(TLVL_ERROR) << "receiveInitMessage: Error receiving message!" ;
 				incoming_events_->ReleaseBuffer();
 				msg = nullptr;
 				return;
 			}
-			TLOG(TLVL_TRACE) << "receiveInitMessage: Getting Fragment types";
+			TLOG(TLVL_TRACE) << "receiveInitMessage: Getting Fragment types" ;
 			auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
 			if (errflag)
 			{  // Buffer was changed out from under reader!
 				incoming_events_->ReleaseBuffer();
 				msg = nullptr;
-				TLOG(TLVL_ERROR) << "receiveInitMessage: Error receiving message!";
+				TLOG(TLVL_ERROR) << "receiveInitMessage: Error receiving message!" ;
 				return;
 			}
 			if (fragmentTypes.size() == 0)
 			{
-				TLOG(TLVL_ERROR) << "Event has no Fragments! Aborting!";
+				TLOG(TLVL_ERROR) << "Event has no Fragments! Aborting!" ;
 				incoming_events_->ReleaseBuffer();
 				msg = nullptr;
 				return;
 			}
-			TLOG(TLVL_TRACE) << "receiveInitMessage: Checking first Fragment type";
+			TLOG(TLVL_TRACE) << "receiveInitMessage: Checking first Fragment type" ;
 			auto firstFragmentType = *fragmentTypes.begin();
 
 			// We return false, indicating we're done reading, if:
@@ -307,7 +309,7 @@ void NetMonTransportService::receiveInitMessage(TBufferFile*& msg)
 			//      pointer
 			if (!got_event || firstFragmentType == artdaq::Fragment::EndOfDataFragmentType)
 			{
-				TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
+				TLOG(TLVL_DEBUG) << "Received shutdown message, returning" ;
 				incoming_events_->ReleaseBuffer();
 				msg = nullptr;
 				return;
@@ -320,17 +322,17 @@ void NetMonTransportService::receiveInitMessage(TBufferFile*& msg)
 			}
 			got_init = true;
 		}
-		TLOG(TLVL_TRACE) << "receiveInitMessage: Getting all Fragments";
+		TLOG(TLVL_TRACE) << "receiveInitMessage: Getting all Fragments" ;
 		recvd_fragments_ = incoming_events_->GetFragmentsByType(errflag, artdaq::Fragment::InvalidFragmentType);
 		/* Events coming out of the EventStore are not sorted but need to be
-    sorted by sequence ID before they can be passed to art.
-    */
+		sorted by sequence ID before they can be passed to art.
+		*/
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(), artdaq::fragmentSequenceIDCompare);
 
 		incoming_events_->ReleaseBuffer();
 	}
 
-	TLOG(TLVL_TRACE) << "receiveInitMessage: Returning top Fragment";
+	TLOG(TLVL_TRACE) << "receiveInitMessage: Returning top Fragment" ;
 	artdaq::Fragment topFrag = std::move(recvd_fragments_->at(0));
 	recvd_fragments_->erase(recvd_fragments_->begin());
 	if (recvd_fragments_->size() == 0)
@@ -339,9 +341,9 @@ void NetMonTransportService::receiveInitMessage(TBufferFile*& msg)
 	}
 
 	auto header = topFrag.metadata<artdaq::NetMonHeader>();
-	TLOG(TLVL_TRACE) << "receiveInitMessage: Copying Fragment into TBufferFile: message length: " << header->data_length;
+	TLOG(TLVL_TRACE) << "receiveInitMessage: Copying Fragment into TBufferFile: message length: " << header->data_length ;
 	auto buffer = new char[header->data_length];
-	// auto buffer = static_cast<char *>(malloc(header->data_length)); // Fix alloc-dealloc-mismatch
+	//auto buffer = static_cast<char *>(malloc(header->data_length)); // Fix alloc-dealloc-mismatch
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 
 #if DUMP_RECEIVE_MESSAGE
@@ -353,7 +355,7 @@ void NetMonTransportService::receiveInitMessage(TBufferFile*& msg)
 
 	msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
 
-	TLOG(TLVL_TRACE) << "receiveInitMessage END";
+	TLOG(TLVL_TRACE) << "receiveInitMessage END" ;
 	init_received_ = true;
 }
 DEFINE_ART_SERVICE_INTERFACE_IMPL(NetMonTransportService, NetMonTransportServiceInterface)
