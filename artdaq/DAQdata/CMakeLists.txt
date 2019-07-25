@@ -16,6 +16,7 @@ art_make( BASENAME_ONLY
 simple_plugin(GenericFragmentSimulator "generator"
   artdaq_DAQdata
   artdaq-core_Data
+  artdaq-core_Utilities
   ${ARTDAQ-CORE_GENERATORS}
   ${CETLIB_EXCEPT}
   )
