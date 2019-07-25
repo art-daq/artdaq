@@ -1,19 +1,18 @@
 
-#define TRACE_NAME (app_name + "_BoardReaderCore").c_str() // include these 2 first -
-#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/Globals.hh" // include these 2 first -
+#define TRACE_NAME (app_name + "_BoardReaderCore").c_str()
+
+#include "artdaq/Application/TaskType.hh"
+#include "artdaq/Application/BoardReaderCore.hh"
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
-
-#include "artdaq/Application/BoardReaderCore.hh"
-#include "artdaq/Application/TaskType.hh"
-#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 const std::string artdaq::BoardReaderCore::
 FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
@@ -282,6 +281,8 @@ void artdaq::BoardReaderCore::process_fragments()
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
 	artdaq::FragmentPtrs frags;
+	auto targetFragCount = generator_ptr_->fragmentIDs().size();
+
 	bool active = true;
 
 	while (active)
@@ -346,12 +347,16 @@ void artdaq::BoardReaderCore::process_fragments()
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
 			TLOG(17) << "process_fragments seq=" << sequence_id << " sendFragment start";
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
+			if (sender_ptr_->GetSentSequenceIDCount(sequence_id) == targetFragCount)
+			{
+				sender_ptr_->RemoveRoutingTableEntry(sequence_id);
+			}
 			TLOG(17) << "process_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 				artdaq::MonitoredQuantity::getCurrentTime() - startTime);
 
-			bool readyToReport = statsHelper_.readyToReport(fragment_count_);
+			bool readyToReport = statsHelper_.readyToReport();
 			if (readyToReport)
 			{
 				std::string statString = buildStatisticsString_();
