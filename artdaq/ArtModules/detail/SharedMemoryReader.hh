@@ -83,7 +83,7 @@ public:
 			}
 		}
 
-		auto container_type = type_map_.find(artdaq::Fragment::ContainerFragmentType);
+		auto container_type = type_map_.find(Fragment::type_t(artdaq::Fragment::ContainerFragmentType));
 		if (container_type != type_map_.end())
 		{
 			std::string container_type_name = container_type->second;
