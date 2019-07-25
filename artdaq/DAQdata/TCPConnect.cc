@@ -5,8 +5,8 @@
 //  $RCSfile: TCPConnect.cpp,v $
 //  rev="$Revision: 1.4 $$Date: 2010/06/24 03:49:45 $";
 
-#define TRACE_NAME (app_name + "_TCPConnect").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_TCPConnect").c_str()
 
 #include <stdio.h>		// printf
 #include <sys/types.h>		// socket, bind, listen, accept

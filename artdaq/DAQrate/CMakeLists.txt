@@ -17,6 +17,7 @@ art_make(BASENAME_ONLY
   artdaq-core_Core
   artdaq-core_Data
   artdaq-core_Utilities
+  artdaq_RoutingPolicies
   ${FHICLCPP}
   ${MESSAGEFACILITY_LIBS}
   ${Boost_THREAD_LIBRARY}
