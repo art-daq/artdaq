@@ -170,7 +170,7 @@ namespace artdaq
 		// are the FHiCL variable names with a "_" appended
 		int request_port_;
 		std::string request_addr_;
-		std::string multicast_out_addr_;
+		std::string multicast_in_addr_;
 		bool running_;
 		uint32_t run_number_;
 

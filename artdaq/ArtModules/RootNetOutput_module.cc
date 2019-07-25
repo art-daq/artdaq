@@ -1,9 +1,11 @@
 
-#define TRACE_NAME (app_name + "_RootNetOutput").c_str()
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 
 #include "artdaq/ArtModules/NetMonTransportService.h"
 #include "artdaq/DAQdata/NetMonHeader.hh"
+
+// if TRACE_NAME has varible, it is safest to define after includes
+#define TRACE_NAME (app_name + "_RootNetOutput").c_str()
 
 namespace art {
 class RootNetOutput;
