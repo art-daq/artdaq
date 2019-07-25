@@ -113,21 +113,6 @@ private:
 	std::map<int, boost::thread> source_threads_;
 	std::map<int, std::unique_ptr<TransferInterface>> source_plugins_;
 
-	struct source_metric_data
-	{
-		source_metric_data() : delta_t(0), hdr_delta_t(0), store_delta_t(0), data_delta_t(0),dead_t(0), data_point_count(0), data_size(0), header_size(0) {}
-		double delta_t;
-		double hdr_delta_t;
-		double store_delta_t;
-		double data_delta_t;
-		double dead_t;
-		size_t data_point_count;
-		size_t data_size;
-		size_t header_size;
-	};
-
-	std::unordered_map<int, source_metric_data> source_metric_data_;
-	std::unordered_map<int, std::chrono::steady_clock::time_point> source_metric_send_time_;
 	std::unordered_map<int, std::atomic<bool>> enabled_sources_;
 	std::unordered_map<int, std::atomic<bool>> running_sources_;
 
