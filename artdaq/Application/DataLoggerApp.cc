@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_DataLoggerApp").c_str() // include these 2 first -
-#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/Globals.hh" // include these 2 first -
+#define TRACE_NAME (app_name + "_DataLoggerApp").c_str()
 
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
