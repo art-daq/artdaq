@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v2019_07_17_protoDFO_pduneHacks
+parent artdaq  v2019_08_08_protoDFO_pduneHacks
 defaultqual    e15:s64
 
 # These optional lines define the installed directories where
@@ -23,7 +23,7 @@ art             v2_10_02    s64
 art_root_io     v1_00_04    s82
 artdaq_core 		v2019_07_17_protoDFO_testing
 artdaq_utilities        v2019_07_03_protoDFO_testing
-xmlrpc_c		v1_51_03
+xmlrpc_c		v1_51_03a
 artdaq_ganglia_plugin   v1_02_14        -       optional
 artdaq_epics_plugin     v1_02_07        -       optional
 artdaq_pcp_mmv_plugin   v1_00_00        -       optional
