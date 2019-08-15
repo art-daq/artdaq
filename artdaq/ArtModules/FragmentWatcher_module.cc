@@ -3,6 +3,16 @@
 // Module Type: analyzer
 // File:        FragmentWatcher_module.cc
 // Description: Collects and reports statistics on missing and empty fragments
+//
+// The model that is followed here is to publish to the metrics system
+// the full history of what has happened so far.  In that way, each update
+// is self-contained.  So, the map of fragment IDs that have missing or
+// empty fragments will contain the total number of events in which each
+// fragment ID was missing or empty.
+//
+// TRACE messages, though, contain a mix of per-event and overall results.
+// To enable TLVL_TRACE messages that have overall resuts (for debugging),
+// use 'tonM -n <appname>_FragmentWatcher 4'.
 ////////////////////////////////////////////////////////////////////////
 
 #define TRACE_NAME (app_name + "_FragmentWatcher").c_str()
@@ -19,6 +29,12 @@
 #include <iostream>
 #include <bitset>
 #include <map>
+
+#define TLVL_BAD_FRAGMENTS TLVL_WARNING
+#define TLVL_EVENT_SUMMARY TLVL_TRACE
+#define TLVL_EXPECTED_FRAGIDS 5
+#define TLVL_BASIC_MODE 6
+#define TLVL_FRACTIONAL_MODE 7
 
 namespace artdaq
 {
@@ -39,6 +55,7 @@ private:
 
   int events_processed_;
   int expected_number_of_fragments_;
+  std::set<int> expected_fragmentID_list_;
 
   int events_with_missing_fragments_;
   int events_with_empty_fragments_;
@@ -48,6 +65,7 @@ private:
   int events_with_50pct_missing_fragments_;
   int events_with_50pct_empty_fragments_;
 
+  std::map<int, int> missing_fragments_by_fragmentID_;
   std::map<int, int> empty_fragments_by_fragmentID_;
 
   const int BASIC_COUNTS_MODE = 0;
@@ -59,36 +77,16 @@ artdaq::FragmentWatcher::FragmentWatcher(fhicl::ParameterSet const & pset)
   : EDAnalyzer(pset),
     mode_bitset_(std::bitset<3>(pset.get<int>("mode_bitmask", 0x1))),
     metrics_reporting_level_(pset.get<int>("metrics_reporting_level", 1)),
-    events_processed_(0), expected_number_of_fragments_(0),
+    events_processed_(0), expected_number_of_fragments_(0), expected_fragmentID_list_(),
     events_with_missing_fragments_(0), events_with_empty_fragments_(0),
     events_with_10pct_missing_fragments_(0), events_with_10pct_empty_fragments_(0),
     events_with_50pct_missing_fragments_(0), events_with_50pct_empty_fragments_(0),
-    empty_fragments_by_fragmentID_()
+    missing_fragments_by_fragmentID_(), empty_fragments_by_fragmentID_()
 {
-  fhicl::ParameterSet metric_pset;
-  try
-  {
-    metric_pset = pset.get<fhicl::ParameterSet>("metrics");
-    if (metricMan != nullptr)
-    {
-      metricMan->initialize(metric_pset, "FragmentWatcher.");
-      metricMan->do_start();
-    }
-  }
-  catch (...)
-  {
-    TLOG(TLVL_INFO) << "Unable to find the metrics parameters in the metrics "
-                    << "ParameterSet: \"" + pset.to_string() + "\".";
-  }
 }
 
 artdaq::FragmentWatcher::~FragmentWatcher()
 {
-  if (metricMan != nullptr)
-  {
-    metricMan->do_stop();
-    metricMan->shutdown();
-  }
 }
 
 void artdaq::FragmentWatcher::analyze(art::Event const & evt)
@@ -107,10 +105,51 @@ void artdaq::FragmentWatcher::analyze(art::Event const & evt)
   }
 
   // update the expected number of fragments, if needed
-  if (total_fragments_this_event > expected_number_of_fragments_) {expected_number_of_fragments_ = total_fragments_this_event;}
+  if (total_fragments_this_event > expected_number_of_fragments_)
+  {
+    expected_number_of_fragments_ = total_fragments_this_event;
+
+    // also update the expected fragment IDs
+    for (auto const& hndl : fragmentHandles)
+    {
+      for (auto const& fragment : *hndl)
+      {
+        int fragID = fragment.fragmentID();
+        TLOG(TLVL_EXPECTED_FRAGIDS) << "Inserting fragment ID " << fragID << " into the list of expected_fragmentIDs.";
+        expected_fragmentID_list_.insert(fragID);
+      }
+    }
+  }
 
   // check if this event has fewer fragments than expected
-  int missing_fragments = expected_number_of_fragments_ - total_fragments_this_event;
+  int missing_fragment_count_this_event = expected_number_of_fragments_ - total_fragments_this_event;
+  std::set<int> missing_fragmentID_list_this_event;
+  if (missing_fragment_count_this_event > 0)
+  {
+    // determine the IDs of the missing fragments
+    missing_fragmentID_list_this_event = expected_fragmentID_list_;
+    for (auto const& hndl : fragmentHandles)
+    {
+      for (auto const& fragment : *hndl)
+      {
+        int fragID = fragment.fragmentID();
+        missing_fragmentID_list_this_event.erase(fragID);
+      }
+    }
+
+    // track the number of missing fragments by fragment ID
+    for (int const& fragID : missing_fragmentID_list_this_event)
+    {
+      if (missing_fragments_by_fragmentID_.count(fragID) == 0)
+      {
+        missing_fragments_by_fragmentID_[fragID] = 1;
+      }
+      else
+      {
+        missing_fragments_by_fragmentID_[fragID] += 1;
+      }
+    }
+  }
 
   // check if this event has any Empty fragments
   int empty_fragment_count_this_event = 0;
@@ -140,10 +179,30 @@ void artdaq::FragmentWatcher::analyze(art::Event const & evt)
     }
   }
 
-  // provide diagnostic TRACE message(s) about this event
-  TLOG(TLVL_TRACE) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event << ", missing_fragments="
-                   << missing_fragments << ", empty_fragments=" << empty_fragment_count_this_event << " (" << events_processed_
-                   << " events processed)";
+  // common reporting
+  if (metricMan != nullptr && (mode_bitset_.test(BASIC_COUNTS_MODE) || mode_bitset_.test(FRACTIONAL_COUNTS_MODE)))
+  {
+    metricMan->sendMetric("EventsProcessed", events_processed_, "events", metrics_reporting_level_,
+                          artdaq::MetricMode::LastPoint);
+  }
+  TLOG(TLVL_EVENT_SUMMARY) << "Event " << evt.event() << ": this event: total_fragments=" << total_fragments_this_event
+                           << ", missing_fragments=" << missing_fragment_count_this_event << ", empty_fragments="
+                           << empty_fragment_count_this_event << " (" << events_processed_ << " events processed)";
+  // log TRACE message if there are missing fragments
+  if (missing_fragmentID_list_this_event.size() > 0)
+  {
+    std::ostringstream oss;
+    bool firstLoop = true;
+    for (auto const& fragID : missing_fragmentID_list_this_event)
+    {
+      if (! firstLoop) {oss << ", ";}
+      oss << fragID;
+      firstLoop = false;
+    }
+    TLOG(TLVL_BAD_FRAGMENTS) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event
+                             << ", fragmentIDs for missing_fragments: " << oss.str();
+  }
+  // log TRACE message if there are empty fragments
   if (empty_fragmentID_list_this_event.size() > 0)
   {
     std::ostringstream oss;
@@ -154,21 +213,14 @@ void artdaq::FragmentWatcher::analyze(art::Event const & evt)
       oss << fragID;
       firstLoop = false;
     }
-    TLOG(TLVL_WARNING) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event
-                       << ", fragmentIDs for empty_fragments: " << oss.str();
+    TLOG(TLVL_BAD_FRAGMENTS) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event
+                             << ", fragmentIDs for empty_fragments: " << oss.str();
   }
 
-  // common metric reporting for multiple modes
-  if (metricMan != nullptr && (mode_bitset_.test(BASIC_COUNTS_MODE) || mode_bitset_.test(FRACTIONAL_COUNTS_MODE)))
-  {
-    metricMan->sendMetric("EventsProcessed", events_processed_, "events", metrics_reporting_level_,
-                          artdaq::MetricMode::LastPoint);
-  }
-
-  // metric reporting for the BASIC_COUNTS_MODE
+  // reporting for the BASIC_COUNTS_MODE
   if (metricMan != nullptr && mode_bitset_.test(BASIC_COUNTS_MODE))
   {
-    if (missing_fragments > 0) {++events_with_missing_fragments_;}
+    if (missing_fragment_count_this_event > 0) {++events_with_missing_fragments_;}
     if (empty_fragment_count_this_event > 0) {++events_with_empty_fragments_;}
 
     metricMan->sendMetric("EventsWithMissingFragments", events_with_missing_fragments_, "events",
@@ -176,18 +228,18 @@ void artdaq::FragmentWatcher::analyze(art::Event const & evt)
     metricMan->sendMetric("EventsWithEmptyFragments", events_with_empty_fragments_, "events",
                           metrics_reporting_level_, artdaq::MetricMode::LastPoint);
 
-    TLOG(TLVL_TRACE) << "Event " << evt.event() << ": events_with_missing_fragments=" << events_with_missing_fragments_
-                     << ", events_with_empty_fragments=" << events_with_empty_fragments_;
+    TLOG(TLVL_BASIC_MODE) << "Event " << evt.event() << ": events_with_missing_fragments=" << events_with_missing_fragments_
+                          << ", events_with_empty_fragments=" << events_with_empty_fragments_;
   }
 
-  // metric reporting for the FRACTIONAL_COUNTS_MODE
+  // reporting for the FRACTIONAL_COUNTS_MODE
   if (metricMan != nullptr && mode_bitset_.test(FRACTIONAL_COUNTS_MODE))
   {
-    if (((static_cast<double>(missing_fragments) * 100.0) / static_cast<double>(expected_number_of_fragments_)) >= 10.0)
+    if (((static_cast<double>(missing_fragment_count_this_event) * 100.0) / static_cast<double>(expected_number_of_fragments_)) >= 10.0)
     {
       ++events_with_10pct_missing_fragments_;
     }
-    if (((static_cast<double>(missing_fragments) * 100.0) / static_cast<double>(expected_number_of_fragments_)) >= 50.0)
+    if (((static_cast<double>(missing_fragment_count_this_event) * 100.0) / static_cast<double>(expected_number_of_fragments_)) >= 50.0)
     {
       ++events_with_50pct_missing_fragments_;
     }
@@ -211,27 +263,35 @@ void artdaq::FragmentWatcher::analyze(art::Event const & evt)
     metricMan->sendMetric("EventsWith50PctEmptyFragments", events_with_50pct_empty_fragments_, "events",
                           metrics_reporting_level_, artdaq::MetricMode::LastPoint);
 
-    TLOG(TLVL_TRACE) << "Event " << evt.event() << ": events_with_10pct_missing_fragments=" << events_with_10pct_missing_fragments_
-                     << ", events_with_10pct_empty_fragments=" << events_with_10pct_empty_fragments_;
-    TLOG(TLVL_TRACE) << "Event " << evt.event() << ": events_with_50pct_missing_fragments=" << events_with_50pct_missing_fragments_
-                     << ", events_with_50pct_empty_fragments=" << events_with_50pct_empty_fragments_;
+    TLOG(TLVL_FRACTIONAL_MODE) << "Event " << evt.event() << ": events_with_10pct_missing_fragments=" << events_with_10pct_missing_fragments_
+                               << ", events_with_10pct_empty_fragments=" << events_with_10pct_empty_fragments_;
+    TLOG(TLVL_FRACTIONAL_MODE) << "Event " << evt.event() << ": events_with_50pct_missing_fragments=" << events_with_50pct_missing_fragments_
+                               << ", events_with_50pct_empty_fragments=" << events_with_50pct_empty_fragments_;
   }
 
-  // initial reporting for the DETAILED_COUNTS_MODE
+  // reporting for the DETAILED_COUNTS_MODE
   if (metricMan != nullptr && mode_bitset_.test(DETAILED_COUNTS_MODE))
   {
-    // only send an update when the empty fragment count, by FragmentID, changed,
-    // as indicated by a non-zero number of empty fragments in this event
-    if (empty_fragment_count_this_event > 0)
+    // only send an update when the missing or empty fragment counts, by FragmentID, changed,
+    // as indicated by a non-zero number of missing or empty fragments in this event
+    if (missing_fragment_count_this_event > 0 || empty_fragment_count_this_event > 0)
     {
       std::ostringstream oss;
       oss << "<eventbuilder_snapshot app_name=\"" << app_name << "\"><events_processed>" << events_processed_
-          << "</events_processed><empty_fragment_counts>";
+          << "</events_processed>";
+      oss << "<missing_fragment_counts>";
+      for (auto const& mapIter : missing_fragments_by_fragmentID_)
+      {
+        oss << "<count fragment_id=" << mapIter.first << ">" << mapIter.second << "</count>";
+      }
+      oss << "</missing_fragment_counts>";
+      oss << "<empty_fragment_counts>";
       for (auto const& mapIter : empty_fragments_by_fragmentID_)
       {
         oss << "<count fragment_id=" << mapIter.first << ">" << mapIter.second << "</count>";
       }
-      oss << "</empty_fragment_counts></eventbuilder_snapshot>";
+      oss << "</empty_fragment_counts>";
+      oss << "</eventbuilder_snapshot>";
 
       metricMan->sendMetric("EmptyFragmentSnapshot", oss.str(), "xml_string",
                             metrics_reporting_level_, artdaq::MetricMode::LastPoint);
