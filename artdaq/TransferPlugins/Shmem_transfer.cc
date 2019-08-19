@@ -181,9 +181,9 @@ artdaq::ShmemTransfer::transfer_fragment_reliable_mode(artdaq::Fragment&& fragme
 artdaq::TransferInterface::CopyStatus
 artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec, bool reliableMode)
 {
-	if (!shm_manager_->IsValid()) {
+	if (!isRunning()) {
 		shm_manager_->Attach();
-		if (!shm_manager_->IsValid()) {
+		if (!isRunning()) {
 			TLOG(TLVL_ERROR) << GetTraceName() << ": Attempted to send Fragment when not attached to Shared Memory! Returning kSuccess, and dropping data!";
 			return CopyStatus::kSuccess;
 		}
