@@ -237,7 +237,7 @@ bool artdaq::ShmemTransfer::isRunning()
 	switch (role())
 	{
 	case TransferInterface::Role::kSend:
-		ret = shm_manager_->IsValid();
+		ret = shm_manager_->IsValid() && !shm_manager_->IsEndOfData();
 		break;
 	case TransferInterface::Role::kReceive:
 		ret = shm_manager_->GetAttachedCount() > 1;
