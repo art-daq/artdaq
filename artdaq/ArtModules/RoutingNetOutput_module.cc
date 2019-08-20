@@ -14,15 +14,19 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
 #include "artdaq/RoutingPolicies/RoutingDestinationHelper.hh"
 #include "artdaq/DAQrate/TokenReceiver.hh"
+#include "artdaq-utilities/Plugins/MakeGPMPlugins.hh"
+#include "artdaq-utilities/Plugins/GPMPublisher.hh"
 
 #include <unistd.h>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -78,21 +82,35 @@ private:
 
 	bool readParameterSet_(fhicl::ParameterSet const& pset);
 
+	void publish_good_status_(std::string const& marker) const;
+	void publish_bad_status_(std::string const& marker) const;
+	void publish_status_(std::string const& status, std::string const& marker) const;
+
 private:
 	ParameterSet full_pset_;
 	fhicl::ParameterSet policy_pset_;
 	fhicl::ParameterSet token_receiver_pset_;
+	fhicl::ParameterSet inhibit_publisher_pset_;
 	std::string name_ = "RoutingNetOutput";
-	int rt_priority_ = 0;
+	int rt_priority_;
+	double wait_for_destination_timeout_sec_;
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_ = {nullptr};
 	std::shared_ptr<artdaq::RoutingMasterPolicy> policy_ = {nullptr};
 	std::unique_ptr<artdaq::TokenReceiver> token_receiver_ = {nullptr};
 	std::unique_ptr<artdaq::RoutingDestinationHelper> destination_helper_ = {nullptr};
+	std::unique_ptr<artdaq::GPMPublisher> inhibit_publisher_ = {nullptr};
+	std::string app_name_no_underscore_;
+	std::chrono::steady_clock::time_point run_start_time_;
+	std::chrono::steady_clock::time_point inhibit_status_report_time_;
 };
 
 art::RoutingNetOutput::RoutingNetOutput(ParameterSet const& ps) : OutputModule(ps) {
 	TLOG(TLVL_DEBUG) << "Begin: RoutingNetOutput::RoutingNetOutput(ParameterSet const& ps)\n";
 	readParameterSet_(ps);
+
+	const auto target = std::regex{ "_" };
+	const auto replacement = std::string{ "-" };
+	app_name_no_underscore_ = std::regex_replace(app_name, target, replacement);
 	TLOG(TLVL_DEBUG) << "End: RoutingNetOutput::RoutingNetOutput(ParameterSet const& ps)\n";
 }
 
@@ -117,6 +135,8 @@ void art::RoutingNetOutput::beginRun(art::RunPrincipal const& rp)
 		token_receiver_->setRunNumber(rp.run());
 		token_receiver_->resumeTokenReception();
 	}
+	run_start_time_ = std::chrono::steady_clock::now();
+	inhibit_status_report_time_ = run_start_time_;
 }
 
 void art::RoutingNetOutput::endRun(art::RunPrincipal const& rp)
@@ -161,7 +181,7 @@ void art::RoutingNetOutput::initialize_MPI_() {
 		}
 		catch (...)
 		{
-			TLOG(TLVL_ERROR) << "Unable to create a Routing Policy of type " << policy_plugin_spec << " from ParameterSet: \"" + policy_pset_.to_string() + "\"." ;
+			TLOG(TLVL_ERROR) << "Unable to create a Routing Policy of type \"" << policy_plugin_spec << "\" from ParameterSet: \"" + policy_pset_.to_string() + "\"." ;
 		}
 
 		if (policy_.get() != nullptr)
@@ -171,6 +191,31 @@ void art::RoutingNetOutput::initialize_MPI_() {
 			token_receiver_->pauseTokenReception();
 
 			destination_helper_.reset(new artdaq::RoutingDestinationHelper(policy_));
+		}
+	}
+
+	auto inhibit_publisher_plugin_spec = inhibit_publisher_pset_.get<std::string>("publisher", "");
+	if (inhibit_publisher_plugin_spec.length() == 0)
+	{
+		TLOG(TLVL_WARNING)
+			<< "No publisher type (parameter name = \"publisher\") was "
+			<< "specified in the inhibit_publisher ParameterSet, so there will be *no* "
+			<< "publishing of Inhibit messages from the " << TRACE_NAME << " code.  The full "
+			<< "initialization PSet was \"" << full_pset_.to_string() << "\"." ;
+	}
+	else
+	{
+		try
+		{
+			inhibit_publisher_ = artdaq::makeGPMPublisher(inhibit_publisher_plugin_spec, inhibit_publisher_pset_, app_name);
+			std::string bind_address = inhibit_publisher_pset_.get<std::string>("bind_address", "");
+			int retcode = inhibit_publisher_->bind(bind_address);
+			TLOG(TLVL_DEBUG) << "Created Inhibit Publisher with bind address \"" << bind_address
+			                 << "\" (bind return code = " << retcode << ").";
+		}
+		catch (...)
+		{
+			TLOG(TLVL_ERROR) << "Unable to create an Inhibit Publisher of type \"" << inhibit_publisher_plugin_spec << "\" from ParameterSet: \"" + inhibit_publisher_pset_.to_string() + "\"." ;
 		}
 	}
 }
@@ -192,6 +237,7 @@ bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
 	full_pset_ = pset;
 	name_ = pset.get<std::string>("module_name", "RoutingNetOutput");
 	rt_priority_ = pset.get<int>("rt_priority", 0);
+	wait_for_destination_timeout_sec_ = pset.get<double>("wait_for_destination_timeout_sec", 20.0);
 
 	try
 	{
@@ -209,6 +255,15 @@ bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
 	catch (...)
 	{
 		TLOG(TLVL_ERROR) << "Unable to find the token_receiver parameters in the RoutingNetOutput initialization ParameterSet: \"" + full_pset_.to_string() + "\"." ;
+	}
+
+	try
+	{
+		inhibit_publisher_pset_ = full_pset_.get<fhicl::ParameterSet>("inhibit_publisher");
+	}
+	catch (...)
+	{
+		TLOG(TLVL_WARNING) << "Unable to find the inhibit_publisher parameters in the RoutingNetOutput initialization ParameterSet: \"" + full_pset_.to_string() + "\"." ;
 	}
 
 	TLOG(TLVL_TRACE) << "RoutingNetOutput::readParameterSet()";
@@ -246,17 +301,65 @@ void art::RoutingNetOutput::write(EventPrincipal& ep) {
 			auto fragid_id = fragment_copy.fragmentID();
 			auto sequence_id = fragment_copy.sequenceID();
 
-			// 12-Jun-2019, KAB: TODO: handle case(s) in which we never get a valid destination
+			// 19-Aug-2019, KAB: The code to generate Inhibit messages is currently intertwined
+			// with the code to wait for an available destination (below).  This is possible 
+			// because the current model is to generate an inhibit when the number of available
+			// destinations drops to zero.  If we want to have a non-zero threshold for generating
+			// the inhibit, then the inhibit code will need to be moved into a separate block.
 
-			int loop_counter = 100;
+			// fetch the next destination, waiting for it, if needed
 			int dest_rank = destination_helper_->GetNextDestinationRank();
-			while (dest_rank == artdaq::RoutingDestinationHelper::INVALID_DESTINATION && loop_counter-- > 0)
+			if (dest_rank == artdaq::RoutingDestinationHelper::INVALID_DESTINATION)
 			{
+				// publish an initial bad status message to alert listeners of the lack of available destinations
+				auto start_time = std::chrono::steady_clock::now();
 				TLOG(TLVL_DEBUG) << "RoutingNetOutput::write waiting for valid destination rank";
-				usleep(10000);
-				dest_rank = destination_helper_->GetNextDestinationRank();
+				publish_bad_status_("NoAvailableTokens");
+				inhibit_status_report_time_ = start_time;
+
+				// loop until a destination becomes available, or we time out
+				while (dest_rank == artdaq::RoutingDestinationHelper::INVALID_DESTINATION &&
+				       artdaq::TimeUtils::GetElapsedTime(start_time) < wait_for_destination_timeout_sec_)
+				{
+					// periodically (re)publish the bad status to ensure that all listeners get the message
+					if (artdaq::TimeUtils::GetElapsedTime(inhibit_status_report_time_) >= 1.0)
+					{
+						TLOG(TLVL_DEBUG) << "RoutingNetOutput::write waiting for valid destination rank";
+						publish_bad_status_("NoAvailableTokens");
+						inhibit_status_report_time_ = std::chrono::steady_clock::now();
+					}
+					usleep(10000);
+					dest_rank = destination_helper_->GetNextDestinationRank();
+				}
+
+				// if we successfully found a destination rank, report good status
+				if (dest_rank != artdaq::RoutingDestinationHelper::INVALID_DESTINATION)
+				{
+					TLOG(TLVL_DEBUG) << "RoutingNetOutput::write found destination rank " << dest_rank;
+					publish_good_status_("*");
+					inhibit_status_report_time_ = std::chrono::steady_clock::now();
+				}
 			}
 
+			// At the begining of a run, periodically publish the current status.
+			// The goal of this is to ensure that all listeners get at least one notification.
+			// (Some types of listeners have a delay between when we create the publisher in
+			// this code and when they connect to it and get their first update.)
+			if (artdaq::TimeUtils::GetElapsedTime(run_start_time_) < 15.0 &&
+			    artdaq::TimeUtils::GetElapsedTime(inhibit_status_report_time_) >= 1.0)
+			{
+				if (dest_rank != artdaq::RoutingDestinationHelper::INVALID_DESTINATION)
+				{
+					publish_good_status_("*");
+				}
+				else
+				{
+                                        publish_bad_status_("NoAvailableTokens");
+				}
+				inhibit_status_report_time_ = std::chrono::steady_clock::now();
+			}
+
+			// send the fragment to the destination
 			if (dest_rank != artdaq::RoutingDestinationHelper::INVALID_DESTINATION)
 			{
 				TLOG(TLVL_DEBUG) << "RoutingNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " dest_rank=" << dest_rank << " start";
@@ -275,4 +378,28 @@ void art::RoutingNetOutput::write(EventPrincipal& ep) {
 	return;
 }
 
+void art::RoutingNetOutput::publish_good_status_(std::string const& marker) const
+{
+	publish_status_("GOOD", marker);
+}
+
+void art::RoutingNetOutput::publish_bad_status_(std::string const& marker) const
+{
+	publish_status_("BAD", marker);
+}
+
+void art::RoutingNetOutput::publish_status_(std::string const& status, std::string const& marker) const
+{
+	if (inhibit_publisher_.get() != nullptr)
+	{
+		auto now = std::chrono::system_clock::now();
+		auto itt = std::chrono::system_clock::to_time_t(now);
+		std::ostringstream time_string;
+		time_string << std::put_time(gmtime(&itt), "%FT%TZ");
+
+		std::string inhibit_message = "STATUSMSG_" + app_name_no_underscore_ + "_" + marker + "_" + status + "_" + time_string.str();
+		inhibit_publisher_->send(inhibit_message);
+		TLOG(TLVL_TRACE) << "Sent Inhibit message \"" << inhibit_message << "\".";
+	}
+}
 DEFINE_ART_MODULE(art::RoutingNetOutput)
