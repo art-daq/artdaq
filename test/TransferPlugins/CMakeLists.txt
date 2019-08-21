@@ -25,6 +25,16 @@ artdaq_TransferPlugins
   ${FHICLCPP}
    )
 
+   art_make_exec(NAME broken_transfer_driver 
+   SOURCE broken_transfer_driver.cc BrokenTransferTest.cc 
+   LIBRARIES 
+   artdaq_DAQrate 
+   artdaq_DAQdata 
+   artdaq_TransferPlugins 
+   ${FHICLCPP}
+   ${Boost_PROGRAM_OPTIONS_LIBRARY}
+   )
+
   cet_script(runTransferTest.sh)
 
   cet_test(transfer_driver_tcp_t HANDBUILT
