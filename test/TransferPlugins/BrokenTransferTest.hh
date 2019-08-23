@@ -19,7 +19,7 @@ class BrokenTransferTest
 public:
 	struct Config
 	{
-		fhicl::Atom<size_t> fragment_rate_hz{fhicl::Name{"fragment_rate_hz"}, fhicl::Comment{"The rate at which to generate Fragments, in Hz"}, 1};
+		fhicl::Atom<size_t> fragment_rate_hz{fhicl::Name{"fragment_rate_hz"}, fhicl::Comment{"The rate at which to generate Fragments, in Hz"}, 10};
 		fhicl::Atom<bool> reliable_mode{fhicl::Name{"reliable_mode"}, fhicl::Comment{"Whether to use reliable-mode transfers (true) or min-blocking (false)"}, true};
 		fhicl::Atom<size_t> fragment_size{fhicl::Name{"fragment_size"}, fhicl::Comment{"The size of generated Fragments, in Fragment words"}, 0x10000};
 		fhicl::Atom<size_t> send_timeout_us{fhicl::Name{"send_timeout_us"}, fhicl::Comment{"The timeout for min-blocking mode sends"}, 100000};
@@ -69,10 +69,11 @@ private:
 	boost::thread sender_threads_[2];
 	boost::thread receiver_threads_[2];
 
-	std::map<int, std::atomic<bool>> sender_ready_;
-	std::map<int, std::atomic<bool>> receiver_ready_;
+	std::atomic<bool> sender_ready_[2];
+	std::atomic<bool> receiver_ready_[2];
 
-	std::map<int, std::atomic<artdaq::Fragment::sequence_id_t>> sender_current_fragment_;
+	std::atomic<artdaq::Fragment::sequence_id_t> sender_current_fragment_[2];
+	std::atomic<int> sender_tokens_[2];
 
 	fhicl::ParameterSet ps_;
 
@@ -97,8 +98,6 @@ private:
 	size_t event_buffer_timeout_us_;
 	std::mutex event_buffer_mutex_;
 	std::condition_variable event_buffer_cv_;
-
-	std::unique_ptr<artdaq::SharedMemoryManager> shm_mgr_ptr_;
 };
 }  // namespace artdaqtest
 

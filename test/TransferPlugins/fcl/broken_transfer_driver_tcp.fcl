@@ -1,0 +1,25 @@
+partition_number: 11
+
+## The rate at which to generate Fragments, in Hz
+fragment_rate_hz: 10  # default
+
+## Whether to use reliable-mode transfers (true) or min-blocking (false)
+reliable_mode: true  # default
+
+## The size of generated Fragments, in Fragment words
+fragment_size: 65536  # default
+
+## The timeout for min-blocking mode sends
+send_timeout_us: 100000  # default
+
+## The number of buffers in the Transfer Plugins
+transfer_buffer_count: 10  # default
+
+## The number of "EventBuilder" buffers on the receiver end
+event_buffer_count: 20  # default
+
+## The timeout for "EventBuilder" buffers to be marked incomplete and abandoned
+event_buffer_timeout_us: 1000000  # default
+
+## The name of the Transfer Plugin to use
+transfer_to_use: "TCPSocket"

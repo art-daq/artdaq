@@ -4,6 +4,7 @@
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
+#include <thread>
 #define TRACE_NAME "BrokenTransferTest"
 
 artdaqtest::BrokenTransferTest::BrokenTransferTest(fhicl::ParameterSet ps)
@@ -14,7 +15,7 @@ artdaqtest::BrokenTransferTest::BrokenTransferTest(fhicl::ParameterSet ps)
     , test_start_time_(std::chrono::steady_clock::now())
     , test_end_time_(std::chrono::steady_clock::now())
     , test_end_requested_(false)
-    , fragment_rate_hz_(ps.get<size_t>("fragment_rate_hz", 1))
+    , fragment_rate_hz_(ps.get<size_t>("fragment_rate_hz", 10))
     , pause_first_sender_(false)
     , pause_receiver_(false)
     , kill_first_sender_(false)
@@ -28,7 +29,6 @@ artdaqtest::BrokenTransferTest::BrokenTransferTest(fhicl::ParameterSet ps)
     , transfer_buffer_count_(ps.get<size_t>("transfer_buffer_count", 10))
     , event_buffer_count_(ps.get<size_t>("event_buffer_count", 20))
     , event_buffer_timeout_us_(ps.get<size_t>("event_buffer_timeout_us", 1000000))
-    , shm_mgr_ptr_(new artdaq::SharedMemoryManager(seedAndRandom(), 1, 1))
 {
 	if (fragment_rate_hz_ == 0 || fragment_rate_hz_ > 100000)
 	{
@@ -46,6 +46,7 @@ void artdaqtest::BrokenTransferTest::TestSenderPause()
 	TLOG(TLVL_INFO) << "Pausing First Sender";
 	pause_first_sender_ = true;
 	usleep_for_n_buffer_epochs_(2);
+	usleep(2 * event_buffer_timeout_us_);
 
 	TLOG(TLVL_INFO) << "Resuming First Sender";
 	pause_first_sender_ = false;
@@ -64,6 +65,7 @@ void artdaqtest::BrokenTransferTest::TestReceiverPause()
 	TLOG(TLVL_INFO) << "Pausing Recevier";
 	pause_receiver_ = true;
 	usleep_for_n_buffer_epochs_(2);
+	usleep(2 * event_buffer_timeout_us_);
 
 	TLOG(TLVL_INFO) << "Resuming Receiver";
 	pause_receiver_ = false;
@@ -85,6 +87,7 @@ void artdaqtest::BrokenTransferTest::TestSenderReconnect()
 	kill_first_sender_ = false;
 
 	usleep_for_n_buffer_epochs_(2);
+	usleep(2 * event_buffer_timeout_us_);
 
 	TLOG(TLVL_INFO) << "Restarting First Sender";
 	boost::thread::attributes attrs;
@@ -119,6 +122,7 @@ void artdaqtest::BrokenTransferTest::TestReceiverReconnect()
 	kill_receiver_ = false;
 
 	usleep_for_n_buffer_epochs_(2);
+	usleep(2 * event_buffer_timeout_us_);
 
 	TLOG(TLVL_INFO) << "Restarting Receiver";
 	boost::thread::attributes attrs;
@@ -261,7 +265,8 @@ void artdaqtest::BrokenTransferTest::stop_test_()
 
 void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 {
-	std::unique_ptr<artdaq::TransferInterface> theTransfer = artdaq::MakeTransferPlugin(make_transfer_ps_(sender_rank, 2, "d2"), "d2", artdaq::TransferInterface::Role::kSend);
+	std::unique_ptr<artdaq::TransferInterface> theTransfer = artdaq::MakeTransferPlugin(make_transfer_ps_(sender_rank, 2, "d2"),
+	                                                                                    "d2", artdaq::TransferInterface::Role::kSend);
 
 	TLOG(TLVL_DEBUG) << "Sender " << sender_rank << " setting sender_ready_";
 	sender_ready_[sender_rank] = true;
@@ -271,6 +276,7 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 		if (sender_rank == 0 && kill_first_sender_) break;
 		while (sender_rank == 0 && pause_first_sender_)
 		{
+			std::this_thread::yield();
 			usleep(10000);
 		}
 
@@ -284,6 +290,13 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 			auto start_time = std::chrono::steady_clock::now();
 			auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
 
+			if (sender_tokens_[sender_rank].load() == 0)
+			{
+				TLOG(TLVL_INFO) << "Sender " << sender_rank << " waiting for token from receiver";
+				while (sender_tokens_[sender_rank].load() == 0) { usleep(10000); }
+				TLOG(TLVL_INFO) << "Sender " << sender_rank << " waited " << fm_(artdaq::TimeUtils::GetElapsedTime(start_time), "s") << " for token from receiver";
+			}
+
 			if (reliable_mode_)
 			{
 				sts = theTransfer->transfer_fragment_reliable_mode(std::move(frag));
@@ -295,12 +308,16 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 
 			if (sts != artdaq::TransferInterface::CopyStatus::kSuccess)
 			{
-				TLOG(TLVL_ERROR) << "Error sending Fragment " << sender_current_fragment_[sender_rank] << " from sender rank " << sender_rank << ": " << artdaq::TransferInterface::CopyStatusToString(sts);
+				TLOG(TLVL_ERROR) << "Error sending Fragment " << sender_current_fragment_[sender_rank] << " from sender rank " << sender_rank << ": "
+				                 << artdaq::TransferInterface::CopyStatusToString(sts);
 			}
 			auto duration = artdaq::TimeUtils::GetElapsedTime(start_time);
-			TLOG(TLVL_DEBUG) << "Sender " << sender_rank << " Transferred Fragment " << sender_current_fragment_[sender_rank] << " with size " << fragment_size_ << " words in " << fm_(duration, "s")
-			                 << " (approx " << fm_(static_cast<double>(fragment_size_ * sizeof(artdaq::detail::RawFragmentHeader::RawDataType)) / duration, "B/s") << ")";
+			TLOG(TLVL_TRACE) << "Sender " << sender_rank << " Transferred Fragment " << sender_current_fragment_[sender_rank]
+			                 << " with size " << fragment_size_ << " words in " << fm_(duration, "s")
+			                 << " (approx " << fm_(static_cast<double>(fragment_size_ * sizeof(artdaq::detail::RawFragmentHeader::RawDataType)) / duration, "B/s")
+			                 << ")";
 			++sender_current_fragment_[sender_rank];
+			sender_tokens_[sender_rank]--;
 		}
 	}
 
@@ -311,17 +328,21 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 
 void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver_rank)
 {
-	std::unique_ptr<artdaq::TransferInterface> theTransfer = artdaq::MakeTransferPlugin(make_transfer_ps_(sender_rank, receiver_rank, "s" + std::to_string(sender_rank)), "s" + std::to_string(sender_rank), artdaq::TransferInterface::Role::kReceive);
+	std::unique_ptr<artdaq::TransferInterface> theTransfer =
+	    artdaq::MakeTransferPlugin(make_transfer_ps_(sender_rank, receiver_rank, "s" + std::to_string(sender_rank)),
+	                               "s" + std::to_string(sender_rank), artdaq::TransferInterface::Role::kReceive);
 	artdaq::FragmentPtr dropFrag = nullptr;
 
 	TLOG(TLVL_DEBUG) << "Receiver " << sender_rank << "->" << receiver_rank << " setting receiver_ready_";
 	receiver_ready_[sender_rank] = true;
+	sender_tokens_[sender_rank] = event_buffer_count_;
 
 	while (event_buffer_.size() > 0 || !test_end_requested_)
 	{
 		if (kill_receiver_) break;
 		while (pause_receiver_)
 		{
+			std::this_thread::yield();
 			usleep(10000);
 		}
 
@@ -331,25 +352,28 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 		if (rank == artdaq::TransferInterface::RECV_TIMEOUT || event_buffer_.count(hdr.sequence_id) == 0)
 		{
 			std::unique_lock<std::mutex> lk(event_buffer_mutex_);
-			while (event_buffer_.size() > event_buffer_count_)
+			do 
 			{
 				event_buffer_cv_.wait_for(lk, std::chrono::microseconds(10000));
 
 				auto it = event_buffer_.begin();
-				while(it != event_buffer_.end())
+				while (it != event_buffer_.end())
 				{
 					if (artdaq::TimeUtils::GetElapsedTimeMicroseconds(it->second.open_time) > event_buffer_timeout_us_)
 					{
-						TLOG(TLVL_WARNING) << "Receiver " << sender_rank << "->" << receiver_rank << ": Event " << it->first << " has timed out after " << artdaq::TimeUtils::GetElapsedTime(it->second.open_time) << " s, removing...";
+						TLOG(TLVL_WARNING) << "Receiver " << sender_rank << "->" << receiver_rank << ": Event " << it->first
+						                   << " has timed out after " << artdaq::TimeUtils::GetElapsedTime(it->second.open_time) << " s, removing...";
 						timeout_events_.insert(it->first);
 						it = event_buffer_.erase(it);
+						sender_tokens_[0]++;
+						sender_tokens_[1]++;
 					}
 					else
 					{
 						++it;
 					}
 				}
-			}
+			} while (event_buffer_.size() > event_buffer_count_);
 		}
 
 		if (rank != sender_rank) continue;
@@ -374,7 +398,8 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 					event_buffer_[hdr.sequence_id].open_time = std::chrono::steady_clock::now();
 					event_buffer_[hdr.sequence_id].first_frag = artdaq::Fragment(hdr.word_count - hdr.num_words());
 					ptr = event_buffer_[hdr.sequence_id].first_frag.headerAddress() + hdr.num_words();
-					TLOG(TLVL_DEBUG) << "Receiver " << sender_rank << "->" << receiver_rank << " opened event " << hdr.sequence_id << " with Fragment from rank " << sender_rank;
+					TLOG(TLVL_TRACE) << "Receiver " << sender_rank << "->" << receiver_rank << " opened event " << hdr.sequence_id
+					                 << " with Fragment from rank " << sender_rank;
 				}
 				else
 				{
@@ -394,12 +419,15 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 
 		if (!first)
 		{
-			TLOG(TLVL_DEBUG) << "Receiver " << sender_rank << "->" << receiver_rank << " completed event " << hdr.sequence_id << " in " << fm_(artdaq::TimeUtils::GetElapsedTime(event_buffer_[hdr.sequence_id].open_time), "s") << ".";
+			TLOG(TLVL_TRACE) << "Receiver " << sender_rank << "->" << receiver_rank << " completed event " << hdr.sequence_id
+			                 << " in " << fm_(artdaq::TimeUtils::GetElapsedTime(event_buffer_[hdr.sequence_id].open_time), "s") << ".";
 
 			std::unique_lock<std::mutex> lk(event_buffer_mutex_);
 			complete_events_.insert(hdr.sequence_id);
 			event_buffer_.erase(hdr.sequence_id);
 			event_buffer_cv_.notify_one();
+			sender_tokens_[0]++;
+			sender_tokens_[1]++;
 		}
 	}
 
