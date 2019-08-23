@@ -210,8 +210,15 @@ void art::RoutingNetOutput::initialize_MPI_() {
 			inhibit_publisher_ = artdaq::makeGPMPublisher(inhibit_publisher_plugin_spec, inhibit_publisher_pset_, app_name);
 			std::string bind_address = inhibit_publisher_pset_.get<std::string>("bind_address", "");
 			int retcode = inhibit_publisher_->bind(bind_address);
-			TLOG(TLVL_DEBUG) << "Created Inhibit Publisher with bind address \"" << bind_address
-			                 << "\" (bind return code = " << retcode << ").";
+			if (retcode == 0)
+			{
+				TLOG(TLVL_DEBUG) << "Successfully created Inhibit Publisher with bind address \"" << bind_address << "\"";
+			}
+			else
+			{
+				TLOG(TLVL_ERROR) << "Unable to bind Inhibit Publisher to bind address \"" << bind_address
+						 << "\" (bind return code = " << retcode << ").";
+			}
 		}
 		catch (...)
 		{
@@ -398,8 +405,16 @@ void art::RoutingNetOutput::publish_status_(std::string const& status, std::stri
 		time_string << std::put_time(gmtime(&itt), "%FT%TZ");
 
 		std::string inhibit_message = "STATUSMSG_" + app_name_no_underscore_ + "_" + marker + "_" + status + "_" + time_string.str();
-		inhibit_publisher_->send(inhibit_message);
-		TLOG(TLVL_TRACE) << "Sent Inhibit message \"" << inhibit_message << "\".";
+		int retcode = inhibit_publisher_->send(inhibit_message);
+		if (retcode > 0)
+		{
+			TLOG(TLVL_TRACE) << "Sent Inhibit message \"" << inhibit_message << "\".";
+		}
+		else
+		{
+			TLOG(TLVL_ERROR) << "Error sending Inhibit message \"" << inhibit_message
+			                 << "\" (return code = " << retcode << ").";
+		}
 	}
 }
 DEFINE_ART_MODULE(art::RoutingNetOutput)
