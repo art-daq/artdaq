@@ -86,6 +86,8 @@ private:
 	void publish_bad_status_(std::string const& marker) const;
 	void publish_status_(std::string const& status, std::string const& marker) const;
 
+	void run_buffer_monitor_();
+
 private:
 	ParameterSet full_pset_;
 	fhicl::ParameterSet policy_pset_;
@@ -94,6 +96,8 @@ private:
 	std::string name_ = "RoutingNetOutput";
 	int rt_priority_;
 	double wait_for_destination_timeout_sec_;
+	size_t buffer_test_interval_usec_;
+	int buffer_count_for_inhibit_;
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_ = {nullptr};
 	std::shared_ptr<artdaq::RoutingMasterPolicy> policy_ = {nullptr};
 	std::unique_ptr<artdaq::TokenReceiver> token_receiver_ = {nullptr};
@@ -101,7 +105,8 @@ private:
 	std::unique_ptr<artdaq::GPMPublisher> inhibit_publisher_ = {nullptr};
 	std::string app_name_no_underscore_;
 	std::chrono::steady_clock::time_point run_start_time_;
-	std::chrono::steady_clock::time_point inhibit_status_report_time_;
+	boost::thread buffer_monitor_thread_;
+	bool stop_requested_;
 };
 
 art::RoutingNetOutput::RoutingNetOutput(ParameterSet const& ps) : OutputModule(ps) {
@@ -136,16 +141,37 @@ void art::RoutingNetOutput::beginRun(art::RunPrincipal const& rp)
 		token_receiver_->resumeTokenReception();
 	}
 	run_start_time_ = std::chrono::steady_clock::now();
-	inhibit_status_report_time_ = run_start_time_;
+
+	stop_requested_ = false;
+	if (inhibit_publisher_.get() != nullptr)
+	{
+		boost::thread::attributes attrs;
+			attrs.set_stack_size(4096 * 2000); // 2000 KB
+		try
+		{
+			buffer_monitor_thread_ = boost::thread(attrs, boost::bind(&RoutingNetOutput::run_buffer_monitor_, this));
+			TLOG(TLVL_DEBUG) << "Created buffer monitor thread";
+		}
+		catch (const boost::exception& excpt)
+		{
+			TLOG(TLVL_ERROR) << "Caught boost::exception starting buffer monitor thread: " << boost::diagnostic_information(excpt) << ", errno=" << errno;
+			std::cerr << "Caught boost::exception starting buffer monitor thread: " << boost::diagnostic_information(excpt) << ", errno=" << errno << std::endl;
+			exit(5);
+		}
+        }
 }
 
 void art::RoutingNetOutput::endRun(art::RunPrincipal const& rp)
 {
+	stop_requested_ = true;
+
 	if (token_receiver_.get() != nullptr)
 	{
 	  TLOG(TLVL_INFO) << "Stopping run " << rp.run() << " after " << token_receiver_->getReceivedTokenCount() << " received tokens." ;
 		token_receiver_->pauseTokenReception();
 	}
+
+	if (buffer_monitor_thread_.joinable()) {buffer_monitor_thread_.join();}
 }
 
 void art::RoutingNetOutput::initialize_MPI_() {
@@ -245,6 +271,8 @@ bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
 	name_ = pset.get<std::string>("module_name", "RoutingNetOutput");
 	rt_priority_ = pset.get<int>("rt_priority", 0);
 	wait_for_destination_timeout_sec_ = pset.get<double>("wait_for_destination_timeout_sec", 20.0);
+	buffer_test_interval_usec_ = pset.get<size_t>("buffer_test_interval_usec", 100000);
+	buffer_count_for_inhibit_ = pset.get<int>("buffer_count_for_inhibit", 0);
 
 	try
 	{
@@ -308,33 +336,16 @@ void art::RoutingNetOutput::write(EventPrincipal& ep) {
 			auto fragid_id = fragment_copy.fragmentID();
 			auto sequence_id = fragment_copy.sequenceID();
 
-			// 19-Aug-2019, KAB: The code to generate Inhibit messages is currently intertwined
-			// with the code to wait for an available destination (below).  This is possible 
-			// because the current model is to generate an inhibit when the number of available
-			// destinations drops to zero.  If we want to have a non-zero threshold for generating
-			// the inhibit, then the inhibit code will need to be moved into a separate block.
-
 			// fetch the next destination, waiting for it, if needed
 			int dest_rank = destination_helper_->GetNextDestinationRank();
 			if (dest_rank == artdaq::RoutingDestinationHelper::INVALID_DESTINATION)
 			{
-				// publish an initial bad status message to alert listeners of the lack of available destinations
-				auto start_time = std::chrono::steady_clock::now();
-				TLOG(TLVL_DEBUG) << "RoutingNetOutput::write waiting for valid destination rank";
-				publish_bad_status_("NoAvailableTokens");
-				inhibit_status_report_time_ = start_time;
-
 				// loop until a destination becomes available, or we time out
+				TLOG(TLVL_DEBUG) << "RoutingNetOutput::write waiting for valid destination rank";
+				auto start_time = std::chrono::steady_clock::now();
 				while (dest_rank == artdaq::RoutingDestinationHelper::INVALID_DESTINATION &&
 				       artdaq::TimeUtils::GetElapsedTime(start_time) < wait_for_destination_timeout_sec_)
 				{
-					// periodically (re)publish the bad status to ensure that all listeners get the message
-					if (artdaq::TimeUtils::GetElapsedTime(inhibit_status_report_time_) >= 1.0)
-					{
-						TLOG(TLVL_DEBUG) << "RoutingNetOutput::write waiting for valid destination rank";
-						publish_bad_status_("NoAvailableTokens");
-						inhibit_status_report_time_ = std::chrono::steady_clock::now();
-					}
 					usleep(10000);
 					dest_rank = destination_helper_->GetNextDestinationRank();
 				}
@@ -343,27 +354,7 @@ void art::RoutingNetOutput::write(EventPrincipal& ep) {
 				if (dest_rank != artdaq::RoutingDestinationHelper::INVALID_DESTINATION)
 				{
 					TLOG(TLVL_DEBUG) << "RoutingNetOutput::write found destination rank " << dest_rank;
-					publish_good_status_("*");
-					inhibit_status_report_time_ = std::chrono::steady_clock::now();
 				}
-			}
-
-			// At the begining of a run, periodically publish the current status.
-			// The goal of this is to ensure that all listeners get at least one notification.
-			// (Some types of listeners have a delay between when we create the publisher in
-			// this code and when they connect to it and get their first update.)
-			if (artdaq::TimeUtils::GetElapsedTime(run_start_time_) < 15.0 &&
-			    artdaq::TimeUtils::GetElapsedTime(inhibit_status_report_time_) >= 1.0)
-			{
-				if (dest_rank != artdaq::RoutingDestinationHelper::INVALID_DESTINATION)
-				{
-					publish_good_status_("*");
-				}
-				else
-				{
-                                        publish_bad_status_("NoAvailableTokens");
-				}
-				inhibit_status_report_time_ = std::chrono::steady_clock::now();
 			}
 
 			// send the fragment to the destination
@@ -377,12 +368,62 @@ void art::RoutingNetOutput::write(EventPrincipal& ep) {
 			}
 			else
 			{
-				TLOG(TLVL_ERROR) << "Unable to determin a valid destination rank! This event has been lost: " << sequence_id;
+				TLOG(TLVL_ERROR) << "Unable to determine a valid destination rank! This event has been lost: " << sequence_id;
 			}
 		}
 	}
 
 	return;
+}
+
+void art::RoutingNetOutput::run_buffer_monitor_()
+{
+	std::chrono::steady_clock::time_point inhibit_status_report_time = run_start_time_;
+	bool buffers_available = true;
+	bool inhibit_is_on = false;
+	while (! stop_requested_)
+	{
+		usleep(buffer_test_interval_usec_);
+		if (static_cast<int>(destination_helper_->GetAvailableDestinationCount()) <= buffer_count_for_inhibit_)
+		{
+			buffers_available = false;
+		}
+		else
+		{
+			buffers_available = true;
+		}
+
+		if ((buffers_available && inhibit_is_on))
+		{
+			inhibit_is_on = false;
+			publish_good_status_("*");
+			inhibit_status_report_time = std::chrono::steady_clock::now();
+		}
+		else if ((! buffers_available && ! inhibit_is_on))
+		{
+			inhibit_is_on = true;
+			publish_bad_status_("NoAvailableTokens");
+			inhibit_status_report_time = std::chrono::steady_clock::now();
+		}
+
+		// At the begining of a run, periodically publish the current status.
+		// The goal of this is to ensure that all listeners get at least one notification.
+		// (Some types of listeners have a delay between when we create the publisher in
+		// this code and when they connect to it and get their first update.)
+		else if (artdaq::TimeUtils::GetElapsedTime(run_start_time_) < 15.0 &&
+			 artdaq::TimeUtils::GetElapsedTime(inhibit_status_report_time) >= 1.0)
+		{
+			if (buffers_available)
+			{
+				publish_good_status_("*");
+			}
+			else
+			{
+				publish_bad_status_("NoAvailableTokens");
+			}
+			inhibit_status_report_time = std::chrono::steady_clock::now();
+		}
+	}
 }
 
 void art::RoutingNetOutput::publish_good_status_(std::string const& marker) const
