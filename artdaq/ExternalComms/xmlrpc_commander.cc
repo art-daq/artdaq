@@ -13,14 +13,14 @@
 #include <xmlrpc-c/server_abyss.hpp>
 #undef _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES
 #pragma GCC diagnostic pop
+
+#include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
+
 #include <cstdint>
 #include <iostream>
 #include <limits>
 #include <memory>
-#include <stdexcept>
-#define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
-#include "artdaq/DAQdata/Globals.hh"
-#include "tracemf.h"
 
 #include <errno.h>
 #include <netinet/in.h>
@@ -394,7 +394,7 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 	{
 		fhicl::make_ParameterSet(configString, pset);
 	}
-		catch (const fhicl::exception& e)
+	catch (const fhicl::exception& e)
 	{
 		if (getenv("FHICL_FILE_PATH") == nullptr)
 		{
@@ -976,8 +976,6 @@ private:
 	}
 };
 
-
-
 /**
 		 * \brief override_fragment_ids_ Command class
 		 */
@@ -999,7 +997,7 @@ private:
 	bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)
 	{
 		auto ret = _c._commandable.do_override_fragment_ids(getParam<uint64_t>(paramList, 0, defaultTimeout),
-			getParam<std::vector<uint32_t>>(paramList, 1));
+		                                                    getParam<std::vector<uint32_t>>(paramList, 1));
 
 #if 1
 		if (_c.server) _c.server->terminate();
@@ -1030,7 +1028,7 @@ private:
 	bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)
 	{
 		auto ret = _c._commandable.do_update_default_fragment_ids(getParam<uint64_t>(paramList, 0, defaultTimeout),
-			getParam<std::vector<uint32_t>>(paramList, 1));
+		                                                          getParam<std::vector<uint32_t>>(paramList, 1));
 
 #if 1
 		if (_c.server) _c.server->terminate();
@@ -1039,8 +1037,6 @@ private:
 		return ret;
 	}
 };
-
-
 
 // JCF, 9/4/14
 
@@ -1138,7 +1134,7 @@ void xmlrpc_commander::run_server() try
 	register_method(override_fragment_ids);
 	register_method(update_default_fragment_ids);
 
-	    register_method(shutdown);
+	register_method(shutdown);
 
 	// alias "daq.reset" to the internal shutdown transition
 	xmlrpc_c::methodPtr const ptr_reset(new shutdown_(*this));

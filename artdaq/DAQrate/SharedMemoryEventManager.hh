@@ -7,11 +7,11 @@
 #include <deque>
 #include <fstream>
 #include <iomanip>
-#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include <set>
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/DAQrate/detail/ArtConfig.hh"
 #include "fhiclcpp/fwd.h"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
@@ -88,6 +88,9 @@ private:
 class SharedMemoryEventManager : public SharedMemoryManager
 {
 public:
+	static const std::string FRAGMENTS_RECEIVED_STAT_KEY;  ///< Key for Fragments Received MonitoredQuantity
+	static const std::string EVENTS_RELEASED_STAT_KEY;     ///< Key for the Events Released MonitoredQuantity
+
 	typedef RawEvent::run_id_t run_id_t;                     ///< Copy RawEvent::run_id_t into local scope
 	typedef RawEvent::subrun_id_t subrun_id_t;               ///< Copy RawEvent::subrun_id_t into local scope
 	typedef Fragment::sequence_id_t sequence_id_t;           ///< Copy Fragment::sequence_id_t into local scope
@@ -407,9 +410,11 @@ private:
 		return art_processes_.size();
 	}
 
+	std::string buildStatisticsString_() const;
+
 private:
 	size_t num_art_processes_;
-	size_t const max_fragments_per_event_;
+	size_t const num_fragments_per_event_;
 	mutable std::mutex fragment_ids_mutex_;
 	std::set<Fragment::fragment_id_t> default_fragment_ids_;
 	std::map<Fragment::sequence_id_t, std::set<Fragment::fragment_id_t>> fragment_id_overrides_;
@@ -450,6 +455,7 @@ private:
 		size_t event_size;
 	};
 	MetricData metric_data_;
+	StatisticsHelper statsHelper_;
 
 	int broadcast_timeout_ms_;
 
