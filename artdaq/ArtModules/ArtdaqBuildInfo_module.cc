@@ -2,6 +2,7 @@
 
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 #include "artdaq-core/BuildInfo/GetPackageBuildInfo.hh"
+#include "artdaq-utilities/BuildInfo/GetPackageBuildInfo.hh"
 
 #include <string>
 
@@ -12,7 +13,7 @@ namespace artdaq
 	/**
 	 * \brief Specialized artdaq::BuildInfo object for the Artdaq build info
 	 */
-	typedef artdaq::BuildInfo<&instanceName, artdaqcore::GetPackageBuildInfo, artdaq::GetPackageBuildInfo> ArtdaqBuildInfo;
+	typedef artdaq::BuildInfo<&instanceName, artdaqcore::GetPackageBuildInfo, artdaqutilities::GetPackageBuildInfo, artdaq::GetPackageBuildInfo> ArtdaqBuildInfo;
 
 	DEFINE_ART_MODULE(ArtdaqBuildInfo)
 }
