@@ -17,6 +17,7 @@
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
+#include "artdaq/DAQrate/TokenReceiver.hh"
 
 namespace artdaq
 {
@@ -74,9 +75,7 @@ public:
 	*   "sender_ranks" (REQUIRED): List of ranks (integers) for the senders (that receive table updates)
 	*   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
 	*   "senders_send_by_send_count" (Default: false): If true, senders will use the current send count to lookup routing information in the table, instead of sequence ID.
-	*   "table_ack_wait_time_us" (Default: 1000): The amount of time to wait between ack receive cycles
-	*   "table_entry_timeout_ms" (Default: 10000): The amount of time table entries are allowed to be routed. After this timeout expires, they will be removed from subsequent routing tables. Note that this will lead to data loss! (Value of 0 to disable)
-	*   "routing_token_port" (Default: 35555): The port on which to listen for RoutingToken packets
+	*   "table_ack_retry_count" (Default: 5): The number of times the table will be resent while waiting for acknowledements
 	*   "table_update_port" (Default: 35556): The port on which to send table updates
 	*   "table_acknowledge_port" (Default: 35557): The port on which to listen for RoutingAckPacket datagrams
 	*   "table_update_address" (Default: "227.128.12.28"): Multicast address to send table updates to
@@ -167,13 +166,10 @@ public:
 	size_t get_update_count() const { return table_update_count_; }
 
 private:
-	void receive_tokens_();
-	void start_receive_token_thread_();
-	detail::RoutingPacket get_current_table_();
-
 	art::RunID run_id_;
 
 	fhicl::ParameterSet policy_pset_;
+	fhicl::ParameterSet token_receiver_pset_;
 	int rt_priority_;
 
 	size_t max_table_update_interval_ms_;
@@ -182,22 +178,21 @@ private:
 	detail::RoutingMasterMode routing_mode_;
 	std::atomic<size_t> current_table_interval_ms_;
 	std::atomic<size_t> table_update_count_;
-	std::atomic<size_t> received_token_count_;
-	std::unordered_map<int, size_t> received_token_counter_;
 
 	std::map<std::chrono::steady_clock::time_point, detail::RoutingPacket> current_tables_;
 	std::map<int, artdaq::Fragment::sequence_id_t> highest_sequence_id_acked_;
 
 	std::vector<int> sender_ranks_;
 
-	std::unique_ptr<RoutingMasterPolicy> policy_;
+	std::shared_ptr<RoutingMasterPolicy> policy_;
+	std::unique_ptr<TokenReceiver> token_receiver_;
 
 	std::atomic<bool> shutdown_requested_;
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;
 
 	// attributes and methods for statistics gathering & reporting
-	artdaq::StatisticsHelper statsHelper_;
+	std::shared_ptr<artdaq::StatisticsHelper> statsHelperPtr_;
 
 	std::string buildStatisticsString_() const;
 
@@ -206,23 +201,17 @@ private:
 
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
-	int receive_token_port_;
 	int send_tables_port_;
 	int receive_acks_port_;
 	std::string send_tables_address_;
-	std::string receive_address_;
+	std::string multicast_out_hostname_;
 	struct sockaddr_in send_tables_addr_;
 	std::vector<epoll_event> receive_ack_events_;
-	std::vector<epoll_event> receive_token_events_;
-	std::unordered_map<int, std::string> receive_token_addrs_;
-	int token_epoll_fd_;
 
 	//Socket parameters
-	int token_socket_;
 	int table_socket_;
 	int ack_socket_;
 	mutable std::mutex request_mutex_;
-	boost::thread ev_token_receive_thread_;
 
 };
 

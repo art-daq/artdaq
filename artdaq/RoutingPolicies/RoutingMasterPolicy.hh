@@ -79,7 +79,7 @@ namespace artdaq
 		mutable std::mutex tokens_mutex_;
 		std::unordered_set<int> receiver_ranks_;
 		std::deque<int> tokens_;
-		size_t max_token_count_;
+		std::atomic<size_t> max_token_count_;
 
 	};
 }
