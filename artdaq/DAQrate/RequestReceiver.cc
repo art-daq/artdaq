@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_RequestReceiver").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_RequestReceiver").c_str()
 
 #include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
@@ -34,7 +34,7 @@
 artdaq::RequestReceiver::RequestReceiver()
     : request_port_(3001)
     , request_addr_("227.128.12.26")
-    , multicast_out_addr_("0.0.0.0")
+    , multicast_in_addr_("0.0.0.0")
     , ack_port_(3002)
     , ack_address_("localhost")
     , running_(false)
@@ -54,7 +54,7 @@ artdaq::RequestReceiver::RequestReceiver()
 artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
     : request_port_(ps.get<int>("request_port", 3001))
     , request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
-    , multicast_out_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
+    , multicast_in_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
     , ack_port_(ps.get<int>("acknowledgement_port", 3002))
     , ack_address_(ps.get<std::string>("acknowledgement_address", "localhost"))
     , running_(false)
@@ -75,7 +75,8 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
 
 void artdaq::RequestReceiver::setupRequestListener()
 {
-	TLOG(TLVL_INFO) << "Setting up request listen socket, rank=" << my_rank << ", address=" << request_addr_ << ":" << request_port_;
+	TLOG(TLVL_INFO) << "Setting up request listen socket, rank=" << my_rank << ", address=" << request_addr_ << ":" << request_port_
+	                << ", multicast interface=" << multicast_in_addr_;
 	request_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (request_socket_ < 0)
 	{
@@ -110,10 +111,10 @@ void artdaq::RequestReceiver::setupRequestListener()
 			TLOG(TLVL_ERROR) << "Unable to resolve multicast request address, err=" << strerror(errno);
 			exit(1);
 		}
-		sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), mreq.imr_interface);
+		sts = GetInterfaceForNetwork(multicast_in_addr_.c_str(), mreq.imr_interface);
 		if (sts == -1)
 		{
-			TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_out_addr_;
+			TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_in_addr_;
 			exit(1);
 		}
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)

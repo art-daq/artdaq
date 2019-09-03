@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_05_00
+parent artdaq  v3_06_00
 defaultqual    e15:s67
 
 # These optional lines define the installed directories where
@@ -19,15 +19,16 @@ bindir      fq_dir      bin
 product			version		optional
 art             v2_11_05    s73
 art             v2_11_01    s67
+art_root_io     v1_01_00    s87
 art_root_io     v1_00_04    s82
-artdaq_core 		v3_04_16
-artdaq_utilities        v1_04_11
-xmlrpc_c		v1_51_03
-artdaq_ganglia_plugin   v1_02_14        -       optional
-artdaq_epics_plugin     v1_02_07        -       optional
-artdaq_pcp_mmv_plugin   v1_00_00        -       optional
-artdaq_mfextensions     v1_03_04        -       optional
-cetbuildtools		v7_12_01	-	only_for_build
+artdaq_core 		v3_05_00
+artdaq_utilities        v1_05_00
+xmlrpc_c		v1_51_03a
+artdaq_ganglia_plugin   v1_02_14a        -       optional
+artdaq_epics_plugin     v1_02_08        -       optional
+artdaq_pcp_mmv_plugin   v1_00_00a        -       optional
+artdaq_mfextensions     v1_03_05        -       optional
+cetbuildtools		v7_13_02	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
 
@@ -35,6 +36,14 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier	art		art_root_io	artdaq_core	artdaq_utilities	xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_pcp_mmv_plugin	artdaq_mfextensions
+c7:s87:debug	-		c7:debug	c7:s87:debug	c7:s87:debug		c7:debug	c7:s87:debug		c7:s87:debug       	c7:s87:debug       	c7:s87:debug
+c7:s87:prof	- 		c7:prof		c7:s87:prof	c7:s87:prof		c7:prof		c7:s87:prof		c7:s87:prof		c7:s87:prof		c7:s87:prof
+c2:s87:debug	-		c2:debug	c2:s87:debug	c2:s87:debug		c2:debug	c2:s87:debug		c2:s87:debug       	c2:s87:debug		c2:s87:debug
+c2:s87:prof	- 		c2:prof		c2:s87:prof	c2:s87:prof		c2:prof		c2:s87:prof		c2:s87:prof		c2:s87:prof		c2:s87:prof
+e19:s87:debug	-		e19:debug	e19:s87:debug	e19:s87:debug		e19:debug	e19:s87:debug		e19:s87:debug      	e19:s87:debug		e19:s87:debug
+e19:s87:prof	- 		e19:prof	e19:s87:prof	e19:s87:prof		e19:prof	e19:s87:prof		e19:s87:prof		e19:s87:prof		e19:s87:prof
+e17:s87:debug	-		e17:debug	e17:s87:debug	e17:s87:debug		e17:debug	e17:s87:debug		e17:s87:debug      	e17:s87:debug		e17:s87:debug
+e17:s87:prof	- 		e17:prof	e17:s87:prof	e17:s87:prof		e17:prof	e17:s87:prof		e17:s87:prof		e17:s87:prof		e17:s87:prof
 c7:s82:debug	-		c7:debug	c7:s82:debug	c7:s82:debug		c7:debug	c7:s82:debug		c7:s82:debug       	c7:s82:debug       	c7:s82:debug
 c7:s82:prof	- 		c7:prof		c7:s82:prof	c7:s82:prof		c7:prof		c7:s82:prof		c7:s82:prof		c7:s82:prof		c7:s82:prof
 c2:s82:debug	-		c2:debug	c2:s82:debug	c2:s82:debug		c2:debug	c2:s82:debug		c2:s82:debug       	c2:s82:debug		c2:s82:debug
