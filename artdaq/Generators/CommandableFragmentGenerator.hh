@@ -231,7 +231,7 @@ namespace artdaq
 		 * \param seq Sequence ID of current window
 		 */
 		void checkSentWindows(Fragment::sequence_id_t seq);
-		
+
 		/**
 		 * \brief Function that launches the data thread (getDataLoop())
 		 */
@@ -476,7 +476,7 @@ namespace artdaq
 		 * \return The current board_id
 		 */
 		int board_id() const { return board_id_; }
-		
+
 		/**
 		 * \brief Increment the event counter, if the current RequestMode allows it
 		 * \param step Amount to increment the event counter by
