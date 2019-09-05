@@ -3,23 +3,21 @@
 #define BOOST_TEST_MODULE CommandableFragmentGenerator_t
 #include <boost/test/auto_unit_test.hpp>
 
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragment.hh"
-#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
 #define MULTICAST_MODE 0
 
-namespace artdaqtest
-{
+namespace artdaqtest {
 	class CommandableFragmentGeneratorTest;
 }
 
 /**
  * \brief CommandableFragmentGenerator derived class for testing
  */
-class artdaqtest::CommandableFragmentGeneratorTest :
-	public artdaq::CommandableFragmentGenerator
+class artdaqtest::CommandableFragmentGeneratorTest : public artdaq::CommandableFragmentGenerator
 {
 public:
 	/**
@@ -90,11 +88,13 @@ public:
 	/// <summary>
 	/// Wait for all fragments generated to be read by the CommandableFragmentGenerator
 	/// </summary>
-	void waitForFrags() {
+	void waitForFrags()
+	{
 		auto start_time = std::chrono::steady_clock::now();
 		while (fireCount_ > 0) { usleep(1000); }
 		TLOG(TLVL_INFO) << "Waited " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time).count() << " us for events to be picked up by CFG";
 	}
+
 private:
 	std::atomic<size_t> fireCount_;
 	std::atomic<bool> hwFail_;
@@ -111,18 +111,19 @@ artdaqtest::CommandableFragmentGeneratorTest::CommandableFragmentGeneratorTest(c
 	, hw_stop_(false)
 	, enabled_ids_(-1)
 {
-	metricMan->initialize(ps);
+	metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()));
 	metricMan->do_start();
 }
 
-bool
-artdaqtest::CommandableFragmentGeneratorTest::getNext_(artdaq::FragmentPtrs& frags)
+bool artdaqtest::CommandableFragmentGeneratorTest::getNext_(artdaq::FragmentPtrs& frags)
 {
 	while (fireCount_ > 0)
 	{
 		++ts_;
-		for (auto& id : fragmentIDs()) {
-			if (id < 64 && ((enabled_ids_ & (0x1 << id)) != 0)) {
+		for (auto& id : fragmentIDs())
+		{
+			if (id < 64 && ((enabled_ids_ & (0x1 << id)) != 0))
+			{
 				frags.emplace_back(new artdaq::Fragment(ev_counter(), id, artdaq::Fragment::FirstUserFragmentType, ts_));
 			}
 		}
@@ -133,20 +134,15 @@ artdaqtest::CommandableFragmentGeneratorTest::getNext_(artdaq::FragmentPtrs& fra
 	return !hw_stop_;
 }
 
-void
-artdaqtest::CommandableFragmentGeneratorTest::start() { hw_stop_ = false; }
+void artdaqtest::CommandableFragmentGeneratorTest::start() { hw_stop_ = false; }
 
-void
-artdaqtest::CommandableFragmentGeneratorTest::stopNoMutex() {}
+void artdaqtest::CommandableFragmentGeneratorTest::stopNoMutex() {}
 
-void
-artdaqtest::CommandableFragmentGeneratorTest::stop() { hw_stop_ = true; }
+void artdaqtest::CommandableFragmentGeneratorTest::stop() { hw_stop_ = true; }
 
-void
-artdaqtest::CommandableFragmentGeneratorTest::pause() {}
+void artdaqtest::CommandableFragmentGeneratorTest::pause() {}
 
-void
-artdaqtest::CommandableFragmentGeneratorTest::resume() {}
+void artdaqtest::CommandableFragmentGeneratorTest::resume() {}
 
 BOOST_AUTO_TEST_SUITE(CommandableFragmentGenerator_t)
 
@@ -325,7 +321,6 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	gen.waitForFrags();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
-
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -389,10 +384,8 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	fps.clear();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
 
-
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-
 
 	TLOG(TLVL_INFO) << "BufferMode test case END";
 }
@@ -431,7 +424,6 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
-
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
@@ -496,8 +488,6 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	fps.clear();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
 
-
-
 	gen.setFireCount(5);
 	gen.waitForFrags();
 	t.AddRequest(5, 8);
@@ -521,10 +511,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	fps.clear();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
 
-
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-
 
 	TLOG(TLVL_INFO) << "CircularBufferMode test case END";
 }
@@ -616,7 +604,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
 
-
 	usleep(1500000);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -629,7 +616,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
 
 	usleep(1500000);
-
 
 	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
 	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
@@ -667,7 +653,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	type = artdaq::Fragment::EmptyFragmentType;
 	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
 	fps.clear();
-
 
 	// Out-of-order windows
 	t.AddRequest(7, 13);
@@ -716,7 +701,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG(TLVL_INFO) << "WindowMode_Function test case END";
 	gen.joinThreads();
-
 }
 
 // 1. Both start and end before any data in buffer  "RequestBeforeBuffer"
@@ -784,7 +768,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG(TLVL_INFO) << "WindowMode_RequestBeforeBuffer test case END";
-
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 {
@@ -848,7 +831,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
 	TLOG(TLVL_INFO) << "WindowMode_RequestStartsBeforeBuffer test case END";
-
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 {
@@ -934,8 +916,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	BOOST_REQUIRE_EQUAL(cf2.fragment_type(), type);
 	fps.clear();
 
-
-
 	t.AddRequest(3, 12); // Requesting data from ts 11 to 14
 
 	sts = gen.getNext(fps);
@@ -961,7 +941,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
 	TLOG(TLVL_INFO) << "WindowMode_RequestOutsideBuffer test case END";
-
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 {
@@ -1022,7 +1001,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG(TLVL_INFO) << "WindowMode_RequestInBuffer test case END";
-
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 {
@@ -1113,7 +1091,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
 	TLOG(TLVL_INFO) << "WindowMode_RequestEndsAfterBuffer test case END";
-
 }
 BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 {
@@ -1209,7 +1186,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
 	TLOG(TLVL_INFO) << "WindowMode_RequestAfterBuffer test case END";
-
 }
 
 BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
@@ -1261,8 +1237,6 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-
-
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
@@ -1331,7 +1305,8 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 	auto sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
@@ -1351,7 +1326,8 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 2u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
@@ -1404,7 +1380,8 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	auto type = artdaq::Fragment::FirstUserFragmentType;
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
@@ -1423,7 +1400,8 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
@@ -1447,7 +1425,8 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(fps.size(), 6);
 	auto ts = artdaq::Fragment::InvalidTimestamp;
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
-	for (auto ii = 0; ii < 3; ++ii) {
+	for (auto ii = 0; ii < 3; ++ii)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
@@ -1458,7 +1437,8 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(ids[2], 1);
 	BOOST_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
-	for (auto ii = 0; ii < 3; ++ii) {
+	for (auto ii = 0; ii < 3; ++ii)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
@@ -1480,7 +1460,8 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3);
-	for (auto ii = 0; ii < 3; ++ii) {
+	for (auto ii = 0; ii < 3; ++ii)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 9);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
@@ -1531,14 +1512,14 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	gen.waitForFrags();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
-
 	artdaq::FragmentPtrs fps;
 	std::map<artdaq::Fragment::fragment_id_t, size_t> ids;
 	auto sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
 	auto type = artdaq::Fragment::ContainerFragmentType;
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
@@ -1563,7 +1544,8 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
@@ -1592,7 +1574,8 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 
 	auto ts = artdaq::Fragment::InvalidTimestamp;
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
-	for (auto ii = 0; ii < 3; ++ii) {
+	for (auto ii = 0; ii < 3; ++ii)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
@@ -1604,7 +1587,8 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(ids[2], 1);
 	BOOST_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
-	for (auto ii = 0; ii < 3; ++ii) {
+	for (auto ii = 0; ii < 3; ++ii)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
@@ -1633,7 +1617,8 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3);
 
-	for (auto ii = 0; ii < 3; ++ii) {
+	for (auto ii = 0; ii < 3; ++ii)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
@@ -1664,10 +1649,8 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	fps.clear();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
 
-
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-
 
 	TLOG(TLVL_INFO) << "BufferMode_MultipleIDs test case END";
 }
@@ -1707,14 +1690,14 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	gen.waitForFrags();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
-
 	artdaq::FragmentPtrs fps;
 	std::map<artdaq::Fragment::fragment_id_t, size_t> ids;
 	auto sts = gen.getNext(fps);
 	auto type = artdaq::Fragment::ContainerFragmentType;
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
@@ -1740,7 +1723,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+ 	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
@@ -1770,7 +1754,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 
 	auto ts = artdaq::Fragment::InvalidTimestamp;
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
-	for (auto ii = 0; ii < 3; ++ii) {
+	for (auto ii = 0; ii < 3; ++ii)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
@@ -1782,7 +1767,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(ids[2], 1);
 	BOOST_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
-	for (auto ii = 0; ii < 3; ++ii) {
+	for (auto ii = 0; ii < 3; ++ii)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
@@ -1803,15 +1789,14 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	fps.clear();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
 
-
-
 	gen.setFireCount(5);
 	gen.waitForFrags();
 	t.AddRequest(5, 8);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
@@ -1844,7 +1829,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 10);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 6);
@@ -1855,13 +1841,15 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 		type = artdaq::Fragment::FirstUserFragmentType;
 		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
 
-		if (fps.front()->fragmentID() != 3) {
+		if (fps.front()->fragmentID() != 3)
+		{
 			BOOST_REQUIRE_EQUAL(cf.block_count(), 3);
 			BOOST_REQUIRE_EQUAL(cf.at(0)->timestamp(), 12);
 			BOOST_REQUIRE_EQUAL(cf.at(1)->timestamp(), 13);
 			BOOST_REQUIRE_EQUAL(cf.at(2)->timestamp(), 14);
 		}
-		else {
+		else
+		{
 			BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
 			BOOST_REQUIRE_EQUAL(cf.at(0)->timestamp(), 10);
 		}
@@ -1877,7 +1865,6 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
-
 
 	TLOG(TLVL_INFO) << "CircularBufferMode_MultipleIDs test case END";
 }
@@ -1926,7 +1913,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
@@ -1959,7 +1947,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
@@ -1985,7 +1974,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
 
-
 	usleep(1500000);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -1999,8 +1987,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 
 	usleep(1500000);
 
-
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
@@ -2033,7 +2021,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(list.size(), 0);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
@@ -2052,13 +2041,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	ids.clear();
 	fps.clear();
 
-
 	// Out-of-order windows
 	t.AddRequest(7, 13);
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 13);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 7);
@@ -2086,7 +2075,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 12);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 6);
@@ -2117,7 +2107,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 2);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 15);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 8);
@@ -2145,7 +2136,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	while (fps.size() > 0) {
+	while (fps.size() > 0)
+	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 15);
 		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 8);
@@ -2168,7 +2160,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG(TLVL_INFO) << "WindowMode_Function_MultipleIDs test case END";
 	gen.joinThreads();
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()
