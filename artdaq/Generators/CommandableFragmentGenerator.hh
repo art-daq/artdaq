@@ -196,6 +196,13 @@ public:
 	/// <param name="frags">Ouput fragments</param>
 	void applyRequestsWindowMode(artdaq::PostmarkedFragmentPtrs& frags);
 
+	/// <summary>
+	/// Copy data from the relevant data buffer that matches the given timestamp.
+	/// </summary>
+	/// <param name="frags">Output Fragments</param>
+	/// <param name="id">Fragment ID of buffer to search</param>
+	/// <param name="seq">Sequence ID of output Fragment</param>
+	/// <param name="ts">Timestamp of output Fragment (used to determine window limits)</param>
 	void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::PostmarkedFragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
 
 	/**
@@ -247,38 +254,55 @@ public:
 
 	/**
 		 * \brief Wait for the data buffer to drain (dataBufferIsTooLarge returns false), periodically reporting status.
+		 * \param id Fragment ID of data buffer
 		 * \return True if wait ended without something else disrupting the run
 		 */
 	bool waitForDataBufferReady(Fragment::fragment_id_t id);
 
 	/**
 		 * \brief Test the configured constraints on the data buffer
+		 * \param id Fragment ID of data buffer
 		 * \return Whether the data buffer is full
 		 */
 	bool dataBufferIsTooLarge(Fragment::fragment_id_t id);
 
 	/**
 		 * \brief Calculate the size of the dataBuffer and report appropriate metrics
+		 * \param id Fragment ID of buffer
 		 */
 	void getDataBufferStats(Fragment::fragment_id_t id);
 
+	/**
+		 * \brief Calculate the size of all dataBuffers and report appropriate metrics
+		 */
 	void getDataBuffersStats()
 	{
 		for (auto& id : dataBuffers_) getDataBufferStats(id.first);
 	}
 
 	/**
-		 * \brief Perform data buffer pruning operations. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
+		 * \brief Perform data buffer pruning operations for the given buffer. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
+		 * \param id Fragment ID of buffer
 		 * In Window and Buffer RequestModes, this function discards the oldest Fragment objects until the data buffer is below its size constraints,
 		 * then also checks for stale Fragments, based on the timestamp of the most recent Fragment.
 		 */
 	void checkDataBuffer(Fragment::fragment_id_t id);
 
+	/**
+		 * \brief Perform data buffer pruning operations for all buffers.
+		 */
 	void checkDataBuffers()
 	{
 		for (auto& id : dataBuffers_) checkDataBuffer(id.first);
 	}
 
+	/**
+		 * \brief Get the map of Window-mode requests fulfilled by this Fragment Geneerator for the given Fragment ID
+		 * \param id Fragment ID of buffer
+		 * \return Map of sequence_id and time_point for sent Window-mode requests
+		 *
+		 * This function is used in CommandableFragmentGenerator_t to verify correct functioning of Window mode
+		 */
 	std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> GetSentWindowList(Fragment::fragment_id_t id)
 	{
 		if (!dataBuffers_.count(id))
@@ -454,6 +478,11 @@ protected:
 		 */
 	uint64_t timestamp() const { return timestamp_; }
 
+	/**
+		 * \brief Get the Fragment ID of this Fragment generator
+		 * \throws cet::exception("FragmentID") if there is more that one Fragment ID configured for this Fragment Generator
+		 * \return Fragment ID for the Fragment Generator
+		 */
 	artdaq::Fragment::fragment_id_t fragment_id() const
 	{
 		if (dataBuffers_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << dataBuffers_.size() << " were declared!";
@@ -517,6 +546,10 @@ protected:
 
 	std::mutex mutex_;  ///< Mutex used to ensure that multiple transition commands do not run at the same time
 
+	/**
+	 * \brief Get the total number of Fragments in all data buffers
+	 * \return Number of Fragments in all data buffers
+	 */
 	size_t dataBufferFragmentCount_()
 	{
 		size_t count = 0;

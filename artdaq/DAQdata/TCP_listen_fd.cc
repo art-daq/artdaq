@@ -5,8 +5,8 @@
 //  $RCSfile: TCP_listen_fd.cpp,v $
 //  rev="$Revision: 1.3 $$Date: 2010/06/04 14:00:32 $";
 
-#define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 
 #include <stdio.h>		// printf
 #include <stdlib.h>		// exit
