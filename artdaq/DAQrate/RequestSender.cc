@@ -1,5 +1,6 @@
 #include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #define TRACE_NAME (app_name + "_RequestSender").c_str()
+#include "artdaq/DAQrate/RequestSender.hh"
 #include <dlfcn.h>
 #include <chrono>
 #include <cstring>
@@ -7,7 +8,6 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
-#include "artdaq/DAQrate/RequestSender.hh"
 
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
@@ -233,14 +233,14 @@ void RequestSender::do_send_request_()
 			message.addRequest(req->second);
 			++req;
 		}
-<<<<<<< HEAD
 	}
 	TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
 	message.setMode(request_mode_);
 	char str[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-	std::lock_guard<std::mutex> lk2(request_send_mutex_);
-	TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str;
+	std::unique_lock<std::mutex> lk2(request_send_mutex_);
+	TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str
+	                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 	auto buf = message.GetMessage();
 	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr*)&request_addr_, sizeof(request_addr_));
 	if (sts < 0 || static_cast<size_t>(sts) != buf.size())
@@ -273,7 +273,6 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 	{
 		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
 		if (res < 0)
-=======
 		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
 		message.setMode(request_mode_);
 		char str[INET_ADDRSTRLEN];
@@ -284,7 +283,6 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 		auto buf = message.GetMessage();
 		auto sts=sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
 		if (sts < 0 || static_cast<size_t>(sts) != buf.size())
->>>>>>> feature/22533_CFG_getNextWithDestinations
 		{
 			close(token_socket_);
 			token_socket_ = -1;

@@ -1,5 +1,5 @@
 #include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME (app_name + "_CommandableFragmentGenerator").c_str() // include these 2 first -
+#define TRACE_NAME (app_name + "_CommandableFragmentGenerator").c_str()  // include these 2 first -
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
@@ -1004,7 +1004,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Postm
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: Starting request processing";
 	for (auto req = requests.begin(); req != requests.end();)
 	{
-		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: processing request with sequence ID " << req->first << ", timestamp " << req->second;
+		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: processing request with sequence ID " << req->first << ", timestamp " << req->second.timestamp;
 
 		while (req->first < ev_counter() && requests.size() > 0)
 		{
