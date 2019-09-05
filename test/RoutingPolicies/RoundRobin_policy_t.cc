@@ -161,7 +161,6 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 	BOOST_REQUIRE_EQUAL(thirdTable[2].destination_rank, 3);
 }
 
-
 BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 {
 	fhicl::ParameterSet ps;

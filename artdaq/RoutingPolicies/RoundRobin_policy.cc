@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_RoundRobin_policy").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_RoundRobin_policy").c_str()
 
 #include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"

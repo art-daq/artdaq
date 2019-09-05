@@ -45,6 +45,8 @@ public:
 		fhicl::Atom<int> table_port{ fhicl::Name{ "table_update_port"}, fhicl::Comment{ "Port that table updates should arrive on" },35556 };
 		///   "table_update_address" (Default: "227.128.12.28"): Address that table updates should arrive on
 		fhicl::Atom<std::string> table_address{ fhicl::Name{ "table_update_address"}, fhicl::Comment{ "Address that table updates should arrive on" }, "227.128.12.28" };
+		///   "table_update_multicast_interface" (Default: "localhost"): Network interface that table updates should arrive on
+		fhicl::Atom<std::string> table_multicast_interface{ fhicl::Name{ "table_update_multicast_interface"}, fhicl::Comment{ "Network interface that table updates should arrive on" }, "localhost" };
 		///   "table_acknowledge_port" (Default: 35557): Port that acknowledgements should be sent to
 		fhicl::Atom<int> ack_port{ fhicl::Name{ "table_acknowledge_port" },fhicl::Comment{ "Port that acknowledgements should be sent to" },35557 };
 		///   "routing_master_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
@@ -153,7 +155,16 @@ public:
 	 */
 	void StopSender() { should_stop_ = true; }
 
+	/**
+	 * \brief Remove the given sequence ID from the routing table and sent_count lists
+	 * \param seq Sequence ID to remove
+	 */
 	void RemoveRoutingTableEntry(Fragment::sequence_id_t seq);
+	/**
+	 * \brief Get the number of Fragments sent with a given Sequence ID
+	 * \param seq Sequence ID to query
+	 * \return The number of Fragments sent with a given Sequence ID
+	 */
 	size_t GetSentSequenceIDCount(Fragment::sequence_id_t seq);
 
 private:
@@ -169,8 +180,6 @@ private:
 private:
 
 	std::map<int, std::unique_ptr<artdaq::TransferInterface>> destinations_;
-	std::unordered_map<int, std::pair<size_t, double>> destination_metric_data_;
-	std::unordered_map<int, std::chrono::steady_clock::time_point> destination_metric_send_time_;
 	std::set<int> enabled_destinations_;
 
 	detail::FragCounter sent_frag_count_;
@@ -186,6 +195,7 @@ private:
 	std::atomic<bool> should_stop_;
 	int table_port_;
 	std::string table_address_;
+	std::string table_multicast_interface_;
 	int ack_port_;
 	std::string ack_address_;
 	struct sockaddr_in ack_addr_;

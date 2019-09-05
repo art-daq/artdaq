@@ -7,11 +7,11 @@
 #include <deque>
 #include <fstream>
 #include <iomanip>
-#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include <set>
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/DAQrate/detail/ArtConfig.hh"
 #include "fhiclcpp/fwd.h"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
@@ -88,6 +88,9 @@ private:
 class SharedMemoryEventManager : public SharedMemoryManager
 {
 public:
+	static const std::string FRAGMENTS_RECEIVED_STAT_KEY;  ///< Key for Fragments Received MonitoredQuantity
+	static const std::string EVENTS_RELEASED_STAT_KEY;     ///< Key for the Events Released MonitoredQuantity
+
 	typedef RawEvent::run_id_t run_id_t;                     ///< Copy RawEvent::run_id_t into local scope
 	typedef RawEvent::subrun_id_t subrun_id_t;               ///< Copy RawEvent::subrun_id_t into local scope
 	typedef Fragment::sequence_id_t sequence_id_t;           ///< Copy Fragment::sequence_id_t into local scope
@@ -111,8 +114,8 @@ public:
 		fhicl::Atom<uint32_t> shared_memory_key{fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid()};
 		/// "buffer_count" REQUIRED: Number of events in the Shared Memory(incomplete + pending art)
 		fhicl::Atom<size_t> buffer_count{fhicl::Name{"buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"}};
-	  /// "max_subrun_lookup_table_size" (Default: 100): Maximum number of entries in the subrun rollover history
-	  fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"Maximum number of entries in the subrun rollover history"}, 100};
+		/// "max_subrun_lookup_table_size" (Default: 100): Maximum number of entries in the subrun rollover history
+		fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"Maximum number of entries in the subrun rollover history"}, 100};
 		/// "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 		/// Either max_fragment_size_bytes or max_event_size_bytes must be specified
 		fhicl::Atom<size_t> max_fragment_size_bytes{fhicl::Name{"max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"}};
@@ -389,6 +392,8 @@ private:
 		return art_processes_.size();
 	}
 
+	std::string buildStatisticsString_() const;
+
 private:
 	size_t num_art_processes_;
 	size_t const num_fragments_per_event_;
@@ -416,9 +421,8 @@ private:
 	int incomplete_event_report_interval_ms_;
 	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 	std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
-        std::chrono::steady_clock::time_point last_backpressure_report_time_;
-        std::chrono::steady_clock::time_point last_fragment_header_write_time_;
-
+	std::chrono::steady_clock::time_point last_backpressure_report_time_;
+	std::chrono::steady_clock::time_point last_fragment_header_write_time_;
 
 	struct MetricData
 	{
@@ -428,13 +432,14 @@ private:
 		size_t event_size;
 	};
 	MetricData metric_data_;
+	StatisticsHelper statsHelper_;
 
 	int broadcast_timeout_ms_;
 
 	std::atomic<int> run_event_count_;
 	std::atomic<int> run_incomplete_event_count_;
-        std::atomic<int> subrun_event_count_;
-        std::atomic<int> subrun_incomplete_event_count_;
+	std::atomic<int> subrun_event_count_;
+	std::atomic<int> subrun_incomplete_event_count_;
 	std::atomic<int> oversize_fragment_count_;
 	int maximum_oversize_fragment_count_;
 

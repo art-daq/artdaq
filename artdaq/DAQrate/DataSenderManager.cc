@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_DataSenderManager").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_DataSenderManager").c_str()
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
@@ -15,8 +15,6 @@
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	: destinations_()
-	, destination_metric_data_()
-	, destination_metric_send_time_()
 	, enabled_destinations_()
 	, sent_frag_count_()
 	, broadcast_sends_(pset.get<bool>("broadcast_sends", false))
@@ -41,6 +39,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	use_routing_master_ = rmConfig.get<bool>("use_routing_master", false);
 	table_port_ = rmConfig.get<int>("table_update_port", 35556);
 	table_address_ = rmConfig.get<std::string>("table_update_address", "227.128.12.28");
+	table_multicast_interface_ = rmConfig.get<std::string>("table_update_multicast_interface", "localhost");
 	ack_port_ = rmConfig.get<int>("table_acknowledge_port", 35557);
 	ack_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
 	routing_timeout_ms_ = (rmConfig.get<int>("routing_timeout_ms", 1000));
@@ -83,8 +82,6 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 			auto transfer = MakeTransferPlugin(dests_mod, d, TransferInterface::Role::kSend);
 			auto destination_rank = transfer->destination_rank();
 			destinations_.emplace(destination_rank, std::move(transfer));
-			destination_metric_data_[destination_rank] = std::pair<size_t, double>();
-			destination_metric_send_time_[destination_rank] = std::chrono::steady_clock::now();
 		}
 		catch (const std::invalid_argument&)
 		{
@@ -185,7 +182,12 @@ void artdaq::DataSenderManager::setupTableListener_()
 		TLOG(TLVL_ERROR) << "Unable to resolve multicast address for table updates";
 		exit(1);
 	}
-	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+	sts = GetInterfaceForNetwork(table_multicast_interface_.c_str(), mreq.imr_interface);
+	if (sts == -1)
+	{
+		TLOG(TLVL_ERROR) << "Unable to resolve multicast interface for table updates" << table_multicast_interface_;
+		exit(1);
+	}
 	if (setsockopt(table_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 	{
 		TLOG(TLVL_ERROR) << "Unable to join multicast group";
@@ -216,7 +218,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			return;
 		}
 
-		TLOG(TLVL_TRACE) << __func__ << ": Polling table socket for new routes";
+		TLOG(TLVL_TRACE) << __func__ << ": Polling table socket for new routes (interface,address,port = "
+		                 << table_multicast_interface_ << "," << table_address_ << "," << table_port_ << ")";
 		if (table_socket_ == -1)
 		{
 			TLOG(TLVL_DEBUG) << __func__ << ": Opening table listener socket";
@@ -344,11 +347,18 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 
 				if (last > routing_table_last_) routing_table_last_ = last;
 
+				if (my_rank < static_cast<int>(8*sizeof(hdr.already_acknowledged_ranks)) && hdr.already_acknowledged_ranks.test(my_rank))
+				{
+					TLOG(TLVL_DEBUG) << __func__ << ": Skipping RoutingAckPacket since this Routing Table Update has already been acknowledged (my_rank = " << my_rank << ")";
+				}
+				else
+				{
 				TLOG(TLVL_DEBUG) << __func__ << ": Sending RoutingAckPacket with first= " << first << " and last= " << last << " to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
 				sendto(ack_socket_, &ack, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr *)&ack_addr_, sizeof(ack_addr_));
 			}
 		}
 	}
+}
 }
 
 size_t artdaq::DataSenderManager::GetRoutingTableEntryCount() const
@@ -459,6 +469,8 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	}
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
+	auto latency_s = frag.getLatency(true);
+	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
 	TLOG(13) << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
 		<< ", seqID=" << seqID << ", type=" << frag.typeString();
 	auto outsts = TransferInterface::CopyStatus::kDestinationFailure;
@@ -560,21 +572,16 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	}
 
 	auto delta_t = TimeUtils::GetElapsedTime(start_time);
-	destination_metric_data_[dest].first += fragSize;
-	destination_metric_data_[dest].second += delta_t;
 
-	if (metricMan && TimeUtils::GetElapsedTime(destination_metric_send_time_[dest]) > 1)
+	if (metricMan )
 	{
 		TLOG(5) << "sendFragment: sending metrics";
-		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), destination_metric_data_[dest].second, "s", 5, MetricMode::Accumulate);
-		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), destination_metric_data_[dest].first, "B", 5, MetricMode::Accumulate);
-		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), destination_metric_data_[dest].first / destination_metric_data_[dest].second, "B/s", 5, MetricMode::Average);
+		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 5, MetricMode::Accumulate);
+		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 5, MetricMode::Accumulate);
+		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 5, MetricMode::Average);
 		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::LastPoint);
-
-		destination_metric_send_time_[dest] = std::chrono::steady_clock::now();
-		destination_metric_data_[dest].first = 0;
-		destination_metric_data_[dest].second = 0.0;
-
+		metricMan->sendMetric("Fragment Latency at Send", latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
+		
 		if (use_routing_master_)
 		{
 			metricMan->sendMetric("Routing Table Size", GetRoutingTableEntryCount(), "events", 2, MetricMode::LastPoint);

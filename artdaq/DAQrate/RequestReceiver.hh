@@ -180,7 +180,7 @@ private:
 	// are the FHiCL variable names with a "_" appended
 	int request_port_;
 	std::string request_addr_;
-	std::string multicast_out_addr_;
+	std::string multicast_in_addr_;
 	int ack_port_;
 	std::string ack_address_;
 	struct sockaddr_in ack_addr_;
