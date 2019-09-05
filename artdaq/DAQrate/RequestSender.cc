@@ -273,16 +273,6 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 	{
 		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
 		if (res < 0)
-		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
-		message.setMode(request_mode_);
-		char str[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-		std::unique_lock<std::mutex> lk2(request_send_mutex_);
-		TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str
-		                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
-		auto buf = message.GetMessage();
-		auto sts=sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr *)&request_addr_, sizeof(request_addr_));
-		if (sts < 0 || static_cast<size_t>(sts) != buf.size())
 		{
 			close(token_socket_);
 			token_socket_ = -1;
