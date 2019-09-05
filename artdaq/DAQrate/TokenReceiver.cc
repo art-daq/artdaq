@@ -1,5 +1,5 @@
-#define TRACE_NAME (app_name + "_TokenReceiver").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_TokenReceiver").c_str()
 
 #include "artdaq/DAQrate/TokenReceiver.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
