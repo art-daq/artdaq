@@ -344,12 +344,11 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	//if (mode_ != RequestMode::Ignored)
-	//{
-        // KAB: temporary change to help with measuring round-trip times
+	if (mode_ != RequestMode::Ignored)
+	{
 		requestReceiver_->SetRunNumber(static_cast<uint32_t>(run));
 		requestReceiver_->startRequestReception();
-                //}
+	}
 	TLOG(TLVL_TRACE) << "Start Command complete.";
 }
 
