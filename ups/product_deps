@@ -24,9 +24,9 @@ art_root_io     v1_00_04    s82
 artdaq_core 		v2019_09_06_protoDFO_testing
 artdaq_utilities        v2019_09_06_protoDFO_testing
 xmlrpc_c		v1_51_03a
-#artdaq_ganglia_plugin   v1_02_14a        -       optional
-#artdaq_epics_plugin     v1_02_08        -       optional
-#artdaq_pcp_mmv_plugin   v1_00_00a        -       optional
+artdaq_ganglia_plugin   v1_02_14a       -       optional
+artdaq_epics_plugin     v1_02_08        -       optional
+artdaq_pcp_mmv_plugin   v1_00_00a       -       optional
 artdaq_mfextensions     v1_03_05        -       optional
 cetbuildtools		v7_13_02	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
@@ -36,14 +36,6 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier	art		art_root_io	artdaq_core	artdaq_utilities	xmlrpc_c	artdaq_ganglia_plugin	artdaq_epics_plugin	artdaq_pcp_mmv_plugin	artdaq_mfextensions
-c7:s87:debug	-		c7:debug	c7:s87:debug	c7:s87:debug		c7:debug	c7:s87:debug		c7:s87:debug       	c7:s87:debug       	c7:s87:debug
-c7:s87:prof	- 		c7:prof		c7:s87:prof	c7:s87:prof		c7:prof		c7:s87:prof		c7:s87:prof		c7:s87:prof		c7:s87:prof
-c2:s87:debug	-		c2:debug	c2:s87:debug	c2:s87:debug		c2:debug	c2:s87:debug		c2:s87:debug       	c2:s87:debug		c2:s87:debug
-c2:s87:prof	- 		c2:prof		c2:s87:prof	c2:s87:prof		c2:prof		c2:s87:prof		c2:s87:prof		c2:s87:prof		c2:s87:prof
-e19:s87:debug	-		e19:debug	e19:s87:debug	e19:s87:debug		e19:debug	e19:s87:debug		e19:s87:debug      	e19:s87:debug		e19:s87:debug
-e19:s87:prof	- 		e19:prof	e19:s87:prof	e19:s87:prof		e19:prof	e19:s87:prof		e19:s87:prof		e19:s87:prof		e19:s87:prof
-e17:s87:debug	-		e17:debug	e17:s87:debug	e17:s87:debug		e17:debug	e17:s87:debug		e17:s87:debug      	e17:s87:debug		e17:s87:debug
-e17:s87:prof	- 		e17:prof	e17:s87:prof	e17:s87:prof		e17:prof	e17:s87:prof		e17:s87:prof		e17:s87:prof		e17:s87:prof
 c7:s82:debug	-		c7:debug	c7:s82:debug	c7:s82:debug		c7:debug	c7:s82:debug		c7:s82:debug       	c7:s82:debug       	c7:s82:debug
 c7:s82:prof	- 		c7:prof		c7:s82:prof	c7:s82:prof		c7:prof		c7:s82:prof		c7:s82:prof		c7:s82:prof		c7:s82:prof
 c2:s82:debug	-		c2:debug	c2:s82:debug	c2:s82:debug		c2:debug	c2:s82:debug		c2:s82:debug       	c2:s82:debug		c2:s82:debug
