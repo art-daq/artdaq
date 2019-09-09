@@ -73,6 +73,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
     , ev_counter_(1)
     , board_id_(-1)
     , sleep_on_stop_us_(0)
+    , monitor_fragment_send_to_request_received_roundtrip_time_(ps.get<bool>("monitor_fragment_send_to_request_received_roundtrip_time", false))
 {
 	board_id_ = ps.get<int>("board_id");
 	instance_name_for_metrics_ = "BoardReader." + boost::lexical_cast<std::string>(board_id_);
@@ -134,7 +135,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		}
 		requestReceiver_.reset(new RequestReceiver(ps));
 	}
-	else
+	else if (monitor_fragment_send_to_request_received_roundtrip_time_)
 	{
 		requestReceiver_.reset(new RequestReceiver(ps, true));
 	}
@@ -298,6 +299,7 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	if (force_stop_) return true;
 
 	// check_stop returns true if the CFG should stop. We should wait for the RequestReceiver to stop before stopping.
+	if (requestReceiver_.get() == nullptr) {return true;}
 	TLOG(TLVL_DEBUG) << "should_stop is true, force_stop_ is false, requestReceiver_->isRunning() is " << std::boolalpha << requestReceiver_->isRunning();
 	return !requestReceiver_->isRunning();
 }
@@ -344,7 +346,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	if (mode_ != RequestMode::Ignored)
+	if (requestReceiver_)
 	{
 		requestReceiver_->SetRunNumber(static_cast<uint32_t>(run));
 		requestReceiver_->startRequestReception();

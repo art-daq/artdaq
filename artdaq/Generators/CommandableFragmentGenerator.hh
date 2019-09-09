@@ -631,6 +631,12 @@ private:
 
 	int sleep_on_stop_us_;
 
+	// 09-Sep-2019, KAB: the monitoring of the round-trip time between when
+	// a push-mode board reader sends its fragment and when it receives the
+	// the subsequent data request from an event builder is a special monitoring
+	// case so we want to control it with a dedicated configuration parameter.
+	bool monitor_fragment_send_to_request_received_roundtrip_time_;
+
 protected:
 	/// <summary>
 	/// Obtain the next group of Fragments, if any are available. Return false if readout cannot continue,
