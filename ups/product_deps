@@ -23,7 +23,7 @@ art_root_io     v1_01_00    s87
 art_root_io     v1_00_04    s82
 artdaq_core 		v3_05_00
 artdaq_utilities        v1_05_00
-xmlrpc_c		v1_51_03
+xmlrpc_c		v1_51_03a
 artdaq_ganglia_plugin   v1_02_14a        -       optional
 artdaq_epics_plugin     v1_02_08        -       optional
 artdaq_pcp_mmv_plugin   v1_00_00a        -       optional
