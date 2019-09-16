@@ -136,7 +136,7 @@ bool artdaq::DataReceiverCore::stop()
 	// exit (after the timeout), the lock will be released (in the
 	// processFragments method), and this method can continue.
 	stop_requested_.store(true);
-	
+
 	TLOG(TLVL_DEBUG) << "Ending run " << event_store_ptr_->runID();
 	attemptsToEnd = 1;
 	endSucceeded = event_store_ptr_->endRun();
