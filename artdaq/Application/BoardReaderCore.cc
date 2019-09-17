@@ -358,20 +358,15 @@ void artdaq::BoardReaderCore::process_fragments()
 
 			bool readyToReport = statsHelper_.readyToReport();
 			if (readyToReport)
-			{
-				std::string statString = buildStatisticsString_();
-				TLOG(TLVL_INFO) << statString;
-			}
-			if (fragment_count_ == 1)
-			{
-				TLOG(TLVL_DEBUG) << "Sent first Fragment with SeqID " << sequence_id << ".";
-			}
-			if (fragment_count_ % 250 == 1 || readyToReport)
-			{
-				TLOG(15)
-					<< "Sending fragment " << fragment_count_
-					<< " with SeqID " << sequence_id << ".";
-			}
+				TLOG(TLVL_INFO) << buildStatisticsString_();
+
+			// Turn on lvls (mem and/or slow) 3,13,14 to log every send.
+			TLOG( (fragment_count_==1)? TLVL_DEBUG
+			                          : (((fragment_count_%250)==0||readyToReport)? 13: 14) )
+				<< ((fragment_count_==1)
+				    ? "Sent first Fragment"
+				    : "Sending fragment "+std::to_string(fragment_count_) )
+				<< " with SeqID " << sequence_id << ".";
 		}
 		if (statsHelper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
 		frags.clear();
