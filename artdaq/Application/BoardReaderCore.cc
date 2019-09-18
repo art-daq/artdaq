@@ -361,8 +361,8 @@ void artdaq::BoardReaderCore::process_fragments()
 				TLOG(TLVL_INFO) << buildStatisticsString_();
 
 			// Turn on lvls (mem and/or slow) 3,13,14 to log every send.
-			TLOG( (fragment_count_==1)? TLVL_DEBUG
-			                          : (((fragment_count_%250)==0||readyToReport)? 13: 14) )
+			TLOG( ((fragment_count_==1)? TLVL_DEBUG
+			                          : (((fragment_count_%250)==0||readyToReport)? 13: 14) ))
 				<< ((fragment_count_==1)
 				    ? "Sent first Fragment"
 				    : "Sending fragment "+std::to_string(fragment_count_) )
