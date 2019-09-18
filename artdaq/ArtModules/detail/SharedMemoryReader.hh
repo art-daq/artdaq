@@ -39,25 +39,25 @@ public:
 	virtual ~DefaultFragmentTypeTranslator() = default;
 
 	/**
-			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
-			 */
+     * \brief Sets the basic types to be translated.  (Should not include "container" types.)
+	 */
 	virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
 	{
 		type_map_ = type_map;
 	}
 
 	/**
-			 * \brief Adds an additional type to be translated.
-			 */
+	 * \brief Adds an additional type to be translated.
+	 */
 	virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
 	{
 		type_map_[type_id] = type_name;
 	}
 
 	/**
-			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
-			 *        unidentified_instance_name if no translation can be found.
-			 */
+	 * \brief Returns the basic translation for the specified type.  Defaults to the specified
+	 *        unidentified_instance_name if no translation can be found.
+	 */
 	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
 	{
 		if (type_map_.count(type_id) > 0) { return type_map_[type_id]; }
@@ -65,10 +65,10 @@ public:
 	}
 
 	/**
-			 * \brief Returns the full set of product instance names which may be present in the data, based on
-			 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
-			 *        *does* include "container" types, if the container type mapping is part of the basic types.
-			 */
+	 * \brief Returns the full set of product instance names which may be present in the data, based on
+	 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
+	 *        *does* include "container" types, if the container type mapping is part of the basic types.
+	 */
 	virtual std::set<std::string> GetAllProductInstanceNames()
 	{
 		std::set<std::string> output;
@@ -98,11 +98,11 @@ public:
 	}
 
 	/**
-			 * \brief Returns the product instance name for the specified fragment, based on the types that have
-			 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
-			 *        use of "container" types, if the container type mapping is part of the basic types.  If no
-			 *        mapping is found, the specified unidentified_instance_name is returned.
-			 */
+	 * \brief Returns the product instance name for the specified fragment, based on the types that have
+	 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
+	 *        use of "container" types, if the container type mapping is part of the basic types.  If no
+	 *        mapping is found, the specified unidentified_instance_name is returned.
+	 */
 	virtual std::pair<bool, std::string>
 	GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
 	{
@@ -134,7 +134,7 @@ public:
 	}
 
 protected:
-	std::map<Fragment::type_t, std::string> type_map_;
+	std::map<Fragment::type_t, std::string> type_map_; ///< Map relating Fragment Type to strings
 };
 
 /**
@@ -590,7 +590,7 @@ struct SharedMemoryReader
 	}
 
 	unsigned readNext_calls_;  ///< The number of times readNext has been called
-	FTT translator_;
+	FTT translator_; ///< An instance of the template parameter FragmentTypeTranslator that translates Fragment Type IDs to strings for creating ROOT TTree Branches
 };
 }  // namespace detail
 }  // namespace artdaq
