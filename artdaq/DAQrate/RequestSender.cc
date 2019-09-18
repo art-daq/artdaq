@@ -244,6 +244,7 @@ namespace artdaq
 			auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
 			if (res < 0)
 			{
+				TLOG(TLVL_WARNING) << "Error on token_socket, reconnecting";
 				close(token_socket_);
 				token_socket_ = -1;
 				sts = 0;

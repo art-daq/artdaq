@@ -150,7 +150,16 @@ public:
 	 */
 	void StopSender() { should_stop_ = true; }
 
+	/**
+	 * \brief Remove the given sequence ID from the routing table and sent_count lists
+	 * \param seq Sequence ID to remove
+	 */
 	void RemoveRoutingTableEntry(Fragment::sequence_id_t seq);
+	/**
+	 * \brief Get the number of Fragments sent with a given Sequence ID
+	 * \param seq Sequence ID to query
+	 * \return The number of Fragments sent with a given Sequence ID
+	 */
 	size_t GetSentSequenceIDCount(Fragment::sequence_id_t seq);
 
 private:
