@@ -1,22 +1,21 @@
 #ifndef ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 
-#include <map>
-#include <set>
-#include <memory>
 #include <condition_variable>
+#include <map>
+#include <memory>
+#include <set>
 
 #include "fhiclcpp/fwd.h"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
-namespace artdaq
-{
-	class DataReceiverManager;
+namespace artdaq {
+class DataReceiverManager;
 }
 
 /**
@@ -27,7 +26,6 @@ namespace artdaq
 class artdaq::DataReceiverManager
 {
 public:
-
 	/**
 	 * \brief DataReceiverManager Constructor
 	 * \param ps ParameterSet used to configure the DataReceiverManager
@@ -49,7 +47,7 @@ public:
 	 * \brief DataReceiverManager Destructor
 	 */
 	virtual ~DataReceiverManager();
-	
+
 	/**
 	 * \brief Return the count of Fragment objects received by this DataReceiverManager
 	 * \return The count of Fragment objects received by this DataReceiverManager
@@ -97,7 +95,6 @@ public:
 	 */
 	std::shared_ptr<SharedMemoryEventManager> getSharedMemoryEventManager() const { return shm_manager_; }
 
-
 	/**
 	 * \brief Get a pointer to the FragCounter instance tracking the number of received Fragments
 	 * \return Pointer to the FragCounter instance tracking the number of recevied Fragments
@@ -106,7 +103,7 @@ public:
 
 private:
 	void runReceiver_(int);
-		
+
 	std::atomic<bool> stop_requested_;
 	std::atomic<size_t> stop_requested_time_;
 
@@ -116,9 +113,9 @@ private:
 	std::unordered_map<int, std::atomic<bool>> enabled_sources_;
 	std::unordered_map<int, std::atomic<bool>> running_sources_;
 
-	detail::FragCounter recv_frag_count_; // Number of frags received per source.
-	detail::FragCounter recv_frag_size_; // Number of bytes received per source.
-	detail::FragCounter recv_seq_count_; // For counting sequence IDs
+	detail::FragCounter recv_frag_count_;  // Number of frags received per source.
+	detail::FragCounter recv_frag_size_;   // Number of bytes received per source.
+	detail::FragCounter recv_seq_count_;   // For counting sequence IDs
 
 	size_t receive_timeout_;
 	size_t stop_timeout_ms_;
@@ -128,27 +125,24 @@ private:
 	size_t non_reliable_mode_retry_count_;
 };
 
-inline
-size_t
+inline size_t
 artdaq::DataReceiverManager::
-count() const
+    count() const
 {
 	return recv_frag_count_.count();
 }
 
-inline
-size_t
+inline size_t
 artdaq::DataReceiverManager::
-slotCount(size_t rank) const
+    slotCount(size_t rank) const
 {
 	return recv_frag_count_.slotCount(rank);
 }
 
-inline
-size_t
+inline size_t
 artdaq::DataReceiverManager::
-byteCount() const
+    byteCount() const
 {
 	return recv_frag_size_.count();
 }
-#endif //ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
+#endif  //ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
