@@ -1,10 +1,9 @@
-#define BOOST_TEST_MODULE CapacityTest_policy_t 
+#define BOOST_TEST_MODULE CapacityTest_policy_t
 #include <boost/test/auto_unit_test.hpp>
 
 #include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
-
 
 BOOST_AUTO_TEST_SUITE(CapacityTest_policy_t)
 
@@ -17,8 +16,6 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 4);
 
-
-
 	ct->AddReceiverToken(1, 10);
 	ct->AddReceiverToken(2, 10);
 	ct->AddReceiverToken(3, 10);
@@ -28,7 +25,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(firstTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(firstTable[0].sequence_id, 1);
 	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].sequence_id,20);
+	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].sequence_id, 20);
 
 	//ct->Reset();
 	ct->AddReceiverToken(1, 1);

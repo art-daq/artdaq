@@ -1,26 +1,25 @@
 #ifndef ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 
-#include <map>
-#include <set>
-#include <memory>
 #include <netinet/in.h>
+#include <map>
+#include <memory>
+#include <set>
 
 #include "fhiclcpp/fwd.h"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
 
-namespace artdaq
-{
-	class DataSenderManager;
+namespace artdaq {
+class DataSenderManager;
 }
 
 /**
@@ -32,29 +31,29 @@ class artdaq::DataSenderManager
 public:
 	/// <summary>
 	/// Configuration for Routing table reception
-	/// 
+	///
 	/// This configuration should be the same for all processes receiving routing tables from a given RoutingMaster.
 	/// </summary>
 	struct RoutingTableConfig
 	{
 		///   "use_routing_master" (Default: false): True if using the Routing Master
-		fhicl::Atom<bool> use_routing_master{ fhicl::Name{ "use_routing_master"}, fhicl::Comment{ "True if using the Routing Master"}, false };
+		fhicl::Atom<bool> use_routing_master{fhicl::Name{"use_routing_master"}, fhicl::Comment{"True if using the Routing Master"}, false};
 		///   "table_update_port" (Default: 35556): Port that table updates should arrive on
-		fhicl::Atom<int> table_port{ fhicl::Name{ "table_update_port"}, fhicl::Comment{ "Port that table updates should arrive on" },35556 };
+		fhicl::Atom<int> table_port{fhicl::Name{"table_update_port"}, fhicl::Comment{"Port that table updates should arrive on"}, 35556};
 		///   "table_update_address" (Default: "227.128.12.28"): Address that table updates should arrive on
-		fhicl::Atom<std::string> table_address{ fhicl::Name{ "table_update_address"}, fhicl::Comment{ "Address that table updates should arrive on" }, "227.128.12.28" };
+		fhicl::Atom<std::string> table_address{fhicl::Name{"table_update_address"}, fhicl::Comment{"Address that table updates should arrive on"}, "227.128.12.28"};
 		///   "table_update_multicast_interface" (Default: "localhost"): Network interface that table updates should arrive on
-		fhicl::Atom<std::string> table_multicast_interface{ fhicl::Name{ "table_update_multicast_interface"}, fhicl::Comment{ "Network interface that table updates should arrive on" }, "localhost" };
+		fhicl::Atom<std::string> table_multicast_interface{fhicl::Name{"table_update_multicast_interface"}, fhicl::Comment{"Network interface that table updates should arrive on"}, "localhost"};
 		///   "table_acknowledge_port" (Default: 35557): Port that acknowledgements should be sent to
-		fhicl::Atom<int> ack_port{ fhicl::Name{ "table_acknowledge_port" },fhicl::Comment{ "Port that acknowledgements should be sent to" },35557 };
+		fhicl::Atom<int> ack_port{fhicl::Name{"table_acknowledge_port"}, fhicl::Comment{"Port that acknowledgements should be sent to"}, 35557};
 		///   "routing_master_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
-		fhicl::Atom<std::string> ack_address{ fhicl::Name{ "routing_master_hostname"}, fhicl::Comment{ "Host that acknowledgements should be sent to" },"localhost" };
+		fhicl::Atom<std::string> ack_address{fhicl::Name{"routing_master_hostname"}, fhicl::Comment{"Host that acknowledgements should be sent to"}, "localhost"};
 		///   "routing_timeout_ms" (Default: 1000): Time to wait for a routing table update if the table is exhausted
-		fhicl::Atom<int> routing_timeout_ms{ fhicl::Name{"routing_timeout_ms"}, fhicl::Comment{"Time to wait (in ms) for a routing table update if the table is exhausted"}, 1000 };
+		fhicl::Atom<int> routing_timeout_ms{fhicl::Name{"routing_timeout_ms"}, fhicl::Comment{"Time to wait (in ms) for a routing table update if the table is exhausted"}, 1000};
 		///   "routing_retry_count" (Default: 5): Number of times to retry calculating destination before giving up (DROPPING DATA!)
-		fhicl::Atom<int> routing_retry_count{ fhicl::Name{"routing_retry_count"}, fhicl::Comment{"Number of times to retry getting destination from routing table"}, 5 };
+		fhicl::Atom<int> routing_retry_count{fhicl::Name{"routing_retry_count"}, fhicl::Comment{"Number of times to retry getting destination from routing table"}, 5};
 		///   "routing_table_max_size" (Default: 1000): Maximum number of entries in the routing table
-		fhicl::Atom<size_t> routing_table_max_size{ fhicl::Name{"routing_table_max_size"}, fhicl::Comment{"Maximum number of entries in the routing table"}, 1000 };
+		fhicl::Atom<size_t> routing_table_max_size{fhicl::Name{"routing_table_max_size"}, fhicl::Comment{"Maximum number of entries in the routing table"}, 1000};
 	};
 
 	/// <summary>
@@ -63,7 +62,7 @@ public:
 	struct DestinationsConfig
 	{
 		/// Example Configuration for transfer to destination. See artdaq::TransferInterface::Config
-		fhicl::OptionalTable<artdaq::TransferInterface::Config> dest{ fhicl::Name{"d1"}, fhicl::Comment{"Configuration for transfer to destination"} };
+		fhicl::OptionalTable<artdaq::TransferInterface::Config> dest{fhicl::Name{"d1"}, fhicl::Comment{"Configuration for transfer to destination"}};
 	};
 
 	/// <summary>
@@ -72,20 +71,20 @@ public:
 	struct Config
 	{
 		/// "broadcast_sends" (Default: false): Send all Fragments to all destinations
-		fhicl::Atom<bool> broadcast_sends{ fhicl::Name{"broadcast_sends"}, fhicl::Comment{"Send all Fragments to all destinations"}, false };
+		fhicl::Atom<bool> broadcast_sends{fhicl::Name{"broadcast_sends"}, fhicl::Comment{"Send all Fragments to all destinations"}, false};
 		/// "nonblocking_sends" (Default: false): If true, will use non-reliable mode of TransferInterface plugins
-		fhicl::Atom<bool> nonblocking_sends{ fhicl::Name{"nonblocking_sends"}, fhicl::Comment{"Whether sends should block. Used for DL->DISP connection."}, false };
+		fhicl::Atom<bool> nonblocking_sends{fhicl::Name{"nonblocking_sends"}, fhicl::Comment{"Whether sends should block. Used for DL->DISP connection."}, false};
 		/// "send_timeout_usec" (Default: 5000000 (5 seconds): Timeout for sends in non-reliable modes (broadcast and nonblocking)
-		fhicl::Atom<size_t> send_timeout_us{ fhicl::Name{"send_timeout_usec"}, fhicl::Comment{"Timeout for sends in non-reliable modes (broadcast and nonblocking)"},5000000 };
+		fhicl::Atom<size_t> send_timeout_us{fhicl::Name{"send_timeout_usec"}, fhicl::Comment{"Timeout for sends in non-reliable modes (broadcast and nonblocking)"}, 5000000};
 		/// "send_retry_count" (Default: 2): Number of times to retry a send in non-reliable mode
-		fhicl::Atom<size_t> send_retry_count{ fhicl::Name{"send_retry_count"}, fhicl::Comment{"Number of times to retry a send in non-reliable mode"}, 2 };
-		fhicl::OptionalTable<RoutingTableConfig> routing_table_config{ fhicl::Name{"routing_table_config"} }; ///< Configuration for Routing Table reception. See artdaq::DataSenderManager::RoutingTableConfig
+		fhicl::Atom<size_t> send_retry_count{fhicl::Name{"send_retry_count"}, fhicl::Comment{"Number of times to retry a send in non-reliable mode"}, 2};
+		fhicl::OptionalTable<RoutingTableConfig> routing_table_config{fhicl::Name{"routing_table_config"}};  ///< Configuration for Routing Table reception. See artdaq::DataSenderManager::RoutingTableConfig
 		/// "destinations" (Default: Empty ParameterSet): FHiCL table for TransferInterface configurations for each destaintion. See artdaq::DataSenderManager::DestinationsConfig
-	    ///   NOTE: "destination_rank" MUST be specified (and unique) for each destination!
-		fhicl::OptionalTable<DestinationsConfig> destinations{ fhicl::Name{"destinations"} };
-		fhicl::TableFragment<artdaq::HostMap::Config> host_map; ///< Optional host_map configuration (Can also be specified in each DestinationsConfig entry. See artdaq::HostMap::Config
-	    /// enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified, all destinations will be enabled.
-		fhicl::Sequence<size_t> enabled_destinations{ fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destiantion ranks to activate (must be defined in destinations block)"}, std::vector<size_t>() };
+		///   NOTE: "destination_rank" MUST be specified (and unique) for each destination!
+		fhicl::OptionalTable<DestinationsConfig> destinations{fhicl::Name{"destinations"}};
+		fhicl::TableFragment<artdaq::HostMap::Config> host_map;  ///< Optional host_map configuration (Can also be specified in each DestinationsConfig entry. See artdaq::HostMap::Config
+		                                                         /// enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified, all destinations will be enabled.
+		fhicl::Sequence<size_t> enabled_destinations{fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destiantion ranks to activate (must be defined in destinations block)"}, std::vector<size_t>()};
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -163,7 +162,6 @@ public:
 	size_t GetSentSequenceIDCount(Fragment::sequence_id_t seq);
 
 private:
-
 	// Calculate where the fragment with this sequenceID should go.
 	int calcDest_(Fragment::sequence_id_t) const;
 
@@ -172,8 +170,8 @@ private:
 	void startTableReceiverThread_();
 
 	void receiveTableUpdatesLoop_();
-private:
 
+private:
 	std::map<int, std::unique_ptr<artdaq::TransferInterface>> destinations_;
 	std::set<int> enabled_destinations_;
 
@@ -207,22 +205,19 @@ private:
 	int routing_retry_count_;
 
 	mutable std::atomic<uint64_t> highest_sequence_id_routed_;
-
 };
 
-inline
-size_t
+inline size_t
 artdaq::DataSenderManager::
-count() const
+    count() const
 {
 	return sent_frag_count_.count();
 }
 
-inline
-size_t
+inline size_t
 artdaq::DataSenderManager::
-slotCount(size_t rank) const
+    slotCount(size_t rank) const
 {
 	return sent_frag_count_.slotCount(rank);
 }
-#endif //ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
+#endif  //ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
