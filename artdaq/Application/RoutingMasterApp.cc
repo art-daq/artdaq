@@ -53,8 +53,9 @@ bool artdaq::RoutingMasterApp::do_start(art::RunID id, uint64_t timeout, uint64_
 	}
 
 	boost::thread::attributes attrs;
-	attrs.set_stack_size(4096 * 2000); // 8 MB
-	try {
+	attrs.set_stack_size(4096 * 2000);  // 8 MB
+	try
+	{
 		routing_master_thread_ = boost::thread(attrs, boost::bind(&RoutingMasterCore::process_event_table, routing_master_ptr_.get()));
 	}
 	catch (const boost::exception& e)
@@ -81,8 +82,8 @@ bool artdaq::RoutingMasterApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	if (routing_master_thread_.joinable()) routing_master_thread_.join();
 
 	TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
-		<< "Number of table entries sent = " << routing_master_ptr_->get_update_count()
-		<< ".";
+	                             << "Number of table entries sent = " << routing_master_ptr_->get_update_count()
+	                             << ".";
 
 	return external_request_status_;
 }
@@ -99,9 +100,8 @@ bool artdaq::RoutingMasterApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (routing_master_thread_.joinable()) routing_master_thread_.join();
 
 	TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
-		<< "Number of table entries sent = " << routing_master_ptr_->get_update_count()
-		<< ".";
-
+	                             << "Number of table entries sent = " << routing_master_ptr_->get_update_count()
+	                             << ".";
 
 	return external_request_status_;
 }
@@ -117,10 +117,11 @@ bool artdaq::RoutingMasterApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	}
 
 	boost::thread::attributes attrs;
-	attrs.set_stack_size(4096 * 2000); // 8000 KB
+	attrs.set_stack_size(4096 * 2000);  // 8000 KB
 
 	TLOG(TLVL_INFO) << "Starting Routing Master thread";
-	try {
+	try
+	{
 		routing_master_thread_ = boost::thread(attrs, boost::bind(&RoutingMasterCore::process_event_table, routing_master_ptr_.get()));
 	}
 	catch (boost::exception const& e)
@@ -189,7 +190,10 @@ std::string artdaq::RoutingMasterApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else { return "Success"; }
+		else
+		{
+			return "Success";
+		}
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
