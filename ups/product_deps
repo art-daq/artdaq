@@ -17,11 +17,12 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
-art             v2_11_05    s73
-art             v2_11_01    s67
 art_root_io     v1_01_00    s87
 art             v2_13_00    s85
+art_root_io     v1_00_05    s83
 art_root_io     v1_00_04    s82
+art             v2_11_05    s73
+art             v2_11_01    s67
 artdaq_core 		v3_05_03
 artdaq_utilities        v1_05_01
 xmlrpc_c		v1_51_03a
@@ -49,6 +50,14 @@ c2:s85:debug	c2:debug	-		c2:s85:debug	c2:s85:debug		c2:debug	c2:s85:debug		c2:s8
 c2:s85:prof	c2:prof		-		c2:s85:prof	c2:s85:prof		c2:prof		c2:s85:prof		c2:s85:prof		c2:s85:prof		c2:s85:prof
 e17:s85:debug	e17:debug	-		e17:s85:debug	e17:s85:debug		e17:debug	e17:s85:debug		e17:s85:debug      	e17:s85:debug		e17:s85:debug
 e17:s85:prof	e17:prof	-		e17:s85:prof	e17:s85:prof		e17:prof	e17:s85:prof		e17:s85:prof		e17:s85:prof		e17:s85:prof
+c7:s83:debug	-		c7:debug	c7:s83:debug	c7:s83:debug		c7:debug	c7:s83:debug	   	c7:s83:debug       	c7:s83:debug	      c7:s83:debug       	
+c7:s83:prof	- 		c7:prof		c7:s83:prof	c7:s83:prof		c7:prof		c7:s83:prof	   	c7:s83:prof		c7:s83:prof	      c7:s83:prof		
+c2:s83:debug	-		c2:debug	c2:s83:debug	c2:s83:debug		c2:debug	c2:s83:debug	   	c2:s83:debug       	c2:s83:debug	      c2:s83:debug		
+c2:s83:prof	- 		c2:prof		c2:s83:prof	c2:s83:prof		c2:prof		c2:s83:prof	   	c2:s83:prof		c2:s83:prof	      c2:s83:prof		
+e19:s83:debug	-		e19:debug	e19:s83:debug	e19:s83:debug		e19:debug	e19:s83:debug	   	e19:s83:debug      	e19:s83:debug	      e19:s83:debug		
+e19:s83:prof	- 		e19:prof	e19:s83:prof	e19:s83:prof		e19:prof	e19:s83:prof	   	e19:s83:prof		e19:s83:prof	      e19:s83:prof		
+e17:s83:debug	-		e17:debug	e17:s83:debug	e17:s83:debug		e17:debug	e17:s83:debug	   	e17:s83:debug      	e17:s83:debug	      e17:s83:debug		
+e17:s83:prof	- 		e17:prof	e17:s83:prof	e17:s83:prof		e17:prof	e17:s83:prof	   	e17:s83:prof		e17:s83:prof	      e17:s83:prof		
 c7:s82:debug	-		c7:debug	c7:s82:debug	c7:s82:debug		c7:debug	c7:s82:debug	   	c7:s82:debug       	c7:s82:debug	      c7:s82:debug       	
 c7:s82:prof	- 		c7:prof		c7:s82:prof	c7:s82:prof		c7:prof		c7:s82:prof	   	c7:s82:prof		c7:s82:prof	      c7:s82:prof		
 c2:s82:debug	-		c2:debug	c2:s82:debug	c2:s82:debug		c2:debug	c2:s82:debug	   	c2:s82:debug       	c2:s82:debug	      c2:s82:debug		
