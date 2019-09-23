@@ -8,20 +8,20 @@
 #include "cetlib_except/exception.h"
 
 artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterSet& pset)
-	: stop_requested_(false)
-	, source_threads_()
-	, source_plugins_()
-	, source_metric_data_()
-	, source_metric_send_time_()
-	, enabled_sources_()
-	, fragment_store_()
-	, recv_frag_count_()
-	, recv_frag_size_()
-	, recv_seq_count_()
-	, suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled", true))
-	, suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
-	, receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
-	, last_source_(-1)
+    : stop_requested_(false)
+    , source_threads_()
+    , source_plugins_()
+    , source_metric_data_()
+    , source_metric_send_time_()
+    , enabled_sources_()
+    , fragment_store_()
+    , recv_frag_count_()
+    , recv_frag_size_()
+    , recv_seq_count_()
+    , suppress_noisy_senders_(pset.get<bool>("auto_suppression_enabled", true))
+    , suppression_threshold_(pset.get<size_t>("max_receive_difference", 50))
+    , receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
+    , last_source_(-1)
 {
 	TLOG(TLVL_DEBUG) << "Constructor";
 	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
@@ -44,10 +44,12 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 		try
 		{
 			auto transfer = std::unique_ptr<TransferInterface>(MakeTransferPlugin(srcs, s,
-				TransferInterface::Role::kReceive));
+			                                                                      TransferInterface::Role::kReceive));
 			auto source_rank = transfer->source_rank();
-			if (enabled_srcs_empty) enabled_sources_[source_rank] = true;
-			else if (!enabled_sources_.count(source_rank)) enabled_sources_[source_rank] = false;
+			if (enabled_srcs_empty)
+				enabled_sources_[source_rank] = true;
+			else if (!enabled_sources_.count(source_rank))
+				enabled_sources_[source_rank] = false;
 			running_sources_[source_rank] = false;
 			source_plugins_[source_rank] = std::move(transfer);
 			fragment_store_[source_rank];
@@ -108,14 +110,17 @@ int artdaq::FragmentReceiverManager::get_next_source_() const
 	for (auto& it : fragment_store_)
 	{
 		if (!enabled_sources_.count(it.first)) continue;
-		if (!it.second.empty()) {
+		if (!it.second.empty())
+		{
 			ready_sources.insert(it.first);
 		}
 	}
 
-	if (ready_sources.size()) {
+	if (ready_sources.size())
+	{
 		auto iter = ready_sources.find(last_source_);
-		if (iter == ready_sources.end() || ++iter == ready_sources.end()) {
+		if (iter == ready_sources.end() || ++iter == ready_sources.end())
+		{
 			TLOG(10) << "get_next_source returning " << *ready_sources.begin();
 			last_source_ = *ready_sources.begin();
 			return *ready_sources.begin();
@@ -138,7 +143,8 @@ void artdaq::FragmentReceiverManager::start_threads()
 		if (enabled_sources_.count(rank))
 		{
 			running_sources_[rank] = true;
-			try {
+			try
+			{
 				source_threads_[rank] = boost::thread(&FragmentReceiverManager::runReceiver_, this, rank);
 			}
 			catch (const boost::exception& e)
@@ -218,7 +224,8 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		while (!stop_requested_ && is_suppressed)
 		{
 			TLOG(6) << "runReceiver_: Suppressing receiver rank " << source_rank;
-			if (!is_suppressed) input_cv_.notify_all();
+			if (!is_suppressed)
+				input_cv_.notify_all();
 			else
 			{
 				std::unique_lock<std::mutex> lck(output_cv_mutex_);
@@ -251,7 +258,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		auto ret1 = source_plugins_[source_rank]->receiveFragmentHeader(hdr, receive_timeout_);
 		TLOG(16) << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")";
 
-		if (ret1 != source_rank) continue; // Receive timeout or other oddness
+		if (ret1 != source_rank) continue;  // Receive timeout or other oddness
 
 		fragment->resize(hdr.word_count - hdr.num_words());
 		memcpy(fragment->headerAddress(), &hdr, hdr.num_words() * sizeof(artdaq::RawDataType));
@@ -262,7 +269,6 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 			continue;
 		}
 #endif
-
 
 		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
@@ -297,11 +303,9 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 			source_metric_data_[source_rank].second = 0.0;
 		}
 
-
 		fragment_store_[source_rank].emplace_back(std::move(fragment));
 		TLOG(TLVL_TRACE) << "runReceiver_: There are now " << fragment_store_[source_rank].size() << " Fragments stored from this source";
 		input_cv_.notify_all();
-
 	}
 
 	running_sources_[source_rank] = false;
