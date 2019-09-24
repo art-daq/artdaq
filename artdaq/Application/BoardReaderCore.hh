@@ -12,7 +12,7 @@
 #include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
-	class BoardReaderCore;
+class BoardReaderCore;
 }
 
 /**
@@ -22,10 +22,10 @@ namespace artdaq {
 class artdaq::BoardReaderCore
 {
 public:
-	static const std::string FRAGMENTS_PROCESSED_STAT_KEY; ///< Key for the Fragments Processed MonitoredQuantity
-	static const std::string INPUT_WAIT_STAT_KEY; ///< Key for the Input Wait MonitoredQuantity
-	static const std::string OUTPUT_WAIT_STAT_KEY; ///< Key for the Output Wait MonitoredQuantity
-	static const std::string FRAGMENTS_PER_READ_STAT_KEY; ///< Key for the Fragments Per Read MonitoredQuantity
+	static const std::string FRAGMENTS_PROCESSED_STAT_KEY;  ///< Key for the Fragments Processed MonitoredQuantity
+	static const std::string INPUT_WAIT_STAT_KEY;           ///< Key for the Input Wait MonitoredQuantity
+	static const std::string OUTPUT_WAIT_STAT_KEY;          ///< Key for the Output Wait MonitoredQuantity
+	static const std::string FRAGMENTS_PER_READ_STAT_KEY;   ///< Key for the Fragments Per Read MonitoredQuantity
 
 	/**
 	 * \brief BoardReaderCore Constructor
@@ -183,7 +183,7 @@ private:
 
 	void sendMetrics_();
 
-	bool verbose_; ///< Whether to log transition messages
+	bool verbose_;  ///< Whether to log transition messages
 
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag
