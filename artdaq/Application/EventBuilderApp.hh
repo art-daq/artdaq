@@ -7,7 +7,7 @@
 #include "artdaq/Application/EventBuilderCore.hh"
 
 namespace artdaq {
-	class EventBuilderApp;
+class EventBuilderApp;
 }
 
 /**

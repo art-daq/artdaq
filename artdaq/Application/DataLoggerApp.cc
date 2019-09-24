@@ -1,4 +1,4 @@
-#include "artdaq/DAQdata/Globals.hh" // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DataLoggerApp").c_str()
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -186,7 +186,7 @@ bool artdaq::DataLoggerApp::do_override_fragment_ids(uint64_t seqID, std::vector
 	for (auto& f : frags)
 	{
 		if (!frags_set.count(f))
-		frags_set.insert(f);
+			frags_set.insert(f);
 	}
 
 	DataLogger_ptr_->OverrideFragmentIDsForEvent(seqID, frags_set);
@@ -202,7 +202,7 @@ bool artdaq::DataLoggerApp::do_update_default_fragment_ids(uint64_t seqID, std::
 	for (auto& f : frags)
 	{
 		if (!frags_set.count(f))
-		frags_set.insert(f);
+			frags_set.insert(f);
 	}
 	DataLogger_ptr_->SetDefaultFragmentIDs(frags_set, seqID);
 

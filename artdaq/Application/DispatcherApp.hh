@@ -7,7 +7,7 @@
 #include "artdaq/Application/DispatcherCore.hh"
 
 namespace artdaq {
-	class DispatcherApp;
+class DispatcherApp;
 }
 
 /**

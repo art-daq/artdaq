@@ -46,7 +46,7 @@ bool artdaq::DispatcherApp::do_start(art::RunID id, uint64_t, uint64_t)
 		report_string_.append(boost::lexical_cast<std::string>(id.run()));
 		report_string_.append(".");
 	}
-	
+
 	return external_request_status_;
 }
 
@@ -149,7 +149,7 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 
 std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& info)
 {
-	TLOG(TLVL_DEBUG) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"" ;
+	TLOG(TLVL_DEBUG) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"";
 
 	if (Dispatcher_ptr_)
 	{
@@ -160,7 +160,7 @@ std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& i
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Error in call to DispatcherCore's register_monitor function");
+			                 "Error in call to DispatcherCore's register_monitor function");
 
 			return "Error in artdaq::DispatcherApp::register_monitor: an exception was thrown in the call to DispatcherCore::register_monitor, possibly due to a problem with the argument";
 		}
@@ -173,7 +173,7 @@ std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& i
 
 std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 {
-	TLOG(TLVL_DEBUG) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"" ;
+	TLOG(TLVL_DEBUG) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"";
 
 	if (Dispatcher_ptr_)
 	{
@@ -184,7 +184,7 @@ std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Error in call to DispatcherCore's unregister_monitor function");
+			                 "Error in call to DispatcherCore's unregister_monitor function");
 
 			return "Error in artdaq::DispatcherApp::unregister_monitor: an exception was thrown in the call to DispatcherCore::unregister_monitor, possibly due to a problem with the argument";
 		}
@@ -206,7 +206,7 @@ bool artdaq::DispatcherApp::do_override_fragment_ids(uint64_t seqID, std::vector
 		if (!frags_set.count(f))
 			frags_set.insert(f);
 	}
-		
+
 	Dispatcher_ptr_->OverrideFragmentIDsForEvent(seqID, frags_set);
 
 	return external_request_status_;
@@ -222,7 +222,7 @@ bool artdaq::DispatcherApp::do_update_default_fragment_ids(uint64_t seqID, std::
 		if (!frags_set.count(f))
 			frags_set.insert(f);
 	}
-		
+
 	Dispatcher_ptr_->SetDefaultFragmentIDs(frags_set, seqID);
 
 	return external_request_status_;

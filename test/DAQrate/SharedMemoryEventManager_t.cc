@@ -786,7 +786,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(),1  );
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
 		frag->setFragmentID(2);
 		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
@@ -859,7 +859,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 4);
-		
+
 		frag->setFragmentID(3);
 		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc3 = t.WriteFragmentHeader(hdr);
