@@ -5,14 +5,12 @@
 
 #include <ndds/ndds_cpp.h>
 
-#include <string>
-#include <queue>
 #include <mutex>
+#include <queue>
+#include <string>
 
-
-namespace artdaq
-{
-	class RTIDDS;
+namespace artdaq {
+class RTIDDS;
 }
 
 /**
@@ -21,7 +19,6 @@ namespace artdaq
 class artdaq::RTIDDS
 {
 public:
-
 	/**
 	 * \brief Whether this DDS instance is a reader or a writer
 	 */
@@ -67,10 +64,9 @@ public:
 	/**
 	 * \brief A class that reads data from DDS
 	 */
-	class OctetsListener: public DDSDataReaderListener
+	class OctetsListener : public DDSDataReaderListener
 	{
 	public:
-
 		/**
 		 * \brief Action to perform when data is available
 		 * \param reader Reader reference to read data from
@@ -87,22 +83,20 @@ public:
 		                            const size_t receiveTimeout);
 
 	private:
-
 		DDS_Octets dds_octets_;
 		std::queue<DDS_Octets> dds_octets_queue_;
 
 		std::mutex queue_mutex_;
 	};
 
-	OctetsListener octets_listener_; ///< The receiver
+	OctetsListener octets_listener_;  ///< The receiver
 
 private:
-
 	std::string name_;
 	IOType iotype_;
 	std::string max_size_;
 
-	std::unique_ptr<DDSDomainParticipant, std::function<void(DDSDomainParticipant * )>> participant_;
+	std::unique_ptr<DDSDomainParticipant, std::function<void(DDSDomainParticipant*)>> participant_;
 
 	DDSTopic* topic_octets_;
 	DDSOctetsDataWriter* octets_writer_;

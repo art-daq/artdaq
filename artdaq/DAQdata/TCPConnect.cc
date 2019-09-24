@@ -8,32 +8,32 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_TCPConnect").c_str()
 
-#include <stdio.h>		// printf
-#include <sys/types.h>		// socket, bind, listen, accept
-#include <sys/socket.h>		// socket, bind, listen, accept
-#include <netinet/in.h>		// struct sockaddr_in
-#include <stdlib.h>		// exit
-#include <unistd.h>		// close
-#include <string.h>		// bzero
-#include <sys/socket.h>		// inet_aton
-#include <netinet/in.h>		// inet_aton
-#include <arpa/inet.h>		// inet_aton
-#include <netdb.h>              // gethostbyname
+#include <arpa/inet.h>   // inet_aton
+#include <netdb.h>       // gethostbyname
+#include <netinet/in.h>  // struct sockaddr_in
+#include <netinet/in.h>  // inet_aton
+#include <stdio.h>       // printf
+#include <stdlib.h>      // exit
+#include <string.h>      // bzero
+#include <sys/socket.h>  // socket, bind, listen, accept
+#include <sys/socket.h>  // inet_aton
+#include <sys/types.h>   // socket, bind, listen, accept
+#include <unistd.h>      // close
 
 #include <ifaddrs.h>
 #include <linux/if_link.h>
 
-#include <string>
-#include <regex>
 #include <map>
+#include <regex>
+#include <string>
 
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 // Return sts, put result in addr
-int ResolveHost(char const* host_in, in_addr& addr)
+int ResolveHost(char const *host_in, in_addr &addr)
 {
 	std::string host;
-	struct hostent* hostent_sp;
+	struct hostent *hostent_sp;
 	std::cmatch mm;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
 	//        at the beginning and end respectively.
@@ -72,7 +72,7 @@ int ResolveHost(char const* host_in, in_addr& addr)
 	return 0;
 }
 
-int GetIPOfInterface(std::string interface_name, in_addr& addr)
+int GetIPOfInterface(std::string interface_name, in_addr &addr)
 {
 	int sts = 0;
 
@@ -100,7 +100,7 @@ int GetIPOfInterface(std::string interface_name, in_addr& addr)
 
 		if (ifa->ifa_addr->sa_family == AF_INET)
 		{
-			auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
+			auto if_addr = (struct sockaddr_in *)ifa->ifa_addr;
 
 			TLOG(15) << "IF: " << ifa->ifa_name << " Desired: " << interface_name << " IP: " << if_addr->sin_addr.s_addr;
 
@@ -124,20 +124,20 @@ int GetIPOfInterface(std::string interface_name, in_addr& addr)
 	return sts;
 }
 
-int AutodetectPrivateInterface(in_addr& addr)
+int AutodetectPrivateInterface(in_addr &addr)
 {
-
 	int sts = 0;
 
 	bzero((char *)&addr, sizeof(addr));
 
 	struct ifaddrs *ifaddr, *ifa;
 
-	enum ip_preference : int {
+	enum ip_preference : int
+	{
 		IP_192 = 1,
 		IP_172 = 2,
 		IP_10 = 3,
-		IP_131 =4
+		IP_131 = 4
 	};
 
 	struct in_addr addr_192, addr_172, addr_10, addr_131, nm_16, nm_12, nm_8;
@@ -169,7 +169,7 @@ int AutodetectPrivateInterface(in_addr& addr)
 
 		if (ifa->ifa_addr->sa_family == AF_INET)
 		{
-			auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
+			auto if_addr = (struct sockaddr_in *)ifa->ifa_addr;
 
 			TLOG(15) << "IF: " << ifa->ifa_name << " IP: " << if_addr->sin_addr.s_addr;
 
@@ -214,10 +214,10 @@ int AutodetectPrivateInterface(in_addr& addr)
 }
 
 // Return sts, put result in addr
-int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
+int GetInterfaceForNetwork(char const *host_in, in_addr &addr)
 {
 	std::string host;
-	struct hostent* hostent_sp;
+	struct hostent *hostent_sp;
 	std::cmatch mm;
 	int sts = 0;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
@@ -266,8 +266,8 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 
 			if (ifa->ifa_addr->sa_family == AF_INET)
 			{
-				auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
-				auto sa = (struct sockaddr_in *) ifa->ifa_netmask;
+				auto if_addr = (struct sockaddr_in *)ifa->ifa_addr;
+				auto sa = (struct sockaddr_in *)ifa->ifa_netmask;
 
 				TLOG(15) << "IF: " << ifa->ifa_name << " Desired: " << desired_host.s_addr << " netmask: " << sa->sin_addr.s_addr << " this interface: " << if_addr->sin_addr.s_addr;
 
@@ -282,7 +282,7 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 		if (ifa == NULL)
 		{
 			if (host != std::string("0.0.0.0"))
-			    TLOG(TLVL_WARNING) << "No matches for ip " << host << ", using 0.0.0.0";
+				TLOG(TLVL_WARNING) << "No matches for ip " << host << ", using 0.0.0.0";
 			inet_aton("0.0.0.0", &addr);
 			sts = 2;
 		}
@@ -303,11 +303,11 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 }
 
 // Return sts, put result in sin
-int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
+int ResolveHost(char const *host_in, int dflt_port, sockaddr_in &sin)
 {
 	int port;
 	std::string host;
-	struct hostent* hostent_sp;
+	struct hostent *hostent_sp;
 	std::cmatch mm;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
 	//        at the beginning and end respectively.
@@ -337,7 +337,7 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 
 	bzero((char *)&sin, sizeof(sin));
 	sin.sin_family = AF_INET;
-	sin.sin_port = htons(port); // just a guess at an open port
+	sin.sin_port = htons(port);  // just a guess at an open port
 
 	if (regex_match(host.c_str(), mm, std::regex("\\d+(\\.\\d+){3}")))
 		inet_aton(host.c_str(), &sin.sin_addr);
@@ -354,17 +354,13 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 	return 0;
 }
 // return connection fd.
-// 
-int TCPConnect(char const* host_in
-	, int dflt_port
-	, long flags
-	, int sndbufsiz)
+//
+int TCPConnect(char const *host_in, int dflt_port, long flags, int sndbufsiz)
 {
 	int s_fd, sts;
 	struct sockaddr_in sin;
 
-
-	s_fd = socket(PF_INET, SOCK_STREAM/*|SOCK_NONBLOCK*/, 0); // man socket,man TCP(7P)
+	s_fd = socket(PF_INET, SOCK_STREAM /*|SOCK_NONBLOCK*/, 0);  // man socket,man TCP(7P)
 
 	if (s_fd == -1)
 	{

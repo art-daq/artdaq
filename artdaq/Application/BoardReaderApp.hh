@@ -3,11 +3,10 @@
 
 #include <future>
 
-#include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
+#include "artdaq/Application/Commandable.hh"
 
-namespace artdaq
-{
+namespace artdaq {
 	class BoardReaderApp;
 }
 
