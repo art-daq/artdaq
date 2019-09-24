@@ -468,23 +468,23 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
 	auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
-		// 10-Apr-2019, KAB: added information on which senders have already acknowledged this update
-		for (auto ackIter = acks.begin(); ackIter != acks.end(); ++ackIter)
+	// 10-Apr-2019, KAB: added information on which senders have already acknowledged this update
+	for (auto ackIter = acks.begin(); ackIter != acks.end(); ++ackIter)
+	{
+		TLOG(27) << "Table update already acknowledged? rank " << ackIter->first << " is " << ackIter->second
+		         << " (size of 'already_acknowledged_ranks bitset is " << (8 * sizeof(header.already_acknowledged_ranks)) << ")";
+		if (ackIter->first < static_cast<int>(8 * sizeof(header.already_acknowledged_ranks)))
 		{
-			TLOG(27) << "Table update already acknowledged? rank " << ackIter->first << " is " << ackIter->second
-			         << " (size of 'already_acknowledged_ranks bitset is " << (8 * sizeof(header.already_acknowledged_ranks)) << ")";
-			if (ackIter->first < static_cast<int>(8 * sizeof(header.already_acknowledged_ranks)))
-			{
-				if (ackIter->second) { header.already_acknowledged_ranks.set(ackIter->first); }
-			}
+			if (ackIter->second) { header.already_acknowledged_ranks.set(ackIter->first); }
 		}
+	}
 
 	assert(packetSize + sizeof(header) < MAX_ROUTING_TABLE_SIZE);
 	std::vector<uint8_t> buffer(packetSize + sizeof(header));
 	memcpy(&buffer[0], &header, sizeof(detail::RoutingPacketHeader));
 	memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
 
-		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << ", outgoing interface " << multicast_out_hostname_;
+	TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << ", outgoing interface " << multicast_out_hostname_;
 	TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);
 	auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&send_tables_addr_), sizeof(send_tables_addr_));
 	if (sts != static_cast<ssize_t>(buffer.size()))
@@ -542,7 +542,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			else
 			{
 				TLOG(TLVL_DEBUG) << "Ack packet from rank " << buffer.rank << " has first= " << buffer.first_sequence_id
-					                 << " and last= " << buffer.last_sequence_id << ", packet_size=" << sizeof(detail::RoutingAckPacket);
+				                 << " and last= " << buffer.last_sequence_id << ", packet_size=" << sizeof(detail::RoutingAckPacket);
 				if (acks.count(buffer.rank) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 				{
 					TLOG(TLVL_DEBUG) << "Received table update acknowledgement from sender with rank " << buffer.rank << ".";
@@ -671,7 +671,7 @@ artdaq::detail::RoutingPacket artdaq::RoutingMasterCore::get_current_table_()
 	auto now = std::chrono::steady_clock::now();
 	if (policy_ == nullptr) return detail::RoutingPacket(0);
 	auto table = policy_->GetCurrentTable();
-	if (table.size() > 0) 
+	if (table.size() > 0)
 	{
 		TLOG(TLVL_DEBUG) << "Adding table with size " << table.size() << " to current_tables_ list";
 		current_tables_[now] = table;

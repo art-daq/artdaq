@@ -693,7 +693,6 @@ BOOST_AUTO_TEST_CASE(StatisticsString)
 	coreTest.sendAck(7, first, last);
 	usleep(100000);
 
-
 	TLOG(TLVL_INFO) << "Test case StatisticsString: Checking that StatisticsString is built correctly";
 	auto string = coreTest.call_buildStatisticsString_();
 	TLOG(TLVL_INFO) << string;

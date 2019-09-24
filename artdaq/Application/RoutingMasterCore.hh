@@ -20,11 +20,11 @@
 #include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 
 namespace artdaq {
-	class RoutingMasterCore;
+class RoutingMasterCore;
 }
 
 namespace artdaqtest {
-   class RoutingMasterCoreTest;
+class RoutingMasterCoreTest;
 }
 
 /**
@@ -36,8 +36,8 @@ class artdaq::RoutingMasterCore
 {
 	friend class artdaqtest::RoutingMasterCoreTest;  // For testing
 public:
-	static const std::string TABLE_UPDATES_STAT_KEY; ///< Key for Table Update count MonnitoredQuantity
-	static const std::string TOKENS_RECEIVED_STAT_KEY; ///< Key for the Tokens Received MonitoredQuantity
+	static const std::string TABLE_UPDATES_STAT_KEY;    ///< Key for Table Update count MonnitoredQuantity
+	static const std::string TOKENS_RECEIVED_STAT_KEY;  ///< Key for the Tokens Received MonitoredQuantity
 
 	/**
 	 * \brief RoutingMasterCore Constructor.
