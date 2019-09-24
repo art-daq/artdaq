@@ -2,24 +2,23 @@
 
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
-#include "artdaq/Application/LoadParameterSet.hh"
 
 #include <cstddef>
 #include <iostream>
 #include <string>
 #include <vector>
 
-using artdaq::SharedMemoryEventManager;
 using artdaq::FragmentPtrs;
 using artdaq::GenericFragmentSimulator;
+using artdaq::SharedMemoryEventManager;
 using fhicl::ParameterSet;
 using std::size_t;
-
 
 int main(int argc, char* argv[])
 {
@@ -43,7 +42,7 @@ int main(int argc, char* argv[])
 		pset.put("run_number", RUN_ID);
 		pset.put("print_event_store_stats", true);
 		pset.put("max_event_size_bytes", 0x100000);
-		pset.put("buffer_count",10);
+		pset.put("buffer_count", 10);
 		pset.put("send_init_fragments", false);
 
 		auto temp = pset.to_string() + " source.waiting_time: 10";
@@ -58,7 +57,7 @@ int main(int argc, char* argv[])
 		events->startRun(100);
 		FragmentPtrs frags;
 		size_t event_count = 0;
-		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
+		while (frags.clear(), event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
 			TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size();
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);
@@ -102,7 +101,7 @@ int main(int argc, char* argv[])
 			GenericFragmentSimulator sim2(sim_config2);
 			events->ReconfigureArt(sim_config2);
 			event_count = 0;
-			while (frags.clear() , event_count++ < NUM_EVENTS2 && sim2.getNext(frags))
+			while (frags.clear(), event_count++ < NUM_EVENTS2 && sim2.getNext(frags))
 			{
 				TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size();
 				assert(frags.size() == NUM_FRAGS_PER_EVENT);
@@ -147,17 +146,20 @@ int main(int argc, char* argv[])
 	}
 	catch (cet::exception& x)
 	{
-		std::cerr << argv[0] << " failure\n" << x << std::endl;
+		std::cerr << argv[0] << " failure\n"
+		          << x << std::endl;
 		rc = 1;
 	}
 	catch (std::string& x)
 	{
-		std::cerr << argv[0] << " failure\n" << x << std::endl;
+		std::cerr << argv[0] << " failure\n"
+		          << x << std::endl;
 		rc = 2;
 	}
 	catch (char const* x)
 	{
-		std::cerr << argv[0] << " failure\n" << x << std::endl;
+		std::cerr << argv[0] << " failure\n"
+		          << x << std::endl;
 		rc = 3;
 	}
 	return rc;

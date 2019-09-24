@@ -7,27 +7,27 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #define _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES 1
 #include <xmlrpc-c/base.hpp>
+#include <xmlrpc-c/client_simple.hpp>
+#include <xmlrpc-c/girerr.hpp>
 #include <xmlrpc-c/registry.hpp>
 #include <xmlrpc-c/server_abyss.hpp>
-#include <xmlrpc-c/girerr.hpp>
-#include <xmlrpc-c/client_simple.hpp>
 #undef _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES
 #pragma GCC diagnostic pop
-#include <stdexcept>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <memory>
-#include <cstdint>
+#include <stdexcept>
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
 #include "tracemf.h"
 
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <errno.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <cstring>
 #include <exception>
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -39,7 +39,8 @@ namespace {
 	/// <summary>
 	/// Wrapper for XMLRPC environment construction/destruction
 	/// </summary>
-	class env_wrap {
+class env_wrap
+{
 	public:
 		env_wrap() { xmlrpc_env_init(&this->env_c); };
 		~env_wrap() { xmlrpc_env_clean(&this->env_c); };
@@ -54,7 +55,8 @@ pListFromXmlrpcArray(xmlrpc_value * const arrayP)
 	unsigned int const arraySize = xmlrpc_array_size(&env.env_c, arrayP);
 	assert(!env.env_c.fault_occurred);
 	xmlrpc_c::paramList paramList(arraySize);
-	for (unsigned int i = 0; i < arraySize; ++i) {
+	for (unsigned int i = 0; i < arraySize; ++i)
+	{
 		xmlrpc_value * arrayItemP;
 		xmlrpc_array_read_item(&env.env_c, arrayP, i, &arrayItemP);
 		assert(!env.env_c.fault_occurred);
@@ -74,36 +76,44 @@ c_executeMethod(xmlrpc_env *   const envP,
 	xmlrpc_c::callInfo * const callInfoP(static_cast<xmlrpc_c::callInfo *>(callInfoPtr));
 	xmlrpc_value * retval;
 	retval = NULL; // silence used-before-set warning
-	try {
+	try
+	{
 		xmlrpc_c::value result;
-		try {
+		try
+		{
 			xmlrpc_c::method2 * const method2P(dynamic_cast<xmlrpc_c::method2 *>(methodP));
 			if (method2P)
 				method2P->execute(paramList, callInfoP, &result);
 			else
 				methodP->execute(paramList, &result);
 		}
-		catch (xmlrpc_c::fault const& fault) {
+		catch (xmlrpc_c::fault const& fault)
+		{
 			xmlrpc_env_set_fault(envP, fault.getCode(),
 				fault.getDescription().c_str());
 		}
-		if (!envP->fault_occurred) {
+		if (!envP->fault_occurred)
+		{
 			if (result.isInstantiated())
 				retval = result.cValue();
 			else
-				girerr::throwf("Xmlrpc-c user's xmlrpc_c::method object's "
+				girerr::throwf(
+				    "Xmlrpc-c user's xmlrpc_c::method object's "
 					"'execute method' failed to set the RPC result "
 					"value.");
 		}
 	}
-	catch (std::exception const& e) {
-		xmlrpc_faultf(envP, "Unexpected error executing code for "
+	catch (std::exception const& e)
+	{
+		xmlrpc_faultf(envP,
+		              "Unexpected error executing code for "
 			"particular method, detected by Xmlrpc-c "
 			"method registry code.  Method did not "
 			"fail; rather, it did not complete at all.  %s",
 			e.what());
 	}
-	catch (...) {
+	catch (...)
+	{
 		xmlrpc_env_set_fault(envP, XMLRPC_INTERNAL_ERROR,
 			"Unexpected error executing code for "
 			"particular method, detected by Xmlrpc-c "
@@ -113,10 +123,7 @@ c_executeMethod(xmlrpc_env *   const envP,
 	return retval;
 }
 
-
-
-namespace artdaq
-{
+namespace artdaq {
 	/**
 	 * \brief Write an exception message
 	 * \param er A std::runtime_error to print
@@ -185,7 +192,6 @@ namespace artdaq
 		return msg;
 	}
 
-
 	/**
 	 * \brief The "cmd_" class serves as the base class for all artdaq's XML-RPC commands.
 	 *
@@ -206,7 +212,6 @@ namespace artdaq
 	class cmd_ : public xmlrpc_c::method
 	{
 	public:
-
 		// Can't seem to initialize "_signature" and "_help" in the initialization list...
 		/**
 		 * \brief cmd_ Constructor
@@ -214,7 +219,8 @@ namespace artdaq
 		 * \param signature  Signature of the command
 		 * \param description Description of the command
 		 */
-		cmd_(xmlrpc_commander& c, const std::string& signature, const std::string& description) : _c(c)
+	cmd_(xmlrpc_commander& c, const std::string& signature, const std::string& description)
+	    : _c(c)
 		{
 			_signature = signature;
 			_help = description;
@@ -228,7 +234,6 @@ namespace artdaq
 		void execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP) final;
 
 	protected:
-
 		xmlrpc_commander & _c; ///< The xmlrpc_commander instance that the command will be sent to
 
 		/**
@@ -389,7 +394,8 @@ namespace artdaq
 		{
 			throw exception;
 		}
-		catch (...) {}
+	catch (...)
+	{}
 
 		return val;
 	}
@@ -455,7 +461,6 @@ namespace artdaq
 		}
 	}
 
-
 	//////////////////////////////////////////////////////////////////////
 
 	// JCF, 9/5/14
@@ -466,14 +471,13 @@ namespace artdaq
 
 #define GENERATE_INIT_TRANSITION(NAME, CALL, DESCRIPTION)			\
 	/** Command class representing an init transition */		\
-  class NAME ## _: public cmd_ {					\
-								\
+	class NAME##_ : public cmd_                                                                                                                                    \
+	{                                                                                                                                                              \
   public:							\
   /** Command class Constructor \
 	* \param c xmlrpc_commander to send parsed command to \
 	*/ \
-  explicit NAME ## _(xmlrpc_commander& c):				\
-  cmd_(c, "s:sii", DESCRIPTION) {}				\
+		explicit NAME##_(xmlrpc_commander& c) : cmd_(c, "s:sii", DESCRIPTION) {}                                                                                   \
 								\
   /** Default timeout for command */ \
   static const uint64_t defaultTimeout = 45;				\
@@ -481,19 +485,22 @@ namespace artdaq
   static const uint64_t defaultTimestamp = std::numeric_limits<const uint64_t>::max(); \
 									\
   private:								\
-  bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP ) { \
+		bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)                                                                        \
+		{                                                                                                                                                          \
 	fhicl::ParameterSet ps;							\
-	try {								\
+			try                                                                                                                                                    \
+			{                                                                                                                                                      \
 	  ps = getParam<fhicl::ParameterSet>(paramList, 0);			\
-	} catch (...) {							\
+			}                                                                                                                                                      \
+			catch (...)                                                                                                                                            \
+			{                                                                                                                                                      \
 	  *retvalP = xmlrpc_c::value_string ("The "#NAME" message requires a single argument that is a string containing the initialization ParameterSet");	\
 	  return true;							\
 	}									\
 									\
 	return _c._commandable.CALL(ps, \
 				 getParam<uint64_t>(paramList, 1, defaultTimeout), \
-				 getParam<uint64_t>(paramList, 2, defaultTimestamp) \
-				 );					\
+			                            getParam<uint64_t>(paramList, 2, defaultTimestamp));                                                                       \
   }									\
   };
 
@@ -517,8 +524,8 @@ namespace artdaq
 		 * \brief start_ Command (cmd_ derived class) Constructor
 		 * \param c xmlrpc_commander instance to command
 		 */
-		explicit start_(xmlrpc_commander& c) :
-			cmd_(c, "s:iii", "start the run")
+	explicit start_(xmlrpc_commander& c)
+	    : cmd_(c, "s:iii", "start the run")
 		{}
 
 		/** Default timeout for command */
@@ -527,7 +534,6 @@ namespace artdaq
 		static const uint64_t defaultTimestamp = std::numeric_limits<const uint64_t>::max();
 
 	private:
-
 		bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP) override
 		{
 			try
@@ -542,11 +548,9 @@ namespace artdaq
 
 			return _c._commandable.start(getParam<art::RunID>(paramList, 0),
 				getParam<uint64_t>(paramList, 1, defaultTimeout),
-				getParam<uint64_t>(paramList, 2, defaultTimestamp)
-			);
+		                             getParam<uint64_t>(paramList, 2, defaultTimestamp));
 		}
 	};
-
 
 	//////////////////////////////////////////////////////////////////////
 
@@ -558,13 +562,12 @@ namespace artdaq
 
 #define GENERATE_TIMEOUT_TIMESTAMP_TRANSITION(NAME, CALL, DESCRIPTION, TIMEOUT)	\
 		/** NAME ## _ Command class */							\
-  class NAME ## _: public cmd_ {					\
-									\
+	class NAME##_ : public cmd_                                                              \
+	{                                                                                        \
 public:									\
 /** NAME ## _ Constructor \
 	\param c xmlrpc_commander to send transition commands to */ \
- NAME ## _(xmlrpc_commander& c):					\
- cmd_(c, "s:ii", DESCRIPTION) {}					\
+		NAME##_(xmlrpc_commander& c) : cmd_(c, "s:ii", DESCRIPTION) {}                       \
 									\
   /** Default timeout for command */ \
  static const uint64_t defaultTimeout = TIMEOUT ;			\
@@ -572,12 +575,10 @@ public:									\
  static const uint64_t defaultTimestamp = std::numeric_limits<const uint64_t>::max(); \
 									\
 private:								\
-									\
- bool execute_ (const xmlrpc_c::paramList& paramList , xmlrpc_c::value* const ) { \
-									\
+		bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)          \
+		{                                                                                    \
    return _c._commandable.CALL( getParam<uint64_t>(paramList, 0, defaultTimeout), \
-				getParam<uint64_t>(paramList, 1, defaultTimestamp) \
-				);					\
+			                            getParam<uint64_t>(paramList, 1, defaultTimestamp)); \
  }									\
   };
 
@@ -589,7 +590,6 @@ private:								\
 
 #undef GENERATE_TIMEOUT_TIMESTAMP_TRANSITION
 
-
 		/**
 		 * \brief shutdown_ Command class
 		 */
@@ -600,15 +600,14 @@ private:								\
 	 * \brief shutdown_ Constructor
 	 * \param c xmlrpc_commander to send transition commands to
 	 */
-		shutdown_(xmlrpc_commander& c) :
-			cmd_(c, "s:i", "shutdown the program")
+	shutdown_(xmlrpc_commander& c)
+	    : cmd_(c, "s:i", "shutdown the program")
 		{}
 
 		/** Default timeout for command */
 		static const uint64_t defaultTimeout = 45;
 
 	private:
-
 		bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)
 		{
 			auto ret = _c._commandable.shutdown(getParam<uint64_t>(paramList, 0, defaultTimeout));
@@ -621,7 +620,6 @@ private:								\
 		}
 	};
 
-
 	/**
 	* \brief status_ Command class
 	*/
@@ -632,19 +630,17 @@ private:								\
 		* \brief status_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		status_(xmlrpc_commander& c) :
-			cmd_(c, "s:n", "report the current state")
+	status_(xmlrpc_commander& c)
+	    : cmd_(c, "s:n", "report the current state")
 		{}
 
 	private:
-
 		bool execute_(xmlrpc_c::paramList const&, xmlrpc_c::value* const retvalP)
 		{
 			*retvalP = xmlrpc_c::value_string(_c._commandable.status());
 			return true;
 		}
 	};
-
 
 	/**
 	* \brief report_ Command class
@@ -656,8 +652,8 @@ private:								\
 		* \brief report_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		report_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "report statistics")
+	report_(xmlrpc_commander& c)
+	    : cmd_(c, "s:s", "report statistics")
 		{}
 
 	private:
@@ -688,8 +684,8 @@ private:								\
 		* \brief legal_commands_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		legal_commands_(xmlrpc_commander& c) :
-			cmd_(c, "s:n", "return the currently legal commands")
+	legal_commands_(xmlrpc_commander& c)
+	    : cmd_(c, "s:n", "return the currently legal commands")
 		{}
 
 	private:
@@ -722,8 +718,8 @@ private:								\
 		* \brief register_monitor_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		register_monitor_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "Get notified of a new monitor")
+	register_monitor_(xmlrpc_commander& c)
+	    : cmd_(c, "s:s", "Get notified of a new monitor")
 		{}
 
 	private:
@@ -754,8 +750,8 @@ private:								\
 		* \brief unregister_monitor_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		unregister_monitor_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "Remove a monitor")
+	unregister_monitor_(xmlrpc_commander& c)
+	    : cmd_(c, "s:s", "Remove a monitor")
 		{}
 
 	private:
@@ -776,7 +772,6 @@ private:								\
 		}
 	};
 
-
 	/**
 	* \brief trace_set_ Command class
 	*/
@@ -787,8 +782,8 @@ private:								\
 		* \brief unregister_monitor_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		trace_set_(xmlrpc_commander& c) :
-			cmd_(c, "s:ssi", "Set TRACE mask")
+	trace_set_(xmlrpc_commander& c)
+	    : cmd_(c, "s:ssi", "Set TRACE mask")
 		{}
 
 	private:
@@ -820,8 +815,8 @@ private:								\
 		* \brief trace_msgfacility_set_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		trace_get_(xmlrpc_commander& c) :
-			cmd_(c, "s:s", "Get TRACE mask")
+	trace_get_(xmlrpc_commander& c)
+	    : cmd_(c, "s:s", "Get TRACE mask")
 		{}
 
 	private:
@@ -852,8 +847,8 @@ private:								\
 		* \brief meta_command_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		meta_command_(xmlrpc_commander& c) :
-			cmd_(c, "s:ss", "Run custom command")
+	meta_command_(xmlrpc_commander& c)
+	    : cmd_(c, "s:ss", "Run custom command")
 		{}
 
 	private:
@@ -884,15 +879,14 @@ private:								\
 		* \brief shutdown_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		rollover_subrun_(xmlrpc_commander& c) :
-			cmd_(c, "s:ii", "create a new subrun")
+	rollover_subrun_(xmlrpc_commander& c)
+	    : cmd_(c, "s:ii", "create a new subrun")
 		{}
 
 		static const uint64_t defaultSequenceID = 0xFFFFFFFFFFFFFFFF; ///< Default Sequence ID for command
 	    static const uint32_t defaultSubrunNumber = 1;  ///< Default subrun number for command
 
 	private:
-
 		bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)
 		{
 			auto ret = _c._commandable.do_rollover_subrun(getParam<uint64_t>(paramList, 0, defaultSequenceID), getParam<uint32_t>(paramList, 1, defaultSubrunNumber));
@@ -910,8 +904,8 @@ private:								\
 		* \brief add_config_archive_entry_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		add_config_archive_entry_(xmlrpc_commander& c) :
-			cmd_(c, "s:ss", "Add an entry to the configuration archive list")
+	add_config_archive_entry_(xmlrpc_commander& c)
+	    : cmd_(c, "s:ss", "Add an entry to the configuration archive list")
 		{}
 
 	private:
@@ -942,8 +936,8 @@ private:								\
 		* \brief clear_config_archive_ Constructor
 		* \param c xmlrpc_commander to send transition commands to
 		*/
-		clear_config_archive_(xmlrpc_commander& c) :
-			cmd_(c, "s:n", "Clear the configuration archive list")
+	clear_config_archive_(xmlrpc_commander& c)
+	    : cmd_(c, "s:n", "Clear the configuration archive list")
 		{}
 
 	private:
@@ -976,8 +970,6 @@ private:								\
 	};
 #endif
 
-
-
 	xmlrpc_commander::xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable)
 		: CommanderInterface(ps, commandable)
 		, port_(ps.get<int>("id", 0))
@@ -998,7 +990,6 @@ private:								\
 			serverUrl_ = serverUrl_ + "/RPC2";
 		}
 		TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
-
 	}
 
 	void xmlrpc_commander::run_server() try
@@ -1079,9 +1070,7 @@ private:								\
 
 		if (socket_file_descriptor < 0)
 		{
-			throw cet::exception("xmlrpc_commander::run") <<
-				"Problem with the socket() call; C-style errno == " <<
-				errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the socket() call; C-style errno == " << errno << " (" << strerror(errno) << ")";
 		}
 
 		int enable = 1;
@@ -1091,9 +1080,7 @@ private:								\
 
 		if (retval < 0)
 		{
-			throw cet::exception("xmlrpc_commander::run") <<
-				"Problem with the call to setsockopt(); C-style errno == " <<
-				errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the call to setsockopt(); C-style errno == " << errno << " (" << strerror(errno) << ")";
 		}
 
 		struct sockaddr_in sockAddr;
@@ -1109,9 +1096,7 @@ private:								\
 		if (retval != 0)
 		{
 			close(socket_file_descriptor);
-			throw cet::exception("xmlrpc_commander::run") <<
-				"Problem with the bind() call; C-style errno == " <<
-				errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the bind() call; C-style errno == " << errno << " (" << strerror(errno) << ")";
 		}
 
 		server.reset(new xmlrpc_c::serverAbyss(xmlrpc_c::serverAbyss::constrOpt().registryP(&registry).socketFd(socket_file_descriptor)));
@@ -1181,7 +1166,6 @@ private:								\
 			std::stringstream errmsg;
 			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
 			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
@@ -1208,7 +1192,6 @@ private:								\
 			std::stringstream errmsg;
 			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
 			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
@@ -1235,7 +1218,6 @@ private:								\
 			std::stringstream errmsg;
 			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
 			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
@@ -1262,7 +1244,6 @@ private:								\
 			std::stringstream errmsg;
 			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
 			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
@@ -1289,7 +1270,6 @@ private:								\
 			std::stringstream errmsg;
 			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
 			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
@@ -1316,7 +1296,6 @@ private:								\
 			std::stringstream errmsg;
 			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
 			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
@@ -1343,7 +1322,6 @@ private:								\
 			std::stringstream errmsg;
 			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
 			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;
@@ -1370,7 +1348,6 @@ private:								\
 			std::stringstream errmsg;
 			errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
 			ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
-
 		}
 		xmlrpc_c::clientSimple myClient;
 		xmlrpc_c::value result;

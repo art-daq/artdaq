@@ -36,7 +36,8 @@
 
 #include <TBufferFile.h>
 #include <TClass.h>
-#include <TMessage.h>
+#include <TList.h>
+#include <TStreamerInfo.h>
 
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -210,6 +211,41 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	unsigned long dummy = 0;
 	msg->ReadULong(dummy);
 
+	// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
+	TList* list = (TList*)msg->ReadObject(TList::Class());
+
+	TIter next(list);
+	TStreamerInfo* info;
+	TObjLink* lnk = list->FirstLink();
+	// First call BuildCheck for regular class
+	while (lnk)
+	{
+		info = (TStreamerInfo*)lnk->GetObject();
+		TObject* element = info->GetElements()->UncheckedAt(0);
+		Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+		if (!isstl)
+		{
+			info->BuildCheck();
+			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+		}
+		lnk = lnk->Next();
+	}
+	// Then call BuildCheck for stl class
+	lnk = list->FirstLink();
+	while (lnk)
+	{
+		info = (TStreamerInfo*)lnk->GetObject();
+		TObject* element = info->GetElements()->UncheckedAt(0);
+		Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+		if (isstl)
+		{
+			info->BuildCheck();
+			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+		}
+		lnk = lnk->Next();
+	}
+	// ELF: 6/11/2019: End TSocket snippet
+
 	//
 	//  Read the ParameterSetRegistry.
 	//
@@ -239,15 +275,15 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
 
-	#ifndef __OPTIMIZE__
-	for (auto I = productList_->begin(), E= productList_->end();I != E;++I)
+#ifndef __OPTIMIZE__
+	for (auto I = productList_->begin(), E = productList_->end(); I != E; ++I)
 	{
 		TLOG_ARB(50, "ArtdaqInput") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
 		                            << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
 		                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
 		                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 	}
-	#endif
+#endif
 
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
@@ -526,9 +562,9 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
 		}
 
 #ifndef __OPTIMIZE__
-			TLOG_ARB(13, "ArtdaqInput") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
-			                            << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
-			                            << bk->processName_;
+		TLOG_ARB(13, "ArtdaqInput") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
+		                            << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
+		                            << bk->processName_;
 #endif
 		ProductList::const_iterator iter;
 		{

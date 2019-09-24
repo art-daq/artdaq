@@ -1,5 +1,5 @@
-#include "proto/artdaqapp.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
+#include "proto/artdaqapp.hh"
 
 int main(int argc, char* argv[])
 {

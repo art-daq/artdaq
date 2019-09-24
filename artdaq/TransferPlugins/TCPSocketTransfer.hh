@@ -8,30 +8,29 @@
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
 // C Includes
-#include <stdint.h>				// uint64_t
-#include <sys/uio.h>			// iovec
+#include <stdint.h>   // uint64_t
+#include <sys/uio.h>  // iovec
 
 // C++ Includes
-#include <condition_variable>
 #include <boost/thread.hpp>
+#include <condition_variable>
 
 // Products includes
 #include "fhiclcpp/fwd.h"
 
 // artdaq Includes
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/TransferPlugins/detail/SRSockets.hh"
-#include "artdaq/TransferPlugins/detail/Timeout.hh"	// Timeout
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
+#include "artdaq/TransferPlugins/detail/SRSockets.hh"
+#include "artdaq/TransferPlugins/detail/Timeout.hh"  // Timeout
 
 #ifndef USE_ACKS
 #define USE_ACKS 0
 #endif
 
-namespace artdaq
-{
-	class TCPSocketTransfer;
+namespace artdaq {
+class TCPSocketTransfer;
 }
 
 /**
@@ -97,16 +96,15 @@ public:
 	* \brief Determine whether the TransferInterface plugin is able to send/receive data
 	* \return True if the TransferInterface plugin is currently able to send/receive data
 	*/
-        bool isRunning() override;
+	bool isRunning() override;
 
-        /**
+	/**
          * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
          * ended.
          */
-        void flush_buffers() override;
+	void flush_buffers() override;
 
-       private:
-
+private:
 	static std::atomic<int> listen_thread_refcount_;
 	static std::mutex listen_thread_mutex_;
 	static std::unique_ptr<boost::thread> listen_thread_;
@@ -128,33 +126,33 @@ public:
 		Metadata,
 		Data
 	};
-	
+
 	size_t rcvbuf_;
 	size_t sndbuf_;
 	size_t send_retry_timeout_us_;
 
 	hostMap_t hostMap_;
 
-	volatile unsigned connect_state : 1; // 0=not "connected" (initial msg not sent)
-	unsigned blocking : 1; // compatible with bool (true/false)
+	volatile unsigned connect_state : 1;  // 0=not "connected" (initial msg not sent)
+	unsigned blocking : 1;                // compatible with bool (true/false)
 
 	bool connection_was_lost_;
-	
-	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
-    std::chrono::steady_clock::time_point last_recv_time_; // Time of last successful receive
-    double receive_disconnected_wait_s_; // How long to wait between messages before returning DATA_END
-    size_t receive_err_wait_us_; // Amount of time to wait if there are no connected receive sockets
-	std::atomic<bool> receive_socket_has_been_connected_; // Whether the receiver has ever been connected to a sender
-	std::atomic<int> send_ack_diff_; // Number of sends - number of acks received. Not allowed to exceed buffer_count.
-	std::unique_ptr<boost::thread> ack_listen_thread_; // Thread to listen for ack messages on the sender
 
-private: // methods
+	bool timeoutMessageArmed_;                              // don't repeatedly print about the send fd not being open...
+	std::chrono::steady_clock::time_point last_recv_time_;  // Time of last successful receive
+	double receive_disconnected_wait_s_;                    // How long to wait between messages before returning DATA_END
+	size_t receive_err_wait_us_;                            // Amount of time to wait if there are no connected receive sockets
+	std::atomic<bool> receive_socket_has_been_connected_;   // Whether the receiver has ever been connected to a sender
+	std::atomic<int> send_ack_diff_;                        // Number of sends - number of acks received. Not allowed to exceed buffer_count.
+	std::unique_ptr<boost::thread> ack_listen_thread_;      // Thread to listen for ack messages on the sender
+
+private:  // methods
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
 
 	CopyStatus sendData_(const void* buf, size_t bytes, size_t tmo, bool isHeader = false);
 
 	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo, bool isHeader = false);
-	
+
 #if USE_ACKS
 	void receive_acks_();
 	void send_ack_(int fd);
@@ -178,4 +176,4 @@ private: // methods
 	}
 };
 
-#endif // TCPSocketTransfer_hh
+#endif  // TCPSocketTransfer_hh

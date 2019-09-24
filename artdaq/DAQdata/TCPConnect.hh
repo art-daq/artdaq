@@ -67,4 +67,4 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin);
  */
 int TCPConnect(char const* host_in, int dflt_port, long flags = 0, int sndbufsiz = 0);
 
-#endif	// TCPConnect_hh
+#endif  // TCPConnect_hh
