@@ -1,5 +1,3 @@
-// vim: set sw=2 expandtab :
-
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Core/RPManager.h"
@@ -7,24 +5,23 @@
 #include "art/Framework/IO/ClosingCriteria.h"
 #include "art/Framework/IO/FileStatsCollector.h"
 #include "art/Framework/IO/PostCloseFileRenamer.h"
+#include "art/Framework/IO/Root/DropMetaData.h"
+#include "art/Framework/IO/Root/RootFileBlock.h"
+#include "art/Framework/IO/Root/detail/rootOutputConfigurationTools.h"
 #include "art/Framework/IO/detail/logFileAction.h"
 #include "art/Framework/IO/detail/validateFileNamePattern.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/EventPrincipal.h"
-#include "art/Framework/Principal/Principal.h"
 #include "art/Framework/Principal/Results.h"
 #include "art/Framework/Principal/ResultsPrincipal.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRun.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
+#include "art/Persistency/Provenance/ProductMetaData.h"
 #include "art/Utilities/parent_path.h"
 #include "art/Utilities/unique_filename.h"
-#include "art_root_io/DropMetaData.h"
-#include "art_root_io/RootFileBlock.h"
-#include "art_root_io/detail/rootOutputConfigurationTools.h"
-#include "art_root_io/setup.h"
-#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutput-s85/RootDAQOutFile.h"
 #include "artdaq/DAQdata/Globals.hh"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Persistency/Provenance/ProductTables.h"
@@ -35,37 +32,32 @@
 #include "fhiclcpp/types/OptionalAtom.h"
 #include "fhiclcpp/types/OptionalSequence.h"
 #include "fhiclcpp/types/Table.h"
-#include "hep_concurrency/RecursiveMutex.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracemf.h"  // TLOG
 #define TRACE_NAME (app_name + "_RootDAQOut").c_str()
 
 #include <iomanip>
-#include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
 
-using namespace std;
-using namespace hep::concurrency;
+using std::string;
 
 namespace {
-string const dev_null{"/dev/null"};
+std::string const dev_null{"/dev/null"};
 }
 
 namespace art {
-
+class RootDAQOut;
 class RootDAQOutFile;
+}  // namespace art
 
-class RootDAQOut final : public OutputModule
+class art::RootDAQOut final : public OutputModule
 {
-	// Constants.
 public:
 	static constexpr char const* default_tmpDir{"<parent-path-of-filename>"};
 
-	// Config.
-public:
 	struct Config
 	{
 		using Name = fhicl::Name;
@@ -74,12 +66,13 @@ public:
 		using Atom = fhicl::Atom<T>;
 		template<typename T>
 		using OptionalAtom = fhicl::OptionalAtom<T>;
-		fhicl::TableFragment<OutputModule::Config> omConfig;
-		Atom<string> catalog{Name("catalog"), ""};
+
+		fhicl::TableFragment<art::OutputModule::Config> omConfig;
+		Atom<std::string> catalog{Name("catalog"), ""};
 		OptionalAtom<bool> dropAllEvents{Name("dropAllEvents")};
 		Atom<bool> dropAllSubRuns{Name("dropAllSubRuns"), false};
 		OptionalAtom<bool> fastCloning{Name("fastCloning")};
-		Atom<string> tmpDir{Name("tmpDir"), default_tmpDir};
+		Atom<std::string> tmpDir{Name("tmpDir"), default_tmpDir};
 		Atom<int> compressionLevel{Name("compressionLevel"), 7};
 		Atom<unsigned> freePercent{Name("freePercent"), 0};
 		Atom<unsigned> freeMB{Name("freeMB"), 0};
@@ -90,10 +83,9 @@ public:
 		Atom<int> basketSize{Name("basketSize"), 16384};
 		Atom<bool> dropMetaDataForDroppedData{Name("dropMetaDataForDroppedData"),
 		                                      false};
-		Atom<string> dropMetaData{Name("dropMetaData"), "NONE"};
+		Atom<std::string> dropMetaData{Name("dropMetaData"), "NONE"};
 		Atom<bool> writeParameterSets{Name("writeParameterSets"), true};
-		fhicl::Table<ClosingCriteria::Config> fileProperties{
-		    Name("fileProperties")};
+		fhicl::Table<ClosingCriteria::Config> fileProperties{Name("fileProperties")};
 		Atom<int> firstLoggerRank{Name("firstLoggerRank"), -1};
 
 		struct NewSubStringForApp
@@ -107,6 +99,9 @@ public:
 			fhicl::Sequence<fhicl::Table<NewSubStringForApp>> replacementList{fhicl::Name("replacementList")};
 		};
 		fhicl::OptionalSequence<fhicl::Table<FileNameSubstitution>> fileNameSubstitutions{Name("fileNameSubstitutions")};
+		Atom<bool> enableLargeFileCatalogMetadata{
+		    Name("enableLargeFileCatalogMetadata"),
+		    true};
 
 		Config()
 		{
@@ -117,16 +112,17 @@ public:
 			// for 'OutputModule::Config::fileName'.
 			using namespace fhicl::detail;
 			ParameterBase* adjustFilename{
-			    const_cast<fhicl::Atom<string>*>(&omConfig().fileName)};
+			    const_cast<fhicl::Atom<std::string>*>(&omConfig().fileName)};
 			adjustFilename->set_par_style(fhicl::par_style::REQUIRED);
 		}
 
 		struct KeysToIgnore
 		{
-			set<string>
+			std::set<std::string>
 			operator()() const
 			{
-				set<string> keys{OutputModule::Config::KeysToIgnore::get()};
+				std::set<std::string> keys{
+				    art::OutputModule::Config::KeysToIgnore::get()};
 				keys.insert("results");
 				return keys;
 			}
@@ -135,37 +131,31 @@ public:
 
 	using Parameters = fhicl::WrappedTable<Config, Config::KeysToIgnore>;
 
-	// Special Member Functions.
-public:
-	~RootDAQOut();
 	explicit RootDAQOut(Parameters const&);
-	RootDAQOut(RootDAQOut const&) = delete;
-	RootDAQOut(RootDAQOut&&) = delete;
-	RootDAQOut& operator=(RootDAQOut const&) = delete;
-	RootDAQOut& operator=(RootDAQOut&&) = delete;
 
-	// Member Functions.
-public:
 	void postSelectProducts() override;
+
 	void beginJob() override;
 	void endJob() override;
-	void beginRun(RunPrincipal const&) override;
-	void endRun(RunPrincipal const&) override;
-	void beginSubRun(SubRunPrincipal const&) override;
-	void endSubRun(SubRunPrincipal const&) override;
+
 	void event(EventPrincipal const&) override;
 
-	// Member Functions -- Replace OutputModule Functions.
+	void beginSubRun(SubRunPrincipal const&) override;
+	void endSubRun(SubRunPrincipal const&) override;
+
+	void beginRun(RunPrincipal const&) override;
+	void endRun(RunPrincipal const&) override;
+
 private:
-	string fileNameAtOpen() const;
-	string fileNameAtClose(string const& currentFileName);
-	string const& lastClosedFileName() const override;
-	Granularity fileGranularity() const override;
+	std::string fileNameAtOpen() const;
+	std::string fileNameAtClose(std::string const& currentFileName);
+	std::string const& lastClosedFileName() const override;
 	void openFile(FileBlock const&) override;
 	void respondToOpenInputFile(FileBlock const&) override;
 	void readResults(ResultsPrincipal const& resp) override;
 	void respondToCloseInputFile(FileBlock const&) override;
 	void incrementInputFileNumber() override;
+	Granularity fileGranularity() const override;
 	void write(EventPrincipal&) override;
 	void writeSubRun(SubRunPrincipal&) override;
 	void writeRun(RunPrincipal&) override;
@@ -174,6 +164,7 @@ private:
 	bool isFileOpen() const override;
 	void setFileStatus(OutputFileStatus) override;
 	bool requestsToCloseFile() const override;
+	void doOpenFile();
 	void startEndFile() override;
 	void writeFileFormatVersion() override;
 	void writeFileIndex() override;
@@ -188,28 +179,26 @@ private:
 	    FileCatalogMetadata::collection_type const& ssmd) override;
 	void writeProductDependencies() override;
 	void finishEndFile() override;
-	void doRegisterProducts(ProductDescriptions& productsToProduce,
+	void doRegisterProducts(MasterProductRegistry& mpr,
+	                        ProductDescriptions& producedProducts,
 	                        ModuleDescription const& md) override;
 	std::string modifyFilePattern(std::string const&, Config const&);
 
-	// Member Functions -- Implementation Details.
 private:
-	void doOpenFile();
-
-	// Data Members.
-private:
-	mutable RecursiveMutex mutex_{"RootDAQOut::mutex"};
-	string const catalog_;
+	std::string const catalog_;
 	bool dropAllEvents_{false};
 	bool dropAllSubRuns_;
-	string const moduleLabel_;
-	int inputFileCount_{};
-	unique_ptr<RootDAQOutFile> rootOutputFile_{nullptr};
+	std::string const moduleLabel_;
+	bool enableLargeFileCatalogMetadata_{true};
+	int inputFileCount_{0};
+	std::unique_ptr<RootDAQOutFile> rootOutputFile_{nullptr};
 	FileStatsCollector fstats_;
-	PostCloseFileRenamer fRenamer_;
-	string const filePattern_;
-	string tmpDir_;
-	string lastClosedFileName_{};
+	PostCloseFileRenamer fRenamer_{fstats_};
+	std::string const filePattern_;
+	std::string tmpDir_;
+	std::string lastClosedFileName_{};
+
+	// We keep this set of data members for the use of RootDAQOutFile.
 	int const compressionLevel_;
 	unsigned freePercent_;
 	unsigned freeMB_;
@@ -219,25 +208,29 @@ private:
 	int const basketSize_;
 	DropMetaData dropMetaData_;
 	bool dropMetaDataForDroppedData_;
+
+	// We keep this for the use of RootDAQOutFile and we also use it
+	// during file open to make some choices.
 	bool fastCloningEnabled_{true};
-	// Set false only for cases where we are guaranteed never to need historical
-	// ParameterSet information in the downstream file, such as when mixing.
+
+	// Set false only for cases where we are guaranteed never to need
+	// historical ParameterSet information in the downstream file
+	// (e.g. mixing).
 	bool writeParameterSets_;
 	ClosingCriteria fileProperties_;
-	ProductDescriptions productsToProduce_{};
-	ProductTables producedResultsProducts_{ProductTables::invalid()};
+
+	// ResultsProducer management.
+	ProductTable producedResultsProducts_{};
 	RPManager rpm_;
 };
 
-RootDAQOut::~RootDAQOut() = default;
-
-RootDAQOut::RootDAQOut(Parameters const& config)
+art::RootDAQOut::RootDAQOut(Parameters const& config)
     : OutputModule{config().omConfig, config.get_PSet()}
     , catalog_{config().catalog()}
     , dropAllSubRuns_{config().dropAllSubRuns()}
     , moduleLabel_{config.get_PSet().get<string>("module_label")}
-    , fstats_{moduleLabel_, processName()}
-    , fRenamer_{fstats_}
+    , enableLargeFileCatalogMetadata_{config().enableLargeFileCatalogMetadata()}
+    , fstats_{moduleLabel_, processName(), enableLargeFileCatalogMetadata_}
     , filePattern_{modifyFilePattern(config().omConfig().fileName(), config())}
     , tmpDir_{config().tmpDir() == default_tmpDir ? parent_path(filePattern_) : config().tmpDir()}
     , compressionLevel_{config().compressionLevel()}
@@ -257,41 +250,35 @@ RootDAQOut::RootDAQOut(Parameters const& config)
           config().fileProperties())}
     , rpm_{config.get_PSet()}
 {
-	TLOG(TLVL_INFO) << "RootDAQOut_module (s71 version) CONSTRUCTOR Start";
-	// Setup the streamers and error handlers.
-	root::setup();
-
 	bool const dropAllEventsSet{config().dropAllEvents(dropAllEvents_)};
-	dropAllEvents_ = detail::shouldDropEvents(
-	    dropAllEventsSet, dropAllEvents_, dropAllSubRuns_);
+	dropAllEvents_ =
+	    detail::shouldDropEvents(dropAllEventsSet, dropAllEvents_, dropAllSubRuns_);
+
 	// N.B. Any time file switching is enabled at a boundary other than
 	//      InputFile, fastCloningEnabled_ ***MUST*** be deactivated.  This is
 	//      to ensure that the Event tree from the InputFile is not
 	//      accidentally cloned to the output file before the output
 	//      module has seen the events that are going to be processed.
 	bool const fastCloningSet{config().fastCloning(fastCloningEnabled_)};
-	fastCloningEnabled_ = RootDAQOutFile::shouldFastClone(
+	fastCloningEnabled_ = detail::shouldFastClone(
 	    fastCloningSet, fastCloningEnabled_, wantAllEvents(), fileProperties_);
 	if (!writeParameterSets_)
 	{
 		mf::LogWarning("PROVENANCE")
 		    << "Output module " << moduleLabel_
 		    << " has parameter writeParameterSets set to false.\n"
-		    << "Parameter set provenance will not be available in subsequent "
-		       "jobs.\n"
+		    << "Parameter set provenance will not be available in subsequent jobs.\n"
 		    << "Check your experiment's policy on this issue to avoid future "
 		       "problems\n"
 		    << "with analysis reproducibility.\n";
 	}
 }
 
-void RootDAQOut::openFile(FileBlock const& fb)
+void art::RootDAQOut::openFile(FileBlock const& fb)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
-	// Note: The file block here refers to the currently open
-	//       input file, so we can find out about the available
-	//       products by looping over the branches of the input
-	//       file data trees.
+	// Note: The file block here refers to the currently open input
+	//       file, so we can find out about the available products by
+	//       looping over the branches of the input file data trees.
 	if (!isFileOpen())
 	{
 		doOpenFile();
@@ -299,24 +286,22 @@ void RootDAQOut::openFile(FileBlock const& fb)
 	}
 }
 
-void RootDAQOut::postSelectProducts()
+void art::RootDAQOut::postSelectProducts()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (isFileOpen())
 	{
 		rootOutputFile_->selectProducts();
 	}
 }
 
-void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
+void art::RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	++inputFileCount_;
 	if (!isFileOpen())
-	{
 		return;
-	}
+
 	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
+
 	bool fastCloneThisOne = fastCloningEnabled_ && rfb &&
 	                        (rfb->tree() != nullptr) &&
 	                        ((remainingEvents() < 0) ||
@@ -338,25 +323,22 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 	fstats_.recordInputFile(fb.fileName());
 }
 
-void RootDAQOut::readResults(ResultsPrincipal const& resp)
+void art::RootDAQOut::readResults(ResultsPrincipal const& resp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
-	rpm_.for_each_RPWorker(
-	    [&resp](RPWorker& w) { w.rp().doReadResults(resp); });
+	rpm_.for_each_RPWorker([&resp](RPWorker& w) { w.rp().doReadResults(resp); });
 }
 
-void RootDAQOut::respondToCloseInputFile(FileBlock const& fb)
+void art::RootDAQOut::respondToCloseInputFile(FileBlock const& fb)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (isFileOpen())
 	{
 		rootOutputFile_->respondToCloseInputFile(fb);
 	}
 }
 
-void RootDAQOut::write(EventPrincipal& ep)
+void art::RootDAQOut::write(EventPrincipal& ep)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	TLOG(10) << __func__ << ": enter; dropAllEvents_=" << dropAllEvents_;
 	if (dropAllEvents_)
 	{
 		return;
@@ -366,18 +348,17 @@ void RootDAQOut::write(EventPrincipal& ep)
 		ep.addToProcessHistory();
 	}
 	rootOutputFile_->writeOne(ep);
-	fstats_.recordEvent(ep.eventID());
+	fstats_.recordEvent(ep.id());
+	TLOG(9) << __func__ << ": return";
 }
 
-void RootDAQOut::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
+void art::RootDAQOut::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->setSubRunAuxiliaryRangeSetID(rs);
 }
 
-void RootDAQOut::writeSubRun(SubRunPrincipal& sr)
+void art::RootDAQOut::writeSubRun(SubRunPrincipal& sr)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (dropAllSubRuns_)
 	{
 		return;
@@ -387,34 +368,30 @@ void RootDAQOut::writeSubRun(SubRunPrincipal& sr)
 		sr.addToProcessHistory();
 	}
 	rootOutputFile_->writeSubRun(sr);
-	fstats_.recordSubRun(sr.subRunID());
+	fstats_.recordSubRun(sr.id());
 }
 
-void RootDAQOut::setRunAuxiliaryRangeSetID(RangeSet const& rs)
+void art::RootDAQOut::setRunAuxiliaryRangeSetID(RangeSet const& rs)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->setRunAuxiliaryRangeSetID(rs);
 }
 
-void RootDAQOut::writeRun(RunPrincipal& rp)
+void art::RootDAQOut::writeRun(RunPrincipal& r)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (hasNewlyDroppedBranch()[InRun])
 	{
-		rp.addToProcessHistory();
+		r.addToProcessHistory();
 	}
-	rootOutputFile_->writeRun(rp);
-	fstats_.recordRun(rp.runID());
+	rootOutputFile_->writeRun(r);
+	fstats_.recordRun(r.id());
 }
 
-void RootDAQOut::startEndFile()
+void art::RootDAQOut::startEndFile()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
-	auto resp = make_unique<ResultsPrincipal>(
-	    ResultsAuxiliary{}, moduleDescription().processConfiguration(), nullptr);
-	resp->createGroupsForProducedProducts(producedResultsProducts_);
-	resp->enableLookupOfProducedProducts(producedResultsProducts_);
-	if (!producedResultsProducts_.descriptions(InResults).empty() ||
+	auto resp = std::make_unique<ResultsPrincipal>(
+	    ResultsAuxiliary{}, description().processConfiguration(), nullptr);
+	resp->setProducedProducts(producedResultsProducts_);
+	if (ProductMetaData::instance().productProduced(InResults) ||
 	    hasNewlyDroppedBranch()[InResults])
 	{
 		resp->addToProcessHistory();
@@ -424,185 +401,170 @@ void RootDAQOut::startEndFile()
 	rootOutputFile_->writeResults(*resp);
 }
 
-void RootDAQOut::writeFileFormatVersion()
+void art::RootDAQOut::writeFileFormatVersion()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeFileFormatVersion();
 }
 
-void RootDAQOut::writeFileIndex()
+void art::RootDAQOut::writeFileIndex()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeFileIndex();
 }
 
-void RootDAQOut::writeEventHistory()
+void art::RootDAQOut::writeEventHistory()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeEventHistory();
 }
 
-void RootDAQOut::writeProcessConfigurationRegistry()
+void art::RootDAQOut::writeProcessConfigurationRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeProcessConfigurationRegistry();
 }
 
-void RootDAQOut::writeProcessHistoryRegistry()
+void art::RootDAQOut::writeProcessHistoryRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeProcessHistoryRegistry();
 }
 
-void RootDAQOut::writeParameterSetRegistry()
+void art::RootDAQOut::writeParameterSetRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (writeParameterSets_)
 	{
 		rootOutputFile_->writeParameterSetRegistry();
 	}
 }
 
-void RootDAQOut::writeProductDescriptionRegistry()
+void art::RootDAQOut::writeProductDescriptionRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeProductDescriptionRegistry();
 }
 
-void RootDAQOut::writeParentageRegistry()
+void art::RootDAQOut::writeParentageRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeParentageRegistry();
 }
 
-void RootDAQOut::doWriteFileCatalogMetadata(
+void art::RootDAQOut::doWriteFileCatalogMetadata(
     FileCatalogMetadata::collection_type const& md,
     FileCatalogMetadata::collection_type const& ssmd)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeFileCatalogMetadata(fstats_, md, ssmd);
 }
 
-void RootDAQOut::writeProductDependencies()
+void art::RootDAQOut::writeProductDependencies()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rootOutputFile_->writeProductDependencies();
 }
 
-void RootDAQOut::finishEndFile()
+void art::RootDAQOut::finishEndFile()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
-	string const currentFileName{rootOutputFile_->currentFileName()};
+	std::string const currentFileName{rootOutputFile_->currentFileName()};
 	rootOutputFile_->writeTTrees();
 	rootOutputFile_.reset();
 	fstats_.recordFileClose();
-	lastClosedFileName_ = fileNameAtClose(currentFileName);
-	detail::logFileAction("Closed output file ", lastClosedFileName_);
+	lastClosedFileName_ =
+	    fRenamer_.maybeRenameFile(currentFileName, filePattern_);
 	TLOG(TLVL_INFO) << __func__ << ": Closed output file \"" << lastClosedFileName_ << "\"";
 	rpm_.invoke(&ResultsProducer::doClear);
 }
 
-void RootDAQOut::doRegisterProducts(ProductDescriptions& producedProducts,
-                                    ModuleDescription const& md)
+void art::RootDAQOut::doRegisterProducts(MasterProductRegistry& mpr,
+                                         ProductDescriptions& producedProducts,
+                                         ModuleDescription const& md)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	// Register Results products from ResultsProducers.
-	rpm_.for_each_RPWorker([&producedProducts, &md](RPWorker& w) {
+	rpm_.for_each_RPWorker([&mpr, &producedProducts, &md](RPWorker& w) {
 		auto const& params = w.params();
 		w.setModuleDescription(
 		    ModuleDescription{params.rpPSetID,
 		                      params.rpPluginType,
 		                      md.moduleLabel() + '#' + params.rpLabel,
-		                      ModuleThreadingType::legacy,
-		                      md.processConfiguration()});
-		w.rp().registerProducts(producedProducts, w.moduleDescription());
+		                      md.processConfiguration(),
+		                      md.parentageEnabled(),
+		                      md.rangesEnabled(),
+		                      md.dbEnabled(),
+		                      ModuleDescription::invalidID()});
+		w.rp().registerProducts(mpr, producedProducts, w.moduleDescription());
 	});
+
 	// Form product table for Results products.  We do this here so we
 	// can appropriately set the product tables for the
 	// ResultsPrincipal.
-	productsToProduce_ = producedProducts;
-	producedResultsProducts_ = ProductTables{productsToProduce_};
+	producedResultsProducts_ = ProductTable{producedProducts, InResults};
 }
 
-void RootDAQOut::setFileStatus(OutputFileStatus const ofs)
+void art::RootDAQOut::setFileStatus(OutputFileStatus const ofs)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (isFileOpen())
-	{
 		rootOutputFile_->setFileStatus(ofs);
-	}
 }
 
-bool RootDAQOut::isFileOpen() const
+bool art::RootDAQOut::isFileOpen() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	return rootOutputFile_.get() != nullptr;
 }
 
-void RootDAQOut::incrementInputFileNumber()
+void art::RootDAQOut::incrementInputFileNumber()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (isFileOpen())
-	{
 		rootOutputFile_->incrementInputFileNumber();
-	}
 }
 
-bool RootDAQOut::requestsToCloseFile() const
+bool art::RootDAQOut::requestsToCloseFile() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	return isFileOpen() ? rootOutputFile_->requestsToCloseFile() : false;
 }
 
-Granularity
-RootDAQOut::fileGranularity() const
+art::Granularity
+art::RootDAQOut::fileGranularity() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	return fileProperties_.granularity();
 }
 
-void RootDAQOut::doOpenFile()
+void art::RootDAQOut::doOpenFile()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (inputFileCount_ == 0)
 	{
-		throw Exception(errors::LogicError)
+		throw art::Exception(art::errors::LogicError)
 		    << "Attempt to open output file before input file. "
 		    << "Please report this to the core framework developers.\n";
 	}
-	rootOutputFile_ = make_unique<RootDAQOutFile>(this,
-	                                              fileNameAtOpen(),
-	                                              fileProperties_,
-	                                              compressionLevel_,
-	                                              freePercent_,
-	                                              freeMB_,
-	                                              saveMemoryObjectThreshold_,
-	                                              treeMaxVirtualSize_,
-	                                              splitLevel_,
-	                                              basketSize_,
-	                                              dropMetaData_,
-	                                              dropMetaDataForDroppedData_,
-	                                              fastCloningEnabled_);
+	rootOutputFile_ =
+	    std::make_unique<RootDAQOutFile>(this,
+	                                     fileNameAtOpen(),
+	                                     fileProperties_,
+	                                     compressionLevel_,
+	                                     freePercent_,
+	                                     freeMB_,
+	                                     saveMemoryObjectThreshold_,
+	                                     treeMaxVirtualSize_,
+	                                     splitLevel_,
+	                                     basketSize_,
+	                                     dropMetaData_,
+	                                     dropMetaDataForDroppedData_,
+	                                     fastCloningEnabled_,
+	                                     description().parentageEnabled(),
+	                                     description().rangesEnabled(),
+	                                     description().dbEnabled());
 	fstats_.recordFileOpen();
 	TLOG(TLVL_INFO) << __func__ << ": Opened output file with pattern \"" << filePattern_ << "\"";
 }
 
 string
-RootDAQOut::fileNameAtOpen() const
+art::RootDAQOut::fileNameAtOpen() const
 {
-	return (filePattern_ == dev_null) ? dev_null : unique_filename(tmpDir_ + "/RootDAQOut");
+	return filePattern_ == dev_null ? dev_null : unique_filename(tmpDir_ + "/RootOutput");
 }
 
 string
-RootDAQOut::fileNameAtClose(std::string const& currentFileName)
+art::RootDAQOut::fileNameAtClose(std::string const& currentFileName)
 {
-	return (filePattern_ == dev_null) ? dev_null : fRenamer_.maybeRenameFile(currentFileName, filePattern_);
+	return filePattern_ == dev_null ? dev_null : fRenamer_.maybeRenameFile(currentFileName, filePattern_);
 }
 
 string const&
-RootDAQOut::lastClosedFileName() const
+art::RootDAQOut::lastClosedFileName() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (lastClosedFileName_.empty())
 	{
 		throw Exception(errors::LogicError, "RootDAQOut::currentFileName(): ")
@@ -611,50 +573,47 @@ RootDAQOut::lastClosedFileName() const
 	return lastClosedFileName_;
 }
 
-void RootDAQOut::beginJob()
+void art::RootDAQOut::beginJob()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rpm_.invoke(&ResultsProducer::doBeginJob);
 }
 
-void RootDAQOut::endJob()
+void art::RootDAQOut::endJob()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rpm_.invoke(&ResultsProducer::doEndJob);
+	showMissingConsumes();
 }
 
-void RootDAQOut::event(EventPrincipal const& ep)
+void art::RootDAQOut::event(EventPrincipal const& ep)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rpm_.for_each_RPWorker([&ep](RPWorker& w) { w.rp().doEvent(ep); });
 }
 
-void RootDAQOut::beginSubRun(SubRunPrincipal const& srp)
+void art::RootDAQOut::beginSubRun(art::SubRunPrincipal const& srp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
-	rpm_.for_each_RPWorker([&srp](RPWorker& w) { w.rp().doBeginSubRun(srp); });
+	rpm_.for_each_RPWorker([&srp](RPWorker& w) {
+		SubRun const sr{srp, w.moduleDescription(), Consumer::non_module_context()};
+		w.rp().doBeginSubRun(srp);
+	});
 }
 
-void RootDAQOut::endSubRun(SubRunPrincipal const& srp)
+void art::RootDAQOut::endSubRun(art::SubRunPrincipal const& srp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rpm_.for_each_RPWorker([&srp](RPWorker& w) { w.rp().doEndSubRun(srp); });
 }
 
-void RootDAQOut::beginRun(RunPrincipal const& rp)
+void art::RootDAQOut::beginRun(art::RunPrincipal const& rp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doBeginRun(rp); });
 }
 
-void RootDAQOut::endRun(RunPrincipal const& rp)
+void art::RootDAQOut::endRun(art::RunPrincipal const& rp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doEndRun(rp); });
 }
 
 std::string
-RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& config)
+art::RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& config)
 {
 	TLOG(TLVL_DEBUG) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
 
@@ -769,6 +728,6 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	return modifiedPattern;
 }
 
-}  // namespace art
-
 DEFINE_ART_MODULE(art::RootDAQOut)
+
+// vim: set sw=2:

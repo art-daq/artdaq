@@ -1,14 +1,14 @@
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 
 #define BOOST_TEST_MODULE DataReceiverManager_t
+#include "artdaq/TransferPlugins/ShmemTransfer.hh"
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
-#include "artdaq/TransferPlugins/ShmemTransfer.hh"
-
 
 BOOST_AUTO_TEST_SUITE(DataReceiverManager_test)
 
-BOOST_AUTO_TEST_CASE(Construct) {
+BOOST_AUTO_TEST_CASE(Construct)
+{
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -78,7 +78,6 @@ BOOST_AUTO_TEST_CASE(ReceiveData)
 	BOOST_REQUIRE_EQUAL(t.slotCount(0), 1);
 	BOOST_REQUIRE_EQUAL(t.enabled_sources().size(), 1);
 	BOOST_REQUIRE_EQUAL(t.running_sources().size(), 0);
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()

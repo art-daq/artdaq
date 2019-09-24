@@ -348,6 +348,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 #endif
 	}
 
+	TLOG(TLVL_DEBUG) << "stop_requested_ is " << stop_requested_ << ", pause_requested_ is " << pause_requested_ << ", exiting process_event_table loop";
 	highest_sequence_id_acked_.clear();
 	if (policy_) policy_->Reset();
 	if (metricMan) metricMan->do_stop();
@@ -423,7 +424,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto yes = 1;
 		if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 		{
-			TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on ack socket";
+			TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on ack socket. errno=" << errno;
 			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to enable port reuse on ack socket" << std::endl;
 			exit(1);
 		}
@@ -441,7 +442,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 		if (bind(ack_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)
 		{
-			TLOG(TLVL_ERROR) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_;
+			TLOG(TLVL_ERROR) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << ", errno=" << errno;
 			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;
 			exit(1);
 		}
