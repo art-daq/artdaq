@@ -1,12 +1,12 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_ShmemTransfer").c_str()
 
+#include <signal.h>
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
 #include "cetlib_except/exception.h"
-#include <signal.h>
 
-artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role) :
-	TransferInterface(pset, role)
+artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
+    : TransferInterface(pset, role)
 {
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": Constructor BEGIN";
 	// char* keyChars = getenv("ARTDAQ_SHM_KEY");
@@ -38,7 +38,8 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	auto shmKey = pset.get<uint32_t>("shm_key_offset", 0) + (partition << 24) + ((source_rank() & 0xFFF) << 12) + (destination_rank() & 0xFFF);
 
 	// Configured Shared Memory key overrides everything! Needed for Online Monitor connections!
-	if (pset.has_key("shm_key")) {
+	if (pset.has_key("shm_key"))
+	{
 		shmKey = pset.get<uint32_t>("shm_key");
 	}
 
@@ -87,7 +88,8 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 	{
 		auto sts = shm_manager_->ReadFragment(fragment);
 
-		if (sts != 0) {
+		if (sts != 0)
+		{
 		  TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragment, returning...";
 		  return RECV_TIMEOUT;
 		}
@@ -134,7 +136,8 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 	{
 		auto sts = shm_manager_->ReadFragmentHeader(header);
 
-		if (sts != 0) {
+		if (sts != 0)
+		{
 		  TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragmentHeader, returning...";
 		  return RECV_TIMEOUT;
 		}
@@ -156,7 +159,8 @@ int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t 
 
 	TLOG(TLVL_TRACE) << GetTraceName() << ": Return status from ReadFragmentData is " << sts ;
 
-	if (sts != 0) {
+	if (sts != 0)
+	{
 	  TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragmentData, returning...";
 	  return RECV_TIMEOUT;
 	}
@@ -181,9 +185,11 @@ artdaq::ShmemTransfer::transfer_fragment_reliable_mode(artdaq::Fragment&& fragme
 artdaq::TransferInterface::CopyStatus
 artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_timeout_usec, bool reliableMode)
 {
-	if (!shm_manager_->IsValid()) {
+	if (!isRunning())
+	{
 		shm_manager_->Attach();
-		if (!shm_manager_->IsValid()) {
+		if (!isRunning())
+		{
 			TLOG(TLVL_ERROR) << GetTraceName() << ": Attempted to send Fragment when not attached to Shared Memory! Returning kSuccess, and dropping data!";
 			return CopyStatus::kSuccess;
 		}
@@ -237,14 +243,13 @@ bool artdaq::ShmemTransfer::isRunning()
 	switch (role())
 	{
 	case TransferInterface::Role::kSend:
-		ret = shm_manager_->IsValid();
+			ret = shm_manager_->IsValid() && !shm_manager_->IsEndOfData();
 		break;
 	case TransferInterface::Role::kReceive:
 		ret = shm_manager_->GetAttachedCount() > 1;
 		break;
 	}
 	return ret;
-
 }
 
 void artdaq::ShmemTransfer::flush_buffers()
