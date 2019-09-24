@@ -4,9 +4,9 @@
 #include "fhiclcpp/make_ParameterSet.h"
 namespace bpo = boost::program_options;
 
-#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/DAQrate/RequestReceiver.hh"
 
 int main(int argc, char* argv[])
 {
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	{
 		for (auto req : recvr.GetAndClearRequests())
 		{
-			TLOG(TLVL_INFO) << "Received Request for Sequence ID " << req.first << ", timestamp " << req.second ;
+			TLOG(TLVL_INFO) << "Received Request for Sequence ID " << req.first << ", timestamp " << req.second;
 		}
 		usleep(10000);
 	}

@@ -1,5 +1,5 @@
-#include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
+#include "canvas/Utilities/Exception.h"
 
 #include "artdaq/DAQdata/Globals.hh" // include these 2 first -
 #define TRACE_NAME (app_name + "_DataReceiverCore").c_str()
@@ -70,7 +70,8 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	if (data_pset.has_key("rank"))
 	{
-		if (my_rank >= 0 && data_pset.get<int>("rank") != my_rank) {
+		if (my_rank >= 0 && data_pset.get<int>("rank") != my_rank)
+		{
 			TLOG(TLVL_WARNING) << "Rank specified at startup is different than rank specified at configure! Using rank received at configure!";
 		}
 		my_rank = data_pset.get<int>("rank");

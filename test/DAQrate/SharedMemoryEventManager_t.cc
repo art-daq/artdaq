@@ -1,13 +1,12 @@
 #define TRACE_NAME "SharedMemoryEventManager_t"
 
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
 #define BOOST_TEST_MODULE SharedMemoryEventManager_t
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
-
 
 BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
@@ -485,7 +484,6 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	{
-
 		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
@@ -519,7 +517,6 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		//BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
-
 	}
 	{
 		frag->setSequenceID(3);
@@ -725,7 +722,6 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	BOOST_REQUIRE_EQUAL(t.runID(), 3);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 1);
 
-
 	artdaq::SharedMemoryEventReceiver r(t.GetKey(), t.GetBroadcastKey());
 	bool errflag = false;
 
@@ -735,7 +731,8 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	auto hdr = r.ReadHeader(errflag);
 	BOOST_REQUIRE_EQUAL(errflag, false);
 	BOOST_REQUIRE(hdr != nullptr);
-	if (hdr != nullptr) { // Make static analyzer happy
+	if (hdr != nullptr)
+	{  // Make static analyzer happy
 		BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
 		BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
 		BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
