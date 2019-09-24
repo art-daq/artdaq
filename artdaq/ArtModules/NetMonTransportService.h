@@ -3,9 +3,9 @@
 
 #include "art/Framework/Services/Registry/ServiceMacros.h"
 
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 #include "artdaq/ArtModules/NetMonTransportServiceInterface.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 
 // ----------------------------------------------------------------------
 
@@ -22,18 +22,17 @@ public:
 	struct Config
 	{
 		/// "shared_memory_key" (Default: 0xBEE70000 + pid): Key to use when connecting to shared memory. Will default to 0xBEE70000 + getppid().
-		fhicl::Atom<uint32_t> shared_memory_key{ fhicl::Name{"shared_memory_key"},fhicl::Comment{"Key to use when connecting to shared memory. Will default to 0xBEE70000 + getppid()."},0xBEE70000 };
+		fhicl::Atom<uint32_t> shared_memory_key{fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use when connecting to shared memory. Will default to 0xBEE70000 + getppid()."}, 0xBEE70000};
 		/// "shared_memory_key" (Default: 0xCEE70000 + pid): Key to use when connecting to broadcast shared memory. Will default to 0xCEE70000 + getppid().
-		fhicl::Atom<uint32_t> broadcast_shared_memory_key{ fhicl::Name{ "broadcast_shared_memory_key" },fhicl::Comment{ "Key to use when connecting to broadcast shared memory. Will default to 0xCEE70000 + getppid()."},0xCEE70000 };
+		fhicl::Atom<uint32_t> broadcast_shared_memory_key{fhicl::Name{"broadcast_shared_memory_key"}, fhicl::Comment{"Key to use when connecting to broadcast shared memory. Will default to 0xCEE70000 + getppid()."}, 0xCEE70000};
 		/// "rank" (OPTIONAL) : The rank of this applicaiton, for use by non - artdaq applications running NetMonTransportService
-		fhicl::Atom<int> rank{ fhicl::Name{"rank"}, fhicl::Comment{"Rank of this artdaq application. Used for data transfers"} };
+		fhicl::Atom<int> rank{fhicl::Name{"rank"}, fhicl::Comment{"Rank of this artdaq application. Used for data transfers"}};
 		/// "init_fragment_timeout_seconds" (Default: 1.0): Amount of time to wait, in seconds, for init Fragment to arrive
-		fhicl::Atom<double> init_fragment_timeout{ fhicl::Name{"init_fragment_timeout_seconds"}, fhicl::Comment{"Amount of time to wait, in seconds, for init Fragment to arrive"}, 1.0 };
-		fhicl::TableFragment<artdaq::DataSenderManager::Config> dataSenderConfig; ///< Configuration for DataSenderManager. See artdaq::DataSenderManager::Config
+		fhicl::Atom<double> init_fragment_timeout{fhicl::Name{"init_fragment_timeout_seconds"}, fhicl::Comment{"Amount of time to wait, in seconds, for init Fragment to arrive"}, 1.0};
+		fhicl::TableFragment<artdaq::DataSenderManager::Config> dataSenderConfig;  ///< Configuration for DataSenderManager. See artdaq::DataSenderManager::Config
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
-
 
 	/**
 	 * \brief NetMonTransportService Destructor. Calls disconnect().
@@ -86,6 +85,7 @@ public:
 	 * \return The number of data receivers
 	 */
 	size_t dataReceiverCount() const { return sender_ptr_->destinationCount(); }
+
 private:
 	fhicl::ParameterSet data_pset_;
 	bool init_received_;

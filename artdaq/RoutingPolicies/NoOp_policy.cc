@@ -1,49 +1,49 @@
-#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
+#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "tracemf.h"
 #define TRACE_NAME "NoOp_policy"
-namespace artdaq
-{
-	/**
+namespace artdaq {
+/**
 	 * \brief A RoutingMasterPolicy which simply assigns Sequence IDs to tokens in the order they were received
 	 */
-	class NoOpPolicy : public RoutingMasterPolicy
-	{
-	public:
-		/**
+class NoOpPolicy : public RoutingMasterPolicy
+{
+public:
+	/**
 		 * \brief NoOpPolicy Constructor
 		 * \param ps ParameterSet used to configure the NoOpPolicy
 		 * 
 		 * NoOpPolicy takes no additional Parameters at this time
 		 */
-		explicit NoOpPolicy(fhicl::ParameterSet ps) : RoutingMasterPolicy(ps) {}
+	explicit NoOpPolicy(fhicl::ParameterSet ps)
+	    : RoutingMasterPolicy(ps) {}
 
-		/**
+	/**
 		 * \brief Default virtual Destructor
 		 */
-		virtual ~NoOpPolicy() = default;
+	virtual ~NoOpPolicy() = default;
 
-		/**
+	/**
 		 * \brief Using the tokens received so far, create a Routing Table
 		 * \return A detail::RoutingPacket containing the Routing Table
 		 */
-		detail::RoutingPacket GetCurrentTable() override;
-	};
+	detail::RoutingPacket GetCurrentTable() override;
+};
 
-	detail::RoutingPacket NoOpPolicy::GetCurrentTable()
+detail::RoutingPacket NoOpPolicy::GetCurrentTable()
+{
+	TLOG(12) << "NoOpPolicy::GetCurrentTable start";
+	auto tokens = getTokensSnapshot();
+	detail::RoutingPacket output;
+	for (auto token : *tokens.get())
 	{
-		TLOG(12) << "NoOpPolicy::GetCurrentTable start";
-		auto tokens = getTokensSnapshot();
-		detail::RoutingPacket output;
-		for(auto token : *tokens.get())
-		{
-			output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, token));
-		}
-
-		TLOG(12) << "NoOpPolicy::GetCurrentTable return";
-		return output;
+		output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, token));
 	}
+
+	TLOG(12) << "NoOpPolicy::GetCurrentTable return";
+	return output;
 }
+}  // namespace artdaq
 
 DEFINE_ARTDAQ_ROUTING_POLICY(artdaq::NoOpPolicy)

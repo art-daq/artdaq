@@ -7,7 +7,6 @@
 // from cetpkgsupport v1_05_02.
 ////////////////////////////////////////////////////////////////////////
 
-
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -21,9 +20,8 @@
 
 #include <iostream>
 
-namespace artdaq
-{
-	class PrintBuildInfo;
+namespace artdaq {
+class PrintBuildInfo;
 }
 
 /**
@@ -54,7 +52,7 @@ public:
 	/**
 	 * \brief Called for each event. Required overload for art::EDAnalyzer, No-Op here.
 	 */
-	void analyze(art::Event const&) override { }
+	void analyze(art::Event const&) override {}
 
 	/**
 	 * \brief Perform actions at the beginning of the run
@@ -66,19 +64,14 @@ public:
 	void beginRun(art::Run const& run) override;
 
 private:
-
 	std::string buildinfo_module_label_;
 	std::string buildinfo_instance_label_;
 };
 
-
 artdaq::PrintBuildInfo::PrintBuildInfo(fhicl::ParameterSet const& pset)
-	:
-	EDAnalyzer(pset)
-	, buildinfo_module_label_(pset.get<std::string>("buildinfo_module_label"))
-	, buildinfo_instance_label_(pset.get<std::string>("buildinfo_instance_label")) {}
-
-
+    : EDAnalyzer(pset)
+    , buildinfo_module_label_(pset.get<std::string>("buildinfo_module_label"))
+    , buildinfo_instance_label_(pset.get<std::string>("buildinfo_instance_label")) {}
 
 void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 {
@@ -90,9 +83,11 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 	{
 		std::cout << "--------------------------------------------------------------" << std::endl;
 		std::cout.width(20);
-		std::cout << std::left << "Package" << "|";
+		std::cout << std::left << "Package"
+		          << "|";
 		std::cout.width(20);
-		std::cout << std::left << "Version" << "|";
+		std::cout << std::left << "Version"
+		          << "|";
 		std::cout.width(20);
 		std::cout << std::left << "Timestamp" << std::endl;
 
@@ -110,11 +105,11 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 	}
 	else
 	{
-		std::cerr << "\n" << std::endl;
-		std::cerr << "Warning in artdaq::PrintBuildInfo module: Run " << run.run() <<
-			" appears not to have found product instance \"" << buildinfo_instance_label_ <<
-			"\" of module \"" << buildinfo_module_label_ << "\"" << std::endl;
-		std::cerr << "\n" << std::endl;
+		std::cerr << "\n"
+		          << std::endl;
+		std::cerr << "Warning in artdaq::PrintBuildInfo module: Run " << run.run() << " appears not to have found product instance \"" << buildinfo_instance_label_ << "\" of module \"" << buildinfo_module_label_ << "\"" << std::endl;
+		std::cerr << "\n"
+		          << std::endl;
 	}
 }
 

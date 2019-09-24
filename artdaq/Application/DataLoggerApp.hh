@@ -3,12 +3,11 @@
 
 #include <future>
 
-#include "artdaq/Application/DataLoggerCore.hh"
 #include "artdaq/Application/Commandable.hh"
+#include "artdaq/Application/DataLoggerCore.hh"
 
-namespace artdaq
-{
-	class DataLoggerApp;
+namespace artdaq {
+class DataLoggerApp;
 }
 
 /**
@@ -107,7 +106,6 @@ public:
 	* \return Whether the command succeeded
 	*/
 	bool do_clear_config_archive() override;
-
 
 private:
 	std::unique_ptr<DataLoggerCore> DataLogger_ptr_;
