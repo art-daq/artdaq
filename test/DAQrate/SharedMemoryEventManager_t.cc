@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
 BOOST_AUTO_TEST_CASE(Construct)
 {
-	TLOG(TLVL_INFO) << "Test Construct BEGIN" ;
+	TLOG(TLVL_INFO) << "Test Construct BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -23,12 +23,12 @@ BOOST_AUTO_TEST_CASE(Construct)
 	BOOST_REQUIRE_EQUAL(t.runID(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetSubrunForSequenceID(1), 1);
 	BOOST_REQUIRE_EQUAL(t.GetLockedBufferCount(), 0);
-	TLOG(TLVL_INFO) << "Test Construct END" ;
+	TLOG(TLVL_INFO) << "Test Construct END";
 }
 
 BOOST_AUTO_TEST_CASE(AddFragment)
 {
-	TLOG(TLVL_INFO) << "Test AddFragment BEGIN" ;
+	TLOG(TLVL_INFO) << "Test AddFragment BEGIN";
 
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
@@ -48,12 +48,12 @@ BOOST_AUTO_TEST_CASE(AddFragment)
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
-	TLOG(TLVL_INFO) << "Test AddFragment END" ;
+	TLOG(TLVL_INFO) << "Test AddFragment END";
 }
 
 BOOST_AUTO_TEST_CASE(DataFlow)
 {
-	TLOG(TLVL_INFO) << "Test DataFlow BEGIN" ;
+	TLOG(TLVL_INFO) << "Test DataFlow BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
-	TLOG(TLVL_INFO) << "Test DataFlow END" ;
+	TLOG(TLVL_INFO) << "Test DataFlow END";
 }
 
 /*
@@ -467,7 +467,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 //SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
 BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 {
-	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active BEGIN" ;
+	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 20);
@@ -585,7 +585,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 #endif
 	}
 
-	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active END" ;
+	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active END";
 }
 /*
 //SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
@@ -701,7 +701,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 
 BOOST_AUTO_TEST_CASE(RunNumbers)
 {
-	TLOG(TLVL_INFO) << "Test RunNumbers BEGIN" ;
+	TLOG(TLVL_INFO) << "Test RunNumbers BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -742,7 +742,7 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	BOOST_REQUIRE_EQUAL(frags->size(), 1);
 	r.ReleaseBuffer();
 
-	TLOG(TLVL_INFO) << "Test RunNumbers END" ;
+	TLOG(TLVL_INFO) << "Test RunNumbers END";
 }
 
 BOOST_AUTO_TEST_SUITE_END()
