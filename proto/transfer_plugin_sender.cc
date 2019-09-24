@@ -1,6 +1,6 @@
-#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include "cetlib/BasicPluginFactory.h"
 #include "cetlib/filepath_maker.h"
@@ -12,13 +12,13 @@
 #include <boost/lexical_cast.hpp>
 
 #include <algorithm>
-#include <numeric>
+#include <cstdlib>
 #include <iostream>
+#include <limits>
+#include <memory>
+#include <numeric>
 #include <sstream>
 #include <string>
-#include <cstdlib>
-#include <memory>
-#include <limits>
 
 // DUPLICATED CODE: also found in transfer_plugin_receiver.cpp. Not as
 // egregious as normal in that this function is unlikely to be
@@ -29,7 +29,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 	if (std::getenv("FHICL_FILE_PATH") == nullptr)
 	{
 		std::cerr
-			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+		    << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 
@@ -39,7 +39,6 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 
 	return pset;
 }
-
 
 int main(int argc, char* argv[])
 {
@@ -68,12 +67,12 @@ int main(int argc, char* argv[])
 		static cet::BasicPluginFactory bpf("transfer", "make");
 
 		transfer =
-			bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
-			               const fhicl::ParameterSet&,
-			               artdaq::TransferInterface::Role>(
-				pset.get<std::string>("transfer_plugin_type"),
-				pset,
-				artdaq::TransferInterface::Role::kSend);
+		    bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
+		                   const fhicl::ParameterSet&,
+		                   artdaq::TransferInterface::Role>(
+		        pset.get<std::string>("transfer_plugin_type"),
+		        pset,
+		        artdaq::TransferInterface::Role::kSend);
 	}
 	catch (...)
 	{
