@@ -1163,7 +1163,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		}
 	}
 		
-    if (statsHelper_.readyToReport()) {
+	if (statsHelper_.readyToReport())
+	{
          std::string statString = buildStatisticsString_();
           TLOG(TLVL_INFO) << statString;
     }
@@ -1251,13 +1252,15 @@ void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSe
 	TLOG(TLVL_DEBUG) << "UpdateArtConfiguration END";
 }
 
-std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const {
+std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
+{
   std::ostringstream oss;
   oss << app_name << " statistics:" << std::endl;
 
   artdaq::MonitoredQuantityPtr mqPtr =
       artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(EVENTS_RELEASED_STAT_KEY);
-  if (mqPtr.get() != 0) {
+	if (mqPtr.get() != 0)
+	{
     artdaq::MonitoredQuantityStats stats;
     mqPtr->getStats(stats);
     oss << "  Event statistics: " << stats.recentSampleCount << " events released at " << stats.recentSampleRate
@@ -1266,14 +1269,16 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const {
         << " MB/sec, monitor window = " << stats.recentDuration
         << " sec, min::max event size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
         << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
-    if (stats.recentSampleRate > 0.0) {
+		if (stats.recentSampleRate > 0.0)
+		{
     oss << "  Average time per event: ";
       oss << " elapsed time = " << (1.0 / stats.recentSampleRate) << " sec" << std::endl;
     }
   }
 
   mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_RECEIVED_STAT_KEY);
-  if (mqPtr.get() != 0) {
+	if (mqPtr.get() != 0)
+	{
     artdaq::MonitoredQuantityStats stats;
     mqPtr->getStats(stats);
     oss << "  Fragment statistics: " << stats.recentSampleCount << " fragments received at " << stats.recentSampleRate
