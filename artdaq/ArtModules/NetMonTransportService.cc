@@ -1,7 +1,7 @@
 #define TRACE_NAME "NetMonTransportService"
 
-#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 #include "artdaq/ArtModules/NetMonTransportService.h"
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 
@@ -348,7 +348,7 @@ void NetMonTransportService::receiveInitMessage(std::list<std::unique_ptr<TBuffe
 		ostream.close();
 #endif
 
-		msgs.emplace_back( new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0));
+		msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0));
 	}
 	TLOG(TLVL_TRACE) << "receiveInitMessage END";
 	init_received_ = true;

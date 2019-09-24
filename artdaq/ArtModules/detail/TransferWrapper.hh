@@ -11,13 +11,13 @@
 #include <TBufferFile.h>
 
 namespace fhicl {
-	class ParameterSet;
+class ParameterSet;
 }
 
 namespace artdaq {
-	class Fragment;
+class Fragment;
 
-	/**
+/**
 	 * \brief TransferWrapper wraps a TransferInterface so that it can be used in the ArtdaqInput class
 	 * to make an art::Source
 	 * 
@@ -28,10 +28,10 @@ namespace artdaq {
 	 * so. Its functionality is such that it satisfies the requirements
 	 * needed to be a template in the ArtdaqInput class
 	 */
-	class TransferWrapper
-	{
-	public:
-		/**
+class TransferWrapper
+{
+public:
+	/**
 		 * \brief TransferWrapper Constructor
 		 * \param pset ParameterSet used to configure the TransferWrapper
 		 * 
@@ -50,47 +50,46 @@ namespace artdaq {
 		 * should be included here.
 		 * \endverbatim
 		 */
-		explicit TransferWrapper(const fhicl::ParameterSet& pset);
+	explicit TransferWrapper(const fhicl::ParameterSet& pset);
 
-		/**
+	/**
 		 * \brief TransferWrapper Destructor
 		 */
-		virtual ~TransferWrapper();
+	virtual ~TransferWrapper();
 
-		/**
+	/**
 		 * \brief Receive a Fragment from the TransferInterface, and send it to art
 		 * \param[out] msg The message in art format
 		 */
-		void receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs);
+	void receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs);
 
-		/**
+	/**
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
 		 * \param[out] msg The message in art format
 		 */
-	    void receiveInitMessage(std::list<std::unique_ptr<TBufferFile>>& msgs)
-	    {
-		    receiveMessage(msgs);
-	    }
+	void receiveInitMessage(std::list<std::unique_ptr<TBufferFile>>& msgs)
+	{
+		receiveMessage(msgs);
+	}
 
-	private:
+private:
+	void extractTBufferFile(const artdaq::Fragment&, std::list<std::unique_ptr<TBufferFile>>&);
 
-		void extractTBufferFile(const artdaq::Fragment&, std::list<std::unique_ptr<TBufferFile>>&);
+	void checkIntegrity(const artdaq::Fragment&) const;
 
-		void checkIntegrity(const artdaq::Fragment&) const;
+	void unregisterMonitor();
 
-		void unregisterMonitor();
-
-		std::size_t timeoutInUsecs_;
-		std::unique_ptr<TransferInterface> transfer_;
-		std::unique_ptr<CommanderInterface> commander_;
-		const std::string dispatcherHost_;
-		const std::string dispatcherPort_;
-		const std::string serverUrl_;
-		const std::size_t maxEventsBeforeInit_;
-		const std::vector<int> allowedFragmentTypes_;
-		const bool quitOnFragmentIntegrityProblem_;
-		bool monitorRegistered_;
-	};
+	std::size_t timeoutInUsecs_;
+	std::unique_ptr<TransferInterface> transfer_;
+	std::unique_ptr<CommanderInterface> commander_;
+	const std::string dispatcherHost_;
+	const std::string dispatcherPort_;
+	const std::string serverUrl_;
+	const std::size_t maxEventsBeforeInit_;
+	const std::vector<int> allowedFragmentTypes_;
+	const bool quitOnFragmentIntegrityProblem_;
+	bool monitorRegistered_;
+};
 }  // namespace artdaq
 
 #endif /* artdaq_ArtModules_TransferWrapper_hh */

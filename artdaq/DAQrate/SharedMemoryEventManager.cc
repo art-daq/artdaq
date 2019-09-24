@@ -877,9 +877,9 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 		TLOG(TLVL_ERROR) << "Requested broadcast but no Fragments given!";
 		return false;
 	}
-	TLOG(TLVL_DEBUG) << "Broadcasting Fragments with seqID=" << frags.front()->sequenceID() 
-		<< ", type " << detail::RawFragmentHeader::SystemTypeToString(frags.front()->type())
-		<< ", size=" << frags.front()->sizeBytes() << "B.";
+	TLOG(TLVL_DEBUG) << "Broadcasting Fragments with seqID=" << frags.front()->sequenceID()
+	                 << ", type " << detail::RawFragmentHeader::SystemTypeToString(frags.front()->type())
+	                 << ", size=" << frags.front()->sizeBytes() << "B.";
 	auto buffer = broadcasts_.GetBufferForWriting(false);
 	TLOG(TLVL_DEBUG) << "broadcastFragments_: after getting buffer 1st buffer=" << buffer;
 	auto start_time = std::chrono::steady_clock::now();

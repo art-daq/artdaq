@@ -213,40 +213,40 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 		unsigned long dummy = 0;
 		msg->ReadULong(dummy);
 
-	// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
-	TList* list = (TList*)msg->ReadObject(TList::Class());
+		// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
+		TList* list = (TList*)msg->ReadObject(TList::Class());
 
-	TIter next(list);
-	TStreamerInfo* info;
-	TObjLink* lnk = list->FirstLink();
-	// First call BuildCheck for regular class
-	while (lnk)
-	{
-		info = (TStreamerInfo*)lnk->GetObject();
-		TObject* element = info->GetElements()->UncheckedAt(0);
-		Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
-		if (!isstl)
+		TIter next(list);
+		TStreamerInfo* info;
+		TObjLink* lnk = list->FirstLink();
+		// First call BuildCheck for regular class
+		while (lnk)
 		{
-			info->BuildCheck();
-			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+			info = (TStreamerInfo*)lnk->GetObject();
+			TObject* element = info->GetElements()->UncheckedAt(0);
+			Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+			if (!isstl)
+			{
+				info->BuildCheck();
+				TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+			}
+			lnk = lnk->Next();
 		}
-		lnk = lnk->Next();
-	}
-	// Then call BuildCheck for stl class
-	lnk = list->FirstLink();
-	while (lnk)
-	{
-		info = (TStreamerInfo*)lnk->GetObject();
-		TObject* element = info->GetElements()->UncheckedAt(0);
-		Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
-		if (isstl)
+		// Then call BuildCheck for stl class
+		lnk = list->FirstLink();
+		while (lnk)
 		{
-			info->BuildCheck();
-			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+			info = (TStreamerInfo*)lnk->GetObject();
+			TObject* element = info->GetElements()->UncheckedAt(0);
+			Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+			if (isstl)
+			{
+				info->BuildCheck();
+				TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+			}
+			lnk = lnk->Next();
 		}
-		lnk = lnk->Next();
-	}
-	// ELF: 6/11/2019: End TSocket snippet
+		// ELF: 6/11/2019: End TSocket snippet
 
 		//
 		//  Read the ParameterSetRegistry.
@@ -287,7 +287,7 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 			                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
 			                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 #endif
-			if (productListInitialized)			productList_->emplace(*I);
+			if (productListInitialized) productList_->emplace(*I);
 		}
 
 		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory";
