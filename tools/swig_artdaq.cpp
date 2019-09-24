@@ -31,7 +31,6 @@ void swig_artdaq::send_metric(std::string name, int level, double value, std::st
 	metricMan->sendMetric(name, value, unit, level, artdaq::MetricMode::LastPoint);
 }
 
-
 void swig_artdaq::send_sum_metric(std::string name, int level, std::string value, std::string unit)
 {
 	metricMan->sendMetric(name, value, unit, level, artdaq::MetricMode::Accumulate);

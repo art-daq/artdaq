@@ -7,7 +7,8 @@
  * \file artdaq.h This file serves as an entry point for a SWIG module which can be used to send MessageFacility messages or metrics
  */
 
-class swig_artdaq {
+class swig_artdaq
+{
 public:
 	explicit swig_artdaq(std::string config_string);
 	~swig_artdaq();
@@ -31,4 +32,4 @@ public:
 	void write_trace(int level, std::string name, std::string message);
 };
 
-#endif //ARTDAQ_TOOLS_ARTDAQ_H
+#endif  //ARTDAQ_TOOLS_ARTDAQ_H
