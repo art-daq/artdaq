@@ -1,21 +1,20 @@
 #ifndef artdaq_Application_MPI2_DataReceiverCore_hh
 #define artdaq_Application_MPI2_DataReceiverCore_hh
 
-#include <string>
 #include <atomic>
 #include <map>
+#include <string>
 
-#include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
 
-namespace artdaq
-{
-	class DataReceiverCore;
+namespace artdaq {
+class DataReceiverCore;
 }
 
 /**
@@ -25,7 +24,6 @@ namespace artdaq
 class artdaq::DataReceiverCore
 {
 public:
-
 	/**
 	 * \brief DataReceiverCore Constructor.
 	 */
@@ -120,7 +118,7 @@ public:
 	* \return True event_store_ptr is valid
 	*/
 	bool rollover_subrun(uint64_t eventNum, uint32_t subrun);
-	
+
 	/**
 	* \brief Send a report on a given run-time quantity
 	* \param which Which quantity to report
@@ -165,16 +163,16 @@ protected:
 	 * \return Whether the initialize succeeded
 	 */
 	bool initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset);
-	
-	std::unique_ptr<DataReceiverManager> receiver_ptr_; ///< Pointer to the DataReceiverManager
-	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_; ///< Pointer to the SharedMemoryEventManager
-	std::atomic<bool> stop_requested_; ///< Stop has been requested?
-	std::atomic<bool> pause_requested_; ///< Pause has been requested?
-	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
-	bool verbose_; ///< Whether to log transition messages
-	
-	fhicl::ParameterSet art_pset_; ///< ParameterSet sent to art process
-	std::map<std::string, std::string> config_archive_entries_; ///< Additional strings to archive as part of the art configuration
+
+	std::unique_ptr<DataReceiverManager> receiver_ptr_;          ///< Pointer to the DataReceiverManager
+	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_;  ///< Pointer to the SharedMemoryEventManager
+	std::atomic<bool> stop_requested_;                           ///< Stop has been requested?
+	std::atomic<bool> pause_requested_;                          ///< Pause has been requested?
+	std::atomic<bool> run_is_paused_;                            ///< Pause has been successfully completed?
+	bool verbose_;                                               ///< Whether to log transition messages
+
+	fhicl::ParameterSet art_pset_;                               ///< ParameterSet sent to art process
+	std::map<std::string, std::string> config_archive_entries_;  ///< Additional strings to archive as part of the art configuration
 
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag

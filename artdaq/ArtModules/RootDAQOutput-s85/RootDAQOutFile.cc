@@ -1,11 +1,6 @@
-#include "artdaq/ArtModules/RootDAQOutput/RootDAQOutFile.h"
+#include "artdaq/ArtModules/RootDAQOutput-s85/RootDAQOutFile.h"
 // vim: set sw=2:
 
-#include "Rtypes.h"
-#include "TBranchElement.h"
-#include "TClass.h"
-#include "TFile.h"
-#include "TTree.h"
 #include "art/Framework/IO/FileStatsCollector.h"
 #include "art/Framework/IO/Root/DropMetaData.h"
 #include "art/Framework/IO/Root/GetFileFormatEra.h"
@@ -14,19 +9,16 @@
 #include "art/Framework/IO/Root/RootDB/TKeyVFSOpenPolicy.h"
 #include "art/Framework/IO/Root/RootFileBlock.h"
 #include "art/Framework/IO/Root/checkDictionaries.h"
-#include "art/Framework/IO/Root/detail/KeptProvenance.h"
 #include "art/Framework/IO/Root/detail/getObjectRequireDict.h"
+#include "art/Framework/IO/Root/detail/readFileIndex.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/ResultsPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Services/System/DatabaseConnection.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
-#if ART_HEX_VERSION < 0x30000
 #include "art/Persistency/Provenance/ProductMetaData.h"
-#endif
 #include "art/Version/GetReleaseVersion.h"
-#include "artdaq/DAQdata/Globals.hh"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "canvas/Persistency/Provenance/BranchChildren.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
@@ -38,6 +30,8 @@
 #include "canvas/Persistency/Provenance/Parentage.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
 #include "canvas/Persistency/Provenance/ProcessHistoryID.h"
+#include "canvas/Persistency/Provenance/ProductID.h"
+#include "canvas/Persistency/Provenance/ProductProvenance.h"
 #include "canvas/Persistency/Provenance/ProductStatus.h"
 #include "canvas/Persistency/Provenance/ResultsAuxiliary.h"
 #include "canvas/Persistency/Provenance/RunAuxiliary.h"
@@ -56,12 +50,18 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
+
+#include "TFile.h"
+#include "TTree.h"
+#include "artdaq/DAQdata/Globals.hh"
 #include "tracemf.h"  // TLOG
 #define TRACE_NAME (app_name + "_RootDAQOutFile").c_str()
 
 #include <fcntl.h>        // posix_fadvise POSIX_FADV_DONTNEED
 #include <sys/sysinfo.h>  // sysinfo(sysinfo*)
 #include <algorithm>
+#include <map>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -191,18 +191,27 @@ void maybeInvalidateRangeSet(BranchType const bt,
 	assert(productRS.is_sorted());
 
 	if (!productRS.is_valid())
+	{
 		return;
+	}
 	if (bt == art::InRun && productRS.is_full_run())
+	{
 		return;
+	}
 	if (bt == art::InSubRun && productRS.is_full_subRun())
+	{
 		return;
+	}
 	if (productRS.ranges().empty())
+	{
 		return;
-
+	}
 	auto const r = productRS.run();
 	auto const& productFront = productRS.ranges().front();
 	if (!principalRS.contains(r, productFront.subRun(), productFront.begin()))
+	{
 		productRS = art::RangeSet::invalid();
+	}
 }
 
 using art::detail::RangeSetsSupported;
@@ -294,9 +303,11 @@ setProductRangeSetID(art::RangeSet const& rs,
                      art::EDProduct* product,
                      std::map<unsigned, unsigned>& checksumToIndexLookup)
 {
-	if (!rs.is_valid())  // Invalid range-sets not written to DB
+	if (!rs.is_valid())
+	{
+		// Invalid range-sets not written to DB
 		return;
-
+	}
 	// Set range sets for SubRun and Run products
 	auto it = checksumToIndexLookup.find(rs.checksum());
 	if (it != checksumToIndexLookup.cend())
@@ -328,7 +339,10 @@ art::RootDAQOutFile::RootDAQOutFile(OutputModule* om,
                                     int const basketSize,
                                     DropMetaData dropMetaData,
                                     bool const dropMetaDataForDroppedData,
-                                    bool const fastCloningRequested)
+                                    bool const fastCloningRequested,
+                                    bool const parentageEnabled,
+                                    bool const rangesEnabled,
+                                    bool const dbEnabled)
     : om_{om}
     , file_{fileName}
     , fileSwitchCriteria_{fileSwitchCriteria}
@@ -380,18 +394,28 @@ art::RootDAQOutFile::RootDAQOutFile(OutputModule* om,
                          splitLevel,
                          treeMaxVirtualSize,
                          saveMemoryObjectThreshold)}}
-    , rootFileDB_{ServiceHandle<DatabaseConnection>{}->get<TKeyVFSOpenPolicy>(
-          "RootFileDB",
-          filePtr_.get(),
-          SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE)}
+    , parentageEnabled_{parentageEnabled}
+    , rangesEnabled_{rangesEnabled}
+    , dbEnabled_{dbEnabled}
 {
+	if (dbEnabled_)
+	{
+		rootFileDB_ = ServiceHandle<DatabaseConnection> {}
+		->get<TKeyVFSOpenPolicy>(
+		    "RootFileDB", filePtr_.get(), SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE);
+	}
 	// Don't split metadata tree or event description tree
 	metaDataTree_ =
 	    RootOutputTree::makeTTree(filePtr_.get(), rootNames::metaDataTreeName(), 0);
 	fileIndexTree_ = RootOutputTree::makeTTree(
 	    filePtr_.get(), rootNames::fileIndexTreeName(), 0);
-	parentageTree_ = RootOutputTree::makeTTree(
-	    filePtr_.get(), rootNames::parentageTreeName(), 0);
+	{
+		FileIndex::Element elem;
+		auto const* findexElemPtr = &elem;
+		TBranch* b = fileIndexTree_->Branch(
+		    metaBranchRootName<FileIndex::Element>(), &findexElemPtr, basketSize_, 0);
+		b->ResetAddress();
+	}
 	// Create the tree that will carry (event) History objects.
 	eventHistoryTree_ = RootOutputTree::makeTTree(
 	    filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
@@ -400,19 +424,18 @@ art::RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 		throw art::Exception(art::errors::FatalRootError)
 		    << "Failed to create the tree for History objects\n";
 	}
-
-	pHistory_ = new History;
-	if (!eventHistoryTree_->Branch(rootNames::eventHistoryBranchName().c_str(),
-	                               &pHistory_,
-	                               basketSize,
-	                               0))
 	{
-		throw art::Exception(art::errors::FatalRootError)
-		    << "Failed to create a branch for History in the output file\n";
+		pHistory_ = new History;
+		TBranch* b = eventHistoryTree_->Branch(
+		    rootNames::eventHistoryBranchName().c_str(), &pHistory_, basketSize, 0);
+		if (!b)
+		{
+			throw art::Exception(art::errors::FatalRootError)
+			    << "Failed to create a branch for History in the output file\n";
+		}
+		delete pHistory_;
+		pHistory_ = nullptr;
 	}
-	delete pHistory_;
-	pHistory_ = nullptr;
-
 	// Check that dictionaries for the auxiliaries exist
 	root::DictionaryChecker checker{};
 	checker.checkDictionaries<EventAuxiliary>();
@@ -420,8 +443,10 @@ art::RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	checker.checkDictionaries<RunAuxiliary>();
 	checker.checkDictionaries<ResultsAuxiliary>();
 	checker.reportMissingDictionaries();
-
-	createDatabaseTables();
+	if (dbEnabled_)
+	{
+		createDatabaseTables();
+	}
 	TLOG(3) << "RootDAQOutFile ctor complete";
 }
 
@@ -443,6 +468,10 @@ art::RootDAQOutFile::~RootDAQOutFile()
 
 void art::RootDAQOutFile::createDatabaseTables()
 {
+	if (!dbEnabled_)
+	{
+		return;
+	}
 	// Event ranges
 	create_table(rootFileDB_,
 	             "EventRanges",
@@ -450,7 +479,6 @@ void art::RootDAQOutFile::createDatabaseTables()
 	              "begin INTEGER",
 	              "end INTEGER",
 	              "UNIQUE (SubRun,begin,end) ON CONFLICT IGNORE"});
-
 	// SubRun range sets
 	using namespace cet::sqlite;
 	create_table(rootFileDB_, "SubRunRangeSets", column<int>{"Run"});
@@ -460,7 +488,6 @@ void art::RootDAQOutFile::createDatabaseTables()
 	              "EventRangesID INTEGER",
 	              "PRIMARY KEY(RangeSetsID,EventRangesID)"},
 	             "WITHOUT ROWID");
-
 	// Run range sets
 	create_table(rootFileDB_, "RunRangeSets", column<int>{"Run"});
 	create_table(rootFileDB_,
@@ -477,15 +504,15 @@ void art::RootDAQOutFile::selectProducts()
 	{
 		auto const bt = static_cast<BranchType>(i);
 		auto& items = selectedOutputItemList_[bt];
-
 		for (auto const& pd : om_->keptProducts()[bt])
 		{
 			// Persist Results products only if they have been produced by
 			// the current process.
 			if (bt == InResults && !pd->produced())
+			{
 				continue;
+			}
 			checkDictionaries(*pd);
-
 			// Although the transient flag is already checked when
 			// OutputModule::doSelectProducts is called, it can be flipped
 			// to 'true' after the BranchDescription transients have been
@@ -494,10 +521,8 @@ void art::RootDAQOutFile::selectProducts()
 			{
 				continue;
 			}
-
 			items.emplace(pd);
 		}
-
 		for (auto const& val : items)
 		{
 			treePointers_[bt]->addOutputBranch(*val.branchDescription_, val.product_);
@@ -531,7 +556,6 @@ void art::RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 		       "having a different splitting policy.";
 		shouldFastClone = false;
 	}
-
 	if (shouldFastClone && rfb->fileFormatVersion().value_ < 10)
 	{
 		mf::LogWarning("FastCloning")
@@ -539,7 +563,6 @@ void art::RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 		    << "reading in file that has a different ProductID schema.";
 		shouldFastClone = false;
 	}
-
 	if (shouldFastClone && !fastCloningEnabledAtConstruction_)
 	{
 		mf::LogWarning("FastCloning")
@@ -563,13 +586,19 @@ void art::RootDAQOutFile::respondToCloseInputFile(FileBlock const&)
 bool art::RootDAQOutFile::requestsToCloseFile()
 {
 	using namespace std::chrono;
-	unsigned int constexpr oneK{1024u};
-	fp_.updateSize(filePtr_->GetSize() / oneK);
+	unsigned constexpr oneK{1024U};
+	if (fileSwitchCriteria_.fileProperties().size() !=
+	    art::Defaults::size_max())
+	{
+		// Note: TFile::GetSize() is very, very slow, so we only call it
+		// if we actually need to.
+		fp_.updateSize(filePtr_->GetSize() / oneK);
+	}
 	fp_.updateAge(duration_cast<seconds>(steady_clock::now() - beginTime_));
 	return fileSwitchCriteria_.should_close(fp_);
 }
 
-void art::RootDAQOutFile::writeOne(EventPrincipal const& e)
+void art::RootDAQOutFile::writeOneEvent_EventPart(EventPrincipal const& e)
 {
 	TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeOne";
 	// Auxiliary branch.
@@ -580,51 +609,106 @@ void art::RootDAQOutFile::writeOne(EventPrincipal const& e)
 	// thrown we want to do that first before writing anything
 	// to the file about this event.
 	fillBranches<InEvent>(e, pEventProductProvenanceVector_);
+}
+
+void art::RootDAQOutFile::writeOneEvent_HistoryPart(EventPrincipal const& e)
+{
 	// History branch.
 	History historyForOutput{e.history()};
 	historyForOutput.addEventSelectionEntry(om_->selectorConfig());
 	pHistory_ = &historyForOutput;
 	int sz = eventHistoryTree_->Fill();
+	pHistory_ = &e.history();
 	if (sz <= 0)
 	{
 		throw art::Exception(art::errors::FatalRootError)
 		    << "Failed to fill the History tree for event: " << e.id()
 		    << "\nTTree::Fill() returned " << sz << " bytes written." << endl;
 	}
+}
+
+void art::RootDAQOutFile::writeOneEvent_FileIndexPart(EventPrincipal const& e)
+{
+	// Add event to index
+	{
+		FileIndex::Element elem{e.aux().id(), fp_.eventEntryNumber()};
+		auto const* findexElemPtr = &elem;
+		fileIndexTree_->SetBranchAddress(metaBranchRootName<FileIndex::Element>(),
+		                                 &findexElemPtr);
+		fileIndexTree_->Fill();
+		fileIndexTree_->ResetBranchAddress(
+		    fileIndexTree_->GetBranch(metaBranchRootName<FileIndex::Element>()));
+	}
+}
+
+void art::RootDAQOutFile::writeOne(EventPrincipal const& e)
+{
+	writeOneEvent_EventPart(e);
+	writeOneEvent_HistoryPart(e);
 	// Add the dataType to the job report if it hasn't already been done
 	if (!dataTypeReported_)
 	{
 		string dataType{"MC"};
-		if (pEventAux_->isRealData())
+		if (e.aux().isRealData())
 		{
 			dataType = "Data";
 		}
 		dataTypeReported_ = true;
 	}
-	pHistory_ = &e.history();
-	// Add event to index
-	fileIndex_.addEntry(pEventAux_->id(), fp_.eventEntryNumber());
+	writeOneEvent_FileIndexPart(e);
 	fp_.update<Granularity::Event>(status_);
 	TLOG(TLVL_TRACE) << "End of RootDAQOutFile::writeOne";
+}
+
+void art::RootDAQOutFile::writeSubRun_FileIndexPart(SubRunPrincipal const& sr)
+{
+	{
+		FileIndex::Element elem{EventID::invalidEvent(sr.aux().id()),
+		                        fp_.subRunEntryNumber()};
+		auto const* findexElemPtr = &elem;
+		fileIndexTree_->SetBranchAddress(metaBranchRootName<FileIndex::Element>(),
+		                                 &findexElemPtr);
+		fileIndexTree_->Fill();
+		fileIndexTree_->ResetBranchAddress(
+		    fileIndexTree_->GetBranch(metaBranchRootName<FileIndex::Element>()));
+	}
 }
 
 void art::RootDAQOutFile::writeSubRun(SubRunPrincipal const& sr)
 {
 	pSubRunAux_ = &sr.aux();
-	pSubRunAux_->setRangeSetID(subRunRSID_);
+	if (rangesEnabled_)
+	{
+		pSubRunAux_->setRangeSetID(subRunRSID_);
+	}
 	fillBranches<InSubRun>(sr, pSubRunProductProvenanceVector_);
-	fileIndex_.addEntry(EventID::invalidEvent(pSubRunAux_->id()),
-	                    fp_.subRunEntryNumber());
+	writeSubRun_FileIndexPart(sr);
 	fp_.update<Granularity::SubRun>(status_);
+}
+
+void art::RootDAQOutFile::writeRun_FileIndexPart(RunPrincipal const& r)
+{
+	{
+		FileIndex::Element elem{EventID::invalidEvent(r.aux().id()),
+		                        fp_.runEntryNumber()};
+		auto const* findexElemPtr = &elem;
+		fileIndexTree_->SetBranchAddress(metaBranchRootName<FileIndex::Element>(),
+		                                 &findexElemPtr);
+		fileIndexTree_->Fill();
+		fileIndexTree_->ResetBranchAddress(
+		    fileIndexTree_->GetBranch(metaBranchRootName<FileIndex::Element>()));
+	}
 }
 
 void art::RootDAQOutFile::writeRun(RunPrincipal const& r)
 {
 	pRunAux_ = &r.aux();
-	pRunAux_->setRangeSetID(runRSID_);
+	if (rangesEnabled_)
+	{
+		pRunAux_->setRangeSetID(runRSID_);
+	}
 	fillBranches<InRun>(r, pRunProductProvenanceVector_);
-	fileIndex_.addEntry(EventID::invalidEvent(pRunAux_->id()),
-	                    fp_.runEntryNumber());
+	writeRun_FileIndexPart(r);
 	fp_.update<Granularity::Run>(status_);
 }
 
@@ -632,24 +716,25 @@ void art::RootDAQOutFile::writeParentageRegistry()
 {
 	auto pid = root::getObjectRequireDict<ParentageID>();
 	ParentageID const* hash = &pid;
-	if (!parentageTree_->Branch(
-	        rootNames::parentageIDBranchName().c_str(), &hash, basketSize_, 0))
+	TBranch* b = parentageTree_->Branch(
+	    rootNames::parentageIDBranchName().c_str(), &hash, basketSize_, 0);
+	if (!b)
 	{
 		throw Exception(errors::FatalRootError)
 		    << "Failed to create a branch for ParentageIDs in the output file";
 	}
+	b = nullptr;
 	hash = nullptr;
-
 	auto par = root::getObjectRequireDict<Parentage>();
 	Parentage const* desc = &par;
-	if (!parentageTree_->Branch(
-	        rootNames::parentageBranchName().c_str(), &desc, basketSize_, 0))
+	b = parentageTree_->Branch(
+	    rootNames::parentageBranchName().c_str(), &desc, basketSize_, 0);
+	if (!b)
 	{
 		throw art::Exception(art::errors::FatalRootError)
 		    << "Failed to create a branch for Parentages in the output file";
 	}
 	desc = nullptr;
-
 	for (auto const& pr : ParentageRegistry::get())
 	{
 		hash = &pr.first;
@@ -657,9 +742,9 @@ void art::RootDAQOutFile::writeParentageRegistry()
 		parentageTree_->Fill();
 	}
 	parentageTree_->SetBranchAddress(rootNames::parentageIDBranchName().c_str(),
-	                                 nullptr);
+	                                 reinterpret_cast<void*>(-1L));
 	parentageTree_->SetBranchAddress(rootNames::parentageBranchName().c_str(),
-	                                 nullptr);
+	                                 reinterpret_cast<void*>(-1L));
 }
 
 void art::RootDAQOutFile::writeFileFormatVersion()
@@ -668,26 +753,32 @@ void art::RootDAQOutFile::writeFileFormatVersion()
 	auto const* pver = &ver;
 	TBranch* b = metaDataTree_->Branch(
 	    metaBranchRootName<FileFormatVersion>(), &pver, basketSize_, 0);
-	// FIXME: Turn this into a throw!
 	assert(b);
 	b->Fill();
 }
 
 void art::RootDAQOutFile::writeFileIndex()
 {
+	// Read file index.
+	auto findexPtr = &fileIndex_;
+	detail::readFileIndex(filePtr_.get(), fileIndexTree_, findexPtr);
+	// Sort it.
 	fileIndex_.sortBy_Run_SubRun_Event();
-	FileIndex::Element elem{};
-	auto const* findexElemPtr = &elem;
-	TBranch* b = fileIndexTree_->Branch(
+	// Make replacement tree.
+	fileIndexTree_ = RootOutputTree::makeTTree(
+	    filePtr_.get(), rootNames::fileIndexTreeName(), 0);
+	// Make FileIndex branch.
+	FileIndex::Element elem;
+	auto findexElemPtr = &elem;
+	auto b = fileIndexTree_->Branch(
 	    metaBranchRootName<FileIndex::Element>(), &findexElemPtr, basketSize_, 0);
-	// FIXME: Turn this into a throw!
-	assert(b);
+	// Now write out the new sorted FileIndex.
 	for (auto& entry : fileIndex_)
 	{
 		findexElemPtr = &entry;
-		b->Fill();
+		fileIndexTree_->Fill();
 	}
-	b->SetAddress(0);
+	b->ResetAddress();
 }
 
 void art::RootDAQOutFile::writeEventHistory()
@@ -711,16 +802,13 @@ void art::RootDAQOutFile::writeProcessHistoryRegistry()
 	auto const* p = &pHistMap;
 	TBranch* b = metaDataTree_->Branch(
 	    metaBranchRootName<ProcessHistoryMap>(), &p, basketSize_, 0);
-	if (b != nullptr)
+	if (!b)
 	{
-		b->Fill();
+		throw Exception(errors::LogicError)
+		    << "Unable to locate required ProcessHistoryMap branch in output "
+		       "metadata tree.\n";
 	}
-	else
-	{
-		throw Exception(errors::LogicError) << "Unable to locate required "
-		                                       "ProcessHistoryMap branch in output "
-		                                       "metadata tree.\n";
-	}
+	b->Fill();
 }
 
 void art::RootDAQOutFile::writeFileCatalogMetadata(
@@ -728,6 +816,10 @@ void art::RootDAQOutFile::writeFileCatalogMetadata(
     FileCatalogMetadata::collection_type const& md,
     FileCatalogMetadata::collection_type const& ssmd)
 {
+	if (!dbEnabled_)
+	{
+		return;
+	}
 	using namespace cet::sqlite;
 	Ntuple<std::string, std::string> fileCatalogMetadata{
 	    rootFileDB_, "FileCatalog_metadata", {{"Name", "Value"}}, true};
@@ -742,7 +834,6 @@ void art::RootDAQOutFile::writeFileCatalogMetadata(
 	                           cet::canonical_string(getFileFormatEra()));
 	fileCatalogMetadata.insert("file_format_version",
 	                           to_string(getFileFormatVersion()));
-
 	// File start time.
 	namespace bpt = boost::posix_time;
 	auto formatted_time = [](auto const& t) {
@@ -754,14 +845,12 @@ void art::RootDAQOutFile::writeFileCatalogMetadata(
 	fileCatalogMetadata.insert(
 	    "end_time",
 	    formatted_time(boost::posix_time::second_clock::universal_time()));
-
 	// Run/subRun information.
 	if (!stats.seenSubRuns().empty())
 	{
 		auto I = find_if(md.crbegin(), md.crend(), [](auto const& p) {
 			return p.first == "run_type";
 		});
-
 		if (I != md.crend())
 		{
 			ostringstream buf;
@@ -812,6 +901,10 @@ void art::RootDAQOutFile::writeFileCatalogMetadata(
 
 void art::RootDAQOutFile::writeParameterSetRegistry()
 {
+	if (!dbEnabled_)
+	{
+		return;
+	}
 	fhicl::ParameterSetRegistry::exportTo(rootFileDB_);
 }
 
@@ -820,7 +913,6 @@ void art::RootDAQOutFile::writeProductDescriptionRegistry()
 	// Make a local copy of the MasterProductRegistry's ProductList,
 	// removing any transient or pruned products.
 	auto end = branchesWithStoredHistory_.end();
-
 	ProductRegistry reg;
 	for (auto const& pr : ProductMetaData::instance().productList())
 	{
@@ -830,12 +922,9 @@ void art::RootDAQOutFile::writeProductDescriptionRegistry()
 		}
 		reg.productList_.emplace_hint(reg.productList_.end(), pr);
 	}
-
 	ProductRegistry const* regp = &reg;
 	TBranch* b = metaDataTree_->Branch(
 	    metaBranchRootName<ProductRegistry>(), &regp, basketSize_, 0);
-	// FIXME: Turn this into a throw!
-	assert(b);
 	b->Fill();
 }
 
@@ -844,8 +933,6 @@ void art::RootDAQOutFile::writeProductDependencies()
 	BranchChildren const* ppDeps = &om_->branchChildren();
 	TBranch* b = metaDataTree_->Branch(
 	    metaBranchRootName<BranchChildren>(), &ppDeps, basketSize_, 0);
-	// FIXME: Turn this into a throw!
-	assert(b);
 	b->Fill();
 }
 
@@ -873,69 +960,113 @@ void art::RootDAQOutFile::writeTTrees()
 	TLOG(TLVL_TRACE) << "End of RootDAQOutFile::writeTTrees";
 }
 
+void art::RootDAQOutFile::insertParents(std::set<ProductProvenance>& keptProvenance,
+                                        Principal const& principal,
+                                        vector<ProductID> const& parents)
+{
+	for (auto const pid : parents)
+	{
+		auto pp = principal.branchMapper().branchToProductProvenance(pid);
+		if (!pp)
+		{
+			continue;
+		}
+		branchesWithStoredHistory_.insert(pid);
+		keptProvenance.insert(*pp);
+		if ((dropMetaData_ == DropMetaData::DropPrior) ||
+		    (dropMetaData_ == DropMetaData::DropAll) ||
+		    dropMetaDataForDroppedData_)
+		{
+			continue;
+		}
+		auto const* pd = principal.getForOutput(pp->productID(), false).desc();
+		if (pd && pd->produced())
+		{
+			insertParents(keptProvenance, principal, pp->parentage().parents());
+		}
+	}
+}
+
 template<art::BranchType BT>
 void art::RootDAQOutFile::fillBranches(Principal const& principal,
                                        vector<ProductProvenance>* vpp)
 {
 	TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::fillBranches";
-	bool const fastCloning = (BT == InEvent) && wasFastCloned_;
-	detail::KeptProvenance keptProvenance{
-	    dropMetaData_, dropMetaDataForDroppedData_, branchesWithStoredHistory_};
+	set<ProductProvenance> keptProvenance;
 	map<unsigned, unsigned> checksumToIndex;
-
-	auto const& principalRS = principal.seenRanges();
-
 	for (auto const& val : selectedOutputItemList_[BT])
 	{
 		auto const* pd = val.branchDescription_;
-		auto const pid = pd->productID();
-		branchesWithStoredHistory_.insert(pid);
-		bool const produced{pd->produced()};
-		bool const resolveProd = (produced || !fastCloning ||
-		                          treePointers_[BT]->uncloned(pd->branchName()));
-
-		// Update the kept provenance
-		bool const keepProvenance =
-		    (dropMetaData_ == DropMetaData::DropNone ||
-		     (dropMetaData_ == DropMetaData::DropPrior && produced));
-		auto const& oh = principal.getForOutput(pid, resolveProd);
-
-		unique_ptr<ProductProvenance> prov{nullptr};
-		if (keepProvenance)
+		branchesWithStoredHistory_.insert(pd->productID());
+		bool const readProductNow =
+		    (pd->produced() || ((BT != InEvent) || !wasFastCloned_) ||
+		     treePointers_[BT]->uncloned(pd->branchName()));
+		auto const& oh = principal.getForOutput(pd->productID(), readProductNow);
+		unique_ptr<ProductProvenance> prov;
+		if ((dropMetaData_ == DropMetaData::DropNone) ||
+		    (pd->produced() && (dropMetaData_ == DropMetaData::DropPrior)))
 		{
+			// We need provenance for the output file.
 			if (oh.productProvenance())
 			{
 				prov = std::make_unique<ProductProvenance>(
-				    keptProvenance.insert(*oh.productProvenance()));
-				keptProvenance.insertAncestors(*oh.productProvenance(), principal);
+				    *keptProvenance.insert(*oh.productProvenance()).first);
+				if (parentageEnabled_ && (dropMetaData_ == DropMetaData::DropNone) &&
+				    !dropMetaDataForDroppedData_)
+				{
+					// Take extra effort to keep the provenance of our parents.
+					insertParents(keptProvenance,
+					              principal,
+					              oh.productProvenance()->parentage().parents());
+				}
 			}
 			else
 			{
 				// No provenance, product was either not produced, or was
 				// dropped, create provenance to remember that.
-				auto const status =
-				    produced ? productstatus::neverCreated() : productstatus::dropped();
 				prov = std::make_unique<ProductProvenance>(
-				    keptProvenance.emplace(pid, status));
+				    *keptProvenance
+				         .emplace(pd->productID(),
+				                  pd->produced() ? productstatus::neverCreated() : productstatus::dropped())
+				         .first);
 			}
 		}
-
-		// Resolve the product if necessary
-		if (resolveProd)
+		if (readProductNow)
 		{
-			auto const& rs = getRangeSet<BT>(oh, principalRS, produced);
-			if (RangeSetsSupported<BT>::value && !rs.is_valid())
+			art::EDProduct const* product{nullptr};
+			if (rangesEnabled_)
 			{
-				// Unfortunately, 'unknown' is the only viable product status
-				// when this condition is triggered (due to the assert
-				// statement in ProductStatus::setNotPresent).  Whenever the
-				// metadata revolution comes, this should be revised.
-				keptProvenance.setStatus(*prov, productstatus::unknown());
+				auto const& rs =
+				    getRangeSet<BT>(oh, principal.seenRanges(), pd->produced());
+				if (RangeSetsSupported<BT>::value && !rs.is_valid())
+				{
+					// Unfortunately, 'unknown' is the only viable product status
+					// when this condition is triggered (due to the assert
+					// statement in ProductStatus::setNotPresent).  Whenever the
+					// metadata revolution comes, this should be revised.
+					{
+						if (keptProvenance.erase(*prov) != 1ULL)
+						{
+							throw Exception(errors::LogicError,
+							                "art::RootDAQOutFile::fillBranches")
+							    << "Attempt to set product status for product whose provenance "
+							       "is not being recorded.";
+						}
+						keptProvenance.emplace(prov->productID(), productstatus::unknown());
+					}
+				}
+				product = getProduct<BT>(oh, rs, pd->wrappedName());
+				if (dbEnabled_)
+				{
+					setProductRangeSetID<BT>(
+					    rs, rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex);
+				}
 			}
-
-			auto const* product = getProduct<BT>(oh, rs, pd->wrappedName());
-			setProductRangeSetID<BT>(
-			    rs, rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex);
+			else
+			{
+				product =
+				    getProduct<BT>(oh, art::RangeSet::invalid(), pd->wrappedName());
+			}
 			val.product_ = product;
 		}
 	}
@@ -944,11 +1075,20 @@ void art::RootDAQOutFile::fillBranches(Principal const& principal,
 	treePointers_[BT]->fillTree();
 	TLOG(TLVL_TRACE) << "RootDAQOutFile::fillBranches after fillTree call";
 	vpp->clear();
+	vpp->shrink_to_fit();
 	TLOG(TLVL_TRACE) << "End of RootDAQOutFile::fillBranches";
 }
 
 void art::RootDAQOutFile::setSubRunAuxiliaryRangeSetID(RangeSet const& ranges)
 {
+	if (!rangesEnabled_)
+	{
+		return;
+	}
+	if (!dbEnabled_)
+	{
+		return;
+	}
 	subRunRSID_ = getNewRangeSetID(rootFileDB_, InSubRun, ranges.run());
 	insertIntoEventRanges(rootFileDB_, ranges);
 	auto const& eventRangesIDs = getExistingRangeSetIDs(rootFileDB_, ranges);
@@ -957,6 +1097,14 @@ void art::RootDAQOutFile::setSubRunAuxiliaryRangeSetID(RangeSet const& ranges)
 
 void art::RootDAQOutFile::setRunAuxiliaryRangeSetID(RangeSet const& ranges)
 {
+	if (!rangesEnabled_)
+	{
+		return;
+	}
+	if (!dbEnabled_)
+	{
+		return;
+	}
 	runRSID_ = getNewRangeSetID(rootFileDB_, InRun, ranges.run());
 	insertIntoEventRanges(rootFileDB_, ranges);
 	auto const& eventRangesIDs = getExistingRangeSetIDs(rootFileDB_, ranges);
@@ -969,7 +1117,11 @@ art::RootDAQOutFile::getProduct(art::OutputHandle const& oh,
                                 art::RangeSet const& /*prunedProductRS*/,
                                 std::string const& wrappedName)
 {
-	return oh.isValid() ? oh.wrapper() : dummyProductCache_.product(wrappedName);
+	if (oh.isValid())
+	{
+		return oh.wrapper();
+	}
+	return dummyProductCache_.product(wrappedName);
 }
 
 template<BranchType BT>
@@ -978,5 +1130,17 @@ art::RootDAQOutFile::getProduct(art::OutputHandle const& oh,
                                 art::RangeSet const& prunedProductRS,
                                 std::string const& wrappedName)
 {
-	return (oh.isValid() && prunedProductRS.is_valid()) ? oh.wrapper() : dummyProductCache_.product(wrappedName);
+	if (rangesEnabled_)
+	{
+		if (oh.isValid() && prunedProductRS.is_valid())
+		{
+			return oh.wrapper();
+		}
+		return dummyProductCache_.product(wrappedName);
+	}
+	if (oh.isValid())
+	{
+		return oh.wrapper();
+	}
+	return dummyProductCache_.product(wrappedName);
 }
