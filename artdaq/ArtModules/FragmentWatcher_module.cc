@@ -40,12 +40,31 @@ namespace artdaq {
 class FragmentWatcher;
 }
 
+/// <summary>
+/// An art::EDAnalyzer module which checks events for certain error conditions (missing fragments, empty fragments, etc)
+/// </summary>
 class artdaq::FragmentWatcher : public art::EDAnalyzer
 {
 public:
+	/**
+	 * \brief FragmentWatcher Constructor
+	 * \param pset ParameterSet used to configure FragmentWatcher
+	 *
+	 * FragmentWatcher accepts the following Parameters:
+	 * mode_bitmask (default: 0x1): Mask of modes to use. BASIC_COUNTS_MODE = 0, FRACTIONAL_COUNTS_MODE = 1, DETAILED_COUNTS_MODE = 2
+	 * metrics_reporting_level (default: 1): Level to use for metrics reporting
+	 * metrics: A artdaq::MetricManager::Config ParameterSet used to configure MetricManager reporting for this module
+	 */
 	explicit FragmentWatcher(fhicl::ParameterSet const& pset);
+	/**
+	 * \brief Virtual Destructor. Shuts down MetricManager if one is present
+	 */
 	virtual ~FragmentWatcher();
 
+	/**
+   * \brief Analyze each event, using the configured mode bitmask
+   * \param evt art::Event to analyze
+   */
 	virtual void analyze(art::Event const& evt);
 
 private:
@@ -73,7 +92,20 @@ private:
 };
 
 artdaq::FragmentWatcher::FragmentWatcher(fhicl::ParameterSet const& pset)
-    : EDAnalyzer(pset), mode_bitset_(std::bitset<3>(pset.get<int>("mode_bitmask", 0x1))), metrics_reporting_level_(pset.get<int>("metrics_reporting_level", 1)), events_processed_(0), expected_number_of_fragments_(0), expected_fragmentID_list_(), events_with_missing_fragments_(0), events_with_empty_fragments_(0), events_with_10pct_missing_fragments_(0), events_with_10pct_empty_fragments_(0), events_with_50pct_missing_fragments_(0), events_with_50pct_empty_fragments_(0), missing_fragments_by_fragmentID_(), empty_fragments_by_fragmentID_()
+    : EDAnalyzer(pset)
+    , mode_bitset_(std::bitset<3>(pset.get<int>("mode_bitmask", 0x1)))
+    , metrics_reporting_level_(pset.get<int>("metrics_reporting_level", 1))
+    , events_processed_(0)
+    , expected_number_of_fragments_(0)
+    , expected_fragmentID_list_()
+    , events_with_missing_fragments_(0)
+    , events_with_empty_fragments_(0)
+    , events_with_10pct_missing_fragments_(0)
+    , events_with_10pct_empty_fragments_(0)
+    , events_with_50pct_missing_fragments_(0)
+    , events_with_50pct_empty_fragments_(0)
+    , missing_fragments_by_fragmentID_()
+    , empty_fragments_by_fragmentID_()
 {
 }
 
