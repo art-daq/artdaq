@@ -7,7 +7,7 @@
 #include "artdaq/Application/Commandable.hh"
 
 namespace artdaq {
-	class BoardReaderApp;
+class BoardReaderApp;
 }
 
 /**
@@ -128,12 +128,13 @@ public:
 	 */
 	std::string report(std::string const& which) const override;
 
-	CommandableFragmentGenerator* const GetGeneratorPointer() {
-          if (fragment_receiver_ptr_)
-            return fragment_receiver_ptr_->GetGeneratorPointer();
-          else
-            return nullptr;
-        }
+	CommandableFragmentGenerator* const GetGeneratorPointer()
+	{
+		if (fragment_receiver_ptr_)
+			return fragment_receiver_ptr_->GetGeneratorPointer();
+		else
+			return nullptr;
+	}
 
 private:
 	std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;

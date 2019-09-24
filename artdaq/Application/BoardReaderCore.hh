@@ -12,7 +12,7 @@
 #include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
-	class BoardReaderCore;
+class BoardReaderCore;
 }
 
 /**
@@ -22,11 +22,11 @@ namespace artdaq {
 class artdaq::BoardReaderCore
 {
 public:
-	static const std::string FRAGMENTS_PROCESSED_STAT_KEY; ///< Key for the Fragments Processed MonitoredQuantity
-	static const std::string INPUT_WAIT_STAT_KEY; ///< Key for the Input Wait MonitoredQuantity
-	static const std::string BRSYNC_WAIT_STAT_KEY; ///< Key for the Sync Wait MonitoredQuantity
-	static const std::string OUTPUT_WAIT_STAT_KEY; ///< Key for the Output Wait MonitoredQuantity
-	static const std::string FRAGMENTS_PER_READ_STAT_KEY; ///< Key for the Fragments Per Read MonitoredQuantity
+	static const std::string FRAGMENTS_PROCESSED_STAT_KEY;  ///< Key for the Fragments Processed MonitoredQuantity
+	static const std::string INPUT_WAIT_STAT_KEY;           ///< Key for the Input Wait MonitoredQuantity
+	static const std::string BRSYNC_WAIT_STAT_KEY;          ///< Key for the Sync Wait MonitoredQuantity
+	static const std::string OUTPUT_WAIT_STAT_KEY;          ///< Key for the Output Wait MonitoredQuantity
+	static const std::string FRAGMENTS_PER_READ_STAT_KEY;   ///< Key for the Fragments Per Read MonitoredQuantity
 
 	/**
 	 * \brief BoardReaderCore Constructor
@@ -161,12 +161,15 @@ public:
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 
-	CommandableFragmentGenerator* const GetGeneratorPointer() {
-          if (generator_ptr_) return generator_ptr_.get();
-         else return nullptr;
+	CommandableFragmentGenerator* const GetGeneratorPointer()
+	{
+		if (generator_ptr_)
+			return generator_ptr_.get();
+		else
+			return nullptr;
 	}
 
-	private:
+private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
 	art::RunID run_id_;
@@ -189,7 +192,7 @@ public:
 
 	void sendMetrics_();
 
-	bool verbose_; ///< Whether to log transition messages
+	bool verbose_;  ///< Whether to log transition messages
 
 	/**
 	 * \brief Log a message, setting severity based on verbosity flag
