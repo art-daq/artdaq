@@ -314,7 +314,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	// ELF: 6/11/2019: This is being done so that if the receiver is a newer version of art/ROOT, it can still understand our version.
 	TList infos;
 	std::vector<std::string> classNames{"std::map<art::BranchKey,art::BranchDescription>", "std::map<const art::Hash<2>,art::ProcessHistory>", "art::ParentageMap",
-		"art::History", "art::BranchKey", "art::ProductProvenance", "art::RunAuxiliary", "art::SubRunAuxiliary", "art::EventAuxiliary"};
+	                                    "art::History", "art::BranchKey", "art::ProductProvenance", "art::RunAuxiliary", "art::SubRunAuxiliary", "art::EventAuxiliary"};
 	for (auto& className : classNames)
 	{
 		TClass* class_ptr = TClass::GetClass(className.c_str());

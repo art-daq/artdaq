@@ -3,12 +3,11 @@
 
 #include <future>
 
-#include "artdaq/Application/DispatcherCore.hh"
 #include "artdaq/Application/Commandable.hh"
+#include "artdaq/Application/DispatcherCore.hh"
 
-namespace artdaq
-{
-	class DispatcherApp;
+namespace artdaq {
+class DispatcherApp;
 }
 
 /**

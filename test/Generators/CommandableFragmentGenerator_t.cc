@@ -11,7 +11,7 @@
 #define MULTICAST_MODE 0
 
 namespace artdaqtest {
-	class CommandableFragmentGeneratorTest;
+class CommandableFragmentGeneratorTest;
 }
 
 /**
@@ -94,7 +94,7 @@ public:
 	 * \param ts Timestamp to be used for the next Fragment
 	 */
 	void setTimestamp(artdaq::Fragment::timestamp_t ts) { ts_ = ts; }
-	
+
 	/**
 	 * \brief Get the timestamp that will be used for the next Fragment
 	 * \return The timestamp that will be used for the next Fragment
@@ -120,12 +120,12 @@ private:
 };
 
 artdaqtest::CommandableFragmentGeneratorTest::CommandableFragmentGeneratorTest(const fhicl::ParameterSet& ps)
-	: CommandableFragmentGenerator(ps)
-	, fireCount_(1)
-	, hwFail_(false)
-	, ts_(0)
-	, hw_stop_(false)
-	, enabled_ids_(-1)
+    : CommandableFragmentGenerator(ps)
+    , fireCount_(1)
+    , hwFail_(false)
+    , ts_(0)
+    , hw_stop_(false)
+    , enabled_ids_(-1)
 {
 	metricMan->initialize(ps.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()));
 	metricMan->do_start();
@@ -649,7 +649,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	gen.setFireCount(12);
 	gen.waitForFrags();
 	t.AddRequest(5, 4);
-	list = gen.GetSentWindowList(1); // Out-of-order list is only updated in getNext calls
+	list = gen.GetSentWindowList(1);  // Out-of-order list is only updated in getNext calls
 	BOOST_REQUIRE_EQUAL(list.size(), 1);
 	sts = gen.getNext(fps);
 	list = gen.GetSentWindowList(1);
@@ -763,9 +763,9 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 
 	// 1. Both start and end before any data in buffer
 	//  -- Should return ContainerFragment with MissingData bit set and zero Fragments
-	gen.setFireCount(9); // Buffer start is at ts 6, end at 10
+	gen.setFireCount(9);  // Buffer start is at ts 6, end at 10
 	gen.waitForFrags();
-	t.AddRequest(1, 1); // Requesting data from ts 1 to 3
+	t.AddRequest(1, 1);  // Requesting data from ts 1 to 3
 
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -822,12 +822,12 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	artdaq::Fragment::type_t type;
 
 	gen.waitForFrags();
-	gen.setFireCount(9); // Buffer contains 6 to 10
+	gen.setFireCount(9);  // Buffer contains 6 to 10
 	gen.waitForFrags();
 
 	// 2. Start before buffer, end in buffer
 	//  -- Should return ContainerFragment with MissingData bit set and one or more Fragments
-	t.AddRequest(1, 4); // Requesting data from ts 4 to 6
+	t.AddRequest(1, 4);  // Requesting data from ts 4 to 6
 
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -886,13 +886,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	artdaq::Fragment::type_t type;
 
 	gen.waitForFrags();
-	gen.setFireCount(9); // Buffer contains 6 to 10
+	gen.setFireCount(9);  // Buffer contains 6 to 10
 	gen.waitForFrags();
 
 	// 3. Start before buffer, end after buffer
 	//  -- Should not return until buffer passes end or timeout (check both cases), MissingData bit set
 
-	t.AddRequest(1, 6); // Requesting data from ts 6 to 9, buffer will contain 10
+	t.AddRequest(1, 6);  // Requesting data from ts 6 to 9, buffer will contain 10
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 1);
@@ -908,12 +908,12 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
-	t.AddRequest(2, 9); // Requesting data from ts 9 to 12
+	t.AddRequest(2, 9);  // Requesting data from ts 9 to 12
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
 
-	gen.setFireCount(3); // Buffer start is at ts 10, end at 13
+	gen.setFireCount(3);  // Buffer start is at ts 10, end at 13
 	gen.waitForFrags();
 
 	sts = gen.getNext(fps);
@@ -931,7 +931,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	BOOST_REQUIRE_EQUAL(cf2.fragment_type(), type);
 	fps.clear();
 
-	t.AddRequest(3, 12); // Requesting data from ts 11 to 14
+	t.AddRequest(3, 12);  // Requesting data from ts 11 to 14
 
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -996,9 +996,9 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 
 	// 4. Start and end in buffer
 	//  -- Should return ContainerFragment with one or more Fragments
-	gen.setFireCount(5); // Buffer start is at ts 2, end at 6
+	gen.setFireCount(5);  // Buffer start is at ts 2, end at 6
 	gen.waitForFrags();
-	t.AddRequest(1, 3); // Requesting data from ts 3 to 5
+	t.AddRequest(1, 3);  // Requesting data from ts 3 to 5
 
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -1054,17 +1054,17 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	int sts;
 	artdaq::Fragment::type_t type;
 	gen.waitForFrags();
-	gen.setFireCount(5); // Buffer contains 2 to 6
+	gen.setFireCount(5);  // Buffer contains 2 to 6
 	gen.waitForFrags();
 
 	// 5. Start in buffer, end after buffer
 	//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
-	t.AddRequest(1, 5); // Requesting data from ts 5 to 7
+	t.AddRequest(1, 5);  // Requesting data from ts 5 to 7
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
 
-	gen.setFireCount(2); // Buffer contains 4 to 8
+	gen.setFireCount(2);  // Buffer contains 4 to 8
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -1081,7 +1081,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
-	t.AddRequest(2, 8); // Requesting data from ts 8 to 10
+	t.AddRequest(2, 8);  // Requesting data from ts 8 to 10
 
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -1147,20 +1147,20 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 
 	// 6. Start and end after buffer
 	//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
-	gen.setFireCount(9); // Buffer start is 6, end at 10
+	gen.setFireCount(9);  // Buffer start is 6, end at 10
 	gen.waitForFrags();
-	t.AddRequest(1, 11); // Requesting data from ts 11 to 13
+	t.AddRequest(1, 11);  // Requesting data from ts 11 to 13
 
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
-	gen.setFireCount(1); // Buffer start is 7, end at 11
+	gen.setFireCount(1);  // Buffer start is 7, end at 11
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
 
-	gen.setFireCount(3); // Buffer start is 10, end at 14
+	gen.setFireCount(3);  // Buffer start is 10, end at 14
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
@@ -1177,7 +1177,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
-	t.AddRequest(2, 16); // Requesting data from ts 15 to 17
+	t.AddRequest(2, 16);  // Requesting data from ts 15 to 17
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 0);
@@ -1292,7 +1292,7 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 	const int DELAY_TIME = 1;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
-	ps.put<std::vector<int>>("fragment_ids", { 1,2,3 });
+	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<int>("request_port", REQUEST_PORT);
 #if MULTICAST_MODE
 	ps.put<std::string>("request_address", "227.18.12.29");
@@ -1333,7 +1333,7 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 	ids.clear();
 
 	fps.clear();
-	gen.setEnabledIds(0x6); // Fragment id 3 disabled
+	gen.setEnabledIds(0x6);  // Fragment id 3 disabled
 	gen.setFireCount(1);
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
@@ -1363,7 +1363,7 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
-	ps.put<std::vector<int>>("fragment_ids", { 1,2,3 });
+	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<int>("request_port", REQUEST_PORT);
 #if MULTICAST_MODE
 	ps.put<std::string>("request_address", "227.18.12.30");
@@ -1466,7 +1466,7 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	fps.clear();
 
 	// Single mode should generate 3 Fragments, 2 new ones and one old one
-	gen.setEnabledIds(0x6); // Fragment ID 3 disabled
+	gen.setEnabledIds(0x6);  // Fragment ID 3 disabled
 	gen.setFireCount(1);
 	gen.waitForFrags();
 	t.AddRequest(5, 9);
@@ -1501,7 +1501,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
-	ps.put<std::vector<int>>("fragment_ids", { 1,2,3 });
+	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<int>("request_port", REQUEST_PORT);
 #if MULTICAST_MODE
 	ps.put<std::string>("request_address", "227.18.12.31");
@@ -1623,7 +1623,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	fps.clear();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
 
-	gen.setEnabledIds(0x6); // Fragment id 3 disabled
+	gen.setEnabledIds(0x6);  // Fragment id 3 disabled
 	gen.setFireCount(2);
 	gen.waitForFrags();
 	t.AddRequest(5, 8);
@@ -1677,7 +1677,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
-	ps.put<std::vector<int>>("fragment_ids", { 1,2,3 });
+	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<int>("request_port", REQUEST_PORT);
 #if MULTICAST_MODE
 	ps.put<std::string>("request_address", "227.18.12.31");
@@ -1737,7 +1737,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	sts = gen.getNext(fps);
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
- 	while (fps.size() > 0)
+	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
 		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
@@ -1836,7 +1836,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 
 	gen.setFireCount(1);
 	gen.waitForFrags();
-	gen.setEnabledIds(0x6); // Disable Fragment ID 3
+	gen.setEnabledIds(0x6);  // Disable Fragment ID 3
 	gen.setFireCount(4);
 	gen.waitForFrags();
 	t.AddRequest(6, 10);
@@ -1891,7 +1891,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
-	ps.put<std::vector<int>>("fragment_ids", { 1,2,3 });
+	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<int>("request_port", REQUEST_PORT);
 #if MULTICAST_MODE
 	ps.put<std::string>("request_address", "227.18.12.32");
@@ -1980,7 +1980,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	BOOST_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	fps.clear();
-	
+
 	// Request Timeout
 	t.AddRequest(4, 3);
 	sts = gen.getNext(fps);
@@ -2027,7 +2027,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	gen.setFireCount(12);
 	gen.waitForFrags();
 	t.AddRequest(5, 4);
-	list = gen.GetSentWindowList(1); // Out-of-order list is only updated in getNext calls
+	list = gen.GetSentWindowList(1);  // Out-of-order list is only updated in getNext calls
 	BOOST_REQUIRE_EQUAL(list.size(), 1);
 	sts = gen.getNext(fps);
 	list = gen.GetSentWindowList(1);
@@ -2113,7 +2113,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	list = gen.GetSentWindowList(1);
 	BOOST_REQUIRE_EQUAL(list.size(), 0);
 
-	gen.setEnabledIds(0x6); // Disable Fragment ID 3
+	gen.setEnabledIds(0x6);  // Disable Fragment ID 3
 	gen.setFireCount(1);
 	gen.waitForFrags();
 
@@ -2142,8 +2142,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	fps.clear();
 	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 8);
 
-	gen.setEnabledIds(0x8); // Disable Fragment IDs 1 and 2
-	gen.setTimestamp(14); // Reset timestamp
+	gen.setEnabledIds(0x8);  // Disable Fragment IDs 1 and 2
+	gen.setTimestamp(14);    // Reset timestamp
 	gen.setFireCount(1);
 	gen.waitForFrags();
 
