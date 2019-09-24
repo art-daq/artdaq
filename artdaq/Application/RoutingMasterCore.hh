@@ -20,7 +20,7 @@
 #include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 
 namespace artdaq {
-	class RoutingMasterCore;
+class RoutingMasterCore;
 }
 
 /**
@@ -31,9 +31,9 @@ namespace artdaq {
 class artdaq::RoutingMasterCore
 {
 public:
-	static const std::string TABLE_UPDATES_STAT_KEY; ///< Key for Table Update count MonnitoredQuantity
-	static const std::string TOKENS_RECEIVED_STAT_KEY; ///< Key for the Tokens Received MonitoredQuantity
-	static const std::string CURRENT_TABLE_INTERVAL_STAT_KEY; ///< Key for the Current Table Interval MonitoredQuantity
+	static const std::string TABLE_UPDATES_STAT_KEY;           ///< Key for Table Update count MonnitoredQuantity
+	static const std::string TOKENS_RECEIVED_STAT_KEY;         ///< Key for the Tokens Received MonitoredQuantity
+	static const std::string CURRENT_TABLE_INTERVAL_STAT_KEY;  ///< Key for the Current Table Interval MonitoredQuantity
 
 	/**
 	 * \brief RoutingMasterCore Constructor.
