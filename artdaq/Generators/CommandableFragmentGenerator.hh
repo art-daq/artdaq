@@ -4,29 +4,28 @@
 // Socket Includes
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
+#include <array>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
+#include <list>
 #include <mutex>
 #include <queue>
-#include <chrono>
-#include <array>
-#include <list>
 
-#include "fhiclcpp/fwd.h"
 #include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/fwd.h"
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/RequestReceiver.hh"
 
-namespace artdaq
-{
+namespace artdaq {
 	/**
 	 * \brief The RequestMode enumeration contains the possible ways which CommandableFragmentGenerator responds to data requests.
 	 */
@@ -156,7 +155,6 @@ namespace artdaq
 		 */
 		virtual ~CommandableFragmentGenerator();
 
-
 		/**
 		 * \brief Join any data-taking threads. Should be called when destructing CommandableFragmentGenerator
 		 *
@@ -171,7 +169,6 @@ namespace artdaq
 		 * \return Whether getNext completed without exceptions
 		 */
 		bool getNext(FragmentPtrs& output) override final;
-
 
 		/// <summary>
 		/// Create fragments using data buffer for request mode Ignored.
@@ -201,6 +198,13 @@ namespace artdaq
 		/// <param name="frags">Ouput fragments</param>
 		void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
 
+	/// <summary>
+	/// Copy data from the relevant data buffer that matches the given timestamp.
+	/// </summary>
+	/// <param name="frags">Output Fragments</param>
+	/// <param name="id">Fragment ID of buffer to search</param>
+	/// <param name="seq">Sequence ID of output Fragment</param>
+	/// <param name="ts">Timestamp of output Fragment (used to determine window limits)</param>
 		void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
 
 		/**
@@ -252,37 +256,59 @@ namespace artdaq
 
 		/**
 		 * \brief Wait for the data buffer to drain (dataBufferIsTooLarge returns false), periodically reporting status.
+		 * \param id Fragment ID of data buffer
 		 * \return True if wait ended without something else disrupting the run
 		 */
 		bool waitForDataBufferReady(Fragment::fragment_id_t id);
 
 		/**
 		 * \brief Test the configured constraints on the data buffer
+		 * \param id Fragment ID of data buffer
 		 * \return Whether the data buffer is full
 		 */
 		bool dataBufferIsTooLarge(Fragment::fragment_id_t id);
 
 		/**
 		 * \brief Calculate the size of the dataBuffer and report appropriate metrics
+		 * \param id Fragment ID of buffer
 		 */
 		void getDataBufferStats(Fragment::fragment_id_t id);
 
-		void getDataBuffersStats() { for (auto& id : dataBuffers_) getDataBufferStats(id.first); }
+	/**
+		 * \brief Calculate the size of all dataBuffers and report appropriate metrics
+		 */
+	void getDataBuffersStats()
+	{
+		for (auto& id : dataBuffers_) getDataBufferStats(id.first);
+	}
 
 		/**
-		 * \brief Perform data buffer pruning operations. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
+		 * \brief Perform data buffer pruning operations for the given buffer. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
+		 * \param id Fragment ID of buffer
 		 * In Window and Buffer RequestModes, this function discards the oldest Fragment objects until the data buffer is below its size constraints,
 		 * then also checks for stale Fragments, based on the timestamp of the most recent Fragment.
 		 */
 		void checkDataBuffer(Fragment::fragment_id_t id);
 
-		void checkDataBuffers() {
+	/**
+		 * \brief Perform data buffer pruning operations for all buffers.
+		 */
+	void checkDataBuffers()
+	{
 			for (auto& id : dataBuffers_) checkDataBuffer(id.first);
 		}
 
-		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> GetSentWindowList(Fragment::fragment_id_t id) {
-
-			if (!dataBuffers_.count(id)) {
+	/**
+		 * \brief Get the map of Window-mode requests fulfilled by this Fragment Geneerator for the given Fragment ID
+		 * \param id Fragment ID of buffer
+		 * \return Map of sequence_id and time_point for sent Window-mode requests
+		 *
+		 * This function is used in CommandableFragmentGenerator_t to verify correct functioning of Window mode
+		 */
+	std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> GetSentWindowList(Fragment::fragment_id_t id)
+	{
+		if (!dataBuffers_.count(id))
+		{
 				throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot get Sent Windows for ID " << id << " because it does not exist!";
 			}
 			return dataBuffers_[id].WindowsSent;
@@ -416,7 +442,6 @@ namespace artdaq
 		 */
 		bool exception() const { return exception_.load(); }
 
-
 		/**
 		* \brief The meta-command is used for implementing user-specific commands in a CommandableFragmentGenerator
 		* \param command Name of the command to run
@@ -426,7 +451,6 @@ namespace artdaq
 		virtual bool metaCommand(std::string const& command, std::string const& arg);
 
 	protected:
-
 		// John F., 12/6/13 -- need to figure out which of these getter
 		// functions should be promoted to "public"
 
@@ -456,7 +480,13 @@ namespace artdaq
 		 */
 		uint64_t timestamp() const { return timestamp_; }
 
-		artdaq::Fragment::fragment_id_t fragment_id() const {
+	/**
+		 * \brief Get the Fragment ID of this Fragment generator
+		 * \throws cet::exception("FragmentID") if there is more that one Fragment ID configured for this Fragment Generator
+		 * \return Fragment ID for the Fragment Generator
+		 */
+	artdaq::Fragment::fragment_id_t fragment_id() const
+	{
 			if (dataBuffers_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << dataBuffers_.size() << " were declared!";
 			return (*dataBuffers_.begin()).first;
 		}
@@ -518,7 +548,12 @@ namespace artdaq
 
 		std::mutex mutex_; ///< Mutex used to ensure that multiple transition commands do not run at the same time
 
-		size_t dataBufferFragmentCount_() {
+	/**
+		 * \brief Get the total number of Fragments in all data buffers
+		 * \return Number of Fragments in all data buffers
+		 */
+	size_t dataBufferFragmentCount_()
+	{
 			size_t count = 0;
 			for (auto& id : dataBuffers_) count += id.second.DataBufferDepthFragments;
 			return count;
@@ -558,7 +593,8 @@ namespace artdaq
 		std::chrono::steady_clock::time_point lastMonitoringCall_;
 		std::atomic<bool> isHardwareOK_;
 
-		struct DataBuffer {
+	struct DataBuffer
+	{
 			std::atomic<int> DataBufferDepthFragments;
 			std::atomic<size_t> DataBufferDepthBytes;
 			std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> WindowsSent;
@@ -600,7 +636,6 @@ namespace artdaq
 		int sleep_on_stop_us_;
 
 	protected:
-
 		/// <summary>
 		/// Obtain the next group of Fragments, if any are available. Return false if readout cannot continue, 
 		/// if we are 'stopped', or if we are not running in state-machine mode. 
@@ -609,7 +644,6 @@ namespace artdaq
 		/// <param name="output">Reference to list of Fragment pointers to which additional Fragments should be added</param>
 		/// <returns>True if readout should continue, false otherwise</returns>
 		virtual bool getNext_(FragmentPtrs& output) = 0;
-
 
 		/// <summary>
 		/// Check any relavent hardware status registers. Return false if
@@ -690,8 +724,7 @@ namespace artdaq
 		/// <param name="what">Name of the quantity to report</param>
 		/// <returns>Value of requested quantity. Null string if what is unsupported.</returns>
 		virtual std::string reportSpecific(std::string const& what);
-
 	};
-}
+}  // namespace artdaq
 
 #endif /* artdaq_Application_CommandableFragmentGenerator_hh */
