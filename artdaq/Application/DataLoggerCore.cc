@@ -9,7 +9,7 @@
 #include "art/Framework/Art/artapp.h"
 #include "cetlib/BasicPluginFactory.h"
 
-#include "artdaq/DAQdata/Globals.hh" // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DataLoggerCore").c_str()
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
@@ -20,13 +20,13 @@
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
 artdaq::DataLoggerCore::DataLoggerCore()
-	: DataReceiverCore()
+    : DataReceiverCore()
 {
 }
 
 artdaq::DataLoggerCore::~DataLoggerCore()
 {
-	TLOG(TLVL_DEBUG) << "Destructor" ;
+	TLOG(TLVL_DEBUG) << "Destructor";
 }
 
 bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
@@ -43,8 +43,8 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	catch (...)
 	{
 		TLOG(TLVL_ERROR)
-			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\"." ;
+		    << "Unable to find the DAQ parameters in the initialization "
+		    << "ParameterSet: \"" + pset.to_string() + "\".";
 		return false;
 	}
 	fhicl::ParameterSet agg_pset;
@@ -55,13 +55,13 @@ bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 	catch (...)
 	{
 		TLOG(TLVL_ERROR)
-			<< "Unable to find the DataLogger parameters in the DAQ "
-			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." ;
+		    << "Unable to find the DataLogger parameters in the DAQ "
+		    << "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
 		return false;
 	}
 
 	// initialize the MetricManager and the names of our metrics
-	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());                           
+	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 
 	return initializeDataReceiver(pset, agg_pset, metric_pset);
 }
