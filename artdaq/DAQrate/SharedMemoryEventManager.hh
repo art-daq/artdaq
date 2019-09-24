@@ -7,11 +7,11 @@
 #include <deque>
 #include <fstream>
 #include <iomanip>
-#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include <set>
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/DAQrate/detail/ArtConfig.hh"
 #include "fhiclcpp/fwd.h"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
@@ -427,7 +427,6 @@ namespace artdaq {
         std::chrono::steady_clock::time_point last_backpressure_report_time_;
         std::chrono::steady_clock::time_point last_fragment_header_write_time_;
 		
-
 	struct MetricData
 	{
 		MetricData()
