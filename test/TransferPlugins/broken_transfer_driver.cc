@@ -2,8 +2,8 @@
 
 #define TRACE_NAME "broken_transfer_driver"
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
 int main(int argc, char* argv[])
 {

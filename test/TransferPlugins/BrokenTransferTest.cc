@@ -3,8 +3,8 @@
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
-#include "artdaq/DAQdata/Globals.hh"
 #include <thread>
+#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME "BrokenTransferTest"
 
 artdaqtest::BrokenTransferTest::BrokenTransferTest(fhicl::ParameterSet ps)
@@ -352,7 +352,7 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 		if (rank == artdaq::TransferInterface::RECV_TIMEOUT || event_buffer_.count(hdr.sequence_id) == 0)
 		{
 			std::unique_lock<std::mutex> lk(event_buffer_mutex_);
-			do 
+			do
 			{
 				event_buffer_cv_.wait_for(lk, std::chrono::microseconds(10000));
 
