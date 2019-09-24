@@ -3,7 +3,7 @@
 #include "artdaq/Application/BoardReaderApp.hh"
 
 artdaq::BoardReaderApp::BoardReaderApp()
-	: fragment_receiver_ptr_(nullptr)
+    : fragment_receiver_ptr_(nullptr)
 {
 }
 
@@ -33,7 +33,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	}
 
 	TLOG(TLVL_DEBUG) << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
-		<< "Done initializing.";
+	                 << "Done initializing.";
 	return external_request_status_;
 }
 
@@ -55,8 +55,9 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	}
 
 	boost::thread::attributes attrs;
-	attrs.set_stack_size(4096 * 2000); // 8 MB
-	try {
+	attrs.set_stack_size(4096 * 2000);  // 8 MB
+	try
+	{
 		fragment_processing_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::process_fragments, fragment_receiver_ptr_.get()));
 	}
 	catch (const boost::exception& e)
@@ -91,10 +92,10 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 
 	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
 	int number_of_fragments_sent = -1;
-	if(fragment_receiver_ptr_) number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
+	if (fragment_receiver_ptr_) number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG) << "do_stop(uint64_t, uint64_t): "
-		<< "Number of fragments sent = " << number_of_fragments_sent
-		<< ".";
+	                 << "Number of fragments sent = " << number_of_fragments_sent
+	                 << ".";
 
 	return external_request_status_;
 }
@@ -109,11 +110,11 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 	}
 
-	if(fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
+	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG) << "do_pause(uint64_t, uint64_t): "
-		<< "Number of fragments sent = " << number_of_fragments_sent
-		<< ".";
+	                 << "Number of fragments sent = " << number_of_fragments_sent
+	                 << ".";
 
 	return external_request_status_;
 }
@@ -129,7 +130,7 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	}
 
 	boost::thread::attributes attrs;
-	attrs.set_stack_size(4096 * 2000); // 8 MB
+	attrs.set_stack_size(4096 * 2000);  // 8 MB
 	fragment_processing_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::process_fragments, fragment_receiver_ptr_.get()));
 	/*
 		fragment_processing_future_ =
@@ -143,8 +144,8 @@ bool artdaq::BoardReaderApp::do_shutdown(uint64_t timeout)
 {
 	report_string_ = "";
 	external_request_status_ = fragment_receiver_ptr_->shutdown(timeout);
-        // 02-Jun-2018, ELF & KAB: it's very, very unlikely that the following call is needed,
-        // but just in case...
+	// 02-Jun-2018, ELF & KAB: it's very, very unlikely that the following call is needed,
+	// but just in case...
 	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
 	if (!external_request_status_)
 	{
@@ -210,7 +211,10 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else { return "Success"; }
+		else
+		{
+			return "Success";
+		}
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application

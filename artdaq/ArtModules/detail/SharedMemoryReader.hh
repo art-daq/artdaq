@@ -134,7 +134,7 @@ public:
 	}
 
 protected:
-	std::map<Fragment::type_t, std::string> type_map_;
+	std::map<Fragment::type_t, std::string> type_map_;  ///< Map relating Fragment Type to strings
 };
 
 /**
@@ -604,7 +604,7 @@ struct SharedMemoryReader
 			}
 
 			unsigned readNext_calls_; ///< The number of times readNext has been called
-	FTT translator_;
+	FTT translator_;           ///< An instance of the template parameter FragmentTypeTranslator that translates Fragment Type IDs to strings for creating ROOT TTree Branches
 		};
 }  // namespace detail
 }  // namespace artdaq
