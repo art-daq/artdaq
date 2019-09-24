@@ -1,17 +1,16 @@
 #ifndef artdaq_Application_Routing_RoutingMasterPolicy_hh
 #define artdaq_Application_Routing_RoutingMasterPolicy_hh
 
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq-core/Data/Fragment.hh"
 
-#include "fhiclcpp/fwd.h"
-#include <mutex>
 #include <deque>
+#include <mutex>
 #include <unordered_set>
+#include "fhiclcpp/fwd.h"
 
-namespace artdaq
-{
+namespace artdaq {
 	/**
 	 * \brief The interface through which RoutingMasterCore obtains Routing Tables using received Routing Tokens
 	 */
@@ -82,9 +81,7 @@ namespace artdaq
 		std::unordered_set<int> receiver_ranks_;
 		std::deque<int> tokens_;
 		std::atomic<size_t> max_token_count_;
-
 	};
-}
-
+}  // namespace artdaq
 
 #endif // artdaq_Application_Routing_RoutingMasterPolicy_hh

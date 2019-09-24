@@ -21,4 +21,4 @@
  */
 int TCP_listen_fd(int port, int rcvbuf);
 
-#endif	// TCP_listen_fd_hh
+#endif  // TCP_listen_fd_hh

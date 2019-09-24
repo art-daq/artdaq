@@ -8,19 +8,18 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 
-#include <stdio.h>		// printf
-#include <stdlib.h>		// exit
-#include <strings.h>		// bzero
-#include <sys/socket.h>         /* inet_aton, socket, bind, listen, accept */
-#include <netinet/in.h>         /* inet_aton, struct sockaddr_in */
-#include <arpa/inet.h>          /* inet_aton */
-#include <netdb.h>              /* gethostbyname */
-#include <errno.h>				// errno
+#include <arpa/inet.h>  /* inet_aton */
+#include <errno.h>      // errno
+#include <netdb.h>      /* gethostbyname */
+#include <netinet/in.h> /* inet_aton, struct sockaddr_in */
+#include <stdio.h>      // printf
+#include <stdlib.h>     // exit
+#include <strings.h>    // bzero
+#include <sys/socket.h> /* inet_aton, socket, bind, listen, accept */
 
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 
-int
-TCP_listen_fd(int port, int rcvbuf)
+int TCP_listen_fd(int port, int rcvbuf)
 {
 	int sts;
 	int listener_fd;
@@ -34,7 +33,7 @@ TCP_listen_fd(int port, int rcvbuf)
 		exit(1);
 	}
 
-	int opt = 1; // SO_REUSEADDR - man socket(7)
+	int opt = 1;  // SO_REUSEADDR - man socket(7)
 	sts = setsockopt(listener_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 	if (sts == -1)
 	{
@@ -77,7 +76,7 @@ TCP_listen_fd(int port, int rcvbuf)
 	}
 
 	//printf( "listen..." );fflush(stdout);
-	sts = listen(listener_fd, 5/*QLEN*/);
+	sts = listen(listener_fd, 5 /*QLEN*/);
 	if (sts == -1)
 	{
 		perror("listen error");
@@ -86,4 +85,4 @@ TCP_listen_fd(int port, int rcvbuf)
 	//printf( " OK\n" );
 
 	return (listener_fd);
-} // TCP_listen_fd
+}  // TCP_listen_fd

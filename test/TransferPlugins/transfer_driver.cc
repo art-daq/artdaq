@@ -1,14 +1,13 @@
 #define TRACE_NAME "transfer_driver"
 
-#include "artdaq/DAQrate/TransferTest.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/TransferTest.hh"
 #include "fhiclcpp/make_ParameterSet.h"
-
 
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("transfer_driver");
-	TLOG(TLVL_INFO) << "BEGIN" ;
+	TLOG(TLVL_INFO) << "BEGIN";
 
 	std::cout << "argc:" << argc << std::endl;
 	for (int i = 0; i < argc; ++i)
@@ -36,6 +35,6 @@ int main(int argc, char* argv[])
 	artdaq::TransferTest theTest(ps);
 	theTest.runTest();
 
-	TLOG(TLVL_INFO) << "END" ;
+	TLOG(TLVL_INFO) << "END";
 	return 0;
 }

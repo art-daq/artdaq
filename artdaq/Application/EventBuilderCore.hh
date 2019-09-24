@@ -1,13 +1,12 @@
 #ifndef artdaq_Application_MPI2_EventBuilderCore_hh
 #define artdaq_Application_MPI2_EventBuilderCore_hh
 
-#include "fhiclcpp/ParameterSet.h"
-#include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/Application/DataReceiverCore.hh"
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
-namespace artdaq
-{
-	class EventBuilderCore;
+namespace artdaq {
+class EventBuilderCore;
 }
 
 /**
@@ -17,7 +16,6 @@ namespace artdaq
 class artdaq::EventBuilderCore : public DataReceiverCore
 {
 public:
-
 	/**
 	 * \brief EventBuilderCore Constructor.
 	 */
