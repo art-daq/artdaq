@@ -36,11 +36,10 @@ typedef std::map<artdaq::Fragment::type_t, std::string> FragmentTypeMap;
  */
 class FragmentTypeTranslator
 {
-
 public:
 	FragmentTypeTranslator(fhicl::ParameterSet const& ps, FragmentTypeMap const& default_types)
-	    : type_map_(default_types) {
-
+	    : type_map_(default_types)
+	{
 		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
 		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
 		{
@@ -148,7 +147,7 @@ protected:
 	std::map<Fragment::type_t, std::string> type_map_;  ///< Map relating Fragment Type to strings
 };
 
-		/**
+/**
 		 * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
 		 */
 template<FragmentTypeMap getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
@@ -604,7 +603,6 @@ struct SharedMemoryReader
 		last_read_time = std::chrono::steady_clock::now();
 		return true;
 	}
-
 };
 }  // namespace detail
 }  // namespace artdaq
