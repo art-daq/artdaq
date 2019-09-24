@@ -1,9 +1,11 @@
 #ifndef artdaq_ArtModules_NetMonTransportService_h
 #define artdaq_ArtModules_NetMonTransportService_h
 
+#include "art/Framework/Services/Registry/ServiceMacros.h"
+
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 #include "artdaq/ArtModules/NetMonTransportServiceInterface.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 
 // ----------------------------------------------------------------------
 
@@ -31,7 +33,6 @@ public:
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
-
 
 	/**
 	 * \brief NetMonTransportService Destructor. Calls disconnect().
@@ -84,6 +85,7 @@ public:
 	 * \return The number of data receivers
 	 */
 	size_t dataReceiverCount() const { return sender_ptr_->destinationCount(); }
+
 private:
 	fhicl::ParameterSet data_pset_;
 	bool init_received_;

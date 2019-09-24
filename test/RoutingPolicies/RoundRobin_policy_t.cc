@@ -5,7 +5,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
-
 BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)
 
 BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
@@ -18,7 +17,7 @@ BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 	auto rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps4);
 	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
 
-        auto rrB = rrA;
+	auto rrB = rrA;
 	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
 	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
 
@@ -26,7 +25,7 @@ BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 3);
 	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
 
-        // force destructors to be run on first set of policies
+	// force destructors to be run on first set of policies
 	rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps2);
 	rrB = artdaq::makeRoutingMasterPolicy("RoundRobin", ps2);
 }
@@ -39,7 +38,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	auto rr = artdaq::makeRoutingMasterPolicy("RoundRobin", ps);
 
 	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 4);
-	
+
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
 	rr->AddReceiverToken(3, 1);
@@ -74,7 +73,6 @@ BOOST_AUTO_TEST_CASE(Simple)
 	auto fifthTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(fifthTable.size(), 4);
 	BOOST_REQUIRE_EQUAL(fifthTable[0].destination_rank, 1);
-	
 }
 
 BOOST_AUTO_TEST_CASE(MinimumParticipants)
@@ -108,7 +106,6 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	auto thirdTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 0);
 
-
 	rr->AddReceiverToken(1, 1);
 	auto fourthTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(fourthTable.size(), 2);
@@ -129,7 +126,6 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	rr->AddReceiverToken(3, 1);
 	auto sixthTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(sixthTable.size(), 0);
-
 }
 
 BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)

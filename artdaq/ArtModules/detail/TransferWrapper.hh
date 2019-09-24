@@ -1,23 +1,20 @@
 #ifndef artdaq_ArtModules_TransferWrapper_hh
 #define artdaq_ArtModules_TransferWrapper_hh
 
-
-#include <string>
-#include <memory>
 #include <iostream>
+#include <memory>
+#include <string>
 
-#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/ExternalComms/CommanderInterface.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include <TBufferFile.h>
 
-namespace fhicl
-{
+namespace fhicl {
 	class ParameterSet;
 }
 
-namespace artdaq
-{
+namespace artdaq {
 	class Fragment;
 
 	/**
@@ -34,7 +31,6 @@ namespace artdaq
 	class TransferWrapper
 	{
 	public:
-
 		/**
 		 * \brief TransferWrapper Constructor
 		 * \param pset ParameterSet used to configure the TransferWrapper
@@ -95,6 +91,6 @@ namespace artdaq
 		const bool quitOnFragmentIntegrityProblem_;
 		bool monitorRegistered_;
 	};
-}
+}  // namespace artdaq
 
 #endif /* artdaq_ArtModules_TransferWrapper_hh */
