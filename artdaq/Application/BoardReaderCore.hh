@@ -3,16 +3,15 @@
 
 #include <string>
 
-#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/Commandable.hh"
-#include "fhiclcpp/ParameterSet.h"
-#include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
-namespace artdaq
-{
+namespace artdaq {
 	class BoardReaderCore;
 }
 
@@ -160,6 +159,7 @@ public:
 	/// </summary>
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
+
 private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;

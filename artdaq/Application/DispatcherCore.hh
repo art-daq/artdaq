@@ -3,15 +3,13 @@
 
 #include <string>
 
-#include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq/Application/DataReceiverCore.hh"
 
-
-namespace artdaq
-{
-	class DispatcherCore;
+namespace artdaq {
+class DispatcherCore;
 }
 
 /**
@@ -21,7 +19,6 @@ namespace artdaq
 class artdaq::DispatcherCore : public DataReceiverCore
 {
 public:
-
 	/**
 	* \brief DispatcherCore Constructor.
 	*/
@@ -88,16 +85,15 @@ public:
 	 */
 	std::string unregister_monitor(std::string const& label);
 
-
 private:
-	fhicl::ParameterSet generate_filter_fhicl_(); 
+	fhicl::ParameterSet generate_filter_fhicl_();
 	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet skel, std::string label, fhicl::ParameterSet pset);
 	void check_filters_();
 
 	std::mutex dispatcher_transfers_mutex_;
 	std::unordered_map<std::string, fhicl::ParameterSet> registered_monitors_;
 	std::unordered_map<std::string, pid_t> registered_monitor_pids_;
-	fhicl::ParameterSet pset_; // The ParameterSet initially passed to the Dispatcher (contains input info)
+	fhicl::ParameterSet pset_;  // The ParameterSet initially passed to the Dispatcher (contains input info)
 	bool broadcast_mode_;
 };
 

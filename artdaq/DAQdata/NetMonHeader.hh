@@ -3,9 +3,8 @@
 
 #include <cstdint>
 
-namespace artdaq
-{
-	struct NetMonHeader;
+namespace artdaq {
+struct NetMonHeader;
 }
 
 /**
@@ -13,7 +12,7 @@ namespace artdaq
  */
 struct artdaq::NetMonHeader
 {
-	uint64_t data_length; ///< The length of the message
+	uint64_t data_length;  ///< The length of the message
 };
 
 #endif /* artdaq_DAQdata_NetMonHeader_hh */

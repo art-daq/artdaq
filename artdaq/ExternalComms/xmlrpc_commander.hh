@@ -8,8 +8,7 @@
 #include <mutex>
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 
-namespace artdaq
-{
+namespace artdaq {
 
 /**
  * \brief The xmlrpc_commander class serves as the XMLRPC server run in each artdaq application
@@ -48,10 +47,10 @@ public:
 	/// <param name="monitor_label">Label of the monitor to unregister</param>
 	/// <returns>Return status from XMLRPC</returns>
 	std::string send_unregister_monitor(std::string monitor_label) override;
-	
+
 	/// <summary>
 	/// Send an init command over XMLRPC
-	/// 
+	///
 	/// The init command is accepted by all artdaq processes that are in the booted state.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
@@ -60,7 +59,7 @@ public:
 
 	/// <summary>
 	/// Send a soft_init command over XMLRPC
-	/// 
+	///
 	/// The soft_init command is accepted by all artdaq processes that are in the booted state.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
@@ -69,7 +68,7 @@ public:
 
 	/// <summary>
 	/// Send a reinit command over XMLRPC
-	/// 
+	///
 	/// The reinit command is accepted by all artdaq processes.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
@@ -78,7 +77,7 @@ public:
 
 	/// <summary>
 	/// Send a start command over XMLRPC
-	/// 
+	///
 	/// The start command starts a Run using the given run number.
 	/// This command also accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
@@ -87,7 +86,7 @@ public:
 
 	/// <summary>
 	/// Send a pause command over XMLRPC
-	/// 
+	///
 	/// The pause command pauses a Run. When the run resumes, the subrun number will be incremented.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
@@ -96,7 +95,7 @@ public:
 
 	/// <summary>
 	/// Send a resume command over XMLRPC
-	/// 
+	///
 	/// The resume command resumes a paused Run. When the run resumes, the subrun number will be incremented.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
@@ -105,7 +104,7 @@ public:
 
 	/// <summary>
 	/// Send a stop command over XMLRPC
-	/// 
+	///
 	/// The stop command stops the current Run.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
@@ -114,7 +113,7 @@ public:
 
 	/// <summary>
 	/// Send a shutdown command over XMLRPC
-	/// 
+	///
 	/// The shutdown command shuts down the artdaq process.
 	/// This command accepts a timeout parameter.
 	/// </summary>
@@ -123,7 +122,7 @@ public:
 
 	/// <summary>
 	/// Send a status command over XMLRPC
-	/// 
+	///
 	/// The status command returns the current status of the artdaq process.
 	/// </summary>
 	/// <returns>Command result: current status of the artdaq process</returns>
@@ -131,7 +130,7 @@ public:
 
 	/// <summary>
 	/// Send a report command over XMLRPC
-	/// 
+	///
 	/// The report command returns the current value of the requested reportable quantity.
 	/// </summary>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
@@ -139,15 +138,15 @@ public:
 
 	/// <summary>
 	/// Send a legal_commands command over XMLRPC
-	/// 
+	///
 	/// This will query the artdaq process, and it will return the list of allowed transition commands from its current state.
 	/// </summary>
 	/// <returns>Command result: a list of allowed transition commands from its current state</returns>
 	std::string send_legal_commands() override;
-	
+
 	/// <summary>
 	/// Send an send_trace_get command over XMLRPC
-	/// 
+	///
 	/// This will cause the receiver to get the TRACE level masks for the given name
 	/// Use name == "ALL" to get ALL names
 	/// </summary>
@@ -156,7 +155,7 @@ public:
 
 	/// <summary>
 	/// Send an send_trace_msgfacility_set command over XMLRPC
-	/// 
+	///
 	/// This will cause the receiver to set the given TRACE level mask for the given name to the given mask.
 	/// Only the first character of the mask selection will be parsed, dial 'M' for Memory, or 'S' for Slow.
 	/// Use name == "ALL" to set ALL names
@@ -168,7 +167,7 @@ public:
 
 	/// <summary>
 	/// Send an send_meta_command command over XMLRPC
-	/// 
+	///
 	/// This will cause the receiver to run the given command with the given argument in user code
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
@@ -182,7 +181,6 @@ public:
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_rollover_subrun(uint64_t, uint32_t) override;
-
 
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
@@ -202,10 +200,10 @@ private:
 	std::string send_command_(std::string, std::string, std::string, uint64_t);
 
 public:
-	std::timed_mutex mutex_; ///< XMLRPC mutex
-	std::unique_ptr<xmlrpc_c::serverAbyss> server; ///< XMLRPC server
+	std::timed_mutex mutex_;                        ///< XMLRPC mutex
+	std::unique_ptr<xmlrpc_c::serverAbyss> server;  ///< XMLRPC server
 };
 
-}
+}  // namespace artdaq
 
 #endif /* artdaq_ExternalComms_xmlrpc_commander_hh */
