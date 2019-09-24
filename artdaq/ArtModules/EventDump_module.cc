@@ -11,9 +11,9 @@
 #include "art/Framework/Principal/Handle.h"
 #include "canvas/Utilities/Exception.h"
 
-#include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Data/RawEvent.hh"
 
 #include <algorithm>
 #include <cassert>
@@ -24,7 +24,7 @@
 #include <vector>
 
 namespace artdaq {
-	class EventDump;
+class EventDump;
 }
 
 /**
@@ -65,75 +65,75 @@ private:
 };
 
 artdaq::EventDump::EventDump(fhicl::ParameterSet const& pset)
-	: EDAnalyzer(pset)
-	, raw_data_label_(pset.get<std::string>("raw_data_label", "daq"))
-	, verbosity_(pset.get<int>("verbosity",0)) {}
+    : EDAnalyzer(pset)
+    , raw_data_label_(pset.get<std::string>("raw_data_label", "daq"))
+    , verbosity_(pset.get<int>("verbosity", 0)) {}
 
 void artdaq::EventDump::analyze(art::Event const& e)
 {
 	if (verbosity_ > 0)
 	{
-	std::cout << "***** Start of EventDump for event " << e.event() << " *****" << std::endl;
+		std::cout << "***** Start of EventDump for event " << e.event() << " *****" << std::endl;
 
-	art::Handle<detail::RawEventHeader> header_handle;
-	e.getByLabel(raw_data_label_, "RawEventHeader", header_handle);
+		art::Handle<detail::RawEventHeader> header_handle;
+		e.getByLabel(raw_data_label_, "RawEventHeader", header_handle);
 
-	if (header_handle.isValid())
-	{
-		std::ostringstream ostr;
-		header_handle->print(ostr);
-		std::cout << "Event Header: " << ostr.str() << std::endl;
-	}
-	else
-	{
-		std::cout << "Unable to read RawEventHeader for event " << e.event() << std::endl;
-	}
+		if (header_handle.isValid())
+		{
+			std::ostringstream ostr;
+			header_handle->print(ostr);
+			std::cout << "Event Header: " << ostr.str() << std::endl;
+		}
+		else
+		{
+			std::cout << "Unable to read RawEventHeader for event " << e.event() << std::endl;
+		}
 
-	std::vector< art::Handle< std::vector<artdaq::Fragment> > > fragmentHandles;
-	e.getManyByType(fragmentHandles);
+		std::vector<art::Handle<std::vector<artdaq::Fragment> > > fragmentHandles;
+		e.getManyByType(fragmentHandles);
 
-	for (auto const& handle : fragmentHandles)
-        {
+		for (auto const& handle : fragmentHandles)
+		{
 			if (handle->size() > 0)
 			{
-            std::string instance_name = handle.provenance()->productInstanceName();
-            std::cout << instance_name << " fragments: " << std::endl;
+				std::string instance_name = handle.provenance()->productInstanceName();
+				std::cout << instance_name << " fragments: " << std::endl;
 
-            int jdx = 1;
+				int jdx = 1;
 				for (auto const& frag : *handle)
 				{
-              std::cout << "  " << jdx << ") fragment ID " << frag.fragmentID() << " has type "
-                        << (int) frag.type() << ", timestamp " << frag.timestamp()
-                        << ", and sizeBytes " << frag.sizeBytes();
+					std::cout << "  " << jdx << ") fragment ID " << frag.fragmentID() << " has type "
+					          << (int)frag.type() << ", timestamp " << frag.timestamp()
+					          << ", and sizeBytes " << frag.sizeBytes();
 
 					if (instance_name.compare(0, 9, "Container") == 0)
 					{
-                artdaq::ContainerFragment cf(frag);
-                std::cout << " (contents: type = " << (int) cf.fragment_type() << ", count = "
-                          << cf.block_count() << ", missing data = " << cf.missing_data()
+						artdaq::ContainerFragment cf(frag);
+						std::cout << " (contents: type = " << (int)cf.fragment_type() << ", count = "
+						          << cf.block_count() << ", missing data = " << cf.missing_data()
 						          << ")" << std::endl;
 						;
 						if (verbosity_ > 1)
 						{
 							for (size_t idx = 0; idx < cf.block_count(); ++idx)
 							{
-                    std::cout << "    " << (idx+1) << ") fragment type " << (int) (cf.at(idx))->type()
-                              << ", timestamp " << (cf.at(idx))->timestamp()
-                              << ", and sizeBytes " << (cf.at(idx))->sizeBytes() << std::endl;
-                  }
-                }
-              }
+								std::cout << "    " << (idx + 1) << ") fragment type " << (int)(cf.at(idx))->type()
+								          << ", timestamp " << (cf.at(idx))->timestamp()
+								          << ", and sizeBytes " << (cf.at(idx))->sizeBytes() << std::endl;
+							}
+						}
+					}
 					else
 					{
-                std::cout << std::endl;
-              }
-              ++jdx;
-            }
-          }
-	}
+						std::cout << std::endl;
+					}
+					++jdx;
+				}
+			}
+		}
 
-	std::cout << "***** End of EventDump for event " << e.event() << " *****" << std::endl;
-    }
+		std::cout << "***** End of EventDump for event " << e.event() << " *****" << std::endl;
+	}
 }
 
 DEFINE_ART_MODULE(artdaq::EventDump)
