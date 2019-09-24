@@ -9,16 +9,15 @@
 #include <memory>
 #include <string>
 
-namespace artdaq
-{
-	/**
+namespace artdaq {
+/**
 	 * \brief Load a RoutingMasterPolicy plugin
 	 * \param policy_plugin_spec Name of the RoutingMasterPolicy
 	 * \param ps ParameterSet used to configure the RoutingMasterPolicy
 	 * \return std::shared_ptr<RoutingMasterPolicy> to the new RoutingMasterPolicy instance
 	 */
-	std::shared_ptr<RoutingMasterPolicy>
-		makeRoutingMasterPolicy(std::string const& policy_plugin_spec,
-										 fhicl::ParameterSet const& ps);
-}
+std::shared_ptr<RoutingMasterPolicy>
+makeRoutingMasterPolicy(std::string const& policy_plugin_spec,
+                        fhicl::ParameterSet const& ps);
+}  // namespace artdaq
 #endif /* artdaq_Application_Routing_makeRoutingMasterPolicy_hh */

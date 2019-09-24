@@ -1,25 +1,24 @@
 #ifndef artdaq_DAQrate_RequestSender_hh
 #define artdaq_DAQrate_RequestSender_hh
 
-#include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Table.h"
 
-#include <map>
-#include <memory>
-#include <chrono>
-#include <future>
-#include <stdint.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <chrono>
+#include <future>
+#include <map>
+#include <memory>
 
-namespace artdaq
-{
+namespace artdaq {
 
 	/**
 	 * \brief The RequestSender contains methods used to send data requests and Routing tokens
@@ -90,7 +89,6 @@ namespace artdaq
 		 */
 		virtual ~RequestSender();
 
-
 		/**
 		 * \brief Set the mode for RequestMessages. Used to indicate when RequestSender should enter "EndOfRun" mode
 		 * \param mode Mode to set
@@ -144,6 +142,7 @@ namespace artdaq
 		bool RoutingTokenSendsEnabled() { return send_routing_tokens_; }
 	private:
 
+private:
 		// Request stuff
 		bool send_requests_;
 		std::atomic<bool> initialized_;
@@ -176,5 +175,5 @@ namespace artdaq
 
 		void send_routing_token_(int nSlots, int run_number);
 	};
-}
+}  // namespace artdaq
 #endif /* artdaq_DAQrate_RequestSender_hh */

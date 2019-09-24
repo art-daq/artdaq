@@ -1,23 +1,22 @@
 #ifndef ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 
-#include <map>
-#include <set>
-#include <memory>
 #include <condition_variable>
+#include <map>
+#include <memory>
+#include <set>
 
 #include "fhiclcpp/fwd.h"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
-namespace artdaq
-{
-	class FragmentReceiverManager;
-	class FragmentStoreElement;
-}
+namespace artdaq {
+class FragmentReceiverManager;
+class FragmentStoreElement;
+}  // namespace artdaq
 
 /**
  * \brief Receives Fragment objects from one or more DataSenderManager instances using TransferInterface plugins
@@ -27,7 +26,6 @@ namespace artdaq
 class artdaq::FragmentReceiverManager
 {
 public:
-
 	/**
 	 * \brief FragmentReceiverManager Constructor
 	 * \param ps ParameterSet used to configure the FragmentReceiverManager
@@ -116,9 +114,9 @@ private:
 	std::mutex output_cv_mutex_;
 	std::condition_variable output_cv_;
 
-	detail::FragCounter recv_frag_count_; // Number of frags received per source.
-	detail::FragCounter recv_frag_size_; // Number of bytes received per source.
-	detail::FragCounter recv_seq_count_; // For counting sequence IDs
+	detail::FragCounter recv_frag_count_;  // Number of frags received per source.
+	detail::FragCounter recv_frag_size_;   // Number of bytes received per source.
+	detail::FragCounter recv_seq_count_;   // For counting sequence IDs
 	bool suppress_noisy_senders_;
 	size_t suppression_threshold_;
 
@@ -140,9 +138,9 @@ public:
 	 * \brief FragmentStoreElement Constructor
 	 */
 	FragmentStoreElement()
-		: frags_()
-		, empty_(true)
-		, eod_marker_(-1)
+	    : frags_()
+	    , empty_(true)
+	    , eod_marker_(-1)
 	{
 		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
 	}
@@ -215,27 +213,24 @@ private:
 	size_t eod_marker_;
 };
 
-inline
-size_t
+inline size_t
 artdaq::FragmentReceiverManager::
-count() const
+    count() const
 {
 	return recv_frag_count_.count();
 }
 
-inline
-size_t
+inline size_t
 artdaq::FragmentReceiverManager::
-slotCount(size_t rank) const
+    slotCount(size_t rank) const
 {
 	return recv_frag_count_.slotCount(rank);
 }
 
-inline
-size_t
+inline size_t
 artdaq::FragmentReceiverManager::
-byteCount() const
+    byteCount() const
 {
 	return recv_frag_size_.count();
 }
-#endif //ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
+#endif  //ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH

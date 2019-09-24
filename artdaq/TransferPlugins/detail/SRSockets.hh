@@ -14,8 +14,8 @@
  */
 struct MessHead
 {
-	uint8_t endian; ///< 0=little(intel), 1=big
-	
+	uint8_t endian;  ///< 0=little(intel), 1=big
+
 	/**
 	 * \brief The Message Type
 	 * 
@@ -32,13 +32,13 @@ struct MessHead
 		header_v0
 	};
 
-	MessType message_type; ///< Message Type
-	int64_t source_id; ///< Rank of the source
+	MessType message_type;  ///< Message Type
+	int64_t source_id;      ///< Rank of the source
 
 	union
 	{
-		uint32_t conn_magic; ///< unsigned first is better for MessHead initializer: {0,0,my_node_idx_,CONN_MAGIC}
-		int32_t byte_count; ///< use CONN_MAGIC for connect_v0, data that follow for data_v0 (and 0 lenght data)
+		uint32_t conn_magic;  ///< unsigned first is better for MessHead initializer: {0,0,my_node_idx_,CONN_MAGIC}
+		int32_t byte_count;   ///< use CONN_MAGIC for connect_v0, data that follow for data_v0 (and 0 lenght data)
 	};
 };
 
@@ -47,4 +47,4 @@ struct MessHead
  */
 #define CONN_MAGIC 0xcafefeca
 #define ACK_MAGIC 0xbeeffeed
-#endif // SRSockets_hh
+#endif  // SRSockets_hh

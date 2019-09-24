@@ -2,10 +2,10 @@
    (C) 2001 by Argonne National Laboratory.
        See COPYRIGHT in top-level directory.
 */
-#include "mpi.h"
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 #include <iostream>
+#include "mpi.h"
 
 using namespace std;
 
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 
 	for (int i = 0; i < argc; ++i)
 		cout << "argv[" << i << "] = " << argv[i]
-			<< endl;
+		     << endl;
 
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
@@ -41,15 +41,17 @@ int main(int argc, char* argv[])
 	MPI_Get_processor_name(processor_name, &namelen);
 
 	fprintf(stderr, "Process %d on %s\n",
-	              myid, processor_name);
+	        myid, processor_name);
 
 	n = 0;
 	while (!done)
 	{
 		if (myid == 0)
 		{
-			if (n == 0) n = 100;
-			else n = 0;
+			if (n == 0)
+				n = 100;
+			else
+				n = 0;
 
 			startwtime = MPI_Wtime();
 		}
@@ -58,7 +60,7 @@ int main(int argc, char* argv[])
 			done = 1;
 		else
 		{
-			h = 1.0 / (double) n;
+			h = 1.0 / (double)n;
 			sum = 0.0;
 			for (i = myid + 1; i <= n; i += numprocs)
 			{
