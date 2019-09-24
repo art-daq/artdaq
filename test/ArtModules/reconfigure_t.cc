@@ -3,13 +3,12 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/ArtModules/detail/ArtConfig.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
-#include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/ArtModules/detail/ArtConfig.hh"
 
 #include <cstddef>
 #include <iostream>
@@ -44,7 +43,7 @@ int main(int argc, char* argv[])
 		pset.put("run_number", RUN_ID);
 		pset.put("print_event_store_stats", true);
 		pset.put("max_event_size_bytes", 0x100000);
-		pset.put("buffer_count",10);
+		pset.put("buffer_count", 10);
 		pset.put("send_init_fragments", false);
 
 		auto temp = pset.to_string() + " source.waiting_time: 10";
@@ -59,7 +58,7 @@ int main(int argc, char* argv[])
 		events->startRun(100);
 		FragmentPtrs frags;
 		size_t event_count = 0;
-		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
+		while (frags.clear(), event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
 			TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size();
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);
@@ -103,7 +102,7 @@ int main(int argc, char* argv[])
 			GenericFragmentSimulator sim2(sim_config2);
 			events->ReconfigureArt(sim_config2);
 			event_count = 0;
-			while (frags.clear() , event_count++ < NUM_EVENTS2 && sim2.getNext(frags))
+			while (frags.clear(), event_count++ < NUM_EVENTS2 && sim2.getNext(frags))
 			{
 				TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size();
 				assert(frags.size() == NUM_FRAGS_PER_EVENT);

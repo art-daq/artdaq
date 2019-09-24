@@ -3,12 +3,11 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/ArtModules/detail/ArtConfig.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/make_ParameterSet.h"
-#include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/ArtModules/detail/ArtConfig.hh"
 
 #include <cstddef>
 #include <iostream>
@@ -55,7 +54,7 @@ int main(int argc, char* argv[])
 		events.startRun(RUN_ID);
 		FragmentPtrs frags;
 		size_t event_count = 0;
-		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
+		while (frags.clear(), event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
 			TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size();
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);

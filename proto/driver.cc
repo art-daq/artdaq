@@ -33,7 +33,7 @@
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
 
-namespace  bpo = boost::program_options;
+namespace bpo = boost::program_options;
 
 volatile int events_to_generate;
 void sig_handler(int) { events_to_generate = -1; }
@@ -42,17 +42,17 @@ template<typename B, typename D>
 std::unique_ptr<D>
 dynamic_unique_ptr_cast(std::unique_ptr<B>& p);
 
-int main(int argc, char * argv[]) try
+int main(int argc, char* argv[]) try
 {
 	struct Config
 	{
-		fhicl::Atom<int> run_number{ fhicl::Name{"run_number"}, fhicl::Comment{"Run number to use for output file"}, 1 };
-		fhicl::Atom<bool> debug_cout{ fhicl::Name{"debug_cout"}, fhicl::Comment{"Whether to print debug messages to console"}, false };
-		fhicl::Atom<uint64_t> transition_timeout{ fhicl::Name{"transition_timeout"}, fhicl::Comment{"Timeout to use (in seconds) for automatic transitions"}, 30 };
-		fhicl::Table<artdaq::CommandableFragmentGenerator::Config> generator{ fhicl::Name{ "fragment_receiver" } };
-		fhicl::Table<artdaq::MetricManager::Config> metrics{ fhicl::Name{"metrics"} };
-		fhicl::Table<artdaq::SharedMemoryEventManager::Config> event_builder{ fhicl::Name{"event_builder"} };
-		fhicl::Atom<int> events_to_generate{ fhicl::Name{"events_to_generate"}, fhicl::Comment{"Number of events to generate and process"}, 0 };
+		fhicl::Atom<int> run_number{fhicl::Name{"run_number"}, fhicl::Comment{"Run number to use for output file"}, 1};
+		fhicl::Atom<bool> debug_cout{fhicl::Name{"debug_cout"}, fhicl::Comment{"Whether to print debug messages to console"}, false};
+		fhicl::Atom<uint64_t> transition_timeout{fhicl::Name{"transition_timeout"}, fhicl::Comment{"Timeout to use (in seconds) for automatic transitions"}, 30};
+		fhicl::Table<artdaq::CommandableFragmentGenerator::Config> generator{fhicl::Name{"fragment_receiver"}};
+		fhicl::Table<artdaq::MetricManager::Config> metrics{fhicl::Name{"metrics"}};
+		fhicl::Table<artdaq::SharedMemoryEventManager::Config> event_builder{fhicl::Name{"event_builder"}};
+		fhicl::Atom<int> events_to_generate{fhicl::Name{"events_to_generate"}, fhicl::Comment{"Number of events to generate and process"}, 0};
 		fhicl::TableFragment<art::Config> art_config;
 	};
 	auto pset = LoadParameterSet<Config>(argc, argv, "driver", "The artdaqDriver executable runs a Fragment Generator and an art process, acting as a \"unit integration\" test for a data source");
@@ -67,11 +67,11 @@ int main(int argc, char * argv[]) try
 	fhicl::ParameterSet fragment_receiver_pset = pset.get<fhicl::ParameterSet>("fragment_receiver");
 
 	std::unique_ptr<artdaq::FragmentGenerator>
-		gen(artdaq::makeFragmentGenerator(fragment_receiver_pset.get<std::string>("generator"),
-			fragment_receiver_pset));
+	    gen(artdaq::makeFragmentGenerator(fragment_receiver_pset.get<std::string>("generator"),
+	                                      fragment_receiver_pset));
 
 	std::unique_ptr<artdaq::CommandableFragmentGenerator> commandable_gen =
-		dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>(gen);
+	    dynamic_unique_ptr_cast<artdaq::FragmentGenerator, artdaq::CommandableFragmentGenerator>(gen);
 
 	my_rank = 0;
 	// pull out the Metric part of the ParameterSet
@@ -198,7 +198,7 @@ int main(int argc, char * argv[]) try
 
 	TLOG(TLVL_INFO) << "Ending Run, waited " << std::setprecision(2) << artdaq::TimeUtils::GetElapsedTime(art_wait_start_time) << " seconds for art to process events. (" << last_count << " buffers remain).";
 	event_manager.endRun();
-	usleep(artdaq::TimeUtils::GetElapsedTimeMicroseconds(art_wait_start_time)); // Wait as long again for EndRun message to go through
+	usleep(artdaq::TimeUtils::GetElapsedTimeMicroseconds(art_wait_start_time));  // Wait as long again for EndRun message to go through
 
 	TLOG(TLVL_INFO) << "Shutting down art";
 	bool endSucceeded = false;
@@ -212,8 +212,8 @@ int main(int argc, char * argv[]) try
 	if (!endSucceeded)
 	{
 		TLOG(TLVL_ERROR) << "Failed to shut down the reader and the SharedMemoryEventManager "
-			<< "because the endOfData marker could not be pushed "
-			<< "onto the queue.";
+		                 << "because the endOfData marker could not be pushed "
+		                 << "onto the queue.";
 	}
 
 	metricMan->do_stop();
@@ -221,12 +221,12 @@ int main(int argc, char * argv[]) try
 	artdaq::Globals::CleanUpGlobals();
 	return 0;
 }
-catch (std::string & x)
+catch (std::string& x)
 {
 	std::cerr << "Exception (type string) caught in artdaqDriver: " << x << '\n';
 	return 1;
 }
-catch (char const * m)
+catch (char const* m)
 {
 	std::cerr << "Exception (type char const*) caught in artdaqDriver: ";
 	if (m)
@@ -242,7 +242,7 @@ catch (char const * m)
 catch (...)
 {
 	artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,
-		"Exception caught in artdaqDriver");
+	                         "Exception caught in artdaqDriver");
 }
 
 template<typename B, typename D>
