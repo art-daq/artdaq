@@ -1,14 +1,12 @@
 #ifndef artdaq_Application_MPI2_DataLoggerCore_hh
 #define artdaq_Application_MPI2_DataLoggerCore_hh
 
-#include "fhiclcpp/ParameterSet.h"
-#include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/Application/DataReceiverCore.hh"
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
-
-namespace artdaq
-{
-	class DataLoggerCore;
+namespace artdaq {
+class DataLoggerCore;
 }
 
 /**
@@ -18,7 +16,6 @@ namespace artdaq
 class artdaq::DataLoggerCore : public DataReceiverCore
 {
 public:
-
 	/**
 	* \brief DataLoggerCore Constructor.
 	*/
