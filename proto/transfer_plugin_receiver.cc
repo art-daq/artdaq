@@ -4,8 +4,8 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "cetlib/BasicPluginFactory.h"
-#include "cetlib_except/exception.h"
 #include "cetlib/filepath_maker.h"
+#include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
@@ -13,9 +13,8 @@
 #include <boost/bind.hpp>
 
 #include <iostream>
-#include <string>
 #include <limits>
-
+#include <string>
 
 // DUPLICATED CODE: also found in transfer_plugin_sender.cpp. Not as egregious as
 // normal in that this function is unlikely to be changed, and this is
@@ -26,7 +25,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 	if (std::getenv("FHICL_FILE_PATH") == nullptr)
 	{
 		std::cerr
-			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+		    << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 
@@ -36,7 +35,6 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 
 	return pset;
 }
-
 
 int do_check(const artdaq::Fragment& frag);
 
@@ -58,19 +56,18 @@ int main(int argc, char* argv[])
 		static cet::BasicPluginFactory bpf("transfer", "make");
 
 		transfer =
-			bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
-			               const fhicl::ParameterSet&,
-			               artdaq::TransferInterface::Role>(
-				pset.get<std::string>("transfer_plugin_type"),
-				pset,
-				artdaq::TransferInterface::Role::kReceive);
+		    bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
+		                   const fhicl::ParameterSet&,
+		                   artdaq::TransferInterface::Role>(
+		        pset.get<std::string>("transfer_plugin_type"),
+		        pset,
+		        artdaq::TransferInterface::Role::kReceive);
 	}
 	catch (...)
 	{
 		artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::yes,
 		                         "Error creating transfer plugin");
 	}
-
 
 	while (true)
 	{
@@ -81,9 +78,7 @@ int main(int argc, char* argv[])
 
 		if (retval >= artdaq::TransferInterface::RECV_SUCCESS)
 		{
-			std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment with seqID == " <<
-				myfrag.sequenceID() << ", fragID == " << myfrag.fragmentID() << " has size " <<
-				myfrag.sizeBytes() << " bytes" << std::endl;
+			std::cout << "Returned from call to transfer_->receiveFragmentFrom; fragment with seqID == " << myfrag.sequenceID() << ", fragID == " << myfrag.fragmentID() << " has size " << myfrag.sizeBytes() << " bytes" << std::endl;
 		}
 		else
 		{
@@ -115,12 +110,11 @@ int do_check(const artdaq::Fragment& frag)
 
 	for (auto ptr_into_frag = reinterpret_cast<const uint64_t*>(frag.dataBeginBytes());
 	     ptr_into_frag != reinterpret_cast<const uint64_t*>(frag.dataEndBytes());
-	     ++ptr_into_frag , ++variable_to_compare)
+	     ++ptr_into_frag, ++variable_to_compare)
 	{
 		if (variable_to_compare != *ptr_into_frag)
 		{
-			std::cerr << "ERROR for fragment with sequence ID " << frag.sequenceID() << ", fragment ID " <<
-				frag.fragmentID() << ": expected ADC value of " << variable_to_compare << ", got " << *ptr_into_frag << std::endl;
+			std::cerr << "ERROR for fragment with sequence ID " << frag.sequenceID() << ", fragment ID " << frag.fragmentID() << ": expected ADC value of " << variable_to_compare << ", got " << *ptr_into_frag << std::endl;
 			return 1;
 		}
 	}

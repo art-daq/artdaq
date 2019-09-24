@@ -1,14 +1,12 @@
 #ifndef artdaq_ExternalComms_CommanderInterface_hh
 #define artdaq_ExternalComms_CommanderInterface_hh
 
-#include "artdaq/DAQdata/Globals.hh"
-#include "fhiclcpp/ParameterSet.h"
 #include "artdaq/Application/Commandable.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "cetlib/compiler_macros.h"
+#include "fhiclcpp/ParameterSet.h"
 
-
-namespace artdaq
-{
+namespace artdaq {
 	/**
 	 * \brief This interface defines the functions used to transfer data between artdaq applications.
 	 */
@@ -287,7 +285,6 @@ namespace artdaq
 	    virtual std::string send_update_default_fragment_ids(uint64_t, std::vector<uint32_t>);
 
 	private:
-
 	public:
 		/// <summary>
 		/// Reference to the Commandable that this Commander Commands.
@@ -298,7 +295,7 @@ namespace artdaq
 		int _id; ///< ID Number of this Commander
 		std::atomic<bool> running_; ///< Whether the server is running and able to respond to requests
 	};
-}
+}  // namespace artdaq
 
 #ifndef EXTERN_C_FUNC_DECLARE_START
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
@@ -307,10 +304,11 @@ namespace artdaq
 #define DEFINE_ARTDAQ_COMMANDER(klass)                                \
   EXTERN_C_FUNC_DECLARE_START                                      \
 	std::unique_ptr<artdaq::CommanderInterface> make(fhicl::ParameterSet const & ps, \
-								 artdaq::Commandable& commandable) { \
+	                                                 artdaq::Commandable& commandable)  \
+	{                                                                                   \
 	return std::unique_ptr<artdaq::CommanderInterface>(new klass(ps, commandable)); \
-}}
-
+	}                                                                                   \
+	}
 
 #endif /* artdaq_ExternalComms_CommanderInterface.hh */
 

@@ -20,7 +20,8 @@
 #define TLVL_INRUN_FAILURE TLVL_INFO
 #define TLVL_LEGAL_COMMANDS TLVL_INFO
 
-artdaq::Commandable::Commandable() : fsm_(*this)
+artdaq::Commandable::Commandable()
+    : fsm_(*this)
 , primary_mutex_()
 {}
 
@@ -33,7 +34,6 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
-
 
 	SetMFModuleName("Initializing");
 
@@ -400,7 +400,6 @@ void artdaq::Commandable::InRunExit()
 {
 	TLOG(TLVL_DEBUG) << "InRunExit called.";
 }
-
 
 std::string artdaq::Commandable::do_trace_get(std::string const& name)
 {

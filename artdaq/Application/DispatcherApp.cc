@@ -1,8 +1,8 @@
 #define TRACE_NAME "DispatcherApp"
 
 #include "artdaq/Application/DispatcherApp.hh"
-#include "artdaq/Application/DispatcherCore.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/Application/DispatcherCore.hh"
 
 #include <iostream>
 
@@ -119,7 +119,10 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else { return "Success"; }
+		else
+		{
+			return "Success";
+		}
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
@@ -167,7 +170,6 @@ std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& i
 		return "Error in artdaq::DispatcherApp::register_monitor: DispatcherCore object wasn't initialized";
 	}
 }
-
 
 std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 {

@@ -8,8 +8,7 @@
 #include <mutex>
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 
-namespace artdaq
-{
+namespace artdaq {
 
 /**
  * \brief The xmlrpc_commander class serves as the XMLRPC server run in each artdaq application
@@ -227,6 +226,6 @@ public:
 	std::unique_ptr<xmlrpc_c::serverAbyss> server; ///< XMLRPC server
 };
 
-}
+}  // namespace artdaq
 
 #endif /* artdaq_ExternalComms_xmlrpc_commander_hh */

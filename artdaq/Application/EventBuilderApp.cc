@@ -161,7 +161,10 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else { return "Success"; }
+		else
+		{
+			return "Success";
+		}
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application

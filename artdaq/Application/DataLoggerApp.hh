@@ -3,11 +3,10 @@
 
 #include <future>
 
-#include "artdaq/Application/DataLoggerCore.hh"
 #include "artdaq/Application/Commandable.hh"
+#include "artdaq/Application/DataLoggerCore.hh"
 
-namespace artdaq
-{
+namespace artdaq {
 	class DataLoggerApp;
 }
 

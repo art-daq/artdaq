@@ -13,14 +13,14 @@
 #include <xmlrpc-c/server_abyss.hpp>
 #undef _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES
 #pragma GCC diagnostic pop
-
-#include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
-
 #include <cstdint>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <stdexcept>
+#include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
+#include "tracemf.h"
 
 #include <errno.h>
 #include <netinet/in.h>
