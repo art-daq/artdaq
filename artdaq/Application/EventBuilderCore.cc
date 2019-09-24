@@ -1,5 +1,5 @@
-#include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
+#include "canvas/Utilities/Exception.h"
 
 #include "artdaq/DAQdata/Globals.hh" // include these 2 first -
 #define TRACE_NAME (app_name + "_EventBuilderCore").c_str()

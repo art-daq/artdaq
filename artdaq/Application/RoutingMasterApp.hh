@@ -4,9 +4,8 @@
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/RoutingMasterCore.hh"
 
-namespace artdaq
-{
-	class RoutingMasterApp;
+namespace artdaq {
+class RoutingMasterApp;
 }
 
 /**

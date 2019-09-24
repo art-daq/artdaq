@@ -1,15 +1,15 @@
 #include <errno.h>
-#include <sstream>
-#include <iomanip>
 #include <bitset>
+#include <iomanip>
+#include <sstream>
 
 #include <signal.h>
 
-#include <boost/tokenizer.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/exception/all.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/throw_exception.hpp>
+#include <boost/tokenizer.hpp>
 
 #include "fhiclcpp/ParameterSet.h"
 
@@ -22,8 +22,6 @@
 #include "artdaq/Application/DispatcherCore.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
-
-
 artdaq::DispatcherCore::DispatcherCore()
 	: DataReceiverCore()
 {}
@@ -35,7 +33,8 @@ artdaq::DispatcherCore::~DispatcherCore()
 
 bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG(TLVL_DEBUG) << "initialize method called with DAQ " << "ParameterSet = \"" << pset.to_string() << "\"." ;
+	TLOG(TLVL_DEBUG) << "initialize method called with DAQ "
+	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	pset_ = pset;
 	// 04-Apr-2019, KAB: added support for art config params to be in an "art" block
@@ -109,7 +108,8 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		registered_monitors_[label] = pset;
 		if (event_store_ptr_ != nullptr)
 		{
-			if (broadcast_mode_) {
+			if (broadcast_mode_)
+			{
 				fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
 				TLOG(TLVL_DEBUG) << "Starting art process with received fhicl" ;
 				registered_monitor_pids_[label] = event_store_ptr_->StartArtProcess(ps);
@@ -180,7 +180,8 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 		registered_monitors_.erase(label);
 		if (event_store_ptr_ != nullptr)
 		{
-			if(broadcast_mode_) {
+			if (broadcast_mode_)
+			{
 				std::set<pid_t> pids;
 				pids.insert(registered_monitor_pids_[label]);
 				event_store_ptr_->ShutdownArtProcesses(pids);
@@ -221,7 +222,8 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 		auto filters = pset.get<std::vector<fhicl::ParameterSet>>("filter_paths", std::vector<fhicl::ParameterSet>());
 		for (auto& filter : filters)
 		{
-			try {
+			try
+			{
 				auto name = filter.get<std::string>("name");
 				auto path = filter.get<std::vector<std::string>>("path");
 				if (generated_physics_filter_paths.count(name))
@@ -403,7 +405,6 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 		generated_pset = merge_parameter_sets_(generated_pset, label, pset);
 	}
 
-
 	TLOG(TLVL_DEBUG) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string() ;
 	return generated_pset;
 }
@@ -422,7 +423,8 @@ void artdaq::DispatcherCore::check_filters_()
 		{
 			auto pid = registered_monitor_pids_[it->first];
 			auto sts = kill(pid, 0);
-			if (sts < 0) {
+			if (sts < 0)
+			{
 				registered_monitor_pids_.erase(it->first);
 				it = registered_monitors_.erase(it);
 				continue;
