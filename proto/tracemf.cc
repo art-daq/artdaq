@@ -5,25 +5,29 @@
 // $RCSfile: just_user.cc,v $
 */
 
-#include "artdaq/DAQdata/Globals.hh"
 #include <boost/program_options.hpp>
 #include <iomanip>
+#include "artdaq/DAQdata/Globals.hh"
 namespace bpo = boost::program_options;
 
 std::string formatTime(double time)
 {
 	std::ostringstream o;
 	o << std::fixed << std::setprecision(3);
-	if (time > 60) o << static_cast<int>(time / 60) << " m " << time - 60 * static_cast<int>(time / 60) << " s";
-	else if (time > 1) o << time << " s";
+	if (time > 60)
+		o << static_cast<int>(time / 60) << " m " << time - 60 * static_cast<int>(time / 60) << " s";
+	else if (time > 1)
+		o << time << " s";
 	else
 	{
 		time *= 1000;
-		if (time > 1) o << time << " ms";
+		if (time > 1)
+			o << time << " ms";
 		else
 		{
 			time *= 1000;
-			if (time > 1) o << time << " us";
+			if (time > 1)
+				o << time << " us";
 			else
 			{
 				time *= 1000;
@@ -39,28 +43,19 @@ int main(int argc, char *argv[])
 {
 	std::ostringstream descstr;
 	descstr << argv[0]
-		<< " <-l test loops> [csutdi]";
+	        << " <-l test loops> [csutdi]";
 	bpo::options_description desc(descstr.str());
-	desc.add_options()
-		("loops,l", bpo::value<size_t>(), "Number of times to run each test")
-		("C,c", "Run TRACEC test")
-		("S,s", "Run TRACES test")
-		("U,u", "Run TRACE_ test")
-		("T,t", "Run TRACE_STREAMER test")
-		("D,d", "Run TLOG_DEBUG test")
-		("I,i", "Run TLOG_INFO test")
-		("console,x", "Enable MessageFacility output to console")
-		("help,h", "produce help message");
+	desc.add_options()("loops,l", bpo::value<size_t>(), "Number of times to run each test")("C,c", "Run TRACEC test")("S,s", "Run TRACES test")("U,u", "Run TRACE_ test")("T,t", "Run TRACE_STREAMER test")("D,d", "Run TLOG_DEBUG test")("I,i", "Run TLOG_INFO test")("console,x", "Enable MessageFacility output to console")("help,h", "produce help message");
 	bpo::variables_map vm;
 	try
 	{
 		bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
 		bpo::notify(vm);
 	}
-	catch (bpo::error const & e)
+	catch (bpo::error const &e)
 	{
 		std::cerr << "Exception from command line processing in " << argv[0]
-			<< ": " << e.what() << "\n";
+		          << ": " << e.what() << "\n";
 		return -1;
 	}
 	if (vm.count("help"))
@@ -71,10 +66,10 @@ int main(int argc, char *argv[])
 	if (!vm.count("loops"))
 	{
 		std::cerr << "Exception from command line processing in " << argv[0]
-			<< ": no loop count given.\n"
-			<< "For usage and an options list, please do '"
-			<< argv[0] << " --help"
-			<< "'.\n";
+		          << ": no loop count given.\n"
+		          << "For usage and an options list, please do '"
+		          << argv[0] << " --help"
+		          << "'.\n";
 		return 2;
 	}
 	size_t loops = vm["loops"].as<size_t>();
@@ -113,7 +108,7 @@ int main(int argc, char *argv[])
 		auto start = std::chrono::steady_clock::now();
 		for (size_t l = 0; l < loops; ++l)
 		{
-			TRACEN_( "tracemf", TLVL_DEBUG, "Test TRACE_ with an int " << 42 << " and a float %.1f", 5.56);
+			TRACEN_("tracemf", TLVL_DEBUG, "Test TRACE_ with an int " << 42 << " and a float %.1f", 5.56);
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACE_ test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
@@ -144,4 +139,4 @@ int main(int argc, char *argv[])
 	}
 
 	return (0);
-}   /* main */
+} /* main */

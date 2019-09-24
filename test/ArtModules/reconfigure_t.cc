@@ -2,6 +2,7 @@
 
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "cetlib_except/exception.h"
@@ -15,12 +16,11 @@
 #include <string>
 #include <vector>
 
-using artdaq::SharedMemoryEventManager;
 using artdaq::FragmentPtrs;
 using artdaq::GenericFragmentSimulator;
+using artdaq::SharedMemoryEventManager;
 using fhicl::ParameterSet;
 using std::size_t;
-
 
 int main(int argc, char* argv[])
 {
@@ -148,17 +148,20 @@ int main(int argc, char* argv[])
 	}
 	catch (cet::exception& x)
 	{
-		std::cerr << argv[0] << " failure\n" << x << std::endl;
+		std::cerr << argv[0] << " failure\n"
+		          << x << std::endl;
 		rc = 1;
 	}
 	catch (std::string& x)
 	{
-		std::cerr << argv[0] << " failure\n" << x << std::endl;
+		std::cerr << argv[0] << " failure\n"
+		          << x << std::endl;
 		rc = 2;
 	}
 	catch (char const* x)
 	{
-		std::cerr << argv[0] << " failure\n" << x << std::endl;
+		std::cerr << argv[0] << " failure\n"
+		          << x << std::endl;
 		rc = 3;
 	}
 	return rc;

@@ -11,26 +11,25 @@
 #define TRACE_NAME "artdaqDriver"
 
 #include "art/Framework/Art/artapp.h"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq-core/Generators/makeFragmentGenerator.hh"
-#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
+#include <boost/program_options.hpp>
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
+#include "artdaq-core/Generators/makeFragmentGenerator.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
-#include <boost/program_options.hpp>
 
 #include <signal.h>
 #include <iostream>
 #include <memory>
 #include <utility>
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
 
@@ -77,19 +76,24 @@ int main(int argc, char * argv[]) try
 	my_rank = 0;
 	// pull out the Metric part of the ParameterSet
 	fhicl::ParameterSet metric_pset;
-	try {
+	try
+	{
 		metric_pset = pset.get<fhicl::ParameterSet>("metrics");
 	}
-	catch (...) {} // OK if there's no metrics table defined in the FHiCL 
+	catch (...)
+	{}  // OK if there's no metrics table defined in the FHiCL
 
-	if (metric_pset.is_empty()) {
+	if (metric_pset.is_empty())
+	{
 		TLOG(TLVL_INFO) << "No metric plugins appear to be defined";
 	}
-	try {
+	try
+	{
 		metricMan->initialize(metric_pset, "artdaqDriver");
 		metricMan->do_start();
 	}
-	catch (...) {
+	catch (...)
+	{
 	}
 	artdaq::FragmentPtrs frags;
 	//////////////////////////////////////////////////////////////////////
@@ -106,7 +110,8 @@ int main(int argc, char * argv[]) try
 	int event_count = 0;
 	artdaq::Fragment::sequence_id_t previous_sequence_id = -1;
 
-	if (commandable_gen) {
+	if (commandable_gen)
+	{
 		commandable_gen->StartCmd(run, timeout, timestamp);
 	}
 
@@ -118,15 +123,20 @@ int main(int argc, char * argv[]) try
 	// choice is likely to have the fragment reading (or generation)
 	// speed as the limiting factor
 	while ((commandable_gen && commandable_gen->getNext(frags)) ||
-		(gen && gen->getNext(frags))) {
+	       (gen && gen->getNext(frags)))
+	{
 		TLOG(50) << "driver main: getNext returned frags.size()=" << frags.size() << " current event_count=" << event_count;
-		for (auto & val : frags) {
-			if (val->sequenceID() != previous_sequence_id) {
+		for (auto& val : frags)
+		{
+			if (val->sequenceID() != previous_sequence_id)
+			{
 				++event_count;
 				previous_sequence_id = val->sequenceID();
 			}
-			if (events_to_generate != 0 && event_count > events_to_generate) {
-				if (commandable_gen) {
+			if (events_to_generate != 0 && event_count > events_to_generate)
+			{
+				if (commandable_gen)
+				{
 					commandable_gen->StopCmd(timeout, timestamp);
 				}
 				break;
@@ -155,15 +165,18 @@ int main(int argc, char * argv[]) try
 		}
 		frags.clear();
 
-		if (events_to_generate != 0 && event_count >= events_to_generate) {
-			if (commandable_gen) {
+		if (events_to_generate != 0 && event_count >= events_to_generate)
+		{
+			if (commandable_gen)
+			{
 				commandable_gen->StopCmd(timeout, timestamp);
 			}
 			break;
 		}
 	}
 
-	if (commandable_gen) {
+	if (commandable_gen)
+	{
 		commandable_gen->joinThreads();
 	}
 
@@ -175,7 +188,8 @@ int main(int argc, char * argv[]) try
 	while (last_count > 0 && artdaq::TimeUtils::GetElapsedTime(last_delta_time) < 1.0)
 	{
 		auto this_count = event_manager.size() - event_manager.WriteReadyCount(false);
-		if (this_count != last_count) {
+		if (this_count != last_count)
+		{
 			last_delta_time = std::chrono::steady_clock::now();
 			last_count = this_count;
 		}
@@ -190,11 +204,13 @@ int main(int argc, char * argv[]) try
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
 	endSucceeded = event_manager.endOfData();
-	while (!endSucceeded && attemptsToEnd < 3) {
+	while (!endSucceeded && attemptsToEnd < 3)
+	{
 		++attemptsToEnd;
 		endSucceeded = event_manager.endOfData();
 	}
-	if (!endSucceeded) {
+	if (!endSucceeded)
+	{
 		TLOG(TLVL_ERROR) << "Failed to shut down the reader and the SharedMemoryEventManager "
 			<< "because the endOfData marker could not be pushed "
 			<< "onto the queue.";
@@ -223,11 +239,11 @@ catch (char const * m)
 	}
 	std::cerr << '\n';
 }
-catch (...) {
+catch (...)
+{
 	artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,
 		"Exception caught in artdaqDriver");
 }
-
 
 template<typename B, typename D>
 std::unique_ptr<D>
@@ -235,7 +251,8 @@ dynamic_unique_ptr_cast(std::unique_ptr<B>& p)
 {
 	D* result = dynamic_cast<D*>(p.get());
 
-	if (result) {
+	if (result)
+	{
 		p.release();
 		return std::unique_ptr<D>(result);
 	}

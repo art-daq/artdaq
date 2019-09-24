@@ -5,7 +5,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
-
 BOOST_AUTO_TEST_SUITE(NoOp_policy_t)
 
 BOOST_AUTO_TEST_CASE(Simple)
@@ -16,9 +15,9 @@ BOOST_AUTO_TEST_CASE(Simple)
 	auto noop = artdaq::makeRoutingMasterPolicy("NoOp", ps);
 
 	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 4);
-	
+
 	noop->Reset();
-	noop->AddReceiverToken(1,1);
+	noop->AddReceiverToken(1, 1);
 	noop->AddReceiverToken(3, 1);
 	noop->AddReceiverToken(2, 1);
 	noop->AddReceiverToken(4, 1);
