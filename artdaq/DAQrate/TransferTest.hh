@@ -1,16 +1,15 @@
 #ifndef ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
 #define ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
 
-#include <vector>
-#include <string>
 #include <chrono>
 #include <cmath>
+#include <string>
+#include <vector>
 
-#include "fhiclcpp/ParameterSet.h"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "fhiclcpp/ParameterSet.h"
 
-namespace artdaq
-{
+namespace artdaq {
 	/**
 	 * \brief Test a set of TransferInterface plugins
 	 */
@@ -81,5 +80,5 @@ namespace artdaq
 
 		return std::to_string(bytes) + suffixes[suffixIndex];
 	}
-}
+}  // namespace artdaq
 #endif //ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH

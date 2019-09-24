@@ -3,33 +3,35 @@
 #include "artdaq/DAQrate/RequestSender.hh"
 
 #define BOOST_TEST_MODULE RequestSender_t
-#include "cetlib/quiet_unit_test.hpp"
-#include "cetlib_except/exception.h"
+#include <sys/poll.h>
+#include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq/DAQdata/TCPConnect.hh"
-#include <sys/poll.h>
-
+#include "cetlib/quiet_unit_test.hpp"
+#include "cetlib_except/exception.h"
 
 BOOST_AUTO_TEST_SUITE(RequestSender_test)
 
-#define TRACE_REQUIRE_EQUAL(l,r) do { \
-if(l == r) { \
-TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!" ; \
-} \
-else \
-{ \
-	TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!" ; \
-} \
-  BOOST_REQUIRE_EQUAL(l, r); \
-} while(0)
+#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
+	do                                                                                                                           \
+	{                                                                                                                            \
+		if (l == r)                                                                                                              \
+		{                                                                                                                        \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
+		}                                                                                                                        \
+		else                                                                                                                     \
+		{                                                                                                                        \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!";  \
+		}                                                                                                                        \
+		BOOST_REQUIRE_EQUAL(l, r);                                                                                               \
+	} while (0)
 
 BOOST_AUTO_TEST_CASE(Construct)
 {
 	artdaq::configureMessageFacility("RequestSender_t", true, true);
 	metricMan->initialize(fhicl::ParameterSet());
 	metricMan->do_start();
-	TLOG(TLVL_INFO) << "Construct Test Case BEGIN" ;
+	TLOG(TLVL_INFO) << "Construct Test Case BEGIN";
 	fhicl::ParameterSet pset;
 	artdaq::RequestSender t(pset);
 	BOOST_REQUIRE_EQUAL(t.GetRequestMode(), artdaq::detail::RequestMessageMode::Normal);
@@ -41,9 +43,9 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	artdaq::configureMessageFacility("RequestSender_t", true, true);
 	metricMan->initialize(fhicl::ParameterSet());
 	metricMan->do_start();
-	TLOG(TLVL_INFO) << "Tokens Test Case BEGIN" ;
+	TLOG(TLVL_INFO) << "Tokens Test Case BEGIN";
 	const int TOKEN_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	TLOG(TLVL_DEBUG) << "Opening token listener socket" ;
+	TLOG(TLVL_DEBUG) << "Opening token listener socket";
 	auto token_socket = TCP_listen_fd(TOKEN_PORT, 3 * sizeof(artdaq::detail::RoutingToken));
 
 	fhicl::ParameterSet token_pset;
@@ -55,16 +57,15 @@ BOOST_AUTO_TEST_CASE(Tokens)
 
 	my_rank = 0;
 
-
 	BOOST_REQUIRE(token_socket != -1);
 	if (token_socket == -1)
 	{
-		TLOG(TLVL_ERROR) << "Token listener socket was not opened successfully." ;
+		TLOG(TLVL_ERROR) << "Token listener socket was not opened successfully.";
 		BOOST_REQUIRE_EQUAL(false, true);
 		return;
 	}
 
-	TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket" ;
+	TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket";
 	sockaddr_in addr;
 	socklen_t arglen = sizeof(addr);
 	auto conn_sock = accept(token_socket, (struct sockaddr*)&addr, &arglen);
@@ -101,7 +102,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	artdaq::configureMessageFacility("RequestSender_t", true, true);
 	metricMan->initialize(fhicl::ParameterSet());
 	metricMan->do_start();
-	TLOG(TLVL_INFO) << "Requests Test Case BEGIN" ;
+	TLOG(TLVL_INFO) << "Requests Test Case BEGIN";
 	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
 	const int DELAY_TIME = 100;
 #if 0
@@ -116,8 +117,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	pset.put("request_address", MULTICAST_IP);
 	artdaq::RequestSender t(pset);
 
-
-	TLOG(TLVL_DEBUG) << "Opening request listener socket" ;
+	TLOG(TLVL_DEBUG) << "Opening request listener socket";
 	auto request_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	struct sockaddr_in si_me_request;
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	int yes = 1;
 	if (setsockopt(request_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 	{
-		TLOG(TLVL_ERROR) << "Unable to set reuse on request socket" ;
+		TLOG(TLVL_ERROR) << "Unable to set reuse on request socket";
 		BOOST_REQUIRE_EQUAL(true, false);
 		return;
 	}
@@ -133,9 +133,9 @@ BOOST_AUTO_TEST_CASE(Requests)
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(REQUEST_PORT);
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (bind(request_socket, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
+	if (bind(request_socket, (struct sockaddr*)&si_me_request, sizeof(si_me_request)) == -1)
 	{
-		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << REQUEST_PORT ;
+		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << REQUEST_PORT;
 		BOOST_REQUIRE_EQUAL(true, false);
 		return;
 	}
@@ -146,25 +146,25 @@ BOOST_AUTO_TEST_CASE(Requests)
 		int sts = ResolveHost(MULTICAST_IP.c_str(), mreq.imr_multiaddr);
 		if (sts == -1)
 		{
-			TLOG(TLVL_ERROR) << "Unable to resolve multicast request address" ;
+			TLOG(TLVL_ERROR) << "Unable to resolve multicast request address";
 			BOOST_REQUIRE_EQUAL(true, false);
 			return;
 		}
 		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 		if (setsockopt(request_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 		{
-			TLOG(TLVL_ERROR) << "Unable to join multicast group" ;
+			TLOG(TLVL_ERROR) << "Unable to join multicast group";
 			BOOST_REQUIRE_EQUAL(true, false);
 			return;
 		}
 	}
 
-	TLOG(TLVL_DEBUG) << "Sending request" ;
+	TLOG(TLVL_DEBUG) << "Sending request";
 	auto start_time = std::chrono::steady_clock::now();
 	t.AddRequest(0, 0x10);
 	struct pollfd ufds[1];
 
-	TLOG(TLVL_DEBUG) << "Receiving Request" ;
+	TLOG(TLVL_DEBUG) << "Receiving Request";
 	ufds[0].fd = request_socket;
 	ufds[0].events = POLLIN | POLLPRI;
 	int rv = poll(ufds, 1, 10000);
@@ -181,11 +181,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
-								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::Normal));
+			                    static_cast<uint8_t>(artdaq::detail::RequestMessageMode::Normal));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 1);
 			if (hdr_buffer.isValid())
 			{
-
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
 				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
 
@@ -198,21 +197,21 @@ BOOST_AUTO_TEST_CASE(Requests)
 			}
 			else
 			{
-				TLOG(TLVL_ERROR) << "Invalid header received" ;
+				TLOG(TLVL_ERROR) << "Invalid header received";
 				BOOST_REQUIRE_EQUAL(false, true);
 				return;
 			}
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Wrong event type from poll" ;
+			TLOG(TLVL_ERROR) << "Wrong event type from poll";
 			BOOST_REQUIRE_EQUAL(false, true);
 			return;
 		}
 	}
 	else
 	{
-		TLOG(TLVL_ERROR) << "Timeout occured waiting for request" ;
+		TLOG(TLVL_ERROR) << "Timeout occured waiting for request";
 		BOOST_REQUIRE_EQUAL(false, true);
 		return;
 	}
@@ -235,11 +234,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
-								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
+			                    static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 2);
 			if (hdr_buffer.isValid())
 			{
-
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
 				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
 
@@ -249,25 +247,24 @@ BOOST_AUTO_TEST_CASE(Requests)
 				TRACE_REQUIRE_EQUAL(pkt_buffer[1].isValid(), true);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[1].sequence_id, 2);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[1].timestamp, 0x20);
-
 			}
 			else
 			{
-				TLOG(TLVL_ERROR) << "Invalid header received" ;
+				TLOG(TLVL_ERROR) << "Invalid header received";
 				BOOST_REQUIRE_EQUAL(false, true);
 				return;
 			}
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Wrong event type from poll" ;
+			TLOG(TLVL_ERROR) << "Wrong event type from poll";
 			BOOST_REQUIRE_EQUAL(false, true);
 			return;
 		}
 	}
 	else
 	{
-		TLOG(TLVL_ERROR) << "Timeout occured waiting for request" ;
+		TLOG(TLVL_ERROR) << "Timeout occured waiting for request";
 		BOOST_REQUIRE_EQUAL(false, true);
 		return;
 	}
@@ -285,11 +282,10 @@ BOOST_AUTO_TEST_CASE(Requests)
 			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
-								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
+			                    static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 2);
 			if (hdr_buffer.isValid())
 			{
-
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
 				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
 
@@ -299,25 +295,24 @@ BOOST_AUTO_TEST_CASE(Requests)
 				TRACE_REQUIRE_EQUAL(pkt_buffer[1].isValid(), true);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[1].sequence_id, 2);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[1].timestamp, 0x20);
-
 			}
 			else
 			{
-				TLOG(TLVL_ERROR) << "Invalid header received" ;
+				TLOG(TLVL_ERROR) << "Invalid header received";
 				BOOST_REQUIRE_EQUAL(false, true);
 				return;
 			}
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Wrong event type from poll" ;
+			TLOG(TLVL_ERROR) << "Wrong event type from poll";
 			BOOST_REQUIRE_EQUAL(false, true);
 			return;
 		}
 	}
 	else
 	{
-		TLOG(TLVL_ERROR) << "Timeout occured waiting for request" ;
+		TLOG(TLVL_ERROR) << "Timeout occured waiting for request";
 		BOOST_REQUIRE_EQUAL(false, true);
 		return;
 	}
@@ -340,36 +335,34 @@ BOOST_AUTO_TEST_CASE(Requests)
 			memcpy(&hdr_buffer, &buffer[0], sizeof(artdaq::detail::RequestHeader));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.isValid(), true);
 			TRACE_REQUIRE_EQUAL(static_cast<uint8_t>(hdr_buffer.mode),
-								static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
+			                    static_cast<uint8_t>(artdaq::detail::RequestMessageMode::EndOfRun));
 			TRACE_REQUIRE_EQUAL(hdr_buffer.packet_count, 1);
 			if (hdr_buffer.isValid())
 			{
-
 				std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer.packet_count);
 				memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer.packet_count);
 
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].isValid(), true);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].sequence_id, 3);
 				TRACE_REQUIRE_EQUAL(pkt_buffer[0].timestamp, 0x30);
-
 			}
 			else
 			{
-				TLOG(TLVL_ERROR) << "Invalid header received" ;
+				TLOG(TLVL_ERROR) << "Invalid header received";
 				BOOST_REQUIRE_EQUAL(false, true);
 				return;
 			}
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Wrong event type from poll" ;
+			TLOG(TLVL_ERROR) << "Wrong event type from poll";
 			BOOST_REQUIRE_EQUAL(false, true);
 			return;
 		}
 	}
 	else
 	{
-		TLOG(TLVL_ERROR) << "Timeout occured waiting for request" ;
+		TLOG(TLVL_ERROR) << "Timeout occured waiting for request";
 		BOOST_REQUIRE_EQUAL(false, true);
 		return;
 	}

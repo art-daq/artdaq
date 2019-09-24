@@ -1,13 +1,12 @@
 #ifndef artdaq_Application_MPI2_StatisticsHelper_hh
 #define artdaq_Application_MPI2_StatisticsHelper_hh
 
+#include <vector>
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "fhiclcpp/ParameterSet.h"
-#include <vector>
 
-namespace artdaq
-{
-	class StatisticsHelper;
+namespace artdaq {
+class StatisticsHelper;
 }
 
 /**

@@ -1,7 +1,7 @@
-#include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
+#include "canvas/Utilities/Exception.h"
 
-#include "artdaq/DAQdata/Globals.hh" // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DataReceiverCore").c_str()
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -12,17 +12,17 @@
 #include <iomanip>
 
 artdaq::DataReceiverCore::DataReceiverCore()
-	: stop_requested_(false)
-	, pause_requested_(false)
-	, run_is_paused_(false)
-	, config_archive_entries_()
+    : stop_requested_(false)
+    , pause_requested_(false)
+    , run_is_paused_(false)
+    , config_archive_entries_()
 {
-	TLOG(TLVL_DEBUG) << "Constructor" ;
+	TLOG(TLVL_DEBUG) << "Constructor";
 }
 
 artdaq::DataReceiverCore::~DataReceiverCore()
 {
-	TLOG(TLVL_DEBUG) << "Destructor" ;
+	TLOG(TLVL_DEBUG) << "Destructor";
 }
 
 bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset)
@@ -35,7 +35,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	if (metric_pset.is_empty())
 	{
-		TLOG(TLVL_INFO) << "No metric plugins appear to be defined" ;
+		TLOG(TLVL_INFO) << "No metric plugins appear to be defined";
 	}
 	try
 	{
@@ -44,11 +44,11 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no,
-						 "Error loading metrics in DataReceiverCore::initialize()");
+		                 "Error loading metrics in DataReceiverCore::initialize()");
 	}
 
 	fhicl::ParameterSet art_pset = pset;
-	if(art_pset.has_key("art"))
+	if (art_pset.has_key("art"))
 	{
 		art_pset = art_pset.get<fhicl::ParameterSet>("art");
 	}
@@ -70,7 +70,8 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	if (data_pset.has_key("rank"))
 	{
-		if (my_rank >= 0 && data_pset.get<int>("rank") != my_rank) {
+		if (my_rank >= 0 && data_pset.get<int>("rank") != my_rank)
+		{
 			TLOG(TLVL_WARNING) << "Rank specified at startup is different than rank specified at configure! Using rank received at configure!";
 		}
 		my_rank = data_pset.get<int>("rank");
@@ -83,7 +84,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, art_pset));
 	art_pset_ = art_pset;
-	TLOG(TLVL_DEBUG) << "Resulting art_pset_: \"" << art_pset_.to_string() << "\"." ;
+	TLOG(TLVL_DEBUG) << "Resulting art_pset_: \"" << art_pset_.to_string() << "\".";
 
 	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
 
@@ -102,7 +103,7 @@ bool artdaq::DataReceiverCore::start(art::RunID id)
 	// at each begin-run because the config archive may be non-empty one time through
 	// and then empty the next time.)
 	fhicl::ParameterSet temp_pset = art_pset_;
-	if (! config_archive_entries_.empty())
+	if (!config_archive_entries_.empty())
 	{
 		fhicl::ParameterSet config_pset;
 		for (auto& entry : config_archive_entries_)
@@ -136,33 +137,33 @@ bool artdaq::DataReceiverCore::stop()
 	// exit (after the timeout), the lock will be released (in the
 	// processFragments method), and this method can continue.
 	stop_requested_.store(true);
-	
+
 	TLOG(TLVL_DEBUG) << "Ending run " << event_store_ptr_->runID();
 	attemptsToEnd = 1;
 	endSucceeded = event_store_ptr_->endRun();
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG(TLVL_DEBUG) << "Retrying EventStore::endRun()" ;
+		TLOG(TLVL_DEBUG) << "Retrying EventStore::endRun()";
 		endSucceeded = event_store_ptr_->endRun();
 	}
 	if (!endSucceeded)
 	{
 		TLOG(TLVL_ERROR)
-			<< "EventStore::endRun in stop method failed after three tries." ;
+		    << "EventStore::endRun in stop method failed after three tries.";
 	}
 	TLOG(TLVL_DEBUG) << "Done Ending run " << event_store_ptr_->runID();
 
 	attemptsToEnd = 1;
-	TLOG(TLVL_DEBUG) << "stop: Calling EventStore::endOfData" ;
+	TLOG(TLVL_DEBUG) << "stop: Calling EventStore::endOfData";
 	endSucceeded = event_store_ptr_->endOfData();
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG(TLVL_DEBUG) << "Retrying EventStore::endOfData()" ;
+		TLOG(TLVL_DEBUG) << "Retrying EventStore::endOfData()";
 		endSucceeded = event_store_ptr_->endOfData();
 	}
-	
+
 	run_is_paused_.store(false);
 	logMessage_("Completed the Stop transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
 	return true;
@@ -197,27 +198,27 @@ bool artdaq::DataReceiverCore::shutdown()
 	   to do is signal the art input module that we're done taking data so that
 	   it can wrap up whatever it needs to do. */
 
-	TLOG(TLVL_DEBUG) << "shutdown: Shutting down DataReceiverManager" ;
+	TLOG(TLVL_DEBUG) << "shutdown: Shutting down DataReceiverManager";
 	receiver_ptr_.reset(nullptr);
 
 	bool endSucceeded = false;
 	int attemptsToEnd = 1;
-	TLOG(TLVL_DEBUG) << "shutdown: Calling EventStore::endOfData" ;
+	TLOG(TLVL_DEBUG) << "shutdown: Calling EventStore::endOfData";
 	endSucceeded = event_store_ptr_->endOfData();
 	while (!endSucceeded && attemptsToEnd < 3)
 	{
 		++attemptsToEnd;
-		TLOG(TLVL_DEBUG) << "Retrying EventStore::endOfData()" ;
+		TLOG(TLVL_DEBUG) << "Retrying EventStore::endOfData()";
 		endSucceeded = event_store_ptr_->endOfData();
 	}
 
-	TLOG(TLVL_DEBUG) << "shutdown: Shutting down SharedMemoryEventManager" ;
+	TLOG(TLVL_DEBUG) << "shutdown: Shutting down SharedMemoryEventManager";
 	event_store_ptr_.reset();
 
-	TLOG(TLVL_DEBUG) << "shutdown: Shutting down MetricManager" ;
+	TLOG(TLVL_DEBUG) << "shutdown: Shutting down MetricManager";
 	metricMan->shutdown();
 
-	TLOG(TLVL_DEBUG) << "shutdown: Complete" ;
+	TLOG(TLVL_DEBUG) << "shutdown: Complete";
 	logMessage_("Completed Shutdown transition");
 	return endSucceeded;
 }
@@ -225,16 +226,16 @@ bool artdaq::DataReceiverCore::shutdown()
 bool artdaq::DataReceiverCore::soft_initialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG) << "soft_initialize method called with DAQ "
-		<< "ParameterSet = \"" << pset.to_string()
-		<< "\"." ;
+	                 << "ParameterSet = \"" << pset.to_string()
+	                 << "\".";
 	return true;
 }
 
 bool artdaq::DataReceiverCore::reinitialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG) << "reinitialize method called with DAQ "
-		<< "ParameterSet = \"" << pset.to_string()
-		<< "\"." ;
+	                 << "ParameterSet = \"" << pset.to_string()
+	                 << "\".";
 	event_store_ptr_ = nullptr;
 	return initialize(pset);
 }
@@ -276,7 +277,7 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	// - report on the number of incomplete events in the EventStore
 	//   (if running)
 	std::string tmpString;
-	if (event_store_ptr_ != nullptr)	tmpString.append(app_name + " run number = " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) + ".\n");
+	if (event_store_ptr_ != nullptr) tmpString.append(app_name + " run number = " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) + ".\n");
 	tmpString.append("Command \"" + which + "\" is not currently supported.");
 	return tmpString;
 }
@@ -285,10 +286,10 @@ void artdaq::DataReceiverCore::logMessage_(std::string const& text)
 {
 	if (verbose_)
 	{
-		TLOG(TLVL_INFO) << text ;
+		TLOG(TLVL_INFO) << text;
 	}
 	else
 	{
-		TLOG(TLVL_DEBUG) << text ;
+		TLOG(TLVL_DEBUG) << text;
 	}
 }

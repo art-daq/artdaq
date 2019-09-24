@@ -1,8 +1,8 @@
 #include "artdaq/DAQrate/TransferTest.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQrate/FragmentReceiverManager.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQrate/FragmentReceiverManager.hh"
 
 #define TRACE_NAME "TransferTest"
 #include "artdaq/DAQdata/Globals.hh"
@@ -38,7 +38,8 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	{
 		metric_pset = psi.get<fhicl::ParameterSet>("metrics");
 	}
-	catch (...) {} // OK if there's no metrics table defined in the FHiCL                                    
+	catch (...)
+	{}  // OK if there's no metrics table defined in the FHiCL
 
 	try
 	{
@@ -46,7 +47,8 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 		metricMan->initialize(metric_pset, name);
 		metricMan->do_start();
 	}
-	catch (...) {}
+	catch (...)
+	{}
 
 	std::string type(psi.get<std::string>("transfer_plugin_type", "Shmem"));
 
@@ -91,7 +93,8 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	{
 		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words : " << fragment_size_ << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
 	}
-	ss << "}" << std::endl << " destinations: {";
+	ss << "}" << std::endl
+	   << " destinations: {";
 	for (int jj = senders_; jj < senders_ + receivers_; ++jj)
 	{
 		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words : " << fragment_size_ << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
@@ -99,7 +102,6 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	ss << "}" << std::endl;
 
 	make_ParameterSet(ss.str(), ps_);
-
 
 	TLOG(TLVL_DEBUG) << "Going to configure with ParameterSet: " << ps_.to_string() << std::endl;
 }
@@ -329,7 +331,6 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;
 		}
 		TLOG(7) << "do_receiving: Recv Loop end, counter is " << counter;
-
 
 		auto total_recv_time = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(after_receive - before_receive).count();
 		recv_time_metric += total_recv_time;
