@@ -145,7 +145,7 @@ public:
 	}
 
 protected:
-	std::map<Fragment::type_t, std::string> type_map_;
+	std::map<Fragment::type_t, std::string> type_map_;  ///< Map relating Fragment Type to strings
 };
 
 		/**
@@ -178,7 +178,7 @@ struct SharedMemoryReader
 	std::chrono::steady_clock::time_point last_read_time;        ///< Time last read was completed
 
 	unsigned readNext_calls_;  ///< The number of times readNext has been called
-	FTT translator_;
+	FTT translator_;           ///< An instance of the template parameter FragmentTypeTranslator that translates Fragment Type IDs to strings for creating ROOT TTree Branches
 
 	//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
 	// std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
@@ -604,6 +604,7 @@ struct SharedMemoryReader
 		last_read_time = std::chrono::steady_clock::now();
 		return true;
 	}
+
 };
 }  // namespace detail
 }  // namespace artdaq
