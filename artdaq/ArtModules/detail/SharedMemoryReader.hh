@@ -36,8 +36,8 @@ namespace detail {
 		class DefaultFragmentTypeTranslator
 		{
 		    public:
-
-			DefaultFragmentTypeTranslator() : type_map_() {}
+	DefaultFragmentTypeTranslator()
+	    : type_map_() {}
 			virtual ~DefaultFragmentTypeTranslator() = default;
 
 			/**
@@ -136,7 +136,7 @@ namespace detail {
 			}
 
 		    protected:
-			std::map<Fragment::type_t, std::string> type_map_;
+	std::map<Fragment::type_t, std::string> type_map_;  ///< Map relating Fragment Type to strings
 		};
 
 		/**
@@ -592,7 +592,7 @@ for (auto& type : derived_fragments)
 	}
 
 	unsigned readNext_calls_;  ///< The number of times readNext has been called
-			FTT translator_;
+	FTT translator_;           ///< An instance of the template parameter FragmentTypeTranslator that translates Fragment Type IDs to strings for creating ROOT TTree Branches
 };
 }  // namespace detail
 }  // namespace artdaq
