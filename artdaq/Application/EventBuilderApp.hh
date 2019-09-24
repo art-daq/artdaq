@@ -6,9 +6,8 @@
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/EventBuilderCore.hh"
 
-namespace artdaq
-{
-	class EventBuilderApp;
+namespace artdaq {
+class EventBuilderApp;
 }
 
 /**

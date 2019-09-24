@@ -5,7 +5,7 @@
 #define TRACE_NAME (app_name + "_CommandableInterface").c_str()  // definition with variable should be after includes (which may or may not have TLOG/TRACE statements)
 
 // ELF 3/22/18:
-// We may want to separate these onto different levels later, 
+// We may want to separate these onto different levels later,
 // but I think the TRACE_NAME separation is enough for now...
 #define TLVL_INIT TLVL_INFO
 #define TLVL_STOP TLVL_INFO
@@ -20,8 +20,9 @@
 #define TLVL_INRUN_FAILURE TLVL_INFO
 #define TLVL_LEGAL_COMMANDS TLVL_INFO
 
-artdaq::Commandable::Commandable() : fsm_(*this)
-, primary_mutex_()
+artdaq::Commandable::Commandable()
+    : fsm_(*this)
+    , primary_mutex_()
 {}
 
 // **********************************************************************
@@ -33,7 +34,6 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 	std::lock_guard<std::mutex> lk(primary_mutex_);
 	external_request_status_ = true;
 	report_string_ = "All is OK.";
-
 
 	SetMFModuleName("Initializing");
 
@@ -47,8 +47,8 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after an init transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after an init transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -74,8 +74,8 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after a start transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after a start transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -101,8 +101,8 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after a stop transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after a stop transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -128,8 +128,8 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after a pause transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after a pause transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -154,8 +154,8 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 		std::string finalState = fsm_.getState().getName();
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after a resume transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after a resume transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -179,8 +179,8 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 		std::string finalState = fsm_.getState().getName();
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after a shutdown transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after a shutdown transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -206,8 +206,8 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after a soft_init transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after a soft_init transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -233,8 +233,8 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after a reinit transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after a reinit transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -260,8 +260,8 @@ bool artdaq::Commandable::in_run_failure()
 
 		SetMFModuleName(finalState);
 		TLOG(TLVL_DEBUG)
-			<< "States before and after an in_run_failure transition: "
-			<< initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
+		    << "States before and after an in_run_failure transition: "
+		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
 	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
@@ -290,26 +290,26 @@ std::vector<std::string> artdaq::Commandable::legal_commands() const
 
 	if (currentState == "Ready")
 	{
-		return { "init", "soft_init", "start", "shutdown" };
+		return {"init", "soft_init", "start", "shutdown"};
 	}
 	if (currentState == "Running")
 	{
 		// 12-May-2015, KAB: in_run_failure is also possible, but it
 		// shouldn't be requested externally.
-		return { "pause", "stop" };
+		return {"pause", "stop"};
 	}
 	if (currentState == "Paused")
 	{
-		return { "resume", "stop" };
+		return {"resume", "stop"};
 	}
 	if (currentState == "InRunError")
 	{
-		return { "pause", "stop" };
+		return {"pause", "stop"};
 	}
 
 	// Booted and Error
 	TLOG(TLVL_LEGAL_COMMANDS) << "legal_commands complete";
-	return { "init", "shutdown" };
+	return {"init", "shutdown"};
 }
 
 // *******************************************************************
@@ -401,7 +401,6 @@ void artdaq::Commandable::InRunExit()
 	TLOG(TLVL_DEBUG) << "InRunExit called.";
 }
 
-
 std::string artdaq::Commandable::do_trace_get(std::string const& name)
 {
 	TLOG(TLVL_DEBUG) << "Getting masks for name " << name;
@@ -440,15 +439,15 @@ bool artdaq::Commandable::do_trace_set(std::string const& type, std::string cons
 		{
 			switch (type[0])
 			{
-			case 'M':
-				TRACE_CNTL("lvlmsknM", name.c_str(), mask);
-				break;
-			case 'S':
-				TRACE_CNTL("lvlmsknS", name.c_str(), mask);
-				break;
-			case 'T':
-				TRACE_CNTL("lvlmsknT", name.c_str(), mask);
-				break;
+				case 'M':
+					TRACE_CNTL("lvlmsknM", name.c_str(), mask);
+					break;
+				case 'S':
+					TRACE_CNTL("lvlmsknS", name.c_str(), mask);
+					break;
+				case 'T':
+					TRACE_CNTL("lvlmsknT", name.c_str(), mask);
+					break;
 			}
 		}
 		else
@@ -462,15 +461,15 @@ bool artdaq::Commandable::do_trace_set(std::string const& type, std::string cons
 		{
 			switch (type[0])
 			{
-			case 'M':
-				TRACE_CNTL("lvlmskMg", mask);
-				break;
-			case 'S':
-				TRACE_CNTL("lvlmskSg", mask);
-				break;
-			case 'T':
-				TRACE_CNTL("lvlmskTg", mask);
-				break;
+				case 'M':
+					TRACE_CNTL("lvlmskMg", mask);
+					break;
+				case 'S':
+					TRACE_CNTL("lvlmskSg", mask);
+					break;
+				case 'T':
+					TRACE_CNTL("lvlmskTg", mask);
+					break;
 			}
 		}
 		else
@@ -508,7 +507,7 @@ bool artdaq::Commandable::do_clear_config_archive()
 }
 
 // *********************
-// *** Utility methods. 
+// *** Utility methods.
 // *********************
 
 std::string artdaq::Commandable::current_state() const

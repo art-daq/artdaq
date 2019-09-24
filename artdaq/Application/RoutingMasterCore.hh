@@ -8,20 +8,19 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 
-#include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 #include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/TokenReceiver.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
-#include "artdaq/DAQrate/TokenReceiver.hh"
 
-namespace artdaq
-{
-	class RoutingMasterCore;
+namespace artdaq {
+class RoutingMasterCore;
 }
 
 /**
@@ -32,8 +31,8 @@ namespace artdaq
 class artdaq::RoutingMasterCore
 {
 public:
-	static const std::string TABLE_UPDATES_STAT_KEY; ///< Key for Table Update count MonnitoredQuantity
-	static const std::string TOKENS_RECEIVED_STAT_KEY; ///< Key for the Tokens Received MonitoredQuantity
+	static const std::string TABLE_UPDATES_STAT_KEY;    ///< Key for Table Update count MonnitoredQuantity
+	static const std::string TOKENS_RECEIVED_STAT_KEY;  ///< Key for the Tokens Received MonitoredQuantity
 
 	/**
 	 * \brief RoutingMasterCore Constructor.
@@ -189,7 +188,6 @@ private:
 
 	void sendMetrics_();
 
-
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
 	int send_tables_port_;
@@ -203,7 +201,6 @@ private:
 	int table_socket_;
 	int ack_socket_;
 	mutable std::mutex request_mutex_;
-
 };
 
 #endif /* artdaq_Application_MPI2_RoutingMasterCore_hh */
