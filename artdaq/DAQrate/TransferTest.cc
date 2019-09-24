@@ -12,17 +12,17 @@
 #include <future>
 
 artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
-	: senders_(psi.get<int>("num_senders"))
-	, receivers_(psi.get<int>("num_receivers"))
-	, sending_threads_(psi.get<int>("sending_threads", 1))
-	, sends_each_sender_(psi.get<int>("sends_per_sender"))
-	, receives_each_receiver_(0)
-	, buffer_count_(psi.get<int>("buffer_count", 10))
-	, error_count_max_(psi.get<int>("max_errors_before_abort", 3))
-	, fragment_size_(psi.get<size_t>("fragment_size", 0x100000))
-	, ps_()
-	, validate_mode_(psi.get<bool>("validate_data_mode", false))
-	, partition_number_(psi.get<int>("partition_number", rand() % 0x7F))
+    : senders_(psi.get<int>("num_senders"))
+    , receivers_(psi.get<int>("num_receivers"))
+    , sending_threads_(psi.get<int>("sending_threads", 1))
+    , sends_each_sender_(psi.get<int>("sends_per_sender"))
+    , receives_each_receiver_(0)
+    , buffer_count_(psi.get<int>("buffer_count", 10))
+    , error_count_max_(psi.get<int>("max_errors_before_abort", 3))
+    , fragment_size_(psi.get<size_t>("fragment_size", 0x100000))
+    , ps_()
+    , validate_mode_(psi.get<bool>("validate_data_mode", false))
+    , partition_number_(psi.get<int>("partition_number", rand() % 0x7F))
     , return_code_(0)
 {
 	TLOG(10) << "CONSTRUCTOR";
@@ -164,7 +164,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			{
 				TLOG(TLVL_ERROR) << "Data corruption detected! (" << (*(frag.dataBegin() + ii)) << " != " << (ii + 1) << ") Aborting!";
 				return_code_ = 255;
-                return std::make_pair(0, 0.0);
+				return std::make_pair(0, 0.0);
 			}
 		}
 	}
@@ -207,11 +207,11 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			{
 				TLOG(TLVL_ERROR) << "Too many errors sending fragments! Aborting... (sent=" << ii << "/" << sends_each_sender_ << ")";
 				return_code_ = sends_each_sender_ - ii;
-                return std::make_pair(0, 0.0);
+				return std::make_pair(0, 0.0);
 			}
 		}
 
-		frag = artdaq::Fragment(data_size_wrds); // replace/renew
+		frag = artdaq::Fragment(data_size_wrds);  // replace/renew
 		if (validate_mode_)
 		{
 			artdaq::RawDataType gen_seed = ii + 1;
@@ -222,8 +222,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
 				{
 					TLOG(TLVL_ERROR) << "Input Data corruption detected! (" << *(frag.dataBegin() + jj) << " != " << ii + jj + 2 << " at position " << ii << ") Aborting!";
-                    return_code_ = 254;
-                    return std::make_pair(0, 0.0);
+					return_code_ = 254;
+					return std::make_pair(0, 0.0);
 				}
 			}
 		}
@@ -247,11 +247,11 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			after_time_metric = 0.0;
 			send_size_metric = 0.0;
 		}
-		usleep(0); // Yield execution
+		usleep(0);  // Yield execution
 	}
 
 	return std::make_pair(totalSize, totalTime);
-} // do_sending
+}  // do_sending
 
 std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 {
@@ -306,7 +306,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 				}
 				counter--;
 				TLOG(TLVL_INFO) << "Receiver " << my_rank << " received fragment " << receives_each_receiver_ - counter
-					<< " with seqID " << ignoreFragPtr->sequenceID() << " from Sender " << senderSlot << " (Expecting " << counter << " more)";
+				                << " with seqID " << ignoreFragPtr->sequenceID() << " from Sender " << senderSlot << " (Expecting " << counter << " more)";
 				thisSize = ignoreFragPtr->size() * sizeof(artdaq::RawDataType);
 				totalSize += thisSize;
 				if (validate_mode_)
@@ -316,8 +316,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 						if (*(ignoreFragPtr->dataBegin() + ii) != ignoreFragPtr->sequenceID() + ii + 1)
 						{
 							TLOG(TLVL_ERROR) << "Output Data corruption detected! (" << *(ignoreFragPtr->dataBegin() + ii) << " != " << (ignoreFragPtr->sequenceID() + ii + 1) << " at position " << ii << ") Aborting!";
-                            return_code_ = -3;
-                            return std::make_pair(0, 0.0);
+							return_code_ = -3;
+							return std::make_pair(0, 0.0);
 						}
 					}
 				}
@@ -354,9 +354,9 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 
 	if (counter != 0 && !nonblocking_mode)
 	{
-          TLOG(TLVL_ERROR) << "Did not receive all expected Fragments! Missing " << counter << " Fragments!";
-          return_code_ = counter;
-          return std::make_pair(0, 0.0);
+		TLOG(TLVL_ERROR) << "Did not receive all expected Fragments! Missing " << counter << " Fragments!";
+		return_code_ = counter;
+		return std::make_pair(0, 0.0);
 	}
 
 	return std::make_pair(totalSize, totalTime);

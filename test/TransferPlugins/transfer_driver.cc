@@ -7,7 +7,7 @@
 int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("transfer_driver");
-	TLOG(TLVL_INFO) << "BEGIN" ;
+	TLOG(TLVL_INFO) << "BEGIN";
 
 	std::cout << "argc:" << argc << std::endl;
 	for (int i = 0; i < argc; ++i)
