@@ -1,17 +1,16 @@
 #ifndef artdaq_ArtModules_TransferInterface_hh
 #define artdaq_ArtModules_TransferInterface_hh
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
-#include "fhiclcpp/ParameterSet.h"
+#include "artdaq/DAQdata/Globals.hh"
 #include "cetlib/compiler_macros.h"
+#include "fhiclcpp/ParameterSet.h"
 
-#include <limits>
 #include <iostream>
+#include <limits>
 #include <sstream>
 
-namespace artdaq
-{
+namespace artdaq {
 	/**
 	 * \brief This interface defines the functions used to transfer data between artdaq applications.
 	 */
@@ -179,7 +178,6 @@ namespace artdaq
 		 */
 		virtual void flush_buffers() = 0;
 
-
 		/** \cond */
 		#define GetTraceName() unique_label_ << (role_ == Role::kSend ? "_SEND" : "_RECV")
 		 /** \endcond */
@@ -201,7 +199,7 @@ namespace artdaq
 		 */
 		Role role() const { return role_; }
 	};
-}
+}  // namespace artdaq
 
 /** \cond */
 
@@ -211,12 +209,13 @@ namespace artdaq
 
 #define DEFINE_ARTDAQ_TRANSFER(klass)                                \
   EXTERN_C_FUNC_DECLARE_START                                      \
-std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const & ps, artdaq::TransferInterface::Role role) { \
+	std::unique_ptr<artdaq::TransferInterface> make(fhicl::ParameterSet const& ps, artdaq::TransferInterface::Role role) \
+	{                                                                                                                    \
 	return std::unique_ptr<artdaq::TransferInterface>(new klass(ps, role)); \
-}}
+	}                                                                                                                    \
+	}
 
 /** \endcond */
-
 
 #endif /* artdaq_ArtModules_TransferInterface.hh */
 

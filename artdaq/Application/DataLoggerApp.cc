@@ -1,9 +1,9 @@
-#include "artdaq/DAQdata/Globals.hh" // include these 2 first -
+#include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DataLoggerApp").c_str()
 
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include <iostream>
 
@@ -47,7 +47,7 @@ bool artdaq::DataLoggerApp::do_start(art::RunID id, uint64_t, uint64_t)
 		report_string_.append(boost::lexical_cast<std::string>(id.run()));
 		report_string_.append(".");
 	}
-	
+
 	return external_request_status_;
 }
 
@@ -121,7 +121,10 @@ std::string artdaq::DataLoggerApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else { return "Success"; }
+		else
+		{
+			return "Success";
+		}
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application

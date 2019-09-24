@@ -1,25 +1,24 @@
 #ifndef ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 
-#include <map>
-#include <set>
-#include <memory>
 #include <netinet/in.h>
+#include <map>
+#include <memory>
+#include <set>
 
 #include "fhiclcpp/fwd.h"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
 
-namespace artdaq
-{
+namespace artdaq {
 	class DataSenderManager;
 }
 
@@ -153,11 +152,19 @@ public:
 	 */
 	void StopSender() { should_stop_ = true; }
 
+	/**
+	 * \brief Remove the given sequence ID from the routing table and sent_count lists
+	 * \param seq Sequence ID to remove
+	 */
 	void RemoveRoutingTableEntry(Fragment::sequence_id_t seq);
+	/**
+	 * \brief Get the number of Fragments sent with a given Sequence ID
+	 * \param seq Sequence ID to query
+	 * \return The number of Fragments sent with a given Sequence ID
+	 */
 	size_t GetSentSequenceIDCount(Fragment::sequence_id_t seq);
 
 private:
-
 	// Calculate where the fragment with this sequenceID should go.
 	int calcDest_(Fragment::sequence_id_t) const;
 
@@ -166,8 +173,8 @@ private:
 	void startTableReceiverThread_();
 
 	void receiveTableUpdatesLoop_();
-private:
 
+private:
 	std::map<int, std::unique_ptr<artdaq::TransferInterface>> destinations_;
 	std::set<int> enabled_destinations_;
 
@@ -201,19 +208,16 @@ private:
 	int routing_retry_count_;
 
 	mutable std::atomic<uint64_t> highest_sequence_id_routed_;
-
 };
 
-inline
-size_t
+inline size_t
 artdaq::DataSenderManager::
 count() const
 {
 	return sent_frag_count_.count();
 }
 
-inline
-size_t
+inline size_t
 artdaq::DataSenderManager::
 slotCount(size_t rank) const
 {

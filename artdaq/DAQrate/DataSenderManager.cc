@@ -4,14 +4,14 @@
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
 
-#include <chrono>
-#include "canvas/Utilities/Exception.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/types.h>
 #include <poll.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <chrono>
 #include "artdaq/DAQdata/TCPConnect.hh"
+#include "canvas/Utilities/Exception.h"
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	: destinations_()
@@ -138,7 +138,6 @@ artdaq::DataSenderManager::~DataSenderManager()
 	TLOG(TLVL_DEBUG) << "Shutting down DataSenderManager END. Sent " << count() << " fragments.";
 }
 
-
 void artdaq::DataSenderManager::setupTableListener_()
 {
 	int sts;
@@ -197,7 +196,8 @@ void artdaq::DataSenderManager::startTableReceiverThread_()
 {
 	if (routing_thread_.joinable()) routing_thread_.join();
 	TLOG(TLVL_INFO) << "Starting Routing Thread";
-	try {
+	try
+	{
 		routing_thread_ = boost::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
 	}
 	catch (const boost::exception& e)

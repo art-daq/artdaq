@@ -1,70 +1,69 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RequestReceiver").c_str()
 
-#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
 
-#include <limits>
 #include <iterator>
+#include <limits>
 
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 
-#include <fstream>
-#include <iomanip>
-#include <iterator>
-#include <iostream>
-#include <iomanip>
-#include <algorithm>
-#include <sys/poll.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/poll.h>
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::RequestReceiver::RequestReceiver()
-	: request_port_(3001)
-	, request_addr_("227.128.12.26")
-	, running_(false)
+    : request_port_(3001)
+    , request_addr_("227.128.12.26")
+    , running_(false)
     , run_number_(0)
     , request_socket_(-1)
-	, requests_()
-	, request_timing_()
-	, request_stop_requested_(false)
-	, request_received_(false)
-	, end_of_run_timeout_ms_(1000)
-	, should_stop_(false)
-	, highest_seen_request_(0)
-	, out_of_order_requests_()
-	, request_increment_(1)
+    , requests_()
+    , request_timing_()
+    , request_stop_requested_(false)
+    , request_received_(false)
+    , end_of_run_timeout_ms_(1000)
+    , should_stop_(false)
+    , highest_seen_request_(0)
+    , out_of_order_requests_()
+    , request_increment_(1)
 {}
 
 artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
-	: request_port_(ps.get<int>("request_port", 3001))
-	, request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
-	, multicast_in_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
-	, running_(false)
-	, run_number_(0)
+    : request_port_(ps.get<int>("request_port", 3001))
+    , request_addr_(ps.get<std::string>("request_address", "227.128.12.26"))
+    , multicast_in_addr_(ps.get<std::string>("multicast_interface_ip", "0.0.0.0"))
+    , running_(false)
+    , run_number_(0)
     , request_socket_(-1)
-	, requests_()
-	, request_timing_()
-	, request_stop_requested_(false)
-	, request_received_(false)
-	, end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
-	, should_stop_(false)
-	, highest_seen_request_(0)
-	, out_of_order_requests_()
-	, request_increment_(ps.get<artdaq::Fragment::sequence_id_t>("request_increment", 1))
+    , requests_()
+    , request_timing_()
+    , request_stop_requested_(false)
+    , request_received_(false)
+    , end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
+    , should_stop_(false)
+    , highest_seen_request_(0)
+    , out_of_order_requests_()
+    , request_increment_(ps.get<artdaq::Fragment::sequence_id_t>("request_increment", 1))
 {
 	setupRequestListener();
 }
@@ -92,7 +91,7 @@ void artdaq::RequestReceiver::setupRequestListener()
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(request_port_);
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (bind(request_socket_, (struct sockaddr *)&si_me_request, sizeof(si_me_request)) == -1)
+	if (bind(request_socket_, (struct sockaddr*)&si_me_request, sizeof(si_me_request)) == -1)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << request_port_ << ", err=" << strerror(errno);
 		exit(1);
@@ -133,14 +132,16 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 	if (!request_received_ && !force)
 	{
 		TLOG(TLVL_ERROR) << "Stop request received by RequestReceiver, but no requests have ever been received." << std::endl
-			<< "Check that UDP port " << request_port_ << " is open in the firewall config.";
+		                 << "Check that UDP port " << request_port_ << " is open in the firewall config.";
 	}
 	should_stop_ = true;
-	if (running_) {
+	if (running_)
+	{
 		TLOG(TLVL_DEBUG) << "Joining requestThread";
 		if (requestThread_.joinable()) requestThread_.join();
 		bool once = true;
-		while (running_) {
+		while (running_)
+		{
 			if (once) TLOG(TLVL_ERROR) << "running_ is true after thread join! Should NOT happen";
 			once = false;
 			usleep(10000);
@@ -170,7 +171,8 @@ void artdaq::RequestReceiver::startRequestReception()
 	}
 
 	TLOG(TLVL_INFO) << "Starting Request Reception Thread";
-	try {
+	try
+	{
 		requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
 	}
 	catch (const boost::exception& e)
@@ -217,7 +219,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		TLOG(11) << "Received packet on Request channel";
 		std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
 		struct sockaddr_in from;
-		socklen_t          len = sizeof(from);
+		socklen_t len = sizeof(from);
 		auto sts = recvfrom(request_socket_, &buffer[0], MAX_REQUEST_MESSAGE_SIZE, 0, (struct sockaddr*)&from, &len);
 		if (sts < 0)
 		{
@@ -263,15 +265,15 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			if (requests_.count(buffer.sequence_id) && requests_[buffer.sequence_id] != buffer.timestamp)
 			{
 				TLOG(TLVL_ERROR) << "Received conflicting request for SeqID "
-					<< buffer.sequence_id << "!"
-					<< " Old ts=" << requests_[buffer.sequence_id]
-					<< ", new ts=" << buffer.timestamp << ". Keeping OLD!";
+				                 << buffer.sequence_id << "!"
+				                 << " Old ts=" << requests_[buffer.sequence_id]
+				                 << ", new ts=" << buffer.timestamp << ". Keeping OLD!";
 			}
 			else if (!requests_.count(buffer.sequence_id))
 			{
 				int delta = buffer.sequence_id - highest_seen_request_;
 				TLOG(11) << "Received request for sequence ID " << buffer.sequence_id
-					<< " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
+				         << " and timestamp " << buffer.timestamp << " (delta: " << delta << ")";
 				if (delta <= 0 || out_of_order_requests_.count(buffer.sequence_id))
 				{
 					TLOG(11) << "Already serviced this request ( sequence ID " << buffer.sequence_id << ")! Ignoring...";
@@ -307,7 +309,7 @@ void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqI
 			out_of_order_requests_.insert(reqID);
 
 			auto it = out_of_order_requests_.begin();
-			while (it != out_of_order_requests_.end() && !should_stop_) // Stop accounting for requests after stop
+			while (it != out_of_order_requests_.end() && !should_stop_)  // Stop accounting for requests after stop
 			{
 				if (*it == highest_seen_request_ + request_increment_)
 				{
@@ -320,7 +322,7 @@ void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqI
 				}
 			}
 		}
-		else // no out-of-order requests and this request is highest seen + request_increment_
+		else  // no out-of-order requests and this request is highest seen + request_increment_
 		{
 			highest_seen_request_ = reqID;
 		}
