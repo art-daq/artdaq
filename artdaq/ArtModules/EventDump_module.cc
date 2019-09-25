@@ -102,9 +102,10 @@ void artdaq::EventDump::analyze(art::Event const& e)
 						{
 							for (size_t idx = 0; idx < cf.block_count(); ++idx)
 							{
-								std::cout << "    " << (idx + 1) << ") fragment type " << (int)(cf.at(idx))->type()
-								          << ", timestamp " << (cf.at(idx))->timestamp()
-								          << ", and sizeBytes " << (cf.at(idx))->sizeBytes() << std::endl;
+								auto thisFrag = cf.at(idx);
+								std::cout << "    " << (idx + 1) << ") fragment type " << (int)thisFrag->type()
+								          << ", timestamp " << thisFrag->timestamp()
+								          << ", and sizeBytes " << thisFrag->sizeBytes() << std::endl;
 							}
 						}
 					}
