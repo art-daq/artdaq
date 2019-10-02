@@ -363,9 +363,12 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			sts = ResolveHost(multicast_out_hostname_.c_str(), addr);
 			if (sts == -1)
 			{
-				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to resolve routing_master_address" << std::endl;
-				;
+				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to resolve the multicast interface address from the routing_master_address parameter value of " << multicast_out_hostname_ << std::endl;
+				exit(1);
 			}
+			char addr_str[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET, &(addr), addr_str, INET_ADDRSTRLEN);
+			TLOG(TLVL_INFO) << "Successfully resolved the multicast interface address for " << multicast_out_hostname_ << ": " << addr_str << " (RoutingMaster sending table updates to BoardReaders)";
 
 			if (setsockopt(table_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 			{
