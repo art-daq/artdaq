@@ -178,7 +178,7 @@ public:
 	 * \return The number of acks received by this RequestSender
 	 */
 	size_t GetAckCount() const { return ack_messages_received_.load(); }
-	
+
 	/**
 	 * \brief Get the number of requests sent
 	 * \return The number of request messages sent by this RequestSender

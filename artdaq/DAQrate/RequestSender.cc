@@ -1,6 +1,5 @@
-#include "artdaq/DAQdata/Globals.hh" // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
+#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #define TRACE_NAME (app_name + "_RequestSender").c_str()
-#include "artdaq/DAQrate/RequestSender.hh"
 #include <dlfcn.h>
 #include <chrono>
 #include <cstring>
@@ -8,6 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
+#include "artdaq/DAQrate/RequestSender.hh"
 
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"

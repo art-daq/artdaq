@@ -15,12 +15,12 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
-#include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
-#include "artdaq/RoutingPolicies/RoutingDestinationHelper.hh"
-#include "artdaq/DAQrate/TokenReceiver.hh"
-#include "artdaq-utilities/Plugins/MakeGPMPlugins.hh"
 #include "artdaq-utilities/Plugins/GPMPublisher.hh"
+#include "artdaq-utilities/Plugins/MakeGPMPlugins.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQrate/TokenReceiver.hh"
+#include "artdaq/RoutingPolicies/RoutingDestinationHelper.hh"
+#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
 
 #include <unistd.h>
 #include <iomanip>
@@ -32,7 +32,7 @@
 #include <vector>
 
 namespace art {
-	class RoutingNetOutput;
+class RoutingNetOutput;
 }
 
 using art::RoutingNetOutput;
@@ -43,7 +43,8 @@ using fhicl::ParameterSet;
  * This module produces output identical to that of a BoardReader, for use in
  * systems which have multiple layers of EventBuilders.
  */
-class art::RoutingNetOutput final : public OutputModule {
+class art::RoutingNetOutput final : public OutputModule
+{
 public:
 	/**
 	 * \brief RoutingNetOutput Constructor
@@ -73,8 +74,8 @@ private:
 
 	void write(EventPrincipal&) override;
 
-	void writeRun(RunPrincipal&) override {};
-	void writeSubRun(SubRunPrincipal&) override {};
+	void writeRun(RunPrincipal&) override{};
+	void writeSubRun(SubRunPrincipal&) override{};
 
 	void initialize_MPI_();
 
@@ -109,25 +110,29 @@ private:
 	bool stop_requested_;
 };
 
-art::RoutingNetOutput::RoutingNetOutput(ParameterSet const& ps) : OutputModule(ps) {
+art::RoutingNetOutput::RoutingNetOutput(ParameterSet const& ps)
+    : OutputModule(ps)
+{
 	TLOG(TLVL_DEBUG) << "Begin: RoutingNetOutput::RoutingNetOutput(ParameterSet const& ps)\n";
 	readParameterSet_(ps);
 
-	const auto target = std::regex{ "_" };
-	const auto replacement = std::string{ "-" };
+	const auto target = std::regex{"_"};
+	const auto replacement = std::string{"-"};
 	app_name_no_underscore_ = std::regex_replace(app_name, target, replacement);
 	TLOG(TLVL_DEBUG) << "End: RoutingNetOutput::RoutingNetOutput(ParameterSet const& ps)\n";
 }
 
 art::RoutingNetOutput::~RoutingNetOutput() { TLOG(TLVL_DEBUG) << "Begin/End: RoutingNetOutput::~RoutingNetOutput()\n"; }
 
-void art::RoutingNetOutput::beginJob() {
+void art::RoutingNetOutput::beginJob()
+{
 	TLOG(TLVL_DEBUG) << "Begin: RoutingNetOutput::beginJob()\n";
 	initialize_MPI_();
 	TLOG(TLVL_DEBUG) << "End:   RoutingNetOutput::beginJob()\n";
 }
 
-void art::RoutingNetOutput::endJob() {
+void art::RoutingNetOutput::endJob()
+{
 	TLOG(TLVL_DEBUG) << "Begin: RoutingNetOutput::endJob()\n";
 	deinitialize_MPI_();
 	TLOG(TLVL_DEBUG) << "End:   RoutingNetOutput::endJob()\n";
@@ -146,7 +151,7 @@ void art::RoutingNetOutput::beginRun(art::RunPrincipal const& rp)
 	if (inhibit_publisher_.get() != nullptr)
 	{
 		boost::thread::attributes attrs;
-			attrs.set_stack_size(4096 * 2000); // 2000 KB
+		attrs.set_stack_size(4096 * 2000);  // 2000 KB
 		try
 		{
 			buffer_monitor_thread_ = boost::thread(attrs, boost::bind(&RoutingNetOutput::run_buffer_monitor_, this));
@@ -158,7 +163,7 @@ void art::RoutingNetOutput::beginRun(art::RunPrincipal const& rp)
 			std::cerr << "Caught boost::exception starting buffer monitor thread: " << boost::diagnostic_information(excpt) << ", errno=" << errno << std::endl;
 			exit(5);
 		}
-        }
+	}
 }
 
 void art::RoutingNetOutput::endRun(art::RunPrincipal const& rp)
@@ -167,23 +172,26 @@ void art::RoutingNetOutput::endRun(art::RunPrincipal const& rp)
 
 	if (token_receiver_.get() != nullptr)
 	{
-	  TLOG(TLVL_INFO) << "Stopping run " << rp.run() << " after " << token_receiver_->getReceivedTokenCount() << " received tokens." ;
+		TLOG(TLVL_INFO) << "Stopping run " << rp.run() << " after " << token_receiver_->getReceivedTokenCount() << " received tokens.";
 		token_receiver_->pauseTokenReception();
 	}
 
-	if (buffer_monitor_thread_.joinable()) {buffer_monitor_thread_.join();}
+	if (buffer_monitor_thread_.joinable()) { buffer_monitor_thread_.join(); }
 }
 
-void art::RoutingNetOutput::initialize_MPI_() {
-  if (rt_priority_ > 0) {
+void art::RoutingNetOutput::initialize_MPI_()
+{
+	if (rt_priority_ > 0)
+	{
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
-    if (status != 0) {
-      TLOG(TLVL_ERROR) << name_ << "Failed to set realtime priority to " << rt_priority_
-				<< ", return code = " << status;
+		if (status != 0)
+		{
+			TLOG(TLVL_ERROR) << name_ << "Failed to set realtime priority to " << rt_priority_
+			                 << ", return code = " << status;
 		}
 #pragma GCC diagnostic pop
 	}
@@ -195,9 +203,9 @@ void art::RoutingNetOutput::initialize_MPI_() {
 	if (policy_plugin_spec.length() == 0)
 	{
 		TLOG(TLVL_ERROR)
-			<< "No policy type (parameter name = \"policy\") was "
-			<< "specified in the policy ParameterSet.  The full "
-			<< "initialization PSet was \"" << full_pset_.to_string() << "\"." ;
+		    << "No policy type (parameter name = \"policy\") was "
+		    << "specified in the policy ParameterSet.  The full "
+		    << "initialization PSet was \"" << full_pset_.to_string() << "\".";
 	}
 	else
 	{
@@ -207,7 +215,7 @@ void art::RoutingNetOutput::initialize_MPI_() {
 		}
 		catch (...)
 		{
-			TLOG(TLVL_ERROR) << "Unable to create a Routing Policy of type \"" << policy_plugin_spec << "\" from ParameterSet: \"" + policy_pset_.to_string() + "\"." ;
+			TLOG(TLVL_ERROR) << "Unable to create a Routing Policy of type \"" << policy_plugin_spec << "\" from ParameterSet: \"" + policy_pset_.to_string() + "\".";
 		}
 
 		if (policy_.get() != nullptr)
@@ -224,10 +232,10 @@ void art::RoutingNetOutput::initialize_MPI_() {
 	if (inhibit_publisher_plugin_spec.length() == 0)
 	{
 		TLOG(TLVL_WARNING)
-			<< "No publisher type (parameter name = \"publisher\") was "
-			<< "specified in the inhibit_publisher ParameterSet, so there will be *no* "
-			<< "publishing of Inhibit messages from the " << TRACE_NAME << " code.  The full "
-			<< "initialization PSet was \"" << full_pset_.to_string() << "\"." ;
+		    << "No publisher type (parameter name = \"publisher\") was "
+		    << "specified in the inhibit_publisher ParameterSet, so there will be *no* "
+		    << "publishing of Inhibit messages from the " << TRACE_NAME << " code.  The full "
+		    << "initialization PSet was \"" << full_pset_.to_string() << "\".";
 	}
 	else
 	{
@@ -243,17 +251,18 @@ void art::RoutingNetOutput::initialize_MPI_() {
 			else
 			{
 				TLOG(TLVL_ERROR) << "Unable to bind Inhibit Publisher to bind address \"" << bind_address
-						 << "\" (bind return code = " << retcode << ").";
+				                 << "\" (bind return code = " << retcode << ").";
 			}
 		}
 		catch (...)
 		{
-			TLOG(TLVL_ERROR) << "Unable to create an Inhibit Publisher of type \"" << inhibit_publisher_plugin_spec << "\" from ParameterSet: \"" + inhibit_publisher_pset_.to_string() + "\"." ;
+			TLOG(TLVL_ERROR) << "Unable to create an Inhibit Publisher of type \"" << inhibit_publisher_plugin_spec << "\" from ParameterSet: \"" + inhibit_publisher_pset_.to_string() + "\".";
 		}
 	}
 }
 
-void art::RoutingNetOutput::deinitialize_MPI_() {
+void art::RoutingNetOutput::deinitialize_MPI_()
+{
 	sender_ptr_.reset(nullptr);
 
 	if (token_receiver_.get() != nullptr)
@@ -262,9 +271,10 @@ void art::RoutingNetOutput::deinitialize_MPI_() {
 	}
 }
 
-bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
+bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset)
+{
 	TLOG(TLVL_DEBUG) << name_ << "RoutingNetOutput::readParameterSet_ method called with "
-	           << "ParameterSet = \"" << pset.to_string() << "\".";
+	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// determine the data sending parameters
 	full_pset_ = pset;
@@ -280,7 +290,7 @@ bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
 	}
 	catch (...)
 	{
-		TLOG(TLVL_ERROR) << "Unable to find the policy parameters in the RoutingNetOutput initialization ParameterSet: \"" + full_pset_.to_string() + "\"." ;
+		TLOG(TLVL_ERROR) << "Unable to find the policy parameters in the RoutingNetOutput initialization ParameterSet: \"" + full_pset_.to_string() + "\".";
 	}
 
 	try
@@ -289,7 +299,7 @@ bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
 	}
 	catch (...)
 	{
-		TLOG(TLVL_ERROR) << "Unable to find the token_receiver parameters in the RoutingNetOutput initialization ParameterSet: \"" + full_pset_.to_string() + "\"." ;
+		TLOG(TLVL_ERROR) << "Unable to find the token_receiver parameters in the RoutingNetOutput initialization ParameterSet: \"" + full_pset_.to_string() + "\".";
 	}
 
 	try
@@ -298,7 +308,7 @@ bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
 	}
 	catch (...)
 	{
-		TLOG(TLVL_WARNING) << "Unable to find the inhibit_publisher parameters in the RoutingNetOutput initialization ParameterSet: \"" + full_pset_.to_string() + "\"." ;
+		TLOG(TLVL_WARNING) << "Unable to find the inhibit_publisher parameters in the RoutingNetOutput initialization ParameterSet: \"" + full_pset_.to_string() + "\".";
 	}
 
 	TLOG(TLVL_TRACE) << "RoutingNetOutput::readParameterSet()";
@@ -306,7 +316,8 @@ bool art::RoutingNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
 	return true;
 }
 
-void art::RoutingNetOutput::write(EventPrincipal& ep) {
+void art::RoutingNetOutput::write(EventPrincipal& ep)
+{
 	assert(sender_ptr_);
 
 	using RawEvent = artdaq::Fragments;
@@ -318,20 +329,22 @@ void art::RoutingNetOutput::write(EventPrincipal& ep) {
 
 	auto const& wrapped = art::WrappedTypeID::make<RawEvent>();
 #if ART_HEX_VERSION >= 0x30000
-  ModuleContext const mc{moduleDescription()};
-  ProcessTag const processTag{"", mc.moduleDescription().processName()};
+	ModuleContext const mc{moduleDescription()};
+	ProcessTag const processTag{"", mc.moduleDescription().processName()};
 
-  result_handles = ep.getMany(mc, wrapped, art::MatchAllSelector{}, processTag);
+	result_handles = ep.getMany(mc, wrapped, art::MatchAllSelector{}, processTag);
 #else
 	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
 #endif
 
-  for (auto const& result_handle : result_handles) {
+	for (auto const& result_handle : result_handles)
+	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
 
-    if (!raw_event_handle.isValid()) continue;
+		if (!raw_event_handle.isValid()) continue;
 
-    for (auto const& fragment : *raw_event_handle) {
+		for (auto const& fragment : *raw_event_handle)
+		{
 			auto fragment_copy = fragment;
 			auto fragid_id = fragment_copy.fragmentID();
 			auto sequence_id = fragment_copy.sequenceID();
@@ -381,7 +394,7 @@ void art::RoutingNetOutput::run_buffer_monitor_()
 	std::chrono::steady_clock::time_point inhibit_status_report_time = run_start_time_;
 	bool buffers_available = true;
 	bool inhibit_is_on = false;
-	while (! stop_requested_)
+	while (!stop_requested_)
 	{
 		usleep(buffer_test_interval_usec_);
 		if (static_cast<int>(destination_helper_->GetAvailableDestinationCount()) <= buffer_count_for_inhibit_)
@@ -399,7 +412,7 @@ void art::RoutingNetOutput::run_buffer_monitor_()
 			publish_good_status_("*");
 			inhibit_status_report_time = std::chrono::steady_clock::now();
 		}
-		else if ((! buffers_available && ! inhibit_is_on))
+		else if ((!buffers_available && !inhibit_is_on))
 		{
 			inhibit_is_on = true;
 			publish_bad_status_("NoAvailableTokens");
@@ -411,7 +424,7 @@ void art::RoutingNetOutput::run_buffer_monitor_()
 		// (Some types of listeners have a delay between when we create the publisher in
 		// this code and when they connect to it and get their first update.)
 		else if (artdaq::TimeUtils::GetElapsedTime(run_start_time_) < 15.0 &&
-			 artdaq::TimeUtils::GetElapsedTime(inhibit_status_report_time) >= 1.0)
+		         artdaq::TimeUtils::GetElapsedTime(inhibit_status_report_time) >= 1.0)
 		{
 			if (buffers_available)
 			{

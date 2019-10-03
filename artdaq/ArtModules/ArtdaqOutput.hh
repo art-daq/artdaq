@@ -104,10 +104,11 @@ public:
 	/// </summary>
 	/// <param name="ps">ParameterSet used to configure art::OutputModule</param>
 	explicit ArtdaqOutput(fhicl::ParameterSet const& ps)
-	    : OutputModule(ps), initMsgSent_(false), productList_() {
-		#if ART_HEX_VERSION >= 0x30200
-		root::setup(); 
-		#endif
+	    : OutputModule(ps), initMsgSent_(false), productList_()
+	{
+#if ART_HEX_VERSION >= 0x30200
+		root::setup();
+#endif
 	}
 
 	/// <summary>
@@ -167,7 +168,7 @@ protected:
 	/// <summary>
 	/// Perform Begin Run actions. No-op, but derived classes may override
 	/// </summary>
-	virtual void beginRun_(RunPrincipal const& ) {}
+	virtual void beginRun_(RunPrincipal const&) {}
 
 	/// <summary>
 	/// Perform Begin SubRun actions. Derived classes should implement beginSubRun_ instead.
@@ -181,7 +182,7 @@ protected:
 	/// <summary>
 	/// Perform Begin SubRun actions. No-op, but derived classes may override
 	/// </summary>
-	virtual void beginSubRun_(SubRunPrincipal const& ) {}
+	virtual void beginSubRun_(SubRunPrincipal const&) {}
 
 	/// <summary>
 	/// Perform actions for each event. Derived classes should implement event_ instead.
@@ -195,7 +196,7 @@ protected:
 	/// <summary>
 	/// Perform actions for each event. No-op, but derived classes may override
 	/// </summary>
-	virtual void event_(EventPrincipal const& ) {}
+	virtual void event_(EventPrincipal const&) {}
 
 	/// <summary>
 	/// Write an EventPrincipal to TBufferFile and send
@@ -630,7 +631,7 @@ void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	if (!initMsgSent_)
 	{
 #if ART_HEX_VERSION < 0x30000
-	  send_init_message(art::History());
+		send_init_message(art::History());
 #else
 		send_init_message(rp.history());
 #endif
@@ -690,7 +691,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	if (!initMsgSent_)
 	{
 #if ART_HEX_VERSION < 0x30000
-	  send_init_message(art::History());
+		send_init_message(art::History());
 #else
 		send_init_message(srp.history());
 #endif
@@ -788,7 +789,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "End: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 }
 
-void art::ArtdaqOutput::extractProducts_(Principal const& principal[[gnu::unused]])
+void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
 {
 	TLOG(TLVL_EXTRACTPRODUCTS) << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal) sz=" << principal.size();
 #if ART_HEX_VERSION < 0x30000
@@ -806,7 +807,7 @@ void art::ArtdaqOutput::extractProducts_(Principal const& principal[[gnu::unused
 			                                   << "Adding branch key to productList of class: '"
 			                                   << branchKey.friendlyClassName_ << "' modlbl: '" << branchKey.moduleLabel_ << "' instnm: '"
 			                                   << branchKey.productInstanceName_ << "' procnm: '" << branchKey.processName_ << "'"
-				<< ", description: " << productDescription.wrappedName();
+			                                   << ", description: " << productDescription.wrappedName();
 
 			productList_[branchKey] = productDescription;
 		}

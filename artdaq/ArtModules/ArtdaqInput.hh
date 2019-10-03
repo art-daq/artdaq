@@ -239,15 +239,15 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
 	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
 
-	#ifndef __OPTIMIZE__
-	for (auto I = productList_->begin(), E= productList_->end();I != E;++I)
+#ifndef __OPTIMIZE__
+	for (auto I = productList_->begin(), E = productList_->end(); I != E; ++I)
 	{
 		TLOG_ARB(50, "ArtdaqInput") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
 		                            << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
 		                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
 		                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 	}
-	#endif
+#endif
 
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
@@ -526,9 +526,9 @@ void art::ArtdaqInput<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*
 		}
 
 #ifndef __OPTIMIZE__
-			TLOG_ARB(13, "ArtdaqInput") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
-			                            << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
-			                            << bk->processName_;
+		TLOG_ARB(13, "ArtdaqInput") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
+		                            << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
+		                            << bk->processName_;
 #endif
 		ProductList::const_iterator iter;
 		{

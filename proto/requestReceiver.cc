@@ -6,8 +6,8 @@
 namespace bpo = boost::program_options;
 
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "artdaq/DAQrate/RequestReceiver.hh"
+#include "artdaq/DAQrate/detail/RequestMessage.hh"
 
 int main(int argc, char* argv[])
 {

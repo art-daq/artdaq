@@ -299,7 +299,7 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	if (force_stop_) return true;
 
 	// check_stop returns true if the CFG should stop. We should wait for the RequestReceiver to stop before stopping.
-	if (requestReceiver_.get() == nullptr) {return true;}
+	if (requestReceiver_.get() == nullptr) { return true; }
 	TLOG(TLVL_DEBUG) << "should_stop is true, force_stop_ is false, requestReceiver_->isRunning() is " << std::boolalpha << requestReceiver_->isRunning();
 	return !requestReceiver_->isRunning();
 }

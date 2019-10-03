@@ -1,16 +1,15 @@
 #ifndef artdaq_DAQdata_GenericFragmentSimulator_hh
 #define artdaq_DAQdata_GenericFragmentSimulator_hh
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/fwd.h"
 
 #include <random>
 
-namespace artdaq
-{
-	class GenericFragmentSimulator;
+namespace artdaq {
+class GenericFragmentSimulator;
 }
 
 /**
@@ -37,18 +36,18 @@ public:
 		///	* 1 : Use the Fragment ID
 		///	* 2 : Use random data
 		///	* 3 : Use the word 0xDEADBEEFDEADBEEF
-		fhicl::Atom<size_t> content_selection{ fhicl::Name{"content_selection"}, fhicl::Comment{"What type of data to fill in generated Fragment payloads"}, 0 };
+		fhicl::Atom<size_t> content_selection{fhicl::Name{"content_selection"}, fhicl::Comment{"What type of data to fill in generated Fragment payloads"}, 0};
 		/// "payload_size" (Default: 10240) : The size(in words) of the Fragment payload
-		fhicl::Atom<size_t> payload_size{ fhicl::Name{"payload_size"}, fhicl::Comment{"The size (in words) of the Fragment payload"}, 10240 };
+		fhicl::Atom<size_t> payload_size{fhicl::Name{"payload_size"}, fhicl::Comment{"The size (in words) of the Fragment payload"}, 10240};
 		/// "want_random_payload_size" (Default: false) : Whether payload size should be sampled from a random distribution
-		fhicl::Atom<bool> want_random_payload_size{ fhicl::Name{"want_random_payload_size"}, fhicl::Comment{"Whether payload size should be sampled from a random distribution"}, false };
+		fhicl::Atom<bool> want_random_payload_size{fhicl::Name{"want_random_payload_size"}, fhicl::Comment{"Whether payload size should be sampled from a random distribution"}, false};
 		/// "random_seed" (Default: 314159) : Random seed for random number distributions
-		fhicl::Atom<int64_t> random_seed{ fhicl::Name{"random_seed"}, fhicl::Comment{"Random seed for random number distributions"}, 314159 };
+		fhicl::Atom<int64_t> random_seed{fhicl::Name{"random_seed"}, fhicl::Comment{"Random seed for random number distributions"}, 314159};
 		/// "fragments_per_event" (Default: 5) : The number of Fragment objects to generate for each sequence ID
-		fhicl::Atom<size_t> fragments_per_event{ fhicl::Name{"fragments_per_event"}, fhicl::Comment{"The number of Fragment objects to generate for each sequence ID"}, 5 };
+		fhicl::Atom<size_t> fragments_per_event{fhicl::Name{"fragments_per_event"}, fhicl::Comment{"The number of Fragment objects to generate for each sequence ID"}, 5};
 		/// "starting_fragment_id" (Default: 0) : The first Fragment ID handled by this GenericFragmentSimulator.
 		///	*   Fragment IDs will be starting_fragment_id to starting_fragment_id + fragments_per_event.
-		fhicl::Atom<Fragment::fragment_id_t> starting_fragment_id{ fhicl::Name{"starting_fragment_id"}, fhicl::Comment{"The first Fragment ID handled by this GenericFragmentSimulator."}, 0 };
+		fhicl::Atom<Fragment::fragment_id_t> starting_fragment_id{fhicl::Name{"starting_fragment_id"}, fhicl::Comment{"The first Fragment ID handled by this GenericFragmentSimulator."}, 0};
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -64,10 +63,10 @@ public:
 	 */
 	enum class content_selector_t : uint8_t
 	{
-		EMPTY = 0, ///< Nothing (Default-initialized Fragment)
-		FRAG_ID = 1, ///< Fill the payload with the Fragment ID
-		RANDOM = 2, ///< Use a random distribution to fill the payload
-		DEAD_BEEF ///< Fill the payload with 0xDEADBEEFDEADBEEF
+		EMPTY = 0,    ///< Nothing (Default-initialized Fragment)
+		FRAG_ID = 1,  ///< Fill the payload with the Fragment ID
+		RANDOM = 2,   ///< Use a random distribution to fill the payload
+		DEAD_BEEF     ///< Fill the payload with 0xDEADBEEFDEADBEEF
 	};
 
 	// Not part of virtual interface: generate a specific fragment.
@@ -81,8 +80,8 @@ public:
 	 * \return True if no exception or assertion failure
 	 */
 	bool getNext(Fragment::sequence_id_t sequence_id,
-				 Fragment::fragment_id_t fragment_id,
-				 FragmentPtr& frag_ptr);
+	             Fragment::fragment_id_t fragment_id,
+	             FragmentPtr& frag_ptr);
 
 	/**
 	 * \brief Get the next Fragment from the generator
@@ -119,7 +118,7 @@ private:
 
 	// Configuration
 	content_selector_t const content_selection_;
-	std::size_t const payload_size_spec_; // Poisson mean if random size wanted.
+	std::size_t const payload_size_spec_;  // Poisson mean if random size wanted.
 	std::vector<Fragment::fragment_id_t> fragment_ids_;
 
 	bool const want_random_payload_size_;

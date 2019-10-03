@@ -94,7 +94,7 @@ public:
 	 * \param ts Timestamp to be used for the next Fragment
 	 */
 	void setTimestamp(artdaq::Fragment::timestamp_t ts) { ts_ = ts; }
-	
+
 	/**
 	 * \brief Get the timestamp that will be used for the next Fragment
 	 * \return The timestamp that will be used for the next Fragment

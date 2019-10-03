@@ -2,26 +2,26 @@
 
 #include "artdaq/Generators/CompositeDriver.hh"
 
+#include <boost/algorithm/string.hpp>
 #include "artdaq/Generators/GeneratorMacros.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
-#include <boost/algorithm/string.hpp>
 
 using fhicl::ParameterSet;
 
-artdaq::CompositeDriver::CompositeDriver(ParameterSet const& ps):
-																CommandableFragmentGenerator(ps)
+artdaq::CompositeDriver::CompositeDriver(ParameterSet const& ps)
+    : CommandableFragmentGenerator(ps)
 {
 	std::vector<ParameterSet> psetList =
-		ps.get<std::vector<ParameterSet>>("generator_config_list");
+	    ps.get<std::vector<ParameterSet>>("generator_config_list");
 	for (auto pset : psetList)
 	{
-		if (! makeChildGenerator_(pset))
+		if (!makeChildGenerator_(pset))
 		{
 			throw cet::exception("CompositeDriver")
-				  << "Unable to create child generator for PSet= \""
-				  << pset.to_string() << "\"";
+			    << "Unable to create child generator for PSet= \""
+			    << pset.to_string() << "\"";
 		}
 	}
 
@@ -49,8 +49,8 @@ artdaq::CompositeDriver::~CompositeDriver() noexcept
 		catch (...)
 		{
 			TLOG(TLVL_ERROR)
-				<< "Unknown exception when destructing the generator at index "
-				<< (listSize + 1) ;
+			    << "Unknown exception when destructing the generator at index "
+			    << (listSize + 1);
 		}
 	}
 }
@@ -114,7 +114,7 @@ std::vector<artdaq::Fragment::fragment_id_t> artdaq::CompositeDriver::fragmentID
 	for (size_t idx = 0; idx < generator_list_.size(); ++idx)
 	{
 		std::vector<artdaq::Fragment::fragment_id_t> tempList =
-			generator_list_[idx]->fragmentIDs();
+		    generator_list_[idx]->fragmentIDs();
 		workList.insert(workList.end(), tempList.begin(), tempList.end());
 	}
 	return workList;
@@ -141,24 +141,24 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
 			// we throw an exception so that the process will move to the
 			// InRunError state. We do our best to try to reproduce the original
 			// exception message.
-			if (! status && generator_list_[idx]->exception())
+			if (!status && generator_list_[idx]->exception())
 			{
 				std::string reportString =
-					generator_list_[idx]->ReportCmd("latest_exception");
+				    generator_list_[idx]->ReportCmd("latest_exception");
 				if (std::string::npos !=
-					boost::algorithm::to_lower_copy(reportString).find("exception"))
+				    boost::algorithm::to_lower_copy(reportString).find("exception"))
 				{
 					throw cet::exception("CompositeDriver_generator")
-						  << "The FragmentGenerator for "
-						  << generator_list_[idx]->metricsReportingInstanceName()
-						  << " threw an exception: " << reportString;
+					    << "The FragmentGenerator for "
+					    << generator_list_[idx]->metricsReportingInstanceName()
+					    << " threw an exception: " << reportString;
 				}
 				else
 				{
 					throw cet::exception("CompositeDriver_generator")
-						  << "The FragmentGenerator for "
-						  << generator_list_[idx]->metricsReportingInstanceName()
-						  << " threw an exception.";
+					    << "The FragmentGenerator for "
+					    << generator_list_[idx]->metricsReportingInstanceName()
+					    << " threw an exception.";
 				}
 			}
 			generator_active_list_[idx] = status;
@@ -173,15 +173,15 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	// pull out the relevant parts of the ParameterSet, if needed
 	fhicl::ParameterSet daq_pset = pset.get<fhicl::ParameterSet>("daq", pset);
 	fhicl::ParameterSet fr_pset = daq_pset.get<fhicl::ParameterSet>("fragment_receiver", daq_pset);
-	
+
 	// create the requested FragmentGenerator
 	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)
 	{
 		TLOG(TLVL_ERROR)
-			<< "No fragment generator (parameter name = \"generator\") was "
-			<< "specified in the fragment_receiver ParameterSet.  The "
-			<< "DAQ initialization PSet was \"" << daq_pset.to_string() << "\"." ;
+		    << "No fragment generator (parameter name = \"generator\") was "
+		    << "specified in the fragment_receiver ParameterSet.  The "
+		    << "DAQ initialization PSet was \"" << daq_pset.to_string() << "\".";
 		return false;
 	}
 
@@ -193,25 +193,25 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	catch (art::Exception& excpt)
 	{
 		TLOG(TLVL_ERROR)
-			<< "Exception creating a FragmentGenerator of type \""
-			<< frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-			<< "\", exception = " << excpt ;
+		    << "Exception creating a FragmentGenerator of type \""
+		    << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
+		    << "\", exception = " << excpt;
 		return false;
 	}
 	catch (cet::exception& excpt)
 	{
 		TLOG(TLVL_ERROR)
-			<< "Exception creating a FragmentGenerator of type \""
-			<< frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-			<< "\", exception = " << excpt ;
+		    << "Exception creating a FragmentGenerator of type \""
+		    << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
+		    << "\", exception = " << excpt;
 		return false;
 	}
 	catch (...)
 	{
 		TLOG(TLVL_ERROR)
-			<< "Unknown exception creating a FragmentGenerator of type \""
-			<< frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
-			<< "\"." ;
+		    << "Unknown exception creating a FragmentGenerator of type \""
+		    << frag_gen_name << "\" with parameter set \"" << fr_pset.to_string()
+		    << "\".";
 		return false;
 	}
 
@@ -220,20 +220,21 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	try
 	{
 		CommandableFragmentGenerator* tmp_cmdablegen_bareptr =
-			dynamic_cast<CommandableFragmentGenerator*>(tmp_gen_ptr.get());
+		    dynamic_cast<CommandableFragmentGenerator*>(tmp_gen_ptr.get());
 		if (tmp_cmdablegen_bareptr)
 		{
 			tmp_gen_ptr.release();
 			generator_ptr.reset(tmp_cmdablegen_bareptr);
 		}
 	}
-	catch (...) {}
-	if (! generator_ptr)
+	catch (...)
+	{}
+	if (!generator_ptr)
 	{
 		TLOG(TLVL_ERROR)
-			<< "Error: The requested fragment generator type (" << frag_gen_name
-			<< ") is not a CommandableFragmentGenerator, and only "
-			<< "CommandableFragmentGenerators are currently supported." ;
+		    << "Error: The requested fragment generator type (" << frag_gen_name
+		    << ") is not a CommandableFragmentGenerator, and only "
+		    << "CommandableFragmentGenerators are currently supported.";
 		return false;
 	}
 

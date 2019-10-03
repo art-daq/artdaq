@@ -1,13 +1,13 @@
-#define TRACE_NAME (app_name + "_RoutingDestinationHelper").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_RoutingDestinationHelper").c_str()
 #include "artdaq/RoutingPolicies/RoutingDestinationHelper.hh"
 
 int artdaq::RoutingDestinationHelper::INVALID_DESTINATION = -1;
 
 artdaq::RoutingDestinationHelper::RoutingDestinationHelper(std::shared_ptr<RoutingMasterPolicy> policy)
-	: policy_(policy)
-	, working_table_(0)
-	, max_destination_count_(0)
+    : policy_(policy)
+    , working_table_(0)
+    , max_destination_count_(0)
 {
 	if (policy_.get() == nullptr)
 	{
@@ -69,6 +69,6 @@ void artdaq::RoutingDestinationHelper::fetchAdditionalRoutingPackets()
 		TLOG(TLVL_WARNING) << "NULL RoutingMasterPolicy; skipping the fetch of the current routing table.!";
 	}
 
-	if (working_table_.size() > max_destination_count_) {max_destination_count_ = working_table_.size();}
+	if (working_table_.size() > max_destination_count_) { max_destination_count_ = working_table_.size(); }
 	TLOG(10) << "Updated our working table, the new table has " << working_table_.size() << " entries.";
 }

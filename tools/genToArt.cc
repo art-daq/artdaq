@@ -11,17 +11,17 @@
 
 #define TRACE_NAME "genToArt"
 
-#include "artdaq-core/Data/detail/RawFragmentHeader.hh"
-#include "artdaq-core/Data/Fragment.hh"
 #include "art/Framework/Art/artapp.h"
-#include "canvas/Utilities/Exception.h"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
-#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
-#include "artdaq/Generators/CommandableFragmentGenerator.hh"
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Data/detail/RawFragmentHeader.hh"
+#include "artdaq-core/Generators/FragmentGenerator.hh"
+#include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
+#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "canvas/Utilities/Exception.h"
 #include "cetlib/container_algorithms.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -37,175 +37,170 @@
 
 namespace bpo = boost::program_options;
 
-namespace
-{
-	/**
+namespace {
+/**
 	 * \brief Process the command line
 	 * \param argc Number of arguments
 	 * \param argv Array of arguments as strings
 	 * \param[out] vm Output boost::program_options::variables_map
 	 * \return 0 if success, -1 if excpetion, 1 if help was requested, and 2 if missing required arguments
 	 */
-	int process_cmd_line(int argc, char** argv,
-						 bpo::variables_map& vm)
+int process_cmd_line(int argc, char** argv,
+                     bpo::variables_map& vm)
+{
+	std::ostringstream descstr;
+	descstr << argv[0]
+	        << " <-c <config-file>> <other-options> [<source-file>]+";
+	bpo::options_description desc(descstr.str());
+	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration file.")("help,h", "produce help message");
+	try
 	{
-		std::ostringstream descstr;
-		descstr << argv[0]
-			<< " <-c <config-file>> <other-options> [<source-file>]+";
-		bpo::options_description desc(descstr.str());
-		desc.add_options()
-			("config,c", bpo::value<std::string>(), "Configuration file.")
-			("help,h", "produce help message");
-		try
-		{
-			bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
-			bpo::notify(vm);
-		}
-		catch (bpo::error const& e)
-		{
-			TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
-				<< ": " << e.what();
-			return -1;
-		}
-		if (vm.count("help"))
-		{
-			std::cout << desc << std::endl;
-			return 1;
-		}
-		if (!vm.count("config"))
-		{
-			TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
-				<< ": no configuration file given.\n"
-				<< "For usage and an options list, please do '"
-				<< argv[0] << " --help"
-				<< "'.";
-			return 2;
-		}
-		return 0;
+		bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
+		bpo::notify(vm);
 	}
+	catch (bpo::error const& e)
+	{
+		TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
+		                 << ": " << e.what();
+		return -1;
+	}
+	if (vm.count("help"))
+	{
+		std::cout << desc << std::endl;
+		return 1;
+	}
+	if (!vm.count("config"))
+	{
+		TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
+		                 << ": no configuration file given.\n"
+		                 << "For usage and an options list, please do '"
+		                 << argv[0] << " --help"
+		                 << "'.";
+		return 2;
+	}
+	return 0;
+}
 
-	/**
+/**
 	 * \brief ThrottledGenerator: ensure that we only get one fragment per type
 	 * at a time from the generator.
 	 */
-	class ThrottledGenerator
-	{
-	public:
-		/**
+class ThrottledGenerator
+{
+public:
+	/**
 		 * \brief ThrottledGenerator Constructor
 		 * \param generator Name of the generator plugin to load
 		 * \param ps ParameterSet for configuring the FragmentGenerator
 		 */
-		ThrottledGenerator(std::string const& generator,
-						   fhicl::ParameterSet const& ps);
+	ThrottledGenerator(std::string const& generator,
+	                   fhicl::ParameterSet const& ps);
 
-		/**
+	/**
 		 * \brief Get the next fragment from the generator
 		 * \param[out] newFrags New Fragment objects are added to this list
 		 * \return Whether there is more data forthcoming
 		 */
-		bool getNext(artdaq::PostmarkedFragmentPtrs& newFrags);
+	bool getNext(artdaq::PostmarkedFragmentPtrs& newFrags);
 
-		/**
+	/**
 		 * \brief Get the number of Fragment IDs handled by this generator
 		 * \return
 		 */
-		size_t numFragIDs() const;
+	size_t numFragIDs() const;
 
-		/**
+	/**
 		 * \brief Send start signal to FragmentGenerator, if it's a CommandableFragmentGenerator
 		 * \param run Run number  to pass to StartCmd
 		 * \param timeout Timeout to pass to StartCmd
 		 * \param timestamp Timestamp to pass to StartCmd
 		 */
-		void start(int run, uint64_t timeout, uint64_t timestamp) const
-		{
-			auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
-			if (gen_ptr != nullptr) gen_ptr->StartCmd(run, timeout, timestamp);
-		}
-		/**
+	void start(int run, uint64_t timeout, uint64_t timestamp) const
+	{
+		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
+		if (gen_ptr != nullptr) gen_ptr->StartCmd(run, timeout, timestamp);
+	}
+	/**
 		 * \brief Send stop signal to FragmentGenerator, if it's a CommandableFragmentGenerator
 		 * \param timeout Timeout to pass to StopCmd
 		 * \param timestamp Timestamp to pass to StopCmd
 		 */
-		void stop(uint64_t timeout, uint64_t timestamp) const
+	void stop(uint64_t timeout, uint64_t timestamp) const
+	{
+		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
+		if (gen_ptr != nullptr) gen_ptr->StopCmd(timeout, timestamp);
+	}
+
+private:
+	bool generateFragments_();
+
+	std::unique_ptr<artdaq::FragmentGenerator> generator_;
+	size_t const numFragIDs_;
+	std::map<artdaq::Fragment::fragment_id_t,
+	         std::deque<artdaq::PostmarkedFragmentPtr>>
+	    frags_;
+};
+
+ThrottledGenerator::
+    ThrottledGenerator(std::string const& generator,
+                       fhicl::ParameterSet const& ps)
+    : generator_(artdaq::makeFragmentGenerator(generator, ps))
+    , numFragIDs_(generator_->fragmentIDs().size())
+    , frags_()
+{
+	assert(generator_);
+}
+
+bool ThrottledGenerator::
+    getNext(artdaq::PostmarkedFragmentPtrs& newFrags)
+{
+	if (frags_.size() && frags_.begin()->second.size())
+	{  // Something stored.
+		for (auto& fQp : frags_)
 		{
-			auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
-			if (gen_ptr != nullptr) gen_ptr->StopCmd(timeout, timestamp);
+			assert(fQp.second.size());
+			newFrags.emplace_back(std::move(fQp.second.front()));
+			fQp.second.pop_front();
 		}
-
-	private:
-		bool generateFragments_();
-
-		std::unique_ptr<artdaq::FragmentGenerator> generator_;
-		size_t const numFragIDs_;
-		std::map<artdaq::Fragment::fragment_id_t,
-			std::deque<artdaq::PostmarkedFragmentPtr>> frags_;
-	};
-
-	ThrottledGenerator::
-		ThrottledGenerator(std::string const& generator,
-						   fhicl::ParameterSet const& ps)
-		:
-		generator_(artdaq::makeFragmentGenerator(generator, ps))
-		, numFragIDs_(generator_->fragmentIDs().size())
-		, frags_()
-	{
-		assert(generator_);
 	}
-
-	bool
-		ThrottledGenerator::
-		getNext(artdaq::PostmarkedFragmentPtrs& newFrags)
-	{
-		if (frags_.size() && frags_.begin()->second.size())
-		{ // Something stored.
-			for (auto& fQp : frags_)
-			{
-				assert(fQp.second.size());
-				newFrags.emplace_back(std::move(fQp.second.front()));
-				fQp.second.pop_front();
-			}
-		}
-		else
-		{ // Need fresh fragments.
-			return generateFragments_() && getNext(newFrags);
-		}
-		return true;
+	else
+	{  // Need fresh fragments.
+		return generateFragments_() && getNext(newFrags);
 	}
+	return true;
+}
 
-	bool
-		ThrottledGenerator::
-		generateFragments_()
+bool ThrottledGenerator::
+    generateFragments_()
+{
+	artdaq::PostmarkedFragmentPtrs incomingFrags;
+	bool result{false};
+	while ((result = generator_->getNext(incomingFrags)) &&
+	       incomingFrags.empty())
 	{
-		artdaq::PostmarkedFragmentPtrs incomingFrags;
-		bool result{ false };
-		while ((result = generator_->getNext(incomingFrags)) &&
-			   incomingFrags.empty())
-		{
-		}
-		for (auto&& frag : incomingFrags)
-		{
-			frags_[frag.first->fragmentID()].emplace_back(std::move(frag));
-		}
-		return result;
 	}
-
-	size_t
-		ThrottledGenerator::
-		numFragIDs() const
+	for (auto&& frag : incomingFrags)
 	{
-		return numFragIDs_;
+		frags_[frag.first->fragmentID()].emplace_back(std::move(frag));
 	}
+	return result;
+}
 
-	//  artdaq::FragmentGenerator &
-	//  ThrottledGenerator::
-	//  generator() const
-	//  {
-	//    return *generator_;
-	//  }
+size_t
+ThrottledGenerator::
+    numFragIDs() const
+{
+	return numFragIDs_;
+}
 
-	/**
+//  artdaq::FragmentGenerator &
+//  ThrottledGenerator::
+//  generator() const
+//  {
+//    return *generator_;
+//  }
+
+/**
 	 * \brief Run the test, instantiating configured generators and an EventStore
 	 * \param pset ParameterSet used to configure genToArt
 	 * \return Art return code, of 15 if EventStore::endOfData fails
@@ -222,111 +217,110 @@ namespace
 	 *
 	 * \endverbatim
 	 */
-	int process_data(fhicl::ParameterSet const& pset)
+int process_data(fhicl::ParameterSet const& pset)
+{
+	auto const gta_pset = pset.get<fhicl::ParameterSet>("genToArt");
+
+	// Make the generators based on the configuration.
+	std::vector<ThrottledGenerator> generators;
+
+	auto const fr_pset = gta_pset.get<std::vector<fhicl::ParameterSet>>("fragment_receivers");
+	for (auto const& gen_ps : fr_pset)
 	{
-		auto const gta_pset = pset.get<fhicl::ParameterSet>("genToArt");
+		generators.emplace_back(gen_ps.get<std::string>("generator"),
+		                        gen_ps);
+	}
 
-		// Make the generators based on the configuration.
-		std::vector<ThrottledGenerator> generators;
+	artdaq::PostmarkedFragmentPtrs frags;
+	auto eb_pset = gta_pset.get<fhicl::ParameterSet>("event_builder", {});
+	size_t expected_frags_per_event = 0;
+	for (auto& gen : generators)
+	{
+		gen.start(1000, 0, 0);
+		expected_frags_per_event += gen.numFragIDs();
+	}
+	eb_pset.put_or_replace<size_t>("expected_fragments_per_event", expected_frags_per_event);
 
-		auto const fr_pset = gta_pset.get<std::vector<fhicl::ParameterSet>>("fragment_receivers");
-		for (auto const& gen_ps : fr_pset)
-		{
-			generators.emplace_back(gen_ps.get<std::string>("generator"),
-									gen_ps);
-		}
+	artdaq::SharedMemoryEventManager store(eb_pset, pset);
+	store.startRun(gta_pset.get<int>("run_number", 1000));
 
-		artdaq::PostmarkedFragmentPtrs frags;
-		auto eb_pset = gta_pset.get<fhicl::ParameterSet>("event_builder", {});
-		size_t expected_frags_per_event = 0;
+	auto const events_to_generate =
+	    gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", 0xFFFFFFFFFFFFFFFF);
+	auto const reset_sequenceID = pset.get<bool>("reset_sequenceID", true);
+	bool done = false;
+	for (artdaq::Fragment::sequence_id_t event_count = 1;
+	     (events_to_generate == 0xFFFFFFFFFFFFFFFF || event_count <= events_to_generate) && (!done);
+	     ++event_count)
+	{
 		for (auto& gen : generators)
 		{
-			gen.start(1000, 0, 0);
-			expected_frags_per_event += gen.numFragIDs();
+			done |= !gen.getNext(frags);
 		}
-		eb_pset.put_or_replace<size_t>("expected_fragments_per_event", expected_frags_per_event);
-
-		artdaq::SharedMemoryEventManager store(eb_pset, pset);
-		store.startRun(gta_pset.get<int>("run_number", 1000));
-
-		auto const events_to_generate =
-	        gta_pset.get<artdaq::Fragment::sequence_id_t>("events_to_generate", 0xFFFFFFFFFFFFFFFF);
-		auto const reset_sequenceID = pset.get<bool>("reset_sequenceID", true);
-		bool done = false;
-		for (artdaq::Fragment::sequence_id_t event_count = 1;
-			(events_to_generate == 0xFFFFFFFFFFFFFFFF
-			 || event_count <= events_to_generate) && (!done);
-			 ++event_count)
+		TLOG(TLVL_TRACE) << "There are " << frags.size() << " Fragments in event " << event_count << ".";
+		artdaq::Fragment::sequence_id_t current_sequence_id = -1;
+		for (auto& val : frags)
 		{
-			for (auto& gen : generators)
+			if (reset_sequenceID)
 			{
-				done |= !gen.getNext(frags);
+				TLOG(TLVL_DEBUG) << "Setting fragment sequence id to " << event_count;
+				val.first->setSequenceID(event_count);
 			}
-			TLOG(TLVL_TRACE) << "There are " << frags.size() << " Fragments in event " << event_count << ".";
-			artdaq::Fragment::sequence_id_t current_sequence_id = -1;
-			for (auto& val : frags)
+			if (current_sequence_id ==
+			    static_cast<artdaq::Fragment::sequence_id_t>(-1))
 			{
-				if (reset_sequenceID)
+				current_sequence_id = val.first->sequenceID();
+			}
+			else if (val.first->sequenceID() != current_sequence_id)
+			{
+				throw art::Exception(art::errors::DataCorruption)
+				    << "Data corruption: apparently related fragments have "
+				    << " different sequence IDs: "
+				    << val.first->sequenceID()
+				    << " and "
+				    << current_sequence_id
+				    << ".\n";
+			}
+
+			auto start_time = std::chrono::steady_clock::now();
+			bool sts = false;
+			auto loop_count = 0;
+			while (!sts)
+			{
+				artdaq::FragmentPtr tempFrag;
+				sts = store.AddFragment(std::move(val.first), 1000000, tempFrag);
+				if (!sts && event_count <= 10 && loop_count > 100)
 				{
-					TLOG(TLVL_DEBUG) << "Setting fragment sequence id to " << event_count;
-					val.first->setSequenceID(event_count);
+					TLOG(TLVL_ERROR) << "Fragment was not added after " << artdaq::TimeUtils::GetElapsedTime(start_time) << " s. Check art thread status!";
+					store.endOfData();
+					exit(1);
 				}
-				if (current_sequence_id ==
-					static_cast<artdaq::Fragment::sequence_id_t>(-1))
+				if (!sts)
 				{
-					current_sequence_id = val.first->sequenceID();
-				}
-				else if (val.first->sequenceID() != current_sequence_id)
-				{
-					throw art::Exception(art::errors::DataCorruption)
-						<< "Data corruption: apparently related fragments have "
-						<< " different sequence IDs: "
-						<< val.first->sequenceID()
-						<< " and "
-						<< current_sequence_id
-						<< ".\n";
-				}
-				
-				auto start_time = std::chrono::steady_clock::now();
-				bool sts = false;
-				auto loop_count = 0;
-				while (!sts)
-				{
-					artdaq::FragmentPtr tempFrag;
-					sts = store.AddFragment(std::move(val.first), 1000000, tempFrag);
-					if (!sts && event_count <= 10 && loop_count > 100)
-					{
-						TLOG(TLVL_ERROR) << "Fragment was not added after " << artdaq::TimeUtils::GetElapsedTime(start_time) << " s. Check art thread status!";
-						store.endOfData();
-						exit(1);
-					}
-					if (!sts)
-					{
-						val.first = std::move(tempFrag);
-						loop_count++;
-						usleep(10000);
-					}
+					val.first = std::move(tempFrag);
+					loop_count++;
+					usleep(10000);
 				}
 			}
-			frags.clear();
-			TLOG(TLVL_TRACE) << "Event " << event_count << " END";
 		}
-		for (auto& gen : generators)
-		{
-			gen.stop(0, 0);
-		}
+		frags.clear();
+		TLOG(TLVL_TRACE) << "Event " << event_count << " END";
+	}
+	for (auto& gen : generators)
+	{
+		gen.stop(0, 0);
+	}
 
-		bool endSucceeded = store.endOfData();
-		if (endSucceeded)
-		{
-			return 0;
-		}
-		else
-		{
-			return 15;
-		}
+	bool endSucceeded = store.endOfData();
+	if (endSucceeded)
+	{
+		return 0;
+	}
+	else
+	{
+		return 15;
 	}
 }
+}  // namespace
 
 int main(int argc, char* argv[]) try
 {
@@ -343,7 +337,7 @@ int main(int argc, char* argv[]) try
 	if (getenv("FHICL_FILE_PATH") == nullptr)
 	{
 		TLOG(TLVL_ERROR)
-			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+		    << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 	artdaq::SimpleLookupPolicy lookup_policy("FHICL_FILE_PATH");
