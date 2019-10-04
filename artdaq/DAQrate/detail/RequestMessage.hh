@@ -518,7 +518,7 @@ public:
 				// If it is, we output an error message, stop processing the packet buffer, and drop the partial packet.
 				if (ptr >= end)
 				{
-					if (ii < (header_.packet_count-1) || ptr > end)
+					if (ii < (header_.packet_count - 1) || ptr > end)
 					{
 						TLOG(TLVL_ERROR) << "The request packet pointer ran off the end of the packet buffer when trying to parse a RequestMessage; ptr = 0x" << std::hex << ptr << ", end = 0x" << end << ", start of packet buffer = 0x" << packet << std::dec << ", packet_count = " << header_.packet_count;
 						packets_.pop_back();

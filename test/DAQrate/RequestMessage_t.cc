@@ -30,18 +30,18 @@ BOOST_AUTO_TEST_CASE(Construct)
 	BOOST_REQUIRE_EQUAL(message_copy1.isValid(), true);
 	BOOST_REQUIRE_EQUAL(message_copy1.size(), 3);
 
-	artdaq::detail::RequestMessage message_copy2(&buf[0], sizeof(artdaq::detail::RequestHeader)-1);
+	artdaq::detail::RequestMessage message_copy2(&buf[0], sizeof(artdaq::detail::RequestHeader) - 1);
 	BOOST_REQUIRE_EQUAL(message_copy2.isValid(), false);
 
-	artdaq::detail::RequestMessage message_copy3(&buf[0], serialized_message_size-1);
+	artdaq::detail::RequestMessage message_copy3(&buf[0], serialized_message_size - 1);
 	BOOST_REQUIRE_EQUAL(message_copy3.isValid(), true);
 	BOOST_REQUIRE_EQUAL(message_copy3.size(), 2);
 
-	artdaq::detail::RequestMessage message_copy4(&buf[0], sizeof(artdaq::detail::RequestHeader)+1);
+	artdaq::detail::RequestMessage message_copy4(&buf[0], sizeof(artdaq::detail::RequestHeader) + 1);
 	BOOST_REQUIRE_EQUAL(message_copy4.isValid(), true);
 	BOOST_REQUIRE_EQUAL(message_copy4.size(), 0);
 
-	for (size_t idx=sizeof(artdaq::detail::RequestHeader); idx<serialized_message_size; ++idx)
+	for (size_t idx = sizeof(artdaq::detail::RequestHeader); idx < serialized_message_size; ++idx)
 	{
 		buf[idx] = 0;
 	}

@@ -1,7 +1,6 @@
 #include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #define TRACE_NAME (app_name + "_RequestSender").c_str()
 
-
 #include <dlfcn.h>
 #include <chrono>
 #include <cstring>
