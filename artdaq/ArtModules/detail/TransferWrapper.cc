@@ -50,7 +50,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
-	
+
 	try
 	{
 		if (metricMan)

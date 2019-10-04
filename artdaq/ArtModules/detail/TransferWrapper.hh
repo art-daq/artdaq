@@ -11,13 +11,13 @@
 #include <TBufferFile.h>
 
 namespace fhicl {
-	class ParameterSet;
+class ParameterSet;
 }
 
 namespace artdaq {
-	class Fragment;
+class Fragment;
 
-	/**
+/**
 	 * \brief TransferWrapper wraps a TransferInterface so that it can be used in the ArtdaqInput class
 	 * to make an art::Source
 	 * 
@@ -28,10 +28,10 @@ namespace artdaq {
 	 * so. Its functionality is such that it satisfies the requirements
 	 * needed to be a template in the ArtdaqInput class
 	 */
-	class TransferWrapper
-	{
-	public:
-		/**
+class TransferWrapper
+{
+public:
+	/**
 		 * \brief TransferWrapper Constructor
 		 * \param pset ParameterSet used to configure the TransferWrapper
 		 * 
@@ -53,49 +53,49 @@ namespace artdaq {
 		 * should be included here.
 		 * \endverbatim
 		 */
-		explicit TransferWrapper(const fhicl::ParameterSet& pset);
+	explicit TransferWrapper(const fhicl::ParameterSet& pset);
 
-		/**
+	/**
 		 * \brief TransferWrapper Destructor
 		 */
-		virtual ~TransferWrapper();
+	virtual ~TransferWrapper();
 
-		/**
+	/**
 		 * \brief Receive a Fragment from the TransferInterface, and send it to art
 		 * \param[out] msg The message in art format
 		 */
-		void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+	void receiveMessage(std::unique_ptr<TBufferFile>& msg);
 
-		/**
+	/**
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
 		 * \param[out] msg The message in art format
 		 */
-		void receiveInitMessage(std::unique_ptr<TBufferFile>& msg) { receiveMessage(msg); }
+	void receiveInitMessage(std::unique_ptr<TBufferFile>& msg) { receiveMessage(msg); }
 
-	private:
-		void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>&);
+private:
+	void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>&);
 
-		void checkIntegrity(const artdaq::Fragment&) const;
+	void checkIntegrity(const artdaq::Fragment&) const;
 
-		void registerMonitor();
-		void unregisterMonitor();
-	    std::string getDispatcherStatus();
+	void registerMonitor();
+	void unregisterMonitor();
+	std::string getDispatcherStatus();
 
-		std::size_t timeoutInUsecs_;
-		std::unique_ptr<TransferInterface> transfer_;
-		std::unique_ptr<CommanderInterface> commander_;
-	    const fhicl::ParameterSet pset_;
-		const std::string dispatcherHost_;
-		const std::string dispatcherPort_;
-		const std::string serverUrl_;
-		const std::size_t maxEventsBeforeInit_;
-		const std::vector<int> allowedFragmentTypes_;
-	    const double runningStateTimeout_;
-	    size_t runningStateInterval_us_;
-		const bool quitOnFragmentIntegrityProblem_;
-	    const bool multi_run_mode_;
-		bool monitorRegistered_;
-	};
+	std::size_t timeoutInUsecs_;
+	std::unique_ptr<TransferInterface> transfer_;
+	std::unique_ptr<CommanderInterface> commander_;
+	const fhicl::ParameterSet pset_;
+	const std::string dispatcherHost_;
+	const std::string dispatcherPort_;
+	const std::string serverUrl_;
+	const std::size_t maxEventsBeforeInit_;
+	const std::vector<int> allowedFragmentTypes_;
+	const double runningStateTimeout_;
+	size_t runningStateInterval_us_;
+	const bool quitOnFragmentIntegrityProblem_;
+	const bool multi_run_mode_;
+	bool monitorRegistered_;
+};
 }  // namespace artdaq
 
 #endif /* artdaq_ArtModules_TransferWrapper_hh */
