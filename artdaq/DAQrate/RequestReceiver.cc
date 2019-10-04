@@ -113,9 +113,12 @@ void artdaq::RequestReceiver::setupRequestListener()
 		sts = GetInterfaceForNetwork(multicast_in_addr_.c_str(), mreq.imr_interface);
 		if (sts == -1)
 		{
-			TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_in_addr_;
+			TLOG(TLVL_ERROR) << "Unable to determine the multicast network interface for " << multicast_in_addr_;
 			exit(1);
 		}
+		char addr_str[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(mreq.imr_interface), addr_str, INET_ADDRSTRLEN);
+		TLOG(TLVL_INFO) << "Successfully determined the multicast network interface for " << multicast_in_addr_ << ": " << addr_str << " (RequestReceiver)";
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 		{
 			TLOG(TLVL_ERROR) << "Unable to join multicast group, err=" << strerror(errno);
