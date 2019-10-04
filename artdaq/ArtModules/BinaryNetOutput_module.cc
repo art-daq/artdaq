@@ -25,7 +25,7 @@
 #include <vector>
 
 namespace art {
-	class BinaryNetOutput;
+class BinaryNetOutput;
 }
 
 using art::BinaryNetOutput;
@@ -36,7 +36,8 @@ using fhicl::ParameterSet;
  * This module produces output identical to that of a BoardReader, for use in
  * systems which have multiple layers of EventBuilders.
  */
-class art::BinaryNetOutput final : public OutputModule {
+class art::BinaryNetOutput final : public OutputModule
+{
 public:
 	/**
 	 * \brief BinaryNetOutput Constructor
@@ -64,8 +65,8 @@ private:
 
 	void write(EventPrincipal&) override;
 
-	void writeRun(RunPrincipal&) override {};
-	void writeSubRun(SubRunPrincipal&) override {};
+	void writeRun(RunPrincipal&) override{};
+	void writeSubRun(SubRunPrincipal&) override{};
 
 	void initialize_MPI_();
 
@@ -80,7 +81,9 @@ private:
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_ = {nullptr};
 };
 
-art::BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps) : OutputModule(ps) {
+art::BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)
+    : OutputModule(ps)
+{
 	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
 	readParameterSet_(ps);
 	TLOG(TLVL_DEBUG) << "End: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
@@ -88,28 +91,33 @@ art::BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps) : OutputModule(ps)
 
 art::BinaryNetOutput::~BinaryNetOutput() { TLOG(TLVL_DEBUG) << "Begin/End: BinaryNetOutput::~BinaryNetOutput()\n"; }
 
-void art::BinaryNetOutput::beginJob() {
+void art::BinaryNetOutput::beginJob()
+{
 	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::beginJob()\n";
 	initialize_MPI_();
 	TLOG(TLVL_DEBUG) << "End:   BinaryNetOutput::beginJob()\n";
 }
 
-void art::BinaryNetOutput::endJob() {
+void art::BinaryNetOutput::endJob()
+{
 	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::endJob()\n";
 	deinitialize_MPI_();
 	TLOG(TLVL_DEBUG) << "End:   BinaryNetOutput::endJob()\n";
 }
 
-void art::BinaryNetOutput::initialize_MPI_() {
-  if (rt_priority_ > 0) {
+void art::BinaryNetOutput::initialize_MPI_()
+{
+	if (rt_priority_ > 0)
+	{
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
-    if (status != 0) {
-      TLOG(TLVL_ERROR) << name_ << "Failed to set realtime priority to " << rt_priority_
-				<< ", return code = " << status;
+		if (status != 0)
+		{
+			TLOG(TLVL_ERROR) << name_ << "Failed to set realtime priority to " << rt_priority_
+			                 << ", return code = " << status;
 		}
 #pragma GCC diagnostic pop
 	}
@@ -120,9 +128,10 @@ void art::BinaryNetOutput::initialize_MPI_() {
 
 void art::BinaryNetOutput::deinitialize_MPI_() { sender_ptr_.reset(nullptr); }
 
-bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
+bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset)
+{
 	TLOG(TLVL_DEBUG) << name_ << "BinaryNetOutput::readParameterSet_ method called with "
-                   << "ParameterSet = \"" << pset.to_string() << "\".";
+	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// determine the data sending parameters
 	data_pset_ = pset;
@@ -134,11 +143,12 @@ bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset) {
 	return true;
 }
 
-void art::BinaryNetOutput::write(EventPrincipal& ep) {
+void art::BinaryNetOutput::write(EventPrincipal& ep)
+{
 	assert(sender_ptr_);
 
-  using RawEvent = artdaq::Fragments;
-  ;
+	using RawEvent = artdaq::Fragments;
+	;
 	using RawEvents = std::vector<RawEvent>;
 	using RawEventHandle = art::Handle<RawEvent>;
 	using RawEventHandles = std::vector<RawEventHandle>;
@@ -147,20 +157,22 @@ void art::BinaryNetOutput::write(EventPrincipal& ep) {
 
 	auto const& wrapped = art::WrappedTypeID::make<RawEvent>();
 #if ART_HEX_VERSION >= 0x30000
-  ModuleContext const mc{moduleDescription()};
-  ProcessTag const processTag{"", mc.moduleDescription().processName()};
+	ModuleContext const mc{moduleDescription()};
+	ProcessTag const processTag{"", mc.moduleDescription().processName()};
 
-  result_handles = ep.getMany(mc, wrapped, art::MatchAllSelector{}, processTag);
+	result_handles = ep.getMany(mc, wrapped, art::MatchAllSelector{}, processTag);
 #else
 	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
 #endif
 
-  for (auto const& result_handle : result_handles) {
+	for (auto const& result_handle : result_handles)
+	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
 
-    if (!raw_event_handle.isValid()) continue;
+		if (!raw_event_handle.isValid()) continue;
 
-    for (auto const& fragment : *raw_event_handle) {
+		for (auto const& fragment : *raw_event_handle)
+		{
 			auto fragment_copy = fragment;
 			auto fragid_id = fragment_copy.fragmentID();
 			auto sequence_id = fragment_copy.sequenceID();

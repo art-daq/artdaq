@@ -50,7 +50,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     , monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
-
+	
 	try
 	{
 		if (metricMan)
@@ -81,6 +81,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
 	{
 		new_pset.put<std::string>("server_url", serverUrl_);
 	}
+
 	artdaq::Commandable c;
 	commander_ = MakeCommanderPlugin(new_pset, c);
 }
