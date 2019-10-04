@@ -11,17 +11,17 @@
 
 #define TRACE_NAME "genToArt"
 
-#include "artdaq-core/Data/detail/RawFragmentHeader.hh"
-#include "artdaq-core/Data/Fragment.hh"
 #include "art/Framework/Art/artapp.h"
-#include "canvas/Utilities/Exception.h"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
-#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
-#include "artdaq/Generators/CommandableFragmentGenerator.hh"
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Data/detail/RawFragmentHeader.hh"
+#include "artdaq-core/Generators/FragmentGenerator.hh"
+#include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
+#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "canvas/Utilities/Exception.h"
 #include "cetlib/container_algorithms.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -37,8 +37,7 @@
 
 namespace bpo = boost::program_options;
 
-namespace
-{
+namespace {
 	/**
 	 * \brief Process the command line
 	 * \param argc Number of arguments
@@ -53,9 +52,7 @@ namespace
 		descstr << argv[0]
 			<< " <-c <config-file>> <other-options> [<source-file>]+";
 		bpo::options_description desc(descstr.str());
-		desc.add_options()
-			("config,c", bpo::value<std::string>(), "Configuration file.")
-			("help,h", "produce help message");
+	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration file.")("help,h", "produce help message");
 		try
 		{
 			bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
@@ -146,8 +143,7 @@ namespace
 	ThrottledGenerator::
 		ThrottledGenerator(std::string const& generator,
 						   fhicl::ParameterSet const& ps)
-		:
-		generator_(artdaq::makeFragmentGenerator(generator, ps))
+    : generator_(artdaq::makeFragmentGenerator(generator, ps))
 		, numFragIDs_(generator_->fragmentIDs().size())
 		, frags_()
 	{
@@ -174,8 +170,7 @@ namespace
 		return true;
 	}
 
-	bool
-		ThrottledGenerator::
+bool ThrottledGenerator::
 		generateFragments_()
 	{
 		artdaq::PostmarkedFragmentPtrs incomingFrags;
@@ -254,8 +249,7 @@ namespace
 		auto const reset_sequenceID = pset.get<bool>("reset_sequenceID", true);
 		bool done = false;
 		for (artdaq::Fragment::sequence_id_t event_count = 1;
-			(events_to_generate == 0xFFFFFFFFFFFFFFFF
-			 || event_count <= events_to_generate) && (!done);
+	     (events_to_generate == 0xFFFFFFFFFFFFFFFF || event_count <= events_to_generate) && (!done);
 			 ++event_count)
 		{
 			for (auto& gen : generators)
@@ -326,7 +320,7 @@ namespace
 			return 15;
 		}
 	}
-}
+}  // namespace
 
 int main(int argc, char* argv[]) try
 {

@@ -2,16 +2,16 @@
 
 #include "artdaq/Generators/CompositeDriver.hh"
 
+#include <boost/algorithm/string.hpp>
 #include "artdaq/Generators/GeneratorMacros.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
-#include <boost/algorithm/string.hpp>
 
 using fhicl::ParameterSet;
 
-artdaq::CompositeDriver::CompositeDriver(ParameterSet const& ps):
-																CommandableFragmentGenerator(ps)
+artdaq::CompositeDriver::CompositeDriver(ParameterSet const& ps)
+    : CommandableFragmentGenerator(ps)
 {
 	std::vector<ParameterSet> psetList =
 		ps.get<std::vector<ParameterSet>>("generator_config_list");
@@ -227,7 +227,8 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 			generator_ptr.reset(tmp_cmdablegen_bareptr);
 		}
 	}
-	catch (...) {}
+	catch (...)
+	{}
 	if (! generator_ptr)
 	{
 		TLOG(TLVL_ERROR)

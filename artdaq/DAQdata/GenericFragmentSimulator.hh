@@ -1,15 +1,14 @@
 #ifndef artdaq_DAQdata_GenericFragmentSimulator_hh
 #define artdaq_DAQdata_GenericFragmentSimulator_hh
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/fwd.h"
 
 #include <random>
 
-namespace artdaq
-{
+namespace artdaq {
 	class GenericFragmentSimulator;
 }
 

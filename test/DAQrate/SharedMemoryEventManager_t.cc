@@ -1,19 +1,18 @@
 #define TRACE_NAME "SharedMemoryEventManager_t"
 
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
 #define BOOST_TEST_MODULE SharedMemoryEventManager_t
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
-
 BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
 BOOST_AUTO_TEST_CASE(Construct)
 {
-	TLOG(TLVL_INFO) << "Test Construct BEGIN" ;
+	TLOG(TLVL_INFO) << "Test Construct BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -24,12 +23,12 @@ BOOST_AUTO_TEST_CASE(Construct)
 	BOOST_REQUIRE_EQUAL(t.runID(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetSubrunForSequenceID(1), 1);
 	BOOST_REQUIRE_EQUAL(t.GetLockedBufferCount(), 0);
-	TLOG(TLVL_INFO) << "Test Construct END" ;
+	TLOG(TLVL_INFO) << "Test Construct END";
 }
 
 BOOST_AUTO_TEST_CASE(AddFragment)
 {
-	TLOG(TLVL_INFO) << "Test AddFragment BEGIN" ;
+	TLOG(TLVL_INFO) << "Test AddFragment BEGIN";
 
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
@@ -49,12 +48,12 @@ BOOST_AUTO_TEST_CASE(AddFragment)
 	BOOST_REQUIRE_EQUAL(sts, true);
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
-	TLOG(TLVL_INFO) << "Test AddFragment END" ;
+	TLOG(TLVL_INFO) << "Test AddFragment END";
 }
 
 BOOST_AUTO_TEST_CASE(DataFlow)
 {
-	TLOG(TLVL_INFO) << "Test DataFlow BEGIN" ;
+	TLOG(TLVL_INFO) << "Test DataFlow BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -94,7 +93,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
-	TLOG(TLVL_INFO) << "Test DataFlow END" ;
+	TLOG(TLVL_INFO) << "Test DataFlow END";
 }
 
 /*
@@ -468,7 +467,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 //SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
 BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 {
-	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active BEGIN" ;
+	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 20);
@@ -485,7 +484,6 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	{
-
 		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
@@ -519,7 +517,6 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		//BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
-
 	}
 	{
 		frag->setSequenceID(3);
@@ -589,7 +586,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 #endif
 	}
 
-	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active END" ;
+	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active END";
 }
 /*
 //SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
@@ -705,7 +702,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 
 BOOST_AUTO_TEST_CASE(RunNumbers)
 {
-	TLOG(TLVL_INFO) << "Test RunNumbers BEGIN" ;
+	TLOG(TLVL_INFO) << "Test RunNumbers BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -726,7 +723,6 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	BOOST_REQUIRE_EQUAL(t.runID(), 3);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 1);
 
-
 	artdaq::SharedMemoryEventReceiver r(t.GetKey(), t.GetBroadcastKey());
 	bool errflag = false;
 
@@ -736,7 +732,8 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	auto hdr = r.ReadHeader(errflag);
 	BOOST_REQUIRE_EQUAL(errflag, false);
 	BOOST_REQUIRE(hdr != nullptr);
-	if (hdr != nullptr) { // Make static analyzer happy
+	if (hdr != nullptr)
+	{  // Make static analyzer happy
 		BOOST_REQUIRE_EQUAL(hdr->is_complete, true);
 		BOOST_REQUIRE_EQUAL(hdr->run_id, 3);
 		BOOST_REQUIRE_EQUAL(hdr->subrun_id, 1);
@@ -746,7 +743,7 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	BOOST_REQUIRE_EQUAL(frags->size(), 1);
 	r.ReleaseBuffer();
 
-	TLOG(TLVL_INFO) << "Test RunNumbers END" ;
+	TLOG(TLVL_INFO) << "Test RunNumbers END";
 }
 
 BOOST_AUTO_TEST_SUITE_END()
