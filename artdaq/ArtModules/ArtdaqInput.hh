@@ -36,7 +36,8 @@
 
 #include <TBufferFile.h>
 #include <TClass.h>
-#include <TMessage.h>
+#include <TList.h>
+#include <TStreamerInfo.h>
 
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -209,6 +210,41 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	// This first unsigned long is the message type code, ignored here in the constructor
 	unsigned long dummy = 0;
 	msg->ReadULong(dummy);
+
+	// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
+	TList* list = (TList*)msg->ReadObject(TList::Class());
+
+	TIter next(list);
+	TStreamerInfo* info;
+	TObjLink* lnk = list->FirstLink();
+	// First call BuildCheck for regular class
+	while (lnk)
+	{
+		info = (TStreamerInfo*)lnk->GetObject();
+		TObject* element = info->GetElements()->UncheckedAt(0);
+		Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+		if (!isstl)
+		{
+			info->BuildCheck();
+			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+		}
+		lnk = lnk->Next();
+	}
+	// Then call BuildCheck for stl class
+	lnk = list->FirstLink();
+	while (lnk)
+	{
+		info = (TStreamerInfo*)lnk->GetObject();
+		TObject* element = info->GetElements()->UncheckedAt(0);
+		Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+		if (isstl)
+		{
+			info->BuildCheck();
+			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+		}
+		lnk = lnk->Next();
+	}
+	// ELF: 6/11/2019: End TSocket snippet
 
 	//
 	//  Read the ParameterSetRegistry.

@@ -1,5 +1,4 @@
 
-#include <TBufferFile.h>
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/OutputHandle.h"
@@ -53,7 +52,8 @@
 
 #include <TBufferFile.h>
 #include <TClass.h>
-#include <TMessage.h>
+#include <TList.h>
+#include <TStreamerInfo.h>
 
 #define TLVL_OPENFILE 5
 #define TLVL_CLOSEFILE 6
@@ -307,6 +307,24 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming message type code ...";
 	msg.WriteULong(1);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming message type code.";
+
+	//
+	// Stream Class info
+	//
+	// ELF: 6/11/2019: This is being done so that if the receiver is a newer version of art/ROOT, it can still understand our version.
+	TList infos;
+	std::vector<std::string> classNames{"std::map<art::BranchKey,art::BranchDescription>", "std::map<const art::Hash<2>,art::ProcessHistory>", "art::ParentageMap",
+	                                    "art::History", "art::BranchKey", "art::ProductProvenance", "art::RunAuxiliary", "art::SubRunAuxiliary", "art::EventAuxiliary"};
+	for (auto& className : classNames)
+	{
+		TClass* class_ptr = TClass::GetClass(className.c_str());
+		if (class_ptr == nullptr)
+		{
+			throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message: Could not get TClass for " << className << "!";
+		}
+		infos.Add(class_ptr->GetStreamerInfo());
+	}
+	msg.WriteObject(&infos);
 
 	//
 	//  Stream the ParameterSetRegistry.

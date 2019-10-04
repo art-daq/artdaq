@@ -84,10 +84,8 @@ void artdaq::RequestReceiver::setupRequestListener()
 		TLOG(TLVL_ERROR) << "Error creating socket for receiving data requests! err=" << strerror(errno);
 		exit(1);
 	}
-
-	struct sockaddr_in si_me_request;
-
-	int yes = 1;
+ 	struct sockaddr_in si_me_request;
+ 	int yes = 1;
 	if (setsockopt(request_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 	{
 		TLOG(TLVL_ERROR) << "Unable to enable port reuse on request socket, err=" << strerror(errno);
@@ -263,7 +261,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			request_stop_requested_ = true;
 		}
 
-		bool anyNew = false;
+ 		bool anyNew = false;
 
 		if (should_stop_) break;
 

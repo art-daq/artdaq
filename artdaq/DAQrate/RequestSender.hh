@@ -1,10 +1,9 @@
 #ifndef artdaq_DAQrate_RequestSender_hh
 #define artdaq_DAQrate_RequestSender_hh
 
-#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
-
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Table.h"

@@ -45,7 +45,7 @@ options:\n\
 --cmd-iowait      include cmd iowait on the graph\n\
 --fault,-f\n\
 ",            \
-	basename(argv[0]), basename(argv[0]), basename(argv[0]), basename(argv[0]), opt_period
+	    basename(argv[0]), basename(argv[0]), basename(argv[0]), basename(argv[0]), opt_period
 
 enum
 {
@@ -972,7 +972,7 @@ eintr1:
 			TRACE(3, "main lp=%d start stat%zd", lp, ii);
 			char const *awk_file;
 			if (ii < (2 * opt_cmd.size()))
-			{   // For each cmd, the
+			{  // For each cmd, the
 				// /proc/<pid>/stat file
 				// will be referenced twice.
 				if ((ii & 1) == 0)

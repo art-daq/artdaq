@@ -472,7 +472,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	auto latency_s = frag.getLatency(true);
 	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
 	TLOG(13) << "sendFragment start frag.fragmentHeader()=" << std::hex << (void*)(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
-	         << ", seqID=" << seqID << ", type=" << frag.typeString();
+	         << ", seqID=" << seqID << ", fragID=" << frag.fragmentID() << ", type=" << frag.typeString();
 	auto outsts = TransferInterface::CopyStatus::kDestinationFailure;
 	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType)
 	{

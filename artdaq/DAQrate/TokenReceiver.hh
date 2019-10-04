@@ -35,7 +35,7 @@ public:
 		 * \param policy RoutingMasterPolicy that manages the received tokens
 		 * \param routing_mode Whether routing should occur by Sequence ID (i.e. BR->EB), or by send count (EB->DL). RouteBySendCount assumes no event building on receiver
 		 * \param number_of_senders For RouteBySendCount routing mode, the number of tokens needed to issue a new routing table entry
-		 * \param update_interval_msec The amount of time to wait in epoll_wait for a new update to arrive
+		 * \param poll_wait_msec The amount of time to wait in epoll_wait for a new update to arrive
 		 */
 	explicit TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingMasterPolicy> policy,
 	                       detail::RoutingMasterMode routing_mode, size_t number_of_senders, size_t poll_wait_msec);
