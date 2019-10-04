@@ -1,18 +1,16 @@
 #ifndef artdaq_DAQrate_detail_FragCounter_hh
 #define artdaq_DAQrate_detail_FragCounter_hh
 
-#include <unordered_map>
 #include <atomic>
 #include <limits>
 #include <mutex>
+#include <unordered_map>
 
-namespace artdaq
-{
-	namespace detail
-	{
-		class FragCounter;
-	}
+namespace artdaq {
+namespace detail {
+class FragCounter;
 }
+}  // namespace artdaq
 
 /**
  * \brief Keep track of the count of Fragments received from a set of sources
@@ -82,50 +80,44 @@ private:
 	std::unordered_map<size_t, std::atomic<size_t>> receipts_;
 };
 
-inline
-artdaq::detail::FragCounter::
-FragCounter()
-	: receipts_() {}
+inline artdaq::detail::FragCounter::
+    FragCounter()
+    : receipts_() {}
 
-inline
-void
+inline void
 artdaq::detail::FragCounter::
-incSlot(size_t slot)
+    incSlot(size_t slot)
 {
 	incSlot(slot, 1);
 }
 
-inline
-void
+inline void
 artdaq::detail::FragCounter::
-incSlot(size_t slot, size_t inc)
+    incSlot(size_t slot, size_t inc)
 {
 	std::unique_lock<std::mutex> lk(receipts_mutex_);
 	receipts_[slot].fetch_add(inc);
 }
 
-inline
-void
+inline void
 artdaq::detail::FragCounter::
-setSlot(size_t slot, size_t val)
+    setSlot(size_t slot, size_t val)
 {
 	std::unique_lock<std::mutex> lk(receipts_mutex_);
 	receipts_[slot] = val;
 }
 
-inline
-size_t
+inline size_t
 artdaq::detail::FragCounter::
-nSlots() const
+    nSlots() const
 {
 	std::unique_lock<std::mutex> lk(receipts_mutex_);
 	return receipts_.size();
 }
 
-inline
-size_t
+inline size_t
 artdaq::detail::FragCounter::
-count() const
+    count() const
 {
 	std::unique_lock<std::mutex> lk(receipts_mutex_);
 	size_t acc = 0;
@@ -136,19 +128,17 @@ count() const
 	return acc;
 }
 
-inline
-size_t
+inline size_t
 artdaq::detail::FragCounter::
-slotCount(size_t slot) const
+    slotCount(size_t slot) const
 {
 	std::unique_lock<std::mutex> lk(receipts_mutex_);
 	return receipts_.count(slot) ? receipts_.at(slot).load() : 0;
 }
 
-inline
-size_t
+inline size_t
 artdaq::detail::FragCounter::
-minCount() const
+    minCount() const
 {
 	std::unique_lock<std::mutex> lk(receipts_mutex_);
 	size_t min = std::numeric_limits<size_t>::max();

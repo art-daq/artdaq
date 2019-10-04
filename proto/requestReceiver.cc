@@ -5,9 +5,10 @@
 #include "fhiclcpp/make_ParameterSet.h"
 namespace bpo = boost::program_options;
 
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/DAQrate/detail/RequestMessage.hh"
 #include "artdaq/DAQrate/RequestReceiver.hh"
+#include "artdaq/DAQrate/detail/RequestMessage.hh"
 
 int main(int argc, char* argv[])
 {

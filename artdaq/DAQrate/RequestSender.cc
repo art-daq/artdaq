@@ -1,6 +1,7 @@
 #include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #define TRACE_NAME (app_name + "_RequestSender").c_str()
 
+
 #include <dlfcn.h>
 #include <chrono>
 #include <cstring>
@@ -10,7 +11,6 @@
 #include <utility>
 #include "artdaq/DAQrate/RequestSender.hh"
 
-#include "RequestSender.hh"
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
@@ -276,6 +276,7 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
 		if (res < 0)
 		{
+			TLOG(TLVL_WARNING) << "Error on token_socket, reconnecting";
 			close(token_socket_);
 			token_socket_ = -1;
 			sts = 0;
