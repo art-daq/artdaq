@@ -13,8 +13,8 @@
 #include <string>
 #include <vector>
 
-using artdaq::PostmarkedFragmentPtrs;
 using artdaq::GenericFragmentSimulator;
+using artdaq::PostmarkedFragmentPtrs;
 using artdaq::SharedMemoryEventManager;
 using std::size_t;
 
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 		events.startRun(RUN_ID);
 		PostmarkedFragmentPtrs frags;
 		size_t event_count = 0;
-		while (frags.clear() , event_count++ < NUM_EVENTS && sim.getNext(frags))
+		while (frags.clear(), event_count++ < NUM_EVENTS && sim.getNext(frags))
 		{
 			TLOG(TLVL_DEBUG) << "Number of fragments: " << frags.size();
 			assert(frags.size() == NUM_FRAGS_PER_EVENT);
