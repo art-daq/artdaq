@@ -110,8 +110,9 @@ void RequestSender::setup_requests_()
 
 		if (multicast_out_addr_ == "0.0.0.0")
 		{
-			multicast_out_addr_.reserve(HOST_NAME_MAX);
-			sts = gethostname(&multicast_out_addr_[0], HOST_NAME_MAX);
+			char hostname[HOST_NAME_MAX];
+			sts = gethostname(hostname, HOST_NAME_MAX);
+			multicast_out_addr_ = std::string(hostname);
 			if (sts < 0)
 			{
 				TLOG(TLVL_ERROR) << "Could not get current hostname,  err=" << strerror(errno);
