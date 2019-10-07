@@ -58,7 +58,7 @@ void NetMonTransportService::connect()
 
 void NetMonTransportService::listen()
 {
-	TLOG(TLVL_INFO) << "listen() start";
+	TLOG(TLVL_TRACE) << "listen() start";
 	if (!incoming_events_)
 	{
 		incoming_events_.reset(new artdaq::SharedMemoryEventReceiver(
@@ -89,7 +89,7 @@ void NetMonTransportService::listen()
 
 		TLOG(TLVL_INFO) << "app_name is " << app_name << ", rank " << my_rank;
 	}
-	TLOG(TLVL_INFO) << "listen() end";
+	TLOG(TLVL_TRACE) << "listen() end";
 	return;
 }
 
