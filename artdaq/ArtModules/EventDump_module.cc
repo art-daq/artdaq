@@ -89,7 +89,12 @@ void artdaq::EventDump::analyze(art::Event const& e)
 				{
 					std::cout << "  " << jdx << ") fragment ID " << frag.fragmentID() << " has type "
 					          << (int)frag.type() << ", timestamp " << frag.timestamp()
-					          << ", and sizeBytes " << frag.sizeBytes();
+					          << ", has metadata " << std::boolalpha << frag.hasMetadata()
+					          << ", and sizeBytes " << frag.sizeBytes()
+					          << " (hdr=" << frag.headerSizeBytes()
+					          << ", data=" << frag.dataSizeBytes()
+					          << ", meta (calculated)=" << (frag.sizeBytes() - frag.headerSizeBytes() - frag.dataSizeBytes())
+					          << ")";
 
 					if (instance_name.compare(0, 9, "Container") == 0)
 					{
@@ -102,9 +107,15 @@ void artdaq::EventDump::analyze(art::Event const& e)
 						{
 							for (size_t idx = 0; idx < cf.block_count(); ++idx)
 							{
-								std::cout << "    " << (idx + 1) << ") fragment type " << (int)(cf.at(idx))->type()
-								          << ", timestamp " << (cf.at(idx))->timestamp()
-								          << ", and sizeBytes " << (cf.at(idx))->sizeBytes() << std::endl;
+								auto thisFrag = cf.at(idx);
+								std::cout << "    " << (idx + 1) << ") fragment type " << (int)thisFrag->type()
+								          << ", timestamp " << thisFrag->timestamp()
+								          << ", has metadata " << std::boolalpha << thisFrag->hasMetadata()
+								          << ", and sizeBytes " << thisFrag->sizeBytes()
+								          << " (hdr=" << thisFrag->headerSizeBytes()
+								          << ", data=" << thisFrag->dataSizeBytes()
+								          << ", meta (calculated)=" << (thisFrag->sizeBytes() - thisFrag->headerSizeBytes() - thisFrag->dataSizeBytes())
+								          << ")" << std::endl;
 							}
 						}
 					}
