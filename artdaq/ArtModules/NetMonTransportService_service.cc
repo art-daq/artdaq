@@ -29,6 +29,8 @@
 #define DUMP_SEND_MESSAGE 0
 #define DUMP_RECEIVE_MESSAGE 0
 
+#define build_key(seed) seed + ((GetPartitionNumber() + 1) << 16) + (getppid() & 0xFFFF)
+
 static fhicl::ParameterSet empty_pset;
 
 NetMonTransportService::NetMonTransportService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
@@ -58,12 +60,12 @@ void NetMonTransportService::connect()
 
 void NetMonTransportService::listen()
 {
-	TLOG(TLVL_INFO) << "listen() start";
+	TLOG(TLVL_TRACE) << "listen() start";
 	if (!incoming_events_)
 	{
 		incoming_events_.reset(new artdaq::SharedMemoryEventReceiver(
-		    data_pset_.get<int>("shared_memory_key", 0xBEE70000 + getppid()),
-		    data_pset_.get<int>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
+		    data_pset_.get<int>("shared_memory_key", build_key(0xEE000000)),
+		    data_pset_.get<int>("broadcast_shared_memory_key", build_key(0xBB000000))));
 
 		char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
 		std::string artapp_str = "";
@@ -89,7 +91,7 @@ void NetMonTransportService::listen()
 
 		TLOG(TLVL_INFO) << "app_name is " << app_name << ", rank " << my_rank;
 	}
-	TLOG(TLVL_INFO) << "listen() end";
+	TLOG(TLVL_TRACE) << "listen() end";
 	return;
 }
 
@@ -211,8 +213,8 @@ void NetMonTransportService::receiveMessage(TBufferFile*& msg)
 			return;
 		}
 		/* Events coming out of the EventStore are not sorted but need to be
-		   sorted by sequence ID before they can be passed to art.
-		*/
+       sorted by sequence ID before they can be passed to art.
+    */
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(), artdaq::fragmentSequenceIDCompare);
 
 		TLOG(TLVL_TRACE) << "receiveMessage: Releasing buffer";
@@ -325,8 +327,8 @@ void NetMonTransportService::receiveInitMessage(TBufferFile*& msg)
 		TLOG(TLVL_TRACE) << "receiveInitMessage: Getting all Fragments";
 		recvd_fragments_ = incoming_events_->GetFragmentsByType(errflag, artdaq::Fragment::InvalidFragmentType);
 		/* Events coming out of the EventStore are not sorted but need to be
-		sorted by sequence ID before they can be passed to art.
-		*/
+    sorted by sequence ID before they can be passed to art.
+    */
 		std::sort(recvd_fragments_->begin(), recvd_fragments_->end(), artdaq::fragmentSequenceIDCompare);
 
 		incoming_events_->ReleaseBuffer();
@@ -343,7 +345,7 @@ void NetMonTransportService::receiveInitMessage(TBufferFile*& msg)
 	auto header = topFrag.metadata<artdaq::NetMonHeader>();
 	TLOG(TLVL_TRACE) << "receiveInitMessage: Copying Fragment into TBufferFile: message length: " << header->data_length;
 	auto buffer = new char[header->data_length];
-	//auto buffer = static_cast<char *>(malloc(header->data_length)); // Fix alloc-dealloc-mismatch
+	// auto buffer = static_cast<char *>(malloc(header->data_length)); // Fix alloc-dealloc-mismatch
 	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
 
 #if DUMP_RECEIVE_MESSAGE
