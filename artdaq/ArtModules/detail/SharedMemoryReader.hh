@@ -25,6 +25,8 @@
 #include <string>
 #include "artdaq-core/Data/RawEvent.hh"
 
+#define build_key(seed) seed + ((GetPartitionNumber() + 1) << 16) + (getppid() & 0xFFFF)
+
 namespace artdaq {
 namespace detail {
 /**
@@ -39,25 +41,25 @@ public:
 	virtual ~DefaultFragmentTypeTranslator() = default;
 
 	/**
-     * \brief Sets the basic types to be translated.  (Should not include "container" types.)
-	 */
+			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
+			 */
 	virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
 	{
 		type_map_ = type_map;
 	}
 
 	/**
-	 * \brief Adds an additional type to be translated.
-	 */
+			 * \brief Adds an additional type to be translated.
+			 */
 	virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
 	{
 		type_map_[type_id] = type_name;
 	}
 
 	/**
-	 * \brief Returns the basic translation for the specified type.  Defaults to the specified
-	 *        unidentified_instance_name if no translation can be found.
-	 */
+			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
+			 *        unidentified_instance_name if no translation can be found.
+			 */
 	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
 	{
 		if (type_map_.count(type_id) > 0) { return type_map_[type_id]; }
@@ -65,10 +67,10 @@ public:
 	}
 
 	/**
-	 * \brief Returns the full set of product instance names which may be present in the data, based on
-	 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
-	 *        *does* include "container" types, if the container type mapping is part of the basic types.
-	 */
+			 * \brief Returns the full set of product instance names which may be present in the data, based on
+			 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
+			 *        *does* include "container" types, if the container type mapping is part of the basic types.
+			 */
 	virtual std::set<std::string> GetAllProductInstanceNames()
 	{
 		std::set<std::string> output;
@@ -98,11 +100,11 @@ public:
 	}
 
 	/**
-	 * \brief Returns the product instance name for the specified fragment, based on the types that have
-	 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
-	 *        use of "container" types, if the container type mapping is part of the basic types.  If no
-	 *        mapping is found, the specified unidentified_instance_name is returned.
-	 */
+			 * \brief Returns the product instance name for the specified fragment, based on the types that have
+			 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
+			 *        use of "container" types, if the container type mapping is part of the basic types.  If no
+			 *        mapping is found, the specified unidentified_instance_name is returned.
+			 */
 	virtual std::pair<bool, std::string>
 	GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
 	{
@@ -138,21 +140,21 @@ protected:
 };
 
 /**
-		 * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
-		 */
+ * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
+ */
 template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
          class FTT = artdaq::detail::DefaultFragmentTypeTranslator>
 struct SharedMemoryReader
 {
 	/**
-			 * \brief Copy Constructor is deleted
-			 */
+   * \brief Copy Constructor is deleted
+   */
 	SharedMemoryReader(SharedMemoryReader const&) = delete;
 
 	/**
-			 * \brief Copy Assignment operator is deleted
-			 * \return SharedMemoryReader copy
-			 */
+   * \brief Copy Assignment operator is deleted
+   * \return SharedMemoryReader copy
+   */
 	SharedMemoryReader& operator=(SharedMemoryReader const&) = delete;
 
 	art::SourceHelper const& pmaker;                             ///< An art::SourceHelper instance
@@ -165,24 +167,24 @@ struct SharedMemoryReader
 	bool outputFileCloseNeeded;                                  ///< If an explicit output file close message is needed
 	size_t bytesRead;                                            ///< running total of number of bytes received
 	std::chrono::steady_clock::time_point last_read_time;        ///< Time last read was completed
-	//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
-	// std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
-	// Fragments)
+	                                                             // std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
+	                                                             // std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
+	                                                             // Fragments)
 
 	/**
-			 * \brief SharedMemoryReader Constructor
-			 * \param ps ParameterSet used for configuring SharedMemoryReader
-			 * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
-			 * \param pm art::SourceHelper used to initalize the SourceHelper member
-			 *
-			 * \verbatim
-			 * SharedMemoryReader accepts the following Parameters:
-			 * "waiting_time" (Default: 86400.0): The maximum amount of time to wait for an event from the queue
-			 * "resume_after_timeout" (Default: true): Whether to continue receiving data after a timeout
-			 * "raw_data_label" (Default: "daq"): The label to use for all raw data
-			 * "shared_memory_key" (Default: 0xBEE7): The key for the shared memory segment
-			 * \endverbatim
-			 */
+   * \brief SharedMemoryReader Constructor
+   * \param ps ParameterSet used for configuring SharedMemoryReader
+   * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
+   * \param pm art::SourceHelper used to initalize the SourceHelper member
+   *
+   * \verbatim
+   * SharedMemoryReader accepts the following Parameters:
+   * "waiting_time" (Default: 86400.0): The maximum amount of time to wait for an event from the queue
+   * "resume_after_timeout" (Default: true): Whether to continue receiving data after a timeout
+   * "raw_data_label" (Default: "daq"): The label to use for all raw data
+   * "shared_memory_key" (Default: 0xBEE7): The key for the shared memory segment
+   * \endverbatim
+   */
 	SharedMemoryReader(fhicl::ParameterSet const& ps,
 	                   art::ProductRegistryHelper& help,
 	                   art::SourceHelper const& pm)
@@ -208,8 +210,8 @@ struct SharedMemoryReader
 		// getppid()), ps.get<int>("broadcast_buffer_count", 5), ps.get<size_t>("broadcast_buffer_size", 0x100000)));
 		//}
 		incoming_events.reset(
-		    new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", 0xBEE70000 + getppid()),
-		                                  ps.get<uint32_t>("broadcast_shared_memory_key", 0xCEE70000 + getppid())));
+		    new SharedMemoryEventReceiver(ps.get<uint32_t>("shared_memory_key", build_key(0xEE000000)),
+		                                  ps.get<uint32_t>("broadcast_shared_memory_key", build_key(0xBB000000))));
 		my_rank = incoming_events->GetRank();
 		TLOG(TLVL_INFO, "SharedMemoryReader") << "Rank set to " << my_rank;
 
@@ -261,32 +263,32 @@ struct SharedMemoryReader
 
 #if ART_HEX_VERSION < 0x30000
 	/**
-			 * \brief SharedMemoryReader Constructor
-			 * \param ps ParameterSet used for configuring SharedMemoryReader
-			 * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
-			 * \param pm art::SourceHelper used to initalize the SourceHelper member
-			 *
-			 * This constructor calls the three-parameter constructor, the art::MasterProductRegistry parameter is discarded.
-			 */
+   * \brief SharedMemoryReader Constructor
+   * \param ps ParameterSet used for configuring SharedMemoryReader
+   * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
+   * \param pm art::SourceHelper used to initalize the SourceHelper member
+   *
+   * This constructor calls the three-parameter constructor, the art::MasterProductRegistry parameter is discarded.
+   */
 	SharedMemoryReader(fhicl::ParameterSet const& ps, art::ProductRegistryHelper& help, art::SourceHelper const& pm,
 	                   art::MasterProductRegistry&)
 	    : SharedMemoryReader(ps, help, pm) {}
 #endif
 
 	/**
-			 * \brief SharedMemoryReader destructor
-			 */
+   * \brief SharedMemoryReader destructor
+   */
 	virtual ~SharedMemoryReader() { artdaq::Globals::CleanUpGlobals(); }
 
 	/**
-			 * \brief Emulate closing a file. No-Op.
-			 */
+   * \brief Emulate closing a file. No-Op.
+   */
 	void closeCurrentFile() {}
 
 	/**
-			 * \brief Emulate opening a file
-			 * \param[out] fb art::FileBlock object
-			 */
+   * \brief Emulate opening a file
+   * \param[out] fb art::FileBlock object
+   */
 	void readFile(std::string const&, art::FileBlock*& fb)
 	{
 		TLOG_ARB(5, "SharedMemoryReader") << "readFile enter/start";
@@ -294,29 +296,29 @@ struct SharedMemoryReader
 	}
 
 	/**
-			 * \brief Whether more data is expected from the SharedMemoryReader
-			 * \return True unless a shutdown message has been received in readNext
-			 */
+   * \brief Whether more data is expected from the SharedMemoryReader
+   * \return True unless a shutdown message has been received in readNext
+   */
 	bool hasMoreData() const { return (!shutdownMsgReceived); }
 
 	/**
-			 * \brief Dequeue a RawEvent and declare its Fragment contents to art, creating
-			 * Run, SubRun, and EventPrincipal objects as necessary
-			 * \param[in] inR Input art::RunPrincipal
-			 * \param[in] inSR Input art::SubRunPrincipal
-			 * \param[out] outR Output art::RunPrincipal
-			 * \param[out] outSR  Output art::SubRunPrincipal
-			 * \param[out] outE Output art::EventPrincipal
-			 * \return Whether an event was returned
-			 */
+   * \brief Dequeue a RawEvent and declare its Fragment contents to art, creating
+   * Run, SubRun, and EventPrincipal objects as necessary
+   * \param[in] inR Input art::RunPrincipal
+   * \param[in] inSR Input art::SubRunPrincipal
+   * \param[out] outR Output art::RunPrincipal
+   * \param[out] outSR  Output art::SubRunPrincipal
+   * \param[out] outE Output art::EventPrincipal
+   * \return Whether an event was returned
+   */
 	bool readNext(art::RunPrincipal* const& inR, art::SubRunPrincipal* const& inSR, art::RunPrincipal*& outR,
 	              art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 	{
 		TLOG_DEBUG("SharedMemoryReader") << "readNext BEGIN";
 		/*if (outputFileCloseNeeded) {
-				outputFileCloseNeeded = false;
-				return false;
-				}*/
+    outputFileCloseNeeded = false;
+    return false;
+    }*/
 		// Establish default 'results'
 		outR = 0;
 		outSR = 0;
@@ -495,7 +497,7 @@ struct SharedMemoryReader
 				}
 				outR = 0;
 			}
-			//outputFileCloseNeeded = true;
+			// outputFileCloseNeeded = true;
 			incoming_events->ReleaseBuffer();
 			return true;
 		}
