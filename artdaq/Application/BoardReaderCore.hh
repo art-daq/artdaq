@@ -185,12 +185,6 @@ private:
 	void sendMetrics_();
 
 	bool verbose_;  ///< Whether to log transition messages
-
-	/**
-	 * \brief Log a message, setting severity based on verbosity flag
-	 * \param text Message to log
-	 */
-	void logMessage_(std::string const& text);
 };
 
 #endif /* artdaq_Application_MPI2_BoardReaderCore_hh */
