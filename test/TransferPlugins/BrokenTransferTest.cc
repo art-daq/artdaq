@@ -280,45 +280,43 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 			usleep(10000);
 		}
 
-		while (sender_current_fragment_[sender_rank] < sequence_id_target_())
+		artdaq::Fragment frag(fragment_size_);
+		frag.setSequenceID(sender_current_fragment_[sender_rank]);
+		frag.setFragmentID(sender_rank);
+		frag.setSystemType(artdaq::Fragment::DataFragmentType);
+
+		auto start_time = std::chrono::steady_clock::now();
+		auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
+
+		if (sender_tokens_[sender_rank].load() == 0)
 		{
-			artdaq::Fragment frag(fragment_size_);
-			frag.setSequenceID(sender_current_fragment_[sender_rank]);
-			frag.setFragmentID(sender_rank);
-			frag.setSystemType(artdaq::Fragment::DataFragmentType);
-
-			auto start_time = std::chrono::steady_clock::now();
-			auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
-
-			if (sender_tokens_[sender_rank].load() == 0)
-			{
-				TLOG(TLVL_INFO) << "Sender " << sender_rank << " waiting for token from receiver";
-				while (sender_tokens_[sender_rank].load() == 0) { usleep(10000); }
-				TLOG(TLVL_INFO) << "Sender " << sender_rank << " waited " << fm_(artdaq::TimeUtils::GetElapsedTime(start_time), "s") << " for token from receiver";
-			}
-
-			if (reliable_mode_)
-			{
-				sts = theTransfer->transfer_fragment_reliable_mode(std::move(frag));
-			}
-			else
-			{
-				sts = theTransfer->transfer_fragment_min_blocking_mode(frag, send_timeout_us_);
-			}
-
-			if (sts != artdaq::TransferInterface::CopyStatus::kSuccess)
-			{
-				TLOG(TLVL_ERROR) << "Error sending Fragment " << sender_current_fragment_[sender_rank] << " from sender rank " << sender_rank << ": "
-				                 << artdaq::TransferInterface::CopyStatusToString(sts);
-			}
-			auto duration = artdaq::TimeUtils::GetElapsedTime(start_time);
-			TLOG(TLVL_TRACE) << "Sender " << sender_rank << " Transferred Fragment " << sender_current_fragment_[sender_rank]
-			                 << " with size " << fragment_size_ << " words in " << fm_(duration, "s")
-			                 << " (approx " << fm_(static_cast<double>(fragment_size_ * sizeof(artdaq::detail::RawFragmentHeader::RawDataType)) / duration, "B/s")
-			                 << ")";
-			++sender_current_fragment_[sender_rank];
-			sender_tokens_[sender_rank]--;
+			TLOG(TLVL_INFO) << "Sender " << sender_rank << " waiting for token from receiver";
+			while (sender_tokens_[sender_rank].load() == 0 && !test_end_requested_) { usleep(10000); }
+			if (test_end_requested_) continue;
+			TLOG(TLVL_INFO) << "Sender " << sender_rank << " waited " << fm_(artdaq::TimeUtils::GetElapsedTime(start_time), "s") << " for token from receiver";
 		}
+
+		if (reliable_mode_)
+		{
+			sts = theTransfer->transfer_fragment_reliable_mode(std::move(frag));
+		}
+		else
+		{
+			sts = theTransfer->transfer_fragment_min_blocking_mode(frag, send_timeout_us_);
+		}
+
+		if (sts != artdaq::TransferInterface::CopyStatus::kSuccess)
+		{
+			TLOG(TLVL_ERROR) << "Error sending Fragment " << sender_current_fragment_[sender_rank] << " from sender rank " << sender_rank << ": "
+			                 << artdaq::TransferInterface::CopyStatusToString(sts);
+		}
+		auto duration = artdaq::TimeUtils::GetElapsedTime(start_time);
+		TLOG(TLVL_TRACE) << "Sender " << sender_rank << " Transferred Fragment " << sender_current_fragment_[sender_rank]
+		                 << " with size " << fragment_size_ << " words in " << fm_(duration, "s")
+		                 << " (approx " << fm_(static_cast<double>(fragment_size_ * sizeof(artdaq::detail::RawFragmentHeader::RawDataType)) / duration, "B/s")
+		                 << ")";
+		++sender_current_fragment_[sender_rank];
+		sender_tokens_[sender_rank]--;
 	}
 
 	TLOG(TLVL_DEBUG) << "Sender " << sender_rank << " shutting down...";
