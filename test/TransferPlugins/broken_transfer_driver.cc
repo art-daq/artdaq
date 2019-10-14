@@ -7,7 +7,7 @@
 
 int main(int argc, char* argv[])
 {
-	artdaq::configureMessageFacility("broken_transfer_driver", false);
+	artdaq::configureMessageFacility("broken_transfer_driver", true, true);
 	TLOG(TLVL_INFO) << "BEGIN";
 
 	auto ps = LoadParameterSet<artdaqtest::BrokenTransferTest::Config>(argc, argv, "broken_transfer_test", "Test for misbehaving transfer plugins");
