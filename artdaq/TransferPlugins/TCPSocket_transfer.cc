@@ -722,7 +722,12 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		         << " iovcnt=" << out_iov_idx << " 1st.len=" << iovv[0].iov_len;
 #endif
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " calling writev" ;
-		sts = writev(send_fd_, &(iovv[0]), out_iov_idx);
+		msghdr msg;
+		bzero(&msg, sizeof(msghdr));
+		msg.msg_iov = &(iovv[0]);
+		msg.msg_iovlen = out_iov_idx;
+		sts = sendmsg(send_fd_, &msg, MSG_NOSIGNAL | (blocking ? 0 : MSG_DONTWAIT));
+		//sts = writev(send_fd_, &(iovv[0]), out_iov_idx);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " done with writev" ;
 
 		if (sts == -1)
@@ -730,12 +735,11 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 			if (errno == EAGAIN /* same as EWOULDBLOCK */)
 			{
 				TLOG(TLVL_DEBUG) << GetTraceName() << ": sendFragment EWOULDBLOCK";
-				fcntl(send_fd_, F_SETFL, 0);  // clear O_NONBLOCK
 				blocking = true;
 				// NOTE: YES -- could drop here
 				goto do_again;
 			}
-			TLOG(TLVL_WARNING) << GetTraceName() << ": sendFragment_: WRITE ERROR: " << strerror(errno);
+			TLOG(TLVL_WARNING) << GetTraceName() << ": sendFragment_: WRITE ERROR " << errno << ": " << strerror(errno);
 			connect_state = 0;  // any write error closes
 			close(send_fd_);
 			send_fd_ = -1;
@@ -820,7 +824,6 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	if (blocking)
 	{
 		blocking = false;
-		fcntl(send_fd_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
 	}
 	sts = total_written_bytes - sizeof(MessHead);
 
