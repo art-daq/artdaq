@@ -38,7 +38,7 @@
 #include "hep_concurrency/RecursiveMutex.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracemf.h"  // TLOG
-#define TRACE_NAME (app_name + "_RootDAQOut").c_str()
+#define TRACE_NAME (app_name + "_RootDAQOut-s81").c_str()
 
 #include <iomanip>
 #include <iostream>
@@ -658,6 +658,29 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 {
 	TLOG(TLVL_DEBUG) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
 
+	// 15-Oct-2019, KAB & ELF: check if we need to set app_name and my_rank here.
+	// This may be needed in art v3, when the order of module creation is different
+	// than what we're familiar with from art v2.
+	if (app_name.length() == 0)
+	{
+		char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
+		std::string artapp_str = "";
+		if (artapp_env != NULL)
+		{
+			artapp_str = std::string(artapp_env) + "_";
+		}
+		app_name = artapp_str + "art";
+	}
+	if (my_rank < 0)
+	{
+		char const* artapp_env = getenv("ARTDAQ_RANK");
+		if (artapp_env != NULL)
+		{
+			my_rank = std::atoi(artapp_env);
+		}
+	}
+	TLOG(TLVL_INFO) << "app_name is " << app_name << ", rank " << my_rank;
+
 	// fetch the firstLoggerRank and fileNameSubstitutions (if provided) for use in
 	// substituting keywords in the filename pattern
 	int firstLoggerRank = config.firstLoggerRank();
@@ -726,8 +749,8 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	for (uint32_t subIdx = 0; subIdx < subs.size(); ++subIdx)
 	{
 		// first look up the replacement string for this process's app_name
-		const std::string BLAH = "none_provided";
-		std::string newString = BLAH;
+		const std::string NONE_GIVEN = "none_provided";
+		std::string newString = NONE_GIVEN;
 		std::vector<Config::NewSubStringForApp> replacementList = subs[subIdx].replacementList();
 		for (uint32_t rdx = 0; rdx < replacementList.size(); ++rdx)
 		{
@@ -737,8 +760,25 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 				break;
 			}
 		}
+		// 15-Oct-2019, KAB: in addition to checking for an exact match between the
+		// replacement list key and the app_name, we check for a prefix match.
+		// This reduces the number of entries that we need to specify in the configuration
+		// (i.e. the replacement list), and it allows us to make use of the app_name that
+		// is assigned above, even though we don't have the art instance ID yet.
+		if (newString == NONE_GIVEN)
+		{
+			for (uint32_t rdx = 0; rdx < replacementList.size(); ++rdx)
+			{
+				if (replacementList[rdx].appName().find(artdaq::Globals::app_name_) == 0 ||
+				    artdaq::Globals::app_name_.find(replacementList[rdx].appName()) == 0)
+				{
+					newString = replacementList[rdx].newString();
+					break;
+				}
+			}
+		}
 		TLOG(TLVL_TRACE) << __func__ << ": app_name=" << artdaq::Globals::app_name_ << ", newString=" << newString;
-		if (newString != BLAH)
+		if (newString != NONE_GIVEN)
 		{
 			// first, add the expected surrounding text, and search for that
 			searchString = "${" + subs[subIdx].targetString() + "}";
