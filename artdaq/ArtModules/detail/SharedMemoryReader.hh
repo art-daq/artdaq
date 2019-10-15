@@ -5,6 +5,8 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
+#define TRACE_NAME (app_name + "_SharedMemoryReader").c_str()
+
 #include <sys/time.h>
 #include "art/Framework/Core/FileBlock.h"
 #include "art/Framework/Core/ProductRegistryHelper.h"
