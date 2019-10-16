@@ -1,11 +1,8 @@
 #ifndef artdaq_ArtModules_NetMonWrapper_hh
 #define artdaq_ArtModules_NetMonWrapper_hh
 
-#include "artdaq/ArtModules/NetMonTransportService.h"
-
-#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "fhiclcpp/fwd.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include <TBufferFile.h>
 
@@ -29,34 +26,12 @@ public:
 		 * \brief NetMonWrapper Constructor
 		 * \param pset ParameterSet for NetMonWrapper
 		 */
-	NetMonWrapper(const fhicl::ParameterSet& pset)
-	{
-		ServiceHandle<NetMonTransportService> transport;
-		transport->listen();
-
-		try
-		{
-			if (metricMan)
-			{
-				metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), app_name);
-				metricMan->do_start();
-			}
-		}
-		catch (...)
-		{
-			artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "Error loading metrics in NetMonWrapper");
-		}
-	}
+	NetMonWrapper(fhicl::ParameterSet const&);
 
 	/**
 		 * \brief NetMonWrapper Destructor
 		 */
-	~NetMonWrapper()
-	{
-		ServiceHandle<NetMonTransportService> transport;
-		transport->disconnect();
-		artdaq::Globals::CleanUpGlobals();
-	}
+	virtual ~NetMonWrapper() = default;
 
 	/**
 		 * \brief Receive a message from the NetMonTransportService
@@ -69,6 +44,11 @@ public:
 		* \param[out] msg A pointer to the received message
 		*/
 	void receiveInitMessage(std::unique_ptr<TBufferFile>& msg);
+
+private:
+	fhicl::ParameterSet data_pset_;
+	bool init_received_;
+	double init_timeout_s_;
 };
 }  // namespace art
 
