@@ -568,7 +568,6 @@ private:
 
 	RequestMode mode_;
 	bool bufferModeKeepLatest_;
-	bool bufferModeHasNewData_;
 	Fragment::timestamp_t windowOffset_;
 	Fragment::timestamp_t windowWidth_;
 	Fragment::timestamp_t staleTimeout_;
@@ -598,6 +597,7 @@ private:
 		std::atomic<int> DataBufferDepthFragments;
 		std::atomic<size_t> DataBufferDepthBytes;
 		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> WindowsSent;
+		bool BufferFragmentKept;
 		Fragment::sequence_id_t HighestRequestSeen;
 		FragmentPtrs DataBuffer;
 	};
