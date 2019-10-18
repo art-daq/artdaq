@@ -96,9 +96,9 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	TLOG(TLVL_INFO) << "Test DataFlow END";
 }
 
-BOOST_AUTO_TEST_CASE(TooManyFragments)
+BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 {
-	TLOG(TLVL_INFO) << "Test TooManyFragments BEGIN";
+	TLOG(TLVL_INFO) << "Test TooManyFragments_InterleavedWrites BEGIN";
 	fhicl::ParameterSet pset;
 	pset.put("use_art", false);
 	pset.put("buffer_count", 2);
@@ -142,19 +142,94 @@ BOOST_AUTO_TEST_CASE(TooManyFragments)
 	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);
-	//BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
-	//BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
-	
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
+
 	memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	//BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
-	//BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 	memcpy(fragLoc5, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(fragLoc4 + frag->size(), fragLoc5);
-	//BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
-	//BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+
+	usleep(1000000);
+	{
+		frag->setSequenceID(2);
+		frag->setFragmentID(0);
+
+		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto fragLoc = t.WriteFragmentHeader(hdr);
+		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+		t.DoneWritingFragment(hdr);
+		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+	}
+	TLOG(TLVL_INFO) << "Test TooManyFragments_InterleavedWrites END";
+}
+
+BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
+{
+	TLOG(TLVL_INFO) << "Test TooManyFragments_DiscreteWrites BEGIN";
+	fhicl::ParameterSet pset;
+	pset.put("use_art", false);
+	pset.put("buffer_count", 2);
+	pset.put("max_event_size_bytes", 1000);
+	pset.put("expected_fragments_per_event", 3);
+	pset.put("stale_buffer_timeout_usec", 100000);
+	artdaq::SharedMemoryEventManager t(pset, pset);
+
+	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
+	frag->resize(4);
+	for (auto ii = 0; ii < 4; ++ii)
+	{
+		*(frag->dataBegin() + ii) = ii;
+	}
+
+	auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	auto fragLoc = t.WriteFragmentHeader(hdr);
+	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+	t.DoneWritingFragment(hdr);
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
+
+	frag->setFragmentID(1);
+	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	auto fragLoc2 = t.WriteFragmentHeader(hdr);
+
+	memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+	t.DoneWritingFragment(hdr);
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
+
+	frag->setFragmentID(2);
+	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	auto fragLoc3 = t.WriteFragmentHeader(hdr);
+	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+	t.DoneWritingFragment(hdr);
+	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+
+	frag->setFragmentID(3);
+	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	auto fragLoc4 = t.WriteFragmentHeader(hdr);
+#if !ART_SUPPORTS_DUPLICATE_EVENTS
+	BOOST_REQUIRE_EQUAL(fragLoc4, t.GetDroppedDataAddress(3));
+#endif
+	memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+	t.DoneWritingFragment(hdr);
+#if ART_SUPPORTS_DUPLICATE_EVENTS
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+#else
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+#endif
 
 	usleep(1000000);
 	{
@@ -168,9 +243,9 @@ BOOST_AUTO_TEST_CASE(TooManyFragments)
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 	}
-	TLOG(TLVL_INFO) << "Test TooManyFragments END";
+	TLOG(TLVL_INFO) << "Test TooManyFragments_DiscreteWrites END";
 }
 
 /*
