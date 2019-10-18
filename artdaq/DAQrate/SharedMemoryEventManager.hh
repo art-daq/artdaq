@@ -354,7 +354,13 @@ public:
 		 * \param frag Fragment ID to get "dropped data" for
 		 * \return Pointer to the data payload of the "dropped data" fragment
 		 */
-	RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { return dropped_data_[frag]->dataBegin(); }
+	RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { 
+		if (dropped_data_.count(frag) && dropped_data_[frag] != nullptr)
+		{
+			return dropped_data_[frag]->dataBegin();
+		}
+			return nullptr;
+	}
 
 	/**
 		 * \brief Updates the internally-stored copy of the art configuration.
