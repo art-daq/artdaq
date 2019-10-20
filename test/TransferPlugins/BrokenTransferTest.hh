@@ -35,7 +35,7 @@ public:
 	void TestSenderPause();
 	void TestReceiverPause();
 	void TestSenderReconnect();
-	void TestReceiverReconnect();
+	void TestReceiverReconnect( int send_throttle_us=0 );
 
 private:
 	struct received_event
@@ -96,6 +96,7 @@ private:
 	size_t transfer_buffer_count_;
 	size_t event_buffer_count_;
 	size_t event_buffer_timeout_us_;
+	int send_throttle_us_;
 	std::mutex event_buffer_mutex_;
 	std::condition_variable event_buffer_cv_;
 };

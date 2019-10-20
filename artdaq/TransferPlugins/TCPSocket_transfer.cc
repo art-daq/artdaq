@@ -726,12 +726,12 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 //TLOG(TLVL_DEBUG) << GetTraceName() << " calling writev" ;
 #if USE_SENDMSG
 		msghdr msg;
-		bzero(&msg, sizeof(msghdr));
+		memset(&msg, 0, sizeof(msghdr));
 		msg.msg_iov = &(iovv[0]);
-		msg.msg_iovlen = out_iov_idx;
+		msg.msg_iovlen = out_iov_idx; // at this point out_iov_idx is really the count (not an idx per se)
 		sts = sendmsg(send_fd_, &msg, MSG_NOSIGNAL | (blocking ? 0 : MSG_DONTWAIT));
 #else
-		sts = writev(send_fd_, &(iovv[0]), out_iov_idx);
+		sts = writev(send_fd_, &(iovv[0]), out_iov_idx); // SIGPIPE may occur -- need signal handler or mask/ignore
 #endif
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " done with writev" ;
 

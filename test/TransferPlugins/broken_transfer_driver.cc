@@ -20,6 +20,7 @@ int main(int argc, char* argv[])
 	theTest.TestReceiverPause();
 	theTest.TestSenderReconnect();
 	theTest.TestReceiverReconnect();
+	theTest.TestReceiverReconnect(500000);
 
 	TLOG(TLVL_INFO) << "END";
 	return 0;
