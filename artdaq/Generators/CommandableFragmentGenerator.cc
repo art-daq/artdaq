@@ -272,8 +272,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			}
 		}
 
-		metricMan->sendMetric("Last Timestamp", timestamp, "Ticks", 1,
-		                      MetricMode::LastPoint, app_name);
+		metricMan->sendMetric("Last Timestamp", timestamp, "Ticks", 1, MetricMode::LastPoint);
 	}
 
 	return result;
@@ -737,6 +736,12 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats(Fragment::fragment
 		TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: Sending Metrics";
 		metricMan->sendMetric("Buffer Depth Fragments", dataBuffers_[id].DataBufferDepthFragments.load(), "fragments", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Buffer Depth Bytes", dataBuffers_[id].DataBufferDepthBytes.load(), "bytes", 1, MetricMode::LastPoint);
+
+		auto bufferDepthFragmentsPercent = dataBuffers_[id].DataBufferDepthFragments.load() * 100 / static_cast<double>(maxDataBufferDepthFragments_);
+		auto bufferDepthBytesPercent = dataBuffers_[id].DataBufferDepthBytes.load() * 100 / static_cast<double>(maxDataBufferDepthBytes_);
+		metricMan->sendMetric("Fragment Generator Buffer Full %Fragments", bufferDepthFragmentsPercent, "%", 3, MetricMode::LastPoint);
+		metricMan->sendMetric("Fragment Generator Buffer Full %Bytes", bufferDepthBytesPercent, "%", 3, MetricMode::LastPoint);
+		metricMan->sendMetric("Fragment Generator Buffer Full %", bufferDepthFragmentsPercent > bufferDepthBytesPercent ? bufferDepthFragmentsPercent : bufferDepthBytesPercent, "%", 1, MetricMode::LastPoint);
 	}
 	TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: frags=" << dataBuffers_[id].DataBufferDepthFragments.load() << "/" << maxDataBufferDepthFragments_
 	                          << ", sz=" << dataBuffers_[id].DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
