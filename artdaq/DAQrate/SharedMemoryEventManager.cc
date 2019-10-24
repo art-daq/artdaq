@@ -1304,7 +1304,3 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 	    << std::endl;
 	return oss.str();
 }
-
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
-FHICL_PROVIDE_ALLOWED_CONFIGURATION(artdaq::SharedMemoryEventManager)
-#endif

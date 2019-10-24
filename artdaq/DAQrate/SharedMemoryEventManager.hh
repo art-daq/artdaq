@@ -12,7 +12,6 @@
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq/DAQrate/detail/ArtConfig.hh"
 #include "fhiclcpp/fwd.h"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
