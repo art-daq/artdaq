@@ -114,8 +114,6 @@ public:
 		fhicl::Atom<uint32_t> shared_memory_key{fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid()};
 		/// "buffer_count" REQUIRED: Number of events in the Shared Memory(incomplete + pending art)
 		fhicl::Atom<size_t> buffer_count{fhicl::Name{"buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"}};
-		/// "max_subrun_lookup_table_size" (Default: 100): Maximum number of entries in the subrun rollover history
-		fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"Maximum number of entries in the subrun rollover history"}, 100};
 		/// "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 		/// Either max_fragment_size_bytes or max_event_size_bytes must be specified
 		fhicl::Atom<size_t> max_fragment_size_bytes{fhicl::Name{"max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"}};
@@ -133,8 +131,10 @@ public:
 		fhicl::Atom<bool> update_run_ids_on_new_fragment{fhicl::Name{"update_run_ids_on_new_fragment"}, fhicl::Comment{"Whether the run and subrun ID of an event should be updated whenever a Fragment is added."}, true};
 		/// "use_sequence_id_for_event_number" (Default: true): Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers
 		fhicl::Atom<bool> use_sequence_id_for_event_number{fhicl::Name{"use_sequence_id_for_event_number"}, fhicl::Comment{"Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers"}, true};
-		/// "max_subrun_event_map_length" (Default: 100): The maximum number of entries to store in the sequence ID-SubRun ID lookup table
-		fhicl::Atom<size_t> max_subrun_event_map_length{fhicl::Name{"max_subrun_event_map_length"}, fhicl::Comment{"The maximum number of entries to store in the sequence ID-SubRun ID lookup table"}, 100};
+		/// "max_subrun_lookup_table_size" (Default: 100): The maximum number of entries to store in the sequence ID-SubRun ID lookup table
+		fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"The maximum number of entries to store in the sequence ID-SubRun ID lookup table"}, 100};
+		/// "max_event_list_length" (Default: 100): The maximum number of entries to store in the released events list
+		fhicl::Atom<size_t> max_event_list_length{fhicl::Name{"max_event_list_length"}, fhicl::Comment{" The maximum number of entries to store in the released events list"}, 100};
 		/// "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 		fhicl::Atom<bool> send_init_fragments{fhicl::Name{"send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true};
 		/// "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
@@ -354,7 +354,13 @@ public:
 		 * \param frag Fragment ID to get "dropped data" for
 		 * \return Pointer to the data payload of the "dropped data" fragment
 		 */
-	RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { return dropped_data_[frag]->dataBegin(); }
+	RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { 
+		if (dropped_data_.count(frag) && dropped_data_[frag] != nullptr)
+		{
+			return dropped_data_[frag]->dataBegin();
+		}
+			return nullptr;
+	}
 
 	/**
 		 * \brief Updates the internally-stored copy of the art configuration.
@@ -407,6 +413,8 @@ private:
 	std::set<int> active_buffers_;
 	std::set<int> pending_buffers_;
 	std::unordered_map<Fragment::sequence_id_t, size_t> released_incomplete_events_;
+	std::set<Fragment::sequence_id_t> released_events_;
+	size_t max_event_list_length_;
 
 	bool update_run_ids_;
 	bool use_sequence_id_for_event_number_;
