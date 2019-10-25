@@ -12,6 +12,7 @@ art_make_exec(NAME artdaqDriver
   artdaq_DAQdata
   artdaq-core_Utilities
   artdaq-core_Generators
+  art_Utilities
   ${FHICLCPP}
   ${CETLIB}
   ${ROOT_CORE}
