@@ -31,6 +31,8 @@
 #include "artdaq/TransferPlugins/detail/SRSockets.hh"
 #include "artdaq/TransferPlugins/detail/Timeout.hh"
 
+#define USE_SENDMSG 1
+
 std::atomic<int> artdaq::TCPSocketTransfer::listen_thread_refcount_(0);
 std::unique_ptr<boost::thread> artdaq::TCPSocketTransfer::listen_thread_ = nullptr;
 std::map<int, std::set<int>> artdaq::TCPSocketTransfer::connected_fds_ = std::map<int, std::set<int>>();
@@ -721,8 +723,16 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 		TLOG(14) << GetTraceName() << ": sendFragment b4 writev " << std::setw(7) << total_written_bytes << " total_written_bytes send_fd_=" << send_fd_ << " in_idx=" << in_iov_idx
 		         << " iovcnt=" << out_iov_idx << " 1st.len=" << iovv[0].iov_len;
 #endif
-		//TLOG(TLVL_DEBUG) << GetTraceName() << " calling writev" ;
-		sts = writev(send_fd_, &(iovv[0]), out_iov_idx);
+//TLOG(TLVL_DEBUG) << GetTraceName() << " calling writev" ;
+#if USE_SENDMSG
+		msghdr msg;
+		memset(&msg, 0, sizeof(msghdr));
+		msg.msg_iov = &(iovv[0]);
+		msg.msg_iovlen = out_iov_idx; // at this point out_iov_idx is really the count (not an idx per se)
+		sts = sendmsg(send_fd_, &msg, MSG_NOSIGNAL | (blocking ? 0 : MSG_DONTWAIT));
+#else
+		sts = writev(send_fd_, &(iovv[0]), out_iov_idx); // SIGPIPE may occur -- need signal handler or mask/ignore
+#endif
 		//TLOG(TLVL_DEBUG) << GetTraceName() << " done with writev" ;
 
 		if (sts == -1)
@@ -730,12 +740,15 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 			if (errno == EAGAIN /* same as EWOULDBLOCK */)
 			{
 				TLOG(TLVL_DEBUG) << GetTraceName() << ": sendFragment EWOULDBLOCK";
-				fcntl(send_fd_, F_SETFL, 0);  // clear O_NONBLOCK
 				blocking = true;
+
+#if !USE_SENDMSG
+				fcntl(send_fd_, F_SETFL, 0);  // clear O_NONBLOCK
+#endif
 				// NOTE: YES -- could drop here
 				goto do_again;
 			}
-			TLOG(TLVL_WARNING) << GetTraceName() << ": sendFragment_: WRITE ERROR: " << strerror(errno);
+			TLOG(TLVL_WARNING) << GetTraceName() << ": sendFragment_: WRITE ERROR " << errno << ": " << strerror(errno);
 			connect_state = 0;  // any write error closes
 			close(send_fd_);
 			send_fd_ = -1;
@@ -820,7 +833,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	if (blocking)
 	{
 		blocking = false;
+#if !USE_SENDMSG
 		fcntl(send_fd_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
+#endif
 	}
 	sts = total_written_bytes - sizeof(MessHead);
 

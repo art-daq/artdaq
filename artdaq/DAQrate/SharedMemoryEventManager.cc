@@ -29,6 +29,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
     , queue_size_(pset.get<size_t>("buffer_count"))
     , run_id_(0)
     , max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
+    , max_event_list_length_(pset.get<size_t>("max_event_list_length", 100))
     , update_run_ids_(pset.get<bool>("update_run_ids_on_new_fragment", true))
     , use_sequence_id_for_event_number_(pset.get<bool>("use_sequence_id_for_event_number", true))
     , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
@@ -288,12 +289,19 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		}
 		TLOG(TLVL_TRACE) << "Done writing fragment, and no other writer. Doing bookkeeping steps.";
 		auto frag_count = GetFragmentCount(frag.sequence_id);
-		hdr->is_complete = frag_count == num_fragments_per_event_;
+		hdr->is_complete = frag_count >= num_fragments_per_event_;
+
+		if (frag_count > num_fragments_per_event_)
+		{
+			TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << frag_count << " ) than specified in configuration ( " << num_fragments_per_event_ << " )!"
+			                   << " This is probably due to a misconfiguration and is *not* a reliable mode!";
+		}
+
 		TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << frag_count << "/" << num_fragments_per_event_;
 #if ART_SUPPORTS_DUPLICATE_EVENTS
 		if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id))
 		{
-			hdr->is_complete = frag_count == released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
+			hdr->is_complete = frag_count >= released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
 		}
 #endif
 	}
@@ -954,6 +962,11 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		TLOG(TLVL_ERROR) << "Event " << seqID << " has already been marked \"Incomplete\" and sent to art!";
 		return -2;
 	}
+	if (released_events_.count(seqID))
+	{
+		TLOG(TLVL_ERROR) << "Event " << seqID << " has already been completed and released to art! Check configuration for inconsistent Fragment count per event!";
+		return -2;
+	}
 #endif
 
 	if (!create_new) return -1;
@@ -1035,6 +1048,11 @@ void artdaq::SharedMemoryEventManager::complete_buffer_(int buffer)
 			TLOG(TLVL_BUFLCK) << "complete_buffer_: obtained sequence_id_mutex lock for seqid=" << hdr->sequence_id;
 			active_buffers_.erase(buffer);
 			pending_buffers_.insert(buffer);
+			released_events_.insert(hdr->sequence_id);
+			while (released_events_.size() > max_event_list_length_)
+			{
+				released_events_.erase(released_events_.begin());
+			}
 
 			TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
 			                  << size() << ","
@@ -1286,7 +1304,3 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 	    << std::endl;
 	return oss.str();
 }
-
-#if MESSAGEFACILITY_HEX_VERSION >= 0x20103
-FHICL_PROVIDE_ALLOWED_CONFIGURATION(artdaq::SharedMemoryEventManager)
-#endif
