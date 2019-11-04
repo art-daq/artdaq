@@ -250,6 +250,7 @@ art::RootDAQOut::RootDAQOut(Parameters const& config)
           config().fileProperties())}
     , rpm_{config.get_PSet()}
 {
+	TLOG(TLVL_INFO) << "RootDAQOut_module (s85 version) CONSTRUCTOR Start";
 	bool const dropAllEventsSet{config().dropAllEvents(dropAllEvents_)};
 	dropAllEvents_ =
 	    detail::shouldDropEvents(dropAllEventsSet, dropAllEvents_, dropAllSubRuns_);
