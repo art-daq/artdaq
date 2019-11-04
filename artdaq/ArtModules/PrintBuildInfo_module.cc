@@ -15,10 +15,13 @@
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
+#include "tracemf.h"
 
 #include "artdaq-core/Data/PackageBuildInfo.hh"
 
 #include <iostream>
+
+#define TRACE_NAME "PrintBuildInfo"
 
 namespace artdaq {
 class PrintBuildInfo;
@@ -77,6 +80,7 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 {
 	art::Handle<std::vector<artdaq::PackageBuildInfo>> raw;
 
+	TLOG(TLVL_INFO) << "Calling getByLabel: module label: " << buildinfo_module_label_ << ", instance label: " << buildinfo_instance_label_;
 	run.getByLabel(buildinfo_module_label_, buildinfo_instance_label_, raw);
 
 	if (raw.isValid())
