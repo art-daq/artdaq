@@ -257,7 +257,7 @@ RootDAQOut::RootDAQOut(Parameters const& config)
           config().fileProperties())}
     , rpm_{config.get_PSet()}
 {
-	TLOG(TLVL_INFO) << "RootDAQOut_module (s71 version) CONSTRUCTOR Start";
+	TLOG(TLVL_INFO) << "RootDAQOut_module (s81 version) CONSTRUCTOR Start";
 	// Setup the streamers and error handlers.
 	root::setup();
 
