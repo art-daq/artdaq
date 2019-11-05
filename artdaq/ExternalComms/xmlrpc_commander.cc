@@ -369,7 +369,8 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 	{
 		if (getenv("FHICL_FILE_PATH") == nullptr)
 		{
-			std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+			TLOG(TLVL_ERROR) << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"";
+			std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"" << std::endl;
 			setenv("FHICL_FILE_PATH", ".", 0);
 		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");

@@ -126,6 +126,7 @@ bool artdaq::RoutingMasterApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	}
 	catch (boost::exception const& e)
 	{
+		TLOG(TLVL_ERROR) << "Exception encountered starting Routing Master thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
 		std::cerr << "Exception encountered starting Routing Master thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
 		exit(3);
 	}

@@ -4,7 +4,6 @@
 #include "artdaq/ArtModules/detail/SharedMemoryReader.hh"
 
 #include <string>
-using std::string;
 
 namespace art {
 /**

@@ -45,6 +45,7 @@ void artdaq::TokenReceiver::startTokenReception()
 	}
 	catch (boost::exception const& e)
 	{
+		TLOG(TLVL_ERROR) << "Exception encountered starting Token Reception thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
 		std::cerr << "Exception encountered starting Token Reception thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
 		exit(3);
 	}
