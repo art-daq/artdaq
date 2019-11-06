@@ -139,6 +139,9 @@ public:
 		 */
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
+	bool RoutingTokenSendsEnabled() { return send_routing_tokens_; }
+
+private:
 private:
 	// Request stuff
 	bool send_requests_;
