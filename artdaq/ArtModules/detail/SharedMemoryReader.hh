@@ -199,6 +199,14 @@ struct SharedMemoryReader
 	    , last_read_time(std::chrono::steady_clock::now())
 	    , readNext_calls_(0)
 	{
+#if 0
+		volatile bool keep_looping = true;
+		while (keep_looping)
+		{
+			usleep(10000);
+		}
+#endif
+
 		// For testing
 		// if (ps.has_key("buffer_count") && (ps.has_key("max_event_size_bytes") ||
 		// (ps.has_key("expected_fragments_per_event") && ps.has_key("max_fragment_size_bytes"))))
@@ -245,6 +253,10 @@ struct SharedMemoryReader
 		}
 
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
+
+		// Workaround for #22979
+		help.reconstitutes<Fragments, art::InRun>(pretend_module_name, unidentified_instance_name);
+		help.reconstitutes<Fragments, art::InSubRun>(pretend_module_name, unidentified_instance_name);
 
 		translator_.SetBasicTypes(getDefaultTypes());
 		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
