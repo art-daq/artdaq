@@ -83,6 +83,17 @@ public:
 		}
 		return out;
 	}
+	
+	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest() const
+	{
+		std::unique_lock<std::mutex> lk(request_mutex_);
+		std::pair<artdaq::Fragment::sequence_id_t, Fragment::timestamp_t> out;
+
+		out.first = requests_.begin()->first;
+		out.second = requests_.begin()->second;
+
+		return out;
+	}
 
 	/// <summary>
 	/// Remove the request with the given sequence ID from the request map
