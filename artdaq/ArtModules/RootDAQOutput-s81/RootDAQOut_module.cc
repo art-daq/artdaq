@@ -499,7 +499,6 @@ void RootDAQOut::finishEndFile()
 	rootOutputFile_.reset();
 	fstats_.recordFileClose();
 	lastClosedFileName_ = fileNameAtClose(currentFileName);
-	detail::logFileAction("Closed output file ", lastClosedFileName_);
 	TLOG(TLVL_INFO) << __func__ << ": Closed output file \"" << lastClosedFileName_ << "\"";
 	rpm_.invoke(&ResultsProducer::doClear);
 }

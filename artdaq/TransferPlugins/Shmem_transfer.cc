@@ -22,17 +22,6 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	//   }
 	// }
 
-	// JCF, Aug-16-2016
-
-	// Note that there's a small but nonzero chance of a race condition
-	// here where another process creates the shared memory buffer
-	// between the first and second calls to shmget
-
-	if (buffer_count_ > 100)
-	{
-		throw cet::exception("ConfigurationException", "Buffer Count is too large for Shmem transfer!");
-	}
-
 	auto partition = GetPartitionNumber() + 1;  // Can't be 0
 
 	auto shmKey = pset.get<uint32_t>("shm_key_offset", 0) + (partition << 24) + ((source_rank() & 0xFFF) << 12) + (destination_rank() & 0xFFF);
