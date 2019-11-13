@@ -84,16 +84,13 @@ public:
 		return out;
 	}
 	
-	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest() const
-	{
-		std::unique_lock<std::mutex> lk(request_mutex_);
-		std::pair<artdaq::Fragment::sequence_id_t, Fragment::timestamp_t> out;
-
-		out.first = requests_.begin()->first;
-		out.second = requests_.begin()->second;
-
-		return out;
-	}
+	/// <summary>
+	/// Get the "next" request, i.e. the first unsatisfied request that has not already been returned by GetNextRequest
+	/// </summary>
+	/// <returns>Request data for "next" request. Will return (0,0) if there is no "next" request</returns>
+	/// 
+	/// This function uses last_next_request_ to ensure that it does not return the same request more than once
+	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest();
 
 	/// <summary>
 	/// Remove the request with the given sequence ID from the request map
@@ -200,6 +197,7 @@ private:
 	boost::thread requestThread_;
 
 	std::atomic<artdaq::Fragment::sequence_id_t> highest_seen_request_;
+	std::atomic<artdaq::Fragment::sequence_id_t> last_next_request_; // The last request returned by GetNextRequest
 	std::set<artdaq::Fragment::sequence_id_t> out_of_order_requests_;
 	artdaq::Fragment::sequence_id_t request_increment_;
 };
