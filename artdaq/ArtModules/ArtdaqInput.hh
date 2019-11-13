@@ -39,10 +39,12 @@
 #include <TList.h>
 #include <TStreamerInfo.h>
 
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/ArtModules/InputUtilities.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/NetMonHeader.hh"
 
 #include <sys/time.h>
 #include <cstdio>
@@ -198,14 +200,15 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	                           << "const art::SourceHelper& pm)";
 
 	TLOG_ARB(5, "ArtdaqInput") << "Going to receive init message";
-	std::unique_ptr<TBufferFile> msg(nullptr);
-	communicationWrapper_.receiveInitMessage(msg);
+	artdaq::FragmentPtr initFrag = communicationWrapper_.receiveInitMessage();
 	TLOG_ARB(5, "ArtdaqInput") << "Init message received";
 
-	if (!msg)
+	if (!initFrag)
 	{
 		throw art::Exception(art::errors::DataCorruption) << "ArtdaqInput: Could not receive init message!";
 	}
+	auto header = initFrag->metadata<artdaq::NetMonHeader>();
+	std::unique_ptr<TBufferFile> msg (new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
 
 	// This first unsigned long is the message type code, ignored here in the constructor
 	unsigned long dummy = 0;
@@ -669,15 +672,16 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 		return false;
 	}
 
-	std::unique_ptr<TBufferFile> msg;
-	communicationWrapper_.receiveMessage(msg);
-
-	if (!msg)
+	artdaq::FragmentPtr dataFrag = communicationWrapper_.receiveMessage();
+	if (!dataFrag)
 	{
 		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext got an empty message";
 		shutdownMsgReceived_ = true;
 		return false;
 	}
+	auto header = dataFrag->metadata<artdaq::NetMonHeader>();
+	std::unique_ptr<TBufferFile> msg( new TBufferFile(TBuffer::kRead, header->data_length, dataFrag->dataBegin(), kFALSE, 0));
+	
 
 	//
 	//  Read message type code.

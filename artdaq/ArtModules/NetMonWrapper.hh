@@ -4,7 +4,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "fhiclcpp/ParameterSet.h"
 
-#include <TBufferFile.h>
+#include "artdaq-core/Data/Fragment.hh"
 
 #include <memory>
 #include <string>
@@ -37,13 +37,13 @@ public:
 		 * \brief Receive a message from the NetMonTransportService
 		 * \param[out] msg A pointer to the received message
 		 */
-	void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+	artdaq::FragmentPtr receiveMessage();
 
 	/**
 		* \brief Receive an init message from the NetMonTransportService
 		* \param[out] msg A pointer to the received message
 		*/
-	void receiveInitMessage(std::unique_ptr<TBufferFile>& msg);
+	artdaq::FragmentPtr receiveInitMessage();
 
 private:
 	fhicl::ParameterSet data_pset_;

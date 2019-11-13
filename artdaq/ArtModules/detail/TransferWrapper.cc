@@ -12,8 +12,6 @@
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include <TBufferFile.h>
-
 #include <csignal>
 #include <iostream>
 #include <limits>
@@ -103,7 +101,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
 	}
 }
 
-void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
+artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 {
 	std::unique_ptr<artdaq::Fragment> fragmentPtr;
 	bool receivedFragment = false;
@@ -120,7 +118,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			{
 				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 				unregisterMonitor();
-				return;
+				return nullptr;
 			}
 
 			try
@@ -147,7 +145,7 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 				{
 					TLOG(TLVL_ERROR) << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
 					unregisterMonitor();
-					return;
+					return nullptr;
 				}
 				else
 				{
@@ -170,19 +168,9 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			//{
 			//	unregisterMonitor();
 			//}
-			return;
+			return nullptr;
 		}
-
-		try
-		{
-			extractTBufferFile(*fragmentPtr, msg);
-		}
-		catch (...)
-		{
-			ExceptionHandler(ExceptionHandlerRethrow::yes,
-			                 "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
-		}
-
+		
 		checkIntegrity(*fragmentPtr);
 
 		if (initialized || fragmentPtr->type() == artdaq::Fragment::InitFragmentType)
@@ -200,17 +188,8 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			}
 		}
 	}
-}
 
-void artdaq::TransferWrapper::extractTBufferFile(const artdaq::Fragment& fragment,
-                                                 std::unique_ptr<TBufferFile>& tbuffer)
-{
-	const artdaq::NetMonHeader* header = fragment.metadata<artdaq::NetMonHeader>();
-	char* buffer = (char*)malloc(header->data_length);
-	memcpy(buffer, fragment.dataBeginBytes(), header->data_length);
-
-	// TBufferFile takes ownership of the contents of memory passed to it
-	tbuffer.reset(new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0));
+	return fragmentPtr;
 }
 
 void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
