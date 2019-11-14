@@ -18,12 +18,14 @@
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRun.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Utilities/parent_path.h"
 #include "art/Utilities/unique_filename.h"
 #include "art_root_io/DropMetaData.h"
 #include "art_root_io/RootFileBlock.h"
 #include "art_root_io/detail/rootOutputConfigurationTools.h"
 #include "art_root_io/setup.h"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
 #include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
 #include "artdaq/DAQdata/Globals.hh"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
@@ -655,6 +657,9 @@ void RootDAQOut::endRun(RunPrincipal const& rp)
 std::string
 RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& config)
 {
+	// Make sure that the shared memory is connected
+	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
+
 	TLOG(TLVL_DEBUG) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
 
 	// fetch the firstLoggerRank and fileNameSubstitutions (if provided) for use in
