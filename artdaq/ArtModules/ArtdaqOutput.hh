@@ -38,6 +38,7 @@
 #include "fhiclcpp/ParameterSetRegistry.h"
 
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/NetMonHeader.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/ParentageMap.hh"
@@ -93,7 +94,19 @@ namespace art {
 class ArtdaqOutput;
 }
 
-/// <summary>
+static artdaq::FragmentPtr outputFrag = nullptr;
+char* Fragment_ReAllocChar(char* dataPtr, size_t size, size_t /*oldsize*/)
+{
+	if (outputFrag != nullptr && dataPtr == reinterpret_cast<char*>(outputFrag->dataBegin()))
+	{
+		outputFrag->resizeBytes(size);
+
+		return reinterpret_cast<char*>(outputFrag->dataBegin());
+	}
+	return nullptr;
+}
+
+    /// <summary>
 /// This is the base class for artdaq OutputModules, providing the serialization interface for art Events.
 /// </summary>
 class art::ArtdaqOutput : public art::OutputModule
@@ -104,7 +117,7 @@ public:
 	/// </summary>
 	/// <param name="ps">ParameterSet used to configure art::OutputModule</param>
 	explicit ArtdaqOutput(fhicl::ParameterSet const& ps)
-	    : OutputModule(ps), initMsgSent_(false), productList_()
+	    : OutputModule(ps), initMsgSent_(false), productList_(), last_fragment_size_(10)
 	{
 #if ART_HEX_VERSION >= 0x30200
 		root::setup();
@@ -222,7 +235,7 @@ protected:
 	/// <param name="msg">Output TBufferFile</param>
 	/// <param name="principal">Principal from which to extract products</param>
 	/// <param name="bkv">Branch Keys for data products</param>
-	void writeDataProducts(TBufferFile& msg, const Principal& principal, std::vector<BranchKey*>& bkv);
+	void writeDataProducts(std::unique_ptr<TBufferFile>& msg, const Principal& principal, std::vector<BranchKey*>& bkv);
 
 	/// <summary>
 	/// Extract the list of Products from the given Principal
@@ -239,14 +252,33 @@ protected:
 	/// <summary>
 	/// Send the serialized art Event downstream. Artdaq output modules should define this function.
 	/// </summary>
-	/// <param name="sequenceId">Sequence ID to use for event (event number)</param>
-	/// <param name="messageType">Message Type (Fragment::DataFragmentType for events, other System types for control messages)</param>
 	/// <param name="msg">Serialized art Event</param>
-	virtual void SendMessage(artdaq::Fragment::sequence_id_t sequenceId, artdaq::Fragment::type_t messageType, TBufferFile& msg) = 0;
+	virtual void SendMessage(artdaq::FragmentPtr& msg) = 0;
 
 private:
 	bool initMsgSent_;
 	ProductList productList_;
+	size_t last_fragment_size_;
+
+
+	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::type_t type)
+	{
+		artdaq::NetMonHeader hdr;
+		outputFrag.reset(new artdaq::Fragment(last_fragment_size_, seqID, 0, type, hdr));
+		std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar));
+		msg->SetWriteMode();
+		return msg;
+	}
+
+	void sendMessage(std::unique_ptr<TBufferFile>& msg)
+	{
+		artdaq::NetMonHeader hdr;
+		hdr.data_length = static_cast<uint64_t>(msg->Length());
+		outputFrag->updateMetadata(hdr);
+		outputFrag->resizeBytes(hdr.data_length);
+		last_fragment_size_ = std::ceil(msg->Length() / static_cast<double>(sizeof(artdaq::RawDataType)));
+		SendMessage(outputFrag);
+	}
 };
 
 void art::ArtdaqOutput::send_init_message(History const& history)
@@ -299,13 +331,12 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	//
 	//  Construct and send the init message.
 	//
-	TBufferFile msg(TBuffer::kWrite);
-	msg.SetWriteMode();
+	auto msg = prepareMessage(0, artdaq::Fragment::InitFragmentType);
 	//
 	//  Stream the message type code.
 	//
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming message type code ...";
-	msg.WriteULong(1);
+	msg->WriteULong(1);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming message type code.";
 
 	//
@@ -324,22 +355,22 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 		}
 		infos.Add(class_ptr->GetStreamerInfo());
 	}
-	msg.WriteObject(&infos);
+	msg->WriteObject(&infos);
 
 	//
 	//  Stream the ParameterSetRegistry.
 	//
 	unsigned long ps_cnt = fhicl::ParameterSetRegistry::size();
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): parameter set count: " << ps_cnt;
-	msg.WriteULong(ps_cnt);
+	msg->WriteULong(ps_cnt);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming parameter sets ...";
 	for (auto I = std::begin(fhicl::ParameterSetRegistry::get()), E = std::end(fhicl::ParameterSetRegistry::get());
 	     I != E; ++I)
 	{
 		TLOG(TLVL_SENDINIT) << "Pset ID " << I->first << ": " << I->second.to_string();
 		std::string pset_str = I->second.to_string();
-		// msg.WriteObjectAny(&pset_str, string_class);
-		msg.WriteStdString(pset_str);
+		// msg->WriteObjectAny(&pset_str, string_class);
+		msg->WriteStdString(pset_str);
 	}
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming parameter sets.";
 
@@ -347,7 +378,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	//  Stream the MasterProductRegistry.
 	//
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming Product List sz=" << productList_.size() << "...";
-	msg.WriteObjectAny(&productList_, product_list_class);
+	msg->WriteObjectAny(&productList_, product_list_class);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming Product List.";
 
 	art::ProcessHistoryMap phr;
@@ -376,7 +407,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	//    ProcessHistoryMap;
 	const art::ProcessHistoryMap& phm = phr;
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): phm: size: " << phm.size();
-	msg.WriteObjectAny(&phm, process_history_map_class);
+	msg->WriteObjectAny(&phm, process_history_map_class);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming ProcessHistoryRegistry.";
 
 	//
@@ -389,22 +420,22 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 		parentageMap.emplace(pr.first, pr.second);
 	}
 
-	msg.WriteObjectAny(&parentageMap, parentage_map_class);
+	msg->WriteObjectAny(&parentageMap, parentage_map_class);
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming ParentageRegistry.";
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming History";
-	msg.WriteObjectAny(&history, history_class);
+	msg->WriteObjectAny(&history, history_class);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Done streaming History";
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Sending init message";
-	SendMessage(0, artdaq::Fragment::InitFragmentType, msg);
+	sendMessage(msg);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Done sending init message";
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): END";
 }
 
-void art::ArtdaqOutput::writeDataProducts(TBufferFile& msg, const Principal& principal, std::vector<BranchKey*>& bkv)
+void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, const Principal& principal, std::vector<BranchKey*>& bkv)
 {
 	TLOG(TLVL_WRITEDATAPRODUCTS) << "Begin: ArtdaqOutput::writeDataProducts(...)";
 	//
@@ -462,7 +493,7 @@ void art::ArtdaqOutput::writeDataProducts(TBufferFile& msg, const Principal& pri
 	//
 	TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): Streaming product count: " +
 	                                    std::to_string(prd_cnt);
-	msg.WriteULong(prd_cnt);
+	msg->WriteULong(prd_cnt);
 	TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): Finished streaming product count.";
 
 	//
@@ -513,7 +544,7 @@ void art::ArtdaqOutput::writeDataProducts(TBufferFile& msg, const Principal& pri
 		                                "Streaming branch key         of class: '"
 		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
 		                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
-		msg.WriteObjectAny(bkv.back(), branch_key_class);
+		msg->WriteObjectAny(bkv.back(), branch_key_class);
 
 		TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): "
 		                                "Streaming product            of class: '"
@@ -524,7 +555,7 @@ void art::ArtdaqOutput::writeDataProducts(TBufferFile& msg, const Principal& pri
 		const EDProduct* prd = oh.wrapper();
 		TLOG(TLVL_WRITEDATAPRODUCTS) << "Class for branch " << bd.wrappedName() << " is "
 		                             << (void*)TClass::GetClass(bd.wrappedName().c_str());
-		msg.WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
+		msg->WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
 		TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): "
 		                                "Streaming product provenance of class: '"
 		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
@@ -534,7 +565,7 @@ void art::ArtdaqOutput::writeDataProducts(TBufferFile& msg, const Principal& pri
 #else
 		const ProductProvenance* prdprov = I->second->productProvenance().get();
 #endif
-		msg.WriteObjectAny(prdprov, prdprov_class);
+		msg->WriteObjectAny(prdprov, prdprov_class);
 	}
 	TLOG(TLVL_WRITEDATAPRODUCTS) << "End:   ArtdaqOutput::writeDataProducts(...)";
 }
@@ -580,27 +611,26 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	//  Setup message buffer.
 	//
-	TBufferFile msg(TBuffer::kWrite);
-	msg.SetWriteMode();
+	auto msg = prepareMessage(ep.EVENT_ID().event(), artdaq::Fragment::DataFragmentType);
 	//
 	//  Write message type code.
 	//
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming message type code ...";
-	msg.WriteULong(4);
+	msg->WriteULong(4);
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming message type code.";
 
 	//
 	//  Write RunAuxiliary.
 	//
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming RunAuxiliary ...";
-	msg.WriteObjectAny(&ep.subRunPrincipal().runPrincipal().RUN_AUX(), run_aux_class);
+	msg->WriteObjectAny(&ep.subRunPrincipal().runPrincipal().RUN_AUX(), run_aux_class);
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming RunAuxiliary.";
 
 	//
 	//  Write SubRunAuxiliary.
 	//
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming SubRunAuxiliary ...";
-	msg.WriteObjectAny(&ep.subRunPrincipal().SUBRUN_AUX(), subrun_aux_class);
+	msg->WriteObjectAny(&ep.subRunPrincipal().SUBRUN_AUX(), subrun_aux_class);
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming SubRunAuxiliary.";
 
 	//
@@ -608,7 +638,7 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	{
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming EventAuxiliary ...";
-		msg.WriteObjectAny(&ep.EVENT_AUX(), event_aux_class);
+		msg->WriteObjectAny(&ep.EVENT_AUX(), event_aux_class);
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming EventAuxiliary.";
 	}
 	//
@@ -616,7 +646,7 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	{
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming History ...";
-		msg.WriteObjectAny(&ep.history(), history_class);
+		msg->WriteObjectAny(&ep.history(), history_class);
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming History.";
 	}
 	//
@@ -626,7 +656,7 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 	writeDataProducts(msg, ep, bkv);
 
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write: Sending message";
-	SendMessage(ep.EVENT_ID().event(), artdaq::Fragment::DataFragmentType, msg);
+	sendMessage(msg);
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write: Done sending message";
 
 	//
@@ -665,14 +695,13 @@ void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	//  Begin preparing message.
 	//
-	TBufferFile msg(TBuffer::kWrite);
-	msg.SetWriteMode();
+	auto msg = prepareMessage(0, artdaq::Fragment::EndOfRunFragmentType);
 	//
 	//  Write message type code.
 	//
 	{
 		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streaming message type code ...";
-		msg.WriteULong(2);
+		msg->WriteULong(2);
 		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: finished streaming message type code.";
 	}
 	//
@@ -680,7 +709,7 @@ void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	{
 		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streaming RunAuxiliary ...";
-		msg.WriteObjectAny(&rp.RUN_AUX(), run_aux_class);
+		msg->WriteObjectAny(&rp.RUN_AUX(), run_aux_class);
 		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streamed RunAuxiliary.";
 	}
 	//
@@ -690,7 +719,7 @@ void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	writeDataProducts(msg, rp, bkv);
 
 	TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: Sending message";
-	SendMessage(0, artdaq::Fragment::EndOfRunFragmentType, msg);
+	sendMessage(msg);
 	TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: Done sending message";
 
 	for (auto I = bkv.begin(), E = bkv.end(); I != E; ++I)
@@ -728,14 +757,13 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	//  Begin preparing message.
 	//
-	TBufferFile msg(TBuffer::kWrite);
-	msg.SetWriteMode();
+	auto msg = prepareMessage(0, artdaq::Fragment::EndOfSubrunFragmentType);
 	//
 	//  Write message type code.
 	//
 	{
 		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: streaming message type code ...";
-		msg.WriteULong(3);
+		msg->WriteULong(3);
 		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: finished streaming message type code.";
 	}
 	//
@@ -783,7 +811,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: ProcessConfiguration: '" << OS.str();
 			}
 		}
-		msg.WriteObjectAny(&srp.SUBRUN_AUX(), subrun_aux_class);
+		msg->WriteObjectAny(&srp.SUBRUN_AUX(), subrun_aux_class);
 		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: streamed SubRunAuxiliary.";
 	}
 	//
@@ -793,7 +821,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	writeDataProducts(msg, srp, bkv);
 
 	TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: Sending message";
-	SendMessage(0, artdaq::Fragment::EndOfSubrunFragmentType, msg);
+	sendMessage(msg);
 	TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: Done sending message";
 
 	//
