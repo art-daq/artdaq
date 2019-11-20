@@ -311,10 +311,17 @@ struct SharedMemoryReader
 		auto read_start_time = std::chrono::steady_clock::now();
 
 		std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap;
-		while (eventMap.size() == 0)
+		while (eventMap.size() == 0 && artdaq::TimeUtils::GetElapsedTime(read_start_time) < waiting_time)
 		{
 			eventMap = shm->ReceiveEvent(false);
 		}
+		if (eventMap.size() == 0)
+		{
+			TLOG_ERROR("SharedMemoryReader") << "No data received after " << waiting_time << " seconds. Returning false (should exit art)";
+			shutdownMsgReceived = true;
+			return false;
+		}
+
 		auto got_event_time = std::chrono::steady_clock::now();
 		auto firstFragmentType = eventMap.begin()->first;
 		TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " ("
