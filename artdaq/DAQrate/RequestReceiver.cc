@@ -308,7 +308,8 @@ std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq
 	auto it = requests_.begin();
 	while (it != requests_.end() && it->first <= last_next_request_) { ++it; }
 
-	if (it == requests_.end()) {
+	if (it == requests_.end())
+	{
 		return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
 	}
 
