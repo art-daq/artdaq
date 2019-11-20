@@ -1,7 +1,7 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_06_02
-defaultqual    e15:s67
+parent artdaq  v3_07_00
+defaultqual    e17:s85
 
 # These optional lines define the installed directories where
 # headers, libraries, and executables will be found
@@ -17,20 +17,22 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
+art_root_io     v1_02_00    s94
+art_root_io     v1_00_10    s92
 art_root_io     v1_01_00    s87
 art             v2_13_00    s85
 art_root_io     v1_00_05    s83
 art_root_io     v1_00_04    s82
 art             v2_11_05    s73
 art             v2_11_01    s67
-artdaq_core 		v3_05_07
-artdaq_utilities        v1_05_02
+artdaq_core 		v3_05_09
+artdaq_utilities        v1_05_03
 xmlrpc_c		v1_51_03a
-artdaq_mfextensions     v1_03_07        -       optional
-artdaq_epics_plugin     v1_02_09        -       optional
-artdaq_ganglia_plugin   v1_02_16        -       optional
-artdaq_pcp_mmv_plugin   v1_00_01        -       optional
-cetbuildtools		v7_13_02	-	only_for_build
+artdaq_mfextensions     v1_03_08        -       optional
+artdaq_epics_plugin     v1_02_10        -       optional
+artdaq_ganglia_plugin   v1_02_17        -       optional
+artdaq_pcp_mmv_plugin   v1_00_02        -       optional
+cetbuildtools		v7_14_00	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
 
@@ -38,6 +40,20 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier	art		art_root_io	artdaq_core	artdaq_utilities	xmlrpc_c	artdaq_mfextensions	artdaq_epics_plugin	artdaq_ganglia_plugin artdaq_pcp_mmv_plugin	
+c7:s94:debug	-		c7:debug	c7:s94:debug	c7:s94:debug		c7:debug	c7:s94:debug	   	c7:s94:debug       	c7:s94:debug	      c7:s94:debug       	
+c7:s94:prof	- 		c7:prof		c7:s94:prof	c7:s94:prof		c7:prof		c7:s94:prof	   	c7:s94:prof		c7:s94:prof	      c7:s94:prof		
+e19:s94:debug	-		e19:debug	e19:s94:debug	e19:s94:debug		e19:debug	e19:s94:debug	   	e19:s94:debug      	e19:s94:debug	      e19:s94:debug		
+e19:s94:prof	- 		e19:prof	e19:s94:prof	e19:s94:prof		e19:prof	e19:s94:prof	   	e19:s94:prof		e19:s94:prof	      e19:s94:prof		
+
+c7:s92:debug	-		c7:debug	c7:s92:debug	c7:s92:debug		c7:debug	c7:s92:debug	   	c7:s92:debug       	c7:s92:debug	      c7:s92:debug       	
+c7:s92:prof	- 		c7:prof		c7:s92:prof	c7:s92:prof		c7:prof		c7:s92:prof	   	c7:s92:prof		c7:s92:prof	      c7:s92:prof		
+c2:s92:debug	-		c2:debug	c2:s92:debug	c2:s92:debug		c2:debug	c2:s92:debug	   	c2:s92:debug       	c2:s92:debug	      c2:s92:debug		
+c2:s92:prof	- 		c2:prof		c2:s92:prof	c2:s92:prof		c2:prof		c2:s92:prof	   	c2:s92:prof		c2:s92:prof	      c2:s92:prof		
+e19:s92:debug	-		e19:debug	e19:s92:debug	e19:s92:debug		e19:debug	e19:s92:debug	   	e19:s92:debug      	e19:s92:debug	      e19:s92:debug		
+e19:s92:prof	- 		e19:prof	e19:s92:prof	e19:s92:prof		e19:prof	e19:s92:prof	   	e19:s92:prof		e19:s92:prof	      e19:s92:prof		
+e17:s92:debug	-		e17:debug	e17:s92:debug	e17:s92:debug		e17:debug	e17:s92:debug	   	e17:s92:debug      	e17:s92:debug	      e17:s92:debug		
+e17:s92:prof	- 		e17:prof	e17:s92:prof	e17:s92:prof		e17:prof	e17:s92:prof	   	e17:s92:prof		e17:s92:prof	      e17:s92:prof		
+
 c7:s87:debug	-		c7:debug	c7:s87:debug	c7:s87:debug		c7:debug	c7:s87:debug	   	c7:s87:debug       	c7:s87:debug	      c7:s87:debug       	
 c7:s87:prof	- 		c7:prof		c7:s87:prof	c7:s87:prof		c7:prof		c7:s87:prof	   	c7:s87:prof		c7:s87:prof	      c7:s87:prof		
 c2:s87:debug	-		c2:debug	c2:s87:debug	c2:s87:debug		c2:debug	c2:s87:debug	   	c2:s87:debug       	c2:s87:debug	      c2:s87:debug		
@@ -46,10 +62,12 @@ e19:s87:debug	-		e19:debug	e19:s87:debug	e19:s87:debug		e19:debug	e19:s87:debug	
 e19:s87:prof	- 		e19:prof	e19:s87:prof	e19:s87:prof		e19:prof	e19:s87:prof	   	e19:s87:prof		e19:s87:prof	      e19:s87:prof		
 e17:s87:debug	-		e17:debug	e17:s87:debug	e17:s87:debug		e17:debug	e17:s87:debug	   	e17:s87:debug      	e17:s87:debug	      e17:s87:debug		
 e17:s87:prof	- 		e17:prof	e17:s87:prof	e17:s87:prof		e17:prof	e17:s87:prof	   	e17:s87:prof		e17:s87:prof	      e17:s87:prof		
+
 c2:s85:debug	c2:debug	-		c2:s85:debug	c2:s85:debug		c2:debug	c2:s85:debug		c2:s85:debug       	c2:s85:debug		c2:s85:debug
 c2:s85:prof	c2:prof		-		c2:s85:prof	c2:s85:prof		c2:prof		c2:s85:prof		c2:s85:prof		c2:s85:prof		c2:s85:prof
 e17:s85:debug	e17:debug	-		e17:s85:debug	e17:s85:debug		e17:debug	e17:s85:debug		e17:s85:debug      	e17:s85:debug		e17:s85:debug
 e17:s85:prof	e17:prof	-		e17:s85:prof	e17:s85:prof		e17:prof	e17:s85:prof		e17:s85:prof		e17:s85:prof		e17:s85:prof
+
 c7:s83:debug	-		c7:debug	c7:s83:debug	c7:s83:debug		c7:debug	c7:s83:debug	   	c7:s83:debug       	c7:s83:debug	      c7:s83:debug       	
 c7:s83:prof	- 		c7:prof		c7:s83:prof	c7:s83:prof		c7:prof		c7:s83:prof	   	c7:s83:prof		c7:s83:prof	      c7:s83:prof		
 c2:s83:debug	-		c2:debug	c2:s83:debug	c2:s83:debug		c2:debug	c2:s83:debug	   	c2:s83:debug       	c2:s83:debug	      c2:s83:debug		
@@ -58,6 +76,7 @@ e19:s83:debug	-		e19:debug	e19:s83:debug	e19:s83:debug		e19:debug	e19:s83:debug	
 e19:s83:prof	- 		e19:prof	e19:s83:prof	e19:s83:prof		e19:prof	e19:s83:prof	   	e19:s83:prof		e19:s83:prof	      e19:s83:prof		
 e17:s83:debug	-		e17:debug	e17:s83:debug	e17:s83:debug		e17:debug	e17:s83:debug	   	e17:s83:debug      	e17:s83:debug	      e17:s83:debug		
 e17:s83:prof	- 		e17:prof	e17:s83:prof	e17:s83:prof		e17:prof	e17:s83:prof	   	e17:s83:prof		e17:s83:prof	      e17:s83:prof		
+
 c7:s82:debug	-		c7:debug	c7:s82:debug	c7:s82:debug		c7:debug	c7:s82:debug	   	c7:s82:debug       	c7:s82:debug	      c7:s82:debug       	
 c7:s82:prof	- 		c7:prof		c7:s82:prof	c7:s82:prof		c7:prof		c7:s82:prof	   	c7:s82:prof		c7:s82:prof	      c7:s82:prof		
 c2:s82:debug	-		c2:debug	c2:s82:debug	c2:s82:debug		c2:debug	c2:s82:debug	   	c2:s82:debug       	c2:s82:debug	      c2:s82:debug		
@@ -66,10 +85,12 @@ e19:s82:debug	-		e19:debug	e19:s82:debug	e19:s82:debug		e19:debug	e19:s82:debug	
 e19:s82:prof	- 		e19:prof	e19:s82:prof	e19:s82:prof		e19:prof	e19:s82:prof	   	e19:s82:prof		e19:s82:prof	      e19:s82:prof		
 e17:s82:debug	-		e17:debug	e17:s82:debug	e17:s82:debug		e17:debug	e17:s82:debug	   	e17:s82:debug      	e17:s82:debug	      e17:s82:debug		
 e17:s82:prof	- 		e17:prof	e17:s82:prof	e17:s82:prof		e17:prof	e17:s82:prof	   	e17:s82:prof		e17:s82:prof	      e17:s82:prof		
+
 c2:s73:debug	c2:debug	-		c2:s73:debug	c2:s73:debug		c2:debug	c2:s73:debug	   	c2:s73:debug       	c2:s73:debug	      c2:s73:debug		
 c2:s73:prof	c2:prof 	-		c2:s73:prof	c2:s73:prof		c2:prof		c2:s73:prof	   	c2:s73:prof		c2:s73:prof	      c2:s73:prof		
 e17:s73:debug	e17:debug	-		e17:s73:debug	e17:s73:debug		e17:debug	e17:s73:debug	   	e17:s73:debug      	e17:s73:debug	      e17:s73:debug		
 e17:s73:prof	e17:prof 	-		e17:s73:prof	e17:s73:prof		e17:prof	e17:s73:prof	   	e17:s73:prof		e17:s73:prof	      e17:s73:prof		
+
 c2:s67:debug	c2:debug	-		c2:s67:debug	c2:s67:debug		c2:debug	c2:s67:debug	   	c2:s67:debug       	c2:s67:debug	      c2:s67:debug		
 c2:s67:prof	c2:prof 	-		c2:s67:prof	c2:s67:prof		c2:prof		c2:s67:prof	   	c2:s67:prof		c2:s67:prof	      c2:s67:prof		
 e17:s67:debug	e17:debug	-		e17:s67:debug	e17:s67:debug		e17:debug	e17:s67:debug	   	e17:s67:debug		e17:s67:debug	      e17:s67:debug		
