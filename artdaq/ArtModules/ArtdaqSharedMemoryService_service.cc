@@ -83,7 +83,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		TLOG(TLVL_TRACE) << "ReceiveEvent: Reading buffer header";
 		auto errflag = false;
 		auto hdrPtr = incoming_events_->ReadHeader(errflag);
-		if (errflag)
+		if (errflag || hdrPtr == nullptr)
 		{  // Buffer was changed out from under reader!
 			return recvd_fragments;
 		}
