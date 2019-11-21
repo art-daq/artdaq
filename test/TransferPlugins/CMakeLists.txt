@@ -35,7 +35,7 @@ artdaq_TransferPlugins
    ${Boost_PROGRAM_OPTIONS_LIBRARY}
    )
 
-  cet_script(runTransferTest.sh)
+  cet_script(runTransferTest.sh runBrokenTransferTest.sh)
 
   cet_test(transfer_driver_tcp_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
@@ -151,62 +151,62 @@ artdaq_TransferPlugins
 	)
 
 	cet_test(broken_transfer_driver_shmem_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_shmem.fcl
 	DATAFILES fcl/broken_transfer_driver_shmem.fcl
 	)
 	cet_test(broken_transfer_driver_shmem_equalbuffers_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_shmem_equalbuffers.fcl
 	DATAFILES fcl/broken_transfer_driver_shmem_equalbuffers.fcl
 	)
 	cet_test(broken_transfer_driver_shmem_moretransferbuffers_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_shmem_moretransferbuffers.fcl
 	DATAFILES fcl/broken_transfer_driver_shmem_moretransferbuffers.fcl
 	)
 	cet_test(broken_transfer_driver_shmem_nonblocking_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_shmem_nonblocking.fcl
 	DATAFILES fcl/broken_transfer_driver_shmem_nonblocking.fcl
 	)
 	cet_test(broken_transfer_driver_shmem_nonblocking_equalbuffers_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_shmem_nonblocking_equalbuffers.fcl
 	DATAFILES fcl/broken_transfer_driver_shmem_nonblocking_equalbuffers.fcl
 	)
 	cet_test(broken_transfer_driver_shmem_nonblocking_moretransferbuffers_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_shmem_nonblocking_moretransferbuffers.fcl
 	DATAFILES fcl/broken_transfer_driver_shmem_nonblocking_moretransferbuffers.fcl
 	)
 	cet_test(broken_transfer_driver_tcp_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_tcp.fcl
 	DATAFILES fcl/broken_transfer_driver_tcp.fcl
 	)
 	cet_test(broken_transfer_driver_tcp_equalbuffers_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_tcp_equalbuffers.fcl
 	DATAFILES fcl/broken_transfer_driver_tcp_equalbuffers.fcl
 	)
 	cet_test(broken_transfer_driver_tcp_moretransferbuffers_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_tcp_moretransferbuffers.fcl
 	DATAFILES fcl/broken_transfer_driver_tcp_moretransferbuffers.fcl
 	)
 	cet_test(broken_transfer_driver_tcp_nonblocking_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_tcp_nonblocking.fcl
 	DATAFILES fcl/broken_transfer_driver_tcp_nonblocking.fcl
 	)
 	cet_test(broken_transfer_driver_tcp_nonblocking_equalbuffers_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_tcp_nonblocking_equalbuffers.fcl
 	DATAFILES fcl/broken_transfer_driver_tcp_nonblocking_equalbuffers.fcl
 	)
 	cet_test(broken_transfer_driver_tcp_nonblocking_moretransferbuffers_t HANDBUILT
-	TEST_EXEC broken_transfer_driver
+	TEST_EXEC runBrokenTransferTest.sh
 	TEST_ARGS -c broken_transfer_driver_tcp_nonblocking_moretransferbuffers.fcl
 	DATAFILES fcl/broken_transfer_driver_tcp_nonblocking_moretransferbuffers.fcl
 	)
