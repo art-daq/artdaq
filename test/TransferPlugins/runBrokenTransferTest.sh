@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -lt 2 ];then
+if [ $# -lt 1 ];then
 	echo "USAGE: $0 <fcl_file>"
 	exit 1
 fi
@@ -19,7 +19,7 @@ log=`basename $fcl|cut -f1 -d.`
 exec 200>/tmp/broken_transfer_driver_`basename $fcl`.lockfile
 flock -e 200
 
-broken_transfer_driver $fcl 
+broken_transfer_driver -c $fcl 
 
 exit $?
 
