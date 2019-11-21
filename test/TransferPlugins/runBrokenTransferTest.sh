@@ -17,7 +17,6 @@ log=`basename $fcl|cut -f1 -d.`
 
 # No concurrency of transfer_driver tests!
 exec 200>/tmp/broken_transfer_driver_`basename $fcl`.lockfile
-trap "rm /tmp/broken_transfer_driver_`basename $fcl`.lockfile" EXIT
 flock -e 200
 
 broken_transfer_driver $fcl 
