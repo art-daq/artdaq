@@ -68,7 +68,6 @@ private:
 
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 	fhicl::ParameterSet data_pset_;
-	bool init_received_;
 	double init_timeout_s_;
 };
 
@@ -76,7 +75,6 @@ art::RootNetOutput::RootNetOutput(fhicl::ParameterSet const& ps)
     : ArtdaqOutput(ps)
     , sender_ptr_(nullptr)
     , data_pset_(ps)
-    , init_received_(false)
 {
 	TLOG(TLVL_DEBUG) << "Begin: RootNetOutput::RootNetOutput(ParameterSet const& ps)";
 	// Make sure the ArtdaqSharedMemoryService is available

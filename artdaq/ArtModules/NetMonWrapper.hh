@@ -24,9 +24,9 @@ class NetMonWrapper
 public:
 	/**
 		 * \brief NetMonWrapper Constructor
-		 * \param pset ParameterSet for NetMonWrapper
+		 * \param ps ParameterSet for NetMonWrapper
 		 */
-	NetMonWrapper(fhicl::ParameterSet const&);
+	NetMonWrapper(fhicl::ParameterSet const& ps);
 
 	/**
 		 * \brief NetMonWrapper Destructor

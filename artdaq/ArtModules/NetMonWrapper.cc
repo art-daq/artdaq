@@ -41,14 +41,14 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
 			return nullptr;
 		}
 
-		if (eventMap.count(artdaq::Fragment::EndOfDataFragmentType))
+		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
 			return nullptr;
 		}
-		if (eventMap.count(artdaq::Fragment::DataFragmentType))
+		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)))
 		{
-			std::move(eventMap[artdaq::Fragment::DataFragmentType]->begin(), eventMap[artdaq::Fragment::DataFragmentType]->end(), std::back_inserter(recvd_fragments));
+			std::move(eventMap[artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)]->begin(), eventMap[artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)]->end(), std::back_inserter(recvd_fragments));
 		}
 		std::sort(recvd_fragments.begin(), recvd_fragments.end(), artdaq::fragmentSequenceIDCompare);
 	}
@@ -85,12 +85,12 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
 	{
 		eventMap = shm->ReceiveEvent(true);
 
-		if (eventMap.count(artdaq::Fragment::EndOfDataFragmentType))
+		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
 			return nullptr;
 		}
-		else if (!eventMap.count(artdaq::Fragment::InitFragmentType) && eventMap.size() > 0)
+		else if (!eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::InitFragmentType)) && eventMap.size() > 0)
 		{
 			TLOG(TLVL_WARNING) << "Did NOT receive Init Fragment as first broadcast! Type="
 			                   << artdaq::detail::RawFragmentHeader::SystemTypeToString(eventMap.begin()->first);
