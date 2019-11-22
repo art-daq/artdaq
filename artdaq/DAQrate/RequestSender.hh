@@ -139,6 +139,13 @@ public:
 		 */
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
+	/**
+	 * \brief Determine if routing token sends are enabled
+	 * \return If routing tokens will be sent by this RequestSender
+	 */
+	bool RoutingTokenSendsEnabled() { return send_routing_tokens_; }
+
+private:
 private:
 	// Request stuff
 	bool send_requests_;
