@@ -110,8 +110,9 @@ void RequestSender::setup_requests_()
 
 		if (multicast_out_addr_ == "0.0.0.0")
 		{
-			multicast_out_addr_.reserve(HOST_NAME_MAX);
-			sts = gethostname(&multicast_out_addr_[0], HOST_NAME_MAX);
+			char hostname[HOST_NAME_MAX];
+			sts = gethostname(hostname, HOST_NAME_MAX);
+			multicast_out_addr_ = std::string(hostname);
 			if (sts < 0)
 			{
 				TLOG(TLVL_ERROR) << "Could not get current hostname,  err=" << strerror(errno);
@@ -126,9 +127,12 @@ void RequestSender::setup_requests_()
 			//sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 			if (sts == -1)
 			{
-				TLOG(TLVL_ERROR) << "Unable to resolve multicast interface address, err=" << strerror(errno);
+				TLOG(TLVL_ERROR) << "Unable to determine the  multicast interface address for " << multicast_out_addr_ << ", err=" << strerror(errno);
 				exit(1);
 			}
+			char addr_str[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET, &(addr), addr_str, INET_ADDRSTRLEN);
+			TLOG(TLVL_INFO) << "Successfully determined the multicast network interface for " << multicast_out_addr_ << ": " << addr_str;
 
 			if (setsockopt(request_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
 			{
@@ -175,7 +179,7 @@ void RequestSender::setup_tokens_()
 			TLOG(TLVL_ERROR) << "I failed to create the socket for sending Routing Tokens! err=" << strerror(errno);
 			exit(1);
 		}
-		TLOG(TLVL_DEBUG) << "Routing Token sending socket created successfully";
+		TLOG(TLVL_INFO) << "Routing Token sending socket created successfully for address " << token_address_;
 	}
 }
 
