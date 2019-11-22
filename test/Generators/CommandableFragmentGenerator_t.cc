@@ -419,6 +419,108 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	TLOG(TLVL_INFO) << "BufferMode test case END";
 }
 
+BOOST_AUTO_TEST_CASE(BufferMode_KeepLatest)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG(TLVL_INFO) << "BufferMode_KeepLatest test case BEGIN";
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int DELAY_TIME = 100;
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	ps.put<int>("request_port", REQUEST_PORT);
+#if MULTICAST_MODE
+	ps.put<std::string>("request_address", "227.18.12.31");
+#else
+	ps.put<std::string>("request_address", "localhost");
+#endif
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("separate_data_thread", true);
+	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<std::string>("request_mode", "buffer");
+	ps.put("request_delay_ms", DELAY_TIME);
+	ps.put("send_requests", true);
+	ps.put("buffer_mode_keep_latest", true);
+
+	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
+	t.AddRequest(1, 1);
+
+	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.StartCmd(1, 0xFFFFFFFF, 1);
+	gen.waitForFrags();
+	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+
+	artdaq::FragmentPtrs fps;
+	auto sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	auto type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	BOOST_REQUIRE_GE(fps.front()->sizeBytes(), 2 * sizeof(artdaq::detail::RawFragmentHeader) + sizeof(artdaq::ContainerFragment::Metadata));
+	auto cf = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
+	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	fps.clear();
+
+	t.AddRequest(2, 5);
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf2 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf2.block_count(), 1);
+	BOOST_REQUIRE_EQUAL(cf2.missing_data(), false);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf2.fragment_type(), type);
+	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	fps.clear();
+
+	gen.setFireCount(2);
+	gen.waitForFrags();
+	t.AddRequest(4, 7);
+	sts = gen.getNext(fps);
+	BOOST_REQUIRE_EQUAL(sts, true);
+	BOOST_REQUIRE_EQUAL(fps.size(), 2);
+
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	auto ts = artdaq::Fragment::InvalidTimestamp;
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+	auto emptyType = artdaq::Fragment::EmptyFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
+	BOOST_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
+	fps.pop_front();
+	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
+	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+	type = artdaq::Fragment::ContainerFragmentType;
+	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf3 = artdaq::ContainerFragment(*fps.front());
+	BOOST_REQUIRE_EQUAL(cf3.block_count(), 2);
+	BOOST_REQUIRE_EQUAL(cf3.missing_data(), false);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
+	fps.clear();
+	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
+
+	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
+
+	TLOG(TLVL_INFO) << "BufferMode_KeepLatest test case END";
+}
 BOOST_AUTO_TEST_CASE(CircularBufferMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
