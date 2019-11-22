@@ -559,6 +559,18 @@ protected:
 		return count;
 	}
 
+	/// <summary>
+	/// Get the current requests being handled by this CommandableFragmentGenerator
+	/// </summary>
+	/// <returns>Map relating sequence IDs to timestamps</returns>
+	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const { return requestReceiver_->GetRequests(); }
+
+	/// <summary>
+	/// Get the next request (i.e. the request with the lowest sequence ID) to be handled by this CommandableFragmentGenerator
+	/// </summary>
+	/// <returns>Pair of sequence ID and timestamp representing next request</returns>
+	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest() const { return requestReceiver_->GetNextRequest(); }
+
 private:
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
