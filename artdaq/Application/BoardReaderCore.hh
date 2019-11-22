@@ -52,6 +52,8 @@ public:
 	/**
 	 * \brief Initialize the BoardReaderCore
 	 * \param pset ParameterSet used to configure the BoardReaderCore
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
 	 * \return True if the initialize attempt succeeded
 	 * 
 	 * \verbatim
@@ -67,7 +69,7 @@ public:
 	 * \endverbatim
 	 *   
 	 */
-	bool initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
+	bool initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	 * \brief Start the BoardReader, and the CommandableFragmentGenerator
@@ -104,23 +106,28 @@ public:
 
 	/**
 	* \brief Shutdown the BoardReader, and the CommandableFragmentGenerator
+	* \param timeout Timeout for transition
 	* \return True unless exception occurred
 	*/
-	bool shutdown(uint64_t);
+	bool shutdown(uint64_t timeout);
 
 	/**
 	* \brief Soft-Initialize the BoardReader. No-Op
 	 * \param pset ParameterSet used to configure the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
 	* \return True unless exception occurred
 	*/
-	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
+	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	* \brief Reinitialize the BoardReader. No-Op
 	 * \param pset ParameterSet used to configure the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
 	* \return True unless exception occurred
 	*/
-	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
+	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	 * \brief Main working loop of the BoardReaderCore
