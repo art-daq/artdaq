@@ -45,6 +45,7 @@
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
     : mutex_()
     , requestReceiver_(nullptr)
+    , bufferModeKeepLatest_(ps.get<bool>("buffer_mode_keep_latest", false))
     , windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
     , windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
     , staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
@@ -100,6 +101,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		dataBuffers_[id].DataBufferDepthBytes = 0;
 		dataBuffers_[id].DataBufferDepthFragments = 0;
 		dataBuffers_[id].HighestRequestSeen = 0;
+		dataBuffers_[id].BufferFragmentKept = false;
 		dataBuffers_[id].DataBuffer.emplace_back(FragmentPtr(new Fragment()));
 		(*dataBuffers_[id].DataBuffer.begin())->setSystemType(Fragment::EmptyFragmentType);
 	}
@@ -272,8 +274,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			}
 		}
 
-		metricMan->sendMetric("Last Timestamp", timestamp, "Ticks", 1,
-		                      MetricMode::LastPoint, app_name);
+		metricMan->sendMetric("Last Timestamp", timestamp, "Ticks", 1, MetricMode::LastPoint);
 	}
 
 	return result;
@@ -317,6 +318,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 			id.second.DataBufferDepthBytes = 0;
 			id.second.DataBufferDepthFragments = 0;
 			id.second.HighestRequestSeen = 0;
+			id.second.BufferFragmentKept = false;
 			id.second.DataBuffer.clear();
 			id.second.WindowsSent.clear();
 		}
@@ -393,6 +395,7 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 		{
 			id.second.DataBufferDepthBytes = 0;
 			id.second.DataBufferDepthFragments = 0;
+			id.second.BufferFragmentKept = false;
 			id.second.DataBuffer.clear();
 		}
 	}
@@ -707,6 +710,7 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady(Fragment::frag
 				}
 				dataBuffers_[id].DataBufferDepthBytes -= (*begin)->sizeBytes();
 				dataBuffers_[id].DataBuffer.erase(begin);
+				dataBuffers_[id].BufferFragmentKept = false;  // If any Fragments are removed from data buffer, then we know we don't have to ignore the first one anymore
 				getDataBufferStats(id);
 			}
 		}
@@ -737,6 +741,12 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats(Fragment::fragment
 		TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: Sending Metrics";
 		metricMan->sendMetric("Buffer Depth Fragments", dataBuffers_[id].DataBufferDepthFragments.load(), "fragments", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Buffer Depth Bytes", dataBuffers_[id].DataBufferDepthBytes.load(), "bytes", 1, MetricMode::LastPoint);
+
+		auto bufferDepthFragmentsPercent = dataBuffers_[id].DataBufferDepthFragments.load() * 100 / static_cast<double>(maxDataBufferDepthFragments_);
+		auto bufferDepthBytesPercent = dataBuffers_[id].DataBufferDepthBytes.load() * 100 / static_cast<double>(maxDataBufferDepthBytes_);
+		metricMan->sendMetric("Fragment Generator Buffer Full %Fragments", bufferDepthFragmentsPercent, "%", 3, MetricMode::LastPoint);
+		metricMan->sendMetric("Fragment Generator Buffer Full %Bytes", bufferDepthBytesPercent, "%", 3, MetricMode::LastPoint);
+		metricMan->sendMetric("Fragment Generator Buffer Full %", bufferDepthFragmentsPercent > bufferDepthBytesPercent ? bufferDepthFragmentsPercent : bufferDepthBytesPercent, "%", 1, MetricMode::LastPoint);
 	}
 	TLOG(TLVL_GETBUFFERSTATS) << "getDataBufferStats: frags=" << dataBuffers_[id].DataBufferDepthFragments.load() << "/" << maxDataBufferDepthFragments_
 	                          << ", sz=" << dataBuffers_[id].DataBufferDepthBytes.load() << "/" << maxDataBufferDepthBytes_;
@@ -759,6 +769,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer(Fragment::fragment_id
 			TLOG(TLVL_CHECKDATABUFFER) << "checkDataBuffer: Dropping Fragment with timestamp " << (*begin)->timestamp() << " from data buffer (Buffer over-size)";
 			dataBuffers_[id].DataBufferDepthBytes -= (*begin)->sizeBytes();
 			dataBuffers_[id].DataBuffer.erase(begin);
+			dataBuffers_[id].BufferFragmentKept = false;  // If any Fragments are removed from data buffer, then we know we don't have to ignore the first one anymore
 			getDataBufferStats(id);
 		}
 		if (dataBuffers_[id].DataBuffer.size() > 0)
@@ -772,6 +783,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer(Fragment::fragment_id
 				{
 					TLOG(TLVL_CHECKDATABUFFER) << "checkDataBuffer: Dropping Fragment with timestamp " << (*it)->timestamp() << " from data buffer (timeout=" << staleTimeout_ << ", min=" << min << ")";
 					dataBuffers_[id].DataBufferDepthBytes -= (*it)->sizeBytes();
+					dataBuffers_[id].BufferFragmentKept = false;  // If any Fragments are removed from data buffer, then we know we don't have to ignore the first one anymore
 					it = dataBuffers_[id].DataBuffer.erase(it);
 				}
 				else
@@ -817,6 +829,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsIgnoredMode(artdaq::Frag
 		std::move(id.second.DataBuffer.begin(), id.second.DataBuffer.end(), std::inserter(frags, frags.end()));
 		id.second.DataBufferDepthBytes = 0;
 		id.second.DataBufferDepthFragments = 0;
+		id.second.BufferFragmentKept = false;
 		id.second.DataBuffer.clear();
 	}
 }
@@ -886,12 +899,24 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 		ContainerFragmentLoader cfl(*frags.back());
 		cfl.set_missing_data(false);  // Buffer mode is never missing data, even if there IS no data.
 
+		// If we kept a Fragment from the previous iteration, but more data has arrived, discard it
+		auto it = id.second.DataBuffer.begin();
+		if (id.second.BufferFragmentKept && id.second.DataBuffer.size() > 1)
+		{
+			id.second.DataBufferDepthBytes -= (*it)->sizeBytes();
+			it = id.second.DataBuffer.erase(it);
+		}
+
 		// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
-		// Window mode TFGs must do a little bit more work to decide which fragments to send for a given request
-		for (auto it = id.second.DataBuffer.begin(); it != id.second.DataBuffer.end();)
+		while (it != id.second.DataBuffer.end())
 		{
 			TLOG(TLVL_APPLYREQUESTS) << "ApplyRequests: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container with sequence ID " << ev_counter();
 			cfl.addFragment(*it);
+			if (bufferModeKeepLatest_ && id.second.DataBuffer.size() == 1)
+			{
+				id.second.BufferFragmentKept = true;
+				break;
+			}
 			id.second.DataBufferDepthBytes -= (*it)->sizeBytes();
 			it = id.second.DataBuffer.erase(it);
 		}
@@ -1098,6 +1123,7 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 			{
 				id.second.DataBufferDepthBytes = 0;
 				id.second.DataBufferDepthFragments = 0;
+				id.second.BufferFragmentKept = false;
 				id.second.DataBuffer.clear();
 			}
 		}
