@@ -185,9 +185,12 @@ void artdaq::DataSenderManager::setupTableListener_()
 	sts = GetInterfaceForNetwork(table_multicast_interface_.c_str(), mreq.imr_interface);
 	if (sts == -1)
 	{
-		TLOG(TLVL_ERROR) << "Unable to resolve multicast interface for table updates" << table_multicast_interface_;
+		TLOG(TLVL_ERROR) << "Unable to determine the multicast interface for table updates using " << table_multicast_interface_;
 		exit(1);
 	}
+	char addr_str[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &(mreq.imr_interface), addr_str, INET_ADDRSTRLEN);
+	TLOG(TLVL_INFO) << "Successfully determined the multicast network interface for " << table_multicast_interface_ << ": " << addr_str << " (DataSenderManager receiving routing table updates)";
 	if (setsockopt(table_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 	{
 		TLOG(TLVL_ERROR) << "Unable to join multicast group";
@@ -241,6 +244,9 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				exit(1);
 			}
 			TLOG(TLVL_DEBUG) << __func__ << ": Ack socket is fd " << ack_socket_;
+			char addr_str[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET, &(ack_addr_.sin_addr), addr_str, INET_ADDRSTRLEN);
+			TLOG(TLVL_INFO) << "Successfully determined the network interface for " << ack_address_ << ": " << addr_str << " (DataSenderManager sending table update acknowledgements)";
 		}
 
 		struct pollfd fd;
