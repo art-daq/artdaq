@@ -1,7 +1,7 @@
+#include <iostream>
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "fhiclcpp/types/TableFragment.h"
-#include <iostream>
 
 struct Config
 {
@@ -10,7 +10,6 @@ struct Config
 
 int main(int argc, char* argv[])
 {
-
 	auto config_ps = LoadParameterSet<Config>(argc, argv, "simple_metric_sender", "A simple application that can be used to send artdaq Metrics from the command line.");
 	artdaq::MetricManager mm;
 	mm.initialize(config_ps, config_ps.get<std::string>("application_name", "SimpleMetric"));
