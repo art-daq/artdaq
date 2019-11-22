@@ -159,18 +159,18 @@ struct SharedMemoryReader
 			 */
 	SharedMemoryReader& operator=(SharedMemoryReader const&) = delete;
 
-	art::SourceHelper const& pmaker;                             ///< An art::SourceHelper instance
-	double waiting_time;                                         ///< The amount of time to wait for an event from the queue
-	bool resume_after_timeout;                                   ///< Whether to resume if the dequeue action times out
-	std::string pretend_module_name;                             ///< The module name to store data under
-	std::string unidentified_instance_name;                      ///< The name to use for unknown Fragment types
-	bool shutdownMsgReceived;                                    ///< Whether a shutdown message has been received
-	bool outputFileCloseNeeded;                                  ///< If an explicit output file close message is needed
-	size_t bytesRead;                                            ///< running total of number of bytes received
-	std::chrono::steady_clock::time_point last_read_time;        ///< Time last read was completed
-	                                                             //std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
-	                                                             // std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
-	                                                             // Fragments)
+	art::SourceHelper const& pmaker;                       ///< An art::SourceHelper instance
+	double waiting_time;                                   ///< The amount of time to wait for an event from the queue
+	bool resume_after_timeout;                             ///< Whether to resume if the dequeue action times out
+	std::string pretend_module_name;                       ///< The module name to store data under
+	std::string unidentified_instance_name;                ///< The name to use for unknown Fragment types
+	bool shutdownMsgReceived;                              ///< Whether a shutdown message has been received
+	bool outputFileCloseNeeded;                            ///< If an explicit output file close message is needed
+	size_t bytesRead;                                      ///< running total of number of bytes received
+	std::chrono::steady_clock::time_point last_read_time;  ///< Time last read was completed
+	                                                       //std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
+	                                                       // std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
+	                                                       // Fragments)
 
 	/**
 			 * \brief SharedMemoryReader Constructor
