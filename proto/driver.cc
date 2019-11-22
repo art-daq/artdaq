@@ -31,8 +31,8 @@
 #include <memory>
 #include <utility>
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
 namespace bpo = boost::program_options;
 
@@ -182,6 +182,14 @@ int main(int argc, char* argv[]) try
 	{
 		commandable_gen->joinThreads();
 	}
+
+#if 0
+	volatile bool keep_looping = true;
+	while (keep_looping)
+	{
+		usleep(10000);
+	}
+#endif
 
 	TLOG(TLVL_INFO) << "Fragments generated, waiting for art to process them.";
 	auto art_wait_start_time = std::chrono::steady_clock::now();

@@ -29,7 +29,7 @@ artdaqtest::BrokenTransferTest::BrokenTransferTest(fhicl::ParameterSet ps)
     , transfer_buffer_count_(ps.get<size_t>("transfer_buffer_count", 10))
     , event_buffer_count_(ps.get<size_t>("event_buffer_count", 20))
     , event_buffer_timeout_us_(ps.get<size_t>("event_buffer_timeout_us", 1000000))
-	, send_throttle_us_(0)
+    , send_throttle_us_(0)
 {
 	if (fragment_rate_hz_ == 0 || fragment_rate_hz_ > 100000)
 	{
@@ -110,7 +110,7 @@ void artdaqtest::BrokenTransferTest::TestSenderReconnect()
 	TLOG(TLVL_INFO) << "TestSenderReconnect END";
 }
 
-void artdaqtest::BrokenTransferTest::TestReceiverReconnect( int send_throttle_us )
+void artdaqtest::BrokenTransferTest::TestReceiverReconnect(int send_throttle_us)
 {
 	TLOG(TLVL_INFO) << "TestReceiverReconnect BEGIN";
 	send_throttle_us_ = send_throttle_us;
@@ -320,7 +320,7 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 		++sender_current_fragment_[sender_rank];
 		sender_tokens_[sender_rank]--;
 		if (send_throttle_us_)
-			usleep( send_throttle_us_ );
+			usleep(send_throttle_us_);
 	}
 
 	TLOG(TLVL_DEBUG) << "Sender " << sender_rank << " shutting down...";

@@ -19,7 +19,14 @@ int main(int argc, char** argv)
 	artdaq::configureMessageFacility("transfer_driver");
 	fhicl::ParameterSet config_ps = LoadParameterSet<Config>(argc, argv, "commander_test", "A test driver for CommanderInterface plugins");
 
-	if (config_ps.has_key("partition_number")) artdaq::Globals::partition_number_ = config_ps.get<int>("partition_number");
+	artdaq::Globals::partition_number_ = config_ps.get<int>("partition_number", 1);
+
+	auto id_rand = seedAndRandom();
+	if (config_ps.has_key("id")) {
+		TLOG(TLVL_DEBUG) << "Ignoring set id and using random!";
+		config_ps.erase("id");
+	}
+	config_ps.put("id", artdaq::Globals::partition_number_ * 1000 + (id_rand % 1000));
 
 	std::unique_ptr<artdaq::Commandable> cmdble(new artdaq::Commandable());
 

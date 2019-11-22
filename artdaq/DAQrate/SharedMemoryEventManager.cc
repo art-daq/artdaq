@@ -753,6 +753,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	// {
 	// 	broadcasts_.MarkBufferEmpty(ii, true);
 	// }
+	released_events_.clear();
 	released_incomplete_events_.clear();
 
 	TLOG(TLVL_DEBUG) << "endOfData: Shutting down RequestSender";
@@ -773,6 +774,8 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	{
 		broadcasts_.MarkBufferEmpty(ii, true);
 	}
+	released_events_.clear();
+	released_incomplete_events_.clear();
 	StartArt();
 	run_id_ = runID;
 	{
@@ -1155,7 +1158,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		                  << active_buffers_.size() << ")";
 	}
 
-	if (requests_)
+	if (requests_ && requests_->RoutingTokenSendsEnabled())
 	{
 		TLOG(TLVL_TRACE) << "Sent tokens: " << requests_->GetSentTokenCount() << ", Event count: " << run_event_count_;
 		auto outstanding_tokens = requests_->GetSentTokenCount() - run_event_count_;
