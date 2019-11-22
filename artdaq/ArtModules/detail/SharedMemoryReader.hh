@@ -200,10 +200,22 @@ struct SharedMemoryReader
 	    , last_read_time(std::chrono::steady_clock::now())
 	    , readNext_calls_(0)
 	{
+#if 0
+		volatile bool keep_looping = true;
+		while (keep_looping)
+		{
+			usleep(10000);
+		}
+#endif
+
 		// Make sure the ArtdaqSharedMemoryService is available
 		art::ServiceHandle<ArtdaqSharedMemoryService> shm;
 
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
+
+		// Workaround for #22979
+		help.reconstitutes<Fragments, art::InRun>(pretend_module_name, unidentified_instance_name);
+		help.reconstitutes<Fragments, art::InSubRun>(pretend_module_name, unidentified_instance_name);
 
 		translator_.SetBasicTypes(getDefaultTypes());
 		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
@@ -299,10 +311,17 @@ struct SharedMemoryReader
 		auto read_start_time = std::chrono::steady_clock::now();
 
 		std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap;
-		while (eventMap.size() == 0)
+		while (eventMap.size() == 0 && artdaq::TimeUtils::GetElapsedTime(read_start_time) < waiting_time)
 		{
 			eventMap = shm->ReceiveEvent(false);
 		}
+		if (eventMap.size() == 0)
+		{
+			TLOG_ERROR("SharedMemoryReader") << "No data received after " << waiting_time << " seconds. Returning false (should exit art)";
+			shutdownMsgReceived = true;
+			return false;
+		}
+
 		auto got_event_time = std::chrono::steady_clock::now();
 		auto firstFragmentType = eventMap.begin()->first;
 		TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " ("

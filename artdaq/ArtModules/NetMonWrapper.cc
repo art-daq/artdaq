@@ -45,15 +45,15 @@ void art::NetMonWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg_ptr)
 			return;
 		}
 
-		if (eventMap.count(artdaq::Fragment::EndOfDataFragmentType))
+		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
 			msg = nullptr;
 			return;
 		}
-		if (eventMap.count(artdaq::Fragment::DataFragmentType))
+		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)))
 		{
-			std::move(eventMap[artdaq::Fragment::DataFragmentType]->begin(), eventMap[artdaq::Fragment::DataFragmentType]->end(), std::back_inserter(recvd_fragments));
+			std::move(eventMap[artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)]->begin(), eventMap[artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)]->end(), std::back_inserter(recvd_fragments));
 		}
 		std::sort(recvd_fragments.begin(), recvd_fragments.end(), artdaq::fragmentSequenceIDCompare);
 	}
@@ -95,13 +95,13 @@ void art::NetMonWrapper::receiveInitMessage(std::unique_ptr<TBufferFile>& msg_pt
 	{
 		eventMap = shm->ReceiveEvent(true);
 
-		if (eventMap.count(artdaq::Fragment::EndOfDataFragmentType))
+		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
 			msg = nullptr;
 			return;
 		}
-		else if (!eventMap.count(artdaq::Fragment::InitFragmentType) && eventMap.size() > 0)
+		else if (!eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::InitFragmentType)) && eventMap.size() > 0)
 		{
 			TLOG(TLVL_WARNING) << "Did NOT receive Init Fragment as first broadcast! Type="
 			                   << artdaq::detail::RawFragmentHeader::SystemTypeToString(eventMap.begin()->first);
@@ -116,7 +116,7 @@ void art::NetMonWrapper::receiveInitMessage(std::unique_ptr<TBufferFile>& msg_pt
 	//      pointer
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage: Returning top Fragment";
-	artdaq::Fragment topFrag = std::move(eventMap[artdaq::Fragment::InitFragmentType]->at(0));
+	artdaq::Fragment topFrag = std::move(eventMap[artdaq::Fragment::type_t(artdaq::Fragment::InitFragmentType)]->at(0));
 
 	auto header = topFrag.metadata<artdaq::NetMonHeader>();
 	TLOG(TLVL_TRACE) << "receiveInitMessage: Copying Fragment into TBufferFile: message length: " << header->data_length;

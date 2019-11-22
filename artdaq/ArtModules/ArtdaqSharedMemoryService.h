@@ -62,8 +62,20 @@ public:
 
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ReceiveEvent(bool broadcast) override;
 
+	/**
+	 * \brief Get the number of events which are ready to be read
+	 * \return The number of events which can be read
+	 */
 	size_t GetQueueSize() override { return incoming_events_->ReadReadyCount(); }
+	/** 
+	 * \brief Get the maximum number of events which can be stored in the shared memory
+	 * \return The maximum number of events which can be stored in the shared memory
+	 */
 	size_t GetQueueCapacity() override { return incoming_events_->size(); }
+	/**
+	 * \brief Get a shared_ptr to the current event header, if any
+	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
+	 */
 	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() { return evtHeader_; }
 
 private:
