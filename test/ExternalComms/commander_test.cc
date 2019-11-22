@@ -22,7 +22,8 @@ int main(int argc, char** argv)
 	artdaq::Globals::partition_number_ = config_ps.get<int>("partition_number", 1);
 
 	auto id_rand = seedAndRandom();
-	if (config_ps.has_key("id")) {
+	if (config_ps.has_key("id"))
+	{
 		TLOG(TLVL_DEBUG) << "Ignoring set id and using random!";
 		config_ps.erase("id");
 	}
