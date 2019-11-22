@@ -45,8 +45,10 @@ cet_test(daq_flow_t
   artdaq_DAQrate
   artdaq_DAQdata
   MF_MessageLogger
+  ${ROOT_CORE}
   fhiclcpp
   cetlib
+  art_Utilities
   TEST_ARGS -c daq_flow_t.fcl
   DATAFILES daq_flow_t.fcl
   )
@@ -59,8 +61,10 @@ cet_test(daq_flow_t
   artdaq_DAQrate
   artdaq_DAQdata
   MF_MessageLogger
+  ${ROOT_CORE}
   fhiclcpp
   cetlib
+  art_Utilities
   TEST_ARGS -c daq_flow_t.fcl
   DATAFILES daq_flow_t.fcl
   )
