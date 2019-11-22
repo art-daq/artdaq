@@ -68,7 +68,6 @@ public:
 	artdaq::FragmentPtr receiveInitMessage() { return receiveMessage(); }
 
 private:
-
 	void checkIntegrity(const artdaq::Fragment&) const;
 
 	void unregisterMonitor();

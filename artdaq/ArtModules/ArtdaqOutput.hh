@@ -106,7 +106,7 @@ char* Fragment_ReAllocChar(char* dataPtr, size_t size, size_t /*oldsize*/)
 	return nullptr;
 }
 
-    /// <summary>
+/// <summary>
 /// This is the base class for artdaq OutputModules, providing the serialization interface for art Events.
 /// </summary>
 class art::ArtdaqOutput : public art::OutputModule
@@ -259,7 +259,6 @@ private:
 	bool initMsgSent_;
 	ProductList productList_;
 	size_t last_fragment_size_;
-
 
 	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::type_t type)
 	{

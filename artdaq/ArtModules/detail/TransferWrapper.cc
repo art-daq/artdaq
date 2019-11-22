@@ -170,7 +170,7 @@ artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 			//}
 			return nullptr;
 		}
-		
+
 		checkIntegrity(*fragmentPtr);
 
 		if (initialized || fragmentPtr->type() == artdaq::Fragment::InitFragmentType)

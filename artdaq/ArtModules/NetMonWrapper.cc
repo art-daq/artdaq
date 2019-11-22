@@ -107,14 +107,12 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
 	TLOG(TLVL_TRACE) << "receiveInitMessage: Returning top Fragment";
 	artdaq::FragmentPtr topFrag = artdaq::FragmentPtr(new artdaq::Fragment(std::move(eventMap[artdaq::Fragment::InitFragmentType]->at(0))));
 
-
 #if DUMP_RECEIVE_MESSAGE
 	std::string fileName = "receiveInitMessage_" + std::to_string(getpid()) + ".bin";
 	std::fstream ostream(fileName.c_str(), std::ios::out | std::ios::binary);
 	ostream.write(buffer, header->data_length);
 	ostream.close();
 #endif
-
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage END";
 	init_received_ = true;
