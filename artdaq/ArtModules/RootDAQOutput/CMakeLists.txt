@@ -20,7 +20,7 @@ art_make( BASENAME_ONLY
   art_Framework_IO_Root_RootDB
   art_Framework_IO_ProductMix
   art_Framework_Principal
-  artdaq_ArtModules_NetMonTransportService_service
+  art_Framework_Services_Registry
   art_Persistency_Provenance
 #  art_Persistency_RootDB
   ${CANVAS_LIB_LIST}
@@ -38,7 +38,6 @@ art_make( BASENAME_ONLY
   )
 
 simple_plugin(RootDAQOut "module"
-  artdaq_ArtModules_NetMonTransportService_service
   artdaq_ArtModules
   artdaq_ArtModules_RootDAQOutput
   art_Framework_Services_Registry
