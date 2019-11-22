@@ -1,6 +1,5 @@
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/IO/ClosingCriteria.h"
-#include "artdaq/ArtModules/NetMonTransportService.h"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/OptionalAtom.h"
 #include "fhiclcpp/types/OptionalTable.h"
@@ -20,8 +19,7 @@ struct ServicesSchedulerConfig
 /// </summary>
 struct ServicesConfig
 {
-	fhicl::Table<ServicesSchedulerConfig> scheduler{fhicl::Name{"scheduler"}};                                                             ///< Artdaq requires a services.scheduler parameter. See art::ServicesSchedulerConfig
-	fhicl::OptionalTable<NetMonTransportService::Config> netMonTransportServiceInterface{fhicl::Name{"NetMonTransportServiceInterface"}};  ///< Configuration for the NetMonTranportService. See art::NetMonTransportService::Config
+	fhicl::Table<ServicesSchedulerConfig> scheduler{fhicl::Name{"scheduler"}};  ///< Artdaq requires a services.scheduler parameter. See art::ServicesSchedulerConfig
 };
 
 struct AnalyzersConfig
