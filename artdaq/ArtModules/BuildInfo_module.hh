@@ -108,7 +108,7 @@ void BuildInfo<instanceName, Pkgs...>::beginRun(art::Run& e)
 	auto packages_deep_copy_ptr = std::unique_ptr<std::vector<PackageBuildInfo>>(
 	    new std::vector<PackageBuildInfo>(*packages_));
 
-	TLOG(TLVL_INFO, "BuildInfo") << "Placing BuildInfo with instance name \"" << instanceName_ << "\"" ;
+	TLOG(TLVL_INFO, "BuildInfo") << "Placing BuildInfo with instance name \"" << instanceName_ << "\"";
 	e.put(std::move(packages_deep_copy_ptr), instanceName_);
 }
 
