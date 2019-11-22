@@ -50,4 +50,5 @@ services:
     handleEmptySubRuns: true
 #    enableSigInt: true
   }
+  ArtdaqSharedMemoryServiceInterface: { service_provider: ArtdaqSharedMemoryService }
 }
