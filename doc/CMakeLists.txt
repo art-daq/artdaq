@@ -9,6 +9,9 @@ create_doxygen_documentation(EXCLUDE
 	artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h
 	artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.cc
 	artdaq/ArtModules/RootDAQOutput-s81/RootDAQOut_module.cc
+	artdaq/ArtModules/RootDAQOutput-s85/RootDAQOutFile.h
+	artdaq/ArtModules/RootDAQOutput-s85/RootDAQOutFile.cc
+	artdaq/ArtModules/RootDAQOutput-s85/RootDAQOut_module.cc
 	DEPENDS
 	artdaq_core
 	artdaq_utilities
