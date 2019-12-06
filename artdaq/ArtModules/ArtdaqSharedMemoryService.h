@@ -7,7 +7,7 @@
 #include "fhiclcpp/types/Atom.h"
 
 /**
- * \brief Interface for NetMonTranportService. This interface is declared to art as part of the required registration of an art Service
+ * \brief Interface for ArtdaqSharedMemoryService. This interface is declared to art as part of the required registration of an art Service
  */
 class ArtdaqSharedMemoryServiceInterface
 {
@@ -17,9 +17,23 @@ public:
 	 */
 	virtual ~ArtdaqSharedMemoryServiceInterface() = default;
 
+	/**
+	 * \brief Receive an event from the shared memory
+	 * \param broadcast Whether to only attempt to receive a broadcast (broadcasts are always preferentially received over data)
+	 * \return Map of Fragment types retrieved from shared memory
+	 */
 	virtual std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ReceiveEvent(bool broadcast) = 0;
 
+	/**
+	 * \brief Get the number of events which are ready to be read
+	 * \return The number of events which can be read
+	 */
 	virtual size_t GetQueueSize() = 0;
+
+	/**
+	 * \brief Get the maximum number of events which can be stored in the shared memory
+	 * \return The maximum number of events which can be stored in the shared memory
+	 */
 	virtual size_t GetQueueCapacity() = 0;
 };
 
@@ -28,8 +42,9 @@ DECLARE_ART_SERVICE_INTERFACE(ArtdaqSharedMemoryServiceInterface, LEGACY)
 // ----------------------------------------------------------------------
 
 /**
- * \brief NetMonTransportService extends NetMonTransportServiceInterface.
- * It sends events using DataSenderManager and receives events from the GlobalQueue
+ * \brief ArtdaqSharedMemoryService extends ArtdaqSharedMemoryServiceInterface.
+ * It receives events from shared memory using SharedMemoryEventReceiver. It also manages the artdaq Global varaibles my_rank and app_name.
+ * Users should retrieve a ServiceHandle to this class before using artdaq Globals to ensure the correct values are used.
  */
 class ArtdaqSharedMemoryService : public ArtdaqSharedMemoryServiceInterface
 {
@@ -60,10 +75,27 @@ public:
 	 */
 	ArtdaqSharedMemoryService(fhicl::ParameterSet const& pset, art::ActivityRegistry&);
 
+	/**
+	 * \brief Receive an event from the shared memory
+	 * \param broadcast Whether to only attempt to receive a broadcast (broadcasts are always preferentially received over data)
+	 * \return Map of Fragment types retrieved from shared memory
+	 */
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ReceiveEvent(bool broadcast) override;
 
+	/**
+	 * \brief Get the number of events which are ready to be read
+	 * \return The number of events which can be read
+	 */
 	size_t GetQueueSize() override { return incoming_events_->ReadReadyCount(); }
+	/** 
+	 * \brief Get the maximum number of events which can be stored in the shared memory
+	 * \return The maximum number of events which can be stored in the shared memory
+	 */
 	size_t GetQueueCapacity() override { return incoming_events_->size(); }
+	/**
+	 * \brief Get a shared_ptr to the current event header, if any
+	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
+	 */
 	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() { return evtHeader_; }
 
 private:
