@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_07_01
+parent artdaq  v3_07_01a
 defaultqual    e17:s85
 
 # These optional lines define the installed directories where
@@ -19,6 +19,7 @@ bindir      fq_dir      bin
 product			version		optional
 art_root_io     v1_02_00    s94
 art_root_io     v1_00_10    s92
+art_root_io     v1_01_03    s89
 art_root_io     v1_01_00    s87
 art             v2_13_00    s85
 art_root_io     v1_00_05    s83
@@ -26,12 +27,12 @@ art_root_io     v1_00_04    s82
 art             v2_11_05    s73
 art             v2_11_01    s67
 artdaq_core 		v3_05_09
-artdaq_utilities        v1_05_03
+artdaq_utilities        v1_05_03a
 xmlrpc_c		v1_51_03a
-artdaq_mfextensions     v1_03_08        -       optional
-artdaq_epics_plugin     v1_02_10        -       optional
-artdaq_ganglia_plugin   v1_02_17        -       optional
-artdaq_pcp_mmv_plugin   v1_00_02        -       optional
+artdaq_mfextensions     v1_03_08a        -       optional
+artdaq_epics_plugin     v1_02_10a        -       optional
+artdaq_ganglia_plugin   v1_02_17a        -       optional
+artdaq_pcp_mmv_plugin   v1_00_02a        -       optional
 cetbuildtools		v7_14_00	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
@@ -53,6 +54,15 @@ e19:s92:debug	-		e19:debug	e19:s92:debug	e19:s92:debug		e19:debug	e19:s92:debug	
 e19:s92:prof	- 		e19:prof	e19:s92:prof	e19:s92:prof		e19:prof	e19:s92:prof	   	e19:s92:prof		e19:s92:prof	      e19:s92:prof		
 e17:s92:debug	-		e17:debug	e17:s92:debug	e17:s92:debug		e17:debug	e17:s92:debug	   	e17:s92:debug      	e17:s92:debug	      e17:s92:debug		
 e17:s92:prof	- 		e17:prof	e17:s92:prof	e17:s92:prof		e17:prof	e17:s92:prof	   	e17:s92:prof		e17:s92:prof	      e17:s92:prof		
+
+c7:s89:debug	-		c7:debug	c7:s89:debug	c7:s89:debug		c7:debug	c7:s89:debug	   	c7:s89:debug       	c7:s89:debug	      c7:s89:debug       	
+c7:s89:prof	- 		c7:prof		c7:s89:prof	c7:s89:prof		c7:prof		c7:s89:prof	   	c7:s89:prof		c7:s89:prof	      c7:s89:prof		
+c2:s89:debug	-		c2:debug	c2:s89:debug	c2:s89:debug		c2:debug	c2:s89:debug	   	c2:s89:debug       	c2:s89:debug	      c2:s89:debug		
+c2:s89:prof	- 		c2:prof		c2:s89:prof	c2:s89:prof		c2:prof		c2:s89:prof	   	c2:s89:prof		c2:s89:prof	      c2:s89:prof		
+e19:s89:debug	-		e19:debug	e19:s89:debug	e19:s89:debug		e19:debug	e19:s89:debug	   	e19:s89:debug      	e19:s89:debug	      e19:s89:debug		
+e19:s89:prof	- 		e19:prof	e19:s89:prof	e19:s89:prof		e19:prof	e19:s89:prof	   	e19:s89:prof		e19:s89:prof	      e19:s89:prof		
+e17:s89:debug	-		e17:debug	e17:s89:debug	e17:s89:debug		e17:debug	e17:s89:debug	   	e17:s89:debug      	e17:s89:debug	      e17:s89:debug		
+e17:s89:prof	- 		e17:prof	e17:s89:prof	e17:s89:prof		e17:prof	e17:s89:prof	   	e17:s89:prof		e17:s89:prof	      e17:s89:prof		
 
 c7:s87:debug	-		c7:debug	c7:s87:debug	c7:s87:debug		c7:debug	c7:s87:debug	   	c7:s87:debug       	c7:s87:debug	      c7:s87:debug       	
 c7:s87:prof	- 		c7:prof		c7:s87:prof	c7:s87:prof		c7:prof		c7:s87:prof	   	c7:s87:prof		c7:s87:prof	      c7:s87:prof		
