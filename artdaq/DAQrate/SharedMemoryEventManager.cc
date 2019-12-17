@@ -378,7 +378,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 				if (count > in_progress_fragment_ids_[frag.sequence_id].size())
 				{
 					TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << count << " ) than specified in configuration ( " << in_progress_fragment_ids_[frag.sequence_id].size() << " )!"
-						<< " This is probably due to a misconfiguration and is *not* a reliable mode!";
+					                   << " This is probably due to a misconfiguration and is *not* a reliable mode!";
 				}
 				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << count << "/" << in_progress_fragment_ids_[frag.sequence_id].size();
 			}
@@ -390,7 +390,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 				if (frag_count > max_fragments_per_event_)
 				{
 					TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << frag_count << " ) than specified in configuration ( " << max_fragments_per_event_ << " )!"
-						<< " This is probably due to a misconfiguration and is *not* a reliable mode!";
+					                   << " This is probably due to a misconfiguration and is *not* a reliable mode!";
 				}
 				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << fragmentCount << "/" << max_fragments_per_event_;
 			}
@@ -655,7 +655,6 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
 		auto shutdown_start = std::chrono::steady_clock::now();
 
-
 		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
 		for (int ii = 0; ii < graceful_wait_ms; ++ii)
 		{
@@ -678,7 +677,6 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 				kill(pid, SIGQUIT);
 			}
 		}
-
 
 		TLOG(TLVL_TRACE) << "Waiting up to " << gentle_wait_ms << " ms for all art processes to exit from SIGQUIT";
 		for (int ii = 0; ii < gentle_wait_ms; ++ii)
