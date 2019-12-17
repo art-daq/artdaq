@@ -1067,7 +1067,12 @@ xmlrpc_commander::xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& 
     , serverUrl_(ps.get<std::string>("server_url", ""))
     , server(nullptr)
 {
-	TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
+	if (serverUrl_ == "")
+	{
+		char hostname[HOST_NAME_MAX];
+		gethostname(hostname, HOST_NAME_MAX);
+		serverUrl_ = std::string(hostname);
+	}
 	if (serverUrl_.find("http") == std::string::npos)
 	{
 		serverUrl_ = "http://" + serverUrl_;
