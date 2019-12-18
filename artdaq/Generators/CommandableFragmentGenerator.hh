@@ -563,7 +563,7 @@ protected:
 	/// Get the current requests being handled by this CommandableFragmentGenerator
 	/// </summary>
 	/// <returns>Map relating sequence IDs to timestamps</returns>
-	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const { return requestReceiver_->GetRequests(); }
+	auto GetRequests() const { return requestReceiver_->GetRequests(); }
 
 	/// <summary>
 	/// Get the next request (i.e. the request with the lowest sequence ID) to be handled by this CommandableFragmentGenerator

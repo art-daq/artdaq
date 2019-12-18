@@ -358,7 +358,7 @@ std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq
 	}
 
 	last_next_request_ = it->first;
-	return *it;
+	return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(artdaq::Fragment::sequence_id_t(it->first), artdaq::Fragment::timestamp_t(it->second.first.timestamp));
 }
 
 void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)
