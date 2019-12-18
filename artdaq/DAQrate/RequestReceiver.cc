@@ -46,6 +46,7 @@ artdaq::RequestReceiver::RequestReceiver()
     , end_of_run_timeout_ms_(1000)
     , should_stop_(false)
     , highest_seen_request_(0)
+    , last_next_request_(0)
     , out_of_order_requests_()
     , request_increment_(1)
 {}
@@ -66,6 +67,7 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps)
     , end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
     , should_stop_(false)
     , highest_seen_request_(0)
+    , last_next_request_(0)
     , out_of_order_requests_()
     , request_increment_(ps.get<artdaq::Fragment::sequence_id_t>("request_increment", 1))
 {
@@ -113,9 +115,12 @@ void artdaq::RequestReceiver::setupRequestListener()
 		sts = GetInterfaceForNetwork(multicast_in_addr_.c_str(), mreq.imr_interface);
 		if (sts == -1)
 		{
-			TLOG(TLVL_ERROR) << "Unable to resolve hostname for " << multicast_in_addr_;
+			TLOG(TLVL_ERROR) << "Unable to determine the multicast network interface for " << multicast_in_addr_;
 			exit(1);
 		}
+		char addr_str[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(mreq.imr_interface), addr_str, INET_ADDRSTRLEN);
+		TLOG(TLVL_INFO) << "Successfully determined the multicast network interface for " << multicast_in_addr_ << ": " << addr_str << " (RequestReceiver)";
 		if (setsockopt(request_socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 		{
 			TLOG(TLVL_ERROR) << "Unable to join multicast group, err=" << strerror(errno);
@@ -164,6 +169,7 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 	}
 	request_received_ = false;
 	highest_seen_request_ = 0;
+	last_next_request_ = 0;
 }
 
 void artdaq::RequestReceiver::startRequestReception()
@@ -308,7 +314,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 	running_ = false;
 }
 
-void artdaq::RequestReceiver::sendAcknowledgement(detail::RequestMessage message)
+	void artdaq::RequestReceiver::sendAcknowledgement(detail::RequestMessage message)
 {
 	if (ack_socket_ == -1)
 	{
@@ -336,7 +342,23 @@ void artdaq::RequestReceiver::sendAcknowledgement(detail::RequestMessage message
 	}
 
 	TLOG(TLVL_DEBUG) << __func__ << ": Sending RequestAcknowledgement with " << ack.packet_count << " entries to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
-	sendto(ack_socket_, &buffer[0], buffer.size(), 0, (struct sockaddr*)&ack_addr_, sizeof(ack_addr_));
+	sendto(ack_socket_, &buffer[0], buffer.size(), 0, (struct sockaddr*) & ack_addr_, sizeof(ack_addr_));
+}
+
+std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq::RequestReceiver::GetNextRequest()
+{
+	std::unique_lock<std::mutex> lk(request_mutex_);
+
+	auto it = requests_.begin();
+	while (it != requests_.end() && it->first <= last_next_request_) { ++it; }
+
+	if (it == requests_.end())
+	{
+		return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
+	}
+
+	last_next_request_ = it->first;
+	return *it;
 }
 
 void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)
