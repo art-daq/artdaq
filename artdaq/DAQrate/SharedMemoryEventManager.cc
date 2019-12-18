@@ -185,10 +185,10 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 		else
 		{
 			auto fragmentCount = GetFragmentCount(frag.sequence_id);
-			hdr->is_complete = fragmentCount == max_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
+			hdr->is_complete = fragmentCount == num_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
 			TLOG(TLVL_TRACE) << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
 			                 << ", fragmentCount=" << fragmentCount
-			                 << ", max_fragments_per_event=" << max_fragments_per_event_
+			                 << ", max_fragments_per_event=" << num_fragments_per_event_
 			                 << ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
 		}
 	}
@@ -369,36 +369,37 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 			return;
 		}
 		TLOG(TLVL_TRACE) << "Done writing fragment, and no other writer. Doing bookkeeping steps.";
+		size_t frag_count = 0;
 		{
 			std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
 			if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
 			{
-				size_t count = std::count_if(in_progress_fragment_ids_[frag.sequence_id].begin(), in_progress_fragment_ids_[frag.sequence_id].end(), [](std::pair<Fragment::fragment_id_t, bool> p) { return p.second; });
-				hdr->is_complete = count >= in_progress_fragment_ids_[frag.sequence_id].size();
-				if (count > in_progress_fragment_ids_[frag.sequence_id].size())
+				frag_count = std::count_if(in_progress_fragment_ids_[frag.sequence_id].begin(), in_progress_fragment_ids_[frag.sequence_id].end(), [](std::pair<Fragment::fragment_id_t, bool> p) { return p.second; });
+				hdr->is_complete = frag_count >= in_progress_fragment_ids_[frag.sequence_id].size();
+				if (frag_count > in_progress_fragment_ids_[frag.sequence_id].size())
 				{
-					TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << count << " ) than specified in configuration ( " << in_progress_fragment_ids_[frag.sequence_id].size() << " )!"
+					TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << frag_count << " ) than specified in configuration ( " << in_progress_fragment_ids_[frag.sequence_id].size() << " )!"
 					                   << " This is probably due to a misconfiguration and is *not* a reliable mode!";
 				}
-				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << count << "/" << in_progress_fragment_ids_[frag.sequence_id].size();
+				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << frag_count << "/" << in_progress_fragment_ids_[frag.sequence_id].size();
 			}
 			else
 			{
-				auto fragmentCount = GetFragmentCount(frag.sequence_id);
-				hdr->is_complete = fragmentCount >= max_fragments_per_event_;
+				frag_count = GetFragmentCount(frag.sequence_id);
+				hdr->is_complete = frag_count >= num_fragments_per_event_;
 
-				if (frag_count > max_fragments_per_event_)
+				if (frag_count > num_fragments_per_event_)
 				{
-					TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << frag_count << " ) than specified in configuration ( " << max_fragments_per_event_ << " )!"
+					TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << frag_count << " ) than specified in configuration ( " << num_fragments_per_event_ << " )!"
 					                   << " This is probably due to a misconfiguration and is *not* a reliable mode!";
 				}
-				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << fragmentCount << "/" << max_fragments_per_event_;
+				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << frag_count << "/" << num_fragments_per_event_;
 			}
 		}
 #if ART_SUPPORTS_DUPLICATE_EVENTS
 		if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id))
 		{
-			hdr->is_complete = frag_count >= released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
+			hdr->is_complete = frag_count >= released_incomplete_events_[frag.sequence_id];
 		}
 #endif
 	}
@@ -974,7 +975,7 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 
 		last_incomplete_event_report_time_ = std::chrono::steady_clock::now();
 		std::ostringstream oss;
-		oss << "Incomplete Events (" << max_fragments_per_event_ << "): ";
+		oss << "Incomplete Events (" << num_fragments_per_event_ << "): ";
 		for (auto& ev : active_buffers_)
 		{
 			auto hdr = getEventHeader_(ev);
@@ -1308,7 +1309,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				if (metricMan) metricMan->sendMetric("Incomplete Event Rate", 1, "events/s", 3, MetricMode::Rate);
 				if (!released_incomplete_events_.count(hdr->sequence_id))
 				{
-					released_incomplete_events_[hdr->sequence_id] = max_fragments_per_event_ - GetFragmentCountInBuffer(buf);
+					released_incomplete_events_[hdr->sequence_id] = num_fragments_per_event_ - GetFragmentCountInBuffer(buf);
 				}
 				else
 				{
