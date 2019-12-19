@@ -3,7 +3,7 @@
 set(TFILE_SERVICE_LIB art_Framework_Services_Optional_TFileService_service art_Framework_Services_Optional)
 if ( ${ART_HEX_VERSION} LESS 0x21200)
 	# s67 and s73
-	add_subdirectory(RootDAQOutput)
+	add_subdirectory(RootDAQOutput-s67)
 	set(ROOT_IO_LIBS art_Framework_IO_Root)
 elseif ( ${ART_HEX_VERSION} GREATER 0x30200)
 	# s82, s87
