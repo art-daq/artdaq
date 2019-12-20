@@ -36,7 +36,7 @@ cet_cmake_env()
 cet_set_compiler_flags(DIAGS VIGILANT
   WERROR
   NO_UNDEFINED
-  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64
+  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64 -Wno-error=register -Wno-error=stringop-truncation
 )
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
