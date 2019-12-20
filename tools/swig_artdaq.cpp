@@ -46,15 +46,15 @@ void swig_artdaq::send_sum_metric(std::string name, int level, double value, std
 
 void swig_artdaq::send_rate_metric(std::string name, int level, std::string value, std::string unit)
 {
-	metricMan->sendMetric(name, value, unit, level, artdaq::MetricMode::AccumulateAndRate);
+	metricMan->sendMetric(name, value, unit, level, artdaq::MetricMode::Rate);
 }
 void swig_artdaq::send_rate_metric(std::string name, int level, int value, std::string unit)
 {
-	metricMan->sendMetric(name, value, unit, level, artdaq::MetricMode::AccumulateAndRate);
+	metricMan->sendMetric(name, value, unit, level, artdaq::MetricMode::Rate);
 }
 void swig_artdaq::send_rate_metric(std::string name, int level, double value, std::string unit)
 {
-	metricMan->sendMetric(name, value, unit, level, artdaq::MetricMode::AccumulateAndRate);
+	metricMan->sendMetric(name, value, unit, level, artdaq::MetricMode::Rate);
 }
 
 void swig_artdaq::write_error(std::string name, std::string message)
