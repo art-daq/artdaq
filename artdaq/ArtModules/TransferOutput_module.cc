@@ -4,6 +4,7 @@
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+#include <signal.h>
 
 namespace art {
 class TransferOutput;
@@ -80,6 +81,11 @@ void art::TransferOutput::SendMessage(artdaq::Fragment::sequence_id_t sequenceId
 	{
 		sts = transfer_->transfer_fragment_min_blocking_mode(fragment, send_timeout_us_);
 		retries++;
+	}
+	if (retries > send_retry_count_)
+	{
+		TLOG(TLVL_ERROR) << "Error communicating with remote after " << retries << " tries. Closing art process";
+		kill(getpid(), SIGUSR2);
 	}
 
 #if 0
