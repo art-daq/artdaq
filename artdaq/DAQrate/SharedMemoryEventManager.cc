@@ -553,6 +553,25 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 
 	if (!manual_art_)
 	{
+		int graceful_wait_ms = art_event_processing_time_us_ * size() * 10 / 1000;
+		int gentle_wait_ms = art_event_processing_time_us_ * size() * 2 / 1000;
+		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
+		auto shutdown_start = std::chrono::steady_clock::now();
+
+
+		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
+		for (int ii = 0; ii < graceful_wait_ms; ++ii)
+		{
+			usleep(1000);
+
+			check_pids(false);
+			if (count_pids() == 0)
+			{
+				TLOG(TLVL_TRACE) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
+				return;
+			}
+		}
+
 		{
 			TLOG(TLVL_TRACE) << "Gently informing art processes that it is time to shut down";
 			std::unique_lock<std::mutex> lk(art_process_mutex_);
@@ -563,18 +582,16 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			}
 		}
 
-		int graceful_wait_ms = 5000;
-		int int_wait_ms = 1000;
 
-		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
-		for (int ii = 0; ii < graceful_wait_ms; ++ii)
+		TLOG(TLVL_TRACE) << "Waiting up to " << gentle_wait_ms << " ms for all art processes to exit from SIGQUIT";
+		for (int ii = 0; ii < gentle_wait_ms; ++ii)
 		{
 			usleep(1000);
 
 			check_pids(false);
 			if (count_pids() == 0)
 			{
-				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
+				TLOG(TLVL_TRACE) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
 				return;
 			}
 		}
@@ -588,8 +605,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			}
 		}
 
-		TLOG(TLVL_TRACE) << "Waiting up to " << int_wait_ms << " ms for all art processes to exit";
-		for (int ii = graceful_wait_ms; ii < graceful_wait_ms + int_wait_ms; ++ii)
+		TLOG(TLVL_TRACE) << "Waiting up to " << int_wait_ms << " ms for all art processes to exit from SIGINT";
+		for (int ii = 0; ii < int_wait_ms; ++ii)
 		{
 			usleep(1000);
 
@@ -597,7 +614,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 
 			if (count_pids() == 0)
 			{
-				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
+				TLOG(TLVL_TRACE) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
 				return;
 			}
 		}
@@ -714,24 +731,6 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		broadcastFragment_(std::move(outFrag), outFrag);
 	}
 	auto endOfDataProcessingStart = std::chrono::steady_clock::now();
-
-	if (get_art_process_count_() > 0)
-	{
-		TLOG(TLVL_DEBUG) << "Allowing " << get_art_process_count_() << " art processes the chance to end gracefully";
-		if (end_of_data_wait_us == 0)
-		{
-			TLOG(TLVL_DEBUG) << "Expected art event processing time not specified. Waiting up to 100s for art to end gracefully.";
-			end_of_data_wait_us = 100 * 1000000;
-		}
-
-		auto sleep_count = (end_of_data_wait_us / 10000) + 1;
-		for (size_t ii = 0; ii < sleep_count; ++ii)
-		{
-			usleep(10000);
-			if (get_art_process_count_() == 0) break;
-		}
-	}
-
 	while (get_art_process_count_() > 0)
 	{
 		TLOG(TLVL_DEBUG) << "There are " << get_art_process_count_() << " art processes remaining. Proceeding to shutdown.";
