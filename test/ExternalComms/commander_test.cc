@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 	sts = commander->send_reinit(pset, arg, arg);
 	TLOG(TLVL_DEBUG) << "reinit res=" << sts << ", sending trace_set";
 
-	sts = commander->send_trace_set("TRACE", "M", 0x7357);
+	sts = commander->send_trace_set("M", "TRACE", "0x7357");
 	TLOG(TLVL_DEBUG) << "trace_set res=" << sts << ", sending trace_get";
 	sts = commander->send_trace_get("TRACE");
 	TLOG(TLVL_DEBUG) << "trace_get res=" << sts << ", sending register_monitor";

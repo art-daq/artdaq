@@ -159,11 +159,12 @@ public:
 	/// This will cause the receiver to set the given TRACE level mask for the given name to the given mask.
 	/// Only the first character of the mask selection will be parsed, dial 'M' for Memory, or 'S' for Slow.
 	/// Use name == "ALL" to set ALL names
+        ///
+        /// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_set s/M s/ALL s/0x12345
 	///
-	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i/$((0x1234)) # Use Bash to convert hex to dec
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_trace_set(std::string, std::string, uint64_t) override;
+	std::string send_trace_set(std::string, std::string, std::string) override;
 
 	/// <summary>
 	/// Send an send_meta_command command over XMLRPC
@@ -197,7 +198,7 @@ private:
 	std::string send_command_(std::string command, art::RunID r, uint64_t a, uint64_t b);
 	std::string send_command_(std::string, uint64_t);
 	std::string send_command_(std::string, std::string, std::string);
-	std::string send_command_(std::string, std::string, std::string, uint64_t);
+        std::string send_command_(std::string, std::string, std::string, std::string);
 
 public:
 	std::timed_mutex mutex_;                        ///< XMLRPC mutex

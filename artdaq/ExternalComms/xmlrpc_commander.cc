@@ -783,7 +783,7 @@ public:
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 	trace_set_(xmlrpc_commander& c)
-	    : cmd_(c, "s:ssi", "Set TRACE mask")
+	    : cmd_(c, "s:sss", "Set TRACE mask")
 	{}
 
 private:
@@ -793,15 +793,15 @@ private:
 		{
 			getParam<std::string>(paramList, 0);
 			getParam<std::string>(paramList, 1);
-			getParam<uint64_t>(paramList, 2);
+			getParam<std::string>(paramList, 2);
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The trace_set command expects a mask type (M, S , or T), a name (ALL for all) and a mask");
+			*retvalP = xmlrpc_c::value_string("The trace_set command expects a mask type (M, S , or T), a name (ALL for all) and a mask in string form");
 			return true;
 		}
 
-		return _c._commandable.do_trace_set(getParam<std::string>(paramList, 0), getParam<std::string>(paramList, 1), getParam<uint64_t>(paramList, 2));
+		return _c._commandable.do_trace_set(getParam<std::string>(paramList, 0), getParam<std::string>(paramList, 1), getParam<std::string>(paramList, 2));
 	}
 };
 
@@ -1321,7 +1321,7 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::st
 	return xmlrpc_c::value_string(result);
 }
 
-std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::string arg1, std::string arg2, uint64_t arg3)
+std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::string arg1, std::string arg2, std::string arg3)
 {
 	if (serverUrl_ == "")
 	{
@@ -1334,7 +1334,7 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::st
 
 	try
 	{
-		myClient.call(serverUrl_, "daq." + command, "ssi", &result, arg1.c_str(), arg2.c_str(), arg3);
+	  myClient.call(serverUrl_, "daq." + command, "sss", &result, arg1.c_str(), arg2.c_str(), arg3.c_str());
 	}
 	catch (...)
 	{
@@ -1403,7 +1403,7 @@ std::string xmlrpc_commander::send_trace_get(std::string name)
 {
 	return send_command_("trace_get", name);
 }
-std::string xmlrpc_commander::send_trace_set(std::string name, std::string which, uint64_t mask)
+std::string xmlrpc_commander::send_trace_set(std::string name, std::string which, std::string mask)
 {
 	return send_command_("trace_set", name, which, mask);
 }

@@ -210,10 +210,11 @@ public:
 	/// Only the first character of the mask selection will be parsed, dial 'M' for Memory, or 'S' for Slow.
 	/// Use name == "ALL" to set ALL names
 	///
-	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i/$((0x1234)) # Use Bash to convert hex to dec
+        /// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_set s/M s/ALL s/0x12345
+        ///
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_trace_set(std::string, std::string, uint64_t);
+	virtual std::string send_trace_set(std::string, std::string, std::string);
 
 	/// <summary>
 	/// Using the transport mechanism, send an send_meta_command command

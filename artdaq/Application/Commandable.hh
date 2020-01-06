@@ -270,7 +270,7 @@ public:
 	* \param mask Mask to set
 	* \return Whether the command succeeded (always true)
 	*/
-	virtual bool do_trace_set(std::string const& type, std::string const& name, uint64_t mask);
+	virtual bool do_trace_set(std::string const& type, std::string const& name, std::string const& mask);
 
 	/**
 	* \brief Run a module-defined command with the given parameter string

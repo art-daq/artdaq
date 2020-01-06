@@ -430,9 +430,13 @@ std::string artdaq::Commandable::do_trace_get(std::string const& name)
 	return ss.str();
 }
 
-bool artdaq::Commandable::do_trace_set(std::string const& type, std::string const& name, uint64_t mask)
+bool artdaq::Commandable::do_trace_set(std::string const& type, std::string const& name, std::string const& mask_in_string_form)
 {
-	TLOG(TLVL_DEBUG) << "Setting msk " << type << " for name " << name << " to " << std::hex << std::showbase << mask;
+	TLOG(TLVL_DEBUG) << "Setting msk " << type << " for name " << name << " to " << mask_in_string_form;
+
+	auto mask = static_cast<uint64_t>(std::stoul(mask_in_string_form, nullptr, 0));
+	TLOG(TLVL_DEBUG) << "Mask has been converted to " << mask;
+
 	if (name != "ALL")
 	{
 		if (type.size() > 0)
