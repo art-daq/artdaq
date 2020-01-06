@@ -303,8 +303,24 @@ template<>
 uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int index)
 {
 	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as uint64_t.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
-	return boost::lexical_cast<uint64_t>(paramList.getString(index));
+	TLOG(TLVL_TRACE) << "Param value: " << paramList.getI8(index);
+	return static_cast<uint64_t>(paramList.getI8(index));
+}
+
+/**
+	* \brief Get a parameter from the parameter list
+	* \param paramList The parameter list
+	* \param index Index of the parameter in the parameter list
+	* \return The requested parameter
+	*
+	* This specialized cmd_getParam for the uint64_t type
+	*/
+template<>
+uint32_t cmd_::getParam<uint32_t>(const xmlrpc_c::paramList& paramList, int index)
+{
+	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as uint32_t.";
+	TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
+	return static_cast<uint32_t>(paramList.getInt(index));
 }
 
 /**
@@ -335,10 +351,8 @@ template<>
 art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int index)
 {
 	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as Run Number.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
-	std::string run_number_string = paramList.getString(index);
-	art::RunNumber_t run_number =
-	    boost::lexical_cast<art::RunNumber_t>(run_number_string);
+	TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
+	art::RunNumber_t run_number(paramList.getInt(index));
 	art::RunID run_id(run_number);
 
 	return run_id;
@@ -477,7 +491,7 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 		/** Command class Constructor                                                                                                                              \
 		 * \param c xmlrpc_commander to send parsed command to                                                                                                     \
 		 */                                                                                                                                                        \
-		explicit NAME##_(xmlrpc_commander& c) : cmd_(c, "s:sii", DESCRIPTION) {}                                                                                   \
+		explicit NAME##_(xmlrpc_commander& c) : cmd_(c, "s:sII", DESCRIPTION) {}                                                                                   \
                                                                                                                                                                    \
 		/** Default timeout for command */                                                                                                                         \
 		static const uint64_t defaultTimeout = 45;                                                                                                                 \
@@ -494,7 +508,7 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 			}                                                                                                                                                      \
 			catch (...)                                                                                                                                            \
 			{                                                                                                                                                      \
-				*retvalP = xmlrpc_c::value_string("The " #NAME " message requires a single argument that is a string containing the initialization ParameterSet"); \
+				*retvalP = xmlrpc_c::value_string("Error: The " #NAME " message requires a single argument that is a string containing the initialization ParameterSet"); \
 				return true;                                                                                                                                       \
 			}                                                                                                                                                      \
                                                                                                                                                                    \
@@ -525,7 +539,7 @@ public:
 		 * \param c xmlrpc_commander instance to command
 		 */
 	explicit start_(xmlrpc_commander& c)
-	    : cmd_(c, "s:iii", "start the run")
+	    : cmd_(c, "s:iII", "start the run")
 	{}
 
 	/** Default timeout for command */
@@ -542,7 +556,7 @@ private:
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The start message requires the run number as an argument.");
+			*retvalP = xmlrpc_c::value_string("Error: The start message requires the run number as an argument.");
 			return true;
 		}
 
@@ -567,7 +581,7 @@ private:
 	public:                                                                                  \
 		/** NAME ## _ Constructor                                                            \
 		    \param c xmlrpc_commander to send transition commands to */                      \
-		NAME##_(xmlrpc_commander& c) : cmd_(c, "s:ii", DESCRIPTION) {}                       \
+		NAME##_(xmlrpc_commander& c) : cmd_(c, "s:II", DESCRIPTION) {}                       \
                                                                                              \
 		/** Default timeout for command */                                                   \
 		static const uint64_t defaultTimeout = TIMEOUT;                                      \
@@ -665,7 +679,7 @@ private:
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The report message requires a single argument that selects the type of statistics to be reported.");
+			*retvalP = xmlrpc_c::value_string("Error: The report message requires a single argument that selects the type of statistics to be reported.");
 			return true;
 		}
 
@@ -731,7 +745,7 @@ private:
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The register_monitor command expects a string representing the FHiCL definition of a Transfer plugin");
+			*retvalP = xmlrpc_c::value_string("Error: The register_monitor command expects a string representing the FHiCL definition of a Transfer plugin");
 			return true;
 		}
 
@@ -763,7 +777,7 @@ private:
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The unregister_monitor command expects a string representing the label of the monitor to be removed");
+			*retvalP = xmlrpc_c::value_string("Error: The unregister_monitor command expects a string representing the label of the monitor to be removed");
 			return true;
 		}
 
@@ -783,7 +797,7 @@ public:
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 	trace_set_(xmlrpc_commander& c)
-	    : cmd_(c, "s:sss", "Set TRACE mask")
+	    : cmd_(c, "s:ssI", "Set TRACE mask")
 	{}
 
 private:
@@ -797,7 +811,7 @@ private:
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The trace_set command expects a mask type (M, S , or T), a name (ALL for all) and a mask in string form");
+			*retvalP = xmlrpc_c::value_string("Error: The trace_set command expects a name (ALL for all), a mask type (M, S , or T), and a mask");
 			return true;
 		}
 
@@ -828,7 +842,7 @@ private:
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The trace_msgfacility_set command expects a name (ALL for all)");
+			*retvalP = xmlrpc_c::value_string("Error: The trace_get command expects a name (ALL for all)");
 			return true;
 		}
 
@@ -861,7 +875,7 @@ private:
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The meta_command command expects a string command and a string argument");
+			*retvalP = xmlrpc_c::value_string("Error: The meta_command command expects a string command and a string argument");
 			return true;
 		}
 
@@ -880,7 +894,7 @@ public:
 		* \param c xmlrpc_commander to send transition commands to
 		*/
 	rollover_subrun_(xmlrpc_commander& c)
-	    : cmd_(c, "s:ii", "create a new subrun")
+	    : cmd_(c, "s:Ii", "create a new subrun")
 	{}
 
 	static const uint64_t defaultSequenceID = 0xFFFFFFFFFFFFFFFF;  ///< Default Sequence ID for command
@@ -918,7 +932,7 @@ private:
 		}
 		catch (...)
 		{
-			*retvalP = xmlrpc_c::value_string("The add_config_archive_entry command expects a string key and a string value");
+			*retvalP = xmlrpc_c::value_string("Error: The add_config_archive_entry command expects a string key and a string value");
 			return true;
 		}
 
@@ -1204,7 +1218,7 @@ std::string xmlrpc_commander::send_command_(std::string command, fhicl::Paramete
 
 	try
 	{
-		myClient.call(serverUrl_, "daq." + command, "sii", &result, pset.to_string().c_str(), timestamp, timeout);
+		myClient.call(serverUrl_, "daq." + command, "sII", &result, pset.to_string().c_str(), timestamp, timeout);
 	}
 	catch (...)
 	{
@@ -1230,7 +1244,7 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, uint64_
 
 	try
 	{
-		myClient.call(serverUrl_, "daq." + command, "ii", &result, a, b);
+		myClient.call(serverUrl_, "daq." + command, "II", &result, a, b);
 	}
 	catch (...)
 	{
@@ -1256,7 +1270,7 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, art::Ru
 
 	try
 	{
-		myClient.call(serverUrl_, "daq." + command, "iii", &result, r, a, b);
+		myClient.call(serverUrl_, "daq." + command, "iII", &result, r.run(), a, b);
 	}
 	catch (...)
 	{
@@ -1282,7 +1296,7 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, uint64_
 
 	try
 	{
-		myClient.call(serverUrl_, "daq." + command, "i", &result, arg1);
+		myClient.call(serverUrl_, "daq." + command, "I", &result, arg1);
 	}
 	catch (...)
 	{
@@ -1340,7 +1354,7 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::st
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
-		       << "; possible causes are malformed FHiCL or nonexistent process at requested port";
+		       << "; possible causes are bad arguments or nonexistent process at requested port";
 		ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
 	}
 
@@ -1355,37 +1369,37 @@ std::string xmlrpc_commander::send_unregister_monitor(std::string monitor_label)
 {
 	return send_command_("unregister_monitor", monitor_label);
 }
-std::string artdaq::xmlrpc_commander::send_init(fhicl::ParameterSet ps, uint64_t a, uint64_t b)
+std::string artdaq::xmlrpc_commander::send_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp)
 {
-	return send_command_("init", ps, a, b);
+	return send_command_("init", ps, timeout, timestamp);
 }
-std::string artdaq::xmlrpc_commander::send_soft_init(fhicl::ParameterSet ps, uint64_t a, uint64_t b)
+std::string artdaq::xmlrpc_commander::send_soft_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp)
 {
-	return send_command_("soft_init", ps, a, b);
+	return send_command_("soft_init", ps, timeout, timestamp);
 }
-std::string xmlrpc_commander::send_reinit(fhicl::ParameterSet ps, uint64_t a, uint64_t b)
+std::string xmlrpc_commander::send_reinit(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp)
 {
-	return send_command_("reinit", ps, a, b);
+	return send_command_("reinit", ps, timeout, timestamp);
 }
-std::string xmlrpc_commander::send_start(art::RunID r, uint64_t a, uint64_t b)
+std::string xmlrpc_commander::send_start(art::RunID run, uint64_t timeout, uint64_t timestamp)
 {
-	return send_command_("start", r, a, b);
+	return send_command_("start", run, timeout, timestamp);
 }
-std::string xmlrpc_commander::send_pause(uint64_t a, uint64_t b)
+std::string xmlrpc_commander::send_pause(uint64_t timeout, uint64_t timestamp)
 {
-	return send_command_("pause", a, b);
+	return send_command_("pause", timeout, timestamp);
 }
-std::string xmlrpc_commander::send_resume(uint64_t a, uint64_t b)
+std::string xmlrpc_commander::send_resume(uint64_t timeout, uint64_t timestamp)
 {
-	return send_command_("resume", a, b);
+	return send_command_("resume", timeout, timestamp);
 }
-std::string xmlrpc_commander::send_stop(uint64_t a, uint64_t b)
+std::string xmlrpc_commander::send_stop(uint64_t timeout, uint64_t timestamp)
 {
-	return send_command_("stop", a, b);
+	return send_command_("stop", timeout, timestamp);
 }
-std::string xmlrpc_commander::send_shutdown(uint64_t a)
+std::string xmlrpc_commander::send_shutdown(uint64_t timeout)
 {
-	return send_command_("shutdown", a);
+	return send_command_("shutdown", timeout);
 }
 std::string xmlrpc_commander::send_status()
 {
@@ -1403,9 +1417,9 @@ std::string xmlrpc_commander::send_trace_get(std::string name)
 {
 	return send_command_("trace_get", name);
 }
-std::string xmlrpc_commander::send_trace_set(std::string name, std::string which, std::string mask)
+std::string xmlrpc_commander::send_trace_set(std::string name, std::string type, std::string mask)
 {
-	return send_command_("trace_set", name, which, mask);
+	return send_command_("trace_set", name, type, mask);
 }
 std::string xmlrpc_commander::send_meta_command(std::string command, std::string arg)
 {
