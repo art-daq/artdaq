@@ -38,10 +38,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
     , buffer_writes_pending_()
     , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
     , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-    , last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
     , last_backpressure_report_time_(std::chrono::steady_clock::now())
     , last_fragment_header_write_time_(std::chrono::steady_clock::now())
-    , metric_data_()
     , broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
     , run_event_count_(0)
     , run_incomplete_event_count_(0)
@@ -558,7 +556,6 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
 		auto shutdown_start = std::chrono::steady_clock::now();
 
-
 		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
 		for (int ii = 0; ii < graceful_wait_ms; ++ii)
 		{
@@ -581,7 +578,6 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 				kill(pid, SIGQUIT);
 			}
 		}
-
 
 		TLOG(TLVL_TRACE) << "Waiting up to " << gentle_wait_ms << " ms for all art processes to exit from SIGQUIT";
 		for (int ii = 0; ii < gentle_wait_ms; ++ii)
@@ -1185,15 +1181,15 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		TLOG(TLVL_INFO) << statString;
 	}
 
-	metric_data_.event_count += counter;
-	metric_data_.event_size += eventSize;
-
-	if (metricMan && TimeUtils::GetElapsedTimeMilliseconds(last_shmem_buffer_metric_update_) > 500)  // Limit to 2 Hz updates
+	if (metricMan)
 	{
 		TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
-		metricMan->sendMetric("Event Rate", metric_data_.event_count, "Events/s", 1, MetricMode::Rate);
-		if (metric_data_.event_count > 0) metricMan->sendMetric("Average Event Size", metric_data_.event_size / metric_data_.event_count, "Bytes", 1, MetricMode::Average);
-		metric_data_ = MetricData();
+		metricMan->sendMetric("Event Rate", counter, "Events", 1, MetricMode::Rate);
+		metricMan->sendMetric("Data Rate", eventSize, "Bytes", 1, MetricMode::Rate);
+		if (counter > 0)
+		{
+			metricMan->sendMetric("Average Event Size", eventSize / counter, "Bytes", 1, MetricMode::Average);
+		}
 
 		metricMan->sendMetric("Events Released to art this run", run_event_count_, "Events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Incomplete Events Released to art this run", run_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
@@ -1216,8 +1212,6 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
 		}
-
-		last_shmem_buffer_metric_update_ = std::chrono::steady_clock::now();
 	}
 	TLOG(TLVL_TRACE) << "check_pending_buffers_ END";
 }
