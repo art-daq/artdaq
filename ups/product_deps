@@ -29,12 +29,12 @@ art             v2_11_01    s67
 artdaq_core 		v3_05_09
 artdaq_utilities        v1_05_03
 xmlrpc_c		v1_51_03
-artdaq_mfextensions     v1_03_08        -       optional
-artdaq_epics_plugin     v1_02_10        -       optional
-artdaq_ganglia_plugin   v1_02_17        -       optional
-artdaq_pcp_mmv_plugin   v1_00_02        -       optional
-cetbuildtools		v7_14_00	-	only_for_build
-smc_compiler		v6_6_0		-nq-	only_for_build
+artdaq_mfextensions     v1_03_08CHC47782 -       optional
+artdaq_epics_plugin     v1_02_10         -       optional
+artdaq_ganglia_plugin   v1_02_17         -       optional
+artdaq_pcp_mmv_plugin   v1_00_02         -       optional
+cetbuildtools		v7_14_00  	 -	 only_for_build
+smc_compiler		v6_6_0		 -nq-	 only_for_build
 end_product_list
 
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
