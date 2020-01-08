@@ -88,7 +88,7 @@ inline std::string CommanderInterface::send_trace_get(std::string)
 	return "NOT IMPLEMENTED";
 }
 
-inline std::string CommanderInterface::send_trace_set(std::string, std::string, uint64_t)
+inline std::string CommanderInterface::send_trace_set(std::string, std::string, std::string)
 {
 #pragma message "Using default implementation of send_trace_set!"
 	return "NOT IMPLEMENTED";
