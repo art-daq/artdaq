@@ -44,7 +44,10 @@ Entry { BootedEnter(); }
 {
   init(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  [ctxt.do_initialize(pset, timeout, timestamp)]
       Initialized/push(InitializedMap::Ready)  {}
+  reinit(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  [ctxt.do_initialize(pset, timeout, timestamp)]
+      Initialized/push(InitializedMap::Ready)  {}
   init(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  nil  {}
+  reinit(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  nil  {}
   shutdown(timeout: uint64_t)  Booted  {}
 }
 
@@ -52,7 +55,10 @@ Initialized
 {
   init(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  [ctxt.do_initialize(pset, timeout, timestamp)]
       Initialized/push(InitializedMap::Ready)  {}
+  reinit(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  [ctxt.do_initialize(pset, timeout, timestamp)]
+      Initialized/push(InitializedMap::Ready)  {}
   init(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  Booted  {}
+  reinit(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  Booted  {}
   shutdown(timeout: uint64_t) [ctxt.do_shutdown(timeout)] Booted  { }
 }
 
@@ -80,6 +86,7 @@ Ready
   start(id: art::RunID, timeout: uint64_t, timestamp: uint64_t)  nil  {}
   init(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  pop(init, pset, timeout, timestamp)  {}
   soft_init(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)  nil  {do_soft_initialize(pset, timeout, timestamp);}
+  reinit(pset: fhicl::ParameterSet const&, timeout: uint64_t, timestamp: uint64_t)    nil  {do_reinitialize(pset,timeout,timestamp);}
   shutdown(timeout: uint64_t)  pop(shutdown, timeout)  {}
 }
 
