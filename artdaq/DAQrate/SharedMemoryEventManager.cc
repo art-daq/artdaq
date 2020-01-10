@@ -1277,10 +1277,10 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 		mqPtr->getStats(stats);
 		oss << "  Event statistics: " << stats.recentSampleCount << " events released at " << stats.recentSampleRate
 		    << " events/sec, effective data rate = "
-		    << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+		    << (stats.recentValueRate / 1024.0 / 1024.0)
 		    << " MB/sec, monitor window = " << stats.recentDuration
-		    << " sec, min::max event size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
-		    << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
+		    << " sec, min::max event size = " << (stats.recentValueMin / 1024.0 / 1024.0)
+		    << "::" << (stats.recentValueMax / 1024.0 / 1024.0) << " MB" << std::endl;
 		if (stats.recentSampleRate > 0.0)
 		{
 			oss << "  Average time per event: ";
@@ -1295,10 +1295,10 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 		mqPtr->getStats(stats);
 		oss << "  Fragment statistics: " << stats.recentSampleCount << " fragments received at " << stats.recentSampleRate
 		    << " fragments/sec, effective data rate = "
-		    << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+		    << (stats.recentValueRate / 1024.0 / 1024.0)
 		    << " MB/sec, monitor window = " << stats.recentDuration
-		    << " sec, min::max fragment size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
-		    << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
+		    << " sec, min::max fragment size = " << (stats.recentValueMin / 1024.0 / 1024.0)
+		    << "::" << (stats.recentValueMax / 1024.0 / 1024.0) << " MB" << std::endl;
 	}
 
 	oss << "  Event counts: Run -- " << run_event_count_ << " Total, " << run_incomplete_event_count_ << " Incomplete."
