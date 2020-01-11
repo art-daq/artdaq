@@ -367,7 +367,7 @@ std::string artdaq::TransferWrapper::getDispatcherStatus()
 	{
 		return commander_->send_status();
 	}
-	catch (std::exception ex)
+	catch (std::exception const& ex)
 	{
 		TLOG(TLVL_WARNING) << "An exception was thrown trying to collect the Dispatcher's status. Most likely cause is the application is no longer running.";
 		return "";

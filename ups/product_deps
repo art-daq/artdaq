@@ -29,8 +29,8 @@ art             v2_11_01    s67
 artdaq_core 		v3_05_09
 artdaq_utilities        v1_05_03a
 xmlrpc_c		v1_51_03a
-swig            v3_0_12d         -       optional
-nodejs          v4_5_0          -       optional
+swig            v4_0_0         -       optional
+nodejs          v10_15_0          -       optional
 artdaq_mfextensions     v1_03_08a        -       optional
 artdaq_epics_plugin     v1_02_10a        -       optional
 artdaq_ganglia_plugin   v1_02_17a        -       optional
