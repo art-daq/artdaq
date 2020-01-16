@@ -8,6 +8,20 @@
 #include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
+#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
+	do                                                                                                                           \
+	{                                                                                                                            \
+		if (l == r)                                                                                                              \
+		{                                                                                                                        \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
+		}                                                                                                                        \
+		else                                                                                                                     \
+		{                                                                                                                        \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!";  \
+		}                                                                                                                        \
+		TRACE_REQUIRE_EQUAL(l, r);                                                                                               \
+	} while (0)
+
 #define MULTICAST_MODE 0
 
 namespace artdaqtest {
@@ -172,11 +186,11 @@ BOOST_AUTO_TEST_CASE(Simple)
 	artdaqtest::CommandableFragmentGeneratorTest testGen(ps);
 	artdaq::FragmentPtrs fps;
 	auto sts = testGen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	TLOG(TLVL_INFO) << "Simple test case END";
 }
 
@@ -212,11 +226,11 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests)
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
 	TLOG(TLVL_INFO) << "IgnoreRequests test case END";
@@ -253,49 +267,49 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
 	auto type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
 	t.AddRequest(2, 5);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
 	t.AddRequest(4, 7);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 2);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
 	auto ts = artdaq::Fragment::InvalidTimestamp;
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), emptyType);
 	fps.pop_front();
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	fps.clear();
 
 	gen.StopCmd(0xFFFFFFFF, 1);
@@ -334,70 +348,70 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	auto type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	BOOST_REQUIRE_GE(fps.front()->sizeBytes(), 2 * sizeof(artdaq::detail::RawFragmentHeader) + sizeof(artdaq::ContainerFragment::Metadata));
 	auto cf = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
 	t.AddRequest(2, 5);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf2 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf2.block_count(), 0);
-	BOOST_REQUIRE_EQUAL(cf2.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf2.block_count(), 0);
+	TRACE_REQUIRE_EQUAL(cf2.missing_data(), false);
 	type = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(cf2.fragment_type(), type);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(cf2.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
 	t.AddRequest(4, 7);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 2);
 
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
 	auto ts = artdaq::Fragment::InvalidTimestamp;
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
-	BOOST_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), emptyType);
+	TRACE_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
 	fps.pop_front();
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf3 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf3.block_count(), 2);
-	BOOST_REQUIRE_EQUAL(cf3.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf3.block_count(), 2);
+	TRACE_REQUIRE_EQUAL(cf3.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf3.fragment_type(), type);
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -540,93 +554,93 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	auto type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	BOOST_REQUIRE_GE(fps.front()->sizeBytes(), 2 * sizeof(artdaq::detail::RawFragmentHeader) + sizeof(artdaq::ContainerFragment::Metadata));
 	auto cf = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
 	t.AddRequest(2, 5);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf2 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf2.block_count(), 0);
-	BOOST_REQUIRE_EQUAL(cf2.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf2.block_count(), 0);
+	TRACE_REQUIRE_EQUAL(cf2.missing_data(), false);
 	type = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(cf2.fragment_type(), type);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(cf2.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
 	gen.setFireCount(3);
 	gen.waitForFrags();
 	t.AddRequest(4, 7);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 2);
 
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
 	auto ts = artdaq::Fragment::InvalidTimestamp;
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
-	BOOST_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), emptyType);
+	TRACE_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
 	fps.pop_front();
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf3 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf3.block_count(), 3);
-	BOOST_REQUIRE_EQUAL(cf3.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf3.block_count(), 3);
+	TRACE_REQUIRE_EQUAL(cf3.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf3.fragment_type(), type);
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 
 	gen.setFireCount(5);
 	gen.waitForFrags();
 	t.AddRequest(5, 8);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
 
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf4 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf4.block_count(), 3);
-	BOOST_REQUIRE_EQUAL(cf4.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf4.block_count(), 3);
+	TRACE_REQUIRE_EQUAL(cf4.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
-	BOOST_REQUIRE_EQUAL(cf4.at(0)->timestamp(), 7);
-	BOOST_REQUIRE_EQUAL(cf4.at(1)->timestamp(), 8);
-	BOOST_REQUIRE_EQUAL(cf4.at(2)->timestamp(), 9);
+	TRACE_REQUIRE_EQUAL(cf4.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf4.at(0)->timestamp(), 7);
+	TRACE_REQUIRE_EQUAL(cf4.at(1)->timestamp(), 8);
+	TRACE_REQUIRE_EQUAL(cf4.at(2)->timestamp(), 9);
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -669,82 +683,82 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	auto type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	BOOST_REQUIRE_GE(fps.front()->sizeBytes(), 2 * sizeof(artdaq::detail::RawFragmentHeader) + sizeof(artdaq::ContainerFragment::Metadata));
 	auto cf = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
 	// No data for request
 	t.AddRequest(2, 2);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.setFireCount(1);
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf2 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf2.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf2.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf2.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf2.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf2.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf2.fragment_type(), type);
 	fps.clear();
 
 	// Request Timeout
 	t.AddRequest(4, 3);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 
 	usleep(1500000);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
 
 	// Also, missing request timeout
 	auto list = gen.GetSentWindowList(1);
-	BOOST_REQUIRE_EQUAL(list.size(), 1);
-	BOOST_REQUIRE_EQUAL(list.begin()->first, 4);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(list.size(), 1);
+	TRACE_REQUIRE_EQUAL(list.begin()->first, 4);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 
 	usleep(1500000);
 
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf3 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf3.block_count(), 0);
-	BOOST_REQUIRE_EQUAL(cf3.missing_data(), true);
+	TRACE_REQUIRE_EQUAL(cf3.block_count(), 0);
+	TRACE_REQUIRE_EQUAL(cf3.missing_data(), true);
 	type = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(cf3.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
 	// Data-taking has passed request
@@ -752,66 +766,66 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	gen.waitForFrags();
 	t.AddRequest(5, 4);
 	list = gen.GetSentWindowList(1);  // Out-of-order list is only updated in getNext calls
-	BOOST_REQUIRE_EQUAL(list.size(), 1);
+	TRACE_REQUIRE_EQUAL(list.size(), 1);
 	sts = gen.getNext(fps);
 	list = gen.GetSentWindowList(1);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
-	BOOST_REQUIRE_EQUAL(list.size(), 0);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
+	TRACE_REQUIRE_EQUAL(list.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf4 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf4.block_count(), 0);
-	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	TRACE_REQUIRE_EQUAL(cf4.block_count(), 0);
+	TRACE_REQUIRE_EQUAL(cf4.missing_data(), true);
 	type = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf4.fragment_type(), type);
 	fps.clear();
 
 	// Out-of-order windows
 	t.AddRequest(7, 13);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 13);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 7);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 13);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 7);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf5 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf5.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf5.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf5.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf5.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf5.fragment_type(), type);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
+	TRACE_REQUIRE_EQUAL(cf5.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
 	fps.clear();
 
 	list = gen.GetSentWindowList(1);
-	BOOST_REQUIRE_EQUAL(list.size(), 1);
-	BOOST_REQUIRE_EQUAL(list.begin()->first, 7);
+	TRACE_REQUIRE_EQUAL(list.size(), 1);
+	TRACE_REQUIRE_EQUAL(list.begin()->first, 7);
 
 	t.AddRequest(6, 12);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 12);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 6);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 12);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 6);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf6 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf6.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf6.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf6.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf6.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf6.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf6.fragment_type(), type);
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 8);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 8);
 
 	list = gen.GetSentWindowList(1);
-	BOOST_REQUIRE_EQUAL(list.size(), 0);
+	TRACE_REQUIRE_EQUAL(list.size(), 0);
 
 	usleep(1500000);
 
@@ -870,18 +884,18 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	t.AddRequest(1, 1);  // Requesting data from ts 1 to 3
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf4 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf4.block_count(), 0);
-	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	TRACE_REQUIRE_EQUAL(cf4.block_count(), 0);
+	TRACE_REQUIRE_EQUAL(cf4.missing_data(), true);
 	type = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG(TLVL_INFO) << "WindowMode_RequestBeforeBuffer test case END";
@@ -932,18 +946,18 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	t.AddRequest(1, 4);  // Requesting data from ts 4 to 6
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf4 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf4.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	TRACE_REQUIRE_EQUAL(cf4.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf4.missing_data(), true);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -996,64 +1010,64 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 
 	t.AddRequest(1, 6);  // Requesting data from ts 6 to 9, buffer will contain 10
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 6);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 6);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf.block_count(), 4);
-	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf.block_count(), 4);
+	TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
 	t.AddRequest(2, 9);  // Requesting data from ts 9 to 12
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.setFireCount(3);  // Buffer start is at ts 10, end at 13
 	gen.waitForFrags();
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 9);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 9);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf2 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf2.block_count(), 3);
-	BOOST_REQUIRE_EQUAL(cf2.missing_data(), true);
+	TRACE_REQUIRE_EQUAL(cf2.block_count(), 3);
+	TRACE_REQUIRE_EQUAL(cf2.missing_data(), true);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf2.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf2.fragment_type(), type);
 	fps.clear();
 
 	t.AddRequest(3, 12);  // Requesting data from ts 11 to 14
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	usleep(550000);
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 12);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 12);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf4 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf4.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	TRACE_REQUIRE_EQUAL(cf4.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf4.missing_data(), true);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -1103,18 +1117,18 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	t.AddRequest(1, 3);  // Requesting data from ts 3 to 5
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf4 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf4.block_count(), 3);
-	BOOST_REQUIRE_EQUAL(cf4.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf4.block_count(), 3);
+	TRACE_REQUIRE_EQUAL(cf4.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG(TLVL_INFO) << "WindowMode_RequestInBuffer test case END";
@@ -1163,47 +1177,47 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
 	t.AddRequest(1, 5);  // Requesting data from ts 5 to 7
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.setFireCount(2);  // Buffer contains 4 to 8
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf.block_count(), 3);
-	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf.block_count(), 3);
+	TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
 	t.AddRequest(2, 8);  // Requesting data from ts 8 to 10
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	usleep(550000);
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf4 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf4.block_count(), 1);
-	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	TRACE_REQUIRE_EQUAL(cf4.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf4.missing_data(), true);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -1254,55 +1268,149 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	t.AddRequest(1, 11);  // Requesting data from ts 11 to 13
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 	gen.setFireCount(1);  // Buffer start is 7, end at 11
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.setFireCount(3);  // Buffer start is 10, end at 14
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 11);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 11);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf.block_count(), 3);
-	BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+	TRACE_REQUIRE_EQUAL(cf.block_count(), 3);
+	TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 	type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
 	t.AddRequest(2, 16);  // Requesting data from ts 15 to 17
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	usleep(550000);
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 16);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 16);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 	type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	auto cf4 = artdaq::ContainerFragment(*fps.front());
-	BOOST_REQUIRE_EQUAL(cf4.block_count(), 0);
-	BOOST_REQUIRE_EQUAL(cf4.missing_data(), true);
+	TRACE_REQUIRE_EQUAL(cf4.block_count(), 0);
+	TRACE_REQUIRE_EQUAL(cf4.missing_data(), true);
 	type = artdaq::Fragment::EmptyFragmentType;
-	BOOST_REQUIRE_EQUAL(cf4.fragment_type(), type);
+	TRACE_REQUIRE_EQUAL(cf4.fragment_type(), type);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
 	TLOG(TLVL_INFO) << "WindowMode_RequestAfterBuffer test case END";
+}
+
+BOOST_AUTO_TEST_CASE(SequenceIDMode)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG(TLVL_INFO) << "SequenceIDMode test case BEGIN";
+	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
+	const int DELAY_TIME = 100;
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	ps.put<int>("request_port", REQUEST_PORT);
+#if MULTICAST_MODE
+	ps.put<std::string>("request_address", "227.18.12.30");
+#else
+	ps.put<std::string>("request_address", "localhost");
+#endif
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("separate_data_thread", true);
+	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<int64_t>("hardware_poll_interval_us", 0);
+	ps.put<std::string>("request_mode", "SequenceID");
+	ps.put("request_delay_ms", DELAY_TIME);
+	ps.put("send_requests", true);
+
+	artdaq::RequestSender t(ps);
+	t.SetRunNumber(1);
+	t.AddRequest(1, 1);
+
+	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.StartCmd(1, 0xFFFFFFFF, 1);
+	gen.waitForFrags();
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
+
+	// Test that Fragment with matching Sequence ID and timestamp is returned
+	artdaq::FragmentPtrs fps;
+	auto sts = gen.getNext(fps);
+	auto type = artdaq::Fragment::FirstUserFragmentType;
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	fps.clear();
+
+	// Test that no Fragment is returned when one does not exist in the buffer
+	t.AddRequest(2, 5);
+	sts = gen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	// Test that Fragment with matching Sequence ID and non-matching timestamp is returned
+	gen.setFireCount(1);
+	gen.waitForFrags();
+	sts = gen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	fps.clear();
+
+	// Test out-of-order requests, with non-matching timestamps
+	gen.setFireCount(2);
+	gen.waitForFrags();
+	t.AddRequest(4, 7);
+	sts = gen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	fps.clear();
+
+	t.AddRequest(3, 6);
+	sts = gen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+
+	gen.StopCmd(0xFFFFFFFF, 1);
+	gen.joinThreads();
+	TLOG(TLVL_INFO) << "SequenceIDMode test case END";
 }
 
 BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
@@ -1321,19 +1429,19 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	fps.clear();
 
 	gen.setFireCount(1);
 	gen.setHwFail();
 	usleep(10000);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, false);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -1357,29 +1465,29 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1u);
-	BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-	BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	fps.clear();
 
 	gen.setHwFail();
 	//gen.setFireCount(1);
 	//sts = gen.getNext(fps);
-	//BOOST_REQUIRE_EQUAL(sts, true);
-	//BOOST_REQUIRE_EQUAL(fps.size(), 1);
-	//BOOST_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
-	//BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
-	//BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	//TRACE_REQUIRE_EQUAL(sts, true);
+	//TRACE_REQUIRE_EQUAL(fps.size(), 1);
+	//TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	//TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+	//TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	//fps.clear();
 
 	sleep(1);
 
 	gen.setFireCount(1);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, false);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -1419,19 +1527,19 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 	artdaq::FragmentPtrs fps;
 	std::map<artdaq::Fragment::fragment_id_t, size_t> ids;
 	auto sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 		fps.pop_front();
 	}
 
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
 	fps.clear();
@@ -1440,17 +1548,17 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
 
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 2u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 2u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -1488,82 +1596,82 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
 	artdaq::FragmentPtrs fps;
 	std::map<artdaq::Fragment::fragment_id_t, size_t> ids;
 	auto sts = gen.getNext(fps);
 	auto type = artdaq::Fragment::FirstUserFragmentType;
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
 	t.AddRequest(2, 5);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
 	t.AddRequest(4, 7);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 6);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 6);
 	auto ts = artdaq::Fragment::InvalidTimestamp;
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
 	for (auto ii = 0; ii < 3; ++ii)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), emptyType);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	for (auto ii = 0; ii < 3; ++ii)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	fps.clear();
 
@@ -1573,20 +1681,20 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	gen.waitForFrags();
 	t.AddRequest(5, 9);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3);
 	for (auto ii = 0; ii < 3; ++ii)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 9);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 9);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	fps.clear();
 
@@ -1626,144 +1734,144 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
 	artdaq::FragmentPtrs fps;
 	std::map<artdaq::Fragment::fragment_id_t, size_t> ids;
 	auto sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	auto type = artdaq::Fragment::ContainerFragmentType;
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		BOOST_REQUIRE_GE(fps.front()->sizeBytes(), 2 * sizeof(artdaq::detail::RawFragmentHeader) + sizeof(artdaq::ContainerFragment::Metadata));
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
 	t.AddRequest(2, 5);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 0);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 0);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::EmptyFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
 	t.AddRequest(4, 7);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 6);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 6);
 
 	auto ts = artdaq::Fragment::InvalidTimestamp;
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
 	for (auto ii = 0; ii < 3; ++ii)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
-		BOOST_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), emptyType);
+		TRACE_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	for (auto ii = 0; ii < 3; ++ii)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf3 = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf3.block_count(), 2);
-		BOOST_REQUIRE_EQUAL(cf3.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf3.block_count(), 2);
+		TRACE_REQUIRE_EQUAL(cf3.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf3.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 
 	gen.setEnabledIds(0x6);  // Fragment id 3 disabled
 	gen.setFireCount(2);
 	gen.waitForFrags();
 	t.AddRequest(5, 8);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3);
 
 	for (auto ii = 0; ii < 3; ++ii)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf3 = artdaq::ContainerFragment(*fps.front());
 		if (fps.front()->fragmentID() != 3)
 		{
-			BOOST_REQUIRE_EQUAL(cf3.block_count(), 2);
-			BOOST_REQUIRE_EQUAL(cf3.missing_data(), false);
+			TRACE_REQUIRE_EQUAL(cf3.block_count(), 2);
+			TRACE_REQUIRE_EQUAL(cf3.missing_data(), false);
 			type = artdaq::Fragment::FirstUserFragmentType;
-			BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
+			TRACE_REQUIRE_EQUAL(cf3.fragment_type(), type);
 		}
 		else
 		{
-			BOOST_REQUIRE_EQUAL(cf3.block_count(), 0);
-			BOOST_REQUIRE_EQUAL(cf3.missing_data(), false);
+			TRACE_REQUIRE_EQUAL(cf3.block_count(), 0);
+			TRACE_REQUIRE_EQUAL(cf3.missing_data(), false);
 			type = artdaq::Fragment::EmptyFragmentType;
-			BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
+			TRACE_REQUIRE_EQUAL(cf3.fragment_type(), type);
 		}
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -1804,137 +1912,137 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
 	artdaq::FragmentPtrs fps;
 	std::map<artdaq::Fragment::fragment_id_t, size_t> ids;
 	auto sts = gen.getNext(fps);
 	auto type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		BOOST_REQUIRE_GE(fps.front()->sizeBytes(), 2 * sizeof(artdaq::detail::RawFragmentHeader) + sizeof(artdaq::ContainerFragment::Metadata));
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
 	t.AddRequest(2, 5);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 0);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 0);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::EmptyFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
 	gen.setFireCount(3);
 	gen.waitForFrags();
 	t.AddRequest(4, 7);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 6);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 6);
 
 	auto ts = artdaq::Fragment::InvalidTimestamp;
 	auto emptyType = artdaq::Fragment::EmptyFragmentType;
 	for (auto ii = 0; ii < 3; ++ii)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), emptyType);
-		BOOST_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), ts);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 3);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), emptyType);
+		TRACE_REQUIRE_EQUAL(fps.front()->size(), artdaq::detail::RawFragmentHeader::num_words());
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	for (auto ii = 0; ii < 3; ++ii)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 7);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf3 = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf3.block_count(), 3);
-		BOOST_REQUIRE_EQUAL(cf3.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf3.block_count(), 3);
+		TRACE_REQUIRE_EQUAL(cf3.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf3.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf3.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 5);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 
 	gen.setFireCount(5);
 	gen.waitForFrags();
 	t.AddRequest(5, 8);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 8);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 3);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 3);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
-		BOOST_REQUIRE_EQUAL(cf.at(0)->timestamp(), 7);
-		BOOST_REQUIRE_EQUAL(cf.at(1)->timestamp(), 8);
-		BOOST_REQUIRE_EQUAL(cf.at(2)->timestamp(), 9);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.at(0)->timestamp(), 7);
+		TRACE_REQUIRE_EQUAL(cf.at(1)->timestamp(), 8);
+		TRACE_REQUIRE_EQUAL(cf.at(2)->timestamp(), 9);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
 
 	gen.setFireCount(1);
 	gen.waitForFrags();
@@ -1943,41 +2051,41 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	gen.waitForFrags();
 	t.AddRequest(6, 10);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 10);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 6);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 10);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 6);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 
 		if (fps.front()->fragmentID() != 3)
 		{
-			BOOST_REQUIRE_EQUAL(cf.block_count(), 3);
-			BOOST_REQUIRE_EQUAL(cf.at(0)->timestamp(), 12);
-			BOOST_REQUIRE_EQUAL(cf.at(1)->timestamp(), 13);
-			BOOST_REQUIRE_EQUAL(cf.at(2)->timestamp(), 14);
+			TRACE_REQUIRE_EQUAL(cf.block_count(), 3);
+			TRACE_REQUIRE_EQUAL(cf.at(0)->timestamp(), 12);
+			TRACE_REQUIRE_EQUAL(cf.at(1)->timestamp(), 13);
+			TRACE_REQUIRE_EQUAL(cf.at(2)->timestamp(), 14);
 		}
 		else
 		{
-			BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-			BOOST_REQUIRE_EQUAL(cf.at(0)->timestamp(), 10);
+			TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+			TRACE_REQUIRE_EQUAL(cf.at(0)->timestamp(), 10);
 		}
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 7);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 7);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -2020,109 +2128,109 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 	gen.waitForFrags();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 1);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
 
 	artdaq::FragmentPtrs fps;
 	std::map<artdaq::Fragment::fragment_id_t, size_t> ids;
 	auto sts = gen.getNext(fps);
 	auto type = artdaq::Fragment::ContainerFragmentType;
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		BOOST_REQUIRE_GE(fps.front()->sizeBytes(), 2 * sizeof(artdaq::detail::RawFragmentHeader) + sizeof(artdaq::ContainerFragment::Metadata));
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	fps.clear();
 
 	// No data for request
 	t.AddRequest(2, 2);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 2);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	gen.setFireCount(1);
 	gen.waitForFrags();
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3u);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	fps.clear();
 
 	// Request Timeout
 	t.AddRequest(4, 3);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 0);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 
 	usleep(1500000);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3);
 
 	// Also, missing request timeout
 	auto list = gen.GetSentWindowList(1);
-	BOOST_REQUIRE_EQUAL(list.size(), 1);
-	BOOST_REQUIRE_EQUAL(list.begin()->first, 4);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(list.size(), 1);
+	TRACE_REQUIRE_EQUAL(list.begin()->first, 4);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 
 	usleep(1500000);
 
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 4);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 0);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), true);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 0);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), true);
 		type = artdaq::Fragment::EmptyFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 3);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 3);
 	fps.clear();
 
 	// Data-taking has passed request
@@ -2130,90 +2238,90 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	gen.waitForFrags();
 	t.AddRequest(5, 4);
 	list = gen.GetSentWindowList(1);  // Out-of-order list is only updated in getNext calls
-	BOOST_REQUIRE_EQUAL(list.size(), 1);
+	TRACE_REQUIRE_EQUAL(list.size(), 1);
 	sts = gen.getNext(fps);
 	list = gen.GetSentWindowList(1);
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
-	BOOST_REQUIRE_EQUAL(list.size(), 0);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
+	TRACE_REQUIRE_EQUAL(list.size(), 0);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 4);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 5);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 0);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), true);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 0);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), true);
 		type = artdaq::Fragment::EmptyFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	fps.clear();
 
 	// Out-of-order windows
 	t.AddRequest(7, 13);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 13);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 7);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 13);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 7);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 6);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
 	fps.clear();
 
 	list = gen.GetSentWindowList(1);
-	BOOST_REQUIRE_EQUAL(list.size(), 1);
-	BOOST_REQUIRE_EQUAL(list.begin()->first, 7);
+	TRACE_REQUIRE_EQUAL(list.size(), 1);
+	TRACE_REQUIRE_EQUAL(list.begin()->first, 7);
 
 	t.AddRequest(6, 12);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 3);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 3);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 12);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 6);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 12);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 6);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 8);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 8);
 
 	list = gen.GetSentWindowList(1);
-	BOOST_REQUIRE_EQUAL(list.size(), 0);
+	TRACE_REQUIRE_EQUAL(list.size(), 0);
 
 	gen.setEnabledIds(0x6);  // Disable Fragment ID 3
 	gen.setFireCount(1);
@@ -2221,28 +2329,28 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 
 	t.AddRequest(8, 15);
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 2);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 2);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 15);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 8);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 15);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 8);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 1);
-	BOOST_REQUIRE_EQUAL(ids[2], 1);
-	BOOST_REQUIRE_EQUAL(ids[3], 0);
+	TRACE_REQUIRE_EQUAL(ids[1], 1);
+	TRACE_REQUIRE_EQUAL(ids[2], 1);
+	TRACE_REQUIRE_EQUAL(ids[3], 0);
 	ids.clear();
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 8);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 8);
 
 	gen.setEnabledIds(0x8);  // Disable Fragment IDs 1 and 2
 	gen.setTimestamp(14);    // Reset timestamp
@@ -2250,28 +2358,28 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	gen.waitForFrags();
 
 	sts = gen.getNext(fps);
-	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(fps.size(), 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1);
 	while (fps.size() > 0)
 	{
 		ids[fps.front()->fragmentID()]++;
-		BOOST_REQUIRE_EQUAL(fps.front()->timestamp(), 15);
-		BOOST_REQUIRE_EQUAL(fps.front()->sequenceID(), 8);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 15);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 8);
 		type = artdaq::Fragment::ContainerFragmentType;
-		BOOST_REQUIRE_EQUAL(fps.front()->type(), type);
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 		auto cf = artdaq::ContainerFragment(*fps.front());
-		BOOST_REQUIRE_EQUAL(cf.block_count(), 1);
-		BOOST_REQUIRE_EQUAL(cf.missing_data(), false);
+		TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+		TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
 		type = artdaq::Fragment::FirstUserFragmentType;
-		BOOST_REQUIRE_EQUAL(cf.fragment_type(), type);
+		TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 		fps.pop_front();
 	}
-	BOOST_REQUIRE_EQUAL(ids[1], 0);
-	BOOST_REQUIRE_EQUAL(ids[2], 0);
-	BOOST_REQUIRE_EQUAL(ids[3], 1);
+	TRACE_REQUIRE_EQUAL(ids[1], 0);
+	TRACE_REQUIRE_EQUAL(ids[2], 0);
+	TRACE_REQUIRE_EQUAL(ids[3], 1);
 	ids.clear();
 	fps.clear();
-	BOOST_REQUIRE_EQUAL(gen.ev_counter(), 9);
+	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 9);
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG(TLVL_INFO) << "WindowMode_Function_MultipleIDs test case END";

@@ -125,6 +125,10 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	{
 		mode_ = RequestMode::Ignored;
 	}
+	else if (modeString.find("sequence") != std::string::npos || modeString.find("Sequence") != std::string::npos)
+	{
+		mode_ = RequestMode::SequenceID;
+	}
 	TLOG(TLVL_DEBUG) << "Request mode is " << printMode_();
 
 	if (mode_ != RequestMode::Ignored)
@@ -295,7 +299,7 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 
 size_t artdaq::CommandableFragmentGenerator::ev_counter_inc(size_t step, bool force)
 {
-	if (force || mode_ == RequestMode::Ignored)
+	if (force || mode_ == RequestMode::Ignored || mode_ == RequestMode::SequenceID)
 	{
 		TLOG(TLVL_EVCOUNTERINC) << "ev_counter_inc: Incrementing ev_counter from " << ev_counter() << " by " << step;
 		return ev_counter_.fetch_add(step);
@@ -527,6 +531,8 @@ std::string artdaq::CommandableFragmentGenerator::printMode_()
 			return "Window";
 		case RequestMode::Ignored:
 			return "Ignored";
+		case RequestMode::SequenceID:
+			return "SequenceID";
 	}
 
 	return "ERROR";
@@ -607,6 +613,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 					case RequestMode::Buffer:
 					case RequestMode::Ignored:
 					case RequestMode::Window:
+					case RequestMode::SequenceID:
 					default:
 						//dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
 						dataBuffers_[frag_id].DataBufferDepthBytes += (*dataIter)->sizeBytes();
@@ -1048,6 +1055,47 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 	}
 }
 
+void artdaq::CommandableFragmentGenerator::applyRequestsSequenceIDMode(artdaq::FragmentPtrs& frags)
+{
+	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode BEGIN";
+
+	auto requests = requestReceiver_->GetRequests();
+
+	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode: Starting request processing";
+	for (auto req = requests.begin(); req != requests.end();)
+	{
+		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode: Checking that data exists for request SequenceID " << req->first;
+
+		bool fragmentFound = false;
+		for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
+		{
+			auto seq = (*it)->sequenceID();
+			TLOG(29) << "applyRequestsSequenceIDMode: Fragment SeqID " << seq << ", request ID " << req->first;
+			if (seq == req->first)
+			{
+				TLOG(29) << "applyRequestsSequenceIDMode: Adding Fragment to output";
+				fragmentFound = true;
+				dataBufferDepthBytes_ -= (*it)->sizeBytes();
+				frags.push_back(std::move(*it));
+				it = dataBuffer_.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+		if (fragmentFound)
+		{
+			requestReceiver_->RemoveRequest(req->first);
+			req = requests.erase(req);
+		}
+		else
+		{
+			++req;
+		}
+	}
+}
+
 bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& frags)
 {
 	if (check_stop() || exception())
@@ -1101,6 +1149,9 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 				break;
 			case RequestMode::Buffer:
 				applyRequestsBufferMode(frags);
+				break;
+			case RequestMode::SequenceID:
+				applyRequestsSequenceIDMode(frags);
 				break;
 			case RequestMode::Ignored:
 			default:
