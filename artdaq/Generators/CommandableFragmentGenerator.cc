@@ -1066,32 +1066,44 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSequenceIDMode(artdaq::F
 	{
 		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode: Checking that data exists for request SequenceID " << req->first;
 
-		bool fragmentFound = false;
-		for (auto it = dataBuffer_.begin(); it != dataBuffer_.end();)
+		for (auto& id : dataBuffers_)
 		{
-			auto seq = (*it)->sequenceID();
-			TLOG(29) << "applyRequestsSequenceIDMode: Fragment SeqID " << seq << ", request ID " << req->first;
-			if (seq == req->first)
+			if (!id.second.WindowsSent.count(req->first))
 			{
-				TLOG(29) << "applyRequestsSequenceIDMode: Adding Fragment to output";
-				fragmentFound = true;
-				dataBufferDepthBytes_ -= (*it)->sizeBytes();
-				frags.push_back(std::move(*it));
-				it = dataBuffer_.erase(it);
-			}
-			else
-			{
-				++it;
+				for (auto it = id.second.DataBuffer.begin(); it != id.second.DataBuffer.end();)
+				{
+					auto seq = (*it)->sequenceID();
+					TLOG(29) << "applyRequestsSequenceIDMode: Fragment SeqID " << seq << ", request ID " << req->first;
+					if (seq == req->first)
+					{
+						TLOG(29) << "applyRequestsSequenceIDMode: Adding Fragment to output";
+						id.second.WindowsSent[req->first] = std::chrono::steady_clock::now();
+						id.second.DataBufferDepthBytes -= (*it)->sizeBytes();
+						frags.push_back(std::move(*it));
+						it = id.second.DataBuffer.erase(it);
+					}
+					else
+					{
+						++it;
+					}
+				}
 			}
 		}
-		if (fragmentFound)
+		checkSentWindows(req->first);
+		++req;
+	}
+	
+	// Check sent windows for requests that can be removed
+	for (auto& id : dataBuffers_)
+	{
+		std::set<artdaq::Fragment::sequence_id_t> seqs;
+		for (auto& seq : id.second.WindowsSent)
 		{
-			requestReceiver_->RemoveRequest(req->first);
-			req = requests.erase(req);
+			seqs.insert(seq.first);
 		}
-		else
+		for (auto& seq : seqs)
 		{
-			++req;
+			checkSentWindows(seq);
 		}
 	}
 }
