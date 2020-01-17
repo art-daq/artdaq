@@ -1196,10 +1196,25 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		if (requests_) metricMan->sendMetric("Tokens sent", requests_->GetSentTokenCount(), "Tokens", 2, MetricMode::LastPoint);
 
 		auto bufferReport = GetBufferReport();
-		int full = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) { return p.second == BufferSemaphoreFlags::Full; });
-		int empty = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) { return p.second == BufferSemaphoreFlags::Empty; });
-		int writing = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) { return p.second == BufferSemaphoreFlags::Writing; });
-		int reading = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) { return p.second == BufferSemaphoreFlags::Reading; });
+		int full = 0, empty = 0, writing = 0, reading = 0;
+		for (auto& buf : bufferReport)
+		{
+			switch (buf.second)
+			{
+			case BufferSemaphoreFlags::Full:
+				full++;
+				break;
+			case BufferSemaphoreFlags::Empty:
+				empty++;
+				break;
+			case BufferSemaphoreFlags::Writing:
+				writing++;
+				break;
+			case BufferSemaphoreFlags::Reading:
+				reading++;
+				break;
+			}
+		}
 		auto total = size();
 		TLOG(TLVL_DEBUG) << "Buffer usage: full=" << full << ", empty=" << empty << ", writing=" << writing << ", reading=" << reading << ", total=" << total;
 
