@@ -84,8 +84,9 @@ public:
 		/// "destinations" (Default: Empty ParameterSet): FHiCL table for TransferInterface configurations for each destaintion. See artdaq::DataSenderManager::DestinationsConfig
 		///   NOTE: "destination_rank" MUST be specified (and unique) for each destination!
 		fhicl::OptionalTable<DestinationsConfig> destinations{fhicl::Name{"destinations"}};
-		fhicl::TableFragment<artdaq::HostMap::Config> host_map;  ///< Optional host_map configuration (Can also be specified in each DestinationsConfig entry. See artdaq::HostMap::Config
-		                                                         /// enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified, all destinations will be enabled.
+		/// Optional host_map configuration (Can also be specified in each DestinationsConfig entry. See artdaq::HostMap::Config
+		fhicl::TableFragment<artdaq::HostMap::Config> host_map;
+		/// enabled_destinations" (OPTIONAL): If specified, only the destination ranks listed will be enabled. If not specified, all destinations will be enabled.
 		fhicl::Sequence<size_t> enabled_destinations{fhicl::Name{"enabled_destinations"}, fhicl::Comment{"List of destiantion ranks to activate (must be defined in destinations block)"}, std::vector<size_t>()};
 		/// "allow_default_round_robin_routing" (Default: true): Whether to allow default round robin routing if no other routing information is available
 		fhicl::Atom<bool> allow_default_round_robin_routing{fhicl::Name{"allow_default_round_robin_routing"}, fhicl::Comment{"Allows default round robin routing"}, true};
