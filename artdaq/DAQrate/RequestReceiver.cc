@@ -348,7 +348,7 @@ void artdaq::RequestReceiver::sendAcknowledgement(detail::RequestMessage message
 	sendto(ack_socket_, &buffer[0], buffer.size(), 0, (struct sockaddr*)&ack_addr_, sizeof(ack_addr_));
 }
 
-std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq::RequestReceiver::GetNextRequest()
+std::pair<artdaq::Fragment::sequence_id_t, artdaq::detail::RequestPacket> artdaq::RequestReceiver::GetNextRequest()
 {
 	std::unique_lock<std::mutex> lk(request_mutex_);
 
@@ -357,11 +357,12 @@ std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq
 
 	if (it == requests_.end())
 	{
-		return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
+		return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::detail::RequestPacket>(0, 0);
 	}
 
 	last_next_request_ = it->first;
-	return *it;
+	artdaq::detail::RequestPacket a_copy = it->second.first;
+	return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::detail::RequestPacket>(last_next_request_, std::move(a_copy));
 }
 
 void artdaq::RequestReceiver::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)

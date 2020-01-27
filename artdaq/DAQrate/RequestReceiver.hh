@@ -101,7 +101,7 @@ public:
 	/// <returns>Request data for "next" request. Will return (0,0) if there is no "next" request</returns>
 	///
 	/// This function uses last_next_request_ to ensure that it does not return the same request more than once
-	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest();
+	std::pair<artdaq::Fragment::sequence_id_t, artdaq::detail::RequestPacket> GetNextRequest();
 
 	/// <summary>
 	/// Remove the request with the given sequence ID from the request map
