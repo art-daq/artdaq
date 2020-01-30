@@ -28,6 +28,8 @@ public:
 	/// </summary>
 	struct Config
 	{
+		/// init_fragment_timeout_seconds (Default: 1.0): Amount of time, in seconds, to wait for connect to complete
+		fhicl::Atom<double> init_fragment_timeout_seconds{fhicl::Name{"init_fragment_timeout_seconds"}, fhicl::Comment{"Amount of time, in seconds, to wait for connect to complete"}, 1.0};
 		fhicl::TableFragment<artdaq::DataSenderManager::Config> dataSenderConfig;  ///< Configuration for DataSenderManager. See artdaq::DataSenderManager::Config
 	};
 	/// Used for ParameterSet validation (if desired)
@@ -41,6 +43,15 @@ public:
 	 * See the art::OutputModule documentation for more details on those Parameters.
 	 */
 	explicit RootNetOutput(fhicl::ParameterSet const& ps);
+
+	/**
+	 * \brief RootNetOutput Constructor
+	 * \param ps ParameterSet used to configure RootNetOutput (Checked using Config struct defined above)
+	 *
+	 * RootNetOutput accepts no Parameters beyond those which art::OutputModule takes.
+	 * See the art::OutputModule documentation for more details on those Parameters.
+	 */
+	explicit RootNetOutput(Parameters const& ps);
 
 	/**
 	 * \brief RootNetOutput Destructor
@@ -84,6 +95,10 @@ art::RootNetOutput::RootNetOutput(fhicl::ParameterSet const& ps)
 	connect();
 	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::RootNetOutput(ParameterSet const& ps)";
 }
+
+art::RootNetOutput::RootNetOutput(Parameters const& ps)
+    : RootNetOutput(ps.get_PSet())
+{}
 
 art::RootNetOutput::~RootNetOutput()
 {
