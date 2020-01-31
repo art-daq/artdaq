@@ -107,7 +107,7 @@ artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 			if (!monitorRegistered_)
 			{
 				registerMonitor();
-				if (!monitorRegistered_) return;
+				if (!monitorRegistered_) return nullptr;
 			}
 
 			try
