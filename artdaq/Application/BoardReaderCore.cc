@@ -162,7 +162,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t timestamp)
 {
-	logMessage_("Starting run " + boost::lexical_cast<std::string>(id.run()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Starting run " << id.run();
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
@@ -174,17 +174,14 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	generator_ptr_->StartCmd(id.run(), timeout, timestamp);
 	run_id_ = id;
 
-	logMessage_("Completed the Start transition (Started run) for run " +
-	            boost::lexical_cast<std::string>(run_id_.run()) +
-	            ", timeout = " + boost::lexical_cast<std::string>(timeout) +
-	            ", timestamp = " + boost::lexical_cast<std::string>(timestamp));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Start transition (Started run) for run " << run_id_.run()
+	                                          << ", timeout = " << timeout << ", timestamp = " << timestamp;
 	return true;
 }
 
 bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 {
-	logMessage_("Stopping run " + boost::lexical_cast<std::string>(run_id_.run()) +
-	            " after " + boost::lexical_cast<std::string>(fragment_count_) + " fragments.");
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Stopping run " << run_id_.run() << " after " << fragment_count_ << " fragments.";
 	stop_requested_.store(true);
 
 	TLOG(TLVL_DEBUG) << "Stopping CommandableFragmentGenerator BEGIN";
@@ -194,37 +191,36 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 	TLOG(TLVL_DEBUG) << "Stopping DataSenderManager";
 	if (sender_ptr_) sender_ptr_->StopSender();
 
-	logMessage_("Completed the Stop transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Stop transition for run " << run_id_.run();
 	return true;
 }
 
 bool artdaq::BoardReaderCore::pause(uint64_t timeout, uint64_t timestamp)
 {
-	logMessage_("Pausing run " + boost::lexical_cast<std::string>(run_id_.run()) +
-	            " after " + boost::lexical_cast<std::string>(fragment_count_) + " fragments.");
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Pausing run " << run_id_.run() << " after " << fragment_count_ << " fragments.";
 	pause_requested_.store(true);
 	generator_ptr_->PauseCmd(timeout, timestamp);
-	logMessage_("Completed the Pause transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Pause transition for run " << run_id_.run();
 	return true;
 }
 
 bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 {
-	logMessage_("Resuming run " + boost::lexical_cast<std::string>(run_id_.run()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Resuming run " << run_id_.run();
 	pause_requested_.store(false);
 	metricMan->do_start();
 	generator_ptr_->ResumeCmd(timeout, timestamp);
-	logMessage_("Completed the Resume transition for run " + boost::lexical_cast<std::string>(run_id_.run()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Resume transition for run " << run_id_.run();
 	return true;
 }
 
 bool artdaq::BoardReaderCore::shutdown(uint64_t)
 {
-	logMessage_("Starting Shutdown transition");
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Starting Shutdown transition";
 	generator_ptr_->joinThreads();  // Cleanly shut down the CommandableFragmentGenerator
 	generator_ptr_.reset(nullptr);
 	metricMan->shutdown();
-	logMessage_("Completed Shutdown transition");
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed Shutdown transition";
 	return true;
 }
 
@@ -546,17 +542,5 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	if (mqPtr.get() != 0)
 	{
 		metricMan->sendMetric("Avg Frags Per Read", mqPtr->getRecentValueAverage(), "fragments/read", 4, MetricMode::Average);
-	}
-}
-
-void artdaq::BoardReaderCore::logMessage_(std::string const& text)
-{
-	if (verbose_)
-	{
-		TLOG(TLVL_INFO) << text;
-	}
-	else
-	{
-		TLOG(TLVL_DEBUG) << text;
 	}
 }
