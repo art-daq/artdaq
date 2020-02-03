@@ -8,8 +8,6 @@
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
-#include <TBufferFile.h>
-
 namespace fhicl {
 class ParameterSet;
 }
@@ -62,19 +60,17 @@ public:
 
 	/**
 		 * \brief Receive a Fragment from the TransferInterface, and send it to art
-		 * \param[out] msg The message in art format
+		 * \return Received Fragment
 		 */
-	void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+	artdaq::FragmentPtr receiveMessage();
 
 	/**
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
-		 * \param[out] msg The message in art format
+		 * \return Received InitFragment
 		 */
-	void receiveInitMessage(std::unique_ptr<TBufferFile>& msg) { receiveMessage(msg); }
+	artdaq::FragmentPtr receiveInitMessage() { return receiveMessage(); }
 
 private:
-	void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>&);
-
 	void checkIntegrity(const artdaq::Fragment&) const;
 
 	void registerMonitor();

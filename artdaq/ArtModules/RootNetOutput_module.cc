@@ -60,12 +60,11 @@ protected:
 	/// <param name="sequence_id">Sequence ID of message</param>
 	/// <param name="messageType">Type of message</param>
 	/// <param name="msg">Contents of message</param>
-	virtual void SendMessage(artdaq::Fragment::sequence_id_t sequence_id, artdaq::Fragment::type_t messageType, TBufferFile& msg);
+	virtual void SendMessage(artdaq::FragmentPtr& fragment);
 
 private:
 	void connect();
 	void disconnect();
-	void sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg);
 
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_;
 	fhicl::ParameterSet data_pset_;
@@ -92,15 +91,35 @@ art::RootNetOutput::~RootNetOutput()
 	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::~RootNetOutput()";
 }
 
-void art::RootNetOutput::SendMessage(artdaq::Fragment::sequence_id_t sequence_id, artdaq::Fragment::type_t messageType, TBufferFile& msg)
+void art::RootNetOutput::SendMessage(artdaq::FragmentPtr& fragment)
 {
 	//
 	//  Send message.
 	//
 	{
 		TLOG(TLVL_WRITE) << "RootNetOutput::SendMessage Sending a message with type code "
-		                 << artdaq::detail::RawFragmentHeader::SystemTypeToString(messageType);
-		sendMessage(sequence_id, messageType, msg);
+		                 << artdaq::detail::RawFragmentHeader::SystemTypeToString(fragment->type());
+		if (sender_ptr_ == nullptr)
+		{
+			TLOG(TLVL_DEBUG) << "Reconnecting DataSenderManager";
+			connect();
+		}
+
+#if DUMP_SEND_MESSAGE
+		std::string fileName = "sendMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" +
+		                       std::to_string(sequenceId) + ".bin";
+		std::fstream ostream(fileName, std::ios::out | std::ios::binary);
+		ostream.write(msg.Buffer(), msg.Length());
+		ostream.close();
+#endif
+
+		auto sequenceId = fragment->sequenceID();
+		TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << sequenceId << ", type=" << fragment->type()
+		                 << ", length=" << fragment->dataSizeBytes();
+
+		sender_ptr_->sendFragment(std::move(*fragment));
+		// Events are unique in art, so this will be the only send with this sequence ID!
+		sender_ptr_->RemoveRoutingTableEntry(sequenceId);
 		TLOG(TLVL_WRITE) << "RootNetOutput::SendMessage: Message sent.";
 	}
 }
@@ -123,35 +142,6 @@ void art::RootNetOutput::connect()
 void art::RootNetOutput::disconnect()
 {
 	if (sender_ptr_) sender_ptr_.reset(nullptr);
-}
-
-void art::RootNetOutput::sendMessage(uint64_t sequenceId, uint8_t messageType, TBufferFile& msg)
-{
-	if (sender_ptr_ == nullptr)
-	{
-		TLOG(TLVL_DEBUG) << "Reconnecting DataSenderManager";
-		connect();
-	}
-
-#if DUMP_SEND_MESSAGE
-	std::string fileName = "sendMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" +
-	                       std::to_string(sequenceId) + ".bin";
-	std::fstream ostream(fileName, std::ios::out | std::ios::binary);
-	ostream.write(msg.Buffer(), msg.Length());
-	ostream.close();
-#endif
-
-	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << sequenceId << ", type=" << (int)messageType
-	                 << ", length=" << msg.Length();
-	artdaq::NetMonHeader header;
-	header.data_length = static_cast<uint64_t>(msg.Length());
-	artdaq::Fragment fragment(std::ceil(msg.Length() / static_cast<double>(sizeof(artdaq::RawDataType))), sequenceId, 0,
-	                          messageType, header);
-
-	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
-	sender_ptr_->sendFragment(std::move(fragment));
-	// Events are unique in art, so this will be the only send with this sequence ID!
-	sender_ptr_->RemoveRoutingTableEntry(sequenceId);
 }
 
 DEFINE_ART_MODULE(art::RootNetOutput)
