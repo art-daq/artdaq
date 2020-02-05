@@ -33,16 +33,26 @@
 
 namespace artdaq {
 namespace detail {
+
+typedef std::map<artdaq::Fragment::type_t, std::string> FragmentTypeMap;
+
 /**
-		 * \brief The DefaultFragmentTypeTranslator class provides default behavior
-		 *        for experiment-specific customizations in SharedMemoryReader.
-		 */
-class DefaultFragmentTypeTranslator
+ * \brief The FragmentTypeTranslator class provides default behavior
+ *        for experiment-specific customizations in SharedMemoryReader.
+ */
+class FragmentTypeTranslator
 {
 public:
-	DefaultFragmentTypeTranslator()
-	    : type_map_() {}
-	virtual ~DefaultFragmentTypeTranslator() = default;
+	FragmentTypeTranslator(fhicl::ParameterSet const& ps, FragmentTypeMap const& default_types)
+	    : type_map_(default_types)
+	{
+		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
+		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
+		{
+			AddExtraType(it->first, it->second);
+		}
+	}
+	virtual ~FragmentTypeTranslator() = default;
 
 	/**
 			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
@@ -61,7 +71,7 @@ public:
 	}
 
 	/**
-			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
+         * \brief Returns the basic translation for the specified type.  Defaults to the specified
 			 *        unidentified_instance_name if no translation can be found.
 			 */
 	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
@@ -144,21 +154,21 @@ protected:
 };
 
 /**
- * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
- */
-template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
-         class FTT = artdaq::detail::DefaultFragmentTypeTranslator>
+		 * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
+		 */
+template<FragmentTypeMap getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
+         class FTT = artdaq::detail::FragmentTypeTranslator>
 struct SharedMemoryReader
 {
 	/**
-   * \brief Copy Constructor is deleted
-   */
+			 * \brief Copy Constructor is deleted
+			 */
 	SharedMemoryReader(SharedMemoryReader const&) = delete;
 
 	/**
-   * \brief Copy Assignment operator is deleted
-   * \return SharedMemoryReader copy
-   */
+			 * \brief Copy Assignment operator is deleted
+			 * \return SharedMemoryReader copy
+			 */
 	SharedMemoryReader& operator=(SharedMemoryReader const&) = delete;
 
 	art::SourceHelper const& pmaker;                       ///< An art::SourceHelper instance
@@ -170,24 +180,28 @@ struct SharedMemoryReader
 	bool outputFileCloseNeeded;                            ///< If an explicit output file close message is needed
 	size_t bytesRead;                                      ///< running total of number of bytes received
 	std::chrono::steady_clock::time_point last_read_time;  ///< Time last read was completed
-	                                                       // std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
-	                                                       // std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
-	                                                       // Fragments)
+
+	unsigned readNext_calls_;  ///< The number of times readNext has been called
+	FTT translator_;           ///< An instance of the template parameter FragmentTypeTranslator that translates Fragment Type IDs to strings for creating ROOT TTree Branches
+
+	//std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
+	// std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
+	// Fragments)
 
 	/**
-   * \brief SharedMemoryReader Constructor
-   * \param ps ParameterSet used for configuring SharedMemoryReader
-   * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
-   * \param pm art::SourceHelper used to initalize the SourceHelper member
-   *
-   * \verbatim
-   * SharedMemoryReader accepts the following Parameters:
-   * "waiting_time" (Default: 86400.0): The maximum amount of time to wait for an event from the queue
-   * "resume_after_timeout" (Default: true): Whether to continue receiving data after a timeout
-   * "raw_data_label" (Default: "daq"): The label to use for all raw data
-   * "shared_memory_key" (Default: 0xBEE7): The key for the shared memory segment
-   * \endverbatim
-   */
+			 * \brief SharedMemoryReader Constructor
+			 * \param ps ParameterSet used for configuring SharedMemoryReader
+			 * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
+			 * \param pm art::SourceHelper used to initalize the SourceHelper member
+			 *
+			 * \verbatim
+			 * SharedMemoryReader accepts the following Parameters:
+			 * "waiting_time" (Default: 86400.0): The maximum amount of time to wait for an event from the queue
+			 * "resume_after_timeout" (Default: true): Whether to continue receiving data after a timeout
+			 * "raw_data_label" (Default: "daq"): The label to use for all raw data
+			 * "shared_memory_key" (Default: 0xBEE7): The key for the shared memory segment
+			 * \endverbatim
+			 */
 	SharedMemoryReader(fhicl::ParameterSet const& ps,
 	                   art::ProductRegistryHelper& help,
 	                   art::SourceHelper const& pm)
@@ -201,6 +215,7 @@ struct SharedMemoryReader
 	    , bytesRead(0)
 	    , last_read_time(std::chrono::steady_clock::now())
 	    , readNext_calls_(0)
+	    , translator_(ps, getDefaultTypes())
 	{
 #if 0
 		volatile bool keep_looping = true;
@@ -236,32 +251,32 @@ struct SharedMemoryReader
 
 #if ART_HEX_VERSION < 0x30000
 	/**
-   * \brief SharedMemoryReader Constructor
-   * \param ps ParameterSet used for configuring SharedMemoryReader
-   * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
-   * \param pm art::SourceHelper used to initalize the SourceHelper member
-   *
-   * This constructor calls the three-parameter constructor, the art::MasterProductRegistry parameter is discarded.
-   */
+			 * \brief SharedMemoryReader Constructor
+			 * \param ps ParameterSet used for configuring SharedMemoryReader
+			 * \param help art::ProductRegistryHelper which is used to inform art about different Fragment types
+			 * \param pm art::SourceHelper used to initalize the SourceHelper member
+			 *
+			 * This constructor calls the three-parameter constructor, the art::MasterProductRegistry parameter is discarded.
+			 */
 	SharedMemoryReader(fhicl::ParameterSet const& ps, art::ProductRegistryHelper& help, art::SourceHelper const& pm,
 	                   art::MasterProductRegistry&)
 	    : SharedMemoryReader(ps, help, pm) {}
 #endif
 
 	/**
-   * \brief SharedMemoryReader destructor
-   */
+			 * \brief SharedMemoryReader destructor
+			 */
 	virtual ~SharedMemoryReader() {}
 
 	/**
-   * \brief Emulate closing a file. No-Op.
-   */
+			 * \brief Emulate closing a file. No-Op.
+			 */
 	void closeCurrentFile() {}
 
 	/**
-   * \brief Emulate opening a file
-   * \param[out] fb art::FileBlock object
-   */
+			 * \brief Emulate opening a file
+			 * \param[out] fb art::FileBlock object
+			 */
 	void readFile(std::string const&, art::FileBlock*& fb)
 	{
 		TLOG_ARB(5, "SharedMemoryReader") << "readFile enter/start";
@@ -269,23 +284,25 @@ struct SharedMemoryReader
 	}
 
 	/**
-   * \brief Whether more data is expected from the SharedMemoryReader
-   * \return True unless a shutdown message has been received in readNext
-   */
-	bool hasMoreData() const {
+			 * \brief Whether more data is expected from the SharedMemoryReader
+			 * \return True unless a shutdown message has been received in readNext
+			 */
+	bool hasMoreData() const
+	{
 		TLOG(TLVL_DEBUG, "SharedMemoryReader") << "hasMoreData returning " << std::boolalpha << !shutdownMsgReceived;
-		return (!shutdownMsgReceived); }
+		return (!shutdownMsgReceived);
+	}
 
 	/**
-   * \brief Dequeue a RawEvent and declare its Fragment contents to art, creating
-   * Run, SubRun, and EventPrincipal objects as necessary
-   * \param[in] inR Input art::RunPrincipal
-   * \param[in] inSR Input art::SubRunPrincipal
-   * \param[out] outR Output art::RunPrincipal
-   * \param[out] outSR  Output art::SubRunPrincipal
-   * \param[out] outE Output art::EventPrincipal
-   * \return Whether an event was returned
-   */
+			 * \brief Dequeue a RawEvent and declare its Fragment contents to art, creating
+			 * Run, SubRun, and EventPrincipal objects as necessary
+			 * \param[in] inR Input art::RunPrincipal
+			 * \param[in] inSR Input art::SubRunPrincipal
+			 * \param[out] outR Output art::RunPrincipal
+			 * \param[out] outSR  Output art::SubRunPrincipal
+			 * \param[out] outE Output art::EventPrincipal
+			 * \return Whether an event was returned
+			 */
 	bool readNext(art::RunPrincipal* const& inR, art::SubRunPrincipal* const& inSR, art::RunPrincipal*& outR,
 	              art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 	{
@@ -293,9 +310,9 @@ struct SharedMemoryReader
 		art::ServiceHandle<ArtdaqSharedMemoryService> shm;
 
 		/*if (outputFileCloseNeeded) {
-    outputFileCloseNeeded = false;
-    return false;
-    }*/
+				outputFileCloseNeeded = false;
+				return false;
+				}*/
 		// Establish default 'results'
 		outR = 0;
 		outSR = 0;
@@ -433,7 +450,7 @@ struct SharedMemoryReader
 				}
 				outR = 0;
 			}
-			// outputFileCloseNeeded = true;
+			//outputFileCloseNeeded = true;
 			return true;
 		}
 
@@ -523,9 +540,6 @@ struct SharedMemoryReader
 		last_read_time = std::chrono::steady_clock::now();
 		return true;
 	}
-
-	unsigned readNext_calls_;  ///< The number of times readNext has been called
-	FTT translator_;           ///< An instance of the template parameter FragmentTypeTranslator that translates Fragment Type IDs to strings for creating ROOT TTree Branches
 };
 }  // namespace detail
 }  // namespace artdaq
