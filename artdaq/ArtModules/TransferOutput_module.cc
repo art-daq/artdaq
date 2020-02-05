@@ -1,10 +1,10 @@
 #define TRACE_NAME "TransferOutput"
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 
+#include <signal.h>
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include <signal.h>
 
 namespace art {
 class TransferOutput;

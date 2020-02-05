@@ -1201,18 +1201,18 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		{
 			switch (buf.second)
 			{
-			case BufferSemaphoreFlags::Full:
-				full++;
-				break;
-			case BufferSemaphoreFlags::Empty:
-				empty++;
-				break;
-			case BufferSemaphoreFlags::Writing:
-				writing++;
-				break;
-			case BufferSemaphoreFlags::Reading:
-				reading++;
-				break;
+				case BufferSemaphoreFlags::Full:
+					full++;
+					break;
+				case BufferSemaphoreFlags::Empty:
+					empty++;
+					break;
+				case BufferSemaphoreFlags::Writing:
+					writing++;
+					break;
+				case BufferSemaphoreFlags::Reading:
+					reading++;
+					break;
 			}
 		}
 		auto total = size();
