@@ -1070,6 +1070,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSequenceIDMode(artdaq::F
 		{
 			if (!id.second.WindowsSent.count(req->first))
 			{
+				TLOG(29) << "Searching id " << id.first << " for Fragments with Sequence ID " << req->first;
 				for (auto it = id.second.DataBuffer.begin(); it != id.second.DataBuffer.end();)
 				{
 					auto seq = (*it)->sequenceID();
@@ -1088,11 +1089,12 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSequenceIDMode(artdaq::F
 					}
 				}
 			}
+			if (req->first > id.second.HighestRequestSeen) id.second.HighestRequestSeen = req->first;
 		}
 		checkSentWindows(req->first);
 		++req;
 	}
-	
+
 	// Check sent windows for requests that can be removed
 	for (auto& id : dataBuffers_)
 	{
@@ -1220,6 +1222,7 @@ void artdaq::CommandableFragmentGenerator::sendEmptyFragments(artdaq::FragmentPt
 
 void artdaq::CommandableFragmentGenerator::checkSentWindows(artdaq::Fragment::sequence_id_t seq)
 {
+	TLOG(TLVL_CHECKWINDOWS) << "checkSentWindows: Checking if request " << seq << " can be removed from request list";
 	bool seqComplete = true;
 	bool seqTimeout = false;
 	for (auto& id : dataBuffers_)

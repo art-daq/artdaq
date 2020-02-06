@@ -154,6 +154,7 @@ bool artdaqtest::CommandableFragmentGeneratorTest::getNext_(artdaq::FragmentPtrs
 		{
 			if (id < 64 && ((enabled_ids_ & (0x1 << id)) != 0))
 			{
+				TLOG(TLVL_DEBUG) << "Adding Fragment with ID " << id << ", SeqID " << ev_counter() << ", and timestamp " << ts_;
 				frags.emplace_back(new artdaq::Fragment(ev_counter(), id, artdaq::Fragment::FirstUserFragmentType, ts_));
 			}
 		}
