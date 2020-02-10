@@ -20,6 +20,7 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+#include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "fhiclcpp/ParameterSet.h"
 
@@ -32,120 +33,8 @@
 namespace artdaq {
 namespace detail {
 /**
-		 * \brief The DefaultFragmentTypeTranslator class provides default behavior
-		 *        for experiment-specific customizations in SharedMemoryReader.
-		 */
-class DefaultFragmentTypeTranslator
-{
-public:
-	DefaultFragmentTypeTranslator()
-	    : type_map_() {}
-	virtual ~DefaultFragmentTypeTranslator() = default;
-
-	/**
-			 * \brief Sets the basic types to be translated.  (Should not include "container" types.)
-			 */
-	virtual void SetBasicTypes(std::map<Fragment::type_t, std::string> const& type_map)
-	{
-		type_map_ = type_map;
-	}
-
-	/**
-			 * \brief Adds an additional type to be translated.
-			 */
-	virtual void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
-	{
-		type_map_[type_id] = type_name;
-	}
-
-	/**
-			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
-			 *        unidentified_instance_name if no translation can be found.
-			 */
-	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
-	{
-		if (type_map_.count(type_id) > 0) { return type_map_[type_id]; }
-		return unidentified_instance_name;
-	}
-
-	/**
-			 * \brief Returns the full set of product instance names which may be present in the data, based on
-			 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
-			 *        *does* include "container" types, if the container type mapping is part of the basic types.
-			 */
-	virtual std::set<std::string> GetAllProductInstanceNames()
-	{
-		std::set<std::string> output;
-		for (const auto& map_iter : type_map_)
-		{
-			std::string instance_name = map_iter.second;
-			if (!output.count(instance_name))
-			{
-				output.insert(instance_name);
-				TLOG_TRACE("DefaultFragmentTypeTranslator") << "Adding product instance name \"" << map_iter.second
-				                                            << "\" to list of expected names";
-			}
-		}
-
-		auto container_type = type_map_.find(Fragment::type_t(artdaq::Fragment::ContainerFragmentType));
-		if (container_type != type_map_.end())
-		{
-			std::string container_type_name = container_type->second;
-			std::set<std::string> tmp_copy = output;
-			for (const auto& set_iter : tmp_copy)
-			{
-				output.insert(container_type_name + set_iter);
-			}
-		}
-
-		return output;
-	}
-
-	/**
-			 * \brief Returns the product instance name for the specified fragment, based on the types that have
-			 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
-			 *        use of "container" types, if the container type mapping is part of the basic types.  If no
-			 *        mapping is found, the specified unidentified_instance_name is returned.
-			 */
-	virtual std::pair<bool, std::string>
-	GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
-	{
-		auto type_map_end = type_map_.end();
-		bool success_code = true;
-		std::string instance_name;
-
-		auto primary_type = type_map_.find(fragment.type());
-		if (primary_type != type_map_end)
-		{
-			instance_name = primary_type->second;
-			if (fragment.type() == artdaq::Fragment::ContainerFragmentType)
-			{
-				artdaq::ContainerFragment cf(fragment);
-				auto contained_type = type_map_.find(cf.fragment_type());
-				if (contained_type != type_map_end)
-				{
-					instance_name += contained_type->second;
-				}
-			}
-		}
-		else
-		{
-			instance_name = unidentified_instance_name;
-			success_code = false;
-		}
-
-		return std::make_pair(success_code, instance_name);
-	}
-
-protected:
-	std::map<Fragment::type_t, std::string> type_map_;  ///< Map relating Fragment Type to strings
-};
-
-/**
  * \brief The SharedMemoryReader is a class which implements the methods needed by art::Source
  */
-template<std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
-         class FTT = artdaq::detail::DefaultFragmentTypeTranslator>
 struct SharedMemoryReader
 {
 	/**
@@ -171,7 +60,8 @@ struct SharedMemoryReader
 	                                                       // std::unique_ptr<SharedMemoryManager> data_shm; ///< SharedMemoryManager containing data
 	                                                       // std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
 	                                                       // Fragments)
-
+	unsigned readNext_calls_;                              ///< The number of times readNext has been called
+	
 	/**
    * \brief SharedMemoryReader Constructor
    * \param ps ParameterSet used for configuring SharedMemoryReader
@@ -209,7 +99,8 @@ struct SharedMemoryReader
 #endif
 
 		// Make sure the ArtdaqSharedMemoryService is available
-		art::ServiceHandle<ArtdaqSharedMemoryService> shm;
+		art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
+		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
 
 		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 
@@ -217,13 +108,12 @@ struct SharedMemoryReader
 		help.reconstitutes<Fragments, art::InRun>(pretend_module_name, unidentified_instance_name);
 		help.reconstitutes<Fragments, art::InSubRun>(pretend_module_name, unidentified_instance_name);
 
-		translator_.SetBasicTypes(getDefaultTypes());
 		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
 		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
 		{
-			translator_.AddExtraType(it->first, it->second);
+			translator->AddExtraType(it->first, it->second);
 		}
-		std::set<std::string> instance_names = translator_.GetAllProductInstanceNames();
+		std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
 		for (const auto& set_iter : instance_names)
 		{
 			help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, set_iter);
@@ -290,7 +180,8 @@ struct SharedMemoryReader
 	              art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 	{
 		TLOG_DEBUG("SharedMemoryReader") << "readNext BEGIN";
-		art::ServiceHandle<ArtdaqSharedMemoryService> shm;
+		art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
+		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
 
 		/*if (outputFileCloseNeeded) {
     outputFileCloseNeeded = false;
@@ -329,7 +220,7 @@ struct SharedMemoryReader
 		auto got_event_time = std::chrono::steady_clock::now();
 		auto firstFragmentType = eventMap.begin()->first;
 		TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " ("
-		                                 << translator_.GetInstanceNameForType(firstFragmentType, unidentified_instance_name) << ")";
+		                                 << translator->GetInstanceNameForType(firstFragmentType, unidentified_instance_name) << ")";
 		// We return false, indicating we're done reading, if:
 		//   1) we did not obtain an event, because we timed out and were
 		//      configured NOT to keep trying after a timeout, or
@@ -473,7 +364,7 @@ struct SharedMemoryReader
 				if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
 
 				std::pair<bool, std::string> instance_name_result =
-				    translator_.GetInstanceNameForFragment(frag, unidentified_instance_name);
+				    translator->GetInstanceNameForFragment(frag, unidentified_instance_name);
 				std::string label = instance_name_result.second;
 				if (!instance_name_result.first)
 				{
@@ -523,9 +414,6 @@ struct SharedMemoryReader
 		last_read_time = std::chrono::steady_clock::now();
 		return true;
 	}
-
-	unsigned readNext_calls_;  ///< The number of times readNext has been called
-	FTT translator_;           ///< An instance of the template parameter FragmentTypeTranslator that translates Fragment Type IDs to strings for creating ROOT TTree Branches
 };
 }  // namespace detail
 }  // namespace artdaq

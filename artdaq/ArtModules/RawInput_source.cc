@@ -12,7 +12,7 @@ namespace art {
 	* source.fileNames and don't want the files services to be used.
 	*/
 template<>
-struct Source_generator<artdaq::detail::SharedMemoryReader<artdaq::Fragment::MakeSystemTypeMap>>
+struct Source_generator<artdaq::detail::SharedMemoryReader>
 {
 	static constexpr bool value = true;  ///< Used to suppress use of file services on art Source
 };
@@ -21,7 +21,7 @@ namespace artdaq {
 /**
 	 * \brief RawInput is a typedef of art::Source<detail::SharedMemoryReader>
 	 */
-typedef art::Source<detail::SharedMemoryReader<artdaq::Fragment::MakeSystemTypeMap>> RawInput;
+typedef art::Source<detail::SharedMemoryReader> RawInput;
 }  // namespace artdaq
 
 DEFINE_ART_INPUT_SOURCE(artdaq::RawInput)

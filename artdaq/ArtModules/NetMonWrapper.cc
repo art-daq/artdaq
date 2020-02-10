@@ -9,14 +9,14 @@ art::NetMonWrapper::NetMonWrapper(fhicl::ParameterSet const& ps)
 {
 	init_timeout_s_ = ps.get<double>("init_fragment_timeout_seconds", 1.0);
 	// Make sure the ArtdaqSharedMemoryService is available
-	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
+	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 }
 
 artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
 {
 	TLOG(5) << "Receiving Fragment from NetMonTransportService";
 	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
-	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
+	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 
 	// Do not process data until Init Fragment received!
 	auto start = std::chrono::steady_clock::now();
@@ -79,7 +79,7 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
 	TLOG(5) << "Receiving Init Fragment from NetMonTransportService";
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage BEGIN";
-	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
+	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap;
 	while (eventMap.size() == 0)
 	{

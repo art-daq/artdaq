@@ -185,6 +185,12 @@ simple_plugin(ArtdaqSharedMemoryService "service"
   fhiclcpp
 )
 
+simple_plugin(ArtdaqFragmentNamingService "service"
+artdaq-core_Data
+  art_Framework_Services_Registry
+  MF_MessageLogger
+  fhiclcpp)
+
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
   artdaq_BuildInfo
