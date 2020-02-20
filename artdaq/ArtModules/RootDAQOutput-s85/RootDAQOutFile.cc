@@ -416,6 +416,8 @@ art::RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 		    metaBranchRootName<FileIndex::Element>(), &findexElemPtr, basketSize_, 0);
 		b->ResetAddress();
 	}
+	parentageTree_ = RootOutputTree::makeTTree(
+	    filePtr_.get(), rootNames::parentageTreeName(), 0);
 	// Create the tree that will carry (event) History objects.
 	eventHistoryTree_ = RootOutputTree::makeTTree(
 	    filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
