@@ -173,12 +173,6 @@ protected:
 
 	fhicl::ParameterSet art_pset_;                               ///< ParameterSet sent to art process
 	std::map<std::string, std::string> config_archive_entries_;  ///< Additional strings to archive as part of the art configuration
-
-	/**
-	 * \brief Log a message, setting severity based on verbosity flag
-	 * \param text Message to log
-	 */
-	void logMessage_(std::string const& text);
 };
 
 #endif /* artdaq_Application_MPI2_DataReceiverCore_hh */
