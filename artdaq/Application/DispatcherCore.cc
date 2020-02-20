@@ -80,6 +80,9 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 		agg_pset.put<bool>("broadcast_mode", true);
 	}
 
+	agg_pset.erase("restart_crashed_art_processes");
+	agg_pset.put<bool>("restart_crashed_art_processes", false);
+
 	agg_pset.erase("art_analyzer_count");
 	agg_pset.put<int>("art_analyzer_count", 0);
 

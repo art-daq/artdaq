@@ -49,9 +49,26 @@ cet_test(genToArt_outToBinaryFileOutput_t HANDBUILT
   DATAFILES fcl/genToArt_outToBinaryFileOutput_t.fcl
 )
 
+# Make Modules
+include(NodeJSAddon)
+include(PythonAddon)
+
+cet_make_library(LIBRARY_NAME swig_artdaq
+                 SOURCE swig_artdaq.cpp
+                 LIBRARIES
+                 artdaq_DAQdata
+				 artdaq-core_Utilities
+				 )
+
+
+create_nodejs_addon (ADDON_NAME "node_artdaq" LIBRARIES swig_artdaq)
+create_python_addon (ADDON_NAME "python_artdaq" LIBRARIES swig_artdaq)
+
 #cet_test(genToArt_outToBinaryNetOutput_t HANDBUILT
 #  TEST_EXEC mpirun
 #  TEST_ARGS genToArt -c genToArt_outToBinaryNetOutput_t.fcl :  s_r_handles 1
 #  DATAFILES fcl/genToArt_outToBinaryNetOutput_t.fcl)
 
+install_headers()
 install_source()
+install_fhicl()
