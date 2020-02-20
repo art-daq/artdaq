@@ -93,7 +93,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 
 bool artdaq::DataReceiverCore::start(art::RunID id)
 {
-	logMessage_("Starting run " + boost::lexical_cast<std::string>(id.run()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Starting run " << id.run();
 
 	// 13-Jul-2018, KAB: added code to update the art_pset inside the event store
 	// with configuration archive information
@@ -121,13 +121,13 @@ bool artdaq::DataReceiverCore::start(art::RunID id)
 	event_store_ptr_->startRun(id.run());
 	receiver_ptr_->start_threads();
 
-	logMessage_("Completed the Start transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Start transition for run " << event_store_ptr_->runID();
 	return true;
 }
 
 bool artdaq::DataReceiverCore::stop()
 {
-	logMessage_("Stopping run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Stopping run " << event_store_ptr_->runID();
 	bool endSucceeded = false;
 	int attemptsToEnd;
 	receiver_ptr_->stop_threads();
@@ -165,33 +165,33 @@ bool artdaq::DataReceiverCore::stop()
 	}
 
 	run_is_paused_.store(false);
-	logMessage_("Completed the Stop transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Stop transition for run " << event_store_ptr_->runID();
 	return true;
 }
 
 bool artdaq::DataReceiverCore::pause()
 {
-	logMessage_("Pausing run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Pausing run " << event_store_ptr_->runID();
 	pause_requested_.store(true);
 	run_is_paused_.store(true);
-	logMessage_("Completed the Pause transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Pause transition for run " << event_store_ptr_->runID();
 	return true;
 }
 
 bool artdaq::DataReceiverCore::resume()
 {
-	logMessage_("Resuming run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Resuming run " << event_store_ptr_->runID();
 	pause_requested_.store(false);
 	metricMan->do_start();
 	event_store_ptr_->rolloverSubrun();
 	run_is_paused_.store(false);
-	logMessage_("Completed the Resume transition for run " + boost::lexical_cast<std::string>(event_store_ptr_->runID()));
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Resume transition for run " << event_store_ptr_->runID();
 	return true;
 }
 
 bool artdaq::DataReceiverCore::shutdown()
 {
-	logMessage_("Starting Shutdown transition");
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Starting Shutdown transition";
 
 	/* We don't care about flushing data here.  The only way to transition to the
 	   shutdown state is from a state where there is no data taking.  All we have
@@ -219,7 +219,7 @@ bool artdaq::DataReceiverCore::shutdown()
 	metricMan->shutdown();
 
 	TLOG(TLVL_DEBUG) << "shutdown: Complete";
-	logMessage_("Completed Shutdown transition");
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed Shutdown transition";
 	return endSucceeded;
 }
 
@@ -256,7 +256,7 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	{
 		if (event_store_ptr_ != nullptr)
 		{
-			return boost::lexical_cast<std::string>(event_store_ptr_->GetOpenEventCount());
+			return std::to_string(event_store_ptr_->GetOpenEventCount());
 		}
 		else
 		{
@@ -266,7 +266,7 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	if (which == "event_count")
 	{
 		if (receiver_ptr_ != nullptr)
-			return boost::lexical_cast<std::string>(receiver_ptr_->GetReceivedFragmentCount()->count());
+			return std::to_string(receiver_ptr_->GetReceivedFragmentCount()->count());
 
 		return "0";
 	}
@@ -277,19 +277,7 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	// - report on the number of incomplete events in the EventStore
 	//   (if running)
 	std::string tmpString;
-	if (event_store_ptr_ != nullptr) tmpString.append(app_name + " run number = " + boost::lexical_cast<std::string>(event_store_ptr_->runID()) + ".\n");
+	if (event_store_ptr_ != nullptr) tmpString.append(app_name + " run number = " + std::to_string(event_store_ptr_->runID()) + ".\n");
 	tmpString.append("Command \"" + which + "\" is not currently supported.");
 	return tmpString;
-}
-
-void artdaq::DataReceiverCore::logMessage_(std::string const& text)
-{
-	if (verbose_)
-	{
-		TLOG(TLVL_INFO) << text;
-	}
-	else
-	{
-		TLOG(TLVL_DEBUG) << text;
-	}
 }
