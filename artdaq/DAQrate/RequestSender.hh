@@ -145,6 +145,14 @@ public:
 	 */
 	bool RoutingTokenSendsEnabled() { return send_routing_tokens_; }
 
+	/**
+	 * \brief Determine if the RequestSender is currently sending any requests
+	 * \return True if RequestSender has requests to send
+	 *
+	 * This function is used for testing
+	 */
+	bool RequestsInFlight() { return request_sending_.load() != 0; }
+
 private:
 private:
 	// Request stuff

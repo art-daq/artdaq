@@ -34,6 +34,7 @@ enum class RequestMode
 	Single,
 	Buffer,
 	Window,
+	SequenceID,
 	Ignored
 };
 
@@ -135,6 +136,7 @@ public:
 		/// Single : The CommandableFragmentGenerator responds to each request with the latest Fragment it has received
 		/// Buffer : The CommandableFragmentGenerator responds to each request with all Fragments it has received since the last request
 		/// Window : The CommandableFragmentGenerator searches its data buffer for all Fragments whose timestamp falls within the request window
+		/// SequenceID:  The CommandableFragmentGenerator responds to each request with all Fragments that match the sequence ID in the request
 		/// </summary>
 		fhicl::Atom<std::string> request_mode{fhicl::Name{"request_mode"}, fhicl::Comment{"The mode by which the CommandableFragmentGenerator will process reqeusts"}, "ignored"};
 		fhicl::TableFragment<artdaq::RequestReceiver::Config> receiverConfig;  ///< Configuration for the Request Receiver. See artdaq::RequestReceiver::Config
@@ -199,6 +201,12 @@ public:
 	void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
 
 	/// <summary>
+	/// Create fragments using data buffer for request mode SequenceID.
+	/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+	/// </summary>
+	/// <param name="frags">Ouput fragments</param>
+	void applyRequestsSequenceIDMode(artdaq::FragmentPtrs& frags);
+
 	/// Copy data from the relevant data buffer that matches the given timestamp.
 	/// </summary>
 	/// <param name="frags">Output Fragments</param>
@@ -563,13 +571,31 @@ protected:
 	/// Get the current requests being handled by this CommandableFragmentGenerator
 	/// </summary>
 	/// <returns>Map relating sequence IDs to timestamps</returns>
-	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const { return requestReceiver_->GetRequests(); }
+	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const
+	{
+		if (requestReceiver_ == nullptr) return std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>();
+		return requestReceiver_->GetRequests();
+	}
 
 	/// <summary>
 	/// Get the next request (i.e. the request with the lowest sequence ID) to be handled by this CommandableFragmentGenerator
 	/// </summary>
 	/// <returns>Pair of sequence ID and timestamp representing next request</returns>
-	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest() const { return requestReceiver_->GetNextRequest(); }
+	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest() const
+	{
+		if (requestReceiver_ == nullptr) return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
+		return requestReceiver_->GetNextRequest();
+	}
+
+	/// <summary>
+	/// Get the number of requests currently stored in the Request Recevier
+	/// </summary>
+	/// <returns>The number of request messages stored in the request receiver</returns>
+	size_t GetCurrentRequestCount() const
+	{
+		if (requestReceiver_ == nullptr) return 0;
+		return requestReceiver_->size();
+	}
 
 private:
 	// FHiCL-configurable variables. Note that the C++ variable names
