@@ -1,6 +1,7 @@
 #define TRACE_NAME "TransferOutput"
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 
+#include <signal.h>
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
@@ -38,7 +39,7 @@ protected:
 	/// <param name="sequenceId">Sequence ID of message</param>
 	/// <param name="messageType">Type of message</param>
 	/// <param name="msg">Contents of message</param>
-	virtual void SendMessage(artdaq::Fragment::sequence_id_t sequenceId, artdaq::Fragment::type_t messageType, TBufferFile& msg);
+	virtual void SendMessage(artdaq::FragmentPtr& msg);
 
 private:
 	size_t send_timeout_us_;
@@ -64,22 +65,21 @@ art::TransferOutput::~TransferOutput()
 	TLOG(TLVL_DEBUG) << "End: TransferOutput::~TransferOutput()";
 }
 
-void art::TransferOutput::SendMessage(artdaq::Fragment::sequence_id_t sequenceId, artdaq::Fragment::type_t messageType, TBufferFile& msg)
+void art::TransferOutput::SendMessage(artdaq::FragmentPtr& fragment)
 {
-	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << sequenceId << ", type=" << (int)messageType
-	                 << ", length=" << msg.Length();
-	artdaq::NetMonHeader header;
-	header.data_length = static_cast<uint64_t>(msg.Length());
-	artdaq::Fragment fragment(std::ceil(msg.Length() / static_cast<double>(sizeof(artdaq::RawDataType))), sequenceId, 0,
-	                          messageType, header);
-
-	memcpy(&*fragment.dataBegin(), msg.Buffer(), msg.Length());
+	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << fragment->sequenceID() << ", type=" << fragment->type()
+	                 << ", length=" << fragment->dataSizeBytes();
 	auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
 	size_t retries = 0;
 	while (sts != artdaq::TransferInterface::CopyStatus::kSuccess && retries <= send_retry_count_)
 	{
-		sts = transfer_->transfer_fragment_min_blocking_mode(fragment, send_timeout_us_);
+		sts = transfer_->transfer_fragment_min_blocking_mode(*fragment, send_timeout_us_);
 		retries++;
+	}
+	if (retries > send_retry_count_)
+	{
+		TLOG(TLVL_ERROR) << "Error communicating with remote after " << retries << " tries. Closing art process";
+		kill(getpid(), SIGUSR2);
 	}
 
 #if 0
