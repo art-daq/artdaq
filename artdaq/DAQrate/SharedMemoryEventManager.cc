@@ -38,10 +38,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(fhicl::ParameterSet p
     , buffer_writes_pending_()
     , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
     , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
-    , last_shmem_buffer_metric_update_(std::chrono::steady_clock::now())
     , last_backpressure_report_time_(std::chrono::steady_clock::now())
     , last_fragment_header_write_time_(std::chrono::steady_clock::now())
-    , metric_data_()
     , broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
     , run_event_count_(0)
     , run_incomplete_event_count_(0)
@@ -553,6 +551,24 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 
 	if (!manual_art_)
 	{
+		int graceful_wait_ms = art_event_processing_time_us_ * size() * 10 / 1000;
+		int gentle_wait_ms = art_event_processing_time_us_ * size() * 2 / 1000;
+		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
+		auto shutdown_start = std::chrono::steady_clock::now();
+
+		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
+		for (int ii = 0; ii < graceful_wait_ms; ++ii)
+		{
+			usleep(1000);
+
+			check_pids(false);
+			if (count_pids() == 0)
+			{
+				TLOG(TLVL_TRACE) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
+				return;
+			}
+		}
+
 		{
 			TLOG(TLVL_TRACE) << "Gently informing art processes that it is time to shut down";
 			std::unique_lock<std::mutex> lk(art_process_mutex_);
@@ -563,18 +579,15 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			}
 		}
 
-		int graceful_wait_ms = 5000;
-		int int_wait_ms = 1000;
-
-		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
-		for (int ii = 0; ii < graceful_wait_ms; ++ii)
+		TLOG(TLVL_TRACE) << "Waiting up to " << gentle_wait_ms << " ms for all art processes to exit from SIGQUIT";
+		for (int ii = 0; ii < gentle_wait_ms; ++ii)
 		{
 			usleep(1000);
 
 			check_pids(false);
 			if (count_pids() == 0)
 			{
-				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
+				TLOG(TLVL_TRACE) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
 				return;
 			}
 		}
@@ -588,8 +601,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			}
 		}
 
-		TLOG(TLVL_TRACE) << "Waiting up to " << int_wait_ms << " ms for all art processes to exit";
-		for (int ii = graceful_wait_ms; ii < graceful_wait_ms + int_wait_ms; ++ii)
+		TLOG(TLVL_TRACE) << "Waiting up to " << int_wait_ms << " ms for all art processes to exit from SIGINT";
+		for (int ii = 0; ii < int_wait_ms; ++ii)
 		{
 			usleep(1000);
 
@@ -597,7 +610,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 
 			if (count_pids() == 0)
 			{
-				TLOG(TLVL_TRACE) << "All art processes exited after " << ii << " ms.";
+				TLOG(TLVL_TRACE) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
 				return;
 			}
 		}
@@ -714,24 +727,6 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		broadcastFragment_(std::move(outFrag), outFrag);
 	}
 	auto endOfDataProcessingStart = std::chrono::steady_clock::now();
-
-	if (get_art_process_count_() > 0)
-	{
-		TLOG(TLVL_DEBUG) << "Allowing " << get_art_process_count_() << " art processes the chance to end gracefully";
-		if (end_of_data_wait_us == 0)
-		{
-			TLOG(TLVL_DEBUG) << "Expected art event processing time not specified. Waiting up to 100s for art to end gracefully.";
-			end_of_data_wait_us = 100 * 1000000;
-		}
-
-		auto sleep_count = (end_of_data_wait_us / 10000) + 1;
-		for (size_t ii = 0; ii < sleep_count; ++ii)
-		{
-			usleep(10000);
-			if (get_art_process_count_() == 0) break;
-		}
-	}
-
 	while (get_art_process_count_() > 0)
 	{
 		TLOG(TLVL_DEBUG) << "There are " << get_art_process_count_() << " art processes remaining. Proceeding to shutdown.";
@@ -1177,25 +1172,40 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		TLOG(TLVL_INFO) << statString;
 	}
 
-	metric_data_.event_count += counter;
-	metric_data_.event_size += eventSize;
-
-	if (metricMan && TimeUtils::GetElapsedTimeMilliseconds(last_shmem_buffer_metric_update_) > 500)  // Limit to 2 Hz updates
+	if (metricMan)
 	{
 		TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
-		metricMan->sendMetric("Event Rate", metric_data_.event_count, "Events/s", 1, MetricMode::Rate);
-		if (metric_data_.event_count > 0) metricMan->sendMetric("Average Event Size", metric_data_.event_size / metric_data_.event_count, "Bytes", 1, MetricMode::Average);
-		metric_data_ = MetricData();
+		metricMan->sendMetric("Event Rate", counter, "Events", 1, MetricMode::Rate);
+		metricMan->sendMetric("Data Rate", eventSize, "Bytes", 1, MetricMode::Rate);
+		if (counter > 0)
+		{
+			metricMan->sendMetric("Average Event Size", eventSize / counter, "Bytes", 1, MetricMode::Average);
+		}
 
 		metricMan->sendMetric("Events Released to art this run", run_event_count_, "Events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Incomplete Events Released to art this run", run_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
 		if (requests_) metricMan->sendMetric("Tokens sent", requests_->GetSentTokenCount(), "Tokens", 2, MetricMode::LastPoint);
 
 		auto bufferReport = GetBufferReport();
-		int full = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) { return p.second == BufferSemaphoreFlags::Full; });
-		int empty = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) { return p.second == BufferSemaphoreFlags::Empty; });
-		int writing = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) { return p.second == BufferSemaphoreFlags::Writing; });
-		int reading = std::count_if(bufferReport.begin(), bufferReport.end(), [](std::pair<int, BufferSemaphoreFlags> p) { return p.second == BufferSemaphoreFlags::Reading; });
+		int full = 0, empty = 0, writing = 0, reading = 0;
+		for (auto& buf : bufferReport)
+		{
+			switch (buf.second)
+			{
+				case BufferSemaphoreFlags::Full:
+					full++;
+					break;
+				case BufferSemaphoreFlags::Empty:
+					empty++;
+					break;
+				case BufferSemaphoreFlags::Writing:
+					writing++;
+					break;
+				case BufferSemaphoreFlags::Reading:
+					reading++;
+					break;
+			}
+		}
 		auto total = size();
 		TLOG(TLVL_DEBUG) << "Buffer usage: full=" << full << ", empty=" << empty << ", writing=" << writing << ", reading=" << reading << ", total=" << total;
 
@@ -1208,8 +1218,6 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			metricMan->sendMetric("Shared Memory Full %", full * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
 			metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
 		}
-
-		last_shmem_buffer_metric_update_ = std::chrono::steady_clock::now();
 	}
 	TLOG(TLVL_TRACE) << "check_pending_buffers_ END";
 }
@@ -1269,10 +1277,10 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 		mqPtr->getStats(stats);
 		oss << "  Event statistics: " << stats.recentSampleCount << " events released at " << stats.recentSampleRate
 		    << " events/sec, effective data rate = "
-		    << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+		    << (stats.recentValueRate / 1024.0 / 1024.0)
 		    << " MB/sec, monitor window = " << stats.recentDuration
-		    << " sec, min::max event size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
-		    << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
+		    << " sec, min::max event size = " << (stats.recentValueMin / 1024.0 / 1024.0)
+		    << "::" << (stats.recentValueMax / 1024.0 / 1024.0) << " MB" << std::endl;
 		if (stats.recentSampleRate > 0.0)
 		{
 			oss << "  Average time per event: ";
@@ -1287,10 +1295,10 @@ std::string artdaq::SharedMemoryEventManager::buildStatisticsString_() const
 		mqPtr->getStats(stats);
 		oss << "  Fragment statistics: " << stats.recentSampleCount << " fragments received at " << stats.recentSampleRate
 		    << " fragments/sec, effective data rate = "
-		    << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+		    << (stats.recentValueRate / 1024.0 / 1024.0)
 		    << " MB/sec, monitor window = " << stats.recentDuration
-		    << " sec, min::max fragment size = " << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
-		    << "::" << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB" << std::endl;
+		    << " sec, min::max fragment size = " << (stats.recentValueMin / 1024.0 / 1024.0)
+		    << "::" << (stats.recentValueMax / 1024.0 / 1024.0) << " MB" << std::endl;
 	}
 
 	oss << "  Event counts: Run -- " << run_event_count_ << " Total, " << run_incomplete_event_count_ << " Incomplete."
