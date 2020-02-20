@@ -179,8 +179,8 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		shm_manager_->Attach();
 		if (!isRunning())
 		{
-			TLOG(TLVL_ERROR) << GetTraceName() << ": Attempted to send Fragment when not attached to Shared Memory! Returning kSuccess, and dropping data!";
-			return CopyStatus::kSuccess;
+			TLOG(TLVL_ERROR) << GetTraceName() << ": Attempted to send Fragment when not attached to Shared Memory! Returning kErrorNotRequiringException, and dropping data!";
+			return CopyStatus::kErrorNotRequiringException;
 		}
 	}
 	shm_manager_->SetRank(my_rank);
