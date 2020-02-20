@@ -270,9 +270,11 @@ struct SharedMemoryReader
    * \brief Whether more data is expected from the SharedMemoryReader
    * \return True unless a shutdown message has been received in readNext
    */
-	bool hasMoreData() const {
+	bool hasMoreData() const
+	{
 		TLOG(TLVL_DEBUG, "SharedMemoryReader") << "hasMoreData returning " << std::boolalpha << !shutdownMsgReceived;
-		return (!shutdownMsgReceived); }
+		return (!shutdownMsgReceived);
+	}
 
 	/**
    * \brief Dequeue a RawEvent and declare its Fragment contents to art, creating
