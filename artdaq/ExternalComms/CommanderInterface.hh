@@ -210,8 +210,8 @@ public:
 	/// Only the first character of the mask selection will be parsed, dial 'M' for Memory, or 'S' for Slow.
 	/// Use name == "ALL" to set ALL names
 	///
-        /// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_set s/M s/ALL s/0x12345
-        ///
+	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_set s/M s/ALL s/0x12345
+	///
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_trace_set(std::string name, std::string type, std::string mask);

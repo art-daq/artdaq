@@ -269,7 +269,7 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 
 	artdaq::RequestSender t(ps);
 	t.SetRunNumber(1);
-	
+
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
@@ -355,7 +355,7 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 
 	artdaq::RequestSender t(ps);
 	t.SetRunNumber(1);
-	
+
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
@@ -571,7 +571,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 
 	artdaq::RequestSender t(ps);
 	t.SetRunNumber(1);
-	
+
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 

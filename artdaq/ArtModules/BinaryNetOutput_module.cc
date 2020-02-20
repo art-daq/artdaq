@@ -182,7 +182,6 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 			sender_ptr_->sendFragment(std::move(fragment_copy));
 			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done";
 		}
-
 	}
 
 	// Events are unique in art, so this will be the only send with this sequence ID!

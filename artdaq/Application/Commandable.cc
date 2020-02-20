@@ -435,7 +435,7 @@ bool artdaq::Commandable::do_trace_set(std::string const& name, std::string cons
 	TLOG(TLVL_DEBUG) << "Setting msk " << type << " for name " << name << " to " << mask_in_string_form;
 	auto mask = static_cast<uint64_t>(std::stoull(mask_in_string_form, nullptr, 0));
 	TLOG(TLVL_DEBUG) << "Mask has been converted to " << mask;
-	
+
 	if (name != "ALL")
 	{
 		if (type.size() > 0)
