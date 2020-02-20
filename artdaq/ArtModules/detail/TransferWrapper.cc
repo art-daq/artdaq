@@ -12,8 +12,6 @@
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include <TBufferFile.h>
-
 #include <csignal>
 #include <iostream>
 #include <limits>
@@ -86,7 +84,7 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
 	commander_ = MakeCommanderPlugin(new_pset, c);
 }
 
-void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
+artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 {
 	std::unique_ptr<artdaq::Fragment> fragmentPtr;
 	bool receivedFragment = false;
@@ -104,12 +102,12 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			{
 				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 				unregisterMonitor();
-				return;
+				return nullptr;
 			}
 			if (!monitorRegistered_)
 			{
 				registerMonitor();
-				if (!monitorRegistered_) return;
+				if (!monitorRegistered_) return nullptr;
 			}
 
 			try
@@ -168,18 +166,8 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			}
 			else
 			{
-				return;
+				return nullptr;
 			}
-		}
-
-		try
-		{
-			extractTBufferFile(*fragmentPtr, msg);
-		}
-		catch (...)
-		{
-			ExceptionHandler(quitOnFragmentIntegrityProblem_ ? ExceptionHandlerRethrow::yes : ExceptionHandlerRethrow::no,
-			                 "Problem extracting TBufferFile from artdaq::Fragment in TransferWrapper::receiveMessage");
 		}
 
 		checkIntegrity(*fragmentPtr);
@@ -199,17 +187,8 @@ void artdaq::TransferWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg)
 			}
 		}
 	}
-}
 
-void artdaq::TransferWrapper::extractTBufferFile(const artdaq::Fragment& fragment,
-                                                 std::unique_ptr<TBufferFile>& tbuffer)
-{
-	const artdaq::NetMonHeader* header = fragment.metadata<artdaq::NetMonHeader>();
-	char* buffer = (char*)malloc(header->data_length);
-	memcpy(buffer, fragment.dataBeginBytes(), header->data_length);
-
-	// TBufferFile takes ownership of the contents of memory passed to it
-	tbuffer.reset(new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0));
+	return fragmentPtr;
 }
 
 void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
@@ -367,7 +346,7 @@ std::string artdaq::TransferWrapper::getDispatcherStatus()
 	{
 		return commander_->send_status();
 	}
-	catch (std::exception ex)
+	catch (std::exception const& ex)
 	{
 		TLOG(TLVL_WARNING) << "An exception was thrown trying to collect the Dispatcher's status. Most likely cause is the application is no longer running.";
 		return "";

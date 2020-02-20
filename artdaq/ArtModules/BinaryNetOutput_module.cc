@@ -165,6 +165,8 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
 #endif
 
+	artdaq::Fragment::sequence_id_t sequence_id = 0;
+
 	for (auto const& result_handle : result_handles)
 	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
@@ -175,14 +177,16 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 		{
 			auto fragment_copy = fragment;
 			auto fragid_id = fragment_copy.fragmentID();
-			auto sequence_id = fragment_copy.sequenceID();
+			sequence_id = fragment_copy.sequenceID();
 			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " start";
 			sender_ptr_->sendFragment(std::move(fragment_copy));
 			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done";
-			// Events are unique in art, so this will be the only send with this sequence ID!
-			sender_ptr_->RemoveRoutingTableEntry(sequence_id);
 		}
 	}
+
+	// Events are unique in art, so this will be the only send with this sequence ID!
+	// ELF 1/23/2020: Only remove routing entry AFTER all Fragments have been sent!
+	sender_ptr_->RemoveRoutingTableEntry(sequence_id);
 
 	return;
 }
