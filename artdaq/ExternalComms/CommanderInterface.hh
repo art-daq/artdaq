@@ -89,7 +89,7 @@ public:
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_init(fhicl::ParameterSet, uint64_t, uint64_t);
+	virtual std::string send_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a soft_init command
@@ -98,7 +98,7 @@ public:
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_soft_init(fhicl::ParameterSet, uint64_t, uint64_t);
+	virtual std::string send_soft_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a reinit command
@@ -107,7 +107,7 @@ public:
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_reinit(fhicl::ParameterSet, uint64_t, uint64_t);
+	virtual std::string send_reinit(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a start command
@@ -116,7 +116,7 @@ public:
 	/// This command also accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_start(art::RunID, uint64_t, uint64_t);
+	virtual std::string send_start(art::RunID runNumber, uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a pause command
@@ -125,7 +125,7 @@ public:
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_pause(uint64_t, uint64_t);
+	virtual std::string send_pause(uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a resume command
@@ -134,7 +134,7 @@ public:
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_resume(uint64_t, uint64_t);
+	virtual std::string send_resume(uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a stop command
@@ -143,7 +143,7 @@ public:
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_stop(uint64_t, uint64_t);
+	virtual std::string send_stop(uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a shutdown command
@@ -152,7 +152,7 @@ public:
 	/// This command accepts a timeout parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_shutdown(uint64_t);
+	virtual std::string send_shutdown(uint64_t timeout);
 
 	/// <summary>
 	/// Using the transport mechanism, send a status command
@@ -168,7 +168,7 @@ public:
 	/// The report command returns the current value of the requested reportable quantity.
 	/// </summary>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
-	virtual std::string send_report(std::string);
+	virtual std::string send_report(std::string which);
 
 	/// <summary>
 	/// Using the transport mechanism, send a legal_commands command
@@ -184,7 +184,7 @@ public:
 	/// This will cause a Dispatcher to start an art process with the given FHiCL configuration string
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_register_monitor(std::string);
+	virtual std::string send_register_monitor(std::string monitor_fhicl);
 
 	/// <summary>
 	/// Using the transport mechanism, send an unregister_monitor command
@@ -192,7 +192,7 @@ public:
 	/// This will cause a Dispatcher to stop sending data to the monitor identified by the given label
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_unregister_monitor(std::string);
+	virtual std::string send_unregister_monitor(std::string label);
 
 	/// <summary>
 	/// Using the transport mechanism, send an send_trace_get command
@@ -201,7 +201,7 @@ public:
 	/// Use name == "ALL" to get ALL names
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_trace_get(std::string);
+	virtual std::string send_trace_get(std::string name);
 
 	/// <summary>
 	/// Using the transport mechanism, send an send_trace_msgfacility_set command
@@ -210,10 +210,11 @@ public:
 	/// Only the first character of the mask selection will be parsed, dial 'M' for Memory, or 'S' for Slow.
 	/// Use name == "ALL" to set ALL names
 	///
-	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i/$((0x1234)) # Use Bash to convert hex to dec
+	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_set s/M s/ALL s/0x12345
+	///
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_trace_set(std::string, std::string, uint64_t);
+	virtual std::string send_trace_set(std::string name, std::string type, std::string mask);
 
 	/// <summary>
 	/// Using the transport mechanism, send an send_meta_command command
@@ -221,7 +222,7 @@ public:
 	/// This will cause the receiver to run the given command with the given argument in user code
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_meta_command(std::string, std::string);
+	virtual std::string send_meta_command(std::string command, std::string argument);
 
 	/// <summary>
 	/// Using the transport mechanism, send a send_rollover_subrun command
@@ -230,7 +231,7 @@ public:
 	/// Should be sent to all EventBuilders before the given event is processed.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_rollover_subrun(uint64_t, uint32_t);
+	virtual std::string send_rollover_subrun(uint64_t seq, uint32_t subrunNumber);
 
 	/// <summary>
 	/// Determine whether the Commander plugin is ready to accept commands
@@ -249,7 +250,7 @@ public:
 	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.add_config_archive_entry "EventBuilder1" "daq: {verbose: true}"
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string add_config_archive_entry(std::string, std::string);
+	virtual std::string add_config_archive_entry(std::string key, std::string value);
 
 	/// <summary>
 	/// Using the transport mechanism, send a clear_config_archive command
