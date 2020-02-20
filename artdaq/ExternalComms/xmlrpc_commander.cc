@@ -483,39 +483,39 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 // optionally a timeout and a timestamp; thus we can kill three birds
 // with one stone in the GENERATE_INIT_TRANSITION macro
 
-#define GENERATE_INIT_TRANSITION(NAME, CALL, DESCRIPTION)                                                                                                          \
-	/** Command class representing an init transition */                                                                                                           \
-	class NAME##_ : public cmd_                                                                                                                                    \
-	{                                                                                                                                                              \
-	public:                                                                                                                                                        \
-		/** Command class Constructor                                                                                                                              \
-		 * \param c xmlrpc_commander to send parsed command to                                                                                                     \
-		 */                                                                                                                                                        \
-		explicit NAME##_(xmlrpc_commander& c) : cmd_(c, "s:sII", DESCRIPTION) {}                                                                                   \
-                                                                                                                                                                   \
-		/** Default timeout for command */                                                                                                                         \
-		static const uint64_t defaultTimeout = 45;                                                                                                                 \
-		/** Default timestamp for Command */                                                                                                                       \
-		static const uint64_t defaultTimestamp = std::numeric_limits<const uint64_t>::max();                                                                       \
-                                                                                                                                                                   \
-	private:                                                                                                                                                       \
-		bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)                                                                        \
-		{                                                                                                                                                          \
-			fhicl::ParameterSet ps;                                                                                                                                \
-			try                                                                                                                                                    \
-			{                                                                                                                                                      \
-				ps = getParam<fhicl::ParameterSet>(paramList, 0);                                                                                                  \
-			}                                                                                                                                                      \
-			catch (...)                                                                                                                                            \
-			{                                                                                                                                                      \
+#define GENERATE_INIT_TRANSITION(NAME, CALL, DESCRIPTION)                                                                                                                 \
+	/** Command class representing an init transition */                                                                                                                  \
+	class NAME##_ : public cmd_                                                                                                                                           \
+	{                                                                                                                                                                     \
+	public:                                                                                                                                                               \
+		/** Command class Constructor                                                                                                                                     \
+		 * \param c xmlrpc_commander to send parsed command to                                                                                                            \
+		 */                                                                                                                                                               \
+		explicit NAME##_(xmlrpc_commander& c) : cmd_(c, "s:sII", DESCRIPTION) {}                                                                                          \
+                                                                                                                                                                          \
+		/** Default timeout for command */                                                                                                                                \
+		static const uint64_t defaultTimeout = 45;                                                                                                                        \
+		/** Default timestamp for Command */                                                                                                                              \
+		static const uint64_t defaultTimestamp = std::numeric_limits<const uint64_t>::max();                                                                              \
+                                                                                                                                                                          \
+	private:                                                                                                                                                              \
+		bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)                                                                               \
+		{                                                                                                                                                                 \
+			fhicl::ParameterSet ps;                                                                                                                                       \
+			try                                                                                                                                                           \
+			{                                                                                                                                                             \
+				ps = getParam<fhicl::ParameterSet>(paramList, 0);                                                                                                         \
+			}                                                                                                                                                             \
+			catch (...)                                                                                                                                                   \
+			{                                                                                                                                                             \
 				*retvalP = xmlrpc_c::value_string("Error: The " #NAME " message requires a single argument that is a string containing the initialization ParameterSet"); \
-				return true;                                                                                                                                       \
-			}                                                                                                                                                      \
-                                                                                                                                                                   \
-			return _c._commandable.CALL(ps,                                                                                                                        \
-			                            getParam<uint64_t>(paramList, 1, defaultTimeout),                                                                          \
-			                            getParam<uint64_t>(paramList, 2, defaultTimestamp));                                                                       \
-		}                                                                                                                                                          \
+				return true;                                                                                                                                              \
+			}                                                                                                                                                             \
+                                                                                                                                                                          \
+			return _c._commandable.CALL(ps,                                                                                                                               \
+			                            getParam<uint64_t>(paramList, 1, defaultTimeout),                                                                                 \
+			                            getParam<uint64_t>(paramList, 2, defaultTimestamp));                                                                              \
+		}                                                                                                                                                                 \
 	};
 
 GENERATE_INIT_TRANSITION(init, initialize, "initialize the program")
@@ -1348,7 +1348,7 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::st
 
 	try
 	{
-	  myClient.call(serverUrl_, "daq." + command, "sss", &result, arg1.c_str(), arg2.c_str(), arg3.c_str());
+		myClient.call(serverUrl_, "daq." + command, "sss", &result, arg1.c_str(), arg2.c_str(), arg3.c_str());
 	}
 	catch (...)
 	{
