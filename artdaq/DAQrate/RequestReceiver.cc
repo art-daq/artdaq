@@ -314,7 +314,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 	running_ = false;
 }
 
-	void artdaq::RequestReceiver::sendAcknowledgement(detail::RequestMessage message)
+void artdaq::RequestReceiver::sendAcknowledgement(detail::RequestMessage message)
 {
 	if (ack_socket_ == -1)
 	{
@@ -342,7 +342,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 	}
 
 	TLOG(TLVL_DEBUG) << __func__ << ": Sending RequestAcknowledgement with " << ack.packet_count << " entries to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
-	sendto(ack_socket_, &buffer[0], buffer.size(), 0, (struct sockaddr*) & ack_addr_, sizeof(ack_addr_));
+	sendto(ack_socket_, &buffer[0], buffer.size(), 0, (struct sockaddr*)&ack_addr_, sizeof(ack_addr_));
 }
 
 std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq::RequestReceiver::GetNextRequest()

@@ -82,7 +82,6 @@ BOOST_AUTO_TEST_CASE(RequestPacket)
 	p2.clearRank(1);
 	BOOST_REQUIRE_EQUAL(p2.hasRank(1), false);
 
-
 	auto vec = p2.ToByteVector();
 	BOOST_REQUIRE_GT(vec.size(), 0);
 
