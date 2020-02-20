@@ -837,7 +837,7 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 		}
 		auto read_finish_time = std::chrono::steady_clock::now();
 		TLOG_ARB(10, "ArtdaqInputWithFragments") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap
-		                                   << " metricMan=" << (void*)metricMan.get();
+		                                         << " metricMan=" << (void*)metricMan.get();
 		if (metricMan)
 		{
 			metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time),
