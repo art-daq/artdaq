@@ -428,20 +428,10 @@ private:
 
 	int incomplete_event_report_interval_ms_;
 	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
-	std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
 	std::chrono::steady_clock::time_point last_backpressure_report_time_;
 	std::chrono::steady_clock::time_point last_fragment_header_write_time_;
 	std::vector<std::chrono::steady_clock::time_point> event_timing_;
 
-	struct MetricData
-	{
-		MetricData()
-		    : event_count(0), event_size(0), event_time(0.0) {}
-		size_t event_count;
-		size_t event_size;
-		double event_time;
-	};
-	MetricData metric_data_;
 	StatisticsHelper statsHelper_;
 
 	int broadcast_timeout_ms_;
