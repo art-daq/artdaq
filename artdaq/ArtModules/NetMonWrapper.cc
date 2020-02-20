@@ -5,8 +5,6 @@
 #include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 
-#include <TBufferFile.h>
-
 art::NetMonWrapper::NetMonWrapper(fhicl::ParameterSet const& ps)
 {
 	init_timeout_s_ = ps.get<double>("init_fragment_timeout_seconds", 1.0);
@@ -14,10 +12,9 @@ art::NetMonWrapper::NetMonWrapper(fhicl::ParameterSet const& ps)
 	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
 }
 
-void art::NetMonWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg_ptr)
+artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
 {
 	TLOG(5) << "Receiving Fragment from NetMonTransportService";
-	TBufferFile* msg(nullptr);
 	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
 
@@ -30,8 +27,7 @@ void art::NetMonWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg_ptr)
 	if (!init_received_)
 	{
 		TLOG(TLVL_ERROR) << "Did not receive Init Fragment after " << init_timeout_s_ << " seconds. Art will crash.";
-		msg = nullptr;
-		return;
+		return nullptr;
 	}
 
 	artdaq::Fragments recvd_fragments;
@@ -42,14 +38,13 @@ void art::NetMonWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg_ptr)
 		if (eventMap.size() == 0)
 		{
 			TLOG(TLVL_DEBUG) << "Did not receive event after timeout, returning from receiveMessage ";
-			return;
+			return nullptr;
 		}
 
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
-			msg = nullptr;
-			return;
+			return nullptr;
 		}
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)))
 		{
@@ -59,15 +54,11 @@ void art::NetMonWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg_ptr)
 	}
 
 	TLOG(TLVL_TRACE) << "receiveMessage: Returning top Fragment";
-	artdaq::Fragment topFrag = std::move(recvd_fragments.at(0));
+	artdaq::FragmentPtr topFrag = artdaq::FragmentPtr(new artdaq::Fragment(std::move(recvd_fragments.at(0))));
 	recvd_fragments.erase(recvd_fragments.begin());
 
-	TLOG(TLVL_TRACE) << "receiveMessage: Copying Fragment into TBufferFile, length="
-	                 << topFrag.metadata<artdaq::NetMonHeader>()->data_length;
-	auto header = topFrag.metadata<artdaq::NetMonHeader>();
-	auto buffer = static_cast<char*>(malloc(header->data_length));
-	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
-	msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
+	TLOG(TLVL_TRACE) << "receiveMessage: Returning Fragment, length="
+	                 << topFrag->metadata<artdaq::NetMonHeader>()->data_length;
 
 #if DUMP_RECEIVE_MESSAGE
 	std::string fileName = "receiveMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" +
@@ -79,14 +70,13 @@ void art::NetMonWrapper::receiveMessage(std::unique_ptr<TBufferFile>& msg_ptr)
 
 	TLOG(TLVL_TRACE) << "receiveMessage END";
 
-	msg_ptr.reset(msg);
 	TLOG(5) << "Done Receiving Fragment from NetMonTransportService";
+	return topFrag;
 }
 
-void art::NetMonWrapper::receiveInitMessage(std::unique_ptr<TBufferFile>& msg_ptr)
+artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
 {
 	TLOG(5) << "Receiving Init Fragment from NetMonTransportService";
-	TBufferFile* msg(nullptr);
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
@@ -98,8 +88,7 @@ void art::NetMonWrapper::receiveInitMessage(std::unique_ptr<TBufferFile>& msg_pt
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
-			msg = nullptr;
-			return;
+			return nullptr;
 		}
 		else if (!eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::InitFragmentType)) && eventMap.size() > 0)
 		{
@@ -116,13 +105,7 @@ void art::NetMonWrapper::receiveInitMessage(std::unique_ptr<TBufferFile>& msg_pt
 	//      pointer
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage: Returning top Fragment";
-	artdaq::Fragment topFrag = std::move(eventMap[artdaq::Fragment::type_t(artdaq::Fragment::InitFragmentType)]->at(0));
-
-	auto header = topFrag.metadata<artdaq::NetMonHeader>();
-	TLOG(TLVL_TRACE) << "receiveInitMessage: Copying Fragment into TBufferFile: message length: " << header->data_length;
-	auto buffer = new char[header->data_length];
-	// auto buffer = static_cast<char *>(malloc(header->data_length)); // Fix alloc-dealloc-mismatch
-	memcpy(buffer, &*topFrag.dataBegin(), header->data_length);
+	artdaq::FragmentPtr topFrag = artdaq::FragmentPtr(new artdaq::Fragment(std::move(eventMap[artdaq::Fragment::InitFragmentType]->at(0))));
 
 #if DUMP_RECEIVE_MESSAGE
 	std::string fileName = "receiveInitMessage_" + std::to_string(getpid()) + ".bin";
@@ -131,11 +114,9 @@ void art::NetMonWrapper::receiveInitMessage(std::unique_ptr<TBufferFile>& msg_pt
 	ostream.close();
 #endif
 
-	msg = new TBufferFile(TBuffer::kRead, header->data_length, buffer, kTRUE, 0);
-
 	TLOG(TLVL_TRACE) << "receiveInitMessage END";
 	init_received_ = true;
 
-	msg_ptr.reset(msg);
 	TLOG(5) << "Done Receiving Init Fragment from NetMonTransportService";
+	return topFrag;
 }
