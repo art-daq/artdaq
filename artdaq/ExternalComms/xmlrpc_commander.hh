@@ -55,7 +55,7 @@ public:
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_init(fhicl::ParameterSet, uint64_t, uint64_t) override;
+	std::string send_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a soft_init command over XMLRPC
@@ -64,7 +64,7 @@ public:
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_soft_init(fhicl::ParameterSet, uint64_t, uint64_t) override;
+	std::string send_soft_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a reinit command over XMLRPC
@@ -73,7 +73,7 @@ public:
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_reinit(fhicl::ParameterSet, uint64_t, uint64_t) override;
+	std::string send_reinit(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a start command over XMLRPC
@@ -82,7 +82,7 @@ public:
 	/// This command also accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_start(art::RunID, uint64_t, uint64_t) override;
+	std::string send_start(art::RunID runNumber, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a pause command over XMLRPC
@@ -91,7 +91,7 @@ public:
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_pause(uint64_t, uint64_t) override;
+	std::string send_pause(uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a resume command over XMLRPC
@@ -100,7 +100,7 @@ public:
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_resume(uint64_t, uint64_t) override;
+	std::string send_resume(uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a stop command over XMLRPC
@@ -109,7 +109,7 @@ public:
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_stop(uint64_t, uint64_t) override;
+	std::string send_stop(uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a shutdown command over XMLRPC
@@ -118,7 +118,7 @@ public:
 	/// This command accepts a timeout parameter.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_shutdown(uint64_t) override;
+	std::string send_shutdown(uint64_t timeout) override;
 
 	/// <summary>
 	/// Send a status command over XMLRPC
@@ -134,7 +134,7 @@ public:
 	/// The report command returns the current value of the requested reportable quantity.
 	/// </summary>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
-	std::string send_report(std::string) override;
+	std::string send_report(std::string which) override;
 
 	/// <summary>
 	/// Send a legal_commands command over XMLRPC
@@ -151,7 +151,7 @@ public:
 	/// Use name == "ALL" to get ALL names
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_trace_get(std::string) override;
+	std::string send_trace_get(std::string name) override;
 
 	/// <summary>
 	/// Send an send_trace_msgfacility_set command over XMLRPC
@@ -160,10 +160,10 @@ public:
 	/// Only the first character of the mask selection will be parsed, dial 'M' for Memory, or 'S' for Slow.
 	/// Use name == "ALL" to set ALL names
 	///
-	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i/$((0x1234)) # Use Bash to convert hex to dec
+	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i8/$((0x1234)) # Use Bash to convert hex to dec
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_trace_set(std::string, std::string, uint64_t) override;
+	std::string send_trace_set(std::string name, std::string type, std::string mask) override;
 
 	/// <summary>
 	/// Send an send_meta_command command over XMLRPC
@@ -171,7 +171,7 @@ public:
 	/// This will cause the receiver to run the given command with the given argument in user code
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_meta_command(std::string, std::string) override;
+	std::string send_meta_command(std::string command, std::string argument) override;
 
 	/// <summary>
 	/// Send a send_rollover_subrun command over XMLRPC
@@ -180,7 +180,7 @@ public:
 	/// Should be sent to all EventBuilders before the given event is processed.
 	/// </summary>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_rollover_subrun(uint64_t, uint32_t) override;
+	std::string send_rollover_subrun(uint64_t seq, uint32_t subrunNumber) override;
 
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
@@ -197,7 +197,7 @@ private:
 	std::string send_command_(std::string command, art::RunID r, uint64_t a, uint64_t b);
 	std::string send_command_(std::string, uint64_t);
 	std::string send_command_(std::string, std::string, std::string);
-	std::string send_command_(std::string, std::string, std::string, uint64_t);
+	std::string send_command_(std::string, std::string, std::string, std::string);
 
 public:
 	std::timed_mutex mutex_;                        ///< XMLRPC mutex
