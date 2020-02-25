@@ -35,6 +35,12 @@ public:
 	 * \return The maximum number of events which can be stored in the shared memory
 	 */
 	virtual size_t GetQueueCapacity() = 0;
+
+	/**
+	 * \brief Get a shared_ptr to the current event header, if any
+	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
+	 */
+	virtual std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() = 0;
 };
 
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqSharedMemoryServiceInterface, LEGACY)
@@ -96,7 +102,7 @@ public:
 	 * \brief Get a shared_ptr to the current event header, if any
 	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
 	 */
-	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() { return evtHeader_; }
+	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() override { return evtHeader_; }
 
 private:
 	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;
