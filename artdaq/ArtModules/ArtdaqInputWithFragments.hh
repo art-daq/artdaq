@@ -67,8 +67,7 @@
 #endif
 
 namespace art {
-template<typename U, std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
-         class FTT = artdaq::detail::DefaultFragmentTypeTranslator>
+template<typename U>
 class ArtdaqInputWithFragments;
 }
 
@@ -86,8 +85,7 @@ class ArtdaqInputWithFragments;
  * to handling art provenance, regardless of the communication
  * protocol used to read data in.
  */
-template<typename U, std::map<artdaq::Fragment::type_t, std::string> getDefaultTypes() = artdaq::Fragment::MakeSystemTypeMap,
-         class FTT = artdaq::detail::DefaultFragmentTypeTranslator>
+template<typename U>
 class art::ArtdaqInputWithFragments
 {
 public:
@@ -173,7 +171,6 @@ private:
 	size_t bytesRead;                                      ///< running total of number of bytes received
 	std::chrono::steady_clock::time_point last_read_time;  ///< Time last read was completed
 
-	FTT translator_;  ///< An instance of the template parameter FragmentTypeTranslator that translates Fragment Type IDs to strings for creating ROOT TTree Branches
 };
 
 template<typename U>
