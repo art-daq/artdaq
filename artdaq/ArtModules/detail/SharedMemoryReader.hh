@@ -108,11 +108,6 @@ struct SharedMemoryReader
 		help.reconstitutes<Fragments, art::InRun>(pretend_module_name, unidentified_instance_name);
 		help.reconstitutes<Fragments, art::InSubRun>(pretend_module_name, unidentified_instance_name);
 
-		auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
-		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
-		{
-			translator->AddExtraType(it->first, it->second);
-		}
 		std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
 		for (const auto& set_iter : instance_names)
 		{

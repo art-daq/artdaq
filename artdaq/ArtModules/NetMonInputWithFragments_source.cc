@@ -1,4 +1,4 @@
-#include "artdaq/ArtModules/ArtdaqInput.hh"
+#include "artdaq/ArtModules/ArtdaqInputWithFragments.hh"
 #include "artdaq/ArtModules/NetMonWrapper.hh"
 
 /**
@@ -9,7 +9,7 @@ namespace art {
 	 * \brief Trait definition (must precede source typedef).
 	 */
 template<>
-struct Source_generator<ArtdaqInput<NetMonWrapper>>
+struct Source_generator<ArtdaqInputWithFragments<NetMonWrapper>>
 {
 	static constexpr bool value = true;  ///< dummy parameter
 };
@@ -18,7 +18,7 @@ struct Source_generator<ArtdaqInput<NetMonWrapper>>
 /**
 	 * \brief NetMonInputWithFragments is an art::Source using an ArtdaqInput-wrapped NetMonWrapper
 	 */
-typedef art::Source<ArtdaqInput<NetMonWrapper>> NetMonInputWithFragments;
+typedef art::Source<ArtdaqInputWithFragments<NetMonWrapper>> NetMonInputWithFragments;
 }  // namespace art
 
 DEFINE_ART_INPUT_SOURCE(art::NetMonInputWithFragments)

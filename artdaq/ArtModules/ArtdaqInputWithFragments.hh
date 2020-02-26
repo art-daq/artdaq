@@ -44,6 +44,7 @@
 #include "artdaq/ArtModules/InputUtilities.hh"
 #include "artdaq/ArtModules/detail/SharedMemoryReader.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/NetMonHeader.hh"
 
 #include <sys/time.h>
 #include <cstdio>
@@ -170,7 +171,6 @@ private:
 	std::string unidentified_instance_name;                ///< The name to use for unknown Fragment typesstd::chrono::steady_clock::time_point last_read_time;  ///< Time last read was completed
 	size_t bytesRead;                                      ///< running total of number of bytes received
 	std::chrono::steady_clock::time_point last_read_time;  ///< Time last read was completed
-
 };
 
 template<typename U>
@@ -212,14 +212,15 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 	                                        << "const art::SourceHelper& pm)";
 
 	TLOG_ARB(5, "ArtdaqInputWithFragments") << "Going to receive init message";
-	std::unique_ptr<TBufferFile> msg(nullptr);
-	communicationWrapper_.receiveInitMessage(msg);
+	artdaq::FragmentPtr initFrag = communicationWrapper_.receiveInitMessage();
 	TLOG_ARB(5, "ArtdaqInputWithFragments") << "Init message received";
 
-	if (!msg)
+	if (!initFrag)
 	{
 		throw art::Exception(art::errors::DataCorruption) << "ArtdaqInputWithFragments: Could not receive init message!";
 	}
+	auto header = initFrag->metadata<artdaq::NetMonHeader>();
+	std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
 
 	// This first unsigned long is the message type code, ignored here in the constructor
 	unsigned long dummy = 0;
@@ -332,22 +333,18 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: History from init message is INVALID!";
 	}
 
-	help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
+	helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
 
 	// Workaround for #22979
-	help.reconstitutes<Fragments, art::InRun>(pretend_module_name, unidentified_instance_name);
-	help.reconstitutes<Fragments, art::InSubRun>(pretend_module_name, unidentified_instance_name);
+	helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, unidentified_instance_name);
+	helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, unidentified_instance_name);
 
-	translator_.SetBasicTypes(getDefaultTypes());
-	auto extraTypes = ps.get<std::vector<std::pair<Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<Fragment::type_t, std::string>>());
-	for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
-	{
-		translator_.AddExtraType(it->first, it->second);
-	}
-	std::set<std::string> instance_names = translator_.GetAllProductInstanceNames();
+	art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
+
+	std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
 	for (const auto& set_iter : instance_names)
 	{
-		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, set_iter);
+		helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
 	}
 
 	//
@@ -700,17 +697,20 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 		TLOG_ARB(15, "ArtdaqInputWithFragments") << "End:   ArtdaqInputWithFragments::readNext";
 		return false;
 	}
+	auto read_start_time = std::chrono::steady_clock::now();
 
-	std::unique_ptr<TBufferFile> msg;
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> fragments;
-	communicationWrapper_.receiveMessage(msg, fragments);
-
-	if (!msg)
+	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap = communicationWrapper_.receiveMessages();
+	if (!eventMap.count(artdaq::Fragment::DataFragmentType))
 	{
-		TLOG_ARB(15, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments::readNext got an empty message";
+		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInputWithFragments::readNext got a message without a DataFragment";
 		shutdownMsgReceived_ = true;
 		return false;
 	}
+	auto dataFrag = eventMap[artdaq::Fragment::DataFragmentType]->front();
+	auto header = dataFrag.metadata<artdaq::NetMonHeader>();
+	std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, 0));
+
+	auto got_event_time = std::chrono::steady_clock::now();
 
 	//
 	//  Read message type code.
@@ -789,15 +789,17 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 		double fragmentLatencyMax = 0.0;
 		size_t fragmentCount = 0;
 
+		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
+
 		// insert the Fragments of each type into the EventPrincipal
-		for (auto& fragmentTypePair : fragments)
+		for (auto& fragmentTypePair : eventMap)
 		{
 			auto type_code = fragmentTypePair.first;
 			if (type_code == artdaq::Fragment::DataFragmentType) continue;
 			TLOG_TRACE("ArtdaqInputWithFragments") << "Before GetFragmentsByType call, type is " << (int)type_code;
 			TLOG_TRACE("ArtdaqInputWithFragments") << "After GetFragmentsByType call, number of fragments is " << fragmentTypePair.second->size();
 
-			std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
+			std::unordered_map<std::string, std::unique_ptr<artdaq::Fragments>> derived_fragments;
 			for (auto& frag : *fragmentTypePair.second)
 			{
 				bytesRead += frag.sizeBytes();
@@ -809,7 +811,7 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 				if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
 
 				std::pair<bool, std::string> instance_name_result =
-				    translator_.GetInstanceNameForFragment(frag, unidentified_instance_name);
+				    translator->GetInstanceNameForFragment(frag, unidentified_instance_name);
 				std::string label = instance_name_result.second;
 				if (!instance_name_result.first)
 				{
@@ -820,7 +822,7 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 				}
 				if (!derived_fragments.count(label))
 				{
-					derived_fragments[label] = std::make_unique<Fragments>();
+					derived_fragments[label] = std::make_unique<artdaq::Fragments>();
 				}
 				derived_fragments[label]->emplace_back(std::move(frag));
 			}
@@ -833,23 +835,20 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 			}
 		}
 		auto read_finish_time = std::chrono::steady_clock::now();
-		TLOG_ARB(10, "ArtdaqInputWithFragments") << "readNext: bytesRead=" << bytesRead << " qsize=" << qsize << " cap=" << qcap
+		TLOG_ARB(10, "ArtdaqInputWithFragments") << "readNext: bytesRead=" << bytesRead
 		                                         << " metricMan=" << (void*)metricMan.get();
 		if (metricMan)
 		{
 			metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time),
-			                      "s", 2, MetricMode::Average);
+			                      "s", 2, artdaq::MetricMode::Average);
 			metricMan->sendMetric("Avg Input Wait Time", artdaq::TimeUtils::GetElapsedTime(read_start_time, got_event_time),
-			                      "s", 3, MetricMode::Average);
+			                      "s", 3, artdaq::MetricMode::Average);
 			metricMan->sendMetric("Avg Read Time", artdaq::TimeUtils::GetElapsedTime(got_event_time, read_finish_time), "s",
-			                      3, MetricMode::Average);
-			metricMan->sendMetric("bytesRead", bytesRead, "B", 3, MetricMode::LastPoint);
-			if (qcap > 0)
-				metricMan->sendMetric("queue%Used", static_cast<unsigned long int>(qsize * 100 / qcap), "%", 5,
-				                      MetricMode::LastPoint);
+			                      3, artdaq::MetricMode::Average);
+			metricMan->sendMetric("bytesRead", bytesRead, "B", 3, artdaq::MetricMode::LastPoint);
 
-			metricMan->sendMetric("ArtdaqInputWithFragments Latency", fragmentLatency / fragmentCount, "s", 4, MetricMode::Average);
-			metricMan->sendMetric("ArtdaqInputWithFragments Maximum Latency", fragmentLatencyMax, "s", 4, MetricMode::Maximum);
+			metricMan->sendMetric("ArtdaqInputWithFragments Latency", fragmentLatency / fragmentCount, "s", 4, artdaq::MetricMode::Average);
+			metricMan->sendMetric("ArtdaqInputWithFragments Maximum Latency", fragmentLatencyMax, "s", 4, artdaq::MetricMode::Maximum);
 		}
 
 		TLOG_ARB(19, "ArtdaqInputWithFragments") << "readNext: returning true on Event message.";

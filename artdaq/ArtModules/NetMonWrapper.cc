@@ -74,6 +74,45 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
 	return topFrag;
 }
 
+std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> art::NetMonWrapper::receiveMessages()
+{
+	TLOG(5) << "Receiving Fragment from NetMonTransportService";
+	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
+	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
+	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> output;
+
+	// Do not process data until Init Fragment received!
+	auto start = std::chrono::steady_clock::now();
+	while (!init_received_ && artdaq::TimeUtils::GetElapsedTime(start) < init_timeout_s_)
+	{
+		usleep(init_timeout_s_ * 1000000 / 100);  // Check 100 times
+	}
+	if (!init_received_)
+	{
+		TLOG(TLVL_ERROR) << "Did not receive Init Fragment after " << init_timeout_s_ << " seconds. Art will crash.";
+		return output;
+	}
+
+	output = shm->ReceiveEvent(false);
+
+	if (output.size() == 0)
+	{
+		TLOG(TLVL_DEBUG) << "Did not receive event after timeout, returning from receiveMessage ";
+		return output;
+	}
+
+	if (output.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
+	{
+		TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
+		return std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>();
+	}
+
+	TLOG(TLVL_TRACE) << "receiveMessage END";
+
+	TLOG(5) << "Done Receiving Fragments from Shared Memory";
+	return output;
+}
+
 artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
 {
 	TLOG(5) << "Receiving Init Fragment from NetMonTransportService";
