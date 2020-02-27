@@ -5,15 +5,9 @@
 #define TRACE_NAME "ArtdaqFragmentNamingService"
 
 ArtdaqFragmentNamingService::ArtdaqFragmentNamingService(fhicl::ParameterSet const& ps, art::ActivityRegistry&)
+    : ArtdaqFragmentNamingServiceInterface(ps)
 {
 	TLOG(TLVL_DEBUG) << "ArtdaqFragmentNamingService CONSTRUCTOR START";
-	SetBasicTypes(artdaq::Fragment::MakeSystemTypeMap());
-
-	auto extraTypes = ps.get<std::vector<std::pair<artdaq::Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<artdaq::Fragment::type_t, std::string>>());
-	for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
-	{
-		AddExtraType(it->first, it->second);
-	}
 	TLOG(TLVL_DEBUG) << "ArtdaqFragmentNamingService CONSTRUCTOR END";
 }
 
