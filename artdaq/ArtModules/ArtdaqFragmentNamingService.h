@@ -16,9 +16,15 @@ public:
 	 */
 	virtual ~ArtdaqFragmentNamingServiceInterface() = default;
 
-	ArtdaqFragmentNamingServiceInterface()
+	ArtdaqFragmentNamingServiceInterface(fhicl::ParameterSet const& ps)
 	    : type_map_()
 	{
+		SetBasicTypes(artdaq::Fragment::MakeSystemTypeMap());
+		auto extraTypes = ps.get<std::vector<std::pair<artdaq::Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<artdaq::Fragment::type_t, std::string>>());
+		for (auto it = extraTypes.begin(); it != extraTypes.end(); ++it)
+		{
+			AddExtraType(it->first, it->second);
+		}
 	}
 
 	/**
@@ -26,7 +32,10 @@ public:
 	 */
 	void SetBasicTypes(std::map<artdaq::Fragment::type_t, std::string> const& type_map)
 	{
-		type_map_ = type_map;
+		for (auto& type_pair : type_map)
+		{
+			type_map_[type_pair.first] = type_pair.second;
+		}
 	}
 
 	/**
@@ -59,7 +68,7 @@ public:
 			 */
 	virtual std::pair<bool, std::string>
 	GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name) = 0;
-	
+
 protected:
 	std::map<artdaq::Fragment::type_t, std::string> type_map_;  ///< Map relating Fragment Type to strings
 };

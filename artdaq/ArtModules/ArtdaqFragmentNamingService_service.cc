@@ -4,10 +4,10 @@
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "ArtdaqFragmentNamingService"
 
-ArtdaqFragmentNamingService::ArtdaqFragmentNamingService(fhicl::ParameterSet const&, art::ActivityRegistry&)
+ArtdaqFragmentNamingService::ArtdaqFragmentNamingService(fhicl::ParameterSet const& ps, art::ActivityRegistry&)
+    : ArtdaqFragmentNamingServiceInterface(ps)
 {
 	TLOG(TLVL_DEBUG) << "ArtdaqFragmentNamingService CONSTRUCTOR START";
-	SetBasicTypes(artdaq::Fragment::MakeSystemTypeMap());
 	TLOG(TLVL_DEBUG) << "ArtdaqFragmentNamingService CONSTRUCTOR END";
 }
 
