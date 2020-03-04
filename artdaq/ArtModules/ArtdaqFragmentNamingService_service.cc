@@ -15,10 +15,10 @@ ArtdaqFragmentNamingService::~ArtdaqFragmentNamingService()
 {
 }
 
-std::string ArtdaqFragmentNamingService::GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name)
+std::string ArtdaqFragmentNamingService::GetInstanceNameForType(artdaq::Fragment::type_t type_id)
 {
 	if (type_map_.count(type_id) > 0) { return type_map_[type_id]; }
-	return unidentified_instance_name;
+	return unidentified_instance_name_;
 }
 
 std::set<std::string> ArtdaqFragmentNamingService::GetAllProductInstanceNames()
@@ -50,7 +50,7 @@ std::set<std::string> ArtdaqFragmentNamingService::GetAllProductInstanceNames()
 }
 
 std::pair<bool, std::string>
-ArtdaqFragmentNamingService::GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name)
+ArtdaqFragmentNamingService::GetInstanceNameForFragment(artdaq::Fragment const& fragment)
 {
 	auto type_map_end = type_map_.end();
 	bool success_code = true;
@@ -72,7 +72,7 @@ ArtdaqFragmentNamingService::GetInstanceNameForFragment(artdaq::Fragment const& 
 	}
 	else
 	{
-		instance_name = unidentified_instance_name;
+		instance_name = unidentified_instance_name_;
 		success_code = false;
 	}
 

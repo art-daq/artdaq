@@ -19,8 +19,8 @@
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
 #include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "fhiclcpp/ParameterSet.h"
 
@@ -52,7 +52,6 @@ struct SharedMemoryReader
 	double waiting_time;                                   ///< The amount of time to wait for an event from the queue
 	bool resume_after_timeout;                             ///< Whether to resume if the dequeue action times out
 	std::string pretend_module_name;                       ///< The module name to store data under
-	std::string unidentified_instance_name;                ///< The name to use for unknown Fragment types
 	bool shutdownMsgReceived;                              ///< Whether a shutdown message has been received
 	bool outputFileCloseNeeded;                            ///< If an explicit output file close message is needed
 	size_t bytesRead;                                      ///< running total of number of bytes received
@@ -61,7 +60,7 @@ struct SharedMemoryReader
 	                                                       // std::unique_ptr<SharedMemoryManager> broadcast_shm; ///< SharedMemoryManager containing broadcasts (control
 	                                                       // Fragments)
 	unsigned readNext_calls_;                              ///< The number of times readNext has been called
-	
+
 	/**
    * \brief SharedMemoryReader Constructor
    * \param ps ParameterSet used for configuring SharedMemoryReader
@@ -83,7 +82,6 @@ struct SharedMemoryReader
 	    , waiting_time(ps.get<double>("waiting_time", 86400.0))
 	    , resume_after_timeout(ps.get<bool>("resume_after_timeout", true))
 	    , pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))
-	    , unidentified_instance_name("unidentified")
 	    , shutdownMsgReceived(false)
 	    , outputFileCloseNeeded(false)
 	    , bytesRead(0)
@@ -102,11 +100,11 @@ struct SharedMemoryReader
 		art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
 
-		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
+		help.reconstitutes<Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 
 		// Workaround for #22979
-		help.reconstitutes<Fragments, art::InRun>(pretend_module_name, unidentified_instance_name);
-		help.reconstitutes<Fragments, art::InSubRun>(pretend_module_name, unidentified_instance_name);
+		help.reconstitutes<Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+		help.reconstitutes<Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 
 		std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
 		for (const auto& set_iter : instance_names)
@@ -215,7 +213,7 @@ struct SharedMemoryReader
 		auto got_event_time = std::chrono::steady_clock::now();
 		auto firstFragmentType = eventMap.begin()->first;
 		TLOG_DEBUG("SharedMemoryReader") << "First Fragment type is " << (int)firstFragmentType << " ("
-		                                 << translator->GetInstanceNameForType(firstFragmentType, unidentified_instance_name) << ")";
+		                                 << translator->GetInstanceNameForType(firstFragmentType) << ")";
 		// We return false, indicating we're done reading, if:
 		//   1) we did not obtain an event, because we timed out and were
 		//      configured NOT to keep trying after a timeout, or
@@ -339,6 +337,7 @@ struct SharedMemoryReader
 		double fragmentLatency = 0;
 		double fragmentLatencyMax = 0.0;
 		size_t fragmentCount = 0;
+			std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
 
 		// insert the Fragments of each type into the EventPrincipal
 		for (auto& fragmentTypePair : eventMap)
@@ -347,7 +346,6 @@ struct SharedMemoryReader
 			TLOG_TRACE("SharedMemoryReader") << "Before GetFragmentsByType call, type is " << (int)type_code;
 			TLOG_TRACE("SharedMemoryReader") << "After GetFragmentsByType call, number of fragments is " << fragmentTypePair.second->size();
 
-			std::unordered_map<std::string, std::unique_ptr<Fragments>> derived_fragments;
 			for (auto& frag : *fragmentTypePair.second)
 			{
 				bytesRead += frag.sizeBytes();
@@ -359,14 +357,14 @@ struct SharedMemoryReader
 				if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
 
 				std::pair<bool, std::string> instance_name_result =
-				    translator->GetInstanceNameForFragment(frag, unidentified_instance_name);
+				    translator->GetInstanceNameForFragment(frag);
 				std::string label = instance_name_result.second;
 				if (!instance_name_result.first)
 				{
 					TLOG_WARNING("SharedMemoryReader")
 					    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << ((int)type_code)
 					    << "\" is not known. Fragments of this "
-					    << "type will be stored in the event with an instance name of \"" << unidentified_instance_name << "\".";
+					    << "type will be stored in the event with an instance name of \"" << instance_name_result.second << "\".";
 				}
 				if (!derived_fragments.count(label))
 				{
@@ -374,14 +372,12 @@ struct SharedMemoryReader
 				}
 				derived_fragments[label]->emplace_back(std::move(frag));
 			}
+		}
 			for (auto& type : derived_fragments)
 			{
-				put_product_in_principal(std::move(type.second),
-				                         *outE,
-				                         pretend_module_name,
-				                         type.first);
+				TLOG_TRACE("SharedMemoryReader") << "Putting " << type.second->size() << " Fragments with label " << type.first << " into art event.";
+				put_product_in_principal(std::move(type.second), *outE, pretend_module_name, type.first);
 			}
-		}
 		TLOG_TRACE("SharedMemoryReader") << "After putting fragments in event";
 
 		auto read_finish_time = std::chrono::steady_clock::now();
