@@ -17,7 +17,7 @@ public:
 	virtual ~ArtdaqFragmentNamingServiceInterface() = default;
 
 	ArtdaqFragmentNamingServiceInterface(fhicl::ParameterSet const& ps)
-	    : type_map_()
+	    : type_map_(), unidentified_instance_name_(ps.get<std::string>("unidentified_instance_name", "unidentified"))
 	{
 		SetBasicTypes(artdaq::Fragment::MakeSystemTypeMap());
 		auto extraTypes = ps.get<std::vector<std::pair<artdaq::Fragment::type_t, std::string>>>("fragment_type_map", std::vector<std::pair<artdaq::Fragment::type_t, std::string>>());
@@ -46,10 +46,12 @@ public:
 		type_map_[type_id] = type_name;
 	}
 
+	std::string GetUnidentifiedInstanceName() { return unidentified_instance_name_; }
+
 	/**
 			 * \brief Returns the basic translation for the specified type. Must be implemented by derived classes
 			 */
-	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name) = 0;
+	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id) = 0;
 
 	/**
 			 * \brief Returns the full set of product instance names which may be present in the data, based on
@@ -67,10 +69,11 @@ public:
 			 * Must be implemented by derived classes
 			 */
 	virtual std::pair<bool, std::string>
-	GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name) = 0;
+	GetInstanceNameForFragment(artdaq::Fragment const& fragment) = 0;
 
 protected:
 	std::map<artdaq::Fragment::type_t, std::string> type_map_;  ///< Map relating Fragment Type to strings
+	std::string unidentified_instance_name_;                    ///< The name to use for unknown Fragment types
 };
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqFragmentNamingServiceInterface, LEGACY)
 
@@ -98,7 +101,7 @@ public:
 			 * \brief Returns the basic translation for the specified type.  Defaults to the specified
 			 *        unidentified_instance_name if no translation can be found.
 			 */
-	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id, std::string unidentified_instance_name);
+	virtual std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id);
 
 	/**
 			 * \brief Returns the full set of product instance names which may be present in the data, based on
@@ -114,7 +117,7 @@ public:
 			 *        mapping is found, the specified unidentified_instance_name is returned.
 			 */
 	virtual std::pair<bool, std::string>
-	GetInstanceNameForFragment(artdaq::Fragment const& fragment, std::string unidentified_instance_name);
+	GetInstanceNameForFragment(artdaq::Fragment const& fragment);
 
 private:
 };
