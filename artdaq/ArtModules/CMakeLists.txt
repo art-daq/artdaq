@@ -3,7 +3,7 @@
 set(TFILE_SERVICE_LIB art_Framework_Services_Optional_TFileService_service art_Framework_Services_Optional)
 if ( ${ART_HEX_VERSION} LESS 0x21200)
 	# s67 and s73
-	add_subdirectory(RootDAQOutput)
+	add_subdirectory(RootDAQOutput-s67)
 	set(ROOT_IO_LIBS art_Framework_IO_Root)
 elseif ( ${ART_HEX_VERSION} GREATER 0x30200)
 	# s82, s87
@@ -36,6 +36,7 @@ art_make( BASENAME_ONLY
   ${ROOT_IO_TFILE}
   art_Framework_IO
   art_Framework_Principal
+  artdaq_ArtModules_ArtdaqSharedMemoryService_service
   art_Persistency_Provenance
   #  art_Persistency_RootDB
   canvas
@@ -138,6 +139,24 @@ simple_plugin(NetMonInput "source"
   ${TBB}
   ${HEP_CONCURRENCY}
 )
+simple_plugin(NetMonInputWithFragments "source"
+  artdaq-core_Data
+  artdaq-core_Data_dict
+  artdaq_ArtModules
+  artdaq-core_Utilities
+  art_Framework_Core
+  art_Framework_IO_Sources
+  art_Framework_Principal
+  art_Persistency_Provenance
+  art_Utilities
+  ${MESSAGEFACILITY_LIBS}
+  fhiclcpp
+  cetlib
+  ${CETLIB_EXCEPT}
+  ${TBB}
+  ${HEP_CONCURRENCY}
+)
+
 
 simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
@@ -173,6 +192,24 @@ simple_plugin(BinaryFileOutput "module"
   ${ROOT_RIO}
 )
 
+<<<<<<< HEAD
+=======
+simple_plugin(ArtdaqSharedMemoryService "service"
+  artdaq-core_Data
+  artdaq-core_Data_dict
+  artdaq_DAQrate
+  art_Framework_Services_Registry
+  MF_MessageLogger
+  fhiclcpp
+)
+
+simple_plugin(ArtdaqFragmentNamingService "service"
+artdaq-core_Data
+  art_Framework_Services_Registry
+  MF_MessageLogger
+  fhiclcpp)
+
+>>>>>>> feature/22154_NetMonInput_WithFragments
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
   artdaq_BuildInfo

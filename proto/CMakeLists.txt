@@ -12,8 +12,10 @@ art_make_exec(NAME artdaqDriver
   artdaq_DAQdata
   artdaq-core_Utilities
   artdaq-core_Generators
+  art_Utilities
   ${FHICLCPP}
   ${CETLIB}
+  ${ROOT_CORE}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -27,6 +29,17 @@ art_make_exec(NAME fhicl_test
 	${MF_MESSAGELOGGER}
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
+
+	art_make_exec(simple_metric_sender
+	SOURCE
+	simple_metric_sender.cc
+	LIBRARIES
+  artdaq_Application # needed for messagefacility
+  ${FHICLCPP}
+  ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
 
   art_make_exec(NAME artdaq
 	SOURCE

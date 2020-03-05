@@ -1,12 +1,10 @@
 #ifndef artdaq_ArtModules_NetMonWrapper_hh
 #define artdaq_ArtModules_NetMonWrapper_hh
 
-#include "artdaq/ArtModules/NetMonTransportService.h"
-
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "fhiclcpp/fwd.h"
+#include "fhiclcpp/ParameterSet.h"
 
-#include <TBufferFile.h>
+#include "artdaq-core/Data/Fragment.hh"
 
 #include <memory>
 #include <string>
@@ -26,51 +24,31 @@ class NetMonWrapper
 public:
 	/**
 		 * \brief NetMonWrapper Constructor
-		 * \param pset ParameterSet for NetMonWrapper
+		 * \param ps ParameterSet for NetMonWrapper
 		 */
-	NetMonWrapper(const fhicl::ParameterSet& pset)
-	    : transport_(new NetMonTransportService(pset))
-	{
-		transport_->listen();
-
-		try
-		{
-			if (metricMan)
-			{
-				metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), app_name);
-				metricMan->do_start();
-			}
-		}
-		catch (...)
-		{
-			artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no, "Error loading metrics in NetMonWrapper");
-		}
-	}
+	NetMonWrapper(fhicl::ParameterSet const& ps);
 
 	/**
 		 * \brief NetMonWrapper Destructor
 		 */
-	~NetMonWrapper()
-	{
-		transport_->disconnect();
-		transport_.reset(nullptr);
-		artdaq::Globals::CleanUpGlobals();
-	}
+	virtual ~NetMonWrapper() = default;
 
 	/**
 		 * \brief Receive a message from the NetMonTransportService
 		 * \param[out] msg A pointer to the received message
 		 */
-	void receiveMessage(std::list<std::unique_ptr<TBufferFile>>& msgs);
+	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
 
 	/**
 		* \brief Receive an init message from the NetMonTransportService
 		* \param[out] msg A pointer to the received message
 		*/
-	void receiveInitMessage(std::list<std::unique_ptr<TBufferFile>>& msgs);
+	std::unique_ptr<artdaq::Fragments> receiveInitMessages();
 
 private:
-	std::unique_ptr<NetMonTransportService> transport_;
+	fhicl::ParameterSet data_pset_;
+	bool init_received_;
+	double init_timeout_s_;
 };
 }  // namespace art
 

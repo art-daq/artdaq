@@ -34,6 +34,7 @@ enum class RequestMode
 	Single,
 	Buffer,
 	Window,
+	SequenceID,
 	Ignored
 };
 
@@ -95,6 +96,8 @@ public:
 		fhicl::Atom<Fragment::timestamp_t> request_window_width{fhicl::Name{"request_window_width"}, fhicl::Comment{"For Window request mode, the window will be timestamp - offset to timestamp - offset + width"}, 0};
 		/// "stale_request_timeout" (Default: -1) : Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded
 		fhicl::Atom<Fragment::timestamp_t> stale_request_timeout{fhicl::Name{"stale_request_timeout"}, fhicl::Comment{"Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded"}, 0xFFFFFFFF};
+		/// "buffer_mode_keep_latest" (Default: false): Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)
+		fhicl::Atom<bool> buffer_mode_keep_latest{fhicl::Name{"buffer_mode_keep_latest"}, fhicl::Comment{"Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)"}, false};
 		/// "expected_fragment_type" (Default: 231, EmptyFragmentType) : The type of Fragments this CFG will be generating. "Empty" will auto - detect type based on Fragments generated.
 		fhicl::Atom<Fragment::type_t> expected_fragment_type{fhicl::Name{"expected_fragment_type"}, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType)};
 		/// "request_windows_are_unique" (Default: true) : Whether Fragments should be removed from the buffer when matched to a request window
@@ -133,6 +136,7 @@ public:
 		/// Single : The CommandableFragmentGenerator responds to each request with the latest Fragment it has received
 		/// Buffer : The CommandableFragmentGenerator responds to each request with all Fragments it has received since the last request
 		/// Window : The CommandableFragmentGenerator searches its data buffer for all Fragments whose timestamp falls within the request window
+		/// SequenceID:  The CommandableFragmentGenerator responds to each request with all Fragments that match the sequence ID in the request
 		/// </summary>
 		fhicl::Atom<std::string> request_mode{fhicl::Name{"request_mode"}, fhicl::Comment{"The mode by which the CommandableFragmentGenerator will process reqeusts"}, "ignored"};
 		fhicl::TableFragment<artdaq::RequestReceiver::Config> receiverConfig;  ///< Configuration for the Request Receiver. See artdaq::RequestReceiver::Config
@@ -197,6 +201,12 @@ public:
 	void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
 
 	/// <summary>
+	/// Create fragments using data buffer for request mode SequenceID.
+	/// Precondition: dataBufferMutex_ and request_mutex_ are locked
+	/// </summary>
+	/// <param name="frags">Ouput fragments</param>
+	void applyRequestsSequenceIDMode(artdaq::FragmentPtrs& frags);
+
 	/// Copy data from the relevant data buffer that matches the given timestamp.
 	/// </summary>
 	/// <param name="frags">Output Fragments</param>
@@ -557,6 +567,36 @@ protected:
 		return count;
 	}
 
+	/// <summary>
+	/// Get the current requests being handled by this CommandableFragmentGenerator
+	/// </summary>
+	/// <returns>Map relating sequence IDs to timestamps</returns>
+	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const
+	{
+		if (requestReceiver_ == nullptr) return std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>();
+		return requestReceiver_->GetRequests();
+	}
+
+	/// <summary>
+	/// Get the next request (i.e. the request with the lowest sequence ID) to be handled by this CommandableFragmentGenerator
+	/// </summary>
+	/// <returns>Pair of sequence ID and timestamp representing next request</returns>
+	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest() const
+	{
+		if (requestReceiver_ == nullptr) return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
+		return requestReceiver_->GetNextRequest();
+	}
+
+	/// <summary>
+	/// Get the number of requests currently stored in the Request Recevier
+	/// </summary>
+	/// <returns>The number of request messages stored in the request receiver</returns>
+	size_t GetCurrentRequestCount() const
+	{
+		if (requestReceiver_ == nullptr) return 0;
+		return requestReceiver_->size();
+	}
+
 private:
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
@@ -565,6 +605,7 @@ private:
 	std::unique_ptr<RequestReceiver> requestReceiver_;
 
 	RequestMode mode_;
+	bool bufferModeKeepLatest_;
 	Fragment::timestamp_t windowOffset_;
 	Fragment::timestamp_t windowWidth_;
 	Fragment::timestamp_t staleTimeout_;
@@ -594,6 +635,7 @@ private:
 		std::atomic<int> DataBufferDepthFragments;
 		std::atomic<size_t> DataBufferDepthBytes;
 		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> WindowsSent;
+		bool BufferFragmentKept;
 		Fragment::sequence_id_t HighestRequestSeen;
 		FragmentPtrs DataBuffer;
 	};

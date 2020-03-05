@@ -22,17 +22,6 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	//   }
 	// }
 
-	// JCF, Aug-16-2016
-
-	// Note that there's a small but nonzero chance of a race condition
-	// here where another process creates the shared memory buffer
-	// between the first and second calls to shmget
-
-	if (buffer_count_ > 100)
-	{
-		throw cet::exception("ConfigurationException", "Buffer Count is too large for Shmem transfer!");
-	}
-
 	auto partition = GetPartitionNumber() + 1;  // Can't be 0
 
 	auto shmKey = pset.get<uint32_t>("shm_key_offset", 0) + (partition << 24) + ((source_rank() & 0xFFF) << 12) + (destination_rank() & 0xFFF);
@@ -190,8 +179,8 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 		shm_manager_->Attach();
 		if (!isRunning())
 		{
-			TLOG(TLVL_ERROR) << GetTraceName() << ": Attempted to send Fragment when not attached to Shared Memory! Returning kSuccess, and dropping data!";
-			return CopyStatus::kSuccess;
+			TLOG(TLVL_ERROR) << GetTraceName() << ": Attempted to send Fragment when not attached to Shared Memory! Returning kErrorNotRequiringException, and dropping data!";
+			return CopyStatus::kErrorNotRequiringException;
 		}
 	}
 	shm_manager_->SetRank(my_rank);
