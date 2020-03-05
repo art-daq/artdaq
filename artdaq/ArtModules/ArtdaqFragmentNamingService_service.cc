@@ -30,7 +30,7 @@ std::set<std::string> ArtdaqFragmentNamingService::GetAllProductInstanceNames()
 		if (!output.count(instance_name))
 		{
 			output.insert(instance_name);
-			TLOG_TRACE("DefaultFragmentTypeTranslator") << "Adding product instance name \"" << map_iter.second
+			TLOG(TLVL_TRACE) << "Adding product instance name \"" << map_iter.second
 			                                            << "\" to list of expected names";
 		}
 	}
@@ -59,6 +59,7 @@ ArtdaqFragmentNamingService::GetInstanceNameForFragment(artdaq::Fragment const& 
 	auto primary_type = type_map_.find(fragment.type());
 	if (primary_type != type_map_end)
 	{
+		TLOG(TLVL_TRACE) << "Found matching instance name " << primary_type->second << " for Fragment type " << fragment.type();
 		instance_name = primary_type->second;
 		if (fragment.type() == artdaq::Fragment::ContainerFragmentType)
 		{
@@ -72,6 +73,7 @@ ArtdaqFragmentNamingService::GetInstanceNameForFragment(artdaq::Fragment const& 
 	}
 	else
 	{
+		TLOG(TLVL_TRACE) << "Could not find match for Fragment type " << fragment.type() << ", returning " << unidentified_instance_name_;
 		instance_name = unidentified_instance_name_;
 		success_code = false;
 	}
