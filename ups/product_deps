@@ -115,6 +115,10 @@ e15:s67:debug	e15:debug	-		e15:s67:debug	e15:s67:debug		e15:debug	e15:s67:debug	
 e15:s67:prof	e15:prof 	-		e15:s67:prof	e15:s67:prof		e15:prof	e15:s67:prof	   	e15:s67:prof		e15:s67:prof	      e15:s67:prof		 e15:prof -nq- 
 end_qualifier_list
 
+table_fragment_begin
+ pathPrepend(PYTHONPATH, ${ARTDAQ_LIB})
+table_fragment_end
+
 # Preserve tabs and formatting in emacs and vi / vim:
 
 ### Local Variables:
