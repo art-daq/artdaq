@@ -168,7 +168,6 @@ private:
 	ProductList* productList_;
 	HISTORY_PTR_T history_to_use_;
 	std::string pretend_module_name;                       ///< The module name to store data under
-	std::string unidentified_instance_name;                ///< The name to use for unknown Fragment typesstd::chrono::steady_clock::time_point last_read_time;  ///< Time last read was completed
 	size_t bytesRead;                                      ///< running total of number of bytes received
 	std::chrono::steady_clock::time_point last_read_time;  ///< Time last read was completed
 };
@@ -182,7 +181,6 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
     , communicationWrapper_(ps)
     , productList_()
     , pretend_module_name(ps.get<std::string>("raw_data_label", "daq"))
-    , unidentified_instance_name("unidentified")
     , bytesRead(0)
     , last_read_time(std::chrono::steady_clock::now())
 {
@@ -333,13 +331,13 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: History from init message is INVALID!";
 	}
 
-	helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, unidentified_instance_name);
+	art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
+	helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 
 	// Workaround for #22979
-	helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, unidentified_instance_name);
-	helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, unidentified_instance_name);
+	helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+	helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 
-	art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
 
 	std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
 	for (const auto& set_iter : instance_names)
@@ -811,14 +809,14 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 				if (latency > fragmentLatencyMax) fragmentLatencyMax = latency;
 
 				std::pair<bool, std::string> instance_name_result =
-				    translator->GetInstanceNameForFragment(frag, unidentified_instance_name);
+				    translator->GetInstanceNameForFragment(frag);
 				std::string label = instance_name_result.second;
 				if (!instance_name_result.first)
 				{
 					TLOG_WARNING("ArtdaqInputWithFragments")
 					    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << ((int)type_code)
 					    << "\" is not known. Fragments of this "
-					    << "type will be stored in the event with an instance name of \"" << unidentified_instance_name << "\".";
+					    << "type will be stored in the event with an instance name of \"" << label << "\".";
 				}
 				if (!derived_fragments.count(label))
 				{
