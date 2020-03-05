@@ -149,7 +149,7 @@ private:
 	                               art::EventPrincipal*&);
 
 	template<class T>
-	void readDataProducts(std::unique_ptr<TBufferFile>&, T*&);
+	void readDataProducts(std::list<std::unique_ptr<TBufferFile>>&, T*&);
 
 	void putInPrincipal(RunPrincipal*&, std::unique_ptr<EDProduct>&&, const BranchDescription&,
 	                    std::unique_ptr<const ProductProvenance>&&);
@@ -210,93 +210,131 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 	                                        << "const art::SourceHelper& pm)";
 
 	TLOG_ARB(5, "ArtdaqInputWithFragments") << "Going to receive init message";
-	artdaq::FragmentPtr initFrag = communicationWrapper_.receiveInitMessage();
+	artdaq::FragmentPtrs initFrags = communicationWrapper_.receiveInitMessage();
 	TLOG_ARB(5, "ArtdaqInputWithFragments") << "Init message received";
 
-	if (!initFrag)
+	if (initFrags.size() == 0)
 	{
-		throw art::Exception(art::errors::DataCorruption) << "ArtdaqInputWithFragments: Could not receive init message!";
+		throw art::Exception(art::errors::DataCorruption) << "ArtdaqInput: Could not receive init message!";
 	}
-	auto header = initFrag->metadata<artdaq::NetMonHeader>();
-	std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
 
-	// This first unsigned long is the message type code, ignored here in the constructor
-	unsigned long dummy = 0;
-	msg->ReadULong(dummy);
-
-	// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
-	TList* list = (TList*)msg->ReadObject(TList::Class());
-
-	TIter next(list);
-	TStreamerInfo* info;
-	TObjLink* lnk = list->FirstLink();
-	// First call BuildCheck for regular class
-	while (lnk)
+	std::list<std::unique_ptr<TBufferFile>> msgs;
+	for (auto& initFrag : initFrags)
 	{
-		info = (TStreamerInfo*)lnk->GetObject();
-		TObject* element = info->GetElements()->UncheckedAt(0);
-		Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
-		if (!isstl)
+		auto header = initFrag->metadata<artdaq::NetMonHeader>();
+		msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
+	}
+
+	for (auto& msg : msgs)
+	{
+		// This first unsigned long is the message type code, ignored here in the constructor
+		unsigned long dummy = 0;
+		msg->ReadULong(dummy);
+
+		// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
+		TList* list = (TList*)msg->ReadObject(TList::Class());
+
+		TIter next(list);
+		TStreamerInfo* info;
+		TObjLink* lnk = list->FirstLink();
+		// First call BuildCheck for regular class
+		while (lnk)
 		{
-			info->BuildCheck();
-			TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+			info = (TStreamerInfo*)lnk->GetObject();
+			TObject* element = info->GetElements()->UncheckedAt(0);
+			Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+			if (!isstl)
+			{
+				info->BuildCheck();
+				TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+			}
+			lnk = lnk->Next();
 		}
-		lnk = lnk->Next();
-	}
-	// Then call BuildCheck for stl class
-	lnk = list->FirstLink();
-	while (lnk)
-	{
-		info = (TStreamerInfo*)lnk->GetObject();
-		TObject* element = info->GetElements()->UncheckedAt(0);
-		Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
-		if (isstl)
+		// Then call BuildCheck for stl class
+		lnk = list->FirstLink();
+		while (lnk)
 		{
-			info->BuildCheck();
-			TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+			info = (TStreamerInfo*)lnk->GetObject();
+			TObject* element = info->GetElements()->UncheckedAt(0);
+			Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+			if (isstl)
+			{
+				info->BuildCheck();
+				TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+			}
+			lnk = lnk->Next();
 		}
-		lnk = lnk->Next();
-	}
-	// ELF: 6/11/2019: End TSocket snippet
+		// ELF: 6/11/2019: End TSocket snippet
 
-	//
-	//  Read the ParameterSetRegistry.
-	//
-	unsigned long ps_cnt = 0;
-	msg->ReadULong(ps_cnt);
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: parameter set count: " << ps_cnt;
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: reading parameter sets ...";
-	for (unsigned long I = 0; I < ps_cnt; ++I)
-	{
-		std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInputWithFragments::ArtdaqInputWithFragments");
-		msg->ReadStdString(pset_str);
+		//
+		//  Read the ParameterSetRegistry.
+		//
+		unsigned long ps_cnt = 0;
+		msg->ReadULong(ps_cnt);
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: parameter set count: " << ps_cnt;
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: reading parameter sets ...";
+		for (unsigned long I = 0; I < ps_cnt; ++I)
+		{
+			std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInput::ArtdaqInput");
+			msg->ReadStdString(pset_str);
 
-		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: parameter set: " << pset_str;
+			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: parameter set: " << pset_str;
 
-		fhicl::ParameterSet pset;
-		fhicl::make_ParameterSet(pset_str, pset);
-		// Force id calculation.
-		pset.id();
-		fhicl::ParameterSetRegistry::put(pset);
-	}
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: finished reading parameter sets.";
+			fhicl::ParameterSet pset;
+			fhicl::make_ParameterSet(pset_str, pset);
+			// Force id calculation.
+			pset.id();
+			fhicl::ParameterSetRegistry::put(pset);
+		}
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: finished reading parameter sets.";
 
-	//
-	//  Read the MasterProductRegistry.
-	//
-	productList_ = ReadObjectAny<art::ProductList>(
-	    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputWithFragments::ArtdaqInputWithFragments");
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Product list sz=" << productList_->size();
+		//
+		//  Read the MasterProductRegistry.
+		//
+		auto thisProductList = ReadObjectAny<art::ProductList>(
+		    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInput::ArtdaqInput");
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << thisProductList->size();
 
+		bool productListInitialized = productList_ != nullptr;
+		if (!productListInitialized) productList_ = thisProductList;
+		for (auto I = thisProductList->begin(), E = thisProductList->end(); I != E; ++I)
+		{
 #ifndef __OPTIMIZE__
-	for (auto I = productList_->begin(), E = productList_->end(); I != E; ++I)
-	{
-		TLOG_ARB(50, "ArtdaqInputWithFragments") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
-		                                         << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
-		                                         << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
-		                                         << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
-	}
+			TLOG_ARB(50, "ArtdaqInput") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
+			                            << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+			                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
+			                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 #endif
+			if (productListInitialized) productList_->emplace(*I);
+		}
+
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ProcessHistory";
+		art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
+		    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInput::ArtdaqInput");
+		printProcessMap(*phm, "ArtdaqInput's ProcessHistoryMap");
+
+		ProcessHistoryRegistry::put(*phm);
+		printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInput's ProcessHistoryRegistry");
+
+		//
+		//  Read the ParentageRegistry.
+		//
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ParentageMap";
+		ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInput::ArtdaqInput");
+		ParentageRegistry::put(*parentageMap);
+
+		//
+		// Read the History
+		//
+		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading History";
+		history_to_use_.reset(ReadObjectAny<History>(msg, "art::History", "ArtdaqInput::ArtdaqInput"));
+		if (!history_to_use_->processHistoryID().isValid())
+		{
+			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: History from init message is INVALID!";
+		}
+	}
+
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
 
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
@@ -304,54 +342,15 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 #else
 	helper.productList(std::unique_ptr<art::ProductList>(productList_));
 #endif
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: got product list";
-
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Reading ProcessHistory";
-	art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
-	    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputWithFragments::ArtdaqInputWithFragments");
-	printProcessMap(*phm, "ArtdaqInputWithFragments's ProcessHistoryMap");
-
-	ProcessHistoryRegistry::put(*phm);
-	printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInputWithFragments's ProcessHistoryRegistry");
-
-	//
-	//  Read the ParentageRegistry.
-	//
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Reading ParentageMap";
-	ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputWithFragments::ArtdaqInputWithFragments");
-	ParentageRegistry::put(*parentageMap);
-
-	//
-	// Read the History
-	//
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Reading History";
-	history_to_use_.reset(ReadObjectAny<History>(msg, "art::History", "ArtdaqInputWithFragments::ArtdaqInputWithFragments"));
-	if (!history_to_use_->processHistoryID().isValid())
-	{
-		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: History from init message is INVALID!";
-	}
-
-	art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
-	helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-
-	// Workaround for #22979
-	helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-	helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-
-
-	std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
-	for (const auto& set_iter : instance_names)
-	{
-		helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
-	}
+	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
 
 	//
 	//  Finished with init message.
 	//
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "End:   ArtdaqInputWithFragments::ArtdaqInputWithFragments("
-	                                        << "const fhicl::ParameterSet& ps, "
-	                                        << "art::ProductRegistryHelper& helper, "
-	                                        << "const art::SourceHelper& pm)";
+	TLOG_ARB(5, "ArtdaqInput") << "End:   ArtdaqInput::ArtdaqInput("
+	                           << "const fhicl::ParameterSet& ps, "
+	                           << "art::ProductRegistryHelper& helper, "
+	                           << "const art::SourceHelper& pm)";
 }
 
 template<typename U>
@@ -569,75 +568,78 @@ void art::ArtdaqInputWithFragments<U>::readAndConstructPrincipal(std::unique_ptr
 
 template<typename U>
 template<class T>
-void art::ArtdaqInputWithFragments<U>::readDataProducts(std::unique_ptr<TBufferFile>& msg, T*& outPrincipal)
+void art::ArtdaqInputWithFragments<U>::readDataProducts(std::list<std::unique_ptr<TBufferFile>>& msgs, T*& outPrincipal)
 {
-	unsigned long prd_cnt = 0;
+	for (auto& msg : msgs)
 	{
-		TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: reading data product count ...";
-		msg->ReadULong(prd_cnt);
-		TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: product count: " << prd_cnt;
-	}
-	//
-	//  Read the data products.
-	//
-	for (unsigned long I = 0; I < prd_cnt; ++I)
-	{
-		std::unique_ptr<BranchKey> bk;
+		unsigned long prd_cnt = 0;
 		{
-			TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: Reading branch key.";
-			bk.reset(ReadObjectAny<BranchKey>(msg, "art::BranchKey", "ArtdaqInputWithFragments::readDataProducts"));
+			TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: reading data product count ...";
+			msg->ReadULong(prd_cnt);
+			TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: product count: " << prd_cnt;
 		}
+		//
+		//  Read the data products.
+		//
+		for (unsigned long I = 0; I < prd_cnt; ++I)
+		{
+			std::unique_ptr<BranchKey> bk;
+			{
+				TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: Reading branch key.";
+				bk.reset(ReadObjectAny<BranchKey>(msg, "art::BranchKey", "ArtdaqInputWithFragments::readDataProducts"));
+			}
 
 #ifndef __OPTIMIZE__
-		TLOG_ARB(13, "ArtdaqInputWithFragments") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
-		                                         << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
-		                                         << bk->processName_;
+			TLOG_ARB(13, "ArtdaqInputWithFragments") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
+			                                         << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
+			                                         << bk->processName_;
 #endif
-		ProductList::const_iterator iter;
-		{
-			TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: looking up product ...";
-			iter = productList_->find(*bk);
-			if (iter == productList_->end())
+			ProductList::const_iterator iter;
 			{
-				throw art::Exception(art::errors::ProductNotFound)
-				    << "No product is registered for\n"
-				    << "  process name:                '" << bk->processName_ << "'\n"
-				    << "  module label:                '" << bk->moduleLabel_ << "'\n"
-				    << "  product friendly class name: '" << bk->friendlyClassName_ << "'\n"
-				    << "  product instance name:       '" << bk->productInstanceName_ << "'\n";
+				TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: looking up product ...";
+				iter = productList_->find(*bk);
+				if (iter == productList_->end())
+				{
+					throw art::Exception(art::errors::ProductNotFound)
+					    << "No product is registered for\n"
+					    << "  process name:                '" << bk->processName_ << "'\n"
+					    << "  module label:                '" << bk->moduleLabel_ << "'\n"
+					    << "  product friendly class name: '" << bk->friendlyClassName_ << "'\n"
+					    << "  product instance name:       '" << bk->productInstanceName_ << "'\n";
+				}
 			}
-		}
-		// Note: This must be a reference to the unique copy in
-		//       the master product registry!
-		const BranchDescription& bd = iter->second;
-		std::unique_ptr<EDProduct> prd;
-		{
-			TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: Reading product with wrapped name: " << bd.wrappedName()
-			                                         << ", TClass = " << (void*)TClass::GetClass(bd.wrappedName().c_str());
+			// Note: This must be a reference to the unique copy in
+			//       the master product registry!
+			const BranchDescription& bd = iter->second;
+			std::unique_ptr<EDProduct> prd;
+			{
+				TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: Reading product with wrapped name: " << bd.wrappedName()
+				                                         << ", TClass = " << (void*)TClass::GetClass(bd.wrappedName().c_str());
 
-			// JCF, May-25-2016
-			// Currently unclear why the templatized version of ReadObjectAny doesn't work here...
+				// JCF, May-25-2016
+				// Currently unclear why the templatized version of ReadObjectAny doesn't work here...
 
-			//	    prd.reset(ReadObjectAny<EDProduct>(msg, bd.wrappedName()));
+				//	    prd.reset(ReadObjectAny<EDProduct>(msg, bd.wrappedName()));
 
-			void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
-			auto pp = reinterpret_cast<EDProduct*>(p);
+				void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
+				auto pp = reinterpret_cast<EDProduct*>(p);
 
-			TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: After ReadObjectAny(prd): p=" << p << ", EDProduct::isPresent: " << pp->isPresent();
-			prd.reset(pp);
-			p = nullptr;
-		}
-		std::unique_ptr<const ProductProvenance> prdprov;
-		{
-			TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: Reading product provenance.";
-			prdprov.reset(ReadObjectAny<ProductProvenance>(msg, "art::ProductProvenance", "ArtdaqInputWithFragments::readDataProducts"));
-		}
+				TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: After ReadObjectAny(prd): p=" << p << ", EDProduct::isPresent: " << pp->isPresent();
+				prd.reset(pp);
+				p = nullptr;
+			}
+			std::unique_ptr<const ProductProvenance> prdprov;
+			{
+				TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: Reading product provenance.";
+				prdprov.reset(ReadObjectAny<ProductProvenance>(msg, "art::ProductProvenance", "ArtdaqInputWithFragments::readDataProducts"));
+			}
 
-		{
-			TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: inserting product: class: '" << bd.friendlyClassName()
-			                                         << "' modlbl: '" << bd.moduleLabel() << "' instnm: '" << bd.productInstanceName()
-			                                         << "' procnm: '" << bd.processName() << "' id: '" << bd.productID() << "'";
-			putInPrincipal(outPrincipal, std::move(prd), bd, std::move(prdprov));
+			{
+				TLOG_ARB(12, "ArtdaqInputWithFragments") << "readDataProducts: inserting product: class: '" << bd.friendlyClassName()
+				                                         << "' modlbl: '" << bd.moduleLabel() << "' instnm: '" << bd.productInstanceName()
+				                                         << "' procnm: '" << bd.processName() << "' id: '" << bd.productID() << "'";
+				putInPrincipal(outPrincipal, std::move(prd), bd, std::move(prdprov));
+			}
 		}
 	}
 }
@@ -704,22 +706,36 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 		shutdownMsgReceived_ = true;
 		return false;
 	}
-	auto dataFrag = eventMap[artdaq::Fragment::DataFragmentType]->front();
-	auto header = dataFrag.metadata<artdaq::NetMonHeader>();
-	std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, 0));
-
+	std::list<std::unique_ptr<TBufferFile>> msgs;
+	for (auto& dataFrag : *eventMap[artdaq::Fragment::DataFragmentType])
+	{
+		auto header = dataFrag.metadata<artdaq::NetMonHeader>();
+		msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, 0));
+	}
 	auto got_event_time = std::chrono::steady_clock::now();
 
 	//
 	//  Read message type code.
 	//
 	unsigned long msg_type_code = 0;
+	unsigned long msg_type_code_tmp = 0;
+	for (auto& msg : msgs)
 	{
 		TLOG_ARB(15, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments::readNext: "
-		                                         << "getting message type code ...";
-		msg->ReadULong(msg_type_code);
+		                            << "getting message type code ...";
+		msg->ReadULong(msg_type_code_tmp);
 		TLOG_ARB(15, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments::readNext: "
-		                                         << "message type: " << msg_type_code;
+		                            << "message type: " << msg_type_code_tmp;
+
+		if (msg_type_code == 0)
+			msg_type_code = msg_type_code_tmp;
+		else if (msg_type_code != msg_type_code_tmp)
+		{
+			TLOG_ARB(TLVL_ERROR, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments::readNext: Received conflicting message type codes! Aborting...";
+
+			shutdownMsgReceived_ = true;
+			return false;
+		}
 	}
 	if (msg_type_code == 5)
 	{
@@ -731,7 +747,10 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 		return false;
 	}
 
-	readAndConstructPrincipal(msg, msg_type_code, inR, inSR, outR, outSR, outE);
+	for (auto& msg : msgs)
+	{
+		readAndConstructPrincipal(msg, msg_type_code, inR, inSR, outR, outSR, outE);
+	}
 	//
 	//  Read per-event metadata needed to construct principal.
 	//
@@ -739,7 +758,7 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 	{
 		// EndRun message.
 		// FIXME: We need to merge these into the input RunPrincipal.
-		readDataProducts(msg, outR);
+		readDataProducts(msgs, outR);
 		// Signal that we should close the input and output file.
 		TLOG_ARB(17, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments::readNext: "
 		                                         << "returning false on EndRun message.";
@@ -769,7 +788,7 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 			}
 		}
 		// FIXME: We need to merge these into the input SubRunPrincipal.
-		readDataProducts(msg, outSR);
+		readDataProducts(msgs, outSR);
 		// Remember that we should ask for file close next time
 		// we are called.
 		outputFileCloseNeeded_ = true;
@@ -780,7 +799,7 @@ bool art::ArtdaqInputWithFragments<U>::readNext(art::RunPrincipal* const inR, ar
 	else if (msg_type_code == 4)
 	{
 		// Event message.
-		readDataProducts(msg, outE);
+		readDataProducts(msgs, outE);
 
 		// Now read in Fragments
 		double fragmentLatency = 0;

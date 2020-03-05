@@ -192,8 +192,6 @@ simple_plugin(BinaryFileOutput "module"
   ${ROOT_RIO}
 )
 
-<<<<<<< HEAD
-=======
 simple_plugin(ArtdaqSharedMemoryService "service"
   artdaq-core_Data
   artdaq-core_Data_dict
@@ -209,7 +207,6 @@ artdaq-core_Data
   MF_MessageLogger
   fhiclcpp)
 
->>>>>>> feature/22154_NetMonInput_WithFragments
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
   artdaq_BuildInfo

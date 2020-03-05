@@ -200,15 +200,20 @@ art::ArtdaqInput<U>::ArtdaqInput(const fhicl::ParameterSet& ps, art::ProductRegi
 	                           << "const art::SourceHelper& pm)";
 
 	TLOG_ARB(5, "ArtdaqInput") << "Going to receive init message";
-	std::unique_ptr<artdaq::Fragments> initFrags = communicationWrapper_.receiveInitMessage();
+	artdaq::FragmentPtrs initFrags = communicationWrapper_.receiveInitMessage();
 	TLOG_ARB(5, "ArtdaqInput") << "Init message received";
 
-	if (!initFrag)
+	if (initFrags.size() == 0)
 	{
 		throw art::Exception(art::errors::DataCorruption) << "ArtdaqInput: Could not receive init message!";
 	}
-	auto header = initFrag->metadata<artdaq::NetMonHeader>();
-	std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
+
+	std::list<std::unique_ptr<TBufferFile>> msgs;
+	for (auto& initFrag : initFrags)
+	{
+		auto header = initFrag->metadata<artdaq::NetMonHeader>();
+		msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
+	}
 
 	for (auto& msg : msgs)
 	{
@@ -683,15 +688,20 @@ bool art::ArtdaqInput<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrin
 		return false;
 	}
 
-	artdaq::FragmentPtr dataFrag = communicationWrapper_.receiveMessage();
-	if (!dataFrag)
+	artdaq::FragmentPtrs dataFrags = communicationWrapper_.receiveMessage();
+	if (dataFrags.size() == 0)
 	{
 		TLOG_ARB(15, "ArtdaqInput") << "ArtdaqInput::readNext got an empty message";
 		shutdownMsgReceived_ = true;
 		return false;
 	}
-	auto header = dataFrag->metadata<artdaq::NetMonHeader>();
-	std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag->dataBegin(), kFALSE, 0));
+
+	std::list<std::unique_ptr<TBufferFile>> msgs;
+	for (auto& dataFrag : dataFrags)
+	{
+		auto header = dataFrag->metadata<artdaq::NetMonHeader>();
+		msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag->dataBegin(), kFALSE, 0));
+	}
 
 	//
 	//  Read message type code.

@@ -62,7 +62,7 @@ public:
 		 * \brief Receive a Fragment from the TransferInterface, and send it to art
 		 * \return Received Fragment
 		 */
-	artdaq::FragmentPtr receiveMessage();
+	artdaq::FragmentPtrs receiveMessage();
 
 	/**
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
@@ -70,34 +70,30 @@ public:
 		 */
 	artdaq::FragmentPtrs receiveInitMessage()
 	{
-		auto fragPtr = receiveMessage();
-		artdaq::FragmentPtrs output;
-		output.push_back(fragPtr);
-		return output;
+		return receiveMessage();
 	}
-}
 
-private : void
-          checkIntegrity(const artdaq::Fragment&) const;
+private:
+	void checkIntegrity(const artdaq::Fragment&) const;
 
-void registerMonitor();
-void unregisterMonitor();
-std::string getDispatcherStatus();
+	void registerMonitor();
+	void unregisterMonitor();
+	std::string getDispatcherStatus();
 
-std::size_t timeoutInUsecs_;
-std::unique_ptr<TransferInterface> transfer_;
-std::unique_ptr<CommanderInterface> commander_;
-const fhicl::ParameterSet pset_;
-const std::string dispatcherHost_;
-const std::string dispatcherPort_;
-const std::string serverUrl_;
-const std::size_t maxEventsBeforeInit_;
-const std::vector<int> allowedFragmentTypes_;
-const double runningStateTimeout_;
-size_t runningStateInterval_us_;
-const bool quitOnFragmentIntegrityProblem_;
-const bool multi_run_mode_;
-bool monitorRegistered_;
+	std::size_t timeoutInUsecs_;
+	std::unique_ptr<TransferInterface> transfer_;
+	std::unique_ptr<CommanderInterface> commander_;
+	const fhicl::ParameterSet pset_;
+	const std::string dispatcherHost_;
+	const std::string dispatcherPort_;
+	const std::string serverUrl_;
+	const std::size_t maxEventsBeforeInit_;
+	const std::vector<int> allowedFragmentTypes_;
+	const double runningStateTimeout_;
+	size_t runningStateInterval_us_;
+	const bool quitOnFragmentIntegrityProblem_;
+	const bool multi_run_mode_;
+	bool monitorRegistered_;
 };  // namespace artdaq
 }  // namespace artdaq
 
