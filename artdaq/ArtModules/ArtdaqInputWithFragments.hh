@@ -293,7 +293,7 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		//
 		auto thisProductList = ReadObjectAny<art::ProductList>(
 		    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputWithFragments::ArtdaqInput");
-		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Product list sz=" << thisProductList->size();
+		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Input Product list sz=" << thisProductList->size();
 
 		bool productListInitialized = productList_ != nullptr;
 		if (!productListInitialized) productList_ = thisProductList;
@@ -305,7 +305,10 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 			                                         << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
 			                                         << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 #endif
-			if (productListInitialized) productList_->emplace(*I);
+			if (productListInitialized)
+			{
+				productList_->emplace(*I);
+			}
 		}
 
 		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Reading ProcessHistory";
@@ -342,7 +345,19 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 #else
 	helper.productList(std::unique_ptr<art::ProductList>(productList_));
 #endif
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: got product list";
+	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: got product list";
+
+	art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
+	helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+	// Workaround for #22979
+	helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+	helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+
+	std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
+	for (const auto& set_iter : instance_names)
+	{
+		helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
+	}
 
 	//
 	//  Finished with init message.
