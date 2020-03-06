@@ -225,6 +225,8 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
 	}
 
+	std::list<History*> processHistories;
+
 	for (auto& msg : msgs)
 	{
 		// This first unsigned long is the message type code, ignored here in the constructor
@@ -329,11 +331,32 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		//
 		// Read the History
 		//
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading History";
-		history_to_use_.reset(ReadObjectAny<History>(msg, "art::History", "ArtdaqInput::ArtdaqInput"));
-		if (!history_to_use_->processHistoryID().isValid())
+		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Reading History";
+		processHistories.push_back(ReadObjectAny<History>(msg, "art::History", "ArtdaqInputWithFragments::ArtdaqInputWithFragments"));
+	}
+
+	// We're going to make a fake History using the collected process histories!
+	art::ProcessHistory fake_process_history;
+	for (auto& hist : processHistories)
+	{
+		auto id = hist->processHistoryID();
+		ProcessHistory thisProcessHistory;
+		if (ProcessHistoryRegistry::get(id, thisProcessHistory))
 		{
-			TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: History from init message is INVALID!";
+			for (auto& conf : thisProcessHistory)
+				fake_process_history.push_back(conf);
+		}
+	}
+	art::ProcessHistoryMap fake_process_history_map;
+	fake_process_history_map[fake_process_history.id()] = fake_process_history;
+	ProcessHistoryRegistry::put(fake_process_history_map);
+	history_to_use_.reset(new History());
+	history_to_use_->setProcessHistoryID(fake_process_history.id());
+	for (auto& hist : processHistories)
+	{
+		for (auto& es : hist->eventSelectionIDs())
+		{
+			history_to_use_->addEventSelectionEntry(es);
 		}
 	}
 
@@ -532,19 +555,6 @@ void art::ArtdaqInputWithFragments<U>::readAndConstructPrincipal(std::unique_ptr
 		{
 			throw art::Exception(art::errors::Unknown)
 			    << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
-		}
-		// If our stored history is invalid, use this Event's history
-		else if (!history_to_use_->processHistoryID().isValid())
-		{
-			TLOG(TLVL_WARNING, "ArtdaqInputWithFragments") << "Using History from Event as ours is not valid";
-			history_to_use_.swap(history_from_event);
-		}
-		// If our stored history doesn't match our ProcessHistoryRegistry, then used this Event's history
-		else if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()) &&
-		         art::ProcessHistoryRegistry::get().count(history_from_event->processHistoryID()))
-		{
-			TLOG(TLVL_WARNING, "ArtdaqInputWithFragments") << "Using History from Event as it matches ProcessHistoryRegistry, and ours doesn't";
-			history_to_use_.swap(history_from_event);
 		}
 
 		TLOG_ARB(11, "ArtdaqInputWithFragments") << "readAndConstructPrincipal: "
