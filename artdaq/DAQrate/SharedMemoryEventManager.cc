@@ -1249,7 +1249,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 void artdaq::SharedMemoryEventManager::send_init_frags_()
 {
-	if (init_fragments_.size() >= init_fragment_count_)
+	if (init_fragments_.size() >= init_fragment_count_ && init_fragment_count_ > 0)
 	{
 		TLOG(TLVL_INFO) << "Broadcasting init fragment to all art subprocesses...";
 
