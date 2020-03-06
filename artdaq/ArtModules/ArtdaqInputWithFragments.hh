@@ -275,7 +275,7 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: reading parameter sets ...";
 		for (unsigned long I = 0; I < ps_cnt; ++I)
 		{
-			std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInputWithFragments::ArtdaqInput");
+			std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInputWithFragments::ArtdaqInputWithFragments");
 			msg->ReadStdString(pset_str);
 
 			TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: parameter set: " << pset_str;
@@ -292,7 +292,7 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		//  Read the MasterProductRegistry.
 		//
 		auto thisProductList = ReadObjectAny<art::ProductList>(
-		    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputWithFragments::ArtdaqInput");
+		    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputWithFragments::ArtdaqInputWithFragments");
 		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Input Product list sz=" << thisProductList->size();
 
 		bool productListInitialized = productList_ != nullptr;
@@ -313,17 +313,17 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 
 		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Reading ProcessHistory";
 		art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
-		    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputWithFragments::ArtdaqInput");
-		printProcessMap(*phm, "ArtdaqInput's ProcessHistoryMap");
+		    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputWithFragments::ArtdaqInputWithFragments");
+		printProcessMap(*phm, "ArtdaqInputWithFragments's ProcessHistoryMap");
 
 		ProcessHistoryRegistry::put(*phm);
-		printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInput's ProcessHistoryRegistry");
+		printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInputWithFragments's ProcessHistoryRegistry");
 
 		//
 		//  Read the ParentageRegistry.
 		//
 		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Reading ParentageMap";
-		ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputWithFragments::ArtdaqInput");
+		ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputWithFragments::ArtdaqInputWithFragments");
 		ParentageRegistry::put(*parentageMap);
 
 		//
@@ -337,7 +337,8 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		}
 	}
 
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Product list sz=" << productList_->size();
+	        TLOG_ARB(5, "ArtdaqInputWithFragments")
+	    << "ArtdaqInputWithFragments: Product list sz=" << productList_->size();
 
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
@@ -362,7 +363,7 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 	//
 	//  Finished with init message.
 	//
-	TLOG_ARB(5, "ArtdaqInputWithFragments") << "End:   ArtdaqInputWithFragments::ArtdaqInput("
+	TLOG_ARB(5, "ArtdaqInputWithFragments") << "End:   ArtdaqInputWithFragments::ArtdaqInputWithFragments("
 	                                        << "const fhicl::ParameterSet& ps, "
 	                                        << "art::ProductRegistryHelper& helper, "
 	                                        << "const art::SourceHelper& pm)";
