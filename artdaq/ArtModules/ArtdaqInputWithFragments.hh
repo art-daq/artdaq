@@ -319,8 +319,8 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		//
 		//  Read the ParentageRegistry.
 		//
-		TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Reading ParentageMap";
-		ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInput::ArtdaqInput");
+		TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Reading ParentageMap";
+		ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputWithFragments::ArtdaqInput");
 		ParentageRegistry::put(*parentageMap);
 
 		//
@@ -334,7 +334,7 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 		}
 	}
 
-	TLOG_ARB(5, "ArtdaqInput") << "ArtdaqInput: Product list sz=" << productList_->size();
+	TLOG_ARB(5, "ArtdaqInputWithFragments") << "ArtdaqInputWithFragments: Product list sz=" << productList_->size();
 
 	// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
@@ -347,10 +347,10 @@ art::ArtdaqInputWithFragments<U>::ArtdaqInputWithFragments(const fhicl::Paramete
 	//
 	//  Finished with init message.
 	//
-	TLOG_ARB(5, "ArtdaqInput") << "End:   ArtdaqInput::ArtdaqInput("
-	                           << "const fhicl::ParameterSet& ps, "
-	                           << "art::ProductRegistryHelper& helper, "
-	                           << "const art::SourceHelper& pm)";
+	TLOG_ARB(5, "ArtdaqInputWithFragments") << "End:   ArtdaqInputWithFragments::ArtdaqInput("
+	                                        << "const fhicl::ParameterSet& ps, "
+	                                        << "art::ProductRegistryHelper& helper, "
+	                                        << "const art::SourceHelper& pm)";
 }
 
 template<typename U>
@@ -520,12 +520,14 @@ void art::ArtdaqInputWithFragments<U>::readAndConstructPrincipal(std::unique_ptr
 		// If our stored history is invalid, use this Event's history
 		else if (!history_to_use_->processHistoryID().isValid())
 		{
+			TLOG(TLVL_WARNING, "ArtdaqInputWithFragments") << "Using History from Event as ours is not valid";
 			history_to_use_.swap(history_from_event);
 		}
 		// If our stored history doesn't match our ProcessHistoryRegistry, then used this Event's history
 		else if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()) &&
 		         art::ProcessHistoryRegistry::get().count(history_from_event->processHistoryID()))
 		{
+			TLOG(TLVL_WARNING, "ArtdaqInputWithFragments") << "Using History from Event as it matches ProcessHistoryRegistry, and ours doesn't";
 			history_to_use_.swap(history_from_event);
 		}
 
