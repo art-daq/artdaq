@@ -192,6 +192,22 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 	return fragmentPtrs;
 }
 
+std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> artdaq::TransferWrapper::receiveMessages()
+{
+	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> output;
+
+	auto ptrs = receiveMessage();
+	for (auto& ptr : ptrs)
+	{
+		if (output.count(ptr->type()))
+		{
+			output[ptr->type()]->emplace_back(std::move(*ptr.release()));
+		}
+	}
+
+	return output;
+}
+
 void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 {
 	const size_t artdaqheader = artdaq::detail::RawFragmentHeader::num_words() *

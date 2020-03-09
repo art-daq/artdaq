@@ -1267,6 +1267,14 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 	{
 		TLOG(TLVL_WARNING) << "Cannot send init fragments because I haven't yet received them!";
 	}
+	else
+	{
+		// Send an empty Init Fragment so that ArtdaqInput knows that this is a pure-Fragment input
+		artdaq::FragmentPtrs begin_run_fragments_;
+		begin_run_fragments_.emplace_back(new artdaq::Fragment());
+		begin_run_fragments_.back()->setSystemType(artdaq::Fragment::InitFragmentType);
+		broadcastFragments_(begin_run_fragments_);
+	}
 }
 
 void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
