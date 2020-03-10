@@ -199,10 +199,16 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	auto ptrs = receiveMessage();
 	for (auto& ptr : ptrs)
 	{
-		if (output.count(ptr->type()))
+		auto fragType = ptr->type();
+		auto fragPtr = ptr.release();
+		ptr.reset(nullptr);
+
+		if (!output.count(fragType))
 		{
-			output[ptr->type()]->emplace_back(std::move(*ptr.release()));
+			output[fragType].reset(new artdaq::Fragments());
 		}
+
+		output[fragType]->emplace_back(std::move(*fragPtr));
 	}
 
 	return output;

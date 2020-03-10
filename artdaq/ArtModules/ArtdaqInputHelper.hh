@@ -192,7 +192,7 @@ private:
 
 template<typename U>
 art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art::ProductRegistryHelper& helper,
-                                 art::SourceHelper const& pm)
+                                             art::SourceHelper const& pm)
     : shutdownMsgReceived_(false)
     , outputFileCloseNeeded_(false)
     , pm_(pm)
@@ -224,9 +224,9 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 	// specific instantiation when it comes to messages
 
 	TLOG_ARB(5, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::ArtdaqInputHelper("
-	                           << "const fhicl::ParameterSet& ps, "
-	                           << "art::ProductRegistryHelper& helper, "
-	                           << "const art::SourceHelper& pm)";
+	                                 << "const fhicl::ParameterSet& ps, "
+	                                 << "art::ProductRegistryHelper& helper, "
+	                                 << "const art::SourceHelper& pm)";
 
 	TLOG_ARB(5, "ArtdaqInputHelper") << "Going to receive init message";
 	artdaq::FragmentPtrs initFrags = communicationWrapper_.receiveInitMessage();
@@ -327,9 +327,9 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			{
 #ifndef __OPTIMIZE__
 				TLOG_ARB(50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
-				                            << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
-				                            << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
-				                            << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
+				                                  << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+				                                  << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
+				                                  << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 #endif
 				if (productListInitialized)
 				{
@@ -396,25 +396,27 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 		TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: got product list";
 	}
 
-	art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
-	helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-	// Workaround for #22979
-	helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-	helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-
-	std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
-	for (const auto& set_iter : instance_names)
+	if (ps.get<bool>("register_fragment_types", true))
 	{
-		helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
-	}
+		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
+		helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+		// Workaround for #22979
+		helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+		helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 
+		std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
+		for (const auto& set_iter : instance_names)
+		{
+			helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
+		}
+	}
 	//
 	//  Finished with init message.
 	//
 	TLOG_ARB(5, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::ArtdaqInputHelper("
-	                           << "const fhicl::ParameterSet& ps, "
-	                           << "art::ProductRegistryHelper& helper, "
-	                           << "const art::SourceHelper& pm)";
+	                                 << "const fhicl::ParameterSet& ps, "
+	                                 << "art::ProductRegistryHelper& helper, "
+	                                 << "const art::SourceHelper& pm)";
 }
 
 template<typename U>
@@ -431,10 +433,10 @@ template<typename U>
 void art::ArtdaqInputHelper<U>::readFile(const std::string&, art::FileBlock*& fb)
 {
 	TLOG_ARB(7, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::"
-	                              "readFile(const std::string& name, art::FileBlock*& fb)";
+	                                    "readFile(const std::string& name, art::FileBlock*& fb)";
 	fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInputHelper2013"), "nothing");
 	TLOG_ARB(7, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::"
-	                              "readFile(const std::string& name, art::FileBlock*& fb)";
+	                                    "readFile(const std::string& name, art::FileBlock*& fb)";
 }
 
 template<typename U>
@@ -444,21 +446,21 @@ bool art::ArtdaqInputHelper<U>::hasMoreData() const
 	if (shutdownMsgReceived_)
 	{
 		TLOG_ARB(8, "ArtdaqInputHelper") << "ArtdaqInputHelper::hasMoreData(): "
-		                              "returning false on shutdownMsgReceived_.";
+		                                    "returning false on shutdownMsgReceived_.";
 		TLOG_ARB(8, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::hasMoreData()";
 		return false;
 	}
 	TLOG_ARB(8, "ArtdaqInputHelper") << "ArtdaqInputHelper::hasMoreData(): "
-	                              "returning true on not shutdownMsgReceived_.";
+	                                    "returning true on not shutdownMsgReceived_.";
 	TLOG_ARB(8, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::hasMoreData()";
 	return true;
 }
 
 template<typename U>
 void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg, unsigned long msg_type_code,
-                                                    art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
-                                                    art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
-                                                    art::EventPrincipal*& outE)
+                                                          art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
+                                                          art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
+                                                          art::EventPrincipal*& outE)
 {
 	//
 	//  Process the message.
@@ -478,38 +480,38 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	{  // EndRun message.
 
 		TLOG_ARB(9, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                           << "processing EndRun message ...";
+		                                 << "processing EndRun message ...";
 
 		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
 
 		TLOG_ARB(9, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                           << "making flush RunPrincipal ...";
+		                                 << "making flush RunPrincipal ...";
 		outR = pm_.makeRunPrincipal(RunID::flushRun(), run_aux->beginTime());
 
 		TLOG_ARB(9, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                           << "making flush SubRunPrincipal ...";
+		                                 << "making flush SubRunPrincipal ...";
 		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(), run_aux->beginTime());
 
 		TLOG_ARB(9, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                           << "making flush EventPrincipal ...";
+		                                 << "making flush EventPrincipal ...";
 		outE = pm_.makeEventPrincipal(EventID::flushEvent(), run_aux->endTime(), true, EventAuxiliary::Any);
 
 		TLOG_ARB(9, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                           << "finished processing EndRun message.";
+		                                 << "finished processing EndRun message.";
 	}
 	else if (msg_type_code == 3)
 	{  // EndSubRun message.
 
 		TLOG_ARB(10, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "processing EndSubRun message ...";
+		                                  << "processing EndSubRun message ...";
 
 		subrun_aux.reset(
 		    ReadObjectAny<art::SubRunAuxiliary>(msg, "art::SubRunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", subrun_aux.get());
 
 		TLOG_ARB(10, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "making flush RunPrincipal ...";
+		                                  << "making flush RunPrincipal ...";
 		outR = pm_.makeRunPrincipal(RunID::flushRun(), subrun_aux->beginTime());
 
 		// 28-Feb-2014, KAB: added the setting of the end time in the *current*
@@ -546,21 +548,21 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		}
 
 		TLOG_ARB(10, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "making flush SubRunPrincipal ...";
+		                                  << "making flush SubRunPrincipal ...";
 		outSR = pm_.makeSubRunPrincipal(SubRunID::flushSubRun(), subrun_aux->beginTime());
 
 		TLOG_ARB(10, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "making flush EventPrincipal ...";
+		                                  << "making flush EventPrincipal ...";
 		outE = pm_.makeEventPrincipal(EventID::flushEvent(), subrun_aux->endTime(), true, EventAuxiliary::Any);
 
 		TLOG_ARB(10, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "finished processing EndSubRun message.";
+		                                  << "finished processing EndSubRun message.";
 	}
 	else if (msg_type_code == 4)
 	{  // Event message.
 
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "processing Event message ...";
+		                                  << "processing Event message ...";
 
 		run_aux.reset(ReadObjectAny<art::RunAuxiliary>(msg, "art::RunAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", run_aux.get());
@@ -583,13 +585,13 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		}
 
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "inR: " << (void*)inR << " run/expected "
-		                            << (inR ? std::to_string(inR->run()) : "invalid") << "/" << event_aux->run();
+		                                  << "inR: " << (void*)inR << " run/expected "
+		                                  << (inR ? std::to_string(inR->run()) : "invalid") << "/" << event_aux->run();
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "inSR: " << (void*)inSR << " run/expected "
-		                            << (inSR ? std::to_string(inSR->run()) : "invalid") << "/" << event_aux->run()
-		                            << ", subrun/expected " << (inSR ? std::to_string(inSR->subRun()) : "invalid") << "/"
-		                            << event_aux->subRun();
+		                                  << "inSR: " << (void*)inSR << " run/expected "
+		                                  << (inSR ? std::to_string(inSR->run()) : "invalid") << "/" << event_aux->run()
+		                                  << ", subrun/expected " << (inSR ? std::to_string(inSR->subRun()) : "invalid") << "/"
+		                                  << event_aux->subRun();
 		if ((inR == nullptr) || !inR->RUN_ID().isValid() || (inR->run() != event_aux->run()))
 		{
 			// New run, either we have no input RunPrincipal, or the
@@ -603,7 +605,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the event subRun number.
 			TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-			                            << "making SubRunPrincipal ...";
+			                                  << "making SubRunPrincipal ...";
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux.get());
 		}
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: making EventPrincipal ...";
@@ -615,7 +617,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		outE = pm_.makeEventPrincipal(*event_aux.get(), std::move(historyPtr));
 
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                            << "finished processing Event message.";
+		                                  << "finished processing Event message.";
 	}
 }
 
@@ -654,7 +656,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 	timespec hi_res_time;
 	int retcode = clock_gettime(CLOCK_REALTIME, &hi_res_time);
 	TLOG_ARB(15, "ArtdaqInputHelper") << "hi_res_time tv_sec = " << hi_res_time.tv_sec
-	                            << " tv_nsec = " << hi_res_time.tv_nsec << " (retcode = " << retcode << ")";
+	                                  << " tv_nsec = " << hi_res_time.tv_nsec << " (retcode = " << retcode << ")";
 	if (retcode == 0)
 	{
 		currentTime = ((hi_res_time.tv_sec & 0xffffffff) << 32) | (hi_res_time.tv_nsec & 0xffffffff);
@@ -753,8 +755,8 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 
 #ifndef __OPTIMIZE__
 			TLOG_ARB(13, "ArtdaqInputHelper") << "readDataProducts: got product class: '" << bk->friendlyClassName_ << "' modlbl: '"
-			                            << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
-			                            << bk->processName_;
+			                                  << bk->moduleLabel_ << "' instnm: '" << bk->productInstanceName_ << "' procnm: '"
+			                                  << bk->processName_;
 #endif
 			ProductList::const_iterator iter;
 			{
@@ -776,7 +778,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 			std::unique_ptr<EDProduct> prd;
 			{
 				TLOG_ARB(12, "ArtdaqInputHelper") << "readDataProducts: Reading product with wrapped name: " << bd.wrappedName()
-				                            << ", TClass = " << (void*)TClass::GetClass(bd.wrappedName().c_str());
+				                                  << ", TClass = " << (void*)TClass::GetClass(bd.wrappedName().c_str());
 
 				// JCF, May-25-2016
 				// Currently unclear why the templatized version of ReadObjectAny doesn't work here...
@@ -798,8 +800,8 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 
 			{
 				TLOG_ARB(12, "ArtdaqInputHelper") << "readDataProducts: inserting product: class: '" << bd.friendlyClassName()
-				                            << "' modlbl: '" << bd.moduleLabel() << "' instnm: '" << bd.productInstanceName()
-				                            << "' procnm: '" << bd.processName() << "' id: '" << bd.productID() << "'";
+				                                  << "' modlbl: '" << bd.moduleLabel() << "' instnm: '" << bd.productInstanceName()
+				                                  << "' procnm: '" << bd.processName() << "' id: '" << bd.productID() << "'";
 				putInPrincipal(outPrincipal, std::move(prd), bd, std::move(prdprov));
 			}
 		}
@@ -808,8 +810,8 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 
 template<typename U>
 void art::ArtdaqInputHelper<U>::putInPrincipal(RunPrincipal*& rp, std::unique_ptr<EDProduct>&& prd,
-                                         const BranchDescription& bd,
-                                         std::unique_ptr<const ProductProvenance>&& prdprov)
+                                               const BranchDescription& bd,
+                                               std::unique_ptr<const ProductProvenance>&& prdprov)
 {
 #if ART_HEX_VERSION < 0x30000
 	rp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forRun(rp->RUN_ID()));
@@ -820,8 +822,8 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(RunPrincipal*& rp, std::unique_pt
 
 template<typename U>
 void art::ArtdaqInputHelper<U>::putInPrincipal(SubRunPrincipal*& srp, std::unique_ptr<EDProduct>&& prd,
-                                         const BranchDescription& bd,
-                                         std::unique_ptr<const ProductProvenance>&& prdprov)
+                                               const BranchDescription& bd,
+                                               std::unique_ptr<const ProductProvenance>&& prdprov)
 {
 #if ART_HEX_VERSION < 0x30000
 	srp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forSubRun(srp->SUBRUN_ID()));
@@ -832,8 +834,8 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(SubRunPrincipal*& srp, std::uniqu
 
 template<typename U>
 void art::ArtdaqInputHelper<U>::putInPrincipal(EventPrincipal*& ep, std::unique_ptr<EDProduct>&& prd,
-                                         const BranchDescription& bd,
-                                         std::unique_ptr<const ProductProvenance>&& prdprov)
+                                               const BranchDescription& bd,
+                                               std::unique_ptr<const ProductProvenance>&& prdprov)
 {
 	TLOG_ARB(14, "ArtdaqInputHelper") << "EventPrincipal size before put: " << ep->size();
 #if ART_HEX_VERSION < 0x30000
@@ -858,7 +860,11 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 	for (auto& fragmentTypePair : eventMap)
 	{
 		auto type_code = fragmentTypePair.first;
-		if (type_code == artdaq::Fragment::DataFragmentType) continue;
+		if (type_code == artdaq::Fragment::DataFragmentType || type_code == artdaq::Fragment::EndOfDataFragmentType || type_code == artdaq::Fragment::InitFragmentType || type_code == artdaq::Fragment::EndOfRunFragmentType || type_code == artdaq::Fragment::EndOfSubrunFragmentType || type_code == artdaq::Fragment::ShutdownFragmentType)
+		{
+			TLOG_TRACE("ArtdaqInputHelper") << "Skipping system Fragment with type " << (int)type_code << " ( " << translator->GetInstanceNameForType(type_code) << " )";
+			continue;
+		}
 		TLOG_TRACE("ArtdaqInputHelper") << "Before GetFragmentsByType call, type is " << (int)type_code;
 		TLOG_TRACE("ArtdaqInputHelper") << "After GetFragmentsByType call, number of fragments is " << fragmentTypePair.second->size();
 
@@ -908,7 +914,7 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 
 template<typename U>
 bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
-                                   art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
+                                         art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE)
 {
 	TLOG_ARB(15, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::readNext";
 	bool ret = false;
@@ -919,7 +925,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		// Signal that we need the output file closed by returning false,
 		// but answering true to the hasMoreData() query.
 		TLOG_ARB(15, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
-		                            << "returning false on outputFileCloseNeeded_";
+		                                  << "returning false on outputFileCloseNeeded_";
 		TLOG_ARB(15, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 		return false;
 	}
@@ -946,16 +952,13 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 	if (fragmentsOnlyMode_)
 	{
-		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
-
 		if (eventMap.count(artdaq::Fragment::DataFragmentType))
 		{
 			TLOG_ARB(15, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext unexpectedly got a message with a DataFragment. This art Event will NOT be reconstructed!";
 		}
 
 		auto firstFragmentType = eventMap.begin()->first;
-		TLOG_DEBUG("ArtdaqInputHelper") << "First Fragment type is " << (int)firstFragmentType << " ("
-		                                << translator->GetInstanceNameForType(firstFragmentType) << ")";
+		TLOG_DEBUG("ArtdaqInputHelper") << "First Fragment type is " << (int)firstFragmentType;
 		if (constructPrincipal(firstFragmentType, inR, inSR, outR, outSR, outE))
 		{
 			readFragments(eventMap, outE);
@@ -983,10 +986,10 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		for (auto& msg : msgs)
 		{
 			TLOG_ARB(15, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
-			                            << "getting message type code ...";
+			                                  << "getting message type code ...";
 			msg->ReadULong(msg_type_code_tmp);
 			TLOG_ARB(15, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
-			                            << "message type: " << msg_type_code_tmp;
+			                                  << "message type: " << msg_type_code_tmp;
 
 			if (msg_type_code == 0)
 				msg_type_code = msg_type_code_tmp;
@@ -1004,7 +1007,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			// Shutdown message.
 			shutdownMsgReceived_ = true;
 			TLOG_ARB(16, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
-			                            << "returning false on Shutdown message.";
+			                                  << "returning false on Shutdown message.";
 			TLOG_ARB(16, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 			return false;
 		}
@@ -1023,7 +1026,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			readDataProducts(msgs, outR);
 			// Signal that we should close the input and output file.
 			TLOG_ARB(17, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
-			                            << "returning false on EndRun message.";
+			                                  << "returning false on EndRun message.";
 			TLOG_ARB(17, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 			return false;
 		}
@@ -1062,7 +1065,10 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			// Event message.
 			readDataProducts(msgs, outE);
 
-			readFragments(eventMap, outE);
+			if (eventMap.size() > 1)
+			{
+				readFragments(eventMap, outE);
+			}
 
 			TLOG_ARB(19, "ArtdaqInputHelper") << "readNext: returning true on Event message.";
 			ret = true;
@@ -1071,7 +1077,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 	auto read_finish_time = std::chrono::steady_clock::now();
 	TLOG_ARB(10, "ArtdaqInputHelper") << "readNext: bytesRead=" << bytesRead
-	                            << " metricMan=" << (void*)metricMan.get();
+	                                  << " metricMan=" << (void*)metricMan.get();
 	if (metricMan)
 	{
 		metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time),

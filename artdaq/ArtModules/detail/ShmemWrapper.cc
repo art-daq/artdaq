@@ -103,13 +103,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		TLOG(TLVL_DEBUG) << "Did not receive event after timeout, returning from receiveMessage ";
 		return output;
 	}
-
-	if (output.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
-	{
-		TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
-		return std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>();
-	}
-
+	
 	hdr_ptr_ = shm->GetEventHeader();
 	TLOG(TLVL_TRACE) << "receiveMessage END";
 
