@@ -62,7 +62,6 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 		output.emplace_back(new artdaq::Fragment(std::move(frag)));
 	}
 
-
 #if DUMP_RECEIVE_MESSAGE
 	std::string fileName = "receiveMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" +
 	                       std::to_string(topFrag.sequenceID()) + ".bin";
@@ -103,7 +102,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		TLOG(TLVL_DEBUG) << "Did not receive event after timeout, returning from receiveMessage ";
 		return output;
 	}
-	
+
 	hdr_ptr_ = shm->GetEventHeader();
 	TLOG(TLVL_TRACE) << "receiveMessage END";
 

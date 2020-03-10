@@ -5,9 +5,9 @@
 #include <memory>
 #include <string>
 
+#include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq-core/Data/RawEvent.hh"
 
 namespace fhicl {
 class ParameterSet;
