@@ -1,3 +1,4 @@
+#include "tracemf.h"
 #define TRACE_NAME "ShmemWrapper"
 
 #include "artdaq/ArtModules/detail/ShmemWrapper.hh"
@@ -91,8 +92,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	}
 	if (!init_received_)
 	{
-		TLOG(TLVL_ERROR) << "Did not receive Init Fragment after " << init_timeout_s_ << " seconds. Art will crash.";
-		return output;
+		TLOG(TLVL_ERROR) << "Did not receive Init Fragment after " << init_timeout_s_ << " seconds.";
 	}
 
 	output = shm->ReceiveEvent(false);
@@ -116,6 +116,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
+	auto start = std::chrono::steady_clock::now();
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap;
 	while (eventMap.size() == 0)
 	{
@@ -131,6 +132,11 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 			TLOG(TLVL_WARNING) << "Did NOT receive Init Fragment as first broadcast! Type="
 			                   << artdaq::detail::RawFragmentHeader::SystemTypeToString(eventMap.begin()->first);
 			eventMap.clear();
+		}
+		else if (artdaq::TimeUtils::GetElapsedTime(start) > init_timeout_s_)
+		{
+			TLOG(TLVL_WARNING) << "Init timeout!";
+			return artdaq::FragmentPtrs();
 		}
 	}
 

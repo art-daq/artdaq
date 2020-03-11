@@ -1232,7 +1232,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			}
 		}
 		auto total = size();
-		TLOG(TLVL_DEBUG) << "Buffer usage: full=" << full << ", empty=" << empty << ", writing=" << writing << ", reading=" << reading << ", total=" << total;
+		TLOG(15) << "Buffer usage: full=" << full << ", empty=" << empty << ", writing=" << writing << ", reading=" << reading << ", total=" << total;
 
 		metricMan->sendMetric("Shared Memory Full Buffers", full, "buffers", 2, MetricMode::LastPoint);
 		metricMan->sendMetric("Shared Memory Available Buffers", empty, "buffers", 2, MetricMode::LastPoint);
@@ -1265,7 +1265,7 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 	}
 	else if (init_fragment_count_ > 0)
 	{
-		TLOG(TLVL_WARNING) << "Cannot send init fragments because I haven't yet received them!";
+		TLOG(TLVL_WARNING) << "Cannot send init fragments because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
 	}
 	else
 	{

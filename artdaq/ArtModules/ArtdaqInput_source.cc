@@ -16,7 +16,7 @@ struct Source_generator<ArtdaqInputHelper<ShmemWrapper>>
 
 // Source declaration.
 /**
-	 * \brief NetMonInputWithFragments is an art::Source using an ArtdaqInput-wrapped ShmemWrapper
+	 * \brief ArtdaqInput is an art::Source using an ArtdaqInputHelper-wrapped ShmemWrapper
 	 */
 typedef art::Source<ArtdaqInputHelper<ShmemWrapper>> ArtdaqInput;
 }  // namespace art

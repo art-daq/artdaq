@@ -15,7 +15,8 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
     : ArtdaqSharedMemoryServiceInterface()
     , incoming_events_(nullptr)
     , evtHeader_(nullptr)
-    , read_timeout_(pset.get<size_t>("read_timeout_us", 1000000))
+    , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 1.0) * 1000000)))
+    , resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
 {
 	TLOG(TLVL_TRACE) << "ArtdaqSharedMemoryService CONSTRUCTOR";
 
@@ -32,6 +33,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 
 	TLOG(TLVL_TRACE) << "Setting app_name";
 	app_name = artapp_str + "art" + std::to_string(incoming_events_->GetMyId());
+	artdaq::configureMessageFacility(app_name.c_str());
 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != NULL && my_rank < 0)
@@ -78,6 +80,9 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		while (!incoming_events_->IsEndOfData() && !got_event)
 		{
 			got_event = incoming_events_->ReadyForRead(broadcast, read_timeout_);
+			if (!got_event && !resume_after_timeout_) {
+				return recvd_fragments;
+			}
 		}
 
 		TLOG(TLVL_TRACE) << "ReceiveEvent: Reading buffer header";

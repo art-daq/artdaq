@@ -52,6 +52,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
 #include "artdaq/ArtModules/InputUtilities.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
@@ -203,11 +204,11 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
     , bytesRead(0)
     , last_read_time(std::chrono::steady_clock::now())
 {
-	artdaq::configureMessageFacility("artdaqart");
-
 #if ART_HEX_VERSION >= 0x30200
 	root::setup();
 #endif
+	// Instantiate ArtdaqSharedMemoryService to set up artdaq Globals and MetricManager
+	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 
 #if 0
 	volatile bool loop = true;
@@ -232,12 +233,9 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 	artdaq::FragmentPtrs initFrags = communicationWrapper_.receiveInitMessage();
 	TLOG_ARB(5, "ArtdaqInputHelper") << "Init message received";
 
-	if (initFrags.size() == 0)
+	if (initFrags.size() == 0  || initFrags.back().get()->dataSize() == 0)
 	{
-		throw art::Exception(art::errors::DataCorruption) << "ArtdaqInputHelper: Could not receive init message!";
-	}
-	else if (initFrags.back().get()->dataSize() == 0)
-	{
+		TLOG_DEBUG("ArtdaqInputHelper") << "No init message received or zero-size init message: Fragments-only mode activated! This is an EventBuilder!";
 		fragmentsOnlyMode_ = true;
 	}
 	else
@@ -398,6 +396,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 
 	if (ps.get<bool>("register_fragment_types", true))
 	{
+		TLOG_DEBUG("ArtdaqInputHelper") << "Registering known Fragment labels from ArtdaqFragmentNamingServiceInterface";
 		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
 		helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 		// Workaround for #22979
@@ -671,11 +670,13 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 	// make new run if inR is 0 or if the run has changed
 	if (inR == 0 || inR->run() != evtHeader->run_id)
 	{
+		TLOG_ARB(15, "ArtdaqInputHelper") << "Making run principal with run_id " << evtHeader->run_id;
 		outR = pm_.makeRunPrincipal(evtHeader->run_id, currentTime);
 	}
 
 	if (firstFragmentType == artdaq::Fragment::EndOfRunFragmentType)
 	{
+		TLOG_ARB(15, "ArtdaqInputHelper") << "EndOfRunFragment received, returning Flush event";
 		art::EventID const evid(art::EventID::flushEvent());
 		outR = pm_.makeRunPrincipal(evid.runID(), currentTime);
 		outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
@@ -684,9 +685,11 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 	}
 	else if (firstFragmentType == artdaq::Fragment::EndOfSubrunFragmentType)
 	{
+		TLOG_ARB(15, "ArtdaqInputHelper") << "EndOfSubrunFragment received, creating new Subrun Principal";
 		// Check if inR == 0 or is a new run
 		if (inR == 0 || inR->run() != evtHeader->run_id)
 		{
+			TLOG_ARB(15, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 			outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
 			art::EventID const evid(art::EventID::flushEvent(outSR->SUBRUN_ID()));
 			outE = pm_.makeEventPrincipal(evid, currentTime);
@@ -699,6 +702,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 			// to end the subrun.
 			if (inSR != 0 && !inSR->SUBRUN_ID().isFlush() && inSR->subRun() == evtHeader->subrun_id)
 			{
+				TLOG_ARB(15, "ArtdaqInputHelper") << "Flushing old run id " << inR->RUN_ID();
 				art::EventID const evid(art::EventID::flushEvent(inR->RUN_ID()));
 				outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
 				outE = pm_.makeEventPrincipal(evid, currentTime);
@@ -708,6 +712,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 			}
 			else
 			{
+				TLOG_ARB(15, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 				outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
 				art::EventID const evid(art::EventID::flushEvent(outSR->SUBRUN_ID()));
 				outE = pm_.makeEventPrincipal(evid, currentTime);
@@ -724,8 +729,10 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 	art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
 	if (inSR == 0 || subrun_check != inSR->SUBRUN_ID())
 	{
+		TLOG_ARB(15, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 		outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
 	}
+	TLOG_ARB(15, "ArtdaqInputHelper") << "Making event principal with event_id " << evtHeader->event_id;
 	outE = pm_.makeEventPrincipal(evtHeader->run_id, evtHeader->subrun_id, evtHeader->event_id, currentTime);
 	return true;
 }
@@ -865,12 +872,12 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 			TLOG_TRACE("ArtdaqInputHelper") << "Skipping system Fragment with type " << (int)type_code << " ( " << translator->GetInstanceNameForType(type_code) << " )";
 			continue;
 		}
-		TLOG_TRACE("ArtdaqInputHelper") << "Before GetFragmentsByType call, type is " << (int)type_code;
-		TLOG_TRACE("ArtdaqInputHelper") << "After GetFragmentsByType call, number of fragments is " << fragmentTypePair.second->size();
+		TLOG_TRACE("ArtdaqInputHelper") << "type is " << (int)type_code << ", number of fragments is " << fragmentTypePair.second->size();
 
 		std::unordered_map<std::string, std::unique_ptr<artdaq::Fragments>> derived_fragments;
 		for (auto& frag : *fragmentTypePair.second)
 		{
+			TLOG_ARB(16, "ArtdaqInputHelper") << "Processing Fragment with ID " << frag.fragmentID();
 			bytesRead += frag.sizeBytes();
 			auto latency_s = frag.getLatency(true);
 			double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
@@ -891,16 +898,16 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 			}
 			if (!derived_fragments.count(label))
 			{
+				TLOG_ARB(16, "ArtdaqInputHelper") << "Creating output Fragment storage for label " << label;
 				derived_fragments[label] = std::make_unique<artdaq::Fragments>();
 			}
+			TLOG_ARB(16, "ArtdaqInputHelper") << "Adding Fragment " << frag.fragmentID() << " to storage with label " << label << " (sz=" << derived_fragments[label]->size() + 1 << ")";
 			derived_fragments[label]->emplace_back(std::move(frag));
 		}
 		for (auto& type : derived_fragments)
 		{
-			put_product_in_principal(std::move(type.second),
-			                         *outE,
-			                         pretend_module_name,
-			                         type.first);
+			TLOG_ARB(16, "ArtdaqInputHelper") << "Adding " << type.second->size() << " Fragments with label " << type.first << " to event.";
+			put_product_in_principal(std::move(type.second), *outE, pretend_module_name, type.first);
 		}
 	}
 	if (metricMan)
@@ -1088,7 +1095,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		                      3, artdaq::MetricMode::Average);
 	}
 
-	TLOG_ARB(20, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
+	TLOG_ARB(20, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext ret=" << std::boolalpha << ret;
 	last_read_time = std::chrono::steady_clock::now();
 	return ret;
 }
