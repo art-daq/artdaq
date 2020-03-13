@@ -16,11 +16,11 @@ namespace art {
 	struct ArtdaqFragmentNamingServiceInterfaceConfig
 	{
 		/// "service_provider" (REQUIRED): Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqDemoFragmentNamingService)
-		fhicl::Atom<std::string> service_provider{ fhicl::Name{"service_provider"}, fhicl::Comment{"Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqDemoFragmentNamingService)"} }
+		fhicl::Atom<std::string> service_provider{ fhicl::Name{"service_provider"}, fhicl::Comment{"Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqDemoFragmentNamingService)"} };
 		/// "unidentified_instance_name" (Default: "unidentified"): Name to use for Fragment types which are not identified by the ArtdaqFragmentNamingServiceInterface implementation.
 		fhicl::Atom<std::string> 	unidentified_instance_name{ fhicl::Name{"unidentified_instance_name"}, fhicl::Comment{"Name to use for Fragment types which are not identified by the ArtdaqFragmentNamingServiceInterface implementation."}, "unidentified" };
 		/// "fragment_type_map" (OPTIONAL): Additional types to register with the ArtdaqFragmentNamingServiceInterface
-		fhicl::OptionalSequence<fhicl::Tuple<artdaq::Fragment::type_t, std::string>> fragment_type_map{ fhicl::Name{"fragment_type_map"}, fhicl::Comment{"Additional types to register with the ArtdaqFragmentNamingServiceInterface"},std::vector<std::pair<artdaq::Fragment::type_t,std::string>>() };
+		fhicl::OptionalSequence<fhicl::Tuple<artdaq::Fragment::type_t, std::string>> fragment_type_map{ fhicl::Name{"fragment_type_map"}, fhicl::Comment{"Additional types to register with the ArtdaqFragmentNamingServiceInterface"}};
 	};
 
 	/// <summary>
@@ -29,13 +29,13 @@ namespace art {
 	struct ArtdaqSharedMemoryServiceInterfaceConfig
 	{
 		/// "service_provider" (REQUIRED): Name of the provider for the ArtdaqSharedMemoryServiceInterface (e.g. ArtdaqSharedMemoryService)
-		fhicl::Atom<std::string> service_provider{ fhicl::Name{"service_provider"}, fhicl::Comment{"Name of the provider for the ArtdaqSharedMemoryServiceInterface (e.g. ArtdaqSharedMemoryService)"} }
+		fhicl::Atom<std::string> service_provider{ fhicl::Name{"service_provider"}, fhicl::Comment{"Name of the provider for the ArtdaqSharedMemoryServiceInterface (e.g. ArtdaqSharedMemoryService)"} };
 		/// "read_timeout_us" (Default: "waiting_time" * 1000000): Amount of time (in us) to wait for events from shared memory. Defaults to waiting_time if unspecified.
-		fhicl::OptionalAtom<size_t> read_timeout_us{ fhicl::Name{"read_timeout_us"}, fhicl::Comment{"Amount of time (in us) to wait for events from shared memory. Defaults to waiting_time if unspecified."}, 600000000};
+		fhicl::Atom<size_t> read_timeout_us{ fhicl::Name{"read_timeout_us"}, fhicl::Comment{"Amount of time (in us) to wait for events from shared memory. Defaults to waiting_time if unspecified."}, 600000000};
 		/// "waiting_time" (Default: 600.0): Amount of time (in s) to wait for events from shared memory. Overridden by read_timeout_us if specified.
-		fhicl::OptionalAtom<double> waiting_time{ fhicl::Name{"waiting_time"}, fhicl::Comment{"Amount of time (in s) to wait for events from shared memory. Overridden by read_timeout_us if specified."}, 600.0};
+		fhicl::Atom<double> waiting_time{ fhicl::Name{"waiting_time"}, fhicl::Comment{"Amount of time (in s) to wait for events from shared memory. Overridden by read_timeout_us if specified."}, 600.0};
 		/// "resume_after_timeout" (Default: true): Whether to continue to attempt to receive events after a timeout occurs
-		fhicl::OptionalAtom<bool> resume_after_timeout{ fhicl::Name{"resume_after_timeout"}, fhicl::Comment{"Whether to continue to attempt to receive events after a timeout occurs"}, true};
+		fhicl::Atom<bool> resume_after_timeout{ fhicl::Name{"resume_after_timeout"}, fhicl::Comment{"Whether to continue to attempt to receive events after a timeout occurs"}, true};
 		/// "shared_memory_key" (OPTIONAL): Key to use for Data shared memory segment. Automatically generated using parent PID.
 		fhicl::OptionalAtom<int> shared_memory_key{ fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use for Data shared memory segment. Automatically generated using parent PID."}};
 		/// "broadcast_shared_memory_key" (OPTIONAL): Key to use for Broadcast shared memory segment. Automatically generated using parent PID.
