@@ -15,4 +15,5 @@ services: {
 source: {
   module_type: ArtdaqInput
   register_fragment_types: false
+  init_fragment_timeout_seconds: 1
 }

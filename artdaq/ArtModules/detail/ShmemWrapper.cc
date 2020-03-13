@@ -8,7 +8,7 @@
 
 art::ShmemWrapper::ShmemWrapper(fhicl::ParameterSet const& ps)
 {
-	init_timeout_s_ = ps.get<double>("init_fragment_timeout_seconds", 1.0);
+	init_timeout_s_ = ps.get<double>("init_fragment_timeout_seconds", 600.0);
 	// Make sure the ArtdaqSharedMemoryService is available
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 }
@@ -28,7 +28,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 	}
 	if (!init_received_)
 	{
-		TLOG(TLVL_ERROR) << "Did not receive Init Fragment after " << init_timeout_s_ << " seconds. Art will crash.";
+		TLOG(TLVL_ERROR) << "Did not receive Init Fragment after " << init_timeout_s_ << " seconds.";
 		return output;
 	}
 
@@ -135,7 +135,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 		}
 		else if (artdaq::TimeUtils::GetElapsedTime(start) > init_timeout_s_)
 		{
-			TLOG(TLVL_WARNING) << "Init timeout!";
+			TLOG(TLVL_WARNING) << "Did not receive Init fragment after init_fragment_timeout_seconds (" << artdaq::TimeUtils::GetElapsedTime(start) << ")!";
 			return artdaq::FragmentPtrs();
 		}
 	}

@@ -15,7 +15,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
     : ArtdaqSharedMemoryServiceInterface()
     , incoming_events_(nullptr)
     , evtHeader_(nullptr)
-    , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 1.0) * 1000000)))
+    , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 600.0) * 1000000)))
     , resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
 {
 	TLOG(TLVL_TRACE) << "ArtdaqSharedMemoryService CONSTRUCTOR";
@@ -81,7 +81,11 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		{
 			got_event = incoming_events_->ReadyForRead(broadcast, read_timeout_);
 			if (!got_event && !resume_after_timeout_) {
+				TLOG(TLVL_ERROR) << "Timeout occurred! No data received after " << read_timeout_ << " us. Returning empty Fragment list!";
 				return recvd_fragments;
+			}
+			else if (!got_event) {
+				TLOG(TLVL_WARNING) << "Timeout occurred! No data received after " << read_timeout_ << " us. Retrying.";
 			}
 		}
 
