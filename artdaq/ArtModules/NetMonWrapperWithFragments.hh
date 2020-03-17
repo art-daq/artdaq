@@ -1,10 +1,10 @@
-#ifndef artdaq_ArtModules_NetMonWrapper_hh
-#define artdaq_ArtModules_NetMonWrapper_hh
+#ifndef artdaq_ArtModules_NetMonWrapperWithFragments_hh
+#define artdaq_ArtModules_NetMonWrapperWithFragments_hh
 
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-core/Data/Fragment.hh"
+#include <TBufferFile.h>
 
 #include <memory>
 #include <string>
@@ -19,32 +19,31 @@ namespace art {
 	 * This class is written with functionality such that it satisfies the
 	 * requirements needed to be a template in the ArtdaqInput class
 	 */
-class NetMonWrapper
+class NetMonWrapperWithFragments
 {
 public:
 	/**
-		 * \brief NetMonWrapper Constructor
-		 * \param ps ParameterSet for NetMonWrapper
+		 * \brief NetMonWrapperWithFragments Constructor
+		 * \param ps ParameterSet for NetMonWrapperWithFragments
 		 */
-	NetMonWrapper(fhicl::ParameterSet const& ps);
+	NetMonWrapperWithFragments(fhicl::ParameterSet const& ps);
 
 	/**
-		 * \brief NetMonWrapper Destructor
+		 * \brief NetMonWrapperWithFragments Destructor
 		 */
-	virtual ~NetMonWrapper() = default;
+	virtual ~NetMonWrapperWithFragments() = default;
 
 	/**
 		 * \brief Receive a message from the NetMonTransportService
 		 * \param[out] msg A pointer to the received message
 		 */
-	artdaq::FragmentPtr receiveMessage();
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
+	void receiveMessage(std::unique_ptr<TBufferFile>& msg);
 
 	/**
 		* \brief Receive an init message from the NetMonTransportService
 		* \param[out] msg A pointer to the received message
 		*/
-	artdaq::FragmentPtr receiveInitMessage();
+	void receiveInitMessage(std::unique_ptr<TBufferFile>& msg);
 
 private:
 	fhicl::ParameterSet data_pset_;
@@ -53,4 +52,4 @@ private:
 };
 }  // namespace art
 
-#endif /* artdaq_ArtModules_NetMonWrapper_hh */
+#endif /* artdaq_ArtModules_NetMonWrapperWithFragments_hh */
