@@ -51,18 +51,6 @@ art_make( BASENAME_ONLY
   ${Boost_DATE_TIME_LIBRARY}
   )
 
-simple_plugin(RawInput "source"
-  artdaq_ArtModules
-  artdaq-core_Data
-  artdaq-core_Data_dict
-  art_Framework_Core
-  art_Framework_IO_Sources
-  art_Framework_Principal
-  art_Persistency_Provenance
-  art_Utilities
-  MF_MessageLogger
-  rt
-)
 
 simple_plugin(TransferOutput "module"
   artdaq_TransferPlugins
@@ -121,25 +109,7 @@ simple_plugin(FragmentWatcher "module"
   cetlib
 )
 
-
-simple_plugin(NetMonInput "source"
-  artdaq-core_Data
-  artdaq-core_Data_dict
-  artdaq_ArtModules
-  artdaq-core_Utilities
-  art_Framework_Core
-  art_Framework_IO_Sources
-  art_Framework_Principal
-  art_Persistency_Provenance
-  art_Utilities
-  ${MESSAGEFACILITY_LIBS}
-  fhiclcpp
-  cetlib
-  ${CETLIB_EXCEPT}
-  ${TBB}
-  ${HEP_CONCURRENCY}
-)
-simple_plugin(NetMonInputWithFragments "source"
+simple_plugin(ArtdaqInput "source"
   artdaq-core_Data
   artdaq-core_Data_dict
   artdaq_ArtModules

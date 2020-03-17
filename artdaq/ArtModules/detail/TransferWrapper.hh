@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
@@ -63,6 +64,7 @@ public:
 		 * \return Received Fragment
 		 */
 	artdaq::FragmentPtrs receiveMessage();
+	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
 
 	/**
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
@@ -72,6 +74,8 @@ public:
 	{
 		return receiveMessage();
 	}
+
+	std::shared_ptr<artdaq::detail::RawEventHeader> getEventHeader() { return nullptr; }
 
 private:
 	void checkIntegrity(const artdaq::Fragment&) const;

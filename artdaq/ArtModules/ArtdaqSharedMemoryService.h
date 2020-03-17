@@ -108,6 +108,7 @@ private:
 	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;
 	std::shared_ptr<artdaq::detail::RawEventHeader> evtHeader_;
 	size_t read_timeout_;
+	bool resume_after_timeout_;
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqSharedMemoryService, ArtdaqSharedMemoryServiceInterface, LEGACY)

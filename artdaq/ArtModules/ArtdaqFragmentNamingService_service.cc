@@ -1,5 +1,5 @@
-#include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
 #include "artdaq-core/Data/ContainerFragment.hh"
+#include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
 
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "ArtdaqFragmentNamingService"
