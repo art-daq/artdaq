@@ -31,7 +31,7 @@ public:
 	 * See the art::OutputModule documentation for more details on those Parameters.
 	 */
 	explicit RootNetOutput(fhicl::ParameterSet const& ps);
-	
+
 	/**
 	 * \brief RootNetOutput Destructor
 	 */

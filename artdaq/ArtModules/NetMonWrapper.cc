@@ -12,11 +12,12 @@ art::NetMonWrapper::NetMonWrapper(fhicl::ParameterSet const& ps)
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 }
 
-artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
+artdaq::FragmentPtrs art::NetMonWrapper::receiveMessage()
 {
 	TLOG(5) << "Receiving Fragment from NetMonTransportService";
 	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
+	artdaq::FragmentPtrs output;
 
 	// Do not process data until Init Fragment received!
 	auto start = std::chrono::steady_clock::now();
@@ -27,7 +28,7 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
 	if (!init_received_)
 	{
 		TLOG(TLVL_ERROR) << "Did not receive Init Fragment after " << init_timeout_s_ << " seconds. Art will crash.";
-		return nullptr;
+		return output;
 	}
 
 	artdaq::Fragments recvd_fragments;
@@ -38,13 +39,13 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
 		if (eventMap.size() == 0)
 		{
 			TLOG(TLVL_DEBUG) << "Did not receive event after timeout, returning from receiveMessage ";
-			return nullptr;
+			return output;
 		}
 
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
-			return nullptr;
+			return output;
 		}
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)))
 		{
@@ -54,11 +55,13 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
 	}
 
 	TLOG(TLVL_TRACE) << "receiveMessage: Returning top Fragment";
-	artdaq::FragmentPtr topFrag = artdaq::FragmentPtr(new artdaq::Fragment(std::move(recvd_fragments.at(0))));
-	recvd_fragments.erase(recvd_fragments.begin());
+	for (auto& frag : recvd_fragments)
+	{
+		TLOG(TLVL_TRACE) << "receiveMessage: Returning Fragment, length="
+		                 << frag.metadata<artdaq::NetMonHeader>()->data_length;
+		output.emplace_back(new artdaq::Fragment(std::move(frag)));
+	}
 
-	TLOG(TLVL_TRACE) << "receiveMessage: Returning Fragment, length="
-	                 << topFrag->metadata<artdaq::NetMonHeader>()->data_length;
 
 #if DUMP_RECEIVE_MESSAGE
 	std::string fileName = "receiveMessage_" + std::to_string(my_rank) + "_" + std::to_string(getpid()) + "_" +
@@ -71,7 +74,7 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveMessage()
 	TLOG(TLVL_TRACE) << "receiveMessage END";
 
 	TLOG(5) << "Done Receiving Fragment from NetMonTransportService";
-	return topFrag;
+	return output;
 }
 
 std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> art::NetMonWrapper::receiveMessages()
@@ -113,7 +116,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	return output;
 }
 
-artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
+artdaq::FragmentPtrs art::NetMonWrapper::receiveInitMessage()
 {
 	TLOG(5) << "Receiving Init Fragment from NetMonTransportService";
 
@@ -127,7 +130,7 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
-			return nullptr;
+			return artdaq::FragmentPtrs();
 		}
 		else if (!eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::InitFragmentType)) && eventMap.size() > 0)
 		{
@@ -144,7 +147,11 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
 	//      pointer
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage: Returning top Fragment";
-	artdaq::FragmentPtr topFrag = artdaq::FragmentPtr(new artdaq::Fragment(std::move(eventMap[artdaq::Fragment::InitFragmentType]->at(0))));
+	artdaq::FragmentPtrs output;
+	for (auto& frag : *eventMap[artdaq::Fragment::InitFragmentType])
+	{
+		output.emplace_back(new artdaq::Fragment(std::move(frag)));
+	}
 
 #if DUMP_RECEIVE_MESSAGE
 	std::string fileName = "receiveInitMessage_" + std::to_string(getpid()) + ".bin";
@@ -157,5 +164,5 @@ artdaq::FragmentPtr art::NetMonWrapper::receiveInitMessage()
 	init_received_ = true;
 
 	TLOG(5) << "Done Receiving Init Fragment from NetMonTransportService";
-	return topFrag;
+	return output;
 }

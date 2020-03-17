@@ -62,13 +62,16 @@ public:
 		 * \brief Receive a Fragment from the TransferInterface, and send it to art
 		 * \return Received Fragment
 		 */
-	artdaq::FragmentPtr receiveMessage();
+	artdaq::FragmentPtrs receiveMessage();
 
 	/**
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
 		 * \return Received InitFragment
 		 */
-	artdaq::FragmentPtr receiveInitMessage() { return receiveMessage(); }
+	artdaq::FragmentPtrs receiveInitMessage()
+	{
+		return receiveMessage();
+	}
 
 private:
 	void checkIntegrity(const artdaq::Fragment&) const;
@@ -91,7 +94,7 @@ private:
 	const bool quitOnFragmentIntegrityProblem_;
 	const bool multi_run_mode_;
 	bool monitorRegistered_;
-};
+};  // namespace artdaq
 }  // namespace artdaq
 
 #endif /* artdaq_ArtModules_TransferWrapper_hh */

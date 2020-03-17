@@ -37,14 +37,14 @@ public:
 		 * \brief Receive a message from the NetMonTransportService
 		 * \param[out] msg A pointer to the received message
 		 */
-	artdaq::FragmentPtr receiveMessage();
+	artdaq::FragmentPtrs receiveMessage();
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
 
 	/**
 		* \brief Receive an init message from the NetMonTransportService
 		* \param[out] msg A pointer to the received message
 		*/
-	artdaq::FragmentPtr receiveInitMessage();
+	artdaq::FragmentPtrs receiveInitMessage();
 
 private:
 	fhicl::ParameterSet data_pset_;

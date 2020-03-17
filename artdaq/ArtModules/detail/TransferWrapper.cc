@@ -84,9 +84,9 @@ artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
 	commander_ = MakeCommanderPlugin(new_pset, c);
 }
 
-artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
+artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 {
-	std::unique_ptr<artdaq::Fragment> fragmentPtr;
+	artdaq::FragmentPtrs fragmentPtrs;
 	bool receivedFragment = false;
 	static bool initialized = false;
 	static size_t fragments_received = 0;
@@ -94,7 +94,7 @@ artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 	while (true && !gSignalStatus)
 	{
 		receivedFragment = false;
-		fragmentPtr = std::make_unique<artdaq::Fragment>();
+		auto fragmentPtr = std::make_unique<artdaq::Fragment>();
 
 		while (!receivedFragment)
 		{
@@ -102,12 +102,12 @@ artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 			{
 				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 				unregisterMonitor();
-				return nullptr;
+				return fragmentPtrs;
 			}
 			if (!monitorRegistered_)
 			{
 				registerMonitor();
-				if (!monitorRegistered_) return nullptr;
+				if (!monitorRegistered_) return fragmentPtrs;
 			}
 
 			try
@@ -166,7 +166,7 @@ artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 			}
 			else
 			{
-				return nullptr;
+				return fragmentPtrs;
 			}
 		}
 
@@ -175,6 +175,7 @@ artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 		if (initialized || fragmentPtr->type() == artdaq::Fragment::InitFragmentType)
 		{
 			initialized = true;
+			fragmentPtrs.push_back(std::move(fragmentPtr));
 			break;
 		}
 		else
@@ -188,7 +189,7 @@ artdaq::FragmentPtr artdaq::TransferWrapper::receiveMessage()
 		}
 	}
 
-	return fragmentPtr;
+	return fragmentPtrs;
 }
 
 void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
