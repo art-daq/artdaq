@@ -242,9 +242,20 @@ void artdaqtest::BrokenTransferTest::stop_test_()
 	test_end_time_ = std::chrono::steady_clock::now();
 	test_end_requested_ = true;
 
+	TLOG(TLVL_DEBUG) << "stop_test_: Waiting for sender threads to shut down";
+	while (sender_ready_[0] || sender_ready_[1])
+	{
+		usleep(1000);
+	}
+
 	TLOG(TLVL_DEBUG) << "stop_test_: Joining sender threads";
 	if (sender_threads_[0].joinable()) sender_threads_[0].join();
 	if (sender_threads_[1].joinable()) sender_threads_[1].join();
+
+	TLOG(TLVL_DEBUG) << "stop_test_: Waiting for receiver threads to shut down";
+	while (receiver_ready_[0] || receiver_ready_[1]) {
+		usleep(1000);
+	}
 
 	TLOG(TLVL_DEBUG) << "stop_test_: Joining receiver threads";
 	if (receiver_threads_[0].joinable()) receiver_threads_[0].join();
@@ -325,6 +336,7 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 
 	TLOG(TLVL_DEBUG) << "Sender " << sender_rank << " shutting down...";
 	theTransfer.reset(nullptr);
+	sender_ready_[sender_rank] = false;
 	TLOG(TLVL_DEBUG) << "Sender " << sender_rank << " DONE";
 }
 
@@ -339,7 +351,7 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 	receiver_ready_[sender_rank] = true;
 	sender_tokens_[sender_rank] = event_buffer_count_;
 
-	while (event_buffer_.size() > 0 || !test_end_requested_)
+	while (event_buffer_.size() > 0 || !test_end_requested_ || sender_ready_[0] || sender_ready_[1])
 	{
 		if (kill_receiver_) break;
 		while (pause_receiver_)
@@ -438,6 +450,7 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 
 	std::lock_guard<std::mutex> lk(event_buffer_mutex_);
 	theTransfer.reset(nullptr);
+	receiver_ready_[sender_rank] = false;
 	TLOG(TLVL_DEBUG) << "Receiver " << sender_rank << "->" << receiver_rank << " DONE";
 }
 
