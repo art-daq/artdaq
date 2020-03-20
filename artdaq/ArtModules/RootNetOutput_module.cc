@@ -23,18 +23,6 @@ class RootNetOutput;
 class art::RootNetOutput : public ArtdaqOutput
 {
 public:
-	/// <summary>
-	/// Allowed Configuration parameters of NetMonTransportService. May be used for configuration validation
-	/// </summary>
-	struct Config
-	{
-		/// init_fragment_timeout_seconds (Default: 1.0): Amount of time, in seconds, to wait for connect to complete
-		fhicl::Atom<double> init_fragment_timeout_seconds{fhicl::Name{"init_fragment_timeout_seconds"}, fhicl::Comment{"Amount of time, in seconds, to wait for connect to complete"}, 1.0};
-		fhicl::TableFragment<artdaq::DataSenderManager::Config> dataSenderConfig;  ///< Configuration for DataSenderManager. See artdaq::DataSenderManager::Config
-	};
-	/// Used for ParameterSet validation (if desired)
-	using Parameters = fhicl::WrappedTable<Config>;
-
 	/**
 	 * \brief RootNetOutput Constructor
 	 * \param ps ParameterSet used to configure RootNetOutput
@@ -43,15 +31,6 @@ public:
 	 * See the art::OutputModule documentation for more details on those Parameters.
 	 */
 	explicit RootNetOutput(fhicl::ParameterSet const& ps);
-
-	/**
-	 * \brief RootNetOutput Constructor
-	 * \param ps ParameterSet used to configure RootNetOutput (Checked using Config struct defined above)
-	 *
-	 * RootNetOutput accepts no Parameters beyond those which art::OutputModule takes.
-	 * See the art::OutputModule documentation for more details on those Parameters.
-	 */
-	explicit RootNetOutput(Parameters const& ps);
 
 	/**
 	 * \brief RootNetOutput Destructor
@@ -89,15 +68,11 @@ art::RootNetOutput::RootNetOutput(fhicl::ParameterSet const& ps)
 {
 	TLOG(TLVL_DEBUG) << "Begin: RootNetOutput::RootNetOutput(ParameterSet const& ps)";
 	// Make sure the ArtdaqSharedMemoryService is available
-	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
+	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	init_timeout_s_ = ps.get<double>("init_fragment_timeout_seconds", 1.0);
 	connect();
 	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::RootNetOutput(ParameterSet const& ps)";
 }
-
-art::RootNetOutput::RootNetOutput(Parameters const& ps)
-    : RootNetOutput(ps.get_PSet())
-{}
 
 art::RootNetOutput::~RootNetOutput()
 {
