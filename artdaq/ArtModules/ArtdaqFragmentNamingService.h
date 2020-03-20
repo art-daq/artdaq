@@ -16,6 +16,14 @@ public:
 	 */
 	virtual ~ArtdaqFragmentNamingServiceInterface() = default;
 
+	/**
+	 * \brief ArtdaqFragmentNamingServiceInterface constructor
+	 * \param ps ParameterSet used to configure ArtdaqFragmentNamingServiceInterface
+	 *
+	 * ArtdaqFragmentNamingServiceInterface accepts the following Parameters:
+	 * "unidentified_instance_name" (Default: "unidentified"): Name to use for any Fragments which are not successfully translated by the ArtdaqFragmentNamingServiceInterface
+	 * "fragment_type_map" (Default: []): A list of Fragment type_t to string pairs for additional types to register with the ArtdaqFragmentNamingServiceInterface
+	 */
 	ArtdaqFragmentNamingServiceInterface(fhicl::ParameterSet const& ps)
 	    : type_map_(), unidentified_instance_name_(ps.get<std::string>("unidentified_instance_name", "unidentified"))
 	{
@@ -46,6 +54,10 @@ public:
 		type_map_[type_id] = type_name;
 	}
 
+	/**
+	 * \brief Get the configured unidentified_instance_name
+	 * \return The configured unidentified_instance_name
+	 */
 	std::string GetUnidentifiedInstanceName() { return unidentified_instance_name_; }
 
 	/**
