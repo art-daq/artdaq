@@ -64,6 +64,10 @@ public:
 		 * \return Received Fragment
 		 */
 	artdaq::FragmentPtrs receiveMessage();
+	/**
+	 * \brief Receive all messsages for an event from ArtdaqSharedMemoryService
+	 * \return A map of Fragment::type_t to a unique_ptr to Fragments containing all Fragments in an event
+	 */
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
 
 	/**
@@ -75,6 +79,10 @@ public:
 		return receiveMessage();
 	}
 
+	/**
+	 * \brief Get a pointer to the last received RawEventHeader
+	 * \return a shared_ptr to the last received RawEventHeader
+	 */
 	std::shared_ptr<artdaq::detail::RawEventHeader> getEventHeader() { return nullptr; }
 
 private:

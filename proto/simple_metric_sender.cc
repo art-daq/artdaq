@@ -3,9 +3,12 @@
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "fhiclcpp/types/TableFragment.h"
 
+/**
+ * \brief Configuration for simple_metric_sender
+ */
 struct Config
 {
-	fhicl::TableFragment<artdaq::MetricManager::Config> metricmanager_config;
+	fhicl::TableFragment<artdaq::MetricManager::Config> metricmanager_config; ///< Configuration for MetricManager
 };
 
 int main(int argc, char* argv[])

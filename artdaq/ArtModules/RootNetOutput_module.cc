@@ -47,9 +47,7 @@ protected:
 	/// <summary>
 	/// Send a message using DataSenderManager
 	/// </summary>
-	/// <param name="sequence_id">Sequence ID of message</param>
-	/// <param name="messageType">Type of message</param>
-	/// <param name="msg">Contents of message</param>
+	/// <param name="fragment">Fragment to send</param>
 	virtual void SendMessage(artdaq::FragmentPtr& fragment);
 
 private:
