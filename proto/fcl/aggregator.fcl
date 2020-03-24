@@ -1,11 +1,5 @@
 services: {
-  scheduler: {
-    fileMode: NOMERGE
-    errorOnFailureToPut: false
-  }
-  NetMonTransportServiceInterface: {
-    service_provider: NetMonTransportService
-  }
+    ArtdaqSharedMemoryServiceInterface: { service_provider: ArtdaqSharedMemoryService}
 
   #SimpleMemoryCheck: { }
 }
@@ -66,7 +60,8 @@ daq: {
 }
 
 source: {
-  module_type: NetMonInput
+  module_type: ArtdaqInput
+  register_fragment_types: false
 }
 outputs: {
   normalOutput: {
