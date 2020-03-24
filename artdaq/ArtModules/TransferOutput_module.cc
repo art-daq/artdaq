@@ -36,9 +36,7 @@ protected:
 	/// <summary>
 	/// Send a message using the Transfer Plugin
 	/// </summary>
-	/// <param name="sequenceId">Sequence ID of message</param>
-	/// <param name="messageType">Type of message</param>
-	/// <param name="msg">Contents of message</param>
+	/// <param name="msg">Fragment to send</param>
 	virtual void SendMessage(artdaq::FragmentPtr& msg);
 
 private:
