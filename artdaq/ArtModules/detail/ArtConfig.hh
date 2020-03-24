@@ -1,25 +1,56 @@
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/IO/ClosingCriteria.h"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/OptionalAtom.h"
+#include "fhiclcpp/types/OptionalSequence.h"
 #include "fhiclcpp/types/OptionalTable.h"
+#include "fhiclcpp/types/Sequence.h"
 #include "fhiclcpp/types/Table.h"
+#include "fhiclcpp/types/Tuple.h"
 
 namespace art {
 /// <summary>
-/// Configuration of the services.scheduler block for artdaq art processes
+/// Configuration for the ArtdaqFragmentNamingServiceInterface
 /// </summary>
-struct ServicesSchedulerConfig
+struct ArtdaqFragmentNamingServiceInterfaceConfig
 {
-	/// "errorOnFailureToPut" (Default: false): This parameter is necessary for correct function of artdaq.Do not modify.
-	fhicl::Atom<bool> errorOnFailureToPut{fhicl::Name{"errorOnFailureToPut"}, fhicl::Comment{"This parameter is necessary for correct function of artdaq. Do not modify."}, false};
+	/// "service_provider" (REQUIRED): Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqDemoFragmentNamingService)
+	fhicl::Atom<std::string> service_provider{fhicl::Name{"service_provider"}, fhicl::Comment{"Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqDemoFragmentNamingService)"}};
+	/// "unidentified_instance_name" (Default: "unidentified"): Name to use for Fragment types which are not identified by the ArtdaqFragmentNamingServiceInterface implementation.
+	fhicl::Atom<std::string> unidentified_instance_name{fhicl::Name{"unidentified_instance_name"}, fhicl::Comment{"Name to use for Fragment types which are not identified by the ArtdaqFragmentNamingServiceInterface implementation."}, "unidentified"};
+	/// "fragment_type_map" (OPTIONAL): Additional types to register with the ArtdaqFragmentNamingServiceInterface
+	fhicl::OptionalSequence<fhicl::Tuple<artdaq::Fragment::type_t, std::string>> fragment_type_map{fhicl::Name{"fragment_type_map"}, fhicl::Comment{"Additional types to register with the ArtdaqFragmentNamingServiceInterface"}};
 };
+
+/// <summary>
+/// Configuration for the ArtdaqSharedMemoryServiceInterface
+/// </summary>
+struct ArtdaqSharedMemoryServiceInterfaceConfig
+{
+	/// "service_provider" (REQUIRED): Name of the provider for the ArtdaqSharedMemoryServiceInterface (e.g. ArtdaqSharedMemoryService)
+	fhicl::Atom<std::string> service_provider{fhicl::Name{"service_provider"}, fhicl::Comment{"Name of the provider for the ArtdaqSharedMemoryServiceInterface (e.g. ArtdaqSharedMemoryService)"}};
+	/// "read_timeout_us" (Default: "waiting_time" * 1000000): Amount of time (in us) to wait for events from shared memory. Defaults to waiting_time if unspecified.
+	fhicl::Atom<size_t> read_timeout_us{fhicl::Name{"read_timeout_us"}, fhicl::Comment{"Amount of time (in us) to wait for events from shared memory. Defaults to waiting_time if unspecified."}, 600000000};
+	/// "waiting_time" (Default: 600.0): Amount of time (in s) to wait for events from shared memory. Overridden by read_timeout_us if specified.
+	fhicl::Atom<double> waiting_time{fhicl::Name{"waiting_time"}, fhicl::Comment{"Amount of time (in s) to wait for events from shared memory. Overridden by read_timeout_us if specified."}, 600.0};
+	/// "resume_after_timeout" (Default: true): Whether to continue to attempt to receive events after a timeout occurs
+	fhicl::Atom<bool> resume_after_timeout{fhicl::Name{"resume_after_timeout"}, fhicl::Comment{"Whether to continue to attempt to receive events after a timeout occurs"}, true};
+	/// "shared_memory_key" (OPTIONAL): Key to use for Data shared memory segment. Automatically generated using parent PID.
+	fhicl::OptionalAtom<int> shared_memory_key{fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use for Data shared memory segment. Automatically generated using parent PID."}};
+	/// "broadcast_shared_memory_key" (OPTIONAL): Key to use for Broadcast shared memory segment. Automatically generated using parent PID.
+	fhicl::OptionalAtom<int> broadcast_shared_memory_key{fhicl::Name{"broadcast_shared_memory_key"}, fhicl::Comment{"Key to use for Broadcast shared memory segment. Automatically generated using parent PID."}};
+	/// "metrics" (OPTIONAL): Configuration for artdaq Metrics
+	fhicl::OptionalTable<artdaq::MetricManager::Config> metrics{fhicl::Name{"metrics"}, fhicl::Comment{"Configuration for artdaq Metrics"}};
+};
+
 /// <summary>
 /// Configuration of the services block for artdaq art processes
 /// </summary>
 struct ServicesConfig
 {
-	fhicl::Table<ServicesSchedulerConfig> scheduler{fhicl::Name{"scheduler"}};  ///< Artdaq requires a services.scheduler parameter. See art::ServicesSchedulerConfig
+	fhicl::Table<ArtdaqSharedMemoryServiceInterfaceConfig> ArtdaqSharedMemoryServiceInterface{fhicl::Name{"ArtdaqSharedMemoryServiceInterface"}};                ///< Configuration for the ArtdaqSharedMemoryServiceInterface
+	fhicl::OptionalTable<ArtdaqFragmentNamingServiceInterfaceConfig> ArtdaqFragmentNamingServiceInterface{fhicl::Name{"ArtdaqFragmentNamingServiceInterface"}};  ///< Configuration for the ArtdaqFragmentNamingServiceInterface
 };
 
 struct AnalyzersConfig
@@ -104,8 +135,14 @@ struct OutputsConfig
 /// </summary>
 struct SourceConfig
 {
-	/// "module_type": Module type of source. Should be "RawInput", "NetMonInput", or an experiment-defined input type (e.g. "DemoInput")
-	fhicl::Atom<std::string> module_type{fhicl::Name{"module_type"}, fhicl::Comment{"Module type of source. Should be \"RawInput\", \"NetMonInput\", or an experiment-defined input type (e.g. \"DemoInput\")"}};
+	/// "module_type": REQUIRED: Module type of source. Should be "ArtdaqInput"
+	fhicl::Atom<std::string> module_type{fhicl::Name{"module_type"}, fhicl::Comment{"Module type of source. Should be \"ArtdaqInput\""}};
+	/// "init_fragment_timeout_seconds" (Default: 600.0): Amount of time (in s) ArtdaqInput should wait for an Init Fragment before simply returning Fragments
+	fhicl::Atom<double> init_fragment_timeout_seconds{fhicl::Name{"init_fragment_timeout_seconds"}, fhicl::Comment{"Amount of time ArtdaqInput should wait for an Init Fragment before simply returning Fragments"}, 600.0};
+	/// "raw_data_label" (Default: "daq"): Label to use for raw data (i.e. Fragments from the DAQ)
+	fhicl::Atom<std::string> raw_data_label{fhicl::Name{"raw_data_label"}, fhicl::Comment{"Label to use for raw data (i.e. Fragments from the DAQ)"}, "daq"};
+	/// "register_fragment_types" (Default: true): Whether ArtdaqInputHelper should register the known Fragment types from the ArtdaqFragmentNamingServiceInterface. Required for EventBuilders. Disable for processes that don't handle Fragments.
+	fhicl::Atom<bool> register_fragment_types{fhicl::Name{"register_fragment_types"}, fhicl::Comment{"Whether ArtdaqInputHelper should register the known Fragment types from the ArtdaqFragmentNamingServiceInterface. Required for EventBuilders. Disable for processes that don't handle Fragments."}, true};
 };
 
 /// <summary>
