@@ -70,11 +70,13 @@ FragmentSniffer::FragmentSniffer(fhicl::ParameterSet const& p)
 
 void FragmentSniffer::analyze(art::Event const& e)
 {
+	TLOG(TLVL_DEBUG) << "Analyze called for event " << e.event();
 	art::Handle<Fragments> handle;
 	e.getByLabel(raw_label_, product_instance_name_, handle);
 	assert(!handle->empty() && "getByLabel returned empty handle");
 	assert(handle->size() == num_frags_per_event_);
 	++num_events_processed_;
+	TLOG(TLVL_DEBUG) << "End of FragmentSniffer::analyze";
 }
 
 void FragmentSniffer::endJob()

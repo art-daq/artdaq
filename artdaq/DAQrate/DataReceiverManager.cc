@@ -389,7 +389,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				case Fragment::InitFragmentType:
 					TLOG(TLVL_DEBUG) << "Received Init Fragment from rank " << source_rank << ".";
 					shm_manager_->setRequestMode(detail::RequestMessageMode::Normal);
-					shm_manager_->SetInitFragment(std::move(frag));
+					shm_manager_->AddInitFragment(frag);
 					break;
 				case Fragment::EndOfRunFragmentType:
 					shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
