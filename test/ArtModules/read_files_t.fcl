@@ -7,11 +7,13 @@ services: {
   broadcast_shared_memory_key: 0xFDF1E5
   buffer_count: 10
   max_event_size_bytes: 1024
+  waiting_time: 1.0         // waiting time in seconds
+  resume_after_timeout: false
    }
 }
 
 source: {
-  module_type: RawInput
-  waiting_time: 1.0         // waiting time in seconds
-  resume_after_timeout: false
+  module_type: ArtdaqInput
+  register_fragment_types: false
+  init_fragment_timeout_seconds: 1
 }
