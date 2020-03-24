@@ -49,6 +49,13 @@ int main(int argc, char* argv[])
 		// Fragments; this has too clean a pattern to be an interesting
 		// test of the EventStore's ability to deal with multiple events
 		// simulatenously.
+
+		if (metricMan)
+		{
+			metricMan->initialize(pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet()), app_name);
+			metricMan->do_start();
+		}
+
 		GenericFragmentSimulator sim(pset);
 		SharedMemoryEventManager events(pset, pset);
 		events.startRun(RUN_ID);

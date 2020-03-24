@@ -79,6 +79,7 @@ int TCP_listen_fd(int port, int rcvbuf)
 	sts = listen(listener_fd, 5 /*QLEN*/);
 	if (sts == -1)
 	{
+		TLOG(TLVL_ERROR) << "Error calling listen! errno=" << errno << " (" << strerror(errno) << ")";
 		perror("listen error");
 		exit(1);
 	}
