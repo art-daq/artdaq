@@ -267,7 +267,7 @@ public:
 	* This function is implemented in Commandable, derived classes may override if necessary.
 	* \param name Name of the TRACE level to set mask for
 	* \param type Type of TRACE mask to set (either M, S, or T)
-	* \param mask Mask to set
+	* \param mask_in_string_form Mask to set
 	* \return Whether the command succeeded (always true)
 	*/
 	virtual bool do_trace_set(std::string const& name, std::string const& type, std::string const& mask_in_string_form);

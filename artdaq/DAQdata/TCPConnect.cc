@@ -346,11 +346,14 @@ int ResolveHost(char const *host_in, int dflt_port, sockaddr_in &sin)
 		hostent_sp = gethostbyname(host.c_str());
 		if (!hostent_sp)
 		{
+			TLOG(TLVL_ERROR) << "Error calling gethostbyname: " << errno << " (" << strerror(errno) << ")";
 			perror("gethostbyname");
 			return (-1);
 		}
 		sin.sin_addr = *(struct in_addr *)(hostent_sp->h_addr_list[0]);
 	}
+
+	TLOG(TLVL_INFO) << "Host resolved as " << inet_ntoa(sin.sin_addr);
 	return 0;
 }
 // return connection fd.
