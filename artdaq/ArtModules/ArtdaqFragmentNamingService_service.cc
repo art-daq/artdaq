@@ -31,7 +31,7 @@ std::set<std::string> ArtdaqFragmentNamingService::GetAllProductInstanceNames()
 		{
 			output.insert(instance_name);
 			TLOG(TLVL_TRACE) << "Adding product instance name \"" << map_iter.second
-			                                            << "\" to list of expected names";
+			                 << "\" to list of expected names";
 		}
 	}
 

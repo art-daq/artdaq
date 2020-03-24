@@ -233,7 +233,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 	artdaq::FragmentPtrs initFrags = communicationWrapper_.receiveInitMessage();
 	TLOG_ARB(5, "ArtdaqInputHelper") << "Init message received";
 
-	if (initFrags.size() == 0  || initFrags.back().get()->dataSize() == 0)
+	if (initFrags.size() == 0 || initFrags.back().get()->dataSize() == 0)
 	{
 		TLOG_DEBUG("ArtdaqInputHelper") << "No init message received or zero-size init message: Fragments-only mode activated! This is an EventBuilder!";
 		fragmentsOnlyMode_ = true;
