@@ -658,7 +658,7 @@ std::string
 RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& config)
 {
 	// Make sure that the shared memory is connected
-	art::ServiceHandle<ArtdaqSharedMemoryService> shm;
+	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 
 	TLOG(TLVL_DEBUG) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
 
