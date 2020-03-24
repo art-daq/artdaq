@@ -46,6 +46,7 @@ bool artdaq::GenericFragmentSimulator::
 	frag_ptr.reset(new Fragment(sequence_id, fragment_id));
 	size_t payload_size = generateFragmentSize_();
 	frag_ptr->resize(payload_size, 0);
+	frag_ptr->setSystemType(artdaq::Fragment::EmptyFragmentType);
 	switch (content_selection_)
 	{
 		case content_selector_t::EMPTY:
