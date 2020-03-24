@@ -88,6 +88,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		if (fragment_ids.size() != 0)
 		{
 			latest_exception_report_ = "Error in CommandableFragmentGenerator: can't both define \"fragment_id\" and \"fragment_ids\" in FHiCL document";
+			TLOG(TLVL_ERROR) << latest_exception_report_;
 			throw cet::exception(latest_exception_report_);
 		}
 		else
@@ -136,6 +137,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 		if (!useDataThread_)
 		{
 			latest_exception_report_ = "Error in CommandableFragmentGenerator: use_data_thread must be true when request_mode is not \"Ignored\"!";
+			TLOG(TLVL_ERROR) << latest_exception_report_;
 			throw cet::exception(latest_exception_report_);
 		}
 		requestReceiver_.reset(new RequestReceiver(ps));
@@ -310,7 +312,11 @@ size_t artdaq::CommandableFragmentGenerator::ev_counter_inc(size_t step, bool fo
 void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_TRACE) << "Start Command received.";
-	if (run < 0) throw cet::exception("CommandableFragmentGenerator") << "negative run number";
+	if (run < 0)
+	{
+		TLOG(TLVL_ERROR) << "negative run number";
+		throw cet::exception("CommandableFragmentGenerator") << "negative run number";
+	}
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
@@ -591,6 +597,8 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			auto frag_id = (*dataIter)->fragmentID();
 			if (!dataBuffers_.count(frag_id))
 			{
+				TLOG(TLVL_ERROR) << "DataBufferError: "
+				                 << "Error in CommandableFragmentGenerator: Recevied Fragment with fragment_id " << frag_id << ", but this ID was not declared in fragment_ids!";
 				throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Recevied Fragment with fragment_id " << frag_id << ", but this ID was not declared in fragment_ids!";
 			}
 
@@ -657,6 +665,8 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady(Fragment::frag
 {
 	if (!dataBuffers_.count(id))
 	{
+		TLOG(TLVL_ERROR) << "DataBufferError: "
+		                 << "Error in CommandableFragmentGenerator: Cannot wait for data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot wait for data buffer for ID " << id << " because it does not exist!";
 	}
 	auto startwait = std::chrono::steady_clock::now();
@@ -688,7 +698,8 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady(Fragment::frag
 				TLOG(TLVL_WARNING) << "Bad Omen: Data Buffer has exceeded its size limits. "
 				                   << "(seq_id=" << ev_counter() << ", frag_id=" << id
 				                   << ", frags=" << dataBuffers_[id].DataBufferDepthFragments << "/" << maxDataBufferDepthFragments_
-				                   << ", szB=" << dataBuffers_[id].DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")";
+				                   << ", szB=" << dataBuffers_[id].DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")"
+				                   << ", timestamps=" << dataBuffers_[id].DataBuffer.front()->timestamp() << "-" << dataBuffers_[id].DataBuffer.back()->timestamp();
 				TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
 				first = false;
 			}
@@ -729,6 +740,8 @@ bool artdaq::CommandableFragmentGenerator::dataBufferIsTooLarge(Fragment::fragme
 {
 	if (!dataBuffers_.count(id))
 	{
+		TLOG(TLVL_ERROR) << "DataBufferError: "
+		                 << "Error in CommandableFragmentGenerator: Cannot check size of data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot check size of data buffer for ID " << id << " because it does not exist!";
 	}
 	return (maxDataBufferDepthFragments_ > 0 && dataBuffers_[id].DataBufferDepthFragments > maxDataBufferDepthFragments_) || (maxDataBufferDepthBytes_ > 0 && dataBuffers_[id].DataBufferDepthBytes > maxDataBufferDepthBytes_);
@@ -738,6 +751,8 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats(Fragment::fragment
 {
 	if (!dataBuffers_.count(id))
 	{
+		TLOG(TLVL_ERROR) << "DataBufferError: "
+		                 << "Error in CommandableFragmentGenerator: Cannot get stats of data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot get stats of data buffer for ID " << id << " because it does not exist!";
 	}
 	/// dataBufferMutex must be owned by the calling thread!
@@ -763,6 +778,8 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer(Fragment::fragment_id
 {
 	if (!dataBuffers_.count(id))
 	{
+		TLOG(TLVL_ERROR) << "DataBufferError: "
+		                 << "Error in CommandableFragmentGenerator: Cannot check data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot check data buffer for ID " << id << " because it does not exist!";
 	}
 
