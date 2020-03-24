@@ -108,6 +108,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 		auto nfds = epoll_wait(token_epoll_fd_, &receive_token_events_[0], receive_token_events_.size(), update_interval_msec_);
 		if (nfds == -1)
 		{
+			TLOG(TLVL_ERROR) << "Error status received from epoll_wait, exiting with code " << EXIT_FAILURE << ", errno=" << errno << " (" << strerror(errno) << ")";
 			perror("epoll_wait");
 			exit(EXIT_FAILURE);
 		}
@@ -130,6 +131,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 
 				if (conn_sock == -1)
 				{
+					TLOG(TLVL_ERROR) << "Error status received from accept, exiting with code " << EXIT_FAILURE << ", errno=" << errno << " (" << strerror(errno) << ")";
 					perror("accept");
 					exit(EXIT_FAILURE);
 				}
@@ -141,6 +143,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				ev.data.fd = conn_sock;
 				if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
 				{
+					TLOG(TLVL_ERROR) << "Error status received from epoll_ctl, exiting with code " << EXIT_FAILURE << ", errno=" << errno << " (" << strerror(errno) << ")";
 					perror("epoll_ctl: conn_sock");
 					exit(EXIT_FAILURE);
 				}
