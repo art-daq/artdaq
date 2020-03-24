@@ -380,10 +380,22 @@ template<>
 art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int index)
 {
 	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as Run Number.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
-	art::RunNumber_t run_number(paramList.getInt(index));
-	art::RunID run_id(run_number);
+	art::RunNumber_t run_number;
+	try
+	{
+		TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
+		run_number = art::RunNumber_t(paramList.getInt(index));
+	}
+	catch (...)
+	{
+		TLOG(TLVL_TRACE) << "Parameter is not an int. Trying string...";
 
+		auto runNumber = paramList.getString(index);
+		TLOG(TLVL_TRACE) << "Got run number string " << runNumber;
+		run_number = art::RunNumber_t(std::stoi(runNumber));
+	}
+
+	art::RunID run_id(run_number);
 	return run_id;
 }
 

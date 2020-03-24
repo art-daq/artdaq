@@ -90,6 +90,9 @@ public:
 	/// The init command is accepted by all artdaq processes that are in the booted state.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet for the command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
 
@@ -99,6 +102,9 @@ public:
 	/// The soft_init command is accepted by all artdaq processes that are in the booted state.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet for the command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_soft_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
 
@@ -108,6 +114,9 @@ public:
 	/// The reinit command is accepted by all artdaq processes.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet for the command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_reinit(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
 
@@ -117,6 +126,9 @@ public:
 	/// The start command starts a Run using the given run number.
 	/// This command also accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="runNumber">Run number of the new run</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_start(art::RunID runNumber, uint64_t timeout, uint64_t timestamp);
 
@@ -126,6 +138,8 @@ public:
 	/// The pause command pauses a Run. When the run resumes, the subrun number will be incremented.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_pause(uint64_t timeout, uint64_t timestamp);
 
@@ -135,6 +149,8 @@ public:
 	/// The resume command resumes a paused Run. When the run resumes, the subrun number will be incremented.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_resume(uint64_t timeout, uint64_t timestamp);
 
@@ -144,6 +160,8 @@ public:
 	/// The stop command stops the current Run.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_stop(uint64_t timeout, uint64_t timestamp);
 
@@ -153,6 +171,7 @@ public:
 	/// The shutdown command shuts down the artdaq process.
 	/// This command accepts a timeout parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_shutdown(uint64_t timeout);
 
@@ -169,6 +188,7 @@ public:
 	///
 	/// The report command returns the current value of the requested reportable quantity.
 	/// </summary>
+	/// <param name="which">Reportable quantity to request</param>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
 	virtual std::string send_report(std::string which);
 
@@ -185,6 +205,7 @@ public:
 	///
 	/// This will cause a Dispatcher to start an art process with the given FHiCL configuration string
 	/// </summary>
+	/// <param name="monitor_fhicl">FHiCL code used to configure the art process that the Dispatcher starts</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_register_monitor(std::string monitor_fhicl);
 
@@ -193,6 +214,7 @@ public:
 	///
 	/// This will cause a Dispatcher to stop sending data to the monitor identified by the given label
 	/// </summary>
+	/// <param name="label">Label of the monitor to unregister</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_unregister_monitor(std::string label);
 
@@ -202,6 +224,7 @@ public:
 	/// This will cause the receiver to get the TRACE level masks for the given name
 	/// Use name == "ALL" to get ALL names
 	/// </summary>
+	/// <param name="name">TRACE name to get the mask for ("ALL" to get all names)</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_trace_get(std::string name);
 
@@ -215,6 +238,9 @@ public:
 	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_set s/M s/ALL s/0x12345
 	///
 	/// </summary>
+	/// <param name="name">TRACE name to set ("ALL" for all TRACE names)</param>
+	/// <param name="type">Type of mask to set ('M', 'S', or 'T')</param>
+	/// <param name="mask">64-bit mask, in string form</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_trace_set(std::string name, std::string type, std::string mask);
 
@@ -223,6 +249,8 @@ public:
 	///
 	/// This will cause the receiver to run the given command with the given argument in user code
 	/// </summary>
+	/// <param name="command">Command name to send</param>
+	/// <param name="argument">Argument for command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_meta_command(std::string command, std::string argument);
 
@@ -232,6 +260,8 @@ public:
 	/// This will cause the receiver to rollover the subrun number at the given event. (Event with seqID == boundary will be in new subrun.)
 	/// Should be sent to all EventBuilders before the given event is processed.
 	/// </summary>
+	/// <param name="seq">Sequence ID of new subrun</param>
+	/// <param name="subrunNumber">Subrun number of the new subrun</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string send_rollover_subrun(uint64_t seq, uint32_t subrunNumber);
 
@@ -251,6 +281,8 @@ public:
 	///
 	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.add_config_archive_entry "EventBuilder1" "daq: {verbose: true}"
 	/// </summary>
+	/// <param name="key">Key in the archive</param>
+	/// <param name="value">Value to store in the archive</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	virtual std::string add_config_archive_entry(std::string key, std::string value);
 

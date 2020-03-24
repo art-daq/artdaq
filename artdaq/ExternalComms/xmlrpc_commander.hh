@@ -54,6 +54,9 @@ public:
 	/// The init command is accepted by all artdaq processes that are in the booted state.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet received with the init command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
 
@@ -63,6 +66,9 @@ public:
 	/// The soft_init command is accepted by all artdaq processes that are in the booted state.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet received with the soft_init command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_soft_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
 
@@ -72,6 +78,9 @@ public:
 	/// The reinit command is accepted by all artdaq processes.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet received with the reinit command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_reinit(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
 
@@ -81,6 +90,9 @@ public:
 	/// The start command starts a Run using the given run number.
 	/// This command also accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="runNumber">Run number of the new run</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_start(art::RunID runNumber, uint64_t timeout, uint64_t timestamp) override;
 
@@ -90,6 +102,8 @@ public:
 	/// The pause command pauses a Run. When the run resumes, the subrun number will be incremented.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_pause(uint64_t timeout, uint64_t timestamp) override;
 
@@ -99,6 +113,8 @@ public:
 	/// The resume command resumes a paused Run. When the run resumes, the subrun number will be incremented.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_resume(uint64_t timeout, uint64_t timestamp) override;
 
@@ -108,6 +124,8 @@ public:
 	/// The stop command stops the current Run.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_stop(uint64_t timeout, uint64_t timestamp) override;
 
@@ -117,6 +135,7 @@ public:
 	/// The shutdown command shuts down the artdaq process.
 	/// This command accepts a timeout parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_shutdown(uint64_t timeout) override;
 
@@ -133,6 +152,7 @@ public:
 	///
 	/// The report command returns the current value of the requested reportable quantity.
 	/// </summary>
+	/// <param name="which">Reportable quantity to request</param>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
 	std::string send_report(std::string which) override;
 
@@ -150,6 +170,7 @@ public:
 	/// This will cause the receiver to get the TRACE level masks for the given name
 	/// Use name == "ALL" to get ALL names
 	/// </summary>
+	/// <param name="name">TRACE name to get the mask for ("ALL" to get all names)</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_trace_get(std::string name) override;
 
@@ -162,6 +183,9 @@ public:
 	///
 	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i8/$((0x1234)) # Use Bash to convert hex to dec
 	/// </summary>
+	/// <param name="name">TRACE name to set ("ALL" for all TRACE names)</param>
+	/// <param name="type">Type of mask to set ('M', 'S', or 'T')</param>
+	/// <param name="mask">64-bit mask, in string form</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_trace_set(std::string name, std::string type, std::string mask) override;
 
@@ -170,6 +194,8 @@ public:
 	///
 	/// This will cause the receiver to run the given command with the given argument in user code
 	/// </summary>
+	/// <param name="command">Command name to send</param>
+	/// <param name="argument">Argument for command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_meta_command(std::string command, std::string argument) override;
 
@@ -179,6 +205,8 @@ public:
 	/// This will cause the receiver to rollover the subrun number at the given event. (Event with seqID == boundary will be in new subrun.)
 	/// Should be sent to all EventBuilders before the given event is processed.
 	/// </summary>
+	/// <param name="seq">Sequence ID of new subrun</param>
+	/// <param name="subrunNumber">Subrun number of the new subrun</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_rollover_subrun(uint64_t seq, uint32_t subrunNumber) override;
 
