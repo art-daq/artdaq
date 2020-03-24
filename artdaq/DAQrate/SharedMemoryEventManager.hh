@@ -340,7 +340,7 @@ public:
 	/**
 		 * \brief Set the stored Init fragment, if one has not yet been set already.
 		 */
-	void SetInitFragment(FragmentPtr frag);
+	void AddInitFragment(FragmentPtr& frag);
 
 	/**
 		 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
@@ -419,7 +419,7 @@ private:
 	bool update_run_ids_;
 	bool use_sequence_id_for_event_number_;
 	bool overwrite_mode_;
-	bool send_init_fragments_;
+	size_t init_fragment_count_;
 	bool running_;
 
 	std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
@@ -455,10 +455,10 @@ private:
 	std::unique_ptr<RequestSender> requests_;
 	fhicl::ParameterSet data_pset_;
 
-	FragmentPtr init_fragment_;
+	FragmentPtrs init_fragments_;
 	std::unordered_map<Fragment::fragment_id_t, FragmentPtr> dropped_data_;  ///< Used for when data comes in badly out-of-sequence
 
-	bool broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag);
+	bool broadcastFragments_(FragmentPtrs& frags);
 
 	detail::RawEventHeader* getEventHeader_(int buffer);
 
@@ -468,7 +468,7 @@ private:
 	bool bufferComparator(int bufA, int bufB);
 	void check_pending_buffers_(std::unique_lock<std::mutex> const& lock);
 
-	void send_init_frag_();
+	void send_init_frags_();
 	SharedMemoryManager broadcasts_;
 };
 }  // namespace artdaq
