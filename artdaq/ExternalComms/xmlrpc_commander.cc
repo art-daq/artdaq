@@ -352,11 +352,13 @@ art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int 
 {
 	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as Run Number.";
 	art::RunNumber_t run_number;
-	try {
+	try
+	{
 		TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
-		 run_number = art::RunNumber_t(paramList.getInt(index));
+		run_number = art::RunNumber_t(paramList.getInt(index));
 	}
-	catch (...) {
+	catch (...)
+	{
 		TLOG(TLVL_TRACE) << "Parameter is not an int. Trying string...";
 
 		auto runNumber = paramList.getString(index);

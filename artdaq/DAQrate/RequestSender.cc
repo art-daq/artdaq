@@ -108,7 +108,7 @@ void RequestSender::setup_requests_()
 			exit(1);
 		}
 
-/*		if (multicast_out_addr_ == "0.0.0.0")
+		/*		if (multicast_out_addr_ == "0.0.0.0")
 		{
 			char hostname[HOST_NAME_MAX];
 			sts = gethostname(hostname, HOST_NAME_MAX);

@@ -8,7 +8,7 @@
  */
 struct Config
 {
-	fhicl::TableFragment<artdaq::MetricManager::Config> metricmanager_config; ///< Configuration for MetricManager
+	fhicl::TableFragment<artdaq::MetricManager::Config> metricmanager_config;  ///< Configuration for MetricManager
 };
 
 int main(int argc, char* argv[])

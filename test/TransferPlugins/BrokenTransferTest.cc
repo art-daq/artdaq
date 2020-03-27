@@ -253,7 +253,8 @@ void artdaqtest::BrokenTransferTest::stop_test_()
 	if (sender_threads_[1].joinable()) sender_threads_[1].join();
 
 	TLOG(TLVL_DEBUG) << "stop_test_: Waiting for receiver threads to shut down";
-	while (receiver_ready_[0] || receiver_ready_[1]) {
+	while (receiver_ready_[0] || receiver_ready_[1])
+	{
 		usleep(1000);
 	}
 

@@ -1,9 +1,9 @@
 #include "tracemf.h"
 #define TRACE_NAME "ShmemWrapper"
 
-#include "artdaq/ArtModules/detail/ShmemWrapper.hh"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+#include "artdaq/ArtModules/detail/ShmemWrapper.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 
 art::ShmemWrapper::ShmemWrapper(fhicl::ParameterSet const& ps)
