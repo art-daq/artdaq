@@ -265,8 +265,9 @@ public:
 	/**
 		 * \brief Shutdown a set of art processes
 		 * \param pids PIDs of the art processes
+		 * \param skip_graceful_wait Whether to skip the graceful wait period and go directly to sending signals (Default: false, used by Dispatcher)
 		 */
-	void ShutdownArtProcesses(std::set<pid_t>& pids);
+	void ShutdownArtProcesses(std::set<pid_t>& pids, bool skip_graceful_wait = false);
 
 	/**
 		 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
