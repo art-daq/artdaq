@@ -90,13 +90,19 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 				TLOG(TLVL_WARNING) << "Timeout occurred! No data received after " << read_timeout_ << " us. Retrying.";
 			}
 		}
+		if (incoming_events_->IsEndOfData()) {
+			TLOG(TLVL_INFO) << "End of Data signal received, exiting";
+			return recvd_fragments;
+		}
 
 		TLOG(TLVL_TRACE) << "ReceiveEvent: Reading buffer header";
 		auto errflag = false;
 		auto hdrPtr = incoming_events_->ReadHeader(errflag);
 		if (errflag || hdrPtr == nullptr)
 		{  // Buffer was changed out from under reader!
-			return recvd_fragments;
+			incoming_events_->ReleaseBuffer();
+			continue;//retry
+			//return recvd_fragments;
 		}
 		evtHeader_ = std::make_shared<artdaq::detail::RawEventHeader>(*hdrPtr);
 		TLOG(TLVL_TRACE) << "ReceiveEvent: Getting Fragment types";
@@ -104,7 +110,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		if (errflag)
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
-			return recvd_fragments;
+			continue;  //retry
+			//return recvd_fragments;
 		}
 		if (fragmentTypes.size() == 0)
 		{
