@@ -233,189 +233,197 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 	artdaq::FragmentPtrs initFrags = communicationWrapper_.receiveInitMessage();
 	TLOG_ARB(5, "ArtdaqInputHelper") << "Init message received";
 
-	if (initFrags.size() == 0 || initFrags.back().get()->dataSize() == 0)
-	{
-		TLOG_DEBUG("ArtdaqInputHelper") << "No init message received or zero-size init message: Fragments-only mode activated! This is an EventBuilder!";
-		fragmentsOnlyMode_ = true;
+	if (initFrags.size() > 0 && initFrags.front().get()->type() == artdaq::Fragment::EndOfDataFragmentType) {
+		TLOG_ERROR("ArtdaqInputHelper") << "Received EndOfData as first broadcast! This process neveer received any data!";
+		shutdownMsgReceived_ = true;
+		outputFileCloseNeeded_ = true;
 	}
-	else
-	{
-		std::list<std::unique_ptr<TBufferFile>> msgs;
-		for (auto& initFrag : initFrags)
+	else {
+
+		if (initFrags.size() == 0 || initFrags.back().get()->dataSize() == 0)
 		{
-			auto header = initFrag->metadata<artdaq::NetMonHeader>();
-			msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
+			TLOG_DEBUG("ArtdaqInputHelper") << "No init message received or zero-size init message: Fragments-only mode activated! This is an EventBuilder!";
+			fragmentsOnlyMode_ = true;
 		}
-
-		std::list<History*> processHistories;
-
-		for (auto& msg : msgs)
+		else
 		{
-			// This first unsigned long is the message type code, ignored here in the constructor
-			unsigned long dummy = 0;
-			msg->ReadULong(dummy);
-
-			// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
-			TList* list = (TList*)msg->ReadObject(TList::Class());
-
-			TIter next(list);
-			TStreamerInfo* info;
-			TObjLink* lnk = list->FirstLink();
-			// First call BuildCheck for regular class
-			while (lnk)
+			std::list<std::unique_ptr<TBufferFile>> msgs;
+			for (auto& initFrag : initFrags)
 			{
-				info = (TStreamerInfo*)lnk->GetObject();
-				TObject* element = info->GetElements()->UncheckedAt(0);
-				Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
-				if (!isstl)
+				auto header = initFrag->metadata<artdaq::NetMonHeader>();
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
+			}
+
+			std::list<History*> processHistories;
+
+			for (auto& msg : msgs)
+			{
+				// This first unsigned long is the message type code, ignored here in the constructor
+				unsigned long dummy = 0;
+				msg->ReadULong(dummy);
+
+				// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
+				TList* list = (TList*)msg->ReadObject(TList::Class());
+
+				TIter next(list);
+				TStreamerInfo* info;
+				TObjLink* lnk = list->FirstLink();
+				// First call BuildCheck for regular class
+				while (lnk)
 				{
-					info->BuildCheck();
-					TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+					info = (TStreamerInfo*)lnk->GetObject();
+					TObject* element = info->GetElements()->UncheckedAt(0);
+					Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+					if (!isstl)
+					{
+						info->BuildCheck();
+						TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+					}
+					lnk = lnk->Next();
 				}
-				lnk = lnk->Next();
-			}
-			// Then call BuildCheck for stl class
-			lnk = list->FirstLink();
-			while (lnk)
-			{
-				info = (TStreamerInfo*)lnk->GetObject();
-				TObject* element = info->GetElements()->UncheckedAt(0);
-				Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
-				if (isstl)
+				// Then call BuildCheck for stl class
+				lnk = list->FirstLink();
+				while (lnk)
 				{
-					info->BuildCheck();
-					TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+					info = (TStreamerInfo*)lnk->GetObject();
+					TObject* element = info->GetElements()->UncheckedAt(0);
+					Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
+					if (isstl)
+					{
+						info->BuildCheck();
+						TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: importing TStreamerInfo: " << info->GetName() << ", version = " << info->GetClassVersion();
+					}
+					lnk = lnk->Next();
 				}
-				lnk = lnk->Next();
-			}
-			// ELF: 6/11/2019: End TSocket snippet
+				// ELF: 6/11/2019: End TSocket snippet
 
-			//
-			//  Read the ParameterSetRegistry.
-			//
-			unsigned long ps_cnt = 0;
-			msg->ReadULong(ps_cnt);
-			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: parameter set count: " << ps_cnt;
-			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: reading parameter sets ...";
-			for (unsigned long I = 0; I < ps_cnt; ++I)
-			{
-				std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInputHelper::ArtdaqInputHelper");
-				msg->ReadStdString(pset_str);
+				//
+				//  Read the ParameterSetRegistry.
+				//
+				unsigned long ps_cnt = 0;
+				msg->ReadULong(ps_cnt);
+				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: parameter set count: " << ps_cnt;
+				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: reading parameter sets ...";
+				for (unsigned long I = 0; I < ps_cnt; ++I)
+				{
+					std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInputHelper::ArtdaqInputHelper");
+					msg->ReadStdString(pset_str);
 
-				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: parameter set: " << pset_str;
+					TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: parameter set: " << pset_str;
 
-				fhicl::ParameterSet pset;
-				fhicl::make_ParameterSet(pset_str, pset);
-				// Force id calculation.
-				pset.id();
-				fhicl::ParameterSetRegistry::put(pset);
-			}
-			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: finished reading parameter sets.";
+					fhicl::ParameterSet pset;
+					fhicl::make_ParameterSet(pset_str, pset);
+					// Force id calculation.
+					pset.id();
+					fhicl::ParameterSetRegistry::put(pset);
+				}
+				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: finished reading parameter sets.";
 
-			//
-			//  Read the MasterProductRegistry.
-			//
-			auto thisProductList = ReadObjectAny<art::ProductList>(
-			    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputHelper::ArtdaqInputHelper");
-			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Input Product list sz=" << thisProductList->size();
+				//
+				//  Read the MasterProductRegistry.
+				//
+				auto thisProductList = ReadObjectAny<art::ProductList>(
+					msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputHelper::ArtdaqInputHelper");
+				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Input Product list sz=" << thisProductList->size();
 
-			bool productListInitialized = productList_ != nullptr;
-			if (!productListInitialized) productList_ = thisProductList;
-			for (auto I = thisProductList->begin(), E = thisProductList->end(); I != E; ++I)
-			{
+				bool productListInitialized = productList_ != nullptr;
+				if (!productListInitialized) productList_ = thisProductList;
+				for (auto I = thisProductList->begin(), E = thisProductList->end(); I != E; ++I)
+				{
 #ifndef __OPTIMIZE__
-				TLOG_ARB(50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
-				                                  << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
-				                                  << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
-				                                  << ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
+					TLOG_ARB(50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
+						<< I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+						<< I->first.processName_ << "', branch description name: " << I->second.wrappedName()
+						<< ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
 #endif
-				if (productListInitialized)
+					if (productListInitialized)
+					{
+						productList_->emplace(*I);
+					}
+				}
+
+				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading ProcessHistory";
+				art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
+					msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputHelper::ArtdaqInputHelper");
+				printProcessMap(*phm, "ArtdaqInputHelper's ProcessHistoryMap");
+
+				ProcessHistoryRegistry::put(*phm);
+				printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInputHelper's ProcessHistoryRegistry");
+
+				//
+				//  Read the ParentageRegistry.
+				//
+				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading ParentageMap";
+				ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputHelper::ArtdaqInputHelper");
+				ParentageRegistry::put(*parentageMap);
+
+				//
+				// Read the History
+				//
+				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading History";
+				processHistories.push_back(ReadObjectAny<History>(msg, "art::History", "ArtdaqInputHelper::ArtdaqInputHelper"));
+			}
+
+			// We're going to make a fake History using the collected process histories!
+			art::ProcessHistory fake_process_history;
+			for (auto& hist : processHistories)
+			{
+				auto id = hist->processHistoryID();
+				ProcessHistory thisProcessHistory;
+				if (ProcessHistoryRegistry::get(id, thisProcessHistory))
 				{
-					productList_->emplace(*I);
+					for (auto& conf : thisProcessHistory)
+						fake_process_history.push_back(conf);
+				}
+			}
+			art::ProcessHistoryMap fake_process_history_map;
+			fake_process_history_map[fake_process_history.id()] = fake_process_history;
+			ProcessHistoryRegistry::put(fake_process_history_map);
+			history_to_use_.reset(new History());
+			history_to_use_->setProcessHistoryID(fake_process_history.id());
+			for (auto& hist : processHistories)
+			{
+				for (auto& es : hist->eventSelectionIDs())
+				{
+					history_to_use_->addEventSelectionEntry(es);
 				}
 			}
 
-			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading ProcessHistory";
-			art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
-			    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputHelper::ArtdaqInputHelper");
-			printProcessMap(*phm, "ArtdaqInputHelper's ProcessHistoryMap");
+			TLOG_ARB(5, "ArtdaqInputHelper")
+				<< "ArtdaqInputHelper: Product list sz=" << productList_->size();
 
-			ProcessHistoryRegistry::put(*phm);
-			printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInputHelper's ProcessHistoryRegistry");
-
-			//
-			//  Read the ParentageRegistry.
-			//
-			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading ParentageMap";
-			ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputHelper::ArtdaqInputHelper");
-			ParentageRegistry::put(*parentageMap);
-
-			//
-			// Read the History
-			//
-			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading History";
-			processHistories.push_back(ReadObjectAny<History>(msg, "art::History", "ArtdaqInputHelper::ArtdaqInputHelper"));
-		}
-
-		// We're going to make a fake History using the collected process histories!
-		art::ProcessHistory fake_process_history;
-		for (auto& hist : processHistories)
-		{
-			auto id = hist->processHistoryID();
-			ProcessHistory thisProcessHistory;
-			if (ProcessHistoryRegistry::get(id, thisProcessHistory))
-			{
-				for (auto& conf : thisProcessHistory)
-					fake_process_history.push_back(conf);
-			}
-		}
-		art::ProcessHistoryMap fake_process_history_map;
-		fake_process_history_map[fake_process_history.id()] = fake_process_history;
-		ProcessHistoryRegistry::put(fake_process_history_map);
-		history_to_use_.reset(new History());
-		history_to_use_->setProcessHistoryID(fake_process_history.id());
-		for (auto& hist : processHistories)
-		{
-			for (auto& es : hist->eventSelectionIDs())
-			{
-				history_to_use_->addEventSelectionEntry(es);
-			}
-		}
-
-		TLOG_ARB(5, "ArtdaqInputHelper")
-		    << "ArtdaqInputHelper: Product list sz=" << productList_->size();
-
-		// helper now owns productList_!
+			// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
-		helper.productList(productList_);
+			helper.productList(productList_);
 #else
-		helper.productList(std::unique_ptr<art::ProductList>(productList_));
+			helper.productList(std::unique_ptr<art::ProductList>(productList_));
 #endif
-		TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: got product list";
-	}
-
-	if (ps.get<bool>("register_fragment_types", true))
-	{
-		TLOG_DEBUG("ArtdaqInputHelper") << "Registering known Fragment labels from ArtdaqFragmentNamingServiceInterface";
-		art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
-		helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-		// Workaround for #22979
-		helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-		helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
-
-		std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
-		for (const auto& set_iter : instance_names)
-		{
-			helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
+			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: got product list";
 		}
+
+		if (ps.get<bool>("register_fragment_types", true))
+		{
+			TLOG_DEBUG("ArtdaqInputHelper") << "Registering known Fragment labels from ArtdaqFragmentNamingServiceInterface";
+			art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
+			helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+			// Workaround for #22979
+			helper.reconstitutes<artdaq::Fragments, art::InRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+			helper.reconstitutes<artdaq::Fragments, art::InSubRun>(pretend_module_name, translator->GetUnidentifiedInstanceName());
+
+			std::set<std::string> instance_names = translator->GetAllProductInstanceNames();
+			for (const auto& set_iter : instance_names)
+			{
+				helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, set_iter);
+			}
+		}
+		//
+		//  Finished with init message.
+		//
+		TLOG_ARB(5, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::ArtdaqInputHelper("
+			<< "const fhicl::ParameterSet& ps, "
+			<< "art::ProductRegistryHelper& helper, "
+			<< "const art::SourceHelper& pm)";
 	}
-	//
-	//  Finished with init message.
-	//
-	TLOG_ARB(5, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::ArtdaqInputHelper("
-	                                 << "const fhicl::ParameterSet& ps, "
-	                                 << "art::ProductRegistryHelper& helper, "
-	                                 << "const art::SourceHelper& pm)";
 }
 
 template<typename U>
