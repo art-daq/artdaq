@@ -742,9 +742,8 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 				TLOG(TLVL_DEBUG) << GetTraceName() << ": sendFragment EWOULDBLOCK";
 				blocking = true;
 
-#if !USE_SENDMSG
 				fcntl(send_fd_, F_SETFL, 0);  // clear O_NONBLOCK
-#endif
+
 				// NOTE: YES -- could drop here
 				goto do_again;
 			}
@@ -833,9 +832,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	if (blocking)
 	{
 		blocking = false;
-#if !USE_SENDMSG
 		fcntl(send_fd_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
-#endif
 	}
 	sts = total_written_bytes - sizeof(MessHead);
 

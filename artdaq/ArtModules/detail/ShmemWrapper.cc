@@ -125,7 +125,12 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)))
 		{
 			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
-			return artdaq::FragmentPtrs();
+			artdaq::FragmentPtrs output;
+			for (auto& frag : *eventMap[artdaq::Fragment::EndOfDataFragmentType])
+			{
+				output.emplace_back(new artdaq::Fragment(std::move(frag)));
+			}
+			return output;
 		}
 		else if (!eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::InitFragmentType)) && eventMap.size() > 0)
 		{
