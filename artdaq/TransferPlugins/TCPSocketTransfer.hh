@@ -168,29 +168,11 @@ private:  // methods
 	void start_listen_thread_();
 	static void listen_(int port, size_t rcvbuf);
 
-	size_t getConnectedFDCount(int source_rank)
-	{
-		std::lock_guard<std::mutex> lk(fd_mutex_);
-		return connected_fds_.count(source_rank) ? connected_fds_[source_rank].size() : 0;
-	}
-
-	int getActiveFD(int source_rank) {
-		std::lock_guard<std::mutex> lk(fd_mutex_);
-		return active_receive_fds_.count(source_rank) ? active_receive_fds_[source_rank] : -1;
-	}
-	void setActiveFD(int source_rank, int fd) {
-		std::lock_guard<std::mutex> lk(fd_mutex_);
-		active_receive_fds_[source_rank] = fd;
-	}
-	int getLastActiveFD(int source_rank)
-	{
-		std::lock_guard<std::mutex> lk(fd_mutex_);
-		return last_active_receive_fds_.count(source_rank) ? last_active_receive_fds_[source_rank] : -1;
-	}
-	void setLastActiveFD(int source_rank, int fd) {
-		std::lock_guard<std::mutex> lk(fd_mutex_);
-		last_active_receive_fds_[source_rank] = fd;
-	}
+	size_t getConnectedFDCount_(int source_rank);
+	int getActiveFD_(int source_rank);
+	void setActiveFD_(int source_rank, int fd);
+	int getLastActiveFD_(int source_rank);
+	void setLastActiveFD_(int source_rank, int fd);
 };
 
 #endif  // TCPSocketTransfer_hh
