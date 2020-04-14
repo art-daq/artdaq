@@ -217,6 +217,10 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 		if (should_stop_)
 		{
 			TLOG(TLVL_DEBUG) << __func__ << ": should_stop is " << std::boolalpha << should_stop_ << ", stopping";
+			artdaq::detail::RoutingAckPacket endOfDataAck = detail::RoutingAckPacket::makeEndOfDataRoutingAckPacket(my_rank);
+
+				TLOG(TLVL_DEBUG) << __func__ << ": Sending RoutingAckPacket with end of run markers to " << ack_address_ << ", port " << ack_port_ << " (my_rank = " << my_rank << ")";
+			sendto(ack_socket_, &endOfDataAck, sizeof(artdaq::detail::RoutingAckPacket), 0, (struct sockaddr*)&ack_addr_, sizeof(ack_addr_));
 			return;
 		}
 
