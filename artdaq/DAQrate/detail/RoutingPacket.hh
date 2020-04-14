@@ -92,6 +92,7 @@ struct artdaq::detail::RoutingAckPacket
 		out.rank = rank;
 		out.first_sequence_id = -3;
 		out.last_sequence_id = -2;
+		return out;
 	}
 
 	static bool isEndOfDataRoutingAckPacket(RoutingAckPacket pkt) {
