@@ -109,11 +109,10 @@ private:
 	static std::mutex listen_thread_mutex_;
 	static std::unique_ptr<boost::thread> listen_thread_;
 	static std::map<int, std::set<int>> connected_fds_;
-	static std::mutex connected_fd_mutex_;
+	static std::mutex fd_mutex_;
 	int send_fd_;
-	int active_receive_fd_;
-	int last_active_receive_fd_;
-	short active_revents_;
+	std::map<int,int> active_receive_fds_;
+	std::map<int,int> last_active_receive_fds_;
 
 	union
 	{
@@ -162,8 +161,8 @@ private:  // methods
 	void connect_();
 
 	void reconnect_();
-
-	int disconnect_receive_socket_(int fd, std::string msg = "");
+	
+	void disconnect_receive_socket_(std::string msg = "");
 
 	// Receiver should listen for connections
 	void start_listen_thread_();
@@ -171,8 +170,26 @@ private:  // methods
 
 	size_t getConnectedFDCount(int source_rank)
 	{
-		std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+		std::lock_guard<std::mutex> lk(fd_mutex_);
 		return connected_fds_.count(source_rank) ? connected_fds_[source_rank].size() : 0;
+	}
+
+	int getActiveFD(int source_rank) {
+		std::lock_guard<std::mutex> lk(fd_mutex_);
+		return active_receive_fds_.count(source_rank) ? active_receive_fds_[source_rank] : -1;
+	}
+	void setActiveFD(int source_rank, int fd) {
+		std::lock_guard<std::mutex> lk(fd_mutex_);
+		active_receive_fds_[source_rank] = fd;
+	}
+	int getLastActiveFD(int source_rank)
+	{
+		std::lock_guard<std::mutex> lk(fd_mutex_);
+		return last_active_receive_fds_.count(source_rank) ? last_active_receive_fds_[source_rank] : -1;
+	}
+	void setLastActiveFD(int source_rank, int fd) {
+		std::lock_guard<std::mutex> lk(fd_mutex_);
+		last_active_receive_fds_[source_rank] = fd;
 	}
 };
 

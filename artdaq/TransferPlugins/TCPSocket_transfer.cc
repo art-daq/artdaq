@@ -37,14 +37,14 @@ std::atomic<int> artdaq::TCPSocketTransfer::listen_thread_refcount_(0);
 std::unique_ptr<boost::thread> artdaq::TCPSocketTransfer::listen_thread_ = nullptr;
 std::map<int, std::set<int>> artdaq::TCPSocketTransfer::connected_fds_ = std::map<int, std::set<int>>();
 std::mutex artdaq::TCPSocketTransfer::listen_thread_mutex_;
-std::mutex artdaq::TCPSocketTransfer::connected_fd_mutex_;
+std::mutex artdaq::TCPSocketTransfer::fd_mutex_;
 
 artdaq::TCPSocketTransfer::
     TCPSocketTransfer(fhicl::ParameterSet const& pset, TransferInterface::Role role)
     : TransferInterface(pset, role)
     , send_fd_(-1)
-    , active_receive_fd_(-1)
-    , last_active_receive_fd_(-1)
+    , active_receive_fds_()
+    , last_active_receive_fds_()
     , rcvbuf_(pset.get<size_t>("tcp_receive_buffer_size", 0))
     , sndbuf_(pset.get<size_t>("tcp_send_buffer_size", max_fragment_size_words_ * sizeof(artdaq::RawDataType) * buffer_count_))
     , send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
@@ -97,7 +97,7 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 	else
 	{
 		{
-			std::unique_lock<std::mutex> fd_lock(connected_fd_mutex_);
+			std::lock_guard<std::mutex> fd_lock(fd_mutex_);
 			if (connected_fds_.count(source_rank()))
 			{
 				auto it = connected_fds_[source_rank()].begin();
@@ -111,7 +111,7 @@ artdaq::TCPSocketTransfer::~TCPSocketTransfer() noexcept
 			if (ack_listen_thread_ && ack_listen_thread_->joinable()) ack_listen_thread_->join();
 		}
 
-		std::unique_lock<std::mutex> lk(listen_thread_mutex_);
+		std::lock_guard<std::mutex> lk(listen_thread_mutex_);
 		listen_thread_refcount_--;
 		if (listen_thread_refcount_ <= 0 && listen_thread_ && listen_thread_->joinable())
 		{
@@ -173,13 +173,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 	while (!done && getConnectedFDCount(source_rank()) > 0)
 	{
-		if (active_receive_fd_ == -1)
+		if (getActiveFD(source_rank()) == -1)
 		{
 			loop_guard = 0;
 			size_t fd_count = 0;
 			std::vector<pollfd> pollfds;
 			{
-				std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+				std::lock_guard<std::mutex> lk(fd_mutex_);
 				fd_count = connected_fds_[source_rank()].size();
 				pollfds.resize(fd_count);
 				auto iter = connected_fds_[source_rank()].begin();
@@ -199,12 +199,12 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			}
 
 			size_t index = 0;
-			if (last_active_receive_fd_ != -1)
+			if (getLastActiveFD(source_rank()) != -1)
 			{
 				for (auto& pollfd : pollfds)
 				{
 					index++;
-					if (pollfd.fd == last_active_receive_fd_)
+					if (pollfd.fd == getLastActiveFD(source_rank()))
 					{
 						break;
 					}
@@ -216,23 +216,21 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			for (size_t ii = index; ii < index + pollfds.size(); ++ii)
 			{
 				auto pollfd_index = (ii + index) % pollfds.size();
+				setActiveFD(source_rank(), pollfds[active_index].fd);
 				if (pollfds[pollfd_index].revents & (POLLIN | POLLPRI))
 				{
 					active_index = pollfd_index;
-					active_receive_fd_ = pollfds[active_index].fd;
-					active_revents_ = pollfds[active_index].revents;
-					;
 					break;
 				}
 				else if (pollfds[pollfd_index].revents & (POLLHUP | POLLERR))
 				{
-					disconnect_receive_socket_(pollfds[pollfd_index].fd, "Poll returned POLLHUP or POLLERR, indicating problems with the sender.");
+					disconnect_receive_socket_("Poll returned POLLHUP or POLLERR, indicating problems with the sender.");
 					continue;
 				}
 				else if (pollfds[pollfd_index].revents & (POLLNVAL))
 				{
 					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: FD is closed, most likely because the peer went away. Removing from fd list.";
-					disconnect_receive_socket_(pollfds[pollfd_index].fd, "FD is closed, most likely because the peer went away.");
+					disconnect_receive_socket_("FD is closed, most likely because the peer went away.");
 					continue;
 				}
 				else if (pollfds[pollfd_index].revents)
@@ -245,7 +243,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 			{
 				if (anomolous_events)
 					TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentHeader: Wrong event received from a pollfd. Mask: " << static_cast<int>(anomolous_events);
-				active_receive_fd_ = -1;
+				setActiveFD(source_rank(), -1);
 				continue;
 			}
 
@@ -265,7 +263,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		{
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: loop guard triggered, returning RECV_TIMEOUT";
 			usleep(receive_err_wait_us_);
-			active_receive_fd_ = -1;
+			setActiveFD(source_rank(), -1);
 			return RECV_TIMEOUT;
 		}
 
@@ -292,7 +290,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		if (byte_cnt > 0)
 		{
 			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Reading " << byte_cnt << " bytes from socket";
-			sts = read(active_receive_fd_, buff, byte_cnt);
+			sts = read(getActiveFD(source_rank()), buff, byte_cnt);
 			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Done with read";
 		}
 		if (sts > 0)
@@ -306,7 +304,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		{
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket "
 			                   << " (errno=" << errno << ": " << strerror(errno) << ")";
-			active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_);
+			disconnect_receive_socket_("Error on receive");
 		}
 		else if (sts == 0)
 		{
@@ -340,12 +338,12 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 					if (mh.message_type == MessHead::stop_v0)
 					{
-						active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_, "Stop Message received.");
+						disconnect_receive_socket_("Stop Message received.");
 					}
 					else if (mh.message_type == MessHead::data_v0 || mh.message_type == MessHead::data_more_v0)
 					{
 						TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Message header indicates that Fragment data follows when I was expecting a Fragment header!";
-						active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_, "Desync detected");
+						disconnect_receive_socket_("Desync detected");
 					}
 
 					if (target_bytes == 0)
@@ -372,23 +370,23 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	return ret_rank;
 }
 
-int artdaq::TCPSocketTransfer::disconnect_receive_socket_(int fd, std::string msg)
+void artdaq::TCPSocketTransfer::disconnect_receive_socket_(std::string msg)
 {
-	TLOG(TLVL_WARNING) << GetTraceName() << ": disconnect_receive_socket_: " << msg << " Closing socket " << fd;
-	close(fd);
-	std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+	TLOG(TLVL_WARNING) << GetTraceName() << ": disconnect_receive_socket_: " << msg << " Closing socket for rank " << source_rank();
+	std::lock_guard<std::mutex> lk(fd_mutex_);
+	TLOG(TLVL_DEBUG) << GetTraceName() << ": disconnect_receive_socket_: Active socket for rank " << source_rank() << " is " << active_receive_fds_[source_rank()];
+	close(active_receive_fds_[source_rank()]);
 	if (connected_fds_.count(source_rank()))
-		connected_fds_[source_rank()].erase(fd);
-	fd = -1;
+		connected_fds_[source_rank()].erase(active_receive_fds_[source_rank()]);
+	active_receive_fds_[source_rank()] = -1;
 	TLOG(TLVL_DEBUG) << GetTraceName() << ": disconnect_receive_socket_: There are now " << connected_fds_[source_rank()].size() << " active senders.";
-	return fd;
 }
 
 int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, size_t)
 {
 	TLOG(19) << GetTraceName() << ": receiveFragmentData: BEGIN";
 	int ret_rank = RECV_TIMEOUT;
-	if (active_receive_fd_ == -1)
+	if (getActiveFD(source_rank()) == -1)
 	{  // what if just listen_fd???
 		TLOG(TLVL_ERROR) << GetTraceName() << ": receiveFragmentData: Receive socket not connected, returning RECV_TIMEOUT (Will result in \"Unexpected return code error\")";
 		return RECV_TIMEOUT;
@@ -404,7 +402,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 
 	pollfd pollfd_s;
 	pollfd_s.events = POLLIN | POLLPRI | POLLERR;
-	pollfd_s.fd = active_receive_fd_;
+	pollfd_s.fd = getActiveFD(source_rank());
 
 	int loop_guard = 0;
 	bool done = false;
@@ -426,15 +424,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 				if (TimeUtils::GetElapsedTime(last_recv_time_) > receive_disconnected_wait_s_)
 				{
 					TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: No data received within timeout (" << TimeUtils::GetElapsedTime(last_recv_time_) << " / " << receive_disconnected_wait_s_ << " ), returning RECV_TIMEOUT";
-					disconnect_receive_socket_(active_receive_fd_, "No data on this socket within timeout");
-					active_receive_fd_ = -1;
+					disconnect_receive_socket_( "No data on this socket within timeout");
 					return RECV_TIMEOUT;
 				}
 				continue;
 			}
 
 			TLOG(TLVL_ERROR) << "Error in poll: errno=" << errno;
-			active_receive_fd_ = -1;
 			break;
 		}
 		else
@@ -448,18 +444,18 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		}
 		else if (pollfd_s.revents & (POLLNVAL))
 		{
-			disconnect_receive_socket_(pollfd_s.fd, "FD is closed, most likely because the peer went away.");
+			disconnect_receive_socket_( "FD is closed, most likely because the peer went away.");
 			break;
 		}
 		else if (pollfd_s.revents & (POLLHUP | POLLERR))
 		{
-			disconnect_receive_socket_(pollfd_s.fd, "Poll returned POLLHUP or POLLERR, indicating problems with the sender.");
+			disconnect_receive_socket_( "Poll returned POLLHUP or POLLERR, indicating problems with the sender.");
 			break;
 		}
 		else
 		{
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: Wrong event received from pollfd: " << pollfd_s.revents;
-			disconnect_receive_socket_(pollfd_s.fd);
+			disconnect_receive_socket_("Wrong event received from pollfd.");
 			break;
 		}
 
@@ -477,7 +473,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		}
 
 		TLOG(10) << GetTraceName() << ": receiveFragmentData: Reading " << byte_cnt << " bytes from socket into " << (void*)buff;
-		sts = read(active_receive_fd_, buff, byte_cnt);
+		sts = read(getActiveFD(source_rank()), buff, byte_cnt);
 		//TLOG(TLVL_DEBUG) << GetTraceName() << ": receiveFragmentData: Done with read" ;
 
 		TLOG(10) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state) << " read=" << sts;
@@ -488,7 +484,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			if (++loop_guard > 10010)
 			{
 				TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: loop guard triggered, returning RECV_TIMEOUT";
-				active_receive_fd_ = -1;
+				setActiveFD(source_rank(), -1);
 				return RECV_TIMEOUT;
 			}
 		}
@@ -502,7 +498,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: Error on receive, closing socket"
 			                   << " (errno=" << errno << ": " << strerror(errno) << ")";
-			disconnect_receive_socket_(pollfd_s.fd);
+			disconnect_receive_socket_("Error on receive");
 		}
 		else if (sts == 0)
 		{
@@ -535,7 +531,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 					if (mh.message_type == MessHead::header_v0)
 					{
 						TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentData: Message header indicates that a Fragment header follows when I was expecting Fragment data!";
-						active_receive_fd_ = disconnect_receive_socket_(active_receive_fd_, "Desync detected");
+						disconnect_receive_socket_( "Desync detected");
 					}
 				}
 				else
@@ -570,8 +566,8 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 
 	}  // while(!done)...poll
 
-	last_active_receive_fd_ = active_receive_fd_;
-	active_receive_fd_ = -1;
+	setLastActiveFD(source_rank(), getActiveFD(source_rank()));
+	setActiveFD(source_rank(), -1);
 
 	TLOG(9) << GetTraceName() << ": receiveFragmentData: Returning rank " << ret_rank;
 	return ret_rank;
@@ -592,9 +588,13 @@ bool artdaq::TCPSocketTransfer::isRunning()
 
 void artdaq::TCPSocketTransfer::flush_buffers()
 {
-	while (connected_fds_[source_rank()].size())
+	std::lock_guard<std::mutex> lk(fd_mutex_);
+	auto it = connected_fds_[source_rank()].begin();
+	while (it != connected_fds_[source_rank()].end())
 	{
-		disconnect_receive_socket_(*connected_fds_[source_rank()].begin(), "Flushing connections");
+		TLOG(TLVL_INFO) << GetTraceName() << ": flush_buffers: Closing socket " << *it << " for rank " << source_rank();
+		close(*it);
+		it = connected_fds_[source_rank()].erase(it);
 	}
 }
 
@@ -920,7 +920,7 @@ void artdaq::TCPSocketTransfer::reconnect_()
 
 void artdaq::TCPSocketTransfer::start_listen_thread_()
 {
-	std::unique_lock<std::mutex> start_lock(listen_thread_mutex_);
+	std::lock_guard<std::mutex> start_lock(listen_thread_mutex_);
 	if (listen_thread_refcount_ == 0)
 	{
 		if (listen_thread_ && listen_thread_->joinable()) listen_thread_->join();
@@ -1071,7 +1071,7 @@ void artdaq::TCPSocketTransfer::listen_(int port, size_t rcvbuf)
 			}
 
 			// now add (new) connection
-			std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+			std::lock_guard<std::mutex> lk(fd_mutex_);
 			connected_fds_[mh.source_id].insert(fd);
 
 			TLOG(TLVL_INFO) << "listen_: New fd is " << fd << " for source rank " << mh.source_id;
@@ -1084,7 +1084,7 @@ void artdaq::TCPSocketTransfer::listen_(int port, size_t rcvbuf)
 
 	TLOG(TLVL_INFO) << "listen_: Shutting down connection listener";
 	if (listen_fd != -1) close(listen_fd);
-	std::unique_lock<std::mutex> lk(connected_fd_mutex_);
+	std::lock_guard<std::mutex> lk(fd_mutex_);
 	auto it = connected_fds_.begin();
 	while (it != connected_fds_.end())
 	{
