@@ -468,8 +468,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 
 		TLOG(10) << GetTraceName() << ": recvFragment state=" << static_cast<int>(state) << " read=" << sts;
 
-		if (sts == 0)
+		if (sts == 0 || (sts < 0 && errno == EAGAIN))
 		{
+			sts = 0; // Treat EAGAIN as receiving no data
 			if (loop_guard > 10) { usleep(1000); }
 			if (++loop_guard > 10010)
 			{
