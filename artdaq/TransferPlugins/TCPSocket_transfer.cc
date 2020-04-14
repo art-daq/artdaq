@@ -275,9 +275,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		//	return RECV_TIMEOUT;
 		//}
 
+		auto fd = getActiveFD_(source_rank());
 		if (byte_cnt > 0)
 		{
-			auto fd = getActiveFD_(source_rank());
 			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Reading " << byte_cnt << " bytes from socket " << fd;
 			sts = read(fd, buff, byte_cnt);
 			TLOG(6) << GetTraceName() << ": receiveFragmentHeader: Done with read";
@@ -289,13 +289,13 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 		}
 
 		TLOG(7) << GetTraceName() << ": receiveFragmentHeader state=" << static_cast<int>(state) << " read=" << sts;
-		if (sts < 0)
+		if (sts < 0 && errno != EAGAIN)
 		{
-			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket "
+			TLOG(TLVL_WARNING) << GetTraceName() << ": receiveFragmentHeader: Error on receive, closing socket " << fd
 			                   << " (errno=" << errno << ": " << strerror(errno) << ")";
 			disconnect_receive_socket_("Error on receive");
 		}
-		else if (sts == 0)
+		else if (sts == 0 || errno == EAGAIN)
 		{
 			if (!noDataWarningSent)
 			{
@@ -361,10 +361,9 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 
 void artdaq::TCPSocketTransfer::disconnect_receive_socket_(std::string msg)
 {
-	TLOG(TLVL_WARNING) << GetTraceName() << ": disconnect_receive_socket_: " << msg << " Closing socket for rank " << source_rank();
 	std::lock_guard<std::mutex> lk(fd_mutex_);
 	auto fd = active_receive_fds_[source_rank()];
-	TLOG(TLVL_DEBUG) << GetTraceName() << ": disconnect_receive_socket_: Active socket for rank " << source_rank() << " is " << fd;
+	TLOG(TLVL_WARNING) << GetTraceName() << ": disconnect_receive_socket_: " << msg << " Closing socket " << fd << " for rank " << source_rank();
 	close(fd);
 	if (connected_fds_.count(source_rank()))
 		connected_fds_[source_rank()].erase(fd);
@@ -584,14 +583,26 @@ void artdaq::TCPSocketTransfer::flush_buffers()
 	if (connected_fds_.count(source_rank()))
 	{
 		auto it = connected_fds_[source_rank()].begin();
+		char discard_buf[0x1000];
 		while (it != connected_fds_[source_rank()].end())
 		{
+			TLOG(TLVL_INFO) << GetTraceName() << ": flush_buffers: Checking for data in socket " << *it << " for rank " << source_rank();
+			size_t bytes_read = 0;
+			while (int sts = read(*it, discard_buf, sizeof(discard_buf)) > 0) {
+				bytes_read += sts;
+			}
+			if (bytes_read > 0) 
+			{
+				TLOG(TLVL_WARNING) << GetTraceName() << ": flush_buffers: Flushed " << bytes_read << " bytes from socket " << *it << " for rank " << source_rank();
+			}
 			TLOG(TLVL_INFO) << GetTraceName() << ": flush_buffers: Closing socket " << *it << " for rank " << source_rank();
 			close(*it);
 			it = connected_fds_[source_rank()].erase(it);
 		}
 		connected_fds_.erase(source_rank());
 	}
+	active_receive_fds_[source_rank()] = -1;
+	last_active_receive_fds_[source_rank()] = -1;
 }
 
 // Send the given Fragment. Return the rank of the destination to which
