@@ -795,7 +795,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	                 << GetLockedBufferCount();
 	if (metricMan)
 	{
-		metricMan->sendMetric("Run Number", static_cast<unsigned long>(run_id_), "Run", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Run Number", static_cast<unsigned long>(run_id_), "Run", 1, MetricMode::LastPoint | MetricMode::Persist);
 	}
 }
 
