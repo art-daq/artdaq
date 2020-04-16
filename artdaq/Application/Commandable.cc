@@ -50,7 +50,7 @@ bool artdaq::Commandable::initialize(fhicl::ParameterSet const& pset, uint64_t t
 		    << "States before and after an init transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_INIT) << "Initialize transition complete";
 	return (external_request_status_);
@@ -77,7 +77,7 @@ bool artdaq::Commandable::start(art::RunID id, uint64_t timeout, uint64_t timest
 		    << "States before and after a start transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_START) << "Start transition complete";
 	return (external_request_status_);
@@ -104,7 +104,7 @@ bool artdaq::Commandable::stop(uint64_t timeout, uint64_t timestamp)
 		    << "States before and after a stop transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_STOP) << "Stop transition complete";
 	return (external_request_status_);
@@ -131,7 +131,7 @@ bool artdaq::Commandable::pause(uint64_t timeout, uint64_t timestamp)
 		    << "States before and after a pause transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_PAUSE) << "Pause transition complete";
 	return (external_request_status_);
@@ -157,7 +157,7 @@ bool artdaq::Commandable::resume(uint64_t timeout, uint64_t timestamp)
 		    << "States before and after a resume transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_RESUME) << "Resume transition complete";
 	return (external_request_status_);
@@ -182,7 +182,7 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 		    << "States before and after a shutdown transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_SHUTDOWN) << "Shutdown transition complete";
 	return (external_request_status_);
@@ -209,7 +209,7 @@ bool artdaq::Commandable::soft_initialize(fhicl::ParameterSet const& pset, uint6
 		    << "States before and after a soft_init transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_SOFT_INIT) << "Soft_initialize transition complete";
 	return (external_request_status_);
@@ -236,7 +236,7 @@ bool artdaq::Commandable::reinitialize(fhicl::ParameterSet const& pset, uint64_t
 		    << "States before and after a reinit transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_REINIT) << "Reinitialize transition complete";
 	return (external_request_status_);
@@ -263,7 +263,7 @@ bool artdaq::Commandable::in_run_failure()
 		    << "States before and after an in_run_failure transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";
 	}
-	if (metricMan) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
+	if (metricMan && metricMan->Initialized()) metricMan->sendMetric("DAQ Transition Time", TimeUtils::GetElapsedTime(start_time), "s", 4, artdaq::MetricMode::Accumulate);
 
 	TLOG(TLVL_INRUN_FAILURE) << "in_run_failure complete";
 	return (external_request_status_);
