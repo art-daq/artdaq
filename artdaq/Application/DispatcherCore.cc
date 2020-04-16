@@ -190,12 +190,15 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 		registered_monitors_.erase(label);
 		if (event_store_ptr_ != nullptr)
 		{
-			if (broadcast_mode_)
+			if (broadcast_mode_ )
 			{
-				std::set<pid_t> pids;
-				pids.insert(registered_monitor_pids_[label]);
-				event_store_ptr_->ShutdownArtProcesses(pids);
-				registered_monitor_pids_.erase(label);
+				if (registered_monitor_pids_.count(label))
+				{
+					std::set<pid_t> pids;
+					pids.insert(registered_monitor_pids_[label]);
+					event_store_ptr_->ShutdownArtProcesses(pids);
+					registered_monitor_pids_.erase(label);
+				}
 			}
 			else
 			{
@@ -424,20 +427,20 @@ void artdaq::DispatcherCore::check_filters_()
 	auto it = registered_monitors_.begin();
 	while (it != registered_monitors_.end())
 	{
-		if (!event_store_ptr_)
+		if (registered_monitor_pids_.count(it->first))
 		{
-			registered_monitor_pids_.erase(it->first);
-			it = registered_monitors_.erase(it);
-		}
-		else
-		{
-			auto pid = registered_monitor_pids_[it->first];
-			auto sts = kill(pid, 0);
-			if (sts < 0)
+			if (!event_store_ptr_)
 			{
 				registered_monitor_pids_.erase(it->first);
-				it = registered_monitors_.erase(it);
-				continue;
+			}
+			else
+			{
+				auto pid = registered_monitor_pids_[it->first];
+				auto sts = kill(pid, 0);
+				if (sts < 0)
+				{
+					registered_monitor_pids_.erase(it->first);
+				}
 			}
 		}
 		++it;
