@@ -136,7 +136,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	{
 		if (!useDataThread_)
 		{
-			latest_exception_report_ = "Error in CommandableFragmentGenerator: use_data_thread must be true when request_mode is not \"Ignored\"!";
+			latest_exception_report_ = "Error in CommandableFragmentGenerator: separate_data_thread must be true when request_mode is not \"Ignored\"!";
 			TLOG(TLVL_ERROR) << latest_exception_report_;
 			throw cet::exception(latest_exception_report_);
 		}
