@@ -192,7 +192,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 
 	// 10-Sep-2013, KAB - protect against large events and
 	// invalid events (and large, invalid events)
-	if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
+	if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize <= (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
 	{
 		TLOG(5) << GetTraceName() << ": Writing fragment with seqID=" << fragment.sequenceID();
 		auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode, send_timeout_usec);

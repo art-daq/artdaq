@@ -10,6 +10,7 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include <future>
+#include <cstdlib>
 
 artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
     : senders_(psi.get<int>("num_senders"))
@@ -19,16 +20,16 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
     , receives_each_receiver_(0)
     , buffer_count_(psi.get<int>("buffer_count", 10))
     , error_count_max_(psi.get<int>("max_errors_before_abort", 3))
-    , fragment_size_(psi.get<size_t>("fragment_size", 0x100000))
+    , fragment_size_bytes_(psi.get<size_t>("fragment_size_bytes", 0x100000))
     , ps_()
     , validate_mode_(psi.get<bool>("validate_data_mode", false))
     , partition_number_(psi.get<int>("partition_number", rand() % 0x7F))
 {
 	TLOG(10) << "CONSTRUCTOR";
 
-	if (fragment_size_ < artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType))
+	if (fragment_size_bytes_ < artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType))
 	{
-		fragment_size_ = artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType);
+		fragment_size_bytes_ = artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType);
 	}
 
 	fhicl::ParameterSet metric_pset;
@@ -90,13 +91,13 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	ss << " sources: {";
 	for (int ii = 0; ii < senders_; ++ii)
 	{
-		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words : " << fragment_size_ << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
+		ss << "s" << ii << ": { transferPluginType: " << type << " source_rank: " << ii << " max_fragment_size_words : " << (fragment_size_bytes_ / sizeof(artdaq::RawDataType)) << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
 	}
 	ss << "}" << std::endl
 	   << " destinations: {";
 	for (int jj = senders_; jj < senders_ + receivers_; ++jj)
 	{
-		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words : " << fragment_size_ << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
+		ss << "d" << jj << ": { transferPluginType: " << type << " destination_rank: " << jj << " max_fragment_size_words : " << (fragment_size_bytes_ / sizeof(artdaq::RawDataType)) << " buffer_count : " << buffer_count_ << " partition_number : " << partition_number_ << hostmap << " }" << std::endl;
 	}
 	ss << "}" << std::endl;
 
@@ -149,7 +150,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 	double totalTime = 0;
 	artdaq::DataSenderManager sender(ps_);
 
-	unsigned data_size_wrds = (fragment_size_ / sizeof(artdaq::RawDataType)) - artdaq::detail::RawFragmentHeader::num_words();
+	unsigned data_size_wrds = (fragment_size_bytes_ / sizeof(artdaq::RawDataType)) - artdaq::detail::RawFragmentHeader::num_words();
 	artdaq::Fragment frag(data_size_wrds);
 
 	if (validate_mode_)

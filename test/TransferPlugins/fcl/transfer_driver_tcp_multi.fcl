@@ -3,7 +3,7 @@ num_receivers: 1
 sends_per_sender: 1000
 sending_threads: 2
 buffer_count: 10
-fragment_size: 0x800000
+fragment_size_bytes: 0x800000
 transfer_plugin_type: TCPSocket
 partition_number: 7
 
