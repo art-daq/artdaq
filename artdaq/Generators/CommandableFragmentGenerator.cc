@@ -44,7 +44,6 @@
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
     : mutex_()
-    , requestReceiver_(nullptr)
     , bufferModeKeepLatest_(ps.get<bool>("buffer_mode_keep_latest", false))
     , windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
     , windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
@@ -140,14 +139,12 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 			TLOG(TLVL_ERROR) << latest_exception_report_;
 			throw cet::exception(latest_exception_report_);
 		}
-		requestReceiver_.reset(new RequestReceiver(ps));
 	}
 }
 
 artdaq::CommandableFragmentGenerator::~CommandableFragmentGenerator()
 {
 	joinThreads();
-	requestReceiver_.reset(nullptr);
 }
 
 void artdaq::CommandableFragmentGenerator::joinThreads()
@@ -294,9 +291,13 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 	if (!useDataThread_ || mode_ == RequestMode::Ignored) return true;
 	if (force_stop_) return true;
 
-	// check_stop returns true if the CFG should stop. We should wait for the RequestReceiver to stop before stopping.
-	TLOG(TLVL_DEBUG) << "should_stop is true, force_stop_ is false, requestReceiver_->isRunning() is " << std::boolalpha << requestReceiver_->isRunning();
-	return !requestReceiver_->isRunning();
+	if (requestBuffer_ != nullptr)
+	{
+		// check_stop returns true if the CFG should stop. We should wait for the Request Buffer to report Request Receiver stopped before stopping.
+		TLOG(TLVL_DEBUG) << "should_stop is true, force_stop_ is false, requestBuffer_->isRunning() is " << std::boolalpha << requestBuffer_->isRunning();
+		return !requestBuffer_->isRunning();
+	}
+	return false;
 }
 
 size_t artdaq::CommandableFragmentGenerator::ev_counter_inc(size_t step, bool force)
@@ -346,11 +347,6 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useDataThread_) startDataThread();
 	if (useMonitoringThread_) startMonitoringThread();
-	if (mode_ != RequestMode::Ignored)
-	{
-		requestReceiver_->SetRunNumber(static_cast<uint32_t>(run));
-		requestReceiver_->startRequestReception();
-	}
 	TLOG(TLVL_TRACE) << "Start Command complete.";
 }
 
@@ -360,12 +356,6 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
-	if (requestReceiver_)
-	{
-		TLOG(TLVL_DEBUG) << "Stopping Request reception BEGIN";
-		requestReceiver_->stopRequestReception();
-		TLOG(TLVL_DEBUG) << "Stopping Request reception END";
-	}
 
 	stopNoMutex();
 	should_stop_.store(true);
@@ -381,7 +371,6 @@ void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t t
 	TLOG(TLVL_TRACE) << "Pause Command received.";
 	timeout_ = timeout;
 	timestamp_ = timestamp;
-	//if (requestReceiver_->isRunning()) requestReceiver_->stopRequestReceiverThread();
 
 	pauseNoMutex();
 	should_stop_.store(true);
@@ -415,7 +404,6 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 	std::unique_lock<std::mutex> lk(mutex_);
 	//if (useDataThread_) startDataThread();
 	//if (useMonitoringThread_) startMonitoringThread();
-	//if (mode_ != RequestMode::Ignored && !requestReceiver_->isRunning()) requestReceiver_->startRequestReceiverThread();
 	TLOG(TLVL_TRACE) << "Resume Command complete.";
 }
 
@@ -653,7 +641,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			TLOG(TLVL_INFO) << "Data flow has stopped. Ending data collection thread";
 			std::unique_lock<std::mutex> lock(dataBuffersMutex_);
 			data_thread_running_ = false;
-			if (requestReceiver_) requestReceiver_->ClearRequests();
+			if (requestBuffer_) requestBuffer_->ClearRequests();
 			newData.clear();
 			TLOG(TLVL_INFO) << "getDataLoop: Ending thread";
 			return;
@@ -861,11 +849,11 @@ void artdaq::CommandableFragmentGenerator::applyRequestsIgnoredMode(artdaq::Frag
 void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::FragmentPtrs& frags)
 {
 	// We only care about the latest request received. Send empties for all others.
-	auto requests = requestReceiver_->GetRequests();
+	auto requests = requestBuffer_->GetRequests();
 	while (requests.size() > 1)
 	{
 		// std::map is ordered by key => Last sequence ID in the map is the one we care about
-		requestReceiver_->RemoveRequest(requests.begin()->first);
+		requestBuffer_->RemoveRequest(requests.begin()->first);
 		requests.erase(requests.begin());
 	}
 	sendEmptyFragments(frags, requests);
@@ -896,18 +884,18 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 			sendEmptyFragment(frags, ev_counter(), id.first, "No data for");
 		}
 	}
-	requestReceiver_->RemoveRequest(ev_counter());
+	requestBuffer_->RemoveRequest(ev_counter());
 	ev_counter_inc(1, true);
 }
 
 void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::FragmentPtrs& frags)
 {
 	// We only care about the latest request received. Send empties for all others.
-	auto requests = requestReceiver_->GetRequests();
+	auto requests = requestBuffer_->GetRequests();
 	while (requests.size() > 1)
 	{
 		// std::map is ordered by key => Last sequence ID in the map is the one we care about
-		requestReceiver_->RemoveRequest(requests.begin()->first);
+		requestBuffer_->RemoveRequest(requests.begin()->first);
 		requests.erase(requests.begin());
 	}
 	sendEmptyFragments(frags, requests);
@@ -945,7 +933,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 			it = id.second.DataBuffer.erase(it);
 		}
 	}
-	requestReceiver_->RemoveRequest(ev_counter());
+	requestBuffer_->RemoveRequest(ev_counter());
 	ev_counter_inc(1, true);
 }
 
@@ -960,14 +948,14 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillD
 	                         << " (sz=" << dataBuffers_[id].DataBuffer.size() << " [" << dataBuffers_[id].DataBufferDepthBytes.load()
 	                         << "/" << maxDataBufferDepthBytes_ << "])";
 	bool windowClosed = dataBuffers_[id].DataBuffer.size() > 0 && dataBuffers_[id].DataBuffer.back()->timestamp() >= max;
-	bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestReceiver_->GetRequestTime(seq)) > window_close_timeout_us_;
+	bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestBuffer_->GetRequestTime(seq)) > window_close_timeout_us_;
 	if (windowTimeout)
 	{
 		TLOG(TLVL_WARNING) << "applyRequestsWindowMode_CheckAndFillDataBuffer: A timeout occurred waiting for data to close the request window ({" << min << "-" << max
 		                   << "}, buffer={" << (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.front()->timestamp() : 0) << "-"
 		                   << (dataBuffers_[id].DataBuffer.size() > 0 ? dataBuffers_[id].DataBuffer.back()->timestamp() : 0)
 		                   << "} ). Time waiting: "
-		                   << TimeUtils::GetElapsedTimeMicroseconds(requestReceiver_->GetRequestTime(seq)) << " us "
+		                   << TimeUtils::GetElapsedTimeMicroseconds(requestBuffer_->GetRequestTime(seq)) << " us "
 		                   << "(> " << window_close_timeout_us_ << " us).";
 	}
 	if (windowClosed || !data_thread_running_ || windowTimeout)
@@ -1031,7 +1019,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 {
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode BEGIN";
 
-	auto requests = requestReceiver_->GetRequests();
+	auto requests = requestBuffer_->GetRequests();
 
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: Starting request processing";
 	for (auto req = requests.begin(); req != requests.end();)
@@ -1041,7 +1029,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 		while (req->first < ev_counter() && requests.size() > 0)
 		{
 			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: Clearing passed request for sequence ID " << req->first;
-			requestReceiver_->RemoveRequest(req->first);
+			requestBuffer_->RemoveRequest(req->first);
 			req = requests.erase(req);
 		}
 		if (requests.size() == 0) break;
@@ -1076,7 +1064,7 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSequenceIDMode(artdaq::F
 {
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode BEGIN";
 
-	auto requests = requestReceiver_->GetRequests();
+	auto requests = requestBuffer_->GetRequests();
 
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsSequenceIDMode: Starting request processing";
 	for (auto req = requests.begin(); req != requests.end();)
@@ -1144,9 +1132,14 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 			dataCondition_.wait_for(lock, std::chrono::milliseconds(10), [this]() { return dataBufferFragmentCount_() > 0; });
 		}
 	}
+	else if (requestBuffer_ == nullptr)
+	{
+		TLOG(TLVL_ERROR) << "Request Buffer must be set (via SetRequestBuffer) before applyRequests/getData can be called!";
+		return false;
+	}
 	else
 	{
-		if ((check_stop() && requestReceiver_->size() == 0) || exception()) return false;
+		if ((check_stop() && requestBuffer_->size() == 0) || exception()) return false;
 
 		std::unique_lock<std::mutex> lock(dataBuffersMutex_);
 		dataCondition_.wait_for(lock, std::chrono::milliseconds(10));
@@ -1156,13 +1149,13 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		// Wait up to 1000 ms for a request...
 		auto counter = 0;
 
-		while (requestReceiver_->size() == 0 && counter < 100)
+		while (requestBuffer_->size() == 0 && counter < 100)
 		{
 			if (check_stop() || exception()) return false;
 
 			checkDataBuffers();
 
-			requestReceiver_->WaitForRequests(10);  // milliseconds
+			requestBuffer_->WaitForRequests(10);  // milliseconds
 			counter++;
 		}
 	}
@@ -1255,8 +1248,8 @@ void artdaq::CommandableFragmentGenerator::checkSentWindows(artdaq::Fragment::se
 	}
 	if (seqComplete)
 	{
-		TLOG(TLVL_CHECKWINDOWS) << "checkSentWindows: Request " << seq << " is complete, removing from requestReceiver.";
-		requestReceiver_->RemoveRequest(seq);
+		TLOG(TLVL_CHECKWINDOWS) << "checkSentWindows: Request " << seq << " is complete, removing from requestBuffer_.";
+		requestBuffer_->RemoveRequest(seq);
 
 		if (ev_counter() == seq)
 		{
@@ -1276,7 +1269,7 @@ void artdaq::CommandableFragmentGenerator::checkSentWindows(artdaq::Fragment::se
 		while (ev_counter() <= seq)
 		{
 			if (ev_counter() < seq) TLOG(TLVL_WARNING) << "Missed request for sequence ID " << ev_counter() << "! Will not send any data for this sequence ID!";
-			requestReceiver_->RemoveRequest(ev_counter());
+			requestBuffer_->RemoveRequest(ev_counter());
 
 			for (auto& id : dataBuffers_)
 			{

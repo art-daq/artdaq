@@ -22,8 +22,6 @@
 		BOOST_REQUIRE_EQUAL(l, r);                                                                                               \
 	} while (0)
 
-#define MULTICAST_MODE 0
-
 namespace artdaqtest {
 class CommandableFragmentGeneratorTest;
 }
@@ -175,11 +173,6 @@ void artdaqtest::CommandableFragmentGeneratorTest::pause() {}
 
 void artdaqtest::CommandableFragmentGeneratorTest::resume() {}
 
-void WaitForRequests(artdaq::RequestSender& t)
-{
-	while (t.RequestsInFlight()) usleep(1000);
-}
-
 BOOST_AUTO_TEST_SUITE(CommandableFragmentGenerator_t)
 
 BOOST_AUTO_TEST_CASE(Simple)
@@ -204,32 +197,24 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "IgnoreRequests test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 1;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.29");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "ignored");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
 	gen.waitForFrags();
-	t.AddRequest(53, 35);
-	WaitForRequests(t);
+	buffer->push(53, 35);
 
 	artdaq::FragmentPtrs fps;
 	auto sts = gen.getNext(fps);
@@ -247,34 +232,23 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "SingleMode test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.30");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "single");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -291,8 +265,7 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
@@ -305,8 +278,8 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -333,34 +306,23 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "BufferMode test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.31");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "buffer");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -383,8 +345,7 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
@@ -403,8 +364,8 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 2);
@@ -440,35 +401,24 @@ BOOST_AUTO_TEST_CASE(BufferMode_KeepLatest)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "BufferMode_KeepLatest test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.31");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "buffer");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 	ps.put("buffer_mode_keep_latest", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -491,8 +441,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_KeepLatest)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
@@ -511,8 +460,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_KeepLatest)
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 2);
@@ -547,17 +495,9 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "CircularBufferMode test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.31");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
@@ -566,17 +506,14 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "buffer");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -599,8 +536,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
@@ -619,8 +555,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 
 	gen.setFireCount(3);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 2);
@@ -648,8 +583,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 
 	gen.setFireCount(5);
 	gen.waitForFrags();
-	t.AddRequest(5, 8);
-	WaitForRequests(t);
+	buffer->push(5, 8);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1);
@@ -680,17 +615,10 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WindowMode_Function test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.32");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
+
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
@@ -701,17 +629,14 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	ps.put<std::string>("request_mode", "window");
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
 	ps.put<size_t>("window_close_timeout_us", 500000);
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -735,8 +660,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	fps.clear();
 
 	// No data for request
-	t.AddRequest(2, 2);
-	WaitForRequests(t);
+	buffer->push(2, 2);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -761,8 +686,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	fps.clear();
 
 	// Request Timeout
-	t.AddRequest(4, 3);
-	WaitForRequests(t);
+	buffer->push(4, 3);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
@@ -797,8 +722,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	// Data-taking has passed request
 	gen.setFireCount(12);
 	gen.waitForFrags();
-	t.AddRequest(5, 4);
-	WaitForRequests(t);
+	buffer->push(5, 4);
+
 	list = gen.GetSentWindowList(1);  // Out-of-order list is only updated in getNext calls
 	TRACE_REQUIRE_EQUAL(list.size(), 1);
 	sts = gen.getNext(fps);
@@ -820,8 +745,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	fps.clear();
 
 	// Out-of-order windows
-	t.AddRequest(7, 13);
-	WaitForRequests(t);
+	buffer->push(7, 13);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1);
@@ -842,8 +767,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	TRACE_REQUIRE_EQUAL(list.size(), 1);
 	TRACE_REQUIRE_EQUAL(list.begin()->first, 7);
 
-	t.AddRequest(6, 12);
-	WaitForRequests(t);
+	buffer->push(6, 12);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1);
@@ -880,17 +805,10 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WindowMode_RequestBeforeBuffer test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.32");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
+
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<bool>("separate_data_thread", true);
@@ -899,14 +817,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
 	gen.waitForFrags();
 
 	artdaq::FragmentPtrs fps;
@@ -917,8 +834,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	//  -- Should return ContainerFragment with MissingData bit set and zero Fragments
 	gen.setFireCount(9);  // Buffer start is at ts 6, end at 10
 	gen.waitForFrags();
-	t.AddRequest(1, 1);  // Requesting data from ts 1 to 3
-	WaitForRequests(t);
+	buffer->push(1, 1);  // Requesting data from ts 1 to 3
 
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -941,17 +857,10 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WindowMode_RequestStartsBeforeBuffer test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
+
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.32");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<bool>("separate_data_thread", true);
@@ -960,14 +869,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<std::string>("request_mode", "window");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
 	gen.waitForFrags();
 
 	artdaq::FragmentPtrs fps;
@@ -980,8 +888,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 
 	// 2. Start before buffer, end in buffer
 	//  -- Should return ContainerFragment with MissingData bit set and one or more Fragments
-	t.AddRequest(1, 4);  // Requesting data from ts 4 to 6
-	WaitForRequests(t);
+	buffer->push(1, 4);  // Requesting data from ts 4 to 6
 
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1005,17 +912,9 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WindowMode_RequestOutsideBuffer test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.32");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 4);
 	ps.put<size_t>("window_close_timeout_us", 500000);
@@ -1025,14 +924,13 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
 	gen.waitForFrags();
 
 	artdaq::FragmentPtrs fps;
@@ -1046,8 +944,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	// 3. Start before buffer, end after buffer
 	//  -- Should not return until buffer passes end or timeout (check both cases), MissingData bit set
 
-	t.AddRequest(1, 6);  // Requesting data from ts 6 to 9, buffer will contain 10
-	WaitForRequests(t);
+	buffer->push(1, 6);  // Requesting data from ts 6 to 9, buffer will contain 10
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1);
@@ -1063,8 +961,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
-	t.AddRequest(2, 9);  // Requesting data from ts 9 to 12
-	WaitForRequests(t);
+	buffer->push(2, 9);  // Requesting data from ts 9 to 12
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
@@ -1087,8 +985,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	TRACE_REQUIRE_EQUAL(cf2.fragment_type(), type);
 	fps.clear();
 
-	t.AddRequest(3, 12);  // Requesting data from ts 11 to 14
-	WaitForRequests(t);
+	buffer->push(3, 12);  // Requesting data from ts 11 to 14
 
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1118,17 +1015,9 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WindowMode_RequestInBuffer test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.32");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<bool>("separate_data_thread", true);
@@ -1137,13 +1026,11 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
 	artdaq::FragmentPtrs fps;
@@ -1155,8 +1042,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	//  -- Should return ContainerFragment with one or more Fragments
 	gen.setFireCount(5);  // Buffer start is at ts 2, end at 6
 	gen.waitForFrags();
-	t.AddRequest(1, 3);  // Requesting data from ts 3 to 5
-	WaitForRequests(t);
+	buffer->push(1, 3);  // Requesting data from ts 3 to 5
 
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1179,17 +1065,9 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WindowMode_RequestEndsAfterBuffer test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.32");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<size_t>("window_close_timeout_us", 500000);
@@ -1199,13 +1077,11 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
 	artdaq::FragmentPtrs fps;
@@ -1217,8 +1093,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 
 	// 5. Start in buffer, end after buffer
 	//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
-	t.AddRequest(1, 5);  // Requesting data from ts 5 to 7
-	WaitForRequests(t);
+	buffer->push(1, 5);  // Requesting data from ts 5 to 7
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
@@ -1240,8 +1116,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
-	t.AddRequest(2, 8);  // Requesting data from ts 8 to 10
-	WaitForRequests(t);
+	buffer->push(2, 8);  // Requesting data from ts 8 to 10
 
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1271,17 +1146,9 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WindowMode_RequestAfterBuffer test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.32");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<size_t>("window_close_timeout_us", 500000);
@@ -1291,13 +1158,11 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
 	artdaq::FragmentPtrs fps;
@@ -1309,8 +1174,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
 	gen.setFireCount(9);  // Buffer start is 6, end at 10
 	gen.waitForFrags();
-	t.AddRequest(1, 11);  // Requesting data from ts 11 to 13
-	WaitForRequests(t);
+	buffer->push(1, 11);  // Requesting data from ts 11 to 13
 
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1338,8 +1202,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
 	fps.clear();
 
-	t.AddRequest(2, 16);  // Requesting data from ts 15 to 17
-	WaitForRequests(t);
+	buffer->push(2, 16);  // Requesting data from ts 15 to 17
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
@@ -1369,34 +1233,23 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "SequenceIDMode test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<int>("fragment_id", 1);
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.30");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "SequenceID");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
@@ -1415,8 +1268,8 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 	fps.clear();
 
 	// Test that no Fragment is returned when one does not exist in the buffer
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
@@ -1437,8 +1290,8 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 	// Test out-of-order requests, with non-matching timestamps
 	gen.setFireCount(2);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1449,8 +1302,8 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
 	fps.clear();
 
-	t.AddRequest(3, 6);
-	WaitForRequests(t);
+	buffer->push(3, 6);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1476,7 +1329,10 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 10);
 
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
 	artdaq::FragmentPtrs fps;
@@ -1511,8 +1367,12 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 	ps.put<bool>("separate_monitoring_thread", true);
 	ps.put<int64_t>("hardware_poll_interval_us", 750000);
 
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
 	gen.waitForFrags();
 
 	artdaq::FragmentPtrs fps;
@@ -1550,32 +1410,24 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "IgnoreRequests_MultipleIDs test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 1;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.29");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "ignored");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
+
 	gen.waitForFrags();
-	t.AddRequest(53, 35);
-	WaitForRequests(t);
+	buffer->push(53, 35);
 
 	artdaq::FragmentPtrs fps;
 	std::map<artdaq::Fragment::fragment_id_t, size_t> ids;
@@ -1622,34 +1474,23 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "SingleMode_MultipleIDs test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.30");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "single");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -1676,8 +1517,8 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
@@ -1699,8 +1540,8 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1737,8 +1578,8 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	gen.setEnabledIds(0x6);  // Fragment ID 3 disabled
 	gen.setFireCount(1);
 	gen.waitForFrags();
-	t.AddRequest(5, 9);
-	WaitForRequests(t);
+	buffer->push(5, 9);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 6);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1766,34 +1607,23 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "BufferMode_MultipleIDs test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.31");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "buffer");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -1826,8 +1656,8 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
@@ -1854,8 +1684,8 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 
 	gen.setFireCount(2);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 6);
@@ -1900,8 +1730,8 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	gen.setEnabledIds(0x6);  // Fragment id 3 disabled
 	gen.setFireCount(2);
 	gen.waitForFrags();
-	t.AddRequest(5, 8);
-	WaitForRequests(t);
+	buffer->push(5, 8);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3);
@@ -1948,17 +1778,9 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "CircularBufferMode_MultipleIDs test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.31");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
@@ -1967,17 +1789,14 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "buffer");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -2011,8 +1830,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	fps.clear();
 
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
@@ -2040,8 +1859,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 
 	gen.setFireCount(3);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 6);
@@ -2085,8 +1904,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 
 	gen.setFireCount(5);
 	gen.waitForFrags();
-	t.AddRequest(5, 8);
-	WaitForRequests(t);
+	buffer->push(5, 8);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
@@ -2120,8 +1939,8 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	gen.setEnabledIds(0x6);  // Disable Fragment ID 3
 	gen.setFireCount(4);
 	gen.waitForFrags();
-	t.AddRequest(6, 10);
-	WaitForRequests(t);
+	buffer->push(6, 10);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
@@ -2169,17 +1988,9 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WindowMode_Function_MultipleIDs test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.32");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
@@ -2190,17 +2001,14 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	ps.put<std::string>("request_mode", "window");
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
 	ps.put<size_t>("window_close_timeout_us", 500000);
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 1);
@@ -2234,8 +2042,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	fps.clear();
 
 	// No data for request
-	t.AddRequest(2, 2);
-	WaitForRequests(t);
+	buffer->push(2, 2);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -2268,8 +2076,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	fps.clear();
 
 	// Request Timeout
-	t.AddRequest(4, 3);
-	WaitForRequests(t);
+	buffer->push(4, 3);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
@@ -2313,8 +2121,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	// Data-taking has passed request
 	gen.setFireCount(12);
 	gen.waitForFrags();
-	t.AddRequest(5, 4);
-	WaitForRequests(t);
+	buffer->push(5, 4);
+
 	list = gen.GetSentWindowList(1);  // Out-of-order list is only updated in getNext calls
 	TRACE_REQUIRE_EQUAL(list.size(), 1);
 	sts = gen.getNext(fps);
@@ -2344,8 +2152,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	fps.clear();
 
 	// Out-of-order windows
-	t.AddRequest(7, 13);
-	WaitForRequests(t);
+	buffer->push(7, 13);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3);
@@ -2374,8 +2182,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	TRACE_REQUIRE_EQUAL(list.size(), 1);
 	TRACE_REQUIRE_EQUAL(list.begin()->first, 7);
 
-	t.AddRequest(6, 12);
-	WaitForRequests(t);
+	buffer->push(6, 12);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3);
@@ -2407,8 +2215,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	gen.setFireCount(1);
 	gen.waitForFrags();
 
-	t.AddRequest(8, 15);
-	WaitForRequests(t);
+	buffer->push(8, 15);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 2);
@@ -2471,34 +2279,23 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "SequenceIDMode_MultipleIDs test case BEGIN";
-	const int REQUEST_PORT = (seedAndRandom() % (32768 - 1024)) + 1024;
-	const int DELAY_TIME = 100;
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
-	ps.put<int>("request_port", REQUEST_PORT);
-#if MULTICAST_MODE
-	ps.put<std::string>("request_address", "227.18.12.30");
-#else
-	ps.put<std::string>("request_address", "localhost");
-#endif
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "SequenceID");
-	ps.put("request_delay_ms", DELAY_TIME);
-	ps.put("send_requests", true);
 
-	artdaq::RequestSender t(ps);
-	t.SetRunNumber(1);
-
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
 	artdaqtest::CommandableFragmentGeneratorTest gen(ps);
+	gen.SetRequestBuffer(buffer);
 	gen.StartCmd(1, 0xFFFFFFFF, 1);
 
-	t.AddRequest(1, 1);
-	WaitForRequests(t);
+	buffer->push(1, 1);
 
 	gen.waitForFrags();
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 2);
@@ -2528,8 +2325,8 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 	fps.clear();
 
 	// Test that no Fragment is returned when one does not exist in the buffer
-	t.AddRequest(2, 5);
-	WaitForRequests(t);
+	buffer->push(2, 5);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
@@ -2559,8 +2356,8 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 	// Test out-of-order requests, with non-matching timestamps
 	gen.setFireCount(2);
 	gen.waitForFrags();
-	t.AddRequest(4, 7);
-	WaitForRequests(t);
+	buffer->push(4, 7);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -2579,8 +2376,8 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 	ids.clear();
 	fps.clear();
 
-	t.AddRequest(3, 6);
-	WaitForRequests(t);
+	buffer->push(3, 6);
+
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(gen.ev_counter(), 5);
 	TRACE_REQUIRE_EQUAL(sts, true);

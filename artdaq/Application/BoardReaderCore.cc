@@ -47,6 +47,9 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application)
 artdaq::BoardReaderCore::~BoardReaderCore()
 {
 	TLOG(TLVL_DEBUG) << "Destructor";
+	TLOG(TLVL_DEBUG) << "Stopping Request Receiver BEGIN";
+	request_receiver_ptr_.reset(nullptr);
+	TLOG(TLVL_DEBUG) << "Stopping Request Receiver END";
 }
 
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
@@ -145,6 +148,23 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 		return false;
 	}
+
+	std::shared_ptr<RequestBuffer> request_buffer = std::make_shared<RequestBuffer>(fr_pset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1));
+
+	try
+	{
+		request_receiver_ptr_.reset(new RequestReceiver(fr_pset, request_buffer));
+		generator_ptr_->SetRequestBuffer(request_buffer);
+	}
+	catch (...)
+	{
+		ExceptionHandler(ExceptionHandlerRethrow::no, "Exception thrown during initialization of request receiver");
+
+		TLOG(TLVL_DEBUG) << "FHiCL parameter set used to initialize the request receiver which threw an exception: " << fr_pset.to_string();
+
+		return false;
+
+	}
 	metricMan->setPrefix(generator_ptr_->metricsReportingInstanceName());
 
 	rt_priority_ = fr_pset.get<int>("rt_priority", 0);
@@ -174,6 +194,9 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	generator_ptr_->StartCmd(id.run(), timeout, timestamp);
 	run_id_ = id;
 
+	request_receiver_ptr_->SetRunNumber(static_cast<uint32_t>(id.run()));
+	request_receiver_ptr_->startRequestReception();
+
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Start transition (Started run) for run " << run_id_.run()
 	                                          << ", timeout = " << timeout << ", timestamp = " << timestamp;
 	return true;
@@ -183,6 +206,10 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 {
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Stopping run " << run_id_.run() << " after " << fragment_count_ << " fragments.";
 	stop_requested_.store(true);
+
+	TLOG(TLVL_DEBUG) << "Stopping Request reception BEGIN";
+	request_receiver_ptr_->stopRequestReception();
+	TLOG(TLVL_DEBUG) << "Stopping Request reception END";
 
 	TLOG(TLVL_DEBUG) << "Stopping CommandableFragmentGenerator BEGIN";
 	generator_ptr_->StopCmd(timeout, timestamp);

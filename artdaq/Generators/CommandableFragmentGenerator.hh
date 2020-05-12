@@ -23,7 +23,7 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
+#include "artdaq/DAQrate/RequestBuffer.hh"
 
 namespace artdaq {
 /**
@@ -139,7 +139,6 @@ public:
 		/// SequenceID:  The CommandableFragmentGenerator responds to each request with all Fragments that match the sequence ID in the request
 		/// </summary>
 		fhicl::Atom<std::string> request_mode{fhicl::Name{"request_mode"}, fhicl::Comment{"The mode by which the CommandableFragmentGenerator will process reqeusts"}, "ignored"};
-		fhicl::TableFragment<artdaq::RequestReceiver::Config> receiverConfig;  ///< Configuration for the Request Receiver. See artdaq::RequestReceiver::Config
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -458,6 +457,8 @@ public:
 		*/
 	virtual bool metaCommand(std::string const& command, std::string const& arg);
 
+	void SetRequestBuffer(std::shared_ptr<RequestBuffer> buffer) { requestBuffer_ = buffer; }
+
 protected:
 	// John F., 12/6/13 -- need to figure out which of these getter
 	// functions should be promoted to "public"
@@ -573,8 +574,8 @@ protected:
 	/// <returns>Map relating sequence IDs to timestamps</returns>
 	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const
 	{
-		if (requestReceiver_ == nullptr) return std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>();
-		return requestReceiver_->GetRequests();
+		if (requestBuffer_ == nullptr) return std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>();
+		return requestBuffer_->GetRequests();
 	}
 
 	/// <summary>
@@ -583,8 +584,8 @@ protected:
 	/// <returns>Pair of sequence ID and timestamp representing next request</returns>
 	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest() const
 	{
-		if (requestReceiver_ == nullptr) return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
-		return requestReceiver_->GetNextRequest();
+		if (requestBuffer_ == nullptr) return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
+		return requestBuffer_->GetNextRequest();
 	}
 
 	/// <summary>
@@ -593,16 +594,17 @@ protected:
 	/// <returns>The number of request messages stored in the request receiver</returns>
 	size_t GetCurrentRequestCount() const
 	{
-		if (requestReceiver_ == nullptr) return 0;
-		return requestReceiver_->size();
+		if (requestBuffer_ == nullptr) return 0;
+		return requestBuffer_->size();
 	}
+
 
 private:
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
 
 	//Socket parameters
-	std::unique_ptr<RequestReceiver> requestReceiver_;
+	std::shared_ptr<RequestBuffer> requestBuffer_;
 
 	RequestMode mode_;
 	bool bufferModeKeepLatest_;
