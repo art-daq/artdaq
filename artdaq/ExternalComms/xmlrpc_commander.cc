@@ -160,11 +160,44 @@ std::string exception_msg(const art::Exception& er,
 
 /**
 	* \brief Write an exception message
-	* \param er A cet::exceptio to print
+	* \param er A cet::exception to print
 	* \param helpText Additional information abou the exception context
 	* \return Exception message
 	*/
 std::string exception_msg(const cet::exception& er,
+                          const std::string& helpText)
+{
+	std::string msg("Exception when trying to ");
+	msg.append(helpText);
+	msg.append(": ");
+	msg.append(er.what());
+	if (msg[msg.size() - 1] == '\n') msg.erase(msg.size() - 1);
+	return msg;
+}
+
+/**
+	* \brief Write an exception message
+	* \param er A boost::exception to print
+	* \param helpText Additional information abou the exception context
+	* \return Exception message
+	*/
+std::string exception_msg(const boost::exception& er,
+                          const std::string& helpText)
+{
+	std::string msg("Exception when trying to ");
+	msg.append(helpText);
+	msg.append(": ");
+	msg.append(boost::diagnostic_information(er));
+	if (msg[msg.size() - 1] == '\n') msg.erase(msg.size() - 1);
+	return msg;
+}
+/**
+	* \brief Write an exception message
+	* \param er A std::exception to print
+	* \param helpText Additional information abou the exception context
+	* \return Exception message
+	*/
+std::string exception_msg(const std::exception& er,
                           const std::string& helpText)
 {
 	std::string msg("Exception when trying to ");
@@ -420,8 +453,6 @@ T cmd_::getParam(const xmlrpc_c::paramList& paramList, int index,
 	{
 		throw exception;
 	}
-	catch (...)
-	{}
 
 	return val;
 }
@@ -474,9 +505,21 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 			*retvalP = xmlrpc_c::value_string(msg);
 			TLOG(TLVL_ERROR) << msg;
 		}
+		catch (boost::exception& er)
+		{
+			std::string msg = exception_msg(er, _help);
+			*retvalP = xmlrpc_c::value_string(msg);
+			TLOG(TLVL_ERROR) << msg;
+		}
+		catch (std::exception& er)
+		{
+			std::string msg = exception_msg(er, _help);
+			*retvalP = xmlrpc_c::value_string(msg);
+			TLOG(TLVL_ERROR) << msg;
+		}
 		catch (...)
 		{
-			std::string msg = exception_msg("Unknown exception", _help);
+			std::string msg = exception_msg("Unknown exception (not from std, boost, cet, or art)", _help);
 			*retvalP = xmlrpc_c::value_string(msg);
 			TLOG(TLVL_ERROR) << msg;
 		}
