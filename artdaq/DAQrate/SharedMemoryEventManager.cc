@@ -255,7 +255,11 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 {
 	TLOG(TLVL_TRACE) << "DoneWritingFragment BEGIN";
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
-	if (buffer == -1) Detach(true, "SharedMemoryEventManager", "getBufferForSequenceID_ returned -1 when it REALLY shouldn't have! Check program logic!");
+	if (buffer == -1)
+	{
+		Detach(true, "SharedMemoryEventManager",
+		       "getBufferForSequenceID_ returned -1 in DoneWritingFragment. This indicates a possible mismatch between expected Fragment count and the actual number of Fragments received.");
+	}
 	if (buffer == -2) { return; }
 
 	statsHelper_.addSample(FRAGMENTS_RECEIVED_STAT_KEY, frag.word_count * sizeof(RawDataType));
