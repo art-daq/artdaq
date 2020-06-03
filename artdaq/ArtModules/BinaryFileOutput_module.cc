@@ -50,7 +50,7 @@ public:
 	 *
 	 * BinaryFileOutput also expects the following Parameters:
 	 * "fileName" (REQUIRED): Name of the file to write
-	 * "directIO" (Default: false): Whether to use O_DIRECT
+	 * "directIO" (Default: false): Whether to use O_DIRECT (Ref. issue #24437)
 	 */
 	explicit BinaryFileOutput(ParameterSet const& ps);
 
@@ -113,7 +113,7 @@ void art::BinaryFileOutput::initialize_FILE_()
 	std::string file_name = PostCloseFileRenamer{fstats_}.applySubstitutions(file_name_);
 	if (do_direct_)
 	{
-		fd_ = open(file_name.c_str(), O_WRONLY | O_CREAT | O_DIRECT, 0660);
+		fd_ = open(file_name.c_str(), O_WRONLY | O_CREAT | O_DIRECT, 0660); // O_DIRECT - ref. artdaq-core/Core/QuickVec.hh:#define QV_ALIGN 512 and artdaq issue #24437
 		TLOG(TLVL_TRACE) << "initialize_FILE_ fd_=" << fd_;
 	}
 	else
