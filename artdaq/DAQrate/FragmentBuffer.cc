@@ -337,7 +337,7 @@ void artdaq::FragmentBuffer::checkDataBuffer(Fragment::fragment_id_t id)
 			dataBuffer->BufferFragmentKept = false;  // If any Fragments are removed from data buffer, then we know we don't have to ignore the first one anymore
 		}
 		std::lock_guard<std::mutex> lk(dataBuffer->DataBufferMutex);
-		TLOG(TLVL_INFO) << "DataBufferDepthFragments is " << dataBuffer->DataBufferDepthFragments << ", DataBuffer.size is " << dataBuffer->DataBuffer.size();
+		TLOG(TLVL_CHECKDATABUFFER) << "DataBufferDepthFragments is " << dataBuffer->DataBufferDepthFragments << ", DataBuffer.size is " << dataBuffer->DataBuffer.size();
 		if (dataBuffer->DataBufferDepthFragments > 0)
 		{
 			TLOG(TLVL_CHECKDATABUFFER) << "Determining if Fragments can be dropped from data buffer";
@@ -524,15 +524,32 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 			cfl.set_missing_data(true);
 		}
 
+		auto it = dataBuffer->DataBuffer.begin();
+		// Likely that it will be closer to the end...
+		if (windowTimeout)
+		{
+			it = dataBuffer->DataBuffer.end();
+			--it;
+			while (it != dataBuffer->DataBuffer.begin())
+			{
+				if ((*it)->timestamp() < min)
+				{
+					break;
+				}
+				--it;
+			}
+		}
 		// Do a little bit more work to decide which fragments to send for a given request
-		for (auto it = dataBuffer->DataBuffer.begin(); it != dataBuffer->DataBuffer.end();)
+		for (; it != dataBuffer->DataBuffer.end();)
 		{
 			Fragment::timestamp_t fragT = (*it)->timestamp();
-			if (fragT < min || fragT > max || (fragT == max && windowWidth_ > 0))
+			if (fragT < min)
 			{
 				++it;
 				continue;
 			}
+			if (fragT > max || (fragT == max && windowWidth_ > 0))
+			{ break; }
 
 			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
 			cfl.addFragment(*it);
