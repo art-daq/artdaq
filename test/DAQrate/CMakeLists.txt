@@ -26,3 +26,10 @@ cet_test(requestsender HANDBUILT
   TEST_ARGS -c requestsender.fcl
   DATAFILES requestsender.fcl
   )
+
+  
+cet_test(FragmentBuffer_t USE_BOOST_UNIT
+  LIBRARIES artdaq_DAQrate 
+  artdaq_Generators
+  artdaq-core_Data
+  )

@@ -25,6 +25,8 @@ class artdaq::BoardReaderCore
 public:
 	static const std::string FRAGMENTS_PROCESSED_STAT_KEY;  ///< Key for the Fragments Processed MonitoredQuantity
 	static const std::string INPUT_WAIT_STAT_KEY;           ///< Key for the Input Wait MonitoredQuantity
+	static const std::string BUFFER_WAIT_STAT_KEY;
+	static const std::string REQUEST_WAIT_STAT_KEY;
 	static const std::string BRSYNC_WAIT_STAT_KEY;          ///< Key for the Sync Wait MonitoredQuantity
 	static const std::string OUTPUT_WAIT_STAT_KEY;          ///< Key for the Output Wait MonitoredQuantity
 	static const std::string FRAGMENTS_PER_READ_STAT_KEY;   ///< Key for the Fragments Per Read MonitoredQuantity
@@ -133,11 +135,17 @@ public:
 
 	/**
 	 * \brief Main working loop of the BoardReaderCore
-	 * \return Number of Fragments generated
 	 * 
-	 * This loop calls the CommandableFragmentGenerator::getNext method, then sends each Fragment using DataSenderManager.
+	 * This loop calls the CommandableFragmentGenerator::getNext method and gives the result to the FragmentBuffer
 	 */
-	void process_fragments();
+	void receive_fragments();
+
+	/**
+	 * @brief Main working loop of the BoardReaderCore, pt. 2
+	 *
+	 * This loop calls the FragmentBuffer::applyRequests method and sends the result using DataSenderManager
+	*/
+	void send_fragments();
 
 	/**
 	 * \brief Send a report on a given run-time quantity
@@ -173,6 +181,7 @@ private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
 	std::unique_ptr<RequestReceiver> request_receiver_ptr_;
+	std::unique_ptr<FragmentBuffer> fragment_buffer_ptr_;
 	art::RunID run_id_;
 
 	fhicl::ParameterSet data_pset_;

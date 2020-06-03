@@ -130,7 +130,8 @@ public:
 
 private:
 	std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;
-	boost::thread fragment_processing_thread_;
+	boost::thread fragment_input_thread_;
+	boost::thread fragment_output_thread_;
 };
 
 #endif /* artdaq_Application_MPI2_BoardReaderApp_hh */

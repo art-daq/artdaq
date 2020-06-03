@@ -1,6 +1,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_BoardReaderApp").c_str()
 #include "artdaq/Application/BoardReaderApp.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 artdaq::BoardReaderApp::BoardReaderApp()
     : fragment_receiver_ptr_(nullptr)
@@ -58,13 +59,15 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	attrs.set_stack_size(4096 * 2000);  // 8 MB
 	try
 	{
-		fragment_processing_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::process_fragments, fragment_receiver_ptr_.get()));
+		fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
+		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
 	}
 	catch (const boost::exception& e)
 	{
-		TLOG(TLVL_ERROR) << "Caught boost::exception starting Fragment Processing thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Fragment Processing thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
-		exit(5);
+		std::stringstream exception_string;
+		exception_string << "Caught boost::exception starting Fragment Processing threads: " << boost::diagnostic_information(e) << ", errno=" << errno;
+
+		ExceptionHandler(ExceptionHandlerRethrow::yes, exception_string.str());
 	}
 	/*
 	fragment_processing_future_ =
@@ -84,11 +87,17 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 		return false;
 	}
-	if (fragment_processing_thread_.joinable())
+	if (fragment_input_thread_.joinable())
 	{
-		TLOG(TLVL_DEBUG) << "Joining fragment processing thread";
-		fragment_processing_thread_.join();
+		TLOG(TLVL_DEBUG) << "Joining fragment input (Generator) thread";
+		fragment_input_thread_.join();
 	}
+	if (fragment_output_thread_.joinable())
+	{
+		TLOG(TLVL_DEBUG) << "Joining fragment output (Sender) thread";
+		fragment_output_thread_.join();
+	}
+
 
 	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
 	int number_of_fragments_sent = -1;
@@ -110,7 +119,8 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 	}
 
-	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
+	if (fragment_input_thread_.joinable()) fragment_input_thread_.join();
+	if (fragment_output_thread_.joinable()) fragment_output_thread_.join();
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG) << "do_pause(uint64_t, uint64_t): "
 	                 << "Number of fragments sent = " << number_of_fragments_sent
@@ -131,7 +141,8 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 
 	boost::thread::attributes attrs;
 	attrs.set_stack_size(4096 * 2000);  // 8 MB
-	fragment_processing_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::process_fragments, fragment_receiver_ptr_.get()));
+	fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
+	fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
 	/*
 		fragment_processing_future_ =
 			std::async(std::launch::async, &BoardReaderCore::process_fragments,
@@ -146,7 +157,8 @@ bool artdaq::BoardReaderApp::do_shutdown(uint64_t timeout)
 	external_request_status_ = fragment_receiver_ptr_->shutdown(timeout);
 	// 02-Jun-2018, ELF & KAB: it's very, very unlikely that the following call is needed,
 	// but just in case...
-	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
+	if (fragment_input_thread_.joinable()) fragment_input_thread_.join();
+	if (fragment_output_thread_.joinable()) fragment_output_thread_.join();
 	if (!external_request_status_)
 	{
 		report_string_ = "Error shutting down ";
