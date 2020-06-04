@@ -212,6 +212,8 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	prev_seq_id_ = 0;
 	statsHelper_.resetStatistics();
 
+	fragment_buffer_ptr_->Reset(false);
+
 	metricMan->do_start();
 	generator_ptr_->StartCmd(id.run(), timeout, timestamp);
 	run_id_ = id;

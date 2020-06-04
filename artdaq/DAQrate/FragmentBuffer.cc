@@ -113,6 +113,12 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 artdaq::FragmentBuffer::~FragmentBuffer()
 {
 	TLOG(TLVL_INFO) << "Fragment Buffer Destructor; Clearing data buffers";
+	Reset(true);
+}
+
+void artdaq::FragmentBuffer::Reset(bool stop)
+{
+	should_stop_ = stop;
 	for (auto& id : dataBuffers_)
 	{
 		std::lock_guard<std::mutex> dlk(id.second->DataBufferMutex);
@@ -135,7 +141,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 		}
 		auto dataBuffer = dataBuffers_[frag_id];
 
-		TLOG(TLVL_DEBUG) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
+		TLOG(TLVL_TRACE) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 		switch (mode_)
 		{
 			case RequestMode::Single: {

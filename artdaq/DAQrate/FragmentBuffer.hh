@@ -157,6 +157,7 @@ public:
 
 	void AddFragmentsToBuffer(FragmentPtrs frags);
 	void Stop() { should_stop_ = true; }
+	void Reset(bool stop);
 
 	/// <summary>
 	/// Create fragments using data buffer for request mode Ignored.
