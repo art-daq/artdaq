@@ -64,12 +64,12 @@ int process_cmd_line(int argc, char** argv,
 		                 << ": " << e.what();
 		return -1;
 	}
-	if (vm.count("help"))
+	if (vm.count("help") != 0u)
 	{
 		std::cout << desc << std::endl;
 		return 1;
 	}
-	if (!vm.count("config"))
+	if (vm.count("config") == 0u)
 	{
 		TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
 		                 << ": no configuration file given.\n"
@@ -118,7 +118,10 @@ public:
 	void start(int run, uint64_t timeout, uint64_t timestamp) const
 	{
 		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
-		if (gen_ptr != nullptr) gen_ptr->StartCmd(run, timeout, timestamp);
+		if (gen_ptr != nullptr)
+		{
+			gen_ptr->StartCmd(run, timeout, timestamp);
+		}
 	}
 	/**
 		 * \brief Send stop signal to FragmentGenerator, if it's a CommandableFragmentGenerator
@@ -128,7 +131,10 @@ public:
 	void stop(uint64_t timeout, uint64_t timestamp) const
 	{
 		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
-		if (gen_ptr != nullptr) gen_ptr->StopCmd(timeout, timestamp);
+		if (gen_ptr != nullptr)
+		{
+			gen_ptr->StopCmd(timeout, timestamp);
+		}
 	}
 
 private:
@@ -146,7 +152,7 @@ ThrottledGenerator::
                        fhicl::ParameterSet const& ps)
     : generator_(artdaq::makeFragmentGenerator(generator, ps))
     , numFragIDs_(generator_->fragmentIDs().size())
-    , frags_()
+
 {
 	assert(generator_);
 }
@@ -154,7 +160,7 @@ ThrottledGenerator::
 bool ThrottledGenerator::
     getNext(artdaq::FragmentPtrs& newFrags)
 {
-	if (frags_.size() && frags_.begin()->second.size())
+	if ((!frags_.empty()) && (!frags_.begin()->second.empty()))
 	{  // Something stored.
 		for (auto& fQp : frags_)
 		{
@@ -225,6 +231,7 @@ int process_data(fhicl::ParameterSet const& pset)
 	std::vector<ThrottledGenerator> generators;
 
 	auto const fr_pset = gta_pset.get<std::vector<fhicl::ParameterSet>>("fragment_receivers");
+	generators.reserve(fr_pset.size());
 	for (auto const& gen_ps : fr_pset)
 	{
 		generators.emplace_back(gen_ps.get<std::string>("generator"),
@@ -315,14 +322,13 @@ int process_data(fhicl::ParameterSet const& pset)
 	{
 		return 0;
 	}
-	else
-	{
-		return 15;
-	}
+
+	return 15;
 }
 }  // namespace
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("genToArt");
 	// Command line handling.
@@ -352,7 +358,7 @@ catch (std::string& x)
 catch (char const* m)
 {
 	TLOG(TLVL_ERROR) << "Exception (type char const*) caught in genToArt: ";
-	if (m)
+	if (m != nullptr)
 	{
 		TLOG(TLVL_ERROR) << m;
 	}

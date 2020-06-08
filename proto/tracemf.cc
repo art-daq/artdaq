@@ -14,21 +14,21 @@ std::string formatTime(double time)
 {
 	std::ostringstream o;
 	o << std::fixed << std::setprecision(3);
-	if (time > 60)
+	if (time > 60) {
 		o << static_cast<int>(time / 60) << " m " << time - 60 * static_cast<int>(time / 60) << " s";
-	else if (time > 1)
+	} else if (time > 1) {
 		o << time << " s";
-	else
+	} else
 	{
 		time *= 1000;
-		if (time > 1)
+		if (time > 1) {
 			o << time << " ms";
-		else
+		} else
 		{
 			time *= 1000;
-			if (time > 1)
+			if (time > 1) {
 				o << time << " us";
-			else
+			} else
 			{
 				time *= 1000;
 				o << time << " ns";
@@ -58,12 +58,12 @@ int main(int argc, char *argv[])
 		          << ": " << e.what() << "\n";
 		return -1;
 	}
-	if (vm.count("help"))
+	if (vm.count("help") != 0u)
 	{
 		std::cout << desc << std::endl;
 		return 1;
 	}
-	if (!vm.count("loops"))
+	if (vm.count("loops") == 0u)
 	{
 		std::cerr << "Exception from command line processing in " << argv[0]
 		          << ": no loop count given.\n"
@@ -74,9 +74,9 @@ int main(int argc, char *argv[])
 	}
 	size_t loops = vm["loops"].as<size_t>();
 
-	artdaq::configureMessageFacility("tracemf", vm.count("console"));
+	artdaq::configureMessageFacility("tracemf", vm.count("console") != 0u);
 
-	if (vm.count("C"))
+	if (vm.count("C") != 0u)
 	{
 		std::cout << "Starting TRACEC test" << std::endl;
 		auto start = std::chrono::steady_clock::now();
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 		std::cout << "TRACEC test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
 	}
 
-	if (vm.count("S"))
+	if (vm.count("S") != 0u)
 	{
 		std::cout << "Starting TRACES test" << std::endl;
 		auto start = std::chrono::steady_clock::now();
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 		std::cout << "TRACES test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
 	}
 
-	if (vm.count("U"))
+	if (vm.count("U") != 0u)
 	{
 		std::cout << "Starting TRACE_ test" << std::endl;
 		auto start = std::chrono::steady_clock::now();
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 		std::cout << "TRACE_ test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
 	}
 
-	if (vm.count("D"))
+	if (vm.count("D") != 0u)
 	{
 		std::cout << "Starting TLOG_DEBUG test" << std::endl;
 		auto start = std::chrono::steady_clock::now();
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 		std::cout << "TLOG_DEBUG test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
 	}
 
-	if (vm.count("I"))
+	if (vm.count("I") != 0u)
 	{
 		std::cout << "Starting TLOG_INFO test" << std::endl;
 		auto start = std::chrono::steady_clock::now();

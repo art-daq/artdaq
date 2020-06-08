@@ -12,7 +12,8 @@ int main(int argc, char* argv[])
 
 	auto ps = LoadParameterSet<artdaqtest::BrokenTransferTest::Config>(argc, argv, "broken_transfer_test", "Test for misbehaving transfer plugins");
 
-	if (ps.has_key("partition_number")) artdaq::Globals::partition_number_ = ps.get<int>("partition_number");
+	if (ps.has_key("partition_number")) { artdaq::Globals::partition_number_ = ps.get<int>("partition_number");
+}
 
 	artdaqtest::BrokenTransferTest theTest(ps);
 

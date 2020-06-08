@@ -6,23 +6,23 @@
 #include "artdaq/Application/DataLoggerCore.hh"
 
 #include <iostream>
+#include <memory>
 
 artdaq::DataLoggerApp::DataLoggerApp()
-{
-}
+= default;
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
 // *******************************************************************
 
-bool artdaq::DataLoggerApp::do_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::DataLoggerApp::do_initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 
 	//DataLogger_ptr_.reset(nullptr);
-	if (DataLogger_ptr_.get() == 0)
+	if (DataLogger_ptr_ == nullptr)
 	{
-		DataLogger_ptr_.reset(new DataLoggerCore());
+		DataLogger_ptr_ = std::make_unique<DataLoggerCore>();
 	}
 	external_request_status_ = DataLogger_ptr_->initialize(pset);
 	if (!external_request_status_)
@@ -35,7 +35,7 @@ bool artdaq::DataLoggerApp::do_initialize(fhicl::ParameterSet const& pset, uint6
 	return external_request_status_;
 }
 
-bool artdaq::DataLoggerApp::do_start(art::RunID id, uint64_t, uint64_t)
+bool artdaq::DataLoggerApp::do_start(art::RunID id, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = DataLogger_ptr_->start(id);
@@ -51,7 +51,7 @@ bool artdaq::DataLoggerApp::do_start(art::RunID id, uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DataLoggerApp::do_stop(uint64_t, uint64_t)
+bool artdaq::DataLoggerApp::do_stop(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = DataLogger_ptr_->stop();
@@ -64,7 +64,7 @@ bool artdaq::DataLoggerApp::do_stop(uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DataLoggerApp::do_pause(uint64_t, uint64_t)
+bool artdaq::DataLoggerApp::do_pause(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = DataLogger_ptr_->pause();
@@ -77,7 +77,7 @@ bool artdaq::DataLoggerApp::do_pause(uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DataLoggerApp::do_resume(uint64_t, uint64_t)
+bool artdaq::DataLoggerApp::do_resume(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = DataLogger_ptr_->resume();
@@ -90,7 +90,7 @@ bool artdaq::DataLoggerApp::do_resume(uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DataLoggerApp::do_shutdown(uint64_t)
+bool artdaq::DataLoggerApp::do_shutdown(uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = DataLogger_ptr_->shutdown();
@@ -103,12 +103,12 @@ bool artdaq::DataLoggerApp::do_shutdown(uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DataLoggerApp::do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t)
+bool artdaq::DataLoggerApp::do_soft_initialize(fhicl::ParameterSet const& /*unused*/, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	return true;
 }
 
-bool artdaq::DataLoggerApp::do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t)
+bool artdaq::DataLoggerApp::do_reinitialize(fhicl::ParameterSet const& /*unused*/, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	return true;
 }
@@ -121,10 +121,10 @@ std::string artdaq::DataLoggerApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else
-		{
+		
+		
 			return "Success";
-		}
+		
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
@@ -136,7 +136,7 @@ std::string artdaq::DataLoggerApp::report(std::string const& which) const
 	//}
 
 	// pass the request to the DataLoggerCore instance, if it's available
-	if (DataLogger_ptr_.get() != 0)
+	if (DataLogger_ptr_ != nullptr)
 	{
 		resultString.append(DataLogger_ptr_->report(which));
 	}

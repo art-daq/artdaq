@@ -48,9 +48,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	std::string fhicl_filename = boost::lexical_cast<std::string>(argv[1]);
-	size_t num_sends = boost::lexical_cast<size_t>(argv[2]);
-	size_t fragment_size = boost::lexical_cast<size_t>(argv[3]);
+	auto fhicl_filename = boost::lexical_cast<std::string>(argv[1]);
+	auto num_sends = boost::lexical_cast<size_t>(argv[2]);
+	auto fragment_size = boost::lexical_cast<size_t>(argv[3]);
 
 	if (num_sends <= 1)
 	{
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 	          reinterpret_cast<uint64_t*>(frag->dataEndBytes()),
 	          0);
 
-	size_t timeout = pset.get<size_t>("send_timeout_usecs", std::numeric_limits<size_t>::max());
+	auto timeout = pset.get<size_t>("send_timeout_usecs", std::numeric_limits<size_t>::max());
 
 	for (size_t i_i = 0; i_i < num_sends; ++i_i)
 	{

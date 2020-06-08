@@ -3,11 +3,12 @@
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
-#include <thread>
 #include "artdaq/DAQdata/Globals.hh"
+#include <memory>
+#include <thread>
 #define TRACE_NAME "BrokenTransferTest"
 
-artdaqtest::BrokenTransferTest::BrokenTransferTest(fhicl::ParameterSet ps)
+artdaqtest::BrokenTransferTest::BrokenTransferTest(const fhicl::ParameterSet& ps)
     : sender_ready_()
     , receiver_ready_()
     , sender_current_fragment_()
@@ -23,10 +24,8 @@ artdaqtest::BrokenTransferTest::BrokenTransferTest(fhicl::ParameterSet ps)
     , reliable_mode_(ps.get<bool>("reliable_mode", true))
     , fragment_size_(ps.get<size_t>("fragment_size", 0x10000))
     , send_timeout_us_(ps.get<size_t>("send_timeout_us", 100000))
-    , event_buffer_()
-    , timeout_events_()
-    , complete_events_()
-    , transfer_buffer_count_(ps.get<size_t>("transfer_buffer_count", 10))
+    , 
+     transfer_buffer_count_(ps.get<size_t>("transfer_buffer_count", 10))
     , event_buffer_count_(ps.get<size_t>("event_buffer_count", 20))
     , event_buffer_timeout_us_(ps.get<size_t>("event_buffer_timeout_us", 1000000))
     , send_throttle_us_(0)
@@ -84,7 +83,8 @@ void artdaqtest::BrokenTransferTest::TestSenderReconnect()
 
 	TLOG(TLVL_INFO) << "Killing first Sender";
 	kill_first_sender_ = true;
-	if (sender_threads_[0].joinable()) sender_threads_[0].join();
+	if (sender_threads_[0].joinable()) { sender_threads_[0].join();
+}
 	kill_first_sender_ = false;
 
 	usleep_for_n_buffer_epochs_(2);
@@ -119,8 +119,10 @@ void artdaqtest::BrokenTransferTest::TestReceiverReconnect(int send_throttle_us)
 
 	TLOG(TLVL_INFO) << "Killing Receiver";
 	kill_receiver_ = true;
-	if (receiver_threads_[0].joinable()) receiver_threads_[0].join();
-	if (receiver_threads_[1].joinable()) receiver_threads_[1].join();
+	if (receiver_threads_[0].joinable()) { receiver_threads_[0].join();
+}
+	if (receiver_threads_[1].joinable()) { receiver_threads_[1].join();
+}
 	kill_receiver_ = false;
 
 	usleep_for_n_buffer_epochs_(2);
@@ -147,9 +149,9 @@ void artdaqtest::BrokenTransferTest::TestReceiverReconnect(int send_throttle_us)
 	TLOG(TLVL_INFO) << "TestReceiverReconnect END";
 }
 
-fhicl::ParameterSet artdaqtest::BrokenTransferTest::make_transfer_ps_(int sender_rank, int receiver_rank, std::string name)
+fhicl::ParameterSet artdaqtest::BrokenTransferTest::make_transfer_ps_(int sender_rank, int receiver_rank, const std::string& name)
 {
-	fhicl::ParameterSet thePs = ps_.get<fhicl::ParameterSet>("default_transfer_ps", fhicl::ParameterSet());
+	auto thePs = ps_.get<fhicl::ParameterSet>("default_transfer_ps", fhicl::ParameterSet());
 
 	thePs.put_or_replace("transferPluginType", ps_.get<std::string>("transfer_to_use", "Shmem"));
 	thePs.put_or_replace("destination_rank", receiver_rank);
@@ -249,8 +251,10 @@ void artdaqtest::BrokenTransferTest::stop_test_()
 	}
 
 	TLOG(TLVL_DEBUG) << "stop_test_: Joining sender threads";
-	if (sender_threads_[0].joinable()) sender_threads_[0].join();
-	if (sender_threads_[1].joinable()) sender_threads_[1].join();
+	if (sender_threads_[0].joinable()) { sender_threads_[0].join();
+}
+	if (sender_threads_[1].joinable()) { sender_threads_[1].join();
+}
 
 	TLOG(TLVL_DEBUG) << "stop_test_: Waiting for receiver threads to shut down";
 	while (receiver_ready_[0] || receiver_ready_[1])
@@ -259,14 +263,17 @@ void artdaqtest::BrokenTransferTest::stop_test_()
 	}
 
 	TLOG(TLVL_DEBUG) << "stop_test_: Joining receiver threads";
-	if (receiver_threads_[0].joinable()) receiver_threads_[0].join();
-	if (receiver_threads_[1].joinable()) receiver_threads_[1].join();
+	if (receiver_threads_[0].joinable()) { receiver_threads_[0].join();
+}
+	if (receiver_threads_[1].joinable()) { receiver_threads_[1].join();
+}
 
 	TLOG(TLVL_INFO) << "Sent " << sender_current_fragment_[0] << " events from rank 0 and " << sender_current_fragment_[1] << " events from rank 1.";
 
 	artdaq::Fragment::sequence_id_t expected_events = sender_current_fragment_[0];
-	if (sender_current_fragment_[1] > expected_events)
+	if (sender_current_fragment_[1] > expected_events) {
 		expected_events = sender_current_fragment_[1];
+}
 
 	auto complete_events = complete_events_.size();
 	auto incomplete_events = timeout_events_.size();
@@ -287,7 +294,8 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 
 	while (sender_current_fragment_[sender_rank] < sequence_id_target_() || !test_end_requested_)
 	{
-		if (sender_rank == 0 && kill_first_sender_) break;
+		if (sender_rank == 0 && kill_first_sender_) { break;
+}
 		while (sender_rank == 0 && pause_first_sender_)
 		{
 			std::this_thread::yield();
@@ -306,7 +314,8 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 		{
 			TLOG(TLVL_INFO) << "Sender " << sender_rank << " waiting for token from receiver";
 			while (sender_tokens_[sender_rank].load() == 0 && !test_end_requested_) { usleep(10000); }
-			if (test_end_requested_) continue;
+			if (test_end_requested_) { continue;
+}
 			TLOG(TLVL_INFO) << "Sender " << sender_rank << " waited " << fm_(artdaq::TimeUtils::GetElapsedTime(start_time), "s") << " for token from receiver";
 		}
 
@@ -331,8 +340,9 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 		                 << ") throttle " << send_throttle_us_;
 		++sender_current_fragment_[sender_rank];
 		sender_tokens_[sender_rank]--;
-		if (send_throttle_us_)
+		if (send_throttle_us_ != 0) {
 			usleep(send_throttle_us_);
+}
 	}
 
 	TLOG(TLVL_DEBUG) << "Sender " << sender_rank << " shutting down...";
@@ -352,9 +362,10 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 	receiver_ready_[sender_rank] = true;
 	sender_tokens_[sender_rank] = event_buffer_count_;
 
-	while (event_buffer_.size() > 0 || !test_end_requested_ || sender_ready_[0] || sender_ready_[1])
+	while (!event_buffer_.empty() || !test_end_requested_ || sender_ready_[0] || sender_ready_[1])
 	{
-		if (kill_receiver_) break;
+		if (kill_receiver_) { break;
+}
 		while (pause_receiver_)
 		{
 			std::this_thread::yield();
@@ -391,24 +402,25 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 			} while (event_buffer_.size() > event_buffer_count_);
 		}
 
-		if (rank != sender_rank) continue;
+		if (rank != sender_rank) { continue;
+}
 
 		artdaq::RawDataType* ptr = nullptr;
 		bool first = true;
 		{
 			std::unique_lock<std::mutex> lk(event_buffer_mutex_);
-			if (timeout_events_.count(hdr.sequence_id))
+			if (timeout_events_.count(hdr.sequence_id) != 0u)
 			{
 				TLOG(TLVL_WARNING) << "Event " << hdr.sequence_id << " has timed out, discarding";
 				if (!dropFrag || dropFrag->size() < hdr.word_count)
 				{
-					dropFrag.reset(new artdaq::Fragment(hdr.word_count - hdr.num_words()));
+					dropFrag = std::make_unique<artdaq::Fragment>(hdr.word_count - hdr.num_words());
 				}
 				ptr = dropFrag->headerAddress() + hdr.num_words();
 			}
 			else
 			{
-				if (!event_buffer_.count(hdr.sequence_id))
+				if (event_buffer_.count(hdr.sequence_id) == 0u)
 				{
 					event_buffer_[hdr.sequence_id].open_time = std::chrono::steady_clock::now();
 					event_buffer_[hdr.sequence_id].first_frag = artdaq::Fragment(hdr.word_count - hdr.num_words());
@@ -458,19 +470,20 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 artdaq::Fragment::sequence_id_t artdaqtest::BrokenTransferTest::sequence_id_target_()
 {
 	auto ret = 1 + (artdaq::TimeUtils::GetElapsedTimeMicroseconds(test_start_time_) * fragment_rate_hz_ / 1000000);
-	if (test_end_requested_)
+	if (test_end_requested_) {
 		ret = 1 + (artdaq::TimeUtils::GetElapsedTimeMicroseconds(test_end_time_) * fragment_rate_hz_ / 1000000);
+}
 	//TLOG(TLVL_DEBUG) << "sequence_id_target_ is " << ret;
 	return ret;
 }
 
-std::string artdaqtest::BrokenTransferTest::fm_(double data, std::string units, int logt)
+std::string artdaqtest::BrokenTransferTest::fm_(double data, const std::string& units, int logt)
 {
 	if (data < 1 && logt > -3)
 	{
 		return fm_(data * 1000, units, logt - 1);
 	}
-	else if (data > 1000 && logt < 3)
+	if (data > 1000 && logt < 3)
 	{
 		return fm_(data / 1000, units, logt + 1);
 	}

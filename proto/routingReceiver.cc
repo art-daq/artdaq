@@ -1,14 +1,6 @@
 #define TRACE_NAME "RoutingReceiver"
 #include "artdaq/DAQdata/Globals.hh"
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <poll.h>
-#include <signal.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <chrono>
-#include <thread>
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
@@ -18,6 +10,14 @@
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
 #include "proto/artdaqapp.hh"
+#include <arpa/inet.h>
+#include <chrono>
+#include <csignal>
+#include <netinet/in.h>
+#include <poll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <thread>
 
 namespace artdaq {
 /**
@@ -60,7 +60,8 @@ public:
 
 		host_map_ = MakeHostMap(pset);
 
-		if (use_routing_master_) startTableReceiverThread_();
+		if (use_routing_master_) { startTableReceiverThread_();
+}
 	}
 
 	/**
@@ -70,7 +71,8 @@ public:
 	{
 		TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver BEGIN";
 		should_stop_ = true;
-		if (routing_thread_.joinable()) routing_thread_.join();
+		if (routing_thread_.joinable()) { routing_thread_.join();
+}
 		TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver END.";
 	}
 
@@ -155,7 +157,8 @@ private:
 	}
 	void startTableReceiverThread_()
 	{
-		if (routing_thread_.joinable()) routing_thread_.join();
+		if (routing_thread_.joinable()) { routing_thread_.join();
+}
 		TLOG(TLVL_INFO) << "Starting Routing Thread";
 		try
 		{
@@ -253,7 +256,7 @@ private:
 									break;
 								}
 								thisSeqID++;
-								if (routing_table_.count(entry.sequence_id))
+								if (routing_table_.count(entry.sequence_id) != 0u)
 								{
 									if (routing_table_[entry.sequence_id] != entry.destination_rank)
 									{
@@ -263,7 +266,8 @@ private:
 									}
 									continue;
 								}
-								if (entry.sequence_id < routing_table_last_) continue;
+								if (entry.sequence_id < routing_table_last_) { continue;
+}
 								routing_table_[entry.sequence_id] = entry.destination_rank;
 								TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
 								                 << " -> Rank " << entry.destination_rank;
@@ -271,7 +275,8 @@ private:
 						}
 
 						TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
-						if (routing_table_.size() > 0) TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+						if (!routing_table_.empty()) { TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+}
 
 						auto counter = 0;
 						for (auto& entry : routing_table_)
@@ -281,7 +286,8 @@ private:
 						}
 					}
 
-					if (last > routing_table_last_) routing_table_last_ = last;
+					if (last > routing_table_last_) { routing_table_last_ = last;
+}
 				}
 			}
 		}
@@ -311,8 +317,8 @@ static void signal_handler(int signum)
 	should_stop = true;
 
 	sigset_t set;
-	pthread_sigmask(SIG_UNBLOCK, NULL, &set);
-	pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+	pthread_sigmask(SIG_UNBLOCK, nullptr, &set);
+	pthread_sigmask(SIG_UNBLOCK, &set, nullptr);
 }
 
 int main(int argc, char* argv[])
@@ -328,7 +334,7 @@ int main(int argc, char* argv[])
 		for (auto signal : signals)
 		{
 			struct sigaction old_action;
-			sigaction(signal, NULL, &old_action);
+			sigaction(signal, nullptr, &old_action);
 
 			//If the old handler wasn't SIG_IGN (it's a handler that just
 			// "ignore" the signal)
@@ -344,22 +350,22 @@ int main(int argc, char* argv[])
 				action.sa_flags = 0;
 
 				//Replace the signal handler of SIGINT with the one described by new_action
-				sigaction(signal, &action, NULL);
+				sigaction(signal, &action, nullptr);
 			}
 		}
 	}
 
 	fhicl::ParameterSet init_ps = LoadParameterSet<artdaq::RoutingReceiver::Config>(argc, argv, "routingReceiver", "This application receives Routing Tables, and calculates statistics about the usage of the receivers");
-	fhicl::ParameterSet config_ps = init_ps.get<fhicl::ParameterSet>("daq", init_ps);
-	fhicl::ParameterSet metric_ps = config_ps.get<fhicl::ParameterSet>("metrics", config_ps);
-	fhicl::ParameterSet fr_ps = config_ps.get<fhicl::ParameterSet>("fragment_receiver", config_ps);
+	auto config_ps = init_ps.get<fhicl::ParameterSet>("daq", init_ps);
+	auto metric_ps = config_ps.get<fhicl::ParameterSet>("metrics", config_ps);
+	auto fr_ps = config_ps.get<fhicl::ParameterSet>("fragment_receiver", config_ps);
 
 	artdaq::RoutingReceiver rr(fr_ps);
 
 	auto host_map = rr.GetHostMap();
 
-	size_t collection_time_ms = init_ps.get<size_t>("collection_time_ms", 1000);
-	size_t max_graph_width = init_ps.get<size_t>("max_graph_width", 100);
+	auto collection_time_ms = init_ps.get<size_t>("collection_time_ms", 1000);
+	auto max_graph_width = init_ps.get<size_t>("max_graph_width", 100);
 	bool print_verbose = init_ps.get<bool>("print_verbose_info", true);
 	bool verbose_clear_screen = init_ps.get<bool>("clear_screen", true);
 
@@ -371,7 +377,8 @@ int main(int argc, char* argv[])
 
 	metricMan->initialize(metric_ps, "RoutingReceiver");
 	metricMan->do_start();
-	if (print_verbose && verbose_clear_screen) std::cout << "\033[2J";
+	if (print_verbose && verbose_clear_screen) { std::cout << "\033[2J";
+}
 
 	std::map<int, int> receiver_table = std::map<int, int>();
 
@@ -381,7 +388,7 @@ int main(int argc, char* argv[])
 
 		auto this_table = rr.GetAndClearRoutingTable();
 
-		if (this_table.size() > 0)
+		if (!this_table.empty())
 		{
 			auto graph_width = this_table.size();
 			auto n = 1;  // n becomes entries per graph character
@@ -410,7 +417,8 @@ int main(int argc, char* argv[])
 			std::ostringstream report;
 			std::ostringstream verbose_report;
 
-			if (print_verbose && verbose_clear_screen) std::cout << "\033[;H\033[J";
+			if (print_verbose && verbose_clear_screen) { std::cout << "\033[;H\033[J";
+}
 
 			report << artdaq::TimeUtils::gettimeofday_us() << ": " << this_table.size() << " Entries, ";
 			for (auto& receiver : receiver_table)
@@ -454,7 +462,8 @@ int main(int argc, char* argv[])
 			}
 			TLOG(TLVL_INFO) << report.str();
 			std::cout << report.str() << std::endl;
-			if (print_verbose) std::cout << verbose_report.str() << std::endl;
+			if (print_verbose) { std::cout << verbose_report.str() << std::endl;
+}
 		}
 		std::this_thread::sleep_until(start_time + std::chrono::milliseconds(collection_time_ms));
 	}

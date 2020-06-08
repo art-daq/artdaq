@@ -28,7 +28,7 @@ int ResolveHost(char const* host_in, in_addr& addr);
 * \param[out] addr in_addr object populated with interface IP
 * \return 0 if success, -1 if gethostbyname fails, 2 if defaulted to 0.0.0.0 (No matching interfaces)
 */
-int GetIPOfInterface(std::string interface_name, in_addr& addr);
+int GetIPOfInterface(const std::string& interface_name, in_addr& addr);
 /**
 * \brief Pick a private IP address on this host
 * \param[out] addr in_addr object populated with resolved host

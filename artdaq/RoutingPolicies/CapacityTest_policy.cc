@@ -19,12 +19,12 @@ public:
 		 * "tokens_used_per_table_percent" (Default: 50): Percentage of available tokens to be used on each iteration.
 		 * \endverbatim
 		 */
-	explicit CapacityTestPolicy(fhicl::ParameterSet ps);
+	explicit CapacityTestPolicy(const fhicl::ParameterSet& ps);
 
 	/**
 		 * \brief Default virtual Destructor
 		 */
-	virtual ~CapacityTestPolicy() = default;
+	~CapacityTestPolicy() override = default;
 
 	/**
 		 * \brief Apply the policy to the current tokens
@@ -42,7 +42,7 @@ private:
 	int tokenUsagePercent_;
 };
 
-CapacityTestPolicy::CapacityTestPolicy(fhicl::ParameterSet ps)
+CapacityTestPolicy::CapacityTestPolicy(const fhicl::ParameterSet& ps)
     : RoutingMasterPolicy(ps)
     , tokenUsagePercent_(ps.get<int>("tokens_used_per_table_percent", 50))
 {}
@@ -77,7 +77,8 @@ detail::RoutingPacket CapacityTestPolicy::GetCurrentTable()
 				break;
 			}
 		}
-		if (breakCondition) break;
+		if (breakCondition) { break;
+}
 	}
 
 	for (auto r : table)

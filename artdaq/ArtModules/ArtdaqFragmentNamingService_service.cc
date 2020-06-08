@@ -4,7 +4,7 @@
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "ArtdaqFragmentNamingService"
 
-ArtdaqFragmentNamingService::ArtdaqFragmentNamingService(fhicl::ParameterSet const& ps, art::ActivityRegistry&)
+ArtdaqFragmentNamingService::ArtdaqFragmentNamingService(fhicl::ParameterSet const& ps, art::ActivityRegistry& /*unused*/)
     : ArtdaqFragmentNamingServiceInterface(ps)
 {
 	TLOG(TLVL_DEBUG) << "ArtdaqFragmentNamingService CONSTRUCTOR START";
@@ -12,8 +12,7 @@ ArtdaqFragmentNamingService::ArtdaqFragmentNamingService(fhicl::ParameterSet con
 }
 
 ArtdaqFragmentNamingService::~ArtdaqFragmentNamingService()
-{
-}
+= default;
 
 std::string ArtdaqFragmentNamingService::GetInstanceNameForType(artdaq::Fragment::type_t type_id)
 {
@@ -27,7 +26,7 @@ std::set<std::string> ArtdaqFragmentNamingService::GetAllProductInstanceNames()
 	for (const auto& map_iter : type_map_)
 	{
 		std::string instance_name = map_iter.second;
-		if (!output.count(instance_name))
+		if (output.count(instance_name) == 0u)
 		{
 			output.insert(instance_name);
 			TLOG(TLVL_TRACE) << "Adding product instance name \"" << map_iter.second

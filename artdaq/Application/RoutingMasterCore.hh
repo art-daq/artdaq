@@ -117,7 +117,7 @@ public:
 	* \param timestamp Timestamp of transition
 	* \return Returns initialize status
 	*/
-	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
+	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f);
 
 	/**
 	* \brief Reinitializes the RoutingMasterCore.
@@ -126,7 +126,7 @@ public:
 	* \param timestamp Timestamp of transition
 	* \return Returns initialize status
 	*/
-	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
+	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f);
 
 	/**
 	 * \brief Main loop of the RoutingMasterCore. Determines when to send the next table update,
@@ -144,7 +144,7 @@ public:
 	 * their acknowledgement packets, and discards duplicate acks. It leaves this loop once all
 	 * senders have sent a valid acknowledgement packet.
 	 */
-	void send_event_table(detail::RoutingPacket table);
+	void send_event_table(detail::RoutingPacket packet);
 
 	/**
 	* \brief Send a report on the current status of the RoutingMasterCore

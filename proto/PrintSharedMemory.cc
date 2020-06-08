@@ -28,12 +28,12 @@ int main(int argc, char* argv[])
 		          << ": " << e.what() << "\n";
 		return -1;
 	}
-	if (vm.count("help"))
+	if (vm.count("help") != 0u)
 	{
 		std::cout << desc << std::endl;
 		return 1;
 	}
-	if (!vm.count("config") && !vm.count("key"))
+	if ((vm.count("config") == 0u) && (vm.count("key") == 0u))
 	{
 		std::cerr << "Exception from command line processing in " << argv[0]
 		          << ": no configuration file given.\n"
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 	}
 
 	fhicl::ParameterSet pset;
-	if (vm.count("key"))
+	if (vm.count("key") != 0u)
 	{
 		pset.put("shared_memory_key", vm["key"].as<std::string>());
 		pset.put("buffer_count", 1);
@@ -63,7 +63,8 @@ int main(int argc, char* argv[])
 		fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
 	}
 
-	if (!pset.has_key("shared_memory_key")) std::cerr << "You must specify a shared_memory_key in FHiCL or provide one on the command line!" << std::endl;
+	if (!pset.has_key("shared_memory_key")) { std::cerr << "You must specify a shared_memory_key in FHiCL or provide one on the command line!" << std::endl;
+}
 
 	if (pset.get<bool>("ReadEventInfo", false))
 	{

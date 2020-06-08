@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
 #include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
@@ -17,12 +19,12 @@ public:
 		 * NoOpPolicy takes no additional Parameters at this time
 		 */
 	explicit NoOpPolicy(fhicl::ParameterSet ps)
-	    : RoutingMasterPolicy(ps) {}
+	    : RoutingMasterPolicy(std::move(ps)) {}
 
 	/**
 		 * \brief Default virtual Destructor
 		 */
-	virtual ~NoOpPolicy() = default;
+	~NoOpPolicy() override = default;
 
 	/**
 		 * \brief Using the tokens received so far, create a Routing Table
@@ -36,7 +38,7 @@ detail::RoutingPacket NoOpPolicy::GetCurrentTable()
 	TLOG(12) << "NoOpPolicy::GetCurrentTable start";
 	auto tokens = getTokensSnapshot();
 	detail::RoutingPacket output;
-	for (auto token : *tokens.get())
+	for (auto token : *tokens)
 	{
 		output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, token));
 	}

@@ -14,9 +14,8 @@
 #include "canvas/Utilities/Exception.h"
 
 artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
-    : destinations_()
-    , enabled_destinations_()
-    , sent_frag_count_()
+    : 
+     sent_frag_count_()
     , broadcast_sends_(pset.get<bool>("broadcast_sends", false))
     , non_blocking_mode_(pset.get<bool>("nonblocking_sends", false))
     , send_timeout_us_(pset.get<size_t>("send_timeout_usec", 5000000))
@@ -32,7 +31,8 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
 
 	// Validate parameters
-	if (send_timeout_us_ == 0) send_timeout_us_ = std::numeric_limits<size_t>::max();
+	if (send_timeout_us_ == 0) { send_timeout_us_ = std::numeric_limits<size_t>::max();
+}
 
 	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_table_config", fhicl::ParameterSet());
 	use_routing_master_ = rmConfig.get<bool>("use_routing_master", false);
@@ -45,8 +45,8 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	routing_retry_count_ = rmConfig.get<int>("routing_retry_count", 5);
 
 	hostMap_t host_map = MakeHostMap(pset);
-	size_t tcp_send_buffer_size = pset.get<size_t>("tcp_send_buffer_size", 0);
-	size_t max_fragment_size_words = pset.get<size_t>("max_fragment_size_words", 0);
+	auto tcp_send_buffer_size = pset.get<size_t>("tcp_send_buffer_size", 0);
+	auto max_fragment_size_words = pset.get<size_t>("max_fragment_size_words", 0);
 
 	auto dests = pset.get<fhicl::ParameterSet>("destinations", fhicl::ParameterSet());
 	for (auto& d : dests.get_pset_names())
@@ -95,14 +95,14 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 			TLOG(TLVL_WARNING) << "Non-cet exception while setting up TransferPlugin: " << d << ".";
 		}
 	}
-	if (destinations_.size() == 0)
+	if (destinations_.empty())
 	{
 		TLOG(TLVL_ERROR) << "No destinations specified!";
 	}
 	else
 	{
 		auto enabled_dests = pset.get<std::vector<size_t>>("enabled_destinations", std::vector<size_t>());
-		if (enabled_dests.size() == 0)
+		if (enabled_dests.empty())
 		{
 			TLOG(TLVL_INFO) << "enabled_destinations not specified, assuming all destinations enabled.";
 			for (auto& d : destinations_)
@@ -118,7 +118,8 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 			}
 		}
 	}
-	if (use_routing_master_) startTableReceiverThread_();
+	if (use_routing_master_) { startTableReceiverThread_();
+}
 }
 
 artdaq::DataSenderManager::~DataSenderManager()
@@ -127,14 +128,16 @@ artdaq::DataSenderManager::~DataSenderManager()
 	should_stop_ = true;
 	for (auto& dest : enabled_destinations_)
 	{
-		if (destinations_.count(dest))
+		if (destinations_.count(dest) != 0u)
 		{
 			auto sts = destinations_[dest]->transfer_fragment_reliable_mode(std::move(*Fragment::eodFrag(sent_frag_count_.slotCount(dest))));
-			if (sts != TransferInterface::CopyStatus::kSuccess) TLOG(TLVL_ERROR) << "Error sending EOD Fragment to sender rank " << dest;
+			if (sts != TransferInterface::CopyStatus::kSuccess) { TLOG(TLVL_ERROR) << "Error sending EOD Fragment to sender rank " << dest;
+}
 			//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 		}
 	}
-	if (routing_thread_.joinable()) routing_thread_.join();
+	if (routing_thread_.joinable()) { routing_thread_.join();
+}
 	TLOG(TLVL_DEBUG) << "Shutting down DataSenderManager END. Sent " << count() << " fragments.";
 }
 
@@ -197,7 +200,8 @@ void artdaq::DataSenderManager::setupTableListener_()
 }
 void artdaq::DataSenderManager::startTableReceiverThread_()
 {
-	if (routing_thread_.joinable()) routing_thread_.join();
+	if (routing_thread_.joinable()) { routing_thread_.join();
+}
 	TLOG(TLVL_INFO) << "Starting Routing Thread";
 	try
 	{
@@ -321,7 +325,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 								break;
 							}
 							thisSeqID++;
-							if (routing_table_.count(entry.sequence_id))
+							if (routing_table_.count(entry.sequence_id) != 0u)
 							{
 								if (routing_table_[entry.sequence_id] != entry.destination_rank)
 								{
@@ -331,7 +335,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 								}
 								continue;
 							}
-							if (entry.sequence_id < routing_table_last_) continue;
+							if (entry.sequence_id < routing_table_last_) { continue;
+}
 							routing_table_[entry.sequence_id] = entry.destination_rank;
 							TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
 							                 << " -> Rank " << entry.destination_rank;
@@ -339,7 +344,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 					}
 
 					TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
-					if (routing_table_.size() > 0) TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+					if (!routing_table_.empty()) { TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+}
 
 					auto counter = 0;
 					for (auto& entry : routing_table_)
@@ -354,7 +360,8 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 				ack.first_sequence_id = first;
 				ack.last_sequence_id = last;
 
-				if (last > routing_table_last_) routing_table_last_ = last;
+				if (last > routing_table_last_) { routing_table_last_ = last;
+}
 
 				if (my_rank < static_cast<int>(8 * sizeof(hdr.already_acknowledged_ranks)) && hdr.already_acknowledged_ranks.test(my_rank))
 				{
@@ -386,8 +393,10 @@ size_t artdaq::DataSenderManager::GetRemainingRoutingTableEntries() const
 
 int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) const
 {
-	if (enabled_destinations_.size() == 0) return TransferInterface::RECV_TIMEOUT;                         // No destinations configured.
-	if (!use_routing_master_ && enabled_destinations_.size() == 1) return *enabled_destinations_.begin();  // Trivial case
+	if (enabled_destinations_.empty()) { return TransferInterface::RECV_TIMEOUT;                         // No destinations configured.
+}
+	if (!use_routing_master_ && enabled_destinations_.size() == 1) { return *enabled_destinations_.begin();  // Trivial case
+}
 
 	if (use_routing_master_)
 	{
@@ -397,15 +406,17 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 		{
 			{
 				std::unique_lock<std::mutex> lck(routing_mutex_);
-				if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && routing_table_.count(sequence_id))
+				if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && (routing_table_.count(sequence_id) != 0u))
 				{
-					if (sequence_id > highest_sequence_id_routed_) highest_sequence_id_routed_ = sequence_id;
+					if (sequence_id > highest_sequence_id_routed_) { highest_sequence_id_routed_ = sequence_id;
+}
 					routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 					return routing_table_.at(sequence_id);
 				}
-				else if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && routing_table_.count(sent_frag_count_.count() + 1))
+				if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && (routing_table_.count(sent_frag_count_.count() + 1) != 0u))
 				{
-					if (sent_frag_count_.count() + 1 > highest_sequence_id_routed_) highest_sequence_id_routed_ = sent_frag_count_.count() + 1;
+					if (sent_frag_count_.count() + 1 > highest_sequence_id_routed_) { highest_sequence_id_routed_ = sent_frag_count_.count() + 1;
+}
 					routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 					return routing_table_.at(sent_frag_count_.count() + 1);
 				}
@@ -431,7 +442,8 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 		for (; index > 0; --index)
 		{
 			++it;
-			if (it == enabled_destinations_.end()) it = enabled_destinations_.begin();
+			if (it == enabled_destinations_.end()) { it = enabled_destinations_.begin();
+}
 		}
 		return *it;
 	}
@@ -446,8 +458,9 @@ void artdaq::DataSenderManager::RemoveRoutingTableEntry(Fragment::sequence_id_t 
 	//	{
 	//		routing_table_.erase(routing_table_.begin());
 	//	}
-	if (routing_table_.find(seq) != routing_table_.end())
+	if (routing_table_.find(seq) != routing_table_.end()) {
 		routing_table_.erase(routing_table_.find(seq));
+}
 
 	if (sent_sequence_id_count_.find(seq) != sent_sequence_id_count_.end())
 	{
@@ -458,7 +471,8 @@ void artdaq::DataSenderManager::RemoveRoutingTableEntry(Fragment::sequence_id_t 
 size_t artdaq::DataSenderManager::GetSentSequenceIDCount(Fragment::sequence_id_t seq)
 {
 	std::unique_lock<std::mutex> lck(routing_mutex_);
-	if (!sent_sequence_id_count_.count(seq)) return 0;
+	if (sent_sequence_id_count_.count(seq) == 0u) { return 0;
+}
 	return sent_sequence_id_count_[seq];
 }
 
@@ -501,7 +515,8 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				}
 				++retries;
 			}
-			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
+			if (sts != TransferInterface::CopyStatus::kSuccess) { outsts = sts;
+}
 			sent_frag_count_.incSlot(bdest);
 		}
 	}
@@ -517,7 +532,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				TLOG(TLVL_WARNING) << "Could not get destination for seqID " << seqID << (count > 0 ? ", retrying." : ".");
 			}
 		}
-		if (dest != TransferInterface::RECV_TIMEOUT && destinations_.count(dest) && enabled_destinations_.count(dest))
+		if (dest != TransferInterface::RECV_TIMEOUT && (destinations_.count(dest) != 0u) && (enabled_destinations_.count(dest) != 0u))
 		{
 			TLOG(TLVL_TRACE) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
@@ -533,13 +548,15 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				}
 				++retries;
 			}
-			if (sts != TransferInterface::CopyStatus::kSuccess) outsts = sts;
+			if (sts != TransferInterface::CopyStatus::kSuccess) { outsts = sts;
+}
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}
-		else if (!should_stop_)
+		else if (!should_stop_) {
 			TLOG(TLVL_ERROR) << "(in non_blocking) calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID
 			                 << ". enabled_destinantions_.size()=" << enabled_destinations_.size();
+}
 	}
 	else
 	{
@@ -553,23 +570,25 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				usleep(10000);
 			}
 		}
-		if (dest != TransferInterface::RECV_TIMEOUT && destinations_.count(dest) && enabled_destinations_.count(dest))
+		if (dest != TransferInterface::RECV_TIMEOUT && (destinations_.count(dest) != 0u) && (enabled_destinations_.count(dest) != 0u))
 		{
 			TLOG(5) << "DataSenderManager::sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 
 			sts = destinations_[dest]->transfer_fragment_reliable_mode(std::move(frag));
-			if (sts != TransferInterface::CopyStatus::kSuccess)
+			if (sts != TransferInterface::CopyStatus::kSuccess) {
 				TLOG(TLVL_ERROR) << "sendFragment: Sending fragment " << seqID << " to destination "
 				                 << dest << " failed! Data has been lost!";
+}
 
 			//sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 			outsts = sts;
 		}
-		else if (!should_stop_)
+		else if (!should_stop_) {
 			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID
 			                 << ". enabled_destinantions_.size()=" << enabled_destinations_.size();
+}
 	}
 
 	{

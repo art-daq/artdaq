@@ -59,12 +59,12 @@ enum
 
 #include <fcntl.h>        // O_WRONLY|O_CREAT, open
 #include <getopt.h>       // getopt_long, {no,required,optional}_argument, extern char *optarg; extern int opt{ind,err,opt}
-#include <signal.h>       /* sigaction, siginfo_t, sigset_t */
-#include <stdio.h>        // printf
 #include <sys/time.h>     /* gettimeofday, timeval */
 #include <sys/utsname.h>  // uname
 #include <sys/wait.h>     // wait
 #include <unistd.h>       // getpid, sysconf
+#include <csignal>        /* sigaction, siginfo_t, sigset_t */
+#include <cstdio>         // printf
 #include <fstream>        // std::ifstream
 #include <sstream>        // std::stringstream
 #include <string>
@@ -75,8 +75,8 @@ enum
 #define TRACE_NAME "periodic_cmd_stats"
 #include "trace.h"
 #else
-#include <stdarg.h> /* va_list */
-#include <string.h> /* memcpy */
+#include <cstdarg> /* va_list */
+#include <cstring> /* memcpy */
 #include <string>
 static void trace_ap(const char *msg, va_list ap)
 {
@@ -84,7 +84,10 @@ static void trace_ap(const char *msg, va_list ap)
 	unsigned len = strlen(msg);
 	len = len < (sizeof(m_) - 2) ? len : (sizeof(m_) - 2);
 	memcpy(m_, msg, len + 1);
-	if (m_[len - 1] != '\n') memcpy(&(m_[len]), "\n", 2);
+	if (m_[len - 1] != '\n')
+	{
+		memcpy(&(m_[len]), "\n", 2);
+	}
 	vprintf(m_, ap);
 	va_end(ap);
 }
@@ -92,16 +95,16 @@ static void trace_p(const char *msg, ...) __attribute__((format(printf, 1, 2)));
 static void trace_p(const char *msg, ...)
 {
 	va_list ap;
-	va_start(ap, msg);
-	trace_ap(msg, ap);
-	va_end(ap);
+	va_start(ap, msg);  // NOLINT
+	trace_ap(msg, ap);  // NOLINT
+	va_end(ap);         // NOLINT
 }
 static void trace_p(const std::string msg, ...)
 {
 	va_list ap;
 	va_start(ap, msg);
 	trace_ap(msg.c_str(), ap);
-	va_end(ap);
+	va_end(ap);  // NOLINT
 }
 #define TRACE(lvl, ...)                     \
 	do                                      \
@@ -112,13 +115,13 @@ static void trace_p(const std::string msg, ...)
 
 /* GLOBALS */
 int opt_v = 1;
-char *opt_init = NULL;
+char *opt_init = nullptr;
 std::vector<std::string> opt_cmd;
 std::vector<std::string> opt_Cmd;
 std::string opt_pid;
 std::string opt_disk;
 std::string opt_stats;
-std::string opt_outdir("");
+std::string opt_outdir;
 std::string opt_graph("CPUnode,Cached,Dirty,Free");  // CPU+ will always be graphed
 const char *opt_period = "5.0";
 std::string opt_comment;
@@ -137,10 +140,12 @@ std::vector<pid_t> g_pid_vec;
 
 void charreplace(char *instr, char oldc, char newc)
 {
-	while (*instr)
+	while (*instr != 0)
 	{
 		if (*instr == oldc)
+		{
 			*instr = newc;
+		}
 		++instr;
 	}
 }
@@ -149,36 +154,39 @@ void parse_args(int argc, char *argv[])
 {
 	char *cp;
 	// parse opt, optargs, and args
-	while (1)
+	while (true)
 	{
 		int opt;
 		static struct option long_options[] = {
 		    // name            has_arg          *flag  val
-		    {"help", no_argument, 0, 'h'},
-		    {"init", required_argument, 0, 'i'},
-		    {"cmd", required_argument, 0, 'c'},
-		    {"Cmd", required_argument, 0, 'C'},
-		    {"disk", required_argument, 0, 'd'},
-		    {"stat", required_argument, 0, 's'},
-		    {"out-dir", required_argument, 0, 'o'},
-		    {"period", required_argument, 0, 'p'},
-		    {"sys-iowait", no_argument, 0, 'w'},
-		    {"fault", no_argument, 0, 'f'},
-		    {"pid", required_argument, 0, 'P'},
-		    {"ymax", required_argument, 0, 1},
-		    {"yincr", required_argument, 0, 2},
-		    {"y2max", required_argument, 0, 3},
-		    {"y2incr", required_argument, 0, 4},
-		    {"pre", required_argument, 0, 5},
-		    {"post", required_argument, 0, 6},
-		    {"graph", required_argument, 0, 7},
-		    {"yrange", required_argument, 0, 8},
-		    {"comment", required_argument, 0, 9},
-		    {"cmd-iowait", no_argument, 0, 10},
-		    {0, 0, 0, 0}};
+		    {"help", no_argument, nullptr, 'h'},
+		    {"init", required_argument, nullptr, 'i'},
+		    {"cmd", required_argument, nullptr, 'c'},
+		    {"Cmd", required_argument, nullptr, 'C'},
+		    {"disk", required_argument, nullptr, 'd'},
+		    {"stat", required_argument, nullptr, 's'},
+		    {"out-dir", required_argument, nullptr, 'o'},
+		    {"period", required_argument, nullptr, 'p'},
+		    {"sys-iowait", no_argument, nullptr, 'w'},
+		    {"fault", no_argument, nullptr, 'f'},
+		    {"pid", required_argument, nullptr, 'P'},
+		    {"ymax", required_argument, nullptr, 1},
+		    {"yincr", required_argument, nullptr, 2},
+		    {"y2max", required_argument, nullptr, 3},
+		    {"y2incr", required_argument, nullptr, 4},
+		    {"pre", required_argument, nullptr, 5},
+		    {"post", required_argument, nullptr, 6},
+		    {"graph", required_argument, nullptr, 7},
+		    {"yrange", required_argument, nullptr, 8},
+		    {"comment", required_argument, nullptr, 9},
+		    {"cmd-iowait", no_argument, nullptr, 10},
+		    {nullptr, 0, nullptr, 0}};
 		opt = getopt_long(argc, argv, "?hvqVi:c:C:d:s:o:p:P:wf",
-		                  long_options, NULL);
-		if (opt == -1) break;
+		                  long_options, nullptr);
+		if (opt == -1)
+		{
+			break;
+		}
 		switch (opt)
 		{
 			case '?':
@@ -200,22 +208,30 @@ void parse_args(int argc, char *argv[])
 				opt_init = optarg;
 				break;
 			case 'c':
-				opt_cmd.push_back(optarg);
+				opt_cmd.emplace_back(optarg);
 				break;
 			case 'C':
-				opt_Cmd.push_back(optarg);
+				opt_Cmd.emplace_back(optarg);
 				break;
 			case 'd':
-				if (opt_disk.size())
+				if (!opt_disk.empty())
+				{
 					opt_disk = opt_disk + "," + optarg;
+				}
 				else
+				{
 					opt_disk = optarg;
+				}
 				break;
 			case 's':
-				if (opt_stats.size())
-					opt_stats = opt_stats + "," + optarg;
+				if (!opt_stats.empty())
+				{
+					opt_stats += std::string(",") + optarg;
+				}
 				else
+				{
 					opt_stats = optarg;
+				}
 				break;
 			case 'o':
 				opt_outdir = std::string(optarg) + "/";
@@ -231,43 +247,49 @@ void parse_args(int argc, char *argv[])
 				break;
 			case 'P':
 				charreplace(optarg, ' ', ',');
-				if (opt_pid.size())
+				if (!opt_pid.empty() != 0u)
+				{
 					opt_pid = opt_pid + "," + optarg;
+				}
 				else
+				{
 					opt_pid = optarg;
+				}
 				break;
 			case 1:
-				opt_ymax = strtoul(optarg, NULL, 0);
+				opt_ymax = strtoul(optarg, nullptr, 0);
 				break;
 			case 2:
-				opt_yincr = strtoul(optarg, NULL, 0);
+				opt_yincr = strtoul(optarg, nullptr, 0);
 				break;
 			case 3:
-				opt_y2max = strtoul(optarg, NULL, 0);
+				opt_y2max = strtoul(optarg, nullptr, 0);
 				break;
 			case 4:
-				opt_y2incr = strtoul(optarg, NULL, 0);
+				opt_y2incr = strtoul(optarg, nullptr, 0);
 				break;
 			case 5:
-				opt_pre = strtoul(optarg, NULL, 0);
+				opt_pre = strtoul(optarg, nullptr, 0);
 				break;
 			case 6:
-				opt_post = strtoul(optarg, NULL, 0);
+				opt_post = strtoul(optarg, nullptr, 0);
 				break;
 			case 7:
 				opt_graph += std::string(",") + optarg;
 				break;
 			case 8:
-				opt_ymin = strtoul(optarg, NULL, 0);
+				opt_ymin = strtoul(optarg, nullptr, 0);
 				cp = strstr(optarg, ":") + 1;
-				opt_ymax = strtoul(cp, NULL, 0);
-				if ((cp = strstr(cp, ":")))
+				opt_ymax = strtoul(cp, nullptr, 0);
+				if ((cp = strstr(cp, ":")) != nullptr)
 				{
 					++cp;
-					opt_yincr = strtoul(strstr(cp, ":") + 1, NULL, 0);
+					opt_yincr = strtoul(strstr(cp, ":") + 1, nullptr, 0);
 				}
 				else
+				{
 					opt_yincr = (opt_ymax - opt_ymin) / 5;
+				}
 				break;
 			case 9:
 				opt_comment = optarg;
@@ -316,17 +338,19 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 	}
 	pid_t pid = fork();
 	if (pid < 0)
+	{
 		perror_exit("fork");
+	}
 	else if (pid == 0)
 	{ /* child */
 		if (lcl_iofd[0] == -1)
-		{                        // deal with child stdin
-			close(pipes[0][1]);  // child closes write end of pipe which will be it's stdin
-			int fd = dup2(pipes[0][0], 0);
+		{                                   // deal with child stdin
+			close(pipes[0][1]);             // child closes write end of pipe which will be it's stdin
+			int fd = dup2(pipes[0][0], 0);  // NOLINT
 			TRACE(3, "fork_execv dupped(%d) onto %d (should be 0)", pipes[0][0], fd);
 			close(pipes[0][0]);
 		}
-		if (sleepB4exec_us)
+		if (sleepB4exec_us != 0)
 		{
 			// Do sleep before dealing with stdout/err incase we want TRACE to go to console
 			//int sts=pthread_atfork( atfork_trace, NULL, NULL );
@@ -338,29 +362,39 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 			if (lcl_iofd[ii] == -1)
 			{
 				close(pipes[ii][0]);
-				int fd = dup2(pipes[ii][1], ii);
+				int fd = dup2(pipes[ii][1], ii);  // NOLINT
 				TRACE(3, "fork_execv dupped(%d) onto %d (should be %d)", pipes[ii][1], fd, ii);
 				close(pipes[ii][1]);
 			}
 			else if (lcl_iofd[ii] != ii)
 			{
-				int fd = dup2(lcl_iofd[ii], ii);
+				int fd = dup2(lcl_iofd[ii], ii);  // NOLINT
 				TRACE(3, "fork_execv dupped(%d) onto %d (should be %d)", pipes[ii][1], fd, ii);
 			}
 		}
 		for (auto ii = close_start; ii < (close_start + close_cnt); ++ii)
+		{
 			close(ii);
-		if (env)
+		}
+		if (env != nullptr)
+		{
 			execve(cmd, argv, env);
+		}
 		else
+		{
 			execv(cmd, argv);
+		}
 		exit(1);
 	}
 	else
 	{  // parent
 		for (auto ii = 0; ii < 3; ++ii)
+		{
 			if (lcl_iofd[ii] == -1)
+			{
 				close(ii == 0 ? pipes[ii][0] : pipes[ii][1]);
+			}
+		}
 	}
 
 	TRACE(3, "fork_execv pid=%d", pid);
@@ -369,7 +403,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 
 uint64_t swapPtr(void *X)
 {
-	uint64_t x = (uint64_t)X;
+	auto x = (uint64_t)X;
 	x = (x & 0x00000000ffffffff) << 32 | (x & 0xffffffff00000000) >> 32;
 	x = (x & 0x0000ffff0000ffff) << 16 | (x & 0xfff0000fffff0000) >> 16;
 	x = (x & 0x00ff00ff00ff00ff) << 8 | (x & 0xff00ff00ff00ff00) >> 8;
@@ -405,13 +439,15 @@ std::string AWK(std::string const &awk_cmd, const char *file, const char *input)
 	char *const argv_[4] = {(char *)"/bin/gawk",
 	                        (char *)awk_cmd.c_str(),
 	                        (char *)file,
-	                        NULL};
+	                        nullptr};
 	pid_t pid;
 	;
 	int infd = 0;
 	if (g_devnullfd == -1)
+	{
 		g_devnullfd = open("/dev/null", O_WRONLY);
-	if (input != NULL)
+	}
+	if (input != nullptr)
 	{
 		infd = -1;
 	}
@@ -419,21 +455,26 @@ std::string AWK(std::string const &awk_cmd, const char *file, const char *input)
 	int iofd[3] = {infd, -1, 2};  // make stdin=infd, create pipr for stdout, inherit stderr
 	TRACE(3, "AWK b4 fork_execv input=%p", (void *)input);
 	char *env[1];
-	env[0] = NULL;  // mainly do not want big LD_LIBRARY_PATH
-	pid = fork_execv(0, 0 /*closeCnt*/, 0, iofd, "/bin/gawk", argv_, env);
-	if (input /*||iofd[0]!=0*/)
+	env[0] = nullptr;                                                       // mainly do not want big LD_LIBRARY_PATH
+	pid = fork_execv(0, 0 /*closeCnt*/, 0, iofd, "/bin/gawk", argv_, env);  // NOLINT
+	if (input != nullptr /*||iofd[0]!=0*/)
 	{
 		int xx = strlen(input);
 		int sts = write(iofd[0], input, xx);
 		if (sts != xx)
+		{
 			perror("write AWK stdin");
+		}
 		close(iofd[0]);
 		while ((bytes = read(iofd[1], &readbuf[tot_bytes], sizeof(readbuf) - tot_bytes)) != 0)
 		{
 			TRACE(3, "AWK while bytes=read > 0 bytes=%zd readbuf=0x%016lx errno=%d", bytes, swapPtr(&readbuf[tot_bytes]), errno);
 			if (bytes == -1)
 			{
-				if (errno == EINTR) continue;
+				if (errno == EINTR)
+				{
+					continue;
+				}
 				break;
 			}
 			tot_bytes += bytes;
@@ -443,7 +484,9 @@ std::string AWK(std::string const &awk_cmd, const char *file, const char *input)
 	else
 	{
 		while ((bytes = read(iofd[1], &readbuf[tot_bytes], sizeof(readbuf) - tot_bytes)) > 0)
+		{
 			tot_bytes += bytes;
+		}
 		TRACE(3, "AWK after read tot=%zd bytes=%zd [0]=0x%x input=%p", tot_bytes, bytes, readbuf[0], (void *)input);
 	}
 	readbuf[tot_bytes >= 0 ? tot_bytes : 0] = '\0';
@@ -470,10 +513,10 @@ void string_addto_vector(std::string &instr, std::vector<std::string> &outvec, c
 	}
 }
 
-uint64_t gettimeofday_us(void)  //struct timespec *ts )
+uint64_t gettimeofday_us()  //struct timespec *ts )
 {
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	gettimeofday(&tv, nullptr);
 	// if (ts) {
 	// 	ts->tv_sec  = tv.tv_sec;
 	// 	ts->tv_nsec = tv.tv_usec * 1000;
@@ -538,9 +581,8 @@ plot \"< awk '/^#" DATA_START "/,/NEVER HAPPENS/' \".thisFile "
 void sigchld_sigaction(int signo, siginfo_t *info, void *context __attribute__((__unused__)))
 {
 	/* see man sigaction for description of siginfo_t */
-	for (size_t ii = 0; ii < g_pid_vec.size(); ++ii)
+	for (int pid : g_pid_vec)
 	{
-		pid_t pid = g_pid_vec[ii];
 		if (pid == info->si_pid)
 		{
 			TRACE(2, "sigchld_sigaction signo=%d status=%d(0x%x) code=%d(0x%x) sending_pid=%d", signo, info->si_status, info->si_status, info->si_code, info->si_code, info->si_pid);
@@ -555,7 +597,7 @@ void read_proc_file(const char *file, char *buffer, int buffer_size)
 	TRACE(4, "read_proc_file b4 open proc file" + std::string(file));
 	int fd = open(file, O_RDONLY);
 	int offset = 0, sts = 0;
-	while (1)
+	while (true)
 	{
 		sts = read(fd, &buffer[offset], buffer_size - offset);
 		if (sts <= 0)
@@ -570,7 +612,7 @@ void read_proc_file(const char *file, char *buffer, int buffer_size)
 	TRACE(4, "read_proc_file after close " + std::string(file) + " read=%d offset=%d", sts, offset);
 }
 
-pid_t check_pid_vec(void)
+pid_t check_pid_vec()
 {
 	for (size_t ii = 0; ii < g_pid_vec.size();)
 	{
@@ -579,31 +621,42 @@ pid_t check_pid_vec(void)
 		pid_t pp = waitpid(pid, &status, WNOHANG);
 		TRACE(3, "check_pid_vec %d=waitpid(pid=%d) errno=%d", pp, pid, errno);
 		if (pp > 0)
+		{
 			g_pid_vec.erase(g_pid_vec.begin() + ii);
+		}
 		else if (pp == -1)
 		{
 			if (errno == ECHILD && kill(pid, 0) == 0)
+			{
 				// there is a process, but not my child process
 				++ii;
+			}
 			else
+			{
 				// some other error
 				g_pid_vec.erase(g_pid_vec.begin() + ii);
+			}
 		}
 		else
+		{
 			++ii;
+		}
 	}
-	if (g_pid_vec.size() == 0)
+	if (g_pid_vec.empty())
+	{
 		return -1;
-	else
+	}
+	{
 		return 0;
+	}
 }
 
-void cleanup(void)
+void cleanup()
 {
 	TRACE(1, "atexit cleanup g_pid_vec.size()=%zd\n", g_pid_vec.size());
-	for (std::vector<pid_t>::iterator pid = g_pid_vec.begin(); pid != g_pid_vec.end(); ++pid)
+	for (int &pid : g_pid_vec)
 	{
-		kill(*pid, SIGHUP);
+		kill(pid, SIGHUP);
 	}
 }
 #if (defined(__cplusplus) && (__cplusplus >= 201103L)) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L))
@@ -624,12 +677,14 @@ int main(int argc, char *argv[])
 	struct timeval tv;
 	int post_periods_completed = 0;
 	parse_args(argc, argv);
-	if ((argc - optind) != 0 || (opt_cmd.size() == 0 && opt_pid.size() == 0))
+	if ((argc - optind) != 0 || (opt_cmd.empty() && opt_pid.empty()))
 	{  //(argc-optind) is the number of non-opt args supplied.
 		int ii;
 		printf("unexpected argument(s) %d!=0\n", argc - optind);
 		for (ii = 0; (optind + ii) < argc; ++ii)
+		{
 			printf("arg%d=%s\n", ii + 1, argv[optind + ii]);
+		}
 		printf(USAGE);
 		exit(0);
 	}
@@ -664,11 +719,11 @@ int main(int argc, char *argv[])
 	sigaction_s.sa_flags = SA_NOCLDWAIT;
 #endif
 	sigemptyset(&sigaction_s.sa_mask);
-	sigaction(SIGCHLD, &sigaction_s, NULL);
+	sigaction(SIGCHLD, &sigaction_s, nullptr);
 
 	sigaction_s.sa_sigaction = sigint_sigaction;
 	sigaction_s.sa_flags = SA_SIGINFO;
-	sigaction(SIGINT, &sigaction_s, NULL);
+	sigaction(SIGINT, &sigaction_s, nullptr);
 
 	//may return 0 when not able to detect
 	//long long unsigned concurentThreadsSupported = std::thread::hardware_concurrency();
@@ -677,7 +732,7 @@ int main(int argc, char *argv[])
 	TRACE(0, "main concurentThreadsSupported=%u opt_stats=" + opt_stats, concurentThreadsSupported);
 
 	char run_time[80];
-	gettimeofday(&tv, NULL);
+	gettimeofday(&tv, nullptr);
 	strftime(run_time, sizeof(run_time), "%FT%H%M%S", localtime(&tv.tv_sec));
 	TRACE(0, "main run_time=" + std::string(run_time));
 
@@ -685,13 +740,15 @@ int main(int argc, char *argv[])
 	struct utsname ubuf;
 	uname(&ubuf);
 	char *dot;
-	if ((dot = strchr(ubuf.nodename, '.')) != NULL)
+	if ((dot = strchr(ubuf.nodename, '.')) != nullptr)
+	{
 		*dot = '\0';
+	}
 	std::string hostname(ubuf.nodename);
 	TRACE(1, "release=" + std::string(ubuf.release) + " version=" + std::string(ubuf.version));
 
 	// get system mem (KB)
-	std::string memKB = AWK("NR==1{print$2;exit}", "/proc/meminfo", NULL);
+	std::string memKB = AWK("NR==1{print$2;exit}", "/proc/meminfo", nullptr);
 	memKB = memKB.substr(0, memKB.size() - 1);  // remove trailing newline
 
 	std::string dat_file_out(opt_outdir + "periodic_" + run_time + "_" + hostname + "_stats.out");
@@ -716,8 +773,8 @@ int main(int argc, char *argv[])
 		char *const argv_[4] = {(char *)"/bin/sh",
 		                        (char *)"-c",
 		                        (char *)opt_cmd[ii].c_str(),
-		                        NULL};
-		g_pid_vec.push_back(fork_execv(0, 0, (int)(period * opt_pre * 1e6), iofd, "/bin/sh", argv_, NULL));
+		                        nullptr};
+		g_pid_vec.push_back(fork_execv(0, 0, (int)(period * opt_pre * 1e6), iofd, "/bin/sh", argv_, nullptr));
 		close(fd);  // the output file has been given to the subprocess
 		std::string pidstr = std::to_string((long long int)g_pid_vec[ii]);
 		pidfile.push_back("/proc/" + pidstr + "/stat");
@@ -725,22 +782,28 @@ int main(int argc, char *argv[])
 		char desc[128], ss[1024];
 		// field 14-17: Documentation/filesystems/proc.txt Table 1-4: utime stime cutime cstime
 		snprintf(ss, sizeof(ss), "CPUcmd%zd?%s?NR==1?$14+$15?1?yes", ii, pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 
 		snprintf(desc, sizeof(desc), "CPU+cmd%zd", ii);
-		graphs.push_back(desc);  // cmd0 is in the GNUPLOT_PREFIX
+		graphs.emplace_back(desc);  // cmd0 is in the GNUPLOT_PREFIX
 		snprintf(ss, sizeof(ss), "%s?%s?NR==1?$14+$15+16+$17?1?yes", desc, pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 
 		snprintf(desc, sizeof(desc), "WaitBlkIOcmd%zd", ii);
-		if (opt_cmd_iowait) graphs.push_back(desc);
+		if (opt_cmd_iowait != 0)
+		{
+			graphs.emplace_back(desc);
+		}
 		snprintf(ss, sizeof(ss), "%s?%s?NR==1?$42?1?yes", desc, pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 
 		snprintf(desc, sizeof(desc), "Faultcmd%zd", ii);
-		if (opt_fault) graphs.push_back(desc);
+		if (opt_fault != 0)
+		{
+			graphs.emplace_back(desc);
+		}
 		snprintf(ss, sizeof(ss), "%s?%s?NR==1?$10+$11+$12+$13?4096.0/1048576?yes", desc, pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 	}
 	for (size_t ii = 0; ii < opt_Cmd.size(); ++ii)
 	{
@@ -752,8 +815,8 @@ int main(int argc, char *argv[])
 		char *const argv_[4] = {(char *)"/bin/sh",
 		                        (char *)"-c",
 		                        (char *)opt_Cmd[ii].c_str(),
-		                        NULL};
-		g_pid_vec.push_back(fork_execv(0, 0, (int)(period * opt_pre * 1e6), iofd, "/bin/sh", argv_, NULL));
+		                        nullptr};
+		g_pid_vec.push_back(fork_execv(0, 0, (int)(period * opt_pre * 1e6), iofd, "/bin/sh", argv_, nullptr));
 		close(fd);  // the output file has been given to the subprocess
 		std::string pidstr = std::to_string((long long int)g_pid_vec[ii]);
 		pidfile.push_back("/proc/" + pidstr + "/stat");
@@ -761,14 +824,16 @@ int main(int argc, char *argv[])
 		char desc[128], ss[1024];
 		snprintf(desc, sizeof(desc), "CPU+cmd%zd", ii + opt_cmd.size());
 		snprintf(ss, sizeof(ss), "CPUcmd%zd?%s?NR==1?$14+$15?1?yes", ii + opt_cmd.size(), pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 		snprintf(ss, sizeof(ss), "CPU+cmd%zd?%s?NR==1?$14+$15+16+$17?1?yes", ii + opt_cmd.size(), pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 		// JUST DONT ADD THESE TO graphs
 	}
 	std::vector<std::string> pids;
-	if (opt_pid.size())
+	if (!opt_pid.empty() != 0u)
+	{
 		string_addto_vector(opt_pid, pids, ',');
+	}
 	for (size_t ii = 0; ii < pids.size(); ++ii)
 	{
 		g_pid_vec.push_back(std::stoi(pids[ii]));
@@ -777,7 +842,7 @@ int main(int argc, char *argv[])
 		char desc[128], ss[1024];
 		// field 14-17: Documentation/filesystems/proc.txt Table 1-4: utime stime cutime cstime
 		snprintf(ss, sizeof(ss), "CPUpid%zd?%s?NR==1?$14+$15?1?yes", ii, pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 
 		std::ifstream t("/proc/" + pids[ii] + "/comm");
 		std::string comm((std::istreambuf_iterator<char>(t)),
@@ -785,44 +850,50 @@ int main(int argc, char *argv[])
 		comm = comm.substr(0, comm.size() - 1);  // strip nl
 
 		snprintf(desc, sizeof(desc), "CPU+pid%zd_%s", ii, comm.c_str());
-		graphs.push_back(desc);  // cmd0 is in the GNUPLOT_PREFIX
+		graphs.emplace_back(desc);  // cmd0 is in the GNUPLOT_PREFIX
 		snprintf(ss, sizeof(ss), "%s?%s?NR==1?$14+$15+16+$17?1?yes", desc, pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 
 		snprintf(desc, sizeof(desc), "WaitBlkIOpid%zd", ii);
-		if (opt_cmd_iowait) graphs.push_back(desc);
+		if (opt_cmd_iowait != 0)
+		{
+			graphs.emplace_back(desc);
+		}
 		snprintf(ss, sizeof(ss), "%s?%s?NR==1?$42?1?yes", desc, pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 
 		snprintf(desc, sizeof(desc), "Faultpid%zd", ii);
-		if (opt_fault) graphs.push_back(desc);
+		if (opt_fault != 0)
+		{
+			graphs.emplace_back(desc);
+		}
 		snprintf(ss, sizeof(ss), "%s?%s?NR==1?$10+$11+$12+$13?4096.0/1048576?yes", desc, pidfile[ii].c_str());
-		stats.push_back(ss);
+		stats.emplace_back(ss);
 	}
 
-	stats.push_back("CPUnode");
-	stats.push_back("IOWait");
-	if (opt_sys_iowait) { graphs.push_back("IOWait"); }
-	stats.push_back("Cached");
-	stats.push_back("Dirty");
-	stats.push_back("Free");
+	stats.emplace_back("CPUnode");
+	stats.emplace_back("IOWait");
+	if (opt_sys_iowait != 0) { graphs.emplace_back("IOWait"); }
+	stats.emplace_back("Cached");
+	stats.emplace_back("Dirty");
+	stats.emplace_back("Free");
 
-	if (opt_disk.size())
+	if (!opt_disk.empty() != 0u)
 	{
 		std::vector<std::string> tmp;
 		string_addto_vector(opt_disk, tmp, ',');
-		for (std::vector<std::string>::iterator dk = tmp.begin(); dk != tmp.end(); ++dk)
+		for (auto &dk : tmp)
 		{
 			// /proc/diskstat has 11 field after an initial 3 (14 total) for each device
 			// The 7th field after the device name (the 10th field total) is # of sectors written.
 			// Sectors appear to be 512 bytes. So, deviding by 2048 converts to MBs.
-			std::string statstr = *dk + "_wrMB/s?/proc/diskstats?/" + *dk + "/?$10?(1.0/2048)?yes";
+			std::string statstr = dk + "_wrMB/s?/proc/diskstats?/" + dk + "/?$10?(1.0/2048)?yes";
 			stats.push_back(statstr);
 			std::vector<std::string> stat_spec;
 			string_addto_vector(statstr, stat_spec, '?');
 			graphs.push_back(stat_spec[s_desc]);
 
-			statstr = *dk + "_rdMB/s?/proc/diskstats?/" + *dk + "/?$6?(1.0/2048)?yes";
+			statstr = dk + "_rdMB/s?/proc/diskstats?/" + dk + "/?$6?(1.0/2048)?yes";
 			stats.push_back(statstr);
 			stat_spec.clear();
 			string_addto_vector(statstr, stat_spec, '?');
@@ -830,16 +901,15 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (opt_stats.size())
+	if (!opt_stats.empty() != 0u)
 	{
 		std::vector<std::string> tmp_stats;
 		string_addto_vector(opt_stats, tmp_stats, ',');
-		for (std::vector<std::string>::iterator st = tmp_stats.begin();
-		     st != tmp_stats.end(); ++st)
+		for (auto &tmp_stat : tmp_stats)
 		{
-			stats.push_back(*st);
+			stats.push_back(tmp_stat);
 			std::vector<std::string> stat_spec;
-			string_addto_vector(*st, stat_spec, '?');
+			string_addto_vector(tmp_stat, stat_spec, '?');
 			graphs.push_back(stat_spec[s_desc]);
 		}
 	}
@@ -855,11 +925,15 @@ int main(int argc, char *argv[])
 	//FILE *outfp=stdout;
 	FILE *outfp = fdopen(outfd, "w");
 
-	std::string cmd_comment("");
-	if (opt_cmd.size())
+	std::string cmd_comment;
+	if (!opt_cmd.empty() != 0u)
+	{
 		cmd_comment += "\\ncmd: " + opt_cmd[0];
-	if (opt_comment.size())
+	}
+	if (!opt_comment.empty() != 0u)
+	{
 		cmd_comment += "\\ncomment: " + opt_comment;
+	}
 	fprintf(outfp, GNUPLOT_PREFIX, opt_ymin, opt_ymax, opt_yincr, opt_y2max, opt_y2incr, run_time, hostname.c_str(), ubuf.release, cmd_comment.c_str(), "disk write MB/s");
 
 	uint64_t t_start = gettimeofday_us();
@@ -871,16 +945,26 @@ int main(int argc, char *argv[])
 		std::vector<std::string> stat_spec;
 		string_addto_vector(stats[ii], stat_spec, '?');
 		if (stat_spec[s_desc] == "CPUnode" && stat_spec.size() == 1)
+		{
 			// Ref. Documentation/filesystems/proc.txt: user+nice+system (skip idle) +iowait+irq+softirq+steal (skip guest)
 			stats[ii] += "?/proc/stat?/^cpu[^0-9]/?$2+$3+$4+$6+$7+$8+$9?1.0/" + std::to_string(concurentThreadsSupported) + "?yes";
+		}
 		else if (stat_spec[s_desc] == "IOWait" && stat_spec.size() == 1)
+		{
 			stats[ii] += "?/proc/stat?/^cpu[^0-9]/?$6?1.0/" + std::to_string(concurentThreadsSupported) + "?yes";
+		}
 		else if (stat_spec[s_desc] == "Cached" && stat_spec.size() == 1)
+		{
 			stats[ii] += "?/proc/meminfo?/^(Cached|Buffers):/?$2?1?no";
+		}
 		else if (stat_spec[s_desc] == "Dirty" && stat_spec.size() == 1)
+		{
 			stats[ii] += "?/proc/meminfo?/^Dirty:/?$2?1?no";
+		}
 		else if (stat_spec[s_desc] == "Free" && stat_spec.size() == 1)
+		{
 			stats[ii] += "?/proc/meminfo?/^MemFree:/?$2?1?no";
+		}
 
 		header_str += " " + stat_spec[s_desc];
 
@@ -890,29 +974,44 @@ int main(int argc, char *argv[])
 		         //snprintf(  awk_cmd, sizeof(awk_cmd), "%s{vv+=%s;print \"vv now\",vv > \"/dev/stderr\";}END{print vv}"
 		         ,
 		         spec2[ii][s_linespec].c_str(), spec2[ii][s_fieldspec].c_str());
-		awkCmd.push_back(awk_cmd);
+		awkCmd.emplace_back(awk_cmd);
 
-		std::string stat = AWK(awkCmd.back(), spec2[ii][s_file].c_str(), NULL);
+		std::string stat = AWK(awkCmd.back(), spec2[ii][s_file].c_str(), nullptr);
 
 		pre_vals.push_back(atol(stat.c_str()));
-		multipliers.push_back(atof(AWK("BEGIN{print " + spec2[ii][s_multiplier] + "}", "/dev/null", NULL).c_str()));
+		multipliers.push_back(atof(AWK("BEGIN{print " + spec2[ii][s_multiplier] + "}", "/dev/null", nullptr).c_str()));
 		//fprintf( stderr, " l=%s", spec2[ii][s_linespec].c_str() );
-		for (size_t jj = 0; jj < graphs.size(); ++jj)
-			if (graphs[jj] == stat_spec[s_desc])
+		for (const auto &graph : graphs)
+		{
+			if (graph == stat_spec[s_desc])
 			{
-				if (first_graph_spec_added) fprintf(outfp, ",\\\n  '' ");
+				if (first_graph_spec_added)
+				{
+					fprintf(outfp, ",\\\n  '' ");
+				}
 				if (strncmp(stat_spec[s_desc].c_str(), "CPU", 3) == 0)
+				{
 					fprintf(outfp, "using 1:%zd title '%s' w linespoints axes x1y2", ii + 2, stat_spec[s_desc].c_str());
+				}
 				else if (stat_spec[s_desc] == "Cached" || stat_spec[s_desc] == "Dirty" || stat_spec[s_desc] == "Free")
+				{
 					fprintf(outfp, "using 1:($%zd/%s*100) title '%s%%' w linespoints axes x1y2", ii + 2, memKB.c_str(), stat_spec[s_desc].c_str());
+				}
 				else if (stat_spec[s_desc].substr(0, 6) == "CPUcmd" || stat_spec[s_desc].substr(0, 6) == "CPU+cm")
+				{
 					fprintf(outfp, "using 1:%zd title '%s' w linespoints axes x1y2", ii + 2, stat_spec[s_desc].c_str());
+				}
 				else if (stat_spec[s_desc].substr(0, 12) == "WaitBlkIOcmd")
+				{
 					fprintf(outfp, "using 1:%zd title '%s' w linespoints axes x1y2", ii + 2, stat_spec[s_desc].c_str());
+				}
 				else
+				{
 					fprintf(outfp, "using 1:%zd title '%s' w linespoints axes x1y1", ii + 2, stat_spec[s_desc].c_str());
+				}
 				first_graph_spec_added = true;
 			}
+		}
 	}
 	header_str += " #\n";
 
@@ -922,17 +1021,17 @@ exit\n");
 
 	// print the cmds
 	fprintf(outfp, "cmds:\n");
-	for (size_t ii = 0; ii < opt_cmd.size(); ++ii)
+	for (const auto &ii : opt_cmd)
 	{
-		std::string ss = opt_cmd[ii] + "\n";
+		std::string ss = ii + "\n";
 		fprintf(outfp, "%s", ss.c_str());
 	}
 
 	// print the specs
 	fprintf(outfp, "stats:\n");
-	for (size_t ii = 0; ii < stats.size(); ++ii)
+	for (const auto &stat : stats)
 	{
-		std::string ss = stats[ii] + "\n";
+		std::string ss = stat + "\n";
 		fprintf(outfp, "%s", ss.c_str());
 	}
 
@@ -952,21 +1051,23 @@ eintr1:
 	int64_t t_sleep = (t_start + (uint64_t)(period * 1e6)) - gettimeofday_us();
 	if (t_sleep > 0)
 	{
-		int sts = usleep(t_sleep);
+		int sts = usleep(t_sleep);  // NOLINT
 		TRACE(3, "main usleep sts=%d errno=%d", sts, errno);
 		if (errno == EINTR)
+		{
 			goto eintr1;
+		}
 	}
 
 #define MAX_LP 600
 	for (lp = 2; lp < MAX_LP; ++lp)
 	{
 		char str[80];
-		gettimeofday(&tv, NULL);
+		gettimeofday(&tv, nullptr);
 		strftime(str, sizeof(str), "%FT%T", localtime(&tv.tv_sec));
 		//fprintf(outfp, "%s.%ld", str, tv.tv_usec/100000 );
 		fprintf(outfp, "%s", str);
-		std::string prv_file("");
+		std::string prv_file;
 		for (size_t ii = 0; ii < stats.size(); ++ii)
 		{
 			TRACE(3, "main lp=%d start stat%zd", lp, ii);
@@ -980,17 +1081,17 @@ eintr1:
 					read_proc_file(pidfile[ii / 2].c_str(), proc_stats, sizeof(proc_stats));
 				}
 				awk_in = proc_stats;
-				awk_file = NULL;
+				awk_file = nullptr;
 			}
 			else if (spec2[ii][s_file] != prv_file)
 			{
 				prv_file = spec2[ii][s_file];
 				read_proc_file(spec2[ii][s_file].c_str(), proc_stats, sizeof(proc_stats));
 				awk_in = proc_stats;
-				awk_file = NULL;
+				awk_file = nullptr;
 			}
 
-			std::string stat_str = AWK(awkCmd[ii], awk_file, awk_in);
+			std::string stat_str = AWK(awkCmd[ii], awk_file, awk_in);  // NOLINT
 
 			long stat = atol(stat_str.c_str());
 
@@ -998,9 +1099,13 @@ eintr1:
 			{
 				double rate;
 				if (stat_str != "\n")
+				{
 					rate = (stat - pre_vals[ii]) * multipliers[ii] / period;
+				}
 				else
+				{
 					rate = 0.0;
+				}
 				TRACE(3, tmpdbg + "stat_str[0]=0x%x stat_str.size()=%zd", lp, ii, stat, rate, stat_str[0], stat_str.size());
 				fprintf(outfp, " %.2f", rate);
 				if (rate < 0.0 && spec2[ii][s_file] == "/proc/diskstats")
@@ -1022,19 +1127,25 @@ eintr1:
 		int64_t t_sleep = (t_start + (uint64_t)(period * lp * 1000000)) - gettimeofday_us();
 		if (t_sleep > 0)
 		{
-			int sts = usleep(t_sleep);
+			int sts = usleep(t_sleep);  // NOLINT
 			TRACE(3, "main usleep sts=%d errno=%d", sts, errno);
 			if (errno == EINTR)
+			{
 				goto eintr2;
+			}
 		}
 		pp = check_pid_vec();
 		TRACE(2, "main pp=%d t_sleep=%ld", pp, t_sleep);
 		if (pp == -1)
 		{
 			if (post_periods_completed == 0)
+			{
 				TRACE(1, "main processes complete - waiting %d post periods", opt_post);
+			}
 			if (post_periods_completed++ == opt_post)
+			{
 				break;
+			}
 		}
 	}
 	if (lp == MAX_LP)

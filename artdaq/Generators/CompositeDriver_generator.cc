@@ -13,9 +13,9 @@ using fhicl::ParameterSet;
 artdaq::CompositeDriver::CompositeDriver(ParameterSet const& ps)
     : CommandableFragmentGenerator(ps)
 {
-	std::vector<ParameterSet> psetList =
+	auto psetList =
 	    ps.get<std::vector<ParameterSet>>("generator_config_list");
-	for (auto pset : psetList)
+	for (const auto& pset : psetList)
 	{
 		if (!makeChildGenerator_(pset))
 		{
@@ -57,9 +57,9 @@ artdaq::CompositeDriver::~CompositeDriver() noexcept
 
 void artdaq::CompositeDriver::start()
 {
-	for (size_t idx = 0; idx < generator_active_list_.size(); ++idx)
+	for (auto&& idx : generator_active_list_)
 	{
-		generator_active_list_[idx] = true;
+		idx = true;
 	}
 	for (auto& generator : generator_list_)
 	{
@@ -98,9 +98,9 @@ void artdaq::CompositeDriver::pause()
 
 void artdaq::CompositeDriver::resume()
 {
-	for (size_t idx = 0; idx < generator_active_list_.size(); ++idx)
+	for (auto&& idx : generator_active_list_)
 	{
-		generator_active_list_[idx] = true;
+		idx = true;
 	}
 	for (auto& generator : generator_list_)
 	{
@@ -111,10 +111,10 @@ void artdaq::CompositeDriver::resume()
 std::vector<artdaq::Fragment::fragment_id_t> artdaq::CompositeDriver::fragmentIDs()
 {
 	std::vector<artdaq::Fragment::fragment_id_t> workList;
-	for (size_t idx = 0; idx < generator_list_.size(); ++idx)
+	for (auto& idx : generator_list_)
 	{
 		std::vector<artdaq::Fragment::fragment_id_t> tempList =
-		    generator_list_[idx]->fragmentIDs();
+		    idx->fragmentIDs();
 		workList.insert(workList.end(), tempList.begin(), tempList.end());
 	}
 	return workList;
@@ -148,13 +148,11 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
 					    << generator_list_[idx]->metricsReportingInstanceName()
 					    << " threw an exception: " << reportString;
 				}
-				else
-				{
-					throw cet::exception("CompositeDriver_generator")
-					    << "The FragmentGenerator for "
-					    << generator_list_[idx]->metricsReportingInstanceName()
-					    << " threw an exception.";
-				}
+
+				throw cet::exception("CompositeDriver_generator")
+				    << "The FragmentGenerator for "
+				    << generator_list_[idx]->metricsReportingInstanceName()
+				    << " threw an exception.";
 			}
 			generator_active_list_[idx] = status;
 			if (status) { anyGeneratorIsActive = true; }
@@ -166,11 +164,11 @@ bool artdaq::CompositeDriver::getNext_(artdaq::FragmentPtrs& frags)
 bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pset)
 {
 	// pull out the relevant parts of the ParameterSet, if needed
-	fhicl::ParameterSet daq_pset = pset.get<fhicl::ParameterSet>("daq", pset);
-	fhicl::ParameterSet fr_pset = daq_pset.get<fhicl::ParameterSet>("fragment_receiver", daq_pset);
+	auto daq_pset = pset.get<fhicl::ParameterSet>("daq", pset);
+	auto fr_pset = daq_pset.get<fhicl::ParameterSet>("fragment_receiver", daq_pset);
 
 	// create the requested FragmentGenerator
-	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
+	auto frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)
 	{
 		TLOG(TLVL_ERROR)
@@ -214,9 +212,9 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	generator_ptr.reset(nullptr);
 	try
 	{
-		CommandableFragmentGenerator* tmp_cmdablegen_bareptr =
+		auto* tmp_cmdablegen_bareptr =
 		    dynamic_cast<CommandableFragmentGenerator*>(tmp_gen_ptr.get());
-		if (tmp_cmdablegen_bareptr)
+		if (tmp_cmdablegen_bareptr != nullptr)
 		{
 			tmp_gen_ptr.release();
 			generator_ptr.reset(tmp_cmdablegen_bareptr);

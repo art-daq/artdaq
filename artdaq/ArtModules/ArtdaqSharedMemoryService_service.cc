@@ -1,5 +1,7 @@
 #define TRACE_NAME "ArtdaqSharedMemoryService"
 
+#include <memory>
+
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -11,22 +13,21 @@
 
 static fhicl::ParameterSet empty_pset;
 
-ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& pset, art::ActivityRegistry&)
-    : ArtdaqSharedMemoryServiceInterface()
-    , incoming_events_(nullptr)
+ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& pset, art::ActivityRegistry& /*unused*/)
+    : incoming_events_(nullptr)
     , evtHeader_(nullptr)
     , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 600.0) * 1000000)))
     , resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
 {
 	TLOG(TLVL_TRACE) << "ArtdaqSharedMemoryService CONSTRUCTOR";
 
-	incoming_events_.reset(new artdaq::SharedMemoryEventReceiver(
+	incoming_events_ = std::make_unique<artdaq::SharedMemoryEventReceiver>(
 	    pset.get<int>("shared_memory_key", build_key(0xEE000000)),
-	    pset.get<int>("broadcast_shared_memory_key", build_key(0xBB000000))));
+	    pset.get<int>("broadcast_shared_memory_key", build_key(0xBB000000)));
 
 	char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
-	std::string artapp_str = "";
-	if (artapp_env != NULL)
+	std::string artapp_str;
+	if (artapp_env != nullptr)
 	{
 		artapp_str = std::string(artapp_env) + "_";
 	}
@@ -36,7 +37,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 	artdaq::configureMessageFacility(app_name.c_str());
 
 	artapp_env = getenv("ARTDAQ_RANK");
-	if (artapp_env != NULL && my_rank < 0)
+	if (artapp_env != nullptr && my_rank < 0)
 	{
 		TLOG(TLVL_TRACE) << "Setting rank from envrionment";
 		my_rank = std::atoi(artapp_env);
@@ -73,7 +74,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	TLOG(TLVL_TRACE) << "ReceiveEvent BEGIN";
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> recvd_fragments;
 
-	while (recvd_fragments.size() == 0)
+	while (recvd_fragments.empty())
 	{
 		TLOG(TLVL_TRACE) << "ReceiveEvent: Waiting for available buffer";
 		bool got_event = false;
@@ -85,12 +86,13 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 				TLOG(TLVL_ERROR) << "Timeout occurred! No data received after " << read_timeout_ << " us. Returning empty Fragment list!";
 				return recvd_fragments;
 			}
-			else if (!got_event)
+			if (!got_event)
 			{
 				TLOG(TLVL_WARNING) << "Timeout occurred! No data received after " << read_timeout_ << " us. Retrying.";
 			}
 		}
-		if (incoming_events_->IsEndOfData()) {
+		if (incoming_events_->IsEndOfData())
+		{
 			TLOG(TLVL_INFO) << "End of Data signal received, exiting";
 			return recvd_fragments;
 		}
@@ -101,8 +103,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		if (errflag || hdrPtr == nullptr)
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
-			continue;//retry
-			//return recvd_fragments;
+			continue;  //retry
+			           //return recvd_fragments;
 		}
 		evtHeader_ = std::make_shared<artdaq::detail::RawEventHeader>(*hdrPtr);
 		TLOG(TLVL_TRACE) << "ReceiveEvent: Getting Fragment types";
@@ -111,9 +113,9 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
 			continue;  //retry
-			//return recvd_fragments;
+			           //return recvd_fragments;
 		}
-		if (fragmentTypes.size() == 0)
+		if (fragmentTypes.empty())
 		{
 			TLOG(TLVL_ERROR) << "Event has no Fragments! Aborting!";
 			incoming_events_->ReleaseBuffer();

@@ -14,7 +14,7 @@ struct Source_generator<ArtdaqInputHelper<artdaq::TransferWrapper>>
 /**
 	 * \brief TransferInput is an art::Source using the artdaq::TransferWrapper class as the data source
 	 */
-typedef art::Source<ArtdaqInputHelper<artdaq::TransferWrapper>> TransferInput;
+using TransferInput = art::Source<ArtdaqInputHelper<artdaq::TransferWrapper> >;
 }  // namespace art
 
 DEFINE_ART_INPUT_SOURCE(art::TransferInput)

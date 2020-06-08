@@ -98,7 +98,7 @@ public:
 	*
 	* maybe need to return a timeout id??
 	*/
-	void add_relative(std::string desc, int rel_ms);
+	void add_relative(const std::string& desc, int rel_ms);
 
 	/**
 	 * \brief Add a timeout with the given parameters
@@ -115,7 +115,7 @@ public:
 	 * \param desc Description of the cancelled timeout
 	 * \return Whether a timeout was found and cancelled
 	 */
-	bool cancel_timeout(void* tag, std::string desc);
+	bool cancel_timeout(void* tag, const std::string& desc);
 
 	/**
 	 * \brief Get a timeout that has expired

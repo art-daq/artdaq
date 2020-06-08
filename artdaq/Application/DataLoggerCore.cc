@@ -1,5 +1,5 @@
-#include <errno.h>
 #include <bitset>
+#include <cerrno>
 #include <iomanip>
 #include <sstream>
 
@@ -18,16 +18,6 @@
 #include "artdaq/Application/DataLoggerCore.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-
-artdaq::DataLoggerCore::DataLoggerCore()
-    : DataReceiverCore()
-{
-}
-
-artdaq::DataLoggerCore::~DataLoggerCore()
-{
-	TLOG(TLVL_DEBUG) << "Destructor";
-}
 
 bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 {

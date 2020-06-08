@@ -167,7 +167,7 @@ public:
 		 * \param pset ParameterSet used to configure SharedMemoryEventManager. See artdaq::SharedMemoryEventManager::Config for description of parameters
 		 * \param art_pset ParameterSet used to configure art. See art::Config for description of expected document format
 		 */
-	SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
+	SharedMemoryEventManager(const fhicl::ParameterSet& pset, fhicl::ParameterSet art_pset);
 	/**
 		 * \brief SharedMemoryEventManager Destructor
 		 */
@@ -249,7 +249,7 @@ public:
 	/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 		 */
-	void RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<std::atomic<pid_t>> pid_out);
+	void RunArt(const std::shared_ptr<art_config_file>& config_file, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
 		 * \brief Start all the art processes
 		 */

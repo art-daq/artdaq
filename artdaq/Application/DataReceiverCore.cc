@@ -10,12 +10,13 @@
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include <iomanip>
+#include <memory>
 
 artdaq::DataReceiverCore::DataReceiverCore()
     : stop_requested_(false)
     , pause_requested_(false)
     , run_is_paused_(false)
-    , config_archive_entries_()
+     
 {
 	TLOG(TLVL_DEBUG) << "Constructor";
 }
@@ -57,7 +58,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		art_pset.erase("daq");
 	}
 
-	fhicl::ParameterSet art_source_pset = art_pset.get<fhicl::ParameterSet>("source");
+	auto art_source_pset = art_pset.get<fhicl::ParameterSet>("source");
 	art_source_pset.put<fhicl::ParameterSet>("metrics", metric_pset);
 	art_pset.erase("source");
 	art_pset.put<fhicl::ParameterSet>("source", art_source_pset);
@@ -82,11 +83,11 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		exit(1);
 	}
 
-	event_store_ptr_.reset(new SharedMemoryEventManager(data_tmp, art_pset));
+	event_store_ptr_ = std::make_shared<SharedMemoryEventManager>(data_tmp, art_pset);
 	art_pset_ = art_pset;
 	TLOG(TLVL_DEBUG) << "Resulting art_pset_: \"" << art_pset_.to_string() << "\".";
 
-	receiver_ptr_.reset(new artdaq::DataReceiverManager(data_tmp, event_store_ptr_));
+	receiver_ptr_ = std::make_unique<artdaq::DataReceiverManager>(data_tmp, event_store_ptr_);
 
 	return true;
 }
@@ -258,15 +259,16 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 		{
 			return std::to_string(event_store_ptr_->GetIncompleteEventCount());
 		}
-		else
-		{
+		
+		
 			return "-1";
-		}
+		
 	}
 	if (which == "event_count")
 	{
-		if (receiver_ptr_ != nullptr)
+		if (receiver_ptr_ != nullptr) {
 			return std::to_string(receiver_ptr_->GetReceivedFragmentCount()->count());
+}
 
 		return "0";
 	}
@@ -277,7 +279,8 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	// - report on the number of incomplete events in the EventStore
 	//   (if running)
 	std::string tmpString;
-	if (event_store_ptr_ != nullptr) tmpString.append(app_name + " run number = " + std::to_string(event_store_ptr_->runID()) + ".\n");
+	if (event_store_ptr_ != nullptr) { tmpString.append(app_name + " run number = " + std::to_string(event_store_ptr_->runID()) + ".\n");
+}
 	tmpString.append("Command \"" + which + "\" is not currently supported.");
 	return tmpString;
 }

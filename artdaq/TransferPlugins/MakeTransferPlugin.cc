@@ -9,7 +9,7 @@
 namespace artdaq {
 std::unique_ptr<artdaq::TransferInterface>
 MakeTransferPlugin(const fhicl::ParameterSet& pset,
-                   std::string plugin_label,
+                   const std::string& plugin_label,
                    TransferInterface::Role role)
 {
 	static cet::BasicPluginFactory bpf("transfer", "make");

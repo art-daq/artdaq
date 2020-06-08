@@ -1,13 +1,14 @@
 #define TRACE_NAME "RoutingMasterApp"
 
+#include <memory>
+
 #include "artdaq/Application/RoutingMasterApp.hh"
 
 /**
 * Default constructor.
 */
 artdaq::RoutingMasterApp::RoutingMasterApp()
-{
-}
+= default;
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -23,7 +24,7 @@ bool artdaq::RoutingMasterApp::do_initialize(fhicl::ParameterSet const& pset, ui
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
 	routing_master_ptr_.reset(nullptr);
-	routing_master_ptr_.reset(new RoutingMasterCore());
+	routing_master_ptr_ = std::make_unique<RoutingMasterCore>();
 	external_request_status_ = routing_master_ptr_->initialize(pset, timeout, timestamp);
 	if (!external_request_status_)
 	{
@@ -79,7 +80,8 @@ bool artdaq::RoutingMasterApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		return false;
 	}
 
-	if (routing_master_thread_.joinable()) routing_master_thread_.join();
+	if (routing_master_thread_.joinable()) { routing_master_thread_.join();
+}
 
 	TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
 	                             << "Number of table entries sent = " << routing_master_ptr_->get_update_count()
@@ -97,7 +99,8 @@ bool artdaq::RoutingMasterApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_ = "Error pausing ";
 		report_string_.append(app_name + ".");
 	}
-	if (routing_master_thread_.joinable()) routing_master_thread_.join();
+	if (routing_master_thread_.joinable()) { routing_master_thread_.join();
+}
 
 	TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
 	                             << "Number of table entries sent = " << routing_master_ptr_->get_update_count()
@@ -190,10 +193,10 @@ std::string artdaq::RoutingMasterApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else
-		{
+		
+		
 			return "Success";
-		}
+		
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
@@ -205,7 +208,7 @@ std::string artdaq::RoutingMasterApp::report(std::string const& which) const
 	//}
 
 	// pass the request to the RoutingMasterCore instance, if it's available
-	if (routing_master_ptr_.get() != 0)
+	if (routing_master_ptr_ != nullptr)
 	{
 		resultString.append(routing_master_ptr_->report(which));
 	}

@@ -47,12 +47,12 @@ public:
 	/**
 	 * \brief Default virtual Destructor
 	 */
-	virtual ~PrintBuildInfo() = default;
+	~PrintBuildInfo() override = default;
 
 	/**
 	 * \brief Called for each event. Required overload for art::EDAnalyzer, No-Op here.
 	 */
-	void analyze(art::Event const&) override {}
+	void analyze(art::Event const& /*unused*/) override {}
 
 	/**
 	 * \brief Perform actions at the beginning of the run
@@ -91,7 +91,7 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 		std::cout.width(20);
 		std::cout << std::left << "Timestamp" << std::endl;
 
-		for (auto pkg : *raw)
+		for (const auto& pkg : *raw)
 		{
 			std::cout.width(20);
 			std::cout << std::left << pkg.getPackageName() << "|";

@@ -1,4 +1,6 @@
 
+#include <memory>
+
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 #include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
@@ -35,7 +37,7 @@ public:
 	/**
 	 * \brief RootNetOutput Destructor
 	 */
-	~RootNetOutput();
+	~RootNetOutput() override;
 
 	/**
 	 * \brief Get the number of data receivers
@@ -48,7 +50,7 @@ protected:
 	/// Send a message using DataSenderManager
 	/// </summary>
 	/// <param name="fragment">Fragment to send</param>
-	virtual void SendMessage(artdaq::FragmentPtr& fragment);
+	void SendMessage(artdaq::FragmentPtr& fragment) override;
 
 private:
 	void connect();
@@ -117,19 +119,21 @@ void art::RootNetOutput::connect()
 	auto start_time = std::chrono::steady_clock::now();
 
 	char const* artapp_env = getenv("ARTDAQ_RANK");
-	if (artapp_env != NULL && my_rank < 0)
+	if (artapp_env != nullptr && my_rank < 0) {
 		my_rank = std::atoi(artapp_env);
+}
 
 	while (my_rank == -1 && artdaq::TimeUtils::GetElapsedTime(start_time) < init_timeout_s_)
 	{
 		usleep(1000);
 	}
-	sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
+	sender_ptr_ = std::make_unique<artdaq::DataSenderManager>(data_pset_);
 }
 
 void art::RootNetOutput::disconnect()
 {
-	if (sender_ptr_) sender_ptr_.reset(nullptr);
+	if (sender_ptr_) { sender_ptr_.reset(nullptr);
+}
 }
 
 DEFINE_ART_MODULE(art::RootNetOutput)

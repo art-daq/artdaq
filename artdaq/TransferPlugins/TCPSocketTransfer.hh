@@ -67,7 +67,7 @@ public:
 	* \param receiveTimeout Timeout for receive
 	* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 	*/
-	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
+	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t timeout_usec) override;
 
 	/**
 	* \brief Receive the body of a Fragment to the given destination pointer
@@ -148,9 +148,9 @@ private:
 private:  // methods
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
 
-	CopyStatus sendData_(const void* buf, size_t bytes, size_t tmo, bool isHeader = false);
+	CopyStatus sendData_(const void* buf, size_t bytes, size_t send_timeout_usec, bool isHeader = false);
 
-	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo, bool isHeader = false);
+	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t send_timeout_usec, bool isHeader = false);
 
 #if USE_ACKS
 	void receive_acks_();
@@ -162,7 +162,7 @@ private:  // methods
 
 	void reconnect_();
 	
-	void disconnect_receive_socket_(std::string msg = "");
+	void disconnect_receive_socket_(const std::string& msg = "");
 
 	// Receiver should listen for connections
 	void start_listen_thread_();

@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_AutodetectTransfer").c_str()
 
@@ -25,7 +27,7 @@ public:
 	/**
 		 * \brief AutodetectTransfer default Destructor
 		 */
-	virtual ~AutodetectTransfer() = default;
+	~AutodetectTransfer() override = default;
 
 	/**
 		 * \brief Receive a Fragment, using the underlying transfer plugin
@@ -102,19 +104,19 @@ private:
 artdaq::AutodetectTransfer::AutodetectTransfer(const fhicl::ParameterSet& pset, Role role)
     : TransferInterface(pset, role)
 {
-	TLOG(TLVL_INFO) << GetTraceName() << ": Begin AutodetectTransfer constructor";
+	TLOG(TLVL_INFO) << GetTraceName() << "Begin AutodetectTransfer constructor";
 	auto hosts = MakeHostMap(pset);
 
-	TLOG(TLVL_DEBUG) << GetTraceName() << ": srcHost=" << hosts[source_rank()] << ", destHost=" << hosts[destination_rank()];
+	TLOG(TLVL_DEBUG) << GetTraceName() << "srcHost=" << hosts[source_rank()] << ", destHost=" << hosts[destination_rank()];
 	if (hosts[source_rank()] == hosts[destination_rank()])
 	{
-		TLOG(TLVL_INFO) << GetTraceName() << ": Constructing ShmemTransfer";
-		theTransfer_.reset(new ShmemTransfer(pset, role));
+		TLOG(TLVL_INFO) << GetTraceName() << "Constructing ShmemTransfer";
+		theTransfer_ = std::make_unique<ShmemTransfer>(pset, role);
 	}
 	else
 	{
-		TLOG(TLVL_INFO) << GetTraceName() << ": Constructing TCPSocketTransfer";
-		theTransfer_.reset(new TCPSocketTransfer(pset, role));
+		TLOG(TLVL_INFO) << GetTraceName() << "Constructing TCPSocketTransfer";
+		theTransfer_ = std::make_unique<TCPSocketTransfer>(pset, role);
 	}
 }
 

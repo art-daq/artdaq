@@ -92,7 +92,7 @@ public:
 	/// <param name="timeout">Timeout for the command</param>
 	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
+	virtual std::string send_init(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a soft_init command
@@ -104,7 +104,7 @@ public:
 	/// <param name="timeout">Timeout for the command</param>
 	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_soft_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
+	virtual std::string send_soft_init(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a reinit command
@@ -116,7 +116,7 @@ public:
 	/// <param name="timeout">Timeout for the command</param>
 	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_reinit(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp);
+	virtual std::string send_reinit(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp);
 
 	/// <summary>
 	/// Using the transport mechanism, send a start command
@@ -188,7 +188,7 @@ public:
 	/// </summary>
 	/// <param name="which">Reportable quantity to request</param>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
-	virtual std::string send_report(std::string which);
+	virtual std::string send_report(std::string const& which);
 
 	/// <summary>
 	/// Using the transport mechanism, send a legal_commands command
@@ -205,7 +205,7 @@ public:
 	/// </summary>
 	/// <param name="monitor_fhicl">FHiCL code used to configure the art process that the Dispatcher starts</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_register_monitor(std::string monitor_fhicl);
+	virtual std::string send_register_monitor(std::string const& monitor_fhicl);
 
 	/// <summary>
 	/// Using the transport mechanism, send an unregister_monitor command
@@ -214,7 +214,7 @@ public:
 	/// </summary>
 	/// <param name="label">Label of the monitor to unregister</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_unregister_monitor(std::string label);
+	virtual std::string send_unregister_monitor(std::string const& label);
 
 	/// <summary>
 	/// Using the transport mechanism, send an send_trace_get command
@@ -224,7 +224,7 @@ public:
 	/// </summary>
 	/// <param name="name">TRACE name to get the mask for ("ALL" to get all names)</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_trace_get(std::string name);
+	virtual std::string send_trace_get(std::string const& name);
 
 	/// <summary>
 	/// Using the transport mechanism, send an send_trace_msgfacility_set command
@@ -240,7 +240,7 @@ public:
 	/// <param name="type">Type of mask to set ('M', 'S', or 'T')</param>
 	/// <param name="mask">64-bit mask, in string form</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_trace_set(std::string name, std::string type, std::string mask);
+	virtual std::string send_trace_set(std::string const& name, std::string const& type, std::string const& mask);
 
 	/// <summary>
 	/// Using the transport mechanism, send an send_meta_command command
@@ -250,7 +250,7 @@ public:
 	/// <param name="command">Command name to send</param>
 	/// <param name="argument">Argument for command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string send_meta_command(std::string command, std::string argument);
+	virtual std::string send_meta_command(std::string const& command, std::string const& argument);
 
 	/// <summary>
 	/// Using the transport mechanism, send a send_rollover_subrun command
@@ -282,7 +282,7 @@ public:
 	/// <param name="key">Key in the archive</param>
 	/// <param name="value">Value to store in the archive</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	virtual std::string add_config_archive_entry(std::string key, std::string value);
+	virtual std::string add_config_archive_entry(std::string const& key, std::string const& value);
 
 	/// <summary>
 	/// Using the transport mechanism, send a clear_config_archive command

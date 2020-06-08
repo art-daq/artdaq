@@ -20,7 +20,6 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
     , buffer_count_(psi.get<int>("buffer_count", 10))
     , error_count_max_(psi.get<int>("max_errors_before_abort", 3))
     , fragment_size_(psi.get<size_t>("fragment_size", 0x100000))
-    , ps_()
     , validate_mode_(psi.get<bool>("validate_data_mode", false))
     , partition_number_(psi.get<int>("partition_number", rand() % 0x7F))
 {
@@ -49,7 +48,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	catch (...)
 	{}
 
-	std::string type(psi.get<std::string>("transfer_plugin_type", "Shmem"));
+	auto type(psi.get<std::string>("transfer_plugin_type", "Shmem"));
 
 	bool broadcast_mode = psi.get<bool>("broadcast_sends", false);
 	if (broadcast_mode)
@@ -78,7 +77,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 		}
 	}
 
-	std::string hostmap = "";
+	std::string hostmap;
 	if (psi.has_key("hostmap"))
 	{
 		hostmap = " host_map: @local::hostmap";
@@ -110,7 +109,10 @@ int artdaq::TransferTest::runTest()
 	TLOG(TLVL_INFO) << "runTest BEGIN: " << (my_rank < senders_ ? "sending" : "receiving");
 	start_time_ = std::chrono::steady_clock::now();
 	std::pair<size_t, double> result;
-	if (my_rank >= senders_ + receivers_) return 0;
+	if (my_rank >= senders_ + receivers_)
+	{
+		return 0;
+	}
 	if (my_rank < senders_)
 	{
 		std::vector<std::future<std::pair<size_t, double>>> results_futures(sending_threads_);

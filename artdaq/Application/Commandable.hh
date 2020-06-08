@@ -280,7 +280,7 @@ public:
 	* \param args Any arguments for the command (implementation-defined)
 	* \return Whether the command succeeded (always true)
 	*/
-	virtual bool do_meta_command(std::string const& command, std::string const& args);
+	virtual bool do_meta_command(std::string const& cmd, std::string const& args);
 
 	/**
 	* \brief Add the specified key-value pair to the configuration archive list

@@ -57,7 +57,7 @@ public:
 		 * \param wordCount Number of words of Fragment data to receive
 		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 		*/
-	int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
+	int receiveFragmentData(RawDataType* destination, size_t word_count) override;
 
 	/**
 		* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.

@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	std::string fhicl_filename = boost::lexical_cast<std::string>(argv[1]);
+	auto fhicl_filename = boost::lexical_cast<std::string>(argv[1]);
 
 	std::unique_ptr<artdaq::TransferInterface> transfer;
 	auto pset = ReadParameterSet(fhicl_filename);

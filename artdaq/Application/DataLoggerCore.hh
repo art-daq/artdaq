@@ -19,7 +19,7 @@ public:
 	/**
 	* \brief DataLoggerCore Constructor.
 	*/
-	DataLoggerCore();
+	DataLoggerCore() = default;
 
 	/**
 	 * \brief Copy Constructor is deleted
@@ -29,7 +29,10 @@ public:
 	/**
 	* Destructor.
 	*/
-	~DataLoggerCore();
+	~DataLoggerCore()
+	{
+		TLOG(TLVL_DEBUG) << "Destructor";
+	}
 
 	/**
 	 * \brief Copy Assignment operator is deleted

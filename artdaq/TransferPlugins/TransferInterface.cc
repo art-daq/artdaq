@@ -12,7 +12,7 @@ artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role
     , buffer_count_(ps.get<size_t>("buffer_count", 10))
     , max_fragment_size_words_(ps.get<size_t>("max_fragment_size_words", 1024))
 {
-	TLOG(TLVL_DEBUG) << uniqueLabel() << " role:" << (int)role << " TransferInterface constructor has "
+	TLOG(TLVL_DEBUG) << GetTraceName() << " TransferInterface constructor has "
 	                 << ps.to_string();
 }
 
@@ -20,19 +20,21 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 {
 	auto ret = static_cast<int>(RECV_TIMEOUT);
 
-	TLOG(TLVL_TRACE) << "Receiving Fragment Header from rank " << source_rank();
+	TLOG(TLVL_TRACE) << GetTraceName() << "Receiving Fragment Header from rank " << source_rank();
 	ret = receiveFragmentHeader(*reinterpret_cast<detail::RawFragmentHeader*>(frag.headerAddress()), receive_timeout);
 
-	TLOG(TLVL_TRACE) << "Done receiving Header, ret is " << ret << ", should be " << source_rank();
-	if (ret < RECV_SUCCESS) return ret;
+	TLOG(TLVL_TRACE) << GetTraceName() << "Done receiving Header, ret is " << ret << ", should be " << source_rank();
+	if (ret < RECV_SUCCESS) { return ret;
+}
 
 	frag.autoResize();
 
-	TLOG(TLVL_TRACE) << "Receiving Fragment Body from rank " << source_rank();
+	TLOG(TLVL_TRACE) << GetTraceName() << "Receiving Fragment Body from rank " << source_rank();
 	auto bodyret = receiveFragmentData(frag.headerAddress() + detail::RawFragmentHeader::num_words(), frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType));
-	TLOG(TLVL_TRACE) << "Done receiving Body, ret is " << bodyret << ", should be " << source_rank();
+	TLOG(TLVL_TRACE) << GetTraceName() << "Done receiving Body, ret is " << bodyret << ", should be " << source_rank();
 
-	if (bodyret != ret) throw cet::exception("TransferInterface") << "Got different return codes from receiveFragmentHeader and receiveFragmentData!";
+	if (bodyret != ret) { throw cet::exception("TransferInterface") << "Got different return codes from receiveFragmentHeader and receiveFragmentData!";
+}
 
 	return ret;
 }

@@ -31,11 +31,12 @@ int main(int argc, char** argv)
 
 	std::unique_ptr<artdaq::Commandable> cmdble(new artdaq::Commandable());
 
-	auto commander = artdaq::MakeCommanderPlugin(config_ps, *cmdble.get());
+	auto commander = artdaq::MakeCommanderPlugin(config_ps, *cmdble);
 
 	// Start server thread
 	boost::thread commanderThread([&] { commander->run_server(); });
-	while (!commander->GetStatus()) usleep(10000);
+	while (!commander->GetStatus()) { usleep(10000);
+}
 	sleep(1);
 
 	uint64_t arg = 0;
@@ -64,7 +65,7 @@ int main(int argc, char** argv)
 	TLOG(TLVL_DEBUG) << "Sending legal_commands";
 	sts = commander->send_legal_commands();
 	TLOG(TLVL_DEBUG) << "legal_commands res=" << sts;
-	if (sts.size() == 0 || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
+	if (sts.empty() || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
 	{
 		TLOG(TLVL_ERROR) << "legal_commands returned " << sts << ", exiting with error";
 		exit(3);
@@ -82,7 +83,7 @@ int main(int argc, char** argv)
 	TLOG(TLVL_DEBUG) << "Sending report";
 	sts = commander->send_report("test");
 	TLOG(TLVL_DEBUG) << "report res=" << sts;
-	if (sts.size() == 0 || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
+	if (sts.empty() || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
 	{
 		TLOG(TLVL_ERROR) << "report returned " << sts << ", exiting with error";
 		exit(5);
@@ -100,7 +101,7 @@ int main(int argc, char** argv)
 	TLOG(TLVL_DEBUG) << "Sending status";
 	sts = commander->send_status();
 	TLOG(TLVL_DEBUG) << "status res=" << sts;
-	if (sts.size() == 0 || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
+	if (sts.empty() || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
 	{
 		TLOG(TLVL_ERROR) << "status returned " << sts << ", exiting with error";
 		exit(7);
@@ -163,7 +164,7 @@ int main(int argc, char** argv)
 	TLOG(TLVL_DEBUG) << "Sending trace_get";
 	sts = commander->send_trace_get("TRACE");
 	TLOG(TLVL_DEBUG) << "trace_get res=" << sts;
-	if (sts.size() == 0 || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
+	if (sts.empty() || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
 	{
 		TLOG(TLVL_ERROR) << "trace_get returned " << sts << ", exiting with error";
 		exit(14);
@@ -172,7 +173,7 @@ int main(int argc, char** argv)
 	TLOG(TLVL_DEBUG) << "Sending register_monitor";
 	sts = commander->send_register_monitor("unqiue_label: test");
 	TLOG(TLVL_DEBUG) << "register_monitor res=" << sts;
-	if (sts.size() == 0 || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
+	if (sts.empty() || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
 	{
 		TLOG(TLVL_ERROR) << "register_monitor returned " << sts << ", exiting with error";
 		exit(15);
@@ -181,7 +182,7 @@ int main(int argc, char** argv)
 	TLOG(TLVL_DEBUG) << "Sending unregister_monitor";
 	sts = commander->send_unregister_monitor("test");
 	TLOG(TLVL_DEBUG) << "unregister_monitor res=" << sts;
-	if (sts.size() == 0 || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
+	if (sts.empty() || sts.find("Exception", 0) != std::string::npos || sts.find("Error", 0) != std::string::npos)
 	{
 		TLOG(TLVL_ERROR) << "unregister_monitor returned " << sts << ", exiting with error";
 		exit(16);
@@ -198,6 +199,7 @@ int main(int argc, char** argv)
 
 	TLOG(TLVL_INFO) << "DONE";
 
-	if (commanderThread.joinable()) commanderThread.join();
+	if (commanderThread.joinable()) { commanderThread.join();
+}
 	artdaq::Globals::CleanUpGlobals();
 }

@@ -1,7 +1,8 @@
 #define TRACE_NAME "RequestSender"
 
-#include <boost/program_options.hpp>
 #include "fhiclcpp/make_ParameterSet.h"
+#include <boost/program_options.hpp>
+#include <memory>
 namespace bpo = boost::program_options;
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
@@ -36,7 +37,7 @@ int main(int argc, char* argv[])
 	int num_requests = pset.get<int>("num_requests", 1);
 	if (pset.get<bool>("use_receiver", false))
 	{
-		receiver.reset(new artdaq::RequestReceiver(pset.get<fhicl::ParameterSet>("receiver_config")));
+		receiver = std::make_unique<artdaq::RequestReceiver>(pset.get<fhicl::ParameterSet>("receiver_config"));
 		receiver->startRequestReception();
 	}
 
@@ -58,7 +59,7 @@ int main(int argc, char* argv[])
 			while (!recvd && artdaq::TimeUtils::GetElapsedTimeMilliseconds(start_time) < tmo)
 			{
 				auto reqs = receiver->GetRequests();
-				if (reqs.count(seq))
+				if (reqs.count(seq) != 0u)
 				{
 					TLOG(TLVL_INFO) << "Received Request for Sequence ID " << seq << ", timestamp " << reqs[seq];
 					receiver->RemoveRequest(seq);

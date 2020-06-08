@@ -59,7 +59,7 @@ public:  // TYPES
 	{
 	public:  // MEMBER FUNCTIONS -- Special Member Functions
 		~OutputItem();
-		explicit OutputItem(BranchDescription const& bd);
+		explicit OutputItem(BranchDescription  bd);
 
 	public:  // MEMBER FUNCTIONS
 		std::string const& branchName() const;

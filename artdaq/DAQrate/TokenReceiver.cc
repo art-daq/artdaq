@@ -2,13 +2,17 @@
 #define TRACE_NAME (app_name + "_TokenReceiver").c_str()
 
 #include <arpa/inet.h>
+
+#include <utility>
+
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQrate/TokenReceiver.hh"
+#include <utility>
 
 artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingMasterPolicy> policy,
                                      detail::RoutingMasterMode routing_mode, size_t number_of_senders, size_t update_interval_msec)
     : token_port_(ps.get<int>("routing_token_port", 35555))
-    , policy_(policy)
+    , policy_(std::move(std::move(policy)))
     , routing_mode_(routing_mode)
     , number_of_senders_(number_of_senders)
     , update_interval_msec_(update_interval_msec)
@@ -18,8 +22,8 @@ artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_
     , reception_is_paused_(false)
     , shutdown_requested_(false)
     , run_number_(0)
-    , received_token_counter_()
-    , statsHelperPtr_(nullptr)
+    , 
+     statsHelperPtr_(nullptr)
 {
 	receive_token_events_ = std::vector<epoll_event>(policy_->GetReceiverCount() + 1);
 }
@@ -31,7 +35,8 @@ artdaq::TokenReceiver::~TokenReceiver()
 
 void artdaq::TokenReceiver::startTokenReception()
 {
-	if (token_thread_.joinable()) token_thread_.join();
+	if (token_thread_.joinable()) { token_thread_.join();
+}
 	boost::thread::attributes attrs;
 	attrs.set_stack_size(4096 * 2000);  // 8000 KB
 
@@ -65,7 +70,8 @@ void artdaq::TokenReceiver::stopTokenReception(bool force)
 			TLOG(TLVL_DEBUG) << "Stop request received by TokenReceiver, but no tokens have ever been received.";
 		}
 		TLOG(TLVL_DEBUG) << "Joining tokenThread";
-		if (token_thread_.joinable()) token_thread_.join();
+		if (token_thread_.joinable()) { token_thread_.join();
+}
 		thread_is_running_ = false;
 	}
 
@@ -88,7 +94,8 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 			token_socket_ = TCP_listen_fd(token_port_, 3 * sizeof(detail::RoutingToken));
 			fcntl(token_socket_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
 
-			if (token_epoll_fd_ != -1) close(token_epoll_fd_);
+			if (token_epoll_fd_ != -1) { close(token_epoll_fd_);
+}
 			struct epoll_event ev;
 			token_epoll_fd_ = epoll_create1(0);
 			ev.events = EPOLLIN | EPOLLPRI;
@@ -172,7 +179,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 						TLOG(TLVL_ERROR) << "Error reading from token socket: sts=" << sts << ", errno=" << errno;
 						receive_token_addrs_.erase(receive_token_events_[n].data.fd);
 						close(receive_token_events_[n].data.fd);
-						epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, NULL);
+						epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, nullptr);
 						reading = false;
 					}
 					else if (sts == sizeof(detail::RoutingToken) && buff.header != TOKEN_MAGIC)
@@ -197,7 +204,8 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 							}
 							else if (routing_mode_ == detail::RoutingMasterMode::RouteBySendCount)
 							{
-								if (!received_token_counter_.count(buff.rank)) received_token_counter_[buff.rank] = 0;
+								if (received_token_counter_.count(buff.rank) == 0u) { received_token_counter_[buff.rank] = 0;
+}
 								received_token_counter_[buff.rank] += buff.new_slots_free;
 								TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_ << ".";
 								while (received_token_counter_[buff.rank] >= number_of_senders_)
@@ -212,7 +220,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 					}
 				}
 				auto delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
-				if (statsHelperPtr_.get() != nullptr) { statsHelperPtr_->addSample(tokens_received_stat_key_, delta_time); }
+				if (statsHelperPtr_ != nullptr) { statsHelperPtr_->addSample(tokens_received_stat_key_, delta_time); }
 			}
 		}
 	}

@@ -19,8 +19,8 @@ namespace artdaq {
 RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     : send_requests_(pset.get<bool>("send_requests", false))
     , initialized_(false)
-    , active_requests_()
-    , request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
+    , 
+     request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
     , request_port_(pset.get<int>("request_port", 3001))
     , request_delay_(pset.get<size_t>("request_delay_ms", 0) * 1000)
     , request_shutdown_timeout_us_(pset.get<size_t>("request_shutdown_timeout_us", 100000))
@@ -191,7 +191,8 @@ void RequestSender::do_send_request_()
 		request_sending_--;
 		return;
 	}
-	if (request_socket_ == -1) setup_requests_();
+	if (request_socket_ == -1) { setup_requests_();
+}
 
 	TLOG(TLVL_TRACE) << "Waiting for " << request_delay_ << " microseconds.";
 	std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
@@ -231,8 +232,10 @@ void RequestSender::do_send_request_()
 void RequestSender::send_routing_token_(int nSlots, int run_number)
 {
 	TLOG(TLVL_TRACE) << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_;
-	if (!send_routing_tokens_) return;
-	if (token_socket_ == -1) setup_tokens_();
+	if (!send_routing_tokens_) { return;
+}
+	if (token_socket_ == -1) { setup_tokens_();
+}
 	detail::RoutingToken token;
 	token.header = TOKEN_MAGIC;
 	token.rank = my_rank;
@@ -261,8 +264,10 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 
 void RequestSender::SendRoutingToken(int nSlots, int run_number)
 {
-	while (!initialized_) usleep(1000);
-	if (!send_routing_tokens_) return;
+	while (!initialized_) { usleep(1000);
+}
+	if (!send_routing_tokens_) { return;
+}
 	boost::thread token([=] { send_routing_token_(nSlots, run_number); });
 	token.detach();
 	usleep(0);  // Give up time slice
@@ -270,10 +275,13 @@ void RequestSender::SendRoutingToken(int nSlots, int run_number)
 
 void RequestSender::SendRequest(bool endOfRunOnly)
 {
-	while (!initialized_) usleep(1000);
+	while (!initialized_) { usleep(1000);
+}
 
-	if (!send_requests_) return;
-	if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
+	if (!send_requests_) { return;
+}
+	if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) { return;
+}
 	request_sending_++;
 	boost::thread request([=] { do_send_request_(); });
 	request.detach();
@@ -281,11 +289,12 @@ void RequestSender::SendRequest(bool endOfRunOnly)
 
 void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
 {
-	while (!initialized_) usleep(1000);
+	while (!initialized_) { usleep(1000);
+}
 
 	{
 		std::lock_guard<std::mutex> lk(request_mutex_);
-		if (!active_requests_.count(seqID))
+		if (active_requests_.count(seqID) == 0u)
 		{
 			TLOG(12) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
 			active_requests_[seqID] = timestamp;
@@ -296,7 +305,8 @@ void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestam
 
 void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)
 {
-	while (!initialized_) usleep(1000);
+	while (!initialized_) { usleep(1000);
+}
 	std::lock_guard<std::mutex> lk(request_mutex_);
 	TLOG(12) << "Removing request for sequence ID " << seqID << " from request list.";
 	active_requests_.erase(seqID);

@@ -146,7 +146,7 @@ public:
 		 *
 		 * If neither interface_name or interface_address are set, then the interface will be auto-detected, giving preference to private network addresses.
 		 */
-	in_addr GetMulticastOutputAddress(std::string interface_name = "", std::string interface_address = "");
+	in_addr GetMulticastOutputAddress(const std::string& interface_name = "", const std::string& interface_address = "");
 
 private:
 	bool base_configured_;
@@ -180,7 +180,7 @@ private:
 	std::string routing_table_group_pattern_;
 	std::string multicast_transfer_group_pattern_;
 
-	std::string parse_pattern_(std::string pattern, int subsystemID = 0, int rank = 0);
+	std::string parse_pattern_(const std::string& pattern, int subsystemID = 0, int rank = 0);
 };
 }  // namespace artdaq
 

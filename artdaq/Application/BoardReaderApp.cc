@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_BoardReaderApp").c_str()
 #include "artdaq/Application/BoardReaderApp.hh"
@@ -22,7 +24,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	// then deletes the old one, and we need the opposite order.
 	TLOG(TLVL_DEBUG) << "Initializing first deleting old instance " << (void*)fragment_receiver_ptr_.get();
 	fragment_receiver_ptr_.reset(nullptr);
-	fragment_receiver_ptr_.reset(new BoardReaderCore(*this));
+	fragment_receiver_ptr_ = std::make_unique<BoardReaderCore>(*this);
 	TLOG(TLVL_DEBUG) << "Initializing new BoardReaderCore at " << (void*)fragment_receiver_ptr_.get() << " with pset " << pset.to_string();
 	external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
 	if (!external_request_status_)
@@ -92,7 +94,8 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 
 	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
 	int number_of_fragments_sent = -1;
-	if (fragment_receiver_ptr_) number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
+	if (fragment_receiver_ptr_) { number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
+}
 	TLOG(TLVL_DEBUG) << "do_stop(uint64_t, uint64_t): "
 	                 << "Number of fragments sent = " << number_of_fragments_sent
 	                 << ".";
@@ -110,7 +113,8 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_.append(app_name + ".");
 	}
 
-	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
+	if (fragment_processing_thread_.joinable()) { fragment_processing_thread_.join();
+}
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG) << "do_pause(uint64_t, uint64_t): "
 	                 << "Number of fragments sent = " << number_of_fragments_sent
@@ -146,7 +150,8 @@ bool artdaq::BoardReaderApp::do_shutdown(uint64_t timeout)
 	external_request_status_ = fragment_receiver_ptr_->shutdown(timeout);
 	// 02-Jun-2018, ELF & KAB: it's very, very unlikely that the following call is needed,
 	// but just in case...
-	if (fragment_processing_thread_.joinable()) fragment_processing_thread_.join();
+	if (fragment_processing_thread_.joinable()) { fragment_processing_thread_.join();
+}
 	if (!external_request_status_)
 	{
 		report_string_ = "Error shutting down ";
@@ -211,10 +216,10 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else
-		{
+		
+		
 			return "Success";
-		}
+		
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
@@ -226,7 +231,7 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 	//}
 
 	// pass the request to the BoardReaderCore instance, if it's available
-	if (fragment_receiver_ptr_.get() != 0)
+	if (fragment_receiver_ptr_ != nullptr)
 	{
 		resultString.append(fragment_receiver_ptr_->report(which));
 	}

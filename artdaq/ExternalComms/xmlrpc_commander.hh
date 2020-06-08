@@ -27,7 +27,7 @@ public:
 	   server_url: When sending, location of XMLRPC server
 	 * \endverbatim
 	 */
-	xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable);
+	xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Commandable& commandable);
 
 	/**
 	 * \brief Run the XMLRPC server
@@ -39,14 +39,14 @@ public:
 	/// </summary>
 	/// <param name="monitor_fhicl">FHiCL string contianing monitor configuration</param>
 	/// <returns>Return status from XMLRPC</returns>
-	std::string send_register_monitor(std::string monitor_fhicl) override;
+	std::string send_register_monitor(std::string const& monitor_fhicl) override;
 
 	/// <summary>
 	/// Send an unregister_monitor command over XMLRPC
 	/// </summary>
 	/// <param name="monitor_label">Label of the monitor to unregister</param>
 	/// <returns>Return status from XMLRPC</returns>
-	std::string send_unregister_monitor(std::string monitor_label) override;
+	std::string send_unregister_monitor(std::string const& monitor_label) override;
 
 	/// <summary>
 	/// Send an init command over XMLRPC
@@ -58,7 +58,7 @@ public:
 	/// <param name="timeout">Timeout for the command</param>
 	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
+	std::string send_init(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a soft_init command over XMLRPC
@@ -70,7 +70,7 @@ public:
 	/// <param name="timeout">Timeout for the command</param>
 	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_soft_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
+	std::string send_soft_init(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a reinit command over XMLRPC
@@ -82,7 +82,7 @@ public:
 	/// <param name="timeout">Timeout for the command</param>
 	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_reinit(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp) override;
+	std::string send_reinit(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a start command over XMLRPC
@@ -154,7 +154,7 @@ public:
 	/// </summary>
 	/// <param name="which">Reportable quantity to request</param>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
-	std::string send_report(std::string which) override;
+	std::string send_report(std::string const& what) override;
 
 	/// <summary>
 	/// Send a legal_commands command over XMLRPC
@@ -172,7 +172,7 @@ public:
 	/// </summary>
 	/// <param name="name">TRACE name to get the mask for ("ALL" to get all names)</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_trace_get(std::string name) override;
+	std::string send_trace_get(std::string const& name) override;
 
 	/// <summary>
 	/// Send an send_trace_msgfacility_set command over XMLRPC
@@ -187,7 +187,7 @@ public:
 	/// <param name="type">Type of mask to set ('M', 'S', or 'T')</param>
 	/// <param name="mask">64-bit mask, in string form</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_trace_set(std::string name, std::string type, std::string mask) override;
+	std::string send_trace_set(std::string const& name, std::string const& type, std::string const& mask) override;
 
 	/// <summary>
 	/// Send an send_meta_command command over XMLRPC
@@ -197,7 +197,7 @@ public:
 	/// <param name="command">Command name to send</param>
 	/// <param name="argument">Argument for command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_meta_command(std::string command, std::string argument) override;
+	std::string send_meta_command(std::string const& command, std::string const& argument) override;
 
 	/// <summary>
 	/// Send a send_rollover_subrun command over XMLRPC
@@ -208,7 +208,7 @@ public:
 	/// <param name="seq">Sequence ID of new subrun</param>
 	/// <param name="subrunNumber">Subrun number of the new subrun</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_rollover_subrun(uint64_t seq, uint32_t subrunNumber) override;
+	std::string send_rollover_subrun(uint64_t when, uint32_t sr) override;
 
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
@@ -218,14 +218,14 @@ private:
 	int port_;
 	std::string serverUrl_;
 
-	std::string send_command_(std::string command);
-	std::string send_command_(std::string command, std::string arg);
-	std::string send_command_(std::string command, fhicl::ParameterSet pset, uint64_t a, uint64_t b);
-	std::string send_command_(std::string command, uint64_t a, uint64_t b);
-	std::string send_command_(std::string command, art::RunID r, uint64_t a, uint64_t b);
-	std::string send_command_(std::string, uint64_t);
-	std::string send_command_(std::string, std::string, std::string);
-	std::string send_command_(std::string, std::string, std::string, std::string);
+	std::string send_command_(const std::string& command);
+	std::string send_command_(const std::string& command, const std::string& arg);
+	std::string send_command_(const std::string& command, const fhicl::ParameterSet& pset, uint64_t timestamp, uint64_t timeout);
+	std::string send_command_(const std::string& command, uint64_t a, uint64_t b);
+	std::string send_command_(const std::string& command, art::RunID r, uint64_t a, uint64_t b);
+	std::string send_command_(const std::string&, uint64_t);
+	std::string send_command_(const std::string&, const std::string&, const std::string&);
+	std::string send_command_(const std::string&, const std::string&, const std::string&, const std::string&);
 
 public:
 	std::timed_mutex mutex_;                        ///< XMLRPC mutex

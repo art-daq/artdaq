@@ -2,6 +2,7 @@
 #define TRACE_NAME (app_name + "_FragmentReceiverManager").c_str()
 
 #include <chrono>
+#include <memory>
 
 #include "artdaq/DAQrate/FragmentReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
@@ -9,12 +10,6 @@
 
 artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterSet& pset)
     : stop_requested_(false)
-    , source_threads_()
-    , source_plugins_()
-    , source_metric_data_()
-    , source_metric_send_time_()
-    , enabled_sources_()
-    , fragment_store_()
     , recv_frag_count_()
     , recv_frag_size_()
     , recv_seq_count_()
@@ -25,7 +20,7 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 {
 	TLOG(TLVL_DEBUG) << "Constructor";
 	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
-	auto enabled_srcs_empty = enabled_srcs.size() == 0;
+	auto enabled_srcs_empty = enabled_srcs.empty();
 	if (enabled_srcs_empty)
 	{
 		TLOG(TLVL_INFO) << "enabled_sources not specified, assuming all sources enabled.";
@@ -47,9 +42,13 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 			                                                                      TransferInterface::Role::kReceive));
 			auto source_rank = transfer->source_rank();
 			if (enabled_srcs_empty)
+			{
 				enabled_sources_[source_rank] = true;
-			else if (!enabled_sources_.count(source_rank))
+			}
+			else if (enabled_sources_.count(source_rank) == 0u)
+			{
 				enabled_sources_[source_rank] = false;
+			}
 			running_sources_[source_rank] = false;
 			source_plugins_[source_rank] = std::move(transfer);
 			fragment_store_[source_rank];
@@ -69,7 +68,7 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 			TLOG(TLVL_WARNING) << "Non-cet exception caught while setting up source " << s << ".";
 		}
 	}
-	if (srcs.get_pset_names().size() == 0)
+	if (srcs.get_pset_names().empty())
 	{
 		TLOG(TLVL_ERROR) << "No sources configured!";
 	}
@@ -88,7 +87,10 @@ artdaq::FragmentReceiverManager::~FragmentReceiverManager()
 	for (auto& s : source_threads_)
 	{
 		auto& thread = s.second;
-		if (thread.joinable()) thread.join();
+		if (thread.joinable())
+		{
+			thread.join();
+		}
 	}
 	TLOG(5) << "~FragmentReceiverManager: DONE";
 }
@@ -97,7 +99,10 @@ bool artdaq::FragmentReceiverManager::fragments_ready_() const
 {
 	for (auto& it : fragment_store_)
 	{
-		if (!enabled_sources_.count(it.first)) continue;
+		if (enabled_sources_.count(it.first) == 0u)
+		{
+			continue;
+		}
 		if (!it.second.empty()) { return true; }
 	}
 	return false;
@@ -109,14 +114,17 @@ int artdaq::FragmentReceiverManager::get_next_source_() const
 	std::set<int> ready_sources;
 	for (auto& it : fragment_store_)
 	{
-		if (!enabled_sources_.count(it.first)) continue;
+		if (enabled_sources_.count(it.first) == 0u)
+		{
+			continue;
+		}
 		if (!it.second.empty())
 		{
 			ready_sources.insert(it.first);
 		}
 	}
 
-	if (ready_sources.size())
+	if (!ready_sources.empty())
 	{
 		auto iter = ready_sources.find(last_source_);
 		if (iter == ready_sources.end() || ++iter == ready_sources.end())
@@ -140,7 +148,7 @@ void artdaq::FragmentReceiverManager::start_threads()
 	for (auto& source : source_plugins_)
 	{
 		auto& rank = source.first;
-		if (enabled_sources_.count(rank))
+		if (enabled_sources_.count(rank) != 0u)
 		{
 			running_sources_[rank] = true;
 			try
@@ -161,7 +169,10 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 {
 	TLOG(5) << "recvFragment entered tmo=" << timeout_usec << " us";
 
-	if (timeout_usec == 0) timeout_usec = 1000000;
+	if (timeout_usec == 0)
+	{
+		timeout_usec = 1000000;
+	}
 
 	auto ready = fragments_ready_();
 	size_t waited = 0;
@@ -175,7 +186,10 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 		}
 		waited += wait_amount;
 		ready = fragments_ready_();
-		if (running_sources().size() == 0) break;
+		if (running_sources().empty())
+		{
+			break;
+		}
 	}
 	TLOG(5) << "recvFragment fragment_ready_=" << ready << " after waited=" << waited;
 	if (!ready)
@@ -191,7 +205,9 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 	rank = current_source;
 
 	if (current_fragment != nullptr)
+	{
 		TLOG(5) << "recvFragment: Done  rank=" << rank << ", fragment size=" << std::to_string(current_fragment->size()) << " words, seqId=" << current_fragment->sequenceID();
+	}
 	return current_fragment;
 }
 
@@ -200,7 +216,10 @@ std::set<int> artdaq::FragmentReceiverManager::running_sources() const
 	std::set<int> output;
 	for (auto& src : running_sources_)
 	{
-		if (src.second) output.insert(src.first);
+		if (src.second)
+		{
+			output.insert(src.first);
+		}
 	}
 	return output;
 }
@@ -210,14 +229,17 @@ std::set<int> artdaq::FragmentReceiverManager::enabled_sources() const
 	std::set<int> output;
 	for (auto& src : enabled_sources_)
 	{
-		if (src.second) output.insert(src.first);
+		if (src.second)
+		{
+			output.insert(src.first);
+		}
 	}
 	return output;
 }
 
 void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 {
-	while (!stop_requested_ && enabled_sources_.count(source_rank))
+	while (!stop_requested_ && (enabled_sources_.count(source_rank) != 0u))
 	{
 		TLOG(16) << "runReceiver_ " << source_rank << ": Begin loop";
 		auto is_suppressed = suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount();
@@ -225,7 +247,9 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		{
 			TLOG(6) << "runReceiver_: Suppressing receiver rank " << source_rank;
 			if (!is_suppressed)
+			{
 				input_cv_.notify_all();
+			}
 			else
 			{
 				std::unique_lock<std::mutex> lck(output_cv_mutex_);
@@ -248,7 +272,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 		auto start_time = std::chrono::steady_clock::now();
 		TLOG(16) << "runReceiver_: Calling receiveFragment";
-		auto fragment = std::unique_ptr<Fragment>(new Fragment());
+		auto fragment = std::make_unique<Fragment>();
 #if 0
 		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
 		TLOG(16) << "runReceiver_: Done with receiveFragment, ret=" << ret << " (should be " << source_rank << ")";
@@ -258,7 +282,10 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		auto ret1 = source_plugins_[source_rank]->receiveFragmentHeader(hdr, receive_timeout_);
 		TLOG(16) << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")";
 
-		if (ret1 != source_rank) continue;  // Receive timeout or other oddness
+		if (ret1 != source_rank)
+		{
+			continue;  // Receive timeout or other oddness
+		}
 
 		fragment->resize(hdr.word_count - hdr.num_words());
 		memcpy(fragment->headerAddress(), &hdr, hdr.num_words() * sizeof(artdaq::RawDataType));

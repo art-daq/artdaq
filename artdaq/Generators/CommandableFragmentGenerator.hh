@@ -230,7 +230,7 @@ public:
 		 * \param desc Message to log with reasoning for sending Empty Fragment
 		 * \return True if no exceptions
 		 */
-	bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, Fragment::fragment_id_t fragmentId, std::string desc);
+	bool sendEmptyFragment(FragmentPtrs& frags, size_t seqId, Fragment::fragment_id_t fragmentId, const std::string& desc);
 
 	/**
 		 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time

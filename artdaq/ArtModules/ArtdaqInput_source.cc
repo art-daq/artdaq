@@ -18,7 +18,7 @@ struct Source_generator<ArtdaqInputHelper<ShmemWrapper>>
 /**
 	 * \brief ArtdaqInput is an art::Source using an ArtdaqInputHelper-wrapped ShmemWrapper
 	 */
-typedef art::Source<ArtdaqInputHelper<ShmemWrapper>> ArtdaqInput;
+using ArtdaqInput = art::Source<ArtdaqInputHelper<ShmemWrapper> >;
 }  // namespace art
 
 DEFINE_ART_INPUT_SOURCE(art::ArtdaqInput)

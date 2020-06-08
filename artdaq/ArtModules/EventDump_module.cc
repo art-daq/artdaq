@@ -47,7 +47,7 @@ public:
 	/**
 	 * \brief Default virtual Destructor
 	 */
-	virtual ~EventDump() = default;
+	~EventDump() override = default;
 
 	/**
 	 * \brief This method is called for each art::Event in a file or run
@@ -79,7 +79,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 
 		for (auto const& handle : fragmentHandles)
 		{
-			if (handle->size() > 0)
+			if (!handle->empty())
 			{
 				std::string instance_name = handle.provenance()->productInstanceName();
 				std::cout << instance_name << " fragments: " << std::endl;

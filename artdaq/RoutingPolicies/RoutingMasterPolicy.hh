@@ -26,7 +26,7 @@ public:
 		 * "receiver_ranks" (REQUIRED): A list of integers indicating the ranks that the RoutingMasterPolicy should expect tokens from
 		 * \endverbatim
 		 */
-	explicit RoutingMasterPolicy(fhicl::ParameterSet ps);
+	explicit RoutingMasterPolicy(const fhicl::ParameterSet& ps);
 	/**
 		 * \brief Default virtual Destructor
 		 */

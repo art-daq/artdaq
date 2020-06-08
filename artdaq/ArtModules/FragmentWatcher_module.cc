@@ -43,13 +43,13 @@ public:
 	/**
 	 * \brief Virtual Destructor. Shuts down MetricManager if one is present
 	 */
-	virtual ~FragmentWatcher();
+	~FragmentWatcher() override;
 
 	/**
    * \brief Analyze each event, using the configured mode bitmask
    * \param evt art::Event to analyze
    */
-	virtual void analyze(art::Event const& evt);
+	void analyze(art::Event const& evt) override;
 
 private:
 	std::bitset<3> mode_bitset_;
@@ -74,7 +74,7 @@ private:
 };
 
 artdaq::FragmentWatcher::FragmentWatcher(fhicl::ParameterSet const& pset)
-    : EDAnalyzer(pset), mode_bitset_(std::bitset<3>(pset.get<int>("mode_bitmask", 0x1))), metrics_reporting_level_(pset.get<int>("metrics_reporting_level", 1)), events_processed_(0), expected_number_of_fragments_(0), events_with_missing_fragments_(0), events_with_empty_fragments_(0), events_with_10pct_missing_fragments_(0), events_with_10pct_empty_fragments_(0), events_with_50pct_missing_fragments_(0), events_with_50pct_empty_fragments_(0), empty_fragments_by_fragmentID_()
+    : EDAnalyzer(pset), mode_bitset_(std::bitset<3>(pset.get<int>("mode_bitmask", 0x1))), metrics_reporting_level_(pset.get<int>("metrics_reporting_level", 1)), events_processed_(0), expected_number_of_fragments_(0), events_with_missing_fragments_(0), events_with_empty_fragments_(0), events_with_10pct_missing_fragments_(0), events_with_10pct_empty_fragments_(0), events_with_50pct_missing_fragments_(0), events_with_50pct_empty_fragments_(0) 
 {
 	fhicl::ParameterSet metric_pset;
 	try
@@ -155,7 +155,7 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 	TLOG(TLVL_TRACE) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event << ", missing_fragments="
 	                 << missing_fragments << ", empty_fragments=" << empty_fragment_count_this_event << " (" << events_processed_
 	                 << " events processed)";
-	if (empty_fragmentID_list_this_event.size() > 0)
+	if (!empty_fragmentID_list_this_event.empty())
 	{
 		std::ostringstream oss;
 		bool firstLoop = true;

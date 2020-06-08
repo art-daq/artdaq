@@ -18,14 +18,14 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
-#include <stdio.h>
-#include <unistd.h>
+#include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 namespace art {
@@ -57,17 +57,17 @@ public:
 	/**
 	 * \brief BinaryFileOutput Destructor
 	 */
-	virtual ~BinaryFileOutput();
+	~BinaryFileOutput() override;
 
 private:
 	void beginJob() override;
 
 	void endJob() override;
 
-	void write(EventPrincipal&) override;
+	void write(EventPrincipal& /*ep*/) override;
 
-	void writeRun(RunPrincipal&) override{};
-	void writeSubRun(SubRunPrincipal&) override{};
+	void writeRun(RunPrincipal& /*r*/) override{};
+	void writeSubRun(SubRunPrincipal& /*sr*/) override{};
 
 	void initialize_FILE_();
 
@@ -132,8 +132,9 @@ void art::BinaryFileOutput::deinitialize_FILE_()
 		close(fd_);
 		fd_ = -1;
 	}
-	else
+	else {
 		file_ptr_.reset(nullptr);
+}
 	fstats_.recordFileClose();
 }
 
@@ -184,7 +185,8 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
 
-		if (!raw_event_handle.isValid()) continue;
+		if (!raw_event_handle.isValid()) { continue;
+}
 
 		for (auto const& fragment : *raw_event_handle)
 		{
@@ -215,7 +217,6 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 #else
 	fstats_.recordEvent(ep.eventID());
 #endif
-	return;
 }
 
 DEFINE_ART_MODULE(art::BinaryFileOutput)

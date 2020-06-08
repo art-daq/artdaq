@@ -15,6 +15,7 @@
 #include <csignal>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -91,14 +92,14 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 	static bool initialized = false;
 	static size_t fragments_received = 0;
 
-	while (true && !gSignalStatus)
+	while (gSignalStatus == 0)
 	{
 		receivedFragment = false;
 		auto fragmentPtr = std::make_unique<artdaq::Fragment>();
 
 		while (!receivedFragment)
 		{
-			if (gSignalStatus)
+			if (gSignalStatus != 0)
 			{
 				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 				unregisterMonitor();
@@ -107,7 +108,8 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 			if (!monitorRegistered_)
 			{
 				registerMonitor();
-				if (!monitorRegistered_) return fragmentPtrs;
+				if (!monitorRegistered_) { return fragmentPtrs;
+}
 			}
 
 			try
@@ -122,15 +124,18 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 					static size_t cntr = 0;
 					auto mod = ++cntr % 10;
 					auto suffix = "-th";
-					if (mod == 1) suffix = "-st";
-					if (mod == 2) suffix = "-nd";
-					if (mod == 3) suffix = "-rd";
+					if (mod == 1) { suffix = "-st";
+}
+					if (mod == 2) { suffix = "-nd";
+}
+					if (mod == 3) { suffix = "-rd";
+}
 					TLOG(TLVL_INFO) << "Received " << cntr << suffix << " event, "
 					                << "seqID == " << fragmentPtr->sequenceID()
 					                << ", type == " << fragmentPtr->typeString();
 					continue;
 				}
-				else if (result == artdaq::TransferInterface::DATA_END)
+				if (result == artdaq::TransferInterface::DATA_END)
 				{
 					TLOG(TLVL_ERROR) << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
 					unregisterMonitor();
@@ -164,10 +169,10 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 				initialized = false;
 				continue;
 			}
-			else
-			{
+			
+			
 				return fragmentPtrs;
-			}
+			
 		}
 
 		checkIntegrity(*fragmentPtr);
@@ -178,15 +183,13 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 			fragmentPtrs.push_back(std::move(fragmentPtr));
 			break;
 		}
-		else
-		{
-			receivedFragment = false;
-
+		
+		
 			if (fragments_received > maxEventsBeforeInit_)
 			{
 				throw cet::exception("TransferWrapper") << "First " << maxEventsBeforeInit_ << " events received did not include the \"Init\" event containing necessary info for art; exiting...";
 			}
-		}
+		
 	}
 
 	return fragmentPtrs;
@@ -203,9 +206,9 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		auto fragPtr = ptr.release();
 		ptr.reset(nullptr);
 
-		if (!output.count(fragType))
+		if (output.count(fragType) == 0u)
 		{
-			output[fragType].reset(new artdaq::Fragments());
+			output[fragType] = std::make_unique<artdaq::Fragments>();
 		}
 
 		output[fragType]->emplace_back(std::move(*fragPtr));
@@ -218,11 +221,11 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 {
 	const size_t artdaqheader = artdaq::detail::RawFragmentHeader::num_words() *
 	                            sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
-	const size_t payload = static_cast<size_t>(fragment.dataEndBytes() - fragment.dataBeginBytes());
+	const auto payload = static_cast<size_t>(fragment.dataEndBytes() - fragment.dataBeginBytes());
 	const size_t metadata = sizeof(artdaq::NetMonHeader);
 	const size_t totalsize = fragment.sizeBytes();
 
-	const size_t type = static_cast<size_t>(fragment.type());
+	const auto type = static_cast<size_t>(fragment.type());
 
 	if (totalsize != artdaqheader + metadata + payload)
 	{
@@ -236,10 +239,10 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 		{
 			throw cet::exception("TransferWrapper") << errmsg.str();
 		}
-		else
-		{
+		
+		
 			return;
-		}
+		
 	}
 
 	auto findloc = std::find(allowedFragmentTypes_.begin(), allowedFragmentTypes_.end(), static_cast<int>(type));
@@ -255,10 +258,10 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 		{
 			throw cet::exception("TransferWrapper") << errmsg.str();
 		}
-		else
-		{
+		
+		
 			return;
-		}
+		
 	}
 }
 
@@ -280,7 +283,7 @@ void artdaq::TransferWrapper::registerMonitor()
 	while (sts != "Running" && (runningStateTimeout_ == 0 || TimeUtils::GetElapsedTime(start) < runningStateTimeout_))
 	{
 		TLOG(TLVL_DEBUG) << "Dispatcher state: " << sts;
-		if (gSignalStatus)
+		if (gSignalStatus != 0)
 		{
 			TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 			return;
@@ -289,7 +292,8 @@ void artdaq::TransferWrapper::registerMonitor()
 		usleep(runningStateInterval_us_);
 		sts = getDispatcherStatus();
 	}
-	if (sts != "Running") return;
+	if (sts != "Running") { return;
+}
 
 	auto dispatcherConfig = pset_.get<fhicl::ParameterSet>("dispatcher_config");
 
@@ -309,11 +313,11 @@ void artdaq::TransferWrapper::registerMonitor()
 			monitorRegistered_ = true;
 			break;
 		}
-		else
-		{
+		
+		
 			TLOG(TLVL_WARNING) << "Error in TransferWrapper: attempt to register with dispatcher did not result in the \"Success\" response";
 			usleep(100000);
-		}
+		
 		retry--;
 	}
 }
@@ -328,7 +332,8 @@ void artdaq::TransferWrapper::unregisterMonitor()
 
 	std::string sts = getDispatcherStatus();
 
-	if (sts == "") return;
+	if (sts.empty()) { return;
+}
 
 	if (sts != "Running" && sts != "Ready")
 	{
@@ -350,7 +355,7 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		{
 			break;
 		}
-		else if (status == "busy")
+		if (status == "busy")
 		{}
 		else
 		{

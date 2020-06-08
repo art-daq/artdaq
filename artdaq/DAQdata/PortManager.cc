@@ -61,7 +61,7 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 		try
 		{
 			auto bp_s = std::string(bp);
-			auto bp_tmp = std::stoi(bp_s, 0, 0);
+			auto bp_tmp = std::stoi(bp_s, nullptr, 0);
 			if (bp_tmp < 1024 || bp_tmp > 32000)
 			{
 				TLOG(TLVL_ERROR) << "Base port specified in ARTDAQ_BASE_PORT is invalid! Ignoring...";
@@ -83,7 +83,7 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 		try
 		{
 			auto ppp_s = std::string(ppp);
-			auto ppp_tmp = std::stoi(ppp_s, 0, 0);
+			auto ppp_tmp = std::stoi(ppp_s, nullptr, 0);
 			if (ppp_tmp < 0 || ppp_tmp > 32000)
 			{
 				TLOG(TLVL_ERROR) << "Ports per partition specified in ARTDAQ_PORTS_PER_PARTITION is invalid! Ignoring...";
@@ -368,16 +368,17 @@ std::string artdaq::PortManager::GetMulticastTransferGroupAddress()
 	return parse_pattern_(multicast_transfer_group_pattern_);
 }
 
-in_addr artdaq::PortManager::GetMulticastOutputAddress(std::string interface_name, std::string interface_address)
+in_addr artdaq::PortManager::GetMulticastOutputAddress(const std::string& interface_name, const std::string& interface_address)
 {
 	if (!multicasts_configured_)
 	{
-		if (interface_name == "" && interface_address == "") TLOG(TLVL_INFO) << "Using default multicast output address (autodetected private interface)";
-		if (interface_name != "")
+		if (interface_name.empty() && interface_address.empty()) { TLOG(TLVL_INFO) << "Using default multicast output address (autodetected private interface)";
+}
+		if (!interface_name.empty())
 		{
 			GetIPOfInterface(interface_name, multicast_interface_address_);
 		}
-		else if (interface_address != "")
+		else if (!interface_address.empty())
 		{
 			GetInterfaceForNetwork(interface_address.c_str(), multicast_interface_address_);
 		}
@@ -390,7 +391,7 @@ in_addr artdaq::PortManager::GetMulticastOutputAddress(std::string interface_nam
 	return multicast_interface_address_;
 }
 
-std::string artdaq::PortManager::parse_pattern_(std::string pattern, int subsystemID, int rank)
+std::string artdaq::PortManager::parse_pattern_(const std::string& pattern, int subsystemID, int rank)
 {
 	std::istringstream f(pattern);
 	std::vector<int> address(4);

@@ -56,17 +56,17 @@ public:
 	/**
 	 * \brief BinaryNetOutput Destructor
 	 */
-	virtual ~BinaryNetOutput();
+	~BinaryNetOutput() override;
 
 private:
 	void beginJob() override;
 
 	void endJob() override;
 
-	void write(EventPrincipal&) override;
+	void write(EventPrincipal& /*ep*/) override;
 
-	void writeRun(RunPrincipal&) override{};
-	void writeSubRun(SubRunPrincipal&) override{};
+	void writeRun(RunPrincipal& /*r*/) override{};
+	void writeSubRun(SubRunPrincipal& /*sr*/) override{};
 
 	void initialize_MPI_();
 
@@ -171,7 +171,8 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
 
-		if (!raw_event_handle.isValid()) continue;
+		if (!raw_event_handle.isValid()) { continue;
+}
 
 		for (auto const& fragment : *raw_event_handle)
 		{
@@ -187,8 +188,6 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 	// Events are unique in art, so this will be the only send with this sequence ID!
 	// ELF 1/23/2020: Only remove routing entry AFTER all Fragments have been sent!
 	sender_ptr_->RemoveRoutingTableEntry(sequence_id);
-
-	return;
 }
 
 DEFINE_ART_MODULE(art::BinaryNetOutput)
