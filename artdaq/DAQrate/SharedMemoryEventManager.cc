@@ -1104,7 +1104,7 @@ void artdaq::SharedMemoryEventManager::CheckPendingBuffers()
 
 void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<std::mutex> const& lock)
 {
-	TLOG(TLVL_TRACE) << "check_pending_buffers_ BEGIN Locked=" << std::boolalpha << lock.owns_lock();
+	TLOG(14) << "check_pending_buffers_ BEGIN Locked=" << std::boolalpha << lock.owns_lock();
 
 	auto buffers = GetBuffersOwnedByManager();
 	for (auto buf : buffers)
@@ -1204,7 +1204,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 	if (metricMan)
 	{
-		TLOG(TLVL_TRACE) << "check_pending_buffers_: Sending Metrics";
+		TLOG(14) << "check_pending_buffers_: Sending Metrics";
 		metricMan->sendMetric("Event Rate", counter, "Events", 1, MetricMode::Rate);
 		metricMan->sendMetric("Data Rate", eventSize, "Bytes", 1, MetricMode::Rate);
 		if (counter > 0)
@@ -1249,7 +1249,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			metricMan->sendMetric("Shared Memory Available %", empty * 100 / static_cast<double>(total), "%", 2, MetricMode::LastPoint);
 		}
 	}
-	TLOG(TLVL_TRACE) << "check_pending_buffers_ END";
+	TLOG(14) << "check_pending_buffers_ END";
 }
 
 void artdaq::SharedMemoryEventManager::send_init_frags_()
