@@ -65,6 +65,6 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin);
  * \param sndbufsiz Size of the send buffer. Set to 0 for automatic send buffer management
  * \return File descriptor of connected socket.
  */
-int TCPConnect(char const* host_in, int dflt_port, long flags = 0, int sndbufsiz = 0);
+int TCPConnect(char const* host_in, int dflt_port, int64_t flags = 0, int sndbufsiz = 0);
 
 #endif  // TCPConnect_hh

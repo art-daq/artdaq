@@ -8,7 +8,7 @@
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
 // C Includes
-#include <stdint.h>   // uint64_t
+#include <cstdint>   // uint64_t
 #include <sys/uio.h>  // iovec
 
 // C++ Includes

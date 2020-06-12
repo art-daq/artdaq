@@ -36,6 +36,8 @@ public:
 	* \return EventBuilderApp copy
 	*/
 	EventBuilderApp& operator=(EventBuilderApp const&) = delete;
+	EventBuilderApp(EventBuilderApp&&) = delete;
+	EventBuilderApp& operator=(EventBuilderApp&&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**

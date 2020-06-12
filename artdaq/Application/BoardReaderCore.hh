@@ -49,6 +49,8 @@ public:
 	 * \return BoardReaderCore copy
 	 */
 	BoardReaderCore& operator=(BoardReaderCore const&) = delete;
+	BoardReaderCore(BoardReaderCore&&) = delete;
+	BoardReaderCore& operator=(BoardReaderCore&&) = delete;
 
 	/**
 	 * \brief Initialize the BoardReaderCore

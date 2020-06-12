@@ -81,7 +81,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		while (!incoming_events_->IsEndOfData() && !got_event)
 		{
 			got_event = incoming_events_->ReadyForRead(broadcast, read_timeout_);
-			if (!got_event && !resume_after_timeout_)
+			if (!got_event && (!resume_after_timeout_ || broadcast)) // Only try broadcasts once!
 			{
 				TLOG(TLVL_ERROR) << "Timeout occurred! No data received after " << read_timeout_ << " us. Returning empty Fragment list!";
 				return recvd_fragments;

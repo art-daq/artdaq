@@ -41,6 +41,9 @@ public:
 	 */
 	Commandable& operator=(Commandable const&) = delete;
 
+	Commandable(Commandable&&) = delete;
+	Commandable& operator=(Commandable&&) = delete;
+
 	/**
 	* \brief Processes the initialize request
 	* \param pset ParameterSet used to configure the Commandable

@@ -44,6 +44,8 @@ public:
 	* \return AggregatorCore copy
 	*/
 	DataReceiverCore& operator=(DataReceiverCore const&) = delete;
+	DataReceiverCore(DataReceiverCore&&) = delete;
+	DataReceiverCore& operator=(DataReceiverCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.

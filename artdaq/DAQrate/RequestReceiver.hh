@@ -45,7 +45,7 @@ public:
 		 * \brief RequestReceiver Constructor 
 		 * \param ps ParameterSet used to configure RequestReceiver. See artdaq::RequestReceiver::Config
 		 */
-	RequestReceiver(const fhicl::ParameterSet& ps);
+	explicit RequestReceiver(const fhicl::ParameterSet& ps);
 	virtual ~RequestReceiver();
 
 	/**
@@ -125,7 +125,7 @@ public:
 		{
 			out[in.first] = in.second;
 		}
-		if (requests_.size()) { highest_seen_request_ = requests_.rbegin()->first; }
+		if (!requests_.empty()) { highest_seen_request_ = requests_.rbegin()->first; }
 		out_of_order_requests_.clear();
 		requests_.clear();
 		request_timing_.clear();
@@ -151,9 +151,9 @@ public:
 	{
 		std::unique_lock<std::mutex> lk(request_mutex_);  // Lock needed by wait_for
 		// See if we have to wait at all
-		if (requests_.size() > 0) return true;
+		if (!requests_.empty()) return true;
 		// If we do have to wait, check requests_.size to make sure we're not being notified spuriously
-		return request_cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms), [this]() { return requests_.size() > 0; });
+		return request_cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms), [this]() { return !requests_.empty(); });
 	}
 
 	/// <summary>
@@ -174,23 +174,27 @@ public:
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
 private:
-	// FHiCL-configurable variables. Note that the C++ variable names
-	// are the FHiCL variable names with a "_" appended
-	int request_port_;
+	RequestReceiver(RequestReceiver const&) = delete;
+	RequestReceiver(RequestReceiver&&) = delete;
+	RequestReceiver& operator=(RequestReceiver const&) = delete;
+	RequestReceiver& operator=(RequestReceiver&&) = delete;
+
+	bool running_{false};
+	std::atomic<bool> request_stop_requested_;
+	std::atomic<bool> request_received_;
+	std::atomic<bool> should_stop_;
+
+	int request_port_{3001};
+	uint32_t run_number_{0};
 	std::string request_addr_;
 	std::string multicast_in_addr_;
-	bool running_;
-	uint32_t run_number_;
 
 	//Socket parameters
-	int request_socket_;
+	int request_socket_{-1};
 	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> requests_;
 	std::map<artdaq::Fragment::sequence_id_t, std::chrono::steady_clock::time_point> request_timing_;
-	std::atomic<bool> request_stop_requested_;
 	std::chrono::steady_clock::time_point request_stop_timeout_;
-	std::atomic<bool> request_received_;
-	size_t end_of_run_timeout_ms_;
-	std::atomic<bool> should_stop_;
+	size_t end_of_run_timeout_ms_{1000};
 	mutable std::mutex request_mutex_;
 	mutable std::mutex state_mutex_;
 	std::condition_variable request_cv_;
@@ -199,7 +203,7 @@ private:
 	std::atomic<artdaq::Fragment::sequence_id_t> highest_seen_request_;
 	std::atomic<artdaq::Fragment::sequence_id_t> last_next_request_;  // The last request returned by GetNextRequest
 	std::set<artdaq::Fragment::sequence_id_t> out_of_order_requests_;
-	artdaq::Fragment::sequence_id_t request_increment_;
+	artdaq::Fragment::sequence_id_t request_increment_{1};
 };
 }  // namespace artdaq
 

@@ -39,6 +39,8 @@ public:
 	 * \return DataLoggerCore copy
 	 */
 	DataLoggerCore& operator=(DataLoggerCore const&) = delete;
+	DataLoggerCore(DataLoggerCore&&) = delete;
+	DataLoggerCore& operator=(DataLoggerCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.

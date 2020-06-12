@@ -70,8 +70,17 @@ void artdaq::TokenReceiver::stopTokenReception(bool force)
 			TLOG(TLVL_DEBUG) << "Stop request received by TokenReceiver, but no tokens have ever been received.";
 		}
 		TLOG(TLVL_DEBUG) << "Joining tokenThread";
-		if (token_thread_.joinable()) { token_thread_.join();
-}
+		try
+		{
+			if (token_thread_.joinable())
+			{
+				token_thread_.join();
+			}
+		}
+		catch (...)
+		{
+			// IGNORED
+		}
 		thread_is_running_ = false;
 	}
 
@@ -133,7 +142,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket";
 				sockaddr_in addr;
 				socklen_t arglen = sizeof(addr);
-				auto conn_sock = accept(token_socket_, (struct sockaddr*)&addr, &arglen);
+				auto conn_sock = accept(token_socket_, reinterpret_cast<struct sockaddr*>(&addr), &arglen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 				fcntl(conn_sock, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
 
 				if (conn_sock == -1)

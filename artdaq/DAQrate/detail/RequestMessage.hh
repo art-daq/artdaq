@@ -49,18 +49,11 @@ struct artdaq::detail::RequestPacket
 {
 public:
 	/** The magic bytes for the request packet */
-	uint32_t header;                      //TRIG, or 0x54524947
-	Fragment::sequence_id_t sequence_id;  ///< The sequence ID that responses to this request should use
-	Fragment::timestamp_t timestamp;      ///< The timestamp of the request
+	uint32_t header{0};                                                //TRIG, or 0x54524947
+	Fragment::sequence_id_t sequence_id{Fragment::InvalidSequenceID};  ///< The sequence ID that responses to this request should use
+	Fragment::timestamp_t timestamp{Fragment::InvalidTimestamp};       ///< The timestamp of the request
 
-	/**
-	 * \brief Default Constructor
-	 */
-	RequestPacket()
-	    : header(0)
-	    , sequence_id(Fragment::InvalidSequenceID)
-	    , timestamp(Fragment::InvalidTimestamp)
-	{}
+	RequestPacket() = default;
 
 	/**
 	 * \brief Create a RequestPacket using the given sequence ID and timestmap
@@ -86,22 +79,13 @@ public:
 struct artdaq::detail::RequestHeader
 {
 	/** The magic bytes for the request header */
-	uint32_t header;          //HEDR, or 0x48454452
-	uint32_t packet_count;    ///< The number of RequestPackets in this Request message
-	int rank;                 ///< Rank of the sender
-	uint32_t run_number;      ///< The Run with which this request should be associated
-	RequestMessageMode mode;  ///< Communicates additional information to the Request receiver
+	uint32_t header{0x48454452};  //HEDR, or 0x48454452
+	uint32_t packet_count{0};     ///< The number of RequestPackets in this Request message
+	int rank{my_rank};            ///< Rank of the sender
+	uint32_t run_number{0};       ///< The Run with which this request should be associated
+	RequestMessageMode mode{RequestMessageMode::Normal};  ///< Communicates additional information to the Request receiver
 
-	/**
-	 * \brief Default Constructor
-	 */
-	RequestHeader()
-	    : header(0x48454452)
-	    , packet_count(0)
-	    , rank(my_rank)
-	    , run_number(0)
-	    , mode(RequestMessageMode::Normal)
-	{}
+	RequestHeader() = default;
 
 	/**
 	* \brief Check the magic bytes of the packet

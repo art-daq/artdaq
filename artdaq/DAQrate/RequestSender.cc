@@ -152,7 +152,7 @@ void RequestSender::setup_requests_()
 			TLOG(TLVL_ERROR) << "Unable to enable multicast loopback on request socket, err=" << strerror(errno);
 			exit(1);
 		}
-		if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
+		if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1) // NOLINT(google-readability-casting)
 		{
 			TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast, err=" << strerror(errno);
 			exit(1);
@@ -217,7 +217,7 @@ void RequestSender::do_send_request_()
 	TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str
 	                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 	auto buf = message.GetMessage();
-	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr*)&request_addr_, sizeof(request_addr_));
+	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts < 0 || static_cast<size_t>(sts) != buf.size())
 	{
 		TLOG(TLVL_ERROR) << "Error sending request message err=" << strerror(errno) << "sts=" << sts;
@@ -246,7 +246,7 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 	size_t sts = 0;
 	while (sts < sizeof(detail::RoutingToken))
 	{
-		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
+		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 		if (res < 0)
 		{
 			TLOG(TLVL_WARNING) << "Error on token_socket, reconnecting";

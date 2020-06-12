@@ -34,6 +34,8 @@ public:
 	* \return RoutingMasterApp copy
 	*/
 	RoutingMasterApp& operator=(RoutingMasterApp const&) = delete;
+	RoutingMasterApp(RoutingMasterApp&&) = delete;
+	RoutingMasterApp& operator=(RoutingMasterApp&&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**

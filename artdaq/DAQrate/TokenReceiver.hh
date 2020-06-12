@@ -71,7 +71,7 @@ public:
 		 * \param helper A shared pointer to the StatisticsHelper instance
 		 * \param stat_key Name to use for gathering statistics on tokens received
 		 */
-	void setStatsHelper(std::shared_ptr<StatisticsHelper> helper, std::string const& stat_key)
+	void setStatsHelper(std::shared_ptr<StatisticsHelper> const& helper, std::string const& stat_key)
 	{
 		statsHelperPtr_ = helper;
 		tokens_received_stat_key_ = stat_key;
@@ -90,6 +90,11 @@ public:
 	size_t getReceivedTokenCount() const { return received_token_count_; }
 
 private:
+	TokenReceiver(TokenReceiver const&) = delete;
+	TokenReceiver(TokenReceiver&&) = delete;
+	TokenReceiver& operator=(TokenReceiver const&) = delete;
+	TokenReceiver& operator=(TokenReceiver&&) = delete;
+
 	void receiveTokensLoop_();
 
 	int token_port_;

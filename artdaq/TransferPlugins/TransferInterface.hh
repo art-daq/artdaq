@@ -186,6 +186,9 @@ public:
 	/** \endcond */
 
 protected:
+	TransferInterface(TransferInterface&&) = delete;
+	TransferInterface& operator=(TransferInterface&&) = delete;
+
 	const Role role_;  ///< Whether this instance of TransferInterface is a sender or receiver
 
 	const int source_rank_;           ///< Rank of source

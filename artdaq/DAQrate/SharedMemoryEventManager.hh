@@ -27,7 +27,7 @@ public:
 		 * \brief art_config_file Constructor
 		 * \param ps ParameterSet to write to temporary file
 		 */
-	art_config_file(fhicl::ParameterSet ps /*, uint32_t shm_key, uint32_t broadcast_key*/)
+	explicit art_config_file(fhicl::ParameterSet const& ps /*, uint32_t shm_key, uint32_t broadcast_key*/)
 	    : dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
 	    , file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 	{
@@ -77,6 +77,11 @@ public:
 	std::string getFileName() const { return file_name_; }
 
 private:
+	art_config_file(art_config_file const&) = delete;
+	art_config_file(art_config_file&&) = delete;
+	art_config_file& operator=(art_config_file const&) = delete;
+	art_config_file& operator=(art_config_file&&) = delete;
+
 	std::string dir_name_;
 	std::string file_name_;
 };
@@ -392,6 +397,11 @@ public:
 	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
 private:
+	SharedMemoryEventManager(SharedMemoryEventManager const&) = delete;
+	SharedMemoryEventManager(SharedMemoryEventManager&&) = delete;
+	SharedMemoryEventManager& operator=(SharedMemoryEventManager const&) = delete;
+	SharedMemoryEventManager& operator=(SharedMemoryEventManager&&) = delete;
+
 	size_t get_art_process_count_()
 	{
 		std::unique_lock<std::mutex> lk(art_process_mutex_);

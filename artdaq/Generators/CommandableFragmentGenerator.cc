@@ -611,7 +611,7 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			{
 				TLOG(TLVL_ERROR) << "DataBufferError: "
 				                 << "Error in CommandableFragmentGenerator: Recevied Fragment with fragment_id " << frag_id << ", but this ID was not declared in fragment_ids!";
-				throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Recevied Fragment with fragment_id " << frag_id << ", but this ID was not declared in fragment_ids!";
+				throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Recevied Fragment with fragment_id " << frag_id << ", but this ID was not declared in fragment_ids!"; // NOLINT(cert-err60-cpp)
 			}
 
 			TLOG(TLVL_GETDATALOOP_DATABUFFWAIT) << "Waiting for data buffer ready";

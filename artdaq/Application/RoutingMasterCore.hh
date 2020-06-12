@@ -55,6 +55,9 @@ public:
 	*/
 	RoutingMasterCore& operator=(RoutingMasterCore const&) = delete;
 
+	RoutingMasterCore(RoutingMasterCore&&) = delete;
+	RoutingMasterCore& operator=(RoutingMasterCore&&) = delete;
+
 	/**
 	* \brief Processes the initialize request.
 	* \param pset ParameterSet used to configure the RoutingMasterCore

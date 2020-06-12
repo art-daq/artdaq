@@ -37,6 +37,9 @@ public:
 	 */
 	BoardReaderApp& operator=(BoardReaderApp const&) = delete;
 
+	BoardReaderApp(BoardReaderApp&&) = delete;
+	BoardReaderApp& operator=(BoardReaderApp&&) = delete;
+
 	// these methods provide the operations that are used by the state machine
 	/**
 	 * \brief Initialize the BoardReaderCore
@@ -129,6 +132,7 @@ public:
 	std::string report(std::string const& which) const override;
 
 private:
+
 	std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;
 	boost::thread fragment_processing_thread_;
 };

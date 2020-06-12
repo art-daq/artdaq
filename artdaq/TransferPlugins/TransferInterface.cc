@@ -24,8 +24,10 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 	ret = receiveFragmentHeader(*reinterpret_cast<detail::RawFragmentHeader*>(frag.headerAddress()), receive_timeout);
 
 	TLOG(TLVL_TRACE) << GetTraceName() << "Done receiving Header, ret is " << ret << ", should be " << source_rank();
-	if (ret < RECV_SUCCESS) { return ret;
-}
+	if (ret < RECV_SUCCESS)
+	{
+		return ret;
+	}
 
 	frag.autoResize();
 
@@ -33,8 +35,10 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 	auto bodyret = receiveFragmentData(frag.headerAddress() + detail::RawFragmentHeader::num_words(), frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType));
 	TLOG(TLVL_TRACE) << GetTraceName() << "Done receiving Body, ret is " << bodyret << ", should be " << source_rank();
 
-	if (bodyret != ret) { throw cet::exception("TransferInterface") << "Got different return codes from receiveFragmentHeader and receiveFragmentData!";
-}
+	if (bodyret != ret)
+	{
+		throw cet::exception("TransferInterface") << "Got different return codes from receiveFragmentHeader and receiveFragmentData!";  // NOLINT(cert-err60-cpp)
+	}
 
 	return ret;
 }

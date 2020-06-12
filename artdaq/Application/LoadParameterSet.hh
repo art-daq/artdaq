@@ -29,17 +29,17 @@ fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 }
 
 template<typename C>
-void PrintConfigurationToConsole(std::string name)
+void PrintConfigurationToConsole(std::string const& name)
 {
 	fhicl::Table<C> config_description(fhicl::Name{name});
 	config_description.print_allowed_configuration(std::cout);
 }
 
 template<typename C>
-fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name, std::string description)
+fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string const& name, std::string const& description)
 {
 	std::ostringstream descstr;
-	descstr << argv[0]
+	descstr << argv[0] // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	        << " <-c <config>> <other-options> [<source-file>]+";
 	bpo::options_description desc(descstr.str());
 	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration")("help,h", "produce help message");
@@ -51,7 +51,7 @@ fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name, s
 	}
 	catch (bpo::error const& e)
 	{
-		TLOG_ERROR("LoadParameterSet") << "Exception from command line processing in " << argv[0]
+		TLOG_ERROR("LoadParameterSet") << "Exception from command line processing in " << argv[0]  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 		                               << ": " << e.what() << "\n";
 		exit(-1);
 	}
@@ -92,10 +92,10 @@ fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string name, s
 	}
 	else
 	{
-		TLOG_ERROR("LoadParameterSet") << "Exception from command line processing in " << argv[0]
+		TLOG_ERROR("LoadParameterSet") << "Exception from command line processing in " << argv[0]  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 		                               << ": no configuration given.\n"
 		                               << "For usage and an options list, please do '"
-		                               << argv[0] << " --help"
+		                               << argv[0] << " --help"  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 		                               << "'.\n";
 		exit(2);
 	}

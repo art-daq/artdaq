@@ -8,9 +8,7 @@
 artdaq::StatisticsHelper::
     StatisticsHelper()
     : monitored_quantity_name_list_(0)
-    , primary_stat_ptr_(nullptr)
-    , previous_reporting_index_(0)
-    , previous_stats_calc_time_(0.0) {}
+    , primary_stat_ptr_(nullptr) {}
 
 void artdaq::StatisticsHelper::
     addMonitoredQuantityName(std::string const& statKey)
@@ -74,7 +72,7 @@ bool artdaq::StatisticsHelper::
 	if (primary_stat_ptr_.get() != nullptr)
 	{
 		double fullDuration = primary_stat_ptr_->getFullDuration();
-		auto reportIndex = (size_t)(fullDuration / reporting_interval_seconds_);
+		auto reportIndex = static_cast<size_t>(fullDuration / reporting_interval_seconds_);
 		if (reportIndex > previous_reporting_index_)
 		{
 			previous_reporting_index_ = reportIndex;

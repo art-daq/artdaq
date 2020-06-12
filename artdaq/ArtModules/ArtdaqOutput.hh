@@ -610,7 +610,7 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	//  Setup message buffer.
 	//
-	auto msg = prepareMessage(ep.EVENT_ID().event(), artdaq::Fragment::DataFragmentType);
+	auto msg = prepareMessage((static_cast<uint64_t>(ep.SUBRUN_ID().subRun()) << 32) + ep.EVENT_ID().event(), artdaq::Fragment::DataFragmentType);
 	//
 	//  Write message type code.
 	//

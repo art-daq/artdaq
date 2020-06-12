@@ -70,6 +70,11 @@ protected:
 	std::unique_ptr<std::deque<int>> getTokensSnapshot();           ///< Gets the current token list, used for building Routing Tables
 	void addUnusedTokens(std::unique_ptr<std::deque<int>> tokens);  ///< If necessary, return unused tokens to the token list, for subsequent updates
 private:
+	RoutingMasterPolicy(RoutingMasterPolicy const&) = delete;
+	RoutingMasterPolicy(RoutingMasterPolicy&&) = delete;
+	RoutingMasterPolicy& operator=(RoutingMasterPolicy const&) = delete;
+	RoutingMasterPolicy& operator=(RoutingMasterPolicy&&) = delete;
+
 	mutable std::mutex tokens_mutex_;
 	std::unordered_set<int> receiver_ranks_;
 	std::deque<int> tokens_;

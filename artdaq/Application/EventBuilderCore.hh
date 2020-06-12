@@ -39,6 +39,8 @@ public:
 	* \return AggregatorCore copy
 	*/
 	EventBuilderCore& operator=(EventBuilderCore const&) = delete;
+	EventBuilderCore(EventBuilderCore&&) = delete;
+	EventBuilderCore& operator=(EventBuilderCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.

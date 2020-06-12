@@ -42,6 +42,8 @@ public:
 	 * \return DispatcherCore copy
 	 */
 	DispatcherCore& operator=(DispatcherCore const&) = delete;
+	DispatcherCore(DispatcherCore&&) = delete;
+	DispatcherCore& operator=(DispatcherCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.
