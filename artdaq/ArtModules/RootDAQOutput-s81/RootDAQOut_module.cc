@@ -119,7 +119,7 @@ public:
 			// for 'OutputModule::Config::fileName'.
 			using namespace fhicl::detail;
 			ParameterBase* adjustFilename{
-			    const_cast<fhicl::Atom<string>*>(&omConfig().fileName)};
+			    const_cast<fhicl::Atom<string>*>(&omConfig().fileName)}; // NOLINT(cppcoreguidelines-pro-type-const-cast)
 			adjustFilename->set_par_style(fhicl::par_style::REQUIRED);
 		}
 
@@ -567,7 +567,7 @@ void RootDAQOut::doOpenFile()
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (inputFileCount_ == 0)
 	{
-		throw Exception(errors::LogicError)
+		throw Exception(errors::LogicError) // NOLINT(cert-err60-cpp)
 		    << "Attempt to open output file before input file. "
 		    << "Please report this to the core framework developers.\n";
 	}
@@ -606,7 +606,7 @@ RootDAQOut::lastClosedFileName() const
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (lastClosedFileName_.empty())
 	{
-		throw Exception(errors::LogicError, "RootDAQOut::currentFileName(): ")
+		throw Exception(errors::LogicError, "RootDAQOut::currentFileName(): ")  // NOLINT(cert-err60-cpp)
 		    << "called before meaningful.\n";
 	}
 	return lastClosedFileName_;
@@ -727,13 +727,13 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	}
 
 	// if one or more free-form substitutions were provided, we'll do them here
-	for (auto & sub : subs)
+	for (auto& sub : subs)
 	{
 		// first look up the replacement string for this process's app_name
 		const std::string BLAH = "none_provided";
 		std::string newString = BLAH;
 		std::vector<Config::NewSubStringForApp> replacementList = sub.replacementList();
-		for (auto & rdx : replacementList)
+		for (auto& rdx : replacementList)
 		{
 			if (rdx.appName() == artdaq::Globals::app_name_)
 			{
@@ -775,4 +775,4 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 
 }  // namespace art
 
-DEFINE_ART_MODULE(art::RootDAQOut)
+DEFINE_ART_MODULE(art::RootDAQOut)// NOLINT(performance-unnecessary-value-param)

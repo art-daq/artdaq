@@ -18,8 +18,8 @@ public:
 		 * 
 		 * NoOpPolicy takes no additional Parameters at this time
 		 */
-	explicit NoOpPolicy(fhicl::ParameterSet ps)
-	    : RoutingMasterPolicy(std::move(ps)) {}
+	explicit NoOpPolicy(fhicl::ParameterSet const& ps)
+	    : RoutingMasterPolicy(ps) {}
 
 	/**
 		 * \brief Default virtual Destructor
@@ -31,6 +31,12 @@ public:
 		 * \return A detail::RoutingPacket containing the Routing Table
 		 */
 	detail::RoutingPacket GetCurrentTable() override;
+
+private:
+	NoOpPolicy(NoOpPolicy const&) = delete;
+	NoOpPolicy(NoOpPolicy&&) = delete;
+	NoOpPolicy& operator=(NoOpPolicy const&) = delete;
+	NoOpPolicy& operator=(NoOpPolicy&&) = delete;
 };
 
 detail::RoutingPacket NoOpPolicy::GetCurrentTable()
@@ -46,6 +52,7 @@ detail::RoutingPacket NoOpPolicy::GetCurrentTable()
 	TLOG(12) << "NoOpPolicy::GetCurrentTable return";
 	return output;
 }
+
 }  // namespace artdaq
 
 DEFINE_ARTDAQ_ROUTING_POLICY(artdaq::NoOpPolicy)

@@ -11,12 +11,11 @@
 artdaq::GenericFragmentSimulator::GenericFragmentSimulator(fhicl::ParameterSet const& ps)
     : content_selection_(static_cast<content_selector_t>(ps.get<size_t>("content_selection", 0)))
     , payload_size_spec_(ps.get<size_t>("payload_size", 10240))
-    , 
-     want_random_payload_size_(ps.get<bool>("want_random_payload_size", false))
+    , want_random_payload_size_(ps.get<bool>("want_random_payload_size", false))
     , current_event_num_(0)
     , engine_(ps.get<int64_t>("random_seed", 314159))
     , payload_size_generator_(payload_size_spec_)
-     
+
 {
 	fragment_ids_.resize(ps.get<size_t>("fragments_per_event", 5));
 	auto current_id = ps.get<Fragment::fragment_id_t>("starting_fragment_id", 0);
@@ -58,7 +57,7 @@ bool artdaq::GenericFragmentSimulator::
 		case content_selector_t::RANDOM:
 			std::generate_n(frag_ptr->dataBegin(),
 			                payload_size,
-			                [&]() -> long {
+			                [&]() -> int64_t {
 				                return fragment_content_generator_(engine_);
 			                });
 			break;
@@ -68,7 +67,7 @@ bool artdaq::GenericFragmentSimulator::
 			            0xDEADBEEFDEADBEEF);
 			break;
 		default:
-			throw cet::exception("UnknownContentSelection")
+			throw cet::exception("UnknownContentSelection") // NOLINT(cert-err60-cpp)
 			    << "Unknown content selection: "
 			    << static_cast<uint8_t>(content_selection_);
 	}

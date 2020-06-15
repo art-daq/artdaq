@@ -15,7 +15,6 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
-
 namespace artdaq {
 /**
 	 * \brief This art::EDAnalyzer plugin tries to get Fragments from each event, asserting that the correct number of Fragments were present
@@ -89,5 +88,5 @@ void FragmentSniffer::endJob()
 	if (num_events_expected_ > 0) { assert(num_events_processed_ == num_events_expected_); }
 }
 
-DEFINE_ART_MODULE(FragmentSniffer)
+DEFINE_ART_MODULE(FragmentSniffer)// NOLINT(performance-unnecessary-value-param)
 }  // namespace artdaq

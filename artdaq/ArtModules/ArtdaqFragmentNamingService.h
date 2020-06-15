@@ -49,7 +49,7 @@ public:
 	/**
 	 * \brief Adds an additional type to be translated.
 	 */
-	void AddExtraType(artdaq::Fragment::type_t type_id, std::string type_name)
+	void AddExtraType(artdaq::Fragment::type_t type_id, std::string const& type_name)
 	{
 		type_map_[type_id] = type_name;
 	}
@@ -86,6 +86,11 @@ public:
 protected:
 	std::map<artdaq::Fragment::type_t, std::string> type_map_;  ///< Map relating Fragment Type to strings
 	std::string unidentified_instance_name_;                    ///< The name to use for unknown Fragment types
+private:
+	ArtdaqFragmentNamingServiceInterface(ArtdaqFragmentNamingServiceInterface const&) = delete;
+	ArtdaqFragmentNamingServiceInterface(ArtdaqFragmentNamingServiceInterface&&) = delete;
+	ArtdaqFragmentNamingServiceInterface& operator=(ArtdaqFragmentNamingServiceInterface const&) = delete;
+	ArtdaqFragmentNamingServiceInterface& operator=(ArtdaqFragmentNamingServiceInterface&&) = delete;
 };
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqFragmentNamingServiceInterface, LEGACY)
 
@@ -132,6 +137,10 @@ public:
 	GetInstanceNameForFragment(artdaq::Fragment const& fragment);
 
 private:
+	ArtdaqFragmentNamingService(ArtdaqFragmentNamingService const&) = delete;
+	ArtdaqFragmentNamingService(ArtdaqFragmentNamingService&&) = delete;
+	ArtdaqFragmentNamingService& operator=(ArtdaqFragmentNamingService const&) = delete;
+	ArtdaqFragmentNamingService& operator=(ArtdaqFragmentNamingService&&) = delete;
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqFragmentNamingService, ArtdaqFragmentNamingServiceInterface, LEGACY)

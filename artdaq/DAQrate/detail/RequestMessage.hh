@@ -79,10 +79,10 @@ public:
 struct artdaq::detail::RequestHeader
 {
 	/** The magic bytes for the request header */
-	uint32_t header{0x48454452};  //HEDR, or 0x48454452
-	uint32_t packet_count{0};     ///< The number of RequestPackets in this Request message
-	int rank{my_rank};            ///< Rank of the sender
-	uint32_t run_number{0};       ///< The Run with which this request should be associated
+	uint32_t header{0x48454452};                          //HEDR, or 0x48454452
+	uint32_t packet_count{0};                             ///< The number of RequestPackets in this Request message
+	int rank{my_rank};                                    ///< Rank of the sender
+	uint32_t run_number{0};                               ///< The Run with which this request should be associated
 	RequestMessageMode mode{RequestMessageMode::Normal};  ///< Communicates additional information to the Request receiver
 
 	RequestHeader() = default;

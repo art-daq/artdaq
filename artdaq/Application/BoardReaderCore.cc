@@ -8,12 +8,12 @@
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
-#include "canvas/Utilities/Exception.h"
-#include "cetlib_except/exception.h"
-#include <algorithm>
-#include <memory>
 #include <pthread.h>
 #include <sched.h>
+#include <algorithm>
+#include <memory>
+#include "canvas/Utilities/Exception.h"
+#include "cetlib_except/exception.h"
 
 const std::string artdaq::BoardReaderCore::
     FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
@@ -190,8 +190,10 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 	TLOG(TLVL_DEBUG) << "Stopping CommandableFragmentGenerator END";
 
 	TLOG(TLVL_DEBUG) << "Stopping DataSenderManager";
-	if (sender_ptr_) { sender_ptr_->StopSender();
-}
+	if (sender_ptr_)
+	{
+		sender_ptr_->StopSender();
+	}
 
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Stop transition for run " << run_id_.run();
 	return true;
@@ -250,9 +252,10 @@ void artdaq::BoardReaderCore::process_fragments()
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
-		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param) != 0) {
+		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param) != 0)
+		{
 			TLOG(TLVL_WARNING) << "setting realtime priority failed";
-}
+		}
 #pragma GCC diagnostic pop
 	}
 
@@ -358,9 +361,10 @@ void artdaq::BoardReaderCore::process_fragments()
 			                       artdaq::MonitoredQuantity::getCurrentTime() - startTime);
 
 			bool readyToReport = statsHelper_.readyToReport();
-			if (readyToReport) {
+			if (readyToReport)
+			{
 				TLOG(TLVL_INFO) << buildStatisticsString_();
-}
+			}
 
 			// Turn on lvls (mem and/or slow) 3,13,14 to log every send.
 			TLOG(((fragment_count_ == 1) ? TLVL_DEBUG
@@ -419,8 +423,10 @@ bool artdaq::BoardReaderCore::metaCommand(std::string const& command, std::strin
 	                 << ", arg = \"" << arg << "\""
 	                 << ".";
 
-	if (generator_ptr_) { return generator_ptr_->metaCommand(command, arg);
-}
+	if (generator_ptr_)
+	{
+		return generator_ptr_->metaCommand(command, arg);
+	}
 
 	return true;
 }

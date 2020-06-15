@@ -295,6 +295,9 @@ public:
 	virtual std::string clear_config_archive();
 
 private:
+	CommanderInterface(CommanderInterface&&) = delete;
+	CommanderInterface& operator=(CommanderInterface&&) = delete;
+
 public:
 	/// <summary>
 	/// Reference to the Commandable that this Commander Commands.

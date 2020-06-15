@@ -19,14 +19,14 @@
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 
-#include "artdaq/DAQdata/TCPConnect.hh"
+#include <sys/poll.h>
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <memory>
-#include <sys/poll.h>
+#include "artdaq/DAQdata/TCPConnect.hh"
 
 #define TLVL_GETNEXT 10
 #define TLVL_GETNEXT_VERBOSE 20
@@ -44,8 +44,7 @@
 #define TLVL_CHECKWINDOWS 14
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
-    : 
-     requestReceiver_(nullptr)
+    : requestReceiver_(nullptr)
     , bufferModeKeepLatest_(ps.get<bool>("buffer_mode_keep_latest", false))
     , windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
     , windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
@@ -62,8 +61,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
     , maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
     , useMonitoringThread_(ps.get<bool>("separate_monitoring_thread", false))
     , monitoringInterval_(ps.get<int64_t>("hardware_poll_interval_us", 0))
-    , 
-     isHardwareOK_(true)
+    , isHardwareOK_(true)
     , run_number_(-1)
     , subrun_number_(-1)
     , timeout_(std::numeric_limits<uint64_t>::max())
@@ -92,10 +90,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 			TLOG(TLVL_ERROR) << latest_exception_report_;
 			throw cet::exception(latest_exception_report_);
 		}
-		
-		
-			fragment_ids.emplace_back(fragment_id);
-		
+
+		fragment_ids.emplace_back(fragment_id);
 	}
 
 	for (auto& id : fragment_ids)
@@ -156,11 +152,15 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 	should_stop_ = true;
 	force_stop_ = true;
 	TLOG(TLVL_DEBUG) << "Joining dataThread";
-	if (dataThread_.joinable()) { dataThread_.join();
-}
+	if (dataThread_.joinable())
+	{
+		dataThread_.join();
+	}
 	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
-	if (monitoringThread_.joinable()) { monitoringThread_.join();
-}
+	if (monitoringThread_.joinable())
+	{
+		monitoringThread_.join();
+	}
 	TLOG(TLVL_DEBUG) << "joinThreads complete";
 }
 
@@ -168,10 +168,14 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 {
 	bool result = true;
 
-	if (check_stop()) { usleep(sleep_on_stop_us_);
-}
-	if (exception() || force_stop_) { return false;
-}
+	if (check_stop())
+	{
+		usleep(sleep_on_stop_us_);
+	}
+	if (exception() || force_stop_)
+	{
+		return false;
+	}
 
 	if (!useMonitoringThread_ && monitoringInterval_ > 0)
 	{
@@ -195,7 +199,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_TRACE) << "getNext: Calling applyRequests";
 			result = applyRequests(output);
 			TLOG(TLVL_TRACE) << "getNext: Done with applyRequests result=" << std::boolalpha << result;
-			for (auto & dataIter : output)
+			for (auto& dataIter : output)
 			{
 				TLOG(20) << "getNext: applyRequests() returned fragment with sequenceID = " << dataIter->sequenceID()
 				         << ", type = " << dataIter->typeString() << ", id = " << std::to_string(dataIter->fragmentID())
@@ -225,7 +229,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 				throw;
 			}
 			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
-			for (auto & dataIter : output)
+			for (auto& dataIter : output)
 			{
 				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << dataIter->sequenceID()
 				                           << ", type = " << dataIter->typeString() << ", id = " << std::to_string(dataIter->fragmentID())
@@ -295,12 +299,18 @@ bool artdaq::CommandableFragmentGenerator::check_stop()
 {
 	TLOG(TLVL_CHECKSTOP) << "CFG::check_stop: should_stop=" << should_stop() << ", useDataThread_=" << useDataThread_ << ", exception status =" << int(exception());
 
-	if (!should_stop()) { return false;
-}
-	if (!useDataThread_ || mode_ == RequestMode::Ignored) { return true;
-}
-	if (force_stop_) { return true;
-}
+	if (!should_stop())
+	{
+		return false;
+	}
+	if (!useDataThread_ || mode_ == RequestMode::Ignored)
+	{
+		return true;
+	}
+	if (force_stop_)
+	{
+		return true;
+	}
 
 	// check_stop returns true if the CFG should stop. We should wait for the RequestReceiver to stop before stopping.
 	TLOG(TLVL_DEBUG) << "should_stop is true, force_stop_ is false, requestReceiver_->isRunning() is " << std::boolalpha << requestReceiver_->isRunning();
@@ -352,10 +362,14 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	start();
 
 	std::unique_lock<std::mutex> lk(mutex_);
-	if (useDataThread_) { startDataThread();
-}
-	if (useMonitoringThread_) { startMonitoringThread();
-}
+	if (useDataThread_)
+	{
+		startDataThread();
+	}
+	if (useMonitoringThread_)
+	{
+		startMonitoringThread();
+	}
 	if (mode_ != RequestMode::Ignored)
 	{
 		requestReceiver_->SetRunNumber(static_cast<uint32_t>(run));
@@ -505,8 +519,10 @@ bool artdaq::CommandableFragmentGenerator::metaCommand(std::string const& /*unus
 
 void artdaq::CommandableFragmentGenerator::startDataThread()
 {
-	if (dataThread_.joinable()) { dataThread_.join();
-}
+	if (dataThread_.joinable())
+	{
+		dataThread_.join();
+	}
 	TLOG(TLVL_INFO) << "Starting Data Receiver Thread";
 	try
 	{
@@ -522,8 +538,10 @@ void artdaq::CommandableFragmentGenerator::startDataThread()
 
 void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 {
-	if (monitoringThread_.joinable()) { monitoringThread_.join();
-}
+	if (monitoringThread_.joinable())
+	{
+		monitoringThread_.join();
+	}
 	TLOG(TLVL_INFO) << "Starting Hardware Monitoring Thread";
 	try
 	{
@@ -611,12 +629,14 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			{
 				TLOG(TLVL_ERROR) << "DataBufferError: "
 				                 << "Error in CommandableFragmentGenerator: Recevied Fragment with fragment_id " << frag_id << ", but this ID was not declared in fragment_ids!";
-				throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Recevied Fragment with fragment_id " << frag_id << ", but this ID was not declared in fragment_ids!"; // NOLINT(cert-err60-cpp)
+				throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Recevied Fragment with fragment_id " << frag_id << ", but this ID was not declared in fragment_ids!";  // NOLINT(cert-err60-cpp)
 			}
 
 			TLOG(TLVL_GETDATALOOP_DATABUFFWAIT) << "Waiting for data buffer ready";
-			if (!waitForDataBufferReady(frag_id)) { return;
-}
+			if (!waitForDataBufferReady(frag_id))
+			{
+				return;
+			}
 			TLOG(TLVL_GETDATALOOP_DATABUFFWAIT) << "Done waiting for data buffer ready";
 
 			TLOG(TLVL_GETDATALOOP) << "getDataLoop: processing data";
@@ -666,8 +686,10 @@ void artdaq::CommandableFragmentGenerator::getDataLoop()
 			TLOG(TLVL_INFO) << "Data flow has stopped. Ending data collection thread";
 			std::unique_lock<std::mutex> lock(dataBuffersMutex_);
 			data_thread_running_ = false;
-			if (requestReceiver_) { requestReceiver_->ClearRequests();
-}
+			if (requestReceiver_)
+			{
+				requestReceiver_->ClearRequests();
+			}
 			newData.clear();
 			TLOG(TLVL_INFO) << "getDataLoop: Ending thread";
 			return;
@@ -681,7 +703,7 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady(Fragment::frag
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
 		                 << "Error in CommandableFragmentGenerator: Cannot wait for data buffer for ID " << id << " because it does not exist!";
-		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot wait for data buffer for ID " << id << " because it does not exist!";
+		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot wait for data buffer for ID " << id << " because it does not exist!"; // NOLINT(cert-err60-cpp)
 	}
 	auto startwait = std::chrono::steady_clock::now();
 	auto first = true;
@@ -756,7 +778,7 @@ bool artdaq::CommandableFragmentGenerator::dataBufferIsTooLarge(Fragment::fragme
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
 		                 << "Error in CommandableFragmentGenerator: Cannot check size of data buffer for ID " << id << " because it does not exist!";
-		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot check size of data buffer for ID " << id << " because it does not exist!";
+		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot check size of data buffer for ID " << id << " because it does not exist!";  // NOLINT(cert-err60-cpp)
 	}
 	return (maxDataBufferDepthFragments_ > 0 && dataBuffers_[id].DataBufferDepthFragments > maxDataBufferDepthFragments_) || (maxDataBufferDepthBytes_ > 0 && dataBuffers_[id].DataBufferDepthBytes > maxDataBufferDepthBytes_);
 }
@@ -767,7 +789,7 @@ void artdaq::CommandableFragmentGenerator::getDataBufferStats(Fragment::fragment
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
 		                 << "Error in CommandableFragmentGenerator: Cannot get stats of data buffer for ID " << id << " because it does not exist!";
-		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot get stats of data buffer for ID " << id << " because it does not exist!";
+		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot get stats of data buffer for ID " << id << " because it does not exist!";  // NOLINT(cert-err60-cpp)
 	}
 	/// dataBufferMutex must be owned by the calling thread!
 	dataBuffers_[id].DataBufferDepthFragments = dataBuffers_[id].DataBuffer.size();
@@ -794,7 +816,7 @@ void artdaq::CommandableFragmentGenerator::checkDataBuffer(Fragment::fragment_id
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
 		                 << "Error in CommandableFragmentGenerator: Cannot check data buffer for ID " << id << " because it does not exist!";
-		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot check data buffer for ID " << id << " because it does not exist!";
+		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot check data buffer for ID " << id << " because it does not exist!";  // NOLINT(cert-err60-cpp)
 	}
 
 	if (dataBuffers_[id].DataBufferDepthFragments > 0 && mode_ != RequestMode::Single && mode_ != RequestMode::Ignored)
@@ -885,8 +907,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSingleMode(artdaq::Fragm
 	sendEmptyFragments(frags, requests);
 
 	// If no requests remain after sendEmptyFragments, return
-	if (requests.empty() || (requests.count(ev_counter()) == 0u)) { return;
-}
+	if (requests.empty() || (requests.count(ev_counter()) == 0u))
+	{
+		return;
+	}
 
 	for (auto& id : dataBuffers_)
 	{
@@ -928,8 +952,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsBufferMode(artdaq::Fragm
 	sendEmptyFragments(frags, requests);
 
 	// If no requests remain after sendEmptyFragments, return
-	if (requests.empty() || (requests.count(ev_counter()) == 0u)) { return;
-}
+	if (requests.empty() || (requests.count(ev_counter()) == 0u))
+	{
+		return;
+	}
 
 	for (auto& id : dataBuffers_)
 	{
@@ -1039,8 +1065,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode_CheckAndFillD
 		}
 
 		dataBuffers_[id].WindowsSent[seq] = std::chrono::steady_clock::now();
-		if (seq > dataBuffers_[id].HighestRequestSeen) { dataBuffers_[id].HighestRequestSeen = seq;
-}
+		if (seq > dataBuffers_[id].HighestRequestSeen)
+		{
+			dataBuffers_[id].HighestRequestSeen = seq;
+		}
 	}
 }
 
@@ -1061,8 +1089,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsWindowMode(artdaq::Fragm
 			requestReceiver_->RemoveRequest(req->first);
 			req = requests.erase(req);
 		}
-		if (requests.empty()) { break;
-}
+		if (requests.empty())
+		{
+			break;
+		}
 
 		for (auto& id : dataBuffers_)
 		{
@@ -1124,8 +1154,10 @@ void artdaq::CommandableFragmentGenerator::applyRequestsSequenceIDMode(artdaq::F
 					}
 				}
 			}
-			if (req->first > id.second.HighestRequestSeen) { id.second.HighestRequestSeen = req->first;
-}
+			if (req->first > id.second.HighestRequestSeen)
+			{
+				id.second.HighestRequestSeen = req->first;
+			}
 		}
 		checkSentWindows(req->first);
 		++req;
@@ -1158,16 +1190,20 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 	{
 		while (dataBufferFragmentCount_() == 0)
 		{
-			if (check_stop() || exception() || !isHardwareOK_) { return false;
-}
+			if (check_stop() || exception() || !isHardwareOK_)
+			{
+				return false;
+			}
 			std::unique_lock<std::mutex> lock(dataBuffersMutex_);
 			dataCondition_.wait_for(lock, std::chrono::milliseconds(10), [this]() { return dataBufferFragmentCount_() > 0; });
 		}
 	}
 	else
 	{
-		if ((check_stop() && requestReceiver_->size() == 0) || exception()) { return false;
-}
+		if ((check_stop() && requestReceiver_->size() == 0) || exception())
+		{
+			return false;
+		}
 
 		std::unique_lock<std::mutex> lock(dataBuffersMutex_);
 		dataCondition_.wait_for(lock, std::chrono::milliseconds(10));
@@ -1179,8 +1215,10 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 
 		while (requestReceiver_->size() == 0 && counter < 100)
 		{
-			if (check_stop() || exception()) { return false;
-}
+			if (check_stop() || exception())
+			{
+				return false;
+			}
 
 			checkDataBuffers();
 
@@ -1227,9 +1265,10 @@ bool artdaq::CommandableFragmentGenerator::applyRequests(artdaq::FragmentPtrs& f
 		getDataBuffersStats();
 	}
 
-	if (!frags.empty()) {
+	if (!frags.empty())
+	{
 		TLOG(TLVL_APPLYREQUESTS) << "Finished Processing requests, returning " << frags.size() << " fragments, current ev_counter is " << ev_counter();
-}
+	}
 	return true;
 }
 
@@ -1298,8 +1337,10 @@ void artdaq::CommandableFragmentGenerator::checkSentWindows(artdaq::Fragment::se
 		TLOG(TLVL_CHECKWINDOWS) << "checkSentWindows: Sent Window history indicates that requests between " << ev_counter() << " and " << seq << " have timed out.";
 		while (ev_counter() <= seq)
 		{
-			if (ev_counter() < seq) { TLOG(TLVL_WARNING) << "Missed request for sequence ID " << ev_counter() << "! Will not send any data for this sequence ID!";
-}
+			if (ev_counter() < seq)
+			{
+				TLOG(TLVL_WARNING) << "Missed request for sequence ID " << ev_counter() << "! Will not send any data for this sequence ID!";
+			}
 			requestReceiver_->RemoveRequest(ev_counter());
 
 			for (auto& id : dataBuffers_)

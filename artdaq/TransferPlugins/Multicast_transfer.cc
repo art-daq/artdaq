@@ -108,6 +108,11 @@ public:
 	void flush_buffers() override {}
 
 private:
+	MulticastTransfer(MulticastTransfer const&) = delete;
+	MulticastTransfer(MulticastTransfer&&) = delete;
+	MulticastTransfer& operator=(MulticastTransfer const&) = delete;
+	MulticastTransfer& operator=(MulticastTransfer&&) = delete;
+
 	void fill_staging_memory(const artdaq::Fragment& frag);
 
 	template<typename T>
@@ -251,7 +256,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 	if (fragment.dataSizeBytes() > 0)
 	{
-		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::receiveFragmentFrom: "
+		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::receiveFragmentFrom: "  // NOLINT(cert-err60-cpp)
 		                                          << "nonzero payload found in fragment passed as argument";
 	}
 
@@ -285,8 +290,8 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 			auto buf_size = boost::asio::buffer_size(buf);
 			auto size_t_ptr = boost::asio::buffer_cast<const size_t*>(buf);
 			auto seqID = *size_t_ptr;
-			auto fragID = *(size_t_ptr + 1);
-			auto subfragID = *(size_t_ptr + 2);
+			auto fragID = *(size_t_ptr + 1);     // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			auto subfragID = *(size_t_ptr + 2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 			if (seqID != current_sequenceID || fragID != current_fragmentID)
 			{
@@ -318,11 +323,11 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 				current_fragmentID = fragID;
 			}
 
-			auto ptr_into_fragment = fragment.headerBeginBytes() + subfragID * subfragment_size_;
+			auto ptr_into_fragment = fragment.headerBeginBytes() + subfragID * subfragment_size_;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 			auto ptr_into_buffer = boost::asio::buffer_cast<const byte_t*>(buf) + sizeof(subfragment_identifier);
 
-			std::copy(ptr_into_buffer, ptr_into_buffer + buf_size - sizeof(subfragment_identifier), ptr_into_fragment);
+			std::copy(ptr_into_buffer, ptr_into_buffer + buf_size - sizeof(subfragment_identifier), ptr_into_fragment);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 			if (subfragID == 0)
 			{
@@ -335,7 +340,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 				}
 				else
 				{
-					throw cet::exception("MulticastTransfer") << "Buffer size is too small to completely contain an artdaq::Fragment header; "
+					throw cet::exception("MulticastTransfer") << "Buffer size is too small to completely contain an artdaq::Fragment header; "  // NOLINT(cert-err60-cpp)
 					                                          << "please increase the default size";
 				}
 			}
@@ -385,7 +390,7 @@ int artdaq::MulticastTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 	auto ret = receiveFragment(fragment_buffer_, receiveTimeout);
 	if (ret == source_rank())
 	{
-		header = *reinterpret_cast<detail::RawFragmentHeader*>(fragment_buffer_.headerAddress());
+		header = *reinterpret_cast<detail::RawFragmentHeader*>(fragment_buffer_.headerAddress());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		return source_rank();
 	}
 	return ret;
@@ -396,7 +401,7 @@ int artdaq::MulticastTransfer::receiveFragmentData(RawDataType* destination, siz
 	if (fragment_buffer_.size() > detail::RawFragmentHeader::num_words())
 	{
 		auto dataSize = (fragment_buffer_.size() - detail::RawFragmentHeader::num_words()) * sizeof(RawDataType);
-		memcpy(destination, fragment_buffer_.headerAddress() + detail::RawFragmentHeader::num_words(), dataSize);
+		memcpy(destination, fragment_buffer_.headerAddress() + detail::RawFragmentHeader::num_words(), dataSize);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 		return source_rank();
 	}
 	return RECV_TIMEOUT;
@@ -417,7 +422,7 @@ artdaq::MulticastTransfer::transfer_fragment_min_blocking_mode(artdaq::Fragment 
 
 	if (fragment.sizeBytes() > max_fragment_size_words_)
 	{
-		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::copyFragmentTo: " << fragment.sizeBytes() << " byte fragment exceeds max_fragment_size of " << max_fragment_size_words_;
+		throw cet::exception("MulticastTransfer") << "Error in MulticastTransfer::copyFragmentTo: " << fragment.sizeBytes() << " byte fragment exceeds max_fragment_size of " << max_fragment_size_words_;  // NOLINT(cert-err60-cpp)
 	}
 
 	static size_t ncalls = 1;
@@ -462,17 +467,17 @@ void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& frag
 
 		subfragment_identifier sfi(fragment.sequenceID(), fragment.fragmentID(), i_s);
 
-		std::copy(reinterpret_cast<byte_t*>(&sfi),
-		          reinterpret_cast<byte_t*>(&sfi) + sizeof(subfragment_identifier),
+		std::copy(reinterpret_cast<byte_t*>(&sfi),                                   // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		          reinterpret_cast<byte_t*>(&sfi) + sizeof(subfragment_identifier),  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 		          staging_memory_copyto);
 
-		auto low_ptr_into_fragment = fragment.headerBeginBytes() + subfragment_size_ * i_s;
+		auto low_ptr_into_fragment = fragment.headerBeginBytes() + subfragment_size_ * i_s;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
-		auto high_ptr_into_fragment = (i_s == num_subfragments - 1) ? fragment.dataEndBytes() : fragment.headerBeginBytes() + subfragment_size_ * (i_s + 1);
+		auto high_ptr_into_fragment = (i_s == num_subfragments - 1) ? fragment.dataEndBytes() : fragment.headerBeginBytes() + subfragment_size_ * (i_s + 1);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 		std::copy(low_ptr_into_fragment,
 		          high_ptr_into_fragment,
-		          staging_memory_copyto + sizeof(subfragment_identifier));
+		          staging_memory_copyto + sizeof(subfragment_identifier));  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	}
 }
 
@@ -512,12 +517,12 @@ void artdaq::MulticastTransfer::get_fragment_quantities(const boost::asio::mutab
 {
 	auto* buffer_ptr = boost::asio::buffer_cast<byte_t*>(buf);
 
-	auto subfragment_num = *(reinterpret_cast<size_t*>(buffer_ptr) + 2);
+	auto subfragment_num = *(reinterpret_cast<size_t*>(buffer_ptr) + 2);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	assert(subfragment_num == 0);
 
 	auto* header =
-	    reinterpret_cast<artdaq::detail::RawFragmentHeader*>(buffer_ptr + sizeof(subfragment_identifier));
+	    reinterpret_cast<artdaq::detail::RawFragmentHeader*>(buffer_ptr + sizeof(subfragment_identifier));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	fragment_size = header->word_count * sizeof(artdaq::RawDataType);
 
@@ -535,8 +540,10 @@ void artdaq::MulticastTransfer::get_fragment_quantities(const boost::asio::mutab
 
 void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 {
-	if (recv_buff_size == 0) { return;
-}
+	if (recv_buff_size == 0)
+	{
+		return;
+	}
 	boost::asio::socket_base::receive_buffer_size actual_recv_buff_size;
 	socket_->get_option(actual_recv_buff_size);
 

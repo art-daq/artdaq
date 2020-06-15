@@ -59,6 +59,11 @@ public:
 	~BinaryNetOutput() override;
 
 private:
+	BinaryNetOutput(BinaryNetOutput const&) = delete;
+	BinaryNetOutput(BinaryNetOutput&&) = delete;
+	BinaryNetOutput& operator=(BinaryNetOutput const&) = delete;
+	BinaryNetOutput& operator=(BinaryNetOutput&&) = delete;
+
 	void beginJob() override;
 
 	void endJob() override;
@@ -171,8 +176,10 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
 
-		if (!raw_event_handle.isValid()) { continue;
-}
+		if (!raw_event_handle.isValid())
+		{
+			continue;
+		}
 
 		for (auto const& fragment : *raw_event_handle)
 		{
@@ -190,4 +197,4 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 	sender_ptr_->RemoveRoutingTableEntry(sequence_id);
 }
 
-DEFINE_ART_MODULE(art::BinaryNetOutput)
+DEFINE_ART_MODULE(art::BinaryNetOutput)// NOLINT(performance-unnecessary-value-param)

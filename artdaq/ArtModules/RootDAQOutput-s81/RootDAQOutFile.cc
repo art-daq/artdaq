@@ -81,11 +81,12 @@ void create_table(sqlite3* const db,
                   vector<string> const& columns,
                   string const& suffix = {})
 {
-	if (columns.empty()) {
-		throw art::Exception(art::errors::LogicError)
+	if (columns.empty())
+	{
+		throw art::Exception(art::errors::LogicError)  // NOLINT(cert-err60-cpp)
 		    << "Number of sqlite columns specified for table: " << name << '\n'
 		    << "is zero.\n";
-}
+	}
 	string ddl = "DROP TABLE IF EXISTS " + name +
 	             "; "
 	             "CREATE TABLE " +
@@ -260,10 +261,11 @@ getRangeSet(art::OutputHandle const& oh,
             art::RangeSet const& principalRS,
             bool const producedInThisProcess)
 {
-	if constexpr (!art::detail::range_sets_supported(BT)) {
+	if constexpr (!art::detail::range_sets_supported(BT))
 	{
-		
-}return art::RangeSet::invalid();
+		{
+		}
+		return art::RangeSet::invalid();
 	}
 
 	auto rs = oh.isValid() ? oh.rangeOfValidity() : art::RangeSet::invalid();
@@ -290,10 +292,11 @@ void setProductRangeSetID(art::RangeSet const& rs,
                           art::EDProduct* product,
                           map<unsigned, unsigned>& checksumToIndexLookup)
 {
-	if constexpr (!art::detail::range_sets_supported(BT)) {
+	if constexpr (!art::detail::range_sets_supported(BT))
 	{
-		
-}return;
+		{
+		}
+		return;
 	}
 
 	if (!rs.is_valid())
@@ -336,7 +339,7 @@ namespace art {
 
 RootDAQOutFile::OutputItem::~OutputItem() = default;
 
-RootDAQOutFile::OutputItem::OutputItem(BranchDescription  bd)
+RootDAQOutFile::OutputItem::OutputItem(BranchDescription bd)
     : branchDescription_{std::move(bd)}, product_{nullptr}
 {}
 
@@ -426,7 +429,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	    filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
 	if (eventHistoryTree_ == nullptr)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create the tree for History objects\n";
 	}
 	pEventAux_ = nullptr;
@@ -439,11 +442,11 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	pResultsProductProvenanceVector_ = &resultsProductProvenanceVector_;
 	pHistory_ = new History;
 	if (eventHistoryTree_->Branch(rootNames::eventHistoryBranchName().c_str(),
-	                               &pHistory_,
-	                               basketSize,
-	                               0) == nullptr)
+	                              &pHistory_,
+	                              basketSize,
+	                              0) == nullptr)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create a branch for History in the output file\n";
 	}
 	delete pHistory_;
@@ -508,9 +511,11 @@ art::RootDAQOutFile::~RootDAQOutFile()
 {
 	struct sysinfo info;
 	int sts = sysinfo(&info);
-	auto free_percent = (unsigned)(info.freeram * 100 / info.totalram);
-	auto free_MB = (unsigned)(info.freeram * info.mem_unit >> 20);  // round down (1024.9 => 1024 MB)
-	TRACE(3, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u", free_percent, (float)info.freeram * info.mem_unit / (1024 * 1024), free_MB, (float)info.bufferram * info.mem_unit / (1024 * 1024 * 1024), info.mem_unit);
+	auto free_percent = static_cast<unsigned>(info.freeram * 100 / info.totalram);
+	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);  // round down (1024.9 => 1024 MB)
+	TRACE(3, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u", // NOLINT
+		free_percent, static_cast<float>(info.freeram * info.mem_unit / (1024 * 1024.0)),
+		free_MB, static_cast<float>(info.bufferram * info.mem_unit / (1024 * 1024 * 1024.0)), info.mem_unit);
 	if (free_percent < freePercent_ || free_MB < freeMB_)
 	{
 		TLOG(3) << "RootDAQOutFile Flush/DONTNEED";
@@ -565,7 +570,7 @@ void RootDAQOutFile::selectProducts()
 {
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	auto selectProductsToWrite = [this](BranchType const bt) {
-		auto& items = selectedOutputItemList_[bt];
+		auto& items = selectedOutputItemList_[bt]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		for (auto const& pr : om_->keptProducts()[bt])
 		{
 			auto const& pd = pr.second;
@@ -680,7 +685,7 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 	int sz = eventHistoryTree_->Fill();
 	if (sz <= 0)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to fill the History tree for event: " << e.eventID()
 		    << "\nTTree::Fill() returned " << sz << " bytes written." << endl;
 	}
@@ -731,7 +736,7 @@ void RootDAQOutFile::writeParentageRegistry()
 	if (parentageTree_->Branch(
 	        rootNames::parentageIDBranchName().c_str(), &hash, basketSize_, 0) == nullptr)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create a branch for ParentageIDs in the output file";
 	}
 	hash = nullptr;
@@ -740,7 +745,7 @@ void RootDAQOutFile::writeParentageRegistry()
 	if (parentageTree_->Branch(
 	        rootNames::parentageBranchName().c_str(), &desc, basketSize_, 0) == nullptr)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create a branch for Parentages in the output file";
 	}
 	desc = nullptr;
@@ -811,7 +816,7 @@ void RootDAQOutFile::writeProcessHistoryRegistry()
 	    metaBranchRootName<ProcessHistoryMap>(), &p, basketSize_, 0);
 	if (b == nullptr)
 	{
-		throw Exception(errors::LogicError)
+		throw Exception(errors::LogicError)  // NOLINT(cert-err60-cpp)
 		    << "Unable to locate required "
 		       "ProcessHistoryMap branch in output "
 		       "metadata tree.\n";
@@ -929,7 +934,7 @@ void RootDAQOutFile::writeProductDescriptionRegistry()
 	// removing any transient or pruned products.
 	ProductRegistry reg;
 	auto productDescriptionsToWrite = [this, &reg](BranchType const bt) {
-		for (auto const& pr : descriptionsToPersist_[bt])
+		for (auto const& pr : descriptionsToPersist_[bt]) // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		{
 			auto const& desc = pr.second;
 			reg.productList_.emplace(BranchKey{desc}, desc);
@@ -1002,10 +1007,11 @@ RootDAQOutFile::getProduct(OutputHandle const& oh,
                            string const& wrappedName)
 {
 	RecursiveMutexSentry sentry{mutex_, __func__};
-	if constexpr (detail::range_sets_supported(BT)) {
+	if constexpr (detail::range_sets_supported(BT))
 	{
-		
-}if (!prunedProductRS.is_valid())
+		{
+		}
+		if (!prunedProductRS.is_valid())
 		{
 			return dummyProductCache_.product(wrappedName);
 		}
@@ -1137,7 +1143,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 				auto prov_bid = prov->productID();
 				if (keptprv.erase(*prov) != 1ull)
 				{
-					throw Exception(errors::LogicError, "KeptProvenance::setStatus")
+					throw Exception(errors::LogicError, "KeptProvenance::setStatus")  // NOLINT(cert-err60-cpp)
 					    << "Attempt to set product status for product whose provenance "
 					       "is not being recorded.\n";
 				}
@@ -1148,7 +1154,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 			}
 			auto const* product = getProduct<BT>(oh, rs, bd.wrappedName());
 			setProductRangeSetID<BT>(
-			    rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex);
+			    rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex); // NOLINT(cppcoreguidelines-pro-type-const-cast)
 			val.product_ = product;
 		}
 	}
@@ -1157,7 +1163,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 	{
 		if (val.productStatus() == productstatus::uninitialized())
 		{
-			throw Exception(errors::LogicError,
+			throw Exception(errors::LogicError,  // NOLINT(cert-err60-cpp)
 			                "RootDAQOutFile::fillBranches(principal, vpp):")
 			    << "Attempt to write a product with uninitialized provenance!\n";
 		}

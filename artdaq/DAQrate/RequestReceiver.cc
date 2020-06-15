@@ -227,7 +227,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
 		struct sockaddr_in from;
 		socklen_t len = sizeof(from);
-		auto sts = recvfrom(request_socket_, &buffer[0], MAX_REQUEST_MESSAGE_SIZE, 0, reinterpret_cast<struct sockaddr*>(&from), &len); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		auto sts = recvfrom(request_socket_, &buffer[0], MAX_REQUEST_MESSAGE_SIZE, 0, reinterpret_cast<struct sockaddr*>(&from), &len);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		if (sts < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error receiving request message header err=" << strerror(errno);
@@ -236,7 +236,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			continue;
 		}
 
-		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header << std::dec << ", packet_count: " << hdr_buffer->packet_count << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port << ", run number: " << hdr_buffer->run_number;
 		if (!hdr_buffer->isValid())
 		{

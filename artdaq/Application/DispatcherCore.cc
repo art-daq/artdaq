@@ -104,7 +104,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		TLOG(TLVL_DEBUG) << "Unique label is " << label;
 		if (registered_monitors_.count(label) != 0u)
 		{
-			throw cet::exception("DispatcherCore") << "Unique label already exists!";
+			throw cet::exception("DispatcherCore") << "Unique label already exists!";  // NOLINT(cert-err60-cpp)
 		}
 
 		registered_monitors_[label] = pset;
@@ -182,7 +182,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 		registered_monitors_.erase(label);
 		if (event_store_ptr_ != nullptr)
 		{
-			if (broadcast_mode_ )
+			if (broadcast_mode_)
 			{
 				if (registered_monitor_pids_.count(label) != 0u)
 				{
@@ -244,11 +244,9 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 						// Path is already configured
 						continue;
 					}
-					
-					
-						auto newname = label + name;
-						generated_physics_filter_paths[newname] = path;
-					
+
+					auto newname = label + name;
+					generated_physics_filter_paths[newname] = path;
 				}
 				else
 				{
@@ -270,7 +268,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 		auto output_pset = outputs.get<fhicl::ParameterSet>(output_name);
 		generated_outputs.put(label + output_name, output_pset);
 		bool outputInPath = false;
-		for (auto & ii : path)
+		for (auto& ii : path)
 		{
 			if (ii == output_name)
 			{
@@ -301,7 +299,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 					// Module already exists with name, rename
 					auto newkey = label + key;
 					generated_physics_analyzers.put<fhicl::ParameterSet>(newkey, analyzers.get<fhicl::ParameterSet>(key));
-					for (auto & ii : path)
+					for (auto& ii : path)
 					{
 						if (ii == key)
 						{
@@ -330,7 +328,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 					// Module already exists with name, rename
 					auto newkey = label + key;
 					generated_physics_producers.put<fhicl::ParameterSet>(newkey, producers.get<fhicl::ParameterSet>(key));
-					for (auto & ii : path)
+					for (auto& ii : path)
 					{
 						if (ii == key)
 						{
@@ -359,7 +357,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 					// Module already exists with name, rename
 					auto newkey = label + key;
 					generated_physics_filters.put<fhicl::ParameterSet>(newkey, filters.get<fhicl::ParameterSet>(key));
-					for (auto & ii : path)
+					for (auto& ii : path)
 					{
 						if (ii == key)
 						{

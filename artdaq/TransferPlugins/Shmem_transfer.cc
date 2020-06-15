@@ -1,9 +1,9 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_ShmemTransfer").c_str()
 
+#include <csignal>
 #include "artdaq/TransferPlugins/ShmemTransfer.hh"
 #include "cetlib_except/exception.h"
-#include <csignal>
 
 artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
     : TransferInterface(pset, role)
@@ -133,7 +133,8 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG(8) << GetTraceName() << "Recvd fragment header from shmem, type=" << (int)header.type << ", sequenceID=" << header.sequence_id << ", source_rank=" << source_rank();
+			TLOG(8) << GetTraceName() << "Recvd fragment header from shmem, type=" << static_cast<int>(header.type)
+			        << ", sequenceID=" << header.sequence_id << ", source_rank=" << source_rank();
 		}
 
 		return source_rank();
@@ -194,33 +195,32 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	// invalid events (and large, invalid events)
 	if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
 	{
-		TLOG(5) << GetTraceName() << "Writing fragment with seqID=" << fragment.sequenceID();
+		auto seq = fragment.sequenceID();
+		TLOG(5) << GetTraceName() << "Writing fragment with seqID=" << seq;
 		auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode, send_timeout_usec);
 		if (sts == -3)
 		{
-			TLOG(TLVL_WARNING) << GetTraceName() << "Timeout writing fragment with seqID=" << fragment.sequenceID();
+			TLOG(TLVL_WARNING) << GetTraceName() << "Timeout writing fragment with seqID=" << seq;
 			return CopyStatus::kTimeout;
 		}
 		if (sts != 0)
 		{
-			TLOG(TLVL_WARNING) << GetTraceName() << "Error writing fragment with seqID=" << fragment.sequenceID();
+			TLOG(TLVL_WARNING) << GetTraceName() << "Error writing fragment with seqID=" << seq;
 			return CopyStatus::kErrorNotRequiringException;
 		}
 
-		TLOG(5) << GetTraceName() << "Successfully sent Fragment with seqID=" << fragment.sequenceID();
+		TLOG(5) << GetTraceName() << "Successfully sent Fragment with seqID=" << seq;
 		return CopyStatus::kSuccess;
 	}
-	
-	
-		TLOG(TLVL_WARNING) << GetTraceName() << "Fragment invalid for shared memory! "
-		                   << "fragment address and size = "
-		                   << fragAddr << " " << fragSize << " "
-		                   << "sequence ID, fragment ID, and type = "
-		                   << fragment.sequenceID() << " "
-		                   << fragment.fragmentID() << " "
-		                   << fragment.typeString();
-		return CopyStatus::kErrorNotRequiringException;
-	
+
+	TLOG(TLVL_WARNING) << GetTraceName() << "Fragment invalid for shared memory! "
+	                   << "fragment address and size = "
+	                   << fragAddr << " " << fragSize << " "
+	                   << "sequence ID, fragment ID, and type = "
+	                   << fragment.sequenceID() << " "
+	                   << fragment.fragmentID() << " "
+	                   << fragment.typeString();
+	return CopyStatus::kErrorNotRequiringException;
 
 	TLOG(TLVL_WARNING) << GetTraceName() << "Unreachable code reached!";
 	return CopyStatus::kErrorNotRequiringException;

@@ -9,7 +9,7 @@
 #include "tracemf.h"
 namespace bpo = boost::program_options;
 
-fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
+inline fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 {
 	fhicl::ParameterSet pset;
 
@@ -36,10 +36,10 @@ void PrintConfigurationToConsole(std::string const& name)
 }
 
 template<typename C>
-fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string const& name, std::string const& description)
+inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string const& name, std::string const& description)
 {
 	std::ostringstream descstr;
-	descstr << argv[0] // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	descstr << argv[0]  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	        << " <-c <config>> <other-options> [<source-file>]+";
 	bpo::options_description desc(descstr.str());
 	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration")("help,h", "produce help message");

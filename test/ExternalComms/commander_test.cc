@@ -35,8 +35,10 @@ int main(int argc, char** argv)
 
 	// Start server thread
 	boost::thread commanderThread([&] { commander->run_server(); });
-	while (!commander->GetStatus()) { usleep(10000);
-}
+	while (!commander->GetStatus())
+	{
+		usleep(10000);
+	}
 	sleep(1);
 
 	uint64_t arg = 0;
@@ -199,7 +201,9 @@ int main(int argc, char** argv)
 
 	TLOG(TLVL_INFO) << "DONE";
 
-	if (commanderThread.joinable()) { commanderThread.join();
-}
+	if (commanderThread.joinable())
+	{
+		commanderThread.join();
+	}
 	artdaq::Globals::CleanUpGlobals();
 }

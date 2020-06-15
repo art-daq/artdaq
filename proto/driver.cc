@@ -26,13 +26,13 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
-#include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/ArtModules/detail/ArtConfig.hh"
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include <csignal>
 #include <iostream>
 #include <memory>
 #include <utility>
+#include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/ArtModules/detail/ArtConfig.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
 namespace bpo = boost::program_options;
 

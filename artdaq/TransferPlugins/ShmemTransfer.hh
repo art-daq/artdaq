@@ -87,6 +87,11 @@ public:
 	void flush_buffers() override;
 
 private:
+	ShmemTransfer(ShmemTransfer const&) = delete;
+	ShmemTransfer(ShmemTransfer&&) = delete;
+	ShmemTransfer& operator=(ShmemTransfer const&) = delete;
+	ShmemTransfer& operator=(ShmemTransfer&&) = delete;
+
 	CopyStatus sendFragment(Fragment&& fragment,
 	                        size_t send_timeout_usec, bool reliable = false);
 

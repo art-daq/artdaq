@@ -132,7 +132,6 @@ public:
 	std::string report(std::string const& which) const override;
 
 private:
-
 	std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;
 	boost::thread fragment_processing_thread_;
 };

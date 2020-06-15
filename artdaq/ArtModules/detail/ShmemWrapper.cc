@@ -24,7 +24,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 	auto start = std::chrono::steady_clock::now();
 	while (!init_received_ && artdaq::TimeUtils::GetElapsedTime(start) < init_timeout_s_)
 	{
-		usleep(init_timeout_s_ * 1000000 / 100);  // Check 100 times
+		usleep(static_cast<unsigned>(init_timeout_s_ * 1000000 / 100));  // Check 100 times
 	}
 	if (!init_received_)
 	{
@@ -88,7 +88,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	auto start = std::chrono::steady_clock::now();
 	while (!init_received_ && artdaq::TimeUtils::GetElapsedTime(start) < init_timeout_s_)
 	{
-		usleep(init_timeout_s_ * 1000000 / 100);  // Check 100 times
+		usleep(static_cast<unsigned>(init_timeout_s_ * 1000000 / 100));  // Check 100 times
 	}
 	if (!init_received_)
 	{

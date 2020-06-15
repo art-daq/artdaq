@@ -7,8 +7,7 @@
 #include <iostream>
 #include <memory>
 
-artdaq::DispatcherApp::DispatcherApp()
-= default;
+artdaq::DispatcherApp::DispatcherApp() = default;
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -119,10 +118,8 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		
-		
-			return "Success";
-		
+
+		return "Success";
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application

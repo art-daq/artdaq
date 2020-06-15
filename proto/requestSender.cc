@@ -1,8 +1,8 @@
 #define TRACE_NAME "RequestSender"
 
-#include "fhiclcpp/make_ParameterSet.h"
 #include <boost/program_options.hpp>
 #include <memory>
+#include "fhiclcpp/make_ParameterSet.h"
 namespace bpo = boost::program_options;
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"

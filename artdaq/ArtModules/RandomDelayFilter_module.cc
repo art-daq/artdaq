@@ -130,23 +130,39 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
     , pass_distn_(new std::uniform_int_distribution<int>(0, 100))
 {
 	// Set limits on parameters
-	if (pass_factor_ > 100) { pass_factor_ = 100;
-}
-	if (pass_factor_ < 0) { pass_factor_ = 0;
-}
-	if (load_factor_ < 0.0) { load_factor_ = 0.0;
-}
-	if (load_factor_ > 1.0) { load_factor_ = 1.0;
-}
+	if (pass_factor_ > 100)
+	{
+		pass_factor_ = 100;
+	}
+	if (pass_factor_ < 0)
+	{
+		pass_factor_ = 0;
+	}
+	if (load_factor_ < 0.0)
+	{
+		load_factor_ = 0.0;
+	}
+	if (load_factor_ > 1.0)
+	{
+		load_factor_ = 1.0;
+	}
 
-	if (min_ms_ < 0) { min_ms_ = 0;
-}
-	if (min_ms_ > max_ms_) { max_ms_ = min_ms_;
-}
-	if (mean_ms_ < 0) { mean_ms_ = 0;
-}
-	if (sigma_ms_ < 0) { sigma_ms_ = 0;
-}
+	if (min_ms_ < 0)
+	{
+		min_ms_ = 0;
+	}
+	if (min_ms_ > max_ms_)
+	{
+		max_ms_ = min_ms_;
+	}
+	if (mean_ms_ < 0)
+	{
+		mean_ms_ = 0;
+	}
+	if (sigma_ms_ < 0)
+	{
+		sigma_ms_ = 0;
+	}
 
 	auto type = p.get<std::string>("distribution_type", "Uniform");
 	assert(!type.empty());
@@ -174,8 +190,10 @@ artdaq::RandomDelayFilter::RandomDelayFilter(fhicl::ParameterSet const& p)
 				mean_ms_ = min_ms_;
 			}
 			mean_ms_ -= min_ms_;  // When we sample the distribution, we offset by min_ms_
-			if (mean_ms_ == 0) { mean_ms_ = 1;
-}
+			if (mean_ms_ == 0)
+			{
+				mean_ms_ = 1;
+			}
 			exponential_distn_ = std::make_unique<std::exponential_distribution<double>>(1 / mean_ms_);
 			break;
 		case 'U':
@@ -215,7 +233,7 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 	} while (delay > max_ms_ && delay < min_ms_);
 	TLOG(TLVL_DEBUG) << "Simulating processing of event " << e.event() << " by delaying " << delay << "ms.";
 
-	usleep(1000 * (1 - load_factor_) * delay);
+	usleep(static_cast<unsigned>(1000 * (1 - load_factor_) * delay));
 
 	auto i = 0;
 	auto now = std::chrono::steady_clock::now();
@@ -227,4 +245,4 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 	return (*pass_distn_)(engine_) < pass_factor_;
 }
 
-DEFINE_ART_MODULE(artdaq::RandomDelayFilter)
+DEFINE_ART_MODULE(artdaq::RandomDelayFilter)// NOLINT(performance-unnecessary-value-param)

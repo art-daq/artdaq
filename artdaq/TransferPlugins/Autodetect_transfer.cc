@@ -97,6 +97,12 @@ public:
 	void flush_buffers() override { theTransfer_->flush_buffers(); }
 
 private:
+	AutodetectTransfer(AutodetectTransfer const&) = delete;
+	AutodetectTransfer(AutodetectTransfer&&) = delete;
+	AutodetectTransfer& operator=(AutodetectTransfer const&) = delete;
+	AutodetectTransfer& operator=(AutodetectTransfer&&) = delete;
+
+private:
 	std::unique_ptr<TransferInterface> theTransfer_;
 };
 }  // namespace artdaq

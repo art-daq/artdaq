@@ -438,9 +438,9 @@ std::string artdaq::Commandable::do_trace_get(std::string const& name)
 		unsigned ee = traceControl_p->num_namLvlTblEnts;
 		for (ii = 0; ii < ee; ++ii)
 		{
-			if (traceNamLvls_p[ii].name[0] != 0) // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			if (traceNamLvls_p[ii].name[0] != 0)  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			{
-				ss << traceNamLvls_p[ii].name << " " << std::hex << std::showbase << traceNamLvls_p[ii].M << " " << traceNamLvls_p[ii].S << " " << traceNamLvls_p[ii].T << " " << std::endl;// NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+				ss << traceNamLvls_p[ii].name << " " << std::hex << std::showbase << traceNamLvls_p[ii].M << " " << traceNamLvls_p[ii].S << " " << traceNamLvls_p[ii].T << " " << std::endl;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			}
 		}
 	}
@@ -450,7 +450,7 @@ std::string artdaq::Commandable::do_trace_get(std::string const& name)
 		unsigned ee = traceControl_p->num_namLvlTblEnts;
 		for (ii = 0; ii < ee; ++ii)
 		{
-			if ((traceNamLvls_p[ii].name[0] != 0) && TMATCHCMP(name.c_str(), traceNamLvls_p[ii].name))// NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			if ((traceNamLvls_p[ii].name[0] != 0) && TMATCHCMP(name.c_str(), traceNamLvls_p[ii].name))  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			{
 				break;
 			}
@@ -460,7 +460,7 @@ std::string artdaq::Commandable::do_trace_get(std::string const& name)
 			return "";
 		}
 
-		ss << std::hex << traceNamLvls_p[ii].M << " " << traceNamLvls_p[ii].S << " " << traceNamLvls_p[ii].T;// NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+		ss << std::hex << traceNamLvls_p[ii].M << " " << traceNamLvls_p[ii].S << " " << traceNamLvls_p[ii].T;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	}
 	return ss.str();
 }
@@ -550,7 +550,7 @@ bool artdaq::Commandable::do_clear_config_archive()
 
 std::string artdaq::Commandable::current_state() const
 {
-	std::string fullStateName = (const_cast<Commandable*>(this))->fsm_.getState().getName(); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+	std::string fullStateName = (const_cast<Commandable*>(this))->fsm_.getState().getName();  // NOLINT(cppcoreguidelines-pro-type-const-cast)
 	size_t pos = fullStateName.rfind("::");
 	if (pos != std::string::npos)
 	{

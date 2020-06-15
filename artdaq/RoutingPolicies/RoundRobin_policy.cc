@@ -44,6 +44,11 @@ public:
 	detail::RoutingPacket GetCurrentTable() override;
 
 private:
+	RoundRobinPolicy(RoundRobinPolicy const&) = delete;
+	RoundRobinPolicy(RoundRobinPolicy&&) = delete;
+	RoundRobinPolicy& operator=(RoundRobinPolicy const&) = delete;
+	RoundRobinPolicy& operator=(RoundRobinPolicy&&) = delete;
+
 	int minimum_participants_;
 };
 
@@ -69,10 +74,14 @@ detail::RoutingPacket RoundRobinPolicy::GetCurrentTable()
 	// a negative number that is larger (in absolute value) to the receiver count, and "minimum"
 	// ends up with a large positive value.
 	int minimum = minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount() + minimum_participants_;
-	if (minimum < 1) { minimum = 1;                                                      // Can't go below 1
-}
-	if (minimum > static_cast<int>(GetReceiverCount())) { minimum = GetReceiverCount();  // Can't go above receiver count
-}
+	if (minimum < 1)
+	{
+		minimum = 1;  // Can't go below 1
+	}
+	if (minimum > static_cast<int>(GetReceiverCount()))
+	{
+		minimum = GetReceiverCount();  // Can't go above receiver count
+	}
 
 	bool endCondition = table.size() < static_cast<size_t>(minimum);
 	TLOG(15) << "RoundRobinPolicy::GetCurrentTable initial endCondition is " << endCondition << ", minimum is " << minimum;
@@ -85,11 +94,14 @@ detail::RoutingPacket RoundRobinPolicy::GetCurrentTable()
 			output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, it->first));
 			table[it->first]--;
 
-			if (table[it->first] <= 0) {
+			if (table[it->first] <= 0)
+			{
 				it = table.erase(it);
-			} else {
+			}
+			else
+			{
 				++it;
-}
+			}
 		}
 		endCondition = table.size() < static_cast<size_t>(minimum);
 	}

@@ -149,33 +149,33 @@ public:
 	in_addr GetMulticastOutputAddress(const std::string& interface_name = "", const std::string& interface_address = "");
 
 private:
-	bool base_configured_;
-	bool multicasts_configured_;
+	bool base_configured_{false};
+	bool multicasts_configured_{false};
 
-	bool routing_tokens_configured_;
-	bool routing_acks_configured_;
-	bool xmlrpc_configured_;
-	bool tcpsocket_configured_;
-	bool request_port_configured_;
-	bool request_pattern_configured_;
-	bool routing_table_port_configured_;
-	bool routing_table_pattern_configured_;
-	bool multicast_transfer_port_configued_;
-	bool multicast_transfer_pattern_configured_;
+	bool routing_tokens_configured_{false};
+	bool routing_acks_configured_{false};
+	bool xmlrpc_configured_{false};
+	bool tcpsocket_configured_{false};
+	bool request_port_configured_{false};
+	bool request_pattern_configured_{false};
+	bool routing_table_port_configured_{false};
+	bool routing_table_pattern_configured_{false};
+	bool multicast_transfer_port_configued_{false};
+	bool multicast_transfer_pattern_configured_{false};
 
-	int base_port_;
-	int ports_per_partition_;
+	int base_port_{DEFAULT_BASE};
+	int ports_per_partition_{DEFAULT_PORTS_PER_PARTITION};
 
 	in_addr multicast_interface_address_;
-	int multicast_group_offset_;
+	int multicast_group_offset_{DEFAULT_MULTICAST_GROUP_OFFSET};
 
-	int routing_token_offset_;
-	int routing_ack_offset_;
-	int xmlrpc_offset_;
-	int tcp_socket_offset_;
-	int request_message_port_;
-	int routing_table_port_;
-	int multicast_transfer_offset_;
+	int routing_token_offset_{DEFAULT_ROUTING_TOKEN_OFFSET};
+	int routing_ack_offset_{DEFAULT_ROUTING_TABLE_ACK_OFFSET};
+	int xmlrpc_offset_{DEFAULT_XMLRPC_OFFSET};
+	int tcp_socket_offset_{DEFAULT_TCPSOCKET_OFFSET};
+	int request_message_port_{DEFAULT_REQUEST_PORT};
+	int routing_table_port_{DEFAULT_ROUTING_TABLE_PORT} ;
+	int multicast_transfer_offset_{1024};
 	std::string request_message_group_pattern_;
 	std::string routing_table_group_pattern_;
 	std::string multicast_transfer_group_pattern_;

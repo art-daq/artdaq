@@ -5,9 +5,9 @@
 
 #include <utility>
 
+#include <utility>
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQrate/TokenReceiver.hh"
-#include <utility>
 
 artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingMasterPolicy> policy,
                                      detail::RoutingMasterMode routing_mode, size_t number_of_senders, size_t update_interval_msec)
@@ -22,8 +22,7 @@ artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_
     , reception_is_paused_(false)
     , shutdown_requested_(false)
     , run_number_(0)
-    , 
-     statsHelperPtr_(nullptr)
+    , statsHelperPtr_(nullptr)
 {
 	receive_token_events_ = std::vector<epoll_event>(policy_->GetReceiverCount() + 1);
 }
@@ -35,8 +34,10 @@ artdaq::TokenReceiver::~TokenReceiver()
 
 void artdaq::TokenReceiver::startTokenReception()
 {
-	if (token_thread_.joinable()) { token_thread_.join();
-}
+	if (token_thread_.joinable())
+	{
+		token_thread_.join();
+	}
 	boost::thread::attributes attrs;
 	attrs.set_stack_size(4096 * 2000);  // 8000 KB
 
@@ -103,8 +104,10 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 			token_socket_ = TCP_listen_fd(token_port_, 3 * sizeof(detail::RoutingToken));
 			fcntl(token_socket_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
 
-			if (token_epoll_fd_ != -1) { close(token_epoll_fd_);
-}
+			if (token_epoll_fd_ != -1)
+			{
+				close(token_epoll_fd_);
+			}
 			struct epoll_event ev;
 			token_epoll_fd_ = epoll_create1(0);
 			ev.events = EPOLLIN | EPOLLPRI;
@@ -142,8 +145,8 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket";
 				sockaddr_in addr;
 				socklen_t arglen = sizeof(addr);
-				auto conn_sock = accept(token_socket_, reinterpret_cast<struct sockaddr*>(&addr), &arglen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-				fcntl(conn_sock, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
+				auto conn_sock = accept(token_socket_, reinterpret_cast<struct sockaddr*>(&addr), &arglen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+				fcntl(conn_sock, F_SETFL, O_NONBLOCK);                                                       // set O_NONBLOCK
 
 				if (conn_sock == -1)
 				{
@@ -213,8 +216,10 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 							}
 							else if (routing_mode_ == detail::RoutingMasterMode::RouteBySendCount)
 							{
-								if (received_token_counter_.count(buff.rank) == 0u) { received_token_counter_[buff.rank] = 0;
-}
+								if (received_token_counter_.count(buff.rank) == 0u)
+								{
+									received_token_counter_[buff.rank] = 0;
+								}
 								received_token_counter_[buff.rank] += buff.new_slots_free;
 								TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_ << ".";
 								while (received_token_counter_[buff.rank] >= number_of_senders_)

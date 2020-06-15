@@ -42,7 +42,7 @@ bool artdaq::StatisticsHelper::
 	if (monitorBinSize < 1.0) { monitorBinSize = 1.0; }
 	if (monitorWindow >= 1.0)
 	{
-		for (const auto & idx : monitored_quantity_name_list_)
+		for (const auto& idx : monitored_quantity_name_list_)
 		{
 			artdaq::MonitoredQuantityPtr
 			    mqPtr(new artdaq::MonitoredQuantity(monitorBinSize,
@@ -59,7 +59,7 @@ void artdaq::StatisticsHelper::resetStatistics()
 {
 	previous_reporting_index_ = 0;
 	previous_stats_calc_time_ = 0.0;
-	for (const auto & idx : monitored_quantity_name_list_)
+	for (const auto& idx : monitored_quantity_name_list_)
 	{
 		artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(idx);
 		if (mqPtr.get() != nullptr) { mqPtr->reset(); }

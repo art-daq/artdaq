@@ -21,7 +21,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
     , error_count_max_(psi.get<int>("max_errors_before_abort", 3))
     , fragment_size_(psi.get<size_t>("fragment_size", 0x100000))
     , validate_mode_(psi.get<bool>("validate_data_mode", false))
-    , partition_number_(psi.get<int>("partition_number", rand() % 0x7F)) // NOLINT(cert-msc50-cpp)
+    , partition_number_(psi.get<int>("partition_number", rand() % 0x7F))  // NOLINT(cert-msc50-cpp)
 {
 	TLOG(10) << "CONSTRUCTOR";
 

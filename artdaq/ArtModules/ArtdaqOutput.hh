@@ -95,13 +95,13 @@ class ArtdaqOutput;
 }
 
 static artdaq::FragmentPtr outputFrag = nullptr;
-char* Fragment_ReAllocChar(char* dataPtr, size_t size, size_t /*oldsize*/)
+inline char* Fragment_ReAllocChar(char* dataPtr, size_t size, size_t /*oldsize*/)
 {
-	if (outputFrag != nullptr && dataPtr == reinterpret_cast<char*>(outputFrag->dataBegin()))
+	if (outputFrag != nullptr && dataPtr == reinterpret_cast<char*>(outputFrag->dataBegin()))  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	{
 		outputFrag->resizeBytes(size);
 
-		return reinterpret_cast<char*>(outputFrag->dataBegin());
+		return reinterpret_cast<char*>(outputFrag->dataBegin());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	}
 	return nullptr;
 }
@@ -256,6 +256,11 @@ protected:
 	virtual void SendMessage(artdaq::FragmentPtr& msg) = 0;
 
 private:
+	ArtdaqOutput(ArtdaqOutput const&) = delete;
+	ArtdaqOutput(ArtdaqOutput&&) = delete;
+	ArtdaqOutput& operator=(ArtdaqOutput const&) = delete;
+	ArtdaqOutput& operator=(ArtdaqOutput&&) = delete;
+
 	bool initMsgSent_;
 	ProductList productList_;
 	size_t last_fragment_size_;
@@ -263,8 +268,8 @@ private:
 	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::type_t type)
 	{
 		artdaq::NetMonHeader hdr;
-		outputFrag.reset(new artdaq::Fragment(last_fragment_size_, seqID, 0, type, hdr));
-		std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar));
+		outputFrag=  std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, 0, type, hdr);
+		auto msg = std::make_unique<TBufferFile>(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar);
 		msg->SetWriteMode();
 		return msg;
 	}
@@ -280,7 +285,7 @@ private:
 	}
 };
 
-void art::ArtdaqOutput::send_init_message(History const& history)
+inline void art::ArtdaqOutput::send_init_message(History const& history)
 {
 	TLOG(TLVL_SENDINIT) << "Begin: ArtdaqOutput::send_init_message()";
 	//
@@ -295,7 +300,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	static TClass* product_list_class = TClass::GetClass("std::map<art::BranchKey,art::BranchDescription>");
 	if (product_list_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for "
 		                                                         "map<art::BranchKey,art::BranchDescription>!";
 	}
@@ -306,7 +311,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	static TClass* process_history_map_class = TClass::GetClass("std::map<const art::Hash<2>,art::ProcessHistory>");
 	if (process_history_map_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get class for "
 		                                                         "std::map<const art::Hash<2>,art::ProcessHistory>!";
 	}
@@ -315,15 +320,15 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	static TClass* parentage_map_class = TClass::GetClass("art::ParentageMap");
 	if (parentage_map_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get class for ParentageMap.";
 	}
-	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << (void*)parentage_map_class;
+	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << static_cast<void*>(parentage_map_class);
 
 	static TClass* history_class = TClass::GetClass("art::History");
 	if (history_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::History!";
 	}
 
@@ -350,7 +355,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 		TClass* class_ptr = TClass::GetClass(className.c_str());
 		if (class_ptr == nullptr)
 		{
-			throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message: Could not get TClass for " << className << "!";
+			throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message: Could not get TClass for " << className << "!";  // NOLINT(cert-err60-cpp)
 		}
 		infos.Add(class_ptr->GetStreamerInfo());
 	}
@@ -359,7 +364,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	//
 	//  Stream the ParameterSetRegistry.
 	//
-	unsigned long ps_cnt = fhicl::ParameterSetRegistry::size();
+	ULong_t ps_cnt = fhicl::ParameterSetRegistry::size();
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): parameter set count: " << ps_cnt;
 	msg->WriteULong(ps_cnt);
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming parameter sets ...";
@@ -412,7 +417,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	//
 	//  Stream the ParentageRegistry.
 	//
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming ParentageRegistry ..." << (void*)parentage_map_class;
+	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming ParentageRegistry ..." << static_cast<void*>(parentage_map_class);
 	art::ParentageMap parentageMap{};
 	for (auto const& pr : art::ParentageRegistry::get())
 	{
@@ -434,7 +439,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): END";
 }
 
-void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, const Principal& principal, std::vector<BranchKey*>& bkv)
+inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, const Principal& principal, std::vector<BranchKey*>& bkv)
 {
 	TLOG(TLVL_WRITEDATAPRODUCTS) << "Begin: ArtdaqOutput::writeDataProducts(...)";
 	//
@@ -444,20 +449,20 @@ void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, con
 	static TClass* branch_key_class = TClass::GetClass("art::BranchKey");
 	if (branch_key_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::writeDataProducts(...): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::writeDataProducts(...): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::BranchKey!";
 	}
 	static TClass* prdprov_class = TClass::GetClass("art::ProductProvenance");
 	if (prdprov_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::writeDataProducts(...): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::writeDataProducts(...): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::ProductProvenance!";
 	}
 
 	//
 	//  Calculate the data product count.
 	//
-	unsigned long prd_cnt = 0;
+	ULong_t prd_cnt = 0;
 	// std::map<art::BranchID, std::shared_ptr<art::Group>>::const_iterator
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
@@ -553,7 +558,7 @@ void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, con
 		OutputHandle oh = principal.getForOutput(bd.productID(), true);
 		const EDProduct* prd = oh.wrapper();
 		TLOG(TLVL_WRITEDATAPRODUCTS) << "Class for branch " << bd.wrappedName() << " is "
-		                             << (void*)TClass::GetClass(bd.wrappedName().c_str());
+		                             << static_cast<void*>(TClass::GetClass(bd.wrappedName().c_str()));
 		msg->WriteObjectAny(prd, TClass::GetClass(bd.wrappedName().c_str()));
 		TLOG(TLVL_WRITEDATAPRODUCTS) << "ArtdaqOutput::writeDataProducts(...): "
 		                                "Streaming product provenance of class: '"
@@ -569,7 +574,7 @@ void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& msg, con
 	TLOG(TLVL_WRITEDATAPRODUCTS) << "End:   ArtdaqOutput::writeDataProducts(...)";
 }
 
-void art::ArtdaqOutput::write(EventPrincipal& ep)
+inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 {
 	//
 	//  Write an Event message.
@@ -586,25 +591,25 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 	static TClass* run_aux_class = TClass::GetClass("art::RunAuxiliary");
 	if (run_aux_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::RunAuxiliary!";
 	}
 	static TClass* subrun_aux_class = TClass::GetClass("art::SubRunAuxiliary");
 	if (subrun_aux_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::SubRunAuxiliary!";
 	}
 	static TClass* event_aux_class = TClass::GetClass("art::EventAuxiliary");
 	if (event_aux_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::EventAuxiliary!";
 	}
 	static TClass* history_class = TClass::GetClass("art::History");
 	if (history_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::History!";
 	}
 	//
@@ -669,7 +674,7 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 	TLOG(TLVL_WRITE) << "End: ArtdaqOutput::write(const EventPrincipal& ep)";
 }
 
-void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
+inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 {  //
 	//  Write an EndRun message.
 	//
@@ -729,7 +734,7 @@ void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 #endif
 	TLOG(TLVL_WRITERUN) << "End: ArtdaqOutput::writeRun(RunPrincipal& rp)";
 }
-void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
+inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 {  //
 	//  Write an EndSubRun message.
 	//
@@ -750,7 +755,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	static TClass* subrun_aux_class = TClass::GetClass("art::SubRunAuxiliary");
 	if (subrun_aux_class == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::writeSubRun: "
+		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::writeSubRun: "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::SubRunAuxiliary!";
 	}
 	//
@@ -782,7 +787,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: phr: id: '" << OS.str() << "'";
 			OS.str("");
 			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: phr: data.size():  " << I->second.data().size();
-			if (I->second.data().size())
+			if (!I->second.data().empty())
 			{
 				I->second.data().back().id().print(OS);
 				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: phr: data.back().id(): '" << OS.str() << "'";
@@ -800,7 +805,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 			OS.str("");
 			ProcessHistory processHistory;
 			ProcessHistoryRegistry::get(srp.SUBRUN_AUX().processHistoryID(), processHistory);
-			if (processHistory.data().size())
+			if (!processHistory.data().empty())
 			{
 				// FIXME: Print something special on invalid id() here!
 				processHistory.data().back().id().print(OS);
@@ -834,7 +839,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "End: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 }
 
-void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
+inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
 {
 	TLOG(TLVL_EXTRACTPRODUCTS) << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal) sz=" << principal.size();
 #if ART_HEX_VERSION < 0x30000

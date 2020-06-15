@@ -317,7 +317,7 @@ public:
 	{
 		if (!dataBuffers_.count(id))
 		{
-			throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot get Sent Windows for ID " << id << " because it does not exist!"; // NOLINT(cert-err60-cpp)
+			throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot get Sent Windows for ID " << id << " because it does not exist!";  // NOLINT(cert-err60-cpp)
 		}
 		return dataBuffers_[id].WindowsSent;
 	}
@@ -495,7 +495,7 @@ protected:
 		 */
 	artdaq::Fragment::fragment_id_t fragment_id() const
 	{
-		if (dataBuffers_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << dataBuffers_.size() << " were declared!";// NOLINT(cert-err60-cpp)
+		if (dataBuffers_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << dataBuffers_.size() << " were declared!";  // NOLINT(cert-err60-cpp)
 		return (*dataBuffers_.begin()).first;
 	}
 

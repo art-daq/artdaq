@@ -64,6 +64,11 @@ public:
 	void beginRun(art::Run const& run) override;
 
 private:
+	PrintBuildInfo(PrintBuildInfo const&) = delete;
+	PrintBuildInfo(PrintBuildInfo&&) = delete;
+	PrintBuildInfo& operator=(PrintBuildInfo const&) = delete;
+	PrintBuildInfo& operator=(PrintBuildInfo&&) = delete;
+
 	std::string buildinfo_module_label_;
 	std::string buildinfo_instance_label_;
 };
@@ -113,4 +118,4 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 	}
 }
 
-DEFINE_ART_MODULE(artdaq::PrintBuildInfo)
+DEFINE_ART_MODULE(artdaq::PrintBuildInfo) // NOLINT(performance-unnecessary-value-param)

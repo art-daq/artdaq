@@ -7,8 +7,7 @@
 /**
 * Default constructor.
 */
-artdaq::RoutingMasterApp::RoutingMasterApp()
-= default;
+artdaq::RoutingMasterApp::RoutingMasterApp() = default;
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
@@ -80,8 +79,10 @@ bool artdaq::RoutingMasterApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		return false;
 	}
 
-	if (routing_master_thread_.joinable()) { routing_master_thread_.join();
-}
+	if (routing_master_thread_.joinable())
+	{
+		routing_master_thread_.join();
+	}
 
 	TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
 	                             << "Number of table entries sent = " << routing_master_ptr_->get_update_count()
@@ -99,8 +100,10 @@ bool artdaq::RoutingMasterApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		report_string_ = "Error pausing ";
 		report_string_.append(app_name + ".");
 	}
-	if (routing_master_thread_.joinable()) { routing_master_thread_.join();
-}
+	if (routing_master_thread_.joinable())
+	{
+		routing_master_thread_.join();
+	}
 
 	TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
 	                             << "Number of table entries sent = " << routing_master_ptr_->get_update_count()
@@ -193,10 +196,8 @@ std::string artdaq::RoutingMasterApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		
-		
-			return "Success";
-		
+
+		return "Success";
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application

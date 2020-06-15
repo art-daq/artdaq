@@ -52,6 +52,11 @@ public:
 	void analyze(art::Event const& evt) override;
 
 private:
+	FragmentWatcher(FragmentWatcher const&) = delete;
+	FragmentWatcher(FragmentWatcher&&) = delete;
+	FragmentWatcher& operator=(FragmentWatcher const&) = delete;
+	FragmentWatcher& operator=(FragmentWatcher&&) = delete;
+
 	std::bitset<3> mode_bitset_;
 	int metrics_reporting_level_;
 
@@ -74,7 +79,7 @@ private:
 };
 
 artdaq::FragmentWatcher::FragmentWatcher(fhicl::ParameterSet const& pset)
-    : EDAnalyzer(pset), mode_bitset_(std::bitset<3>(pset.get<int>("mode_bitmask", 0x1))), metrics_reporting_level_(pset.get<int>("metrics_reporting_level", 1)), events_processed_(0), expected_number_of_fragments_(0), events_with_missing_fragments_(0), events_with_empty_fragments_(0), events_with_10pct_missing_fragments_(0), events_with_10pct_empty_fragments_(0), events_with_50pct_missing_fragments_(0), events_with_50pct_empty_fragments_(0) 
+    : EDAnalyzer(pset), mode_bitset_(std::bitset<3>(pset.get<int>("mode_bitmask", 0x1))), metrics_reporting_level_(pset.get<int>("metrics_reporting_level", 1)), events_processed_(0), expected_number_of_fragments_(0), events_with_missing_fragments_(0), events_with_empty_fragments_(0), events_with_10pct_missing_fragments_(0), events_with_10pct_empty_fragments_(0), events_with_50pct_missing_fragments_(0), events_with_50pct_empty_fragments_(0)
 {
 	fhicl::ParameterSet metric_pset;
 	try
@@ -297,4 +302,4 @@ event_builder_snapshot : {
 #endif
 }
 
-DEFINE_ART_MODULE(artdaq::FragmentWatcher)
+DEFINE_ART_MODULE(artdaq::FragmentWatcher)// NOLINT(performance-unnecessary-value-param)

@@ -74,6 +74,12 @@ public:
    * ended.
    */
 	void flush_buffers() override {}
+
+private:
+	NullTransfer(NullTransfer const&) = delete;
+	NullTransfer(NullTransfer&&) = delete;
+	NullTransfer& operator=(NullTransfer const&) = delete;
+	NullTransfer& operator=(NullTransfer&&) = delete;
 };
 }  // namespace artdaq
 

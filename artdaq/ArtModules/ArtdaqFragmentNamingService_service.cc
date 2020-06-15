@@ -11,8 +11,7 @@ ArtdaqFragmentNamingService::ArtdaqFragmentNamingService(fhicl::ParameterSet con
 	TLOG(TLVL_DEBUG) << "ArtdaqFragmentNamingService CONSTRUCTOR END";
 }
 
-ArtdaqFragmentNamingService::~ArtdaqFragmentNamingService()
-= default;
+ArtdaqFragmentNamingService::~ArtdaqFragmentNamingService() = default;
 
 std::string ArtdaqFragmentNamingService::GetInstanceNameForType(artdaq::Fragment::type_t type_id)
 {

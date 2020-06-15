@@ -63,8 +63,10 @@ int main(int argc, char* argv[])
 		fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
 	}
 
-	if (!pset.has_key("shared_memory_key")) { std::cerr << "You must specify a shared_memory_key in FHiCL or provide one on the command line!" << std::endl;
-}
+	if (!pset.has_key("shared_memory_key"))
+	{
+		std::cerr << "You must specify a shared_memory_key in FHiCL or provide one on the command line!" << std::endl;
+	}
 
 	if (pset.get<bool>("ReadEventInfo", false))
 	{

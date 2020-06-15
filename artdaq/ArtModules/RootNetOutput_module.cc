@@ -53,6 +53,11 @@ protected:
 	void SendMessage(artdaq::FragmentPtr& fragment) override;
 
 private:
+	RootNetOutput(RootNetOutput const&) = delete;
+	RootNetOutput(RootNetOutput&&) = delete;
+	RootNetOutput& operator=(RootNetOutput const&) = delete;
+	RootNetOutput& operator=(RootNetOutput&&) = delete;
+
 	void connect();
 	void disconnect();
 
@@ -119,9 +124,10 @@ void art::RootNetOutput::connect()
 	auto start_time = std::chrono::steady_clock::now();
 
 	char const* artapp_env = getenv("ARTDAQ_RANK");
-	if (artapp_env != nullptr && my_rank < 0) {
-		my_rank = std::atoi(artapp_env);
-}
+	if (artapp_env != nullptr && my_rank < 0)
+	{
+		my_rank = strtol(artapp_env, nullptr, 10);
+	}
 
 	while (my_rank == -1 && artdaq::TimeUtils::GetElapsedTime(start_time) < init_timeout_s_)
 	{
@@ -132,8 +138,10 @@ void art::RootNetOutput::connect()
 
 void art::RootNetOutput::disconnect()
 {
-	if (sender_ptr_) { sender_ptr_.reset(nullptr);
-}
+	if (sender_ptr_)
+	{
+		sender_ptr_.reset(nullptr);
+	}
 }
 
-DEFINE_ART_MODULE(art::RootNetOutput)
+DEFINE_ART_MODULE(art::RootNetOutput)// NOLINT(performance-unnecessary-value-param)

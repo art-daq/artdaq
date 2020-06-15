@@ -16,7 +16,7 @@ artdaq::DataReceiverCore::DataReceiverCore()
     : stop_requested_(false)
     , pause_requested_(false)
     , run_is_paused_(false)
-     
+
 {
 	TLOG(TLVL_DEBUG) << "Constructor";
 }
@@ -259,16 +259,15 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 		{
 			return std::to_string(event_store_ptr_->GetIncompleteEventCount());
 		}
-		
-		
-			return "-1";
-		
+
+		return "-1";
 	}
 	if (which == "event_count")
 	{
-		if (receiver_ptr_ != nullptr) {
+		if (receiver_ptr_ != nullptr)
+		{
 			return std::to_string(receiver_ptr_->GetReceivedFragmentCount()->count());
-}
+		}
 
 		return "0";
 	}
@@ -279,8 +278,10 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	// - report on the number of incomplete events in the EventStore
 	//   (if running)
 	std::string tmpString;
-	if (event_store_ptr_ != nullptr) { tmpString.append(app_name + " run number = " + std::to_string(event_store_ptr_->runID()) + ".\n");
-}
+	if (event_store_ptr_ != nullptr)
+	{
+		tmpString.append(app_name + " run number = " + std::to_string(event_store_ptr_->runID()) + ".\n");
+	}
 	tmpString.append("Command \"" + which + "\" is not currently supported.");
 	return tmpString;
 }

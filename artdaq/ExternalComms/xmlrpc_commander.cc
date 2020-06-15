@@ -46,6 +46,11 @@ public:
 	env_wrap() { xmlrpc_env_init(&this->env_c); };
 	~env_wrap() { xmlrpc_env_clean(&this->env_c); };
 	xmlrpc_env env_c;  ///< XMLRPC Environment
+private:
+	env_wrap(env_wrap const&) = delete;
+	env_wrap(env_wrap&&) = delete;
+	env_wrap& operator=(env_wrap const&) = delete;
+	env_wrap& operator=(env_wrap&&) = delete;
 };
 }  // namespace
 static xmlrpc_c::paramList
@@ -1047,8 +1052,7 @@ xmlrpc_commander::xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Comman
 	TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
 }
 
-void xmlrpc_commander::run_server()
-try
+void xmlrpc_commander::run_server() try
 {
 	//std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 	xmlrpc_c::registry registry;

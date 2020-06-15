@@ -202,8 +202,8 @@ private:
 	std::vector<epoll_event> receive_ack_events_;
 
 	//Socket parameters
-	int table_socket_;
-	int ack_socket_;
+	int table_socket_{-1};
+	int ack_socket_{-1};
 	mutable std::mutex request_mutex_;
 };
 

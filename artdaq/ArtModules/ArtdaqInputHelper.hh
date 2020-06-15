@@ -156,7 +156,10 @@ public:
 	              art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
 
 private:
-	void readAndConstructPrincipal(std::unique_ptr<TBufferFile>&, unsigned long, art::RunPrincipal* const,
+	ArtdaqInputHelper(ArtdaqInputHelper&&) = delete;
+	ArtdaqInputHelper& operator=(ArtdaqInputHelper&&) = delete;
+
+	void readAndConstructPrincipal(std::unique_ptr<TBufferFile>&, ULong_t, art::RunPrincipal* const,
 	                               art::SubRunPrincipal* const, art::RunPrincipal*&, art::SubRunPrincipal*&,
 	                               art::EventPrincipal*&);
 
@@ -233,14 +236,15 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 	artdaq::FragmentPtrs initFrags = communicationWrapper_.receiveInitMessage();
 	TLOG_ARB(5, "ArtdaqInputHelper") << "Init message received";
 
-	if (initFrags.size() > 0 && initFrags.front().get()->type() == artdaq::Fragment::EndOfDataFragmentType) {
+	if (!initFrags.empty() && initFrags.front().get()->type() == artdaq::Fragment::EndOfDataFragmentType)
+	{
 		TLOG_ERROR("ArtdaqInputHelper") << "Received EndOfData as first broadcast! This process neveer received any data!";
 		shutdownMsgReceived_ = true;
 		outputFileCloseNeeded_ = true;
 	}
-	else {
-
-		if (initFrags.size() == 0 || initFrags.back().get()->dataSize() == 0)
+	else
+	{
+		if (initFrags.empty() || initFrags.back().get()->dataSize() == 0)
 		{
 			TLOG_DEBUG("ArtdaqInputHelper") << "No init message received or zero-size init message: Fragments-only mode activated! This is an EventBuilder!";
 			fragmentsOnlyMode_ = true;
@@ -251,7 +255,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			for (auto& initFrag : initFrags)
 			{
 				auto header = initFrag->metadata<artdaq::NetMonHeader>();
-				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, 0));
+				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, nullptr));
 			}
 
 			std::list<History*> processHistories;
@@ -259,11 +263,11 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			for (auto& msg : msgs)
 			{
 				// This first unsigned long is the message type code, ignored here in the constructor
-				unsigned long dummy = 0;
+				ULong_t dummy = 0;
 				msg->ReadULong(dummy);
 
 				// ELF: 6/11/2019: This code is taken from TSocket::RecvStreamerInfos
-				TList* list = (TList*)msg->ReadObject(TList::Class());
+				auto list = dynamic_cast<TList*>(msg->ReadObject(TList::Class()));
 
 				TIter next(list);
 				TStreamerInfo* info;
@@ -271,7 +275,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				// First call BuildCheck for regular class
 				while (lnk)
 				{
-					info = (TStreamerInfo*)lnk->GetObject();
+					info = dynamic_cast<TStreamerInfo*>(lnk->GetObject());
 					TObject* element = info->GetElements()->UncheckedAt(0);
 					Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
 					if (!isstl)
@@ -285,7 +289,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				lnk = list->FirstLink();
 				while (lnk)
 				{
-					info = (TStreamerInfo*)lnk->GetObject();
+					info = dynamic_cast<TStreamerInfo*>(lnk->GetObject());
 					TObject* element = info->GetElements()->UncheckedAt(0);
 					Bool_t isstl = element && strcmp("This", element->GetName()) == 0;
 					if (isstl)
@@ -300,11 +304,11 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				//
 				//  Read the ParameterSetRegistry.
 				//
-				unsigned long ps_cnt = 0;
+				ULong_t ps_cnt = 0;
 				msg->ReadULong(ps_cnt);
 				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: parameter set count: " << ps_cnt;
 				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: reading parameter sets ...";
-				for (unsigned long I = 0; I < ps_cnt; ++I)
+				for (ULong_t I = 0; I < ps_cnt; ++I)
 				{
 					std::string pset_str = "";  // = ReadObjectAny<std::string>(msg, "std::string", "ArtdaqInputHelper::ArtdaqInputHelper");
 					msg->ReadStdString(pset_str);
@@ -323,7 +327,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				//  Read the MasterProductRegistry.
 				//
 				auto thisProductList = ReadObjectAny<art::ProductList>(
-					msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputHelper::ArtdaqInputHelper");
+				    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputHelper::ArtdaqInputHelper");
 				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Input Product list sz=" << thisProductList->size();
 
 				bool productListInitialized = productList_ != nullptr;
@@ -332,9 +336,9 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				{
 #ifndef __OPTIMIZE__
 					TLOG_ARB(50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
-						<< I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
-						<< I->first.processName_ << "', branch description name: " << I->second.wrappedName()
-						<< ", TClass = " << (void*)TClass::GetClass(I->second.wrappedName().c_str());
+					                                  << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+					                                  << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
+					                                  << ", TClass = " << static_cast<void*>(TClass::GetClass(I->second.wrappedName().c_str()));
 #endif
 					if (productListInitialized)
 					{
@@ -343,8 +347,8 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				}
 
 				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading ProcessHistory";
-				art::ProcessHistoryMap* phm = ReadObjectAny<art::ProcessHistoryMap>(
-					msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputHelper::ArtdaqInputHelper");
+				auto phm = ReadObjectAny<art::ProcessHistoryMap>(
+				    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputHelper::ArtdaqInputHelper");
 				printProcessMap(*phm, "ArtdaqInputHelper's ProcessHistoryMap");
 
 				ProcessHistoryRegistry::put(*phm);
@@ -354,7 +358,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				//  Read the ParentageRegistry.
 				//
 				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading ParentageMap";
-				ParentageMap* parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputHelper::ArtdaqInputHelper");
+				auto parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputHelper::ArtdaqInputHelper");
 				ParentageRegistry::put(*parentageMap);
 
 				//
@@ -368,7 +372,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			art::ProcessHistory fake_process_history;
 			for (auto& hist : processHistories)
 			{
-				auto id = hist->processHistoryID();
+				auto const& id = hist->processHistoryID();
 				ProcessHistory thisProcessHistory;
 				if (ProcessHistoryRegistry::get(id, thisProcessHistory))
 				{
@@ -390,7 +394,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			}
 
 			TLOG_ARB(5, "ArtdaqInputHelper")
-				<< "ArtdaqInputHelper: Product list sz=" << productList_->size();
+			    << "ArtdaqInputHelper: Product list sz=" << productList_->size();
 
 			// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
@@ -420,9 +424,9 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 		//  Finished with init message.
 		//
 		TLOG_ARB(5, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::ArtdaqInputHelper("
-			<< "const fhicl::ParameterSet& ps, "
-			<< "art::ProductRegistryHelper& helper, "
-			<< "const art::SourceHelper& pm)";
+		                                 << "const fhicl::ParameterSet& ps, "
+		                                 << "art::ProductRegistryHelper& helper, "
+		                                 << "const art::SourceHelper& pm)";
 	}
 }
 
@@ -464,7 +468,7 @@ bool art::ArtdaqInputHelper<U>::hasMoreData() const
 }
 
 template<typename U>
-void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg, unsigned long msg_type_code,
+void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBufferFile>& msg, ULong_t msg_type_code,
                                                           art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR,
                                                           art::RunPrincipal*& outR, art::SubRunPrincipal*& outSR,
                                                           art::EventPrincipal*& outE)
@@ -479,9 +483,9 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	HISTORY_PTR_T history_from_event;
 
 	// Establish default 'results'
-	outR = 0;
-	outSR = 0;
-	outE = 0;
+	outR = nullptr;
+	outSR = nullptr;
+	outE = nullptr;
 
 	if (msg_type_code == 2)
 	{  // EndRun message.
@@ -536,7 +540,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		//    events from the EBs to the AG, and b) because presumably that would
 		//    be too late, also.
 
-		art::Timestamp currentTime = time(0);
+		art::Timestamp currentTime = time(nullptr);
 		if (inR != nullptr)
 		{
 #if ART_HEX_VERSION < 0x30000
@@ -587,15 +591,15 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		// Every event should have a valid history
 		if (!history_from_event->processHistoryID().isValid())
 		{
-			throw art::Exception(art::errors::Unknown)
+			throw art::Exception(art::errors::Unknown) // NOLINT(cert-err60-cpp)
 			    << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
 		}
 
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                  << "inR: " << (void*)inR << " run/expected "
+		                                  << "inR: " << static_cast<void*>(inR) << " run/expected "
 		                                  << (inR ? std::to_string(inR->run()) : "invalid") << "/" << event_aux->run();
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
-		                                  << "inSR: " << (void*)inSR << " run/expected "
+		                                  << "inSR: " << static_cast<void*>(inSR) << " run/expected "
 		                                  << (inSR ? std::to_string(inSR->run()) : "invalid") << "/" << event_aux->run()
 		                                  << ", subrun/expected " << (inSR ? std::to_string(inSR->subRun()) : "invalid") << "/"
 		                                  << event_aux->subRun();
@@ -604,16 +608,16 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			// New run, either we have no input RunPrincipal, or the
 			// input run number does not match the event run number.
 			TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: making RunPrincipal ...";
-			outR = pm_.makeRunPrincipal(*run_aux.get());
+			outR = pm_.makeRunPrincipal(*run_aux);
 		}
 		art::SubRunID subrun_check(event_aux->run(), event_aux->subRun());
-		if (inSR == 0 || subrun_check != inSR->SUBRUN_ID())
+		if (inSR == nullptr || subrun_check != inSR->SUBRUN_ID())
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the event subRun number.
 			TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 			                                  << "making SubRunPrincipal ...";
-			outSR = pm_.makeSubRunPrincipal(*subrun_aux.get());
+			outSR = pm_.makeSubRunPrincipal(*subrun_aux);
 		}
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: making EventPrincipal ...";
 		auto historyPtr = HISTORY_PTR_T(new History(*(history_to_use_.get())));
@@ -621,7 +625,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		{
 			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
 		}
-		outE = pm_.makeEventPrincipal(*event_aux.get(), std::move(historyPtr));
+		outE = pm_.makeEventPrincipal(*event_aux, std::move(historyPtr));
 
 		TLOG_ARB(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                                  << "finished processing Event message.";
@@ -676,7 +680,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 	}
 
 	// make new run if inR is 0 or if the run has changed
-	if (inR == 0 || inR->run() != evtHeader->run_id)
+	if (inR == nullptr || inR->run() != evtHeader->run_id)
 	{
 		TLOG_ARB(15, "ArtdaqInputHelper") << "Making run principal with run_id " << evtHeader->run_id;
 		outR = pm_.makeRunPrincipal(evtHeader->run_id, currentTime);
@@ -695,7 +699,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 	{
 		TLOG_ARB(15, "ArtdaqInputHelper") << "EndOfSubrunFragment received, creating new Subrun Principal";
 		// Check if inR == 0 or is a new run
-		if (inR == 0 || inR->run() != evtHeader->run_id)
+		if (inR == nullptr || inR->run() != evtHeader->run_id)
 		{
 			TLOG_ARB(15, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 			outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
@@ -708,7 +712,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 			// subrun, then it must have been associated with a data event.  In that case, we need
 			// to generate a flush event with a valid run but flush subrun and event number in order
 			// to end the subrun.
-			if (inSR != 0 && !inSR->SUBRUN_ID().isFlush() && inSR->subRun() == evtHeader->subrun_id)
+			if (inSR != nullptr && !inSR->SUBRUN_ID().isFlush() && inSR->subRun() == evtHeader->subrun_id)
 			{
 				TLOG_ARB(15, "ArtdaqInputHelper") << "Flushing old run id " << inR->RUN_ID();
 				art::EventID const evid(art::EventID::flushEvent(inR->RUN_ID()));
@@ -727,7 +731,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 				// Possible error condition
 				//} else {
 			}
-			outR = 0;
+			outR = nullptr;
 		}
 		// outputFileCloseNeeded = true;
 		return true;
@@ -735,7 +739,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 
 	// make new subrun if inSR is 0 or if the subrun has changed
 	art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
-	if (inSR == 0 || subrun_check != inSR->SUBRUN_ID())
+	if (inSR == nullptr || subrun_check != inSR->SUBRUN_ID())
 	{
 		TLOG_ARB(15, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 		outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
@@ -751,7 +755,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 {
 	for (auto& msg : msgs)
 	{
-		unsigned long prd_cnt = 0;
+		ULong_t prd_cnt = 0;
 		{
 			TLOG_ARB(12, "ArtdaqInputHelper") << "readDataProducts: reading data product count ...";
 			msg->ReadULong(prd_cnt);
@@ -760,7 +764,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 		//
 		//  Read the data products.
 		//
-		for (unsigned long I = 0; I < prd_cnt; ++I)
+		for (ULong_t I = 0; I < prd_cnt; ++I)
 		{
 			std::unique_ptr<BranchKey> bk;
 			{
@@ -779,7 +783,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 				iter = productList_->find(*bk);
 				if (iter == productList_->end())
 				{
-					throw art::Exception(art::errors::ProductNotFound)
+					throw art::Exception(art::errors::ProductNotFound) // NOLINT(cert-err60-cpp)
 					    << "No product is registered for\n"
 					    << "  process name:                '" << bk->processName_ << "'\n"
 					    << "  module label:                '" << bk->moduleLabel_ << "'\n"
@@ -793,7 +797,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 			std::unique_ptr<EDProduct> prd;
 			{
 				TLOG_ARB(12, "ArtdaqInputHelper") << "readDataProducts: Reading product with wrapped name: " << bd.wrappedName()
-				                                  << ", TClass = " << (void*)TClass::GetClass(bd.wrappedName().c_str());
+				                                  << ", TClass = " << static_cast<void*>(TClass::GetClass(bd.wrappedName().c_str()));
 
 				// JCF, May-25-2016
 				// Currently unclear why the templatized version of ReadObjectAny doesn't work here...
@@ -801,7 +805,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 				//	    prd.reset(ReadObjectAny<EDProduct>(msg, bd.wrappedName()));
 
 				void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
-				auto pp = reinterpret_cast<EDProduct*>(p);
+				auto pp = reinterpret_cast<EDProduct*>(p); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
 				TLOG_ARB(12, "ArtdaqInputHelper") << "readDataProducts: After ReadObjectAny(prd): p=" << p << ", EDProduct::isPresent: " << pp->isPresent();
 				prd.reset(pp);
@@ -877,10 +881,10 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 		auto type_code = fragmentTypePair.first;
 		if (type_code == artdaq::Fragment::DataFragmentType || type_code == artdaq::Fragment::EndOfDataFragmentType || type_code == artdaq::Fragment::InitFragmentType || type_code == artdaq::Fragment::EndOfRunFragmentType || type_code == artdaq::Fragment::EndOfSubrunFragmentType || type_code == artdaq::Fragment::ShutdownFragmentType)
 		{
-			TLOG_TRACE("ArtdaqInputHelper") << "Skipping system Fragment with type " << (int)type_code << " ( " << translator->GetInstanceNameForType(type_code) << " )";
+			TLOG_TRACE("ArtdaqInputHelper") << "Skipping system Fragment with type " << static_cast<int>(type_code) << " ( " << translator->GetInstanceNameForType(type_code) << " )";
 			continue;
 		}
-		TLOG_TRACE("ArtdaqInputHelper") << "type is " << (int)type_code << ", number of fragments is " << fragmentTypePair.second->size();
+		TLOG_TRACE("ArtdaqInputHelper") << "type is " << static_cast<int>(type_code) << ", number of fragments is " << fragmentTypePair.second->size();
 
 		std::unordered_map<std::string, std::unique_ptr<artdaq::Fragments>> derived_fragments;
 		for (auto& frag : *fragmentTypePair.second)
@@ -900,7 +904,7 @@ void art::ArtdaqInputHelper<U>::readFragments(std::unordered_map<artdaq::Fragmen
 			if (!instance_name_result.first)
 			{
 				TLOG_WARNING("ArtdaqInputHelper")
-				    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << ((int)type_code)
+				    << "UnknownFragmentType: The product instance name mapping for fragment type \"" << static_cast<int>(type_code)
 				    << "\" is not known. Fragments of this "
 				    << "type will be stored in the event with an instance name of \"" << label << "\".";
 			}
@@ -949,7 +953,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap = communicationWrapper_.receiveMessages();
 	auto got_event_time = std::chrono::steady_clock::now();
 
-	if (eventMap.size() == 0)
+	if (eventMap.empty())
 	{
 		TLOG_ARB(TLVL_ERROR, "ArtdaqInputHelper") << "No Fragments received! Aborting...";
 		shutdownMsgReceived_ = true;
@@ -973,7 +977,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		}
 
 		auto firstFragmentType = eventMap.begin()->first;
-		TLOG_DEBUG("ArtdaqInputHelper") << "First Fragment type is " << (int)firstFragmentType;
+		TLOG_DEBUG("ArtdaqInputHelper") << "First Fragment type is " << static_cast<int>(firstFragmentType);
 		if (constructPrincipal(firstFragmentType, inR, inSR, outR, outSR, outE))
 		{
 			readFragments(eventMap, outE);
@@ -990,14 +994,14 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		for (auto& dataFrag : *(eventMap[artdaq::Fragment::DataFragmentType]))
 		{
 			auto header = dataFrag.metadata<artdaq::NetMonHeader>();
-			msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, 0));
+			msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, dataFrag.dataBegin(), kFALSE, nullptr));
 		}
 
 		//
 		//  Read message type code.
 		//
-		unsigned long msg_type_code = 0;
-		unsigned long msg_type_code_tmp = 0;
+		ULong_t msg_type_code = 0;
+		ULong_t msg_type_code_tmp = 0;
 		for (auto& msg : msgs)
 		{
 			TLOG_ARB(15, "ArtdaqInputHelper") << "ArtdaqInputHelper::readNext: "
@@ -1056,13 +1060,13 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			// complain that you a new subrun with a subrun number identical
 			// to that of the previous subrun.  So the solution is to not
 			// return new principals.
-			if (inR != 0 && inSR != 0 && outR != 0 && outSR != 0)
+			if (inR != nullptr && inSR != nullptr && outR != nullptr && outSR != nullptr)
 			{
 				if (inR->RUN_ID().isFlush() && inSR->SUBRUN_ID().isFlush() && outR->RUN_ID().isFlush() &&
 				    outSR->SUBRUN_ID().isFlush())
 				{
-					outR = 0;
-					outSR = 0;
+					outR = nullptr;
+					outSR = nullptr;
 					outputFileCloseNeeded_ = true;
 					return true;
 				}
@@ -1092,7 +1096,7 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 	auto read_finish_time = std::chrono::steady_clock::now();
 	TLOG_ARB(10, "ArtdaqInputHelper") << "readNext: bytesRead=" << bytesRead
-	                                  << " metricMan=" << (void*)metricMan.get();
+	                                  << " metricMan=" << static_cast<void*>(metricMan.get());
 	if (metricMan)
 	{
 		metricMan->sendMetric("Avg Processing Time", artdaq::TimeUtils::GetElapsedTime(last_read_time, read_start_time),

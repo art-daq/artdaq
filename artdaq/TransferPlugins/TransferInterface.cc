@@ -21,7 +21,7 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 	auto ret = static_cast<int>(RECV_TIMEOUT);
 
 	TLOG(TLVL_TRACE) << GetTraceName() << "Receiving Fragment Header from rank " << source_rank();
-	ret = receiveFragmentHeader(*reinterpret_cast<detail::RawFragmentHeader*>(frag.headerAddress()), receive_timeout);
+	ret = receiveFragmentHeader(*reinterpret_cast<detail::RawFragmentHeader*>(frag.headerAddress()), receive_timeout);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
 	TLOG(TLVL_TRACE) << GetTraceName() << "Done receiving Header, ret is " << ret << ", should be " << source_rank();
 	if (ret < RECV_SUCCESS)
@@ -32,7 +32,7 @@ int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t re
 	frag.autoResize();
 
 	TLOG(TLVL_TRACE) << GetTraceName() << "Receiving Fragment Body from rank " << source_rank();
-	auto bodyret = receiveFragmentData(frag.headerAddress() + detail::RawFragmentHeader::num_words(), frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType));
+	auto bodyret = receiveFragmentData(frag.headerAddress() + detail::RawFragmentHeader::num_words(), frag.sizeBytes() - detail::RawFragmentHeader::num_words() * sizeof(RawDataType));  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	TLOG(TLVL_TRACE) << GetTraceName() << "Done receiving Body, ret is " << bodyret << ", should be " << source_rank();
 
 	if (bodyret != ret)

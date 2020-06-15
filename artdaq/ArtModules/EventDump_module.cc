@@ -59,6 +59,11 @@ public:
 	void analyze(art::Event const& e) override;
 
 private:
+	EventDump(EventDump const&) = delete;
+	EventDump(EventDump&&) = delete;
+	EventDump& operator=(EventDump const&) = delete;
+	EventDump& operator=(EventDump&&) = delete;
+
 	std::string raw_data_label_;
 	int verbosity_;
 };
@@ -132,4 +137,4 @@ void artdaq::EventDump::analyze(art::Event const& e)
 	}
 }
 
-DEFINE_ART_MODULE(artdaq::EventDump)
+DEFINE_ART_MODULE(artdaq::EventDump)// NOLINT(performance-unnecessary-value-param)

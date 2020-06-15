@@ -11,7 +11,6 @@
 
 #include <iomanip>
 
-
 bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG) << "initialize method called with DAQ "

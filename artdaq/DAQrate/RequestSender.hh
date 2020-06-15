@@ -10,10 +10,10 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <cstdint>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
+#include <cstdint>
 #include <future>
 #include <map>
 #include <memory>
@@ -79,7 +79,7 @@ public:
 		 */
 	RequestSender& operator=(RequestSender const&) = delete;
 
-	RequestSender(RequestSender&&) = delete; ///< Move Constructor is deleted
+	RequestSender(RequestSender&&) = delete;             ///< Move Constructor is deleted
 	RequestSender& operator=(RequestSender&&) = delete;  ///< Move-assignment operator is deleted
 
 	/**

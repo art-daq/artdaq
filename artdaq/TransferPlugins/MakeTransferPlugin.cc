@@ -38,7 +38,7 @@ MakeTransferPlugin(const fhicl::ParameterSet& pset,
 		                   TransferInterface::Role>(
 		        transfer_pset.get<std::string>("transferPluginType"),
 		        transfer_pset,
-		        std::move(role));
+		        std::move(role));  // NOLINT(performance-move-const-arg)
 
 		return transfer;
 	}

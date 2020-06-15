@@ -1,10 +1,10 @@
 #define TRACE_NAME "TransferOutput"
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 
+#include <csignal>
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include <csignal>
 
 namespace art {
 class TransferOutput;
@@ -40,6 +40,11 @@ protected:
 	void SendMessage(artdaq::FragmentPtr& fragment) override;
 
 private:
+	TransferOutput(TransferOutput const&) = delete;
+	TransferOutput(TransferOutput&&) = delete;
+	TransferOutput& operator=(TransferOutput const&) = delete;
+	TransferOutput& operator=(TransferOutput&&) = delete;
+
 	size_t send_timeout_us_;
 	size_t send_retry_count_;
 	std::unique_ptr<artdaq::TransferInterface> transfer_;
@@ -58,8 +63,10 @@ art::TransferOutput::~TransferOutput()
 	TLOG(TLVL_DEBUG) << "Begin: TransferOutput::~TransferOutput()";
 
 	auto sts = transfer_->transfer_fragment_min_blocking_mode(*artdaq::Fragment::eodFrag(0), 10000);
-	if (sts != artdaq::TransferInterface::CopyStatus::kSuccess) { TLOG(TLVL_ERROR) << "Error sending EOD Fragment!";
-}
+	if (sts != artdaq::TransferInterface::CopyStatus::kSuccess)
+	{
+		TLOG(TLVL_ERROR) << "Error sending EOD Fragment!";
+	}
 	transfer_.reset(nullptr);
 	TLOG(TLVL_DEBUG) << "End: TransferOutput::~TransferOutput()";
 }
@@ -91,4 +98,4 @@ void art::TransferOutput::SendMessage(artdaq::FragmentPtr& fragment)
 #endif
 }
 
-DEFINE_ART_MODULE(art::TransferOutput)
+DEFINE_ART_MODULE(art::TransferOutput)// NOLINT(performance-unnecessary-value-param)

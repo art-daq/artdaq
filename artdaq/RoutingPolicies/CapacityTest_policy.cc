@@ -39,6 +39,11 @@ public:
 	detail::RoutingPacket GetCurrentTable() override;
 
 private:
+	CapacityTestPolicy(CapacityTestPolicy const&) = delete;
+	CapacityTestPolicy(CapacityTestPolicy&&) = delete;
+	CapacityTestPolicy& operator=(CapacityTestPolicy const&) = delete;
+	CapacityTestPolicy& operator=(CapacityTestPolicy&&) = delete;
+
 	int tokenUsagePercent_;
 };
 
@@ -77,8 +82,10 @@ detail::RoutingPacket CapacityTestPolicy::GetCurrentTable()
 				break;
 			}
 		}
-		if (breakCondition) { break;
-}
+		if (breakCondition)
+		{
+			break;
+		}
 	}
 
 	for (auto r : table)

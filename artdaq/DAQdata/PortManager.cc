@@ -5,29 +5,7 @@
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::PortManager::PortManager()
-    : base_configured_(false)
-    , multicasts_configured_(false)
-    , routing_tokens_configured_(false)
-    , routing_acks_configured_(false)
-    , xmlrpc_configured_(false)
-    , tcpsocket_configured_(false)
-    , request_port_configured_(false)
-    , request_pattern_configured_(false)
-    , routing_table_port_configured_(false)
-    , routing_table_pattern_configured_(false)
-    , multicast_transfer_port_configued_(false)
-    , multicast_transfer_pattern_configured_(false)
-    , base_port_(DEFAULT_BASE)
-    , ports_per_partition_(DEFAULT_PORTS_PER_PARTITION)
-    , multicast_interface_address_()
-    , multicast_group_offset_(DEFAULT_MULTICAST_GROUP_OFFSET)
-    , routing_token_offset_(DEFAULT_ROUTING_TOKEN_OFFSET)
-    , routing_ack_offset_(DEFAULT_ROUTING_TABLE_ACK_OFFSET)
-    , xmlrpc_offset_(DEFAULT_XMLRPC_OFFSET)
-    , tcp_socket_offset_(DEFAULT_TCPSOCKET_OFFSET)
-    , request_message_port_(DEFAULT_REQUEST_PORT)
-    , routing_table_port_(DEFAULT_ROUTING_TABLE_PORT)
-    , multicast_transfer_offset_(1024)
+    : multicast_interface_address_()
     , request_message_group_pattern_("227.128.PPP.SSS")
     , routing_table_group_pattern_("227.129.PPP.SSS")
     , multicast_transfer_group_pattern_("227.130.14.PPP")
@@ -372,8 +350,10 @@ in_addr artdaq::PortManager::GetMulticastOutputAddress(const std::string& interf
 {
 	if (!multicasts_configured_)
 	{
-		if (interface_name.empty() && interface_address.empty()) { TLOG(TLVL_INFO) << "Using default multicast output address (autodetected private interface)";
-}
+		if (interface_name.empty() && interface_address.empty())
+		{
+			TLOG(TLVL_INFO) << "Using default multicast output address (autodetected private interface)";
+		}
 		if (!interface_name.empty())
 		{
 			GetIPOfInterface(interface_name, multicast_interface_address_);

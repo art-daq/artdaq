@@ -1,6 +1,14 @@
 #define TRACE_NAME "RoutingReceiver"
 #include "artdaq/DAQdata/Globals.hh"
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <chrono>
+#include <csignal>
+#include <thread>
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
@@ -10,14 +18,6 @@
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
 #include "proto/artdaqapp.hh"
-#include <arpa/inet.h>
-#include <chrono>
-#include <csignal>
-#include <netinet/in.h>
-#include <poll.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <thread>
 
 namespace artdaq {
 /**
@@ -60,8 +60,10 @@ public:
 
 		host_map_ = MakeHostMap(pset);
 
-		if (use_routing_master_) { startTableReceiverThread_();
-}
+		if (use_routing_master_)
+		{
+			startTableReceiverThread_();
+		}
 	}
 
 	/**
@@ -71,8 +73,10 @@ public:
 	{
 		TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver BEGIN";
 		should_stop_ = true;
-		if (routing_thread_.joinable()) { routing_thread_.join();
-}
+		if (routing_thread_.joinable())
+		{
+			routing_thread_.join();
+		}
 		TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver END.";
 	}
 
@@ -157,8 +161,10 @@ private:
 	}
 	void startTableReceiverThread_()
 	{
-		if (routing_thread_.joinable()) { routing_thread_.join();
-}
+		if (routing_thread_.joinable())
+		{
+			routing_thread_.join();
+		}
 		TLOG(TLVL_INFO) << "Starting Routing Thread";
 		try
 		{
@@ -266,8 +272,10 @@ private:
 									}
 									continue;
 								}
-								if (entry.sequence_id < routing_table_last_) { continue;
-}
+								if (entry.sequence_id < routing_table_last_)
+								{
+									continue;
+								}
 								routing_table_[entry.sequence_id] = entry.destination_rank;
 								TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
 								                 << " -> Rank " << entry.destination_rank;
@@ -275,8 +283,10 @@ private:
 						}
 
 						TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
-						if (!routing_table_.empty()) { TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
-}
+						if (!routing_table_.empty())
+						{
+							TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+						}
 
 						auto counter = 0;
 						for (auto& entry : routing_table_)
@@ -286,8 +296,10 @@ private:
 						}
 					}
 
-					if (last > routing_table_last_) { routing_table_last_ = last;
-}
+					if (last > routing_table_last_)
+					{
+						routing_table_last_ = last;
+					}
 				}
 			}
 		}
@@ -377,8 +389,10 @@ int main(int argc, char* argv[])
 
 	metricMan->initialize(metric_ps, "RoutingReceiver");
 	metricMan->do_start();
-	if (print_verbose && verbose_clear_screen) { std::cout << "\033[2J";
-}
+	if (print_verbose && verbose_clear_screen)
+	{
+		std::cout << "\033[2J";
+	}
 
 	std::map<int, int> receiver_table = std::map<int, int>();
 
@@ -417,8 +431,10 @@ int main(int argc, char* argv[])
 			std::ostringstream report;
 			std::ostringstream verbose_report;
 
-			if (print_verbose && verbose_clear_screen) { std::cout << "\033[;H\033[J";
-}
+			if (print_verbose && verbose_clear_screen)
+			{
+				std::cout << "\033[;H\033[J";
+			}
 
 			report << artdaq::TimeUtils::gettimeofday_us() << ": " << this_table.size() << " Entries, ";
 			for (auto& receiver : receiver_table)
@@ -462,8 +478,10 @@ int main(int argc, char* argv[])
 			}
 			TLOG(TLVL_INFO) << report.str();
 			std::cout << report.str() << std::endl;
-			if (print_verbose) { std::cout << verbose_report.str() << std::endl;
-}
+			if (print_verbose)
+			{
+				std::cout << verbose_report.str() << std::endl;
+			}
 		}
 		std::this_thread::sleep_until(start_time + std::chrono::milliseconds(collection_time_ms));
 	}

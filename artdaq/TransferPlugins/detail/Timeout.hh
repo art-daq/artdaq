@@ -7,7 +7,7 @@
 	$RCSfile: Timeout.h,v $
 	rev="$Revision: 1.9 $$Date: 2016/10/12 07:11:55 $";
 	*/
-#include <ctime>      // struct timespec
+#include <ctime>       // struct timespec
 #include <functional>  // std::function
 #include <list>
 #include <map>

@@ -14,21 +14,29 @@ std::string formatTime(double time)
 {
 	std::ostringstream o;
 	o << std::fixed << std::setprecision(3);
-	if (time > 60) {
+	if (time > 60)
+	{
 		o << static_cast<int>(time / 60) << " m " << time - 60 * static_cast<int>(time / 60) << " s";
-	} else if (time > 1) {
+	}
+	else if (time > 1)
+	{
 		o << time << " s";
-	} else
+	}
+	else
 	{
 		time *= 1000;
-		if (time > 1) {
+		if (time > 1)
+		{
 			o << time << " ms";
-		} else
+		}
+		else
 		{
 			time *= 1000;
-			if (time > 1) {
+			if (time > 1)
+			{
 				o << time << " us";
-			} else
+			}
+			else
 			{
 				time *= 1000;
 				o << time << " ns";

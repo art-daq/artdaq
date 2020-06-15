@@ -9,13 +9,13 @@
 #define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 
 #include <arpa/inet.h>  /* inet_aton */
-#include <cerrno>      // errno
-#include <cstdio>      // printf
-#include <cstdlib>     // exit
 #include <netdb.h>      /* gethostbyname */
 #include <netinet/in.h> /* inet_aton, struct sockaddr_in */
 #include <strings.h>    // bzero
 #include <sys/socket.h> /* inet_aton, socket, bind, listen, accept */
+#include <cerrno>       // errno
+#include <cstdio>       // printf
+#include <cstdlib>      // exit
 
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 
@@ -42,13 +42,13 @@ int TCP_listen_fd(int port, int rcvbuf)
 		return (2);
 	}
 
-	memset((char *)&sin,0, sizeof(sin));
+	memset(static_cast<void*>(&sin), 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = INADDR_ANY;
 
 	//printf( "bind..." );fflush(stdout);
-	sts = bind(listener_fd, (struct sockaddr *)&sin, sizeof(sin));
+	sts = bind(listener_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
 		TLOG(TLVL_ERROR) << "Could not bind socket for port " << port << "! Exiting with code 3!";
@@ -65,16 +65,20 @@ int TCP_listen_fd(int port, int rcvbuf)
 	{
 		len = rcvbuf;
 		sts = setsockopt(listener_fd, SOL_SOCKET, SO_RCVBUF, &len, arglen);
-		if (sts == -1) {
+		if (sts == -1)
+		{
 			TLOG(TLVL_ERROR) << "Error with setsockopt SNDBUF " << errno;
-}
+		}
 		len = 0;
 		sts = getsockopt(listener_fd, SOL_SOCKET, SO_RCVBUF, &len, &arglen);
-		if (len < (rcvbuf * 2)) {
+		if (len < (rcvbuf * 2))
+		{
 			TLOG(TLVL_WARNING) << "RCVBUF " << len << " not expected (" << rcvbuf << " sts/errno=" << sts << "/" << errno;
-		} else {
+		}
+		else
+		{
 			TLOG(TLVL_DEBUG) << "RCVBUF " << len << " sts/errno=" << sts << "/" << errno;
-}
+		}
 	}
 
 	//printf( "listen..." );fflush(stdout);

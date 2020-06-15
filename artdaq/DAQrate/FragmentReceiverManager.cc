@@ -296,7 +296,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 		fragment->resize(hdr.word_count - hdr.num_words());
 		memcpy(fragment->headerAddress(), &hdr, hdr.num_words() * sizeof(artdaq::RawDataType));
-		auto ret2 = source_plugins_[source_rank]->receiveFragmentData(fragment->headerAddress() + hdr.num_words(), hdr.word_count - hdr.num_words()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+		auto ret2 = source_plugins_[source_rank]->receiveFragmentData(fragment->headerAddress() + hdr.num_words(), hdr.word_count - hdr.num_words());  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 		if (ret2 != ret1)
 		{
 			TLOG(TLVL_ERROR) << "ReceiveFragmentHeader returned " << ret1 << ", but ReceiveFragmentData returned " << ret2;
@@ -307,7 +307,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
 			TLOG(TLVL_TRACE) << "runReceiver_: EndOfData Fragment received!";
-			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin())); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		}
 		else if (fragment->type() == artdaq::Fragment::DataFragmentType || fragment->type() == artdaq::Fragment::ContainerFragmentType || fragment->isUserFragmentType(fragment->type()))
 		{
