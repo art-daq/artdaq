@@ -73,9 +73,16 @@ public:
 	{
 		TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver BEGIN";
 		should_stop_ = true;
-		if (routing_thread_.joinable())
+		try
 		{
-			routing_thread_.join();
+			if (routing_thread_.joinable())
+			{
+				routing_thread_.join();
+			}
+		}
+		catch (...)
+		{
+			// IGNORED
 		}
 		TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver END.";
 	}
@@ -110,6 +117,11 @@ public:
 	hostMap_t GetHostMap() { return host_map_; }
 
 private:
+	RoutingReceiver(RoutingReceiver const&) = delete;
+	RoutingReceiver(RoutingReceiver&&) = delete;
+	RoutingReceiver& operator=(RoutingReceiver const&) = delete;
+	RoutingReceiver& operator=(RoutingReceiver&&) = delete;
+
 	void setupTableListener_()
 	{
 		int sts;
@@ -139,7 +151,7 @@ private:
 			TLOG(TLVL_ERROR) << "inet_aton says table_address " << table_address_ << " is invalid";
 		}
 		si_me_request.sin_addr.s_addr = in_addr_s.s_addr;
-		if (bind(table_socket_, (struct sockaddr*)&si_me_request, sizeof(si_me_request)) == -1)
+		if (bind(table_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1) // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		{
 			TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << table_port_;
 			exit(1);
@@ -214,7 +226,7 @@ private:
 				TLOG(TLVL_DEBUG) << __func__ << ": Going to receive RoutingPacketHeader";
 				struct sockaddr_in from;
 				socklen_t len = sizeof(from);
-				auto stss = recvfrom(table_socket_, &buf[0], MAX_ROUTING_TABLE_SIZE, 0, (struct sockaddr*)&from, &len);
+				auto stss = recvfrom(table_socket_, &buf[0], MAX_ROUTING_TABLE_SIZE, 0, reinterpret_cast<struct sockaddr*>(&from), &len); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 				TLOG(TLVL_DEBUG) << __func__ << ": Received " << stss << " bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
 
 				if (stss > static_cast<ssize_t>(sizeof(hdr)))
@@ -227,7 +239,7 @@ private:
 					continue;
 				}
 
-				TRACE(TLVL_DEBUG, "receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx", hdr.nEntries, ((unsigned long*)&hdr)[0], ((unsigned long*)&hdr)[1]);
+				TRACE(TLVL_DEBUG, "receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx", hdr.nEntries, ((unsigned long*)&hdr)[0], ((unsigned long*)&hdr)[1]); // NOLINT
 				if (hdr.header != ROUTING_MAGIC)
 				{
 					TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)=" << stss;
@@ -237,7 +249,7 @@ private:
 					artdaq::detail::RoutingPacket buffer(hdr.nEntries);
 					assert(static_cast<size_t>(stss) == sizeof(artdaq::detail::RoutingPacketHeader) + sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
 					memcpy(&buffer[0], &buf[sizeof(artdaq::detail::RoutingPacketHeader)], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-					TRACE(6, "receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx", stss, ((unsigned long*)&buffer[0])[0], ((unsigned long*)&buffer[0])[1]);
+					TRACE(6, "receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx", stss, ((unsigned long*)&buffer[0])[0], ((unsigned long*)&buffer[0])[1]); // NOLINT
 
 					first = buffer[0].sequence_id;
 					last = buffer[buffer.size() - 1].sequence_id;
@@ -334,6 +346,7 @@ static void signal_handler(int signum)
 }
 
 int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("RoutingReceiver", false, false);
 	static std::mutex sighandler_mutex;
@@ -350,7 +363,7 @@ int main(int argc, char* argv[])
 
 			//If the old handler wasn't SIG_IGN (it's a handler that just
 			// "ignore" the signal)
-			if (old_action.sa_handler != SIG_IGN)
+			if (old_action.sa_handler != SIG_IGN) // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
 			{
 				struct sigaction action;
 				action.sa_handler = signal_handler;
@@ -488,4 +501,10 @@ int main(int argc, char* argv[])
 
 	metricMan->do_stop();
 	artdaq::Globals::CleanUpGlobals();
+
+	return 0;
+}
+catch (...)
+{
+	return -1;
 }

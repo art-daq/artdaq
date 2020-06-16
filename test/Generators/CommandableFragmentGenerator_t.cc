@@ -8,32 +8,32 @@
 #include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
-#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
-	do                                                                                                                           \
-	{                                                                                                                            \
-		if (l == r)                                                                                                              \
-		{                                                                                                                        \
-			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
-		}                                                                                                                        \
-		else                                                                                                                     \
-		{                                                                                                                        \
-			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!";  \
-		}                                                                                                                        \
-		BOOST_REQUIRE_EQUAL(l, r);                                                                                               \
+#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
+	do                                                                                                                               \
+	{                                                                                                                                \
+		if ((l) == (r))                                                                                                              \
+		{                                                                                                                            \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...YES!"; \
+		}                                                                                                                            \
+		else                                                                                                                         \
+		{                                                                                                                            \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...NO!";  \
+		}                                                                                                                            \
+		BOOST_REQUIRE_EQUAL((l), (r));                                                                                               \
 	} while (false)
 
-#define TRACE_REQUIRE(b)                                                                               \
-	do                                                                                                 \
-	{                                                                                                  \
-		if (b)                                                                                         \
-		{                                                                                              \
-			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #b << " (" << b << ") is true...YES!"; \
-		}                                                                                              \
-		else                                                                                           \
-		{                                                                                              \
-			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #b << " (" << b << ") is true...NO!";  \
-		}                                                                                              \
-		BOOST_REQUIRE(b);                                                                              \
+#define TRACE_REQUIRE(b)                                                                                 \
+	do                                                                                                   \
+	{                                                                                                    \
+		if (b)                                                                                           \
+		{                                                                                                \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #b << " (" << (b) << ") is true...YES!"; \
+		}                                                                                                \
+		else                                                                                             \
+		{                                                                                                \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #b << " (" << (b) << ") is true...NO!";  \
+		}                                                                                                \
+		BOOST_REQUIRE((b));                                                                              \
 	} while (false)
 
 #define MULTICAST_MODE 0
@@ -54,6 +54,12 @@ public:
 	explicit CommandableFragmentGeneratorTest(const fhicl::ParameterSet& ps);
 
 	~CommandableFragmentGeneratorTest() override { joinThreads(); };
+
+private:
+	CommandableFragmentGeneratorTest(CommandableFragmentGeneratorTest const&) = delete;
+	CommandableFragmentGeneratorTest(CommandableFragmentGeneratorTest&&) = delete;
+	CommandableFragmentGeneratorTest& operator=(CommandableFragmentGeneratorTest const&) = delete;
+	CommandableFragmentGeneratorTest& operator=(CommandableFragmentGeneratorTest&&) = delete;
 
 protected:
 	/**
@@ -260,6 +266,7 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests)
 	TLOG(TLVL_INFO) << "IgnoreRequests test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(SingleMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -346,6 +353,7 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 	TLOG(TLVL_INFO) << "SingleMode test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(BufferMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -453,6 +461,7 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	TLOG(TLVL_INFO) << "BufferMode test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(BufferMode_KeepLatest)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -560,6 +569,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_KeepLatest)
 
 	TLOG(TLVL_INFO) << "BufferMode_KeepLatest test case END";
 }
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(CircularBufferMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -693,6 +703,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	TLOG(TLVL_INFO) << "CircularBufferMode test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(WindowMode_Function)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -1016,6 +1027,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	gen.joinThreads();
 	TLOG(TLVL_INFO) << "WindowMode_RequestStartsBeforeBuffer test case END";
 }
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -1188,6 +1200,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	gen.StopCmd(0xFFFFFFFF, 1);
 	TLOG(TLVL_INFO) << "WindowMode_RequestInBuffer test case END";
 }
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -1279,6 +1292,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	gen.joinThreads();
 	TLOG(TLVL_INFO) << "WindowMode_RequestEndsAfterBuffer test case END";
 }
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -1376,6 +1390,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	TLOG(TLVL_INFO) << "WindowMode_RequestAfterBuffer test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(SequenceIDMode)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -1629,6 +1644,7 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 	TLOG(TLVL_INFO) << "IgnoreRequests_MultipleIDs test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -1773,6 +1789,7 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	TLOG(TLVL_INFO) << "SingleMode_MultipleIDs test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -1955,6 +1972,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	TLOG(TLVL_INFO) << "BufferMode_MultipleIDs test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -2176,6 +2194,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	TLOG(TLVL_INFO) << "CircularBufferMode_MultipleIDs test case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
@@ -2478,6 +2497,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	gen.joinThreads();
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");

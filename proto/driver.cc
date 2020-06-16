@@ -34,8 +34,6 @@
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
-namespace bpo = boost::program_options;
-
 volatile int events_to_generate;
 void sig_handler(int /*unused*/) { events_to_generate = -1; }
 
@@ -258,11 +256,10 @@ template<typename B, typename D>
 std::unique_ptr<D>
 dynamic_unique_ptr_cast(std::unique_ptr<B>& p)
 {
-	D* result = dynamic_cast<D*>(p.get());
+	D* result = dynamic_cast<D*>(p.release());
 
 	if (result)
 	{
-		p.release();
 		return std::unique_ptr<D>(result);
 	}
 	return nullptr;

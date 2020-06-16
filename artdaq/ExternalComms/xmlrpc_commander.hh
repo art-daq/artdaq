@@ -214,6 +214,8 @@ private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
 
 	xmlrpc_commander(xmlrpc_commander&&) = delete;
+	xmlrpc_commander& operator=(xmlrpc_commander const&) = delete;
+	xmlrpc_commander& operator=(xmlrpc_commander&&) = delete;
 
 	int port_;
 	std::string serverUrl_;

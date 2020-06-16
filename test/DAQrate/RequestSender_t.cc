@@ -12,18 +12,18 @@
 
 BOOST_AUTO_TEST_SUITE(RequestSender_test)
 
-#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
-	do                                                                                                                           \
-	{                                                                                                                            \
-		if (l == r)                                                                                                              \
-		{                                                                                                                        \
-			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
-		}                                                                                                                        \
-		else                                                                                                                     \
-		{                                                                                                                        \
-			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!";  \
-		}                                                                                                                        \
-		BOOST_REQUIRE_EQUAL(l, r);                                                                                               \
+#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
+	do                                                                                                                               \
+	{                                                                                                                                \
+		if ((l) == (r))                                                                                                              \
+		{                                                                                                                            \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...YES!"; \
+		}                                                                                                                            \
+		else                                                                                                                         \
+		{                                                                                                                            \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...NO!";  \
+		}                                                                                                                            \
+		BOOST_REQUIRE_EQUAL((l), (r));                                                                                               \
 	} while (0)
 
 BOOST_AUTO_TEST_CASE(Construct)
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket";
 	sockaddr_in addr;
 	socklen_t arglen = sizeof(addr);
-	auto conn_sock = accept(token_socket, (struct sockaddr*)&addr, &arglen);
+	auto conn_sock = accept(token_socket, reinterpret_cast<struct sockaddr*>(&addr), &arglen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
 	t.SendRoutingToken(120, 130);
 
@@ -97,6 +97,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 	TLOG(TLVL_INFO) << "Tokens Test Case END";
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 BOOST_AUTO_TEST_CASE(Requests)
 {
 	artdaq::configureMessageFacility("RequestSender_t", true, true);
@@ -133,7 +134,7 @@ BOOST_AUTO_TEST_CASE(Requests)
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(REQUEST_PORT);
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (bind(request_socket, (struct sockaddr*)&si_me_request, sizeof(si_me_request)) == -1)
+	if (bind(request_socket, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << REQUEST_PORT;
 		BOOST_REQUIRE_EQUAL(true, false);

@@ -8,11 +8,12 @@ namespace bpo = boost::program_options;
 #include "fhiclcpp/make_ParameterSet.h"
 
 int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("PrintSharedMemory");
 
 	std::ostringstream descstr;
-	descstr << argv[0]
+	descstr << *argv
 	        << " <-c <config-file>> <other-options> [<source-file>]+";
 	bpo::options_description desc(descstr.str());
 	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration file.")("events,e", "Print event information")("key,M", bpo::value<std::string>(), "Shared Memory to attach to")("help,h", "produce help message");
@@ -24,7 +25,7 @@ int main(int argc, char* argv[])
 	}
 	catch (bpo::error const& e)
 	{
-		std::cerr << "Exception from command line processing in " << argv[0]
+		std::cerr << "Exception from command line processing in " << *argv
 		          << ": " << e.what() << "\n";
 		return -1;
 	}
@@ -35,10 +36,10 @@ int main(int argc, char* argv[])
 	}
 	if ((vm.count("config") == 0u) && (vm.count("key") == 0u))
 	{
-		std::cerr << "Exception from command line processing in " << argv[0]
+		std::cerr << "Exception from command line processing in " << *argv
 		          << ": no configuration file given.\n"
 		          << "For usage and an options list, please do '"
-		          << argv[0] << " --help"
+		          << *argv << " --help"
 		          << "'.\n";
 		return 2;
 	}
@@ -81,4 +82,10 @@ int main(int argc, char* argv[])
 		                              pset.get<size_t>("stale_buffer_timeout_usec", 1000000));
 		std::cout << t.toString() << std::endl;
 	}
+
+	return 0;
+}
+catch (...)
+{
+	return -1;
 }

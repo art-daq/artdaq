@@ -152,14 +152,28 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 	should_stop_ = true;
 	force_stop_ = true;
 	TLOG(TLVL_DEBUG) << "Joining dataThread";
-	if (dataThread_.joinable())
+	try
 	{
-		dataThread_.join();
+		if (dataThread_.joinable())
+		{
+			dataThread_.join();
+		}
+	}
+	catch (...)
+	{
+		// IGNORED
 	}
 	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
-	if (monitoringThread_.joinable())
+	try
 	{
-		monitoringThread_.join();
+		if (monitoringThread_.joinable())
+		{
+			monitoringThread_.join();
+		}
+	}
+	catch (...)
+	{
+		// IGNORED
 	}
 	TLOG(TLVL_DEBUG) << "joinThreads complete";
 }
@@ -209,7 +223,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			if (exception())
 			{
 				TLOG(TLVL_ERROR) << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
-				throw cet::exception("CommandableFragmentGenerator") << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";
+				throw cet::exception("CommandableFragmentGenerator") << "Exception found in BoardReader with board ID " << board_id() << "; BoardReader will now return error status when queried";  // NOLINT(cert-err60-cpp)
 			}
 		}
 		else
@@ -333,7 +347,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	if (run < 0)
 	{
 		TLOG(TLVL_ERROR) << "negative run number";
-		throw cet::exception("CommandableFragmentGenerator") << "negative run number";
+		throw cet::exception("CommandableFragmentGenerator") << "negative run number";  // NOLINT(cert-err60-cpp)
 	}
 
 	timeout_ = timeout;
@@ -703,7 +717,7 @@ bool artdaq::CommandableFragmentGenerator::waitForDataBufferReady(Fragment::frag
 	{
 		TLOG(TLVL_ERROR) << "DataBufferError: "
 		                 << "Error in CommandableFragmentGenerator: Cannot wait for data buffer for ID " << id << " because it does not exist!";
-		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot wait for data buffer for ID " << id << " because it does not exist!"; // NOLINT(cert-err60-cpp)
+		throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot wait for data buffer for ID " << id << " because it does not exist!";  // NOLINT(cert-err60-cpp)
 	}
 	auto startwait = std::chrono::steady_clock::now();
 	auto first = true;

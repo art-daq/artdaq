@@ -39,6 +39,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 int do_check(const artdaq::Fragment& frag);
 
 int main(int argc, char* argv[])
+try
 {
 	if (argc != 2)
 	{
@@ -46,7 +47,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	auto fhicl_filename = boost::lexical_cast<std::string>(argv[1]);
+	auto fhicl_filename = boost::lexical_cast<std::string>(argv[1]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	std::unique_ptr<artdaq::TransferInterface> transfer;
 	auto pset = ReadParameterSet(fhicl_filename);
@@ -65,14 +66,15 @@ int main(int argc, char* argv[])
 	}
 	catch (...)
 	{
-		artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::yes,
+		artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,
 		                         "Error creating transfer plugin");
+		return 1;
 	}
 
 	while (true)
 	{
 		artdaq::Fragment myfrag;
-		size_t timeout = 10 * 1e6;
+		size_t timeout = 10000000;
 
 		auto retval = transfer->receiveFragment(myfrag, timeout);
 
@@ -98,6 +100,10 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
+catch (...)
+{
+	return -1;
+}
 
 // JCF, Jun-22-2016
 
@@ -108,8 +114,8 @@ int do_check(const artdaq::Fragment& frag)
 {
 	uint64_t variable_to_compare = 0;
 
-	for (auto ptr_into_frag = reinterpret_cast<const uint64_t*>(frag.dataBeginBytes());
-	     ptr_into_frag != reinterpret_cast<const uint64_t*>(frag.dataEndBytes());
+	for (auto ptr_into_frag = reinterpret_cast<const uint64_t*>(frag.dataBeginBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	     ptr_into_frag != reinterpret_cast<const uint64_t*>(frag.dataEndBytes());        // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	     ++ptr_into_frag, ++variable_to_compare)
 	{
 		if (variable_to_compare != *ptr_into_frag)

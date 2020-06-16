@@ -212,11 +212,9 @@ bool artdaq::CompositeDriver::makeChildGenerator_(fhicl::ParameterSet const& pse
 	generator_ptr.reset(nullptr);
 	try
 	{
-		auto* tmp_cmdablegen_bareptr =
-		    dynamic_cast<CommandableFragmentGenerator*>(tmp_gen_ptr.get());
+		auto tmp_cmdablegen_bareptr = tmp_gen_ptr.release();
 		if (tmp_cmdablegen_bareptr != nullptr)
 		{
-			tmp_gen_ptr.release();
 			generator_ptr.reset(tmp_cmdablegen_bareptr);
 		}
 	}

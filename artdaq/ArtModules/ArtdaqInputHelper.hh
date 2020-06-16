@@ -1,3 +1,6 @@
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQINPUTHELPER_HH_
+#define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQINPUTHELPER_HH_
+
 #include "art/Framework/Core/Frameworkfwd.h"
 
 #include "art/Framework/Core/FileBlock.h"
@@ -61,10 +64,14 @@
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
+#include <list>
 #include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #if ART_HEX_VERSION < 0x30000
@@ -82,7 +89,7 @@
 namespace art {
 template<typename U>
 class ArtdaqInputHelper;
-}
+}  // namespace art
 
 /**
  * \brief This template class provides a unified interface for reading data into art
@@ -181,7 +188,6 @@ private:
 
 	void readFragments(std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> const& eventMap, art::EventPrincipal*& outE);
 
-private:
 	bool shutdownMsgReceived_;
 	bool outputFileCloseNeeded_;
 	art::SourceHelper const& pm_;
@@ -591,7 +597,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		// Every event should have a valid history
 		if (!history_from_event->processHistoryID().isValid())
 		{
-			throw art::Exception(art::errors::Unknown) // NOLINT(cert-err60-cpp)
+			throw art::Exception(art::errors::Unknown)  // NOLINT(cert-err60-cpp)
 			    << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
 		}
 
@@ -783,7 +789,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 				iter = productList_->find(*bk);
 				if (iter == productList_->end())
 				{
-					throw art::Exception(art::errors::ProductNotFound) // NOLINT(cert-err60-cpp)
+					throw art::Exception(art::errors::ProductNotFound)  // NOLINT(cert-err60-cpp)
 					    << "No product is registered for\n"
 					    << "  process name:                '" << bk->processName_ << "'\n"
 					    << "  module label:                '" << bk->moduleLabel_ << "'\n"
@@ -805,7 +811,7 @@ void art::ArtdaqInputHelper<U>::readDataProducts(std::list<std::unique_ptr<TBuff
 				//	    prd.reset(ReadObjectAny<EDProduct>(msg, bd.wrappedName()));
 
 				void* p = msg->ReadObjectAny(TClass::GetClass(bd.wrappedName().c_str()));
-				auto pp = reinterpret_cast<EDProduct*>(p); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+				auto pp = reinterpret_cast<EDProduct*>(p);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
 				TLOG_ARB(12, "ArtdaqInputHelper") << "readDataProducts: After ReadObjectAny(prd): p=" << p << ", EDProduct::isPresent: " << pp->isPresent();
 				prd.reset(pp);
@@ -1111,3 +1117,5 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 	last_read_time = std::chrono::steady_clock::now();
 	return ret;
 }
+
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQINPUTHELPER_HH_

@@ -54,6 +54,8 @@ public:
 	 */
 	explicit RandomDelayFilter(fhicl::ParameterSet const& p);
 
+	~RandomDelayFilter() override = default;
+
 	/**
 	 * \brief Copy Constructor is deleted
 	 */

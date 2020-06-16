@@ -1,13 +1,14 @@
-/* This file (just.cc) was created by Ron Rechenmacher <ron@fnal.gov> on
+// This file (just.cc) was created by Ron Rechenmacher <ron@fnal.gov> on
 // Feb 19, 2014. "TERMS AND CONDITIONS" governing this file are in the README
 // or COPYING file. If you do not have such a file, one can be obtained by
 // contacting Ron or Fermi Lab in Batavia IL, 60510, phone: 630-840-3000.
 // $RCSfile: just_user.cc,v $
-*/
+
+#include "artdaq/DAQdata/Globals.hh"
 
 #include <boost/program_options.hpp>
+
 #include <iomanip>
-#include "artdaq/DAQdata/Globals.hh"
 namespace bpo = boost::program_options;
 
 std::string formatTime(double time)
@@ -48,9 +49,10 @@ std::string formatTime(double time)
 }
 
 int main(int argc, char *argv[])
+try
 {
 	std::ostringstream descstr;
-	descstr << argv[0]
+	descstr << *argv
 	        << " <-l test loops> [csutdi]";
 	bpo::options_description desc(descstr.str());
 	desc.add_options()("loops,l", bpo::value<size_t>(), "Number of times to run each test")("C,c", "Run TRACEC test")("S,s", "Run TRACES test")("U,u", "Run TRACE_ test")("T,t", "Run TRACE_STREAMER test")("D,d", "Run TLOG_DEBUG test")("I,i", "Run TLOG_INFO test")("console,x", "Enable MessageFacility output to console")("help,h", "produce help message");
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
 	}
 	catch (bpo::error const &e)
 	{
-		std::cerr << "Exception from command line processing in " << argv[0]
+		std::cerr << "Exception from command line processing in " << *argv
 		          << ": " << e.what() << "\n";
 		return -1;
 	}
@@ -73,10 +75,10 @@ int main(int argc, char *argv[])
 	}
 	if (vm.count("loops") == 0u)
 	{
-		std::cerr << "Exception from command line processing in " << argv[0]
+		std::cerr << "Exception from command line processing in " << *argv
 		          << ": no loop count given.\n"
 		          << "For usage and an options list, please do '"
-		          << argv[0] << " --help"
+		          << *argv << " --help"
 		          << "'.\n";
 		return 2;
 	}
@@ -90,7 +92,7 @@ int main(int argc, char *argv[])
 		auto start = std::chrono::steady_clock::now();
 		for (size_t l = 0; l < loops; ++l)
 		{
-			TRACE(TLVL_DEBUG, "Test TRACEC with an int %i and a float %.1f", 42, 5.56);
+			TRACE(TLVL_DEBUG, "Test TRACEC with an int %i and a float %.1f", 42, 5.56); // NOLINT
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACEC test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
@@ -104,7 +106,7 @@ int main(int argc, char *argv[])
 		{
 			std::string test = "Test TRACE with an int %d";
 			std::string test2 = " and a float %.1f";
-			TRACE(TLVL_DEBUG, test + test2, 42, 5.56);
+			TRACE(TLVL_DEBUG, test + test2, 42, 5.56); // NOLINT
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACES test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
@@ -116,7 +118,7 @@ int main(int argc, char *argv[])
 		auto start = std::chrono::steady_clock::now();
 		for (size_t l = 0; l < loops; ++l)
 		{
-			TRACEN_("tracemf", TLVL_DEBUG, "Test TRACE_ with an int " << 42 << " and a float %.1f", 5.56);
+			TRACEN_("tracemf", TLVL_DEBUG, "Test TRACE_ with an int " << 42 << " and a float %.1f", 5.56); // NOLINT
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACE_ test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
@@ -147,4 +149,8 @@ int main(int argc, char *argv[])
 	}
 
 	return (0);
-} /* main */
+}
+catch (...)
+{
+	return -1;
+}

@@ -1,15 +1,16 @@
-#ifndef artdaq_Application_MPI2_BoardReaderCore_hh
-#define artdaq_Application_MPI2_BoardReaderCore_hh
-
-#include <string>
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
 
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
+
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
+
+#include <string>
 
 namespace artdaq {
 class BoardReaderCore;
@@ -196,4 +197,4 @@ private:
 	bool verbose_;  ///< Whether to log transition messages
 };
 
-#endif /* artdaq_Application_MPI2_BoardReaderCore_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_

@@ -101,11 +101,11 @@ private:
 	boost::thread sender_threads_[2];
 	boost::thread receiver_threads_[2];
 
-	std::atomic<bool> sender_ready_[2];
-	std::atomic<bool> receiver_ready_[2];
+	std::unordered_map<size_t, std::atomic<bool>> sender_ready_;
+	std::unordered_map<size_t, std::atomic<bool>> receiver_ready_;
 
-	std::atomic<artdaq::Fragment::sequence_id_t> sender_current_fragment_[2];
-	std::atomic<int> sender_tokens_[2];
+	std::unordered_map<size_t, std::atomic<artdaq::Fragment::sequence_id_t>> sender_current_fragment_;
+	std::unordered_map<size_t, std::atomic<int>> sender_tokens_;
 
 	fhicl::ParameterSet ps_;
 

@@ -53,6 +53,11 @@ public:
 	void endJob() override;
 
 private:
+	FragmentSniffer(FragmentSniffer const&) = delete;
+	FragmentSniffer(FragmentSniffer&&) = delete;
+	FragmentSniffer& operator=(FragmentSniffer const&) = delete;
+	FragmentSniffer& operator=(FragmentSniffer&&) = delete;
+
 	std::string raw_label_;
 	std::string product_instance_name_;
 	std::size_t num_frags_per_event_;

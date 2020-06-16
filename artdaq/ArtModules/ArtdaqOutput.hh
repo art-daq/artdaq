@@ -1,3 +1,5 @@
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQOUTPUT_HH_
+#define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQOUTPUT_HH_
 
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Principal/EventPrincipal.h"
@@ -15,8 +17,6 @@
 #include "art_root_io/setup.h"
 #endif
 
-#include <algorithm>
-#include <iterator>
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/History.h"
@@ -43,18 +43,20 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
-
-#include <unistd.h>
-
 #include <TBufferFile.h>
 #include <TClass.h>
 #include <TList.h>
 #include <TStreamerInfo.h>
+
+#include <unistd.h>
+#include <algorithm>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #define TLVL_OPENFILE 5
 #define TLVL_CLOSEFILE 6
@@ -92,7 +94,7 @@
 
 namespace art {
 class ArtdaqOutput;
-}
+}  // namespace art
 
 static artdaq::FragmentPtr outputFrag = nullptr;
 inline char* Fragment_ReAllocChar(char* dataPtr, size_t size, size_t /*oldsize*/)
@@ -173,7 +175,7 @@ protected:
 	/// Perform Begin Run actions. Derived classes should implement beginRun_ instead.
 	/// </summary>
 	/// <param name="rp">RunPrincipal of new run</param>
-	virtual void beginRun(RunPrincipal const& rp) final
+	void beginRun(RunPrincipal const& rp) final
 	{
 		extractProducts_(rp);
 		beginRun_(rp);
@@ -187,7 +189,7 @@ protected:
 	/// Perform Begin SubRun actions. Derived classes should implement beginSubRun_ instead.
 	/// </summary>
 	/// <param name="srp">SubRunPrincipal of new subrun</param>
-	virtual void beginSubRun(SubRunPrincipal const& srp) final
+	void beginSubRun(SubRunPrincipal const& srp) final
 	{
 		extractProducts_(srp);
 		beginSubRun_(srp);
@@ -201,7 +203,7 @@ protected:
 	/// Perform actions for each event. Derived classes should implement event_ instead.
 	/// </summary>
 	/// <param name="ep">EventPrincipal of event</param>
-	virtual void event(EventPrincipal const& ep) final
+	void event(EventPrincipal const& ep) final
 	{
 		extractProducts_(ep);
 		event_(ep);
@@ -215,19 +217,19 @@ protected:
 	/// Write an EventPrincipal to TBufferFile and send
 	/// </summary>
 	/// <param name="ep">EventPrincipal to write</param>
-	virtual void write(EventPrincipal& ep) final;
+	void write(EventPrincipal& ep) final;
 
 	/// <summary>
 	/// Write a RunPrincipal to TBufferFile and send
 	/// </summary>
 	/// <param name="rp">RunPrincipal to write</param>
-	virtual void writeRun(RunPrincipal& rp) final;
+	void writeRun(RunPrincipal& rp) final;
 
 	/// <summary>
 	/// Write a SubRunPrincipal to TBufferFile and send
 	/// </summary>
 	/// <param name="srp">SubRunPrincipal to write</param>
-	virtual void writeSubRun(SubRunPrincipal& srp) final;
+	void writeSubRun(SubRunPrincipal& srp) final;
 
 	/// <summary>
 	/// Extract the data products from a Principal and write them to the TBufferFile
@@ -268,7 +270,7 @@ private:
 	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::type_t type)
 	{
 		artdaq::NetMonHeader hdr;
-		outputFrag=  std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, 0, type, hdr);
+		outputFrag = std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, 0, type, hdr);
 		auto msg = std::make_unique<TBufferFile>(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar);
 		msg->SetWriteMode();
 		return msg;
@@ -866,3 +868,5 @@ inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu
 
 	TLOG(TLVL_EXTRACTPRODUCTS) << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
 }
+
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQOUTPUT_HH_

@@ -8,7 +8,9 @@
 #include <boost/thread.hpp>
 #include "artdaq/DAQdata/Globals.hh"
 
+// NOLINTNEXTLINE(readability-function-size)
 int main(int argc, char** argv)
+try
 {
 	struct Config
 	{
@@ -206,4 +208,10 @@ int main(int argc, char** argv)
 		commanderThread.join();
 	}
 	artdaq::Globals::CleanUpGlobals();
+
+	return 0;
+}
+catch (...)
+{
+	return -1;
 }

@@ -49,7 +49,7 @@ int process_cmd_line(int argc, char** argv,
                      bpo::variables_map& vm)
 {
 	std::ostringstream descstr;
-	descstr << argv[0]
+	descstr << *argv
 	        << " <-c <config-file>> <other-options> [<source-file>]+";
 	bpo::options_description desc(descstr.str());
 	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration file.")("help,h", "produce help message");
@@ -60,7 +60,7 @@ int process_cmd_line(int argc, char** argv,
 	}
 	catch (bpo::error const& e)
 	{
-		TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
+		TLOG(TLVL_ERROR) << "Exception from command line processing in " << *argv
 		                 << ": " << e.what();
 		return -1;
 	}
@@ -71,10 +71,10 @@ int process_cmd_line(int argc, char** argv,
 	}
 	if (vm.count("config") == 0u)
 	{
-		TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
+		TLOG(TLVL_ERROR) << "Exception from command line processing in " << *argv
 		                 << ": no configuration file given.\n"
 		                 << "For usage and an options list, please do '"
-		                 << argv[0] << " --help"
+		                 << *argv << " --help"
 		                 << "'.";
 		return 2;
 	}
@@ -279,7 +279,7 @@ int process_data(fhicl::ParameterSet const& pset)
 			}
 			else if (val->sequenceID() != current_sequence_id)
 			{
-				throw art::Exception(art::errors::DataCorruption)
+				throw art::Exception(art::errors::DataCorruption)  // NOLINT(cert-err60-cpp)
 				    << "Data corruption: apparently related fragments have "
 				    << " different sequence IDs: "
 				    << val->sequenceID()
@@ -327,7 +327,8 @@ int process_data(fhicl::ParameterSet const& pset)
 }
 }  // namespace
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("genToArt");
 	// Command line handling.
@@ -349,20 +350,12 @@ int main(int argc, char* argv[]) try
 	make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
 	return process_data(pset);
 }
-catch (std::string& x)
+catch (std::exception& x)
 {
-	TLOG(TLVL_ERROR) << "Exception (type string) caught in genToArt: " << x << '\n';
+	TLOG(TLVL_ERROR) << "Exception (type std::exception) caught in genToArt: " << x.what() << '\n';
 	return 1;
 }
-catch (char const* m)
+catch (...)
 {
-	TLOG(TLVL_ERROR) << "Exception (type char const*) caught in genToArt: ";
-	if (m != nullptr)
-	{
-		TLOG(TLVL_ERROR) << m;
-	}
-	else
-	{
-		TLOG(TLVL_ERROR) << "[the value was a null pointer, so no message is available]";
-	}
+	return -1;
 }

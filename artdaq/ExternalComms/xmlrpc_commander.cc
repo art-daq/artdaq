@@ -314,7 +314,7 @@ protected:
 template<typename T>
 T cmd_::getParam(const xmlrpc_c::paramList& /*unused*/, int /*unused*/)
 {
-	throw cet::exception("cmd_") << "Error in cmd_::getParam(): value type not supported" << std::endl;
+	throw cet::exception("cmd_") << "Error in cmd_::getParam(): value type not supported" << std::endl; // NOLINT(cert-err60-cpp)
 }
 
 /**
@@ -444,7 +444,7 @@ T cmd_::getParam(const xmlrpc_c::paramList& paramList, int index,
 	}
 	catch (const cet::exception& exception)
 	{
-		throw exception;
+		throw exception;  // NOLINT(cert-err60-cpp)
 	}
 	catch (...)
 	{}
@@ -1066,7 +1066,7 @@ void xmlrpc_commander::run_server() try
 
 	xmlrpc_env env;  // xmlrpc_env_init(&env);
 	xmlrpc_registry*** c_registryPPP;
-	c_registryPPP = (xmlrpc_registry***)(((char*)&registry) + sizeof(girmem::autoObject));
+	c_registryPPP = reinterpret_cast<xmlrpc_registry***>(reinterpret_cast<char*>(&registry) + sizeof(girmem::autoObject)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 #define register_method2(m, ss)                                                  \
 	xmlrpc_c::method* ptr_##m(dynamic_cast<xmlrpc_c::method*>(new m##_(*this))); \
@@ -1128,7 +1128,7 @@ void xmlrpc_commander::run_server() try
 
 	if (socket_file_descriptor < 0)
 	{
-		throw cet::exception("xmlrpc_commander::run") << "Problem with the socket() call; C-style errno == " << errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the socket() call; C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 
 	int enable = 1;
@@ -1138,7 +1138,7 @@ void xmlrpc_commander::run_server() try
 
 	if (retval < 0)
 	{
-		throw cet::exception("xmlrpc_commander::run") << "Problem with the call to setsockopt(); C-style errno == " << errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the call to setsockopt(); C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 
 	struct sockaddr_in sockAddr;
@@ -1148,13 +1148,13 @@ void xmlrpc_commander::run_server() try
 	sockAddr.sin_addr.s_addr = 0;
 
 	retval = bind(socket_file_descriptor,
-	              reinterpret_cast<struct sockaddr*>(&sockAddr),
+	              reinterpret_cast<struct sockaddr*>(&sockAddr), // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	              sizeof(sockAddr));
 
 	if (retval != 0)
 	{
 		close(socket_file_descriptor);
-		throw cet::exception("xmlrpc_commander::run") << "Problem with the bind() call; C-style errno == " << errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the bind() call; C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 
 	server = std::make_unique<xmlrpc_c::serverAbyss>(xmlrpc_c::serverAbyss::constrOpt().registryP(&registry).socketFd(socket_file_descriptor));

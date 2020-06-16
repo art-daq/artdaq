@@ -1,8 +1,10 @@
-#include <memory>
+#include "artdaq/Application/BoardReaderApp.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()
-#include "artdaq/Application/BoardReaderApp.hh"
+#define TRACE_NAME (app_name + "_BoardReaderApp").c_str() // NOLINT
+
+#include <memory>
+#include <string>
 
 artdaq::BoardReaderApp::BoardReaderApp()
     : fragment_receiver_ptr_(nullptr)
@@ -65,13 +67,9 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	catch (const boost::exception& e)
 	{
 		TLOG(TLVL_ERROR) << "Caught boost::exception starting Fragment Processing thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
-		std::cerr << "Caught boost::exception starting Fragment Processing thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		throw cet::exception("Program Error") << "Caught boost::exception starting Fragment Processing thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl; // NOLINT(cert-err60-cpp)
 		exit(5);
 	}
-	/*
-	fragment_processing_future_ =
-	std::async(std::launch::async, &BoardReaderCore::process_fragments,
-	fragment_receiver_ptr_.get());*/
 
 	return external_request_status_;
 }
@@ -140,11 +138,7 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	boost::thread::attributes attrs;
 	attrs.set_stack_size(4096 * 2000);  // 8 MB
 	fragment_processing_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::process_fragments, fragment_receiver_ptr_.get()));
-	/*
-		fragment_processing_future_ =
-			std::async(std::launch::async, &BoardReaderCore::process_fragments,
-					   fragment_receiver_ptr_.get());*/
-
+	
 	return external_request_status_;
 }
 

@@ -3,7 +3,6 @@
 #include <boost/program_options.hpp>
 #include <memory>
 #include "fhiclcpp/make_ParameterSet.h"
-namespace bpo = boost::program_options;
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
@@ -11,6 +10,7 @@ namespace bpo = boost::program_options;
 #include "artdaq/DAQrate/RequestSender.hh"
 
 int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("RequestSender");
 
@@ -78,4 +78,8 @@ int main(int argc, char* argv[])
 	}
 
 	return rc;
+}
+catch (...)
+{
+	return -1;
 }

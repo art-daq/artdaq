@@ -1,3 +1,6 @@
+#ifndef ARTDAQ_ARTDAQ_ARTMODULES_BUILDINFO_MODULE_HH_
+#define ARTDAQ_ARTDAQ_ARTMODULES_BUILDINFO_MODULE_HH_
+
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -6,6 +9,10 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include <iostream>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace artdaq {
 /**
@@ -120,3 +127,5 @@ void BuildInfo<instanceName, Pkgs...>::produce(art::Event&)
 	// nothing to be done for individual events
 }
 }  // namespace artdaq
+
+#endif  // ARTDAQ_ARTDAQ_ARTMODULES_BUILDINFO_MODULE_HH_
