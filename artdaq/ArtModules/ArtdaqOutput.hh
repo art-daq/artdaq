@@ -41,6 +41,7 @@
 #include "artdaq/DAQdata/NetMonHeader.hh"
 
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 
 #include <iomanip>
@@ -117,7 +118,7 @@ public:
 	/// </summary>
 	/// <param name="ps">ParameterSet used to configure art::OutputModule</param>
 	explicit ArtdaqOutput(fhicl::ParameterSet const& ps)
-	    : OutputModule(ps), initMsgSent_(false), productList_(), last_fragment_size_(10)
+	    : OutputModule(ps), productList_(), raw_data_label_(ps.get<std::string>("raw_data_label", "daq"))
 	{
 #if ART_HEX_VERSION >= 0x30200
 		root::setup();
@@ -256,16 +257,23 @@ protected:
 	virtual void SendMessage(artdaq::FragmentPtr& msg) = 0;
 
 private:
-	bool initMsgSent_;
+	bool initMsgSent_{false};
 	ProductList productList_;
-	size_t last_fragment_size_;
+	size_t last_fragment_size_{10};
+	artdaq::Fragment::sequence_id_t last_sequence_id_{0};
+	artdaq::Fragment::timestamp_t last_timestamp_{0};
+	std::string raw_data_label_;
 
-	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::type_t type)
+	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::timestamp_t ts, artdaq::Fragment::type_t type)
 	{
 		artdaq::NetMonHeader hdr;
-		outputFrag.reset(new artdaq::Fragment(last_fragment_size_, seqID, 0, type, hdr));
+		outputFrag.reset(new artdaq::Fragment(last_fragment_size_, seqID, my_rank, type, hdr, ts));
 		std::unique_ptr<TBufferFile> msg(new TBufferFile(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar));
 		msg->SetWriteMode();
+
+		if (seqID > last_sequence_id_) last_sequence_id_ = seqID;
+		if (ts > last_timestamp_) last_timestamp_ = ts;
+
 		return msg;
 	}
 
@@ -330,7 +338,7 @@ void art::ArtdaqOutput::send_init_message(History const& history)
 	//
 	//  Construct and send the init message.
 	//
-	auto msg = prepareMessage(0, artdaq::Fragment::InitFragmentType);
+	auto msg = prepareMessage(0, 0, artdaq::Fragment::InitFragmentType);
 	//
 	//  Stream the message type code.
 	//
@@ -607,10 +615,30 @@ void art::ArtdaqOutput::write(EventPrincipal& ep)
 		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "
 		                                                         "Could not get TClass for art::History!";
 	}
+
+	// Subrun number starts at 1
+	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Setting Output Fragment Header Fields";
+	auto seqID = (static_cast<uint64_t>(ep.EVENT_ID().subRun() - 1) << 32) + ep.EVENT_ID().event();
+	
+	art::ProcessTag tag("", processName());
+	auto res = ep.getMany(art::ModuleContext::invalid(), art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector(), tag);
+	
+	artdaq::Fragment::timestamp_t ts = 0;
+	
+	for (auto const& qr : res)
+	{
+		Handle<artdaq::detail::RawEventHeader> handle{qr};
+		if (handle.isValid()) {
+			if (handle->timestamp > ts) ts = handle->timestamp;
+		}
+	}
+	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Data Fragment Header Fields: SeqID: " << seqID << ", timestamp: " << ts;
+
+
 	//
 	//  Setup message buffer.
 	//
-	auto msg = prepareMessage(ep.EVENT_ID().event(), artdaq::Fragment::DataFragmentType);
+	auto msg = prepareMessage(seqID, ts, artdaq::Fragment::DataFragmentType);
 	//
 	//  Write message type code.
 	//
@@ -694,7 +722,7 @@ void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(0, artdaq::Fragment::EndOfRunFragmentType);
+	auto msg = prepareMessage(last_sequence_id_ + 1,last_timestamp_ + 1, artdaq::Fragment::EndOfRunFragmentType);
 	//
 	//  Write message type code.
 	//
@@ -756,7 +784,7 @@ void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(0, artdaq::Fragment::EndOfSubrunFragmentType);
+	auto msg = prepareMessage(last_sequence_id_ + 1, last_timestamp_ + 1, artdaq::Fragment::EndOfSubrunFragmentType);
 	//
 	//  Write message type code.
 	//

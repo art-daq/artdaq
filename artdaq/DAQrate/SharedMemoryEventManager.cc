@@ -1009,6 +1009,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	hdr->subrun_id = GetSubrunForSequenceID(seqID);
 	hdr->event_id = use_sequence_id_for_event_number_ ? static_cast<uint32_t>(seqID) : static_cast<uint32_t>(timestamp);
 	hdr->sequence_id = seqID;
+	hdr->timestamp = timestamp;
 	buffer_writes_pending_[new_buffer] = 0;
 	IncrementWritePos(new_buffer, sizeof(detail::RawEventHeader));
 	SetMFIteration("Sequence ID " + std::to_string(seqID));
