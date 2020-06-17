@@ -173,6 +173,7 @@ private:
 	std::atomic<size_t> table_update_count_;
 
 	std::vector<int> sender_ranks_;
+	std::set<int> active_ranks_;
 
 	std::shared_ptr<RoutingMasterPolicy> policy_;
 	std::unique_ptr<TokenReceiver> token_receiver_;

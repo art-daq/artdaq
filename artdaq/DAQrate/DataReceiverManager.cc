@@ -220,7 +220,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 	while (!(stop_requested_ && TimeUtils::gettimeofday_us() - stop_requested_time_ > stop_timeout_ms_ * 1000) && enabled_sources_.count(source_rank))
 	{
-		TLOG(16) << "runReceiver_: Begin loop";
+		TLOG(16) << "runReceiver_: Begin loop stop_requested_=" << stop_requested_ << ", stop_timeout_ms_=" << stop_timeout_ms_ << ", enabled_sources_.count(source_rank)=" << enabled_sources_.count(source_rank) << ", now - stop_requested_time_=" << (TimeUtils::gettimeofday_us() - stop_requested_time_);
 		std::this_thread::yield();
 
 		// Don't stop receiving until we haven't received anything for 1 second
@@ -389,7 +389,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				case Fragment::InitFragmentType:
 					TLOG(TLVL_DEBUG) << "Received Init Fragment from rank " << source_rank << ".";
 					shm_manager_->setRequestMode(detail::RequestMessageMode::Normal);
-					shm_manager_->SetInitFragment(std::move(frag));
+					shm_manager_->AddInitFragment(frag);
 					break;
 				case Fragment::EndOfRunFragmentType:
 					shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);

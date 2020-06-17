@@ -51,18 +51,6 @@ art_make( BASENAME_ONLY
   ${Boost_DATE_TIME_LIBRARY}
   )
 
-simple_plugin(RawInput "source"
-  artdaq_ArtModules
-  artdaq-core_Data
-  artdaq-core_Data_dict
-  art_Framework_Core
-  art_Framework_IO_Sources
-  art_Framework_Principal
-  art_Persistency_Provenance
-  art_Utilities
-  MF_MessageLogger
-  rt
-)
 
 simple_plugin(TransferOutput "module"
   artdaq_TransferPlugins
@@ -123,8 +111,7 @@ simple_plugin(FragmentWatcher "module"
   cetlib
 )
 
-
-simple_plugin(NetMonInput "source"
+simple_plugin(ArtdaqInput "source"
   artdaq-core_Data
   artdaq-core_Data_dict
   artdaq_ArtModules
@@ -142,6 +129,7 @@ simple_plugin(NetMonInput "source"
   ${HEP_CONCURRENCY}
 )
 
+
 simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
   artdaq-core_Data_dict
@@ -157,7 +145,6 @@ simple_plugin(RootNetOutput "module"
 
 simple_plugin(BinaryNetOutput "module"
   artdaq_ArtModules
-  art_Framework_Services_Registry
   art_Utilities
   MF_MessageLogger
   fhiclcpp
@@ -169,7 +156,6 @@ simple_plugin(BinaryNetOutput "module"
 simple_plugin(BinaryFileOutput "module"
   artdaq_ArtModules
   art_Framework_IO
-  art_Framework_Services_Registry
   art_Utilities
   MF_MessageLogger
   fhiclcpp
@@ -186,6 +172,12 @@ simple_plugin(ArtdaqSharedMemoryService "service"
   MF_MessageLogger
   fhiclcpp
 )
+
+simple_plugin(ArtdaqFragmentNamingService "service"
+artdaq-core_Data
+  art_Framework_Services_Registry
+  MF_MessageLogger
+  fhiclcpp)
 
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata

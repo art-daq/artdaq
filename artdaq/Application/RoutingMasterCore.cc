@@ -182,6 +182,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 {
 	run_id_ = id;
+	for (auto& rank : sender_ranks_) { if(!active_ranks_.count(rank)) active_ranks_.insert(rank); }
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
@@ -436,7 +437,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 
 	auto acks = std::unordered_map<int, bool>();
-	for (auto& r : sender_ranks_)
+	for (auto& r : active_ranks_)
 	{
 		acks[r] = false;
 	}
@@ -537,6 +538,12 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 						acks[buffer.rank] = true;
 						TLOG(TLVL_DEBUG) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; })
 						                 << " acks outstanding";
+					}
+					else if (acks.count(buffer.rank) && detail::RoutingAckPacket::isEndOfDataRoutingAckPacket(buffer))
+					{
+						TLOG(TLVL_INFO) << "Received table update acknowledgement indicating end-of-data from rank " << buffer.rank << ".";
+						acks[buffer.rank] = true;
+						active_ranks_.erase(buffer.rank);
 					}
 					else
 					{

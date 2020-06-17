@@ -86,6 +86,18 @@ struct artdaq::detail::RoutingAckPacket
 	int rank;                                   ///< The rank from which the RoutingAckPacket came
 	Fragment::sequence_id_t first_sequence_id;  ///< The first sequence ID in the received RoutingPacket
 	Fragment::sequence_id_t last_sequence_id;   ///< The last sequence ID in the received RoutingPacket
+
+	static RoutingAckPacket makeEndOfDataRoutingAckPacket(int rank) {
+		RoutingAckPacket out;
+		out.rank = rank;
+		out.first_sequence_id = -3;
+		out.last_sequence_id = -2;
+		return out;
+	}
+
+	static bool isEndOfDataRoutingAckPacket(RoutingAckPacket pkt) {
+		return pkt.first_sequence_id == static_cast<Fragment::sequence_id_t>(-3) && pkt.last_sequence_id == static_cast<Fragment::sequence_id_t>(-2);
+	}
 };
 
 /**
