@@ -404,6 +404,8 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 		if (ps.get<bool>("register_fragment_types", true))
 		{
 			TLOG_DEBUG("ArtdaqInputHelper") << "Registering known Fragment labels from ArtdaqFragmentNamingServiceInterface";
+			help.reconstitutes<detail::RawEventHeader, art::InEvent>(pretend_module_name, "RawEventHeader");
+
 			art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
 			helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 			// Workaround for #22979
@@ -964,6 +966,12 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 		TLOG_ARB(17, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::readNext";
 		return false;
 	}
+	
+	auto artHdrPtr = std::unique_ptr<detail::RawEventHeader>(new detail::RawEventHeader());
+	auto daqHdrPtr = communicationWrapper_.getEventHeader();
+
+	memcpy(artHdrPtr.get(), daqHdrPtr, sizeof(detail::RawEventHeader));
+	put_product_in_principal(std::move(artHdrPtr), *outE, pretend_module_name, "RawEventHeader");
 
 	if (fragmentsOnlyMode_)
 	{
