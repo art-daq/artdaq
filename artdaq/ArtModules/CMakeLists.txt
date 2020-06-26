@@ -153,6 +153,28 @@ simple_plugin(BinaryNetOutput "module"
   ${ROOT_RIO}
 )
 
+simple_plugin(ShmemNetOutput "module"
+  artdaq_ArtModules
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${CETLIB_EXCEPT}
+  ${ROOT_RIO}
+  ${HEP_CONCURRENCY}
+)
+
+simple_plugin(ShmemBinaryOutput "module"
+  artdaq_ArtModules
+  art_Utilities
+  MF_MessageLogger
+  fhiclcpp
+  cetlib
+  ${CETLIB_EXCEPT}
+  ${ROOT_RIO}
+)
+
+
 simple_plugin(BinaryFileOutput "module"
   artdaq_ArtModules
   art_Framework_IO
