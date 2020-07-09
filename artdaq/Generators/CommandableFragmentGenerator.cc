@@ -42,6 +42,7 @@
 #define TLVL_APPLYREQUESTS 9
 #define TLVL_SENDEMPTYFRAGMENTS 19
 #define TLVL_CHECKWINDOWS 14
+#define TLVL_EMPTYFRAGMENT 22
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
     : mutex_()

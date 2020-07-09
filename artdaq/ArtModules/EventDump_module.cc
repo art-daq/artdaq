@@ -13,6 +13,7 @@
 
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Data/RawEvent.hh"
 
 #include <algorithm>
 #include <cassert>
@@ -73,6 +74,20 @@ void artdaq::EventDump::analyze(art::Event const& e)
 	if (verbosity_ > 0)
 	{
 		std::cout << "***** Start of EventDump for event " << e.event() << " *****" << std::endl;
+
+		art::Handle<detail::RawEventHeader> header_handle;
+		e.getByLabel(raw_data_label_, "RawEventHeader", header_handle);
+
+		if (header_handle.isValid())
+		{
+			std::ostringstream ostr;
+			header_handle->print(ostr);
+			std::cout << "Event Header: " << ostr.str() << std::endl;
+		}
+		else
+		{
+			std::cout << "Unable to read RawEventHeader for event " << e.event() << std::endl;
+		}
 
 		std::vector<art::Handle<std::vector<artdaq::Fragment> > > fragmentHandles;
 		e.getManyByType(fragmentHandles);

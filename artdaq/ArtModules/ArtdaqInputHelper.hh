@@ -401,9 +401,12 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: got product list";
 		}
 
+		helper.reconstitutes<artdaq::detail::RawEventHeader, art::InEvent>(pretend_module_name, "RawEventHeader");
+
 		if (ps.get<bool>("register_fragment_types", true))
 		{
 			TLOG_DEBUG("ArtdaqInputHelper") << "Registering known Fragment labels from ArtdaqFragmentNamingServiceInterface";
+
 			art::ServiceHandle<ArtdaqFragmentNamingServiceInterface> translator;
 			helper.reconstitutes<artdaq::Fragments, art::InEvent>(pretend_module_name, translator->GetUnidentifiedInstanceName());
 			// Workaround for #22979
@@ -1087,6 +1090,18 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 
 			TLOG_ARB(19, "ArtdaqInputHelper") << "readNext: returning true on Event message.";
 			ret = true;
+		}
+	}
+
+	if (outE != nullptr)
+	{
+		auto artHdrPtr = std::make_unique<artdaq::detail::RawEventHeader>();
+		auto daqHdrPtr = communicationWrapper_.getEventHeader();
+
+		if (daqHdrPtr != nullptr)
+		{
+			memcpy(artHdrPtr.get(), daqHdrPtr.get(), sizeof(artdaq::detail::RawEventHeader));
+			put_product_in_principal(std::move(artHdrPtr), *outE, pretend_module_name, "RawEventHeader");
 		}
 	}
 
