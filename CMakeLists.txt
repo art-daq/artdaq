@@ -55,6 +55,16 @@ if( ${BTYPE_UC} MATCHES "DEBUG" )
 	endif()
 endif()
 
+#exception stack trace
+if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})
+        if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
+                message("!!! Exception StackTrace Activated!!!")
+                add_definitions(-D EXCEPTIONSTACKTRACE)
+                set( EXCEPTIONSTACKTRACE_LIB  artdaq-core_Utilities_ExceptionStackTrace )
+                cet_add_compiler_flags( -rdynamic -Wno-unused-command-line-argument )
+        endif()
+endif()
+
 cet_report_compiler_flags()
 
 # JCF, 7/8/15 - not sure this is actually doing anything...
