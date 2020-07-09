@@ -41,6 +41,7 @@
 #define TLVL_APPLYREQUESTS 9
 #define TLVL_SENDEMPTYFRAGMENTS 19
 #define TLVL_CHECKWINDOWS 14
+#define TLVL_EMPTYFRAGMENT 22
 
 artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     : next_sequence_id_(1)
@@ -756,7 +757,7 @@ bool artdaq::FragmentBuffer::applyRequests(artdaq::FragmentPtrs& frags)
 
 bool artdaq::FragmentBuffer::sendEmptyFragment(artdaq::FragmentPtrs& frags, size_t seqId, Fragment::fragment_id_t fragmentId, std::string desc)
 {
-	TLOG(TLVL_WARNING) << desc << " sequence ID " << seqId << ", sending empty fragment";
+	TLOG(TLVL_EMPTYFRAGMENT) << desc << " sequence ID " << seqId << ", sending empty fragment";
 	auto frag = new Fragment();
 	frag->setSequenceID(seqId);
 	frag->setFragmentID(fragmentId);
@@ -821,7 +822,7 @@ void artdaq::FragmentBuffer::checkSentWindows(artdaq::Fragment::sequence_id_t se
 		TLOG(TLVL_CHECKWINDOWS) << "checkSentWindows: Sent Window history indicates that requests between " << next_sequence_id_ << " and " << seq << " have timed out.";
 		while (next_sequence_id_ <= seq)
 		{
-			if (next_sequence_id_ < seq) TLOG(TLVL_WARNING) << "Missed request for sequence ID " << next_sequence_id_ << "! Will not send any data for this sequence ID!";
+			if (next_sequence_id_ < seq) TLOG(TLVL_CHECKWINDOWS) << "Missed request for sequence ID " << next_sequence_id_ << "! Will not send any data for this sequence ID!";
 			requestBuffer_->RemoveRequest(next_sequence_id_);
 
 			for (auto& id : dataBuffers_)
