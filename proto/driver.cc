@@ -250,6 +250,7 @@ catch (...)
 {
 	artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,
 	                         "Exception caught in artdaqDriver");
+	exit(-2);
 }
 
 template<typename B, typename D>
