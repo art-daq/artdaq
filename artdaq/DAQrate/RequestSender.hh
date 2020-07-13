@@ -10,10 +10,10 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <stdint.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
+#include <cstdint>
 #include <future>
 #include <map>
 #include <memory>
@@ -79,11 +79,14 @@ public:
 		 */
 	RequestSender& operator=(RequestSender const&) = delete;
 
+	RequestSender(RequestSender&&) = delete;             ///< Move Constructor is deleted
+	RequestSender& operator=(RequestSender&&) = delete;  ///< Move-assignment operator is deleted
+
 	/**
 		 * \brief RequestSender Constructor
 		 * \param pset ParameterSet used to configured RequestSender. See artdaq::RequestSender::Config
 		 */
-	RequestSender(const fhicl::ParameterSet& pset);
+	explicit RequestSender(const fhicl::ParameterSet& pset);
 	/**
 		 * \brief RequestSender Destructor
 		 */

@@ -32,7 +32,9 @@
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 artdaq::RequestReceiver::RequestReceiver()
-    : request_port_(3001)
+    : request_stop_requested_(false)
+    , request_received_(false)
+    , should_stop_(false)
     , request_addr_("227.128.12.26")
     , running_(false)
     , run_number_(0)
@@ -87,7 +89,7 @@ void artdaq::RequestReceiver::setupRequestListener()
 	si_me_request.sin_family = AF_INET;
 	si_me_request.sin_port = htons(request_port_);
 	si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (bind(request_socket_, (struct sockaddr*)&si_me_request, sizeof(si_me_request)) == -1)
+	if (bind(request_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	{
 		TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << request_port_ << ", err=" << strerror(errno);
 		exit(1);
@@ -138,11 +140,24 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 	if (running_)
 	{
 		TLOG(TLVL_DEBUG) << "Joining requestThread";
-		if (requestThread_.joinable()) requestThread_.join();
+		try
+		{
+			if (requestThread_.joinable())
+			{
+				requestThread_.join();
+			}
+		}
+		catch (...)
+		{
+			// IGNORED
+		}
 		bool once = true;
 		while (running_)
 		{
-			if (once) TLOG(TLVL_ERROR) << "running_ is true after thread join! Should NOT happen";
+			if (once)
+			{
+				TLOG(TLVL_ERROR) << "running_ is true after thread join! Should NOT happen";
+			}
 			once = false;
 			usleep(10000);
 		}
@@ -160,7 +175,10 @@ void artdaq::RequestReceiver::startRequestReception()
 {
 	if (!receive_requests_) return;
 	std::unique_lock<std::mutex> lk(state_mutex_);
-	if (requestThread_.joinable()) requestThread_.join();
+	if (requestThread_.joinable())
+	{
+		requestThread_.join();
+	}
 	should_stop_ = false;
 	request_stop_requested_ = false;
 
@@ -205,7 +223,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		// Continue loop if no message received or message does not have correct event ID
 		if (rv <= 0 || (ufds[0].revents != POLLIN && ufds[0].revents != POLLPRI))
 		{
-			if (rv == 1 && (ufds[0].revents & (POLLNVAL | POLLERR | POLLHUP)))
+			if (rv == 1 && ((ufds[0].revents & (POLLNVAL | POLLERR | POLLHUP)) != 0))
 			{
 				close(request_socket_);
 				request_socket_ = -1;
@@ -221,7 +239,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
 		struct sockaddr_in from;
 		socklen_t len = sizeof(from);
-		auto sts = recvfrom(request_socket_, &buffer[0], MAX_REQUEST_MESSAGE_SIZE, 0, (struct sockaddr*)&from, &len);
+		auto sts = recvfrom(request_socket_, &buffer[0], MAX_REQUEST_MESSAGE_SIZE, 0, reinterpret_cast<struct sockaddr*>(&from), &len);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		if (sts < 0)
 		{
 			TLOG(TLVL_ERROR) << "Error receiving request message header err=" << strerror(errno);
@@ -230,9 +248,12 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			continue;
 		}
 
-		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]);
+		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header << std::dec << ", packet_count: " << hdr_buffer->packet_count << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port << ", run number: " << hdr_buffer->run_number;
-		if (!hdr_buffer->isValid()) continue;
+		if (!hdr_buffer->isValid())
+		{
+			continue;
+		}
 
 		request_received_ = true;
 
@@ -255,7 +276,10 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		std::vector<artdaq::detail::RequestPacket> pkt_buffer(hdr_buffer->packet_count);
 		memcpy(&pkt_buffer[0], &buffer[sizeof(artdaq::detail::RequestHeader)], sizeof(artdaq::detail::RequestPacket) * hdr_buffer->packet_count);
 
-		if (should_stop_) break;
+		if (should_stop_)
+		{
+			break;
+		}
 
 		for (auto& buffer : pkt_buffer)
 		{

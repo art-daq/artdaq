@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 #define TLVL_GETNEXT 10
@@ -48,7 +49,6 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
     : mutex_()
     , useMonitoringThread_(ps.get<bool>("separate_monitoring_thread", false))
     , monitoringInterval_(ps.get<int64_t>("hardware_poll_interval_us", 0))
-    , lastMonitoringCall_()
     , isHardwareOK_(true)
     , run_number_(-1)
     , subrun_number_(-1)
@@ -71,17 +71,15 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 
 	if (fragment_id != -99)
 	{
-		if (fragment_ids.size() != 0)
+		if (!fragment_ids.empty())
 		{
-			latest_exception_report_ = "Error in CommandableFragmentGenerator: can't both define \"fragment_id\" and \"fragment_ids\" in FHiCL document";
+			latest_exception_report_ = R"(Error in CommandableFragmentGenerator: can't both define "fragment_id" and "fragment_ids" in FHiCL document)";
 			TLOG(TLVL_ERROR) << latest_exception_report_;
 			throw cet::exception(latest_exception_report_);
 		}
-		else
-		{
+
 			fragment_ids.emplace_back(fragment_id);
 		}
-	}
 
 	for (auto& id : fragment_ids)
 	{
@@ -100,7 +98,17 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 {
 	should_stop_ = true;
 	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
-	if (monitoringThread_.joinable()) monitoringThread_.join();
+	try
+	{
+		if (monitoringThread_.joinable())
+		{
+			monitoringThread_.join();
+		}
+	}
+	catch (...)
+	{
+		// IGNORED
+	}
 	TLOG(TLVL_DEBUG) << "joinThreads complete";
 }
 
@@ -143,7 +151,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 				throw;
 			}
 			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
-			for (auto dataIter = output.begin(); dataIter != output.end(); ++dataIter)
+			for (auto& dataIter : output)
 			{
 				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
 				                           << ", type = " << (*dataIter)->typeString() << ", id = " << std::to_string((*dataIter)->fragmentID())
@@ -244,7 +252,7 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 	if (run < 0)
 	{
 		TLOG(TLVL_ERROR) << "negative run number";
-		throw cet::exception("CommandableFragmentGenerator") << "negative run number";
+		throw cet::exception("CommandableFragmentGenerator") << "negative run number";  // NOLINT(cert-err60-cpp)
 	}
 
 	timeout_ = timeout;
@@ -367,7 +375,7 @@ std::string artdaq::CommandableFragmentGenerator::report()
 	return "";
 }
 
-std::string artdaq::CommandableFragmentGenerator::reportSpecific(std::string const&)
+std::string artdaq::CommandableFragmentGenerator::reportSpecific(std::string const& /*unused*/)
 {
 #pragma message "Using default implementation of CommandableFragmentGenerator::reportSpecific(std::string)"
 	return "";
@@ -379,7 +387,7 @@ bool artdaq::CommandableFragmentGenerator::checkHWStatus_()
 	return true;
 }
 
-bool artdaq::CommandableFragmentGenerator::metaCommand(std::string const&, std::string const&)
+bool artdaq::CommandableFragmentGenerator::metaCommand(std::string const& /*unused*/, std::string const& /*unused*/)
 {
 #pragma message "Using default implementation of CommandableFragmentGenerator::metaCommand(std::string, std::string)"
 	return true;
@@ -387,7 +395,10 @@ bool artdaq::CommandableFragmentGenerator::metaCommand(std::string const&, std::
 
 void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 {
-	if (monitoringThread_.joinable()) monitoringThread_.join();
+	if (monitoringThread_.joinable())
+	{
+		monitoringThread_.join();
+	}
 	TLOG(TLVL_INFO) << "Starting Hardware Monitoring Thread";
 	try
 	{

@@ -11,16 +11,30 @@
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
 	do                                                                                                                           \
 	{                                                                                                                            \
-		if (l == r)                                                                                                              \
+		if ((l) == (r))                                                                                                              \
 		{                                                                                                                        \
-			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...YES!"; \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...YES!"; \
 		}                                                                                                                        \
 		else                                                                                                                     \
 		{                                                                                                                        \
-			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << l << ") equals " << #r << " (" << r << ")...NO!";  \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...NO!";  \
 		}                                                                                                                        \
-		BOOST_REQUIRE_EQUAL(l, r);                                                                                               \
-	} while (0)
+		BOOST_REQUIRE_EQUAL((l), (r));                                                                                               \
+	} while (false)
+
+#define TRACE_REQUIRE(b)                                                                                 \
+	do                                                                                                   \
+	{                                                                                                    \
+		if (b)                                                                                           \
+		{                                                                                                \
+			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #b << " (" << (b) << ") is true...YES!"; \
+		}                                                                                                \
+		else                                                                                             \
+		{                                                                                                \
+			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #b << " (" << (b) << ") is true...NO!";  \
+		}                                                                                                \
+		BOOST_REQUIRE((b));                                                                              \
+	} while (false)
 
 namespace artdaqtest {
 class CommandableFragmentGeneratorTest;
@@ -37,7 +51,13 @@ public:
 	 */
 	explicit CommandableFragmentGeneratorTest(const fhicl::ParameterSet& ps);
 
-	virtual ~CommandableFragmentGeneratorTest() { joinThreads(); };
+	~CommandableFragmentGeneratorTest() override { joinThreads(); };
+
+private:
+	CommandableFragmentGeneratorTest(CommandableFragmentGeneratorTest const&) = delete;
+	CommandableFragmentGeneratorTest(CommandableFragmentGeneratorTest&&) = delete;
+	CommandableFragmentGeneratorTest& operator=(CommandableFragmentGeneratorTest const&) = delete;
+	CommandableFragmentGeneratorTest& operator=(CommandableFragmentGeneratorTest&&) = delete;
 
 protected:
 	/**
@@ -221,7 +241,7 @@ BOOST_AUTO_TEST_CASE(MultipleIDs)
 
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 2u);
-	while (fps.size() > 0)
+	while (!fps.empty())
 	{
 		ids[fps.front()->fragmentID()]++;
 		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
@@ -266,7 +286,7 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_NonThreaded)
 	usleep(10000);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, false);
-	TRACE_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE(fps.empty());
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();
@@ -307,7 +327,7 @@ BOOST_AUTO_TEST_CASE(HardwareFailure_Threaded)
 	gen.setFireCount(1);
 	sts = gen.getNext(fps);
 	TRACE_REQUIRE_EQUAL(sts, false);
-	TRACE_REQUIRE_EQUAL(fps.size(), 0);
+	TRACE_REQUIRE(fps.empty());
 
 	gen.StopCmd(0xFFFFFFFF, 1);
 	gen.joinThreads();

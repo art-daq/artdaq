@@ -4,10 +4,10 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <poll.h>
-#include <signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
+#include <csignal>
 #include <thread>
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
@@ -60,7 +60,10 @@ public:
 
 		host_map_ = MakeHostMap(pset);
 
-		if (use_routing_master_) startTableReceiverThread_();
+		if (use_routing_master_)
+		{
+			startTableReceiverThread_();
+		}
 	}
 
 	/**
@@ -70,7 +73,17 @@ public:
 	{
 		TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver BEGIN";
 		should_stop_ = true;
-		if (routing_thread_.joinable()) routing_thread_.join();
+		try
+		{
+			if (routing_thread_.joinable())
+			{
+				routing_thread_.join();
+			}
+		}
+		catch (...)
+		{
+			// IGNORED
+		}
 		TLOG(TLVL_DEBUG) << "Shutting down RoutingReceiver END.";
 	}
 
@@ -104,6 +117,11 @@ public:
 	hostMap_t GetHostMap() { return host_map_; }
 
 private:
+	RoutingReceiver(RoutingReceiver const&) = delete;
+	RoutingReceiver(RoutingReceiver&&) = delete;
+	RoutingReceiver& operator=(RoutingReceiver const&) = delete;
+	RoutingReceiver& operator=(RoutingReceiver&&) = delete;
+
 	void setupTableListener_()
 	{
 		int sts;
@@ -133,7 +151,7 @@ private:
 			TLOG(TLVL_ERROR) << "inet_aton says table_address " << table_address_ << " is invalid";
 		}
 		si_me_request.sin_addr.s_addr = in_addr_s.s_addr;
-		if (bind(table_socket_, (struct sockaddr*)&si_me_request, sizeof(si_me_request)) == -1)
+		if (bind(table_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1) // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		{
 			TLOG(TLVL_ERROR) << "Cannot bind request socket to port " << table_port_;
 			exit(1);
@@ -155,7 +173,10 @@ private:
 	}
 	void startTableReceiverThread_()
 	{
-		if (routing_thread_.joinable()) routing_thread_.join();
+		if (routing_thread_.joinable())
+		{
+			routing_thread_.join();
+		}
 		TLOG(TLVL_INFO) << "Starting Routing Thread";
 		try
 		{
@@ -205,7 +226,7 @@ private:
 				TLOG(TLVL_DEBUG) << __func__ << ": Going to receive RoutingPacketHeader";
 				struct sockaddr_in from;
 				socklen_t len = sizeof(from);
-				auto stss = recvfrom(table_socket_, &buf[0], MAX_ROUTING_TABLE_SIZE, 0, (struct sockaddr*)&from, &len);
+				auto stss = recvfrom(table_socket_, &buf[0], MAX_ROUTING_TABLE_SIZE, 0, reinterpret_cast<struct sockaddr*>(&from), &len); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 				TLOG(TLVL_DEBUG) << __func__ << ": Received " << stss << " bytes from " << inet_ntoa(from.sin_addr) << ":" << from.sin_port;
 
 				if (stss > static_cast<ssize_t>(sizeof(hdr)))
@@ -218,7 +239,7 @@ private:
 					continue;
 				}
 
-				TRACE(TLVL_DEBUG, "receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx", hdr.nEntries, ((unsigned long*)&hdr)[0], ((unsigned long*)&hdr)[1]);
+				TRACE(TLVL_DEBUG, "receiveTableUpdatesLoop_: Checking for valid header with nEntries=%lu headerData:0x%016lx%016lx", hdr.nEntries, ((unsigned long*)&hdr)[0], ((unsigned long*)&hdr)[1]); // NOLINT
 				if (hdr.header != ROUTING_MAGIC)
 				{
 					TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC. size(bytes)=" << stss;
@@ -228,7 +249,7 @@ private:
 					artdaq::detail::RoutingPacket buffer(hdr.nEntries);
 					assert(static_cast<size_t>(stss) == sizeof(artdaq::detail::RoutingPacketHeader) + sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
 					memcpy(&buffer[0], &buf[sizeof(artdaq::detail::RoutingPacketHeader)], sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
-					TRACE(6, "receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx", stss, ((unsigned long*)&buffer[0])[0], ((unsigned long*)&buffer[0])[1]);
+					TRACE(6, "receiveTableUpdatesLoop_: Received a packet of %ld bytes. 1st 16 bytes: 0x%016lx%016lx", stss, ((unsigned long*)&buffer[0])[0], ((unsigned long*)&buffer[0])[1]); // NOLINT
 
 					first = buffer[0].sequence_id;
 					last = buffer[buffer.size() - 1].sequence_id;
@@ -253,7 +274,7 @@ private:
 									break;
 								}
 								thisSeqID++;
-								if (routing_table_.count(entry.sequence_id))
+								if (routing_table_.count(entry.sequence_id) != 0u)
 								{
 									if (routing_table_[entry.sequence_id] != entry.destination_rank)
 									{
@@ -263,7 +284,10 @@ private:
 									}
 									continue;
 								}
-								if (entry.sequence_id < routing_table_last_) continue;
+								if (entry.sequence_id < routing_table_last_)
+								{
+									continue;
+								}
 								routing_table_[entry.sequence_id] = entry.destination_rank;
 								TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
 								                 << " -> Rank " << entry.destination_rank;
@@ -271,7 +295,10 @@ private:
 						}
 
 						TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
-						if (routing_table_.size() > 0) TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+						if (!routing_table_.empty())
+						{
+							TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+						}
 
 						auto counter = 0;
 						for (auto& entry : routing_table_)
@@ -281,7 +308,10 @@ private:
 						}
 					}
 
-					if (last > routing_table_last_) routing_table_last_ = last;
+					if (last > routing_table_last_)
+					{
+						routing_table_last_ = last;
+					}
 				}
 			}
 		}
@@ -311,11 +341,12 @@ static void signal_handler(int signum)
 	should_stop = true;
 
 	sigset_t set;
-	pthread_sigmask(SIG_UNBLOCK, NULL, &set);
-	pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+	pthread_sigmask(SIG_UNBLOCK, nullptr, &set);
+	pthread_sigmask(SIG_UNBLOCK, &set, nullptr);
 }
 
 int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("RoutingReceiver", false, false);
 	static std::mutex sighandler_mutex;
@@ -328,11 +359,11 @@ int main(int argc, char* argv[])
 		for (auto signal : signals)
 		{
 			struct sigaction old_action;
-			sigaction(signal, NULL, &old_action);
+			sigaction(signal, nullptr, &old_action);
 
 			//If the old handler wasn't SIG_IGN (it's a handler that just
 			// "ignore" the signal)
-			if (old_action.sa_handler != SIG_IGN)
+			if (old_action.sa_handler != SIG_IGN) // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
 			{
 				struct sigaction action;
 				action.sa_handler = signal_handler;
@@ -344,22 +375,22 @@ int main(int argc, char* argv[])
 				action.sa_flags = 0;
 
 				//Replace the signal handler of SIGINT with the one described by new_action
-				sigaction(signal, &action, NULL);
+				sigaction(signal, &action, nullptr);
 			}
 		}
 	}
 
 	fhicl::ParameterSet init_ps = LoadParameterSet<artdaq::RoutingReceiver::Config>(argc, argv, "routingReceiver", "This application receives Routing Tables, and calculates statistics about the usage of the receivers");
-	fhicl::ParameterSet config_ps = init_ps.get<fhicl::ParameterSet>("daq", init_ps);
-	fhicl::ParameterSet metric_ps = config_ps.get<fhicl::ParameterSet>("metrics", config_ps);
-	fhicl::ParameterSet fr_ps = config_ps.get<fhicl::ParameterSet>("fragment_receiver", config_ps);
+	auto config_ps = init_ps.get<fhicl::ParameterSet>("daq", init_ps);
+	auto metric_ps = config_ps.get<fhicl::ParameterSet>("metrics", config_ps);
+	auto fr_ps = config_ps.get<fhicl::ParameterSet>("fragment_receiver", config_ps);
 
 	artdaq::RoutingReceiver rr(fr_ps);
 
 	auto host_map = rr.GetHostMap();
 
-	size_t collection_time_ms = init_ps.get<size_t>("collection_time_ms", 1000);
-	size_t max_graph_width = init_ps.get<size_t>("max_graph_width", 100);
+	auto collection_time_ms = init_ps.get<size_t>("collection_time_ms", 1000);
+	auto max_graph_width = init_ps.get<size_t>("max_graph_width", 100);
 	bool print_verbose = init_ps.get<bool>("print_verbose_info", true);
 	bool verbose_clear_screen = init_ps.get<bool>("clear_screen", true);
 
@@ -371,7 +402,10 @@ int main(int argc, char* argv[])
 
 	metricMan->initialize(metric_ps, "RoutingReceiver");
 	metricMan->do_start();
-	if (print_verbose && verbose_clear_screen) std::cout << "\033[2J";
+	if (print_verbose && verbose_clear_screen)
+	{
+		std::cout << "\033[2J";
+	}
 
 	std::map<int, int> receiver_table = std::map<int, int>();
 
@@ -381,7 +415,7 @@ int main(int argc, char* argv[])
 
 		auto this_table = rr.GetAndClearRoutingTable();
 
-		if (this_table.size() > 0)
+		if (!this_table.empty())
 		{
 			auto graph_width = this_table.size();
 			auto n = 1;  // n becomes entries per graph character
@@ -410,7 +444,10 @@ int main(int argc, char* argv[])
 			std::ostringstream report;
 			std::ostringstream verbose_report;
 
-			if (print_verbose && verbose_clear_screen) std::cout << "\033[;H\033[J";
+			if (print_verbose && verbose_clear_screen)
+			{
+				std::cout << "\033[;H\033[J";
+			}
 
 			report << artdaq::TimeUtils::gettimeofday_us() << ": " << this_table.size() << " Entries, ";
 			for (auto& receiver : receiver_table)
@@ -454,11 +491,20 @@ int main(int argc, char* argv[])
 			}
 			TLOG(TLVL_INFO) << report.str();
 			std::cout << report.str() << std::endl;
-			if (print_verbose) std::cout << verbose_report.str() << std::endl;
+			if (print_verbose)
+			{
+				std::cout << verbose_report.str() << std::endl;
+			}
 		}
 		std::this_thread::sleep_until(start_time + std::chrono::milliseconds(collection_time_ms));
 	}
 
 	metricMan->do_stop();
 	artdaq::Globals::CleanUpGlobals();
+
+	return 0;
+}
+catch (...)
+{
+	return -1;
 }

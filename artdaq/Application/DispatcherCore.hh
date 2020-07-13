@@ -22,7 +22,7 @@ public:
 	/**
 	* \brief DispatcherCore Constructor.
 	*/
-	DispatcherCore();
+	DispatcherCore() = default;
 
 	/**
 	 * \brief Copy Constructor is deleted
@@ -32,13 +32,18 @@ public:
 	/**
 	* Destructor.
 	*/
-	~DispatcherCore();
+	~DispatcherCore()
+	{
+		TLOG(TLVL_DEBUG) << "Destructor";
+	}
 
 	/**
 	 * \brief Copy Assignment operator is deleted
 	 * \return DispatcherCore copy
 	 */
 	DispatcherCore& operator=(DispatcherCore const&) = delete;
+	DispatcherCore(DispatcherCore&&) = delete;
+	DispatcherCore& operator=(DispatcherCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.
@@ -87,7 +92,7 @@ public:
 
 private:
 	fhicl::ParameterSet generate_filter_fhicl_();
-	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet skel, std::string label, fhicl::ParameterSet pset);
+	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet skel, const std::string& label, const fhicl::ParameterSet& pset);
 	void check_filters_();
 
 	std::mutex dispatcher_transfers_mutex_;

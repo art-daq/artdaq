@@ -22,7 +22,7 @@ public:
 		 * RoundRobinPolicy accepts the following Parameter:
 		 * "minimum_participants" (Default: 0): Minimum number of receivers to distribute between. Use negative number to indicate how many can be missing from total. If the number of allowed missing receivers is greater than the number that exist, then the minimum number of participants will be set to 1.
 		 */
-	explicit RoundRobinPolicy(fhicl::ParameterSet ps)
+	explicit RoundRobinPolicy(const fhicl::ParameterSet& ps)
 	    : RoutingMasterPolicy(ps)
 	    , minimum_participants_(ps.get<int>("minimum_participants", 0))
 	{
@@ -31,7 +31,7 @@ public:
 	/**
 		 * \brief Default virtual Destructor
 		 */
-	virtual ~RoundRobinPolicy() = default;
+	~RoundRobinPolicy() override = default;
 
 	/**
 		 * \brief Create a Routing Table using the tokens that have been received
@@ -44,6 +44,11 @@ public:
 	detail::RoutingPacket GetCurrentTable() override;
 
 private:
+	RoundRobinPolicy(RoundRobinPolicy const&) = delete;
+	RoundRobinPolicy(RoundRobinPolicy&&) = delete;
+	RoundRobinPolicy& operator=(RoundRobinPolicy const&) = delete;
+	RoundRobinPolicy& operator=(RoundRobinPolicy&&) = delete;
+
 	int minimum_participants_;
 };
 
@@ -53,7 +58,7 @@ detail::RoutingPacket RoundRobinPolicy::GetCurrentTable()
 	auto tokens = getTokensSnapshot();
 	TLOG(13) << "RoundRobinPolicy::GetCurrentTable token list size is " << tokens->size();
 	std::map<int, int> table;
-	for (auto token : *tokens.get())
+	for (auto token : *tokens)
 	{
 		TLOG(14) << "RoundRobinPolicy::GetCurrentTable adding token for rank " << token << " to table";
 		table[token]++;
@@ -69,8 +74,14 @@ detail::RoutingPacket RoundRobinPolicy::GetCurrentTable()
 	// a negative number that is larger (in absolute value) to the receiver count, and "minimum"
 	// ends up with a large positive value.
 	int minimum = minimum_participants_ > 0 ? minimum_participants_ : GetReceiverCount() + minimum_participants_;
-	if (minimum < 1) minimum = 1;                                                      // Can't go below 1
-	if (minimum > static_cast<int>(GetReceiverCount())) minimum = GetReceiverCount();  // Can't go above receiver count
+	if (minimum < 1)
+	{
+		minimum = 1;  // Can't go below 1
+	}
+	if (minimum > static_cast<int>(GetReceiverCount()))
+	{
+		minimum = GetReceiverCount();  // Can't go above receiver count
+	}
 
 	bool endCondition = table.size() < static_cast<size_t>(minimum);
 	TLOG(15) << "RoundRobinPolicy::GetCurrentTable initial endCondition is " << endCondition << ", minimum is " << minimum;
@@ -84,9 +95,13 @@ detail::RoutingPacket RoundRobinPolicy::GetCurrentTable()
 			table[it->first]--;
 
 			if (table[it->first] <= 0)
+			{
 				it = table.erase(it);
+			}
 			else
+			{
 				++it;
+			}
 		}
 		endCondition = table.size() < static_cast<size_t>(minimum);
 	}

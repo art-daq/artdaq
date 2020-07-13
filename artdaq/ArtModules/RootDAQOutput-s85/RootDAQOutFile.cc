@@ -744,9 +744,9 @@ void art::RootDAQOutFile::writeParentageRegistry()
 		parentageTree_->Fill();
 	}
 	parentageTree_->SetBranchAddress(rootNames::parentageIDBranchName().c_str(),
-	                                 reinterpret_cast<void*>(-1L));
+	                                 static_cast<void*>(-1L));
 	parentageTree_->SetBranchAddress(rootNames::parentageBranchName().c_str(),
-	                                 reinterpret_cast<void*>(-1L));
+	                                 static_cast<void*>(-1L));
 }
 
 void art::RootDAQOutFile::writeFileFormatVersion()

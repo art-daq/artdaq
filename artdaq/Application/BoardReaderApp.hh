@@ -37,6 +37,9 @@ public:
 	 */
 	BoardReaderApp& operator=(BoardReaderApp const&) = delete;
 
+	BoardReaderApp(BoardReaderApp&&) = delete;
+	BoardReaderApp& operator=(BoardReaderApp&&) = delete;
+
 	// these methods provide the operations that are used by the state machine
 	/**
 	 * \brief Initialize the BoardReaderCore

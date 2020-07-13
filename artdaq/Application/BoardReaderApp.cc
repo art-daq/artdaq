@@ -1,7 +1,11 @@
-#include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()
 #include "artdaq/Application/BoardReaderApp.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+
+#include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_BoardReaderApp").c_str() // NOLINT
+
+#include <memory>
+#include <string>
 
 artdaq::BoardReaderApp::BoardReaderApp()
     : fragment_receiver_ptr_(nullptr)
@@ -21,10 +25,10 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	// instance, then create a new one.  Doing it in one step does not
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
-	TLOG(TLVL_DEBUG) << "Initializing first deleting old instance " << (void*)fragment_receiver_ptr_.get();
+	TLOG(TLVL_DEBUG) << "Initializing first deleting old instance " << static_cast<void*>(fragment_receiver_ptr_.get());
 	fragment_receiver_ptr_.reset(nullptr);
-	fragment_receiver_ptr_.reset(new BoardReaderCore(*this));
-	TLOG(TLVL_DEBUG) << "Initializing new BoardReaderCore at " << (void*)fragment_receiver_ptr_.get() << " with pset " << pset.to_string();
+	fragment_receiver_ptr_ = std::make_unique<BoardReaderCore>(*this);
+	TLOG(TLVL_DEBUG) << "Initializing new BoardReaderCore at " << static_cast<void*>(fragment_receiver_ptr_.get()) << " with pset " << pset.to_string();
 	external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
 	if (!external_request_status_)
 	{
@@ -69,10 +73,6 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 
 		ExceptionHandler(ExceptionHandlerRethrow::yes, exception_string.str());
 	}
-	/*
-	fragment_processing_future_ =
-	std::async(std::launch::async, &BoardReaderCore::process_fragments,
-	fragment_receiver_ptr_.get());*/
 
 	return external_request_status_;
 }
@@ -101,7 +101,10 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 
 	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
 	int number_of_fragments_sent = -1;
-	if (fragment_receiver_ptr_) number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
+	if (fragment_receiver_ptr_)
+	{
+		number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
+	}
 	TLOG(TLVL_DEBUG) << "do_stop(uint64_t, uint64_t): "
 	                 << "Number of fragments sent = " << number_of_fragments_sent
 	                 << ".";
@@ -143,10 +146,6 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	attrs.set_stack_size(4096 * 2000);  // 8 MB
 	fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
 	fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
-	/*
-		fragment_processing_future_ =
-			std::async(std::launch::async, &BoardReaderCore::process_fragments,
-					   fragment_receiver_ptr_.get());*/
 
 	return external_request_status_;
 }
@@ -223,11 +222,9 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else
-		{
+
 			return "Success";
 		}
-	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
@@ -238,7 +235,7 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 	//}
 
 	// pass the request to the BoardReaderCore instance, if it's available
-	if (fragment_receiver_ptr_.get() != 0)
+	if (fragment_receiver_ptr_ != nullptr)
 	{
 		resultString.append(fragment_receiver_ptr_->report(which));
 	}

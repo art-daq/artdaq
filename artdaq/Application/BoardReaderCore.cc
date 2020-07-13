@@ -12,6 +12,7 @@
 #include <sched.h>
 #include <algorithm>
 #include <thread>
+#include <memory>
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 
@@ -57,7 +58,7 @@ artdaq::BoardReaderCore::~BoardReaderCore()
 	TLOG(TLVL_DEBUG) << "Stopping Request Receiver END";
 }
 
-bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_DEBUG) << "initialize method called with "
 	                 << "ParameterSet = \"" << pset.to_string() << "\".";
@@ -127,7 +128,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	}
 
 	// create the requested CommandableFragmentGenerator
-	std::string frag_gen_name = fr_pset.get<std::string>("generator", "");
+	auto frag_gen_name = fr_pset.get<std::string>("generator", "");
 	if (frag_gen_name.length() == 0)
 	{
 		TLOG(TLVL_ERROR)
@@ -243,7 +244,10 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 	fragment_buffer_ptr_->Stop();
 
 	TLOG(TLVL_DEBUG) << "Stopping DataSenderManager";
-	if (sender_ptr_) sender_ptr_->StopSender();
+	if (sender_ptr_)
+	{
+		sender_ptr_->StopSender();
+	}
 
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Stop transition for run " << run_id_.run();
 	return true;
@@ -268,7 +272,7 @@ bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 	return true;
 }
 
-bool artdaq::BoardReaderCore::shutdown(uint64_t)
+bool artdaq::BoardReaderCore::shutdown(uint64_t /*unused*/)
 {
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Starting Shutdown transition";
 	generator_ptr_->joinThreads();  // Cleanly shut down the CommandableFragmentGenerator
@@ -386,8 +390,10 @@ void artdaq::BoardReaderCore::send_fragments()
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
-		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param))
+		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param) != 0)
+		{
 			TLOG(TLVL_WARNING) << "setting realtime priority failed";
+		}
 #pragma GCC diagnostic pop
 	}
 
@@ -411,7 +417,7 @@ void artdaq::BoardReaderCore::send_fragments()
 	}
 
 	TLOG(TLVL_DEBUG) << "Initializing DataSenderManager. my_rank=" << my_rank;
-	sender_ptr_.reset(new artdaq::DataSenderManager(data_pset_));
+	sender_ptr_ = std::make_unique<artdaq::DataSenderManager>(data_pset_);
 
 	TLOG(TLVL_DEBUG) << "Waiting for first fragment.";
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
@@ -448,7 +454,7 @@ void artdaq::BoardReaderCore::send_fragments()
 
 		for (auto& fragPtr : frags)
 		{
-			if (!fragPtr.get())
+			if (fragPtr == nullptr)
 			{
 				TLOG(TLVL_WARNING) << "Encountered a bad fragment pointer in fragment " << fragment_count_ << ". "
 				                   << "This is most likely caused by a problem with the Fragment Generator!";
@@ -493,7 +499,9 @@ void artdaq::BoardReaderCore::send_fragments()
 
 			bool readyToReport = statsHelper_.readyToReport();
 			if (readyToReport)
+			{
 				TLOG(TLVL_INFO) << buildStatisticsString_();
+			}
 
 			// Turn on lvls (mem and/or slow) 3,13,14 to log every send.
 			TLOG(((fragment_count_ == 1) ? TLVL_DEBUG
@@ -523,7 +531,7 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 	std::string resultString;
 
 	// pass the request to the FragmentGenerator instance, if it's available
-	if (generator_ptr_.get() != 0 && which != "core")
+	if (generator_ptr_ != nullptr && which != "core")
 	{
 		resultString = generator_ptr_->ReportCmd(which);
 		if (resultString.length() > 0) { return resultString; }
@@ -539,7 +547,7 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 	tmpString.append(", Sent Fragment count = ");
 	tmpString.append(boost::lexical_cast<std::string>(fragment_count_));
 
-	if (which != "" && which != "core")
+	if (!which.empty() && which != "core")
 	{
 		tmpString.append(". Command=\"" + which + "\" is not currently supported.");
 	}
@@ -553,7 +561,10 @@ bool artdaq::BoardReaderCore::metaCommand(std::string const& command, std::strin
 	                 << ", arg = \"" << arg << "\""
 	                 << ".";
 
-	if (generator_ptr_) return generator_ptr_->metaCommand(command, arg);
+	if (generator_ptr_)
+	{
+		return generator_ptr_->metaCommand(command, arg);
+	}
 
 	return true;
 }
@@ -565,7 +576,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
@@ -596,7 +607,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 	// would be to use recentValueAverage().)
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		oss << ", input wait time = "
 		    << (mqPtr->getRecentValueSum() / fragmentCount) << " sec";
@@ -615,14 +626,14 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		oss << ", BRsync wait time = "
 		    << (mqPtr->getRecentValueSum() / fragmentCount) << " sec";
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		oss << ", output wait time = "
 		    << (mqPtr->getRecentValueSum() / fragmentCount) << " sec";
@@ -631,7 +642,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 	oss << std::endl
 	    << "  Fragments per read: ";
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PER_READ_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
@@ -651,12 +662,12 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	//TLOG(TLVL_DEBUG) << "Sending metrics " << __LINE__ ;
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
-		metricMan->sendMetric("Fragment Count", static_cast<unsigned long>(stats.fullSampleCount), "fragments", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Fragment Count", stats.fullSampleCount, "fragments", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Fragment Rate", stats.recentSampleRate, "fragments/sec", 1, MetricMode::Average);
 		metricMan->sendMetric("Average Fragment Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/fragment", 2, MetricMode::Average);
 		metricMan->sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);
@@ -671,7 +682,7 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	// would be to use recentValueAverage().)
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(INPUT_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		metricMan->sendMetric("Avg Input Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
@@ -687,19 +698,19 @@ void artdaq::BoardReaderCore::sendMetrics_()
 		metricMan->sendMetric("Avg Request Response Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		metricMan->sendMetric("Avg BoardReader Sync Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		metricMan->sendMetric("Avg Output Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PER_READ_STAT_KEY);
-	if (mqPtr.get() != 0)
+	if (mqPtr.get() != nullptr)
 	{
 		metricMan->sendMetric("Avg Frags Per Read", mqPtr->getRecentValueAverage(), "fragments/read", 4, MetricMode::Average);
 	}

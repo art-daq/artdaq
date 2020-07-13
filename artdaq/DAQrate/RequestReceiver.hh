@@ -87,9 +87,18 @@ public:
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
 private:
-	// FHiCL-configurable variables. Note that the C++ variable names
-	// are the FHiCL variable names with a "_" appended
-	int request_port_;
+	RequestReceiver(RequestReceiver const&) = delete;
+	RequestReceiver(RequestReceiver&&) = delete;
+	RequestReceiver& operator=(RequestReceiver const&) = delete;
+	RequestReceiver& operator=(RequestReceiver&&) = delete;
+
+	bool running_{false};
+	std::atomic<bool> request_stop_requested_;
+	std::atomic<bool> request_received_;
+	std::atomic<bool> should_stop_;
+
+	int request_port_{3001};
+	uint32_t run_number_{0};
 	std::string request_addr_;
 	std::string multicast_in_addr_;
 	bool running_;
@@ -97,11 +106,11 @@ private:
 	bool receive_requests_;
 
 	//Socket parameters
-	int request_socket_;
+  int request_socket_{-1};
 	std::atomic<bool> request_stop_requested_;
 	std::chrono::steady_clock::time_point request_stop_timeout_;
 	std::atomic<bool> request_received_;
-	size_t end_of_run_timeout_ms_;
+  size_t end_of_run_timeout_ms_{1000};
 	std::atomic<bool> should_stop_;
 	mutable std::mutex state_mutex_;
 	boost::thread requestThread_;

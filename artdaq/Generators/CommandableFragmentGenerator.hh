@@ -135,7 +135,6 @@ public:
 		 */
 	void startMonitoringThread();
 
-
 	/**
 		 * \brief This function regularly calls checkHWStatus_(), and sets the isHardwareOK flag accordingly.
 		 */
@@ -305,7 +304,7 @@ protected:
 		 */
 	artdaq::Fragment::fragment_id_t fragment_id() const
 	{
-		if (expectedTypes_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << expectedTypes_.size() << " were declared!";
+		if (expectedTypes_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << expectedTypes_.size() << " were declared!"; // NOLINT(cert-err60-cpp)
 		return (*expectedTypes_.begin()).first;
 	}
 
@@ -362,6 +361,11 @@ protected:
 	std::shared_ptr<RequestBuffer> GetRequestBuffer() { return requestBuffer_; }
 
 private:
+	CommandableFragmentGenerator(CommandableFragmentGenerator const&) = delete;
+	CommandableFragmentGenerator(CommandableFragmentGenerator&&) = delete;
+	CommandableFragmentGenerator& operator=(CommandableFragmentGenerator const&) = delete;
+	CommandableFragmentGenerator& operator=(CommandableFragmentGenerator&&) = delete;
+
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
 

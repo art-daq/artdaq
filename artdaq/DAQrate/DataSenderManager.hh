@@ -163,6 +163,11 @@ public:
 	size_t GetSentSequenceIDCount(Fragment::sequence_id_t seq);
 
 private:
+	DataSenderManager(DataSenderManager const&) = delete;
+	DataSenderManager(DataSenderManager&&) = delete;
+	DataSenderManager& operator=(DataSenderManager const&) = delete;
+	DataSenderManager& operator=(DataSenderManager&&) = delete;
+
 	// Calculate where the fragment with this sequenceID should go.
 	int calcDest_(Fragment::sequence_id_t) const;
 

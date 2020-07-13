@@ -1,8 +1,8 @@
 #define TRACE_NAME "RequestSender"
 
 #include <boost/program_options.hpp>
+#include <memory>
 #include "fhiclcpp/make_ParameterSet.h"
-namespace bpo = boost::program_options;
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
@@ -10,6 +10,7 @@ namespace bpo = boost::program_options;
 #include "artdaq/DAQrate/RequestSender.hh"
 
 int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("RequestSender");
 
@@ -38,8 +39,8 @@ int main(int argc, char* argv[])
 	if (pset.get<bool>("use_receiver", false))
 	{
 		auto receiver_pset = pset.get<fhicl::ParameterSet>("receiver_config");
-		request_buffer.reset(new artdaq::RequestBuffer(receiver_pset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1)));
-		receiver.reset(new artdaq::RequestReceiver(receiver_pset, request_buffer));
+	  request_buffer = std::make_shared<artdaq::RequestBuffer>(receiver_pset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1)));
+		receiver = std::make_unique<artdaq::RequestReceiver>(receiver_pset, request_buffer));
 		receiver->startRequestReception();
 	}
 
@@ -63,7 +64,7 @@ int main(int argc, char* argv[])
 			while (!recvd && artdaq::TimeUtils::GetElapsedTimeMilliseconds(start_time) < tmo)
 			{
 				auto reqs = request_buffer->GetRequests();
-				if (reqs.count(seq))
+				if (reqs.count(seq) != 0u)
 				{
 					TLOG(TLVL_INFO) << "Received Request for Sequence ID " << seq << ", timestamp " << reqs[seq];
 					request_buffer->RemoveRequest(seq);
@@ -82,4 +83,8 @@ int main(int argc, char* argv[])
 	}
 
 	return rc;
+}
+catch (...)
+{
+	return -1;
 }
