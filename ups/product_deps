@@ -27,7 +27,7 @@ art_root_io     	v1_00_05    	s83
 art_root_io     	v1_00_04    	s82
 art             	v2_11_05    	s73
 art             	v2_11_01    	s67
-artdaq_core 		v3_05_16
+artdaq_core 		v3_05_17
 artdaq_utilities        v1_05_06
 xmlrpc_c		v1_51_03a
 swig            	v4_0_0		-       optional
@@ -36,7 +36,7 @@ artdaq_mfextensions     v1_04_02        -       optional
 artdaq_epics_plugin     v1_02_13        -       optional
 artdaq_ganglia_plugin	v1_02_20        -       optional
 artdaq_pcp_mmv_plugin   v1_00_05        -       optional
-cetbuildtools		v7_14_00	-	only_for_build
+cetbuildtools		v7_17_01	-	only_for_build
 smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
 
