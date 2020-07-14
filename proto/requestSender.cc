@@ -39,8 +39,8 @@ try
 	if (pset.get<bool>("use_receiver", false))
 	{
 		auto receiver_pset = pset.get<fhicl::ParameterSet>("receiver_config");
-	  request_buffer = std::make_shared<artdaq::RequestBuffer>(receiver_pset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1)));
-		receiver = std::make_unique<artdaq::RequestReceiver>(receiver_pset, request_buffer));
+		request_buffer = std::make_shared<artdaq::RequestBuffer>(receiver_pset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1));
+		receiver = std::make_unique<artdaq::RequestReceiver>(receiver_pset, request_buffer);
 		receiver->startRequestReception();
 	}
 

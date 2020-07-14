@@ -153,12 +153,12 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
 			for (auto& dataIter : output)
 			{
-				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << (*dataIter)->sequenceID()
-				                           << ", type = " << (*dataIter)->typeString() << ", id = " << std::to_string((*dataIter)->fragmentID())
-				                           << ", timestamp = " << (*dataIter)->timestamp() << ", and sizeBytes = " << (*dataIter)->sizeBytes();
+				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << dataIter->sequenceID()
+				                           << ", type = " << dataIter->typeString() << ", id = " << std::to_string(dataIter->fragmentID())
+				                           << ", timestamp = " << dataIter->timestamp() << ", and sizeBytes = " << dataIter->sizeBytes();
 
-				auto fragId = (*dataIter)->fragmentID();
-				auto type = (*dataIter)->type();
+				auto fragId = dataIter->fragmentID();
+				auto type = dataIter->type();
 
 				if (!expectedTypes_.count(fragId))
 				{
@@ -169,7 +169,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 					expectedTypes_[fragId] = type;
 				else if (expectedTypes_[fragId] != type)
 				{
-					TLOG(TLVL_WARNING) << "Received Fragment with Fragment ID " << fragId << " and type " << (*dataIter)->typeString() << "(" << type << "), which does not match expected type for this ID (" << expectedTypes_[fragId] << ")";
+					TLOG(TLVL_WARNING) << "Received Fragment with Fragment ID " << fragId << " and type " << dataIter->typeString() << "(" << type << "), which does not match expected type for this ID (" << expectedTypes_[fragId] << ")";
 				}
 			}
 	}

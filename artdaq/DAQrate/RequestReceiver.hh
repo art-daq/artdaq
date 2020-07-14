@@ -101,17 +101,12 @@ private:
 	uint32_t run_number_{0};
 	std::string request_addr_;
 	std::string multicast_in_addr_;
-	bool running_;
-	uint32_t run_number_;
 	bool receive_requests_;
 
 	//Socket parameters
-  int request_socket_{-1};
-	std::atomic<bool> request_stop_requested_;
+	int request_socket_{-1};
 	std::chrono::steady_clock::time_point request_stop_timeout_;
-	std::atomic<bool> request_received_;
-  size_t end_of_run_timeout_ms_{1000};
-	std::atomic<bool> should_stop_;
+	size_t end_of_run_timeout_ms_{1000};
 	mutable std::mutex state_mutex_;
 	boost::thread requestThread_;
 
