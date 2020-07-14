@@ -224,6 +224,7 @@ private:
 	std::string send_command_(const std::string& command, const std::string& arg);
 	std::string send_command_(const std::string& command, const fhicl::ParameterSet& pset, uint64_t timestamp, uint64_t timeout);
 	std::string send_command_(const std::string& command, uint64_t a, uint64_t b);
+	std::string send_command_(const std::string& command, uint64_t a, uint32_t b);
 	std::string send_command_(const std::string& command, art::RunID r, uint64_t a, uint64_t b);
 	std::string send_command_(const std::string&, uint64_t);
 	std::string send_command_(const std::string&, const std::string&, const std::string&);

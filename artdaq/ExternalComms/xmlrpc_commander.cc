@@ -1341,6 +1341,32 @@ std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, 
 	return xmlrpc_c::value_string(result);
 }
 
+std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, uint64_t a, uint32_t b)
+{
+	if (serverUrl_.empty())
+	{
+		std::stringstream errmsg;
+		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+		ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+	}
+	xmlrpc_c::clientSimple myClient;
+	xmlrpc_c::value result;
+
+	try
+	{
+		myClient.call(serverUrl_, "daq." + command, "Ii", &result, a, b);
+	}
+	catch (...)
+	{
+		std::stringstream errmsg;
+		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+		       << "; possible causes are malformed FHiCL or nonexistent process at requested port";
+		ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+	}
+
+	return xmlrpc_c::value_string(result);
+}
+
 std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, art::RunID r, uint64_t a, uint64_t b)
 {
 	if (serverUrl_.empty())
