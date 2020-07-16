@@ -347,7 +347,7 @@ protected:
 template<typename T>
 T cmd_::getParam(const xmlrpc_c::paramList& /*unused*/, int /*unused*/)
 {
-	throw cet::exception("cmd_") << "Error in cmd_::getParam(): value type not supported" << std::endl; // NOLINT(cert-err60-cpp)
+	throw cet::exception("cmd_") << "Error in cmd_::getParam(): value type not supported" << std::endl;  // NOLINT(cert-err60-cpp)
 }
 
 /**
@@ -471,15 +471,10 @@ T cmd_::getParam(const xmlrpc_c::paramList& paramList, int index,
 {
 	T val = default_value;
 
-	try
+	if (static_cast<unsigned>(index) < paramList.size())
 	{
 		val = getParam<T>(paramList, index);
 	}
-	catch (const cet::exception& exception)
-	{
-		throw exception;  // NOLINT(cert-err60-cpp)
-	}
-
 	return val;
 }
 
@@ -1095,7 +1090,8 @@ xmlrpc_commander::xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Comman
 	TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
 }
 
-void xmlrpc_commander::run_server() try
+void xmlrpc_commander::run_server()
+try
 {
 	//std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 	xmlrpc_c::registry registry;
@@ -1109,7 +1105,7 @@ void xmlrpc_commander::run_server() try
 
 	xmlrpc_env env;  // xmlrpc_env_init(&env);
 	xmlrpc_registry*** c_registryPPP;
-	c_registryPPP = reinterpret_cast<xmlrpc_registry***>(reinterpret_cast<char*>(&registry) + sizeof(girmem::autoObject)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	c_registryPPP = reinterpret_cast<xmlrpc_registry***>(reinterpret_cast<char*>(&registry) + sizeof(girmem::autoObject));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 #define register_method2(m, ss)                                                  \
 	xmlrpc_c::method* ptr_##m(dynamic_cast<xmlrpc_c::method*>(new m##_(*this))); \
@@ -1191,7 +1187,7 @@ void xmlrpc_commander::run_server() try
 	sockAddr.sin_addr.s_addr = 0;
 
 	retval = bind(socket_file_descriptor,
-	              reinterpret_cast<struct sockaddr*>(&sockAddr), // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	              reinterpret_cast<struct sockaddr*>(&sockAddr),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	              sizeof(sockAddr));
 
 	if (retval != 0)
