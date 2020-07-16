@@ -255,6 +255,7 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 		}
 		else
 		{
+			std::lock_guard<std::mutex> lk(dataBuffer->DataBufferMutex);
 			if (dataBufferIsTooLarge(id))
 			{
 				auto begin = dataBuffer->DataBuffer.begin();
@@ -266,10 +267,7 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 				if (*begin)
 				{
 					TLOG(TLVL_WAITFORBUFFERREADY) << "waitForDataBufferReady: Dropping Fragment with timestamp " << (*begin)->timestamp() << " from data buffer (Buffer over-size, circular data buffer mode)";
-				}
 
-				{
-					std::lock_guard<std::mutex>(dataBuffer->DataBufferMutex);
 					dataBuffer->DataBufferDepthBytes -= (*begin)->sizeBytes();
 					dataBuffer->DataBuffer.erase(begin);
 					dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
@@ -290,8 +288,8 @@ bool artdaq::FragmentBuffer::dataBufferIsTooLarge(Fragment::fragment_id_t id)
 		throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot check size of data buffer for ID " << id << " because it does not exist!";
 	}
 	auto dataBuffer = dataBuffers_[id];
-	return (maxDataBufferDepthFragments_ > 0 && dataBuffer->DataBufferDepthFragments > maxDataBufferDepthFragments_) ||
-	       (maxDataBufferDepthBytes_ > 0 && dataBuffer->DataBufferDepthBytes > maxDataBufferDepthBytes_);
+	return (maxDataBufferDepthFragments_ > 0 && dataBuffer->DataBufferDepthFragments.load() > maxDataBufferDepthFragments_) ||
+	       (maxDataBufferDepthBytes_ > 0 && dataBuffer->DataBufferDepthBytes.load() > maxDataBufferDepthBytes_);
 }
 
 void artdaq::FragmentBuffer::getDataBufferStats(Fragment::fragment_id_t id)
@@ -328,14 +326,15 @@ void artdaq::FragmentBuffer::checkDataBuffer(Fragment::fragment_id_t id)
 		                 << "Error in FragmentBuffer: Cannot check data buffer for ID " << id << " because it does not exist!";
 		throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot check data buffer for ID " << id << " because it does not exist!";
 	}
-	auto dataBuffer = dataBuffers_[id];
 
-	if (dataBuffer->DataBufferDepthFragments > 0 && mode_ != RequestMode::Single && mode_ != RequestMode::Ignored)
+	if (dataBuffers_[id]->DataBufferDepthFragments > 0 && mode_ != RequestMode::Single && mode_ != RequestMode::Ignored)
 	{
+		auto dataBuffer = dataBuffers_[id];
+		std::lock_guard<std::mutex> lk(dataBuffer->DataBufferMutex);
+
 		// Eliminate extra fragments
 		while (dataBufferIsTooLarge(id))
 		{
-			std::lock_guard<std::mutex> lk(dataBuffer->DataBufferMutex);
 			auto begin = dataBuffer->DataBuffer.begin();
 			TLOG(TLVL_CHECKDATABUFFER) << "checkDataBuffer: Dropping Fragment with timestamp " << (*begin)->timestamp() << " from data buffer (Buffer over-size)";
 			dataBuffer->DataBufferDepthBytes -= (*begin)->sizeBytes();
@@ -343,7 +342,7 @@ void artdaq::FragmentBuffer::checkDataBuffer(Fragment::fragment_id_t id)
 			dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
 			dataBuffer->BufferFragmentKept = false;  // If any Fragments are removed from data buffer, then we know we don't have to ignore the first one anymore
 		}
-		std::lock_guard<std::mutex> lk(dataBuffer->DataBufferMutex);
+
 		TLOG(TLVL_CHECKDATABUFFER) << "DataBufferDepthFragments is " << dataBuffer->DataBufferDepthFragments << ", DataBuffer.size is " << dataBuffer->DataBuffer.size();
 		if (dataBuffer->DataBufferDepthFragments > 0)
 		{
