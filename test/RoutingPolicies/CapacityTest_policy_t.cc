@@ -1,7 +1,7 @@
 #define BOOST_TEST_MODULE CapacityTest_policy_t
 #include <boost/test/auto_unit_test.hpp>
 
-#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4] tokens_used_per_table_percent: 50", ps);
 
-	auto ct = artdaq::makeRoutingMasterPolicy("CapacityTest", ps);
+	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
 
 	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 4);
 

@@ -2,17 +2,17 @@
 #define TRACE_NAME (app_name + "_RoundRobin_policy").c_str()
 
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
-#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "tracemf.h"
 
 namespace artdaq {
 /**
-	 * \brief A RoutingMasterPolicy which evenly distributes Sequence IDs to all receivers.
+	 * \brief A RoutingManagerPolicy which evenly distributes Sequence IDs to all receivers.
 	 * If an uneven number of tokens have been received, extra tokens are stored for the next table update.
 	 */
-class RoundRobinPolicy : public RoutingMasterPolicy
+class RoundRobinPolicy : public RoutingManagerPolicy
 {
 public:
 	/**
@@ -23,7 +23,7 @@ public:
 		 * "minimum_participants" (Default: 0): Minimum number of receivers to distribute between. Use negative number to indicate how many can be missing from total. If the number of allowed missing receivers is greater than the number that exist, then the minimum number of participants will be set to 1.
 		 */
 	explicit RoundRobinPolicy(const fhicl::ParameterSet& ps)
-	    : RoutingMasterPolicy(ps)
+	    : RoutingManagerPolicy(ps)
 	    , minimum_participants_(ps.get<int>("minimum_participants", 0))
 	{
 	}

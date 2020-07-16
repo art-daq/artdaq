@@ -54,13 +54,13 @@ public:
 		// Validate parameters
 
 		auto rmConfig = pset.get<fhicl::ParameterSet>("routing_table_config", fhicl::ParameterSet());
-		use_routing_master_ = rmConfig.get<bool>("use_routing_master", false);
+		use_routing_manager_ = rmConfig.get<bool>("use_routing_manager", false);
 		table_port_ = rmConfig.get<int>("table_update_port", 35556);
 		table_address_ = rmConfig.get<std::string>("table_update_address", "227.128.12.28");
 
 		host_map_ = MakeHostMap(pset);
 
-		if (use_routing_master_)
+		if (use_routing_manager_)
 		{
 			startTableReceiverThread_();
 		}
@@ -318,7 +318,7 @@ private:
 	}
 
 private:
-	bool use_routing_master_;
+	bool use_routing_manager_;
 	std::atomic<bool> should_stop_;
 	int table_port_;
 	std::string table_address_;

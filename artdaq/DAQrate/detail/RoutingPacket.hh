@@ -18,9 +18,9 @@ struct RoutingAckPacket;
 struct RoutingToken;
 
 /**
-		 * \brief Mode indicating whether the RoutingMaster is routing events by Sequence ID or by Send Count
+		 * \brief Mode indicating whether the RoutingManager is routing events by Sequence ID or by Send Count
 		 */
-enum class RoutingMasterMode : uint8_t
+enum class RoutingManagerMode : uint8_t
 {
 	RouteBySequenceID,  ///< Events should be routed by sequence ID (BR -> EB)
 	RouteBySendCount,   ///< Events should be routed by send count (EB -> Agg)
@@ -60,16 +60,16 @@ struct artdaq::detail::RoutingPacketEntry
 struct artdaq::detail::RoutingPacketHeader
 {
 	uint32_t header{0};                                  ///< Magic bytes to make sure the packet wasn't garbled
-	RoutingMasterMode mode{RoutingMasterMode::INVALID};  ///< The current mode of the RoutingMaster
+	RoutingManagerMode mode{RoutingManagerMode::INVALID};  ///< The current mode of the RoutingManager
 	size_t nEntries{0};                                  ///< The number of RoutingPacketEntries in the RoutingPacket
 	std::bitset<1024> already_acknowledged_ranks{0};     ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
 
 	/**
 	 * \brief Construct a RoutingPacketHeader declaring a given number of entries
-	 * \param m The RoutingMasterMode that senders are supposed to be operating in
+	 * \param m The RoutingManagerMode that senders are supposed to be operating in
 	 * \param n The number of RoutingPacketEntries in the associated RoutingPacket
 	 */
-	explicit RoutingPacketHeader(RoutingMasterMode m, size_t n)
+	explicit RoutingPacketHeader(RoutingManagerMode m, size_t n)
 	    : header(ROUTING_MAGIC), mode(m), nEntries(n) {}
 	/**
 	 * \brief Default Constructor

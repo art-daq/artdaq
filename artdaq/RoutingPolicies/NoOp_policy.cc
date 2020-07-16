@@ -1,15 +1,15 @@
 #include <utility>
 
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
-#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "tracemf.h"
 #define TRACE_NAME "NoOp_policy"
 namespace artdaq {
 /**
-	 * \brief A RoutingMasterPolicy which simply assigns Sequence IDs to tokens in the order they were received
+	 * \brief A RoutingManagerPolicy which simply assigns Sequence IDs to tokens in the order they were received
 	 */
-class NoOpPolicy : public RoutingMasterPolicy
+class NoOpPolicy : public RoutingManagerPolicy
 {
 public:
 	/**
@@ -19,7 +19,7 @@ public:
 		 * NoOpPolicy takes no additional Parameters at this time
 		 */
 	explicit NoOpPolicy(fhicl::ParameterSet const& ps)
-	    : RoutingMasterPolicy(ps) {}
+	    : RoutingManagerPolicy(ps) {}
 
 	/**
 		 * \brief Default virtual Destructor

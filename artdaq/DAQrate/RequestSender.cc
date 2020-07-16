@@ -35,9 +35,9 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 	setup_requests_();
 
 	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
-	send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
+	send_routing_tokens_ = rmConfig.get<bool>("use_routing_manager", false);
 	token_port_ = rmConfig.get<int>("routing_token_port", 35555);
-	token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
+	token_address_ = rmConfig.get<std::string>("routing_manager_hostname", "localhost");
 	setup_tokens_();
 	TLOG(12) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
 	initialized_ = true;
@@ -170,7 +170,7 @@ void RequestSender::setup_tokens_()
 			token_socket_ = TCPConnect(token_address_.c_str(), token_port_, 0, sizeof(detail::RoutingToken));
 			if (token_socket_ < 0)
 			{
-				TLOG(TLVL_TRACE) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Master to open token socket";
+				TLOG(TLVL_TRACE) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Manager to open token socket";
 				usleep(100000);
 			}
 		}

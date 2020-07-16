@@ -9,7 +9,7 @@
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DispatcherApp.hh"
 #include "artdaq/Application/EventBuilderApp.hh"
-#include "artdaq/Application/RoutingMasterApp.hh"
+#include "artdaq/Application/RoutingManagerApp.hh"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
@@ -110,8 +110,8 @@ public:
 			case (detail::DispatcherTask):
 				comm = std::make_unique<DispatcherApp>();
 				break;
-			case (detail::RoutingMasterTask):
-				comm = std::make_unique<RoutingMasterApp>();
+			case (detail::RoutingManagerTask):
+				comm = std::make_unique<RoutingManagerApp>();
 				break;
 			default:
 				return;

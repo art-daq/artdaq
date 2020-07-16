@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(Tokens)
 
 	fhicl::ParameterSet token_pset;
 	token_pset.put("routing_token_port", TOKEN_PORT);
-	token_pset.put("use_routing_master", true);
+	token_pset.put("use_routing_manager", true);
 	fhicl::ParameterSet pset;
 	pset.put("routing_token_config", token_pset);
 	artdaq::RequestSender t(pset);

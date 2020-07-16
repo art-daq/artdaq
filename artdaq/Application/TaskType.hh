@@ -20,7 +20,7 @@ enum TaskType : int
 	EventBuilderTask = 2,
 	DataLoggerTask = 3,
 	DispatcherTask = 4,
-	RoutingMasterTask = 5,
+	RoutingManagerTask = 5,
 	UnknownTask
 };
 
@@ -34,7 +34,7 @@ inline TaskType StringToTaskType(std::string const& task)
 	if (task.empty()) return TaskType::UnknownTask;
 	if (task[0] == 'b' || task[0] == 'B') return TaskType::BoardReaderTask;
 	if (task[0] == 'e' || task[0] == 'E') return TaskType::EventBuilderTask;
-	if (task[0] == 'r' || task[0] == 'R') return TaskType::RoutingMasterTask;
+	if (task[0] == 'r' || task[0] == 'R') return TaskType::RoutingManagerTask;
 	if (task[0] == 'd' || task[0] == 'D')
 	{
 		if (task.size() < 2) return TaskType::UnknownTask;
@@ -75,8 +75,8 @@ inline std::string TaskTypeToString(TaskType const& task)
 			return "DataLogger";
 		case (DispatcherTask):
 			return "Dispatcher";
-		case (RoutingMasterTask):
-			return "RoutingMaster";
+		case (RoutingManagerTask):
+			return "RoutingManager";
 		default:
 			break;
 	}

@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_Routing_RoutingMasterPolicy_hh
-#define artdaq_Application_Routing_RoutingMasterPolicy_hh
+#ifndef artdaq_Application_Routing_RoutingManagerPolicy_hh
+#define artdaq_Application_Routing_RoutingManagerPolicy_hh
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/Globals.hh"
@@ -12,25 +12,25 @@
 
 namespace artdaq {
 /**
-	 * \brief The interface through which RoutingMasterCore obtains Routing Tables using received Routing Tokens
+	 * \brief The interface through which RoutingManagerCore obtains Routing Tables using received Routing Tokens
 	 */
-class RoutingMasterPolicy
+class RoutingManagerPolicy
 {
 public:
 	/**
-		 * \brief RoutingMasterPolicy Constructor
-		 * \param ps ParameterSet used to configure the RoutingMasterPolicy
+		 * \brief RoutingManagerPolicy Constructor
+		 * \param ps ParameterSet used to configure the RoutingManagerPolicy
 		 * 
 		 * \verbatim
-		 * RoutingMasterPolicy accepts the following Parameters:
-		 * "receiver_ranks" (REQUIRED): A list of integers indicating the ranks that the RoutingMasterPolicy should expect tokens from
+		 * RoutingManagerPolicy accepts the following Parameters:
+		 * "receiver_ranks" (REQUIRED): A list of integers indicating the ranks that the RoutingManagerPolicy should expect tokens from
 		 * \endverbatim
 		 */
-	explicit RoutingMasterPolicy(const fhicl::ParameterSet& ps);
+	explicit RoutingManagerPolicy(const fhicl::ParameterSet& ps);
 	/**
 		 * \brief Default virtual Destructor
 		 */
-	virtual ~RoutingMasterPolicy() = default;
+	virtual ~RoutingManagerPolicy() = default;
 
 	/**
 		 * \brief Generate a Routing Table using received tokens
@@ -47,8 +47,8 @@ public:
 	size_t GetReceiverCount() const { return receiver_ranks_.size(); }
 
 	/**
-		 * \brief Get the largest number of tokens that the RoutingMasterPolicy has seen at any one time
-		 * \return The largest number of tokens that the RoutingMasterPolicy has seen at any one time
+		 * \brief Get the largest number of tokens that the RoutingManagerPolicy has seen at any one time
+		 * \return The largest number of tokens that the RoutingManagerPolicy has seen at any one time
 		 */
 	size_t GetMaxNumberOfTokens() const { return max_token_count_; }
 
@@ -70,10 +70,10 @@ protected:
 	std::unique_ptr<std::deque<int>> getTokensSnapshot();           ///< Gets the current token list, used for building Routing Tables
 	void addUnusedTokens(std::unique_ptr<std::deque<int>> tokens);  ///< If necessary, return unused tokens to the token list, for subsequent updates
 private:
-	RoutingMasterPolicy(RoutingMasterPolicy const&) = delete;
-	RoutingMasterPolicy(RoutingMasterPolicy&&) = delete;
-	RoutingMasterPolicy& operator=(RoutingMasterPolicy const&) = delete;
-	RoutingMasterPolicy& operator=(RoutingMasterPolicy&&) = delete;
+	RoutingManagerPolicy(RoutingManagerPolicy const&) = delete;
+	RoutingManagerPolicy(RoutingManagerPolicy&&) = delete;
+	RoutingManagerPolicy& operator=(RoutingManagerPolicy const&) = delete;
+	RoutingManagerPolicy& operator=(RoutingManagerPolicy&&) = delete;
 
 	mutable std::mutex tokens_mutex_;
 	std::unordered_set<int> receiver_ranks_;
@@ -82,4 +82,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  // artdaq_Application_Routing_RoutingMasterPolicy_hh
+#endif  // artdaq_Application_Routing_RoutingManagerPolicy_hh

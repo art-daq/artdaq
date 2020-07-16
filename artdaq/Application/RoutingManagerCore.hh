@@ -1,5 +1,5 @@
-#ifndef artdaq_Application_MPI2_RoutingMasterCore_hh
-#define artdaq_Application_MPI2_RoutingMasterCore_hh
+#ifndef artdaq_Application_MPI2_RoutingManagerCore_hh
+#define artdaq_Application_MPI2_RoutingManagerCore_hh
 
 #include <string>
 #include <vector>
@@ -17,58 +17,58 @@
 #include "artdaq/DAQrate/TokenReceiver.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 
 namespace artdaq {
-class RoutingMasterCore;
+class RoutingManagerCore;
 }
 
 /**
-* \brief RoutingMasterCore implements the state machine for the RoutingMaster artdaq application.
-* RoutingMasterCore collects tokens from receivers, and at regular intervals uses these tokens to build
+* \brief RoutingManagerCore implements the state machine for the RoutingManager artdaq application.
+* RoutingManagerCore collects tokens from receivers, and at regular intervals uses these tokens to build
 * Routing Tables that are sent to the senders.
 */
-class artdaq::RoutingMasterCore
+class artdaq::RoutingManagerCore
 {
 public:
 	static const std::string TABLE_UPDATES_STAT_KEY;    ///< Key for Table Update count MonnitoredQuantity
 	static const std::string TOKENS_RECEIVED_STAT_KEY;  ///< Key for the Tokens Received MonitoredQuantity
 
 	/**
-	 * \brief RoutingMasterCore Constructor.
+	 * \brief RoutingManagerCore Constructor.
 	 */
-	RoutingMasterCore();
+	RoutingManagerCore();
 
 	/**
 	* \brief Copy Constructor is deleted
 	*/
-	RoutingMasterCore(RoutingMasterCore const&) = delete;
+	RoutingManagerCore(RoutingManagerCore const&) = delete;
 
 	/**
 	* Destructor.
 	*/
-	~RoutingMasterCore();
+	~RoutingManagerCore();
 
 	/**
 	* \brief Copy Assignment operator is deleted
-	* \return RoutingMasterCore copy
+	* \return RoutingManagerCore copy
 	*/
-	RoutingMasterCore& operator=(RoutingMasterCore const&) = delete;
+	RoutingManagerCore& operator=(RoutingManagerCore const&) = delete;
 
-	RoutingMasterCore(RoutingMasterCore&&) = delete;
-	RoutingMasterCore& operator=(RoutingMasterCore&&) = delete;
+	RoutingManagerCore(RoutingManagerCore&&) = delete;
+	RoutingManagerCore& operator=(RoutingManagerCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.
-	* \param pset ParameterSet used to configure the RoutingMasterCore
+	* \param pset ParameterSet used to configure the RoutingManagerCore
 	* \return Whether the initialize attempt succeeded
 	*
 	* \verbatim
-	* RoutingMasterCore accepts the following Parameters:
+	* RoutingManagerCore accepts the following Parameters:
 	* "daq" (REQUIRED): FHiCL table containing DAQ configuration
-	*   "policy" (REQUIRED): FHiCL table containing the RoutingMasterPolicy configuration
-	*     "policy" (Default: ""): Name of the RoutingMasterPolicy plugin to load
-	*   "rt_priority" (Default: 0): Unix process priority to assign to RoutingMasterCore
+	*   "policy" (REQUIRED): FHiCL table containing the RoutingManagerPolicy configuration
+	*     "policy" (Default: ""): Name of the RoutingManagerPolicy plugin to load
+	*   "rt_priority" (Default: 0): Unix process priority to assign to RoutingManagerCore
 	*   "sender_ranks" (REQUIRED): List of ranks (integers) for the senders (that receive table updates)
 	*   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
 	*   "senders_send_by_send_count" (Default: false): If true, senders will use the current send count to lookup routing information in the table, instead of sequence ID.
@@ -76,46 +76,46 @@ public:
 	*   "table_update_port" (Default: 35556): The port on which to send table updates
 	*   "table_acknowledge_port" (Default: 35557): The port on which to listen for RoutingAckPacket datagrams
 	*   "table_update_address" (Default: "227.128.12.28"): Multicast address to send table updates to
-	*   "routing_master_hostname" (Default: "localhost"): Hostname to send table updates from
+	*   "routing_manager_hostname" (Default: "localhost"): Hostname to send table updates from
 	*   "metrics": FHiCL table containing configuration for MetricManager
 	* \endverbatim
 	*/
 	bool initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
 
 	/**
-	* \brief Start the RoutingMasterCore
+	* \brief Start the RoutingManagerCore
 	* \param id Run ID of the current run
 	* \return True if no exception
 	*/
 	bool start(art::RunID id, uint64_t, uint64_t);
 
 	/**
-	* \brief Stops the RoutingMasterCore
+	* \brief Stops the RoutingManagerCore
 	* \return True if no exception
 	*/
 	bool stop(uint64_t, uint64_t);
 
 	/**
-	* \brief Pauses the RoutingMasterCore
+	* \brief Pauses the RoutingManagerCore
 	* \return True if no exception
 	*/
 	bool pause(uint64_t, uint64_t);
 
 	/**
-	* \brief Resumes the RoutingMasterCore
+	* \brief Resumes the RoutingManagerCore
 	* \return True if no exception
 	*/
 	bool resume(uint64_t, uint64_t);
 
 	/**
-	* \brief Shuts Down the RoutingMasterCore
+	* \brief Shuts Down the RoutingManagerCore
 	* \return If the shutdown was successful
 	*/
 	bool shutdown(uint64_t);
 
 	/**
-	* \brief Soft-Initializes the RoutingMasterCore.
-	* \param pset ParameterSet for configuring RoutingMasterCore
+	* \brief Soft-Initializes the RoutingManagerCore.
+	* \param pset ParameterSet for configuring RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
 	* \return Returns initialize status
@@ -123,8 +123,8 @@ public:
 	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f);
 
 	/**
-	* \brief Reinitializes the RoutingMasterCore.
-	* \param pset ParameterSet for configuring RoutingMasterCore
+	* \brief Reinitializes the RoutingManagerCore.
+	* \param pset ParameterSet for configuring RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
 	* \return Returns initialize status
@@ -132,8 +132,8 @@ public:
 	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f);
 
 	/**
-	 * \brief Main loop of the RoutingMasterCore. Determines when to send the next table update,
-	 * asks the RoutingMasterPolicy for the table to send, and sends it.
+	 * \brief Main loop of the RoutingManagerCore. Determines when to send the next table update,
+	 * asks the RoutingManagerPolicy for the table to send, and sends it.
 	 */
 	void process_event_table();
 
@@ -150,15 +150,15 @@ public:
 	void send_event_table(detail::RoutingPacket packet);
 
 	/**
-	* \brief Send a report on the current status of the RoutingMasterCore
-	* \return A string containing the report on the current status of the RoutingMasterCore
+	* \brief Send a report on the current status of the RoutingManagerCore
+	* \return A string containing the report on the current status of the RoutingManagerCore
 	*
 	*/
 	std::string report(std::string const&) const;
 
 	/**
-	* \brief Get the number of table updates sent by this RoutingMaster this run
-	* \return The number of table updates sent by this RoutingMaster this run
+	* \brief Get the number of table updates sent by this RoutingManager this run
+	* \return The number of table updates sent by this RoutingManager this run
 	*/
 	size_t get_update_count() const { return table_update_count_; }
 
@@ -171,14 +171,14 @@ private:
 
 	size_t max_table_update_interval_ms_;
 	size_t max_ack_cycle_count_;
-	detail::RoutingMasterMode routing_mode_;
+	detail::RoutingManagerMode routing_mode_;
 	std::atomic<size_t> current_table_interval_ms_;
 	std::atomic<size_t> table_update_count_;
 
 	std::vector<int> sender_ranks_;
 	std::set<int> active_ranks_;
 
-	std::shared_ptr<RoutingMasterPolicy> policy_;
+	std::shared_ptr<RoutingManagerPolicy> policy_;
 	std::unique_ptr<TokenReceiver> token_receiver_;
 
 	std::atomic<bool> shutdown_requested_;
@@ -207,4 +207,4 @@ private:
 	mutable std::mutex request_mutex_;
 };
 
-#endif /* artdaq_Application_MPI2_RoutingMasterCore_hh */
+#endif /* artdaq_Application_MPI2_RoutingManagerCore_hh */

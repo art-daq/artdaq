@@ -12,21 +12,21 @@
 #include "cetlib_except/exception.h"
 
 #include "artdaq/DAQdata/Globals.hh"                          // include these 2 first to get tracemf.h -
-#define TRACE_NAME (app_name + "_RoutingMasterCore").c_str()  // before trace.h
+#define TRACE_NAME (app_name + "_RoutingManagerCore").c_str()  // before trace.h
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "artdaq/Application/RoutingMasterCore.hh"
+#include "artdaq/Application/RoutingManagerCore.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
-#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 
-const std::string artdaq::RoutingMasterCore::
-    TABLE_UPDATES_STAT_KEY("RoutingMasterCoreTableUpdates");
-const std::string artdaq::RoutingMasterCore::
-    TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
+const std::string artdaq::RoutingManagerCore::
+    TABLE_UPDATES_STAT_KEY("RoutingManagerCoreTableUpdates");
+const std::string artdaq::RoutingManagerCore::
+    TOKENS_RECEIVED_STAT_KEY("RoutingManagerCoreTokensReceived");
 
-artdaq::RoutingMasterCore::RoutingMasterCore()
+artdaq::RoutingManagerCore::RoutingManagerCore()
     : shutdown_requested_(false)
     , stop_requested_(true)
     , pause_requested_(false)
@@ -37,14 +37,14 @@ artdaq::RoutingMasterCore::RoutingMasterCore()
 	statsHelperPtr_->addMonitoredQuantityName(TOKENS_RECEIVED_STAT_KEY);
 }
 
-artdaq::RoutingMasterCore::~RoutingMasterCore()
+artdaq::RoutingManagerCore::~RoutingManagerCore()
 {
 	TLOG(TLVL_DEBUG) << "Destructor";
 	artdaq::StatisticsCollection::getInstance().requestStop();
 	token_receiver_->stopTokenReception(true);
 }
 
-bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
+bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_DEBUG) << "initialize method called with "
 	                 << "ParameterSet = \"" << pset.to_string()
@@ -68,13 +68,13 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	{
 		if (my_rank >= 0 && daq_pset.get<int>("rank") != my_rank)
 		{
-			TLOG(TLVL_WARNING) << "Routing Master rank specified at startup is different than rank specified at configure! Using rank received at configure!";
+			TLOG(TLVL_WARNING) << "Routing Manager rank specified at startup is different than rank specified at configure! Using rank received at configure!";
 		}
 		my_rank = daq_pset.get<int>("rank");
 	}
 	if (my_rank == -1)
 	{
-		TLOG(TLVL_ERROR) << "Routing Master rank not specified at startup or in configuration! Aborting";
+		TLOG(TLVL_ERROR) << "Routing Manager rank not specified at startup or in configuration! Aborting";
 		exit(1);
 	}
 
@@ -120,7 +120,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no,
-		                 "Error loading metrics in RoutingMasterCore::initialize()");
+		                 "Error loading metrics in RoutingManagerCore::initialize()");
 	}
 
 	// create the requested RoutingPolicy
@@ -135,7 +135,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	}
 	try
 	{
-		policy_ = artdaq::makeRoutingMasterPolicy(policy_plugin_spec, policy_pset_);
+		policy_ = artdaq::makeRoutingManagerPolicy(policy_plugin_spec, policy_pset_);
 	}
 	catch (...)
 	{
@@ -156,14 +156,14 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
 
 	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
-	routing_mode_ = mode ? detail::RoutingMasterMode::RouteBySendCount : detail::RoutingMasterMode::RouteBySequenceID;
+	routing_mode_ = mode ? detail::RoutingManagerMode::RouteBySendCount : detail::RoutingManagerMode::RouteBySequenceID;
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
 	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
 	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
 	receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port", 35557);
 	send_tables_address_ = daq_pset.get<std::string>("table_update_address", "227.128.12.28");
-	multicast_out_hostname_ = daq_pset.get<std::string>("routing_master_hostname", "localhost");
+	multicast_out_hostname_ = daq_pset.get<std::string>("routing_manager_hostname", "localhost");
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelperPtr_->createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
@@ -178,7 +178,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t /*unused*/, uint64_t /*unused*/)
+bool artdaq::RoutingManagerCore::start(art::RunID id, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	run_id_ = id;
 	for (auto& rank : sender_ranks_)
@@ -202,7 +202,7 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t /*unused*/, uint64
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::stop(uint64_t /*unused*/, uint64_t /*unused*/)
+bool artdaq::RoutingManagerCore::stop(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_INFO) << "Stopping run " << run_id_.run()
 	                << " after " << table_update_count_ << " table updates."
@@ -213,7 +213,7 @@ bool artdaq::RoutingMasterCore::stop(uint64_t /*unused*/, uint64_t /*unused*/)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::pause(uint64_t /*unused*/, uint64_t /*unused*/)
+bool artdaq::RoutingManagerCore::pause(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_INFO) << "Pausing run " << run_id_.run()
 	                << " after " << table_update_count_ << " table updates."
@@ -222,7 +222,7 @@ bool artdaq::RoutingMasterCore::pause(uint64_t /*unused*/, uint64_t /*unused*/)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::resume(uint64_t /*unused*/, uint64_t /*unused*/)
+bool artdaq::RoutingManagerCore::resume(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_DEBUG) << "Resuming run " << run_id_.run();
 	pause_requested_.store(false);
@@ -230,7 +230,7 @@ bool artdaq::RoutingMasterCore::resume(uint64_t /*unused*/, uint64_t /*unused*/)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::shutdown(uint64_t /*unused*/)
+bool artdaq::RoutingManagerCore::shutdown(uint64_t /*unused*/)
 {
 	shutdown_requested_.store(true);
 	token_receiver_->stopTokenReception();
@@ -239,7 +239,7 @@ bool artdaq::RoutingMasterCore::shutdown(uint64_t /*unused*/)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
+bool artdaq::RoutingManagerCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
 	TLOG(TLVL_INFO) << "soft_initialize method called with "
 	                << "ParameterSet = \"" << pset.to_string()
@@ -247,7 +247,7 @@ bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset,
 	return initialize(pset, e, f);
 }
 
-bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
+bool artdaq::RoutingManagerCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
 	TLOG(TLVL_INFO) << "reinitialize method called with "
 	                << "ParameterSet = \"" << pset.to_string()
@@ -255,7 +255,7 @@ bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, ui
 	return initialize(pset, e, f);
 }
 
-void artdaq::RoutingMasterCore::process_event_table()
+void artdaq::RoutingManagerCore::process_event_table()
 {
 	if (rt_priority_ > 0)
 	{
@@ -357,7 +357,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 	metricMan->do_stop();
 }
 
-void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
+void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 {
 	// Reconnect table socket, if necessary
 	if (table_socket_ == -1)
@@ -383,17 +383,17 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			sts = GetInterfaceForNetwork(multicast_out_hostname_.c_str(), addr);
 			if (sts == -1)
 			{
-				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to determine the multicast interface address from the routing_master_address parameter value of " << multicast_out_hostname_ << std::endl;  // NOLINT(cert-err60-cpp)
+				throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to determine the multicast interface address from the routing_manager_address parameter value of " << multicast_out_hostname_ << std::endl;  // NOLINT(cert-err60-cpp)
 				exit(1);
 			}
 			char addr_str[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, &(addr), addr_str, INET_ADDRSTRLEN);
-			TLOG(TLVL_INFO) << "Successfully determined the multicast interface address for " << multicast_out_hostname_ << ": " << addr_str << " (RoutingMaster sending table updates to BoardReaders)";
+			TLOG(TLVL_INFO) << "Successfully determined the multicast interface address for " << multicast_out_hostname_ << ": " << addr_str << " (RoutingManager sending table updates to BoardReaders)";
 
 			if (setsockopt(table_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 			{
-				TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on table update socket";
-				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to enable port reuse on table update socket" << std::endl;  // NOLINT(cert-err60-cpp)
+				TLOG(TLVL_ERROR) << "RoutingManagerCore: Unable to enable port reuse on table update socket";
+				throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to enable port reuse on table update socket" << std::endl;  // NOLINT(cert-err60-cpp)
 				exit(1);
 			}
 
@@ -421,7 +421,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (ack_socket_ < 0)
 		{
-			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Error creating socket for receiving table update acks!" << std::endl; // NOLINT(cert-err60-cpp)
+			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Error creating socket for receiving table update acks!" << std::endl; // NOLINT(cert-err60-cpp)
 			exit(1);
 		}
 
@@ -430,8 +430,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto yes = 1;
 		if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 		{
-			TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on ack socket. errno=" << errno;
-			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to enable port reuse on ack socket" << std::endl;  // NOLINT(cert-err60-cpp)
+			TLOG(TLVL_ERROR) << "RoutingManagerCore: Unable to enable port reuse on ack socket. errno=" << errno;
+			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to enable port reuse on ack socket" << std::endl;  // NOLINT(cert-err60-cpp)
 			exit(1);
 		}
 
@@ -448,8 +448,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
 		if (bind(ack_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1) // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		{
-			TLOG(TLVL_ERROR) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << ", errno=" << errno;
-			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;  // NOLINT(cert-err60-cpp)
+			TLOG(TLVL_ERROR) << "RoutingManagerCore: Cannot bind request socket to port " << receive_acks_port_ << ", errno=" << errno;
+			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;  // NOLINT(cert-err60-cpp)
 			exit(1);
 		}
 		TLOG(TLVL_DEBUG) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_;
@@ -569,7 +569,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 						if (acks.count(buffer.rank) == 0u)
 						{
 							TLOG(TLVL_ERROR) << "Received acknowledgement from invalid rank " << buffer.rank << "!"
-							                 << " Cross-talk between RoutingMasters means there's a configuration error!";
+							                 << " Cross-talk between RoutingManagers means there's a configuration error!";
 						}
 						else
 						{
@@ -591,7 +591,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 }
 
-std::string artdaq::RoutingMasterCore::report(std::string const& /*unused*/) const
+std::string artdaq::RoutingManagerCore::report(std::string const& /*unused*/) const
 {
 	std::string resultString;
 
@@ -600,7 +600,7 @@ std::string artdaq::RoutingMasterCore::report(std::string const& /*unused*/) con
 	return tmpString;
 }
 
-std::string artdaq::RoutingMasterCore::buildStatisticsString_() const
+std::string artdaq::RoutingManagerCore::buildStatisticsString_() const
 {
 	std::ostringstream oss;
 	oss << app_name << " statistics:" << std::endl;
@@ -646,7 +646,7 @@ std::string artdaq::RoutingMasterCore::buildStatisticsString_() const
 	return oss.str();
 }
 
-void artdaq::RoutingMasterCore::sendMetrics_()
+void artdaq::RoutingManagerCore::sendMetrics_()
 {
 	if (metricMan)
 	{

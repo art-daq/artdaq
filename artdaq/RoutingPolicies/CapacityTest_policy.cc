@@ -1,13 +1,13 @@
 #include <cmath>
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
-#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
 /**
-	 * \brief A RoutingMasterPolicy which tries to fully load the first receiver, then the second, and so on
+	 * \brief A RoutingManagerPolicy which tries to fully load the first receiver, then the second, and so on
 	 */
-class CapacityTestPolicy : public RoutingMasterPolicy
+class CapacityTestPolicy : public RoutingManagerPolicy
 {
 public:
 	/**
@@ -48,7 +48,7 @@ private:
 };
 
 CapacityTestPolicy::CapacityTestPolicy(const fhicl::ParameterSet& ps)
-    : RoutingMasterPolicy(ps)
+    : RoutingManagerPolicy(ps)
     , tokenUsagePercent_(ps.get<int>("tokens_used_per_table_percent", 50))
 {}
 

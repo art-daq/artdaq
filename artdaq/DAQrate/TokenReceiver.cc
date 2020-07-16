@@ -9,8 +9,8 @@
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/DAQrate/TokenReceiver.hh"
 
-artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingMasterPolicy> policy,
-                                     detail::RoutingMasterMode routing_mode, size_t number_of_senders, size_t update_interval_msec)
+artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingManagerPolicy> policy,
+                                     detail::RoutingManagerMode routing_mode, size_t number_of_senders, size_t update_interval_msec)
     : token_port_(ps.get<int>("routing_token_port", 35555))
     , policy_(std::move(std::move(policy)))
     , routing_mode_(routing_mode)
@@ -210,21 +210,21 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 						else
 						{
 							received_token_count_ += buff.new_slots_free;
-							if (routing_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
+							if (routing_mode_ == detail::RoutingManagerMode::RouteBySequenceID)
 							{
 								policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
 							}
-							else if (routing_mode_ == detail::RoutingMasterMode::RouteBySendCount)
+							else if (routing_mode_ == detail::RoutingManagerMode::RouteBySendCount)
 							{
 								if (received_token_counter_.count(buff.rank) == 0u)
 								{
 									received_token_counter_[buff.rank] = 0;
 								}
 								received_token_counter_[buff.rank] += buff.new_slots_free;
-								TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_ << ".";
+								TLOG(TLVL_DEBUG) << "RoutingManagerMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_ << ".";
 								while (received_token_counter_[buff.rank] >= number_of_senders_)
 								{
-									TLOG(TLVL_DEBUG) << "RoutingMasterMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_
+									TLOG(TLVL_DEBUG) << "RoutingManagerMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_
 									                 << "... Sending token to policy";
 									policy_->AddReceiverToken(buff.rank, 1);
 									received_token_counter_[buff.rank] -= number_of_senders_;

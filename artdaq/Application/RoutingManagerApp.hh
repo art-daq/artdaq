@@ -1,46 +1,46 @@
-#ifndef artdaq_Application_MPI2_RoutingMasterApp_hh
-#define artdaq_Application_MPI2_RoutingMasterApp_hh
+#ifndef artdaq_Application_MPI2_RoutingManagerApp_hh
+#define artdaq_Application_MPI2_RoutingManagerApp_hh
 
 #include "artdaq/Application/Commandable.hh"
-#include "artdaq/Application/RoutingMasterCore.hh"
+#include "artdaq/Application/RoutingManagerCore.hh"
 
 namespace artdaq {
-class RoutingMasterApp;
+class RoutingManagerApp;
 }
 
 /**
-* \brief RoutingMasterApp is an artdaq::Commandable derived class which controls the RoutingMasterCore state machine
+* \brief RoutingManagerApp is an artdaq::Commandable derived class which controls the RoutingManagerCore state machine
 */
-class artdaq::RoutingMasterApp : public artdaq::Commandable
+class artdaq::RoutingManagerApp : public artdaq::Commandable
 {
 public:
 	/**
-	* \brief RoutingMasterApp Constructor
+	* \brief RoutingManagerApp Constructor
 	*/
-	RoutingMasterApp();
+	RoutingManagerApp();
 
 	/**
 	* \brief Copy Constructor is deleted
 	*/
-	RoutingMasterApp(RoutingMasterApp const&) = delete;
+	RoutingManagerApp(RoutingManagerApp const&) = delete;
 
 	/**
 	* \brief Default Destructor
 	*/
-	virtual ~RoutingMasterApp() = default;
+	virtual ~RoutingManagerApp() = default;
 
 	/**
 	* \brief Copy Assignment Operator is deleted
-	* \return RoutingMasterApp copy
+	* \return RoutingManagerApp copy
 	*/
-	RoutingMasterApp& operator=(RoutingMasterApp const&) = delete;
-	RoutingMasterApp(RoutingMasterApp&&) = delete;
-	RoutingMasterApp& operator=(RoutingMasterApp&&) = delete;
+	RoutingManagerApp& operator=(RoutingManagerApp const&) = delete;
+	RoutingManagerApp(RoutingManagerApp&&) = delete;
+	RoutingManagerApp& operator=(RoutingManagerApp&&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**
-	* \brief Initialize the RoutingMasterCore
-	* \param pset ParameterSet used to configure the RoutingMasterCore
+	* \brief Initialize the RoutingManagerCore
+	* \param pset ParameterSet used to configure the RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
 	* \return Whether the transition succeeded
@@ -48,7 +48,7 @@ public:
 	bool do_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp) override;
 
 	/**
-	* \brief Start the RoutingMasterCore
+	* \brief Start the RoutingManagerCore
 	* \param id Run ID of new run
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
@@ -57,7 +57,7 @@ public:
 	bool do_start(art::RunID id, uint64_t timeout, uint64_t timestamp) override;
 
 	/**
-	* \brief Stop the RoutingMasterCore
+	* \brief Stop the RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
 	* \return Whether the transition succeeded
@@ -65,7 +65,7 @@ public:
 	bool do_stop(uint64_t timeout, uint64_t timestamp) override;
 
 	/**
-	* \brief Pause the RoutingMasterCore
+	* \brief Pause the RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
 	* \return Whether the transition succeeded
@@ -73,7 +73,7 @@ public:
 	bool do_pause(uint64_t timeout, uint64_t timestamp) override;
 
 	/**
-	* \brief Resume the RoutingMasterCore
+	* \brief Resume the RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
 	* \return Whether the transition succeeded
@@ -81,15 +81,15 @@ public:
 	bool do_resume(uint64_t timeout, uint64_t timestamp) override;
 
 	/**
-	* \brief Shutdown the RoutingMasterCore
+	* \brief Shutdown the RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \return Whether the transition succeeded
 	*/
 	bool do_shutdown(uint64_t timeout) override;
 
 	/**
-	* \brief Soft-Initialize the RoutingMasterCore
-	* \param pset ParameterSet used to configure the RoutingMasterCore
+	* \brief Soft-Initialize the RoutingManagerCore
+	* \param pset ParameterSet used to configure the RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
 	* \return Whether the transition succeeded
@@ -97,8 +97,8 @@ public:
 	bool do_soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp) override;
 
 	/**
-	* \brief Reinitialize the RoutingMasterCore
-	* \param pset ParameterSet used to configure the RoutingMasterCore
+	* \brief Reinitialize the RoutingManagerCore
+	* \param pset ParameterSet used to configure the RoutingManagerCore
 	* \param timeout Timeout for transition
 	* \param timestamp Timestamp of transition
 	* \return Whether the transition succeeded
@@ -108,7 +108,7 @@ public:
 	/**
 	* \brief Action taken upon entering the "Booted" state
 	*
-	* This resets the RoutingMasterCore pointer
+	* This resets the RoutingManagerCore pointer
 	*/
 	void BootedEnter() override;
 
@@ -121,8 +121,8 @@ public:
 	std::string report(std::string const&) const override;
 
 private:
-	std::unique_ptr<artdaq::RoutingMasterCore> routing_master_ptr_;
-	boost::thread routing_master_thread_;
+	std::unique_ptr<artdaq::RoutingManagerCore> routing_manager_ptr_;
+	boost::thread routing_manager_thread_;
 };
 
-#endif /* artdaq_Application_MPI2_RoutingMasterApp_hh */
+#endif /* artdaq_Application_MPI2_RoutingManagerApp_hh */

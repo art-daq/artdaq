@@ -60,7 +60,6 @@ inline std::vector<fhicl::ParameterSet> MakeHostMapPset(std::map<int, std::strin
 /// Make a hostMap_t from a HostMap::Config ParameterSet
 /// </summary>
 /// <param name="pset">fhicl::ParameterSet containing a HostMap::Config</param>
-/// <param name="masterPortOffset">Port offset to apply to all entries (Default 0)</param>
 /// <param name="map">Input map for consistency checking (Default: hostMap_t())</param>
 /// <returns>hostMap_t object</returns>
 inline hostMap_t MakeHostMap(fhicl::ParameterSet const& pset, hostMap_t map = hostMap_t())

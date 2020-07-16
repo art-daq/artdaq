@@ -19,7 +19,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
     , non_blocking_mode_(pset.get<bool>("nonblocking_sends", false))
     , send_timeout_us_(pset.get<size_t>("send_timeout_usec", 5000000))
     , send_retry_count_(pset.get<size_t>("send_retry_count", 2))
-    , routing_master_mode_(detail::RoutingMasterMode::INVALID)
+    , routing_manager_mode_(detail::RoutingManagerMode::INVALID)
     , should_stop_(false)
     , ack_socket_(-1)
     , table_socket_(-1)
@@ -36,12 +36,12 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 	}
 
 	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_table_config", fhicl::ParameterSet());
-	use_routing_master_ = rmConfig.get<bool>("use_routing_master", false);
+	use_routing_manager_ = rmConfig.get<bool>("use_routing_manager", false);
 	table_port_ = rmConfig.get<int>("table_update_port", 35556);
 	table_address_ = rmConfig.get<std::string>("table_update_address", "227.128.12.28");
 	table_multicast_interface_ = rmConfig.get<std::string>("table_update_multicast_interface", "localhost");
 	ack_port_ = rmConfig.get<int>("table_acknowledge_port", 35557);
-	ack_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
+	ack_address_ = rmConfig.get<std::string>("routing_manager_hostname", "localhost");
 	routing_timeout_ms_ = (rmConfig.get<int>("routing_timeout_ms", 1000));
 	routing_retry_count_ = rmConfig.get<int>("routing_retry_count", 5);
 
@@ -119,7 +119,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 			}
 		}
 	}
-	if (use_routing_master_)
+	if (use_routing_manager_)
 	{
 		startTableReceiverThread_();
 	}
@@ -261,7 +261,7 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			auto sts = ResolveHost(ack_address_.c_str(), ack_port_, ack_addr_);
 			if (sts == -1)
 			{
-				TLOG(TLVL_ERROR) << __func__ << ": Unable to resolve routing_master_address";
+				TLOG(TLVL_ERROR) << __func__ << ": Unable to resolve routing_manager_address";
 				exit(1);
 			}
 			TLOG(TLVL_DEBUG) << __func__ << ": Ack socket is fd " << ack_socket_;
@@ -305,12 +305,12 @@ void artdaq::DataSenderManager::receiveTableUpdatesLoop_()
 			}
 			else
 			{
-				if (routing_master_mode_ != detail::RoutingMasterMode::INVALID && routing_master_mode_ != hdr.mode)
+				if (routing_manager_mode_ != detail::RoutingManagerMode::INVALID && routing_manager_mode_ != hdr.mode)
 				{
-					TLOG(TLVL_ERROR) << __func__ << ": Received table has different RoutingMasterMode than expected!";
+					TLOG(TLVL_ERROR) << __func__ << ": Received table has different RoutingManagerMode than expected!";
 					exit(1);
 				}
-				routing_master_mode_ = hdr.mode;
+				routing_manager_mode_ = hdr.mode;
 
 				artdaq::detail::RoutingPacket buffer(hdr.nEntries);
 				assert(static_cast<size_t>(stss) == sizeof(artdaq::detail::RoutingPacketHeader) + sizeof(artdaq::detail::RoutingPacketEntry) * hdr.nEntries);
@@ -417,20 +417,20 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 	{
 		return TransferInterface::RECV_TIMEOUT;  // No destinations configured.
 	}
-	if (!use_routing_master_ && enabled_destinations_.size() == 1)
+	if (!use_routing_manager_ && enabled_destinations_.size() == 1)
 	{
 		return *enabled_destinations_.begin();  // Trivial case
 	}
 
-	if (use_routing_master_)
+	if (use_routing_manager_)
 	{
 		auto start = std::chrono::steady_clock::now();
-		TLOG(15) << "calcDest_ use_routing_master check for routing info for seqID=" << sequence_id << " routing_timeout_ms=" << routing_timeout_ms_ << " should_stop_=" << should_stop_;
+		TLOG(15) << "calcDest_ use_routing_manager check for routing info for seqID=" << sequence_id << " routing_timeout_ms=" << routing_timeout_ms_ << " should_stop_=" << should_stop_;
 		while (!should_stop_ && (routing_timeout_ms_ <= 0 || TimeUtils::GetElapsedTimeMilliseconds(start) < static_cast<size_t>(routing_timeout_ms_)))
 		{
 			{
 				std::unique_lock<std::mutex> lck(routing_mutex_);
-				if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID && (routing_table_.count(sequence_id) != 0u))
+				if (routing_manager_mode_ == detail::RoutingManagerMode::RouteBySequenceID && (routing_table_.count(sequence_id) != 0u))
 				{
 					if (sequence_id > highest_sequence_id_routed_)
 					{
@@ -439,7 +439,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 					routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
 					return routing_table_.at(sequence_id);
 				}
-				if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySendCount && (routing_table_.count(sent_frag_count_.count() + 1) != 0u))
+				if (routing_manager_mode_ == detail::RoutingManagerMode::RouteBySendCount && (routing_table_.count(sent_frag_count_.count() + 1) != 0u))
 				{
 					if (sent_frag_count_.count() + 1 > highest_sequence_id_routed_)
 					{
@@ -452,15 +452,15 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 			usleep(routing_timeout_ms_ * 10);
 		}
 		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
-		if (routing_master_mode_ == detail::RoutingMasterMode::RouteBySequenceID)
+		if (routing_manager_mode_ == detail::RoutingManagerMode::RouteBySequenceID)
 		{
 			TLOG(TLVL_WARNING) << "Bad Omen: I don't have routing information for seqID " << sequence_id
-			                   << " and the Routing Master did not send a table update in routing_timeout_ms window (" << routing_timeout_ms_ << " ms)!";
+			                   << " and the Routing Manager did not send a table update in routing_timeout_ms window (" << routing_timeout_ms_ << " ms)!";
 		}
 		else
 		{
 			TLOG(TLVL_WARNING) << "Bad Omen: I don't have routing information for send number " << sent_frag_count_.count()
-			                   << " and the Routing Master did not send a table update in routing_timeout_ms window (" << routing_timeout_ms_ << " ms)!";
+			                   << " and the Routing Manager did not send a table update in routing_timeout_ms window (" << routing_timeout_ms_ << " ms)!";
 		}
 	}
 	else
@@ -647,7 +647,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::LastPoint);
 		metricMan->sendMetric("Fragment Latency at Send", latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
 
-		if (use_routing_master_)
+		if (use_routing_manager_)
 		{
 			metricMan->sendMetric("Routing Table Size", GetRoutingTableEntryCount(), "events", 2, MetricMode::LastPoint);
 			if (routing_wait_time_ > 0)

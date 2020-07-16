@@ -1,9 +1,9 @@
-#define TRACE_NAME "RoutingMasterPolicy"
+#define TRACE_NAME "RoutingManagerPolicy"
 
-#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
-artdaq::RoutingMasterPolicy::RoutingMasterPolicy(const fhicl::ParameterSet& ps)
+artdaq::RoutingManagerPolicy::RoutingManagerPolicy(const fhicl::ParameterSet& ps)
     : next_sequence_id_(1)
     , max_token_count_(0)
 {
@@ -11,7 +11,7 @@ artdaq::RoutingMasterPolicy::RoutingMasterPolicy(const fhicl::ParameterSet& ps)
 	receiver_ranks_.insert(receiver_ranks.begin(), receiver_ranks.end());
 }
 
-void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_free)
+void artdaq::RoutingManagerPolicy::AddReceiverToken(int rank, unsigned new_slots_free)
 {
 	if (receiver_ranks_.count(rank) == 0u)
 	{
@@ -44,7 +44,7 @@ void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_
 	TLOG(10) << "AddReceiverToken END";
 }
 
-std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot()
+std::unique_ptr<std::deque<int>> artdaq::RoutingManagerPolicy::getTokensSnapshot()
 {
 	TLOG(10) << "getTokensSnapshot BEGIN";
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
@@ -54,7 +54,7 @@ std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot(
 	return out;
 }
 
-void artdaq::RoutingMasterPolicy::addUnusedTokens(std::unique_ptr<std::deque<int>> tokens)
+void artdaq::RoutingManagerPolicy::addUnusedTokens(std::unique_ptr<std::deque<int>> tokens)
 {
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
 	for (auto token = tokens->rbegin(); token != tokens->rend(); ++token)
@@ -67,7 +67,7 @@ void artdaq::RoutingMasterPolicy::addUnusedTokens(std::unique_ptr<std::deque<int
 	}
 }
 
-void artdaq::RoutingMasterPolicy::Reset()
+void artdaq::RoutingManagerPolicy::Reset()
 {
 	next_sequence_id_ = 1;
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
