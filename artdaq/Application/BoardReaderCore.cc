@@ -606,7 +606,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
 		oss << "  Fragment output statistics: "
-		    << stats.recentSampleCount << " fragments requested at "
+		    << stats.recentSampleCount << " fragments sent at "
 		    << stats.recentSampleRate << " fragments/sec, effective data rate = "
 		    << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB/sec, monitor window = "
 		    << stats.recentDuration << " sec, min::max event size = "
@@ -629,33 +629,33 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 	if (mqPtr.get() != nullptr)
 	{
 		oss << "  Input wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsGeneratedCount) << " sec";
+		    << (mqPtr->getRecentValueSum() / fragmentsGeneratedCount) << " s/fragment";
 	}
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BUFFER_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
 		oss << ", buffer wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsGeneratedCount) << " sec";
+		    << (mqPtr->getRecentValueSum() / fragmentsGeneratedCount) << " s/fragment";
 	}
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(REQUEST_WAIT_STAT_KEY);
 	if (mqPtr.get() != 0)
 	{
 		oss << ", request wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " sec";
+		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
 	if (mqPtr.get() != nullptr)
 	{
 		oss << ", BRsync wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " sec";
+		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != nullptr)
 	{
 		oss << ", output wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " sec";
+		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
 	}
 
 

@@ -160,6 +160,11 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 				auto fragId = dataIter->fragmentID();
 				auto type = dataIter->type();
 
+				// ELF, 2020 July 16: System Fragments are excluded from these checks
+				if (Fragment::isSystemFragmentType(type)) {
+				    continue;
+				}
+
 				if (!expectedTypes_.count(fragId))
 				{
 					TLOG(TLVL_ERROR) << "Received Fragment with Fragment ID " << fragId << ", which is not in the declared list of Fragment IDs! Aborting!";
