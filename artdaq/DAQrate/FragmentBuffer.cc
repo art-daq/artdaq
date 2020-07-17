@@ -132,26 +132,39 @@ void artdaq::FragmentBuffer::Reset(bool stop)
 
 void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 {
-	auto dataIter = frags.begin();
-	while (dataIter != frags.end())
+	std::unordered_map<Fragment::fragment_id_t, FragmentPtrs> frags_by_id;
+	while (!frags.empty())
 	{
+		auto dataIter = frags.begin();
 		auto frag_id = (*dataIter)->fragmentID();
+
 		if (!dataBuffers_.count(frag_id))
 		{
 			throw cet::exception("FragmentIDs") << "Received Fragment with Fragment ID " << frag_id << ", which is not in the declared Fragment IDs list!";
 		}
-		auto dataBuffer = dataBuffers_[frag_id];
 
-		TLOG(TLVL_TRACE) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
+		frags_by_id[frag_id].emplace_back(std::move(*dataIter));
+		frags.erase(dataIter);
+	}
+
+	auto type_it = frags_by_id.begin();
+	while (type_it != frags_by_id.end())
+	{
+		auto frag_id = type_it->first;
+
+		waitForDataBufferReady(frag_id);
+		auto dataBuffer = dataBuffers_[frag_id];
+		std::lock_guard<std::mutex> dlk(dataBuffer->DataBufferMutex);
 		switch (mode_)
 		{
 			case RequestMode::Single: {
-				std::lock_guard<std::mutex> dlk(dataBuffer->DataBufferMutex);
+				auto dataIter = type_it->second.rbegin();
+				TLOG(TLVL_TRACE) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 				dataBuffer->DataBuffer.clear();
 				dataBuffer->DataBufferDepthBytes = (*dataIter)->sizeBytes();
 				dataBuffer->DataBuffer.emplace_back(std::move(*dataIter));
 				dataBuffer->DataBufferDepthFragments = 1;
-				dataIter = frags.erase(dataIter);
+				type_it->second.clear();
 			}
 			break;
 			case RequestMode::Buffer:
@@ -159,18 +172,20 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 			case RequestMode::Window:
 			case RequestMode::SequenceID:
 			default:
-				waitForDataBufferReady(frag_id);
+				while (!type_it->second.empty())
 				{
-					std::lock_guard<std::mutex> dlk(dataBuffer->DataBufferMutex);
-					//dataBuffer_.reserve(dataBuffer_.size() + newDataBuffer_.size());
+					auto dataIter = type_it->second.begin();
+					TLOG(TLVL_TRACE) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
+
 					dataBuffer->DataBufferDepthBytes += (*dataIter)->sizeBytes();
 					dataBuffer->DataBuffer.emplace_back(std::move(*dataIter));
-					dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
-					dataIter = frags.erase(dataIter);
+					type_it->second.erase(dataIter);
 				}
+				dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
 				break;
 		}
 		getDataBufferStats(frag_id);
+		++type_it;
 	}
 	dataCondition_.notify_all();
 }
