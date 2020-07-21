@@ -57,6 +57,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     , circularDataBufferMode_(ps.get<bool>("circular_buffer_mode", false))
     , maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
     , maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
+    , systemFragmentCount_(0)
     , should_stop_(false)
 {
 	auto fragment_ids = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
@@ -120,6 +121,7 @@ artdaq::FragmentBuffer::~FragmentBuffer()
 void artdaq::FragmentBuffer::Reset(bool stop)
 {
 	should_stop_ = stop;
+	next_sequence_id_ = 1;
 	for (auto& id : dataBuffers_)
 	{
 		std::lock_guard<std::mutex> dlk(id.second->DataBufferMutex);
@@ -127,6 +129,12 @@ void artdaq::FragmentBuffer::Reset(bool stop)
 		id.second->DataBufferDepthFragments = 0;
 		id.second->BufferFragmentKept = false;
 		id.second->DataBuffer.clear();
+	}
+
+	{
+		std::lock_guard<std::mutex> lk(systemFragmentMutex_);
+		systemFragments_.clear();
+		systemFragmentCount_ = 0;
 	}
 }
 
@@ -137,6 +145,15 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 	{
 		auto dataIter = frags.begin();
 		auto frag_id = (*dataIter)->fragmentID();
+
+		if ((*dataIter)->type() == Fragment::EndOfRunFragmentType || (*dataIter)->type() == Fragment::EndOfSubrunFragmentType || (*dataIter)->type() == Fragment::InitFragmentType)
+		{
+			std::lock_guard<std::mutex> lk(systemFragmentMutex_);
+			systemFragments_.emplace_back(std::move(*dataIter));
+			systemFragmentCount_++;
+			frags.erase(dataIter);
+			continue;
+		}
 
 		if (!dataBuffers_.count(frag_id))
 		{
@@ -223,6 +240,14 @@ std::string artdaq::FragmentBuffer::printMode_()
 	}
 
 	return "ERROR";
+}
+
+size_t artdaq::FragmentBuffer::dataBufferFragmentCount_()
+{
+	size_t count = 0;
+	for (auto& id : dataBuffers_) count += id.second->DataBufferDepthFragments;
+	count += systemFragmentCount_.load();
+	return count;
 }
 
 bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
@@ -598,7 +623,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode(artdaq::FragmentPtrs& frags
 
 	auto requests = requestBuffer_->GetRequests();
 
-	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: Starting request processing";
+	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: Starting request processing for " << requests.size() << " requests";
 	for (auto req = requests.begin(); req != requests.end();)
 	{
 		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: processing request with sequence ID " << req->first << ", timestamp " << req->second;
@@ -740,6 +765,16 @@ bool artdaq::FragmentBuffer::applyRequests(artdaq::FragmentPtrs& frags)
 			requestBuffer_->WaitForRequests(10);  // milliseconds
 			counter++;
 		}
+	}
+
+	if (systemFragmentCount_.load() > 0)
+	{
+		std::lock_guard<std::mutex> lk(systemFragmentMutex_);
+		TLOG(TLVL_INFO) << "Copying " << systemFragmentCount_.load() << " System Fragments into output";
+
+		std::move(systemFragments_.begin(), systemFragments_.end(), std::inserter(frags, frags.end()));
+		systemFragments_.clear();
+		systemFragmentCount_ = 0;
 	}
 
 	switch (mode_)

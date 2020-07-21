@@ -380,12 +380,7 @@ protected:
 		 * \brief Get the total number of Fragments in all data buffers
 		 * \return Number of Fragments in all data buffers
 		 */
-	size_t dataBufferFragmentCount_()
-	{
-		size_t count = 0;
-		for (auto& id : dataBuffers_) count += id.second->DataBufferDepthFragments;
-		return count;
-	}
+	size_t dataBufferFragmentCount_();
 
 private:
 	// FHiCL-configurable variables. Note that the C++ variable names
@@ -422,6 +417,10 @@ private:
 		FragmentPtrs DataBuffer;
 		std::mutex DataBufferMutex;
 	};
+
+	std::mutex systemFragmentMutex_;
+	FragmentPtrs systemFragments_;
+	std::atomic<size_t> systemFragmentCount_;
 
 	std::unordered_map<artdaq::Fragment::fragment_id_t, std::shared_ptr<DataBuffer>> dataBuffers_;
 

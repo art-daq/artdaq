@@ -523,12 +523,14 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	size_t seqID = frag.sequenceID();
 	size_t fragSize = frag.sizeBytes();
 	auto latency_s = frag.getLatency(true);
+	auto isSystemBroadcast = frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType;
+
 	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
 	TLOG(13) << "sendFragment start frag.fragmentHeader()=" << std::hex << static_cast<void*>(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
 	         << ", seqID=" << seqID << ", fragID=" << frag.fragmentID() << ", type=" << frag.typeString();
 	int dest = TransferInterface::RECV_TIMEOUT;
 	auto outsts = TransferInterface::CopyStatus::kSuccess;
-	if (broadcast_sends_ || frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType)
+	if (broadcast_sends_ || isSystemBroadcast)
 	{
 		for (auto& bdest : enabled_destinations_)
 		{
@@ -631,6 +633,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		}
 	}
 
+	if (!isSystemBroadcast)
 	{
 		std::unique_lock<std::mutex> lck(routing_mutex_);
 		sent_sequence_id_count_[seqID]++;

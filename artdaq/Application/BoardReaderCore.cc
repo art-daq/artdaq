@@ -464,9 +464,26 @@ void artdaq::BoardReaderCore::send_fragments()
 			{
 				TLOG(TLVL_DEBUG) << "Received first Fragment from Fragment Generator, sequence ID " << fragPtr->sequenceID() << ", size = " << fragPtr->sizeBytes() << " bytes.";
 			}
+
+			if (fragPtr->type() == Fragment::EndOfRunFragmentType || fragPtr->type() == Fragment::EndOfSubrunFragmentType || fragPtr->type() == Fragment::InitFragmentType)
+			{
+				// Just broadcast any system Fragments in the output
+				artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
+				statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->sizeBytes());
+
+				startTime = artdaq::MonitoredQuantity::getCurrentTime();
+				TLOG(17) << "send_fragments seq=" << sequence_id << " sendFragment start";
+				auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
+				TLOG(17) << "send_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
+				++fragment_count_;
+				statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
+				                       artdaq::MonitoredQuantity::getCurrentTime() - startTime);
+				continue;
+			}
+
 			artdaq::Fragment::sequence_id_t sequence_id = fragPtr->sequenceID();
 			SetMFIteration("Sequence ID " + std::to_string(sequence_id));
-			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->size());
+			statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->sizeBytes());
 
 			/*if ((fragment_count_ % 250) == 0)
 			{
