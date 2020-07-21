@@ -95,6 +95,10 @@ private:
 	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet skel, const std::string& label, const fhicl::ParameterSet& pset);
 	void check_filters_();
 
+	void start_art_process_(std::string const& label, fhicl::ParameterSet const& pset);
+	void stop_art_process_(std::string const& label);
+
+
 	std::mutex dispatcher_transfers_mutex_;
 	std::unordered_map<std::string, fhicl::ParameterSet> registered_monitors_;
 	std::unordered_map<std::string, pid_t> registered_monitor_pids_;

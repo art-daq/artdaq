@@ -288,7 +288,7 @@ void artdaq::TransferWrapper::registerMonitor()
 			TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 			return;
 		}
-		TLOG(TLVL_INFO) << "Waited " << std::fixed << std::setprecision(2) << TimeUtils::GetElapsedTime(start) << " s / " << runningStateTimeout_ << " s for Dispatcher to enter the Running state";
+		TLOG(TLVL_INFO) << "Waited " << std::fixed << std::setprecision(2) << TimeUtils::GetElapsedTime(start) << " s / " << runningStateTimeout_ << " s for Dispatcher to enter the Running state (state=" << sts << ")";
 		usleep(runningStateInterval_us_);
 		sts = getDispatcherStatus();
 	}

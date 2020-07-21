@@ -480,7 +480,10 @@ T cmd_::getParam(const xmlrpc_c::paramList& paramList, int index,
 
 void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)
 {
-	std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::chrono::milliseconds(250));
+	TLOG(TLVL_TRACE) << "Received Request to " << _help << ", attempting to get lock";
+	std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::defer_lock);
+	lk.try_lock_for(std::chrono::milliseconds(250));
+
 	if (lk.owns_lock())
 	{
 		try
@@ -544,9 +547,12 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 			*retvalP = xmlrpc_c::value_string(msg);
 			TLOG(TLVL_ERROR) << msg;
 		}
+
+		lk.unlock();
 	}
 	else
 	{
+		TLOG(TLVL_ERROR) << "Unable to get lock while trying to " << _help << ", returning busy";
 		*retvalP = xmlrpc_c::value_string("busy");
 	}
 }

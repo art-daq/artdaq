@@ -94,7 +94,6 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"";
-	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	check_filters_();
 
 	try
@@ -102,30 +101,19 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		TLOG(TLVL_DEBUG) << "Getting unique_label from input ParameterSet";
 		auto label = pset.get<std::string>("unique_label");
 		TLOG(TLVL_DEBUG) << "Unique label is " << label;
-		if (registered_monitors_.count(label) != 0u)
 		{
-			throw cet::exception("DispatcherCore") << "Unique label already exists!";  // NOLINT(cert-err60-cpp)
+			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+			if (registered_monitors_.count(label) != 0u)
+			{
+				throw cet::exception("DispatcherCore") << "Unique label already exists!";  // NOLINT(cert-err60-cpp)
+			}
+
+			registered_monitors_[label] = pset;
 		}
 
-		registered_monitors_[label] = pset;
-		if (event_store_ptr_ != nullptr)
-		{
-			if (broadcast_mode_)
-			{
-				fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
-				TLOG(TLVL_DEBUG) << "Starting art process with received fhicl";
-				registered_monitor_pids_[label] = event_store_ptr_->StartArtProcess(ps);
-			}
-			else
-			{
-				TLOG(TLVL_DEBUG) << "Generating new fhicl and reconfiguring art";
-				event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
-			}
-		}
-		else
-		{
-			TLOG(TLVL_ERROR) << "Unable to add monitor as there is no SharedMemoryEventManager instance!";
-		}
+		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
+		boost::thread thread([&] { start_art_process_(label, pset); });
+		thread.detach();
 	}
 	catch (const cet::exception& e)
 	{
@@ -165,38 +153,27 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 {
 	TLOG(TLVL_DEBUG) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"";
-	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	check_filters_();
 
 	try
 	{
-		if (registered_monitors_.count(label) == 0)
 		{
-			std::stringstream errmsg;
-			errmsg << "Warning in DispatcherCore::unregister_monitor: unable to find requested transfer plugin with "
-			       << "label \"" << label << "\"";
-			TLOG(TLVL_WARNING) << errmsg.str();
-			return errmsg.str();
+			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+			if (registered_monitors_.count(label) == 0)
+			{
+				std::stringstream errmsg;
+				errmsg << "Warning in DispatcherCore::unregister_monitor: unable to find requested transfer plugin with "
+				       << "label \"" << label << "\"";
+				TLOG(TLVL_WARNING) << errmsg.str();
+				return errmsg.str();
+			}
+
+			registered_monitors_.erase(label);
 		}
 
-		registered_monitors_.erase(label);
-		if (event_store_ptr_ != nullptr)
-		{
-			if (broadcast_mode_)
-			{
-				if (registered_monitor_pids_.count(label) != 0u)
-				{
-					std::set<pid_t> pids;
-					pids.insert(registered_monitor_pids_[label]);
-					event_store_ptr_->ShutdownArtProcesses(pids);
-					registered_monitor_pids_.erase(label);
-				}
-			}
-			else
-			{
-				event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
-			}
-		}
+		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
+		boost::thread thread([&] { stop_art_process_(label); });
+		thread.detach();
 	}
 	catch (...)
 	{
@@ -399,6 +376,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 {
 	TLOG(TLVL_DEBUG) << "generate_filter_fhicl_ BEGIN";
+	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	fhicl::ParameterSet generated_pset = pset_;
 
 	for (auto& monitor : registered_monitors_)
@@ -414,6 +392,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 
 void artdaq::DispatcherCore::check_filters_()
 {
+	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	auto it = registered_monitors_.begin();
 	while (it != registered_monitors_.end())
 	{
@@ -434,5 +413,70 @@ void artdaq::DispatcherCore::check_filters_()
 			}
 		}
 		++it;
+	}
+}
+
+void artdaq::DispatcherCore::start_art_process_(std::string const& label, fhicl::ParameterSet const& pset)
+{
+	if (event_store_ptr_ != nullptr)
+	{
+		if (broadcast_mode_)
+		{
+			fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
+			TLOG(TLVL_DEBUG) << "Starting art process with received fhicl";
+			auto pid = event_store_ptr_->StartArtProcess(ps);
+			{
+				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+				registered_monitor_pids_[label] = pid;
+			}
+		}
+		else
+		{
+			TLOG(TLVL_DEBUG) << "Calling ReconfigureArt";
+			fhicl::ParameterSet generated_fhicl;
+			{
+				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+				generated_fhicl = generate_filter_fhicl_();
+			}
+			event_store_ptr_->ReconfigureArt(generated_fhicl);
+			TLOG(TLVL_DEBUG) << "Done with ReconfigureArt";
+		}
+	}
+	else
+	{
+		TLOG(TLVL_ERROR) << "Unable to add monitor as there is no SharedMemoryEventManager instance!";
+	}
+}
+
+void artdaq::DispatcherCore::stop_art_process_(std::string const& label)
+{
+	if (event_store_ptr_ != nullptr)
+	{
+		if (broadcast_mode_)
+		{
+			if (registered_monitor_pids_.count(label) != 0u)
+			{
+				std::set<pid_t> pids;
+				{
+					std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+					pids.insert(registered_monitor_pids_[label]);
+					registered_monitor_pids_.erase(label);
+				}
+				TLOG(TLVL_DEBUG) << "Calling ShutdownArtProcesses";
+				event_store_ptr_->ShutdownArtProcesses(pids);
+				TLOG(TLVL_DEBUG) << "Done with ShutdownArtProcesses";
+			}
+		}
+		else
+		{
+			TLOG(TLVL_DEBUG) << "Calling ReconfigureArt";
+			fhicl::ParameterSet generated_fhicl;
+			{
+				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+				generated_fhicl = generate_filter_fhicl_();
+			}
+			event_store_ptr_->ReconfigureArt(generated_fhicl);
+			TLOG(TLVL_DEBUG) << "Done with ReconfigureArt";
+		}
 	}
 }
