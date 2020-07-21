@@ -352,6 +352,29 @@ void artdaq::RoutingManagerCore::process_event_table()
 		}
 	}
 
+	if (stop_requested_ && ack_socket_ != -1) {
+		TLOG(TLVL_INFO) << "Shutting down Routing Manager: Draining ack socket BEGIN";
+		auto ready = true;
+		while (ready)
+		{
+			detail::RoutingAckPacket buffer;
+			if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, nullptr, nullptr) < 0)
+			{
+				if (errno == EWOULDBLOCK || errno == EAGAIN)
+				{
+					TLOG(20) << "No more ack datagrams on ack socket.";
+					ready = false;
+				}
+				else
+				{
+					TLOG(TLVL_ERROR) << "An unexpected error occurred during ack packet receive";
+					exit(2);
+				}
+			}
+		}
+		TLOG(TLVL_INFO) << "Shutting down Routing Manager: Draining ack socket END";
+	}
+
 	TLOG(TLVL_DEBUG) << "stop_requested_ is " << stop_requested_ << ", pause_requested_ is " << pause_requested_ << ", exiting process_event_table loop";
 	policy_->Reset();
 	metricMan->do_stop();
@@ -584,6 +607,7 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 			usleep(table_ack_wait_time_ms * 1000 / 10);
 		}
 	}
+	
 	if (metricMan)
 	{
 		artdaq::TimeUtils::seconds delta = std::chrono::steady_clock::now() - start_time;
