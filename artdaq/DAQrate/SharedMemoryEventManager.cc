@@ -802,8 +802,6 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	released_events_.clear();
 	released_incomplete_events_.clear();
 
-	TLOG(TLVL_DEBUG) << "endOfData: Shutting down RequestSender";
-	requests_.reset(nullptr);
 
 	TLOG(TLVL_DEBUG) << "endOfData END";
 	TLOG(TLVL_INFO) << "EndOfData Complete. There were " << GetLastSeenBufferID() << " buffers processed.";
@@ -853,6 +851,9 @@ bool artdaq::SharedMemoryEventManager::endRun()
 	TLOG(TLVL_INFO) << "Ending run " << run_id_;
 	FragmentPtr endOfRunFrag(new Fragment(static_cast<size_t>(ceil(sizeof(my_rank) /
 	                                                               static_cast<double>(sizeof(Fragment::value_type))))));
+
+	TLOG(TLVL_DEBUG) << "Shutting down RequestSender";
+	requests_.reset(nullptr);
 
 	TLOG(TLVL_DEBUG) << "Broadcasting EndOfRun Fragment";
 	endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
