@@ -45,6 +45,15 @@ void artdaq::RequestBuffer::push(artdaq::Fragment::sequence_id_t seq, artdaq::Fr
 	request_cv_.notify_all();
 }
 
+void artdaq::RequestBuffer::reset()
+{
+	requests_.clear();
+	request_timing_.clear();
+	highest_seen_request_ = 0;
+	last_next_request_ = 0;
+	out_of_order_requests_.clear();
+}
+
 /// <summary>
 /// Get the current requests
 /// </summary>

@@ -17,6 +17,8 @@ public:
 
 	void push(artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
 
+	void reset();
+
 	/// <summary>
 	/// Get the current requests
 	/// </summary>

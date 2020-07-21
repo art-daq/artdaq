@@ -194,6 +194,7 @@ void artdaq::RequestReceiver::startRequestReception()
 void artdaq::RequestReceiver::receiveRequestsLoop()
 {
 	running_ = true;
+	requests_->reset();
 	requests_->setRunning(true);
 	while (!should_stop_)
 	{
