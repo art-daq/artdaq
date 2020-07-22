@@ -112,7 +112,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		}
 
 		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
-		boost::thread thread([&] { start_art_process_(label, pset); });
+		boost::thread thread([&] { start_art_process_(label); });
 		thread.detach();
 	}
 	catch (const cet::exception& e)
@@ -185,9 +185,9 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 	return "Success";
 }
 
-fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::ParameterSet skel, const std::string& label, const fhicl::ParameterSet& pset)
+fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::ParameterSet const& skel, const std::string& label, const fhicl::ParameterSet& pset)
 {
-	fhicl::ParameterSet generated_pset = std::move(skel);
+	fhicl::ParameterSet generated_pset(skel);
 	fhicl::ParameterSet generated_outputs;
 	fhicl::ParameterSet generated_physics;
 	fhicl::ParameterSet generated_physics_analyzers;
@@ -416,12 +416,17 @@ void artdaq::DispatcherCore::check_filters_()
 	}
 }
 
-void artdaq::DispatcherCore::start_art_process_(std::string const& label, fhicl::ParameterSet const& pset)
+void artdaq::DispatcherCore::start_art_process_(std::string const& label)
 {
 	if (event_store_ptr_ != nullptr)
 	{
 		if (broadcast_mode_)
 		{
+			fhicl::ParameterSet pset;
+			{
+				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+				pset = registered_monitors_[label];
+			}
 			fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
 			TLOG(TLVL_DEBUG) << "Starting art process with received fhicl";
 			auto pid = event_store_ptr_->StartArtProcess(ps);

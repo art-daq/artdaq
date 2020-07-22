@@ -92,10 +92,10 @@ public:
 
 private:
 	fhicl::ParameterSet generate_filter_fhicl_();
-	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet skel, const std::string& label, const fhicl::ParameterSet& pset);
+	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet const& skel, const std::string& label, const fhicl::ParameterSet& pset);
 	void check_filters_();
 
-	void start_art_process_(std::string const& label, fhicl::ParameterSet const& pset);
+	void start_art_process_(std::string const& label);
 	void stop_art_process_(std::string const& label);
 
 
