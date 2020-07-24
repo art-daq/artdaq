@@ -626,9 +626,13 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	// Subrun number starts at 1
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Setting Output Fragment Header Fields";
 	auto seqID = (static_cast<uint64_t>(ep.EVENT_ID().subRun() - 1) << 32) + ep.EVENT_ID().event();
-	
+
+#if ART_HEX_VERSION > 0x30000	
 	art::ProcessTag tag("", processName());
 	auto res = ep.getMany(art::ModuleContext::invalid(), art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector(), tag);
+#else
+	auto res = ep.getMany( art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector());
+#endif
 	
 	artdaq::Fragment::timestamp_t ts = 0;
 	
