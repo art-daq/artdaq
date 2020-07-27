@@ -416,7 +416,7 @@ void artdaq::DispatcherCore::check_filters_()
 	}
 }
 
-void artdaq::DispatcherCore::start_art_process_(std::string const& label)
+void artdaq::DispatcherCore::start_art_process_(std::string label)
 {
 	if (event_store_ptr_ != nullptr)
 	{
@@ -453,7 +453,7 @@ void artdaq::DispatcherCore::start_art_process_(std::string const& label)
 	}
 }
 
-void artdaq::DispatcherCore::stop_art_process_(std::string const& label)
+void artdaq::DispatcherCore::stop_art_process_(std::string label)
 {
 	if (event_store_ptr_ != nullptr)
 	{

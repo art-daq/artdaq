@@ -95,8 +95,8 @@ private:
 	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet const& skel, const std::string& label, const fhicl::ParameterSet& pset);
 	void check_filters_();
 
-	void start_art_process_(std::string const& label);
-	void stop_art_process_(std::string const& label);
+	void start_art_process_(std::string label);
+	void stop_art_process_(std::string label);
 
 
 	std::mutex dispatcher_transfers_mutex_;
