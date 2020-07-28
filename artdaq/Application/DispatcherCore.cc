@@ -99,7 +99,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 	try
 	{
 		TLOG(TLVL_DEBUG) << "Getting unique_label from input ParameterSet";
-		auto label = pset.get<std::string>("unique_label");
+		auto const& label = pset.get<std::string>("unique_label");
 		TLOG(TLVL_DEBUG) << "Unique label is " << label;
 		{
 			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
@@ -112,7 +112,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		}
 
 		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
-		boost::thread thread([&] { start_art_process_(label); });
+		boost::thread thread([=] { start_art_process_(label); });
 		thread.detach();
 	}
 	catch (const cet::exception& e)
@@ -172,7 +172,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 		}
 
 		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
-		boost::thread thread([&] { stop_art_process_(label); });
+		boost::thread thread([=] { stop_art_process_(label); });
 		thread.detach();
 	}
 	catch (...)
@@ -416,7 +416,7 @@ void artdaq::DispatcherCore::check_filters_()
 	}
 }
 
-void artdaq::DispatcherCore::start_art_process_(std::string label)
+void artdaq::DispatcherCore::start_art_process_(std::string const& label)
 {
 	if (event_store_ptr_ != nullptr)
 	{
@@ -453,7 +453,7 @@ void artdaq::DispatcherCore::start_art_process_(std::string label)
 	}
 }
 
-void artdaq::DispatcherCore::stop_art_process_(std::string label)
+void artdaq::DispatcherCore::stop_art_process_(std::string const& label)
 {
 	if (event_store_ptr_ != nullptr)
 	{
