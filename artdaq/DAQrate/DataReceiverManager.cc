@@ -362,7 +362,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			auto dead_t = TimeUtils::GetElapsedTime(end_time, start_time);
 			auto recv_wait_t = hdr_delta_t - latency;
 
-			auto data_size = header.word_count * sizeof(RawDataType);
+			uint64_t data_size = header.word_count * sizeof(RawDataType);
 			auto header_size = header.num_words() * sizeof(RawDataType);
 
 			if (metricMan)
