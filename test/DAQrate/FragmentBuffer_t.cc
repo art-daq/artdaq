@@ -1,7 +1,7 @@
 #define TRACE_NAME "FragmentBuffer_t"
 
 #define BOOST_TEST_MODULE FragmentBuffer_t
-#include <boost/test/auto_unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"

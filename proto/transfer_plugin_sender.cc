@@ -8,7 +8,6 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <algorithm>
