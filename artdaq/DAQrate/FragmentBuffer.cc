@@ -484,7 +484,7 @@ void artdaq::FragmentBuffer::applyRequestsBufferMode(artdaq::FragmentPtrs& frags
 
 	for (auto& id : dataBuffers_)
 	{
-		TLOG(TLVL_DEBUG) << "Creating ContainerFragment for Buffered Fragments";
+		TLOG(TLVL_DEBUG) << "applyRequestsBufferMode: Creating ContainerFragment for Buffered Fragments";
 		frags.emplace_back(new artdaq::Fragment(next_sequence_id_, id.first));
 		frags.back()->setTimestamp(requests[next_sequence_id_]);
 		ContainerFragmentLoader cfl(*frags.back());
@@ -492,27 +492,41 @@ void artdaq::FragmentBuffer::applyRequestsBufferMode(artdaq::FragmentPtrs& frags
 
 		// If we kept a Fragment from the previous iteration, but more data has arrived, discard it
 		std::lock_guard<std::mutex> lk(id.second->DataBufferMutex);
-		auto it = id.second->DataBuffer.begin();
 		if (id.second->BufferFragmentKept && id.second->DataBufferDepthFragments > 1)
 		{
-			id.second->DataBufferDepthBytes -= (*it)->sizeBytes();
-			it = id.second->DataBuffer.erase(it);
+			id.second->DataBufferDepthBytes -= id.second->DataBuffer.front()->sizeBytes();
+			id.second->DataBuffer.erase(id.second->DataBuffer.begin());
 			id.second->DataBufferDepthFragments = id.second->DataBuffer.size();
 		}
 
 		// Buffer mode TFGs should simply copy out the whole dataBuffer_ into a ContainerFragment
-		while (it != id.second->DataBuffer.end())
+		FragmentPtrs fragsToAdd;
+		std::move(id.second->DataBuffer.begin(), --id.second->DataBuffer.end(), std::back_inserter(fragsToAdd));
+		id.second->DataBuffer.erase(id.second->DataBuffer.begin(), --id.second->DataBuffer.end());
+
+		if (fragsToAdd.size() > 0)
 		{
-			TLOG(TLVL_APPLYREQUESTS) << "ApplyRequests: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container with sequence ID " << next_sequence_id_;
-			cfl.addFragment(*it);
-			if (bufferModeKeepLatest_ && id.second->DataBufferDepthFragments == 1)
+			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsBufferMode: Adding " << fragsToAdd.size() << " Fragments to Container";
+			cfl.addFragments(fragsToAdd);
+		}
+
+		if (id.second->DataBuffer.size() == 1)
+		{
+			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsBufferMode: Adding Fragment with timestamp " << id.second->DataBuffer.front()->timestamp() << " to Container with sequence ID " << next_sequence_id_;
+			cfl.addFragment(id.second->DataBuffer.front());
+			if (bufferModeKeepLatest_)
 			{
 				id.second->BufferFragmentKept = true;
-				break;
+				id.second->DataBufferDepthBytes = id.second->DataBuffer.front()->sizeBytes();
+				id.second->DataBufferDepthFragments = id.second->DataBuffer.size();  // 1
 			}
-			id.second->DataBufferDepthBytes -= (*it)->sizeBytes();
-			it = id.second->DataBuffer.erase(it);
-			id.second->DataBufferDepthFragments = id.second->DataBuffer.size();
+			else
+			{
+				id.second->DataBuffer.clear();
+				id.second->BufferFragmentKept = false;
+				id.second->DataBufferDepthBytes = 0;
+				id.second->DataBufferDepthFragments = 0;
+			}
 		}
 	}
 	requestBuffer_->RemoveRequest(next_sequence_id_);
@@ -585,6 +599,8 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 				--it;
 			}
 		}
+
+		FragmentPtrs fragsToAdd;
 		// Do a little bit more work to decide which fragments to send for a given request
 		for (; it != dataBuffer->DataBuffer.end();)
 		{
@@ -598,17 +614,23 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 			{ break; }
 
 			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
-			cfl.addFragment(*it);
-
 			if (uniqueWindows_)
 			{
 				dataBuffer->DataBufferDepthBytes -= (*it)->sizeBytes();
+				fragsToAdd.emplace_back(std::move(*it));
 				it = dataBuffer->DataBuffer.erase(it);
 			}
 			else
 			{
+				fragsToAdd.emplace_back(it->get());
 				++it;
 			}
+		}
+
+		if (fragsToAdd.size() > 0)
+		{
+			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding " << fragsToAdd.size() << " Fragments to Container";
+			cfl.addFragments(fragsToAdd);
 		}
 
 		dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
