@@ -539,7 +539,8 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 
 	TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Checking that data exists for request window " << seq;
 	Fragment::timestamp_t min = ts > windowOffset_ ? ts - windowOffset_ : 0;
-	Fragment::timestamp_t max = min + windowWidth_;
+	Fragment::timestamp_t max = ts + windowWidth_ > windowOffset_ ? ts + windowWidth_ - windowOffset_ : 1;
+	
 	TLOG(TLVL_APPLYREQUESTS) << "ApplyRequestsWindowsMode_CheckAndFillDataBuffer: min is " << min << ", max is " << max
 	                         << " and first/last points in buffer are " << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0)
 	                         << "/" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0)
@@ -631,6 +632,16 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 		{
 			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding " << fragsToAdd.size() << " Fragments to Container";
 			cfl.addFragments(fragsToAdd);
+
+			// Don't delete Fragments which are still in the Fragment buffer
+			if (!uniqueWindows_)
+			{
+				for (auto& frag : fragsToAdd)
+				{
+					frag.release();
+				}
+			}
+			fragsToAdd.clear();
 		}
 
 		dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
