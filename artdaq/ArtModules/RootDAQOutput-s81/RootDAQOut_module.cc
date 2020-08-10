@@ -119,7 +119,7 @@ public:
 			// for 'OutputModule::Config::fileName'.
 			using namespace fhicl::detail;
 			ParameterBase* adjustFilename{
-			    const_cast<fhicl::Atom<string>*>(&omConfig().fileName)};
+			    const_cast<fhicl::Atom<string>*>(&omConfig().fileName)}; // NOLINT(cppcoreguidelines-pro-type-const-cast)
 			adjustFilename->set_par_style(fhicl::par_style::REQUIRED);
 		}
 
@@ -139,8 +139,8 @@ public:
 
 	// Special Member Functions.
 public:
-	~RootDAQOut();
-	explicit RootDAQOut(Parameters const&);
+	~RootDAQOut() override;
+	explicit RootDAQOut(Parameters const& /*config*/);
 	RootDAQOut(RootDAQOut const&) = delete;
 	RootDAQOut(RootDAQOut&&) = delete;
 	RootDAQOut& operator=(RootDAQOut const&) = delete;
@@ -151,11 +151,11 @@ public:
 	void postSelectProducts() override;
 	void beginJob() override;
 	void endJob() override;
-	void beginRun(RunPrincipal const&) override;
-	void endRun(RunPrincipal const&) override;
-	void beginSubRun(SubRunPrincipal const&) override;
-	void endSubRun(SubRunPrincipal const&) override;
-	void event(EventPrincipal const&) override;
+	void beginRun(RunPrincipal const& /*rp*/) override;
+	void endRun(RunPrincipal const& /*rp*/) override;
+	void beginSubRun(SubRunPrincipal const& /*srp*/) override;
+	void endSubRun(SubRunPrincipal const& /*srp*/) override;
+	void event(EventPrincipal const& /*ep*/) override;
 
 	// Member Functions -- Replace OutputModule Functions.
 private:
@@ -163,18 +163,18 @@ private:
 	string fileNameAtClose(string const& currentFileName);
 	string const& lastClosedFileName() const override;
 	Granularity fileGranularity() const override;
-	void openFile(FileBlock const&) override;
-	void respondToOpenInputFile(FileBlock const&) override;
+	void openFile(FileBlock const& /*fb*/) override;
+	void respondToOpenInputFile(FileBlock const& /*fb*/) override;
 	void readResults(ResultsPrincipal const& resp) override;
-	void respondToCloseInputFile(FileBlock const&) override;
+	void respondToCloseInputFile(FileBlock const& /*fb*/) override;
 	void incrementInputFileNumber() override;
-	void write(EventPrincipal&) override;
-	void writeSubRun(SubRunPrincipal&) override;
-	void writeRun(RunPrincipal&) override;
-	void setSubRunAuxiliaryRangeSetID(RangeSet const&) override;
-	void setRunAuxiliaryRangeSetID(RangeSet const&) override;
+	void write(EventPrincipal& /*ep*/) override;
+	void writeSubRun(SubRunPrincipal& /*sr*/) override;
+	void writeRun(RunPrincipal& /*rp*/) override;
+	void setSubRunAuxiliaryRangeSetID(RangeSet const& /*rs*/) override;
+	void setRunAuxiliaryRangeSetID(RangeSet const& /*rs*/) override;
 	bool isFileOpen() const override;
-	void setFileStatus(OutputFileStatus) override;
+	void setFileStatus(OutputFileStatus /*ofs*/) override;
 	bool requestsToCloseFile() const override;
 	void startEndFile() override;
 	void writeFileFormatVersion() override;
@@ -190,9 +190,9 @@ private:
 	    FileCatalogMetadata::collection_type const& ssmd) override;
 	void writeProductDependencies() override;
 	void finishEndFile() override;
-	void doRegisterProducts(ProductDescriptions& productsToProduce,
+	void doRegisterProducts(ProductDescriptions& producedProducts,
 	                        ModuleDescription const& md) override;
-	std::string modifyFilePattern(std::string const&, Config const&);
+	std::string modifyFilePattern(std::string const& /*inputPattern*/, Config const& /*config*/);
 
 	// Member Functions -- Implementation Details.
 private:
@@ -319,7 +319,7 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 		return;
 	}
 	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
-	bool fastCloneThisOne = fastCloningEnabled_ && rfb &&
+	bool fastCloneThisOne = fastCloningEnabled_ && (rfb != nullptr) &&
 	                        (rfb->tree() != nullptr) &&
 	                        ((remainingEvents() < 0) ||
 	                         (remainingEvents() >= rfb->tree()->GetEntries()));
@@ -537,7 +537,7 @@ void RootDAQOut::setFileStatus(OutputFileStatus const ofs)
 bool RootDAQOut::isFileOpen() const
 {
 	RecursiveMutexSentry sentry{mutex_, __func__};
-	return rootOutputFile_.get() != nullptr;
+	return rootOutputFile_ != nullptr;
 }
 
 void RootDAQOut::incrementInputFileNumber()
@@ -567,7 +567,7 @@ void RootDAQOut::doOpenFile()
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (inputFileCount_ == 0)
 	{
-		throw Exception(errors::LogicError)
+		throw Exception(errors::LogicError) // NOLINT(cert-err60-cpp)
 		    << "Attempt to open output file before input file. "
 		    << "Please report this to the core framework developers.\n";
 	}
@@ -606,7 +606,7 @@ RootDAQOut::lastClosedFileName() const
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (lastClosedFileName_.empty())
 	{
-		throw Exception(errors::LogicError, "RootDAQOut::currentFileName(): ")
+		throw Exception(errors::LogicError, "RootDAQOut::currentFileName(): ")  // NOLINT(cert-err60-cpp)
 		    << "called before meaningful.\n";
 	}
 	return lastClosedFileName_;
@@ -727,17 +727,17 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	}
 
 	// if one or more free-form substitutions were provided, we'll do them here
-	for (uint32_t subIdx = 0; subIdx < subs.size(); ++subIdx)
+	for (auto& sub : subs)
 	{
 		// first look up the replacement string for this process's app_name
 		const std::string BLAH = "none_provided";
 		std::string newString = BLAH;
-		std::vector<Config::NewSubStringForApp> replacementList = subs[subIdx].replacementList();
-		for (uint32_t rdx = 0; rdx < replacementList.size(); ++rdx)
+		std::vector<Config::NewSubStringForApp> replacementList = sub.replacementList();
+		for (auto& rdx : replacementList)
 		{
-			if (replacementList[rdx].appName() == artdaq::Globals::app_name_)
+			if (rdx.appName() == artdaq::Globals::app_name_)
 			{
-				newString = replacementList[rdx].newString();
+				newString = rdx.newString();
 				break;
 			}
 		}
@@ -745,7 +745,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 		if (newString != BLAH)
 		{
 			// first, add the expected surrounding text, and search for that
-			searchString = "${" + subs[subIdx].targetString() + "}";
+			searchString = "${" + sub.targetString() + "}";
 			targetLocation = modifiedPattern.find(searchString);
 			TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			while (targetLocation != std::string::npos)
@@ -757,7 +757,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 
 			// then, search for the provided string, verbatim, in case the user specified
 			// the enclosing text in the configuration document
-			searchString = subs[subIdx].targetString();
+			searchString = sub.targetString();
 			targetLocation = modifiedPattern.find(searchString);
 			TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			while (targetLocation != std::string::npos)
@@ -775,4 +775,4 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 
 }  // namespace art
 
-DEFINE_ART_MODULE(art::RootDAQOut)
+DEFINE_ART_MODULE(art::RootDAQOut)// NOLINT(performance-unnecessary-value-param)

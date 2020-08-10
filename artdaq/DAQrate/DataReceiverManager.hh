@@ -102,6 +102,11 @@ public:
 	std::shared_ptr<detail::FragCounter> GetReceivedFragmentCount() { return std::shared_ptr<detail::FragCounter>(&recv_frag_count_); }
 
 private:
+	DataReceiverManager(DataReceiverManager const&) = delete;
+	DataReceiverManager(DataReceiverManager&&) = delete;
+	DataReceiverManager& operator=(DataReceiverManager const&) = delete;
+	DataReceiverManager& operator=(DataReceiverManager&&) = delete;
+
 	void runReceiver_(int);
 
 	std::atomic<bool> stop_requested_;

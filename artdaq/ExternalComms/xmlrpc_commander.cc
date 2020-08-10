@@ -6,6 +6,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #define _LIBCPP_ENABLE_CXX17_REMOVED_FEATURES 1
+#include <memory>
 #include <xmlrpc-c/base.hpp>
 #include <xmlrpc-c/client_simple.hpp>
 #include <xmlrpc-c/girerr.hpp>
@@ -22,9 +23,9 @@
 #define TRACE_NAME (app_name + "_xmlrpc_commander").c_str()
 #include "tracemf.h"
 
-#include <errno.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <cerrno>
 #include <cstring>
 #include <exception>
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -45,6 +46,11 @@ public:
 	env_wrap() { xmlrpc_env_init(&this->env_c); };
 	~env_wrap() { xmlrpc_env_clean(&this->env_c); };
 	xmlrpc_env env_c;  ///< XMLRPC Environment
+private:
+	env_wrap(env_wrap const&) = delete;
+	env_wrap(env_wrap&&) = delete;
+	env_wrap& operator=(env_wrap const&) = delete;
+	env_wrap& operator=(env_wrap&&) = delete;
 };
 }  // namespace
 static xmlrpc_c::paramList
@@ -71,37 +77,45 @@ c_executeMethod(xmlrpc_env* const envP,
                 void* const methodPtr,
                 void* const callInfoPtr)
 {
-	xmlrpc_c::method* const methodP(static_cast<xmlrpc_c::method*>(methodPtr));
+	auto* const methodP(static_cast<xmlrpc_c::method*>(methodPtr));
 	xmlrpc_c::paramList const paramList(pListFromXmlrpcArray(paramArrayP));
-	xmlrpc_c::callInfo* const callInfoP(static_cast<xmlrpc_c::callInfo*>(callInfoPtr));
+	auto* const callInfoP(static_cast<xmlrpc_c::callInfo*>(callInfoPtr));
 	xmlrpc_value* retval;
-	retval = NULL;  // silence used-before-set warning
+	retval = nullptr;  // silence used-before-set warning
 	try
 	{
 		xmlrpc_c::value result;
 		try
 		{
-			xmlrpc_c::method2* const method2P(dynamic_cast<xmlrpc_c::method2*>(methodP));
-			if (method2P)
+			auto* const method2P(dynamic_cast<xmlrpc_c::method2*>(methodP));
+			if (method2P != nullptr)
+			{
 				method2P->execute(paramList, callInfoP, &result);
+			}
 			else
+			{
 				methodP->execute(paramList, &result);
+		}
 		}
 		catch (xmlrpc_c::fault const& fault)
 		{
 			xmlrpc_env_set_fault(envP, fault.getCode(),
 			                     fault.getDescription().c_str());
 		}
-		if (!envP->fault_occurred)
+		if (envP->fault_occurred == 0)
 		{
 			if (result.isInstantiated())
+			{
 				retval = result.cValue();
+			}
 			else
+			{
 				girerr::throwf(
 				    "Xmlrpc-c user's xmlrpc_c::method object's "
 				    "'execute method' failed to set the RPC result "
 				    "value.");
 		}
+	}
 	}
 	catch (std::exception const& e)
 	{
@@ -137,7 +151,10 @@ std::string exception_msg(const std::runtime_error& er,
 	msg.append(helpText);
 	msg.append(": ");
 	msg.append(er.what());  //std::string(er.what ()).substr (2);
-	if (msg[msg.size() - 1] == '\n') msg.erase(msg.size() - 1);
+	if (msg[msg.size() - 1] == '\n')
+	{
+		msg.erase(msg.size() - 1);
+	}
 	return msg;
 }
 
@@ -154,17 +171,56 @@ std::string exception_msg(const art::Exception& er,
 	msg.append(helpText);
 	msg.append(": ");
 	msg.append(er.what());
-	if (msg[msg.size() - 1] == '\n') msg.erase(msg.size() - 1);
+	if (msg[msg.size() - 1] == '\n')
+	{
+		msg.erase(msg.size() - 1);
+	}
 	return msg;
 }
 
 /**
 	* \brief Write an exception message
-	* \param er A cet::exceptio to print
+	* \param er A cet::exception to print
 	* \param helpText Additional information abou the exception context
 	* \return Exception message
 	*/
 std::string exception_msg(const cet::exception& er,
+                          const std::string& helpText)
+{
+	std::string msg("Exception when trying to ");
+	msg.append(helpText);
+	msg.append(": ");
+	msg.append(er.what());
+	if (msg[msg.size() - 1] == '\n')
+	{
+		msg.erase(msg.size() - 1);
+	}
+	return msg;
+}
+
+/**
+	* \brief Write an exception message
+	* \param er A boost::exception to print
+	* \param helpText Additional information abou the exception context
+	* \return Exception message
+	*/
+std::string exception_msg(const boost::exception& er,
+                          const std::string& helpText)
+{
+	std::string msg("Exception when trying to ");
+	msg.append(helpText);
+	msg.append(": ");
+	msg.append(boost::diagnostic_information(er));
+	if (msg[msg.size() - 1] == '\n') msg.erase(msg.size() - 1);
+	return msg;
+}
+/**
+	* \brief Write an exception message
+	* \param er A std::exception to print
+	* \param helpText Additional information abou the exception context
+	* \return Exception message
+	*/
+std::string exception_msg(const std::exception& er,
                           const std::string& helpText)
 {
 	std::string msg("Exception when trying to ");
@@ -188,7 +244,10 @@ std::string exception_msg(const std::string& erText,
 	msg.append(helpText);
 	msg.append(": ");
 	msg.append(erText);
-	if (msg[msg.size() - 1] == '\n') msg.erase(msg.size() - 1);
+	if (msg[msg.size() - 1] == '\n')
+	{
+		msg.erase(msg.size() - 1);
+	}
 	return msg;
 }
 
@@ -231,7 +290,7 @@ public:
 		 * \param paramList List of parameters for the command (i.e. a fhicl string for init transitions)
 		 * \param retvalP Pointer to the return value (usually a string describing result of command)
 		 */
-	void execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP) final;
+	void execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* retvalP) final;
 
 protected:
 	xmlrpc_commander& _c;  ///< The xmlrpc_commander instance that the command will be sent to
@@ -241,7 +300,7 @@ protected:
 		 * \param retvalP Pointer to the return value (usually a string describing result of command)
 		 * \return Whether the command succeeded
 		 */
-	virtual bool execute_(const xmlrpc_c::paramList&, xmlrpc_c::value* const retvalP) = 0;
+	virtual bool execute_(const xmlrpc_c::paramList&, xmlrpc_c::value* retvalP) = 0;
 
 	/**
 		 * \brief Get a parameter from the parameter list
@@ -286,9 +345,9 @@ protected:
 // template specializations below this default function
 
 template<typename T>
-T cmd_::getParam(const xmlrpc_c::paramList&, int)
+T cmd_::getParam(const xmlrpc_c::paramList& /*unused*/, int /*unused*/)
 {
-	throw cet::exception("cmd_") << "Error in cmd_::getParam(): value type not supported" << std::endl;
+	throw cet::exception("cmd_") << "Error in cmd_::getParam(): value type not supported" << std::endl;  // NOLINT(cert-err60-cpp)
 }
 
 /**
@@ -383,7 +442,7 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 {
 	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as ParameterSet.";
 	TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
-	std::string configString = std::string(paramList.getString(index).c_str());
+	std::string configString = std::string(paramList.getString(index));
 	TLOG(TLVL_DEBUG) << "Loading Parameter Set from string: " << configString << std::endl;
 	fhicl::ParameterSet pset;
 
@@ -413,23 +472,19 @@ T cmd_::getParam(const xmlrpc_c::paramList& paramList, int index,
 {
 	T val = default_value;
 
-	try
+	if (static_cast<unsigned>(index) < paramList.size())
 	{
 		val = getParam<T>(paramList, index);
 	}
-	catch (const cet::exception& exception)
-	{
-		throw exception;
-	}
-	catch (...)
-	{}
-
 	return val;
 }
 
 void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)
 {
-	std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::chrono::milliseconds(250));
+	TLOG(TLVL_TRACE) << "Received Request to " << _help << ", attempting to get lock";
+	std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::defer_lock);
+	lk.try_lock_for(std::chrono::milliseconds(250));
+
 	if (lk.owns_lock())
 	{
 		try
@@ -475,15 +530,30 @@ void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const 
 			*retvalP = xmlrpc_c::value_string(msg);
 			TLOG(TLVL_ERROR) << msg;
 		}
-		catch (...)
+		catch (boost::exception& er)
 		{
-			std::string msg = exception_msg("Unknown exception", _help);
+			std::string msg = exception_msg(er, _help);
 			*retvalP = xmlrpc_c::value_string(msg);
 			TLOG(TLVL_ERROR) << msg;
 		}
+		catch (std::exception& er)
+		{
+			std::string msg = exception_msg(er, _help);
+			*retvalP = xmlrpc_c::value_string(msg);
+			TLOG(TLVL_ERROR) << msg;
+		}
+		catch (...)
+		{
+			std::string msg = exception_msg("Unknown exception (not from std, boost, cet, or art)", _help);
+			*retvalP = xmlrpc_c::value_string(msg);
+			TLOG(TLVL_ERROR) << msg;
+		}
+
+		lk.unlock();
 	}
 	else
 	{
+		TLOG(TLVL_ERROR) << "Unable to get lock while trying to " << _help << ", returning busy";
 		*retvalP = xmlrpc_c::value_string("busy");
 	}
 }
@@ -635,12 +705,15 @@ public:
 	static const uint64_t defaultTimeout = 45;
 
 private:
-	bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)
+	bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const /*retvalP*/) override
 	{
 		auto ret = _c._commandable.shutdown(getParam<uint64_t>(paramList, 0, defaultTimeout));
 
 #if 1
-		if (_c.server) _c.server->terminate();
+		if (_c.server)
+		{
+			_c.server->terminate();
+		}
 #endif
 
 		return ret;
@@ -662,7 +735,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const&, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& /*unused*/, xmlrpc_c::value* const retvalP) override
 	{
 		*retvalP = xmlrpc_c::value_string(_c._commandable.status());
 		return true;
@@ -684,7 +757,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP) override
 	{
 		try
 		{
@@ -716,7 +789,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const&, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& /*unused*/, xmlrpc_c::value* const retvalP) override
 	{
 		std::vector<std::string> cmdList = _c._commandable.legal_commands();
 		std::string resultString;
@@ -750,7 +823,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP) override
 	{
 		try
 		{
@@ -782,7 +855,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP) override
 	{
 		try
 		{
@@ -814,7 +887,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP) override
 	{
 		try
 		{
@@ -847,7 +920,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP) override
 	{
 		try
 		{
@@ -879,7 +952,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP) override
 	{
 		try
 		{
@@ -914,7 +987,7 @@ public:
 	static const uint32_t defaultSubrunNumber = 1;                 ///< Default subrun number for command
 
 private:
-	bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const)
+	bool execute_(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const /*retvalP*/) override
 	{
 		auto ret = _c._commandable.do_rollover_subrun(getParam<uint64_t>(paramList, 0, defaultSequenceID), getParam<uint32_t>(paramList, 1, defaultSubrunNumber));
 		return ret;
@@ -936,7 +1009,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP)
+	bool execute_(xmlrpc_c::paramList const& paramList, xmlrpc_c::value* const retvalP) override
 	{
 		try
 		{
@@ -968,7 +1041,7 @@ public:
 	{}
 
 private:
-	bool execute_(xmlrpc_c::paramList const&, xmlrpc_c::value* const)
+	bool execute_(xmlrpc_c::paramList const& /*unused*/, xmlrpc_c::value* const /*retvalP*/) override
 	{
 		return _c._commandable.do_clear_config_archive();
 	}
@@ -997,13 +1070,13 @@ private:
 	};
 #endif
 
-xmlrpc_commander::xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable)
+xmlrpc_commander::xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Commandable& commandable)
     : CommanderInterface(ps, commandable)
     , port_(ps.get<int>("id", 0))
     , serverUrl_(ps.get<std::string>("server_url", ""))
     , server(nullptr)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
 	{
 		char hostname[HOST_NAME_MAX];
 		gethostname(hostname, HOST_NAME_MAX);
@@ -1024,7 +1097,8 @@ xmlrpc_commander::xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& 
 	TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
 }
 
-void xmlrpc_commander::run_server() try
+void xmlrpc_commander::run_server()
+try
 {
 	//std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 	xmlrpc_c::registry registry;
@@ -1038,7 +1112,7 @@ void xmlrpc_commander::run_server() try
 
 	xmlrpc_env env;  // xmlrpc_env_init(&env);
 	xmlrpc_registry*** c_registryPPP;
-	c_registryPPP = (xmlrpc_registry***)(((char*)&registry) + sizeof(girmem::autoObject));
+	c_registryPPP = reinterpret_cast<xmlrpc_registry***>(reinterpret_cast<char*>(&registry) + sizeof(girmem::autoObject));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 #define register_method2(m, ss)                                                  \
 	xmlrpc_c::method* ptr_##m(dynamic_cast<xmlrpc_c::method*>(new m##_(*this))); \
@@ -1100,7 +1174,7 @@ void xmlrpc_commander::run_server() try
 
 	if (socket_file_descriptor < 0)
 	{
-		throw cet::exception("xmlrpc_commander::run") << "Problem with the socket() call; C-style errno == " << errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the socket() call; C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 
 	int enable = 1;
@@ -1110,7 +1184,7 @@ void xmlrpc_commander::run_server() try
 
 	if (retval < 0)
 	{
-		throw cet::exception("xmlrpc_commander::run") << "Problem with the call to setsockopt(); C-style errno == " << errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the call to setsockopt(); C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 
 	struct sockaddr_in sockAddr;
@@ -1120,16 +1194,16 @@ void xmlrpc_commander::run_server() try
 	sockAddr.sin_addr.s_addr = 0;
 
 	retval = bind(socket_file_descriptor,
-	              reinterpret_cast<struct sockaddr*>(&sockAddr),
+	              reinterpret_cast<struct sockaddr*>(&sockAddr),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	              sizeof(sockAddr));
 
 	if (retval != 0)
 	{
 		close(socket_file_descriptor);
-		throw cet::exception("xmlrpc_commander::run") << "Problem with the bind() call; C-style errno == " << errno << " (" << strerror(errno) << ")";
+		throw cet::exception("xmlrpc_commander::run") << "Problem with the bind() call; C-style errno == " << errno << " (" << strerror(errno) << ")";  // NOLINT(cert-err60-cpp)
 	}
 
-	server.reset(new xmlrpc_c::serverAbyss(xmlrpc_c::serverAbyss::constrOpt().registryP(&registry).socketFd(socket_file_descriptor)));
+	server = std::make_unique<xmlrpc_c::serverAbyss>(xmlrpc_c::serverAbyss::constrOpt().registryP(&registry).socketFd(socket_file_descriptor));
 
 #if 0
 		xmlrpc_c::serverAbyss::shutdown shutdown_obj(&server);
@@ -1166,9 +1240,9 @@ catch (...)
 	throw;
 }
 
-std::string xmlrpc_commander::send_command_(std::string command)
+std::string xmlrpc_commander::send_command_(const std::string& command)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
@@ -1192,9 +1266,9 @@ std::string xmlrpc_commander::send_command_(std::string command)
 	return xmlrpc_c::value_string(result);
 }
 
-std::string xmlrpc_commander::send_command_(std::string command, std::string arg)
+std::string xmlrpc_commander::send_command_(const std::string& command, const std::string& arg)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
@@ -1218,9 +1292,9 @@ std::string xmlrpc_commander::send_command_(std::string command, std::string arg
 	return xmlrpc_c::value_string(result);
 }
 
-std::string xmlrpc_commander::send_command_(std::string command, fhicl::ParameterSet pset, uint64_t timestamp, uint64_t timeout)
+std::string xmlrpc_commander::send_command_(const std::string& command, const fhicl::ParameterSet& pset, uint64_t timestamp, uint64_t timeout)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
@@ -1244,9 +1318,9 @@ std::string xmlrpc_commander::send_command_(std::string command, fhicl::Paramete
 	return xmlrpc_c::value_string(result);
 }
 
-std::string artdaq::xmlrpc_commander::send_command_(std::string command, uint64_t a, uint64_t b)
+std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, uint64_t a, uint64_t b)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
@@ -1270,9 +1344,35 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, uint64_
 	return xmlrpc_c::value_string(result);
 }
 
-std::string artdaq::xmlrpc_commander::send_command_(std::string command, art::RunID r, uint64_t a, uint64_t b)
+std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, uint64_t a, uint32_t b)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
+	{
+		std::stringstream errmsg;
+		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
+		ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+	}
+	xmlrpc_c::clientSimple myClient;
+	xmlrpc_c::value result;
+
+	try
+	{
+		myClient.call(serverUrl_, "daq." + command, "Ii", &result, a, b);
+	}
+	catch (...)
+	{
+		std::stringstream errmsg;
+		errmsg << "Problem attempting " << command << " XML-RPC call on host " << serverUrl_
+		       << "; possible causes are malformed FHiCL or nonexistent process at requested port";
+		ExceptionHandler(ExceptionHandlerRethrow::yes, errmsg.str());
+	}
+
+	return xmlrpc_c::value_string(result);
+}
+
+std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, art::RunID r, uint64_t a, uint64_t b)
+{
+	if (serverUrl_.empty())
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
@@ -1296,9 +1396,9 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, art::Ru
 	return xmlrpc_c::value_string(result);
 }
 
-std::string artdaq::xmlrpc_commander::send_command_(std::string command, uint64_t arg1)
+std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, uint64_t arg1)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
@@ -1322,9 +1422,9 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, uint64_
 	return xmlrpc_c::value_string(result);
 }
 
-std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::string arg1, std::string arg2)
+std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, const std::string& arg1, const std::string& arg2)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
@@ -1348,9 +1448,9 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::st
 	return xmlrpc_c::value_string(result);
 }
 
-std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::string arg1, std::string arg2, std::string arg3)
+std::string artdaq::xmlrpc_commander::send_command_(const std::string& command, const std::string& arg1, const std::string& arg2, const std::string& arg3)
 {
-	if (serverUrl_ == "")
+	if (serverUrl_.empty())
 	{
 		std::stringstream errmsg;
 		errmsg << "Problem attempting " << command << " XML-RPC call: No server URL set!";
@@ -1374,23 +1474,23 @@ std::string artdaq::xmlrpc_commander::send_command_(std::string command, std::st
 	return xmlrpc_c::value_string(result);
 }
 
-std::string xmlrpc_commander::send_register_monitor(std::string monitor_fhicl)
+std::string xmlrpc_commander::send_register_monitor(std::string const& monitor_fhicl)
 {
 	return send_command_("register_monitor", monitor_fhicl);
 }
-std::string xmlrpc_commander::send_unregister_monitor(std::string monitor_label)
+std::string xmlrpc_commander::send_unregister_monitor(std::string const& monitor_label)
 {
 	return send_command_("unregister_monitor", monitor_label);
 }
-std::string artdaq::xmlrpc_commander::send_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp)
+std::string artdaq::xmlrpc_commander::send_init(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp)
 {
 	return send_command_("init", ps, timeout, timestamp);
 }
-std::string artdaq::xmlrpc_commander::send_soft_init(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp)
+std::string artdaq::xmlrpc_commander::send_soft_init(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp)
 {
 	return send_command_("soft_init", ps, timeout, timestamp);
 }
-std::string xmlrpc_commander::send_reinit(fhicl::ParameterSet ps, uint64_t timeout, uint64_t timestamp)
+std::string xmlrpc_commander::send_reinit(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp)
 {
 	return send_command_("reinit", ps, timeout, timestamp);
 }
@@ -1418,7 +1518,7 @@ std::string xmlrpc_commander::send_status()
 {
 	return send_command_("status");
 }
-std::string xmlrpc_commander::send_report(std::string what)
+std::string xmlrpc_commander::send_report(std::string const& what)
 {
 	return send_command_("report", what);
 }
@@ -1426,15 +1526,15 @@ std::string xmlrpc_commander::send_legal_commands()
 {
 	return send_command_("legal_commands");
 }
-std::string xmlrpc_commander::send_trace_get(std::string name)
+std::string xmlrpc_commander::send_trace_get(std::string const& name)
 {
 	return send_command_("trace_get", name);
 }
-std::string xmlrpc_commander::send_trace_set(std::string name, std::string type, std::string mask)
+std::string xmlrpc_commander::send_trace_set(std::string const& name, std::string const& type, std::string const& mask)
 {
 	return send_command_("trace_set", name, type, mask);
 }
-std::string xmlrpc_commander::send_meta_command(std::string command, std::string arg)
+std::string xmlrpc_commander::send_meta_command(std::string const& command, std::string const& arg)
 {
 	return send_command_("meta_command", command, arg);
 }
