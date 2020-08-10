@@ -3,12 +3,11 @@
 
 #include <future>
 
-#include "artdaq/Application/DataLoggerCore.hh"
 #include "artdaq/Application/Commandable.hh"
+#include "artdaq/Application/DataLoggerCore.hh"
 
-namespace artdaq
-{
-	class DataLoggerApp;
+namespace artdaq {
+class DataLoggerApp;
 }
 
 /**
@@ -37,6 +36,8 @@ public:
 	 * \return DataLoggerApp copy
 	 */
 	DataLoggerApp& operator=(DataLoggerApp const&) = delete;
+	DataLoggerApp(DataLoggerApp&&) = delete;
+	DataLoggerApp& operator=(DataLoggerApp&&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**
@@ -107,7 +108,6 @@ public:
 	* \return Whether the command succeeded
 	*/
 	bool do_clear_config_archive() override;
-
 
 private:
 	std::unique_ptr<DataLoggerCore> DataLogger_ptr_;

@@ -7,12 +7,15 @@ art_make_exec(NAME artdaqDriver
 	driver.cc
   LIBRARIES
   artdaq_Application # needed for messagefacility
+  artdaq_Generators
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq-core_Utilities
   artdaq-core_Generators
+  art_Utilities
   ${FHICLCPP}
   ${CETLIB}
+  ${ROOT_CORE}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -26,6 +29,17 @@ art_make_exec(NAME fhicl_test
 	${MF_MESSAGELOGGER}
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
+
+	art_make_exec(simple_metric_sender
+	SOURCE
+	simple_metric_sender.cc
+	LIBRARIES
+  artdaq_Application # needed for messagefacility
+  ${FHICLCPP}
+  ${CETLIB}
+  ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  )
+
 
   art_make_exec(NAME artdaq
 	SOURCE
@@ -121,9 +135,9 @@ art_make_exec(NAME fhicl_test
 	  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME routing_master
+  art_make_exec(NAME routing_manager
   SOURCE
-  routing_master.cc
+  routing_manager.cc
   LIBRARIES
   artdaq_Application
   artdaq_BuildInfo

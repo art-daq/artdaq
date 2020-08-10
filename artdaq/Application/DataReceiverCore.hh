@@ -1,21 +1,20 @@
 #ifndef artdaq_Application_MPI2_DataReceiverCore_hh
 #define artdaq_Application_MPI2_DataReceiverCore_hh
 
-#include <string>
 #include <atomic>
 #include <map>
+#include <string>
 
-#include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 #include "artdaq/DAQrate/DataReceiverManager.hh"
-#include "artdaq/Application/StatisticsHelper.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 
-namespace artdaq
-{
-	class DataReceiverCore;
+namespace artdaq {
+class DataReceiverCore;
 }
 
 /**
@@ -25,7 +24,6 @@ namespace artdaq
 class artdaq::DataReceiverCore
 {
 public:
-
 	/**
 	 * \brief DataReceiverCore Constructor.
 	 */
@@ -46,6 +44,8 @@ public:
 	* \return AggregatorCore copy
 	*/
 	DataReceiverCore& operator=(DataReceiverCore const&) = delete;
+	DataReceiverCore(DataReceiverCore&&) = delete;
+	DataReceiverCore& operator=(DataReceiverCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.
@@ -119,8 +119,8 @@ public:
 	* \param subrun Subrun number of new subrun
 	* \return True event_store_ptr is valid
 	*/
-	bool rollover_subrun(uint64_t eventNum, uint32_t subrun);
-	
+	bool rollover_subrun(uint64_t boundary, uint32_t subrun);
+
 	/**
 	* \brief Send a report on a given run-time quantity
 	* \param which Which quantity to report
@@ -137,7 +137,8 @@ public:
 	/**
 	* \brief Add the specified key and value to the configuration archive list.
 	* \param key String key to be used
-	* \param key String value to be stored
+	* \param value String value to be stored
+	* \return This function will always return true
 	*/
 	bool add_config_archive_entry(std::string const& key, std::string const& value)
 	{
@@ -147,6 +148,7 @@ public:
 
 	/**
 	* \brief Clear the configuration archive list.
+	* \return True if archive is empty after clear operation
 	*/
 	bool clear_config_archive()
 	{
@@ -163,22 +165,16 @@ protected:
 	 * \return Whether the initialize succeeded
 	 */
 	bool initializeDataReceiver(fhicl::ParameterSet const& pset, fhicl::ParameterSet const& data_pset, fhicl::ParameterSet const& metric_pset);
-	
-	std::unique_ptr<DataReceiverManager> receiver_ptr_; ///< Pointer to the DataReceiverManager
-	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_; ///< Pointer to the SharedMemoryEventManager
-	std::atomic<bool> stop_requested_; ///< Stop has been requested?
-	std::atomic<bool> pause_requested_; ///< Pause has been requested?
-	std::atomic<bool> run_is_paused_; ///< Pause has been successfully completed?
-	bool verbose_; ///< Whether to log transition messages
-	
-	fhicl::ParameterSet art_pset_;
-	std::map<std::string, std::string> config_archive_entries_;
 
-	/**
-	 * \brief Log a message, setting severity based on verbosity flag
-	 * \param text Message to log
-	 */
-	void logMessage_(std::string const& text);
+	std::unique_ptr<DataReceiverManager> receiver_ptr_;          ///< Pointer to the DataReceiverManager
+	std::shared_ptr<SharedMemoryEventManager> event_store_ptr_;  ///< Pointer to the SharedMemoryEventManager
+	std::atomic<bool> stop_requested_;                           ///< Stop has been requested?
+	std::atomic<bool> pause_requested_;                          ///< Pause has been requested?
+	std::atomic<bool> run_is_paused_;                            ///< Pause has been successfully completed?
+	bool verbose_;                                               ///< Whether to log transition messages
+
+	fhicl::ParameterSet art_pset_;                               ///< ParameterSet sent to art process
+	std::map<std::string, std::string> config_archive_entries_;  ///< Additional strings to archive as part of the art configuration
 };
 
 #endif /* artdaq_Application_MPI2_DataReceiverCore_hh */

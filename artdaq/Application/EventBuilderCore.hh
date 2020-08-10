@@ -1,13 +1,12 @@
 #ifndef artdaq_Application_MPI2_EventBuilderCore_hh
 #define artdaq_Application_MPI2_EventBuilderCore_hh
 
-#include "fhiclcpp/ParameterSet.h"
-#include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/Application/DataReceiverCore.hh"
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
-namespace artdaq
-{
-	class EventBuilderCore;
+namespace artdaq {
+class EventBuilderCore;
 }
 
 /**
@@ -17,11 +16,10 @@ namespace artdaq
 class artdaq::EventBuilderCore : public DataReceiverCore
 {
 public:
-
 	/**
 	 * \brief EventBuilderCore Constructor.
 	 */
-	EventBuilderCore();
+	EventBuilderCore() = default;
 
 	/**
 	* \brief Copy Constructor is deleted
@@ -31,13 +29,18 @@ public:
 	/**
 	* Destructor.
 	*/
-	~EventBuilderCore();
+	~EventBuilderCore()
+	{
+		TLOG(TLVL_DEBUG) << "Destructor";
+	}
 
 	/**
 	* \brief Copy Assignment operator is deleted
 	* \return AggregatorCore copy
 	*/
 	EventBuilderCore& operator=(EventBuilderCore const&) = delete;
+	EventBuilderCore(EventBuilderCore&&) = delete;
+	EventBuilderCore& operator=(EventBuilderCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.

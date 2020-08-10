@@ -3,12 +3,11 @@
 
 #include <future>
 
-#include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
+#include "artdaq/Application/Commandable.hh"
 
-namespace artdaq
-{
-	class BoardReaderApp;
+namespace artdaq {
+class BoardReaderApp;
 }
 
 /**
@@ -37,6 +36,9 @@ public:
 	 * \return BoardReaderApp copy
 	 */
 	BoardReaderApp& operator=(BoardReaderApp const&) = delete;
+
+	BoardReaderApp(BoardReaderApp&&) = delete;
+	BoardReaderApp& operator=(BoardReaderApp&&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**
@@ -131,7 +133,8 @@ public:
 
 private:
 	std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;
-	boost::thread fragment_processing_thread_;
+	boost::thread fragment_input_thread_;
+	boost::thread fragment_output_thread_;
 };
 
 #endif /* artdaq_Application_MPI2_BoardReaderApp_hh */

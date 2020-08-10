@@ -7,11 +7,7 @@ process_name: dftest
 
 source:
 {
-  module_type: RawInput
-  waiting_time: 30.0 # waiting time, in seconds, for queue timeout
-  resume_after_timeout: false
-  buffer_count: 10
-  max_event_size_bytes: 0x100000
+  module_type: ArtdaqInput
 }
 
 physics:
@@ -22,7 +18,7 @@ physics:
     {
       module_type: FragmentSniffer
       raw_label: "daq"
-      product_instance_name: "Data"
+      product_instance_name: "Empty"
       num_frags_per_event: @local::num_ds50_boards
       num_events_expected: @local::num_events
     }
@@ -45,9 +41,15 @@ services:
               'MismatchedInputFiles','ProductDoesNotSupportViews',
               'ProductDoesNotSupportPtr','NotFound']
 #    wantSummary: true
-    wantTracer: true
+#    wantTracer: true
     handleEmptyRuns: true
     handleEmptySubRuns: true
-    enableSigInt: true
+#    enableSigInt: true
   }
+  ArtdaqSharedMemoryServiceInterface: { service_provider: ArtdaqSharedMemoryService
+  waiting_time: 30.0 # waiting time, in seconds, for queue timeout
+  resume_after_timeout: false
+  buffer_count: 10
+  max_event_size_bytes: 0x100000 }
+  ArtdaqFragmentNamingServiceInterface: { service_provider: ArtdaqFragmentNamingService }
 }

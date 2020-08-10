@@ -1,14 +1,12 @@
 #ifndef artdaq_Application_MPI2_DataLoggerCore_hh
 #define artdaq_Application_MPI2_DataLoggerCore_hh
 
-#include "fhiclcpp/ParameterSet.h"
-#include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq/Application/DataReceiverCore.hh"
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
-
-namespace artdaq
-{
-	class DataLoggerCore;
+namespace artdaq {
+class DataLoggerCore;
 }
 
 /**
@@ -18,11 +16,10 @@ namespace artdaq
 class artdaq::DataLoggerCore : public DataReceiverCore
 {
 public:
-
 	/**
 	* \brief DataLoggerCore Constructor.
 	*/
-	DataLoggerCore();
+	DataLoggerCore() = default;
 
 	/**
 	 * \brief Copy Constructor is deleted
@@ -32,13 +29,18 @@ public:
 	/**
 	* Destructor.
 	*/
-	~DataLoggerCore();
+	~DataLoggerCore()
+	{
+		TLOG(TLVL_DEBUG) << "Destructor";
+	}
 
 	/**
 	 * \brief Copy Assignment operator is deleted
 	 * \return DataLoggerCore copy
 	 */
 	DataLoggerCore& operator=(DataLoggerCore const&) = delete;
+	DataLoggerCore(DataLoggerCore&&) = delete;
+	DataLoggerCore& operator=(DataLoggerCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.

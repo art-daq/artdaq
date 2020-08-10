@@ -3,15 +3,13 @@
 
 #include <string>
 
-#include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq/Application/DataReceiverCore.hh"
 
-
-namespace artdaq
-{
-	class DispatcherCore;
+namespace artdaq {
+class DispatcherCore;
 }
 
 /**
@@ -21,11 +19,10 @@ namespace artdaq
 class artdaq::DispatcherCore : public DataReceiverCore
 {
 public:
-
 	/**
 	* \brief DispatcherCore Constructor.
 	*/
-	DispatcherCore();
+	DispatcherCore() = default;
 
 	/**
 	 * \brief Copy Constructor is deleted
@@ -35,13 +32,18 @@ public:
 	/**
 	* Destructor.
 	*/
-	~DispatcherCore();
+	~DispatcherCore()
+	{
+		TLOG(TLVL_DEBUG) << "Destructor";
+	}
 
 	/**
 	 * \brief Copy Assignment operator is deleted
 	 * \return DispatcherCore copy
 	 */
 	DispatcherCore& operator=(DispatcherCore const&) = delete;
+	DispatcherCore(DispatcherCore&&) = delete;
+	DispatcherCore& operator=(DispatcherCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.
@@ -88,16 +90,19 @@ public:
 	 */
 	std::string unregister_monitor(std::string const& label);
 
-
 private:
-	fhicl::ParameterSet generate_filter_fhicl_(); 
-	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet skel, std::string label, fhicl::ParameterSet pset);
+	fhicl::ParameterSet generate_filter_fhicl_();
+	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet const& skel, const std::string& label, const fhicl::ParameterSet& pset);
 	void check_filters_();
+
+	void start_art_process_(std::string const& label);
+	void stop_art_process_(std::string const& label);
+
 
 	std::mutex dispatcher_transfers_mutex_;
 	std::unordered_map<std::string, fhicl::ParameterSet> registered_monitors_;
 	std::unordered_map<std::string, pid_t> registered_monitor_pids_;
-	fhicl::ParameterSet pset_; // The ParameterSet initially passed to the Dispatcher (contains input info)
+	fhicl::ParameterSet pset_;  // The ParameterSet initially passed to the Dispatcher (contains input info)
 	bool broadcast_mode_;
 };
 

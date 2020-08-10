@@ -1,27 +1,26 @@
 #define TRACE_NAME "DispatcherApp"
 
 #include "artdaq/Application/DispatcherApp.hh"
-#include "artdaq/Application/DispatcherCore.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/Application/DispatcherCore.hh"
 
 #include <iostream>
+#include <memory>
 
-artdaq::DispatcherApp::DispatcherApp()
-{
-}
+artdaq::DispatcherApp::DispatcherApp() = default;
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
 // *******************************************************************
 
-bool artdaq::DispatcherApp::do_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 
 	//Dispatcher_ptr_.reset(nullptr);
-	if (Dispatcher_ptr_.get() == 0)
+	if (Dispatcher_ptr_ == nullptr)
 	{
-		Dispatcher_ptr_.reset(new DispatcherCore());
+		Dispatcher_ptr_ = std::make_unique<DispatcherCore>();
 	}
 	external_request_status_ = Dispatcher_ptr_->initialize(pset);
 	if (!external_request_status_)
@@ -34,7 +33,7 @@ bool artdaq::DispatcherApp::do_initialize(fhicl::ParameterSet const& pset, uint6
 	return external_request_status_;
 }
 
-bool artdaq::DispatcherApp::do_start(art::RunID id, uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_start(art::RunID id, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = Dispatcher_ptr_->start(id);
@@ -46,11 +45,11 @@ bool artdaq::DispatcherApp::do_start(art::RunID id, uint64_t, uint64_t)
 		report_string_.append(boost::lexical_cast<std::string>(id.run()));
 		report_string_.append(".");
 	}
-	
+
 	return external_request_status_;
 }
 
-bool artdaq::DispatcherApp::do_stop(uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_stop(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = Dispatcher_ptr_->stop();
@@ -63,7 +62,7 @@ bool artdaq::DispatcherApp::do_stop(uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DispatcherApp::do_pause(uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_pause(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = Dispatcher_ptr_->pause();
@@ -75,7 +74,7 @@ bool artdaq::DispatcherApp::do_pause(uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DispatcherApp::do_resume(uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_resume(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = Dispatcher_ptr_->resume();
@@ -88,7 +87,7 @@ bool artdaq::DispatcherApp::do_resume(uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DispatcherApp::do_shutdown(uint64_t)
+bool artdaq::DispatcherApp::do_shutdown(uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = Dispatcher_ptr_->shutdown();
@@ -101,12 +100,12 @@ bool artdaq::DispatcherApp::do_shutdown(uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::DispatcherApp::do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_soft_initialize(fhicl::ParameterSet const& /*unused*/, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	return true;
 }
 
-bool artdaq::DispatcherApp::do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t)
+bool artdaq::DispatcherApp::do_reinitialize(fhicl::ParameterSet const& /*unused*/, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	return true;
 }
@@ -119,7 +118,8 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else { return "Success"; }
+
+		return "Success";
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
@@ -131,7 +131,7 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 	//}
 
 	// pass the request to the DispatcherCore instance, if it's available
-	if (Dispatcher_ptr_.get() != 0)
+	if (Dispatcher_ptr_ != nullptr)
 	{
 		resultString.append(Dispatcher_ptr_->report(which));
 	}
@@ -146,7 +146,7 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 
 std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& info)
 {
-	TLOG(TLVL_DEBUG) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"" ;
+	TLOG(TLVL_DEBUG) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"";
 
 	if (Dispatcher_ptr_)
 	{
@@ -157,7 +157,7 @@ std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& i
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Error in call to DispatcherCore's register_monitor function");
+			                 "Error in call to DispatcherCore's register_monitor function");
 
 			return "Error in artdaq::DispatcherApp::register_monitor: an exception was thrown in the call to DispatcherCore::register_monitor, possibly due to a problem with the argument";
 		}
@@ -168,10 +168,9 @@ std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& i
 	}
 }
 
-
 std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 {
-	TLOG(TLVL_DEBUG) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"" ;
+	TLOG(TLVL_DEBUG) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"";
 
 	if (Dispatcher_ptr_)
 	{
@@ -182,7 +181,7 @@ std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-							 "Error in call to DispatcherCore's unregister_monitor function");
+			                 "Error in call to DispatcherCore's unregister_monitor function");
 
 			return "Error in artdaq::DispatcherApp::unregister_monitor: an exception was thrown in the call to DispatcherCore::unregister_monitor, possibly due to a problem with the argument";
 		}

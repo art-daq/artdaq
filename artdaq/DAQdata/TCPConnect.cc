@@ -5,35 +5,35 @@
 //  $RCSfile: TCPConnect.cpp,v $
 //  rev="$Revision: 1.4 $$Date: 2010/06/24 03:49:45 $";
 
-#define TRACE_NAME (app_name + "_TCPConnect").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_TCPConnect").c_str()
 
-#include <stdio.h>		// printf
-#include <sys/types.h>		// socket, bind, listen, accept
-#include <sys/socket.h>		// socket, bind, listen, accept
-#include <netinet/in.h>		// struct sockaddr_in
-#include <stdlib.h>		// exit
-#include <unistd.h>		// close
-#include <string.h>		// bzero
-#include <sys/socket.h>		// inet_aton
-#include <netinet/in.h>		// inet_aton
-#include <arpa/inet.h>		// inet_aton
-#include <netdb.h>              // gethostbyname
+#include <arpa/inet.h>   // inet_aton
+#include <netdb.h>       // gethostbyname
+#include <netinet/in.h>  // struct sockaddr_in
+#include <netinet/in.h>  // inet_aton
+#include <sys/socket.h>  // socket, bind, listen, accept
+#include <sys/socket.h>  // inet_aton
+#include <sys/types.h>   // socket, bind, listen, accept
+#include <unistd.h>      // close
+#include <cstdio>        // printf
+#include <cstdlib>       // exit
+#include <cstring>       // bzero
 
 #include <ifaddrs.h>
 #include <linux/if_link.h>
 
-#include <string>
-#include <regex>
 #include <map>
+#include <regex>
+#include <string>
 
 #include "artdaq/DAQdata/TCPConnect.hh"
 
 // Return sts, put result in addr
-int ResolveHost(char const* host_in, in_addr& addr)
+int ResolveHost(char const *host_in, in_addr &addr)
 {
 	std::string host;
-	struct hostent* hostent_sp;
+	struct hostent *hostent_sp;
 	std::cmatch mm;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
 	//        at the beginning and end respectively.
@@ -47,7 +47,7 @@ int ResolveHost(char const* host_in, in_addr& addr)
 	}
 	else if (regex_match(host_in, mm, std::regex("([^:]+):{0,1}")))
 	{
-		host = mm[1].str().c_str();
+		host = mm[1].str();
 	}
 	else
 	{
@@ -55,30 +55,32 @@ int ResolveHost(char const* host_in, in_addr& addr)
 	}
 	TLOG(TLVL_INFO) << "Resolving host " << host;
 
-	bzero((char *)&addr, sizeof(addr));
+	memset(static_cast<void *>(&addr), 0, sizeof(addr));
 
-	if (regex_match(host.c_str(), mm, std::regex("\\d+(\\.\\d+){3}")))
+	if (regex_match(host.c_str(), mm, std::regex(R"(\d+(\.\d+){3})")))
+	{
 		inet_aton(host.c_str(), &addr);
+	}
 	else
 	{
 		hostent_sp = gethostbyname(host.c_str());
-		if (!hostent_sp)
+		if (hostent_sp == nullptr)
 		{
 			perror("gethostbyname");
 			return (-1);
 		}
-		addr = *(struct in_addr *)(hostent_sp->h_addr_list[0]);
+		addr = *reinterpret_cast<struct in_addr *>(hostent_sp->h_addr_list[0]);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	}
 	return 0;
 }
 
-int GetIPOfInterface(std::string interface_name, in_addr& addr)
+int GetIPOfInterface(const std::string &interface_name, in_addr &addr)
 {
 	int sts = 0;
 
 	TLOG(TLVL_INFO) << "Finding address for interface " << interface_name;
 
-	bzero((char *)&addr, sizeof(addr));
+	memset(static_cast<void *>(&addr), 0, sizeof(addr));
 
 	struct ifaddrs *ifaddr, *ifa;
 
@@ -91,16 +93,18 @@ int GetIPOfInterface(std::string interface_name, in_addr& addr)
 	/* Walk through linked list, maintaining head pointer so we
 	can free list later */
 
-	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+	for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 	{
-		if (ifa->ifa_addr == NULL)
+		if (ifa->ifa_addr == nullptr)
+		{
 			continue;
+		}
 
 		/* For an AF_INET* interface address, display the address */
 
 		if (ifa->ifa_addr->sa_family == AF_INET)
 		{
-			auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
+			auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
 			TLOG(15) << "IF: " << ifa->ifa_name << " Desired: " << interface_name << " IP: " << if_addr->sin_addr.s_addr;
 
@@ -112,7 +116,7 @@ int GetIPOfInterface(std::string interface_name, in_addr& addr)
 			}
 		}
 	}
-	if (ifa == NULL)
+	if (ifa == nullptr)
 	{
 		TLOG(TLVL_WARNING) << "No matches for if " << interface_name << ", using 0.0.0.0";
 		inet_aton("0.0.0.0", &addr);
@@ -124,20 +128,20 @@ int GetIPOfInterface(std::string interface_name, in_addr& addr)
 	return sts;
 }
 
-int AutodetectPrivateInterface(in_addr& addr)
+int AutodetectPrivateInterface(in_addr &addr)
 {
-
 	int sts = 0;
 
-	bzero((char *)&addr, sizeof(addr));
+	memset(static_cast<void *>(&addr), 0, sizeof(addr));
 
 	struct ifaddrs *ifaddr, *ifa;
 
-	enum ip_preference : int {
+	enum ip_preference : int
+	{
 		IP_192 = 1,
 		IP_172 = 2,
 		IP_10 = 3,
-		IP_131 =4
+		IP_131 = 4
 	};
 
 	struct in_addr addr_192, addr_172, addr_10, addr_131, nm_16, nm_12, nm_8;
@@ -160,16 +164,18 @@ int AutodetectPrivateInterface(in_addr& addr)
 	/* Walk through linked list, maintaining head pointer so we
 	can free list later */
 
-	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+	for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 	{
-		if (ifa->ifa_addr == NULL)
+		if (ifa->ifa_addr == nullptr)
+		{
 			continue;
+		}
 
 		/* For an AF_INET* interface address, display the address */
 
 		if (ifa->ifa_addr->sa_family == AF_INET)
 		{
-			auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
+			auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
 			TLOG(15) << "IF: " << ifa->ifa_name << " IP: " << if_addr->sin_addr.s_addr;
 
@@ -196,7 +202,7 @@ int AutodetectPrivateInterface(in_addr& addr)
 		}
 	}
 
-	if (preference_map.size() == 0)
+	if (preference_map.empty())
 	{
 		TLOG(TLVL_WARNING) << "AutodetectPrivateInterface: No matches, using 0.0.0.0";
 		inet_aton("0.0.0.0", &addr);
@@ -214,10 +220,10 @@ int AutodetectPrivateInterface(in_addr& addr)
 }
 
 // Return sts, put result in addr
-int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
+int GetInterfaceForNetwork(char const *host_in, in_addr &addr)
 {
 	std::string host;
-	struct hostent* hostent_sp;
+	struct hostent *hostent_sp;
 	std::cmatch mm;
 	int sts = 0;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
@@ -232,7 +238,7 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 	}
 	else if (regex_match(host_in, mm, std::regex("([^:]+):{0,1}")))
 	{
-		host = mm[1].str().c_str();
+		host = mm[1].str();
 	}
 	else
 	{
@@ -240,9 +246,9 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 	}
 	TLOG(TLVL_INFO) << "Resolving ip " << host;
 
-	bzero((char *)&addr, sizeof(addr));
+	memset(static_cast<void *>(&addr), 0, sizeof(addr));
 
-	if (regex_match(host.c_str(), mm, std::regex("\\d+(\\.\\d+){3}")))
+	if (regex_match(host.c_str(), mm, std::regex(R"(\d+(\.\d+){3})")))
 	{
 		in_addr desired_host;
 		inet_aton(host.c_str(), &desired_host);
@@ -257,17 +263,19 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 		/* Walk through linked list, maintaining head pointer so we
 		can free list later */
 
-		for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+		for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 		{
-			if (ifa->ifa_addr == NULL)
+			if (ifa->ifa_addr == nullptr)
+			{
 				continue;
+			}
 
 			/* For an AF_INET* interface address, display the address */
 
 			if (ifa->ifa_addr->sa_family == AF_INET)
 			{
-				auto if_addr = (struct sockaddr_in*) ifa->ifa_addr;
-				auto sa = (struct sockaddr_in *) ifa->ifa_netmask;
+				auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+				auto sa = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_netmask);    // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
 				TLOG(15) << "IF: " << ifa->ifa_name << " Desired: " << desired_host.s_addr << " netmask: " << sa->sin_addr.s_addr << " this interface: " << if_addr->sin_addr.s_addr;
 
@@ -279,10 +287,12 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 				}
 			}
 		}
-		if (ifa == NULL)
+		if (ifa == nullptr)
 		{
 			if (host != std::string("0.0.0.0"))
-			    TLOG(TLVL_WARNING) << "No matches for ip " << host << ", using 0.0.0.0";
+			{
+				TLOG(TLVL_WARNING) << "No matches for ip " << host << ", using 0.0.0.0";
+			}
 			inet_aton("0.0.0.0", &addr);
 			sts = 2;
 		}
@@ -292,38 +302,38 @@ int GetInterfaceForNetwork(char const* host_in, in_addr& addr)
 	else
 	{
 		hostent_sp = gethostbyname(host.c_str());
-		if (!hostent_sp)
+		if (hostent_sp == nullptr)
 		{
 			perror("gethostbyname");
 			return (-1);
 		}
-		addr = *(struct in_addr *)(hostent_sp->h_addr_list[0]);
+		addr = *reinterpret_cast<struct in_addr *>(hostent_sp->h_addr_list[0]);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	}
 	return sts;
 }
 
 // Return sts, put result in sin
-int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
+int ResolveHost(char const *host_in, int dflt_port, sockaddr_in &sin)
 {
 	int port;
 	std::string host;
-	struct hostent* hostent_sp;
+	struct hostent *hostent_sp;
 	std::cmatch mm;
 	//  Note: the regex expression used by regex_match has an implied ^ and $
 	//        at the beginning and end respectively.
 	if (regex_match(host_in, mm, std::regex("([^:]+):(\\d+)")))
 	{
 		host = mm[1].str();
-		port = strtoul(mm[2].str().c_str(), NULL, 0);
+		port = strtoul(mm[2].str().c_str(), nullptr, 0);
 	}
 	else if (regex_match(host_in, mm, std::regex(":{0,1}(\\d+)")))
 	{
 		host = std::string("127.0.0.1");
-		port = strtoul(mm[1].str().c_str(), NULL, 0);
+		port = strtoul(mm[1].str().c_str(), nullptr, 0);
 	}
 	else if (regex_match(host_in, mm, std::regex("([^:]+):{0,1}")))
 	{
-		host = mm[1].str().c_str();
+		host = mm[1].str();
 		port = dflt_port;
 	}
 	else
@@ -333,38 +343,42 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin)
 	}
 	TLOG(TLVL_INFO) << "Resolving host " << host << ", on port " << port;
 
-	if (host == "localhost") host = "127.0.0.1";
+	if (host == "localhost")
+	{
+		host = "127.0.0.1";
+	}
 
-	bzero((char *)&sin, sizeof(sin));
+	memset(static_cast<void *>(&sin), 0, sizeof(sin));
 	sin.sin_family = AF_INET;
-	sin.sin_port = htons(port); // just a guess at an open port
+	sin.sin_port = htons(port);  // just a guess at an open port
 
-	if (regex_match(host.c_str(), mm, std::regex("\\d+(\\.\\d+){3}")))
+	if (regex_match(host.c_str(), mm, std::regex(R"(\d+(\.\d+){3})")))
+	{
 		inet_aton(host.c_str(), &sin.sin_addr);
+	}
 	else
 	{
 		hostent_sp = gethostbyname(host.c_str());
-		if (!hostent_sp)
+		if (hostent_sp == nullptr)
 		{
+			TLOG(TLVL_ERROR) << "Error calling gethostbyname: " << errno << " (" << strerror(errno) << ")";
 			perror("gethostbyname");
 			return (-1);
 		}
-		sin.sin_addr = *(struct in_addr *)(hostent_sp->h_addr_list[0]);
+		sin.sin_addr = *reinterpret_cast<struct in_addr *>(hostent_sp->h_addr_list[0]);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	}
+
+	TLOG(TLVL_INFO) << "Host resolved as " << inet_ntoa(sin.sin_addr);
 	return 0;
 }
 // return connection fd.
-// 
-int TCPConnect(char const* host_in
-	, int dflt_port
-	, long flags
-	, int sndbufsiz)
+//
+int TCPConnect(char const *host_in, int dflt_port, int64_t flags, int sndbufsiz)
 {
 	int s_fd, sts;
 	struct sockaddr_in sin;
 
-
-	s_fd = socket(PF_INET, SOCK_STREAM/*|SOCK_NONBLOCK*/, 0); // man socket,man TCP(7P)
+	s_fd = socket(PF_INET, SOCK_STREAM /*|SOCK_NONBLOCK*/, 0);  // man socket,man TCP(7P)
 
 	if (s_fd == -1)
 	{
@@ -379,7 +393,7 @@ int TCPConnect(char const* host_in
 		return -1;
 	}
 
-	sts = connect(s_fd, (struct sockaddr *)&sin, sizeof(sin));
+	sts = connect(s_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
 		//perror( "connect error" );
@@ -387,7 +401,7 @@ int TCPConnect(char const* host_in
 		return (-1);
 	}
 
-	if (flags)
+	if (flags != 0)
 	{
 		sts = fcntl(s_fd, F_SETFL, flags);
 		TLOG(TLVL_TRACE) << "TCPConnect fcntl(fd=" << s_fd << ",flags=0x" << std::hex << flags << std::dec << ") =" << sts;
@@ -403,13 +417,19 @@ int TCPConnect(char const* host_in
 		len = sndbufsiz;
 		sts = setsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, lenlen);
 		if (sts == -1)
+		{
 			TLOG(TLVL_ERROR) << "Error with setsockopt SNDBUF " << errno;
+		}
 		len = 0;
 		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
 		if (len < (sndbufsiz * 2))
+		{
 			TLOG(TLVL_WARNING) << "SNDBUF " << len << " not expected (" << sndbufsiz << " sts/errno=" << sts << "/" << errno << ")";
+		}
 		else
+		{
 			TLOG(TLVL_DEBUG) << "SNDBUF " << len << " sts/errno=" << sts << "/" << errno;
+		}
 	}
 	return (s_fd);
 }

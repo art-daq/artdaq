@@ -8,30 +8,29 @@
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
 // C Includes
-#include <stdint.h>				// uint64_t
-#include <sys/uio.h>			// iovec
+#include <sys/uio.h>  // iovec
+#include <cstdint>    // uint64_t
 
 // C++ Includes
-#include <condition_variable>
 #include <boost/thread.hpp>
+#include <condition_variable>
 
 // Products includes
 #include "fhiclcpp/fwd.h"
 
 // artdaq Includes
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/TransferPlugins/detail/SRSockets.hh"
-#include "artdaq/TransferPlugins/detail/Timeout.hh"	// Timeout
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq/TransferPlugins/detail/HostMap.hh"
+#include "artdaq/TransferPlugins/detail/SRSockets.hh"
+#include "artdaq/TransferPlugins/detail/Timeout.hh"  // Timeout
 
 #ifndef USE_ACKS
 #define USE_ACKS 0
 #endif
 
-namespace artdaq
-{
-	class TCPSocketTransfer;
+namespace artdaq {
+class TCPSocketTransfer;
 }
 
 /**
@@ -68,7 +67,7 @@ public:
 	* \param receiveTimeout Timeout for receive
 	* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 	*/
-	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
+	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t timeout_usec) override;
 
 	/**
 	* \brief Receive the body of a Fragment to the given destination pointer
@@ -80,15 +79,15 @@ public:
 
 	/**
 	* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
-	* \param fragment Fragment to transfer
-	* \param send_timeout_usec Timeout for send, in microseconds
+	* \param frag Fragment to transfer
+	* \param timeout_usec Timeout for send, in microseconds
 	* \return CopyStatus detailing result of transfer
 	*/
 	CopyStatus transfer_fragment_min_blocking_mode(Fragment const& frag, size_t timeout_usec) override { return sendFragment_(Fragment(frag), timeout_usec); }
 
 	/**
 	* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
-	* \param fragment Fragment to transfer
+	* \param frag Fragment to transfer
 	* \return CopyStatus detailing result of copy
 	*/
 	CopyStatus transfer_fragment_reliable_mode(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
@@ -97,25 +96,23 @@ public:
 	* \brief Determine whether the TransferInterface plugin is able to send/receive data
 	* \return True if the TransferInterface plugin is currently able to send/receive data
 	*/
-        bool isRunning() override;
+	bool isRunning() override;
 
-        /**
+	/**
          * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
          * ended.
          */
-        void flush_buffers() override;
+	void flush_buffers() override;
 
-       private:
-
+private:
 	static std::atomic<int> listen_thread_refcount_;
 	static std::mutex listen_thread_mutex_;
 	static std::unique_ptr<boost::thread> listen_thread_;
 	static std::map<int, std::set<int>> connected_fds_;
-	static std::mutex connected_fd_mutex_;
+	static std::mutex fd_mutex_;
 	int send_fd_;
-	int active_receive_fd_;
-	int last_active_receive_fd_;
-	short active_revents_;
+	std::map<int, int> active_receive_fds_;
+	std::map<int, int> last_active_receive_fds_;
 
 	union
 	{
@@ -128,31 +125,38 @@ public:
 		Metadata,
 		Data
 	};
-	
+
 	size_t rcvbuf_;
 	size_t sndbuf_;
 	size_t send_retry_timeout_us_;
 
 	hostMap_t hostMap_;
 
-	volatile unsigned connect_state : 1; // 0=not "connected" (initial msg not sent)
-	unsigned blocking : 1; // compatible with bool (true/false)
-	
-	bool timeoutMessageArmed_; // don't repeatedly print about the send fd not being open...
-    std::chrono::steady_clock::time_point last_recv_time_; // Time of last successful receive
-    double receive_disconnected_wait_s_; // How long to wait between messages before returning DATA_END
-    size_t receive_err_wait_us_; // Amount of time to wait if there are no connected receive sockets
-	std::atomic<bool> receive_socket_has_been_connected_; // Whether the receiver has ever been connected to a sender
-	std::atomic<int> send_ack_diff_; // Number of sends - number of acks received. Not allowed to exceed buffer_count.
-	std::unique_ptr<boost::thread> ack_listen_thread_; // Thread to listen for ack messages on the sender
+	volatile unsigned connect_state : 1;  // 0=not "connected" (initial msg not sent)
+	unsigned blocking : 1;                // compatible with bool (true/false)
 
-private: // methods
+	bool connection_was_lost_;
+
+	bool timeoutMessageArmed_;                              // don't repeatedly print about the send fd not being open...
+	std::chrono::steady_clock::time_point last_recv_time_;  // Time of last successful receive
+	double receive_disconnected_wait_s_;                    // How long to wait between messages before returning DATA_END
+	size_t receive_err_wait_us_;                            // Amount of time to wait if there are no connected receive sockets
+	std::atomic<bool> receive_socket_has_been_connected_;   // Whether the receiver has ever been connected to a sender
+	std::atomic<int> send_ack_diff_;                        // Number of sends - number of acks received. Not allowed to exceed buffer_count.
+	std::unique_ptr<boost::thread> ack_listen_thread_;      // Thread to listen for ack messages on the sender
+
+private:  // methods
+	TCPSocketTransfer(TCPSocketTransfer const&) = delete;
+	TCPSocketTransfer(TCPSocketTransfer&&) = delete;
+	TCPSocketTransfer& operator=(TCPSocketTransfer const&) = delete;
+	TCPSocketTransfer& operator=(TCPSocketTransfer&&) = delete;
+
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
 
-	CopyStatus sendData_(const void* buf, size_t bytes, size_t tmo, bool isHeader = false);
+	CopyStatus sendData_(const void* buf, size_t bytes, size_t send_timeout_usec, bool isHeader = false);
 
-	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo, bool isHeader = false);
-	
+	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t send_timeout_usec, bool isHeader = false);
+
 #if USE_ACKS
 	void receive_acks_();
 	void send_ack_(int fd);
@@ -163,17 +167,17 @@ private: // methods
 
 	void reconnect_();
 
-	int disconnect_receive_socket_(int fd, std::string msg = "");
+	void disconnect_receive_socket_(const std::string& msg = "");
 
 	// Receiver should listen for connections
 	void start_listen_thread_();
 	static void listen_(int port, size_t rcvbuf);
 
-	size_t getConnectedFDCount(int source_rank)
-	{
-		std::unique_lock<std::mutex> lk(connected_fd_mutex_);
-		return connected_fds_.count(source_rank) ? connected_fds_[source_rank].size() : 0;
-	}
+	size_t getConnectedFDCount_(int source_rank);
+	int getActiveFD_(int source_rank);
+	void setActiveFD_(int source_rank, int fd);
+	int getLastActiveFD_(int source_rank);
+	void setLastActiveFD_(int source_rank, int fd);
 };
 
-#endif // TCPSocketTransfer_hh
+#endif  // TCPSocketTransfer_hh

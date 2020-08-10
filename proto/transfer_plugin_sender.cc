@@ -1,6 +1,6 @@
-#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include "cetlib/BasicPluginFactory.h"
 #include "cetlib/filepath_maker.h"
@@ -12,13 +12,13 @@
 #include <boost/lexical_cast.hpp>
 
 #include <algorithm>
-#include <numeric>
+#include <cstdlib>
 #include <iostream>
+#include <limits>
+#include <memory>
+#include <numeric>
 #include <sstream>
 #include <string>
-#include <cstdlib>
-#include <memory>
-#include <limits>
 
 // DUPLICATED CODE: also found in transfer_plugin_receiver.cpp. Not as
 // egregious as normal in that this function is unlikely to be
@@ -29,7 +29,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 	if (std::getenv("FHICL_FILE_PATH") == nullptr)
 	{
 		std::cerr
-			<< "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+		    << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 
@@ -40,8 +40,8 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 	return pset;
 }
 
-
 int main(int argc, char* argv[])
+try
 {
 	if (argc != 4)
 	{
@@ -49,9 +49,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	std::string fhicl_filename = boost::lexical_cast<std::string>(argv[1]);
-	size_t num_sends = boost::lexical_cast<size_t>(argv[2]);
-	size_t fragment_size = boost::lexical_cast<size_t>(argv[3]);
+	auto fhicl_filename = boost::lexical_cast<std::string>(argv[1]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	auto num_sends = boost::lexical_cast<size_t>(argv[2]);            // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	auto fragment_size = boost::lexical_cast<size_t>(argv[3]);        // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	if (num_sends <= 1)
 	{
@@ -68,12 +68,12 @@ int main(int argc, char* argv[])
 		static cet::BasicPluginFactory bpf("transfer", "make");
 
 		transfer =
-			bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
-			               const fhicl::ParameterSet&,
-			               artdaq::TransferInterface::Role>(
-				pset.get<std::string>("transfer_plugin_type"),
-				pset,
-				artdaq::TransferInterface::Role::kSend);
+		    bpf.makePlugin<std::unique_ptr<artdaq::TransferInterface>,
+		                   const fhicl::ParameterSet&,
+		                   artdaq::TransferInterface::Role>(
+		        pset.get<std::string>("transfer_plugin_type"),
+		        pset,
+		        artdaq::TransferInterface::Role::kSend);
 	}
 	catch (...)
 	{
@@ -97,11 +97,11 @@ int main(int argc, char* argv[])
 	// Fill the fragment with monotonically increasing 64-bit integers
 	// to be checked on the other end
 
-	std::iota(reinterpret_cast<uint64_t*>(frag->dataBeginBytes()),
-	          reinterpret_cast<uint64_t*>(frag->dataEndBytes()),
+	std::iota(reinterpret_cast<uint64_t*>(frag->dataBeginBytes()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	          reinterpret_cast<uint64_t*>(frag->dataEndBytes()),    // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	          0);
 
-	size_t timeout = pset.get<size_t>("send_timeout_usecs", std::numeric_limits<size_t>::max());
+	auto timeout = pset.get<size_t>("send_timeout_usecs", std::numeric_limits<size_t>::max());
 
 	for (size_t i_i = 0; i_i < num_sends; ++i_i)
 	{
@@ -115,4 +115,8 @@ int main(int argc, char* argv[])
 	std::cout << "# of sent fragments attempted == " << num_sends << std::endl;
 
 	return 0;
+}
+catch (...)
+{
+	return -1;
 }

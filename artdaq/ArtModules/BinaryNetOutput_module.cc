@@ -1,32 +1,31 @@
 #define TRACE_NAME "BinaryNetOutput"
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Principal/EventPrincipal.h"
+#include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/Selector.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-#include "art/Framework/Principal/Handle.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
 
+#include <unistd.h>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <memory>
-#include <unistd.h>
 
-namespace art
-{
-	class BinaryNetOutput;
+namespace art {
+class BinaryNetOutput;
 }
 
 using art::BinaryNetOutput;
@@ -37,7 +36,7 @@ using fhicl::ParameterSet;
  * This module produces output identical to that of a BoardReader, for use in
  * systems which have multiple layers of EventBuilders.
  */
-class art::BinaryNetOutput final: public OutputModule
+class art::BinaryNetOutput final : public OutputModule
 {
 public:
 	/**
@@ -57,17 +56,22 @@ public:
 	/**
 	 * \brief BinaryNetOutput Destructor
 	 */
-	virtual ~BinaryNetOutput();
+	~BinaryNetOutput() override;
 
 private:
+	BinaryNetOutput(BinaryNetOutput const&) = delete;
+	BinaryNetOutput(BinaryNetOutput&&) = delete;
+	BinaryNetOutput& operator=(BinaryNetOutput const&) = delete;
+	BinaryNetOutput& operator=(BinaryNetOutput&&) = delete;
+
 	void beginJob() override;
 
 	void endJob() override;
 
-	void write(EventPrincipal&) override;
+	void write(EventPrincipal& /*ep*/) override;
 
-	void writeRun(RunPrincipal&) override {};
-	void writeSubRun(SubRunPrincipal&) override {};
+	void writeRun(RunPrincipal& /*r*/) override{};
+	void writeSubRun(SubRunPrincipal& /*sr*/) override{};
 
 	void initialize_MPI_();
 
@@ -82,43 +86,31 @@ private:
 	std::unique_ptr<artdaq::DataSenderManager> sender_ptr_ = {nullptr};
 };
 
-art::BinaryNetOutput::
-BinaryNetOutput(ParameterSet const& ps)
-	: OutputModule(ps)
+art::BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)
+    : OutputModule(ps)
 {
 	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
 	readParameterSet_(ps);
 	TLOG(TLVL_DEBUG) << "End: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
 }
 
-art::BinaryNetOutput::
-~BinaryNetOutput()
-{
-	TLOG(TLVL_DEBUG) << "Begin/End: BinaryNetOutput::~BinaryNetOutput()\n";
-}
+art::BinaryNetOutput::~BinaryNetOutput() { TLOG(TLVL_DEBUG) << "Begin/End: BinaryNetOutput::~BinaryNetOutput()\n"; }
 
-void
-art::BinaryNetOutput::
-beginJob()
+void art::BinaryNetOutput::beginJob()
 {
 	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::beginJob()\n";
 	initialize_MPI_();
 	TLOG(TLVL_DEBUG) << "End:   BinaryNetOutput::beginJob()\n";
 }
 
-void
-art::BinaryNetOutput::
-endJob()
+void art::BinaryNetOutput::endJob()
 {
 	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::endJob()\n";
 	deinitialize_MPI_();
 	TLOG(TLVL_DEBUG) << "End:   BinaryNetOutput::endJob()\n";
 }
 
-
-void
-art::BinaryNetOutput::
-initialize_MPI_()
+void art::BinaryNetOutput::initialize_MPI_()
 {
 	if (rt_priority_ > 0)
 	{
@@ -129,9 +121,8 @@ initialize_MPI_()
 		int status = pthread_setschedparam(pthread_self(), SCHED_RR, &s_param);
 		if (status != 0)
 		{
-			TLOG(TLVL_ERROR) << name_
-				<< "Failed to set realtime priority to " << rt_priority_
-				<< ", return code = " << status;
+			TLOG(TLVL_ERROR) << name_ << "Failed to set realtime priority to " << rt_priority_
+			                 << ", return code = " << status;
 		}
 #pragma GCC diagnostic pop
 	}
@@ -140,20 +131,12 @@ initialize_MPI_()
 	assert(sender_ptr_);
 }
 
-void
-art::BinaryNetOutput::
-deinitialize_MPI_()
-{
-	sender_ptr_.reset(nullptr);
-}
+void art::BinaryNetOutput::deinitialize_MPI_() { sender_ptr_.reset(nullptr); }
 
-bool
-art::BinaryNetOutput::
-readParameterSet_(fhicl::ParameterSet const& pset)
+bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG) << name_ << "BinaryNetOutput::readParameterSet_ method called with "
-		<< "ParameterSet = \"" << pset.to_string()
-		<< "\".";
+	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// determine the data sending parameters
 	data_pset_ = pset;
@@ -165,13 +148,12 @@ readParameterSet_(fhicl::ParameterSet const& pset)
 	return true;
 }
 
-void
-art::BinaryNetOutput::
-write(EventPrincipal& ep)
+void art::BinaryNetOutput::write(EventPrincipal& ep)
 {
 	assert(sender_ptr_);
 
-	using RawEvent = artdaq::Fragments;;
+	using RawEvent = artdaq::Fragments;
+	;
 	using RawEvents = std::vector<RawEvent>;
 	using RawEventHandle = art::Handle<RawEvent>;
 	using RawEventHandles = std::vector<RawEventHandle>;
@@ -179,27 +161,40 @@ write(EventPrincipal& ep)
 	auto result_handles = std::vector<art::GroupQueryResult>();
 
 	auto const& wrapped = art::WrappedTypeID::make<RawEvent>();
+#if ART_HEX_VERSION >= 0x30000
+	ModuleContext const mc{moduleDescription()};
+	ProcessTag const processTag{"", mc.moduleDescription().processName()};
+
+	result_handles = ep.getMany(mc, wrapped, art::MatchAllSelector{}, processTag);
+#else
 	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
+#endif
+
+	artdaq::Fragment::sequence_id_t sequence_id = 0;
 
 	for (auto const& result_handle : result_handles)
 	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
 
 		if (!raw_event_handle.isValid())
+		{
 			continue;
+		}
 
 		for (auto const& fragment : *raw_event_handle)
 		{
 			auto fragment_copy = fragment;
 			auto fragid_id = fragment_copy.fragmentID();
-			auto sequence_id = fragment_copy.sequenceID();
+			sequence_id = fragment_copy.sequenceID();
 			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " start";
 			sender_ptr_->sendFragment(std::move(fragment_copy));
 			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done";
 		}
 	}
 
-	return;
+	// Events are unique in art, so this will be the only send with this sequence ID!
+	// ELF 1/23/2020: Only remove routing entry AFTER all Fragments have been sent!
+	sender_ptr_->RemoveRoutingTableEntry(sequence_id);
 }
 
-DEFINE_ART_MODULE(art::BinaryNetOutput)
+DEFINE_ART_MODULE(art::BinaryNetOutput)// NOLINT(performance-unnecessary-value-param)

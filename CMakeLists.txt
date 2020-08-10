@@ -13,8 +13,8 @@
 #  make package
 # ======================================================================
 
-# use cmake 2.8 or later
-cmake_minimum_required (VERSION 2.8)
+# use cmake 3.17 or later
+cmake_minimum_required (VERSION 3.17)
 
 project(artdaq)
 # cetbuildtools contains our cmake modules
@@ -36,7 +36,7 @@ cet_cmake_env()
 cet_set_compiler_flags(DIAGS VIGILANT
   WERROR
   NO_UNDEFINED
-  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64
+  EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64 
 )
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
@@ -55,6 +55,16 @@ if( ${BTYPE_UC} MATCHES "DEBUG" )
 	endif()
 endif()
 
+#exception stack trace
+if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})
+        if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
+                message("!!! Exception StackTrace Activated!!!")
+                add_definitions(-D EXCEPTIONSTACKTRACE)
+                set( EXCEPTIONSTACKTRACE_LIB  artdaq-core_Utilities_ExceptionStackTrace )
+                cet_add_compiler_flags( -rdynamic -Wno-unused-command-line-argument )
+        endif()
+endif()
+
 cet_report_compiler_flags()
 
 # JCF, 7/8/15 - not sure this is actually doing anything...
@@ -67,8 +77,13 @@ find_ups_product( TRACE v3_03_00 )
 find_ups_product( art v1_08_10 )
 find_ups_product( canvas v1_00_00 )
 find_ups_product( canvas_root_io v1_00_00 )
-find_ups_product( artdaq_core v1_03_01 )
-find_ups_product( artdaq_utilities v1_00_00)
+
+# JCF, May-9-2019
+# Removing ups product minimums for the artdaq packages so that
+# dev-versioning can be used on ProtoDUNE
+find_ups_product( artdaq_core ) # v1_03_01 )
+find_ups_product( artdaq_utilities ) # v1_00_00)
+
 find_ups_product( cetlib v1_08_00 )
 find_ups_product( cetpkgsupport v1_08_03 )
 find_ups_product( clhep v2_2_0_3 )
@@ -110,6 +125,10 @@ list(GET ART_VERSION_LIST 2 ART_PATCH_VERSION)
 message("-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION}")
 set(ART_HEX_VERSION 0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
 add_definitions(-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
+
+if( ${ART_HEX_VERSION} GREATER 0x30200 )
+	find_ups_product( art_root_io v1_00_00 )
+endif()
 
 
 string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" MESSAGEFACILITY_VERSION_LIST "$ENV{MESSAGEFACILITY_VERSION}")
@@ -162,7 +181,6 @@ else()
 endif()
 
 # macros for artdaq_dictionary and simple_plugin
-include(ArtDictionary)
 include(ArtMake)
 include(BuildPlugins)
 
@@ -178,8 +196,9 @@ add_subdirectory(proto)
 # Useful tools and scripts.
 add_subdirectory(tools)
 
-# doc - Documentation
+if (NOT DEFINED ENV{DISABLE_DOXYGEN})
 add_subdirectory(doc)
+endif()
 
 # ups - table and config files
 add_subdirectory(ups)

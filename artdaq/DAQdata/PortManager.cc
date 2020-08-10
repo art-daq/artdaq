@@ -1,36 +1,14 @@
 #include "artdaq/DAQdata/PortManager.hh"
 #define TRACE_NAME "PortManager"
+#include <sstream>
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
-#include <sstream>
 
 artdaq::PortManager::PortManager()
-	: base_configured_(false)
-	, multicasts_configured_(false)
-	, routing_tokens_configured_(false)
-	, routing_acks_configured_(false)
-	, xmlrpc_configured_(false)
-	, tcpsocket_configured_(false)
-	, request_port_configured_(false)
-	, request_pattern_configured_(false)
-	, routing_table_port_configured_(false)
-	, routing_table_pattern_configured_(false)
-	, multicast_transfer_port_configued_(false)
-	, multicast_transfer_pattern_configured_(false)
-	, base_port_(DEFAULT_BASE)
-	, ports_per_partition_(DEFAULT_PORTS_PER_PARTITION)
-	, multicast_interface_address_()
-	, multicast_group_offset_(DEFAULT_MULTICAST_GROUP_OFFSET)
-	, routing_token_offset_(DEFAULT_ROUTING_TOKEN_OFFSET)
-	, routing_ack_offset_(DEFAULT_ROUTING_TABLE_ACK_OFFSET)
-	, xmlrpc_offset_(DEFAULT_XMLRPC_OFFSET)
-	, tcp_socket_offset_(DEFAULT_TCPSOCKET_OFFSET)
-	, request_message_port_(DEFAULT_REQUEST_PORT)
-	, routing_table_port_(DEFAULT_ROUTING_TABLE_PORT)
-	, multicast_transfer_offset_(1024)
-	, request_message_group_pattern_("227.128.PPP.SSS")
-	, routing_table_group_pattern_("227.129.PPP.SSS")
-	, multicast_transfer_group_pattern_("227.130.14.PPP")
+    : multicast_interface_address_()
+    , request_message_group_pattern_("227.128.PPP.SSS")
+    , routing_table_group_pattern_("227.129.PPP.SSS")
+    , multicast_transfer_group_pattern_("227.130.14.PPP")
 {
 }
 
@@ -55,13 +33,13 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 		ports_per_partition_ = newVal;
 	}
 
-	auto bp = getenv("ARTDAQ_BASE_PORT"); //Environment overrides configuration
+	auto bp = getenv("ARTDAQ_BASE_PORT");  //Environment overrides configuration
 	if (bp != nullptr)
 	{
 		try
 		{
 			auto bp_s = std::string(bp);
-			auto bp_tmp = std::stoi(bp_s, 0, 0);
+			auto bp_tmp = std::stoi(bp_s, nullptr, 0);
 			if (bp_tmp < 1024 || bp_tmp > 32000)
 			{
 				TLOG(TLVL_ERROR) << "Base port specified in ARTDAQ_BASE_PORT is invalid! Ignoring...";
@@ -71,17 +49,19 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 				base_port_ = bp_tmp;
 			}
 		}
-		catch (std::invalid_argument) {}
-		catch (std::out_of_range) {}
+		catch (const std::invalid_argument&)
+		{}
+		catch (const std::out_of_range&)
+		{}
 	}
 
-	auto ppp = getenv("ARTDAQ_PORTS_PER_PARTITION"); //Environment overrides configuration
+	auto ppp = getenv("ARTDAQ_PORTS_PER_PARTITION");  //Environment overrides configuration
 	if (ppp != nullptr)
 	{
 		try
 		{
 			auto ppp_s = std::string(ppp);
-			auto ppp_tmp = std::stoi(ppp_s, 0, 0);
+			auto ppp_tmp = std::stoi(ppp_s, nullptr, 0);
 			if (ppp_tmp < 0 || ppp_tmp > 32000)
 			{
 				TLOG(TLVL_ERROR) << "Ports per partition specified in ARTDAQ_PORTS_PER_PARTITION is invalid! Ignoring...";
@@ -91,8 +71,10 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 				ports_per_partition_ = ppp_tmp;
 			}
 		}
-		catch (std::invalid_argument) {}
-		catch (std::out_of_range) {}
+		catch (const std::invalid_argument&)
+		{}
+		catch (const std::out_of_range&)
+		{}
 	}
 
 	if (!base_configured_ && (base_port_ != DEFAULT_BASE || ports_per_partition_ != DEFAULT_PORTS_PER_PARTITION))
@@ -163,7 +145,6 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 
 	if (ps.has_key("xmlrpc_port_offset"))
 	{
-
 		auto newVal = ps.get<int>("xmlrpc_port_offset");
 		if (xmlrpc_configured_ && newVal != xmlrpc_offset_)
 		{
@@ -196,7 +177,6 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 
 		request_port_configured_ = true;
 		request_message_port_ = newVal;
-
 	}
 
 	if (ps.has_key("request_pattern"))
@@ -209,7 +189,6 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 
 		request_pattern_configured_ = true;
 		request_message_group_pattern_ = newVal;
-
 	}
 
 	if (ps.has_key("routing_table_port"))
@@ -222,7 +201,6 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 
 		routing_table_port_configured_ = true;
 		routing_table_port_ = newVal;
-
 	}
 
 	if (ps.has_key("routing_table_pattern"))
@@ -235,7 +213,6 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 
 		routing_table_pattern_configured_ = true;
 		routing_table_group_pattern_ = newVal;
-
 	}
 
 	if (ps.has_key("multicast_transfer_port_offset"))
@@ -248,7 +225,6 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 
 		multicast_transfer_port_configued_ = true;
 		multicast_transfer_offset_ = newVal;
-
 	}
 
 	if (ps.has_key("multicast_transfer_pattern"))
@@ -261,7 +237,6 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 
 		multicast_transfer_pattern_configured_ = true;
 		multicast_transfer_group_pattern_ = newVal;
-
 	}
 }
 
@@ -314,7 +289,6 @@ int artdaq::PortManager::GetRequestMessagePort()
 		request_port_configured_ = true;
 	}
 	return request_message_port_;
-
 }
 
 std::string artdaq::PortManager::GetRequestMessageGroupAddress(int subsystemID)
@@ -325,7 +299,7 @@ std::string artdaq::PortManager::GetRequestMessageGroupAddress(int subsystemID)
 		request_pattern_configured_ = true;
 	}
 
-	return  parse_pattern_(request_message_group_pattern_, subsystemID);
+	return parse_pattern_(request_message_group_pattern_, subsystemID);
 }
 
 int artdaq::PortManager::GetRoutingTablePort()
@@ -372,16 +346,19 @@ std::string artdaq::PortManager::GetMulticastTransferGroupAddress()
 	return parse_pattern_(multicast_transfer_group_pattern_);
 }
 
-in_addr artdaq::PortManager::GetMulticastOutputAddress(std::string interface_name, std::string interface_address)
+in_addr artdaq::PortManager::GetMulticastOutputAddress(const std::string& interface_name, const std::string& interface_address)
 {
 	if (!multicasts_configured_)
 	{
-		if (interface_name == "" && interface_address == "")	TLOG(TLVL_INFO) << "Using default multicast output address (autodetected private interface)";
-		if (interface_name != "")
+		if (interface_name.empty() && interface_address.empty())
+		{
+			TLOG(TLVL_INFO) << "Using default multicast output address (autodetected private interface)";
+		}
+		if (!interface_name.empty())
 		{
 			GetIPOfInterface(interface_name, multicast_interface_address_);
 		}
-		else if (interface_address != "")
+		else if (!interface_address.empty())
 		{
 			GetInterfaceForNetwork(interface_address.c_str(), multicast_interface_address_);
 		}
@@ -394,7 +371,7 @@ in_addr artdaq::PortManager::GetMulticastOutputAddress(std::string interface_nam
 	return multicast_interface_address_;
 }
 
-std::string artdaq::PortManager::parse_pattern_(std::string pattern, int subsystemID, int rank)
+std::string artdaq::PortManager::parse_pattern_(const std::string& pattern, int subsystemID, int rank)
 {
 	std::istringstream f(pattern);
 	std::vector<int> address(4);
@@ -402,13 +379,16 @@ std::string artdaq::PortManager::parse_pattern_(std::string pattern, int subsyst
 
 	while (getline(f, s, '.'))
 	{
-		if (s == "PPP") {
+		if (s == "PPP")
+		{
 			address.push_back(GetPartitionNumber());
 		}
-		else if (s == "SSS") {
+		else if (s == "SSS")
+		{
 			address.push_back(subsystemID);
 		}
-		else if (s == "RRR") {
+		else if (s == "RRR")
+		{
 			address.push_back(rank);
 		}
 		else

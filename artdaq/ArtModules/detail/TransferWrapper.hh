@@ -1,26 +1,22 @@
 #ifndef artdaq_ArtModules_TransferWrapper_hh
 #define artdaq_ArtModules_TransferWrapper_hh
 
-
-#include <string>
-#include <memory>
 #include <iostream>
+#include <memory>
+#include <string>
 
-#include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ExternalComms/CommanderInterface.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
-#include <TBufferFile.h>
-
-namespace fhicl
-{
-	class ParameterSet;
+namespace fhicl {
+class ParameterSet;
 }
 
-namespace artdaq
-{
-	class Fragment;
+namespace artdaq {
+class Fragment;
 
-	/**
+/**
 	 * \brief TransferWrapper wraps a TransferInterface so that it can be used in the ArtdaqInput class
 	 * to make an art::Source
 	 * 
@@ -31,11 +27,10 @@ namespace artdaq
 	 * so. Its functionality is such that it satisfies the requirements
 	 * needed to be a template in the ArtdaqInput class
 	 */
-	class TransferWrapper
-	{
-	public:
-
-		/**
+class TransferWrapper
+{
+public:
+	/**
 		 * \brief TransferWrapper Constructor
 		 * \param pset ParameterSet used to configure the TransferWrapper
 		 * 
@@ -46,7 +41,10 @@ namespace artdaq
 		 * "dispatcherPort" (REQUIRED): The port that the Dispatcher Aggregator is running on
 		 * "maxEventsBeforeInit" (Default: 5): How many non-Init events to receive before raising an error
 		 * "allowedFragmentTypes" (Default: [226,227,229]): The Fragment type codes for expected Fragments
+		 * "dispatcherConnectTimeout" (Default: 0): Maximum amount of time (in seconds) to wait for the Dispatcher to reach the Running state. 0 to wait forever
+		 * "dispatcherConnectRetryInterval_us" (Default 1,000,000): Amount of time to wait between polls of the Dispatcher status while waiting for it to reach the Running state.
 		 * "quitOnFragmentIntegrityProblem" (Default: true): If there is an inconsistency in the received Fragment, throw an exception and quit when true
+		 * "allowMultipleRuns" (Default: false): If true, will ignore EndOfData message and reconnect to the Dispatcher once the next run starts
 		 * "debugLevel" (Default: 0): Enables some additional messages
 		 * "transfer_plugin" (REQUIRED): Name of the TransferInterface plugin to load
 		 * 
@@ -54,44 +52,66 @@ namespace artdaq
 		 * should be included here.
 		 * \endverbatim
 		 */
-		explicit TransferWrapper(const fhicl::ParameterSet& pset);
+	explicit TransferWrapper(const fhicl::ParameterSet& pset);
 
-		/**
+	/**
 		 * \brief TransferWrapper Destructor
 		 */
-		virtual ~TransferWrapper();
+	virtual ~TransferWrapper();
 
-		/**
+	/**
 		 * \brief Receive a Fragment from the TransferInterface, and send it to art
-		 * \param[out] msg The message in art format
+		 * \return Received Fragment
 		 */
-		void receiveMessage(std::unique_ptr<TBufferFile>& msg);
+	artdaq::FragmentPtrs receiveMessage();
+	/**
+	 * \brief Receive all messsages for an event from ArtdaqSharedMemoryService
+	 * \return A map of Fragment::type_t to a unique_ptr to Fragments containing all Fragments in an event
+	 */
+	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
 
-		/**
+	/**
 		 * \brief Receive the Init message from the TransferInterface, and send it to art
-		 * \param[out] msg The message in art format
+		 * \return Received InitFragment
 		 */
-		void receiveInitMessage(std::unique_ptr<TBufferFile>& msg) { receiveMessage(msg); }
+	artdaq::FragmentPtrs receiveInitMessage()
+	{
+		return receiveMessage();
+	}
 
-	private:
+	/**
+	 * \brief Get a pointer to the last received RawEventHeader
+	 * \return a shared_ptr to the last received RawEventHeader
+	 */
+	std::shared_ptr<artdaq::detail::RawEventHeader> getEventHeader() { return nullptr; }
 
-		void extractTBufferFile(const artdaq::Fragment&, std::unique_ptr<TBufferFile>&);
+private:
+	TransferWrapper(TransferWrapper const&) = delete;
+	TransferWrapper(TransferWrapper&&) = delete;
+	TransferWrapper& operator=(TransferWrapper const&) = delete;
+	TransferWrapper& operator=(TransferWrapper&&) = delete;
 
-		void checkIntegrity(const artdaq::Fragment&) const;
+	void checkIntegrity(const artdaq::Fragment&) const;
 
-		void unregisterMonitor();
+	void registerMonitor();
+	void unregisterMonitor();
+	std::string getDispatcherStatus();
 
-		std::size_t timeoutInUsecs_;
-		std::unique_ptr<TransferInterface> transfer_;
-		std::unique_ptr<CommanderInterface> commander_;
-		const std::string dispatcherHost_;
-		const std::string dispatcherPort_;
-		const std::string serverUrl_;
-		const std::size_t maxEventsBeforeInit_;
-		const std::vector<int> allowedFragmentTypes_;
-		const bool quitOnFragmentIntegrityProblem_;
-		bool monitorRegistered_;
-	};
-}
+	std::size_t timeoutInUsecs_;
+	std::unique_ptr<TransferInterface> transfer_;
+	std::unique_ptr<CommanderInterface> commander_;
+	const fhicl::ParameterSet pset_;
+	const std::string dispatcherHost_;
+	const std::string dispatcherPort_;
+	const std::string serverUrl_;
+	const std::size_t maxEventsBeforeInit_;
+	const std::vector<int> allowedFragmentTypes_;
+	const double runningStateTimeout_;
+	size_t runningStateInterval_us_;
+	const bool quitOnFragmentIntegrityProblem_;
+	const bool multi_run_mode_;
+	bool monitorRegistered_;
+};  // namespace artdaq
+}  // namespace artdaq
 
 #endif /* artdaq_ArtModules_TransferWrapper_hh */

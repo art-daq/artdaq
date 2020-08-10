@@ -1,8 +1,8 @@
-#include "canvas/Utilities/Exception.h"
 #include "art/Framework/Art/artapp.h"
+#include "canvas/Utilities/Exception.h"
 
-#define TRACE_NAME (app_name + "_EventBuilderCore").c_str() // include these 2 first -
-#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
+#define TRACE_NAME (app_name + "_EventBuilderCore").c_str()
 #include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
@@ -11,20 +11,10 @@
 
 #include <iomanip>
 
-artdaq::EventBuilderCore::EventBuilderCore()
-	: DataReceiverCore()
-{
-}
-
-artdaq::EventBuilderCore::~EventBuilderCore()
-{
-	TLOG(TLVL_DEBUG) << "Destructor" ;
-}
-
 bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG) << "initialize method called with DAQ "
-		<< "ParameterSet = \"" << pset.to_string() << "\"." ;
+	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -35,8 +25,8 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	catch (...)
 	{
 		TLOG(TLVL_ERROR)
-			<< "Unable to find the DAQ parameters in the initialization "
-			<< "ParameterSet: \"" + pset.to_string() + "\"." ;
+		    << "Unable to find the DAQ parameters in the initialization "
+		    << "ParameterSet: \"" + pset.to_string() + "\".";
 		return false;
 	}
 	fhicl::ParameterSet evb_pset;
@@ -54,8 +44,8 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	catch (...)
 	{
 		TLOG(TLVL_ERROR)
-			<< "Unable to find the event_builder parameters in the DAQ "
-			<< "initialization ParameterSet: \"" + daq_pset.to_string() + "\"." ;
+		    << "Unable to find the event_builder parameters in the DAQ "
+		    << "initialization ParameterSet: \"" + daq_pset.to_string() + "\".";
 		return false;
 	}
 
@@ -64,7 +54,8 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 	{
 		metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
 	}
-	catch (...) {} // OK if there's no metrics table defined in the FHiCL
+	catch (...)
+	{}  // OK if there's no metrics table defined in the FHiCL
 
-	return initializeDataReceiver(pset,evb_pset, metric_pset);
+	return initializeDataReceiver(pset, evb_pset, metric_pset);
 }

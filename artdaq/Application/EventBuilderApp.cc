@@ -1,17 +1,17 @@
-#define TRACE_NAME (app_name + "_DataLoggerApp").c_str() // include these 2 first -
-#include "artdaq/DAQdata/Globals.hh"
+#include <memory>
+
+#include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
+#define TRACE_NAME (app_name + "_DataLoggerApp").c_str()
 
 #include "artdaq/Application/EventBuilderApp.hh"
 
-artdaq::EventBuilderApp::EventBuilderApp() 
-{
-}
+artdaq::EventBuilderApp::EventBuilderApp() = default;
 
 // *******************************************************************
 // *** The following methods implement the state machine operations.
 // *******************************************************************
 
-bool artdaq::EventBuilderApp::do_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::EventBuilderApp::do_initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = true;
@@ -21,12 +21,12 @@ bool artdaq::EventBuilderApp::do_initialize(fhicl::ParameterSet const& pset, uin
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
 	//event_builder_ptr_.reset(nullptr);
-	if (event_builder_ptr_.get() == 0)
+	if (event_builder_ptr_ == nullptr)
 	{
-		event_builder_ptr_.reset(new EventBuilderCore());
+		event_builder_ptr_ = std::make_unique<EventBuilderCore>();
 		external_request_status_ = event_builder_ptr_->initialize(pset);
 	}
-	if (! external_request_status_)
+	if (!external_request_status_)
 	{
 		report_string_ = "Error initializing an EventBuilderCore named";
 		report_string_.append(app_name + " with ");
@@ -36,11 +36,11 @@ bool artdaq::EventBuilderApp::do_initialize(fhicl::ParameterSet const& pset, uin
 	return external_request_status_;
 }
 
-bool artdaq::EventBuilderApp::do_start(art::RunID id, uint64_t, uint64_t)
+bool artdaq::EventBuilderApp::do_start(art::RunID id, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = event_builder_ptr_->start(id);
-	if (! external_request_status_)
+	if (!external_request_status_)
 	{
 		report_string_ = "Error starting ";
 		report_string_.append(app_name + " for run ");
@@ -52,11 +52,11 @@ bool artdaq::EventBuilderApp::do_start(art::RunID id, uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::EventBuilderApp::do_stop(uint64_t, uint64_t)
+bool artdaq::EventBuilderApp::do_stop(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = event_builder_ptr_->stop();
-	if (! external_request_status_)
+	if (!external_request_status_)
 	{
 		report_string_ = "Error stopping ";
 		report_string_.append(app_name + ".");
@@ -64,11 +64,11 @@ bool artdaq::EventBuilderApp::do_stop(uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::EventBuilderApp::do_pause(uint64_t, uint64_t)
+bool artdaq::EventBuilderApp::do_pause(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = event_builder_ptr_->pause();
-	if (! external_request_status_)
+	if (!external_request_status_)
 	{
 		report_string_ = "Error pausing ";
 		report_string_.append(app_name + ".");
@@ -77,24 +77,24 @@ bool artdaq::EventBuilderApp::do_pause(uint64_t, uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::EventBuilderApp::do_resume(uint64_t, uint64_t)
+bool artdaq::EventBuilderApp::do_resume(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = event_builder_ptr_->resume();
-	if (! external_request_status_)
+	if (!external_request_status_)
 	{
 		report_string_ = "Error resuming ";
 		report_string_.append(app_name + ".");
 	}
-	
+
 	return external_request_status_;
 }
 
-bool artdaq::EventBuilderApp::do_shutdown(uint64_t)
+bool artdaq::EventBuilderApp::do_shutdown(uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = event_builder_ptr_->shutdown();
-	if (! external_request_status_)
+	if (!external_request_status_)
 	{
 		report_string_ = "Error shutting down ";
 		report_string_.append(app_name + ".");
@@ -102,11 +102,11 @@ bool artdaq::EventBuilderApp::do_shutdown(uint64_t)
 	return external_request_status_;
 }
 
-bool artdaq::EventBuilderApp::do_soft_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::EventBuilderApp::do_soft_initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = event_builder_ptr_->soft_initialize(pset);
-	if (! external_request_status_)
+	if (!external_request_status_)
 	{
 		report_string_ = "Error soft-initializing ";
 		report_string_.append(app_name + " with ");
@@ -115,11 +115,11 @@ bool artdaq::EventBuilderApp::do_soft_initialize(fhicl::ParameterSet const& pset
 	return external_request_status_;
 }
 
-bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	report_string_ = "";
 	external_request_status_ = event_builder_ptr_->reinitialize(pset);
-	if (! external_request_status_)
+	if (!external_request_status_)
 	{
 		report_string_ = "Error reinitializing ";
 		report_string_.append(app_name + " with ");
@@ -144,7 +144,7 @@ bool artdaq::EventBuilderApp::do_rollover_subrun(uint64_t boundary, uint32_t sub
 
 void artdaq::EventBuilderApp::BootedEnter()
 {
-	TLOG_DEBUG(app_name + "App") << "Booted state entry action called." ;
+	TLOG_DEBUG(app_name + "App") << "Booted state entry action called.";
 
 	// the destruction of any existing EventBuilderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the
@@ -161,7 +161,8 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
 	if (which == "transition_status")
 	{
 		if (report_string_.length() > 0) { return report_string_; }
-		else { return "Success"; }
+
+		return "Success";
 	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
@@ -173,7 +174,7 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
 	//}
 
 	// pass the request to the EventBuilderCore instance, if it's available
-	if (event_builder_ptr_.get() != nullptr)
+	if (event_builder_ptr_ != nullptr)
 	{
 		resultString.append(event_builder_ptr_->report(which));
 	}

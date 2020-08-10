@@ -10,9 +10,8 @@
 #include <set>
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq/Application/StatisticsHelper.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
-#include "artdaq/DAQrate/detail/ArtConfig.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "fhiclcpp/fwd.h"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
@@ -28,7 +27,7 @@ public:
 		 * \brief art_config_file Constructor
 		 * \param ps ParameterSet to write to temporary file
 		 */
-	art_config_file(fhicl::ParameterSet ps /*, uint32_t shm_key, uint32_t broadcast_key*/)
+	explicit art_config_file(fhicl::ParameterSet const& ps /*, uint32_t shm_key, uint32_t broadcast_key*/)
 	    : dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
 	    , file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 	{
@@ -78,6 +77,11 @@ public:
 	std::string getFileName() const { return file_name_; }
 
 private:
+	art_config_file(art_config_file const&) = delete;
+	art_config_file(art_config_file&&) = delete;
+	art_config_file& operator=(art_config_file const&) = delete;
+	art_config_file& operator=(art_config_file&&) = delete;
+
 	std::string dir_name_;
 	std::string file_name_;
 };
@@ -88,6 +92,9 @@ private:
 class SharedMemoryEventManager : public SharedMemoryManager
 {
 public:
+	static const std::string FRAGMENTS_RECEIVED_STAT_KEY;  ///< Key for Fragments Received MonitoredQuantity
+	static const std::string EVENTS_RELEASED_STAT_KEY;     ///< Key for the Events Released MonitoredQuantity
+
 	typedef RawEvent::run_id_t run_id_t;                     ///< Copy RawEvent::run_id_t into local scope
 	typedef RawEvent::subrun_id_t subrun_id_t;               ///< Copy RawEvent::subrun_id_t into local scope
 	typedef Fragment::sequence_id_t sequence_id_t;           ///< Copy Fragment::sequence_id_t into local scope
@@ -111,8 +118,6 @@ public:
 		fhicl::Atom<uint32_t> shared_memory_key{fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use for shared memory access"}, 0xBEE70000 + getpid()};
 		/// "buffer_count" REQUIRED: Number of events in the Shared Memory(incomplete + pending art)
 		fhicl::Atom<size_t> buffer_count{fhicl::Name{"buffer_count"}, fhicl::Comment{"Number of events in the Shared Memory (incomplete + pending art)"}};
-	  /// "max_subrun_lookup_table_size" (Default: 100): Maximum number of entries in the subrun rollover history
-	  fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"Maximum number of entries in the subrun rollover history"}, 100};
 		/// "max_fragment_size_bytes" REQURIED: Maximum Fragment size, in bytes
 		/// Either max_fragment_size_bytes or max_event_size_bytes must be specified
 		fhicl::Atom<size_t> max_fragment_size_bytes{fhicl::Name{"max_fragment_size_bytes"}, fhicl::Comment{" Maximum Fragment size, in bytes"}};
@@ -130,8 +135,10 @@ public:
 		fhicl::Atom<bool> update_run_ids_on_new_fragment{fhicl::Name{"update_run_ids_on_new_fragment"}, fhicl::Comment{"Whether the run and subrun ID of an event should be updated whenever a Fragment is added."}, true};
 		/// "use_sequence_id_for_event_number" (Default: true): Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers
 		fhicl::Atom<bool> use_sequence_id_for_event_number{fhicl::Name{"use_sequence_id_for_event_number"}, fhicl::Comment{"Whether to use the artdaq Sequence ID (true) or the Timestamp (false) for art Event numbers"}, true};
-		/// "max_subrun_event_map_length" (Default: 100): The maximum number of entries to store in the sequence ID-SubRun ID lookup table
-		fhicl::Atom<size_t> max_subrun_event_map_length{fhicl::Name{"max_subrun_event_map_length"}, fhicl::Comment{"The maximum number of entries to store in the sequence ID-SubRun ID lookup table"}, 100};
+		/// "max_subrun_lookup_table_size" (Default: 100): The maximum number of entries to store in the sequence ID-SubRun ID lookup table
+		fhicl::Atom<size_t> max_subrun_lookup_table_size{fhicl::Name{"max_subrun_lookup_table_size"}, fhicl::Comment{"The maximum number of entries to store in the sequence ID-SubRun ID lookup table"}, 100};
+		/// "max_event_list_length" (Default: 100): The maximum number of entries to store in the released events list
+		fhicl::Atom<size_t> max_event_list_length{fhicl::Name{"max_event_list_length"}, fhicl::Comment{" The maximum number of entries to store in the released events list"}, 100};
 		/// "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 		fhicl::Atom<bool> send_init_fragments{fhicl::Name{"send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true};
 		/// "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
@@ -157,6 +164,7 @@ public:
 
 		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;  ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
 	};
+	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
@@ -164,7 +172,7 @@ public:
 		 * \param pset ParameterSet used to configure SharedMemoryEventManager. See artdaq::SharedMemoryEventManager::Config for description of parameters
 		 * \param art_pset ParameterSet used to configure art. See art::Config for description of expected document format
 		 */
-	SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
+	SharedMemoryEventManager(const fhicl::ParameterSet& pset, fhicl::ParameterSet art_pset);
 	/**
 		 * \brief SharedMemoryEventManager Destructor
 		 */
@@ -246,7 +254,7 @@ public:
 	/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 		 */
-	void RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<std::atomic<pid_t>> pid_out);
+	void RunArt(const std::shared_ptr<art_config_file>& config_file, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
 		 * \brief Start all the art processes
 		 */
@@ -337,7 +345,7 @@ public:
 	/**
 		 * \brief Set the stored Init fragment, if one has not yet been set already.
 		 */
-	void SetInitFragment(FragmentPtr frag);
+	void AddInitFragment(FragmentPtr& frag);
 
 	/**
 		 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
@@ -347,9 +355,17 @@ public:
 
 	/**
 		 * \brief Gets the address of the "dropped data" fragment. Used for testing.
+		 * \param frag Fragment ID to get "dropped data" for
 		 * \return Pointer to the data payload of the "dropped data" fragment
 		 */
-	RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag) { return dropped_data_[frag]->dataBegin(); }
+	RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag)
+	{
+		if (dropped_data_.count(frag) && dropped_data_[frag] != nullptr)
+		{
+			return dropped_data_[frag]->dataBegin();
+		}
+		return nullptr;
+	}
 
 	/**
 		 * \brief Updates the internally-stored copy of the art configuration.
@@ -370,17 +386,29 @@ public:
 	/**
 		 * \brief Get the subrun number that the given Sequence ID would be assigned to
 		 * \param seqID Sequence ID to check
+		 * \return Subrun number that the given sequence ID will be associated with 
 		 */
 	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
 
+	/**
+	 * \brief Get the current subrun number (Gets the last defined subrun)
+	 * \return Number of the subrun that corresponds to events with the maximum possible sequence ID.
+	 */
 	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
 private:
+	SharedMemoryEventManager(SharedMemoryEventManager const&) = delete;
+	SharedMemoryEventManager(SharedMemoryEventManager&&) = delete;
+	SharedMemoryEventManager& operator=(SharedMemoryEventManager const&) = delete;
+	SharedMemoryEventManager& operator=(SharedMemoryEventManager&&) = delete;
+
 	size_t get_art_process_count_()
 	{
 		std::unique_lock<std::mutex> lk(art_process_mutex_);
 		return art_processes_.size();
 	}
+
+	std::string buildStatisticsString_() const;
 
 private:
 	size_t num_art_processes_;
@@ -395,11 +423,13 @@ private:
 	std::set<int> active_buffers_;
 	std::set<int> pending_buffers_;
 	std::unordered_map<Fragment::sequence_id_t, size_t> released_incomplete_events_;
+	std::set<Fragment::sequence_id_t> released_events_;
+	size_t max_event_list_length_;
 
 	bool update_run_ids_;
 	bool use_sequence_id_for_event_number_;
 	bool overwrite_mode_;
-	bool send_init_fragments_;
+	size_t init_fragment_count_;
 	bool running_;
 
 	std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
@@ -408,26 +438,17 @@ private:
 
 	int incomplete_event_report_interval_ms_;
 	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
-	std::chrono::steady_clock::time_point last_shmem_buffer_metric_update_;
-        std::chrono::steady_clock::time_point last_backpressure_report_time_;
-        std::chrono::steady_clock::time_point last_fragment_header_write_time_;
+	std::chrono::steady_clock::time_point last_backpressure_report_time_;
+	std::chrono::steady_clock::time_point last_fragment_header_write_time_;
 
-
-	struct MetricData
-	{
-		MetricData()
-		    : event_count(0), event_size(0) {}
-		size_t event_count;
-		size_t event_size;
-	};
-	MetricData metric_data_;
+	StatisticsHelper statsHelper_;
 
 	int broadcast_timeout_ms_;
 
 	std::atomic<int> run_event_count_;
 	std::atomic<int> run_incomplete_event_count_;
-        std::atomic<int> subrun_event_count_;
-        std::atomic<int> subrun_incomplete_event_count_;
+	std::atomic<int> subrun_event_count_;
+	std::atomic<int> subrun_incomplete_event_count_;
 	std::atomic<int> oversize_fragment_count_;
 	int maximum_oversize_fragment_count_;
 
@@ -444,10 +465,10 @@ private:
 	std::unique_ptr<RequestSender> requests_;
 	fhicl::ParameterSet data_pset_;
 
-	FragmentPtr init_fragment_;
+	FragmentPtrs init_fragments_;
 	std::unordered_map<Fragment::fragment_id_t, FragmentPtr> dropped_data_;  ///< Used for when data comes in badly out-of-sequence
 
-	bool broadcastFragment_(FragmentPtr frag, FragmentPtr& outFrag);
+	bool broadcastFragments_(FragmentPtrs& frags);
 
 	detail::RawEventHeader* getEventHeader_(int buffer);
 
@@ -457,7 +478,7 @@ private:
 	bool bufferComparator(int bufA, int bufB);
 	void check_pending_buffers_(std::unique_lock<std::mutex> const& lock);
 
-	void send_init_frag_();
+	void send_init_frags_();
 	SharedMemoryManager broadcasts_;
 };
 }  // namespace artdaq

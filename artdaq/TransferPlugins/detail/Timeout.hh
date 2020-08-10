@@ -7,14 +7,14 @@
 	$RCSfile: Timeout.h,v $
 	rev="$Revision: 1.9 $$Date: 2016/10/12 07:11:55 $";
 	*/
-#include <time.h>               // struct timespec
+#include <ctime>       // struct timespec
+#include <functional>  // std::function
 #include <list>
-#include <functional>			// std::function
-#include <string>
-#include <mutex>
-#include <vector>
 #include <map>
+#include <mutex>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 /**
  * \brief The Timeout class performs registered actions at specified intervals
@@ -32,13 +32,13 @@ public:
 		timeoutspec( const timeoutspec & other );
 		Timeout::timeoutspec & operator=( const Timeout::timeoutspec & other );
 #endif
-		std::string desc; ///< Description of the Timeout function
-		void* tag; ///< could be file descriptor (fd)
-		std::function<void()> function; ///< Function to execute at Timeout
-		uint64_t tmo_tod_us; ///< When the function should be executed (gettimeofday, microseconds)
-		uint64_t period_us; ///< 0 if not periodic
-		int missed_periods; ///< Number of periods that passed while the function was executing
-		int check; ///< Check the timeoutspec
+		std::string desc;                ///< Description of the Timeout function
+		void* tag;                       ///< could be file descriptor (fd)
+		std::function<void()> function;  ///< Function to execute at Timeout
+		uint64_t tmo_tod_us;             ///< When the function should be executed (gettimeofday, microseconds)
+		uint64_t period_us;              ///< 0 if not periodic
+		int missed_periods;              ///< Number of periods that passed while the function was executing
+		int check;                       ///< Check the timeoutspec
 	};
 
 	/**
@@ -57,9 +57,7 @@ public:
 	 * 
 	 * maybe need to return a timeout id??   
 	 */
-	void add_periodic(const char* desc, void* tag, std::function<void()>& function
-					  , uint64_t period_us
-					  , uint64_t start_us = 0);
+	void add_periodic(const char* desc, void* tag, std::function<void()>& function, uint64_t period_us, uint64_t start_us = 0);
 
 	/**
 	* \brief Add a periodic timeout to the Timeout container
@@ -70,8 +68,7 @@ public:
 	*
 	* maybe need to return a timeout id??
 	*/
-	void add_periodic(const char* desc, void* tag, std::function<void()>& function
-					  , int rel_ms);
+	void add_periodic(const char* desc, void* tag, std::function<void()>& function, int rel_ms);
 
 	/**
 	* \brief Add a periodic timeout to the Timeout container
@@ -81,10 +78,8 @@ public:
 	*
 	* maybe need to return a timeout id??
 	*/
-	void add_periodic(const char* desc
-					  , uint64_t period_us
-					  , uint64_t start_us = 0);
- 
+	void add_periodic(const char* desc, uint64_t period_us, uint64_t start_us = 0);
+
 	/**
 	* \brief Add a periodic timeout to the Timeout container
 	* \param desc Description of the periodic timeout
@@ -94,8 +89,7 @@ public:
 	*
 	* maybe need to return a timeout id??
 	*/
-	void add_relative(const char* desc, void* tag, std::function<void()>& function
-					  , int rel_ms);
+	void add_relative(const char* desc, void* tag, std::function<void()>& function, int rel_ms);
 
 	/**
 	* \brief Add a periodic timeout to the Timeout container
@@ -104,7 +98,7 @@ public:
 	*
 	* maybe need to return a timeout id??
 	*/
-	void add_relative(std::string desc, int rel_ms);
+	void add_relative(const std::string& desc, int rel_ms);
 
 	/**
 	 * \brief Add a timeout with the given parameters
@@ -121,7 +115,7 @@ public:
 	 * \param desc Description of the cancelled timeout
 	 * \return Whether a timeout was found and cancelled
 	 */
-	bool cancel_timeout(void* tag, std::string desc);
+	bool cancel_timeout(void* tag, const std::string& desc);
 
 	/**
 	 * \brief Get a timeout that has expired
@@ -131,8 +125,7 @@ public:
 	 * \param[out] tmo_tod_us When the timeout expired
 	 * \return -1 if no timeouts expired
 	 */
-	int get_next_expired_timeout(std::string& desc, void** tag, std::function<void()>& function
-								 , uint64_t* tmo_tod_us);
+	int get_next_expired_timeout(std::string& desc, void** tag, std::function<void()>& function, uint64_t* tmo_tod_us);
 
 	/**
 	 * \brief Get the amount to wait for the next timeout to occur
@@ -158,22 +151,19 @@ public:
 	void list_active_time();
 
 private:
-
 	std::mutex lock_mutex_;
 	std::vector<timeoutspec> tmospecs_;
-	std::list<size_t> free_; // list of tmospecs indexes
+	std::list<size_t> free_;  // list of tmospecs indexes
 	std::multimap<uint64_t, size_t> active_time_;
 	std::unordered_multimap<std::string, size_t> active_desc_;
 
 	void timeoutlist_init();
 
-	int tmo_is_before_ts(timeoutspec& tmo
-						 , const timespec& ts);
+	int tmo_is_before_ts(timeoutspec& tmo, const timespec& ts);
 
-	int get_clear_next_expired_timeout(timeoutspec& tmo
-									   , uint64_t tod_now_us);
+	int get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_us);
 
 	void copy_in_timeout(timeoutspec& tmo);
 };
 
-#endif // TIMEOUT_HH
+#endif  // TIMEOUT_HH

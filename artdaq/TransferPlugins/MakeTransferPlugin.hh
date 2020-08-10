@@ -19,19 +19,18 @@
 #include <memory>
 #include <string>
 
-namespace artdaq
-{
-	/**
+namespace artdaq {
+/**
 	 * \brief Load a TransferInterface plugin
 	 * \param pset ParameterSet used to configure the TransferInterface
 	 * \param plugin_label Name of the plugin
 	 * \param role Whether the TransferInterface should be configured as kSend or kReceive
 	 * \return Pointer to the new TransferInterface instance
 	 */
-	std::unique_ptr<TransferInterface>
-	MakeTransferPlugin(const fhicl::ParameterSet& pset,
-	                   std::string plugin_label,
-	                   TransferInterface::Role role);
-}
+std::unique_ptr<TransferInterface>
+MakeTransferPlugin(const fhicl::ParameterSet& pset,
+                   const std::string& plugin_label,
+                   TransferInterface::Role role);
+}  // namespace artdaq
 
 #endif

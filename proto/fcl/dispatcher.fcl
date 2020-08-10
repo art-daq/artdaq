@@ -1,11 +1,5 @@
 services: {
-  scheduler: {
-    fileMode: NOMERGE
-    errorOnFailureToPut: false
-  }
-  NetMonTransportServiceInterface: {
-    service_provider: NetMonTransportService
-  }
+    ArtdaqSharedMemoryServiceInterface: { service_provider: ArtdaqSharedMemoryService}
 
   #SimpleMemoryCheck: { }
 }
@@ -60,11 +54,12 @@ sources: {
 }
 
 source: {
-  module_type: NetMonInput
+  module_type: ArtdaqInput
+  register_fragment_types: false
 }
 outputs: {
   #normalOutput: {
-  #  module_type: RootOutput
+  #  module_type: RootDAQOut
   #  fileName: "/tmp/artdaqdemo_r%06r_sr%02s_%to_%#_1.root"
   #  fileProperties: { maxSubRuns: 1 maxRuns: 1  }
   #  fastCloning: false
@@ -72,7 +67,7 @@ outputs: {
   #}
 
   #normalOutputMod2: {
-  #  module_type: RootOutput
+  #  module_type: RootDAQOut
   #  fileName: "/tmp/artdaqdemo_r%06r_sr%02s_%to_%#_mod2_1.root"
   #  SelectEvents: { SelectEvents: [ pmod2 ] }
   #   fileProperties: { maxSubRuns: 1 maxRuns: 1  }
@@ -81,7 +76,7 @@ outputs: {
   #}
 
   #normalOutputMod3: {
-  #  module_type: RootOutput
+  #  module_type: RootDAQOut
   #  fileName: "/tmp/artdaqdemo_r%06r_sr%02s_%to_%#_mod3_1.root"
   #  SelectEvents: { SelectEvents: [ pmod3 ] }
   #   fileProperties: { maxSubRuns: 1 maxRuns: 1  }

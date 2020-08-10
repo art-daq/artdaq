@@ -5,22 +5,21 @@
 //  $RCSfile: TCP_listen_fd.cpp,v $
 //  rev="$Revision: 1.3 $$Date: 2010/06/04 14:00:32 $";
 
-#define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 
-#include <stdio.h>		// printf
-#include <stdlib.h>		// exit
-#include <strings.h>		// bzero
-#include <sys/socket.h>         /* inet_aton, socket, bind, listen, accept */
-#include <netinet/in.h>         /* inet_aton, struct sockaddr_in */
-#include <arpa/inet.h>          /* inet_aton */
-#include <netdb.h>              /* gethostbyname */
-#include <errno.h>				// errno
+#include <arpa/inet.h>  /* inet_aton */
+#include <netdb.h>      /* gethostbyname */
+#include <netinet/in.h> /* inet_aton, struct sockaddr_in */
+#include <strings.h>    // bzero
+#include <sys/socket.h> /* inet_aton, socket, bind, listen, accept */
+#include <cerrno>       // errno
+#include <cstdio>       // printf
+#include <cstdlib>      // exit
 
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 
-int
-TCP_listen_fd(int port, int rcvbuf)
+int TCP_listen_fd(int port, int rcvbuf)
 {
 	int sts;
 	int listener_fd;
@@ -34,7 +33,7 @@ TCP_listen_fd(int port, int rcvbuf)
 		exit(1);
 	}
 
-	int opt = 1; // SO_REUSEADDR - man socket(7)
+	int opt = 1;  // SO_REUSEADDR - man socket(7)
 	sts = setsockopt(listener_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 	if (sts == -1)
 	{
@@ -43,13 +42,13 @@ TCP_listen_fd(int port, int rcvbuf)
 		return (2);
 	}
 
-	bzero((char *)&sin, sizeof(sin));
+	memset(static_cast<void*>(&sin), 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = INADDR_ANY;
 
 	//printf( "bind..." );fflush(stdout);
-	sts = bind(listener_fd, (struct sockaddr *)&sin, sizeof(sin));
+	sts = bind(listener_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
 		TLOG(TLVL_ERROR) << "Could not bind socket for port " << port << "! Exiting with code 3!";
@@ -67,23 +66,30 @@ TCP_listen_fd(int port, int rcvbuf)
 		len = rcvbuf;
 		sts = setsockopt(listener_fd, SOL_SOCKET, SO_RCVBUF, &len, arglen);
 		if (sts == -1)
+		{
 			TLOG(TLVL_ERROR) << "Error with setsockopt SNDBUF " << errno;
+		}
 		len = 0;
 		sts = getsockopt(listener_fd, SOL_SOCKET, SO_RCVBUF, &len, &arglen);
 		if (len < (rcvbuf * 2))
+		{
 			TLOG(TLVL_WARNING) << "RCVBUF " << len << " not expected (" << rcvbuf << " sts/errno=" << sts << "/" << errno;
+		}
 		else
+		{
 			TLOG(TLVL_DEBUG) << "RCVBUF " << len << " sts/errno=" << sts << "/" << errno;
+		}
 	}
 
 	//printf( "listen..." );fflush(stdout);
-	sts = listen(listener_fd, 5/*QLEN*/);
+	sts = listen(listener_fd, 5 /*QLEN*/);
 	if (sts == -1)
 	{
+		TLOG(TLVL_ERROR) << "Error calling listen! errno=" << errno << " (" << strerror(errno) << ")";
 		perror("listen error");
 		exit(1);
 	}
 	//printf( " OK\n" );
 
 	return (listener_fd);
-} // TCP_listen_fd
+}  // TCP_listen_fd

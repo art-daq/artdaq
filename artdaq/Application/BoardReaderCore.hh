@@ -1,19 +1,20 @@
-#ifndef artdaq_Application_MPI2_BoardReaderCore_hh
-#define artdaq_Application_MPI2_BoardReaderCore_hh
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
+
+#include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/Application/Commandable.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "artdaq/DAQrate/RequestReceiver.hh"
+
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include <string>
 
-#include "artdaq/Application/CommandableFragmentGenerator.hh"
-#include "artdaq/Application/Commandable.hh"
-#include "fhiclcpp/ParameterSet.h"
-#include "canvas/Persistency/Provenance/RunID.h"
-#include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/Application/StatisticsHelper.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-
-namespace artdaq
-{
-	class BoardReaderCore;
+namespace artdaq {
+class BoardReaderCore;
 }
 
 /**
@@ -23,11 +24,13 @@ namespace artdaq
 class artdaq::BoardReaderCore
 {
 public:
-	static const std::string FRAGMENTS_PROCESSED_STAT_KEY; ///< Key for the Fragments Processed MonitoredQuantity
-	static const std::string INPUT_WAIT_STAT_KEY; ///< Key for the Input Wait MonitoredQuantity
-	static const std::string BRSYNC_WAIT_STAT_KEY; ///< Key for the Sync Wait MonitoredQuantity
-	static const std::string OUTPUT_WAIT_STAT_KEY; ///< Key for the Output Wait MonitoredQuantity
-	static const std::string FRAGMENTS_PER_READ_STAT_KEY; ///< Key for the Fragments Per Read MonitoredQuantity
+	static const std::string FRAGMENTS_PROCESSED_STAT_KEY;  ///< Key for the Fragments Processed MonitoredQuantity
+	static const std::string INPUT_WAIT_STAT_KEY;           ///< Key for the Input Wait MonitoredQuantity
+	static const std::string BUFFER_WAIT_STAT_KEY;
+	static const std::string REQUEST_WAIT_STAT_KEY;
+	static const std::string BRSYNC_WAIT_STAT_KEY;          ///< Key for the Sync Wait MonitoredQuantity
+	static const std::string OUTPUT_WAIT_STAT_KEY;          ///< Key for the Output Wait MonitoredQuantity
+	static const std::string FRAGMENTS_PER_READ_STAT_KEY;   ///< Key for the Fragments Per Read MonitoredQuantity
 
 	/**
 	 * \brief BoardReaderCore Constructor
@@ -50,10 +53,14 @@ public:
 	 * \return BoardReaderCore copy
 	 */
 	BoardReaderCore& operator=(BoardReaderCore const&) = delete;
+	BoardReaderCore(BoardReaderCore&&) = delete;
+	BoardReaderCore& operator=(BoardReaderCore&&) = delete;
 
 	/**
 	 * \brief Initialize the BoardReaderCore
 	 * \param pset ParameterSet used to configure the BoardReaderCore
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
 	 * \return True if the initialize attempt succeeded
 	 * 
 	 * \verbatim
@@ -69,7 +76,7 @@ public:
 	 * \endverbatim
 	 *   
 	 */
-	bool initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
+	bool initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	 * \brief Start the BoardReader, and the CommandableFragmentGenerator
@@ -106,31 +113,42 @@ public:
 
 	/**
 	* \brief Shutdown the BoardReader, and the CommandableFragmentGenerator
+	* \param timeout Timeout for transition
 	* \return True unless exception occurred
 	*/
-	bool shutdown(uint64_t);
+	bool shutdown(uint64_t timeout);
 
 	/**
 	* \brief Soft-Initialize the BoardReader. No-Op
 	 * \param pset ParameterSet used to configure the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
 	* \return True unless exception occurred
 	*/
-	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
+	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	* \brief Reinitialize the BoardReader. No-Op
 	 * \param pset ParameterSet used to configure the BoardReaderCore
+	* \param timeout Timeout for transition
+	* \param timestamp Timestamp of transition
 	* \return True unless exception occurred
 	*/
-	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
+	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	 * \brief Main working loop of the BoardReaderCore
-	 * \return Number of Fragments generated
 	 * 
-	 * This loop calls the CommandableFragmentGenerator::getNext method, then sends each Fragment using DataSenderManager.
+	 * This loop calls the CommandableFragmentGenerator::getNext method and gives the result to the FragmentBuffer
 	 */
-	void process_fragments();
+	void receive_fragments();
+
+	/**
+	 * @brief Main working loop of the BoardReaderCore, pt. 2
+	 *
+	 * This loop calls the FragmentBuffer::applyRequests method and sends the result using DataSenderManager
+	*/
+	void send_fragments();
 
 	/**
 	 * \brief Send a report on a given run-time quantity
@@ -161,9 +179,12 @@ public:
 	/// </summary>
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
+
 private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
+	std::unique_ptr<RequestReceiver> request_receiver_ptr_;
+	std::unique_ptr<FragmentBuffer> fragment_buffer_ptr_;
 	art::RunID run_id_;
 
 	fhicl::ParameterSet data_pset_;
@@ -184,13 +205,7 @@ private:
 
 	void sendMetrics_();
 
-	bool verbose_; ///< Whether to log transition messages
-
-	/**
-	 * \brief Log a message, setting severity based on verbosity flag
-	 * \param text Message to log
-	 */
-	void logMessage_(std::string const& text);
+	bool verbose_;  ///< Whether to log transition messages
 };
 
-#endif /* artdaq_Application_MPI2_BoardReaderCore_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_

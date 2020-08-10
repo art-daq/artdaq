@@ -1,17 +1,17 @@
 #ifndef artdaq_Application_Commandable_hh
 #define artdaq_Application_Commandable_hh
 
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
 
-#include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
+
 #include "artdaq/Application/Commandable_sm.h"  // must be included after others
 
-namespace artdaq
-{
-	class Commandable;
+namespace artdaq {
+class Commandable;
 }
 
 /**
@@ -40,6 +40,9 @@ public:
 	 * \return Commandable copy
 	 */
 	Commandable& operator=(Commandable const&) = delete;
+
+	Commandable(Commandable&&) = delete;
+	Commandable& operator=(Commandable&&) = delete;
 
 	/**
 	* \brief Processes the initialize request
@@ -89,7 +92,7 @@ public:
 	* \return Whether the transition was successful
 	*/
 	bool shutdown(uint64_t timeout);
-	
+
 	/**
 	* \brief Processes the soft-initialize request
 	* \param pset ParameterSet used to configure the Commandable
@@ -230,7 +233,7 @@ public:
 	* \return Whether the transition succeeded
 	*/
 	virtual bool do_rollover_subrun(uint64_t eventNum, uint32_t subrunNum);
-	
+
 	/**
 	 * \brief This function is called when an attempt is made to call an illegal transition
 	 * \param trans The transition that was attempted
@@ -265,12 +268,12 @@ public:
 	* \brief Set the given TRACE mask for the given TRACE name
 	*
 	* This function is implemented in Commandable, derived classes may override if necessary.
-	* \param type Type of TRACE mask to set (either M, S, or T)
 	* \param name Name of the TRACE level to set mask for
-	* \param mask Mask to set
+	* \param type Type of TRACE mask to set (either M, S, or T)
+	* \param mask_in_string_form Mask to set
 	* \return Whether the command succeeded (always true)
 	*/
-	virtual bool do_trace_set(std::string const& type, std::string const& name, uint64_t mask);
+	virtual bool do_trace_set(std::string const& name, std::string const& type, std::string const& mask_in_string_form);
 
 	/**
 	* \brief Run a module-defined command with the given parameter string
@@ -280,10 +283,11 @@ public:
 	* \param args Any arguments for the command (implementation-defined)
 	* \return Whether the command succeeded (always true)
 	*/
-	virtual bool do_meta_command(std::string const& command, std::string const& args);
+	virtual bool do_meta_command(std::string const& cmd, std::string const& args);
 
 	/**
 	* \brief Add the specified key-value pair to the configuration archive list
+	* \return Whether the command succeeded (always true)
 	*
 	* This function is a No-Op. Derived classes should override it.
 	*/
@@ -291,6 +295,7 @@ public:
 
 	/**
 	* \brief Clears the configuration archive list
+	* \return Whether the command succeeded (always true)
 	*
 	* This function is a No-Op. Derived classes should override it.
 	*/
@@ -303,9 +308,9 @@ protected:
 	 */
 	std::string current_state() const;
 
-	CommandableContext fsm_; ///< The generated State Machine (using smc_compiler)
-	bool external_request_status_; ///< Whether the last command succeeded
-	std::string report_string_; ///< Status information about the last command
+	CommandableContext fsm_;        ///< The generated State Machine (using smc_compiler)
+	bool external_request_status_;  ///< Whether the last command succeeded
+	std::string report_string_;     ///< Status information about the last command
 
 private:
 	// 06-May-2015, KAB: added a mutex to be used in avoiding problems when

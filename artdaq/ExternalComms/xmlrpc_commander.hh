@@ -8,8 +8,7 @@
 #include <mutex>
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 
-namespace artdaq
-{
+namespace artdaq {
 
 /**
  * \brief The xmlrpc_commander class serves as the XMLRPC server run in each artdaq application
@@ -28,7 +27,7 @@ public:
 	   server_url: When sending, location of XMLRPC server
 	 * \endverbatim
 	 */
-	xmlrpc_commander(fhicl::ParameterSet ps, artdaq::Commandable& commandable);
+	xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Commandable& commandable);
 
 	/**
 	 * \brief Run the XMLRPC server
@@ -40,90 +39,109 @@ public:
 	/// </summary>
 	/// <param name="monitor_fhicl">FHiCL string contianing monitor configuration</param>
 	/// <returns>Return status from XMLRPC</returns>
-	std::string send_register_monitor(std::string monitor_fhicl) override;
+	std::string send_register_monitor(std::string const& monitor_fhicl) override;
 
 	/// <summary>
 	/// Send an unregister_monitor command over XMLRPC
 	/// </summary>
 	/// <param name="monitor_label">Label of the monitor to unregister</param>
 	/// <returns>Return status from XMLRPC</returns>
-	std::string send_unregister_monitor(std::string monitor_label) override;
-	
+	std::string send_unregister_monitor(std::string const& monitor_label) override;
+
 	/// <summary>
 	/// Send an init command over XMLRPC
-	/// 
+	///
 	/// The init command is accepted by all artdaq processes that are in the booted state.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet received with the init command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_init(fhicl::ParameterSet, uint64_t, uint64_t) override;
+	std::string send_init(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a soft_init command over XMLRPC
-	/// 
+	///
 	/// The soft_init command is accepted by all artdaq processes that are in the booted state.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet received with the soft_init command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_soft_init(fhicl::ParameterSet, uint64_t, uint64_t) override;
+	std::string send_soft_init(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a reinit command over XMLRPC
-	/// 
+	///
 	/// The reinit command is accepted by all artdaq processes.
 	/// It expects a ParameterSet for configuration, a timeout, and a timestamp.
 	/// </summary>
+	/// <param name="ps">ParameterSet received with the reinit command</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_reinit(fhicl::ParameterSet, uint64_t, uint64_t) override;
+	std::string send_reinit(fhicl::ParameterSet const& ps, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a start command over XMLRPC
-	/// 
+	///
 	/// The start command starts a Run using the given run number.
 	/// This command also accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="runNumber">Run number of the new run</param>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_start(art::RunID, uint64_t, uint64_t) override;
+	std::string send_start(art::RunID runNumber, uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a pause command over XMLRPC
-	/// 
+	///
 	/// The pause command pauses a Run. When the run resumes, the subrun number will be incremented.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_pause(uint64_t, uint64_t) override;
+	std::string send_pause(uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a resume command over XMLRPC
-	/// 
+	///
 	/// The resume command resumes a paused Run. When the run resumes, the subrun number will be incremented.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_resume(uint64_t, uint64_t) override;
+	std::string send_resume(uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a stop command over XMLRPC
-	/// 
+	///
 	/// The stop command stops the current Run.
 	/// This command accepts a timeout parameter and a timestamp parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
+	/// <param name="timestamp">Timestamp of the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_stop(uint64_t, uint64_t) override;
+	std::string send_stop(uint64_t timeout, uint64_t timestamp) override;
 
 	/// <summary>
 	/// Send a shutdown command over XMLRPC
-	/// 
+	///
 	/// The shutdown command shuts down the artdaq process.
 	/// This command accepts a timeout parameter.
 	/// </summary>
+	/// <param name="timeout">Timeout for the command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_shutdown(uint64_t) override;
+	std::string send_shutdown(uint64_t timeout) override;
 
 	/// <summary>
 	/// Send a status command over XMLRPC
-	/// 
+	///
 	/// The status command returns the current status of the artdaq process.
 	/// </summary>
 	/// <returns>Command result: current status of the artdaq process</returns>
@@ -131,48 +149,55 @@ public:
 
 	/// <summary>
 	/// Send a report command over XMLRPC
-	/// 
+	///
 	/// The report command returns the current value of the requested reportable quantity.
 	/// </summary>
+	/// <param name="which">Reportable quantity to request</param>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
-	std::string send_report(std::string) override;
+	std::string send_report(std::string const& what) override;
 
 	/// <summary>
 	/// Send a legal_commands command over XMLRPC
-	/// 
+	///
 	/// This will query the artdaq process, and it will return the list of allowed transition commands from its current state.
 	/// </summary>
 	/// <returns>Command result: a list of allowed transition commands from its current state</returns>
 	std::string send_legal_commands() override;
-	
+
 	/// <summary>
 	/// Send an send_trace_get command over XMLRPC
-	/// 
+	///
 	/// This will cause the receiver to get the TRACE level masks for the given name
 	/// Use name == "ALL" to get ALL names
 	/// </summary>
+	/// <param name="name">TRACE name to get the mask for ("ALL" to get all names)</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_trace_get(std::string) override;
+	std::string send_trace_get(std::string const& name) override;
 
 	/// <summary>
 	/// Send an send_trace_msgfacility_set command over XMLRPC
-	/// 
+	///
 	/// This will cause the receiver to set the given TRACE level mask for the given name to the given mask.
 	/// Only the first character of the mask selection will be parsed, dial 'M' for Memory, or 'S' for Slow.
 	/// Use name == "ALL" to set ALL names
 	///
-	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i/$((0x1234)) # Use Bash to convert hex to dec
+	/// EXAMPLE: xmlrpc http://localhost:5235/RPC2 daq.trace_msgfacility_set TraceLock i8/$((0x1234)) # Use Bash to convert hex to dec
 	/// </summary>
+	/// <param name="name">TRACE name to set ("ALL" for all TRACE names)</param>
+	/// <param name="type">Type of mask to set ('M', 'S', or 'T')</param>
+	/// <param name="mask">64-bit mask, in string form</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_trace_set(std::string, std::string, uint64_t) override;
+	std::string send_trace_set(std::string const& name, std::string const& type, std::string const& mask) override;
 
 	/// <summary>
 	/// Send an send_meta_command command over XMLRPC
-	/// 
+	///
 	/// This will cause the receiver to run the given command with the given argument in user code
 	/// </summary>
+	/// <param name="command">Command name to send</param>
+	/// <param name="argument">Argument for command</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_meta_command(std::string, std::string) override;
+	std::string send_meta_command(std::string const& command, std::string const& argument) override;
 
 	/// <summary>
 	/// Send a send_rollover_subrun command over XMLRPC
@@ -180,32 +205,36 @@ public:
 	/// This will cause the receiver to rollover the subrun number at the given event. (Event with seqID == boundary will be in new subrun.)
 	/// Should be sent to all EventBuilders before the given event is processed.
 	/// </summary>
+	/// <param name="seq">Sequence ID of new subrun</param>
+	/// <param name="subrunNumber">Subrun number of the new subrun</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
-	std::string send_rollover_subrun(uint64_t, uint32_t) override;
-
+	std::string send_rollover_subrun(uint64_t when, uint32_t sr) override;
 
 private:
 	xmlrpc_commander(const xmlrpc_commander&) = delete;
 
 	xmlrpc_commander(xmlrpc_commander&&) = delete;
+	xmlrpc_commander& operator=(xmlrpc_commander const&) = delete;
+	xmlrpc_commander& operator=(xmlrpc_commander&&) = delete;
 
 	int port_;
 	std::string serverUrl_;
 
-	std::string send_command_(std::string command);
-	std::string send_command_(std::string command, std::string arg);
-	std::string send_command_(std::string command, fhicl::ParameterSet pset, uint64_t a, uint64_t b);
-	std::string send_command_(std::string command, uint64_t a, uint64_t b);
-	std::string send_command_(std::string command, art::RunID r, uint64_t a, uint64_t b);
-	std::string send_command_(std::string, uint64_t);
-	std::string send_command_(std::string, std::string, std::string);
-	std::string send_command_(std::string, std::string, std::string, uint64_t);
+	std::string send_command_(const std::string& command);
+	std::string send_command_(const std::string& command, const std::string& arg);
+	std::string send_command_(const std::string& command, const fhicl::ParameterSet& pset, uint64_t timestamp, uint64_t timeout);
+	std::string send_command_(const std::string& command, uint64_t a, uint64_t b);
+	std::string send_command_(const std::string& command, uint64_t a, uint32_t b);
+	std::string send_command_(const std::string& command, art::RunID r, uint64_t a, uint64_t b);
+	std::string send_command_(const std::string&, uint64_t);
+	std::string send_command_(const std::string&, const std::string&, const std::string&);
+	std::string send_command_(const std::string&, const std::string&, const std::string&, const std::string&);
 
 public:
-	std::timed_mutex mutex_; ///< XMLRPC mutex
-	std::unique_ptr<xmlrpc_c::serverAbyss> server; ///< XMLRPC server
+	std::timed_mutex mutex_;                        ///< XMLRPC mutex
+	std::unique_ptr<xmlrpc_c::serverAbyss> server;  ///< XMLRPC server
 };
 
-}
+}  // namespace artdaq
 
 #endif /* artdaq_ExternalComms_xmlrpc_commander_hh */
