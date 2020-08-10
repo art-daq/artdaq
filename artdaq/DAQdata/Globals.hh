@@ -19,8 +19,8 @@
 
 //https://stackoverflow.com/questions/21594140/c-how-to-ensure-different-random-number-generation-in-c-when-program-is-execut
 #include <fcntl.h>
-#include <stdlib.h>
 #include <unistd.h>
+#include <cstdlib>
 
 /**
  * \brief The artdaq namespace
@@ -57,7 +57,7 @@ public:
 			unsigned pos = 0;
 			while (pos < sizeof(seed))
 			{
-				int amt = read(fp, (char *)&seed + pos, sizeof(seed) - pos);
+				int amt = read(fp, reinterpret_cast<char *>(&seed) + pos, sizeof(seed) - pos);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 				if (amt <= 0) abort();
 				pos += amt;
 			}
@@ -65,7 +65,7 @@ public:
 			close(fp);
 			initialized_ = true;
 		}
-		return rand();
+		return rand();  // NOLINT(cert-msc50-cpp)
 	}
 
 	/**
@@ -85,13 +85,13 @@ public:
 		}
 		else
 		{
-			auto part = getenv("ARTDAQ_PARTITION_NUMBER");  // 0-127
+			auto part = getenv("ARTDAQ_PARTITION_NUMBER");  // Valid values 0-127
 			if (part != nullptr)
 			{
 				try
 				{
 					auto part_s = std::string(part);
-					part_u = static_cast<uint32_t>(std::stoll(part_s, 0, 0));
+					part_u = static_cast<uint32_t>(std::stoll(part_s, nullptr, 0));
 				}
 				catch (const std::invalid_argument &)
 				{}
@@ -128,7 +128,7 @@ public:
 		 * \brief Set the current iteration for MessageFacility messages
 		 * \param name The current iteration
 		 */
-	static void SetMFIteration_(std::string name)
+	static void SetMFIteration_(std::string const &name)
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
 		mftrace_iteration_ = name;
@@ -138,7 +138,7 @@ public:
 		 * \brief Set the current module name for MessageFacility messages
 		 * \param name The current module name
 		 */
-	static void SetMFModuleName_(std::string name)
+	static void SetMFModuleName_(std::string const &name)
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
 		mftrace_module_ = name;

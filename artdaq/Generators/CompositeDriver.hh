@@ -59,9 +59,14 @@ public:
 	void resume() override;
 
 private:
+	CompositeDriver(CompositeDriver const&) = delete;
+	CompositeDriver(CompositeDriver&&) = delete;
+	CompositeDriver& operator=(CompositeDriver const&) = delete;
+	CompositeDriver& operator=(CompositeDriver&&) = delete;
+
 	std::vector<artdaq::Fragment::fragment_id_t> fragmentIDs() override;
 
-	bool getNext_(artdaq::FragmentPtrs& output) override;
+	bool getNext_(artdaq::FragmentPtrs& frags) override;
 
 	bool makeChildGenerator_(fhicl::ParameterSet const&);
 
