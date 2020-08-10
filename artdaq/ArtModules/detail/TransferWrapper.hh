@@ -86,6 +86,11 @@ public:
 	std::shared_ptr<artdaq::detail::RawEventHeader> getEventHeader() { return nullptr; }
 
 private:
+	TransferWrapper(TransferWrapper const&) = delete;
+	TransferWrapper(TransferWrapper&&) = delete;
+	TransferWrapper& operator=(TransferWrapper const&) = delete;
+	TransferWrapper& operator=(TransferWrapper&&) = delete;
+
 	void checkIntegrity(const artdaq::Fragment&) const;
 
 	void registerMonitor();

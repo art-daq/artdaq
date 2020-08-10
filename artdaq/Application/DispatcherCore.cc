@@ -1,15 +1,16 @@
-#include <errno.h>
 #include <bitset>
+#include <cerrno>
 #include <iomanip>
 #include <sstream>
 
-#include <signal.h>
+#include <csignal>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/throw_exception.hpp>
 #include <boost/tokenizer.hpp>
+#include <utility>
 
 #include "fhiclcpp/ParameterSet.h"
 
@@ -21,15 +22,6 @@
 
 #include "artdaq/Application/DispatcherCore.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-
-artdaq::DispatcherCore::DispatcherCore()
-    : DataReceiverCore()
-{}
-
-artdaq::DispatcherCore::~DispatcherCore()
-{
-	TLOG(TLVL_DEBUG) << "Destructor";
-}
 
 bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 {
@@ -102,38 +94,26 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"";
-	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	check_filters_();
 
 	try
 	{
 		TLOG(TLVL_DEBUG) << "Getting unique_label from input ParameterSet";
-		auto label = pset.get<std::string>("unique_label");
+		auto const& label = pset.get<std::string>("unique_label");
 		TLOG(TLVL_DEBUG) << "Unique label is " << label;
-		if (registered_monitors_.count(label))
 		{
-			throw cet::exception("DispatcherCore") << "Unique label already exists!";
+			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+			if (registered_monitors_.count(label) != 0u)
+			{
+				throw cet::exception("DispatcherCore") << "Unique label already exists!";  // NOLINT(cert-err60-cpp)
+			}
+
+			registered_monitors_[label] = pset;
 		}
 
-		registered_monitors_[label] = pset;
-		if (event_store_ptr_ != nullptr)
-		{
-			if (broadcast_mode_)
-			{
-				fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
-				TLOG(TLVL_DEBUG) << "Starting art process with received fhicl";
-				registered_monitor_pids_[label] = event_store_ptr_->StartArtProcess(ps);
-			}
-			else
-			{
-				TLOG(TLVL_DEBUG) << "Generating new fhicl and reconfiguring art";
-				event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
-			}
-		}
-		else
-		{
-			TLOG(TLVL_ERROR) << "Unable to add monitor as there is no SharedMemoryEventManager instance!";
-		}
+		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
+		boost::thread thread([=] { start_art_process_(label); });
+		thread.detach();
 	}
 	catch (const cet::exception& e)
 	{
@@ -173,35 +153,27 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 {
 	TLOG(TLVL_DEBUG) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"";
-	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	check_filters_();
 
 	try
 	{
-		if (registered_monitors_.count(label) == 0)
 		{
-			std::stringstream errmsg;
-			errmsg << "Warning in DispatcherCore::unregister_monitor: unable to find requested transfer plugin with "
-			       << "label \"" << label << "\"";
-			TLOG(TLVL_WARNING) << errmsg.str();
-			return errmsg.str();
+			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+			if (registered_monitors_.count(label) == 0)
+			{
+				std::stringstream errmsg;
+				errmsg << "Warning in DispatcherCore::unregister_monitor: unable to find requested transfer plugin with "
+				       << "label \"" << label << "\"";
+				TLOG(TLVL_WARNING) << errmsg.str();
+				return errmsg.str();
+			}
+
+			registered_monitors_.erase(label);
 		}
 
-		registered_monitors_.erase(label);
-		if (event_store_ptr_ != nullptr)
-		{
-			if (broadcast_mode_)
-			{
-				std::set<pid_t> pids;
-				pids.insert(registered_monitor_pids_[label]);
-				event_store_ptr_->ShutdownArtProcesses(pids);
-				registered_monitor_pids_.erase(label);
-			}
-			else
-			{
-				event_store_ptr_->ReconfigureArt(generate_filter_fhicl_());
-			}
-		}
+		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
+		boost::thread thread([=] { stop_art_process_(label); });
+		thread.detach();
 	}
 	catch (...)
 	{
@@ -213,9 +185,9 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 	return "Success";
 }
 
-fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::ParameterSet skel, std::string label, fhicl::ParameterSet pset)
+fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::ParameterSet const& skel, const std::string& label, const fhicl::ParameterSet& pset)
 {
-	fhicl::ParameterSet generated_pset = skel;
+	fhicl::ParameterSet generated_pset(skel);
 	fhicl::ParameterSet generated_outputs;
 	fhicl::ParameterSet generated_physics;
 	fhicl::ParameterSet generated_physics_analyzers;
@@ -236,7 +208,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 			{
 				auto name = filter.get<std::string>("name");
 				auto path = filter.get<std::vector<std::string>>("path");
-				if (generated_physics_filter_paths.count(name))
+				if (generated_physics_filter_paths.count(name) != 0u)
 				{
 					bool matched = generated_physics_filter_paths[name].size() == path.size();
 					for (size_t ii = 0; matched && ii < generated_physics_filter_paths[name].size(); ++ii)
@@ -249,11 +221,9 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 						// Path is already configured
 						continue;
 					}
-					else
-					{
-						auto newname = label + name;
-						generated_physics_filter_paths[newname] = path;
-					}
+
+					auto newname = label + name;
+					generated_physics_filter_paths[newname] = path;
 				}
 				else
 				{
@@ -267,7 +237,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 
 		// outputs section
 		auto outputs = pset.get<fhicl::ParameterSet>("outputs");
-		if (outputs.get_pset_names().size() > 1 || outputs.get_pset_names().size() == 0)
+		if (outputs.get_pset_names().size() > 1 || outputs.get_pset_names().empty())
 		{
 			// Only one output allowed per monitor
 		}
@@ -275,11 +245,11 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 		auto output_pset = outputs.get<fhicl::ParameterSet>(output_name);
 		generated_outputs.put(label + output_name, output_pset);
 		bool outputInPath = false;
-		for (size_t ii = 0; ii < path.size(); ++ii)
+		for (auto& ii : path)
 		{
-			if (path[ii] == output_name)
+			if (ii == output_name)
 			{
-				path[ii] = label + output_name;
+				ii = label + output_name;
 				outputInPath = true;
 			}
 		}
@@ -294,23 +264,23 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 		if (physics_pset.has_key("analyzers"))
 		{
 			auto analyzers = physics_pset.get<fhicl::ParameterSet>("analyzers");
-			for (auto key : analyzers.get_pset_names())
+			for (const auto& key : analyzers.get_pset_names())
 			{
 				if (generated_physics_analyzers.has_key(key) && analyzers.get<fhicl::ParameterSet>(key) == generated_physics_analyzers.get<fhicl::ParameterSet>(key))
 				{
 					// Module is already configured
 					continue;
 				}
-				else if (generated_physics_analyzers.has_key(key))
+				if (generated_physics_analyzers.has_key(key))
 				{
 					// Module already exists with name, rename
 					auto newkey = label + key;
 					generated_physics_analyzers.put<fhicl::ParameterSet>(newkey, analyzers.get<fhicl::ParameterSet>(key));
-					for (size_t ii = 0; ii < path.size(); ++ii)
+					for (auto& ii : path)
 					{
-						if (path[ii] == key)
+						if (ii == key)
 						{
-							path[ii] = newkey;
+							ii = newkey;
 						}
 					}
 				}
@@ -323,23 +293,23 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 		if (physics_pset.has_key("producers"))
 		{
 			auto producers = physics_pset.get<fhicl::ParameterSet>("producers");
-			for (auto key : producers.get_pset_names())
+			for (const auto& key : producers.get_pset_names())
 			{
 				if (generated_physics_producers.has_key(key) && producers.get<fhicl::ParameterSet>(key) == generated_physics_producers.get<fhicl::ParameterSet>(key))
 				{
 					// Module is already configured
 					continue;
 				}
-				else if (generated_physics_producers.has_key(key))
+				if (generated_physics_producers.has_key(key))
 				{
 					// Module already exists with name, rename
 					auto newkey = label + key;
 					generated_physics_producers.put<fhicl::ParameterSet>(newkey, producers.get<fhicl::ParameterSet>(key));
-					for (size_t ii = 0; ii < path.size(); ++ii)
+					for (auto& ii : path)
 					{
-						if (path[ii] == key)
+						if (ii == key)
 						{
-							path[ii] = newkey;
+							ii = newkey;
 						}
 					}
 				}
@@ -352,23 +322,23 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 		if (physics_pset.has_key("filters"))
 		{
 			auto filters = physics_pset.get<fhicl::ParameterSet>("filters");
-			for (auto key : filters.get_pset_names())
+			for (const auto& key : filters.get_pset_names())
 			{
 				if (generated_physics_filters.has_key(key) && filters.get<fhicl::ParameterSet>(key) == generated_physics_filters.get<fhicl::ParameterSet>(key))
 				{
 					// Module is already configured
 					continue;
 				}
-				else if (generated_physics_filters.has_key(key))
+				if (generated_physics_filters.has_key(key))
 				{
 					// Module already exists with name, rename
 					auto newkey = label + key;
 					generated_physics_filters.put<fhicl::ParameterSet>(newkey, filters.get<fhicl::ParameterSet>(key));
-					for (size_t ii = 0; ii < path.size(); ++ii)
+					for (auto& ii : path)
 					{
-						if (path[ii] == key)
+						if (ii == key)
 						{
-							path[ii] = newkey;
+							ii = newkey;
 						}
 					}
 				}
@@ -406,6 +376,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 {
 	TLOG(TLVL_DEBUG) << "generate_filter_fhicl_ BEGIN";
+	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	fhicl::ParameterSet generated_pset = pset_;
 
 	for (auto& monitor : registered_monitors_)
@@ -421,25 +392,96 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 
 void artdaq::DispatcherCore::check_filters_()
 {
+	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	auto it = registered_monitors_.begin();
 	while (it != registered_monitors_.end())
 	{
-		if (!event_store_ptr_)
+		if (registered_monitor_pids_.count(it->first) != 0u)
 		{
-			registered_monitor_pids_.erase(it->first);
-			it = registered_monitors_.erase(it);
-		}
-		else
-		{
-			auto pid = registered_monitor_pids_[it->first];
-			auto sts = kill(pid, 0);
-			if (sts < 0)
+			if (!event_store_ptr_)
 			{
 				registered_monitor_pids_.erase(it->first);
-				it = registered_monitors_.erase(it);
-				continue;
+			}
+			else
+			{
+				auto pid = registered_monitor_pids_[it->first];
+				auto sts = kill(pid, 0);
+				if (sts < 0)
+				{
+					registered_monitor_pids_.erase(it->first);
+				}
 			}
 		}
 		++it;
+	}
+}
+
+void artdaq::DispatcherCore::start_art_process_(std::string const& label)
+{
+	if (event_store_ptr_ != nullptr)
+	{
+		if (broadcast_mode_)
+		{
+			fhicl::ParameterSet pset;
+			{
+				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+				pset = registered_monitors_[label];
+			}
+			fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
+			TLOG(TLVL_DEBUG) << "Starting art process with received fhicl";
+			auto pid = event_store_ptr_->StartArtProcess(ps);
+			{
+				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+				registered_monitor_pids_[label] = pid;
+			}
+		}
+		else
+		{
+			TLOG(TLVL_DEBUG) << "Calling ReconfigureArt";
+			fhicl::ParameterSet generated_fhicl;
+			{
+				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+				generated_fhicl = generate_filter_fhicl_();
+			}
+			event_store_ptr_->ReconfigureArt(generated_fhicl);
+			TLOG(TLVL_DEBUG) << "Done with ReconfigureArt";
+		}
+	}
+	else
+	{
+		TLOG(TLVL_ERROR) << "Unable to add monitor as there is no SharedMemoryEventManager instance!";
+	}
+}
+
+void artdaq::DispatcherCore::stop_art_process_(std::string const& label)
+{
+	if (event_store_ptr_ != nullptr)
+	{
+		if (broadcast_mode_)
+		{
+			if (registered_monitor_pids_.count(label) != 0u)
+			{
+				std::set<pid_t> pids;
+				{
+					std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+					pids.insert(registered_monitor_pids_[label]);
+					registered_monitor_pids_.erase(label);
+				}
+				TLOG(TLVL_DEBUG) << "Calling ShutdownArtProcesses";
+				event_store_ptr_->ShutdownArtProcesses(pids);
+				TLOG(TLVL_DEBUG) << "Done with ShutdownArtProcesses";
+			}
+		}
+		else
+		{
+			TLOG(TLVL_DEBUG) << "Calling ReconfigureArt";
+			fhicl::ParameterSet generated_fhicl;
+			{
+				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
+				generated_fhicl = generate_filter_fhicl_();
+			}
+			event_store_ptr_->ReconfigureArt(generated_fhicl);
+			TLOG(TLVL_DEBUG) << "Done with ReconfigureArt";
+		}
 	}
 }

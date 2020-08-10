@@ -41,6 +41,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 }
 
 int main(int argc, char* argv[])
+try
 {
 	if (argc != 4)
 	{
@@ -48,9 +49,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	std::string fhicl_filename = boost::lexical_cast<std::string>(argv[1]);
-	size_t num_sends = boost::lexical_cast<size_t>(argv[2]);
-	size_t fragment_size = boost::lexical_cast<size_t>(argv[3]);
+	auto fhicl_filename = boost::lexical_cast<std::string>(argv[1]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	auto num_sends = boost::lexical_cast<size_t>(argv[2]);            // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	auto fragment_size = boost::lexical_cast<size_t>(argv[3]);        // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	if (num_sends <= 1)
 	{
@@ -96,11 +97,11 @@ int main(int argc, char* argv[])
 	// Fill the fragment with monotonically increasing 64-bit integers
 	// to be checked on the other end
 
-	std::iota(reinterpret_cast<uint64_t*>(frag->dataBeginBytes()),
-	          reinterpret_cast<uint64_t*>(frag->dataEndBytes()),
+	std::iota(reinterpret_cast<uint64_t*>(frag->dataBeginBytes()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	          reinterpret_cast<uint64_t*>(frag->dataEndBytes()),    // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	          0);
 
-	size_t timeout = pset.get<size_t>("send_timeout_usecs", std::numeric_limits<size_t>::max());
+	auto timeout = pset.get<size_t>("send_timeout_usecs", std::numeric_limits<size_t>::max());
 
 	for (size_t i_i = 0; i_i < num_sends; ++i_i)
 	{
@@ -114,4 +115,8 @@ int main(int argc, char* argv[])
 	std::cout << "# of sent fragments attempted == " << num_sends << std::endl;
 
 	return 0;
+}
+catch (...)
+{
+	return -1;
 }
