@@ -26,7 +26,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
-#include <signal.h>
+#include <csignal>
 #include <iostream>
 #include <memory>
 #include <utility>
@@ -34,10 +34,8 @@
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
-namespace bpo = boost::program_options;
-
 volatile int events_to_generate;
-void sig_handler(int) { events_to_generate = -1; }
+void sig_handler(int /*unused*/) { events_to_generate = -1; }
 
 template<typename B, typename D>
 std::unique_ptr<D>
@@ -60,12 +58,12 @@ int main(int argc, char* argv[]) try
 
 	int run = pset.get<int>("run_number", 1);
 	bool debug = pset.get<bool>("debug_cout", false);
-	uint64_t timeout = pset.get<uint64_t>("transition_timeout", 30);
+	auto timeout = pset.get<uint64_t>("transition_timeout", 30);
 	uint64_t timestamp = 0;
 
 	artdaq::configureMessageFacility("artdaqDriver", true, debug);
 
-	fhicl::ParameterSet fragment_receiver_pset = pset.get<fhicl::ParameterSet>("fragment_receiver");
+	auto fragment_receiver_pset = pset.get<fhicl::ParameterSet>("fragment_receiver");
 
 	std::unique_ptr<artdaq::FragmentGenerator>
 	    gen(artdaq::makeFragmentGenerator(fragment_receiver_pset.get<std::string>("generator"),
@@ -101,8 +99,8 @@ int main(int argc, char* argv[]) try
 	// Note: we are constrained to doing all this here rather than
 	// encapsulated neatly in a function due to the lifetime issues
 	// associated with async threads and std::string::c_str().
-	fhicl::ParameterSet event_builder_pset = pset.get<fhicl::ParameterSet>("event_builder");
-	fhicl::ParameterSet art_pset = pset.get<fhicl::ParameterSet>("art", pset);
+	auto event_builder_pset = pset.get<fhicl::ParameterSet>("event_builder");
+	auto art_pset = pset.get<fhicl::ParameterSet>("art", pset);
 
 	artdaq::SharedMemoryEventManager event_manager(event_builder_pset, art_pset);
 	//////////////////////////////////////////////////////////////////////
@@ -238,7 +236,7 @@ catch (std::string& x)
 catch (char const* m)
 {
 	std::cerr << "Exception (type char const*) caught in artdaqDriver: ";
-	if (m)
+	if (m != nullptr)
 	{
 		std::cerr << m;
 	}
@@ -252,17 +250,17 @@ catch (...)
 {
 	artdaq::ExceptionHandler(artdaq::ExceptionHandlerRethrow::no,
 	                         "Exception caught in artdaqDriver");
+	exit(-2);
 }
 
 template<typename B, typename D>
 std::unique_ptr<D>
 dynamic_unique_ptr_cast(std::unique_ptr<B>& p)
 {
-	D* result = dynamic_cast<D*>(p.get());
+	D* result = dynamic_cast<D*>(p.release());
 
 	if (result)
 	{
-		p.release();
 		return std::unique_ptr<D>(result);
 	}
 	return nullptr;

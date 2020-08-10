@@ -6,9 +6,8 @@
 #include <iostream>
 #include "artdaq/Application/LoadParameterSet.hh"
 
-namespace bpo = boost::program_options;
-
 int main(int argc, char* argv[])
+try
 {
 	struct Config
 	{};
@@ -21,4 +20,10 @@ int main(int argc, char* argv[])
 		          << " ( hex 0x" << std::hex << pset.get<uint64_t>(p) << " )."
 		          << std::endl;
 	}
+
+	return 0;
+}
+catch (...)
+{
+	return -1;
 }
