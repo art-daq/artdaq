@@ -6,46 +6,45 @@
 #include <sys/time.h>
 #include <sys/un.h>
 #include <algorithm>
+#include <memory>
 
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 
 #include "artdaq/DAQdata/Globals.hh"                          // include these 2 first to get tracemf.h -
-#define TRACE_NAME (app_name + "_RoutingMasterCore").c_str()  // before trace.h
+#define TRACE_NAME (app_name + "_RoutingManagerCore").c_str()  // before trace.h
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "artdaq/Application/RoutingMasterCore.hh"
+#include "artdaq/Application/RoutingManagerCore.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
-#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 
-const std::string artdaq::RoutingMasterCore::
-    TABLE_UPDATES_STAT_KEY("RoutingMasterCoreTableUpdates");
-const std::string artdaq::RoutingMasterCore::
-    TOKENS_RECEIVED_STAT_KEY("RoutingMasterCoreTokensReceived");
+const std::string artdaq::RoutingManagerCore::
+    TABLE_UPDATES_STAT_KEY("RoutingManagerCoreTableUpdates");
+const std::string artdaq::RoutingManagerCore::
+    TOKENS_RECEIVED_STAT_KEY("RoutingManagerCoreTokensReceived");
 
-artdaq::RoutingMasterCore::RoutingMasterCore()
+artdaq::RoutingManagerCore::RoutingManagerCore()
     : shutdown_requested_(false)
     , stop_requested_(true)
     , pause_requested_(false)
     , statsHelperPtr_(new artdaq::StatisticsHelper())
-    , table_socket_(-1)
-    , ack_socket_(-1)
 {
 	TLOG(TLVL_DEBUG) << "Constructor";
 	statsHelperPtr_->addMonitoredQuantityName(TABLE_UPDATES_STAT_KEY);
 	statsHelperPtr_->addMonitoredQuantityName(TOKENS_RECEIVED_STAT_KEY);
 }
 
-artdaq::RoutingMasterCore::~RoutingMasterCore()
+artdaq::RoutingManagerCore::~RoutingManagerCore()
 {
 	TLOG(TLVL_DEBUG) << "Destructor";
 	artdaq::StatisticsCollection::getInstance().requestStop();
 	token_receiver_->stopTokenReception(true);
 }
 
-bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t)
+bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_DEBUG) << "initialize method called with "
 	                 << "ParameterSet = \"" << pset.to_string()
@@ -69,13 +68,13 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	{
 		if (my_rank >= 0 && daq_pset.get<int>("rank") != my_rank)
 		{
-			TLOG(TLVL_WARNING) << "Routing Master rank specified at startup is different than rank specified at configure! Using rank received at configure!";
+			TLOG(TLVL_WARNING) << "Routing Manager rank specified at startup is different than rank specified at configure! Using rank received at configure!";
 		}
 		my_rank = daq_pset.get<int>("rank");
 	}
 	if (my_rank == -1)
 	{
-		TLOG(TLVL_ERROR) << "Routing Master rank not specified at startup or in configuration! Aborting";
+		TLOG(TLVL_ERROR) << "Routing Manager rank not specified at startup or in configuration! Aborting";
 		exit(1);
 	}
 
@@ -121,7 +120,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no,
-		                 "Error loading metrics in RoutingMasterCore::initialize()");
+		                 "Error loading metrics in RoutingManagerCore::initialize()");
 	}
 
 	// create the requested RoutingPolicy
@@ -136,7 +135,7 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	}
 	try
 	{
-		policy_ = artdaq::makeRoutingMasterPolicy(policy_plugin_spec, policy_pset_);
+		policy_ = artdaq::makeRoutingManagerPolicy(policy_plugin_spec, policy_pset_);
 	}
 	catch (...)
 	{
@@ -157,20 +156,20 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
 
 	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
-	routing_mode_ = mode ? detail::RoutingMasterMode::RouteBySendCount : detail::RoutingMasterMode::RouteBySequenceID;
+	routing_mode_ = mode ? detail::RoutingManagerMode::RouteBySendCount : detail::RoutingManagerMode::RouteBySequenceID;
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
 	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
 	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
 	receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port", 35557);
 	send_tables_address_ = daq_pset.get<std::string>("table_update_address", "227.128.12.28");
-	multicast_out_hostname_ = daq_pset.get<std::string>("routing_master_hostname", "localhost");
+	multicast_out_hostname_ = daq_pset.get<std::string>("routing_manager_hostname", "localhost");
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelperPtr_->createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
 
 	// create the requested TokenReceiver
-	token_receiver_.reset(new TokenReceiver(token_receiver_pset_, policy_, routing_mode_, sender_ranks_.size(), max_table_update_interval_ms_));
+	token_receiver_ = std::make_unique<TokenReceiver>(token_receiver_pset_, policy_, routing_mode_, sender_ranks_.size(), max_table_update_interval_ms_);
 	token_receiver_->setStatsHelper(statsHelperPtr_, TOKENS_RECEIVED_STAT_KEY);
 	token_receiver_->startTokenReception();
 	token_receiver_->pauseTokenReception();
@@ -179,9 +178,16 @@ bool artdaq::RoutingMasterCore::initialize(fhicl::ParameterSet const& pset, uint
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
+bool artdaq::RoutingManagerCore::start(art::RunID id, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	run_id_ = id;
+	for (auto& rank : sender_ranks_)
+	{
+		if (active_ranks_.count(rank) == 0u)
+		{
+			active_ranks_.insert(rank);
+		}
+	}
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
@@ -196,7 +202,7 @@ bool artdaq::RoutingMasterCore::start(art::RunID id, uint64_t, uint64_t)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
+bool artdaq::RoutingManagerCore::stop(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_INFO) << "Stopping run " << run_id_.run()
 	                << " after " << table_update_count_ << " table updates."
@@ -207,7 +213,7 @@ bool artdaq::RoutingMasterCore::stop(uint64_t, uint64_t)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
+bool artdaq::RoutingManagerCore::pause(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_INFO) << "Pausing run " << run_id_.run()
 	                << " after " << table_update_count_ << " table updates."
@@ -216,7 +222,7 @@ bool artdaq::RoutingMasterCore::pause(uint64_t, uint64_t)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
+bool artdaq::RoutingManagerCore::resume(uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_DEBUG) << "Resuming run " << run_id_.run();
 	pause_requested_.store(false);
@@ -224,7 +230,7 @@ bool artdaq::RoutingMasterCore::resume(uint64_t, uint64_t)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::shutdown(uint64_t)
+bool artdaq::RoutingManagerCore::shutdown(uint64_t /*unused*/)
 {
 	shutdown_requested_.store(true);
 	token_receiver_->stopTokenReception();
@@ -233,7 +239,7 @@ bool artdaq::RoutingMasterCore::shutdown(uint64_t)
 	return true;
 }
 
-bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
+bool artdaq::RoutingManagerCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
 	TLOG(TLVL_INFO) << "soft_initialize method called with "
 	                << "ParameterSet = \"" << pset.to_string()
@@ -241,7 +247,7 @@ bool artdaq::RoutingMasterCore::soft_initialize(fhicl::ParameterSet const& pset,
 	return initialize(pset, e, f);
 }
 
-bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
+bool artdaq::RoutingManagerCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
 {
 	TLOG(TLVL_INFO) << "reinitialize method called with "
 	                << "ParameterSet = \"" << pset.to_string()
@@ -249,7 +255,7 @@ bool artdaq::RoutingMasterCore::reinitialize(fhicl::ParameterSet const& pset, ui
 	return initialize(pset, e, f);
 }
 
-void artdaq::RoutingMasterCore::process_event_table()
+void artdaq::RoutingManagerCore::process_event_table()
 {
 	if (rt_priority_ > 0)
 	{
@@ -257,8 +263,10 @@ void artdaq::RoutingMasterCore::process_event_table()
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 		sched_param s_param = {};
 		s_param.sched_priority = rt_priority_;
-		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param))
+		if (pthread_setschedparam(pthread_self(), SCHED_RR, &s_param) != 0)
+		{
 			TLOG(TLVL_WARNING) << "setting realtime priority failed";
+		}
 #pragma GCC diagnostic pop
 	}
 
@@ -294,7 +302,7 @@ void artdaq::RoutingMasterCore::process_event_table()
 		if (startTime >= nextSendTime)
 		{
 			auto table = policy_->GetCurrentTable();
-			if (table.size() > 0)
+			if (!table.empty())
 			{
 				send_event_table(table);
 				++table_update_count_;
@@ -318,10 +326,22 @@ void artdaq::RoutingMasterCore::process_event_table()
 			if (max_tokens > 0)
 			{
 				auto frac = table.size() / static_cast<double>(max_tokens);
-				if (frac > 0.75) current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
-				if (frac < 0.5) current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
-				if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
-				if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
+				if (frac > 0.75)
+				{
+					current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
+				}
+				if (frac < 0.5)
+				{
+					current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
+				}
+				if (current_table_interval_ms_ > max_table_update_interval_ms_)
+				{
+					current_table_interval_ms_ = max_table_update_interval_ms_;
+				}
+				if (current_table_interval_ms_ < 1)
+				{
+					current_table_interval_ms_ = 1;
+				}
 			}
 			nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
 			TLOG(TLVL_TRACE) << "current_table_interval_ms is now " << current_table_interval_ms_;
@@ -332,12 +352,35 @@ void artdaq::RoutingMasterCore::process_event_table()
 		}
 	}
 
+	if (stop_requested_ && ack_socket_ != -1) {
+		TLOG(TLVL_INFO) << "Shutting down Routing Manager: Draining ack socket BEGIN";
+		auto ready = true;
+		while (ready)
+		{
+			detail::RoutingAckPacket buffer;
+			if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, nullptr, nullptr) < 0)
+			{
+				if (errno == EWOULDBLOCK || errno == EAGAIN)
+				{
+					TLOG(20) << "No more ack datagrams on ack socket.";
+					ready = false;
+				}
+				else
+				{
+					TLOG(TLVL_ERROR) << "An unexpected error occurred during ack packet receive";
+					exit(2);
+				}
+			}
+		}
+		TLOG(TLVL_INFO) << "Shutting down Routing Manager: Draining ack socket END";
+	}
+
 	TLOG(TLVL_DEBUG) << "stop_requested_ is " << stop_requested_ << ", pause_requested_ is " << pause_requested_ << ", exiting process_event_table loop";
 	policy_->Reset();
 	metricMan->do_stop();
 }
 
-void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
+void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 {
 	// Reconnect table socket, if necessary
 	if (table_socket_ == -1)
@@ -363,17 +406,17 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			sts = GetInterfaceForNetwork(multicast_out_hostname_.c_str(), addr);
 			if (sts == -1)
 			{
-				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to determine the multicast interface address from the routing_master_address parameter value of " << multicast_out_hostname_ << std::endl;
+				throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to determine the multicast interface address from the routing_manager_address parameter value of " << multicast_out_hostname_ << std::endl;  // NOLINT(cert-err60-cpp)
 				exit(1);
 			}
 			char addr_str[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, &(addr), addr_str, INET_ADDRSTRLEN);
-			TLOG(TLVL_INFO) << "Successfully determined the multicast interface address for " << multicast_out_hostname_ << ": " << addr_str << " (RoutingMaster sending table updates to BoardReaders)";
+			TLOG(TLVL_INFO) << "Successfully determined the multicast interface address for " << multicast_out_hostname_ << ": " << addr_str << " (RoutingManager sending table updates to BoardReaders)";
 
 			if (setsockopt(table_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 			{
-				TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on table update socket";
-				throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to enable port reuse on table update socket" << std::endl;
+				TLOG(TLVL_ERROR) << "RoutingManagerCore: Unable to enable port reuse on table update socket";
+				throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to enable port reuse on table update socket" << std::endl;  // NOLINT(cert-err60-cpp)
 				exit(1);
 			}
 
@@ -388,7 +431,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				exit(1);
 			}
 		}
-		if (setsockopt(table_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
+		if (setsockopt(table_socket_, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes)) == -1)
 		{
 			TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast. Errno: " << errno;
 			exit(1);
@@ -401,7 +444,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (ack_socket_ < 0)
 		{
-			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Error creating socket for receiving table update acks!" << std::endl;
+			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Error creating socket for receiving table update acks!" << std::endl; // NOLINT(cert-err60-cpp)
 			exit(1);
 		}
 
@@ -410,8 +453,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto yes = 1;
 		if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
 		{
-			TLOG(TLVL_ERROR) << "RoutingMasterCore: Unable to enable port reuse on ack socket. errno=" << errno;
-			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Unable to enable port reuse on ack socket" << std::endl;
+			TLOG(TLVL_ERROR) << "RoutingManagerCore: Unable to enable port reuse on ack socket. errno=" << errno;
+			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to enable port reuse on ack socket" << std::endl;  // NOLINT(cert-err60-cpp)
 			exit(1);
 		}
 
@@ -426,17 +469,17 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		si_me_request.sin_family = AF_INET;
 		si_me_request.sin_port = htons(receive_acks_port_);
 		si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-		if (bind(ack_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)
+		if (bind(ack_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1) // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		{
-			TLOG(TLVL_ERROR) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << ", errno=" << errno;
-			throw art::Exception(art::errors::Configuration) << "RoutingMasterCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;
+			TLOG(TLVL_ERROR) << "RoutingManagerCore: Cannot bind request socket to port " << receive_acks_port_ << ", errno=" << errno;
+			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;  // NOLINT(cert-err60-cpp)
 			exit(1);
 		}
 		TLOG(TLVL_DEBUG) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_;
 	}
 
 	auto acks = std::unordered_map<int, bool>();
-	for (auto& r : sender_ranks_)
+	for (auto& r : active_ranks_)
 	{
 		acks[r] = false;
 	}
@@ -449,13 +492,13 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
 		// 10-Apr-2019, KAB: added information on which senders have already acknowledged this update
-		for (auto ackIter = acks.begin(); ackIter != acks.end(); ++ackIter)
+		for (auto& ack : acks)
 		{
-			TLOG(27) << "Table update already acknowledged? rank " << ackIter->first << " is " << ackIter->second
+			TLOG(27) << "Table update already acknowledged? rank " << ack.first << " is " << ack.second
 			         << " (size of 'already_acknowledged_ranks bitset is " << (8 * sizeof(header.already_acknowledged_ranks)) << ")";
-			if (ackIter->first < static_cast<int>(8 * sizeof(header.already_acknowledged_ranks)))
+			if (ack.first < static_cast<int>(8 * sizeof(header.already_acknowledged_ranks)))
 			{
-				if (ackIter->second) { header.already_acknowledged_ranks.set(ackIter->first); }
+				if (ack.second) { header.already_acknowledged_ranks.set(ack.first); }
 			}
 		}
 
@@ -465,8 +508,8 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 		memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
 
 		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << ", outgoing interface " << multicast_out_hostname_;
-		TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);
-		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&send_tables_addr_), sizeof(send_tables_addr_));
+		TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);  // NOLINT
+		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&send_tables_addr_), sizeof(send_tables_addr_));                                               // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		if (sts != static_cast<ssize_t>(buffer.size()))
 		{
 			TLOG(TLVL_ERROR) << "Error sending routing table. sts=" << sts;
@@ -514,7 +557,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			while (ready)
 			{
 				detail::RoutingAckPacket buffer;
-				if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, NULL, NULL) < 0)
+				if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, nullptr, nullptr) < 0)
 				{
 					if (errno == EWOULDBLOCK || errno == EAGAIN)
 					{
@@ -531,19 +574,25 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 				{
 					TLOG(TLVL_DEBUG) << "Ack packet from rank " << buffer.rank << " has first= " << buffer.first_sequence_id
 					                 << " and last= " << buffer.last_sequence_id << ", packet_size=" << sizeof(detail::RoutingAckPacket);
-					if (acks.count(buffer.rank) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
+					if ((acks.count(buffer.rank) != 0u) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 					{
 						TLOG(TLVL_DEBUG) << "Received table update acknowledgement from sender with rank " << buffer.rank << ".";
 						acks[buffer.rank] = true;
 						TLOG(TLVL_DEBUG) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; })
 						                 << " acks outstanding";
 					}
+					else if ((acks.count(buffer.rank) != 0u) && detail::RoutingAckPacket::isEndOfDataRoutingAckPacket(buffer))
+					{
+						TLOG(TLVL_INFO) << "Received table update acknowledgement indicating end-of-data from rank " << buffer.rank << ".";
+						acks[buffer.rank] = true;
+						active_ranks_.erase(buffer.rank);
+					}
 					else
 					{
-						if (!acks.count(buffer.rank))
+						if (acks.count(buffer.rank) == 0u)
 						{
 							TLOG(TLVL_ERROR) << "Received acknowledgement from invalid rank " << buffer.rank << "!"
-							                 << " Cross-talk between RoutingMasters means there's a configuration error!";
+							                 << " Cross-talk between RoutingManagers means there's a configuration error!";
 						}
 						else
 						{
@@ -558,6 +607,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 			usleep(table_ack_wait_time_ms * 1000 / 10);
 		}
 	}
+	
 	if (metricMan)
 	{
 		artdaq::TimeUtils::seconds delta = std::chrono::steady_clock::now() - start_time;
@@ -565,7 +615,7 @@ void artdaq::RoutingMasterCore::send_event_table(detail::RoutingPacket packet)
 	}
 }
 
-std::string artdaq::RoutingMasterCore::report(std::string const&) const
+std::string artdaq::RoutingManagerCore::report(std::string const& /*unused*/) const
 {
 	std::string resultString;
 
@@ -574,13 +624,13 @@ std::string artdaq::RoutingMasterCore::report(std::string const&) const
 	return tmpString;
 }
 
-std::string artdaq::RoutingMasterCore::buildStatisticsString_() const
+std::string artdaq::RoutingManagerCore::buildStatisticsString_() const
 {
 	std::ostringstream oss;
 	oss << app_name << " statistics:" << std::endl;
 
 	auto mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TABLE_UPDATES_STAT_KEY);
-	if (mqPtr.get() != nullptr)
+	if (mqPtr != nullptr)
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
@@ -599,7 +649,7 @@ std::string artdaq::RoutingMasterCore::buildStatisticsString_() const
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TOKENS_RECEIVED_STAT_KEY);
-	if (mqPtr.get() != nullptr)
+	if (mqPtr != nullptr)
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
@@ -620,26 +670,26 @@ std::string artdaq::RoutingMasterCore::buildStatisticsString_() const
 	return oss.str();
 }
 
-void artdaq::RoutingMasterCore::sendMetrics_()
+void artdaq::RoutingManagerCore::sendMetrics_()
 {
 	if (metricMan)
 	{
 		auto mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TABLE_UPDATES_STAT_KEY);
-		if (mqPtr.get() != nullptr)
+		if (mqPtr != nullptr)
 		{
 			artdaq::MonitoredQuantityStats stats;
 			mqPtr->getStats(stats);
-			metricMan->sendMetric("Table Update Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::LastPoint);
+			metricMan->sendMetric("Table Update Count", stats.fullSampleCount, "updates", 1, MetricMode::LastPoint);
 			metricMan->sendMetric("Table Update Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
 			metricMan->sendMetric("Average Sender Acknowledgement Time", (mqPtr->getRecentValueSum() / sender_ranks_.size()), "seconds", 3, MetricMode::Average);
 		}
 
 		mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TOKENS_RECEIVED_STAT_KEY);
-		if (mqPtr.get() != nullptr)
+		if (mqPtr != nullptr)
 		{
 			artdaq::MonitoredQuantityStats stats;
 			mqPtr->getStats(stats);
-			metricMan->sendMetric("Receiver Token Count", static_cast<unsigned long>(stats.fullSampleCount), "updates", 1, MetricMode::LastPoint);
+			metricMan->sendMetric("Receiver Token Count", stats.fullSampleCount, "updates", 1, MetricMode::LastPoint);
 			metricMan->sendMetric("Receiver Token Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
 			metricMan->sendMetric("Total Receiver Token Wait Time", mqPtr->getRecentValueSum(), "seconds", 3, MetricMode::Average);
 		}
