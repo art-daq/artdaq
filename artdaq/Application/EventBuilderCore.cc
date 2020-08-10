@@ -11,16 +11,6 @@
 
 #include <iomanip>
 
-artdaq::EventBuilderCore::EventBuilderCore()
-    : DataReceiverCore()
-{
-}
-
-artdaq::EventBuilderCore::~EventBuilderCore()
-{
-	TLOG(TLVL_DEBUG) << "Destructor";
-}
-
 bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG) << "initialize method called with DAQ "
