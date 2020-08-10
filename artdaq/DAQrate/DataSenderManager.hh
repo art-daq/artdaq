@@ -34,12 +34,12 @@ public:
 	/// <summary>
 	/// Configuration for Routing table reception
 	///
-	/// This configuration should be the same for all processes receiving routing tables from a given RoutingMaster.
+	/// This configuration should be the same for all processes receiving routing tables from a given RoutingManager.
 	/// </summary>
 	struct RoutingTableConfig
 	{
-		///   "use_routing_master" (Default: false): True if using the Routing Master
-		fhicl::Atom<bool> use_routing_master{fhicl::Name{"use_routing_master"}, fhicl::Comment{"True if using the Routing Master"}, false};
+		///   "use_routing_manager" (Default: false): True if using the Routing Manager
+		fhicl::Atom<bool> use_routing_manager{fhicl::Name{"use_routing_manager"}, fhicl::Comment{"True if using the Routing Manager"}, false};
 		///   "table_update_port" (Default: 35556): Port that table updates should arrive on
 		fhicl::Atom<int> table_port{fhicl::Name{"table_update_port"}, fhicl::Comment{"Port that table updates should arrive on"}, 35556};
 		///   "table_update_address" (Default: "227.128.12.28"): Address that table updates should arrive on
@@ -48,8 +48,8 @@ public:
 		fhicl::Atom<std::string> table_multicast_interface{fhicl::Name{"table_update_multicast_interface"}, fhicl::Comment{"Network interface that table updates should arrive on"}, "localhost"};
 		///   "table_acknowledge_port" (Default: 35557): Port that acknowledgements should be sent to
 		fhicl::Atom<int> ack_port{fhicl::Name{"table_acknowledge_port"}, fhicl::Comment{"Port that acknowledgements should be sent to"}, 35557};
-		///   "routing_master_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
-		fhicl::Atom<std::string> ack_address{fhicl::Name{"routing_master_hostname"}, fhicl::Comment{"Host that acknowledgements should be sent to"}, "localhost"};
+		///   "routing_manager_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
+		fhicl::Atom<std::string> ack_address{fhicl::Name{"routing_manager_hostname"}, fhicl::Comment{"Host that acknowledgements should be sent to"}, "localhost"};
 		///   "routing_timeout_ms" (Default: 1000): Time to wait for a routing table update if the table is exhausted
 		fhicl::Atom<int> routing_timeout_ms{fhicl::Name{"routing_timeout_ms"}, fhicl::Comment{"Time to wait (in ms) for a routing table update if the table is exhausted"}, 1000};
 		///   "routing_retry_count" (Default: 5): Number of times to retry calculating destination before giving up (DROPPING DATA!)
@@ -166,6 +166,11 @@ public:
 	size_t GetSentSequenceIDCount(Fragment::sequence_id_t seq);
 
 private:
+	DataSenderManager(DataSenderManager const&) = delete;
+	DataSenderManager(DataSenderManager&&) = delete;
+	DataSenderManager& operator=(DataSenderManager const&) = delete;
+	DataSenderManager& operator=(DataSenderManager&&) = delete;
+
 	// Calculate where the fragment with this sequenceID should go.
 	int calcDest_(Fragment::sequence_id_t) const;
 
@@ -186,8 +191,8 @@ private:
 	size_t send_timeout_us_;
 	size_t send_retry_count_;
 
-	bool use_routing_master_;
-	detail::RoutingMasterMode routing_master_mode_;
+	bool use_routing_manager_;
+	detail::RoutingManagerMode routing_manager_mode_;
 	std::atomic<bool> should_stop_;
 	int table_port_;
 	std::string table_address_;

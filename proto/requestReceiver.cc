@@ -2,13 +2,14 @@
 
 #include <boost/program_options.hpp>
 #include "fhiclcpp/make_ParameterSet.h"
-namespace bpo = boost::program_options;
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQrate/RequestReceiver.hh"
+#include "artdaq/DAQrate/RequestBuffer.hh"
 
 int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("requestReceiver");
 
@@ -26,12 +27,14 @@ int main(int argc, char* argv[])
 		tempPset = pset;
 	}
 
-	artdaq::RequestReceiver recvr(tempPset);
+	auto buffer = std::make_shared<artdaq::RequestBuffer>(tempPset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1));
+	artdaq::RequestReceiver recvr(tempPset, buffer);
 	recvr.startRequestReception();
+
 
 	while (true)
 	{
-		for (auto req : recvr.GetAndClearRequests())
+		for (auto req : buffer->GetAndClearRequests())
 		{
 			TLOG(TLVL_INFO) << "Received Request for Sequence ID " << req.first << ", timestamp " << req.second;
 		}
@@ -39,4 +42,8 @@ int main(int argc, char* argv[])
 	}
 
 	return rc;
+}
+catch (...)
+{
+	return -1;
 }

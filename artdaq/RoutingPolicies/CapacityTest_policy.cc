@@ -1,13 +1,13 @@
 #include <cmath>
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
-#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
 /**
-	 * \brief A RoutingMasterPolicy which tries to fully load the first receiver, then the second, and so on
+	 * \brief A RoutingManagerPolicy which tries to fully load the first receiver, then the second, and so on
 	 */
-class CapacityTestPolicy : public RoutingMasterPolicy
+class CapacityTestPolicy : public RoutingManagerPolicy
 {
 public:
 	/**
@@ -19,12 +19,12 @@ public:
 		 * "tokens_used_per_table_percent" (Default: 50): Percentage of available tokens to be used on each iteration.
 		 * \endverbatim
 		 */
-	explicit CapacityTestPolicy(fhicl::ParameterSet ps);
+	explicit CapacityTestPolicy(const fhicl::ParameterSet& ps);
 
 	/**
 		 * \brief Default virtual Destructor
 		 */
-	virtual ~CapacityTestPolicy() = default;
+	~CapacityTestPolicy() override = default;
 
 	/**
 		 * \brief Apply the policy to the current tokens
@@ -39,11 +39,16 @@ public:
 	detail::RoutingPacket GetCurrentTable() override;
 
 private:
+	CapacityTestPolicy(CapacityTestPolicy const&) = delete;
+	CapacityTestPolicy(CapacityTestPolicy&&) = delete;
+	CapacityTestPolicy& operator=(CapacityTestPolicy const&) = delete;
+	CapacityTestPolicy& operator=(CapacityTestPolicy&&) = delete;
+
 	int tokenUsagePercent_;
 };
 
-CapacityTestPolicy::CapacityTestPolicy(fhicl::ParameterSet ps)
-    : RoutingMasterPolicy(ps)
+CapacityTestPolicy::CapacityTestPolicy(const fhicl::ParameterSet& ps)
+    : RoutingManagerPolicy(ps)
     , tokenUsagePercent_(ps.get<int>("tokens_used_per_table_percent", 50))
 {}
 
@@ -77,7 +82,10 @@ detail::RoutingPacket CapacityTestPolicy::GetCurrentTable()
 				break;
 			}
 		}
-		if (breakCondition) break;
+		if (breakCondition)
+		{
+			break;
+		}
 	}
 
 	for (auto r : table)

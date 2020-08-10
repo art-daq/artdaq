@@ -119,7 +119,7 @@ public:
 		 * \param receiveTimeout Timeout for receive
 		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 		 */
-	virtual int receiveFragment(artdaq::Fragment& fragment, size_t receiveTimeout);
+	virtual int receiveFragment(artdaq::Fragment& fragment, size_t receive_timeout);
 
 	/**
 		 * \brief Receive a Fragment Header from the transport mechanism
@@ -184,10 +184,13 @@ public:
 	virtual void flush_buffers() = 0;
 
 /** \cond */
-#define GetTraceName() unique_label_ << (role_ == Role::kSend ? "_SEND" : "_RECV")
+#define GetTraceName() unique_label_ << (role_ == Role::kSend ? std::string("_SEND: ") : std::string("_RECV: "))
 	/** \endcond */
 
 protected:
+	TransferInterface(TransferInterface&&) = delete;
+	TransferInterface& operator=(TransferInterface&&) = delete;
+
 	const Role role_;  ///< Whether this instance of TransferInterface is a sender or receiver
 
 	const int source_rank_;           ///< Rank of source
