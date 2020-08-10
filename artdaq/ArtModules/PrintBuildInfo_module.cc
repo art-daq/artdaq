@@ -47,12 +47,12 @@ public:
 	/**
 	 * \brief Default virtual Destructor
 	 */
-	virtual ~PrintBuildInfo() = default;
+	~PrintBuildInfo() override = default;
 
 	/**
 	 * \brief Called for each event. Required overload for art::EDAnalyzer, No-Op here.
 	 */
-	void analyze(art::Event const&) override {}
+	void analyze(art::Event const& /*unused*/) override {}
 
 	/**
 	 * \brief Perform actions at the beginning of the run
@@ -64,6 +64,11 @@ public:
 	void beginRun(art::Run const& run) override;
 
 private:
+	PrintBuildInfo(PrintBuildInfo const&) = delete;
+	PrintBuildInfo(PrintBuildInfo&&) = delete;
+	PrintBuildInfo& operator=(PrintBuildInfo const&) = delete;
+	PrintBuildInfo& operator=(PrintBuildInfo&&) = delete;
+
 	std::string buildinfo_module_label_;
 	std::string buildinfo_instance_label_;
 };
@@ -91,7 +96,7 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 		std::cout.width(20);
 		std::cout << std::left << "Timestamp" << std::endl;
 
-		for (auto pkg : *raw)
+		for (const auto& pkg : *raw)
 		{
 			std::cout.width(20);
 			std::cout << std::left << pkg.getPackageName() << "|";
@@ -113,4 +118,4 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 	}
 }
 
-DEFINE_ART_MODULE(artdaq::PrintBuildInfo)
+DEFINE_ART_MODULE(artdaq::PrintBuildInfo) // NOLINT(performance-unnecessary-value-param)

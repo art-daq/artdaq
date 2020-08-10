@@ -6,13 +6,17 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("broken_transfer_driver", true, true);
 	TLOG(TLVL_INFO) << "BEGIN";
 
 	auto ps = LoadParameterSet<artdaqtest::BrokenTransferTest::Config>(argc, argv, "broken_transfer_test", "Test for misbehaving transfer plugins");
 
-	if (ps.has_key("partition_number")) artdaq::Globals::partition_number_ = ps.get<int>("partition_number");
+	if (ps.has_key("partition_number"))
+	{
+		artdaq::Globals::partition_number_ = ps.get<int>("partition_number");
+	}
 
 	artdaqtest::BrokenTransferTest theTest(ps);
 
@@ -24,4 +28,8 @@ int main(int argc, char* argv[])
 
 	TLOG(TLVL_INFO) << "END";
 	return 0;
+}
+catch (...)
+{
+	return -1;
 }

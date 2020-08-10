@@ -15,8 +15,8 @@ art_make_library( LIBRARY_NAME artdaq_Application
   DataReceiverCore.cc
   DispatcherApp.cc
   DispatcherCore.cc
-  RoutingMasterApp.cc
-  RoutingMasterCore.cc
+  RoutingManagerApp.cc
+  RoutingManagerCore.cc
   LIBRARIES
   artdaq_DAQrate
   artdaq_Generators

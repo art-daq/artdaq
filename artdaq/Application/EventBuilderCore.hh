@@ -19,7 +19,7 @@ public:
 	/**
 	 * \brief EventBuilderCore Constructor.
 	 */
-	EventBuilderCore();
+	EventBuilderCore() = default;
 
 	/**
 	* \brief Copy Constructor is deleted
@@ -29,13 +29,18 @@ public:
 	/**
 	* Destructor.
 	*/
-	~EventBuilderCore();
+	~EventBuilderCore()
+	{
+		TLOG(TLVL_DEBUG) << "Destructor";
+	}
 
 	/**
 	* \brief Copy Assignment operator is deleted
 	* \return AggregatorCore copy
 	*/
 	EventBuilderCore& operator=(EventBuilderCore const&) = delete;
+	EventBuilderCore(EventBuilderCore&&) = delete;
+	EventBuilderCore& operator=(EventBuilderCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.

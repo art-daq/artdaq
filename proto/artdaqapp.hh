@@ -4,11 +4,12 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/BoardReaderApp.hh"
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DispatcherApp.hh"
 #include "artdaq/Application/EventBuilderApp.hh"
-#include "artdaq/Application/RoutingMasterApp.hh"
+#include "artdaq/Application/RoutingManagerApp.hh"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/BuildInfo/GetPackageBuildInfo.hh"
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
@@ -67,7 +68,14 @@ public:
 		}
 
 		std::string mf_app_name = artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id"));
+		try
+		{
 		artdaq::configureMessageFacility(mf_app_name.c_str());
+		}
+		catch (cet::exception const&)
+		{
+			ExceptionHandler(ExceptionHandlerRethrow::yes, "Exception occurred while setting up MessageFacility");
+		}
 
 		if (config_ps.has_key("rank"))
 		{
@@ -91,19 +99,19 @@ public:
 		switch (task)
 		{
 			case (detail::BoardReaderTask):
-				comm.reset(new BoardReaderApp());
+				comm = std::make_unique<BoardReaderApp>();
 				break;
 			case (detail::EventBuilderTask):
-				comm.reset(new EventBuilderApp());
+				comm = std::make_unique<EventBuilderApp>();
 				break;
 			case (detail::DataLoggerTask):
-				comm.reset(new DataLoggerApp());
+				comm = std::make_unique<DataLoggerApp>();
 				break;
 			case (detail::DispatcherTask):
-				comm.reset(new DispatcherApp());
+				comm = std::make_unique<DispatcherApp>();
 				break;
-			case (detail::RoutingMasterTask):
-				comm.reset(new RoutingMasterApp());
+			case (detail::RoutingManagerTask):
+				comm = std::make_unique<RoutingManagerApp>();
 				break;
 			default:
 				return;
@@ -112,8 +120,8 @@ public:
 		auto auto_run = config_ps.get<bool>("auto_run", false);
 		if (auto_run)
 		{
-			int run = config_ps.get<int>("run_number", 101);
-			uint64_t timeout = config_ps.get<uint64_t>("transition_timeout", 30);
+			auto run = config_ps.get<int>("run_number", 101);
+			auto timeout = config_ps.get<uint64_t>("transition_timeout", 30);
 			uint64_t timestamp = 0;
 
 			comm->do_initialize(config_ps, timeout, timestamp);
@@ -124,7 +132,7 @@ public:
 			                             << "xmlrpc http://`hostname`:" << config_ps.get<int>("id") << "/RPC2 daq.shutdown";
 		}
 
-		auto commander = artdaq::MakeCommanderPlugin(config_ps, *comm.get());
+		auto commander = artdaq::MakeCommanderPlugin(config_ps, *comm);
 		commander->run_server();
 		artdaq::Globals::CleanUpGlobals();
 	}
