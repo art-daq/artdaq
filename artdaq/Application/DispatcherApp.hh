@@ -36,6 +36,8 @@ public:
 	 * \return DispatcherApp copy
 	 */
 	DispatcherApp& operator=(DispatcherApp const&) = delete;
+	DispatcherApp(DispatcherApp&&) = delete;
+	DispatcherApp& operator=(DispatcherApp&&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**
