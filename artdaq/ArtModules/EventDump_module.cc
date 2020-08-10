@@ -48,7 +48,7 @@ public:
 	/**
 	 * \brief Default virtual Destructor
 	 */
-	virtual ~EventDump() = default;
+	~EventDump() override = default;
 
 	/**
 	 * \brief This method is called for each art::Event in a file or run
@@ -60,6 +60,11 @@ public:
 	void analyze(art::Event const& e) override;
 
 private:
+	EventDump(EventDump const&) = delete;
+	EventDump(EventDump&&) = delete;
+	EventDump& operator=(EventDump const&) = delete;
+	EventDump& operator=(EventDump&&) = delete;
+
 	std::string raw_data_label_;
 	int verbosity_;
 };
@@ -94,7 +99,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 
 		for (auto const& handle : fragmentHandles)
 		{
-			if (handle->size() > 0)
+			if (!handle->empty())
 			{
 				std::string instance_name = handle.provenance()->productInstanceName();
 				std::cout << instance_name << " fragments: " << std::endl;
@@ -103,7 +108,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 				for (auto const& frag : *handle)
 				{
 					std::cout << "  " << jdx << ") fragment ID " << frag.fragmentID() << " has type "
-					          << (int)frag.type() << ", timestamp " << frag.timestamp()
+					          << static_cast<int>(frag.type()) << ", timestamp " << frag.timestamp()
 					          << ", has metadata " << std::boolalpha << frag.hasMetadata()
 					          << ", and sizeBytes " << frag.sizeBytes()
 					          << " (hdr=" << frag.headerSizeBytes()
@@ -114,7 +119,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 					if (instance_name.compare(0, 9, "Container") == 0)
 					{
 						artdaq::ContainerFragment cf(frag);
-						std::cout << " (contents: type = " << (int)cf.fragment_type() << ", count = "
+						std::cout << " (contents: type = " << static_cast<int>(cf.fragment_type()) << ", count = "
 						          << cf.block_count() << ", missing data = " << cf.missing_data()
 						          << ")" << std::endl;
 						;
@@ -123,7 +128,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 							for (size_t idx = 0; idx < cf.block_count(); ++idx)
 							{
 								auto thisFrag = cf.at(idx);
-								std::cout << "    " << (idx + 1) << ") fragment type " << (int)thisFrag->type()
+								std::cout << "    " << (idx + 1) << ") fragment type " << static_cast<int>(thisFrag->type())
 								          << ", timestamp " << thisFrag->timestamp()
 								          << ", has metadata " << std::boolalpha << thisFrag->hasMetadata()
 								          << ", and sizeBytes " << thisFrag->sizeBytes()
@@ -147,4 +152,4 @@ void artdaq::EventDump::analyze(art::Event const& e)
 	}
 }
 
-DEFINE_ART_MODULE(artdaq::EventDump)
+DEFINE_ART_MODULE(artdaq::EventDump)// NOLINT(performance-unnecessary-value-param)

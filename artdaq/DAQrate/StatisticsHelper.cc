@@ -8,9 +8,7 @@
 artdaq::StatisticsHelper::
     StatisticsHelper()
     : monitored_quantity_name_list_(0)
-    , primary_stat_ptr_(0)
-    , previous_reporting_index_(0)
-    , previous_stats_calc_time_(0.0) {}
+    , primary_stat_ptr_(nullptr) {}
 
 void artdaq::StatisticsHelper::
     addMonitoredQuantityName(std::string const& statKey)
@@ -23,7 +21,7 @@ void artdaq::StatisticsHelper::addSample(std::string const& statKey,
 {
 	artdaq::MonitoredQuantityPtr mqPtr =
 	    artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(statKey);
-	if (mqPtr.get() != 0) { mqPtr->addSample(value); }
+	if (mqPtr.get() != nullptr) { mqPtr->addSample(value); }
 }
 
 bool artdaq::StatisticsHelper::
@@ -36,34 +34,34 @@ bool artdaq::StatisticsHelper::
 	reporting_interval_seconds_ =
 	    pset.get<double>("reporting_interval_seconds", defaultReportIntervalSeconds);
 
-	double monitorWindow = pset.get<double>("monitor_window", defaultMonitorWindow);
-	double monitorBinSize =
+	auto monitorWindow = pset.get<double>("monitor_window", defaultMonitorWindow);
+	auto monitorBinSize =
 	    pset.get<double>("monitor_binsize",
 	                     1.0 + static_cast<int>((monitorWindow - 1) / 100.0));
 
 	if (monitorBinSize < 1.0) { monitorBinSize = 1.0; }
 	if (monitorWindow >= 1.0)
 	{
-		for (size_t idx = 0; idx < monitored_quantity_name_list_.size(); ++idx)
+		for (const auto& idx : monitored_quantity_name_list_)
 		{
 			artdaq::MonitoredQuantityPtr
 			    mqPtr(new artdaq::MonitoredQuantity(monitorBinSize,
 			                                        monitorWindow));
-			artdaq::StatisticsCollection::getInstance().addMonitoredQuantity(monitored_quantity_name_list_[idx], mqPtr);
+			artdaq::StatisticsCollection::getInstance().addMonitoredQuantity(idx, mqPtr);
 		}
 	}
 
 	primary_stat_ptr_ = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(primaryStatKeyName);
-	return (primary_stat_ptr_.get() != 0);
+	return (primary_stat_ptr_.get() != nullptr);
 }
 
 void artdaq::StatisticsHelper::resetStatistics()
 {
 	previous_reporting_index_ = 0;
 	previous_stats_calc_time_ = 0.0;
-	for (size_t idx = 0; idx < monitored_quantity_name_list_.size(); ++idx)
+	for (const auto& idx : monitored_quantity_name_list_)
 	{
-		artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(monitored_quantity_name_list_[idx]);
+		artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(idx);
 		if (mqPtr.get() != nullptr) { mqPtr->reset(); }
 	}
 }
@@ -71,10 +69,10 @@ void artdaq::StatisticsHelper::resetStatistics()
 bool artdaq::StatisticsHelper::
     readyToReport()
 {
-	if (primary_stat_ptr_.get() != 0)
+	if (primary_stat_ptr_.get() != nullptr)
 	{
 		double fullDuration = primary_stat_ptr_->getFullDuration();
-		size_t reportIndex = (size_t)(fullDuration / reporting_interval_seconds_);
+		auto reportIndex = static_cast<size_t>(fullDuration / reporting_interval_seconds_);
 		if (reportIndex > previous_reporting_index_)
 		{
 			previous_reporting_index_ = reportIndex;
@@ -87,7 +85,7 @@ bool artdaq::StatisticsHelper::
 
 bool artdaq::StatisticsHelper::statsRollingWindowHasMoved()
 {
-	if (primary_stat_ptr_.get() != 0)
+	if (primary_stat_ptr_.get() != nullptr)
 	{
 		auto lastCalcTime = primary_stat_ptr_->getLastCalculationTime();
 		if (lastCalcTime > previous_stats_calc_time_)

@@ -19,7 +19,7 @@ public:
 	/**
    * \brief NullTransfer default Destructor
    */
-	virtual ~NullTransfer() = default;
+	~NullTransfer() override = default;
 
 	/**
    * \brief Pretend to receive a Fragment
@@ -28,7 +28,7 @@ public:
    * WARNING: This function may create unintended side-effets. NullTransfer should
    * only really be used in Role::kSend!
    */
-	int receiveFragment(artdaq::Fragment&, size_t) override { return source_rank(); }
+	int receiveFragment(artdaq::Fragment& /*fragment*/, size_t /*receiveTimeout*/) override { return source_rank(); }
 
 	/**
    * \brief Pretend to receive a Fragment Header
@@ -37,7 +37,7 @@ public:
    * WARNING: This function may create unintended side-effets. NullTransfer should
    * only really be used in Role::kSend!
    */
-	int receiveFragmentHeader(detail::RawFragmentHeader&, size_t) override { return source_rank(); }
+	int receiveFragmentHeader(detail::RawFragmentHeader& /*header*/, size_t /*receiveTimeout*/) override { return source_rank(); }
 
 	/**
    * \brief Pretend to receive Fragment Data
@@ -46,13 +46,13 @@ public:
    * WARNING: This function may create unintended side-effets. NullTransfer should
    * only really be used in Role::kSend!
    */
-	int receiveFragmentData(RawDataType*, size_t) override { return source_rank(); }
+	int receiveFragmentData(RawDataType* /*destination*/ /*destination*/ /*destination*/ /*destination*/, size_t /*wordCount*/) override { return source_rank(); }
 
 	/**
    * \brief Pretend to send a Fragment to a destination
    * \return CopyStatus::kSuccess (No-Op)
    */
-	CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const&, size_t) override
+	CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& /*fragment*/, size_t /*send_timeout_usec*/) override
 	{
 		return CopyStatus::kSuccess;
 	}
@@ -61,7 +61,7 @@ public:
    * \brief Pretend to send a Fragment to a destination
    * \return CopyStatus::kSuccess (No-Op)
    */
-	CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&&) override { return CopyStatus::kSuccess; }
+	CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& /*fragment*/) override { return CopyStatus::kSuccess; }
 
 	/**
    * \brief Determine whether the TransferInterface plugin is able to send/receive data
@@ -74,6 +74,12 @@ public:
    * ended.
    */
 	void flush_buffers() override {}
+
+private:
+	NullTransfer(NullTransfer const&) = delete;
+	NullTransfer(NullTransfer&&) = delete;
+	NullTransfer& operator=(NullTransfer const&) = delete;
+	NullTransfer& operator=(NullTransfer&&) = delete;
 };
 }  // namespace artdaq
 

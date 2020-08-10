@@ -135,9 +135,9 @@ art_make_exec(NAME fhicl_test
 	  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME routing_master
+  art_make_exec(NAME routing_manager
   SOURCE
-  routing_master.cc
+  routing_manager.cc
   LIBRARIES
   artdaq_Application
   artdaq_BuildInfo

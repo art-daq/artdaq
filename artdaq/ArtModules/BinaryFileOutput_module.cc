@@ -18,8 +18,8 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
-#include <stdio.h>
 #include <unistd.h>
+#include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -57,17 +57,17 @@ public:
 	/**
 	 * \brief BinaryFileOutput Destructor
 	 */
-	virtual ~BinaryFileOutput();
+	~BinaryFileOutput() override;
 
 private:
 	void beginJob() override;
 
 	void endJob() override;
 
-	void write(EventPrincipal&) override;
+	void write(EventPrincipal& /*ep*/) override;
 
-	void writeRun(RunPrincipal&) override{};
-	void writeSubRun(SubRunPrincipal&) override{};
+	void writeRun(RunPrincipal& /*r*/) override{};
+	void writeSubRun(SubRunPrincipal& /*sr*/) override{};
 
 	void initialize_FILE_();
 
@@ -76,6 +76,11 @@ private:
 	bool readParameterSet_(fhicl::ParameterSet const& pset);
 
 private:
+	BinaryFileOutput(BinaryFileOutput const&) = delete;
+	BinaryFileOutput(BinaryFileOutput&&) = delete;
+	BinaryFileOutput& operator=(BinaryFileOutput const&) = delete;
+	BinaryFileOutput& operator=(BinaryFileOutput&&) = delete;
+
 	std::string name_ = "BinaryFileOutput";
 	std::string file_name_ = "/tmp/artdaqdemo.binary";
 	bool do_direct_ = false;
@@ -113,13 +118,13 @@ void art::BinaryFileOutput::initialize_FILE_()
 	std::string file_name = PostCloseFileRenamer{fstats_}.applySubstitutions(file_name_);
 	if (do_direct_)
 	{
-		fd_ = open(file_name.c_str(), O_WRONLY | O_CREAT | O_DIRECT, 0660); // O_DIRECT - ref. artdaq-core/Core/QuickVec.hh:#define QV_ALIGN 512 and artdaq issue #24437
+		fd_ = open(file_name.c_str(), O_WRONLY | O_CREAT | O_DIRECT, 0660);  // O_DIRECT - ref. artdaq-core/Core/QuickVec.hh:#define QV_ALIGN 512 and artdaq issue #24437
 		TLOG(TLVL_TRACE) << "initialize_FILE_ fd_=" << fd_;
 	}
 	else
 	{
 		file_ptr_ = std::make_unique<std::ofstream>(file_name, std::ofstream::binary);
-		TLOG(TLVL_TRACE) << "BinaryFileOutput::initialize_FILE_ file_ptr_=" << (void*)file_ptr_.get() << " errno=" << errno;
+		TLOG(TLVL_TRACE) << "BinaryFileOutput::initialize_FILE_ file_ptr_=" << static_cast<void*>(file_ptr_.get()) << " errno=" << errno;
 		//file_ptr_->rdbuf()->pubsetbuf(0, 0);
 	}
 	fstats_.recordFileOpen();
@@ -133,7 +138,9 @@ void art::BinaryFileOutput::deinitialize_FILE_()
 		fd_ = -1;
 	}
 	else
+	{
 		file_ptr_.reset(nullptr);
+	}
 	fstats_.recordFileClose();
 }
 
@@ -184,18 +191,21 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 	{
 		auto const raw_event_handle = RawEventHandle(result_handle);
 
-		if (!raw_event_handle.isValid()) continue;
+		if (!raw_event_handle.isValid())
+		{
+			continue;
+		}
 
 		for (auto const& fragment : *raw_event_handle)
 		{
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
 			TLOG(TLVL_TRACE) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " "
-			                 << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex
+			                 << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 			                 << fragment.sizeBytes() << " start";
 			if (do_direct_)
 			{
-				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
+				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 				TLOG(5) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done sts=" << sts
 				        << " errno=" << errno;
 			}
@@ -204,7 +214,7 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 #if USE_STATIC_BUFFER == 1
 				file_ptr_->write((char*)static_buffer, fragment.sizeBytes());
 #else
-				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());
+				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 #endif
 				TLOG(5) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done errno=" << errno;
 			}
@@ -215,7 +225,6 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 #else
 	fstats_.recordEvent(ep.eventID());
 #endif
-	return;
 }
 
-DEFINE_ART_MODULE(art::BinaryFileOutput)
+DEFINE_ART_MODULE(art::BinaryFileOutput)// NOLINT(performance-unnecessary-value-param)
