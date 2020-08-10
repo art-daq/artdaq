@@ -20,7 +20,7 @@ enum TaskType : int
 	EventBuilderTask = 2,
 	DataLoggerTask = 3,
 	DispatcherTask = 4,
-	RoutingMasterTask = 5,
+	RoutingManagerTask = 5,
 	UnknownTask
 };
 
@@ -29,12 +29,12 @@ enum TaskType : int
 /// </summary>
 /// <param name="task">Name of the task</param>
 /// <returns>Corresponding TaskType or TaskType::UnknownTask if no match</returns>
-TaskType StringToTaskType(std::string const& task)
+inline TaskType StringToTaskType(std::string const& task)
 {
-	if (task.size() < 1) return TaskType::UnknownTask;
+	if (task.empty()) return TaskType::UnknownTask;
 	if (task[0] == 'b' || task[0] == 'B') return TaskType::BoardReaderTask;
 	if (task[0] == 'e' || task[0] == 'E') return TaskType::EventBuilderTask;
-	if (task[0] == 'r' || task[0] == 'R') return TaskType::RoutingMasterTask;
+	if (task[0] == 'r' || task[0] == 'R') return TaskType::RoutingManagerTask;
 	if (task[0] == 'd' || task[0] == 'D')
 	{
 		if (task.size() < 2) return TaskType::UnknownTask;
@@ -50,7 +50,7 @@ TaskType StringToTaskType(std::string const& task)
 /// </summary>
 /// <param name="task">Enumeration identifier of Task</param>
 /// <returns>Corresponding TaskType or TaskType::UnknownTask if no match</returns>
-TaskType IntToTaskType(int const& task)
+inline TaskType IntToTaskType(int const& task)
 {
 	if (task > 0 && task <= 5)
 		return static_cast<TaskType>(task);
@@ -63,7 +63,7 @@ TaskType IntToTaskType(int const& task)
 /// </summary>
 /// <param name="task">TaskType to convert</param>
 /// <returns>String represenation of Task name</returns>
-std::string TaskTypeToString(TaskType const& task)
+inline std::string TaskTypeToString(TaskType const& task)
 {
 	switch (task)
 	{
@@ -75,8 +75,8 @@ std::string TaskTypeToString(TaskType const& task)
 			return "DataLogger";
 		case (DispatcherTask):
 			return "Dispatcher";
-		case (RoutingMasterTask):
-			return "RoutingMaster";
+		case (RoutingManagerTask):
+			return "RoutingManager";
 		default:
 			break;
 	}

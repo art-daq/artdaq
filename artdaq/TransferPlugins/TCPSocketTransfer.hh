@@ -8,8 +8,8 @@
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
 // C Includes
-#include <stdint.h>   // uint64_t
 #include <sys/uio.h>  // iovec
+#include <cstdint>    // uint64_t
 
 // C++ Includes
 #include <boost/thread.hpp>
@@ -67,7 +67,7 @@ public:
 	* \param receiveTimeout Timeout for receive
 	* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 	*/
-	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
+	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t timeout_usec) override;
 
 	/**
 	* \brief Receive the body of a Fragment to the given destination pointer
@@ -109,11 +109,10 @@ private:
 	static std::mutex listen_thread_mutex_;
 	static std::unique_ptr<boost::thread> listen_thread_;
 	static std::map<int, std::set<int>> connected_fds_;
-	static std::mutex connected_fd_mutex_;
+	static std::mutex fd_mutex_;
 	int send_fd_;
-	int active_receive_fd_;
-	int last_active_receive_fd_;
-	short active_revents_;
+	std::map<int, int> active_receive_fds_;
+	std::map<int, int> last_active_receive_fds_;
 
 	union
 	{
@@ -147,11 +146,16 @@ private:
 	std::unique_ptr<boost::thread> ack_listen_thread_;      // Thread to listen for ack messages on the sender
 
 private:  // methods
+	TCPSocketTransfer(TCPSocketTransfer const&) = delete;
+	TCPSocketTransfer(TCPSocketTransfer&&) = delete;
+	TCPSocketTransfer& operator=(TCPSocketTransfer const&) = delete;
+	TCPSocketTransfer& operator=(TCPSocketTransfer&&) = delete;
+
 	CopyStatus sendFragment_(Fragment&& frag, size_t timeout_usec);
 
-	CopyStatus sendData_(const void* buf, size_t bytes, size_t tmo, bool isHeader = false);
+	CopyStatus sendData_(const void* buf, size_t bytes, size_t send_timeout_usec, bool isHeader = false);
 
-	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t tmo, bool isHeader = false);
+	CopyStatus sendData_(const struct iovec* iov, int iovcnt, size_t send_timeout_usec, bool isHeader = false);
 
 #if USE_ACKS
 	void receive_acks_();
@@ -163,17 +167,17 @@ private:  // methods
 
 	void reconnect_();
 
-	int disconnect_receive_socket_(int fd, std::string msg = "");
+	void disconnect_receive_socket_(const std::string& msg = "");
 
 	// Receiver should listen for connections
 	void start_listen_thread_();
 	static void listen_(int port, size_t rcvbuf);
 
-	size_t getConnectedFDCount(int source_rank)
-	{
-		std::unique_lock<std::mutex> lk(connected_fd_mutex_);
-		return connected_fds_.count(source_rank) ? connected_fds_[source_rank].size() : 0;
-	}
+	size_t getConnectedFDCount_(int source_rank);
+	int getActiveFD_(int source_rank);
+	void setActiveFD_(int source_rank, int fd);
+	int getLastActiveFD_(int source_rank);
+	void setLastActiveFD_(int source_rank, int fd);
 };
 
 #endif  // TCPSocketTransfer_hh

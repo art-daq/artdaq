@@ -35,6 +35,8 @@ public:
 	 * \return StatisticsHelper copy
 	 */
 	StatisticsHelper& operator=(StatisticsHelper const&) = delete;
+	StatisticsHelper(StatisticsHelper&&) = delete;
+	StatisticsHelper& operator=(StatisticsHelper&&) = delete;
 
 	/**
 	 * \brief Add a MonitoredQuantity name to the list
@@ -93,8 +95,8 @@ private:
 
 	int reporting_interval_fragments_;
 	double reporting_interval_seconds_;
-	size_t previous_reporting_index_;
-	MonitoredQuantityStats::TIME_POINT_T previous_stats_calc_time_;
+	size_t previous_reporting_index_{0};
+	MonitoredQuantityStats::TIME_POINT_T previous_stats_calc_time_{0.0};
 };
 
 #endif /* artdaq_Application_MPI2_StatisticsHelper_hh */

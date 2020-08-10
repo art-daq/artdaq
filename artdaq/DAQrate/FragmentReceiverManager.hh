@@ -92,6 +92,11 @@ public:
 	std::set<int> running_sources() const;
 
 private:
+	FragmentReceiverManager(FragmentReceiverManager const&) = delete;
+	FragmentReceiverManager(FragmentReceiverManager&&) = delete;
+	FragmentReceiverManager& operator=(FragmentReceiverManager const&) = delete;
+	FragmentReceiverManager& operator=(FragmentReceiverManager&&) = delete;
+
 	void runReceiver_(int);
 
 	bool fragments_ready_() const;
@@ -140,7 +145,6 @@ public:
 	FragmentStoreElement()
 	    : frags_()
 	    , empty_(true)
-	    , eod_marker_(-1)
 	{
 		std::cout << "FragmentStoreElement CONSTRUCTOR" << std::endl;
 	}
@@ -185,7 +189,7 @@ public:
 		std::unique_lock<std::mutex> lk(mutex_);
 		auto current_fragment = std::move(frags_.front());
 		frags_.pop_front();
-		empty_ = frags_.size() == 0;
+		empty_ = frags_.empty();
 		return current_fragment;
 	}
 
@@ -210,7 +214,7 @@ private:
 	mutable std::mutex mutex_;
 	FragmentPtrs frags_;
 	std::atomic<bool> empty_;
-	size_t eod_marker_;
+	size_t eod_marker_{0xFFFFFFFFFFFFFFFF};
 };
 
 inline size_t

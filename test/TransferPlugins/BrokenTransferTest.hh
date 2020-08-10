@@ -49,7 +49,7 @@ public:
 	/// BrokenTransferTest Constructor
 	/// </summary>
 	/// <param name="ps">ParameterSet containing BrokenTransferTest configuration</param>
-	BrokenTransferTest(fhicl::ParameterSet ps);
+	BrokenTransferTest(const fhicl::ParameterSet& ps);
 
 	/// <summary>
 	/// Run the "Sender Paused" test
@@ -77,7 +77,7 @@ private:
 		std::chrono::steady_clock::time_point open_time;
 	};
 
-	fhicl::ParameterSet make_transfer_ps_(int sender_rank, int receiver_rank, std::string name);
+	fhicl::ParameterSet make_transfer_ps_(int sender_rank, int receiver_rank, const std::string& name);
 
 	void start_test_();
 	void stop_test_();
@@ -96,16 +96,16 @@ private:
 		usleep_for_n_fragments_(n * (event_buffer_count_ + transfer_buffer_count_));
 	}
 
-	std::string fm_(double data, std::string units, int logt = 0);
+	std::string fm_(double data, const std::string& units, int logt = 0);
 
 	boost::thread sender_threads_[2];
 	boost::thread receiver_threads_[2];
 
-	std::atomic<bool> sender_ready_[2];
-	std::atomic<bool> receiver_ready_[2];
+	std::unordered_map<size_t, std::atomic<bool>> sender_ready_;
+	std::unordered_map<size_t, std::atomic<bool>> receiver_ready_;
 
-	std::atomic<artdaq::Fragment::sequence_id_t> sender_current_fragment_[2];
-	std::atomic<int> sender_tokens_[2];
+	std::unordered_map<size_t, std::atomic<artdaq::Fragment::sequence_id_t>> sender_current_fragment_;
+	std::unordered_map<size_t, std::atomic<int>> sender_tokens_;
 
 	fhicl::ParameterSet ps_;
 

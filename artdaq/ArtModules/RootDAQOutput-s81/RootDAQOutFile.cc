@@ -82,9 +82,11 @@ void create_table(sqlite3* const db,
                   string const& suffix = {})
 {
 	if (columns.empty())
-		throw art::Exception(art::errors::LogicError)
+	{
+		throw art::Exception(art::errors::LogicError)  // NOLINT(cert-err60-cpp)
 		    << "Number of sqlite columns specified for table: " << name << '\n'
 		    << "is zero.\n";
+	}
 	string ddl = "DROP TABLE IF EXISTS " + name +
 	             "; "
 	             "CREATE TABLE " +
@@ -261,6 +263,8 @@ getRangeSet(art::OutputHandle const& oh,
 {
 	if constexpr (!art::detail::range_sets_supported(BT))
 	{
+		{
+		}
 		return art::RangeSet::invalid();
 	}
 
@@ -290,6 +294,8 @@ void setProductRangeSetID(art::RangeSet const& rs,
 {
 	if constexpr (!art::detail::range_sets_supported(BT))
 	{
+		{
+		}
 		return;
 	}
 
@@ -333,8 +339,8 @@ namespace art {
 
 RootDAQOutFile::OutputItem::~OutputItem() = default;
 
-RootDAQOutFile::OutputItem::OutputItem(BranchDescription const& bd)
-    : branchDescription_{bd}, product_{nullptr}
+RootDAQOutFile::OutputItem::OutputItem(BranchDescription bd)
+    : branchDescription_{std::move(bd)}, product_{nullptr}
 {}
 
 string const&
@@ -421,9 +427,9 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	// Create the tree that will carry (event) History objects.
 	eventHistoryTree_ = RootOutputTree::makeTTree(
 	    filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
-	if (!eventHistoryTree_)
+	if (eventHistoryTree_ == nullptr)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create the tree for History objects\n";
 	}
 	pEventAux_ = nullptr;
@@ -435,12 +441,12 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	pRunProductProvenanceVector_ = &runProductProvenanceVector_;
 	pResultsProductProvenanceVector_ = &resultsProductProvenanceVector_;
 	pHistory_ = new History;
-	if (!eventHistoryTree_->Branch(rootNames::eventHistoryBranchName().c_str(),
-	                               &pHistory_,
-	                               basketSize,
-	                               0))
+	if (eventHistoryTree_->Branch(rootNames::eventHistoryBranchName().c_str(),
+	                              &pHistory_,
+	                              basketSize,
+	                              0) == nullptr)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create a branch for History in the output file\n";
 	}
 	delete pHistory_;
@@ -505,9 +511,11 @@ art::RootDAQOutFile::~RootDAQOutFile()
 {
 	struct sysinfo info;
 	int sts = sysinfo(&info);
-	unsigned free_percent = (unsigned)(info.freeram * 100 / info.totalram);
-	unsigned free_MB = (unsigned)(info.freeram * info.mem_unit >> 20);  // round down (1024.9 => 1024 MB)
-	TRACE(3, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u", free_percent, (float)info.freeram * info.mem_unit / (1024 * 1024), free_MB, (float)info.bufferram * info.mem_unit / (1024 * 1024 * 1024), info.mem_unit);
+	auto free_percent = static_cast<unsigned>(info.freeram * 100 / info.totalram);
+	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);  // round down (1024.9 => 1024 MB)
+	TRACE(3, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u", // NOLINT
+		free_percent, static_cast<float>(info.freeram * info.mem_unit / (1024 * 1024.0)),
+		free_MB, static_cast<float>(info.bufferram * info.mem_unit / (1024 * 1024 * 1024.0)), info.mem_unit);
 	if (free_percent < freePercent_ || free_MB < freeMB_)
 	{
 		TLOG(3) << "RootDAQOutFile Flush/DONTNEED";
@@ -562,7 +570,7 @@ void RootDAQOutFile::selectProducts()
 {
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	auto selectProductsToWrite = [this](BranchType const bt) {
-		auto& items = selectedOutputItemList_[bt];
+		auto& items = selectedOutputItemList_[bt]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		for (auto const& pr : om_->keptProducts()[bt])
 		{
 			auto const& pd = pr.second;
@@ -598,7 +606,7 @@ void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	// FIXME: the logic here is nasty.
 	bool shouldFastClone{fastCloningEnabledAtConstruction_ &&
-	                     fastCloneFromOutputModule && rfb};
+	                     fastCloneFromOutputModule && (rfb != nullptr)};
 	// Create output branches, and then redo calculation to determine if
 	// fast cloning should be done.
 	selectProducts();
@@ -610,7 +618,7 @@ void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 		    << "splitting level and/or basket size.";
 		shouldFastClone = false;
 	}
-	else if (rfb && rfb->tree() &&
+	else if ((rfb != nullptr) && rfb->tree() &&
 	         rfb->tree()->GetCurrentFile()->GetVersion() < 60001)
 	{
 		mf::LogWarning("FastCloning")
@@ -632,7 +640,7 @@ void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 		    << "Fast cloning reactivated for this input file.";
 	}
 	treePointers_[InEvent]->beginInputFile(shouldFastClone);
-	auto tree = (rfb && rfb->tree()) ? rfb->tree() : nullptr;
+	auto tree = ((rfb != nullptr) && rfb->tree()) ? rfb->tree() : nullptr;
 	wasFastCloned_ = treePointers_[InEvent]->fastCloneTree(tree);
 }
 
@@ -642,7 +650,7 @@ void RootDAQOutFile::incrementInputFileNumber()
 	fp_.update_inputFile();
 }
 
-void RootDAQOutFile::respondToCloseInputFile(FileBlock const&)
+void RootDAQOutFile::respondToCloseInputFile(FileBlock const& /*unused*/)
 {
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	cet::for_all(treePointers_, [](auto const& p) { p->setEntries(); });
@@ -677,7 +685,7 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 	int sz = eventHistoryTree_->Fill();
 	if (sz <= 0)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to fill the History tree for event: " << e.eventID()
 		    << "\nTTree::Fill() returned " << sz << " bytes written." << endl;
 	}
@@ -725,19 +733,19 @@ void RootDAQOutFile::writeParentageRegistry()
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	auto pid = root::getObjectRequireDict<ParentageID>();
 	ParentageID const* hash = &pid;
-	if (!parentageTree_->Branch(
-	        rootNames::parentageIDBranchName().c_str(), &hash, basketSize_, 0))
+	if (parentageTree_->Branch(
+	        rootNames::parentageIDBranchName().c_str(), &hash, basketSize_, 0) == nullptr)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create a branch for ParentageIDs in the output file";
 	}
 	hash = nullptr;
 	auto par = root::getObjectRequireDict<Parentage>();
 	Parentage const* desc = &par;
-	if (!parentageTree_->Branch(
-	        rootNames::parentageBranchName().c_str(), &desc, basketSize_, 0))
+	if (parentageTree_->Branch(
+	        rootNames::parentageBranchName().c_str(), &desc, basketSize_, 0) == nullptr)
 	{
-		throw Exception(errors::FatalRootError)
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create a branch for Parentages in the output file";
 	}
 	desc = nullptr;
@@ -780,7 +788,7 @@ void RootDAQOutFile::writeFileIndex()
 		findexElemPtr = &entry;
 		b->Fill();
 	}
-	b->SetAddress(0);
+	b->SetAddress(nullptr);
 }
 
 void RootDAQOutFile::writeEventHistory()
@@ -808,7 +816,7 @@ void RootDAQOutFile::writeProcessHistoryRegistry()
 	    metaBranchRootName<ProcessHistoryMap>(), &p, basketSize_, 0);
 	if (b == nullptr)
 	{
-		throw Exception(errors::LogicError)
+		throw Exception(errors::LogicError)  // NOLINT(cert-err60-cpp)
 		    << "Unable to locate required "
 		       "ProcessHistoryMap branch in output "
 		       "metadata tree.\n";
@@ -926,7 +934,7 @@ void RootDAQOutFile::writeProductDescriptionRegistry()
 	// removing any transient or pruned products.
 	ProductRegistry reg;
 	auto productDescriptionsToWrite = [this, &reg](BranchType const bt) {
-		for (auto const& pr : descriptionsToPersist_[bt])
+		for (auto const& pr : descriptionsToPersist_[bt]) // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		{
 			auto const& desc = pr.second;
 			reg.productList_.emplace(BranchKey{desc}, desc);
@@ -1001,6 +1009,8 @@ RootDAQOutFile::getProduct(OutputHandle const& oh,
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	if constexpr (detail::range_sets_supported(BT))
 	{
+		{
+		}
 		if (!prunedProductRS.is_valid())
 		{
 			return dummyProductCache_.product(wrappedName);
@@ -1046,7 +1056,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 						stacked_pp.push_back(&*oh.productProvenance());
 						while (true)
 						{
-							if (stacked_pp.size() == 0)
+							if (stacked_pp.empty())
 							{
 								break;
 							}
@@ -1133,7 +1143,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 				auto prov_bid = prov->productID();
 				if (keptprv.erase(*prov) != 1ull)
 				{
-					throw Exception(errors::LogicError, "KeptProvenance::setStatus")
+					throw Exception(errors::LogicError, "KeptProvenance::setStatus")  // NOLINT(cert-err60-cpp)
 					    << "Attempt to set product status for product whose provenance "
 					       "is not being recorded.\n";
 				}
@@ -1144,7 +1154,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 			}
 			auto const* product = getProduct<BT>(oh, rs, bd.wrappedName());
 			setProductRangeSetID<BT>(
-			    rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex);
+			    rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex); // NOLINT(cppcoreguidelines-pro-type-const-cast)
 			val.product_ = product;
 		}
 	}
@@ -1153,7 +1163,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 	{
 		if (val.productStatus() == productstatus::uninitialized())
 		{
-			throw Exception(errors::LogicError,
+			throw Exception(errors::LogicError,  // NOLINT(cert-err60-cpp)
 			                "RootDAQOutFile::fillBranches(principal, vpp):")
 			    << "Attempt to write a product with uninitialized provenance!\n";
 		}
