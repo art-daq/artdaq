@@ -19,7 +19,6 @@ namespace artdaq {
 RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     : send_requests_(pset.get<bool>("send_requests", false))
     , initialized_(false)
-    , active_requests_()
     , request_address_(pset.get<std::string>("request_address", "227.128.12.26"))
     , request_port_(pset.get<int>("request_port", 3001))
     , request_delay_(pset.get<size_t>("request_delay_ms", 0) * 1000)
@@ -36,9 +35,9 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 	setup_requests_();
 
 	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
-	send_routing_tokens_ = rmConfig.get<bool>("use_routing_master", false);
+	send_routing_tokens_ = rmConfig.get<bool>("use_routing_manager", false);
 	token_port_ = rmConfig.get<int>("routing_token_port", 35555);
-	token_address_ = rmConfig.get<std::string>("routing_master_hostname", "localhost");
+	token_address_ = rmConfig.get<std::string>("routing_manager_hostname", "localhost");
 	setup_tokens_();
 	TLOG(12) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
 	initialized_ = true;
@@ -152,7 +151,7 @@ void RequestSender::setup_requests_()
 			TLOG(TLVL_ERROR) << "Unable to enable multicast loopback on request socket, err=" << strerror(errno);
 			exit(1);
 		}
-		if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, (void*)&yes, sizeof(int)) == -1)
+		if (setsockopt(request_socket_, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes)) == -1)
 		{
 			TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast, err=" << strerror(errno);
 			exit(1);
@@ -171,7 +170,7 @@ void RequestSender::setup_tokens_()
 			token_socket_ = TCPConnect(token_address_.c_str(), token_port_, 0, sizeof(detail::RoutingToken));
 			if (token_socket_ < 0)
 			{
-				TLOG(TLVL_TRACE) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Master to open token socket";
+				TLOG(TLVL_TRACE) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Manager to open token socket";
 				usleep(100000);
 			}
 		}
@@ -191,7 +190,10 @@ void RequestSender::do_send_request_()
 		request_sending_--;
 		return;
 	}
-	if (request_socket_ == -1) setup_requests_();
+	if (request_socket_ == -1)
+	{
+		setup_requests_();
+	}
 
 	TLOG(TLVL_TRACE) << "Waiting for " << request_delay_ << " microseconds.";
 	std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
@@ -216,7 +218,7 @@ void RequestSender::do_send_request_()
 	TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str
 	                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 	auto buf = message.GetMessage();
-	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, (struct sockaddr*)&request_addr_, sizeof(request_addr_));
+	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts < 0 || static_cast<size_t>(sts) != buf.size())
 	{
 		TLOG(TLVL_ERROR) << "Error sending request message err=" << strerror(errno) << "sts=" << sts;
@@ -231,8 +233,14 @@ void RequestSender::do_send_request_()
 void RequestSender::send_routing_token_(int nSlots, int run_number)
 {
 	TLOG(TLVL_TRACE) << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_;
-	if (!send_routing_tokens_) return;
-	if (token_socket_ == -1) setup_tokens_();
+	if (!send_routing_tokens_)
+	{
+		return;
+	}
+	if (token_socket_ == -1)
+	{
+		setup_tokens_();
+	}
 	detail::RoutingToken token;
 	token.header = TOKEN_MAGIC;
 	token.rank = my_rank;
@@ -243,7 +251,7 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 	size_t sts = 0;
 	while (sts < sizeof(detail::RoutingToken))
 	{
-		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);
+		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 		if (res < 0)
 		{
 			TLOG(TLVL_WARNING) << "Error on token_socket, reconnecting";
@@ -261,8 +269,14 @@ void RequestSender::send_routing_token_(int nSlots, int run_number)
 
 void RequestSender::SendRoutingToken(int nSlots, int run_number)
 {
-	while (!initialized_) usleep(1000);
-	if (!send_routing_tokens_) return;
+	while (!initialized_)
+	{
+		usleep(1000);
+	}
+	if (!send_routing_tokens_)
+	{
+		return;
+	}
 	boost::thread token([=] { send_routing_token_(nSlots, run_number); });
 	token.detach();
 	usleep(0);  // Give up time slice
@@ -270,10 +284,19 @@ void RequestSender::SendRoutingToken(int nSlots, int run_number)
 
 void RequestSender::SendRequest(bool endOfRunOnly)
 {
-	while (!initialized_) usleep(1000);
+	while (!initialized_)
+	{
+		usleep(1000);
+	}
 
-	if (!send_requests_) return;
-	if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun) return;
+	if (!send_requests_)
+	{
+		return;
+	}
+	if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun)
+	{
+		return;
+	}
 	request_sending_++;
 	boost::thread request([=] { do_send_request_(); });
 	request.detach();
@@ -281,11 +304,14 @@ void RequestSender::SendRequest(bool endOfRunOnly)
 
 void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp)
 {
-	while (!initialized_) usleep(1000);
+	while (!initialized_)
+	{
+		usleep(1000);
+	}
 
 	{
 		std::lock_guard<std::mutex> lk(request_mutex_);
-		if (!active_requests_.count(seqID))
+		if (active_requests_.count(seqID) == 0u)
 		{
 			TLOG(12) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
 			active_requests_[seqID] = timestamp;
@@ -296,7 +322,10 @@ void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestam
 
 void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)
 {
-	while (!initialized_) usleep(1000);
+	while (!initialized_)
+	{
+		usleep(1000);
+	}
 	std::lock_guard<std::mutex> lk(request_mutex_);
 	TLOG(12) << "Removing request for sequence ID " << seqID << " from request list.";
 	active_requests_.erase(seqID);

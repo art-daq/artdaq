@@ -80,7 +80,9 @@ simple_plugin(EventDump "module"
   artdaq-core_Data
   artdaq-core_Utilities
   art_Persistency_Provenance
-  MF_MessageLogger
+MF_MessageLogger
+  artdaq-core_Data
+  artdaq-core_Data_dict
   ${CETLIB_EXCEPT})
 
 simple_plugin(MissingDataCheck "module"
