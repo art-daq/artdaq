@@ -15,8 +15,10 @@ namespace art {
 /// </summary>
 struct ArtdaqFragmentNamingServiceInterfaceConfig
 {
-	/// "service_provider" (REQUIRED): Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqDemoFragmentNamingService)
-	fhicl::Atom<std::string> service_provider{fhicl::Name{"service_provider"}, fhicl::Comment{"Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqDemoFragmentNamingService)"}};
+	/// "service_provider" (REQUIRED): Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqFragmentNamingService helper_plugin: "ArtdaqDemo")
+	fhicl::Atom<std::string> service_provider{fhicl::Name{"service_provider"}, fhicl::Comment{"Name of the provider for the ArtdaqFragmentNamingServiceInterface (e.g. ArtdaqFragmentNamingService)"}};
+	/// "helper_plugin" (Default: "Artdaq"): Name of the helper plugin used by ArtdaqFragmentNamingService
+	fhicl::Atom<std::string> helper_plugin{	    fhicl::Name{"helper_plugin"}, fhicl::Comment{"Name of the helper plugin used by ArtdaqFragmentNamingService"}, "Artdaq"};
 	/// "unidentified_instance_name" (Default: "unidentified"): Name to use for Fragment types which are not identified by the ArtdaqFragmentNamingServiceInterface implementation.
 	fhicl::Atom<std::string> unidentified_instance_name{fhicl::Name{"unidentified_instance_name"}, fhicl::Comment{"Name to use for Fragment types which are not identified by the ArtdaqFragmentNamingServiceInterface implementation."}, "unidentified"};
 	/// "fragment_type_map" (OPTIONAL): Additional types to register with the ArtdaqFragmentNamingServiceInterface

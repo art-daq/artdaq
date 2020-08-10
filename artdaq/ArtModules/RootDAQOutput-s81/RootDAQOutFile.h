@@ -59,7 +59,7 @@ public:  // TYPES
 	{
 	public:  // MEMBER FUNCTIONS -- Special Member Functions
 		~OutputItem();
-		explicit OutputItem(BranchDescription const& bd);
+		explicit OutputItem(BranchDescription bd);
 
 	public:  // MEMBER FUNCTIONS
 		std::string const& branchName() const;
@@ -68,6 +68,12 @@ public:  // TYPES
 	public:  // MEMBER DATA
 		BranchDescription const branchDescription_;
 		mutable void const* product_;
+
+	private:
+		OutputItem(OutputItem const&) = delete;
+		OutputItem(OutputItem&&) = delete;
+		OutputItem& operator=(OutputItem const&) = delete;
+		OutputItem& operator=(OutputItem&&) = delete;
 	};
 
 public:  // MEMBER FUNCTIONS -- Static API

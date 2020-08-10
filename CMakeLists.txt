@@ -13,8 +13,8 @@
 #  make package
 # ======================================================================
 
-# use cmake 2.8 or later
-cmake_minimum_required (VERSION 2.8)
+# use cmake 3.17 or later
+cmake_minimum_required (VERSION 3.17)
 
 project(artdaq)
 # cetbuildtools contains our cmake modules
@@ -53,6 +53,16 @@ if( ${BTYPE_UC} MATCHES "DEBUG" )
 			cet_add_compiler_flags(-fsanitize=thread -ltsan -Wno-unused-command-line-argument)
 		endif()
 	endif()
+endif()
+
+#exception stack trace
+if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})
+        if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
+                message("!!! Exception StackTrace Activated!!!")
+                add_definitions(-D EXCEPTIONSTACKTRACE)
+                set( EXCEPTIONSTACKTRACE_LIB  artdaq-core_Utilities_ExceptionStackTrace )
+                cet_add_compiler_flags( -rdynamic -Wno-unused-command-line-argument )
+        endif()
 endif()
 
 cet_report_compiler_flags()
