@@ -334,22 +334,22 @@ void artdaq::BoardReaderCore::receive_fragments()
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime, after_input, after_buffer;
 	artdaq::FragmentPtrs frags;
 
-	bool active = true;
+	receiver_thread_active_ = true;
 
-	while (active)
+	while (receiver_thread_active_)
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
 		TLOG(18) << "receive_fragments getNext start";
-		active = generator_ptr_->getNext(frags);
-		TLOG(18) << "receive_fragments getNext done (active=" << active << ")";
+		receiver_thread_active_ = generator_ptr_->getNext(frags);
+		TLOG(18) << "receive_fragments getNext done (receiver_thread_active_=" << receiver_thread_active_ << ")";
 		// 08-May-2015, KAB & JCF: if the generator getNext() method returns false
 		// (which indicates that the data flow has stopped) *and* the reason that
 		// it has stopped is because there was an exception that wasn't handled by
 		// the experiment-specific FragmentGenerator class, we move to the
 		// InRunError state so that external observers (e.g. RunControl or
 		// DAQInterface) can see that there was a problem.
-		if (!active && generator_ptr_ && generator_ptr_->exception())
+		if (!receiver_thread_active_ && generator_ptr_ && generator_ptr_->exception())
 		{
 			parent_application_.in_run_failure();
 		}
@@ -357,7 +357,7 @@ void artdaq::BoardReaderCore::receive_fragments()
 		after_input = artdaq::MonitoredQuantity::getCurrentTime();
 
 
-		if (!active) { break; }
+		if (!receiver_thread_active_) { break; }
 		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
 
 		if (frags.size() > 0)
@@ -425,22 +425,22 @@ void artdaq::BoardReaderCore::send_fragments()
 	artdaq::FragmentPtrs frags;
 	auto targetFragCount = generator_ptr_->fragmentIDs().size();
 
-	bool active = true;
+	sender_thread_active_ = true;
 
-	while (active)
+	while (sender_thread_active_)
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
 		TLOG(18) << "send_fragments applyRequests start";
-		active = fragment_buffer_ptr_->applyRequests(frags);
-		TLOG(18) << "send_fragments applyRequests done (active=" << active << ")";
+		sender_thread_active_ = fragment_buffer_ptr_->applyRequests(frags);
+		TLOG(18) << "send_fragments applyRequests done (sender_thread_active_=" << sender_thread_active_ << ")";
 		// 08-May-2015, KAB & JCF: if the generator getNext() method returns false
 		// (which indicates that the data flow has stopped) *and* the reason that
 		// it has stopped is because there was an exception that wasn't handled by
 		// the experiment-specific FragmentGenerator class, we move to the
 		// InRunError state so that external observers (e.g. RunControl or
 		// DAQInterface) can see that there was a problem.
-		if (!active && generator_ptr_ && generator_ptr_->exception())
+		if (!sender_thread_active_ && generator_ptr_ && generator_ptr_->exception())
 		{
 			parent_application_.in_run_failure();
 		}
@@ -450,7 +450,7 @@ void artdaq::BoardReaderCore::send_fragments()
 		TLOG(16) << "send_fragments REQUEST_WAIT=" << delta_time;
 		statsHelper_.addSample(REQUEST_WAIT_STAT_KEY, delta_time);
 
-		if (!active) { break; }
+		if (!sender_thread_active_) { break; }
 
 		for (auto& fragPtr : frags)
 		{
