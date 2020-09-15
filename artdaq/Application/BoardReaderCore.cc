@@ -339,11 +339,12 @@ void artdaq::BoardReaderCore::receive_fragments()
 	receiver_thread_active_ = true;
 
 	auto wait_start = std::chrono::steady_clock::now();
-	while (!running_ && TimeUtils::GetElapsedTime(wait_start) < 10.0) {
+	while (!running_ && TimeUtils::GetElapsedTime(wait_start) < start_transition_timeout_)
+	{
 		usleep(10000);
 	}
 	if (!running_) {
-		TLOG(TLVL_ERROR) << "Timeout (10 s) while waiting for Start after receive_fragments thread started!";
+		TLOG(TLVL_ERROR) << "Timeout (" << start_transition_timeout_ << " s) while waiting for Start after receive_fragments thread started!";
 		receiver_thread_active_ = false;
 	}
 
@@ -440,13 +441,13 @@ void artdaq::BoardReaderCore::send_fragments()
 	sender_thread_active_ = true;
 
 	auto wait_start = std::chrono::steady_clock::now();
-	while (!running_ && TimeUtils::GetElapsedTime(wait_start) < 10.0)
+	while (!running_ && TimeUtils::GetElapsedTime(wait_start) < start_transition_timeout_)
 	{
 		usleep(10000);
 	}
 	if (!running_)
 	{
-		TLOG(TLVL_ERROR) << "Timeout (10 s) while waiting for Start after send_fragments thread started!";
+		TLOG(TLVL_ERROR) << "Timeout (" << start_transition_timeout_ << " s) while waiting for Start after send_fragments thread started!";
 		sender_thread_active_ = false;
 	}
 

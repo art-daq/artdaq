@@ -182,6 +182,7 @@ public:
 
 	bool GetSenderThreadActive() { return sender_thread_active_.load(); }
 	bool GetReceiverThreadActive() { return receiver_thread_active_.load(); }
+	void SetStartTransitionTimeout(double timeout) { start_transition_timeout_ = timeout; }
 
 private:
 	Commandable& parent_application_;
@@ -205,6 +206,7 @@ private:
 	std::atomic<bool> running_{false};
 	std::atomic<bool> sender_thread_active_{false};
 	std::atomic<bool> receiver_thread_active_{false};
+	double start_transition_timeout_{10.0};
 
 	// attributes and methods for statistics gathering & reporting
 	artdaq::StatisticsHelper statsHelper_;

@@ -48,6 +48,7 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	if (timeout == 0) {
 		timeout = 3600; // seconds
 	}
+	fragment_receiver_ptr_->SetStartTransitionTimeout(timeout);
 	external_request_status_ = true;
 
 	boost::thread::attributes attrs;
@@ -68,7 +69,7 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	auto start_wait = std::chrono::steady_clock::now();
 	while (!fragment_receiver_ptr_->GetSenderThreadActive() || !fragment_receiver_ptr_->GetReceiverThreadActive())
 	{
-		if (TimeUtils::GetElapsedTimeMicroseconds(start_wait) > timeout * 1000000) {
+		if (TimeUtils::GetElapsedTime(start_wait) > timeout) {
 			TLOG(TLVL_ERROR) << "Timeout occurred waiting for BoardReaderCore threads to start. Timeout = " << timeout << " s, Time waited = " << TimeUtils::GetElapsedTime(start_wait) << " s," 
 				<< " Receiver ready: " << std::boolalpha << fragment_receiver_ptr_->GetReceiverThreadActive() << ", Sender ready: " << fragment_receiver_ptr_->GetSenderThreadActive();
 			external_request_status_ = false;
