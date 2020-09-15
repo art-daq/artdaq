@@ -218,12 +218,12 @@ BOOST_AUTO_TEST_CASE(WaitForStart)
 
 	artdaq::FragmentPtrs fps;
 	auto sts = testGen.getNext(fps);
-	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(sts, false);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
 
 	usleep(10000);
 	sts = testGen.getNext(fps);
-	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(sts, false);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
 
 	testGen.StartCmd(2, 1, 1);
@@ -235,6 +235,73 @@ BOOST_AUTO_TEST_CASE(WaitForStart)
 	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
 	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	TLOG(TLVL_INFO) << "WaitForStart test case END";
+}
+
+BOOST_AUTO_TEST_CASE(StateMachine)
+{
+	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
+	TLOG(TLVL_INFO) << "StateMachine test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("board_id", 1);
+	ps.put<int>("fragment_id", 1);
+	artdaqtest::CommandableFragmentGeneratorTest testGen(ps);
+
+	artdaq::FragmentPtrs fps;
+	auto sts = testGen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	usleep(10000);
+	sts = testGen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	testGen.StartCmd(2, 1, 1);
+
+	sts = testGen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	fps.clear();
+
+	testGen.setFireCount(1);
+	testGen.PauseCmd(1, 1);
+	sts = testGen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	testGen.ResumeCmd(1, 1);
+
+	sts = testGen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	fps.clear();
+
+	testGen.StopCmd(1, 1);
+	sts = testGen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	testGen.StartCmd(2, 1, 1);
+	sts = testGen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	testGen.setFireCount(1);
+	sts = testGen.getNext(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(),1);
+	fps.clear();
+
+	TLOG(TLVL_INFO) << "StateMachine test case END";
 }
 
 BOOST_AUTO_TEST_CASE(MultipleIDs)

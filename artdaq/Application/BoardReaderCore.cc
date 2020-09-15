@@ -222,6 +222,7 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	request_receiver_ptr_->SetRunNumber(static_cast<uint32_t>(id.run()));
 	request_receiver_ptr_->startRequestReception();
 
+	running_ = true;
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Start transition (Started run) for run " << run_id_.run()
 	                                          << ", timeout = " << timeout << ", timestamp = " << timestamp;
 	return true;
@@ -249,6 +250,7 @@ bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 		sender_ptr_->StopSender();
 	}
 
+	running_ = false;
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Stop transition for run " << run_id_.run();
 	return true;
 }
@@ -336,6 +338,15 @@ void artdaq::BoardReaderCore::receive_fragments()
 
 	receiver_thread_active_ = true;
 
+	auto wait_start = std::chrono::steady_clock::now();
+	while (!running_ && TimeUtils::GetElapsedTime(wait_start) < 10.0) {
+		usleep(10000);
+	}
+	if (!running_) {
+		TLOG(TLVL_ERROR) << "Timeout (10 s) while waiting for Start after receive_fragments thread started!";
+		receiver_thread_active_ = false;
+	}
+
 	while (receiver_thread_active_)
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
@@ -343,6 +354,7 @@ void artdaq::BoardReaderCore::receive_fragments()
 		TLOG(18) << "receive_fragments getNext start";
 		receiver_thread_active_ = generator_ptr_->getNext(frags);
 		TLOG(18) << "receive_fragments getNext done (receiver_thread_active_=" << receiver_thread_active_ << ")";
+
 		// 08-May-2015, KAB & JCF: if the generator getNext() method returns false
 		// (which indicates that the data flow has stopped) *and* the reason that
 		// it has stopped is because there was an exception that wasn't handled by
@@ -426,6 +438,17 @@ void artdaq::BoardReaderCore::send_fragments()
 	auto targetFragCount = generator_ptr_->fragmentIDs().size();
 
 	sender_thread_active_ = true;
+
+	auto wait_start = std::chrono::steady_clock::now();
+	while (!running_ && TimeUtils::GetElapsedTime(wait_start) < 10.0)
+	{
+		usleep(10000);
+	}
+	if (!running_)
+	{
+		TLOG(TLVL_ERROR) << "Timeout (10 s) while waiting for Start after send_fragments thread started!";
+		sender_thread_active_ = false;
+	}
 
 	while (sender_thread_active_)
 	{

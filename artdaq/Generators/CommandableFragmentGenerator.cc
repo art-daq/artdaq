@@ -54,9 +54,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
     , subrun_number_(-1)
     , timeout_(std::numeric_limits<uint64_t>::max())
     , timestamp_(std::numeric_limits<uint64_t>::max())
-    , should_stop_(false)
+    , should_stop_(true)
     , exception_(false)
-    , running_(false)
     , latest_exception_report_("none")
     , ev_counter_(1)
     , board_id_(-1)
@@ -116,12 +115,6 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 {
 	bool result = true;
-
-	if (!running_) {
-		TLOG(TLVL_GETNEXT) << "getNext called before Start or Resume completed, sleeping 1 ms and returning true";
-		usleep(1000);
-		return true;
-	}
 
 	if (check_stop()) usleep(sleep_on_stop_us_);
 	if (exception() || should_stop_) return false;
@@ -279,9 +272,6 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 
 	start();
 
-	// Only change running_ flag after start() has been called
-	running_ = true;
-
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useMonitoringThread_) startMonitoringThread();
 	TLOG(TLVL_TRACE) << "Start Command complete.";
@@ -300,7 +290,6 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 	stop();
 
 	joinThreads();
-	running_ = false;
 	TLOG(TLVL_TRACE) << "Stop Command complete.";
 }
 
@@ -315,7 +304,6 @@ void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t t
 	std::unique_lock<std::mutex> lk(mutex_);
 
 	pause();
-	running_ = false;
 }
 
 void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t timestamp)
@@ -329,8 +317,6 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 
 	// no lock required: thread not started yet
 	resume();
-
-	running_ = true;
 
 	std::unique_lock<std::mutex> lk(mutex_);
 	//if (useDataThread_) startDataThread();

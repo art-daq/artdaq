@@ -397,7 +397,7 @@ private:
 
 	uint64_t timestamp_;
 
-	std::atomic<bool> should_stop_, exception_, running_;
+	std::atomic<bool> should_stop_, exception_;
 	std::string latest_exception_report_;
 	std::atomic<size_t> ev_counter_;
 

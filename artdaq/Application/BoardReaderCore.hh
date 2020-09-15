@@ -200,8 +200,11 @@ private:
 	artdaq::Fragment::sequence_id_t prev_seq_id_;
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;
-	std::atomic<bool> sender_thread_active_;
-	std::atomic<bool> receiver_thread_active_;
+
+	// State orchestration
+	std::atomic<bool> running_{false};
+	std::atomic<bool> sender_thread_active_{false};
+	std::atomic<bool> receiver_thread_active_{false};
 
 	// attributes and methods for statistics gathering & reporting
 	artdaq::StatisticsHelper statsHelper_;
