@@ -49,7 +49,7 @@ int process_cmd_line(int argc, char** argv,
                      bpo::variables_map& vm)
 {
 	std::ostringstream descstr;
-	descstr << argv[0]
+	descstr << *argv
 	        << " <-c <config-file>> <other-options> [<source-file>]+";
 	bpo::options_description desc(descstr.str());
 	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration file.")("help,h", "produce help message");
@@ -60,21 +60,21 @@ int process_cmd_line(int argc, char** argv,
 	}
 	catch (bpo::error const& e)
 	{
-		TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
+		TLOG(TLVL_ERROR) << "Exception from command line processing in " << *argv
 		                 << ": " << e.what();
 		return -1;
 	}
-	if (vm.count("help"))
+	if (vm.count("help") != 0u)
 	{
 		std::cout << desc << std::endl;
 		return 1;
 	}
-	if (!vm.count("config"))
+	if (vm.count("config") == 0u)
 	{
-		TLOG(TLVL_ERROR) << "Exception from command line processing in " << argv[0]
+		TLOG(TLVL_ERROR) << "Exception from command line processing in " << *argv
 		                 << ": no configuration file given.\n"
 		                 << "For usage and an options list, please do '"
-		                 << argv[0] << " --help"
+		                 << *argv << " --help"
 		                 << "'.";
 		return 2;
 	}
@@ -118,7 +118,10 @@ public:
 	void start(int run, uint64_t timeout, uint64_t timestamp) const
 	{
 		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
-		if (gen_ptr != nullptr) gen_ptr->StartCmd(run, timeout, timestamp);
+		if (gen_ptr != nullptr)
+		{
+			gen_ptr->StartCmd(run, timeout, timestamp);
+		}
 	}
 	/**
 		 * \brief Send stop signal to FragmentGenerator, if it's a CommandableFragmentGenerator
@@ -128,7 +131,10 @@ public:
 	void stop(uint64_t timeout, uint64_t timestamp) const
 	{
 		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
-		if (gen_ptr != nullptr) gen_ptr->StopCmd(timeout, timestamp);
+		if (gen_ptr != nullptr)
+		{
+			gen_ptr->StopCmd(timeout, timestamp);
+		}
 	}
 
 private:
@@ -146,7 +152,7 @@ ThrottledGenerator::
                        fhicl::ParameterSet const& ps)
     : generator_(artdaq::makeFragmentGenerator(generator, ps))
     , numFragIDs_(generator_->fragmentIDs().size())
-    , frags_()
+
 {
 	assert(generator_);
 }
@@ -154,7 +160,7 @@ ThrottledGenerator::
 bool ThrottledGenerator::
     getNext(artdaq::FragmentPtrs& newFrags)
 {
-	if (frags_.size() && frags_.begin()->second.size())
+	if ((!frags_.empty()) && (!frags_.begin()->second.empty()))
 	{  // Something stored.
 		for (auto& fQp : frags_)
 		{
@@ -225,6 +231,7 @@ int process_data(fhicl::ParameterSet const& pset)
 	std::vector<ThrottledGenerator> generators;
 
 	auto const fr_pset = gta_pset.get<std::vector<fhicl::ParameterSet>>("fragment_receivers");
+	generators.reserve(fr_pset.size());
 	for (auto const& gen_ps : fr_pset)
 	{
 		generators.emplace_back(gen_ps.get<std::string>("generator"),
@@ -272,7 +279,7 @@ int process_data(fhicl::ParameterSet const& pset)
 			}
 			else if (val->sequenceID() != current_sequence_id)
 			{
-				throw art::Exception(art::errors::DataCorruption)
+				throw art::Exception(art::errors::DataCorruption)  // NOLINT(cert-err60-cpp)
 				    << "Data corruption: apparently related fragments have "
 				    << " different sequence IDs: "
 				    << val->sequenceID()
@@ -315,10 +322,8 @@ int process_data(fhicl::ParameterSet const& pset)
 	{
 		return 0;
 	}
-	else
-	{
-		return 15;
-	}
+
+	return 15;
 }
 }  // namespace
 
@@ -344,20 +349,12 @@ int main(int argc, char* argv[]) try
 	make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
 	return process_data(pset);
 }
-catch (std::string& x)
+catch (std::exception& x)
 {
-	TLOG(TLVL_ERROR) << "Exception (type string) caught in genToArt: " << x << '\n';
+	TLOG(TLVL_ERROR) << "Exception (type std::exception) caught in genToArt: " << x.what() << '\n';
 	return 1;
 }
-catch (char const* m)
+catch (...)
 {
-	TLOG(TLVL_ERROR) << "Exception (type char const*) caught in genToArt: ";
-	if (m)
-	{
-		TLOG(TLVL_ERROR) << m;
-	}
-	else
-	{
-		TLOG(TLVL_ERROR) << "[the value was a null pointer, so no message is available]";
-	}
+	return -1;
 }

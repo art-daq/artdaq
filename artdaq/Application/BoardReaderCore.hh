@@ -1,15 +1,17 @@
-#ifndef artdaq_Application_MPI2_BoardReaderCore_hh
-#define artdaq_Application_MPI2_BoardReaderCore_hh
-
-#include <string>
+#ifndef ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
+#define ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
 
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
+
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
+
+#include <string>
 
 namespace artdaq {
 class BoardReaderCore;
@@ -24,9 +26,11 @@ class artdaq::BoardReaderCore
 public:
 	static const std::string FRAGMENTS_PROCESSED_STAT_KEY;  ///< Key for the Fragments Processed MonitoredQuantity
 	static const std::string INPUT_WAIT_STAT_KEY;           ///< Key for the Input Wait MonitoredQuantity
-	static const std::string BRSYNC_WAIT_STAT_KEY;          ///< Key for the Sync Wait MonitoredQuantity
-	static const std::string OUTPUT_WAIT_STAT_KEY;          ///< Key for the Output Wait MonitoredQuantity
-	static const std::string FRAGMENTS_PER_READ_STAT_KEY;   ///< Key for the Fragments Per Read MonitoredQuantity
+	static const std::string BUFFER_WAIT_STAT_KEY;
+	static const std::string REQUEST_WAIT_STAT_KEY;
+	static const std::string BRSYNC_WAIT_STAT_KEY;         ///< Key for the Sync Wait MonitoredQuantity
+	static const std::string OUTPUT_WAIT_STAT_KEY;         ///< Key for the Output Wait MonitoredQuantity
+	static const std::string FRAGMENTS_PER_READ_STAT_KEY;  ///< Key for the Fragments Per Read MonitoredQuantity
 
 	/**
 	 * \brief BoardReaderCore Constructor
@@ -49,6 +53,8 @@ public:
 	 * \return BoardReaderCore copy
 	 */
 	BoardReaderCore& operator=(BoardReaderCore const&) = delete;
+	BoardReaderCore(BoardReaderCore&&) = delete;
+	BoardReaderCore& operator=(BoardReaderCore&&) = delete;
 
 	/**
 	 * \brief Initialize the BoardReaderCore
@@ -132,11 +138,17 @@ public:
 
 	/**
 	 * \brief Main working loop of the BoardReaderCore
-	 * \return Number of Fragments generated
 	 * 
-	 * This loop calls the CommandableFragmentGenerator::getNext method, then sends each Fragment using DataSenderManager.
+	 * This loop calls the CommandableFragmentGenerator::getNext method and gives the result to the FragmentBuffer
 	 */
-	void process_fragments();
+	void receive_fragments();
+
+	/**
+	 * @brief Main working loop of the BoardReaderCore, pt. 2
+	 *
+	 * This loop calls the FragmentBuffer::applyRequests method and sends the result using DataSenderManager
+	*/
+	void send_fragments();
 
 	/**
 	 * \brief Send a report on a given run-time quantity
@@ -171,6 +183,8 @@ public:
 private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
+	std::unique_ptr<RequestReceiver> request_receiver_ptr_;
+	std::unique_ptr<FragmentBuffer> fragment_buffer_ptr_;
 	art::RunID run_id_;
 
 	fhicl::ParameterSet data_pset_;
@@ -194,4 +208,4 @@ private:
 	bool verbose_;  ///< Whether to log transition messages
 };
 
-#endif /* artdaq_Application_MPI2_BoardReaderCore_hh */
+#endif  // ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_

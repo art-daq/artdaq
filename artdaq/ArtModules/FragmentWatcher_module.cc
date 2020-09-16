@@ -59,15 +59,20 @@ public:
 	/**
 	 * \brief Virtual Destructor. Shuts down MetricManager if one is present
 	 */
-	virtual ~FragmentWatcher();
+	~FragmentWatcher() override;
 
 	/**
    * \brief Analyze each event, using the configured mode bitmask
    * \param evt art::Event to analyze
    */
-	virtual void analyze(art::Event const& evt);
+	void analyze(art::Event const& evt) override;
 
 private:
+	FragmentWatcher(FragmentWatcher const&) = delete;
+	FragmentWatcher(FragmentWatcher&&) = delete;
+	FragmentWatcher& operator=(FragmentWatcher const&) = delete;
+	FragmentWatcher& operator=(FragmentWatcher&&) = delete;
+
 	std::bitset<3> mode_bitset_;
 	int metrics_reporting_level_;
 
@@ -173,7 +178,25 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 		}
 	}
 
-	// common reporting
+	// provide diagnostic TRACE message(s) about this event
+	TLOG(TLVL_TRACE) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event << ", missing_fragments="
+	                 << missing_fragments << ", empty_fragments=" << empty_fragment_count_this_event << " (" << events_processed_
+	                 << " events processed)";
+	if (!empty_fragmentID_list_this_event.empty())
+	{
+		std::ostringstream oss;
+		bool firstLoop = true;
+		for (auto const& fragID : empty_fragmentID_list_this_event)
+		{
+			if (!firstLoop) { oss << ", "; }
+			oss << fragID;
+			firstLoop = false;
+		}
+		TLOG(TLVL_WARNING) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event
+		                   << ", fragmentIDs for empty_fragments: " << oss.str();
+	}
+
+	// common metric reporting for multiple modes
 	if (metricMan != nullptr && (mode_bitset_.test(BASIC_COUNTS_MODE) || mode_bitset_.test(FRACTIONAL_COUNTS_MODE)))
 	{
 		metricMan->sendMetric("EventsProcessed", events_processed_, "events", metrics_reporting_level_,
@@ -343,4 +366,4 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 #endif
 }
 
-DEFINE_ART_MODULE(artdaq::FragmentWatcher)
+DEFINE_ART_MODULE(artdaq::FragmentWatcher)  // NOLINT(performance-unnecessary-value-param)
