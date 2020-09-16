@@ -4,9 +4,9 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
+#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
 
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"

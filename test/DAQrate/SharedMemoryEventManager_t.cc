@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 2);
-	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	frag->setFragmentID(2);
 	hdr = GetHeader(frag);

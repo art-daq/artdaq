@@ -59,10 +59,10 @@ struct artdaq::detail::RoutingPacketEntry
  */
 struct artdaq::detail::RoutingPacketHeader
 {
-	uint32_t header{0};                                  ///< Magic bytes to make sure the packet wasn't garbled
+	uint32_t header{0};                                    ///< Magic bytes to make sure the packet wasn't garbled
 	RoutingManagerMode mode{RoutingManagerMode::INVALID};  ///< The current mode of the RoutingManager
-	size_t nEntries{0};                                  ///< The number of RoutingPacketEntries in the RoutingPacket
-	std::bitset<1024> already_acknowledged_ranks{0};     ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
+	size_t nEntries{0};                                    ///< The number of RoutingPacketEntries in the RoutingPacket
+	std::bitset<1024> already_acknowledged_ranks{0};       ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
 
 	/**
 	 * \brief Construct a RoutingPacketHeader declaring a given number of entries

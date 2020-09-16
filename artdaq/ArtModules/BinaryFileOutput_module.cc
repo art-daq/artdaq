@@ -201,7 +201,7 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
 			TLOG(TLVL_TRACE) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " "
-			                 << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			                 << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 			                 << fragment.sizeBytes() << " start";
 			if (do_direct_)
 			{
@@ -227,4 +227,4 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 #endif
 }
 
-DEFINE_ART_MODULE(art::BinaryFileOutput)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(art::BinaryFileOutput)  // NOLINT(performance-unnecessary-value-param)
