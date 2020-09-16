@@ -7,8 +7,7 @@ namespace bpo = boost::program_options;
 #include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/make_ParameterSet.h"
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("PrintSharedMemory");
 
