@@ -29,7 +29,7 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #define BOOST_TEST_MODULE shared_memory_reader_t
-#include <boost/test/auto_unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include <iostream>
 #include <memory>
