@@ -28,7 +28,7 @@ int ResolveHost(char const* host_in, in_addr& addr);
 * \param[out] addr in_addr object populated with interface IP
 * \return 0 if success, -1 if gethostbyname fails, 2 if defaulted to 0.0.0.0 (No matching interfaces)
 */
-int GetIPOfInterface(std::string interface_name, in_addr& addr);
+int GetIPOfInterface(const std::string& interface_name, in_addr& addr);
 /**
 * \brief Pick a private IP address on this host
 * \param[out] addr in_addr object populated with resolved host
@@ -65,6 +65,6 @@ int ResolveHost(char const* host_in, int dflt_port, sockaddr_in& sin);
  * \param sndbufsiz Size of the send buffer. Set to 0 for automatic send buffer management
  * \return File descriptor of connected socket.
  */
-int TCPConnect(char const* host_in, int dflt_port, long flags = 0, int sndbufsiz = 0);
+int TCPConnect(char const* host_in, int dflt_port, int64_t flags = 0, int sndbufsiz = 0);
 
 #endif  // TCPConnect_hh

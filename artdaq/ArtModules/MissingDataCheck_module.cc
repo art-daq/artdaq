@@ -57,7 +57,7 @@ public:
 	/**
    * \brief Default virtual Destructor
    */
-	virtual ~MissingDataCheck() = default;
+	~MissingDataCheck() override = default;
 
 	/**
    * \brief This method is called for each art::Event in a file or run
@@ -72,6 +72,11 @@ public:
 	void endJob() override;
 
 private:
+	MissingDataCheck(MissingDataCheck const&) = delete;
+	MissingDataCheck(MissingDataCheck&&) = delete;
+	MissingDataCheck& operator=(MissingDataCheck const&) = delete;
+	MissingDataCheck& operator=(MissingDataCheck&&) = delete;
+
 	std::string raw_data_label_;
 	int expected_n_fragments_;
 	int verbosity_;
@@ -151,12 +156,14 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 
 	//print basic run info
 	if (verbosity_ > 2)
+	{
 		std::cout << "Processing:"
 		          << "  Run " << e.run()
 		          << ", Subrun " << e.subRun()
 		          << ", Event " << e.event()
 		          << " (Time=" << e.time().timeHigh() << " " << e.time().timeLow() << ")"
 		          << std::endl;
+	}
 
 	//get all the artdaq fragment collections in the event.
 	std::vector<art::Handle<std::vector<artdaq::Fragment> > > fragmentHandles;
@@ -169,8 +176,10 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 		if (verbosity_ > 2)
 		{
 			for (auto const& h : fragmentHandles)
+			{
 				std::cout << "\t\tCollection " << h.provenance()->productInstanceName()
 				          << ":\t" << h->size() << " fragments." << std::endl;
+			}
 		}
 	}
 
@@ -181,12 +190,16 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 	{
 		total_n_frags_ += h->size();
 		for (auto const& f : *h)
+		{
 			total_data_size_ += f.dataSizeBytes();
+		}
 	}
 
 	//first time through, if this is -1, set it to total fragments seen
 	if (expected_n_fragments_ == -1)
+	{
 		expected_n_fragments_ = total_n_frags_;
+	}
 
 	if (verbosity_ > 2)
 	{
@@ -232,7 +245,9 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 				if (instance_name.compare(0, 4, "Data") == 0 ||
 				    instance_name.compare(0, 5, "Error") == 0 ||
 				    instance_name.compare(0, 6, "Broken") == 0)
+				{
 					++total_n_frags_broken_;
+				}
 
 				frag_id_ = f.fragmentID();
 				seq_id_ = f.sequenceID();
@@ -295,7 +310,7 @@ void artdaq::MissingDataCheck::endJob()
 				for (int i = 0; i < evtree_->GetEntries(); ++i)
 				{
 					evtree_->GetEvent(i);
-					if ((int)n_frag < n_frag_exp)
+					if (static_cast<int>(n_frag) < n_frag_exp)
 					{
 						std::cout << "\tEvent (" << run << "," << subrun << "," << event << ")"
 						          << " is missing " << n_frag_exp - n_frag << " fragments."
@@ -345,4 +360,4 @@ void artdaq::MissingDataCheck::endJob()
 	}
 }
 
-DEFINE_ART_MODULE(artdaq::MissingDataCheck)
+DEFINE_ART_MODULE(artdaq::MissingDataCheck)  // NOLINT(performance-unnecessary-value-param)

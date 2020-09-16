@@ -58,6 +58,11 @@ public:
 	std::shared_ptr<artdaq::detail::RawEventHeader> getEventHeader() { return hdr_ptr_; }
 
 private:
+	ShmemWrapper(ShmemWrapper const&) = delete;
+	ShmemWrapper(ShmemWrapper&&) = delete;
+	ShmemWrapper& operator=(ShmemWrapper const&) = delete;
+	ShmemWrapper& operator=(ShmemWrapper&&) = delete;
+
 	fhicl::ParameterSet data_pset_;
 	bool init_received_;
 	double init_timeout_s_;
