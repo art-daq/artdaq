@@ -7,7 +7,6 @@
 #include <fhiclcpp/ParameterSet.h>
 #include <signal.h>
 
-
 namespace art {
 class ShmemNetOutput;
 }
@@ -52,7 +51,7 @@ private:
 
 art::ShmemNetOutput::ShmemNetOutput(fhicl::ParameterSet const& pset)
     : ArtdaqOutput(pset)
-	, events_(pset.get<uint32_t>("shared_memory_key", 0xEEEE0000 + pset.get<uint16_t>("shared_memory_id", getpid())),
+    , events_(pset.get<uint32_t>("shared_memory_key", 0xEEEE0000 + pset.get<uint16_t>("shared_memory_id", getpid())),
               pset.get<size_t>("buffer_count", 10),
               pset.get<size_t>("max_event_size_bytes"),
               pset.get<size_t>("stale_buffer_timeout_usec", 5000000),
@@ -107,7 +106,6 @@ void art::ShmemNetOutput::SendMessage(artdaq::FragmentPtr& fragment)
 		TLOG(TLVL_ERROR) << "Error communicating with remote after " << retries << " tries. Closing art process";
 		kill(getpid(), SIGUSR2);
 	}
-
 }
 
 bool art::ShmemNetOutput::writeFragment_(artdaq::SharedMemoryManager* shm, artdaq::FragmentPtr& frag)
