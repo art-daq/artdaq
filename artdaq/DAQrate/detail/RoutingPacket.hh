@@ -18,9 +18,9 @@ struct RoutingAckPacket;
 struct RoutingToken;
 
 /**
-		 * \brief Mode indicating whether the RoutingMaster is routing events by Sequence ID or by Send Count
+		 * \brief Mode indicating whether the RoutingManager is routing events by Sequence ID or by Send Count
 		 */
-enum class RoutingMasterMode : uint8_t
+enum class RoutingManagerMode : uint8_t
 {
 	RouteBySequenceID,  ///< Events should be routed by sequence ID (BR -> EB)
 	RouteBySendCount,   ///< Events should be routed by send count (EB -> Agg)
@@ -36,8 +36,7 @@ struct artdaq::detail::RoutingPacketEntry
 	/**
 	 * \brief Default Constructor
 	 */
-	RoutingPacketEntry()
-	    : sequence_id(Fragment::InvalidSequenceID), destination_rank(-1) {}
+	RoutingPacketEntry() {}
 	/**
 	 * \brief Construct a RoutingPacketEntry with the given sequence ID and destination rank
 	 * \param seq The sequence ID of the RoutingPacketEntry
@@ -45,8 +44,9 @@ struct artdaq::detail::RoutingPacketEntry
 	 */
 	RoutingPacketEntry(Fragment::sequence_id_t seq, int rank)
 	    : sequence_id(seq), destination_rank(rank) {}
-	Fragment::sequence_id_t sequence_id;  ///< The sequence ID of the RoutingPacketEntry
-	int destination_rank;                 ///< The destination rank for this sequence ID
+
+	Fragment::sequence_id_t sequence_id{Fragment::InvalidSequenceID};  ///< The sequence ID of the RoutingPacketEntry
+	int destination_rank{-1};                                          ///< The destination rank for this sequence ID
 };
 
 /**
@@ -59,23 +59,22 @@ struct artdaq::detail::RoutingPacketEntry
  */
 struct artdaq::detail::RoutingPacketHeader
 {
-	uint32_t header;                               ///< Magic bytes to make sure the packet wasn't garbled
-	RoutingMasterMode mode;                        ///< The current mode of the RoutingMaster
-	size_t nEntries;                               ///< The number of RoutingPacketEntries in the RoutingPacket
-	std::bitset<1024> already_acknowledged_ranks;  ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
+	uint32_t header{0};                                    ///< Magic bytes to make sure the packet wasn't garbled
+	RoutingManagerMode mode{RoutingManagerMode::INVALID};  ///< The current mode of the RoutingManager
+	size_t nEntries{0};                                    ///< The number of RoutingPacketEntries in the RoutingPacket
+	std::bitset<1024> already_acknowledged_ranks{0};       ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
 
 	/**
 	 * \brief Construct a RoutingPacketHeader declaring a given number of entries
-	 * \param m The RoutingMasterMode that senders are supposed to be operating in
+	 * \param m The RoutingManagerMode that senders are supposed to be operating in
 	 * \param n The number of RoutingPacketEntries in the associated RoutingPacket
 	 */
-	explicit RoutingPacketHeader(RoutingMasterMode m, size_t n)
+	explicit RoutingPacketHeader(RoutingManagerMode m, size_t n)
 	    : header(ROUTING_MAGIC), mode(m), nEntries(n) {}
 	/**
 	 * \brief Default Constructor
 	 */
-	RoutingPacketHeader()
-	    : header(0), mode(RoutingMasterMode::INVALID), nEntries(0), already_acknowledged_ranks(0) {}
+	RoutingPacketHeader() {}
 };
 
 /**
@@ -86,6 +85,20 @@ struct artdaq::detail::RoutingAckPacket
 	int rank;                                   ///< The rank from which the RoutingAckPacket came
 	Fragment::sequence_id_t first_sequence_id;  ///< The first sequence ID in the received RoutingPacket
 	Fragment::sequence_id_t last_sequence_id;   ///< The last sequence ID in the received RoutingPacket
+
+	static RoutingAckPacket makeEndOfDataRoutingAckPacket(int rank)
+	{
+		RoutingAckPacket out;
+		out.rank = rank;
+		out.first_sequence_id = -3;
+		out.last_sequence_id = -2;
+		return out;
+	}
+
+	static bool isEndOfDataRoutingAckPacket(RoutingAckPacket pkt)
+	{
+		return pkt.first_sequence_id == static_cast<Fragment::sequence_id_t>(-3) && pkt.last_sequence_id == static_cast<Fragment::sequence_id_t>(-2);
+	}
 };
 
 /**

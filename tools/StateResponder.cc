@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("commandable");
 
@@ -22,4 +22,10 @@ int main(int argc, char* argv[])
 
 	auto commander = artdaq::MakeCommanderPlugin(config, commandable);
 	commander->run_server();
+
+	return 0;
+}
+catch (...)
+{
+	return -1;
 }

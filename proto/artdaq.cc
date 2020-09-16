@@ -1,7 +1,7 @@
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "proto/artdaqapp.hh"
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
 	struct Config
 	{
@@ -29,4 +29,10 @@ int main(int argc, char* argv[])
 		}
 	}
 	artdaq::artdaqapp::runArtdaqApp(task, config_ps);
+
+	return 0;
+}
+catch (...)
+{
+	return -1;
 }
