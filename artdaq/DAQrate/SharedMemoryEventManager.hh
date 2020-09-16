@@ -27,7 +27,7 @@ public:
 		 * \brief art_config_file Constructor
 		 * \param ps ParameterSet to write to temporary file
 		 */
-	art_config_file(fhicl::ParameterSet ps /*, uint32_t shm_key, uint32_t broadcast_key*/)
+	explicit art_config_file(fhicl::ParameterSet const& ps /*, uint32_t shm_key, uint32_t broadcast_key*/)
 	    : dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
 	    , file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 	{
@@ -56,7 +56,7 @@ public:
 		//	of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
 		//	of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
 		//}
-		if (!ps.has_key("services.message"))
+		if (!ps.has_key("services") || !ps.has_key("services.message"))
 		{
 			of << " services.message: { " << generateMessageFacilityConfiguration("art") << "} ";
 		}
@@ -77,6 +77,11 @@ public:
 	std::string getFileName() const { return file_name_; }
 
 private:
+	art_config_file(art_config_file const&) = delete;
+	art_config_file(art_config_file&&) = delete;
+	art_config_file& operator=(art_config_file const&) = delete;
+	art_config_file& operator=(art_config_file&&) = delete;
+
 	std::string dir_name_;
 	std::string file_name_;
 };
@@ -167,7 +172,7 @@ public:
 		 * \param pset ParameterSet used to configure SharedMemoryEventManager. See artdaq::SharedMemoryEventManager::Config for description of parameters
 		 * \param art_pset ParameterSet used to configure art. See art::Config for description of expected document format
 		 */
-	SharedMemoryEventManager(fhicl::ParameterSet pset, fhicl::ParameterSet art_pset);
+	SharedMemoryEventManager(const fhicl::ParameterSet& pset, fhicl::ParameterSet art_pset);
 	/**
 		 * \brief SharedMemoryEventManager Destructor
 		 */
@@ -249,7 +254,7 @@ public:
 	/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 		 */
-	void RunArt(std::shared_ptr<art_config_file> config_file, std::shared_ptr<std::atomic<pid_t>> pid_out);
+	void RunArt(const std::shared_ptr<art_config_file>& config_file, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
 		 * \brief Start all the art processes
 		 */
@@ -392,6 +397,11 @@ public:
 	subrun_id_t GetCurrentSubrun() { return GetSubrunForSequenceID(Fragment::InvalidSequenceID); }
 
 private:
+	SharedMemoryEventManager(SharedMemoryEventManager const&) = delete;
+	SharedMemoryEventManager(SharedMemoryEventManager&&) = delete;
+	SharedMemoryEventManager& operator=(SharedMemoryEventManager const&) = delete;
+	SharedMemoryEventManager& operator=(SharedMemoryEventManager&&) = delete;
+
 	size_t get_art_process_count_()
 	{
 		std::unique_lock<std::mutex> lk(art_process_mutex_);

@@ -12,6 +12,8 @@
 class ArtdaqSharedMemoryServiceInterface
 {
 public:
+	ArtdaqSharedMemoryServiceInterface() = default;
+
 	/**
 	 * \brief Default virtual destructor
 	 */
@@ -41,6 +43,12 @@ public:
 	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
 	 */
 	virtual std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() = 0;
+
+private:
+	ArtdaqSharedMemoryServiceInterface(ArtdaqSharedMemoryServiceInterface const&) = delete;
+	ArtdaqSharedMemoryServiceInterface(ArtdaqSharedMemoryServiceInterface&&) = delete;
+	ArtdaqSharedMemoryServiceInterface& operator=(ArtdaqSharedMemoryServiceInterface const&) = delete;
+	ArtdaqSharedMemoryServiceInterface& operator=(ArtdaqSharedMemoryServiceInterface&&) = delete;
 };
 
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqSharedMemoryServiceInterface, LEGACY)
@@ -103,6 +111,12 @@ public:
 	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
 	 */
 	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() override { return evtHeader_; }
+
+private:
+	ArtdaqSharedMemoryService(ArtdaqSharedMemoryService const&) = delete;
+	ArtdaqSharedMemoryService(ArtdaqSharedMemoryService&&) = delete;
+	ArtdaqSharedMemoryService& operator=(ArtdaqSharedMemoryService const&) = delete;
+	ArtdaqSharedMemoryService& operator=(ArtdaqSharedMemoryService&&) = delete;
 
 private:
 	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;

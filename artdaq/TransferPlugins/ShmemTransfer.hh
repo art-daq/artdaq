@@ -57,7 +57,7 @@ public:
 		 * \param wordCount Number of words of Fragment data to receive
 		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 		*/
-	int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
+	int receiveFragmentData(RawDataType* destination, size_t word_count) override;
 
 	/**
 		* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
@@ -87,6 +87,11 @@ public:
 	void flush_buffers() override;
 
 private:
+	ShmemTransfer(ShmemTransfer const&) = delete;
+	ShmemTransfer(ShmemTransfer&&) = delete;
+	ShmemTransfer& operator=(ShmemTransfer const&) = delete;
+	ShmemTransfer& operator=(ShmemTransfer&&) = delete;
+
 	CopyStatus sendFragment(Fragment&& fragment,
 	                        size_t send_timeout_usec, bool reliable = false);
 

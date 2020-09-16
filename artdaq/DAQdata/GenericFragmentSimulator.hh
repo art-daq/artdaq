@@ -103,7 +103,7 @@ public:
 	}
 
 private:
-	bool getNext_(FragmentPtrs& output);
+	bool getNext_(FragmentPtrs& frags);
 
 	std::vector<Fragment::fragment_id_t> fragmentIDs_();
 
