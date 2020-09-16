@@ -28,8 +28,8 @@ public:
 	static const std::string INPUT_WAIT_STAT_KEY;           ///< Key for the Input Wait MonitoredQuantity
 	static const std::string BUFFER_WAIT_STAT_KEY;
 	static const std::string REQUEST_WAIT_STAT_KEY;
-	static const std::string OUTPUT_WAIT_STAT_KEY;          ///< Key for the Output Wait MonitoredQuantity
-	static const std::string FRAGMENTS_PER_READ_STAT_KEY;   ///< Key for the Fragments Per Read MonitoredQuantity
+	static const std::string OUTPUT_WAIT_STAT_KEY;         ///< Key for the Output Wait MonitoredQuantity
+	static const std::string FRAGMENTS_PER_READ_STAT_KEY;  ///< Key for the Fragments Per Read MonitoredQuantity
 
 	/**
 	 * \brief BoardReaderCore Constructor
