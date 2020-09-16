@@ -10,7 +10,6 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
 
 #include <iostream>
 #include <limits>
@@ -38,8 +37,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 
 int do_check(const artdaq::Fragment& frag);
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	if (argc != 2)
 	{

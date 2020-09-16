@@ -3,8 +3,8 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/BoardReaderApp.hh"
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DispatcherApp.hh"
@@ -70,7 +70,7 @@ public:
 		std::string mf_app_name = artdaq::setMsgFacAppName(app_name, config_ps.get<int>("id"));
 		try
 		{
-		artdaq::configureMessageFacility(mf_app_name.c_str());
+			artdaq::configureMessageFacility(mf_app_name.c_str());
 		}
 		catch (cet::exception const&)
 		{

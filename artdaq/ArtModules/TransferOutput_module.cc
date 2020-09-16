@@ -98,4 +98,4 @@ void art::TransferOutput::SendMessage(artdaq::FragmentPtr& fragment)
 #endif
 }
 
-DEFINE_ART_MODULE(art::TransferOutput)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(art::TransferOutput)  // NOLINT(performance-unnecessary-value-param)

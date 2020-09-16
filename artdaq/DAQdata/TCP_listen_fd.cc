@@ -42,13 +42,13 @@ int TCP_listen_fd(int port, int rcvbuf)
 		return (2);
 	}
 
-	memset(static_cast<void*>(&sin), 0, sizeof(sin));
+	memset(static_cast<void *>(&sin), 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = INADDR_ANY;
 
 	//printf( "bind..." );fflush(stdout);
-	sts = bind(listener_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	sts = bind(listener_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
 		TLOG(TLVL_ERROR) << "Could not bind socket for port " << port << "! Exiting with code 3!";
