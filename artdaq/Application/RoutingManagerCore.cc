@@ -11,7 +11,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 
-#include "artdaq/DAQdata/Globals.hh"                          // include these 2 first to get tracemf.h -
+#include "artdaq/DAQdata/Globals.hh"                           // include these 2 first to get tracemf.h -
 #define TRACE_NAME (app_name + "_RoutingManagerCore").c_str()  // before trace.h
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
