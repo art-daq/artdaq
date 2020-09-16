@@ -2,7 +2,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME (app_name + "_BoardReaderApp").c_str() // NOLINT
+#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()  // NOLINT
 
 #include <memory>
 #include <string>
@@ -97,7 +97,6 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		TLOG(TLVL_DEBUG) << "Joining fragment output (Sender) thread";
 		fragment_output_thread_.join();
 	}
-
 
 	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
 	int number_of_fragments_sent = -1;
@@ -223,8 +222,8 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 	{
 		if (report_string_.length() > 0) { return report_string_; }
 
-			return "Success";
-		}
+		return "Success";
+	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that

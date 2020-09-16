@@ -144,4 +144,4 @@ void art::RootNetOutput::disconnect()
 	}
 }
 
-DEFINE_ART_MODULE(art::RootNetOutput)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(art::RootNetOutput)  // NOLINT(performance-unnecessary-value-param)
