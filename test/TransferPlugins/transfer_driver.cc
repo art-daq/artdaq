@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) try
 	}
 
 	std::string rankString(argv[1]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	my_rank = std::stoi(rankString); 
+	my_rank = std::stoi(rankString);
 
 	cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
 	fhicl::ParameterSet ps;
