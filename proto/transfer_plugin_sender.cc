@@ -39,8 +39,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 	return pset;
 }
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	if (argc != 4)
 	{

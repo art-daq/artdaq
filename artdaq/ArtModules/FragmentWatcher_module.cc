@@ -302,4 +302,4 @@ event_builder_snapshot : {
 #endif
 }
 
-DEFINE_ART_MODULE(artdaq::FragmentWatcher)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(artdaq::FragmentWatcher)  // NOLINT(performance-unnecessary-value-param)
