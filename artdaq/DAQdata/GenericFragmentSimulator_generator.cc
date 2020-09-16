@@ -67,7 +67,7 @@ bool artdaq::GenericFragmentSimulator::
 			            0xDEADBEEFDEADBEEF);
 			break;
 		default:
-			throw cet::exception("UnknownContentSelection") // NOLINT(cert-err60-cpp)
+			throw cet::exception("UnknownContentSelection")  // NOLINT(cert-err60-cpp)
 			    << "Unknown content selection: "
 			    << static_cast<uint8_t>(content_selection_);
 	}

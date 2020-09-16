@@ -1,7 +1,7 @@
 #define TRACE_NAME "ArtdaqSharedMemoryService"
 
-#include <memory>
 #include <cstdint>
+#include <memory>
 
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
@@ -104,8 +104,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		if (errflag || hdrPtr == nullptr)
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
-			continue;//retry
-			//return recvd_fragments;
+			continue;  //retry
+			           //return recvd_fragments;
 		}
 		evtHeader_ = std::make_shared<artdaq::detail::RawEventHeader>(*hdrPtr);
 		TLOG(TLVL_TRACE) << "ReceiveEvent: Getting Fragment types";
@@ -114,7 +114,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
 			continue;  //retry
-			//return recvd_fragments;
+			           //return recvd_fragments;
 		}
 		if (fragmentTypes.empty())
 		{
