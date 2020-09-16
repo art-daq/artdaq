@@ -174,8 +174,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 		std::lock_guard<std::mutex> dlk(dataBuffer->DataBufferMutex);
 		switch (mode_)
 		{
-			case RequestMode::Single:
-			{
+			case RequestMode::Single: {
 				auto dataIter = type_it->second.rbegin();
 				TLOG(TLVL_TRACE) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 				dataBuffer->DataBuffer.clear();
@@ -669,6 +668,14 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode(artdaq::FragmentPtrs& frags
 			req = requests.erase(req);
 		}
 		if (requests.size() == 0) break;
+
+		auto ts = req->second;
+		if (ts == Fragment::InvalidTimestamp)
+		{
+			TLOG(TLVL_ERROR) << "applyRequestsWindowMode: Received InvalidTimestamp in request " << req->first << ", cannot apply! Check that push-mode BRs are filling appropriate timestamps in their Fragments!";
+			req = requests.erase(req);
+			continue;
+		}
 
 		for (auto& id : dataBuffers_)
 		{
