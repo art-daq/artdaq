@@ -56,7 +56,7 @@ public:
 		//	of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
 		//	of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
 		//}
-		if (!ps.has_key("services.message"))
+		if (!ps.has_key("services") || !ps.has_key("services.message"))
 		{
 			of << " services.message: { " << generateMessageFacilityConfiguration("art") << "} ";
 		}

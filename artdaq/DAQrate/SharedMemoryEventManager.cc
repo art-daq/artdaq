@@ -803,7 +803,6 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	released_events_.clear();
 	released_incomplete_events_.clear();
 
-
 	TLOG(TLVL_DEBUG) << "endOfData END";
 	TLOG(TLVL_INFO) << "EndOfData Complete. There were " << GetLastSeenBufferID() << " buffers processed.";
 	return true;

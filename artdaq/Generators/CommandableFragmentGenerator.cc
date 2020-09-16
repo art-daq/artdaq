@@ -78,8 +78,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 			throw cet::exception(latest_exception_report_);
 		}
 
-			fragment_ids.emplace_back(fragment_id);
-		}
+		fragment_ids.emplace_back(fragment_id);
+	}
 
 	for (auto& id : fragment_ids)
 	{
@@ -136,47 +136,48 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 	try
 	{
 		std::lock_guard<std::mutex> lk(mutex_);
-			if (!isHardwareOK_)
+		if (!isHardwareOK_)
+		{
+			TLOG(TLVL_ERROR) << "Stopping CFG because the hardware reports bad status!";
+			return false;
+		}
+		TLOG(TLVL_TRACE) << "getNext: Calling getNext_ w/ ev_counter()=" << ev_counter();
+		try
+		{
+			result = getNext_(output);
+		}
+		catch (...)
+		{
+			throw;
+		}
+		TLOG(TLVL_TRACE) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
+		for (auto& dataIter : output)
+		{
+			TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << dataIter->sequenceID()
+			                           << ", type = " << dataIter->typeString() << ", id = " << std::to_string(dataIter->fragmentID())
+			                           << ", timestamp = " << dataIter->timestamp() << ", and sizeBytes = " << dataIter->sizeBytes();
+
+			auto fragId = dataIter->fragmentID();
+			auto type = dataIter->type();
+
+			// ELF, 2020 July 16: System Fragments are excluded from these checks
+			if (Fragment::isSystemFragmentType(type))
 			{
-				TLOG(TLVL_ERROR) << "Stopping CFG because the hardware reports bad status!";
+				continue;
+			}
+
+			if (!expectedTypes_.count(fragId))
+			{
+				TLOG(TLVL_ERROR) << "Received Fragment with Fragment ID " << fragId << ", which is not in the declared list of Fragment IDs! Aborting!";
 				return false;
 			}
-			TLOG(TLVL_TRACE) << "getNext: Calling getNext_ w/ ev_counter()=" << ev_counter();
-			try
+			if (expectedTypes_[fragId] == Fragment::EmptyFragmentType)
+				expectedTypes_[fragId] = type;
+			else if (expectedTypes_[fragId] != type)
 			{
-				result = getNext_(output);
+				TLOG(TLVL_WARNING) << "Received Fragment with Fragment ID " << fragId << " and type " << dataIter->typeString() << "(" << type << "), which does not match expected type for this ID (" << expectedTypes_[fragId] << ")";
 			}
-			catch (...)
-			{
-				throw;
-			}
-			TLOG(TLVL_TRACE) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
-			for (auto& dataIter : output)
-			{
-				TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << dataIter->sequenceID()
-				                           << ", type = " << dataIter->typeString() << ", id = " << std::to_string(dataIter->fragmentID())
-				                           << ", timestamp = " << dataIter->timestamp() << ", and sizeBytes = " << dataIter->sizeBytes();
-
-				auto fragId = dataIter->fragmentID();
-				auto type = dataIter->type();
-
-				// ELF, 2020 July 16: System Fragments are excluded from these checks
-				if (Fragment::isSystemFragmentType(type)) {
-				    continue;
-				}
-
-				if (!expectedTypes_.count(fragId))
-				{
-					TLOG(TLVL_ERROR) << "Received Fragment with Fragment ID " << fragId << ", which is not in the declared list of Fragment IDs! Aborting!";
-					return false;
-				}
-				if (expectedTypes_[fragId] == Fragment::EmptyFragmentType)
-					expectedTypes_[fragId] = type;
-				else if (expectedTypes_[fragId] != type)
-				{
-					TLOG(TLVL_WARNING) << "Received Fragment with Fragment ID " << fragId << " and type " << dataIter->typeString() << "(" << type << "), which does not match expected type for this ID (" << expectedTypes_[fragId] << ")";
-				}
-			}
+		}
 	}
 	catch (const cet::exception& e)
 	{
