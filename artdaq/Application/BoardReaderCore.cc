@@ -11,8 +11,8 @@
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
-#include <thread>
 #include <memory>
+#include <thread>
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 
@@ -22,7 +22,7 @@ const std::string artdaq::BoardReaderCore::
     INPUT_WAIT_STAT_KEY("BoardReaderCoreInputWaitTime");
 const std::string artdaq::BoardReaderCore::BUFFER_WAIT_STAT_KEY("BoardReaderCoreBufferWaitTime");
 const std::string artdaq::BoardReaderCore::REQUEST_WAIT_STAT_KEY("BoardReaderCoreRequestWaitTime");
-    const std::string artdaq::BoardReaderCore::
+const std::string artdaq::BoardReaderCore::
     BRSYNC_WAIT_STAT_KEY("BoardReaderCoreBRSyncWaitTime");
 const std::string artdaq::BoardReaderCore::
     OUTPUT_WAIT_STAT_KEY("BoardReaderCoreOutputWaitTime");
@@ -163,7 +163,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	{
 		std::stringstream exception_string;
 		exception_string << "Exception thrown during initialization of Fragment Buffer";
-	
+
 		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
 
 		TLOG(TLVL_DEBUG) << "FHiCL parameter set used to initialize the fragment buffer which threw an exception: " << fr_pset.to_string();
@@ -186,7 +186,6 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 		TLOG(TLVL_DEBUG) << "FHiCL parameter set used to initialize the request receiver which threw an exception: " << fr_pset.to_string();
 
 		return false;
-
 	}
 	metricMan->setPrefix(generator_ptr_->metricsReportingInstanceName());
 
@@ -343,7 +342,8 @@ void artdaq::BoardReaderCore::receive_fragments()
 	{
 		usleep(10000);
 	}
-	if (!running_) {
+	if (!running_)
+	{
 		TLOG(TLVL_ERROR) << "Timeout (" << start_transition_timeout_ << " s) while waiting for Start after receive_fragments thread started!";
 		receiver_thread_active_ = false;
 	}
@@ -368,7 +368,6 @@ void artdaq::BoardReaderCore::receive_fragments()
 		}
 
 		after_input = artdaq::MonitoredQuantity::getCurrentTime();
-
 
 		if (!receiver_thread_active_) { break; }
 		statsHelper_.addSample(FRAGMENTS_PER_READ_STAT_KEY, frags.size());
@@ -617,20 +616,20 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 	double fragmentsOutputCount = 1.0;
 	oss << app_name << " statistics:" << std::endl;
 
-	oss    << "  Fragments read: ";
+	oss << "  Fragments read: ";
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PER_READ_STAT_KEY);
 	if (mqPtr.get() != nullptr)
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
 		oss << stats.recentSampleCount << " fragments generated at "
-		                                    << stats.recentSampleRate << " reads/sec, fragment rate = "
-		                                    << stats.recentValueRate  << " fragments/sec, monitor window = "
-		                                    << stats.recentDuration << " sec, min::max read size = "
-		                                    << stats.recentValueMin 
-		                                    << "::"
-		                                    << stats.recentValueMax 
-		                                    << " fragments";
+		    << stats.recentSampleRate << " reads/sec, fragment rate = "
+		    << stats.recentValueRate << " fragments/sec, monitor window = "
+		    << stats.recentDuration << " sec, min::max read size = "
+		    << stats.recentValueMin
+		    << "::"
+		    << stats.recentValueMax
+		    << " fragments";
 		fragmentsGeneratedCount = std::max(double(stats.recentSampleCount), 1.0);
 		oss << "  Average times per fragment: ";
 		if (stats.recentSampleRate > 0.0)
@@ -698,7 +697,6 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 		oss << ", output wait time = "
 		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
 	}
-
 
 	return oss.str();
 }

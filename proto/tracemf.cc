@@ -48,8 +48,7 @@ std::string formatTime(double time)
 	return o.str();
 }
 
-int main(int argc, char *argv[])
-try
+int main(int argc, char *argv[]) try
 {
 	std::ostringstream descstr;
 	descstr << *argv
@@ -92,7 +91,7 @@ try
 		auto start = std::chrono::steady_clock::now();
 		for (size_t l = 0; l < loops; ++l)
 		{
-			TRACE(TLVL_DEBUG, "Test TRACEC with an int %i and a float %.1f", 42, 5.56); // NOLINT
+			TRACE(TLVL_DEBUG, "Test TRACEC with an int %i and a float %.1f", 42, 5.56);  // NOLINT
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACEC test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
@@ -106,7 +105,7 @@ try
 		{
 			std::string test = "Test TRACE with an int %d";
 			std::string test2 = " and a float %.1f";
-			TRACE(TLVL_DEBUG, test + test2, 42, 5.56); // NOLINT
+			TRACE(TLVL_DEBUG, test + test2, 42, 5.56);  // NOLINT
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACES test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;
@@ -118,7 +117,7 @@ try
 		auto start = std::chrono::steady_clock::now();
 		for (size_t l = 0; l < loops; ++l)
 		{
-			TRACEN_("tracemf", TLVL_DEBUG, "Test TRACE_ with an int " << 42 << " and a float %.1f", 5.56); // NOLINT
+			TRACEN_("tracemf", TLVL_DEBUG, "Test TRACE_ with an int " << 42 << " and a float %.1f", 5.56);  // NOLINT
 		}
 		auto time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - start).count();
 		std::cout << "TRACE_ test took " << formatTime(time) << ", avg: " << formatTime(time / loops) << std::endl;

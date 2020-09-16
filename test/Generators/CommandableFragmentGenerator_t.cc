@@ -8,17 +8,17 @@
 #include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
-#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
-	do                                                                                                                           \
-	{                                                                                                                            \
+#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
+	do                                                                                                                               \
+	{                                                                                                                                \
 		if ((l) == (r))                                                                                                              \
-		{                                                                                                                        \
+		{                                                                                                                            \
 			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...YES!"; \
-		}                                                                                                                        \
-		else                                                                                                                     \
-		{                                                                                                                        \
+		}                                                                                                                            \
+		else                                                                                                                         \
+		{                                                                                                                            \
 			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...NO!";  \
-		}                                                                                                                        \
+		}                                                                                                                            \
 		BOOST_REQUIRE_EQUAL((l), (r));                                                                                               \
 	} while (false)
 
@@ -133,7 +133,6 @@ public:
 	 */
 	artdaq::Fragment::timestamp_t getTimestamp() { return ts_; }
 
-
 private:
 	std::atomic<size_t> fireCount_;
 	std::atomic<bool> hwFail_;
@@ -207,7 +206,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	TLOG(TLVL_INFO) << "Simple test case END";
 }
 
-BOOST_AUTO_TEST_CASE(WaitForStart) 
+BOOST_AUTO_TEST_CASE(WaitForStart)
 {
 	artdaq::configureMessageFacility("CommandableFragmentGenerator_t");
 	TLOG(TLVL_INFO) << "WaitForStart test case BEGIN";
@@ -298,7 +297,7 @@ BOOST_AUTO_TEST_CASE(StateMachine)
 	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
 	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
 	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 3);
-	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(),1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
 	fps.clear();
 
 	TLOG(TLVL_INFO) << "StateMachine test case END";
@@ -336,7 +335,7 @@ BOOST_AUTO_TEST_CASE(MultipleIDs)
 
 	fps.clear();
 
-	testGen.setEnabledIds(0x6); // 0110b, ID 3 disabled
+	testGen.setEnabledIds(0x6);  // 0110b, ID 3 disabled
 	testGen.setFireCount(1);
 
 	sts = testGen.getNext(fps);

@@ -5,11 +5,10 @@
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/RequestBuffer.hh"
+#include "artdaq/DAQrate/RequestReceiver.hh"
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("requestReceiver");
 
@@ -30,7 +29,6 @@ try
 	auto buffer = std::make_shared<artdaq::RequestBuffer>(tempPset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1));
 	artdaq::RequestReceiver recvr(tempPset, buffer);
 	recvr.startRequestReception();
-
 
 	while (true)
 	{

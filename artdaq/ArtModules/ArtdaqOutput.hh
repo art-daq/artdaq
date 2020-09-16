@@ -264,7 +264,7 @@ private:
 	ArtdaqOutput& operator=(ArtdaqOutput const&) = delete;
 	ArtdaqOutput& operator=(ArtdaqOutput&&) = delete;
 
-  bool initMsgSent_{false};
+	bool initMsgSent_{false};
 	ProductList productList_;
 	size_t last_fragment_size_{10};
 	artdaq::Fragment::sequence_id_t last_sequence_id_{0};
@@ -274,7 +274,7 @@ private:
 	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::timestamp_t ts, artdaq::Fragment::type_t type)
 	{
 		artdaq::NetMonHeader hdr;
-		  outputFrag = std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, my_rank, type, hdr, ts);
+		outputFrag = std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, my_rank, type, hdr, ts);
 		auto msg = std::make_unique<TBufferFile>(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar);
 		msg->SetWriteMode();
 
@@ -627,24 +627,24 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Setting Output Fragment Header Fields";
 	auto seqID = (static_cast<uint64_t>(ep.EVENT_ID().subRun() - 1) << 32) + ep.EVENT_ID().event();
 
-#if ART_HEX_VERSION > 0x30000	
+#if ART_HEX_VERSION > 0x30000
 	art::ProcessTag tag("", processName());
 	auto res = ep.getMany(art::ModuleContext::invalid(), art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector(), tag);
 #else
-	auto res = ep.getMany( art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector());
+	auto res = ep.getMany(art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector());
 #endif
-	
+
 	artdaq::Fragment::timestamp_t ts = 0;
-	
+
 	for (auto const& qr : res)
 	{
 		Handle<artdaq::detail::RawEventHeader> handle{qr};
-		if (handle.isValid()) {
+		if (handle.isValid())
+		{
 			if (handle->timestamp > ts) ts = handle->timestamp;
 		}
 	}
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Data Fragment Header Fields: SeqID: " << seqID << ", timestamp: " << ts;
-
 
 	//
 	//  Setup message buffer.

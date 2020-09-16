@@ -2,7 +2,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME (app_name + "_BoardReaderApp").c_str() // NOLINT
+#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()  // NOLINT
 
 #include <memory>
 #include <string>
@@ -45,8 +45,9 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t timestamp)
 {
 	report_string_ = "";
-	if (timeout == 0) {
-		timeout = 3600; // seconds
+	if (timeout == 0)
+	{
+		timeout = 3600;  // seconds
 	}
 	fragment_receiver_ptr_->SetStartTransitionTimeout(timeout);
 	external_request_status_ = true;
@@ -69,9 +70,10 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	auto start_wait = std::chrono::steady_clock::now();
 	while (!fragment_receiver_ptr_->GetSenderThreadActive() || !fragment_receiver_ptr_->GetReceiverThreadActive())
 	{
-		if (TimeUtils::GetElapsedTime(start_wait) > timeout) {
-			TLOG(TLVL_ERROR) << "Timeout occurred waiting for BoardReaderCore threads to start. Timeout = " << timeout << " s, Time waited = " << TimeUtils::GetElapsedTime(start_wait) << " s," 
-				<< " Receiver ready: " << std::boolalpha << fragment_receiver_ptr_->GetReceiverThreadActive() << ", Sender ready: " << fragment_receiver_ptr_->GetSenderThreadActive();
+		if (TimeUtils::GetElapsedTime(start_wait) > timeout)
+		{
+			TLOG(TLVL_ERROR) << "Timeout occurred waiting for BoardReaderCore threads to start. Timeout = " << timeout << " s, Time waited = " << TimeUtils::GetElapsedTime(start_wait) << " s,"
+			                 << " Receiver ready: " << std::boolalpha << fragment_receiver_ptr_->GetReceiverThreadActive() << ", Sender ready: " << fragment_receiver_ptr_->GetSenderThreadActive();
 			external_request_status_ = false;
 			break;
 		}
@@ -120,7 +122,6 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		TLOG(TLVL_DEBUG) << "Joining fragment output (Sender) thread";
 		fragment_output_thread_.join();
 	}
-
 
 	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
 	int number_of_fragments_sent = -1;
@@ -278,8 +279,8 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 	{
 		if (report_string_.length() > 0) { return report_string_; }
 
-			return "Success";
-		}
+		return "Success";
+	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that

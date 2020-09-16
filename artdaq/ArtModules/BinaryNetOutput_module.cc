@@ -197,4 +197,4 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 	sender_ptr_->RemoveRoutingTableEntry(sequence_id);
 }
 
-DEFINE_ART_MODULE(art::BinaryNetOutput)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(art::BinaryNetOutput)  // NOLINT(performance-unnecessary-value-param)

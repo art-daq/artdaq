@@ -247,4 +247,4 @@ bool artdaq::RandomDelayFilter::filter(art::Event& e)
 	return (*pass_distn_)(engine_) < pass_factor_;
 }
 
-DEFINE_ART_MODULE(artdaq::RandomDelayFilter)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(artdaq::RandomDelayFilter)  // NOLINT(performance-unnecessary-value-param)
