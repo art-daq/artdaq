@@ -95,7 +95,7 @@ c_executeMethod(xmlrpc_env* const envP,
 			else
 			{
 				methodP->execute(paramList, &result);
-		}
+			}
 		}
 		catch (xmlrpc_c::fault const& fault)
 		{
@@ -114,8 +114,8 @@ c_executeMethod(xmlrpc_env* const envP,
 				    "Xmlrpc-c user's xmlrpc_c::method object's "
 				    "'execute method' failed to set the RPC result "
 				    "value.");
+			}
 		}
-	}
 	}
 	catch (std::exception const& e)
 	{
