@@ -643,11 +643,11 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 		return 0;
 	}
 
-		TLOG(TLVL_INFO) << std::setw(4) << std::fixed << "art initialization took "
-		                << TimeUtils::GetElapsedTime(startTime) << " seconds.";
+	TLOG(TLVL_INFO) << std::setw(4) << std::fixed << "art initialization took "
+	                << TimeUtils::GetElapsedTime(startTime) << " seconds.";
 
-		return *pid;
-	}
+	return *pid;
+}
 
 void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pids)
 {

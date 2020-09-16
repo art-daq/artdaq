@@ -162,8 +162,8 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
 	{
 		if (report_string_.length() > 0) { return report_string_; }
 
-			return "Success";
-		}
+		return "Success";
+	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that

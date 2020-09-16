@@ -569,5 +569,5 @@ std::string artdaq::Commandable::current_state() const
 		return fullStateName.substr(pos + 2);
 	}
 
-		return fullStateName;
-	}
+	return fullStateName;
+}
