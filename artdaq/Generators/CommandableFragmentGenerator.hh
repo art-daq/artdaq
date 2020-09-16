@@ -23,20 +23,9 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
+#include "artdaq/DAQrate/FragmentBuffer.hh"
 
 namespace artdaq {
-/**
-	 * \brief The RequestMode enumeration contains the possible ways which CommandableFragmentGenerator responds to data requests.
-	 */
-enum class RequestMode
-{
-	Single,
-	Buffer,
-	Window,
-	SequenceID,
-	Ignored
-};
 
 /**
 	 * \brief CommandableFragmentGenerator is a FragmentGenerator-derived
@@ -90,32 +79,10 @@ public:
 	{
 		/// "generator" (REQUIRED) Name of the CommandableFragmentGenerator plugin to load
 		fhicl::Atom<std::string> generator_type{fhicl::Name{"generator"}, fhicl::Comment{"Name of the CommandableFragmentGenerator plugin to load"}};
-		/// "request_window_offset" (Default: 0) : Request messages contain a timestamp. For Window request mode, start the window this far before the timestamp in the request
-		fhicl::Atom<Fragment::timestamp_t> request_window_offset{fhicl::Name{"request_window_offset"}, fhicl::Comment{"Request messages contain a timestamp. For Window request mode, start the window this far before the timestamp in the request"}, 0};
-		/// "request_window_width" (Default: 0) : For Window request mode, the window will be timestamp - offset to timestamp - offset + width
-		fhicl::Atom<Fragment::timestamp_t> request_window_width{fhicl::Name{"request_window_width"}, fhicl::Comment{"For Window request mode, the window will be timestamp - offset to timestamp - offset + width"}, 0};
-		/// "stale_request_timeout" (Default: -1) : Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded
-		fhicl::Atom<Fragment::timestamp_t> stale_request_timeout{fhicl::Name{"stale_request_timeout"}, fhicl::Comment{"Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded"}, 0xFFFFFFFF};
-		/// "buffer_mode_keep_latest" (Default: false): Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)
-		fhicl::Atom<bool> buffer_mode_keep_latest{fhicl::Name{"buffer_mode_keep_latest"}, fhicl::Comment{"Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)"}, false};
 		/// "expected_fragment_type" (Default: 231, EmptyFragmentType) : The type of Fragments this CFG will be generating. "Empty" will auto - detect type based on Fragments generated.
 		fhicl::Atom<Fragment::type_t> expected_fragment_type{fhicl::Name{"expected_fragment_type"}, fhicl::Comment{"The type of Fragments this CFG will be generating. \"Empty\" will auto-detect type based on Fragments generated."}, Fragment::type_t(Fragment::EmptyFragmentType)};
-		/// "request_windows_are_unique" (Default: true) : Whether Fragments should be removed from the buffer when matched to a request window
-		fhicl::Atom<bool> request_windows_are_unique{fhicl::Name{"request_windows_are_unique"}, fhicl::Comment{"Whether Fragments should be removed from the buffer when matched to a request window"}, true};
-		/// "missing_request_window_timeout_us" (Default: 5000000) : How long to track missing requests in the "out-of-order Windows" list
-		fhicl::Atom<size_t> missing_request_window_timeout_us{fhicl::Name{"missing_request_window_timeout_us"}, fhicl::Comment{"How long to track missing requests in the \"out - of - order Windows\" list"}, 5000000};
-		/// "window_close_timeout_us" (Default: 2000000) : How long to wait for the end of the data buffer to pass the end of a request window(measured from the time the request was received)
-		fhicl::Atom<size_t> window_close_timeout_us{fhicl::Name{"window_close_timeout_us"}, fhicl::Comment{"How long to wait for the end of the data buffer to pass the end of a request window (measured from the time the request was received)"}, 2000000};
-		/// "separate_data_thread" (Default: false) : Whether data collection should proceed on its own thread.Required for all data request processing
-		fhicl::Atom<bool> separate_data_thread{fhicl::Name{"separate_data_thread"}, fhicl::Comment{"Whether data collection should proceed on its own thread. Required for all data request processing"}, false};
-		/// "circular_buffer_mode" (Default: false) : Whether the data buffer should be treated as a circular buffer on the input side (i.e. old fragments are automatically discarded when the buffer is full to always call getNext_).
-		fhicl::Atom<bool> circular_buffer_mode{fhicl::Name{"circular_buffer_mode"}, fhicl::Comment{"Whether the data buffer should be treated as a circular buffer on the input side (i.e. old fragments are automatically discarded when the buffer is full to always call getNext_)."}, false};
 		/// "sleep_on_no_data_us" (Default: 0 (no sleep)) : How long to sleep after calling getNext_ if no data is returned
 		fhicl::Atom<size_t> sleep_on_no_data_us{fhicl::Name{"sleep_on_no_data_us"}, fhicl::Comment{"How long to sleep after calling getNext_ if no data is returned"}, 0};
-		/// "data_buffer_depth_fragments" (Default: 1000) : The max fragments which can be stored before dropping occurs
-		fhicl::Atom<int> data_buffer_depth_fragments{fhicl::Name{"data_buffer_depth_fragments"}, fhicl::Comment{"The max fragments which can be stored before dropping occurs"}, 1000};
-		/// "data_buffer_depth_mb" (Default: 1000) : The max cumulative size in megabytes of the fragments which can be stored before dropping occurs
-		fhicl::Atom<size_t> data_buffer_depth_mb{fhicl::Name{"data_buffer_depth_mb"}, fhicl::Comment{"The max cumulative size in megabytes of the fragments which can be stored before dropping occurs"}, 1000};
 		/// "separate_monitoring_thread" (Default: false) : Whether a thread that calls the checkHWStatus_ method should be created
 		fhicl::Atom<bool> separate_monitoring_thread{fhicl::Name{"separate_monitoring_thread"}, fhicl::Comment{"Whether a thread that calls the checkHWStatus_ method should be created"}, false};
 		/// "hardware_poll_interval_us" (Default: 0) : If a separate monitoring thread is used, how often should it call checkHWStatus_
@@ -130,16 +97,6 @@ public:
 		fhicl::Atom<int> fragment_id{fhicl::Name{"fragment_id"}, fhicl::Comment{"The Fragment ID created by this CommandableFragmentGenerator"}, -99};
 		/// "sleep_on_stop_us" (Default: 0) : How long to sleep before returning when stop transition is called
 		fhicl::Atom<int> sleep_on_stop_us{fhicl::Name{"sleep_on_stop_us"}, fhicl::Comment{"How long to sleep before returning when stop transition is called"}, 0};
-		/// <summary>
-		/// "request_mode" (Deafult: Ignored) : The mode by which the CommandableFragmentGenerator will process reqeusts
-		/// Ignored : Request messages are ignored.This is a "push" CommandableFragmentGenerator
-		/// Single : The CommandableFragmentGenerator responds to each request with the latest Fragment it has received
-		/// Buffer : The CommandableFragmentGenerator responds to each request with all Fragments it has received since the last request
-		/// Window : The CommandableFragmentGenerator searches its data buffer for all Fragments whose timestamp falls within the request window
-		/// SequenceID:  The CommandableFragmentGenerator responds to each request with all Fragments that match the sequence ID in the request
-		/// </summary>
-		fhicl::Atom<std::string> request_mode{fhicl::Name{"request_mode"}, fhicl::Comment{"The mode by which the CommandableFragmentGenerator will process reqeusts"}, "ignored"};
-		fhicl::TableFragment<artdaq::RequestReceiver::Config> receiverConfig;  ///< Configuration for the Request Receiver. See artdaq::RequestReceiver::Config
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -172,155 +129,10 @@ public:
 		 */
 	bool getNext(FragmentPtrs& output) override final;
 
-	/// <summary>
-	/// Create fragments using data buffer for request mode Ignored.
-	/// Precondition: dataBufferMutex_ and request_mutex_ are locked
-	/// </summary>
-	/// <param name="frags">Ouput fragments</param>
-	void applyRequestsIgnoredMode(artdaq::FragmentPtrs& frags);
-
-	/// <summary>
-	/// Create fragments using data buffer for request mode Single.
-	/// Precondition: dataBufferMutex_ and request_mutex_ are locked
-	/// </summary>
-	/// <param name="frags">Ouput fragments</param>
-	void applyRequestsSingleMode(artdaq::FragmentPtrs& frags);
-
-	/// <summary>
-	/// Create fragments using data buffer for request mode Buffer.
-	/// Precondition: dataBufferMutex_ and request_mutex_ are locked
-	/// </summary>
-	/// <param name="frags">Ouput fragments</param>
-	void applyRequestsBufferMode(artdaq::FragmentPtrs& frags);
-
-	/// <summary>
-	/// Create fragments using data buffer for request mode Window.
-	/// Precondition: dataBufferMutex_ and request_mutex_ are locked
-	/// </summary>
-	/// <param name="frags">Ouput fragments</param>
-	void applyRequestsWindowMode(artdaq::FragmentPtrs& frags);
-
-	/// <summary>
-	/// Create fragments using data buffer for request mode SequenceID.
-	/// Precondition: dataBufferMutex_ and request_mutex_ are locked
-	/// </summary>
-	/// <param name="frags">Ouput fragments</param>
-	void applyRequestsSequenceIDMode(artdaq::FragmentPtrs& frags);
-
-	/// Copy data from the relevant data buffer that matches the given timestamp.
-	/// </summary>
-	/// <param name="frags">Output Fragments</param>
-	/// <param name="id">Fragment ID of buffer to search</param>
-	/// <param name="seq">Sequence ID of output Fragment</param>
-	/// <param name="ts">Timestamp of output Fragment (used to determine window limits)</param>
-	void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
-
-	/**
-		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
-		 * \param[out] frags list of FragmentPtr objects ready for transmission
-		 * \return True if not stopped
-		 */
-	bool applyRequests(FragmentPtrs& frags);
-
-	/**
-		 * \brief Send an EmptyFragmentType Fragment
-		 * \param[out] frags Output list to append EmptyFragmentType to
-		 * \param sequenceId Sequence ID of Empty Fragment
-		 * \param fragmentId Fragment ID of Empty Fragment
-		 * \param desc Message to log with reasoning for sending Empty Fragment
-		 * \return True if no exceptions
-		 */
-	bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, Fragment::fragment_id_t fragmentId, std::string desc);
-
-	/**
-		 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
-		 * If the request message seqID > ev_counter, simply send empties until they're equal
-		 * \param[out] frags Output list to append EmptyFragmentType to
-		 * \param requests List of requests to process
-		 */
-	void sendEmptyFragments(FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests);
-
-	/**
-		 * \brief Check the windows_sent_ooo_ map for sequence IDs that may be removed
-		 * \param seq Sequence ID of current window
-		 */
-	void checkSentWindows(Fragment::sequence_id_t seq);
-
-	/**
-		 * \brief Function that launches the data thread (getDataLoop())
-		 */
-	void startDataThread();
-
 	/**
 		 * \brief Function that launches the monitoring thread (getMonitoringDataLoop())
 		 */
 	void startMonitoringThread();
-
-	/**
-		 * \brief When separate_data_thread is set to true, this loop repeatedly calls getNext_ and adds returned Fragment
-		 * objects to the data buffer, blocking when the data buffer is full.
-		 */
-	void getDataLoop();
-
-	/**
-		 * \brief Wait for the data buffer to drain (dataBufferIsTooLarge returns false), periodically reporting status.
-		 * \param id Fragment ID of data buffer
-		 * \return True if wait ended without something else disrupting the run
-		 */
-	bool waitForDataBufferReady(Fragment::fragment_id_t id);
-
-	/**
-		 * \brief Test the configured constraints on the data buffer
-		 * \param id Fragment ID of data buffer
-		 * \return Whether the data buffer is full
-		 */
-	bool dataBufferIsTooLarge(Fragment::fragment_id_t id);
-
-	/**
-		 * \brief Calculate the size of the dataBuffer and report appropriate metrics
-		 * \param id Fragment ID of buffer
-		 */
-	void getDataBufferStats(Fragment::fragment_id_t id);
-
-	/**
-		 * \brief Calculate the size of all dataBuffers and report appropriate metrics
-		 */
-	void getDataBuffersStats()
-	{
-		for (auto& id : dataBuffers_) getDataBufferStats(id.first);
-	}
-
-	/**
-		 * \brief Perform data buffer pruning operations for the given buffer. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
-		 * \param id Fragment ID of buffer
-		 * In Window and Buffer RequestModes, this function discards the oldest Fragment objects until the data buffer is below its size constraints,
-		 * then also checks for stale Fragments, based on the timestamp of the most recent Fragment.
-		 */
-	void checkDataBuffer(Fragment::fragment_id_t id);
-
-	/**
-		 * \brief Perform data buffer pruning operations for all buffers.
-		 */
-	void checkDataBuffers()
-	{
-		for (auto& id : dataBuffers_) checkDataBuffer(id.first);
-	}
-
-	/**
-		 * \brief Get the map of Window-mode requests fulfilled by this Fragment Geneerator for the given Fragment ID
-		 * \param id Fragment ID of buffer
-		 * \return Map of sequence_id and time_point for sent Window-mode requests
-		 *
-		 * This function is used in CommandableFragmentGenerator_t to verify correct functioning of Window mode
-		 */
-	std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> GetSentWindowList(Fragment::fragment_id_t id)
-	{
-		if (!dataBuffers_.count(id))
-		{
-			throw cet::exception("DataBufferError") << "Error in CommandableFragmentGenerator: Cannot get Sent Windows for ID " << id << " because it does not exist!";
-		}
-		return dataBuffers_[id].WindowsSent;
-	}
 
 	/**
 		 * \brief This function regularly calls checkHWStatus_(), and sets the isHardwareOK flag accordingly.
@@ -335,7 +147,7 @@ public:
 	{
 		std::vector<Fragment::fragment_id_t> output;
 
-		for (auto& id : dataBuffers_)
+		for (auto& id : expectedTypes_)
 		{
 			output.push_back(id.first);
 		}
@@ -348,12 +160,6 @@ public:
 		* \return The current value of the event counter
 		*/
 	size_t ev_counter() const { return ev_counter_.load(); }
-
-	/// <summary>
-	/// Get the current request mode of the CommandableFragmentGenerator
-	/// </summary>
-	/// <returns>Current RequestMode of the CFG</returns>
-	RequestMode request_mode() const { return mode_; }
 
 	//
 	// State-machine related interface below.
@@ -458,6 +264,8 @@ public:
 		*/
 	virtual bool metaCommand(std::string const& command, std::string const& arg);
 
+	void SetRequestBuffer(std::shared_ptr<RequestBuffer> buffer) { requestBuffer_ = buffer; }
+
 protected:
 	// John F., 12/6/13 -- need to figure out which of these getter
 	// functions should be promoted to "public"
@@ -495,8 +303,8 @@ protected:
 		 */
 	artdaq::Fragment::fragment_id_t fragment_id() const
 	{
-		if (dataBuffers_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << dataBuffers_.size() << " were declared!";
-		return (*dataBuffers_.begin()).first;
+		if (expectedTypes_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << expectedTypes_.size() << " were declared!";  // NOLINT(cert-err60-cpp)
+		return (*expectedTypes_.begin()).first;
 	}
 
 	/**
@@ -518,12 +326,11 @@ protected:
 	int board_id() const { return board_id_; }
 
 	/**
-		 * \brief Increment the event counter, if the current RequestMode allows it
+		 * \brief Increment the event counter
 		 * \param step Amount to increment the event counter by
-		 * \param force Force incrementing the event Counter
 		 * \return The previous value of the event counter
 		 */
-	size_t ev_counter_inc(size_t step = 1, bool force = false);  // returns the prev value
+	size_t ev_counter_inc(size_t step = 1);  // returns the prev value
 
 	/**
 		 * \brief Control the exception flag
@@ -540,12 +347,6 @@ protected:
 		instance_name_for_metrics_ = name;
 	}
 
-	/**
-		 * \brief Return the string representation of the current RequestMode
-		 * \return The string representation of the current RequestMode
-		 */
-	std::string printMode_();
-
 	// John F., 12/10/13
 	// Is there a better way to handle mutex_ than leaving it a protected variable?
 
@@ -556,92 +357,26 @@ protected:
 
 	std::mutex mutex_;  ///< Mutex used to ensure that multiple transition commands do not run at the same time
 
-	/**
-		 * \brief Get the total number of Fragments in all data buffers
-		 * \return Number of Fragments in all data buffers
-		 */
-	size_t dataBufferFragmentCount_()
-	{
-		size_t count = 0;
-		for (auto& id : dataBuffers_) count += id.second.DataBufferDepthFragments;
-		return count;
-	}
-
-	/// <summary>
-	/// Get the current requests being handled by this CommandableFragmentGenerator
-	/// </summary>
-	/// <returns>Map relating sequence IDs to timestamps</returns>
-	std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetRequests() const
-	{
-		if (requestReceiver_ == nullptr) return std::map<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>();
-		return requestReceiver_->GetRequests();
-	}
-
-	/// <summary>
-	/// Get the next request (i.e. the request with the lowest sequence ID) to be handled by this CommandableFragmentGenerator
-	/// </summary>
-	/// <returns>Pair of sequence ID and timestamp representing next request</returns>
-	std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> GetNextRequest() const
-	{
-		if (requestReceiver_ == nullptr) return std::make_pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t>(0, 0);
-		return requestReceiver_->GetNextRequest();
-	}
-
-	/// <summary>
-	/// Get the number of requests currently stored in the Request Recevier
-	/// </summary>
-	/// <returns>The number of request messages stored in the request receiver</returns>
-	size_t GetCurrentRequestCount() const
-	{
-		if (requestReceiver_ == nullptr) return 0;
-		return requestReceiver_->size();
-	}
+	std::shared_ptr<RequestBuffer> GetRequestBuffer() { return requestBuffer_; }
 
 private:
+	CommandableFragmentGenerator(CommandableFragmentGenerator const&) = delete;
+	CommandableFragmentGenerator(CommandableFragmentGenerator&&) = delete;
+	CommandableFragmentGenerator& operator=(CommandableFragmentGenerator const&) = delete;
+	CommandableFragmentGenerator& operator=(CommandableFragmentGenerator&&) = delete;
+
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
 
 	//Socket parameters
-	std::unique_ptr<RequestReceiver> requestReceiver_;
 
-	RequestMode mode_;
-	bool bufferModeKeepLatest_;
-	Fragment::timestamp_t windowOffset_;
-	Fragment::timestamp_t windowWidth_;
-	Fragment::timestamp_t staleTimeout_;
-	Fragment::type_t expectedType_;
-	bool uniqueWindows_;
-	size_t missing_request_window_timeout_us_;
-	size_t window_close_timeout_us_;
-
-	bool useDataThread_;
-	bool circularDataBufferMode_;
-	size_t sleep_on_no_data_us_;
-	std::atomic<bool> data_thread_running_;
-	boost::thread dataThread_;
-
-	std::condition_variable dataCondition_;
-	int maxDataBufferDepthFragments_;
-	size_t maxDataBufferDepthBytes_;
+	std::map<Fragment::fragment_id_t, Fragment::type_t> expectedTypes_;
 
 	bool useMonitoringThread_;
 	boost::thread monitoringThread_;
 	int64_t monitoringInterval_;  // Microseconds
 	std::chrono::steady_clock::time_point lastMonitoringCall_;
 	std::atomic<bool> isHardwareOK_;
-
-	struct DataBuffer
-	{
-		std::atomic<int> DataBufferDepthFragments;
-		std::atomic<size_t> DataBufferDepthBytes;
-		std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> WindowsSent;
-		bool BufferFragmentKept;
-		Fragment::sequence_id_t HighestRequestSeen;
-		FragmentPtrs DataBuffer;
-	};
-
-	std::mutex dataBuffersMutex_;
-	std::unordered_map<artdaq::Fragment::fragment_id_t, DataBuffer> dataBuffers_;
 
 	// In order to support the state-machine related behavior, all
 	// CommandableFragmentGenerators must be able to remember a run number and a
@@ -661,7 +396,7 @@ private:
 
 	uint64_t timestamp_;
 
-	std::atomic<bool> should_stop_, exception_, force_stop_;
+	std::atomic<bool> should_stop_, exception_;
 	std::string latest_exception_report_;
 	std::atomic<size_t> ev_counter_;
 
@@ -672,6 +407,9 @@ private:
 	// stopping thread the chance to gather the required lock
 
 	int sleep_on_stop_us_;
+
+	// So that derived classes can access information about requests
+	std::shared_ptr<RequestBuffer> requestBuffer_;
 
 protected:
 	/// <summary>

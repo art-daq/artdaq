@@ -7,12 +7,12 @@ namespace bpo = boost::program_options;
 #include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/make_ParameterSet.h"
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("PrintSharedMemory");
 
 	std::ostringstream descstr;
-	descstr << argv[0]
+	descstr << *argv
 	        << " <-c <config-file>> <other-options> [<source-file>]+";
 	bpo::options_description desc(descstr.str());
 	desc.add_options()("config,c", bpo::value<std::string>(), "Configuration file.")("events,e", "Print event information")("key,M", bpo::value<std::string>(), "Shared Memory to attach to")("help,h", "produce help message");
@@ -24,27 +24,27 @@ int main(int argc, char* argv[])
 	}
 	catch (bpo::error const& e)
 	{
-		std::cerr << "Exception from command line processing in " << argv[0]
+		std::cerr << "Exception from command line processing in " << *argv
 		          << ": " << e.what() << "\n";
 		return -1;
 	}
-	if (vm.count("help"))
+	if (vm.count("help") != 0u)
 	{
 		std::cout << desc << std::endl;
 		return 1;
 	}
-	if (!vm.count("config") && !vm.count("key"))
+	if ((vm.count("config") == 0u) && (vm.count("key") == 0u))
 	{
-		std::cerr << "Exception from command line processing in " << argv[0]
+		std::cerr << "Exception from command line processing in " << *argv
 		          << ": no configuration file given.\n"
 		          << "For usage and an options list, please do '"
-		          << argv[0] << " --help"
+		          << *argv << " --help"
 		          << "'.\n";
 		return 2;
 	}
 
 	fhicl::ParameterSet pset;
-	if (vm.count("key"))
+	if (vm.count("key") != 0u)
 	{
 		pset.put("shared_memory_key", vm["key"].as<std::string>());
 		pset.put("buffer_count", 1);
@@ -63,7 +63,10 @@ int main(int argc, char* argv[])
 		fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
 	}
 
-	if (!pset.has_key("shared_memory_key")) std::cerr << "You must specify a shared_memory_key in FHiCL or provide one on the command line!" << std::endl;
+	if (!pset.has_key("shared_memory_key"))
+	{
+		std::cerr << "You must specify a shared_memory_key in FHiCL or provide one on the command line!" << std::endl;
+	}
 
 	if (pset.get<bool>("ReadEventInfo", false))
 	{
@@ -78,4 +81,10 @@ int main(int argc, char* argv[])
 		                              pset.get<size_t>("stale_buffer_timeout_usec", 1000000));
 		std::cout << t.toString() << std::endl;
 	}
+
+	return 0;
+}
+catch (...)
+{
+	return -1;
 }

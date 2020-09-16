@@ -25,6 +25,9 @@ recevier_timeout_ms: 1000  # default
 ## Configuration for RequestReceiver, if used
 receiver_config: {
 
+	## Whether this RequestReceiver will listen for requests
+	receive_requests: true
+
 	## Port to listen for request messages on
     request_port: 3001  # default
 
