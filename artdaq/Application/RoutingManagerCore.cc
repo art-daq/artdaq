@@ -11,7 +11,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 
-#include "artdaq/DAQdata/Globals.hh"                          // include these 2 first to get tracemf.h -
+#include "artdaq/DAQdata/Globals.hh"  // include these 2 first to get tracemf.h -
 
 #define TRACE_NAME (app_name + "_RoutingManagerCore").c_str()  // before trace.h
 #include "artdaq-core/Data/Fragment.hh"
@@ -331,22 +331,22 @@ void artdaq::RoutingManagerCore::process_event_table()
 				if (max_tokens > 0)
 				{
 					auto frac = table.size() / static_cast<double>(max_tokens);
-				if (frac > 0.75)
-				{
-					current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
-				}
-				if (frac < 0.5)
-				{
-					current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
-				}
-				if (current_table_interval_ms_ > max_table_update_interval_ms_)
-				{
-					current_table_interval_ms_ = max_table_update_interval_ms_;
-				}
-				if (current_table_interval_ms_ < 1)
-				{
-					current_table_interval_ms_ = 1;
-				}
+					if (frac > 0.75)
+					{
+						current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
+					}
+					if (frac < 0.5)
+					{
+						current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
+					}
+					if (current_table_interval_ms_ > max_table_update_interval_ms_)
+					{
+						current_table_interval_ms_ = max_table_update_interval_ms_;
+					}
+					if (current_table_interval_ms_ < 1)
+					{
+						current_table_interval_ms_ = 1;
+					}
 				}
 			}
 			nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
@@ -517,13 +517,13 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 	auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
 
 	// 10-Apr-2019, KAB: added information on which senders have already acknowledged this update
-		for (auto& ack : acks)
+	for (auto& ack : acks)
 	{
-			TLOG(27) << "Table update already acknowledged? rank " << ack.first << " is " << ack.second
+		TLOG(27) << "Table update already acknowledged? rank " << ack.first << " is " << ack.second
 		         << " (size of 'already_acknowledged_ranks bitset is " << (8 * sizeof(header.already_acknowledged_ranks)) << ")";
-			if (ack.first < static_cast<int>(8 * sizeof(header.already_acknowledged_ranks)))
+		if (ack.first < static_cast<int>(8 * sizeof(header.already_acknowledged_ranks)))
 		{
-				if (ack.second) { header.already_acknowledged_ranks.set(ack.first); }
+			if (ack.second) { header.already_acknowledged_ranks.set(ack.first); }
 		}
 	}
 
@@ -533,8 +533,8 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 	memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
 
 	TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << ", outgoing interface " << multicast_out_hostname_;
-		TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);  // NOLINT
-		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&send_tables_addr_), sizeof(send_tables_addr_));                                               // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);  // NOLINT
+	auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&send_tables_addr_), sizeof(send_tables_addr_));                                               // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts != static_cast<ssize_t>(buffer.size()))
 	{
 		TLOG(TLVL_ERROR) << "Error sending routing table. sts=" << sts;
@@ -574,7 +574,7 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 		while (ready)
 		{
 			detail::RoutingAckPacket buffer;
-				if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, nullptr, nullptr) < 0)
+			if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, nullptr, nullptr) < 0)
 			{
 				if (errno == EWOULDBLOCK || errno == EAGAIN)
 				{
@@ -591,7 +591,7 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 			{
 				TLOG(TLVL_DEBUG) << "Ack packet from rank " << buffer.rank << " has first= " << buffer.first_sequence_id
 				                 << " and last= " << buffer.last_sequence_id << ", packet_size=" << sizeof(detail::RoutingAckPacket);
-					if ((acks.count(buffer.rank) != 0u) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
+				if ((acks.count(buffer.rank) != 0u) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
 				{
 					TLOG(TLVL_DEBUG) << "Received table update acknowledgement from sender with rank " << buffer.rank << ".";
 					acks[buffer.rank] = true;
@@ -600,18 +600,18 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 					TLOG(TLVL_DEBUG) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; })
 					                 << " acks outstanding";
 				}
-					else if ((acks.count(buffer.rank) != 0u) && detail::RoutingAckPacket::isEndOfDataRoutingAckPacket(buffer))
-					{
-						TLOG(TLVL_INFO) << "Received table update acknowledgement indicating end-of-data from rank " << buffer.rank << ".";
-						acks[buffer.rank] = true;
-						active_ranks_.erase(buffer.rank);
-					}
+				else if ((acks.count(buffer.rank) != 0u) && detail::RoutingAckPacket::isEndOfDataRoutingAckPacket(buffer))
+				{
+					TLOG(TLVL_INFO) << "Received table update acknowledgement indicating end-of-data from rank " << buffer.rank << ".";
+					acks[buffer.rank] = true;
+					active_ranks_.erase(buffer.rank);
+				}
 				else
 				{
-						if (acks.count(buffer.rank) == 0u)
+					if (acks.count(buffer.rank) == 0u)
 					{
 						TLOG(TLVL_ERROR) << "Received acknowledgement from invalid rank " << buffer.rank << "!"
-							                 << " Cross-talk between RoutingManagers means there's a configuration error!";
+						                 << " Cross-talk between RoutingManagers means there's a configuration error!";
 					}
 					else
 					{
