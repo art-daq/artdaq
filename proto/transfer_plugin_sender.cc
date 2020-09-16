@@ -8,7 +8,6 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <algorithm>
@@ -40,8 +39,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 	return pset;
 }
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	if (argc != 4)
 	{

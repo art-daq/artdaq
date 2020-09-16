@@ -119,7 +119,7 @@ public:
 			// for 'OutputModule::Config::fileName'.
 			using namespace fhicl::detail;
 			ParameterBase* adjustFilename{
-			    const_cast<fhicl::Atom<string>*>(&omConfig().fileName)}; // NOLINT(cppcoreguidelines-pro-type-const-cast)
+			    const_cast<fhicl::Atom<string>*>(&omConfig().fileName)};  // NOLINT(cppcoreguidelines-pro-type-const-cast)
 			adjustFilename->set_par_style(fhicl::par_style::REQUIRED);
 		}
 
@@ -567,7 +567,7 @@ void RootDAQOut::doOpenFile()
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	if (inputFileCount_ == 0)
 	{
-		throw Exception(errors::LogicError) // NOLINT(cert-err60-cpp)
+		throw Exception(errors::LogicError)  // NOLINT(cert-err60-cpp)
 		    << "Attempt to open output file before input file. "
 		    << "Please report this to the core framework developers.\n";
 	}
@@ -775,4 +775,4 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 
 }  // namespace art
 
-DEFINE_ART_MODULE(art::RootDAQOut)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(art::RootDAQOut)  // NOLINT(performance-unnecessary-value-param)

@@ -93,5 +93,5 @@ void FragmentSniffer::endJob()
 	if (num_events_expected_ > 0) { assert(num_events_processed_ == num_events_expected_); }
 }
 
-DEFINE_ART_MODULE(FragmentSniffer)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(FragmentSniffer)  // NOLINT(performance-unnecessary-value-param)
 }  // namespace artdaq
