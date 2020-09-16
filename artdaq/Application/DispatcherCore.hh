@@ -22,7 +22,7 @@ public:
 	/**
 	* \brief DispatcherCore Constructor.
 	*/
-	DispatcherCore();
+	DispatcherCore() = default;
 
 	/**
 	 * \brief Copy Constructor is deleted
@@ -32,13 +32,18 @@ public:
 	/**
 	* Destructor.
 	*/
-	~DispatcherCore();
+	~DispatcherCore()
+	{
+		TLOG(TLVL_DEBUG) << "Destructor";
+	}
 
 	/**
 	 * \brief Copy Assignment operator is deleted
 	 * \return DispatcherCore copy
 	 */
 	DispatcherCore& operator=(DispatcherCore const&) = delete;
+	DispatcherCore(DispatcherCore&&) = delete;
+	DispatcherCore& operator=(DispatcherCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.
@@ -87,8 +92,11 @@ public:
 
 private:
 	fhicl::ParameterSet generate_filter_fhicl_();
-	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet skel, std::string label, fhicl::ParameterSet pset);
+	fhicl::ParameterSet merge_parameter_sets_(fhicl::ParameterSet const& skel, const std::string& label, const fhicl::ParameterSet& pset);
 	void check_filters_();
+
+	void start_art_process_(std::string const& label);
+	void stop_art_process_(std::string const& label);
 
 	std::mutex dispatcher_transfers_mutex_;
 	std::unordered_map<std::string, fhicl::ParameterSet> registered_monitors_;

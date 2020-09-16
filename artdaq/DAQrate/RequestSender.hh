@@ -10,10 +10,10 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <stdint.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
+#include <cstdint>
 #include <future>
 #include <map>
 #include <memory>
@@ -29,16 +29,16 @@ public:
 	/// <summary>
 	/// Configuration for Routing token sending
 	///
-	/// This configuration should be the same for all processes sending routing tokens to a given RoutingMaster.
+	/// This configuration should be the same for all processes sending routing tokens to a given RoutingManager.
 	/// </summary>
 	struct RoutingTokenConfig
 	{
-		/// "use_routing_master" (Default: false) : Whether to send tokens to a RoutingMaster
-		fhicl::Atom<bool> use_routing_master{fhicl::Name{"use_routing_master"}, fhicl::Comment{"True if using the Routing Master"}, false};
+		/// "use_routing_manager" (Default: false) : Whether to send tokens to a RoutingManager
+		fhicl::Atom<bool> use_routing_manager{fhicl::Name{"use_routing_manager"}, fhicl::Comment{"True if using the Routing Manager"}, false};
 		/// "routing_token_port" (Default: 35555) : Port to send tokens on
 		fhicl::Atom<int> routing_token_port{fhicl::Name{"routing_token_port"}, fhicl::Comment{"Port to send tokens on"}, 35555};
-		/// "routing_master_hostname" (Default: "localhost") : Hostname or IP of RoutingMaster
-		fhicl::Atom<std::string> routing_token_host{fhicl::Name{"routing_master_hostname"}, fhicl::Comment{"Hostname or IP of RoutingMaster"}, "localhost"};
+		/// "routing_manager_hostname" (Default: "localhost") : Hostname or IP of RoutingManager
+		fhicl::Atom<std::string> routing_token_host{fhicl::Name{"routing_manager_hostname"}, fhicl::Comment{"Hostname or IP of RoutingManager"}, "localhost"};
 	};
 
 	/// <summary>
@@ -79,11 +79,14 @@ public:
 		 */
 	RequestSender& operator=(RequestSender const&) = delete;
 
+	RequestSender(RequestSender&&) = delete;             ///< Move Constructor is deleted
+	RequestSender& operator=(RequestSender&&) = delete;  ///< Move-assignment operator is deleted
+
 	/**
 		 * \brief RequestSender Constructor
 		 * \param pset ParameterSet used to configured RequestSender. See artdaq::RequestSender::Config
 		 */
-	RequestSender(const fhicl::ParameterSet& pset);
+	explicit RequestSender(const fhicl::ParameterSet& pset);
 	/**
 		 * \brief RequestSender Destructor
 		 */

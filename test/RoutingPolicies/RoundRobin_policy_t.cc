@@ -1,7 +1,7 @@
 #define BOOST_TEST_MODULE RoundRobin_policy_t
-#include <boost/test/auto_unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
-#include "artdaq/RoutingPolicies/makeRoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
@@ -14,20 +14,20 @@ BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 	fhicl::make_ParameterSet("receiver_ranks: [7,8,9]", ps3);
 	fhicl::make_ParameterSet("receiver_ranks: [5,6]", ps2);
 
-	auto rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps4);
+	auto rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps4);
 	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
 
 	auto rrB = rrA;
 	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
 	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
 
-	rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps3);
+	rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps3);
 	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 3);
 	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
 
 	// force destructors to be run on first set of policies
-	rrA = artdaq::makeRoutingMasterPolicy("RoundRobin", ps2);
-	rrB = artdaq::makeRoutingMasterPolicy("RoundRobin", ps2);
+	rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps2);
+	rrB = artdaq::makeRoutingManagerPolicy("RoundRobin", ps2);
 }
 
 BOOST_AUTO_TEST_CASE(Simple)
@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps);
 
-	auto rr = artdaq::makeRoutingMasterPolicy("RoundRobin", ps);
+	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
 	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 4);
 
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4] minimum_participants: 2", ps);
 
-	auto rr = artdaq::makeRoutingMasterPolicy("RoundRobin", ps);
+	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
 	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 4);
 
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: 5", ps);
 
-	auto rr = artdaq::makeRoutingMasterPolicy("RoundRobin", ps);
+	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
 	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: -5", ps);
 
-	auto rr = artdaq::makeRoutingMasterPolicy("RoundRobin", ps);
+	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
 	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 

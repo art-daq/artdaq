@@ -4,7 +4,7 @@
 using artdaq::detail::FragCounter;
 
 #define BOOST_TEST_MODULE FragCounter_t
-#include <boost/test/auto_unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(FragCounter_test)
 

@@ -10,6 +10,11 @@
 
 BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
+artdaq::detail::RawFragmentHeader GetHeader(artdaq::FragmentPtr const& frag)
+{
+	return *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+}
+
 BOOST_AUTO_TEST_CASE(Construct)
 {
 	TLOG(TLVL_INFO) << "Test Construct BEGIN";
@@ -68,7 +73,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 		*(frag->dataBegin() + ii) = ii;
 	}
 
-	auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	auto hdr = GetHeader(frag);
 	auto fragLoc = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
@@ -76,20 +81,20 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 
 	frag->setFragmentID(1);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc2 = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 2);
-	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
+	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	frag->setFragmentID(2);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc3 = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);
+	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
@@ -114,7 +119,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 		*(frag->dataBegin() + ii) = ii;
 	}
 
-	auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	auto hdr = GetHeader(frag);
 	auto fragLoc = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
@@ -122,26 +127,26 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 
 	frag->setFragmentID(1);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc2 = t.WriteFragmentHeader(hdr);
 	frag->setFragmentID(2);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc3 = t.WriteFragmentHeader(hdr);
 	frag->setFragmentID(3);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc4 = t.WriteFragmentHeader(hdr);
 	frag->setFragmentID(4);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc5 = t.WriteFragmentHeader(hdr);
 
 	memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
-	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
+	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);
+	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
@@ -152,7 +157,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 
 	memcpy(fragLoc5, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(fragLoc4 + frag->size(), fragLoc5);
+	BOOST_REQUIRE_EQUAL(fragLoc4 + frag->size(), fragLoc5);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
@@ -161,7 +166,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 		frag->setSequenceID(2);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -190,7 +195,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 		*(frag->dataBegin() + ii) = ii;
 	}
 
-	auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	auto hdr = GetHeader(frag);
 	auto fragLoc = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
@@ -198,25 +203,25 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 
 	frag->setFragmentID(1);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc2 = t.WriteFragmentHeader(hdr);
 
 	memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
-	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
+	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	frag->setFragmentID(2);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc3 = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);
+	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
 	frag->setFragmentID(3);
-	hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+	hdr = GetHeader(frag);
 	auto fragLoc4 = t.WriteFragmentHeader(hdr);
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
 	BOOST_REQUIRE_EQUAL(fragLoc4, t.GetDroppedDataAddress(3));
@@ -236,7 +241,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 		frag->setSequenceID(2);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -272,7 +277,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	{
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -284,7 +289,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
 		frag->setSequenceID(2);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -293,7 +298,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -308,7 +313,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
 		frag->setSequenceID(3);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -317,7 +322,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -329,7 +334,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
 	{
 		frag->setSequenceID(1);
 		frag->setFragmentID(1);
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -359,7 +364,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	{
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -371,7 +376,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 		frag->setSequenceID(2);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -380,7 +385,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -395,7 +400,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 		frag->setSequenceID(3);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -404,7 +409,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -418,7 +423,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 	{
 		frag->setSequenceID(4);
 		frag->setFragmentID(0);
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -427,7 +432,7 @@ BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -459,7 +464,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
 		frag->setSequenceID(2);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -468,7 +473,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -484,7 +489,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
 		frag->setSequenceID(3);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -495,7 +500,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -509,7 +514,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
 		frag->setSequenceID(1);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -519,7 +524,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 2);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -553,7 +558,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 		frag->setSequenceID(2);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -562,7 +567,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -578,7 +583,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 		frag->setSequenceID(3);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -589,7 +594,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -604,7 +609,7 @@ BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
 	{
 		frag->setSequenceID(4);
 		frag->setFragmentID(1);
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -636,7 +641,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 
 	artdaq::SharedMemoryEventManager t(pset, pset);
 	{
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -649,7 +654,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		frag->setSequenceID(2);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -659,7 +664,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -668,13 +673,13 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		//BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
+		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	}
 	{
 		frag->setSequenceID(3);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -684,7 +689,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -700,7 +705,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
 		frag->setSequenceID(4);
 		frag->setFragmentID(1);
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -710,7 +715,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -721,7 +726,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 	{
 		frag->setSequenceID(1);
 		frag->setFragmentID(1);
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
 		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(1));
@@ -764,7 +769,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 		frag->setSequenceID(2);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -774,7 +779,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -790,7 +795,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 		frag->setSequenceID(3);
 		frag->setFragmentID(0);
 
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -801,7 +806,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -817,7 +822,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 		frag->setSequenceID(4);
 		frag->setFragmentID(1);
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -827,7 +832,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
 
 		frag->setFragmentID(1);
-		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -838,7 +843,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
 	{
 		frag->setSequenceID(1);
 		frag->setFragmentID(1);
-		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(1));
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));

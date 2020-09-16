@@ -29,7 +29,7 @@ namespace artdaq {
 	 */
 std::unique_ptr<TransferInterface>
 MakeTransferPlugin(const fhicl::ParameterSet& pset,
-                   std::string plugin_label,
+                   const std::string& plugin_label,
                    TransferInterface::Role role);
 }  // namespace artdaq
 
