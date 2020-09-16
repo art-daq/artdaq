@@ -290,7 +290,7 @@ public:
 		{
 			throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot get Sent Windows for ID " << id << " because it does not exist!";
 		}
-		
+
 		return dataBuffers_[id]->WindowsSent;
 	}
 

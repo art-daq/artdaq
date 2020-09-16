@@ -18,6 +18,6 @@ namespace artdaq {
 	 */
 std::shared_ptr<RoutingManagerPolicy>
 makeRoutingManagerPolicy(std::string const& policy_plugin_spec,
-                        fhicl::ParameterSet const& ps);
+                         fhicl::ParameterSet const& ps);
 }  // namespace artdaq
 #endif /* artdaq_Application_Routing_makeRoutingManagerPolicy_hh */

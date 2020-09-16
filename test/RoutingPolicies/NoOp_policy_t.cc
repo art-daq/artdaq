@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE NoOp_policy_t
-#include <boost/test/auto_unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
