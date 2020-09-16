@@ -9,8 +9,8 @@
 
 #include "fhiclcpp/make_ParameterSet.h"
 
-#include <future>
 #include <cstdlib>
+#include <future>
 
 artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
     : senders_(psi.get<int>("num_senders"))
