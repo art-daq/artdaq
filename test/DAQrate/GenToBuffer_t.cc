@@ -87,7 +87,7 @@ private:
 			if (frags.size() > 0)
 			{
 				metricMan->sendMetric("Fragments Generated", frags.size(), "fragments", 3, artdaq::MetricMode::Accumulate | artdaq::MetricMode::Rate | artdaq::MetricMode::Average);
-			
+
 				TLOG(18) << "receive_fragments AddFragmentsToBuffer start";
 				fragment_buffer_ptr_->AddFragmentsToBuffer(std::move(frags));
 				TLOG(18) << "receive_fragments AddFragmentsToBuffer done";
@@ -95,7 +95,7 @@ private:
 				metricMan->sendMetric("FragmentBufferAddTime", artdaq::TimeUtils::GetElapsedTime(after_getnext, after_addFragsToBuffer), "s", 3, artdaq::MetricMode::Accumulate | artdaq::MetricMode::Average | artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum);
 			}
 			metricMan->sendMetric("GetNextTime", artdaq::TimeUtils::GetElapsedTime(loop_start, after_getnext), "s", 3, artdaq::MetricMode::Accumulate | artdaq::MetricMode::Average | artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum);
-			
+
 			frags.clear();
 		}
 		TLOG(TLVL_DEBUG) << "receive_fragments loop end";
@@ -149,7 +149,7 @@ private:
 			metricMan->sendMetric("Fragments Discarded", frags.size(), "fragments", 3, artdaq::MetricMode::Accumulate | artdaq::MetricMode::Rate | artdaq::MetricMode::Average);
 			frags.clear();
 			auto after_frag_check = std::chrono::steady_clock::now();
-			metricMan->sendMetric("ApplyRequestsTime", artdaq::TimeUtils::GetElapsedTime(loop_start, after_requests), "s", 3, artdaq::MetricMode::Average | artdaq::MetricMode::Accumulate|artdaq::MetricMode::Maximum|artdaq::MetricMode::Minimum);
+			metricMan->sendMetric("ApplyRequestsTime", artdaq::TimeUtils::GetElapsedTime(loop_start, after_requests), "s", 3, artdaq::MetricMode::Average | artdaq::MetricMode::Accumulate | artdaq::MetricMode::Maximum | artdaq::MetricMode::Minimum);
 			metricMan->sendMetric("FragmentDiscardTime", artdaq::TimeUtils::GetElapsedTime(after_requests, after_frag_check), "s", 3, artdaq::MetricMode::Average | artdaq::MetricMode::Accumulate);
 
 			std::this_thread::yield();
@@ -234,7 +234,8 @@ int main(int argc, char* argv[])
 		auto us_since_start = artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time);
 		int64_t time_diff = seq * time_between_requests_us - us_since_start;
 		TLOG(40) << "Time Diff: " << time_diff << ", Time since start: " << us_since_start << ", current epoch: " << seq * time_between_requests_us;
-		if (time_diff > 10) {
+		if (time_diff > 10)
+		{
 			usleep(time_diff);
 		}
 	}
