@@ -6,7 +6,7 @@
 
 std::shared_ptr<artdaq::RoutingManagerPolicy>
 artdaq::makeRoutingManagerPolicy(std::string const& policy_plugin_spec,
-                                fhicl::ParameterSet const& ps)
+                                 fhicl::ParameterSet const& ps)
 {
 	static cet::BasicPluginFactory bpf("policy", "make");
 

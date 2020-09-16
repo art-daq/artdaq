@@ -4,8 +4,7 @@
 #include "artdaq/DAQrate/TransferTest.hh"
 #include "fhiclcpp/make_ParameterSet.h"
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("transfer_driver");
 	TLOG(TLVL_INFO) << "BEGIN";
@@ -24,7 +23,7 @@ try
 	}
 
 	std::string rankString(argv[1]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	my_rank = std::stoi(rankString); 
+	my_rank = std::stoi(rankString);
 
 	cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
 	fhicl::ParameterSet ps;
