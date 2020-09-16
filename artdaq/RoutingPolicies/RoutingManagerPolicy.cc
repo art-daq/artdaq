@@ -1,20 +1,22 @@
-#define TRACE_NAME "RoutingMasterPolicy"
+#define TRACE_NAME "RoutingManagerPolicy"
 
-#include "artdaq/RoutingPolicies/RoutingMasterPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
-artdaq::RoutingMasterPolicy::RoutingMasterPolicy(fhicl::ParameterSet ps)
+artdaq::RoutingManagerPolicy::RoutingManagerPolicy(const fhicl::ParameterSet& ps)
     : next_sequence_id_(1)
-    , tokens_()
     , max_token_count_(0)
 {
 	auto receiver_ranks = ps.get<std::vector<int>>("receiver_ranks");
 	receiver_ranks_.insert(receiver_ranks.begin(), receiver_ranks.end());
 }
 
-void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_free)
+void artdaq::RoutingManagerPolicy::AddReceiverToken(int rank, unsigned new_slots_free)
 {
-	if (!receiver_ranks_.count(rank)) return;
+	if (receiver_ranks_.count(rank) == 0u)
+	{
+		return;
+	}
 	TLOG(10) << "AddReceiverToken BEGIN";
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
 	if (new_slots_free == 1)
@@ -28,15 +30,21 @@ void artdaq::RoutingMasterPolicy::AddReceiverToken(int rank, unsigned new_slots_
 		for (unsigned i = 0; i < new_slots_free; ++i)
 		{
 			auto it = tokens_.begin();
-			if (tokens_.size()) std::advance(it, rand() % tokens_.size());
+			if (!tokens_.empty())
+			{
+				std::advance(it, rand() % tokens_.size());  // NOLINT(cert-msc50-cpp)
+			}
 			tokens_.insert(it, rank);
 		}
 	}
-	if (tokens_.size() > max_token_count_) max_token_count_ = tokens_.size();
+	if (tokens_.size() > max_token_count_)
+	{
+		max_token_count_ = tokens_.size();
+	}
 	TLOG(10) << "AddReceiverToken END";
 }
 
-std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot()
+std::unique_ptr<std::deque<int>> artdaq::RoutingManagerPolicy::getTokensSnapshot()
 {
 	TLOG(10) << "getTokensSnapshot BEGIN";
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
@@ -46,17 +54,20 @@ std::unique_ptr<std::deque<int>> artdaq::RoutingMasterPolicy::getTokensSnapshot(
 	return out;
 }
 
-void artdaq::RoutingMasterPolicy::addUnusedTokens(std::unique_ptr<std::deque<int>> tokens)
+void artdaq::RoutingManagerPolicy::addUnusedTokens(std::unique_ptr<std::deque<int>> tokens)
 {
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
-	for (auto token = tokens.get()->rbegin(); token != tokens.get()->rend(); ++token)
+	for (auto token = tokens->rbegin(); token != tokens->rend(); ++token)
 	{
 		tokens_.push_front(*token);
 	}
-	if (tokens_.size() > max_token_count_) max_token_count_ = tokens_.size();
+	if (tokens_.size() > max_token_count_)
+	{
+		max_token_count_ = tokens_.size();
+	}
 }
 
-void artdaq::RoutingMasterPolicy::Reset()
+void artdaq::RoutingManagerPolicy::Reset()
 {
 	next_sequence_id_ = 1;
 	std::unique_lock<std::mutex> lk(tokens_mutex_);

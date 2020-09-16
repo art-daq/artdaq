@@ -1,15 +1,15 @@
 #define TRACE_NAME "RequestSender"
 
 #include <boost/program_options.hpp>
+#include <memory>
 #include "fhiclcpp/make_ParameterSet.h"
-namespace bpo = boost::program_options;
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("RequestSender");
 
@@ -33,10 +33,13 @@ int main(int argc, char* argv[])
 	artdaq::RequestSender sender(pset);
 
 	std::unique_ptr<artdaq::RequestReceiver> receiver(nullptr);
+	std::shared_ptr<artdaq::RequestBuffer> request_buffer(nullptr);
 	int num_requests = pset.get<int>("num_requests", 1);
 	if (pset.get<bool>("use_receiver", false))
 	{
-		receiver.reset(new artdaq::RequestReceiver(pset.get<fhicl::ParameterSet>("receiver_config")));
+		auto receiver_pset = pset.get<fhicl::ParameterSet>("receiver_config");
+		request_buffer = std::make_shared<artdaq::RequestBuffer>(receiver_pset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1));
+		receiver = std::make_unique<artdaq::RequestReceiver>(receiver_pset, request_buffer);
 		receiver->startRequestReception();
 	}
 
@@ -48,20 +51,22 @@ int main(int argc, char* argv[])
 
 	for (auto ii = 0; ii < num_requests; ++ii)
 	{
+		TLOG(TLVL_INFO) << "Sending request " << ii << " of " << num_requests << " with sequence id " << seq;
 		sender.AddRequest(seq, ts);
 		sender.SendRequest();
 
-		if (receiver)
+		if (request_buffer)
 		{
 			auto start_time = std::chrono::steady_clock::now();
 			bool recvd = false;
+			TLOG(TLVL_INFO) << "Starting receive loop for request " << ii;
 			while (!recvd && artdaq::TimeUtils::GetElapsedTimeMilliseconds(start_time) < tmo)
 			{
-				auto reqs = receiver->GetRequests();
-				if (reqs.count(seq))
+				auto reqs = request_buffer->GetRequests();
+				if (reqs.count(seq) != 0u)
 				{
 					TLOG(TLVL_INFO) << "Received Request for Sequence ID " << seq << ", timestamp " << reqs[seq];
-					receiver->RemoveRequest(seq);
+					request_buffer->RemoveRequest(seq);
 					sender.RemoveRequest(seq);
 					recvd = true;
 				}
@@ -77,4 +82,8 @@ int main(int argc, char* argv[])
 	}
 
 	return rc;
+}
+catch (...)
+{
+	return -1;
 }
