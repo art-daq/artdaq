@@ -214,13 +214,13 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	}
 
 	TLOG(TLVL_WARNING) << GetTraceName() << "Fragment invalid for shared memory! "
-		                   << "fragment address and size = "
-		                   << fragAddr << " " << fragSize << " "
-		                   << "sequence ID, fragment ID, and type = "
-		                   << fragment.sequenceID() << " "
-		                   << fragment.fragmentID() << " "
-		                   << fragment.typeString();
-		return CopyStatus::kErrorNotRequiringException;
+	                   << "fragment address and size = "
+	                   << fragAddr << " " << fragSize << " "
+	                   << "sequence ID, fragment ID, and type = "
+	                   << fragment.sequenceID() << " "
+	                   << fragment.fragmentID() << " "
+	                   << fragment.typeString();
+	return CopyStatus::kErrorNotRequiringException;
 
 	TLOG(TLVL_WARNING) << GetTraceName() << "Unreachable code reached!";
 	return CopyStatus::kErrorNotRequiringException;
