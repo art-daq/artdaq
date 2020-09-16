@@ -594,7 +594,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		{
 			TLOG(TLVL_ERROR) << "(in non_blocking) calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID
 			                 << ". enabled_destinantions_.size()=" << enabled_destinations_.size();
-	}
+		}
 	}
 	else
 	{
@@ -628,7 +628,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		{
 			TLOG(TLVL_ERROR) << "calcDest returned invalid destination rank " << dest << "! This event has been lost: " << seqID
 			                 << ". enabled_destinantions_.size()=" << enabled_destinations_.size();
-	}
+		}
 	}
 
 	if (!isSystemBroadcast)
