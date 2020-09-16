@@ -122,4 +122,4 @@ void artdaq::PrintBuildInfo::beginRun(art::Run const& run)
 	}
 }
 
-DEFINE_ART_MODULE(artdaq::PrintBuildInfo) // NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(artdaq::PrintBuildInfo)  // NOLINT(performance-unnecessary-value-param)
