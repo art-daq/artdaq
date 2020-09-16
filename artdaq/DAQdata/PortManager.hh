@@ -174,7 +174,7 @@ private:
 	int xmlrpc_offset_{DEFAULT_XMLRPC_OFFSET};
 	int tcp_socket_offset_{DEFAULT_TCPSOCKET_OFFSET};
 	int request_message_port_{DEFAULT_REQUEST_PORT};
-	int routing_table_port_{DEFAULT_ROUTING_TABLE_PORT} ;
+	int routing_table_port_{DEFAULT_ROUTING_TABLE_PORT};
 	int multicast_transfer_offset_{1024};
 	std::string request_message_group_pattern_;
 	std::string routing_table_group_pattern_;
