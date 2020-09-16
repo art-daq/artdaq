@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE GenericFragmentSimulator_t
-#include <boost/test/auto_unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
