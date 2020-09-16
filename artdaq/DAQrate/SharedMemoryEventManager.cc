@@ -545,11 +545,11 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 		return 0;
 	}
 
-		TLOG(TLVL_INFO) << std::setw(4) << std::fixed << "art initialization took "
-		                << TimeUtils::GetElapsedTime(startTime) << " seconds.";
+	TLOG(TLVL_INFO) << std::setw(4) << std::fixed << "art initialization took "
+	                << TimeUtils::GetElapsedTime(startTime) << " seconds.";
 
-		return *pid;
-	}
+	return *pid;
+}
 
 void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pids, bool skip_graceful_wait)
 {
@@ -612,7 +612,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 				check_pids(false);
 				if (count_pids() == 0)
 				{
-				TLOG(TLVL_INFO) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
+					TLOG(TLVL_INFO) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
 					return;
 				}
 			}

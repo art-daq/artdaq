@@ -179,8 +179,8 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 				continue;
 			}
 
-				return fragmentPtrs;
-			}
+			return fragmentPtrs;
+		}
 
 		checkIntegrity(*fragmentPtr);
 
@@ -191,8 +191,8 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 			break;
 		}
 
-			if (fragments_received > maxEventsBeforeInit_)
-			{
+		if (fragments_received > maxEventsBeforeInit_)
+		{
 			throw cet::exception("TransferWrapper") << "First " << maxEventsBeforeInit_ << " events received did not include the \"Init\" event containing necessary info for art; exiting...";  // NOLINT(cert-err60-cpp)
 		}
 	}
@@ -245,8 +245,8 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 			throw cet::exception("TransferWrapper") << errmsg.str();  // NOLINT(cert-err60-cpp)
 		}
 
-			return;
-		}
+		return;
+	}
 
 	auto findloc = std::find(allowedFragmentTypes_.begin(), allowedFragmentTypes_.end(), static_cast<int>(type));
 
@@ -262,9 +262,9 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 			throw cet::exception("TransferWrapper") << errmsg.str();  // NOLINT(cert-err60-cpp)
 		}
 
-			return;
-		}
+		return;
 	}
+}
 
 void artdaq::TransferWrapper::registerMonitor()
 {
@@ -317,8 +317,8 @@ void artdaq::TransferWrapper::registerMonitor()
 			break;
 		}
 
-			TLOG(TLVL_WARNING) << "Error in TransferWrapper: attempt to register with dispatcher did not result in the \"Success\" response";
-			usleep(100000);
+		TLOG(TLVL_WARNING) << "Error in TransferWrapper: attempt to register with dispatcher did not result in the \"Success\" response";
+		usleep(100000);
 
 		retry--;
 	}

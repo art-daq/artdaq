@@ -106,9 +106,9 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 			if (registered_monitors_.count(label) != 0u)
 			{
 				throw cet::exception("DispatcherCore") << "Unique label already exists!";  // NOLINT(cert-err60-cpp)
-		}
+			}
 
-		registered_monitors_[label] = pset;
+			registered_monitors_[label] = pset;
 		}
 
 		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
@@ -160,16 +160,16 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 	{
 		{
 			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
-		if (registered_monitors_.count(label) == 0)
-		{
-			std::stringstream errmsg;
-			errmsg << "Warning in DispatcherCore::unregister_monitor: unable to find requested transfer plugin with "
-			       << "label \"" << label << "\"";
-			TLOG(TLVL_WARNING) << errmsg.str();
-			return errmsg.str();
-		}
+			if (registered_monitors_.count(label) == 0)
+			{
+				std::stringstream errmsg;
+				errmsg << "Warning in DispatcherCore::unregister_monitor: unable to find requested transfer plugin with "
+				       << "label \"" << label << "\"";
+				TLOG(TLVL_WARNING) << errmsg.str();
+				return errmsg.str();
+			}
 
-		registered_monitors_.erase(label);
+			registered_monitors_.erase(label);
 		}
 
 		// ELF, Jul 21, 2020: This can take a long time, and we don't want to block the XMLRPC thread
@@ -225,9 +225,9 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 						continue;
 					}
 
-						auto newname = label + name;
-						generated_physics_filter_paths[newname] = path;
-					}
+					auto newname = label + name;
+					generated_physics_filter_paths[newname] = path;
+				}
 				else
 				{
 					generated_physics_filter_paths[name] = path;
@@ -401,17 +401,17 @@ void artdaq::DispatcherCore::check_filters_()
 	{
 		if (registered_monitor_pids_.count(it->first) != 0u)
 		{
-		if (!event_store_ptr_)
-		{
-			registered_monitor_pids_.erase(it->first);
-		}
-		else
-		{
-			auto pid = registered_monitor_pids_[it->first];
-			auto sts = kill(pid, 0);
-			if (sts < 0)
+			if (!event_store_ptr_)
 			{
 				registered_monitor_pids_.erase(it->first);
+			}
+			else
+			{
+				auto pid = registered_monitor_pids_[it->first];
+				auto sts = kill(pid, 0);
+				if (sts < 0)
+				{
+					registered_monitor_pids_.erase(it->first);
 				}
 			}
 		}
