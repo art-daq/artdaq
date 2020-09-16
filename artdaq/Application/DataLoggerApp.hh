@@ -36,6 +36,8 @@ public:
 	 * \return DataLoggerApp copy
 	 */
 	DataLoggerApp& operator=(DataLoggerApp const&) = delete;
+	DataLoggerApp(DataLoggerApp&&) = delete;
+	DataLoggerApp& operator=(DataLoggerApp&&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**

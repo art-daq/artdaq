@@ -19,7 +19,7 @@ using artdaq::GenericFragmentSimulator;
 using artdaq::SharedMemoryEventManager;
 using std::size_t;
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
 	struct Config
 	{
@@ -104,21 +104,25 @@ int main(int argc, char* argv[])
 	}
 	catch (cet::exception& x)
 	{
-		std::cerr << argv[0] << " failure\n"
+		std::cerr << *argv << " failure\n"
 		          << x << std::endl;
 		rc = 1;
 	}
 	catch (std::string& x)
 	{
-		std::cerr << argv[0] << " failure\n"
+		std::cerr << *argv << " failure\n"
 		          << x << std::endl;
 		rc = 2;
 	}
 	catch (char const* x)
 	{
-		std::cerr << argv[0] << " failure\n"
+		std::cerr << *argv << " failure\n"
 		          << x << std::endl;
 		rc = 3;
 	}
 	return rc;
+}
+catch (...)
+{
+	return -1;
 }

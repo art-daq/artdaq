@@ -44,6 +44,8 @@ public:
 	* \return AggregatorCore copy
 	*/
 	DataReceiverCore& operator=(DataReceiverCore const&) = delete;
+	DataReceiverCore(DataReceiverCore&&) = delete;
+	DataReceiverCore& operator=(DataReceiverCore&&) = delete;
 
 	/**
 	* \brief Processes the initialize request.
@@ -117,7 +119,7 @@ public:
 	* \param subrun Subrun number of new subrun
 	* \return True event_store_ptr is valid
 	*/
-	bool rollover_subrun(uint64_t eventNum, uint32_t subrun);
+	bool rollover_subrun(uint64_t boundary, uint32_t subrun);
 
 	/**
 	* \brief Send a report on a given run-time quantity

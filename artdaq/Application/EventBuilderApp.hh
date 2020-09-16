@@ -36,6 +36,8 @@ public:
 	* \return EventBuilderApp copy
 	*/
 	EventBuilderApp& operator=(EventBuilderApp const&) = delete;
+	EventBuilderApp(EventBuilderApp&&) = delete;
+	EventBuilderApp& operator=(EventBuilderApp&&) = delete;
 
 	// these methods provide the operations that are used by the state machine
 	/**
@@ -96,7 +98,7 @@ public:
 	* \param subrunNum Number of new subrun
 	* \return True event_store_ptr is valid
 	*/
-	bool do_rollover_subrun(uint64_t eventNum, uint32_t subrunNum) override;
+	bool do_rollover_subrun(uint64_t boundary, uint32_t subrunNum) override;
 
 	/**
 	* \brief Action taken upon entering the "Booted" state
