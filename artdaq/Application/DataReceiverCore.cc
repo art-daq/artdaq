@@ -260,8 +260,8 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 			return std::to_string(event_store_ptr_->GetOpenEventCount());
 		}
 
-			return "-1";
-		}
+		return "-1";
+	}
 	if (which == "event_count")
 	{
 		if (receiver_ptr_ != nullptr)
