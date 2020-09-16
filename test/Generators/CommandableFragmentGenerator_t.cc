@@ -1,24 +1,24 @@
 #define TRACE_NAME "CommandableFragmentGenerator_t"
 
 #define BOOST_TEST_MODULE CommandableFragmentGenerator_t
-#include <boost/test/auto_unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
-#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
-	do                                                                                                                           \
-	{                                                                                                                            \
+#define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
+	do                                                                                                                               \
+	{                                                                                                                                \
 		if ((l) == (r))                                                                                                              \
-		{                                                                                                                        \
+		{                                                                                                                            \
 			TLOG(TLVL_DEBUG) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...YES!"; \
-		}                                                                                                                        \
-		else                                                                                                                     \
-		{                                                                                                                        \
+		}                                                                                                                            \
+		else                                                                                                                         \
+		{                                                                                                                            \
 			TLOG(TLVL_ERROR) << __LINE__ << ": Checking if " << #l << " (" << (l) << ") equals " << #r << " (" << (r) << ")...NO!";  \
-		}                                                                                                                        \
+		}                                                                                                                            \
 		BOOST_REQUIRE_EQUAL((l), (r));                                                                                               \
 	} while (false)
 
@@ -133,7 +133,6 @@ public:
 	 */
 	artdaq::Fragment::timestamp_t getTimestamp() { return ts_; }
 
-
 private:
 	std::atomic<size_t> fireCount_;
 	std::atomic<bool> hwFail_;
@@ -234,7 +233,7 @@ BOOST_AUTO_TEST_CASE(MultipleIDs)
 
 	fps.clear();
 
-	testGen.setEnabledIds(0x6); // 0110b, ID 3 disabled
+	testGen.setEnabledIds(0x6);  // 0110b, ID 3 disabled
 	testGen.setFireCount(1);
 
 	sts = testGen.getNext(fps);

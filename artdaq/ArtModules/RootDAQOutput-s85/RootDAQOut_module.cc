@@ -729,6 +729,6 @@ art::RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const
 	return modifiedPattern;
 }
 
-DEFINE_ART_MODULE(art::RootDAQOut)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(art::RootDAQOut)  // NOLINT(performance-unnecessary-value-param)
 
 // vim: set sw=2:

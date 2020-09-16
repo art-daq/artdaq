@@ -20,13 +20,13 @@ typedef std::unique_ptr<artdaq::RoutingManagerPolicy> makeFunc_t(fhicl::Paramete
 #define EXTERN_C_FUNC_DECLARE_START extern "C" {
 #endif
 
-#define DEFINE_ARTDAQ_ROUTING_POLICY(klass)                                 \
-	EXTERN_C_FUNC_DECLARE_START                                             \
+#define DEFINE_ARTDAQ_ROUTING_POLICY(klass)                                  \
+	EXTERN_C_FUNC_DECLARE_START                                              \
 	std::unique_ptr<artdaq::RoutingManagerPolicy>                            \
-	make(fhicl::ParameterSet const& ps)                                     \
-	{                                                                       \
+	make(fhicl::ParameterSet const& ps)                                      \
+	{                                                                        \
 		return std::unique_ptr<artdaq::RoutingManagerPolicy>(new klass(ps)); \
-	}                                                                       \
+	}                                                                        \
 	}
 
 #endif /* artdaq_Application_Routing_PolicyMacros_hh */

@@ -9,8 +9,7 @@
 #include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/RequestSender.hh"
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("RequestSender");
 
