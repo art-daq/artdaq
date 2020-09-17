@@ -6,8 +6,8 @@
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
-#include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/DAQrate/detail/RequestReceiver.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
 
 int main(int argc, char* argv[]) try
 {

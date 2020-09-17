@@ -7,7 +7,7 @@
 
 #include <utility>
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
-#include "artdaq/DAQrate/TokenReceiver.hh"
+#include "artdaq/DAQrate/detail/TokenReceiver.hh"
 
 artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingManagerPolicy> policy,
                                      detail::RoutingManagerMode routing_mode, size_t number_of_senders, size_t update_interval_msec)

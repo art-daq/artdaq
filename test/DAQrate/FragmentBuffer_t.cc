@@ -6,7 +6,7 @@
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQrate/FragmentBuffer.hh"
-#include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
 
 #define MESSAGEFACILITY_DEBUG true
 

@@ -55,6 +55,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
     , art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 1000000))
     , requests_(nullptr)
+    , tokens_(nullptr)
     , data_pset_(pset)
     , broadcasts_(pset.get<uint32_t>("broadcast_shared_memory_key", build_key(0xBB000000)),
                   pset.get<size_t>("broadcast_buffer_count", 10),
@@ -832,7 +833,16 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 	if (requests_)
 	{
 		requests_->SetRunNumber(static_cast<uint32_t>(run_id_));
-		requests_->SendRoutingToken(queue_size_, run_id_);
+	}
+	if (data_pset_.has_key("routing_token_config"))
+	{
+		auto rmPset = data_pset_.get<fhicl::ParameterSet>("routing_token_config");
+		if (rmPset.get<bool>("use_routing_manager", false))
+		{
+			tokens_ = std::make_unique<TokenSender>(rmPset);
+			tokens_->SetRunNumber(static_cast<uint32_t>(run_id_));
+			tokens_->SendRoutingToken(queue_size_, run_id_);
+		}
 	}
 	TLOG(TLVL_DEBUG) << "Starting run " << run_id_
 	                 << ", max queue size = "
@@ -853,6 +863,8 @@ bool artdaq::SharedMemoryEventManager::endRun()
 
 	TLOG(TLVL_DEBUG) << "Shutting down RequestSender";
 	requests_.reset(nullptr);
+	TLOG(TLVL_DEBUG) << "Shutting down TokenSender";
+	tokens_.reset(nullptr);
 
 	TLOG(TLVL_DEBUG) << "Broadcasting EndOfRun Fragment";
 	endOfRunFrag->setSystemType(Fragment::EndOfRunFragmentType);
@@ -1243,10 +1255,10 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		                  << active_buffers_.size() << ")";
 	}
 
-	if (requests_ && requests_->RoutingTokenSendsEnabled())
+	if (tokens_ && tokens_->RoutingTokenSendsEnabled())
 	{
-		TLOG(TLVL_TRACE) << "Sent tokens: " << requests_->GetSentTokenCount() << ", Event count: " << run_event_count_;
-		auto outstanding_tokens = requests_->GetSentTokenCount() - run_event_count_;
+		TLOG(TLVL_TRACE) << "Sent tokens: " << tokens_->GetSentTokenCount() << ", Event count: " << run_event_count_;
+		auto outstanding_tokens = tokens_->GetSentTokenCount() - run_event_count_;
 		auto available_buffers = WriteReadyCount(overwrite_mode_);
 
 		TLOG(TLVL_TRACE) << "check_pending_buffers_: outstanding_tokens: " << outstanding_tokens << ", available_buffers: " << available_buffers
@@ -1259,7 +1271,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 			while (tokens_to_send > 0)
 			{
 				TLOG(35) << "check_pending_buffers_: Sending a Routing Token";
-				requests_->SendRoutingToken(1, run_id_);
+				tokens_->SendRoutingToken(1, run_id_);
 				tokens_to_send--;
 			}
 		}
@@ -1283,9 +1295,9 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 		metricMan->sendMetric("Events Released to art this run", run_event_count_, "Events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Incomplete Events Released to art this run", run_incomplete_event_count_, "Events", 1, MetricMode::LastPoint);
-		if (requests_)
+		if (tokens_ && tokens_->RoutingTokenSendsEnabled())
 		{
-			metricMan->sendMetric("Tokens sent", requests_->GetSentTokenCount(), "Tokens", 2, MetricMode::LastPoint);
+			metricMan->sendMetric("Tokens sent", tokens_->GetSentTokenCount(), "Tokens", 2, MetricMode::LastPoint);
 		}
 
 		auto bufferReport = GetBufferReport();

@@ -10,9 +10,11 @@
 #include <set>
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
+#include "artdaq/DAQrate/detail/TokenSender.hh"
 #include "fhiclcpp/fwd.h"
+#include "fhiclcpp/types/Table.h"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 namespace artdaq {
@@ -163,6 +165,8 @@ public:
 		fhicl::Atom<bool> manual_art{fhicl::Name{"manual_art"}, fhicl::Comment{"Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind"}, false};
 
 		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;  ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
+		                                                                          /// Configuration of the TokenSender. See artdaq::TokenSender::Config
+		fhicl::OptionalTable<artdaq::TokenSender::Config> tokenSenderConfig{fhicl::Name{"routing_token_config"}, fhicl::Comment{"Configuration for the Routing TokenSender"}};
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -463,6 +467,7 @@ private:
 	size_t art_event_processing_time_us_;
 
 	std::unique_ptr<RequestSender> requests_;
+	std::unique_ptr<TokenSender> tokens_;
 	fhicl::ParameterSet data_pset_;
 
 	FragmentPtrs init_fragments_;
