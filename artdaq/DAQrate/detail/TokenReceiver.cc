@@ -210,21 +210,21 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 						else
 						{
 							received_token_count_ += buff.new_slots_free;
-							if (routing_mode_ == detail::RoutingManagerMode::RouteBySequenceID)
+							if (routing_mode_ == detail::RoutingManagerMode::EventBuilding)
 							{
 								policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
 							}
-							else if (routing_mode_ == detail::RoutingManagerMode::RouteBySendCount)
+							else if (routing_mode_ == detail::RoutingManagerMode::DataFlow)
 							{
 								if (received_token_counter_.count(buff.rank) == 0u)
 								{
 									received_token_counter_[buff.rank] = 0;
 								}
 								received_token_counter_[buff.rank] += buff.new_slots_free;
-								TLOG(TLVL_DEBUG) << "RoutingManagerMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_ << ".";
+								TLOG(TLVL_DEBUG) << "RoutingManagerMode is DataFlow. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_ << ".";
 								while (received_token_counter_[buff.rank] >= number_of_senders_)
 								{
-									TLOG(TLVL_DEBUG) << "RoutingManagerMode is RouteBySendCount. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_
+									TLOG(TLVL_DEBUG) << "RoutingManagerMode is DataFlow. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_
 									                 << "... Sending token to policy";
 									policy_->AddReceiverToken(buff.rank, 1);
 									received_token_counter_[buff.rank] -= number_of_senders_;

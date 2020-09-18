@@ -2,7 +2,6 @@
 #define artdaq_DAQrate_detail_RoutingPacket_hh
 
 #include "artdaq-core/Data/Fragment.hh"
-#define MAX_ROUTING_TABLE_SIZE 65000
 
 namespace artdaq {
 namespace detail {
@@ -14,7 +13,8 @@ struct RoutingPacketEntry;
 		 */
 using RoutingPacket = std::vector<RoutingPacketEntry>;
 struct RoutingPacketHeader;
-struct RoutingAckPacket;
+struct RoutingConnectHeader;
+struct RoutingRequest;
 struct RoutingToken;
 
 /**
@@ -22,8 +22,8 @@ struct RoutingToken;
 		 */
 enum class RoutingManagerMode : uint8_t
 {
-	RouteBySequenceID,  ///< Events should be routed by sequence ID (BR -> EB)
-	RouteBySendCount,   ///< Events should be routed by send count (EB -> Agg)
+	EventBuilding, ///< Multiple sources sending to a single destination
+	DataFlow,      ///< One source sending to one destination (i.e. moving around completed events)
 	INVALID
 };
 }  // namespace detail
@@ -46,13 +46,14 @@ struct artdaq::detail::RoutingPacketEntry
 	    : sequence_id(seq), destination_rank(rank) {}
 
 	Fragment::sequence_id_t sequence_id{Fragment::InvalidSequenceID};  ///< The sequence ID of the RoutingPacketEntry
-	int destination_rank{-1};                                          ///< The destination rank for this sequence ID
+	int32_t destination_rank{-1};                                          ///< The destination rank for this sequence ID
 };
 
 /**
  * \brief Magic bytes expected in every RoutingPacketHeader
  */
 #define ROUTING_MAGIC 0x1337beef
+#define REQUEST_MAGIC 0x1337cafe
 
 /**
  * \brief The header of the Routing Table, containing the magic bytes and the number of entries
@@ -60,45 +61,48 @@ struct artdaq::detail::RoutingPacketEntry
 struct artdaq::detail::RoutingPacketHeader
 {
 	uint32_t header{0};                                    ///< Magic bytes to make sure the packet wasn't garbled
-	RoutingManagerMode mode{RoutingManagerMode::INVALID};  ///< The current mode of the RoutingManager
-	size_t nEntries{0};                                    ///< The number of RoutingPacketEntries in the RoutingPacket
-	std::bitset<1024> already_acknowledged_ranks{0};       ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
+	uint64_t nEntries{0};                                    ///< The number of RoutingPacketEntries in the RoutingPacket
 
 	/**
 	 * \brief Construct a RoutingPacketHeader declaring a given number of entries
-	 * \param m The RoutingManagerMode that senders are supposed to be operating in
 	 * \param n The number of RoutingPacketEntries in the associated RoutingPacket
 	 */
-	explicit RoutingPacketHeader(RoutingManagerMode m, size_t n)
-	    : header(ROUTING_MAGIC), mode(m), nEntries(n) {}
+	explicit RoutingPacketHeader(size_t n)
+	    : header(ROUTING_MAGIC),nEntries(n) {}
 	/**
 	 * \brief Default Constructor
 	 */
 	RoutingPacketHeader() {}
 };
 
-/**
- * \brief A RoutingAckPacket contains the rank of the table receiver, plus the first and last sequence IDs in the Routing Table (for verification)
- */
-struct artdaq::detail::RoutingAckPacket
+struct artdaq::detail::RoutingConnectHeader
 {
-	int rank;                                   ///< The rank from which the RoutingAckPacket came
-	Fragment::sequence_id_t first_sequence_id;  ///< The first sequence ID in the received RoutingPacket
-	Fragment::sequence_id_t last_sequence_id;   ///< The last sequence ID in the received RoutingPacket
-
-	static RoutingAckPacket makeEndOfDataRoutingAckPacket(int rank)
+	enum class ConnectHeaderMode : uint8_t
 	{
-		RoutingAckPacket out;
-		out.rank = rank;
-		out.first_sequence_id = -3;
-		out.last_sequence_id = -2;
-		return out;
-	}
+	Connect = 0,
+	Disconnect = 1,
+	Invalid = 255,
+	};
+	uint32_t header{0};
+	int32_t rank{-1};
+	ConnectHeaderMode mode{ConnectHeaderMode::Invalid};
 
-	static bool isEndOfDataRoutingAckPacket(RoutingAckPacket pkt)
-	{
-		return pkt.first_sequence_id == static_cast<Fragment::sequence_id_t>(-3) && pkt.last_sequence_id == static_cast<Fragment::sequence_id_t>(-2);
-	}
+	explicit RoutingConnectHeader(int r, ConnectHeaderMode m = ConnectHeaderMode::Connect)
+	    : header(ROUTING_MAGIC), rank(r), mode(m) {}
+
+	RoutingConnectHeader() {}
+};
+
+struct artdaq::detail::RoutingRequest
+{
+	uint32_t header{0};
+	int32_t rank{-1};                         ///< The rank requesting routing information
+	Fragment::sequence_id_t sequence_id{artdaq::Fragment::InvalidSequenceID};  ///< The sequence ID being requested
+
+	RoutingRequest(int r, Fragment::sequence_id_t s)
+	    : header(REQUEST_MAGIC), rank(r), sequence_id(s) {}
+
+	RoutingRequest() {}
 };
 
 /**

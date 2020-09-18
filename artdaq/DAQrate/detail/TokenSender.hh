@@ -76,8 +76,9 @@ public:
 		 * \brief Send a RoutingToken message indicating that slots are available
 		 * \param nSlots Number of slots available
 		 * \param run_number Run number for token
+		 * \param rank Rank of token
 		 */
-	void SendRoutingToken(int nSlots, int run_number);
+	void SendRoutingToken(int nSlots, int run_number, int rank = my_rank);
 
 	/**
 		 * \brief Get the count of number of tokens sent
@@ -111,7 +112,7 @@ private:
 
 	void setup_tokens_();
 
-	void send_routing_token_(int nSlots, int run_number);
+	void send_routing_token_(int nSlots, int run_number, int rank);
 };
 }  // namespace artdaq
 #endif /* artdaq_DAQrate_TokenSender_hh */

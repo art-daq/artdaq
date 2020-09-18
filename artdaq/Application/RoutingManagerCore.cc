@@ -153,17 +153,10 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	rt_priority_ = daq_pset.get<int>("rt_priority", 0);
 	sender_ranks_ = daq_pset.get<std::vector<int>>("sender_ranks");
 
-	receive_ack_events_ = std::vector<epoll_event>(sender_ranks_.size());
-
 	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
-	routing_mode_ = mode ? detail::RoutingManagerMode::RouteBySendCount : detail::RoutingManagerMode::RouteBySequenceID;
+	routing_mode_ = mode ? detail::RoutingManagerMode::DataFlow : detail::RoutingManagerMode::EventBuilding;
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
-	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
-	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
-	receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port", 35557);
-	send_tables_address_ = daq_pset.get<std::string>("table_update_address", "227.128.12.28");
-	multicast_out_hostname_ = daq_pset.get<std::string>("routing_manager_hostname", "localhost");
 
 	// fetch the monitoring parameters and create the MonitoredQuantity instances
 	statsHelperPtr_->createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
@@ -175,6 +168,22 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	token_receiver_->pauseTokenReception();
 
 	shutdown_requested_.store(false);
+	if (listen_thread_ && listen_thread_->joinable())
+	{
+		listen_thread_->join();
+	}
+	TLOG(TLVL_INFO) << "Starting Listener Thread";
+
+	try
+	{
+		listen_thread_ = std::make_unique<boost::thread>(&RoutingManagerCore::listen_, this);
+	}
+	catch (const boost::exception& e)
+	{
+		TLOG(TLVL_ERROR) << "Caught boost::exception starting TCP Socket Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
+		std::cerr << "Caught boost::exception starting TCP Socket Listen thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
+		exit(5);
+	}
 	return true;
 }
 
@@ -352,267 +361,45 @@ void artdaq::RoutingManagerCore::process_event_table()
 		}
 	}
 
-	if (stop_requested_ && ack_socket_ != -1)
-	{
-		TLOG(TLVL_INFO) << "Shutting down Routing Manager: Draining ack socket BEGIN";
-		auto ready = true;
-		while (ready)
-		{
-			detail::RoutingAckPacket buffer;
-			if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, nullptr, nullptr) < 0)
-			{
-				if (errno == EWOULDBLOCK || errno == EAGAIN)
-				{
-					TLOG(20) << "No more ack datagrams on ack socket.";
-					ready = false;
-				}
-				else
-				{
-					TLOG(TLVL_ERROR) << "An unexpected error occurred during ack packet receive";
-					exit(2);
-				}
-			}
-		}
-		TLOG(TLVL_INFO) << "Shutting down Routing Manager: Draining ack socket END";
-	}
-
 	TLOG(TLVL_DEBUG) << "stop_requested_ is " << stop_requested_ << ", pause_requested_ is " << pause_requested_ << ", exiting process_event_table loop";
 	policy_->Reset();
 	metricMan->do_stop();
 }
 
-void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
+void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet, int dest_rank)
 {
-	// Reconnect table socket, if necessary
-	if (table_socket_ == -1)
-	{
-		table_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if (table_socket_ < 0)
-		{
-			TLOG(TLVL_ERROR) << "I failed to create the socket for sending Data Requests! Errno: " << errno;
-			exit(1);
-		}
-		auto sts = ResolveHost(send_tables_address_.c_str(), send_tables_port_, send_tables_addr_);
-		if (sts == -1)
-		{
-			TLOG(TLVL_ERROR) << "Unable to resolve table_update_address";
-			exit(1);
-		}
-
-		auto yes = 1;
-		if (multicast_out_hostname_ != "localhost")
-		{
-			TLOG(TLVL_DEBUG) << "Making sure that multicast sending uses the correct interface for hostname " << multicast_out_hostname_;
-			struct in_addr addr;
-			sts = GetInterfaceForNetwork(multicast_out_hostname_.c_str(), addr);
-			if (sts == -1)
-			{
-				throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to determine the multicast interface address from the routing_manager_address parameter value of " << multicast_out_hostname_ << std::endl;  // NOLINT(cert-err60-cpp)
-				exit(1);
-			}
-			char addr_str[INET_ADDRSTRLEN];
-			inet_ntop(AF_INET, &(addr), addr_str, INET_ADDRSTRLEN);
-			TLOG(TLVL_INFO) << "Successfully determined the multicast interface address for " << multicast_out_hostname_ << ": " << addr_str << " (RoutingManager sending table updates to BoardReaders)";
-
-			if (setsockopt(table_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
-			{
-				TLOG(TLVL_ERROR) << "RoutingManagerCore: Unable to enable port reuse on table update socket";
-				throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to enable port reuse on table update socket" << std::endl;  // NOLINT(cert-err60-cpp)
-				exit(1);
-			}
-
-			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &yes, sizeof(yes)) < 0)
-			{
-				TLOG(TLVL_ERROR) << "Unable to enable multicast loopback on table socket";
-				exit(1);
-			}
-			if (setsockopt(table_socket_, IPPROTO_IP, IP_MULTICAST_IF, &addr, sizeof(addr)) == -1)
-			{
-				TLOG(TLVL_ERROR) << "Cannot set outgoing interface. Errno: " << errno;
-				exit(1);
-			}
-		}
-		if (setsockopt(table_socket_, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes)) == -1)
-		{
-			TLOG(TLVL_ERROR) << "Cannot set request socket to broadcast. Errno: " << errno;
-			exit(1);
-		}
-	}
-
-	// Reconnect ack socket, if necessary
-	if (ack_socket_ == -1)
-	{
-		ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if (ack_socket_ < 0)
-		{
-			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Error creating socket for receiving table update acks!" << std::endl;  // NOLINT(cert-err60-cpp)
-			exit(1);
-		}
-
-		struct sockaddr_in si_me_request;
-
-		auto yes = 1;
-		if (setsockopt(ack_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0)
-		{
-			TLOG(TLVL_ERROR) << "RoutingManagerCore: Unable to enable port reuse on ack socket. errno=" << errno;
-			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Unable to enable port reuse on ack socket" << std::endl;  // NOLINT(cert-err60-cpp)
-			exit(1);
-		}
-
-		// 10-Apr-2019, KAB: debugging information about the size of the receive buffer
-		int sts;
-		int len = 0;
-		socklen_t arglen = sizeof(len);
-		sts = getsockopt(ack_socket_, SOL_SOCKET, SO_RCVBUF, &len, &arglen);
-		TLOG(TLVL_INFO) << "ACK RCVBUF initial: " << len << " sts/errno=" << sts << "/" << errno << " arglen=" << arglen;
-
-		memset(&si_me_request, 0, sizeof(si_me_request));
-		si_me_request.sin_family = AF_INET;
-		si_me_request.sin_port = htons(receive_acks_port_);
-		si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-		if (bind(ack_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-		{
-			TLOG(TLVL_ERROR) << "RoutingManagerCore: Cannot bind request socket to port " << receive_acks_port_ << ", errno=" << errno;
-			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;  // NOLINT(cert-err60-cpp)
-			exit(1);
-		}
-		TLOG(TLVL_DEBUG) << "Listening for acks on 0.0.0.0 port " << receive_acks_port_;
-	}
-
-	auto acks = std::unordered_map<int, bool>();
-	for (auto& r : active_ranks_)
-	{
-		acks[r] = false;
-	}
-	auto counter = 0U;
-	auto start_time = std::chrono::steady_clock::now();
-	while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; }) > 0 && !stop_requested_)
-	{
-		// Send table update
-		auto header = detail::RoutingPacketHeader(routing_mode_, packet.size());
-		auto packetSize = sizeof(detail::RoutingPacketEntry) * packet.size();
-
-		// 10-Apr-2019, KAB: added information on which senders have already acknowledged this update
-		for (auto& ack : acks)
-		{
-			TLOG(27) << "Table update already acknowledged? rank " << ack.first << " is " << ack.second
-			         << " (size of 'already_acknowledged_ranks bitset is " << (8 * sizeof(header.already_acknowledged_ranks)) << ")";
-			if (ack.first < static_cast<int>(8 * sizeof(header.already_acknowledged_ranks)))
-			{
-				if (ack.second) { header.already_acknowledged_ranks.set(ack.first); }
-			}
-		}
-
-		assert(packetSize + sizeof(header) < MAX_ROUTING_TABLE_SIZE);
-		std::vector<uint8_t> buffer(packetSize + sizeof(header));
-		memcpy(&buffer[0], &header, sizeof(detail::RoutingPacketHeader));
-		memcpy(&buffer[sizeof(detail::RoutingPacketHeader)], &packet[0], packetSize);
-
-		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to multicast group " << send_tables_address_ << ", port " << send_tables_port_ << ", outgoing interface " << multicast_out_hostname_;
+	auto sendRoutingPacket = [](detail::RoutingPacket packet,int rank, int fd) {
+		auto header = detail::RoutingPacketHeader(packet.size());
+		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to destination " << rank;
 		TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);  // NOLINT
-		auto sts = sendto(table_socket_, &buffer[0], buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&send_tables_addr_), sizeof(send_tables_addr_));                                               // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-		if (sts != static_cast<ssize_t>(buffer.size()))
-		{
-			TLOG(TLVL_ERROR) << "Error sending routing table. sts=" << sts;
+		auto sts = write(fd, &header, sizeof(header));
+		if (sts != sizeof(header)) {
+			TLOG(TLVL_ERROR) << "Error sending routing header to fd " << fd << ", rank " << rank;
 		}
-
-		// Collect acks
-
-		auto first = packet[0].sequence_id;
-		auto last = packet.rbegin()->sequence_id;
-		TLOG(TLVL_DEBUG) << "Sent " << sts << " bytes. Expecting acks to have first= " << first << ", and last= " << last;
-
-		auto startTime = std::chrono::steady_clock::now();
-		while (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; }) > 0)
+		else
 		{
-			auto table_ack_wait_time_ms = current_table_interval_ms_ / max_ack_cycle_count_;
-			if (TimeUtils::GetElapsedTimeMilliseconds(startTime) > table_ack_wait_time_ms)
+			sts = write(fd, &packet[0], packet.size() * sizeof(detail::RoutingPacketEntry));
+			if (sts != static_cast<ssize_t>(packet.size() * sizeof(detail::RoutingPacketEntry)))
 			{
-				if (++counter > max_ack_cycle_count_ && table_update_count_ > 0)
-				{
-					TLOG(TLVL_WARNING) << "Did not receive acks from all senders after resending table " << counter
-					                   << " times during the table_update_interval. Check the status of the senders!";
-				}
-				else
-				{
-					TLOG(TLVL_WARNING) << "Did not receive acks from all senders within the timeout (" << table_ack_wait_time_ms << " ms). Resending table update";
-				}
-
-				if (std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; }) <= 3)
-				{
-					auto ackIter = acks.begin();
-					while (ackIter != acks.end())
-					{
-						if (!ackIter->second)
-						{
-							TLOG(TLVL_TRACE) << "Did not receive ack from rank " << ackIter->first;
-						}
-						++ackIter;
-					}
-				}
-				break;
+				TLOG(TLVL_ERROR) << "Error sending routing table. sts=" << sts << "/" << packet.size() * sizeof(detail::RoutingPacketEntry) << ", fd=" << fd << ", rank=" << rank;
 			}
+		}
+	};
 
-			TLOG(20) << "send_event_table: Polling Request socket for new requests";
-			auto ready = true;
-			while (ready)
+	std::lock_guard<std::mutex> lk(fd_mutex_);
+	if (dest_rank == -1) {
+		for (auto& dest : connected_fds_) {
+			for (auto& connected_fd : dest.second)
 			{
-				detail::RoutingAckPacket buffer;
-				if (recvfrom(ack_socket_, &buffer, sizeof(detail::RoutingAckPacket), MSG_DONTWAIT, nullptr, nullptr) < 0)
-				{
-					if (errno == EWOULDBLOCK || errno == EAGAIN)
-					{
-						TLOG(20) << "send_event_table: No more ack datagrams on ack socket.";
-						ready = false;
-					}
-					else
-					{
-						TLOG(TLVL_ERROR) << "An unexpected error occurred during ack packet receive";
-						exit(2);
-					}
-				}
-				else
-				{
-					TLOG(TLVL_DEBUG) << "Ack packet from rank " << buffer.rank << " has first= " << buffer.first_sequence_id
-					                 << " and last= " << buffer.last_sequence_id << ", packet_size=" << sizeof(detail::RoutingAckPacket);
-					if ((acks.count(buffer.rank) != 0u) && buffer.first_sequence_id == first && buffer.last_sequence_id == last)
-					{
-						TLOG(TLVL_DEBUG) << "Received table update acknowledgement from sender with rank " << buffer.rank << ".";
-						acks[buffer.rank] = true;
-						TLOG(TLVL_DEBUG) << "There are now " << std::count_if(acks.begin(), acks.end(), [](std::pair<int, bool> p) { return !p.second; })
-						                 << " acks outstanding";
-					}
-					else if ((acks.count(buffer.rank) != 0u) && detail::RoutingAckPacket::isEndOfDataRoutingAckPacket(buffer))
-					{
-						TLOG(TLVL_INFO) << "Received table update acknowledgement indicating end-of-data from rank " << buffer.rank << ".";
-						acks[buffer.rank] = true;
-						active_ranks_.erase(buffer.rank);
-					}
-					else
-					{
-						if (acks.count(buffer.rank) == 0u)
-						{
-							TLOG(TLVL_ERROR) << "Received acknowledgement from invalid rank " << buffer.rank << "!"
-							                 << " Cross-talk between RoutingManagers means there's a configuration error!";
-						}
-						else
-						{
-							TLOG(TLVL_WARNING) << "Received acknowledgement from rank " << buffer.rank
-							                   << " that had incorrect sequence ID information. Discarding."
-							                   << " Expected first/last=" << first << "/" << last
-							                   << " recvd=" << buffer.first_sequence_id << "/" << buffer.last_sequence_id;
-						}
-					}
-				}
+				sendRoutingPacket(packet, dest.first, connected_fd);
 			}
-			usleep(table_ack_wait_time_ms * 1000 / 10);
 		}
 	}
-
-	if (metricMan)
+	else
 	{
-		artdaq::TimeUtils::seconds delta = std::chrono::steady_clock::now() - start_time;
-		metricMan->sendMetric("Avg Table Acknowledge Time", delta.count(), "seconds", 3, MetricMode::Average);
+		for (auto& connected_fd : connected_fds_[dest_rank]) {
+			sendRoutingPacket(packet,dest_rank, connected_fd);
+		}
 	}
 }
 
@@ -696,3 +483,95 @@ void artdaq::RoutingManagerCore::sendMetrics_()
 		}
 	}
 }
+
+void artdaq::RoutingManagerCore::listen_()
+{
+	int listen_fd = -1;
+	while (shutdown_requested_ == false)
+	{
+		TLOG(TLVL_TRACE) << "listen_: Listening/accepting new connections on port " << table_listen_port_;
+		if (listen_fd == -1)
+		{
+			TLOG(TLVL_DEBUG) << "listen_: Opening listener";
+			listen_fd = TCP_listen_fd(table_listen_port_, 0);
+		}
+		if (listen_fd == -1)
+		{
+			TLOG(TLVL_DEBUG) << "listen_: Error creating listen_fd!";
+			break;
+		}
+
+		int res;
+		timeval tv = {2, 0};  // maybe increase of some global "debugging" flag set???
+		fd_set rfds;
+		FD_ZERO(&rfds);
+		FD_SET(listen_fd, &rfds);  // NOLINT
+
+		res = select(listen_fd + 1, &rfds, static_cast<fd_set*>(nullptr), static_cast<fd_set*>(nullptr), &tv);
+		if (res > 0)
+		{
+			int sts;
+			sockaddr_un un;
+			socklen_t arglen = sizeof(un);
+			int fd;
+			TLOG(TLVL_DEBUG) << "listen_: Calling accept";
+			fd = accept(listen_fd, reinterpret_cast<sockaddr*>(&un), &arglen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			TLOG(TLVL_DEBUG) << "listen_: Done with accept";
+
+			TLOG(TLVL_DEBUG) << "listen_: Reading connect message";
+			socklen_t lenlen = sizeof(tv);
+			/*sts=*/
+			setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen);  // see man 7 socket.
+			detail::RoutingConnectHeader rch;
+			uint64_t mark_us = TimeUtils::gettimeofday_us();
+			sts = read(fd, &rch, sizeof(rch));
+			uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
+			TLOG(TLVL_DEBUG) << "listen_: Read of connect message took " << delta_us << " microseconds.";
+			if (sts != sizeof(rch))
+			{
+				TLOG(TLVL_DEBUG) << "listen_: Wrong message header length received!";
+				close(fd);
+				continue;
+			}
+
+			// check for "magic" and valid source_id(aka rank)
+			rch.rank = ntohs(rch.rank);                                                            // convert here as it is reference several times
+			if (ntohl(rch.header) != ROUTING_MAGIC || !(rch.mode == detail::RoutingConnectHeader::ConnectHeaderMode::Connect))  // Allow for future connect message versions
+			{
+				TLOG(TLVL_DEBUG) << "listen_: Wrong magic bytes in header!";
+				close(fd);
+				continue;
+			}
+
+			// now add (new) connection
+			std::lock_guard<std::mutex> lk(fd_mutex_);
+			connected_fds_[rch.rank].insert(fd);
+
+			TLOG(TLVL_INFO) << "listen_: New fd is " << fd << " for source rank " << rch.rank;
+		}
+		else
+		{
+			TLOG(16) << "listen_: No connections in timeout interval!";
+		}
+	}
+
+	TLOG(TLVL_INFO) << "listen_: Shutting down connection listener";
+	if (listen_fd != -1)
+	{
+		close(listen_fd);
+	}
+	std::lock_guard<std::mutex> lk(fd_mutex_);
+	auto it = connected_fds_.begin();
+	while (it != connected_fds_.end())
+	{
+		auto& fd_set = it->second;
+		auto rank_it = fd_set.begin();
+		while (rank_it != fd_set.end())
+		{
+			close(*rank_it);
+			rank_it = fd_set.erase(rank_it);
+		}
+		it = connected_fds_.erase(it);
+	}
+
+}  // do_connect_

@@ -3,10 +3,13 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 // Socket Includes
 #include <netinet/in.h>
 #include <sys/epoll.h>
+
+#include <boost/thread.hpp>
 
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -140,6 +143,7 @@ public:
 	/**
 	 * \brief Sends a detail::RoutingPacket to the table receivers
 	 * \param table The detail::RoutingPacket to send
+	 * \param dest_rank The rank to send to, or -1 for all connected ranks
 	 *
 	 * send_event_table checks the table update socket and the acknowledge socket before
 	 * sending the table update the first time. It then enters a loop where it sends the table
@@ -147,7 +151,7 @@ public:
 	 * their acknowledgement packets, and discards duplicate acks. It leaves this loop once all
 	 * senders have sent a valid acknowledgement packet.
 	 */
-	void send_event_table(detail::RoutingPacket packet);
+	void send_event_table(detail::RoutingPacket packet, int dest_rank = -1);
 
 	/**
 	* \brief Send a report on the current status of the RoutingManagerCore
@@ -170,7 +174,6 @@ private:
 	int rt_priority_;
 
 	size_t max_table_update_interval_ms_;
-	size_t max_ack_cycle_count_;
 	detail::RoutingManagerMode routing_mode_;
 	std::atomic<size_t> current_table_interval_ms_;
 	std::atomic<size_t> table_update_count_;
@@ -192,18 +195,16 @@ private:
 
 	void sendMetrics_();
 
+	void listen_();
+
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
-	int send_tables_port_;
-	int receive_acks_port_;
-	std::string send_tables_address_;
-	std::string multicast_out_hostname_;
-	struct sockaddr_in send_tables_addr_;
-	std::vector<epoll_event> receive_ack_events_;
+	std::unique_ptr<boost::thread> listen_thread_;
+	int table_listen_port_;
 
 	//Socket parameters
-	int table_socket_{-1};
-	int ack_socket_{-1};
+	std::map<int, std::set<int>> connected_fds_;
+	mutable std::mutex fd_mutex_;
 	mutable std::mutex request_mutex_;
 };
 

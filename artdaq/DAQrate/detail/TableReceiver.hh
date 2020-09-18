@@ -38,18 +38,16 @@ public:
 	{
 		///   "use_routing_manager" (Default: false): True if using the Routing Manager
 		fhicl::Atom<bool> use_routing_manager{fhicl::Name{"use_routing_manager"}, fhicl::Comment{"True if using the Routing Manager"}, false};
-		///   "table_update_port" (Default: 35556): Port that table updates should arrive on
-		fhicl::Atom<int> table_port{fhicl::Name{"table_update_port"}, fhicl::Comment{"Port that table updates should arrive on"}, 35556};
-		///   "table_update_address" (Default: "227.128.12.28"): Address that table updates should arrive on
-		fhicl::Atom<std::string> table_address{fhicl::Name{"table_update_address"}, fhicl::Comment{"Address that table updates should arrive on"}, "227.128.12.28"};
-		///   "table_update_multicast_interface" (Default: "localhost"): Network interface that table updates should arrive on
-		fhicl::Atom<std::string> table_multicast_interface{fhicl::Name{"table_update_multicast_interface"}, fhicl::Comment{"Network interface that table updates should arrive on"}, "localhost"};
-		///   "table_acknowledge_port" (Default: 35557): Port that acknowledgements should be sent to
-		fhicl::Atom<int> ack_port{fhicl::Name{"table_acknowledge_port"}, fhicl::Comment{"Port that acknowledgements should be sent to"}, 35557};
-		///   "routing_manager_hostname" (Default: "localhost"): Host that acknowledgements should be sent to
-		fhicl::Atom<std::string> ack_address{fhicl::Name{"routing_manager_hostname"}, fhicl::Comment{"Host that acknowledgements should be sent to"}, "localhost"};
-		///   "routing_timeout_ms" (Default: 1000): Time to wait for a routing table update if the table is exhausted
-		fhicl::Atom<int> routing_timeout_ms{fhicl::Name{"routing_timeout_ms"}, fhicl::Comment{"Time to wait (in ms) for a routing table update if the table is exhausted"}, 1000};
+		///   "route_on_request_mode" (Default: false): True if a request for routing information should be sent to the RoutingManager (versus RoutingManager pushing table updates).
+		fhicl::Atom<bool> route_on_request_mode{fhicl::Name{"route_on_request_mode"}, fhicl::Comment{"True if a request for routing information should be sent to the RoutingManager (versus RoutingManager pushing table updates)."}, false};
+		///   "use_routing_table_thread" (Default: true): True if a thread should be run to receive routing updates. Required if route_on_request_mode is false.
+		fhicl::Atom<bool> use_routing_table_thread{fhicl::Name{"use_routing_table_thread"}, fhicl::Comment{"True if a thread should be run to receive routing updates. Required if route_on_request_mode is false."}, true};
+		///   "table_update_port" (Default: 35556): Port to connect to for receiving table updates
+		fhicl::Atom<int> table_port{fhicl::Name{"table_update_port"}, fhicl::Comment{"Port to connect to for receiving table updates"}, 35556};
+		///   "routing_manager_hostname" (Default: "localhost"): RoutingManager hostname for Table connection
+		fhicl::Atom<std::string> routing_manager_hostname{fhicl::Name{"routing_manager_hostname"}, fhicl::Comment{"outingManager hostname for Table connection"}, "localhost"};
+		///   "routing_timeout_ms" (Default: 1000): Time to wait for a routing table update
+		fhicl::Atom<int> routing_timeout_ms{fhicl::Name{"routing_timeout_ms"}, fhicl::Comment{"Time to wait (in ms) for a routing table update"}, 1000};
 		///   "routing_table_max_size" (Default: 1000): Maximum number of entries in the routing table
 		fhicl::Atom<size_t> routing_table_max_size{fhicl::Name{"routing_table_max_size"}, fhicl::Comment{"Maximum number of entries in the routing table"}, 1000};
 	};
@@ -106,30 +104,29 @@ private:
 	TableReceiver& operator=(TableReceiver const&) = delete;
 	TableReceiver& operator=(TableReceiver&&) = delete;
 
-	void setupTableListener_();
+	void connectToRoutingManager_();
+	void disconnectFromRoutingManager_();
 
 	void startTableReceiverThread_();
 
+	bool receiveTableUpdate_();
 	void receiveTableUpdatesLoop_();
+
+	int sendTableUpdateRequest_(Fragment::sequence_id_t seq);
 
 private:
 
 	bool use_routing_manager_;
-	detail::RoutingManagerMode routing_manager_mode_;
+	bool route_on_request_;
 	std::atomic<bool> should_stop_;
 	int table_port_;
 	std::string table_address_;
-	std::string table_multicast_interface_;
-	int ack_port_;
-	std::string ack_address_;
-	struct sockaddr_in ack_addr_;
-	int ack_socket_;
 	int table_socket_;
 	RoutingTable routing_table_;
 	Fragment::sequence_id_t routing_table_last_;
 	size_t routing_table_max_size_;
 	mutable std::mutex routing_mutex_;
-	boost::thread routing_thread_;
+	std::unique_ptr<boost::thread> routing_thread_;
 	mutable std::atomic<size_t> routing_wait_time_;
 	mutable std::condition_variable routing_cv_;
 

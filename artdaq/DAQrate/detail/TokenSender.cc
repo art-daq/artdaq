@@ -74,7 +74,7 @@ void TokenSender::setup_tokens_()
 	}
 }
 
-void TokenSender::send_routing_token_(int nSlots, int run_number)
+void TokenSender::send_routing_token_(int nSlots, int run_number, int rank)
 {
 	TLOG(TLVL_TRACE) << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_;
 	if (!send_routing_tokens_)
@@ -87,7 +87,7 @@ void TokenSender::send_routing_token_(int nSlots, int run_number)
 	}
 	detail::RoutingToken token;
 	token.header = TOKEN_MAGIC;
-	token.rank = my_rank;
+	token.rank = rank;
 	token.new_slots_free = nSlots;
 	token.run_number = run_number;
 
@@ -111,7 +111,7 @@ void TokenSender::send_routing_token_(int nSlots, int run_number)
 	TLOG(TLVL_TRACE) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
 }
 
-void TokenSender::SendRoutingToken(int nSlots, int run_number)
+void TokenSender::SendRoutingToken(int nSlots, int run_number, int rank)
 {
 	while (!initialized_)
 	{
@@ -121,7 +121,7 @@ void TokenSender::SendRoutingToken(int nSlots, int run_number)
 	{
 		return;
 	}
-	boost::thread token([=] { send_routing_token_(nSlots, run_number); });
+	boost::thread token([=] { send_routing_token_(nSlots, run_number, rank); });
 	token.detach();
 	usleep(0);  // Give up time slice
 }
