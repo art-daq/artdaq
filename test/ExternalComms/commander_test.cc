@@ -9,8 +9,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 
 // NOLINTNEXTLINE(readability-function-size)
-int main(int argc, char** argv)
-try
+int main(int argc, char** argv) try
 {
 	struct Config
 	{

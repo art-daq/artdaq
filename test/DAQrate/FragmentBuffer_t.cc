@@ -427,7 +427,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	fps.clear();
 
 	fp.AddFragmentsToBuffer(gen.Generate(3));
-	
+
 	buffer->push(4, 7);
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -455,7 +455,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 5);
 
 	fp.AddFragmentsToBuffer(gen.Generate(5));
-	
+
 	buffer->push(5, 8);
 
 	sts = fp.applyRequests(fps);
@@ -505,7 +505,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	buffer->push(1, 1);
 	fp.AddFragmentsToBuffer(gen.Generate(1));
 
-	
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
 
 	artdaq::FragmentPtrs fps;
@@ -535,7 +534,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	fp.AddFragmentsToBuffer(gen.Generate(1));
-	
+
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 3);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -588,7 +587,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 
 	// Data-taking has passed request
 	fp.AddFragmentsToBuffer(gen.Generate(12));
-	
+
 	buffer->push(5, 4);
 
 	list = fp.GetSentWindowList(1);  // Out-of-order list is only updated in getNext calls
@@ -685,8 +684,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	artdaq::FragmentBuffer fp(ps);
 	fp.SetRequestBuffer(buffer);
 
-	
-
 	artdaq::FragmentPtrs fps;
 	int sts;
 	artdaq::Fragment::type_t type;
@@ -694,7 +691,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	// 1. Both start and end before any data in buffer
 	//  -- Should return ContainerFragment with MissingData bit set and zero Fragments
 	fp.AddFragmentsToBuffer(gen.Generate(10));  // Buffer start is at ts 6, end at 10
-	
+
 	buffer->push(1, 1);  // Requesting data from ts 1 to 3
 
 	sts = fp.applyRequests(fps);
@@ -732,15 +729,11 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	artdaq::FragmentBuffer fp(ps);
 	fp.SetRequestBuffer(buffer);
 
-	
-
 	artdaq::FragmentPtrs fps;
 	int sts;
 	artdaq::Fragment::type_t type;
 
-	
 	fp.AddFragmentsToBuffer(gen.Generate(10));  // Buffer contains 6 to 10
-	
 
 	// 2. Start before buffer, end in buffer
 	//  -- Should return ContainerFragment with MissingData bit set and one or more Fragments
@@ -781,15 +774,11 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	artdaq::FragmentBuffer fp(ps);
 	fp.SetRequestBuffer(buffer);
 
-	
-
 	artdaq::FragmentPtrs fps;
 	int sts;
 	artdaq::Fragment::type_t type;
 
-	
 	fp.AddFragmentsToBuffer(gen.Generate(10));  // Buffer contains 6 to 10
-	
 
 	// 3. Start before buffer, end after buffer
 	//  -- Should not return until buffer passes end or timeout (check both cases), MissingData bit set
@@ -818,7 +807,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	fp.AddFragmentsToBuffer(gen.Generate(3));  // Buffer start is at ts 10, end at 13
-	
 
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -880,12 +868,11 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	artdaq::FragmentPtrs fps;
 	int sts;
 	artdaq::Fragment::type_t type;
-	
 
 	// 4. Start and end in buffer
 	//  -- Should return ContainerFragment with one or more Fragments
 	fp.AddFragmentsToBuffer(gen.Generate(6));  // Buffer start is at ts 2, end at 6
-	
+
 	buffer->push(1, 3);  // Requesting data from ts 3 to 5
 
 	sts = fp.applyRequests(fps);
@@ -926,9 +913,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	artdaq::FragmentPtrs fps;
 	int sts;
 	artdaq::Fragment::type_t type;
-	
+
 	fp.AddFragmentsToBuffer(gen.Generate(6));  // Buffer contains 2 to 6
-	
 
 	// 5. Start in buffer, end after buffer
 	//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
@@ -939,7 +925,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	fp.AddFragmentsToBuffer(gen.Generate(2));  // Buffer contains 4 to 8
-	
+
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1);
@@ -1001,25 +987,24 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	artdaq::FragmentPtrs fps;
 	int sts;
 	artdaq::Fragment::type_t type;
-	
 
 	// 6. Start and end after buffer
 	//  -- Should not return until buffer passes end or timeout (check both cases). MissingData bit set if timeout
 	fp.AddFragmentsToBuffer(gen.Generate(10));  // Buffer start is 6, end at 10
-	
+
 	buffer->push(1, 11);  // Requesting data from ts 11 to 13
 
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 	fp.AddFragmentsToBuffer(gen.Generate(1));  // Buffer start is 7, end at 11
-	
+
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	fp.AddFragmentsToBuffer(gen.Generate(3));  // Buffer start is 10, end at 14
-	
+
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1);
@@ -1079,7 +1064,6 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 	buffer->push(1, 1);
 	fp.AddFragmentsToBuffer(gen.Generate(1));
 
-	
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
 
 	// Test that Fragment with matching Sequence ID and timestamp is returned
@@ -1104,7 +1088,7 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 
 	// Test that Fragment with matching Sequence ID and non-matching timestamp is returned
 	fp.AddFragmentsToBuffer(gen.Generate(1));
-	
+
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
@@ -1117,7 +1101,7 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 
 	// Test out-of-order requests, with non-matching timestamps
 	fp.AddFragmentsToBuffer(gen.Generate(2));
-	
+
 	buffer->push(4, 7);
 
 	sts = fp.applyRequests(fps);
@@ -1160,7 +1144,6 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 	artdaq::FragmentBuffer fp(ps);
 	fp.SetRequestBuffer(buffer);
 
-	
 	buffer->push(53, 35);
 	fp.AddFragmentsToBuffer(gen.Generate(1));
 
@@ -1183,7 +1166,7 @@ BOOST_AUTO_TEST_CASE(IgnoreRequests_MultipleIDs)
 	ids.clear();
 
 	fps.clear();
-	
+
 	TLOG(TLVL_INFO) << "IgnoreRequests_MultipleIDs test case END";
 }
 
@@ -1206,7 +1189,6 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	buffer->push(1, 1);
 	fp.AddFragmentsToBuffer(gen.Generate(1));
 
-	
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
 
 	artdaq::FragmentPtrs fps;
@@ -1253,7 +1235,7 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	fps.clear();
 
 	fp.AddFragmentsToBuffer(gen.Generate(2));
-	
+
 	buffer->push(4, 7);
 
 	sts = fp.applyRequests(fps);
@@ -1290,7 +1272,7 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 
 	// Single mode should generate 3 Fragments, 2 new ones and one old one
 	fp.AddFragmentsToBuffer(gen.Generate(1));
-	
+
 	buffer->push(5, 9);
 
 	sts = fp.applyRequests(fps);
@@ -1333,7 +1315,6 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	buffer->push(1, 1);
 	fp.AddFragmentsToBuffer(gen.Generate(1));
 
-	
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
 
 	artdaq::FragmentPtrs fps;
@@ -1391,7 +1372,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	fps.clear();
 
 	fp.AddFragmentsToBuffer(gen.Generate(2));
-	
+
 	buffer->push(4, 7);
 
 	sts = fp.applyRequests(fps);
@@ -1459,7 +1440,6 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	buffer->push(1, 1);
 	fp.AddFragmentsToBuffer(gen.Generate(1));
 
-	
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
 
 	artdaq::FragmentPtrs fps;
@@ -1519,7 +1499,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	fps.clear();
 
 	fp.AddFragmentsToBuffer(gen.Generate(3));
-	
+
 	buffer->push(4, 7);
 
 	sts = fp.applyRequests(fps);
@@ -1564,7 +1544,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 5);
 
 	fp.AddFragmentsToBuffer(gen.Generate(5));
-	
+
 	buffer->push(5, 8);
 
 	sts = fp.applyRequests(fps);
@@ -1621,7 +1601,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	buffer->push(1, 1);
 	fp.AddFragmentsToBuffer(gen.Generate(1));
 
-	
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
 
 	artdaq::FragmentPtrs fps;
@@ -1661,7 +1640,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	TRACE_REQUIRE_EQUAL(fps.size(), 0);
 
 	fp.AddFragmentsToBuffer(gen.Generate(1));
-	
+
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 3);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1731,7 +1710,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 
 	// Data-taking has passed request
 	fp.AddFragmentsToBuffer(gen.Generate(12));
-	
+
 	buffer->push(5, 4);
 
 	list = fp.GetSentWindowList(1);  // Out-of-order list is only updated in getNext calls
@@ -1823,7 +1802,6 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	TRACE_REQUIRE_EQUAL(list.size(), 0);
 
 	fp.AddFragmentsToBuffer(gen.Generate(1, {1, 2}));
-	
 
 	buffer->push(8, 15);
 
@@ -1851,9 +1829,8 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	fps.clear();
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 8);
 
-	gen.setTimestamp(14);    // Reset timestamp
+	gen.setTimestamp(14);  // Reset timestamp
 	fp.AddFragmentsToBuffer(gen.Generate(1, {3}));
-	
 
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
@@ -1905,7 +1882,6 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 	buffer->push(1, 1);
 	fp.AddFragmentsToBuffer(gen.Generate(1));
 
-	
 	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
 
 	// Test that Fragment with matching Sequence ID and timestamp is returned
@@ -1941,7 +1917,7 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 
 	// Test that Fragment with matching Sequence ID and non-matching timestamp is returned
 	fp.AddFragmentsToBuffer(gen.Generate(1));
-	
+
 	sts = fp.applyRequests(fps);
 	TRACE_REQUIRE_EQUAL(sts, true);
 	TRACE_REQUIRE_EQUAL(fps.size(), 3u);
@@ -1963,7 +1939,7 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 
 	// Test out-of-order requests, with non-matching timestamps
 	fp.AddFragmentsToBuffer(gen.Generate(2));
-	
+
 	buffer->push(4, 7);
 
 	sts = fp.applyRequests(fps);

@@ -333,7 +333,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				//  Read the MasterProductRegistry.
 				//
 				auto thisProductList = ReadObjectAny<art::ProductList>(
-					msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputHelper::ArtdaqInputHelper");
+				    msg, "std::map<art::BranchKey,art::BranchDescription>", "ArtdaqInputHelper::ArtdaqInputHelper");
 				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Input Product list sz=" << thisProductList->size();
 
 				bool productListInitialized = productList_ != nullptr;
@@ -342,8 +342,8 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				{
 #ifndef __OPTIMIZE__
 					TLOG_ARB(50, "ArtdaqInputHelper") << "Branch key: class: '" << I->first.friendlyClassName_ << "' modlbl: '"
-						<< I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
-						<< I->first.processName_ << "', branch description name: " << I->second.wrappedName()
+					                                  << I->first.moduleLabel_ << "' instnm: '" << I->first.productInstanceName_ << "' procnm: '"
+					                                  << I->first.processName_ << "', branch description name: " << I->second.wrappedName()
 					                                  << ", TClass = " << static_cast<void*>(TClass::GetClass(I->second.wrappedName().c_str()));
 #endif
 					if (productListInitialized)
@@ -354,7 +354,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 
 				TLOG_ARB(5, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading ProcessHistory";
 				auto phm = ReadObjectAny<art::ProcessHistoryMap>(
-					msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputHelper::ArtdaqInputHelper");
+				    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputHelper::ArtdaqInputHelper");
 				printProcessMap(*phm, "ArtdaqInputHelper's ProcessHistoryMap");
 
 				ProcessHistoryRegistry::put(*phm);
@@ -400,7 +400,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			}
 
 			TLOG_ARB(5, "ArtdaqInputHelper")
-				<< "ArtdaqInputHelper: Product list sz=" << productList_->size();
+			    << "ArtdaqInputHelper: Product list sz=" << productList_->size();
 
 			// helper now owns productList_!
 #if ART_HEX_VERSION < 0x30000
@@ -433,9 +433,9 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 		//  Finished with init message.
 		//
 		TLOG_ARB(5, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::ArtdaqInputHelper("
-			<< "const fhicl::ParameterSet& ps, "
-			<< "art::ProductRegistryHelper& helper, "
-			<< "const art::SourceHelper& pm)";
+		                                 << "const fhicl::ParameterSet& ps, "
+		                                 << "art::ProductRegistryHelper& helper, "
+		                                 << "const art::SourceHelper& pm)";
 	}
 }
 
