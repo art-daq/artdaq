@@ -2,7 +2,6 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <sched.h>
-#include <sys/epoll.h>
 #include <sys/time.h>
 #include <sys/un.h>
 #include <algorithm>
@@ -151,10 +150,6 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	}
 
 	rt_priority_ = daq_pset.get<int>("rt_priority", 0);
-	sender_ranks_ = daq_pset.get<std::vector<int>>("sender_ranks");
-
-	auto mode = daq_pset.get<bool>("senders_send_by_send_count", false);
-	routing_mode_ = mode ? detail::RoutingManagerMode::DataFlow : detail::RoutingManagerMode::EventBuilding;
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
 
@@ -162,16 +157,19 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	statsHelperPtr_->createCollectors(daq_pset, 100, 30.0, 60.0, TABLE_UPDATES_STAT_KEY);
 
 	// create the requested TokenReceiver
-	token_receiver_ = std::make_unique<TokenReceiver>(token_receiver_pset_, policy_, routing_mode_, sender_ranks_.size(), max_table_update_interval_ms_);
+	token_receiver_ = std::make_unique<TokenReceiver>(token_receiver_pset_, policy_, max_table_update_interval_ms_);
 	token_receiver_->setStatsHelper(statsHelperPtr_, TOKENS_RECEIVED_STAT_KEY);
 	token_receiver_->startTokenReception();
 	token_receiver_->pauseTokenReception();
 
-	shutdown_requested_.store(false);
+	table_listen_port_ = daq_pset.get<int>("table_update_port", 35556);
+
+	shutdown_requested_.store(true);
 	if (listen_thread_ && listen_thread_->joinable())
 	{
 		listen_thread_->join();
 	}
+	shutdown_requested_.store(false);
 	TLOG(TLVL_INFO) << "Starting Listener Thread";
 
 	try
@@ -190,13 +188,6 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 bool artdaq::RoutingManagerCore::start(art::RunID id, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	run_id_ = id;
-	for (auto& rank : sender_ranks_)
-	{
-		if (active_ranks_.count(rank) == 0u)
-		{
-			active_ranks_.insert(rank);
-		}
-	}
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
@@ -306,58 +297,65 @@ void artdaq::RoutingManagerCore::process_event_table()
 	double delta_time;
 	while (!stop_requested_ && !pause_requested_)
 	{
-		startTime = artdaq::MonitoredQuantity::getCurrentTime();
-
-		if (startTime >= nextSendTime)
+		receive_();
+		if (policy_->GetRoutingMode() == detail::RoutingManagerMode::EventBuilding || policy_->GetRoutingMode() == detail::RoutingManagerMode::RequestBasedEventBuilding)
 		{
-			auto table = policy_->GetCurrentTable();
-			if (!table.empty())
-			{
-				send_event_table(table);
-				++table_update_count_;
-				delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
-				statsHelperPtr_->addSample(TABLE_UPDATES_STAT_KEY, delta_time);
-				TLOG(16) << "process_fragments TABLE_UPDATES_STAT_KEY=" << delta_time;
+			startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
-				bool readyToReport = statsHelperPtr_->readyToReport();
-				if (readyToReport)
+			if (startTime >= nextSendTime)
+			{
+				auto table = policy_->GetCurrentTable();
+
+				if (table.empty())
 				{
-					std::string statString = buildStatisticsString_();
-					TLOG(TLVL_INFO) << statString;
-					sendMetrics_();
+					TLOG(TLVL_TRACE) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!";
 				}
+				else
+				{
+					send_event_table(table);
+					++table_update_count_;
+					delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
+					statsHelperPtr_->addSample(TABLE_UPDATES_STAT_KEY, delta_time);
+					TLOG(16) << "process_fragments TABLE_UPDATES_STAT_KEY=" << delta_time;
+
+					bool readyToReport = statsHelperPtr_->readyToReport();
+					if (readyToReport)
+					{
+						std::string statString = buildStatisticsString_();
+						TLOG(TLVL_INFO) << statString;
+						sendMetrics_();
+					}
+				}
+
+				auto max_tokens = policy_->GetMaxNumberOfTokens();
+				if (max_tokens > 0)
+				{
+					auto frac = policy_->GetTokensUsedSinceLastUpdate() / static_cast<double>(max_tokens);
+					policy_->ResetTokensUsedSinceLastUpdate();
+					if (frac > 0.75)
+					{
+						current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
+					}
+					if (frac < 0.5)
+					{
+						current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
+					}
+					if (current_table_interval_ms_ > max_table_update_interval_ms_)
+					{
+						current_table_interval_ms_ = max_table_update_interval_ms_;
+					}
+					if (current_table_interval_ms_ < 1)
+					{
+						current_table_interval_ms_ = 1;
+					}
+				}
+				nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
+				TLOG(TLVL_TRACE) << "current_table_interval_ms is now " << current_table_interval_ms_;
 			}
 			else
 			{
-				TLOG(TLVL_TRACE) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!";
+				usleep(current_table_interval_ms_ * 10);  // 1/100 of the table update interval
 			}
-			auto max_tokens = policy_->GetMaxNumberOfTokens();
-			if (max_tokens > 0)
-			{
-				auto frac = table.size() / static_cast<double>(max_tokens);
-				if (frac > 0.75)
-				{
-					current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
-				}
-				if (frac < 0.5)
-				{
-					current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
-				}
-				if (current_table_interval_ms_ > max_table_update_interval_ms_)
-				{
-					current_table_interval_ms_ = max_table_update_interval_ms_;
-				}
-				if (current_table_interval_ms_ < 1)
-				{
-					current_table_interval_ms_ = 1;
-				}
-			}
-			nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
-			TLOG(TLVL_TRACE) << "current_table_interval_ms is now " << current_table_interval_ms_;
-		}
-		else
-		{
-			usleep(current_table_interval_ms_ * 10);  // 1/100 of the table update interval
 		}
 	}
 
@@ -366,39 +364,29 @@ void artdaq::RoutingManagerCore::process_event_table()
 	metricMan->do_stop();
 }
 
-void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet, int dest_rank)
+void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 {
-	auto sendRoutingPacket = [](detail::RoutingPacket packet,int rank, int fd) {
-		auto header = detail::RoutingPacketHeader(packet.size());
-		TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to destination " << rank;
-		TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);  // NOLINT
-		auto sts = write(fd, &header, sizeof(header));
-		if (sts != sizeof(header)) {
-			TLOG(TLVL_ERROR) << "Error sending routing header to fd " << fd << ", rank " << rank;
-		}
-		else
-		{
-			sts = write(fd, &packet[0], packet.size() * sizeof(detail::RoutingPacketEntry));
-			if (sts != static_cast<ssize_t>(packet.size() * sizeof(detail::RoutingPacketEntry)))
-			{
-				TLOG(TLVL_ERROR) << "Error sending routing table. sts=" << sts << "/" << packet.size() * sizeof(detail::RoutingPacketEntry) << ", fd=" << fd << ", rank=" << rank;
-			}
-		}
-	};
-
 	std::lock_guard<std::mutex> lk(fd_mutex_);
-	if (dest_rank == -1) {
-		for (auto& dest : connected_fds_) {
-			for (auto& connected_fd : dest.second)
-			{
-				sendRoutingPacket(packet, dest.first, connected_fd);
-			}
-		}
-	}
-	else
+	for (auto& dest : connected_fds_)
 	{
-		for (auto& connected_fd : connected_fds_[dest_rank]) {
-			sendRoutingPacket(packet,dest_rank, connected_fd);
+		for (auto& connected_fd : dest.second)
+		{
+			auto header = detail::RoutingPacketHeader(packet.size());
+			TLOG(TLVL_DEBUG) << "Sending table information for " << header.nEntries << " events to destination " << dest.first;
+			TRACE(16, "headerData:0x%016lx%016lx packetData:0x%016lx%016lx", ((unsigned long*)&header)[0], ((unsigned long*)&header)[1], ((unsigned long*)&packet[0])[0], ((unsigned long*)&packet[0])[1]);  // NOLINT
+			auto sts = write(connected_fd, &header, sizeof(header));
+			if (sts != sizeof(header))
+			{
+				TLOG(TLVL_ERROR) << "Error sending routing header to fd " << connected_fd << ", rank " << dest.first;
+			}
+			else
+			{
+				sts = write(connected_fd, &packet[0], packet.size() * sizeof(detail::RoutingPacketEntry));
+				if (sts != static_cast<ssize_t>(packet.size() * sizeof(detail::RoutingPacketEntry)))
+				{
+					TLOG(TLVL_ERROR) << "Error sending routing table. sts=" << sts << "/" << packet.size() * sizeof(detail::RoutingPacketEntry) << ", fd=" << connected_fd << ", rank=" << dest.first;
+				}
+			}
 		}
 	}
 }
@@ -432,8 +420,6 @@ std::string artdaq::RoutingManagerCore::buildStatisticsString_() const
 			oss << " elapsed time = "
 			    << (1.0 / stats.recentSampleRate) << " sec";
 		}
-		oss << ", avg table acknowledgement wait time = "
-		    << (mqPtr->getRecentValueSum() / sender_ranks_.size()) << " sec" << std::endl;
 	}
 
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TOKENS_RECEIVED_STAT_KEY);
@@ -469,7 +455,6 @@ void artdaq::RoutingManagerCore::sendMetrics_()
 			mqPtr->getStats(stats);
 			metricMan->sendMetric("Table Update Count", stats.fullSampleCount, "updates", 1, MetricMode::LastPoint);
 			metricMan->sendMetric("Table Update Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
-			metricMan->sendMetric("Average Sender Acknowledgement Time", (mqPtr->getRecentValueSum() / sender_ranks_.size()), "seconds", 3, MetricMode::Average);
 		}
 
 		mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(TOKENS_RECEIVED_STAT_KEY);
@@ -522,7 +507,7 @@ void artdaq::RoutingManagerCore::listen_()
 			socklen_t lenlen = sizeof(tv);
 			/*sts=*/
 			setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, lenlen);  // see man 7 socket.
-			detail::RoutingConnectHeader rch;
+			detail::RoutingRequest rch;
 			uint64_t mark_us = TimeUtils::gettimeofday_us();
 			sts = read(fd, &rch, sizeof(rch));
 			uint64_t delta_us = TimeUtils::gettimeofday_us() - mark_us;
@@ -535,10 +520,9 @@ void artdaq::RoutingManagerCore::listen_()
 			}
 
 			// check for "magic" and valid source_id(aka rank)
-			rch.rank = ntohs(rch.rank);                                                            // convert here as it is reference several times
-			if (ntohl(rch.header) != ROUTING_MAGIC || !(rch.mode == detail::RoutingConnectHeader::ConnectHeaderMode::Connect))  // Allow for future connect message versions
+			if (rch.header != ROUTING_MAGIC || !(rch.mode == detail::RoutingRequest::RequestMode::Connect))
 			{
-				TLOG(TLVL_DEBUG) << "listen_: Wrong magic bytes in header!";
+				TLOG(TLVL_DEBUG) << "listen_: Wrong magic bytes in header! rch.header: " << std::hex << rch.header;
 				close(fd);
 				continue;
 			}
@@ -546,7 +530,14 @@ void artdaq::RoutingManagerCore::listen_()
 			// now add (new) connection
 			std::lock_guard<std::mutex> lk(fd_mutex_);
 			connected_fds_[rch.rank].insert(fd);
-
+			struct epoll_event ev;
+			ev.data.fd = fd;
+			ev.events = EPOLLIN;
+			if (epoll_fd_ == -1)
+			{
+				epoll_fd_ = epoll_create1(0);
+			}
+			epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev);
 			TLOG(TLVL_INFO) << "listen_: New fd is " << fd << " for source rank " << rch.rank;
 		}
 		else
@@ -568,10 +559,124 @@ void artdaq::RoutingManagerCore::listen_()
 		auto rank_it = fd_set.begin();
 		while (rank_it != fd_set.end())
 		{
+			epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, *rank_it, nullptr);
 			close(*rank_it);
 			rank_it = fd_set.erase(rank_it);
 		}
 		it = connected_fds_.erase(it);
 	}
 
-}  // do_connect_
+}  // listen_
+
+void artdaq::RoutingManagerCore::receive_()
+{
+	if (epoll_fd_ == -1)
+	{
+		epoll_fd_ = epoll_create1(0);
+	}
+	std::vector<epoll_event> received_events(10);
+
+	int nfds = 1;
+	while (nfds > 0)
+	{
+		std::lock_guard<std::mutex> lk(fd_mutex_);
+		nfds = epoll_wait(epoll_fd_, &received_events[0], received_events.size(), 1);
+		if (nfds == -1)
+		{
+			TLOG(TLVL_ERROR) << "Error status received from epoll_wait, exiting with code " << EXIT_FAILURE << ", errno=" << errno << " (" << strerror(errno) << ")";
+			perror("epoll_wait");
+			exit(EXIT_FAILURE);
+		}
+
+		if (nfds > 0)
+		{
+			TLOG(TLVL_DEBUG) << "Received " << nfds << " events";
+		}
+		for (auto n = 0; n < nfds; ++n)
+		{
+			bool reading = true;
+			int sts = 0;
+			while (reading)
+			{
+				if ((received_events[n].events & EPOLLIN) != 0)
+				{
+					detail::RoutingRequest buff;
+					auto stss = read(received_events[n].data.fd, &buff, sizeof(detail::RoutingRequest) - sts);
+					sts += stss;
+					if (stss == 0)
+					{
+						TLOG(TLVL_INFO) << "Received 0-size request from " << find_fd_(received_events[n].data.fd);
+						reading = false;
+					}
+					else if (stss < 0 && errno == EAGAIN)
+					{
+						TLOG(TLVL_DEBUG) << "No more requests from this rank. Continuing poll loop.";
+						reading = false;
+					}
+					else if (stss < 0)
+					{
+						TLOG(TLVL_ERROR) << "Error reading from request socket: sts=" << sts << ", errno=" << errno << " (" << strerror(errno) << ")";
+						close(received_events[n].data.fd);
+						epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, received_events[n].data.fd, nullptr);
+						reading = false;
+					}
+					else if (sts == sizeof(detail::RoutingRequest) && buff.header != ROUTING_MAGIC)
+					{
+						TLOG(TLVL_ERROR) << "Received invalid request from " << find_fd_(received_events[n].data.fd) << " sts=" << sts << ", header=" << std::hex << buff.header;
+						reading = false;
+					}
+					else if (sts == sizeof(detail::RoutingRequest))
+					{
+						reading = false;
+						sts = 0;
+						TLOG(TLVL_DEBUG) << "Received request from " << buff.rank << " mode=" << detail::RoutingRequest::RequestModeToString(buff.mode);
+						detail::RoutingPacketEntry reply;
+
+						switch (buff.mode)
+						{
+							case detail::RoutingRequest::RequestMode::Disconnect:
+								connected_fds_[buff.rank].erase(received_events[n].data.fd);
+								close(received_events[n].data.fd);
+								epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, received_events[n].data.fd, nullptr);
+								break;
+
+							case detail::RoutingRequest::RequestMode::Request:
+								reply = policy_->GetRouteForSequenceID(buff.sequence_id, buff.rank);
+								if (reply.sequence_id == buff.sequence_id)
+								{
+									detail::RoutingPacketHeader hdr(1);
+									write(received_events[n].data.fd, &hdr, sizeof(hdr));
+									write(received_events[n].data.fd, &reply, sizeof(detail::RoutingPacketEntry));
+								}
+								else
+								{
+									detail::RoutingPacketHeader hdr(0);
+									write(received_events[n].data.fd, &hdr, sizeof(hdr));
+								}
+								break;
+							default:
+								TLOG(TLVL_WARNING) << "Received request from " << buff.rank << " with invalid mode " << detail::RoutingRequest::RequestModeToString(buff.mode) << " (currently only expecting Disconnect or Request)";
+								break;
+						}
+					}
+				}
+				else
+				{
+					TLOG(TLVL_DEBUG) << "Received event mask " << received_events[n].events << " from " << find_fd_(received_events[n].data.fd);
+				}
+			}
+		}
+	}
+}
+
+int artdaq::RoutingManagerCore::find_fd_(int fd) const
+{
+	for (auto& rank : connected_fds_)
+	{
+		if (rank.second.count(fd) != 0)
+		{
+			return rank.first;
+		}
+	}
+	return -1;
+}

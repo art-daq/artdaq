@@ -71,7 +71,7 @@ public:
 
 	RoutingTable GetRoutingTable() const;
 	RoutingTable GetAndClearRoutingTable();
-	int GetRoutingTableEntry(artdaq::Fragment::sequence_id_t seqID) const;
+	int GetRoutingTableEntry(artdaq::Fragment::sequence_id_t seqID);
 
 	/**
 	 * \brief Gets the current size of the Routing Table, in case other parts of the system want to use this information

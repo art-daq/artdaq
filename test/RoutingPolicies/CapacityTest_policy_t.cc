@@ -27,6 +27,8 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(firstTable[firstTable.size() - 1].sequence_id, 20);
 
+	ct->ResetTokensUsedSinceLastUpdate();
+
 	//ct->Reset();
 	ct->AddReceiverToken(1, 1);
 	ct->AddReceiverToken(3, 1);
@@ -62,6 +64,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(secondTable[12].destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(secondTable[12].sequence_id, 33);
 
+	ct->ResetTokensUsedSinceLastUpdate();
 	//ct->Reset();
 	ct->AddReceiverToken(1, 0);
 	auto thirdTable = ct->GetCurrentTable();
@@ -83,6 +86,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	ct->AddReceiverToken(2, 1);
 	ct->AddReceiverToken(3, 1);
 	ct->AddReceiverToken(4, 2);
+	ct->ResetTokensUsedSinceLastUpdate();
 	auto fourthTable = ct->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(fourthTable.size(), 6);
 	BOOST_REQUIRE_EQUAL(fourthTable[0].destination_rank, 1);
@@ -99,6 +103,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(fourthTable[5].sequence_id, 45);
 
 	ct->AddReceiverToken(3, 1);
+	ct->ResetTokensUsedSinceLastUpdate();
 	auto fifthTable = ct->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(fifthTable.size(), 4);
 	BOOST_REQUIRE_EQUAL(fifthTable[0].destination_rank, 3);
@@ -112,6 +117,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 	ct->Reset();
 	ct->AddReceiverToken(1, 2);
+	ct->ResetTokensUsedSinceLastUpdate();
 	auto sixthTable = ct->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(sixthTable.size(), 1);
 	BOOST_REQUIRE_EQUAL(sixthTable[0].destination_rank, 1);

@@ -10,11 +10,9 @@
 #include "artdaq/DAQrate/detail/TokenReceiver.hh"
 
 artdaq::TokenReceiver::TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingManagerPolicy> policy,
-                                     detail::RoutingManagerMode routing_mode, size_t number_of_senders, size_t update_interval_msec)
+                                     size_t update_interval_msec)
     : token_port_(ps.get<int>("routing_token_port", 35555))
     , policy_(std::move(std::move(policy)))
-    , routing_mode_(routing_mode)
-    , number_of_senders_(number_of_senders)
     , update_interval_msec_(update_interval_msec)
     , token_socket_(-1)
     , token_epoll_fd_(-1)
@@ -158,7 +156,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				receive_token_addrs_[conn_sock] = std::string(inet_ntoa(addr.sin_addr));
 				TLOG(TLVL_DEBUG) << "New fd is " << conn_sock << " for data-receiver at " << receive_token_addrs_[conn_sock];
 				struct epoll_event ev;
-				ev.events = EPOLLIN | EPOLLET;
+				ev.events = EPOLLIN | EPOLLPRI;
 				ev.data.fd = conn_sock;
 				if (epoll_ctl(token_epoll_fd_, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
 				{
@@ -210,26 +208,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 						else
 						{
 							received_token_count_ += buff.new_slots_free;
-							if (routing_mode_ == detail::RoutingManagerMode::EventBuilding)
-							{
 								policy_->AddReceiverToken(buff.rank, buff.new_slots_free);
-							}
-							else if (routing_mode_ == detail::RoutingManagerMode::DataFlow)
-							{
-								if (received_token_counter_.count(buff.rank) == 0u)
-								{
-									received_token_counter_[buff.rank] = 0;
-								}
-								received_token_counter_[buff.rank] += buff.new_slots_free;
-								TLOG(TLVL_DEBUG) << "RoutingManagerMode is DataFlow. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_ << ".";
-								while (received_token_counter_[buff.rank] >= number_of_senders_)
-								{
-									TLOG(TLVL_DEBUG) << "RoutingManagerMode is DataFlow. I have " << received_token_counter_[buff.rank] << " tokens for rank " << buff.rank << " and I need " << number_of_senders_
-									                 << "... Sending token to policy";
-									policy_->AddReceiverToken(buff.rank, 1);
-									received_token_counter_[buff.rank] -= number_of_senders_;
-								}
-							}
 						}
 					}
 				}
