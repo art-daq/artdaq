@@ -98,13 +98,12 @@ private:
 	struct RoutingCacheEntry
 	{
 		bool is_valid{false};
-		std::unordered_set<int> sent_senders;
 		int destination_rank{-1};
 		Fragment::sequence_id_t sequence_id{artdaq::Fragment::InvalidSequenceID};
 
 		RoutingCacheEntry() {}
-		RoutingCacheEntry(Fragment::sequence_id_t seq, int dest, int sender_rank)
-		    : is_valid(true), sent_senders(), destination_rank(dest), sequence_id(seq) { sent_senders.insert(sender_rank); }
+		RoutingCacheEntry(Fragment::sequence_id_t seq, int dest)
+		    : is_valid(true), destination_rank(dest), sequence_id(seq) { }
 	};
 	std::map<Fragment::sequence_id_t, RoutingCacheEntry> routing_cache_;
 	size_t routing_cache_max_size_;

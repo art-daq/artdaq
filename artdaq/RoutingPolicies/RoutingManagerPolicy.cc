@@ -79,14 +79,13 @@ artdaq::detail::RoutingPacketEntry artdaq::RoutingManagerPolicy::GetRouteForSequ
 		std::lock_guard<std::mutex> lk(routing_cache_mutex_);
 		if (routing_cache_.count(seq))
 		{
-			routing_cache_[seq].sent_senders.insert(requesting_rank);
 			return detail::RoutingPacketEntry(seq, routing_cache_[seq].destination_rank);
 		}
 		else
 		{
 			std::lock_guard<std::mutex> lk(tokens_mutex_);
 			auto entry = CreateRouteForSequenceID(seq, requesting_rank);
-			routing_cache_[seq] = RoutingCacheEntry(seq, entry.destination_rank, requesting_rank);
+			routing_cache_[seq] = RoutingCacheEntry(seq, entry.destination_rank);
 			return entry;
 		}
 	}

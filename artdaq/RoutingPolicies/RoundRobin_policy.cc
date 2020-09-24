@@ -26,7 +26,6 @@ public:
 	    : RoutingManagerPolicy(ps)
 	    , minimum_participants_(ps.get<int>("minimum_participants", 0))
 	{
-		last_receiver_routed_ = *receiver_ranks_.begin();
 	}
 
 	/**
@@ -52,11 +51,11 @@ private:
 	RoundRobinPolicy& operator=(RoundRobinPolicy&&) = delete;
 
 	std::map<int, int> sortTokens_();
-	void restoreUnusedTokens_(std::map<int, int>const& sorted_tokens_);
+	void restoreUnusedTokens_(std::map<int, int> const& sorted_tokens_);
 	int calculateMinimum_();
 
 	int minimum_participants_;
-	int last_receiver_routed_;
+	std::set<int> receivers_in_current_round_;
 };
 
 void RoundRobinPolicy::CreateRoutingTable(detail::RoutingPacket& output)
@@ -96,37 +95,41 @@ void RoundRobinPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 }
 detail::RoutingPacketEntry RoundRobinPolicy::CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int)
 {
-	auto table = sortTokens_();
-	// Trivial case: no tokens
-	if (table.empty()) { return detail::RoutingPacketEntry(); }
-	auto it = table.find(last_receiver_routed_);
-	if (it == table.end())
+	detail::RoutingPacketEntry output;
+
+	// Trivial case: We've already started a round
+	if (!receivers_in_current_round_.empty())
 	{
-		TLOG(TLVL_WARNING) << "RoundRobinPolicy::CreateRouteForSequenceID: Could not find token for last receiver routed, resetting to beginning of \"turn\". seq=" << seq;
+		output = detail::RoutingPacketEntry(seq, *receivers_in_current_round_.begin());
+		receivers_in_current_round_.erase(receivers_in_current_round_.begin());
+		return output;
+	}
+
+	// We need to set up the next round...
+	auto table = sortTokens_();
+
+	// Can't route anything until a full "turn" is available
+	int minimum = calculateMinimum_();
+	if (table.size() < static_cast<size_t>(minimum))
+	{
+		TLOG(TLVL_WARNING) << "Do not have tokens from a minimum set of receivers to start a round";
 	}
 	else
 	{
-		++it;
-	}
-
-	if (it == table.end()) {
-		it = table.begin();
-		int minimum = calculateMinimum_();
-		if (table.size() < static_cast<size_t>(minimum)) {
-			return detail::RoutingPacketEntry();
+		for (auto& entry : table) {
+			receivers_in_current_round_.insert(entry.first);
+			entry.second--;
 		}
+		output = detail::RoutingPacketEntry(seq, *receivers_in_current_round_.begin());
+		receivers_in_current_round_.erase(receivers_in_current_round_.begin());
 	}
-
-	auto output = detail::RoutingPacketEntry(seq, it->first);
-	last_receiver_routed_ = it->first;
-	table[it->first]--;
 
 	restoreUnusedTokens_(table);
 	return output;
 }
 std::map<int, int> RoundRobinPolicy::sortTokens_()
 {
-	auto output =  std::map<int, int>();
+	auto output = std::map<int, int>();
 	for (auto token : tokens_)
 	{
 		output[token]++;
