@@ -13,7 +13,6 @@
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/TransferPlugins/detail/HostMap.hh"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
@@ -97,6 +96,8 @@ public:
 	void RemoveRoutingTableEntry(Fragment::sequence_id_t seq);
 
 	void SendMetrics() const;
+
+	bool RoutingManagerEnabled() const { return use_routing_manager_; }
 
 private:
 	TableReceiver(TableReceiver const&) = delete;

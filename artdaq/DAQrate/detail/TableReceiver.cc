@@ -1,8 +1,6 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_TableReceiver").c_str()
 #include "artdaq/DAQrate/detail/TableReceiver.hh"
-#include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "artdaq/TransferPlugins/detail/HostMap.hh"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -322,6 +320,7 @@ int artdaq::TableReceiver::sendTableUpdateRequest_(Fragment::sequence_id_t seq)
 	auto start_time = std::chrono::steady_clock::now();
 	while (TimeUtils::GetElapsedTimeMilliseconds(start_time) < routing_timeout_ms_)
 	{
+		TLOG(TLVL_DEBUG) << "sendTableUpdateRequest_: Sending table update request for " << my_rank << ", sequence ID " << seq;
 		detail::RoutingRequest pkt(my_rank, seq);
 		write(table_socket_, &pkt, sizeof(pkt));
 

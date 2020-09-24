@@ -13,7 +13,6 @@
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/DAQrate/detail/TableReceiver.hh"
-#include "artdaq/TransferPlugins/detail/HostMap.hh"
 #include "canvas/Utilities/Exception.h"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/OptionalTable.h"

@@ -590,7 +590,7 @@ void artdaq::RoutingManagerCore::receive_()
 
 		if (nfds > 0)
 		{
-			TLOG(TLVL_DEBUG) << "Received " << nfds << " events";
+			TLOG(TLVL_DEBUG) << "Received " << nfds << " events on table sockets";
 		}
 		for (auto n = 0; n < nfds; ++n)
 		{
@@ -662,7 +662,7 @@ void artdaq::RoutingManagerCore::receive_()
 				}
 				else
 				{
-					TLOG(TLVL_DEBUG) << "Received event mask " << received_events[n].events << " from " << find_fd_(received_events[n].data.fd);
+					TLOG(TLVL_DEBUG) << "Received event mask " << received_events[n].events << " from table socket rank " << find_fd_(received_events[n].data.fd);
 				}
 			}
 		}

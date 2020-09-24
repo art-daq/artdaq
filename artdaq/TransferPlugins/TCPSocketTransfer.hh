@@ -21,7 +21,7 @@
 // artdaq Includes
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/TransferPlugins/detail/HostMap.hh"
+#include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/TransferPlugins/detail/SRSockets.hh"
 #include "artdaq/TransferPlugins/detail/Timeout.hh"  // Timeout
 

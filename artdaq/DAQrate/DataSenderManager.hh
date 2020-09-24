@@ -14,7 +14,7 @@
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/DAQrate/detail/TableReceiver.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/TransferPlugins/detail/HostMap.hh"
+#include "artdaq/DAQdata/HostMap.hh"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"
@@ -157,7 +157,6 @@ private:
 	size_t send_retry_count_;
 
 	std::unique_ptr<TableReceiver> table_receiver_;
-	bool use_routing_manager_;
 	std::atomic<bool> should_stop_;
 	std::map<Fragment::sequence_id_t, size_t> sent_sequence_id_count_;
 	mutable std::mutex sent_sequence_id_mutex_;

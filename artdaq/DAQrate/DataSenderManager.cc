@@ -1,8 +1,8 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_DataSenderManager").c_str()
+#include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "artdaq/TransferPlugins/detail/HostMap.hh"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -144,31 +144,27 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 	{
 		return TableReceiver::ROUTING_FAILED;  // No destinations configured.
 	}
-	if (!use_routing_manager_ && enabled_destinations_.size() == 1)
-	{
-		return *enabled_destinations_.begin();  // Trivial case
-	}
 
-	if (use_routing_manager_)
+	if (table_receiver_->RoutingManagerEnabled())
 	{
 		TLOG(15) << "calcDest_ use_routing_manager check for routing info for seqID=" << sequence_id << " should_stop_=" << should_stop_;
 		return table_receiver_->GetRoutingTableEntry(sequence_id);
 	}
-	else
+	if (enabled_destinations_.size() == 1)
 	{
-		auto index = sequence_id % enabled_destinations_.size();
-		auto it = enabled_destinations_.begin();
-		for (; index > 0; --index)
-		{
-			++it;
-			if (it == enabled_destinations_.end())
-			{
-				it = enabled_destinations_.begin();
-			}
-		}
-		return *it;
+		return *enabled_destinations_.begin();  // Trivial case
 	}
-	return TableReceiver::ROUTING_FAILED;
+	auto index = sequence_id % enabled_destinations_.size();
+	auto it = enabled_destinations_.begin();
+	for (; index > 0; --index)
+	{
+		++it;
+		if (it == enabled_destinations_.end())
+		{
+			it = enabled_destinations_.begin();
+		}
+	}
+	return *it;
 }
 
 void artdaq::DataSenderManager::RemoveRoutingTableEntry(Fragment::sequence_id_t seq)

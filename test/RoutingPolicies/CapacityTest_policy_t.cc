@@ -124,4 +124,109 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(sixthTable[0].sequence_id, 1);
 }
 
+BOOST_AUTO_TEST_CASE(DataFlowMode)
+{
+	fhicl::ParameterSet ps;
+	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: DataFlow", ps);
+
+	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
+
+	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 3);
+
+	ct->Reset();
+	ct->AddReceiverToken(1, 3);
+	ct->AddReceiverToken(2, 3);
+	auto route = ct->GetRouteForSequenceID(1, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
+	// Multiple hits for the same sequence ID are allowed, and should receive different information
+	route = ct->GetRouteForSequenceID(1, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
+	route = ct->GetRouteForSequenceID(2, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 2);
+
+	route = ct->GetRouteForSequenceID(2, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+
+	ct->AddReceiverToken(1, 1);
+	route = ct->GetRouteForSequenceID(2, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 2);
+
+	// Out-of-order sequence IDs are allowed
+	route = ct->GetRouteForSequenceID(1, 6);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
+	// Arbitrary sequence IDs are allowed
+	route = ct->GetRouteForSequenceID(10343, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 10343);
+}
+
+BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
+{
+	fhicl::ParameterSet ps;
+	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
+
+	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
+
+	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 3);
+
+	ct->Reset();
+	ct->AddReceiverToken(1, 3);
+	ct->AddReceiverToken(2, 3);
+
+	auto route = ct->GetRouteForSequenceID(1, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
+	// Multiple hits for the same sequence ID should receive the same routing
+	route = ct->GetRouteForSequenceID(1, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
+	// Only events which have started routing should be in the table
+	auto firstTable = ct->GetCurrentTable();
+	BOOST_REQUIRE_EQUAL(firstTable.size(), 1);
+	BOOST_REQUIRE_EQUAL(firstTable[0].destination_rank, 1);
+
+	// Arbitrary Sequence IDs are allowed
+	route = ct->GetRouteForSequenceID(12343, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 12343);
+
+	// Out-of-order Sequence IDs are allowed
+	route = ct->GetRouteForSequenceID(4, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 4);
+
+	// Requests that arrive late still get the same info
+	route = ct->GetRouteForSequenceID(1, 6);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
+	// Routing cache is sorted by sequence ID
+	auto secondTable = ct->GetCurrentTable();
+	BOOST_REQUIRE_EQUAL(secondTable.size(), 3);
+	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[0].sequence_id, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[1].sequence_id, 4);
+	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 12343);
+
+	// Since the routing cache has been set to 2, only the last two events routed are here, as the cache is checked when generating tables
+	auto thirdTable = ct->GetCurrentTable();
+	BOOST_REQUIRE_EQUAL(thirdTable.size(), 2);
+	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 4);
+	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank,1);
+	BOOST_REQUIRE_EQUAL(thirdTable[1].sequence_id, 12343);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
