@@ -100,7 +100,6 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 		{
 			TLOG(TLVL_DEBUG) << "Opening token listener socket";
 			token_socket_ = TCP_listen_fd(token_port_, 3 * sizeof(detail::RoutingToken));
-			fcntl(token_socket_, F_SETFL, O_NONBLOCK);  // set O_NONBLOCK
 
 			if (token_epoll_fd_ != -1)
 			{
@@ -173,7 +172,10 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				int sts = recv(receive_token_events_[n].data.fd, &buff, sizeof(detail::RoutingToken), MSG_WAITALL);
 				if (sts == 0)
 				{
-					TLOG(TLVL_INFO) << "Received 0-size token from " << receive_token_addrs_[receive_token_events_[n].data.fd];
+					TLOG(TLVL_WARNING) << "Received 0-size token from " << receive_token_addrs_[receive_token_events_[n].data.fd] << ", closing socket";
+					receive_token_addrs_.erase(receive_token_events_[n].data.fd);
+					close(receive_token_events_[n].data.fd);
+					epoll_ctl(token_epoll_fd_, EPOLL_CTL_DEL, receive_token_events_[n].data.fd, nullptr);
 				}
 				else if (sts < 0 && errno == EAGAIN)
 				{
