@@ -9,6 +9,7 @@ BOOST_AUTO_TEST_SUITE(CapacityTest_policy_t)
 
 BOOST_AUTO_TEST_CASE(Simple)
 {
+	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case Simple BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4] tokens_used_per_table_percent: 50", ps);
 
@@ -122,10 +123,12 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(sixthTable.size(), 1);
 	BOOST_REQUIRE_EQUAL(sixthTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(sixthTable[0].sequence_id, 1);
+	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case Simple END";
 }
 
 BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
+	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case DataFlowMode BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: DataFlow", ps);
 
@@ -145,6 +148,11 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
 
+	// Except, that the same sequence ID from the same host should always get the same info
+	route = ct->GetRouteForSequenceID(1, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
 	route = ct->GetRouteForSequenceID(2, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 2);
@@ -154,22 +162,25 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 
 	ct->AddReceiverToken(1, 1);
 	route = ct->GetRouteForSequenceID(2, 5);
-	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 2);
 
 	// Out-of-order sequence IDs are allowed
 	route = ct->GetRouteForSequenceID(1, 6);
-	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
 
 	// Arbitrary sequence IDs are allowed
 	route = ct->GetRouteForSequenceID(10343, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 10343);
+
+	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case DataFlowMode END";
 }
 
 BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
+	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case RequestBasedEventBuilding BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
 
@@ -210,23 +221,57 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
 
+	// Check that things behave when tokens are exhausted...
+	route = ct->GetRouteForSequenceID(10, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 10);
+	route = ct->GetRouteForSequenceID(11, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 11);
+	route = ct->GetRouteForSequenceID(12, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 12);
+
+	route = ct->GetRouteForSequenceID(50, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, -1);
+
+	ct->AddReceiverToken(1, 1);
+	route = ct->GetRouteForSequenceID(50, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
+
+	route = ct->GetRouteForSequenceID(50, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
+
+
 	// Routing cache is sorted by sequence ID
 	auto secondTable = ct->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(secondTable.size(), 3);
+	BOOST_REQUIRE_EQUAL(secondTable.size(), 7);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(secondTable[0].sequence_id, 1);
 	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(secondTable[1].sequence_id, 4);
-	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 12343);
+	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 10);
+	BOOST_REQUIRE_EQUAL(secondTable[3].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 11);
+	BOOST_REQUIRE_EQUAL(secondTable[4].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(secondTable[4].sequence_id, 12);
+	BOOST_REQUIRE_EQUAL(secondTable[5].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[5].sequence_id, 50);
+	BOOST_REQUIRE_EQUAL(secondTable[6].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[6].sequence_id, 12343);
 
-	// Since the routing cache has been set to 2, only the last two events routed are here, as the cache is checked when generating tables
+	// Since the routing cache has been set to 2, only the highest two events routed are here, as the cache is checked when generating tables
 	auto thirdTable = ct->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 2);
 	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 4);
+	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 50);
 	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank,1);
 	BOOST_REQUIRE_EQUAL(thirdTable[1].sequence_id, 12343);
+
+	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case RequestBasedEventBuilding END";
 }
 
 BOOST_AUTO_TEST_SUITE_END()

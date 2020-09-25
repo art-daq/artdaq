@@ -100,12 +100,13 @@ private:
 		bool is_valid{false};
 		int destination_rank{-1};
 		Fragment::sequence_id_t sequence_id{artdaq::Fragment::InvalidSequenceID};
+		int requesting_rank{-1};
 
 		RoutingCacheEntry() {}
-		RoutingCacheEntry(Fragment::sequence_id_t seq, int dest)
-		    : is_valid(true), destination_rank(dest), sequence_id(seq) { }
+		RoutingCacheEntry(Fragment::sequence_id_t seq, int dest, int source)
+		    : is_valid(true), destination_rank(dest), sequence_id(seq), requesting_rank(source) { }
 	};
-	std::map<Fragment::sequence_id_t, RoutingCacheEntry> routing_cache_;
+	std::map<Fragment::sequence_id_t, std::vector<RoutingCacheEntry>> routing_cache_;
 	size_t routing_cache_max_size_;
 	mutable std::mutex routing_cache_mutex_;
 	std::atomic<size_t> max_token_count_;

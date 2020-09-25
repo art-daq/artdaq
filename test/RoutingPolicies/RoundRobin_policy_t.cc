@@ -9,6 +9,7 @@ BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)
 
 BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 {
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case VerifyRMPSharedPtr BEGIN";
 	fhicl::ParameterSet ps4, ps3, ps2;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps4);
 	fhicl::make_ParameterSet("receiver_ranks: [7,8,9]", ps3);
@@ -28,10 +29,13 @@ BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 	// force destructors to be run on first set of policies
 	rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps2);
 	rrB = artdaq::makeRoutingManagerPolicy("RoundRobin", ps2);
+
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case VerifyRMPSharedPtr END";
 }
 
 BOOST_AUTO_TEST_CASE(Simple)
 {
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case Simple BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps);
 
@@ -73,10 +77,13 @@ BOOST_AUTO_TEST_CASE(Simple)
 	auto fifthTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(fifthTable.size(), 4);
 	BOOST_REQUIRE_EQUAL(fifthTable[0].destination_rank, 1);
+
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case Simple END";
 }
 
 BOOST_AUTO_TEST_CASE(MinimumParticipants)
 {
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case MinimumParticipants BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4] minimum_participants: 2", ps);
 
@@ -126,10 +133,13 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	rr->AddReceiverToken(3, 1);
 	auto sixthTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(sixthTable.size(), 0);
+
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case MinimumParticipants END";
 }
 
 BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 {
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case LargeMinimumParticipants BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: 5", ps);
 
@@ -155,10 +165,13 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(thirdTable[2].destination_rank, 3);
+
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case LargeMinimumParticipants END";
 }
 
 BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 {
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case ManyMissingParticipants BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: -5", ps);
 
@@ -179,10 +192,13 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 	rr->AddReceiverToken(1, 1);
 	auto thirdTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 1);
+
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case ManyMissingParticipants END";
 }
 
 BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case DataFlowMode BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: DataFlow", ps);
 
@@ -204,6 +220,12 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	route = rr->GetRouteForSequenceID(1, 5);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
+	// Except, that the same sequence ID from the same host should always get the same info
+	route = rr->GetRouteForSequenceID(1, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
 
 	route = rr->GetRouteForSequenceID(2, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 3);
@@ -227,10 +249,12 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 10343);
 
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case DataFlowMode END";
 }
 
 BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case RequestBasedEventBuilding BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
 
@@ -274,24 +298,41 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
 
+	// Check that things behave when tokens are exhausted...
+	route = rr->GetRouteForSequenceID(50, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, -1);
+
+	rr->AddReceiverToken(1, 1);
+	route = rr->GetRouteForSequenceID(50, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
+		
+	route = rr->GetRouteForSequenceID(50, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
+
 	// Routing cache is sorted by sequence ID
 	auto secondTable = rr->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(secondTable.size(), 3);
+	BOOST_REQUIRE_EQUAL(secondTable.size(), 4);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(secondTable[0].sequence_id, 1);
 	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(secondTable[1].sequence_id, 4);
-	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 12343);
+	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 50);
+	BOOST_REQUIRE_EQUAL(secondTable[3].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 12343);
 
-	// Since the routing cache has been set to 2, only the last two events routed are here, as the cache is checked when generating tables
+
+	// Since the routing cache has been set to 2, only the highest two events routed are here, as the cache is checked when generating tables
 	auto thirdTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 2);
-	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 3);
-	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 4);
+	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 50);
 	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(thirdTable[1].sequence_id, 12343);
 
+	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case RequestBasedEventBuilding END";
 }
 
 BOOST_AUTO_TEST_SUITE_END()

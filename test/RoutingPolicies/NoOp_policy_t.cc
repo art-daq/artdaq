@@ -9,6 +9,7 @@ BOOST_AUTO_TEST_SUITE(NoOp_policy_t)
 
 BOOST_AUTO_TEST_CASE(Simple)
 {
+	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case Simple BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps);
 
@@ -39,10 +40,12 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 	auto thirdTable = noop->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 0);
+	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case Simple END";
 }
 
 BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
+	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case DataFlowMode BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: DataFlow", ps);
 
@@ -65,6 +68,12 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
 
+	// Except, that the same sequence ID from the same host should always get the same info
+	route = noop->GetRouteForSequenceID(1, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 3);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
+
+
 	route = noop->GetRouteForSequenceID(2, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 2);
@@ -83,10 +92,12 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	route = noop->GetRouteForSequenceID(10343, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 10343);
+	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case DataFlowMode END";
 }
 
 BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
+	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case RequestBasedEventBuilding BEGIN";
 	fhicl::ParameterSet ps;
 	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
 
@@ -130,23 +141,51 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
 
+	// Check that things behave when tokens are exhausted...
+	route = noop->GetRouteForSequenceID(10, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 3);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 10);
+	route = noop->GetRouteForSequenceID(11, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 11);
+
+	route = noop->GetRouteForSequenceID(50, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, -1);
+
+	noop->AddReceiverToken(1, 1);
+	route = noop->GetRouteForSequenceID(50, 4);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
+
+	route = noop->GetRouteForSequenceID(50, 5);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
+
 	// Routing cache is sorted by sequence ID
 	auto secondTable = noop->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(secondTable.size(), 3);
+	BOOST_REQUIRE_EQUAL(secondTable.size(), 6);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(secondTable[0].sequence_id, 1);
 	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(secondTable[1].sequence_id, 4);
 	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 3);
-	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 12343);
+	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 10);
+	BOOST_REQUIRE_EQUAL(secondTable[3].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 11);
+	BOOST_REQUIRE_EQUAL(secondTable[4].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[4].sequence_id, 50);
+	BOOST_REQUIRE_EQUAL(secondTable[5].destination_rank, 3);
+	BOOST_REQUIRE_EQUAL(secondTable[5].sequence_id, 12343);
 
-	// Since the routing cache has been set to 2, only the last two events routed are here, as the cache is checked when generating tables
+	// Since the routing cache has been set to 2, only the highest two events routed are here, as the cache is checked when generating tables
 	auto thirdTable = noop->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 2);
-	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 4);
+	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 50);
 	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(thirdTable[1].sequence_id, 12343);
+
+	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case RequestBasedEventBuilding END";
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -590,7 +590,7 @@ void artdaq::RoutingManagerCore::receive_()
 
 		if (nfds > 0)
 		{
-			TLOG(TLVL_DEBUG) << "Received " << nfds << " events on table sockets";
+			TLOG(13) << "Received " << nfds << " events on table sockets";
 		}
 		for (auto n = 0; n < nfds; ++n)
 		{
@@ -629,7 +629,7 @@ void artdaq::RoutingManagerCore::receive_()
 					{
 						reading = false;
 						sts = 0;
-						TLOG(TLVL_DEBUG) << "Received request from " << buff.rank << " mode=" << detail::RoutingRequest::RequestModeToString(buff.mode);
+						TLOG(TLVL_TRACE) << "Received request from " << buff.rank << " mode=" << detail::RoutingRequest::RequestModeToString(buff.mode);
 						detail::RoutingPacketEntry reply;
 
 						switch (buff.mode)
@@ -644,12 +644,14 @@ void artdaq::RoutingManagerCore::receive_()
 								reply = policy_->GetRouteForSequenceID(buff.sequence_id, buff.rank);
 								if (reply.sequence_id == buff.sequence_id)
 								{
+									TLOG(TLVL_TRACE) << "Reply to request from " << buff.rank << " with route to " << reply.destination_rank << " for sequence ID " << buff.sequence_id;
 									detail::RoutingPacketHeader hdr(1);
 									write(received_events[n].data.fd, &hdr, sizeof(hdr));
 									write(received_events[n].data.fd, &reply, sizeof(detail::RoutingPacketEntry));
 								}
 								else
 								{
+									TLOG(TLVL_TRACE) << "Unable to route request, replying with empty RoutingPacket";
 									detail::RoutingPacketHeader hdr(0);
 									write(received_events[n].data.fd, &hdr, sizeof(hdr));
 								}

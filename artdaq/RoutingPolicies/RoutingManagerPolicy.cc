@@ -79,20 +79,43 @@ artdaq::detail::RoutingPacketEntry artdaq::RoutingManagerPolicy::GetRouteForSequ
 		std::lock_guard<std::mutex> lk(routing_cache_mutex_);
 		if (routing_cache_.count(seq))
 		{
-			return detail::RoutingPacketEntry(seq, routing_cache_[seq].destination_rank);
+			return detail::RoutingPacketEntry(seq, routing_cache_[seq][0].destination_rank);
 		}
 		else
 		{
-			std::lock_guard<std::mutex> lk(tokens_mutex_);
+			std::lock_guard<std::mutex> tlk(tokens_mutex_);
 			auto entry = CreateRouteForSequenceID(seq, requesting_rank);
-			routing_cache_[seq] = RoutingCacheEntry(seq, entry.destination_rank);
+			if (entry.sequence_id == seq)
+			{
+				routing_cache_[seq].emplace_back(seq, entry.destination_rank, requesting_rank);
+			}
 			return entry;
 		}
 	}
 	else if (routing_mode_ == detail::RoutingManagerMode::DataFlow)
 	{
-		std::lock_guard<std::mutex> lk(tokens_mutex_);
-		return CreateRouteForSequenceID(seq, requesting_rank);
+		std::lock_guard<std::mutex> lk(routing_cache_mutex_);
+		if (routing_cache_.count(seq)) {
+			for (auto& entry : routing_cache_[seq]) {
+				if (entry.requesting_rank == requesting_rank) {
+					return detail::RoutingPacketEntry(seq, entry.destination_rank);
+				}
+			}
+		}
+
+		std::lock_guard<std::mutex> tlk(tokens_mutex_);
+		auto entry = CreateRouteForSequenceID(seq, requesting_rank);
+		if (entry.sequence_id == seq)
+		{
+			routing_cache_[seq].emplace_back(seq, entry.destination_rank, requesting_rank);
+		}
+
+		// Trim cache
+		while (routing_cache_.size() > routing_cache_max_size_)
+		{
+			routing_cache_.erase(routing_cache_.begin());
+		}
+		return entry;
 	}
 	else
 	{
@@ -109,7 +132,7 @@ void artdaq::RoutingManagerPolicy::CreateRoutingTableFromCache(detail::RoutingPa
 	{
 		for (auto& cache_entry : routing_cache_)
 		{
-			table.push_back(artdaq::detail::RoutingPacketEntry(cache_entry.second.sequence_id, cache_entry.second.destination_rank));
+			table.push_back(artdaq::detail::RoutingPacketEntry(cache_entry.second[0].sequence_id, cache_entry.second[0].destination_rank));
 		}
 
 		// Trim cache, all entries should be complete
