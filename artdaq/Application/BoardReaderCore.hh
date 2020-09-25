@@ -180,6 +180,10 @@ public:
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 
+	bool GetSenderThreadActive() { return sender_thread_active_.load(); }
+	bool GetReceiverThreadActive() { return receiver_thread_active_.load(); }
+	void SetStartTransitionTimeout(double timeout) { start_transition_timeout_ = timeout; }
+
 private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
@@ -197,6 +201,12 @@ private:
 	artdaq::Fragment::sequence_id_t prev_seq_id_;
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;
+
+	// State orchestration
+	std::atomic<bool> running_{false};
+	std::atomic<bool> sender_thread_active_{false};
+	std::atomic<bool> receiver_thread_active_{false};
+	double start_transition_timeout_{10.0};
 
 	// attributes and methods for statistics gathering & reporting
 	artdaq::StatisticsHelper statsHelper_;

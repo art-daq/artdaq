@@ -213,13 +213,19 @@ bool artdaq::FragmentBuffer::check_stop()
 	TLOG(TLVL_CHECKSTOP) << "CFG::check_stop: should_stop=" << should_stop_.load();
 
 	if (!should_stop_.load()) return false;
-	if (mode_ == RequestMode::Ignored) return true;
+	if (mode_ == RequestMode::Ignored)
+	{
+		return true;
+	}
 
 	if (requestBuffer_ != nullptr)
 	{
 		// check_stop returns true if the CFG should stop. We should wait for the Request Buffer to report Request Receiver stopped before stopping.
 		TLOG(TLVL_DEBUG) << "should_stop is true, requestBuffer_->isRunning() is " << std::boolalpha << requestBuffer_->isRunning();
-		return !requestBuffer_->isRunning();
+		if (!requestBuffer_->isRunning())
+		{
+			return true;
+		}
 	}
 	return false;
 }
@@ -766,7 +772,8 @@ bool artdaq::FragmentBuffer::applyRequests(artdaq::FragmentPtrs& frags)
 	// Wait for data, if in ignored mode, or a request otherwise
 	if (mode_ == RequestMode::Ignored)
 	{
-		while (dataBufferFragmentCount_() == 0)
+		auto start_time = std::chrono::steady_clock::now();
+		while (dataBufferFragmentCount_() == 0 && TimeUtils::GetElapsedTime(start_time) < 1.0)
 		{
 			if (check_stop()) return false;
 			std::unique_lock<std::mutex> lock(dataConditionMutex_);
