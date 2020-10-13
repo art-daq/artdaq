@@ -45,6 +45,7 @@ public:
 	/**
 		 * \brief RequestReceiver Constructor 
 		 * \param ps ParameterSet used to configure RequestReceiver. See artdaq::RequestReceiver::Config
+		 * \param output_buffer Pointer to RequestBuffer where Requests should be stored
 		 */
 	RequestReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RequestBuffer> output_buffer);
 

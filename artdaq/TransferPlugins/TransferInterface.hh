@@ -114,7 +114,7 @@ public:
 	/**
 		 * \brief Receive a Fragment from the transport mechanism
 		 * \param[out] fragment Received Fragment
-		 * \param receiveTimeout Timeout for receive
+		 * \param receive_timeout Timeout for receive
 		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 		 */
 	virtual int receiveFragment(artdaq::Fragment& fragment, size_t receive_timeout);
@@ -186,8 +186,8 @@ public:
 	/** \endcond */
 
 protected:
-	TransferInterface(TransferInterface&&) = delete;
-	TransferInterface& operator=(TransferInterface&&) = delete;
+	TransferInterface(TransferInterface&&) = delete; ///< Move Constructor is deleted
+	TransferInterface& operator=(TransferInterface&&) = delete; ///< Move Assignment Operator is deleted
 
 	const Role role_;  ///< Whether this instance of TransferInterface is a sender or receiver
 

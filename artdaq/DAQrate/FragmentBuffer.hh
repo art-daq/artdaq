@@ -155,8 +155,21 @@ public:
 		 */
 	virtual ~FragmentBuffer();
 
+	/**
+	 * @brief Add Fragments to the FragmentBuffer
+	 * @param frags Fragments to add
+	*/
 	void AddFragmentsToBuffer(FragmentPtrs frags);
+
+	/**
+	 * @brief Inform the FragmentBuffer that it should stop
+	*/
 	void Stop() { should_stop_ = true; }
+
+	/**
+	 * @brief Reset the FragmentBuffer (flushes all Fragments from buffers)
+	 * @param stop Whether the FragmentBuffer should be stopped during the Reset
+	*/
 	void Reset(bool stop);
 
 	/// <summary>
