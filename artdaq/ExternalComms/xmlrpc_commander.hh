@@ -152,7 +152,7 @@ public:
 	///
 	/// The report command returns the current value of the requested reportable quantity.
 	/// </summary>
-	/// <param name="which">Reportable quantity to request</param>
+	/// <param name="what">Reportable quantity to request</param>
 	/// <returns>Command result: current value of the requested reportable quantity</returns>
 	std::string send_report(std::string const& what) override;
 
@@ -205,8 +205,8 @@ public:
 	/// This will cause the receiver to rollover the subrun number at the given event. (Event with seqID == boundary will be in new subrun.)
 	/// Should be sent to all EventBuilders before the given event is processed.
 	/// </summary>
-	/// <param name="seq">Sequence ID of new subrun</param>
-	/// <param name="subrunNumber">Subrun number of the new subrun</param>
+	/// <param name="when">Sequence ID of new subrun</param>
+	/// <param name="sr">Subrun number of the new subrun</param>
 	/// <returns>Command result: "SUCCESS" if succeeded</returns>
 	std::string send_rollover_subrun(uint64_t when, uint32_t sr) override;
 

@@ -44,8 +44,8 @@ public:
 	* \return AggregatorCore copy
 	*/
 	DataReceiverCore& operator=(DataReceiverCore const&) = delete;
-	DataReceiverCore(DataReceiverCore&&) = delete;
-	DataReceiverCore& operator=(DataReceiverCore&&) = delete;
+	DataReceiverCore(DataReceiverCore&&) = delete;  ///< Move Constructor is deleted
+	DataReceiverCore& operator=(DataReceiverCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	* \brief Processes the initialize request.
@@ -115,7 +115,7 @@ public:
 
 	/**
 	* \brief Rollover the subrun after the given event
-	* \param eventNum Sequence ID of boundary
+	* \param boundary Sequence ID of boundary
 	* \param subrun Subrun number of new subrun
 	* \return True event_store_ptr is valid
 	*/
