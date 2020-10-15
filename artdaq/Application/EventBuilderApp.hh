@@ -36,8 +36,8 @@ public:
 	* \return EventBuilderApp copy
 	*/
 	EventBuilderApp& operator=(EventBuilderApp const&) = delete;
-	EventBuilderApp(EventBuilderApp&&) = delete;
-	EventBuilderApp& operator=(EventBuilderApp&&) = delete;
+	EventBuilderApp(EventBuilderApp&&) = delete;  ///< Move Constructor is deleted
+	EventBuilderApp& operator=(EventBuilderApp&&) = delete;  ///< Move Assignment Operator is deleted
 
 	// these methods provide the operations that are used by the state machine
 	/**
@@ -94,7 +94,7 @@ public:
 
 	/**
 	* \brief Rollover the subrun after the given event
-	* \param eventNum Sequence ID of boundary
+	* \param boundary Sequence ID of boundary
 	* \param subrunNum Number of new subrun
 	* \return True event_store_ptr is valid
 	*/

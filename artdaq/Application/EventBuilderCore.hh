@@ -39,8 +39,8 @@ public:
 	* \return AggregatorCore copy
 	*/
 	EventBuilderCore& operator=(EventBuilderCore const&) = delete;
-	EventBuilderCore(EventBuilderCore&&) = delete;
-	EventBuilderCore& operator=(EventBuilderCore&&) = delete;
+	EventBuilderCore(EventBuilderCore&&) = delete;  ///< Move Constructor is deleted
+	EventBuilderCore& operator=(EventBuilderCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	* \brief Processes the initialize request.
