@@ -1987,4 +1987,138 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 
 	TLOG(TLVL_INFO) << "SequenceIDMode_MultipleIDs test case END";
 }
+
+BOOST_AUTO_TEST_CASE(IgnoreRequests_StateMachine)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "IgnoreRequests_StateMachine test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<std::string>("request_mode", "ignored");
+
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	buffer->push(53, 35);
+
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+
+	artdaq::FragmentPtrs fps;
+	auto sts = fp.applyRequests(fps);
+
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	fps.clear();
+
+	fp.Reset(false);
+	sts = fp.applyRequests(fps);
+
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+
+	sts = fp.applyRequests(fps);
+
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	fps.clear();
+
+	fp.Stop();
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+
+	sts = fp.applyRequests(fps);
+
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	TLOG(TLVL_INFO) << "IgnoreRequests_StateMachine test case END";
+}
+
+BOOST_AUTO_TEST_CASE(SingleMode_StateMachine)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "SingleMode_StateMachine test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<std::string>("request_mode", "single");
+
+	auto type = artdaq::Fragment::FirstUserFragmentType;
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	buffer->push(1, 1);
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
+
+	artdaq::FragmentPtrs fps;
+	auto sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 2);
+	fps.clear();
+
+	fp.Reset(false);
+	buffer->reset();
+	sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	buffer->push(1, 1);
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+	sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 2);
+	fps.clear();
+
+	fp.Stop();
+	buffer->push(2, 5);
+	sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 3);
+	fps.clear();
+
+	buffer->setRunning(false);
+	fp.AddFragmentsToBuffer(gen.Generate(2));
+	buffer->push(4, 7);
+
+	sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
+
+	TLOG(TLVL_INFO) << "SingleMode_StateMachine test case END";
+}
+
 BOOST_AUTO_TEST_SUITE_END()
