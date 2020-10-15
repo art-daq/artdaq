@@ -272,7 +272,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			}
 			if (*running_sources().begin() == source_rank)  // Only do this for the first sender in the running_sources_ map
 			{
-				TLOG(6) << "Calling SMEM::CheckPendingBuffers from DRM receiver thread for " << source_rank << " to make sure that things aren't stuck";
+				TLOG(TLVL_DEBUG+3) << "Calling SMEM::CheckPendingBuffers from DRM receiver thread for " << source_rank << " to make sure that things aren't stuck";
 				shm_manager_->CheckPendingBuffers();
 			}
 
@@ -367,7 +367,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 
 			if (metricMan)
 			{  //&& recv_frag_count_.slotCount(source_rank) % 100 == 0) {
-				TLOG(6) << "runReceiver_: Sending receive stats for rank " << source_rank;
+				TLOG(TLVL_DEBUG+3) << "runReceiver_: Sending receive stats for rank " << source_rank;
 				metricMan->sendMetric("Total Receive Time From Rank " + std::to_string(source_rank), delta_t, "s", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Total Receive Size From Rank " + std::to_string(source_rank), data_size, "B", 5, MetricMode::Accumulate);
 				metricMan->sendMetric("Total Receive Rate From Rank " + std::to_string(source_rank), data_size / delta_t, "B/s", 5, MetricMode::Average);
@@ -390,7 +390,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				metricMan->sendMetric("Fragment Latency at Receive From Rank " + std::to_string(source_rank), latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
 				metricMan->sendMetric("Header Receive Wait Time From Rank" + std::to_string(source_rank), recv_wait_t, "s", 4, MetricMode::Average | MetricMode::Maximum | MetricMode::Minimum);
 
-				TLOG(6) << "runReceiver_: Done sending receive stats for rank " << source_rank;
+				TLOG(TLVL_DEBUG+3) << "runReceiver_: Done sending receive stats for rank " << source_rank;
 			}
 
 			end_time = std::chrono::steady_clock::now();
