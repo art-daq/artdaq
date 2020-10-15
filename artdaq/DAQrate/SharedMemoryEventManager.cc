@@ -551,7 +551,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	return *pid;
 }
 
-void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pids, bool skip_graceful_wait)
+void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pids)
 {
 	restart_art_ = false;
 	//current_art_config_file_ = nullptr;
@@ -602,7 +602,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
 		auto shutdown_start = std::chrono::steady_clock::now();
 
-		if (!skip_graceful_wait)
+		if (!overwrite_mode_)
 		{
 			TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
 			for (int ii = 0; ii < graceful_wait_ms; ++ii)
