@@ -72,12 +72,12 @@ enum
 #include <vector>
 
 #ifdef DO_TRACE
-#define TRACE_NAME "periodic_cmd_stats"
-#include "trace.h"
+#	define TRACE_NAME "periodic_cmd_stats"
+#	include "trace.h"
 #else
-#include <cstdarg> /* va_list */
-#include <cstring> /* memcpy */
-#include <string>
+#	include <cstdarg> /* va_list */
+#	include <cstring> /* memcpy */
+#	include <string>
 static void trace_ap(const char *msg, va_list ap)
 {
 	char m_[1024];
@@ -106,11 +106,12 @@ static void trace_p(const std::string msg, ...)
 	trace_ap(msg.c_str(), ap);
 	va_end(ap);  // NOLINT
 }
-#define TRACE(lvl, ...)                     \
+enum { TLVL_ERROR, TLVL_WARNING, TLVL_INFO, TLVL_DEBUG };
+#	define TRACE(lvl, ...)                     \
 	do                                      \
-		if (lvl <= 1) trace_p(__VA_ARGS__); \
+		if (lvl <= TLVL_WARNING) trace_p(__VA_ARGS__); \
 	while (0)
-#define TRACE_CNTL(xyzz, ...)
+#	define TRACE_CNTL(xyzz, ...)
 #endif
 
 /* GLOBALS */
@@ -311,7 +312,7 @@ void perror_exit(const char *msg, ...)
 	va_start(ap, msg);
 	vsnprintf(buf, sizeof(buf), msg, ap);
 	va_end(ap);
-	TLOG(TLVL_ERROR, "%s", buf);
+	TRACE(TLVL_ERROR, "%s", buf);
 	perror(buf);
 	exit(1);
 }
@@ -355,7 +356,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 			// Do sleep before dealing with stdout/err incase we want TRACE to go to console
 			//int sts=pthread_atfork( atfork_trace, NULL, NULL );
 			usleep(sleepB4exec_us);
-			TLOG(TLVL_WARNING, "fork_execv sleep complete. sleepB4exec_us=%d sts=%d", sleepB4exec_us, 0 /*sts*/);
+			TRACE(TLVL_WARNING, "fork_execv sleep complete. sleepB4exec_us=%d sts=%d", sleepB4exec_us, 0 /*sts*/);
 		}
 		for (auto ii = 1; ii < 3; ++ii)
 		{  // deal with child stdout/err
@@ -585,7 +586,7 @@ void sigchld_sigaction(int signo, siginfo_t *info, void *context __attribute__((
 	{
 		if (pid == info->si_pid)
 		{
-			TLOG(TLVL_INFO, "sigchld_sigaction signo=%d status=%d(0x%x) code=%d(0x%x) sending_pid=%d", signo, info->si_status, info->si_status, info->si_code, info->si_code, info->si_pid);
+			TRACE(TLVL_INFO, "sigchld_sigaction signo=%d status=%d(0x%x) code=%d(0x%x) sending_pid=%d", signo, info->si_status, info->si_status, info->si_code, info->si_code, info->si_pid);
 			return;
 		}
 	}
@@ -653,7 +654,7 @@ pid_t check_pid_vec()
 
 void cleanup()
 {
-	TLOG(TLVL_WARNING, "atexit cleanup g_pid_vec.size()=%zd\n", g_pid_vec.size());
+	TRACE(TLVL_WARNING, "atexit cleanup g_pid_vec.size()=%zd\n", g_pid_vec.size());
 	for (int &pid : g_pid_vec)
 	{
 		kill(pid, SIGHUP);
@@ -699,7 +700,7 @@ int main(int argc, char *argv[])
 		fread(motherboard, 1, sizeof(motherboard), fp);
 		pclose(fp);
 	}
-	TLOG(TLVL_WARNING, "main - motherboard=" + std::string(motherboard));
+	TRACE(TLVL_WARNING, "main - motherboard=" + std::string(motherboard));
 
 	/* Note, when doing "waitpid" the wait would sometimes take a "long"
 	   time (10's to 100's milliseconds; rcu???) If signal is generated
@@ -729,12 +730,12 @@ int main(int argc, char *argv[])
 	//long long unsigned concurentThreadsSupported = std::thread::hardware_concurrency();
 	long long unsigned concurentThreadsSupported = sysconf(_SC_NPROCESSORS_ONLN);
 	//TRACE_CNTL( "reset" ); TRACE_CNTL( "modeM", 1L );
-	TLOG(TLVL_ERROR, "main concurentThreadsSupported=%u opt_stats=" + opt_stats, concurentThreadsSupported);
+	TRACE(TLVL_ERROR, "main concurentThreadsSupported=%u opt_stats=" + opt_stats, concurentThreadsSupported);
 
 	char run_time[80];
 	gettimeofday(&tv, nullptr);
 	strftime(run_time, sizeof(run_time), "%FT%H%M%S", localtime(&tv.tv_sec));
-	TLOG(TLVL_ERROR, "main run_time=" + std::string(run_time));
+	TRACE(TLVL_ERROR, "main run_time=" + std::string(run_time));
 
 	// get hostname
 	struct utsname ubuf;
@@ -745,7 +746,7 @@ int main(int argc, char *argv[])
 		*dot = '\0';
 	}
 	std::string hostname(ubuf.nodename);
-	TLOG(TLVL_WARNING, "release=" + std::string(ubuf.release) + " version=" + std::string(ubuf.version));
+	TRACE(TLVL_WARNING, "release=" + std::string(ubuf.release) + " version=" + std::string(ubuf.version));
 
 	// get system mem (KB)
 	std::string memKB = AWK("NR==1{print$2;exit}", "/proc/meminfo", nullptr);
@@ -768,7 +769,7 @@ int main(int argc, char *argv[])
 		char cmd_file_out[1024];
 		snprintf(cmd_file_out, sizeof(cmd_file_out), "%speriodic_%s_%s_cmd%zd.out", opt_outdir.c_str(), run_time, hostname.c_str(), ii);
 		int fd = open(cmd_file_out, O_WRONLY | O_CREAT, 0666);
-		TLOG(TLVL_ERROR, "main fd=%d opt_cmd=" + opt_cmd[ii] + " cmd_file_out=" + std::string(cmd_file_out), fd);
+		TRACE(TLVL_ERROR, "main fd=%d opt_cmd=" + opt_cmd[ii] + " cmd_file_out=" + std::string(cmd_file_out), fd);
 		int iofd[3] = {0, fd, fd};  // redirect stdout/err to the cmd-out-file
 		char *const argv_[4] = {(char *)"/bin/sh",
 		                        (char *)"-c",
@@ -810,7 +811,7 @@ int main(int argc, char *argv[])
 		char cmd_file_out[1024];
 		snprintf(cmd_file_out, sizeof(cmd_file_out), "%speriodic_%s_%s_cmd%zd.out", opt_outdir.c_str(), run_time, hostname.c_str(), ii + opt_cmd.size());
 		int fd = open(cmd_file_out, O_WRONLY | O_CREAT, 0666);
-		TLOG(TLVL_ERROR, "main fd=%d opt_Cmd=" + opt_Cmd[ii] + " cmd_file_out=" + std::string(cmd_file_out), fd);
+		TRACE(TLVL_ERROR, "main fd=%d opt_Cmd=" + opt_Cmd[ii] + " cmd_file_out=" + std::string(cmd_file_out), fd);
 		int iofd[3] = {0, fd, fd};  // redirect stdout/err to the cmd-out-file
 		char *const argv_[4] = {(char *)"/bin/sh",
 		                        (char *)"-c",
@@ -837,7 +838,7 @@ int main(int argc, char *argv[])
 	for (size_t ii = 0; ii < pids.size(); ++ii)
 	{
 		g_pid_vec.push_back(std::stoi(pids[ii]));
-		TLOG(TLVL_WARNING, "pid=%s g_pid_vec.size()=%ld", pids[ii].c_str(), g_pid_vec.size());
+		TRACE(TLVL_WARNING, "pid=%s g_pid_vec.size()=%ld", pids[ii].c_str(), g_pid_vec.size());
 		pidfile.push_back("/proc/" + pids[ii] + "/stat");
 		char desc[128], ss[1024];
 		// field 14-17: Documentation/filesystems/proc.txt Table 1-4: utime stime cutime cstime
@@ -1110,7 +1111,7 @@ eintr1:
 				fprintf(outfp, " %.2f", rate);
 				if (rate < 0.0 && spec2[ii][s_file] == "/proc/diskstats")
 				{
-					TLOG(TLVL_ERROR, "main stat:" + spec2[ii][s_desc] + " rate=%f pre_val=%ld stat=%ld stat_str=\"" + stat_str + "\" awkCmd=" + awkCmd[ii] + " proc_diskstats=" + proc_stats, rate, pre_vals[ii], stat);
+					TRACE(TLVL_ERROR, "main stat:" + spec2[ii][s_desc] + " rate=%f pre_val=%ld stat=%ld stat_str=\"" + stat_str + "\" awkCmd=" + awkCmd[ii] + " proc_diskstats=" + proc_stats, rate, pre_vals[ii], stat);
 					//TRACE_CNTL( "modeM", 0L );
 				}
 				pre_vals[ii] = stat;
@@ -1135,12 +1136,12 @@ eintr1:
 			}
 		}
 		pp = check_pid_vec();
-		TLOG(TLVL_INFO, "main pp=%d t_sleep=%ld", pp, t_sleep);
+		TRACE(TLVL_INFO, "main pp=%d t_sleep=%ld", pp, t_sleep);
 		if (pp == -1)
 		{
 			if (post_periods_completed == 0)
 			{
-				TLOG(TLVL_WARNING, "main processes complete - waiting %d post periods", opt_post);
+				TRACE(TLVL_WARNING, "main processes complete - waiting %d post periods", opt_post);
 			}
 			if (post_periods_completed++ == opt_post)
 			{
@@ -1156,7 +1157,7 @@ eintr1:
 	//TRACE( 0, "main waiting for pid=%d", pid );
 	//wait(&status);
 	//TRACE( 0, "main status=%d",status );
-	TLOG(TLVL_ERROR, "main done/complete/returning");
+	TRACE(TLVL_ERROR, "main done/complete/returning");
 	//TRACE_CNTL( "modeM", 0L );
 	return (0);
 }  // main
