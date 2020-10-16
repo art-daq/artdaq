@@ -180,6 +180,24 @@ public:
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 
+	/**
+	 * @brief Get whether the sender thread is still running
+	 * @return Whether the sender thread (applying requests to FragmentBuffer and sending to DataSenderManager) is still running
+	 */
+	bool GetSenderThreadActive() { return sender_thread_active_.load(); }
+	/**
+	 * @brief Get whether the receiver thread is still running
+	 * @return Whether the receiver thread (calling CFG::getNext and putting Fragments into the FragmentBuffer) is still running
+	 */
+	bool GetReceiverThreadActive() { return receiver_thread_active_.load(); }
+	/**
+	 * @brief Set the timeout for starting the sender and receiver threads
+	 * @param timeout Timeout, in seconds, for starting the sender and receiver threads
+	 * 
+	 * This function is used to communicate the start transition timeout from BoardReaderApp to the BoardReaderCore threads
+	*/
+	void SetStartTransitionTimeout(double timeout) { start_transition_timeout_ = timeout; }
+
 private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
@@ -197,6 +215,12 @@ private:
 	artdaq::Fragment::sequence_id_t prev_seq_id_;
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;
+
+	// State orchestration
+	std::atomic<bool> running_{false};
+	std::atomic<bool> sender_thread_active_{false};
+	std::atomic<bool> receiver_thread_active_{false};
+	double start_transition_timeout_{10.0};
 
 	// attributes and methods for statistics gathering & reporting
 	artdaq::StatisticsHelper statsHelper_;

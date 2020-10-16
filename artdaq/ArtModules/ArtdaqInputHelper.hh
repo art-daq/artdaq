@@ -454,7 +454,7 @@ void art::ArtdaqInputHelper<U>::readFile(const std::string&, art::FileBlock*& fb
 {
 	TLOG_ARB(7, "ArtdaqInputHelper") << "Begin: ArtdaqInputHelper::"
 	                                    "readFile(const std::string& name, art::FileBlock*& fb)";
-	fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInputHelper2013"), "nothing");
+	fb = new art::FileBlock(art::FileFormatVersion(1, "ArtdaqInputHelper2013"), "");
 	TLOG_ARB(7, "ArtdaqInputHelper") << "End:   ArtdaqInputHelper::"
 	                                    "readFile(const std::string& name, art::FileBlock*& fb)";
 }
