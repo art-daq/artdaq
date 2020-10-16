@@ -11,7 +11,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 
-#include "artdaq/DAQdata/Globals.hh"                          // include these 2 first to get tracemf.h -
+#include "artdaq/DAQdata/Globals.hh"                           // include these 2 first to get tracemf.h -
 #define TRACE_NAME (app_name + "_RoutingManagerCore").c_str()  // before trace.h
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
@@ -239,20 +239,20 @@ bool artdaq::RoutingManagerCore::shutdown(uint64_t /*unused*/)
 	return true;
 }
 
-bool artdaq::RoutingManagerCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
+bool artdaq::RoutingManagerCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_INFO) << "soft_initialize method called with "
 	                << "ParameterSet = \"" << pset.to_string()
 	                << "\".";
-	return initialize(pset, e, f);
+	return initialize(pset, timeout, timestamp);
 }
 
-bool artdaq::RoutingManagerCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
+bool artdaq::RoutingManagerCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_INFO) << "reinitialize method called with "
 	                << "ParameterSet = \"" << pset.to_string()
 	                << "\".";
-	return initialize(pset, e, f);
+	return initialize(pset, timeout, timestamp);
 }
 
 void artdaq::RoutingManagerCore::process_event_table()
@@ -352,7 +352,8 @@ void artdaq::RoutingManagerCore::process_event_table()
 		}
 	}
 
-	if (stop_requested_ && ack_socket_ != -1) {
+	if (stop_requested_ && ack_socket_ != -1)
+	{
 		TLOG(TLVL_INFO) << "Shutting down Routing Manager: Draining ack socket BEGIN";
 		auto ready = true;
 		while (ready)
@@ -444,7 +445,7 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 		ack_socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 		if (ack_socket_ < 0)
 		{
-			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Error creating socket for receiving table update acks!" << std::endl; // NOLINT(cert-err60-cpp)
+			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Error creating socket for receiving table update acks!" << std::endl;  // NOLINT(cert-err60-cpp)
 			exit(1);
 		}
 
@@ -469,7 +470,7 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 		si_me_request.sin_family = AF_INET;
 		si_me_request.sin_port = htons(receive_acks_port_);
 		si_me_request.sin_addr.s_addr = htonl(INADDR_ANY);
-		if (bind(ack_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1) // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+		if (bind(ack_socket_, reinterpret_cast<struct sockaddr*>(&si_me_request), sizeof(si_me_request)) == -1)  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		{
 			TLOG(TLVL_ERROR) << "RoutingManagerCore: Cannot bind request socket to port " << receive_acks_port_ << ", errno=" << errno;
 			throw art::Exception(art::errors::Configuration) << "RoutingManagerCore: Cannot bind request socket to port " << receive_acks_port_ << std::endl;  // NOLINT(cert-err60-cpp)
@@ -607,7 +608,7 @@ void artdaq::RoutingManagerCore::send_event_table(detail::RoutingPacket packet)
 			usleep(table_ack_wait_time_ms * 1000 / 10);
 		}
 	}
-	
+
 	if (metricMan)
 	{
 		artdaq::TimeUtils::seconds delta = std::chrono::steady_clock::now() - start_time;

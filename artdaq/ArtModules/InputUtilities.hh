@@ -55,7 +55,7 @@ T* ReadObjectAny(const std::unique_ptr<TBufferFile>& infile, const std::string& 
 
 	if (tclassPtr == nullptr)
 	{
-		throw art::Exception(art::errors::DictionaryNotFound) << callerName << " call to ReadObjectAny: " // NOLINT(cert-err60-cpp)
+		throw art::Exception(art::errors::DictionaryNotFound) << callerName << " call to ReadObjectAny: "  // NOLINT(cert-err60-cpp)
 		                                                                       "Could not get TClass for "
 		                                                      << className << "!";
 	}
@@ -69,7 +69,7 @@ T* ReadObjectAny(const std::unique_ptr<TBufferFile>& infile, const std::string& 
 	// the real beginning of the object in memory. You will need to use
 	// a dynamic_cast later if you need to retrieve it."
 
-	T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+	T* ptr = reinterpret_cast<T*>(infile->ReadObjectAny(tclassPtr));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	TLOG(TLVL_READOBJANY, "InputUtilities") << "ReadObjectAny: Got object of class " << className << ", located at " << static_cast<void*>(ptr) << " caller:" << callerName;
 
 	return ptr;

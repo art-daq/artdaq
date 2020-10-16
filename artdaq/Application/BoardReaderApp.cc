@@ -2,7 +2,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME (app_name + "_BoardReaderApp").c_str() // NOLINT
+#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()  // NOLINT
 
 #include <memory>
 #include <string>
@@ -45,7 +45,47 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t timestamp)
 {
 	report_string_ = "";
-	external_request_status_ = fragment_receiver_ptr_->start(id, timeout, timestamp);
+	if (timeout == 0)
+	{
+		timeout = 3600;  // seconds
+	}
+	fragment_receiver_ptr_->SetStartTransitionTimeout(timeout);
+	external_request_status_ = true;
+
+	boost::thread::attributes attrs;
+	attrs.set_stack_size(4096 * 2000);  // 8 MB
+	try
+	{
+		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
+		fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
+	}
+	catch (const boost::exception& e)
+	{
+		std::stringstream exception_string;
+		exception_string << "Caught boost::exception starting Fragment Processing threads: " << boost::diagnostic_information(e) << ", errno=" << errno;
+
+		ExceptionHandler(ExceptionHandlerRethrow::yes, exception_string.str());
+	}
+
+	auto start_wait = std::chrono::steady_clock::now();
+	while (!fragment_receiver_ptr_->GetSenderThreadActive() || !fragment_receiver_ptr_->GetReceiverThreadActive())
+	{
+		if (TimeUtils::GetElapsedTime(start_wait) > timeout)
+		{
+			TLOG(TLVL_ERROR) << "Timeout occurred waiting for BoardReaderCore threads to start. Timeout = " << timeout << " s, Time waited = " << TimeUtils::GetElapsedTime(start_wait) << " s,"
+			                 << " Receiver ready: " << std::boolalpha << fragment_receiver_ptr_->GetReceiverThreadActive() << ", Sender ready: " << fragment_receiver_ptr_->GetSenderThreadActive();
+			external_request_status_ = false;
+			break;
+		}
+		usleep(10000);
+	}
+
+	// Only if starting threads successful
+	if (external_request_status_)
+	{
+		external_request_status_ = fragment_receiver_ptr_->start(id, timeout, timestamp);
+	}
+
 	if (!external_request_status_)
 	{
 		report_string_ = "Error starting ";
@@ -57,21 +97,6 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 		report_string_.append(", timestamp ");
 		report_string_.append(boost::lexical_cast<std::string>(timestamp));
 		report_string_.append(".");
-	}
-
-	boost::thread::attributes attrs;
-	attrs.set_stack_size(4096 * 2000);  // 8 MB
-	try
-	{
-		fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
-		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
-	}
-	catch (const boost::exception& e)
-	{
-		std::stringstream exception_string;
-		exception_string << "Caught boost::exception starting Fragment Processing threads: " << boost::diagnostic_information(e) << ", errno=" << errno;
-
-		ExceptionHandler(ExceptionHandlerRethrow::yes, exception_string.str());
 	}
 
 	return external_request_status_;
@@ -97,7 +122,6 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		TLOG(TLVL_DEBUG) << "Joining fragment output (Sender) thread";
 		fragment_output_thread_.join();
 	}
-
 
 	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
 	int number_of_fragments_sent = -1;
@@ -135,18 +159,50 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 {
 	report_string_ = "";
-	external_request_status_ = fragment_receiver_ptr_->resume(timeout, timestamp);
+	if (timeout == 0)
+	{
+		timeout = 3600;  // seconds
+	}
+	external_request_status_ = true;
+
+	boost::thread::attributes attrs;
+	attrs.set_stack_size(4096 * 2000);  // 8 MB
+	try
+	{
+		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
+		fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
+	}
+	catch (const boost::exception& e)
+	{
+		std::stringstream exception_string;
+		exception_string << "Caught boost::exception starting Fragment Processing threads: " << boost::diagnostic_information(e) << ", errno=" << errno;
+
+		ExceptionHandler(ExceptionHandlerRethrow::yes, exception_string.str());
+	}
+
+	auto start_wait = std::chrono::steady_clock::now();
+	while (!fragment_receiver_ptr_->GetSenderThreadActive() || !fragment_receiver_ptr_->GetReceiverThreadActive())
+	{
+		if (TimeUtils::GetElapsedTimeMicroseconds(start_wait) > timeout * 1000000)
+		{
+			TLOG(TLVL_ERROR) << "Timeout occurred waiting for BoardReaderCore threads to start. Timeout = " << timeout << " s, Time waited = " << TimeUtils::GetElapsedTime(start_wait) << " s,"
+			                 << " Receiver ready: " << std::boolalpha << fragment_receiver_ptr_->GetReceiverThreadActive() << ", Sender ready: " << fragment_receiver_ptr_->GetSenderThreadActive();
+			external_request_status_ = false;
+			break;
+		}
+		usleep(10000);
+	}
+
+	// Only if starting threads successful
+	if (external_request_status_)
+	{
+		external_request_status_ = fragment_receiver_ptr_->resume(timeout, timestamp);
+	}
 	if (!external_request_status_)
 	{
 		report_string_ = "Error resuming ";
 		report_string_.append(app_name + ".");
 	}
-
-	boost::thread::attributes attrs;
-	attrs.set_stack_size(4096 * 2000);  // 8 MB
-	fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
-	fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
-
 	return external_request_status_;
 }
 
@@ -223,8 +279,8 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 	{
 		if (report_string_.length() > 0) { return report_string_; }
 
-			return "Success";
-		}
+		return "Success";
+	}
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that

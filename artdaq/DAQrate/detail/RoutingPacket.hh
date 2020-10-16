@@ -59,10 +59,10 @@ struct artdaq::detail::RoutingPacketEntry
  */
 struct artdaq::detail::RoutingPacketHeader
 {
-	uint32_t header{0};                                  ///< Magic bytes to make sure the packet wasn't garbled
+	uint32_t header{0};                                    ///< Magic bytes to make sure the packet wasn't garbled
 	RoutingManagerMode mode{RoutingManagerMode::INVALID};  ///< The current mode of the RoutingManager
-	size_t nEntries{0};                                  ///< The number of RoutingPacketEntries in the RoutingPacket
-	std::bitset<1024> already_acknowledged_ranks{0};     ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
+	size_t nEntries{0};                                    ///< The number of RoutingPacketEntries in the RoutingPacket
+	std::bitset<1024> already_acknowledged_ranks{0};       ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
 
 	/**
 	 * \brief Construct a RoutingPacketHeader declaring a given number of entries
@@ -86,6 +86,11 @@ struct artdaq::detail::RoutingAckPacket
 	Fragment::sequence_id_t first_sequence_id;  ///< The first sequence ID in the received RoutingPacket
 	Fragment::sequence_id_t last_sequence_id;   ///< The last sequence ID in the received RoutingPacket
 
+	/**
+	 * @brief Create an EndOfData RoutingAckPacket
+	 * @param rank Rank of sender sending EndOfData
+	 * @return EndOfData RoutingAckPacket
+	*/
 	static RoutingAckPacket makeEndOfDataRoutingAckPacket(int rank)
 	{
 		RoutingAckPacket out;
@@ -95,6 +100,11 @@ struct artdaq::detail::RoutingAckPacket
 		return out;
 	}
 
+	/**
+	 * @brief Check if a RoutingAckPacket is an EndOfData RoutingAckPacket
+	 * @param pkt RoutingAckPacket to check
+	 * @return Whether the RoutingAckPacket is an EndOfData RoutingAckPacket
+	*/
 	static bool isEndOfDataRoutingAckPacket(RoutingAckPacket pkt)
 	{
 		return pkt.first_sequence_id == static_cast<Fragment::sequence_id_t>(-3) && pkt.last_sequence_id == static_cast<Fragment::sequence_id_t>(-2);

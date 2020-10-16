@@ -22,8 +22,8 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQrate/FragmentBuffer.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/FragmentBuffer.hh"
 
 namespace artdaq {
 
@@ -97,7 +97,7 @@ public:
 		fhicl::Atom<int> fragment_id{fhicl::Name{"fragment_id"}, fhicl::Comment{"The Fragment ID created by this CommandableFragmentGenerator"}, -99};
 		/// "sleep_on_stop_us" (Default: 0) : How long to sleep before returning when stop transition is called
 		fhicl::Atom<int> sleep_on_stop_us{fhicl::Name{"sleep_on_stop_us"}, fhicl::Comment{"How long to sleep before returning when stop transition is called"}, 0};
-		};
+	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
 
@@ -128,7 +128,6 @@ public:
 		 * \return Whether getNext completed without exceptions
 		 */
 	bool getNext(FragmentPtrs& output) override final;
-
 
 	/**
 		 * \brief Function that launches the monitoring thread (getMonitoringDataLoop())
@@ -265,6 +264,10 @@ public:
 		*/
 	virtual bool metaCommand(std::string const& command, std::string const& arg);
 
+	/**
+	 * @brief Set the shared_ptr to the RequestBuffer
+	 * @param buffer shared_ptr to the RequestBuffer
+	*/
 	void SetRequestBuffer(std::shared_ptr<RequestBuffer> buffer) { requestBuffer_ = buffer; }
 
 protected:
@@ -304,7 +307,7 @@ protected:
 		 */
 	artdaq::Fragment::fragment_id_t fragment_id() const
 	{
-		if (expectedTypes_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << expectedTypes_.size() << " were declared!"; // NOLINT(cert-err60-cpp)
+		if (expectedTypes_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << expectedTypes_.size() << " were declared!";  // NOLINT(cert-err60-cpp)
 		return (*expectedTypes_.begin()).first;
 	}
 
@@ -358,6 +361,10 @@ protected:
 
 	std::mutex mutex_;  ///< Mutex used to ensure that multiple transition commands do not run at the same time
 
+	/**
+	 * @brief Get the shared_ptr to the RequestBuffer
+	 * @return shared_ptr to the RequestBuffer
+	*/
 	std::shared_ptr<RequestBuffer> GetRequestBuffer() { return requestBuffer_; }
 
 private:

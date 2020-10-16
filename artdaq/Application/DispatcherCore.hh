@@ -42,8 +42,8 @@ public:
 	 * \return DispatcherCore copy
 	 */
 	DispatcherCore& operator=(DispatcherCore const&) = delete;
-	DispatcherCore(DispatcherCore&&) = delete;
-	DispatcherCore& operator=(DispatcherCore&&) = delete;
+	DispatcherCore(DispatcherCore&&) = delete;             ///< Move Constructor is deleted
+	DispatcherCore& operator=(DispatcherCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	* \brief Processes the initialize request.
@@ -97,7 +97,6 @@ private:
 
 	void start_art_process_(std::string const& label);
 	void stop_art_process_(std::string const& label);
-
 
 	std::mutex dispatcher_transfers_mutex_;
 	std::unordered_map<std::string, fhicl::ParameterSet> registered_monitors_;

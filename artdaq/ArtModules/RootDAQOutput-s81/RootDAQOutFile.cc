@@ -504,7 +504,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	checker.reportMissingDictionaries();
 
 	createDatabaseTables();
-	TLOG(3) << "RootDAQOutFile ctor complete";
+	TLOG(TLVL_DEBUG + 0) << "RootDAQOutFile ctor complete";
 }
 
 art::RootDAQOutFile::~RootDAQOutFile()
@@ -512,17 +512,17 @@ art::RootDAQOutFile::~RootDAQOutFile()
 	struct sysinfo info;
 	int sts = sysinfo(&info);
 	auto free_percent = static_cast<unsigned>(info.freeram * 100 / info.totalram);
-	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);  // round down (1024.9 => 1024 MB)
-	TRACE(3, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u", // NOLINT
-		free_percent, static_cast<float>(info.freeram * info.mem_unit / (1024 * 1024.0)),
-		free_MB, static_cast<float>(info.bufferram * info.mem_unit / (1024 * 1024 * 1024.0)), info.mem_unit);
+	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);                // round down (1024.9 => 1024 MB)
+	TRACE(TLVL_DEBUG + 0, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u",  // NOLINT
+	      free_percent, static_cast<float>(info.freeram * info.mem_unit / (1024 * 1024.0)),
+	      free_MB, static_cast<float>(info.bufferram * info.mem_unit / (1024 * 1024 * 1024.0)), info.mem_unit);
 	if (free_percent < freePercent_ || free_MB < freeMB_)
 	{
-		TLOG(3) << "RootDAQOutFile Flush/DONTNEED";
+		TLOG(TLVL_DEBUG + 0) << "RootDAQOutFile Flush/DONTNEED";
 		filePtr_->Flush();
 		sts = posix_fadvise(filePtr_->GetFd(), 0, 0 /*len,0=all*/, POSIX_FADV_DONTNEED);
 	}
-	TLOG(3) << "~RootDAQOutFile complete sts=" << sts;
+	TLOG(TLVL_DEBUG + 0) << "~RootDAQOutFile complete sts=" << sts;
 }
 
 void art::RootDAQOutFile::createDatabaseTables()
@@ -570,7 +570,7 @@ void RootDAQOutFile::selectProducts()
 {
 	RecursiveMutexSentry sentry{mutex_, __func__};
 	auto selectProductsToWrite = [this](BranchType const bt) {
-		auto& items = selectedOutputItemList_[bt]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+		auto& items = selectedOutputItemList_[bt];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		for (auto const& pr : om_->keptProducts()[bt])
 		{
 			auto const& pd = pr.second;
@@ -934,7 +934,7 @@ void RootDAQOutFile::writeProductDescriptionRegistry()
 	// removing any transient or pruned products.
 	ProductRegistry reg;
 	auto productDescriptionsToWrite = [this, &reg](BranchType const bt) {
-		for (auto const& pr : descriptionsToPersist_[bt]) // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+		for (auto const& pr : descriptionsToPersist_[bt])  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		{
 			auto const& desc = pr.second;
 			reg.productList_.emplace(BranchKey{desc}, desc);
@@ -1154,7 +1154,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 			}
 			auto const* product = getProduct<BT>(oh, rs, bd.wrappedName());
 			setProductRangeSetID<BT>(
-			    rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+			    rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
 			val.product_ = product;
 		}
 	}

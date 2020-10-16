@@ -93,8 +93,8 @@ public:
 		fhicl::Atom<Fragment::timestamp_t> request_window_offset{fhicl::Name{"request_window_offset"}, fhicl::Comment{"Request messages contain a timestamp. For Window request mode, start the window this far before the timestamp in the request"}, 0};
 		/// "request_window_width" (Default: 0) : For Window request mode, the window will be timestamp - offset to timestamp - offset + width
 		fhicl::Atom<Fragment::timestamp_t> request_window_width{fhicl::Name{"request_window_width"}, fhicl::Comment{"For Window request mode, the window will be timestamp - offset to timestamp - offset + width"}, 0};
-		/// "stale_request_timeout" (Default: -1) : Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded
-		fhicl::Atom<Fragment::timestamp_t> stale_request_timeout{fhicl::Name{"stale_request_timeout"}, fhicl::Comment{"Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_request_timeout units of request timestamp ticks will get discarded"}, 0xFFFFFFFF};
+		/// "stale_fragment_timeout" (Default: 0) : Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_fragment_timeout units of request timestamp ticks will get discarded (0 to disable)
+		fhicl::Atom<Fragment::timestamp_t> stale_fragment_timeout{fhicl::Name{"stale_fragment_timeout"}, fhicl::Comment{"Fragments stored in the fragment generator which are older than the newest stored fragment by at least stale_fragment_timeout units of request timestamp ticks will get discarded"}, 0};
 		/// "buffer_mode_keep_latest" (Default: false): Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)
 		fhicl::Atom<bool> buffer_mode_keep_latest{fhicl::Name{"buffer_mode_keep_latest"}, fhicl::Comment{"Keep the latest Fragment when running in Buffer mode, so that each response has at least one Fragment (Fragment will be discarded if new data arrives before next request)"}, false};
 		/// "expected_fragment_type" (Default: 231, EmptyFragmentType) : The type of Fragments this CFG will be generating. "Empty" will auto - detect type based on Fragments generated.
@@ -155,8 +155,21 @@ public:
 		 */
 	virtual ~FragmentBuffer();
 
+	/**
+	 * @brief Add Fragments to the FragmentBuffer
+	 * @param frags Fragments to add
+	*/
 	void AddFragmentsToBuffer(FragmentPtrs frags);
+
+	/**
+	 * @brief Inform the FragmentBuffer that it should stop
+	*/
 	void Stop() { should_stop_ = true; }
+
+	/**
+	 * @brief Reset the FragmentBuffer (flushes all Fragments from buffers)
+	 * @param stop Whether the FragmentBuffer should be stopped during the Reset
+	*/
 	void Reset(bool stop);
 
 	/// <summary>
@@ -290,7 +303,7 @@ public:
 		{
 			throw cet::exception("DataBufferError") << "Error in FragmentBuffer: Cannot get Sent Windows for ID " << id << " because it does not exist!";
 		}
-		
+
 		return dataBuffers_[id]->WindowsSent;
 	}
 

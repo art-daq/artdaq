@@ -360,4 +360,4 @@ void artdaq::MissingDataCheck::endJob()
 	}
 }
 
-DEFINE_ART_MODULE(artdaq::MissingDataCheck)// NOLINT(performance-unnecessary-value-param)
+DEFINE_ART_MODULE(artdaq::MissingDataCheck)  // NOLINT(performance-unnecessary-value-param)
