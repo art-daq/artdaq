@@ -602,16 +602,19 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
 		auto shutdown_start = std::chrono::steady_clock::now();
 
-		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
-		for (int ii = 0; ii < graceful_wait_ms; ++ii)
+		if (!overwrite_mode_)
 		{
-			usleep(1000);
-
-			check_pids(false);
-			if (count_pids() == 0)
+			TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
+			for (int ii = 0; ii < graceful_wait_ms; ++ii)
 			{
-				TLOG(TLVL_INFO) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
-				return;
+				usleep(1000);
+
+				check_pids(false);
+				if (count_pids() == 0)
+				{
+					TLOG(TLVL_INFO) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
+					return;
+				}
 			}
 		}
 
