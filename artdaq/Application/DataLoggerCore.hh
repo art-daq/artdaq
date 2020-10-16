@@ -39,7 +39,7 @@ public:
 	 * \return DataLoggerCore copy
 	 */
 	DataLoggerCore& operator=(DataLoggerCore const&) = delete;
-	DataLoggerCore(DataLoggerCore&&) = delete;  ///< Move Constructor is deleted
+	DataLoggerCore(DataLoggerCore&&) = delete;             ///< Move Constructor is deleted
 	DataLoggerCore& operator=(DataLoggerCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**

@@ -36,7 +36,7 @@ public:
 	* \return EventBuilderApp copy
 	*/
 	EventBuilderApp& operator=(EventBuilderApp const&) = delete;
-	EventBuilderApp(EventBuilderApp&&) = delete;  ///< Move Constructor is deleted
+	EventBuilderApp(EventBuilderApp&&) = delete;             ///< Move Constructor is deleted
 	EventBuilderApp& operator=(EventBuilderApp&&) = delete;  ///< Move Assignment Operator is deleted
 
 	// these methods provide the operations that are used by the state machine

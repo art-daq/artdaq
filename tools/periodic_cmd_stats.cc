@@ -72,12 +72,12 @@ enum
 #include <vector>
 
 #ifdef DO_TRACE
-#	define TRACE_NAME "periodic_cmd_stats"
-#	include "trace.h"
+#define TRACE_NAME "periodic_cmd_stats"
+#include "trace.h"
 #else
-#	include <cstdarg> /* va_list */
-#	include <cstring> /* memcpy */
-#	include <string>
+#include <cstdarg> /* va_list */
+#include <cstring> /* memcpy */
+#include <string>
 static void trace_ap(const char *msg, va_list ap)
 {
 	char m_[1024];
@@ -106,12 +106,18 @@ static void trace_p(const std::string msg, ...)
 	trace_ap(msg.c_str(), ap);
 	va_end(ap);  // NOLINT
 }
-enum { TLVL_ERROR, TLVL_WARNING, TLVL_INFO, TLVL_DEBUG };
-#	define TRACE(lvl, ...)                     \
-	do                                      \
+enum
+{
+	TLVL_ERROR,
+	TLVL_WARNING,
+	TLVL_INFO,
+	TLVL_DEBUG
+};
+#define TRACE(lvl, ...)                                \
+	do                                                 \
 		if (lvl <= TLVL_WARNING) trace_p(__VA_ARGS__); \
 	while (0)
-#	define TRACE_CNTL(xyzz, ...)
+#define TRACE_CNTL(xyzz, ...)
 #endif
 
 /* GLOBALS */
@@ -348,7 +354,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 		{                                   // deal with child stdin
 			close(pipes[0][1]);             // child closes write end of pipe which will be it's stdin
 			int fd = dup2(pipes[0][0], 0);  // NOLINT
-			TRACE(TLVL_DEBUG+0, "fork_execv dupped(%d) onto %d (should be 0)", pipes[0][0], fd);
+			TRACE(TLVL_DEBUG + 0, "fork_execv dupped(%d) onto %d (should be 0)", pipes[0][0], fd);
 			close(pipes[0][0]);
 		}
 		if (sleepB4exec_us != 0)
@@ -364,13 +370,13 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 			{
 				close(pipes[ii][0]);
 				int fd = dup2(pipes[ii][1], ii);  // NOLINT
-				TRACE(TLVL_DEBUG+0, "fork_execv dupped(%d) onto %d (should be %d)", pipes[ii][1], fd, ii);
+				TRACE(TLVL_DEBUG + 0, "fork_execv dupped(%d) onto %d (should be %d)", pipes[ii][1], fd, ii);
 				close(pipes[ii][1]);
 			}
 			else if (lcl_iofd[ii] != ii)
 			{
 				int fd = dup2(lcl_iofd[ii], ii);  // NOLINT
-				TRACE(TLVL_DEBUG+0, "fork_execv dupped(%d) onto %d (should be %d)", pipes[ii][1], fd, ii);
+				TRACE(TLVL_DEBUG + 0, "fork_execv dupped(%d) onto %d (should be %d)", pipes[ii][1], fd, ii);
 			}
 		}
 		for (auto ii = close_start; ii < (close_start + close_cnt); ++ii)
@@ -398,7 +404,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 		}
 	}
 
-	TRACE(TLVL_DEBUG+0, "fork_execv pid=%d", pid);
+	TRACE(TLVL_DEBUG + 0, "fork_execv pid=%d", pid);
 	return pid;
 }  // fork_execv
 
@@ -454,7 +460,7 @@ std::string AWK(std::string const &awk_cmd, const char *file, const char *input)
 	}
 	//int iofd[3]={infd,-1,g_devnullfd};
 	int iofd[3] = {infd, -1, 2};  // make stdin=infd, create pipr for stdout, inherit stderr
-	TRACE(TLVL_DEBUG+0, "AWK b4 fork_execv input=%p", (void *)input);
+	TRACE(TLVL_DEBUG + 0, "AWK b4 fork_execv input=%p", (void *)input);
 	char *env[1];
 	env[0] = nullptr;                                                       // mainly do not want big LD_LIBRARY_PATH
 	pid = fork_execv(0, 0 /*closeCnt*/, 0, iofd, "/bin/gawk", argv_, env);  // NOLINT
@@ -469,7 +475,7 @@ std::string AWK(std::string const &awk_cmd, const char *file, const char *input)
 		close(iofd[0]);
 		while ((bytes = read(iofd[1], &readbuf[tot_bytes], sizeof(readbuf) - tot_bytes)) != 0)
 		{
-			TRACE(TLVL_DEBUG+0, "AWK while bytes=read > 0 bytes=%zd readbuf=0x%016lx errno=%d", bytes, swapPtr(&readbuf[tot_bytes]), errno);
+			TRACE(TLVL_DEBUG + 0, "AWK while bytes=read > 0 bytes=%zd readbuf=0x%016lx errno=%d", bytes, swapPtr(&readbuf[tot_bytes]), errno);
 			if (bytes == -1)
 			{
 				if (errno == EINTR)
@@ -480,7 +486,7 @@ std::string AWK(std::string const &awk_cmd, const char *file, const char *input)
 			}
 			tot_bytes += bytes;
 		}
-		TRACE(TLVL_DEBUG+0, "AWK after read tot=" + std::to_string((long long unsigned)tot_bytes) + " bytes=" + std::to_string((long long unsigned)bytes) + " input=" + std::string(input));
+		TRACE(TLVL_DEBUG + 0, "AWK after read tot=" + std::to_string((long long unsigned)tot_bytes) + " bytes=" + std::to_string((long long unsigned)bytes) + " input=" + std::string(input));
 	}
 	else
 	{
@@ -488,11 +494,11 @@ std::string AWK(std::string const &awk_cmd, const char *file, const char *input)
 		{
 			tot_bytes += bytes;
 		}
-		TRACE(TLVL_DEBUG+0, "AWK after read tot=%zd bytes=%zd [0]=0x%x input=%p", tot_bytes, bytes, readbuf[0], (void *)input);
+		TRACE(TLVL_DEBUG + 0, "AWK after read tot=%zd bytes=%zd [0]=0x%x input=%p", tot_bytes, bytes, readbuf[0], (void *)input);
 	}
 	readbuf[tot_bytes >= 0 ? tot_bytes : 0] = '\0';
 	close(iofd[1]);
-	TRACE(TLVL_DEBUG+0, "AWK after close child stdout. child pid=%d", pid);
+	TRACE(TLVL_DEBUG + 0, "AWK after close child stdout. child pid=%d", pid);
 #if 0
 	int status;
 	pid_t done_pid = waitpid(pid,&status,0);
@@ -590,12 +596,12 @@ void sigchld_sigaction(int signo, siginfo_t *info, void *context __attribute__((
 			return;
 		}
 	}
-	TRACE(TLVL_DEBUG+0, "sigchld_sigaction signo=%d status=%d(0x%x) code=%d(0x%x) sending_pid=%d", signo, info->si_status, info->si_status, info->si_code, info->si_code, info->si_pid);
+	TRACE(TLVL_DEBUG + 0, "sigchld_sigaction signo=%d status=%d(0x%x) code=%d(0x%x) sending_pid=%d", signo, info->si_status, info->si_status, info->si_code, info->si_code, info->si_pid);
 }
 
 void read_proc_file(const char *file, char *buffer, int buffer_size)
 {
-	TRACE(TLVL_DEBUG+1, "read_proc_file b4 open proc file" + std::string(file));
+	TRACE(TLVL_DEBUG + 1, "read_proc_file b4 open proc file" + std::string(file));
 	int fd = open(file, O_RDONLY);
 	int offset = 0, sts = 0;
 	while (true)
@@ -610,7 +616,7 @@ void read_proc_file(const char *file, char *buffer, int buffer_size)
 	}
 	buffer[sts + offset] = '\0';
 	close(fd);
-	TRACE(TLVL_DEBUG+1, "read_proc_file after close " + std::string(file) + " read=%d offset=%d", sts, offset);
+	TRACE(TLVL_DEBUG + 1, "read_proc_file after close " + std::string(file) + " read=%d offset=%d", sts, offset);
 }
 
 pid_t check_pid_vec()
@@ -620,7 +626,7 @@ pid_t check_pid_vec()
 		pid_t pid = g_pid_vec[ii];
 		int status;
 		pid_t pp = waitpid(pid, &status, WNOHANG);
-		TRACE(TLVL_DEBUG+0, "check_pid_vec %d=waitpid(pid=%d) errno=%d", pp, pid, errno);
+		TRACE(TLVL_DEBUG + 0, "check_pid_vec %d=waitpid(pid=%d) errno=%d", pp, pid, errno);
 		if (pp > 0)
 		{
 			g_pid_vec.erase(g_pid_vec.begin() + ii);
@@ -1053,7 +1059,7 @@ eintr1:
 	if (t_sleep > 0)
 	{
 		int sts = usleep(t_sleep);  // NOLINT
-		TRACE(TLVL_DEBUG+0, "main usleep sts=%d errno=%d", sts, errno);
+		TRACE(TLVL_DEBUG + 0, "main usleep sts=%d errno=%d", sts, errno);
 		if (errno == EINTR)
 		{
 			goto eintr1;
@@ -1071,7 +1077,7 @@ eintr1:
 		std::string prv_file;
 		for (size_t ii = 0; ii < stats.size(); ++ii)
 		{
-			TRACE(TLVL_DEBUG+0, "main lp=%d start stat%zd", lp, ii);
+			TRACE(TLVL_DEBUG + 0, "main lp=%d start stat%zd", lp, ii);
 			char const *awk_file;
 			if (ii < (2 * opt_cmd.size()))
 			{  // For each cmd, the
@@ -1107,7 +1113,7 @@ eintr1:
 				{
 					rate = 0.0;
 				}
-				TRACE(TLVL_DEBUG+0, tmpdbg + "stat_str[0]=0x%x stat_str.size()=%zd", lp, ii, stat, rate, stat_str[0], stat_str.size());
+				TRACE(TLVL_DEBUG + 0, tmpdbg + "stat_str[0]=0x%x stat_str.size()=%zd", lp, ii, stat, rate, stat_str[0], stat_str.size());
 				fprintf(outfp, " %.2f", rate);
 				if (rate < 0.0 && spec2[ii][s_file] == "/proc/diskstats")
 				{
@@ -1118,7 +1124,7 @@ eintr1:
 			}
 			else
 			{
-				TRACE(TLVL_DEBUG+0, "main lp=%d done stat%zd=%ld", lp, ii, stat);
+				TRACE(TLVL_DEBUG + 0, "main lp=%d done stat%zd=%ld", lp, ii, stat);
 				fprintf(outfp, " %.2f", stat * multipliers[ii]);
 			}
 		}
@@ -1129,7 +1135,7 @@ eintr1:
 		if (t_sleep > 0)
 		{
 			int sts = usleep(t_sleep);  // NOLINT
-			TRACE(TLVL_DEBUG+0, "main usleep sts=%d errno=%d", sts, errno);
+			TRACE(TLVL_DEBUG + 0, "main usleep sts=%d errno=%d", sts, errno);
 			if (errno == EINTR)
 			{
 				goto eintr2;

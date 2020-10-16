@@ -504,7 +504,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	checker.reportMissingDictionaries();
 
 	createDatabaseTables();
-	TLOG(TLVL_DEBUG+0) << "RootDAQOutFile ctor complete";
+	TLOG(TLVL_DEBUG + 0) << "RootDAQOutFile ctor complete";
 }
 
 art::RootDAQOutFile::~RootDAQOutFile()
@@ -512,17 +512,17 @@ art::RootDAQOutFile::~RootDAQOutFile()
 	struct sysinfo info;
 	int sts = sysinfo(&info);
 	auto free_percent = static_cast<unsigned>(info.freeram * 100 / info.totalram);
-	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);   // round down (1024.9 => 1024 MB)
-	TRACE(TLVL_DEBUG+0, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u",  // NOLINT
+	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);                // round down (1024.9 => 1024 MB)
+	TRACE(TLVL_DEBUG + 0, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u",  // NOLINT
 	      free_percent, static_cast<float>(info.freeram * info.mem_unit / (1024 * 1024.0)),
 	      free_MB, static_cast<float>(info.bufferram * info.mem_unit / (1024 * 1024 * 1024.0)), info.mem_unit);
 	if (free_percent < freePercent_ || free_MB < freeMB_)
 	{
-		TLOG(TLVL_DEBUG+0) << "RootDAQOutFile Flush/DONTNEED";
+		TLOG(TLVL_DEBUG + 0) << "RootDAQOutFile Flush/DONTNEED";
 		filePtr_->Flush();
 		sts = posix_fadvise(filePtr_->GetFd(), 0, 0 /*len,0=all*/, POSIX_FADV_DONTNEED);
 	}
-	TLOG(TLVL_DEBUG+0) << "~RootDAQOutFile complete sts=" << sts;
+	TLOG(TLVL_DEBUG + 0) << "~RootDAQOutFile complete sts=" << sts;
 }
 
 void art::RootDAQOutFile::createDatabaseTables()

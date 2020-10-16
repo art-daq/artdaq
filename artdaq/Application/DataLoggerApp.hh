@@ -36,7 +36,7 @@ public:
 	 * \return DataLoggerApp copy
 	 */
 	DataLoggerApp& operator=(DataLoggerApp const&) = delete;
-	DataLoggerApp(DataLoggerApp&&) = delete;  ///< Move Constructor is deleted
+	DataLoggerApp(DataLoggerApp&&) = delete;             ///< Move Constructor is deleted
 	DataLoggerApp& operator=(DataLoggerApp&&) = delete;  ///< Move Assignment Operator is deleted
 
 	// these methods provide the operations that are used by the state machine

@@ -612,7 +612,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		}
 		if (dest != TransferInterface::RECV_TIMEOUT && (destinations_.count(dest) != 0u) && (enabled_destinations_.count(dest) != 0u))
 		{
-			TLOG(TLVL_DEBUG+2) << "DataSenderManager::sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
+			TLOG(TLVL_DEBUG + 2) << "DataSenderManager::sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 
 			sts = destinations_[dest]->transfer_fragment_reliable_mode(std::move(frag));
@@ -643,7 +643,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 
 	if (metricMan)
 	{
-		TLOG(TLVL_DEBUG+2) << "sendFragment: sending metrics";
+		TLOG(TLVL_DEBUG + 2) << "sendFragment: sending metrics";
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 5, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 5, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 5, MetricMode::Average);
@@ -660,6 +660,6 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			}
 		}
 	}
-	TLOG(TLVL_DEBUG+2) << "sendFragment: Done sending fragment " << seqID << " to dest=" << dest;
+	TLOG(TLVL_DEBUG + 2) << "sendFragment: Done sending fragment " << seqID << " to dest=" << dest;
 	return std::make_pair(dest, outsts);
 }  // artdaq::DataSenderManager::sendFragment

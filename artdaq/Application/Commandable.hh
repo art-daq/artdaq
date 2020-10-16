@@ -41,8 +41,8 @@ public:
 	 */
 	Commandable& operator=(Commandable const&) = delete;
 
-	Commandable(Commandable&&) = delete; ///< Move Constructor is deleted
-	Commandable& operator=(Commandable&&) = delete; ///< Move Assignment Operator is deleted
+	Commandable(Commandable&&) = delete;             ///< Move Constructor is deleted
+	Commandable& operator=(Commandable&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	* \brief Processes the initialize request

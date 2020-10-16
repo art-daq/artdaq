@@ -55,7 +55,7 @@ public:
 	*/
 	RoutingManagerCore& operator=(RoutingManagerCore const&) = delete;
 
-	RoutingManagerCore(RoutingManagerCore&&) = delete;  ///< Move Constructor is deleted
+	RoutingManagerCore(RoutingManagerCore&&) = delete;             ///< Move Constructor is deleted
 	RoutingManagerCore& operator=(RoutingManagerCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**

@@ -34,7 +34,7 @@ public:
 	* \return RoutingManagerApp copy
 	*/
 	RoutingManagerApp& operator=(RoutingManagerApp const&) = delete;
-	RoutingManagerApp(RoutingManagerApp&&) = delete;  ///< Move Constructor is deleted
+	RoutingManagerApp(RoutingManagerApp&&) = delete;             ///< Move Constructor is deleted
 	RoutingManagerApp& operator=(RoutingManagerApp&&) = delete;  ///< Move Assignment Operator is deleted
 
 	// these methods provide the operations that are used by the state machine
