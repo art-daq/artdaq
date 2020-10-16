@@ -44,7 +44,7 @@ public:
 	* \return AggregatorCore copy
 	*/
 	DataReceiverCore& operator=(DataReceiverCore const&) = delete;
-	DataReceiverCore(DataReceiverCore&&) = delete;  ///< Move Constructor is deleted
+	DataReceiverCore(DataReceiverCore&&) = delete;             ///< Move Constructor is deleted
 	DataReceiverCore& operator=(DataReceiverCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**

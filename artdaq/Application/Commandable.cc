@@ -429,8 +429,8 @@ void artdaq::Commandable::InRunExit()
 }
 
 #if TRACE_REVNUM < 1394
-#	define traceLvls_p      traceNamLvls_p
-#	define TRACE_TID2NAME(idx) traceNamLvls_p[idx].name
+#define traceLvls_p traceNamLvls_p
+#define TRACE_TID2NAME(idx) traceNamLvls_p[idx].name
 #endif
 std::string artdaq::Commandable::do_trace_get(std::string const& name)
 {

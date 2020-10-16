@@ -37,8 +37,8 @@ public:
 	 */
 	BoardReaderApp& operator=(BoardReaderApp const&) = delete;
 
-	BoardReaderApp(BoardReaderApp&&) = delete; ///< Move Constructor is deleted
-	BoardReaderApp& operator=(BoardReaderApp&&) = delete; ///< Move Assignment Operator is deleted
+	BoardReaderApp(BoardReaderApp&&) = delete;             ///< Move Constructor is deleted
+	BoardReaderApp& operator=(BoardReaderApp&&) = delete;  ///< Move Assignment Operator is deleted
 
 	// these methods provide the operations that are used by the state machine
 	/**
