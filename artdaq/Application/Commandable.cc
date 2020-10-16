@@ -428,6 +428,10 @@ void artdaq::Commandable::InRunExit()
 	TLOG(TLVL_DEBUG) << "InRunExit called.";
 }
 
+#if TRACE_REVNUM < 1394
+#	define traceLvls_p      traceNamLvls_p
+#	define TRACE_TID2NAME(idx) traceNamLvls_p[idx].name
+#endif
 std::string artdaq::Commandable::do_trace_get(std::string const& name)
 {
 	TLOG(TLVL_DEBUG) << "Getting masks for name " << name;
@@ -438,9 +442,9 @@ std::string artdaq::Commandable::do_trace_get(std::string const& name)
 		unsigned ee = traceControl_p->num_namLvlTblEnts;
 		for (ii = 0; ii < ee; ++ii)
 		{
-			if (traceNamLvls_p[ii].name[0] != 0)  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			if (TRACE_TID2NAME(ii)[0] != 0)  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			{
-				ss << traceNamLvls_p[ii].name << " " << std::hex << std::showbase << traceNamLvls_p[ii].M << " " << traceNamLvls_p[ii].S << " " << traceNamLvls_p[ii].T << " " << std::endl;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+				ss << TRACE_TID2NAME(ii) << " " << std::hex << std::showbase << traceLvls_p[ii].M << " " << traceLvls_p[ii].S << " " << traceLvls_p[ii].T << " " << std::endl;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			}
 		}
 	}
@@ -450,7 +454,7 @@ std::string artdaq::Commandable::do_trace_get(std::string const& name)
 		unsigned ee = traceControl_p->num_namLvlTblEnts;
 		for (ii = 0; ii < ee; ++ii)
 		{
-			if ((traceNamLvls_p[ii].name[0] != 0) && TMATCHCMP(name.c_str(), traceNamLvls_p[ii].name))  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			if ((TRACE_TID2NAME(ii)[0] != 0) && TMATCHCMP(name.c_str(), TRACE_TID2NAME(ii)))  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			{
 				break;
 			}
@@ -460,7 +464,7 @@ std::string artdaq::Commandable::do_trace_get(std::string const& name)
 			return "";
 		}
 
-		ss << std::hex << traceNamLvls_p[ii].M << " " << traceNamLvls_p[ii].S << " " << traceNamLvls_p[ii].T;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+		ss << std::hex << traceLvls_p[ii].M << " " << traceLvls_p[ii].S << " " << traceLvls_p[ii].T;  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	}
 	return ss.str();
 }
