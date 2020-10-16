@@ -49,7 +49,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     , bufferModeKeepLatest_(ps.get<bool>("buffer_mode_keep_latest", false))
     , windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
     , windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
-    , staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
+    , staleTimeout_(ps.get<Fragment::timestamp_t>("stale_fragment_timeout", 0))
     , expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
     , uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
     , missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
@@ -391,7 +391,7 @@ void artdaq::FragmentBuffer::checkDataBuffer(Fragment::fragment_id_t id)
 		}
 
 		TLOG(TLVL_CHECKDATABUFFER) << "DataBufferDepthFragments is " << dataBuffer->DataBufferDepthFragments << ", DataBuffer.size is " << dataBuffer->DataBuffer.size();
-		if (dataBuffer->DataBufferDepthFragments > 0)
+		if (dataBuffer->DataBufferDepthFragments > 0 && staleTimeout_ > 0)
 		{
 			TLOG(TLVL_CHECKDATABUFFER) << "Determining if Fragments can be dropped from data buffer";
 			Fragment::timestamp_t last = dataBuffer->DataBuffer.back()->timestamp();
