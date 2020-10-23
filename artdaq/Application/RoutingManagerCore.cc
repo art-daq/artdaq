@@ -244,20 +244,20 @@ bool artdaq::RoutingManagerCore::shutdown(uint64_t /*unused*/)
 	return true;
 }
 
-bool artdaq::RoutingManagerCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
+bool artdaq::RoutingManagerCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_INFO) << "soft_initialize method called with "
 	                << "ParameterSet = \"" << pset.to_string()
 	                << "\".";
-	return initialize(pset, e, f);
+	return initialize(pset, timeout, timestamp);
 }
 
-bool artdaq::RoutingManagerCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f)
+bool artdaq::RoutingManagerCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_INFO) << "reinitialize method called with "
 	                << "ParameterSet = \"" << pset.to_string()
 	                << "\".";
-	return initialize(pset, e, f);
+	return initialize(pset, timeout, timestamp);
 }
 
 void artdaq::RoutingManagerCore::process_event_table()
