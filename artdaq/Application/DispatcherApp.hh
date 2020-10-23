@@ -36,7 +36,7 @@ public:
 	 * \return DispatcherApp copy
 	 */
 	DispatcherApp& operator=(DispatcherApp const&) = delete;
-	DispatcherApp(DispatcherApp&&) = delete;  ///< Move Constructor is deleted
+	DispatcherApp(DispatcherApp&&) = delete;             ///< Move Constructor is deleted
 	DispatcherApp& operator=(DispatcherApp&&) = delete;  ///< Move Assignment Operator is deleted
 
 	// these methods provide the operations that are used by the state machine
