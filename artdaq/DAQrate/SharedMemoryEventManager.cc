@@ -222,7 +222,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		}
 		dropped_data_[frag.fragment_id] = std::make_unique<Fragment>(frag.word_count - frag.num_words());
 
-		TLOG(6) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into "
+		TLOG(TLVL_DEBUG + 3) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into "
 		        << static_cast<void*>(dropped_data_[frag.fragment_id]->dataBegin()) << " sz=" << dropped_data_[frag.fragment_id]->dataSizeBytes();
 
 		return dropped_data_[frag.fragment_id]->dataBegin();
@@ -267,7 +267,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 				throw cet::exception("Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!");
 			}
 
-			TLOG(6) << "Dropping over-size fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id
+			TLOG(TLVL_DEBUG + 3) << "Dropping over-size fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id
 			        << " into " << static_cast<void*>(dropped_data_[frag.fragment_id]->dataBegin());
 			return dropped_data_[frag.fragment_id]->dataBegin();
 		}
@@ -603,6 +603,8 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
 		auto shutdown_start = std::chrono::steady_clock::now();
 
+		if (!overwrite_mode_)
+		{
 		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
 		for (int ii = 0; ii < graceful_wait_ms; ++ii)
 		{
@@ -614,6 +616,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 				TLOG(TLVL_INFO) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
 				return;
 			}
+		}
 		}
 
 		{

@@ -35,8 +35,8 @@ public:
 	 * \return StatisticsHelper copy
 	 */
 	StatisticsHelper& operator=(StatisticsHelper const&) = delete;
-	StatisticsHelper(StatisticsHelper&&) = delete;
-	StatisticsHelper& operator=(StatisticsHelper&&) = delete;
+	StatisticsHelper(StatisticsHelper&&) = delete;             ///< Move Constructor is deleted
+	StatisticsHelper& operator=(StatisticsHelper&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	 * \brief Add a MonitoredQuantity name to the list
