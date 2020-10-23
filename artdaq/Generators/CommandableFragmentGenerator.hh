@@ -264,6 +264,10 @@ public:
 		*/
 	virtual bool metaCommand(std::string const& command, std::string const& arg);
 
+	/**
+	 * @brief Set the shared_ptr to the RequestBuffer
+	 * @param buffer shared_ptr to the RequestBuffer
+	*/
 	void SetRequestBuffer(std::shared_ptr<RequestBuffer> buffer) { requestBuffer_ = buffer; }
 
 protected:
@@ -357,6 +361,10 @@ protected:
 
 	std::mutex mutex_;  ///< Mutex used to ensure that multiple transition commands do not run at the same time
 
+	/**
+	 * @brief Get the shared_ptr to the RequestBuffer
+	 * @return shared_ptr to the RequestBuffer
+	*/
 	std::shared_ptr<RequestBuffer> GetRequestBuffer() { return requestBuffer_; }
 
 private:
