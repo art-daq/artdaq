@@ -14,10 +14,17 @@ namespace bpo = boost::program_options;
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
 namespace artdaq {
+/**
+ * @brief Test fixture for GenToBuffer_t
+*/
 class GenToBufferTest
 {
 public:
-	explicit GenToBufferTest(fhicl::ParameterSet ps)
+	/**
+	 * @brief GenToBufferTest constructor
+	 * @param ps ParameterSet for GenToBufferTest
+	*/
+	explicit GenToBufferTest(fhicl::ParameterSet const& ps)
 	    : generator_ptr_(nullptr)
 	    , fragment_buffer_ptr_(new FragmentBuffer(ps))
 	    , request_buffer_ptr_(new RequestBuffer(1))
@@ -29,6 +36,10 @@ public:
 		fragment_buffer_ptr_->SetRequestBuffer(request_buffer_ptr_);
 	}
 
+	/**
+	 * @brief Start the test fixture
+	 * @param run_number Run Number to use in Start commands
+	*/
 	void start(int run_number)
 	{
 		metricMan->do_start();
@@ -41,6 +52,9 @@ public:
 		receive_thread_.reset(new boost::thread(attrs, boost::bind(&GenToBufferTest::receive_fragments, this)));
 		send_thread_.reset(new boost::thread(attrs, boost::bind(&GenToBufferTest::send_fragments, this)));
 	}
+	/**
+	 * @brief Stop the test fixture
+	*/
 	void stop()
 	{
 		generator_ptr_->StopCmd(0, 0);
@@ -53,6 +67,10 @@ public:
 		metricMan->do_stop();
 	}
 
+	/**
+	 * @brief Get a handle to the RequestBuffer
+	 * @return RequestBuffer shared_ptr handle
+	*/
 	std::shared_ptr<RequestBuffer> GetRequestBuffer() { return request_buffer_ptr_; }
 
 private:
