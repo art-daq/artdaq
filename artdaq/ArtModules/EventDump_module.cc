@@ -80,16 +80,16 @@ void artdaq::EventDump::analyze(art::Event const& e)
 	{
 		std::cout << "***** Start of EventDump for event " << e.event() << " *****" << std::endl;
 
-		art::Handle<detail::RawEventHeader> header_handle;
-		e.getByLabel(raw_data_label_, "RawEventHeader", header_handle);
+		std::vector<art::Handle<detail::RawEventHeader>> header_handles;
+		e.getManyByType(header_handles);
 
-		if (header_handle.isValid())
+		for (auto const& header_handle : header_handles)
 		{
 			std::ostringstream ostr;
 			header_handle->print(ostr);
-			std::cout << "Event Header: " << ostr.str() << std::endl;
+			std::cout << "Event Header from " << header_handle.provenance()->processName() << ": " << ostr.str() << std::endl;
 		}
-		else
+		if (header_handles.empty())
 		{
 			std::cout << "Unable to read RawEventHeader for event " << e.event() << std::endl;
 		}
