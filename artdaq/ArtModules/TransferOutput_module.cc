@@ -36,7 +36,7 @@ protected:
 	/// <summary>
 	/// Send a message using the Transfer Plugin
 	/// </summary>
-	/// <param name="msg">Fragment to send</param>
+	/// <param name="fragment">Fragment to send</param>
 	void SendMessage(artdaq::FragmentPtr& fragment) override;
 
 private:

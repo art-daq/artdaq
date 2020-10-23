@@ -49,7 +49,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     , bufferModeKeepLatest_(ps.get<bool>("buffer_mode_keep_latest", false))
     , windowOffset_(ps.get<Fragment::timestamp_t>("request_window_offset", 0))
     , windowWidth_(ps.get<Fragment::timestamp_t>("request_window_width", 0))
-    , staleTimeout_(ps.get<Fragment::timestamp_t>("stale_request_timeout", 0xFFFFFFFF))
+    , staleTimeout_(ps.get<Fragment::timestamp_t>("stale_fragment_timeout", 0))
     , expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
     , uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
     , missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
@@ -213,13 +213,19 @@ bool artdaq::FragmentBuffer::check_stop()
 	TLOG(TLVL_CHECKSTOP) << "CFG::check_stop: should_stop=" << should_stop_.load();
 
 	if (!should_stop_.load()) return false;
-	if (mode_ == RequestMode::Ignored) return true;
+	if (mode_ == RequestMode::Ignored)
+	{
+		return true;
+	}
 
 	if (requestBuffer_ != nullptr)
 	{
 		// check_stop returns true if the CFG should stop. We should wait for the Request Buffer to report Request Receiver stopped before stopping.
 		TLOG(TLVL_DEBUG) << "should_stop is true, requestBuffer_->isRunning() is " << std::boolalpha << requestBuffer_->isRunning();
-		return !requestBuffer_->isRunning();
+		if (!requestBuffer_->isRunning())
+		{
+			return true;
+		}
 	}
 	return false;
 }
@@ -385,7 +391,7 @@ void artdaq::FragmentBuffer::checkDataBuffer(Fragment::fragment_id_t id)
 		}
 
 		TLOG(TLVL_CHECKDATABUFFER) << "DataBufferDepthFragments is " << dataBuffer->DataBufferDepthFragments << ", DataBuffer.size is " << dataBuffer->DataBuffer.size();
-		if (dataBuffer->DataBufferDepthFragments > 0)
+		if (dataBuffer->DataBufferDepthFragments > 0 && staleTimeout_ > 0)
 		{
 			TLOG(TLVL_CHECKDATABUFFER) << "Determining if Fragments can be dropped from data buffer";
 			Fragment::timestamp_t last = dataBuffer->DataBuffer.back()->timestamp();
@@ -766,7 +772,8 @@ bool artdaq::FragmentBuffer::applyRequests(artdaq::FragmentPtrs& frags)
 	// Wait for data, if in ignored mode, or a request otherwise
 	if (mode_ == RequestMode::Ignored)
 	{
-		while (dataBufferFragmentCount_() == 0)
+		auto start_time = std::chrono::steady_clock::now();
+		while (dataBufferFragmentCount_() == 0 && TimeUtils::GetElapsedTime(start_time) < 1.0)
 		{
 			if (check_stop()) return false;
 			std::unique_lock<std::mutex> lock(dataConditionMutex_);

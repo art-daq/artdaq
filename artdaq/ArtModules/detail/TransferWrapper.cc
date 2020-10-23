@@ -3,6 +3,7 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/ArtModules/detail/TransferWrapper.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
@@ -331,16 +332,32 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		return;
 	}
 
-	std::string sts = getDispatcherStatus();
-
-	if (sts.empty())
+	auto start_time = std::chrono::steady_clock::now();
+	bool waiting = true;
+	while (artdaq::TimeUtils::GetElapsedTime(start_time) < 5.0 && waiting)
 	{
-		return;
+		std::string sts = getDispatcherStatus();
+
+		if (sts.empty())
+			return;
+
+		if (sts == "busy")
+		{
+			TLOG(TLVL_INFO) << "The Dispatcher returned \"busy\", will wait 0.5s and retry";
+			usleep(500000);
+			continue;
+		}
+
+		if (sts != "Running" && sts != "Ready")
+		{
+			TLOG(TLVL_WARNING) << "The Dispatcher is not in the Running or Ready state, will not attempt to unregister (state: " << sts << ")";
+			return;
+		}
+		waiting = false;
 	}
-
-	if (sts != "Running" && sts != "Ready")
+	if (waiting)
 	{
-		TLOG(TLVL_WARNING) << "The Dispatcher is not in the Running or Ready state, will not attempt to unregister";
+		TLOG(TLVL_WARNING) << "A timeout occurred waiting for the Dispatcher to leave the \"busy\" state, will not attempt to unregister";
 		return;
 	}
 
@@ -358,8 +375,10 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		{
 			break;
 		}
-		if (status == "busy")
-		{}
+		else if (status == "busy")
+		{
+			TLOG(TLVL_DEBUG) << "The Dispatcher returned \"busy\", will retry in 0.5s";
+		}
 		else
 		{
 			TLOG(TLVL_WARNING) << "The Dispatcher returned status " << status << " when attempting to unregister this monitor!";
@@ -368,6 +387,8 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		retry--;
 		usleep(500000);
 	}
+
+	TLOG(TLVL_INFO) << "Successfully unregistered the monitor from the Dispatcher";
 	monitorRegistered_ = false;
 }
 
