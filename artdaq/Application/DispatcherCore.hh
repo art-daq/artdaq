@@ -42,7 +42,7 @@ public:
 	 * \return DispatcherCore copy
 	 */
 	DispatcherCore& operator=(DispatcherCore const&) = delete;
-	DispatcherCore(DispatcherCore&&) = delete;  ///< Move Constructor is deleted
+	DispatcherCore(DispatcherCore&&) = delete;             ///< Move Constructor is deleted
 	DispatcherCore& operator=(DispatcherCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**

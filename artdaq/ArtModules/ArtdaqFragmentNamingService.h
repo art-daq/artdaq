@@ -64,7 +64,7 @@ public:
 	std::string GetUnidentifiedInstanceName() const { return nameHelper_->GetUnidentifiedInstanceName(); }
 
 protected:
-	std::shared_ptr<artdaq::FragmentNameHelper> nameHelper_; ///< FragmentNameHelper plugin used to resolve Fragment names
+	std::shared_ptr<artdaq::FragmentNameHelper> nameHelper_;  ///< FragmentNameHelper plugin used to resolve Fragment names
 
 private:
 	ArtdaqFragmentNamingServiceInterface(ArtdaqFragmentNamingServiceInterface const&) = delete;

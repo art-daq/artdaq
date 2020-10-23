@@ -186,8 +186,8 @@ public:
 	/** \endcond */
 
 protected:
-	TransferInterface(TransferInterface&&) = delete; ///< Move Constructor is deleted
-	TransferInterface& operator=(TransferInterface&&) = delete; ///< Move Assignment Operator is deleted
+	TransferInterface(TransferInterface&&) = delete;             ///< Move Constructor is deleted
+	TransferInterface& operator=(TransferInterface&&) = delete;  ///< Move Assignment Operator is deleted
 
 	const Role role_;  ///< Whether this instance of TransferInterface is a sender or receiver
 
