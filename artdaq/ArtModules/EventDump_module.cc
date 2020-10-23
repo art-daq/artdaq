@@ -94,7 +94,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 			std::cout << "Unable to read RawEventHeader for event " << e.event() << std::endl;
 		}
 
-		std::vector<art::Handle<std::vector<artdaq::Fragment> > > fragmentHandles;
+		std::vector<art::Handle<std::vector<artdaq::Fragment>>> fragmentHandles;
 		e.getManyByType(fragmentHandles);
 
 		for (auto const& handle : fragmentHandles)
