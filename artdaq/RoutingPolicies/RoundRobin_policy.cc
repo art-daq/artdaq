@@ -116,7 +116,8 @@ detail::RoutingPacketEntry RoundRobinPolicy::CreateRouteForSequenceID(artdaq::Fr
 	}
 	else
 	{
-		for (auto& entry : table) {
+		for (auto& entry : table)
+		{
 			receivers_in_current_round_.insert(entry.first);
 			entry.second--;
 		}

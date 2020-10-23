@@ -73,7 +73,6 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
 
-
 	route = noop->GetRouteForSequenceID(2, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 2);

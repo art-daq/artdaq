@@ -36,7 +36,7 @@ public:
 		 * \param update_interval_msec The amount of time to wait in epoll_wait for a new update to arrive
 		 */
 	explicit TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingManagerPolicy> policy,
-	                        size_t update_interval_msec);
+	                       size_t update_interval_msec);
 
 	/**
 		 * \brief TokenReceiver Destructor

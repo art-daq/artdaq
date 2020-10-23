@@ -68,14 +68,11 @@ public:
 	detail::RoutingManagerMode GetRoutingMode() const { return routing_mode_; }
 
 protected:
-
-
 	// Building Tables
 	virtual void CreateRoutingTable(detail::RoutingPacket& tables) = 0;
 
 	// Route by Request
 	virtual detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) = 0;
-
 
 	// Tokens
 	std::deque<int> tokens_;
@@ -85,7 +82,6 @@ protected:
 	Fragment::sequence_id_t next_sequence_id_;  ///< The next sequence ID to be assigned
 	std::unordered_set<int> receiver_ranks_;
 	detail::RoutingManagerMode routing_mode_;
-
 
 private:
 	RoutingManagerPolicy(RoutingManagerPolicy const&) = delete;
@@ -104,7 +100,7 @@ private:
 
 		RoutingCacheEntry() {}
 		RoutingCacheEntry(Fragment::sequence_id_t seq, int dest, int source)
-		    : is_valid(true), destination_rank(dest), sequence_id(seq), requesting_rank(source) { }
+		    : is_valid(true), destination_rank(dest), sequence_id(seq), requesting_rank(source) {}
 	};
 	std::map<Fragment::sequence_id_t, std::vector<RoutingCacheEntry>> routing_cache_;
 	size_t routing_cache_max_size_;

@@ -1,9 +1,9 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_PreferSameHost_policy").c_str()
 
+#include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
-#include "artdaq/DAQdata/HostMap.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "tracemf.h"
@@ -102,7 +102,8 @@ detail::RoutingPacketEntry PreferSameHostPolicy::CreateRouteForSequenceID(artdaq
 	// Trivial case: no tokens
 	if (table.empty()) return output;
 
-	if (host_map_.count(requesting_rank) == 0) {
+	if (host_map_.count(requesting_rank) == 0)
+	{
 		TLOG(TLVL_WARNING) << "Received Routing Request from rank " << requesting_rank << ", which is not in my Host Map!";
 	}
 	auto host = host_map_[requesting_rank];
@@ -111,18 +112,22 @@ detail::RoutingPacketEntry PreferSameHostPolicy::CreateRouteForSequenceID(artdaq
 	std::set<int> matching_ranks_;
 	int max_rank = -1;
 	int max_rank_tokens = 0;
-	for (auto& entry : table) {
+	for (auto& entry : table)
+	{
 		if (entry.second == 0) continue;
-		if (host_map_.count(entry.first) == 0) {
+		if (host_map_.count(entry.first) == 0)
+		{
 			TLOG(TLVL_WARNING) << "Receiver rank " << entry.first << " is not in the host map! Is this policy configured correctly?!";
 		}
 		else
 		{
-			if (host_map_[entry.first] == host) {
+			if (host_map_[entry.first] == host)
+			{
 				matching_ranks_.insert(entry.first);
 			}
 		}
-		if (entry.second > max_rank_tokens) {
+		if (entry.second > max_rank_tokens)
+		{
 			max_rank = entry.first;
 			max_rank_tokens = entry.second;
 		}
@@ -143,8 +148,10 @@ detail::RoutingPacketEntry PreferSameHostPolicy::CreateRouteForSequenceID(artdaq
 		// Find the most tokens in matching_ranks_
 		int max = 0;
 		int max_rank = -1;
-		for (auto& rank : matching_ranks_) {
-			if (table[rank] > max) {
+		for (auto& rank : matching_ranks_)
+		{
+			if (table[rank] > max)
+			{
 				max = table[rank];
 				max_rank = rank;
 			}

@@ -10,11 +10,11 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
 #include "artdaq/DAQrate/detail/TableReceiver.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/DAQdata/HostMap.hh"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/TableFragment.h"

@@ -109,7 +109,6 @@ private:
 	uint32_t run_number_;
 
 private:
-
 	void setup_tokens_();
 
 	void send_routing_token_(int nSlots, int run_number, int rank);

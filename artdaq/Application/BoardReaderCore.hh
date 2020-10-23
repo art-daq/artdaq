@@ -4,8 +4,8 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/DAQrate/detail/RequestReceiver.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/RequestReceiver.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
 #include "canvas/Persistency/Provenance/RunID.h"
@@ -28,9 +28,9 @@ public:
 	static const std::string INPUT_WAIT_STAT_KEY;           ///< Key for the Input Wait MonitoredQuantity
 	static const std::string BUFFER_WAIT_STAT_KEY;          ///< Key for the Fragment Buffer Wait MonitoredQuantity
 	static const std::string REQUEST_WAIT_STAT_KEY;         ///< Key for the Request Buffer Wait MonitoredQuantity
-	static const std::string BRSYNC_WAIT_STAT_KEY;         ///< Key for the Sync Wait MonitoredQuantity
-	static const std::string OUTPUT_WAIT_STAT_KEY;         ///< Key for the Output Wait MonitoredQuantity
-	static const std::string FRAGMENTS_PER_READ_STAT_KEY;  ///< Key for the Fragments Per Read MonitoredQuantity
+	static const std::string BRSYNC_WAIT_STAT_KEY;          ///< Key for the Sync Wait MonitoredQuantity
+	static const std::string OUTPUT_WAIT_STAT_KEY;          ///< Key for the Output Wait MonitoredQuantity
+	static const std::string FRAGMENTS_PER_READ_STAT_KEY;   ///< Key for the Fragments Per Read MonitoredQuantity
 
 	/**
 	 * \brief BoardReaderCore Constructor

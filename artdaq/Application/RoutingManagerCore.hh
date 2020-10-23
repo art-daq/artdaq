@@ -1,9 +1,9 @@
 #ifndef artdaq_Application_MPI2_RoutingManagerCore_hh
 #define artdaq_Application_MPI2_RoutingManagerCore_hh
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 // Socket Includes
 #include <netinet/in.h>
@@ -17,9 +17,9 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 #include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq/DAQrate/detail/TokenReceiver.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/TokenReceiver.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 
 namespace artdaq {
@@ -200,7 +200,6 @@ private:
 	void listen_();
 	void receive_();
 	int find_fd_(int fd) const;
-
 };
 
 #endif /* artdaq_Application_MPI2_RoutingManagerCore_hh */

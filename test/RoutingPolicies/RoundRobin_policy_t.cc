@@ -226,7 +226,6 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
 
-
 	route = rr->GetRouteForSequenceID(2, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 2);
@@ -268,7 +267,7 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	rr->AddReceiverToken(2, 1);
 	rr->AddReceiverToken(3, 1);
 	rr->AddReceiverToken(2, 1);
-	
+
 	auto route = rr->GetRouteForSequenceID(1, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
@@ -306,7 +305,7 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	route = rr->GetRouteForSequenceID(50, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
-		
+
 	route = rr->GetRouteForSequenceID(50, 5);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
@@ -322,7 +321,6 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 50);
 	BOOST_REQUIRE_EQUAL(secondTable[3].destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 12343);
-
 
 	// Since the routing cache has been set to 2, only the highest two events routed are here, as the cache is checked when generating tables
 	auto thirdTable = rr->GetCurrentTable();

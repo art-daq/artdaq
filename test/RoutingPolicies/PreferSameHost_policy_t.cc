@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	route = psh->GetRouteForSequenceID(1, 6);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
-		
+
 	// Check that things behave when tokens are exhausted...
 	route = psh->GetRouteForSequenceID(10, 6);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 2);
@@ -298,7 +298,6 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	route = psh->GetRouteForSequenceID(11, 6);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 3);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 11);
-
 
 	route = psh->GetRouteForSequenceID(50, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, -1);

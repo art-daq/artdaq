@@ -91,7 +91,7 @@ detail::RoutingPacketEntry CapacityTestPolicy::CreateRouteForSequenceID(artdaq::
 	// TODO, ELF 09/22/2020: Do we want to use the tokens_used_per_table_percent limitation here, too?
 	detail::RoutingPacketEntry output;
 	auto sorted_tokens = sortTokens_();
-	if (sorted_tokens.first == 0) return output; // Trivial case: no tokens
+	if (sorted_tokens.first == 0) return output;  // Trivial case: no tokens
 	auto dest = sorted_tokens.second.begin()->first;
 	sorted_tokens.second[dest]--;
 	tokens_used_since_last_update_++;
@@ -104,7 +104,7 @@ detail::RoutingPacketEntry CapacityTestPolicy::CreateRouteForSequenceID(artdaq::
 
 std::pair<size_t, std::map<int, int>> CapacityTestPolicy::sortTokens_()
 {
-	auto output = std::make_pair(0,std::map<int,int>());
+	auto output = std::make_pair(0, std::map<int, int>());
 	for (auto token : tokens_)
 	{
 		output.second[token]++;

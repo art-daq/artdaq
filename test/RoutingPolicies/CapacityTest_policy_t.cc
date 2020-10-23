@@ -244,7 +244,6 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
 
-
 	// Routing cache is sorted by sequence ID
 	auto secondTable = ct->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(secondTable.size(), 7);
@@ -268,7 +267,7 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 2);
 	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 50);
-	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank,1);
+	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(thirdTable[1].sequence_id, 12343);
 
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case RequestBasedEventBuilding END";

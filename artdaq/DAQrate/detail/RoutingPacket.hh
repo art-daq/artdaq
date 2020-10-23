@@ -22,9 +22,9 @@ struct RoutingToken;
 		 */
 enum class RoutingManagerMode : uint8_t
 {
-	EventBuilding,  ///< Multiple sources sending to a single destination. RoutingManager pushes table updates to all senders
-	RequestBasedEventBuilding, ///< Multiple sources sending to a single destination. Table updates are triggered by senders requesting routing information
-	DataFlow,       ///< One source sending to one destination (i.e. moving around completed events). Uses request-based routing
+	EventBuilding,              ///< Multiple sources sending to a single destination. RoutingManager pushes table updates to all senders
+	RequestBasedEventBuilding,  ///< Multiple sources sending to a single destination. Table updates are triggered by senders requesting routing information
+	DataFlow,                   ///< One source sending to one destination (i.e. moving around completed events). Uses request-based routing
 	INVALID
 };
 class RoutingManagerModeConverter

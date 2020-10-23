@@ -5,7 +5,7 @@
 
 artdaq::RoutingManagerPolicy::RoutingManagerPolicy(const fhicl::ParameterSet& ps)
     : tokens_used_since_last_update_(0)
-	, next_sequence_id_(1)
+    , next_sequence_id_(1)
     , max_token_count_(0)
 {
 	auto receiver_ranks = ps.get<std::vector<int>>("receiver_ranks");
@@ -95,9 +95,12 @@ artdaq::detail::RoutingPacketEntry artdaq::RoutingManagerPolicy::GetRouteForSequ
 	else if (routing_mode_ == detail::RoutingManagerMode::DataFlow)
 	{
 		std::lock_guard<std::mutex> lk(routing_cache_mutex_);
-		if (routing_cache_.count(seq)) {
-			for (auto& entry : routing_cache_[seq]) {
-				if (entry.requesting_rank == requesting_rank) {
+		if (routing_cache_.count(seq))
+		{
+			for (auto& entry : routing_cache_[seq])
+			{
+				if (entry.requesting_rank == requesting_rank)
+				{
 					return detail::RoutingPacketEntry(seq, entry.destination_rank);
 				}
 			}
