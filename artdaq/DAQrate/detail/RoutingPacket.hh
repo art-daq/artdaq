@@ -86,6 +86,11 @@ struct artdaq::detail::RoutingAckPacket
 	Fragment::sequence_id_t first_sequence_id;  ///< The first sequence ID in the received RoutingPacket
 	Fragment::sequence_id_t last_sequence_id;   ///< The last sequence ID in the received RoutingPacket
 
+	/**
+	 * @brief Create an EndOfData RoutingAckPacket
+	 * @param rank Rank of sender sending EndOfData
+	 * @return EndOfData RoutingAckPacket
+	*/
 	static RoutingAckPacket makeEndOfDataRoutingAckPacket(int rank)
 	{
 		RoutingAckPacket out;
@@ -95,6 +100,11 @@ struct artdaq::detail::RoutingAckPacket
 		return out;
 	}
 
+	/**
+	 * @brief Check if a RoutingAckPacket is an EndOfData RoutingAckPacket
+	 * @param pkt RoutingAckPacket to check
+	 * @return Whether the RoutingAckPacket is an EndOfData RoutingAckPacket
+	*/
 	static bool isEndOfDataRoutingAckPacket(RoutingAckPacket pkt)
 	{
 		return pkt.first_sequence_id == static_cast<Fragment::sequence_id_t>(-3) && pkt.last_sequence_id == static_cast<Fragment::sequence_id_t>(-2);

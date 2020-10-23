@@ -8,15 +8,33 @@
 #include "artdaq-core/Data/Fragment.hh"
 
 namespace artdaq {
+/**
+ * @brief Holds requests from RequestReceiver while they are being processed
+*/
 class RequestBuffer
 {
 public:
-	RequestBuffer(Fragment::sequence_id_t request_increment = 1);
+	/**
+	 * @brief RequestBuffer Constructor
+	 * @param request_increment Expected increase in request sequence ID each request
+	*/
+	explicit RequestBuffer(Fragment::sequence_id_t request_increment = 1);
 
+	/**
+	 * @brief RequestBuffer Destructor
+	*/
 	virtual ~RequestBuffer();
 
+	/**
+	 * @brief Add a Request to the buffer
+	 * @param seq Sequence ID of the request
+	 * @param ts Timestamp for the request
+	*/
 	void push(artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
 
+	/**
+	 * @brief Reset RequestBuffer, discarding all requests and tracking information
+	*/
 	void reset();
 
 	/// <summary>
@@ -68,7 +86,15 @@ public:
 	/// <returns>steady_clock::time_point corresponding to when the request was received</returns>
 	std::chrono::steady_clock::time_point GetRequestTime(artdaq::Fragment::sequence_id_t reqID);
 
+	/**
+	 * @brief Determine whether the RequestBuffer is active
+	 * @return 
+	*/
 	bool isRunning() const { return receiver_running_; }
+	/**
+	 * @brief Set whether the RequestBuffer is active
+	 * @param running Whether the RequestBuffer is active
+	*/
 	void setRunning(bool running) { receiver_running_ = running; }
 
 private:

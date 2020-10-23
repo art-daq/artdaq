@@ -57,10 +57,14 @@ public:
 	std::pair<bool, std::string>
 	GetInstanceNameForFragment(artdaq::Fragment const& fragment) const { return nameHelper_->GetInstanceNameForFragment(fragment); }
 
+	/**
+	 * @brief Get the name used for unidentified Fragment types
+	 * @return The name used for unidentified Fragment types
+	*/
 	std::string GetUnidentifiedInstanceName() const { return nameHelper_->GetUnidentifiedInstanceName(); }
 
 protected:
-	std::shared_ptr<artdaq::FragmentNameHelper> nameHelper_;
+	std::shared_ptr<artdaq::FragmentNameHelper> nameHelper_;  ///< FragmentNameHelper plugin used to resolve Fragment names
 
 private:
 	ArtdaqFragmentNamingServiceInterface(ArtdaqFragmentNamingServiceInterface const&) = delete;

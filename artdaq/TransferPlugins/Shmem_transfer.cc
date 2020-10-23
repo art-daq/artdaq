@@ -45,9 +45,9 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 
 artdaq::ShmemTransfer::~ShmemTransfer() noexcept
 {
-	TLOG(5) << GetTraceName() << " ~ShmemTransfer called - " << uniqueLabel();
+	TLOG(TLVL_DEBUG + 2) << GetTraceName() << " ~ShmemTransfer called - " << uniqueLabel();
 	shm_manager_.reset(nullptr);
-	TLOG(5) << GetTraceName() << " ~ShmemTransfer done - " << uniqueLabel();
+	TLOG(TLVL_DEBUG + 2) << GetTraceName() << " ~ShmemTransfer done - " << uniqueLabel();
 }
 
 int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
@@ -187,7 +187,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	shm_manager_->SetRank(my_rank);
 	// wait for the shm to become free, if requested
 
-	TLOG(5) << GetTraceName() << "Sending fragment with seqID=" << fragment.sequenceID();
+	TLOG(TLVL_DEBUG + 2) << GetTraceName() << "Sending fragment with seqID=" << fragment.sequenceID();
 	artdaq::RawDataType* fragAddr = fragment.headerAddress();
 	size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 
@@ -196,7 +196,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize <= (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
 	{
 		auto seq = fragment.sequenceID();
-		TLOG(5) << GetTraceName() << "Writing fragment with seqID=" << seq;
+		TLOG(TLVL_DEBUG + 2) << GetTraceName() << "Writing fragment with seqID=" << seq;
 		auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode, send_timeout_usec);
 		if (sts == -3)
 		{
@@ -209,7 +209,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 			return CopyStatus::kErrorNotRequiringException;
 		}
 
-		TLOG(5) << GetTraceName() << "Successfully sent Fragment with seqID=" << seq;
+		TLOG(TLVL_DEBUG + 2) << GetTraceName() << "Successfully sent Fragment with seqID=" << seq;
 		return CopyStatus::kSuccess;
 	}
 

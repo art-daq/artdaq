@@ -39,8 +39,8 @@ public:
 	 * \return DataLoggerCore copy
 	 */
 	DataLoggerCore& operator=(DataLoggerCore const&) = delete;
-	DataLoggerCore(DataLoggerCore&&) = delete;
-	DataLoggerCore& operator=(DataLoggerCore&&) = delete;
+	DataLoggerCore(DataLoggerCore&&) = delete;             ///< Move Constructor is deleted
+	DataLoggerCore& operator=(DataLoggerCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	* \brief Processes the initialize request.

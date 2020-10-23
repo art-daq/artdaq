@@ -41,8 +41,8 @@ public:
 	 */
 	Commandable& operator=(Commandable const&) = delete;
 
-	Commandable(Commandable&&) = delete;
-	Commandable& operator=(Commandable&&) = delete;
+	Commandable(Commandable&&) = delete;             ///< Move Constructor is deleted
+	Commandable& operator=(Commandable&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	* \brief Processes the initialize request
@@ -279,7 +279,7 @@ public:
 	* \brief Run a module-defined command with the given parameter string
 	*
 	* This function is a No-Op. Derived classes should override it.
-	* \param command Name of the command to run (implementation-defined)
+	* \param cmd Name of the command to run (implementation-defined)
 	* \param args Any arguments for the command (implementation-defined)
 	* \return Whether the command succeeded (always true)
 	*/
