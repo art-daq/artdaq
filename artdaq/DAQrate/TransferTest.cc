@@ -145,7 +145,7 @@ int artdaq::TransferTest::runTest()
 
 std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 {
-	TLOG(7) << "do_sending entered RawFragmentHeader::num_words()=" << artdaq::detail::RawFragmentHeader::num_words();
+	TLOG(TLVL_DEBUG + 4) << "do_sending entered RawFragmentHeader::num_words()=" << artdaq::detail::RawFragmentHeader::num_words();
 
 	size_t totalSize = 0;
 	double totalTime = 0;
@@ -179,7 +179,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 	for (int ii = 0; ii < sends_each_sender_; ++ii)
 	{
 		auto loop_start = std::chrono::steady_clock::now();
-		TLOG(7) << "sender rank " << my_rank << " #" << ii << " resized bytes=" << frag.sizeBytes();
+		TLOG(TLVL_DEBUG + 4) << "sender rank " << my_rank << " #" << ii << " resized bytes=" << frag.sizeBytes();
 		totalSize += frag.sizeBytes();
 
 		//unsigned sndDatSz = data_size_wrds;
@@ -253,7 +253,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 
 std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 {
-	TLOG(7) << "do_receiving entered";
+	TLOG(TLVL_DEBUG + 4) << "do_receiving entered";
 
 	artdaq::FragmentReceiverManager receiver(ps_);
 	receiver.start_threads();
@@ -275,7 +275,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	while ((activeSenders > 0 || (counter > receives_each_receiver_ / 10 && !nonblocking_mode)) && counter > 0)
 	{
 		auto start_loop = std::chrono::steady_clock::now();
-		TLOG(7) << "do_receiving: Counter is " << counter << ", calling recvFragment (activeSenders=" << activeSenders << ")";
+		TLOG(TLVL_DEBUG + 4) << "do_receiving: Counter is " << counter << ", calling recvFragment (activeSenders=" << activeSenders << ")";
 		int senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
 		auto before_receive = std::chrono::steady_clock::now();
 
@@ -327,7 +327,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			activeSenders--;
 			TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;
 		}
-		TLOG(7) << "do_receiving: Recv Loop end, counter is " << counter;
+		TLOG(TLVL_DEBUG + 4) << "do_receiving: Recv Loop end, counter is " << counter;
 
 		auto total_recv_time = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(after_receive - before_receive).count();
 		recv_time_metric += total_recv_time;

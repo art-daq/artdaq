@@ -64,7 +64,7 @@ public:
 	/**
 	* \brief Receive a Fragment Header from the transport mechanism
 	* \param[out] header Received Fragment Header
-	* \param receiveTimeout Timeout for receive
+	* \param timeout_usec Timeout for receive
 	* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
 	*/
 	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t timeout_usec) override;

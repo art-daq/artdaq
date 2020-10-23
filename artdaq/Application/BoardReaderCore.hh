@@ -26,8 +26,8 @@ class artdaq::BoardReaderCore
 public:
 	static const std::string FRAGMENTS_PROCESSED_STAT_KEY;  ///< Key for the Fragments Processed MonitoredQuantity
 	static const std::string INPUT_WAIT_STAT_KEY;           ///< Key for the Input Wait MonitoredQuantity
-	static const std::string BUFFER_WAIT_STAT_KEY;
-	static const std::string REQUEST_WAIT_STAT_KEY;
+	static const std::string BUFFER_WAIT_STAT_KEY;          ///< Key for the Fragment Buffer Wait MonitoredQuantity
+	static const std::string REQUEST_WAIT_STAT_KEY;         ///< Key for the Request Buffer Wait MonitoredQuantity
 	static const std::string BRSYNC_WAIT_STAT_KEY;         ///< Key for the Sync Wait MonitoredQuantity
 	static const std::string OUTPUT_WAIT_STAT_KEY;         ///< Key for the Output Wait MonitoredQuantity
 	static const std::string FRAGMENTS_PER_READ_STAT_KEY;  ///< Key for the Fragments Per Read MonitoredQuantity
@@ -53,8 +53,8 @@ public:
 	 * \return BoardReaderCore copy
 	 */
 	BoardReaderCore& operator=(BoardReaderCore const&) = delete;
-	BoardReaderCore(BoardReaderCore&&) = delete;
-	BoardReaderCore& operator=(BoardReaderCore&&) = delete;
+	BoardReaderCore(BoardReaderCore&&) = delete;             ///< Move Constructor is deleted
+	BoardReaderCore& operator=(BoardReaderCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	 * \brief Initialize the BoardReaderCore
@@ -180,8 +180,22 @@ public:
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 
+	/**
+	 * @brief Get whether the sender thread is still running
+	 * @return Whether the sender thread (applying requests to FragmentBuffer and sending to DataSenderManager) is still running
+	 */
 	bool GetSenderThreadActive() { return sender_thread_active_.load(); }
+	/**
+	 * @brief Get whether the receiver thread is still running
+	 * @return Whether the receiver thread (calling CFG::getNext and putting Fragments into the FragmentBuffer) is still running
+	 */
 	bool GetReceiverThreadActive() { return receiver_thread_active_.load(); }
+	/**
+	 * @brief Set the timeout for starting the sender and receiver threads
+	 * @param timeout Timeout, in seconds, for starting the sender and receiver threads
+	 * 
+	 * This function is used to communicate the start transition timeout from BoardReaderApp to the BoardReaderCore threads
+	*/
 	void SetStartTransitionTimeout(double timeout) { start_transition_timeout_ = timeout; }
 
 private:

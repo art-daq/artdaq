@@ -103,6 +103,7 @@ struct artdaq::detail::RoutingPacketHeader
 
 struct artdaq::detail::RoutingRequest
 {
+<<<<<<< HEAD
 	enum class RequestMode : uint8_t
 	{
 		Connect = 0,
