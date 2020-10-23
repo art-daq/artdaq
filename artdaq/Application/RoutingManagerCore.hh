@@ -55,8 +55,8 @@ public:
 	*/
 	RoutingManagerCore& operator=(RoutingManagerCore const&) = delete;
 
-	RoutingManagerCore(RoutingManagerCore&&) = delete;
-	RoutingManagerCore& operator=(RoutingManagerCore&&) = delete;
+	RoutingManagerCore(RoutingManagerCore&&) = delete;             ///< Move Constructor is deleted
+	RoutingManagerCore& operator=(RoutingManagerCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
 	* \brief Processes the initialize request.
@@ -120,7 +120,7 @@ public:
 	* \param timestamp Timestamp of transition
 	* \return Returns initialize status
 	*/
-	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f);
+	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	* \brief Reinitializes the RoutingManagerCore.
@@ -129,7 +129,7 @@ public:
 	* \param timestamp Timestamp of transition
 	* \return Returns initialize status
 	*/
-	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t e, uint64_t f);
+	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	 * \brief Main loop of the RoutingManagerCore. Determines when to send the next table update,
@@ -139,7 +139,7 @@ public:
 
 	/**
 	 * \brief Sends a detail::RoutingPacket to the table receivers
-	 * \param table The detail::RoutingPacket to send
+	 * \param packet The detail::RoutingPacket to send
 	 *
 	 * send_event_table checks the table update socket and the acknowledge socket before
 	 * sending the table update the first time. It then enters a loop where it sends the table

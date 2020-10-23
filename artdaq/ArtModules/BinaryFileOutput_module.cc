@@ -206,8 +206,8 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 			if (do_direct_)
 			{
 				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-				TLOG(5) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done sts=" << sts
-				        << " errno=" << errno;
+				TLOG(TLVL_DEBUG + 2) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done sts=" << sts
+				                     << " errno=" << errno;
 			}
 			else
 			{
@@ -216,7 +216,7 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 #else
 				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 #endif
-				TLOG(5) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done errno=" << errno;
+				TLOG(TLVL_DEBUG + 2) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done errno=" << errno;
 			}
 		}
 	}
