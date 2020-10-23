@@ -54,7 +54,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
     , subrun_number_(-1)
     , timeout_(std::numeric_limits<uint64_t>::max())
     , timestamp_(std::numeric_limits<uint64_t>::max())
-    , should_stop_(false)
+    , should_stop_(true)
     , exception_(false)
     , latest_exception_report_("none")
     , ev_counter_(1)
