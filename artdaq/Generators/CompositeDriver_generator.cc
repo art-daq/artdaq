@@ -8,13 +8,11 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 
-using fhicl::ParameterSet;
-
-artdaq::CompositeDriver::CompositeDriver(ParameterSet const& ps)
+artdaq::CompositeDriver::CompositeDriver(const fhicl::ParameterSet& ps)
     : CommandableFragmentGenerator(ps)
 {
 	auto psetList =
-	    ps.get<std::vector<ParameterSet>>("generator_config_list");
+	    ps.get<std::vector<fhicl::ParameterSet>>("generator_config_list");
 	for (const auto& pset : psetList)
 	{
 		if (!makeChildGenerator_(pset))

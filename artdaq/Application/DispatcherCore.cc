@@ -140,6 +140,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		return errmsg.str();
 	}
 
+	TLOG(TLVL_DEBUG) << "Successfully registered monitor";
 	return "Success";
 }
 
@@ -172,9 +173,11 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 	{
 		std::stringstream errmsg;
 		errmsg << "Unable to unregister transfer plugin with label \"" << label << "\"";
+		TLOG(TLVL_ERROR) << errmsg.str();
 		return errmsg.str();
 	}
 
+	TLOG(TLVL_DEBUG) << "unregister_monitor completed successfully";
 	return "Success";
 }
 
