@@ -15,7 +15,7 @@ art::ShmemWrapper::ShmemWrapper(fhicl::ParameterSet const& ps)
 
 artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 {
-	TLOG(5) << "Receiving Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 2) << "Receiving Fragment from NetMonTransportService";
 	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	artdaq::FragmentPtrs output;
@@ -73,13 +73,13 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 
 	TLOG(TLVL_TRACE) << "receiveMessage END";
 
-	TLOG(5) << "Done Receiving Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 2) << "Done Receiving Fragment from NetMonTransportService";
 	return output;
 }
 
 std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> art::ShmemWrapper::receiveMessages()
 {
-	TLOG(5) << "Receiving Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 2) << "Receiving Fragment from NetMonTransportService";
 	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> output;
@@ -106,13 +106,13 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	hdr_ptr_ = shm->GetEventHeader();
 	TLOG(TLVL_TRACE) << "receiveMessage END";
 
-	TLOG(5) << "Done Receiving Fragments from Shared Memory";
+	TLOG(TLVL_DEBUG + 2) << "Done Receiving Fragments from Shared Memory";
 	return output;
 }
 
 artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 {
-	TLOG(5) << "Receiving Init Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 2) << "Receiving Init Fragment from NetMonTransportService";
 
 	TLOG(TLVL_TRACE) << "receiveInitMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
@@ -168,6 +168,6 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 	TLOG(TLVL_TRACE) << "receiveInitMessage END";
 	init_received_ = true;
 
-	TLOG(5) << "Done Receiving Init Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 2) << "Done Receiving Init Fragment from NetMonTransportService";
 	return output;
 }
