@@ -187,7 +187,7 @@ public:
 		else
 			return nullptr;
 	}
-	
+
 	/**
 	 * @brief Get whether the sender thread is still running
 	 * @return Whether the sender thread (applying requests to FragmentBuffer and sending to DataSenderManager) is still running
