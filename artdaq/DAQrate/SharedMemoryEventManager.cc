@@ -886,6 +886,11 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 
+	// Don't re-rollover to an already-defined subrun
+	if (!subrun_event_map_.empty() && subrun_event_map_.rbegin()->second == subrun)
+	{
+		return;
+	}
 	TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
 	subrun_event_map_[boundary] = subrun;
 	while (subrun_event_map_.size() > max_subrun_event_map_length_)

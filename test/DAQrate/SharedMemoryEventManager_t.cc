@@ -876,9 +876,17 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	t.rolloverSubrun();
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 3);
+
+	
+	// Check repeated requests for same subrun
+	t.rolloverSubrun(3, 4);
+	t.rolloverSubrun(4, 4);
+	t.rolloverSubrun(5, 4);
+
 	t.startRun(3);
 	BOOST_REQUIRE_EQUAL(t.runID(), 3);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 1);
+
 
 	artdaq::SharedMemoryEventReceiver r(t.GetKey(), t.GetBroadcastKey());
 	bool errflag = false;
