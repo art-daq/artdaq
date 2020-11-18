@@ -358,11 +358,13 @@ public:
 		 * \param frag Fragment ID to get "dropped data" for
 		 * \return Pointer to the data payload of the "dropped data" fragment
 		 */
-	RawDataType* GetDroppedDataAddress(Fragment::fragment_id_t frag)
+	RawDataType* GetDroppedDataAddress(detail::RawFragmentHeader frag)
 	{
-		if (dropped_data_.count(frag) && dropped_data_[frag] != nullptr)
+		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
 		{
-			return dropped_data_[frag]->dataBegin();
+			if (it->first == frag) {
+				return it->second->dataBegin();
+			}
 		}
 		return nullptr;
 	}
@@ -466,7 +468,7 @@ private:
 	fhicl::ParameterSet data_pset_;
 
 	FragmentPtrs init_fragments_;
-	std::unordered_map<Fragment::fragment_id_t, FragmentPtr> dropped_data_;  ///< Used for when data comes in badly out-of-sequence
+	std::list<std::pair<detail::RawFragmentHeader, FragmentPtr>> dropped_data_;
 
 	bool broadcastFragments_(FragmentPtrs& frags);
 

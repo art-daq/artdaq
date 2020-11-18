@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	hdr = GetHeader(frag);
 	auto fragLoc4 = t.WriteFragmentHeader(hdr);
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
-	BOOST_REQUIRE_EQUAL(fragLoc4, t.GetDroppedDataAddress(3));
+	BOOST_REQUIRE_EQUAL(fragLoc4, t.GetDroppedDataAddress(hdr));
 #endif
 	memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
@@ -729,7 +729,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		auto hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
-		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(1));
+		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(hdr));
 #endif
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
