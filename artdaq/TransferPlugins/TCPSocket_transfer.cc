@@ -47,7 +47,7 @@ artdaq::TCPSocketTransfer::
     , sndbuf_(pset.get<size_t>("tcp_send_buffer_size", max_fragment_size_words_ * sizeof(artdaq::RawDataType) * buffer_count_))
     , send_retry_timeout_us_(pset.get<size_t>("send_retry_timeout_us", 1000000))
     , timeoutMessageArmed_(true)
-    , receive_disconnected_wait_s_(pset.get<double>("receive_socket_disconnected_wait_s", 10.0))
+    , receive_disconnected_wait_s_(pset.get<double>("receive_socket_disconnected_wait_s", 60.0))
     , receive_err_wait_us_(pset.get<size_t>("receive_socket_disconnected_wait_us", 10000))
     , receive_socket_has_been_connected_(false)
     , send_ack_diff_(0)
