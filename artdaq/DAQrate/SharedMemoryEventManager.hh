@@ -58,7 +58,7 @@ public:
 		//}
 		if (!ps.has_key("services") || !ps.has_key("services.message"))
 		{
-			of << " services.message: { " << generateMessageFacilityConfiguration("art") << "} ";
+			of << " services.message: { " << generateMessageFacilityConfiguration(mf::GetApplicationName().c_str(), true, false, "-art") << "} ";
 		}
 		//of << " source.shared_memory_key: 0x" << std::hex << shm_key;
 		//of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;

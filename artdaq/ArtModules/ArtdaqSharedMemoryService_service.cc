@@ -35,7 +35,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 
 	TLOG(TLVL_TRACE) << "Setting app_name";
 	app_name = artapp_str + "art" + std::to_string(incoming_events_->GetMyId());
-	artdaq::configureMessageFacility(app_name.c_str());
+	//artdaq::configureMessageFacility(app_name.c_str()); // ELF 11/20/2020: MessageFacility already configured by initialization pset
 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)
