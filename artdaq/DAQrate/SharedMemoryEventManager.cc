@@ -221,7 +221,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		}
 		dropped_data_.emplace_back(frag, std::make_unique<Fragment>(frag.word_count - frag.num_words()));
 		auto it = dropped_data_.rbegin();
-		
+
 		TLOG(TLVL_DEBUG + 3) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into "
 		                     << static_cast<void*>(it->second->dataBegin()) << " sz=" << it->second->dataSizeBytes();
 
@@ -260,7 +260,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			TLOG(TLVL_ERROR) << "Dropping over-size fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the current buffer for this Fragment! (Keeping header)";
 			dropped_data_.emplace_back(frag, std::make_unique<Fragment>(frag.word_count - frag.num_words()));
 			auto it = dropped_data_.rbegin();
-			
+
 			oversize_fragment_count_++;
 
 			if (maximum_oversize_fragment_count_ > 0 && oversize_fragment_count_ >= maximum_oversize_fragment_count_)
@@ -280,7 +280,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHeader frag)
 {
 	TLOG(TLVL_TRACE) << "DoneWritingFragment BEGIN";
-	
+
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
 	if (buffer < 0)
 	{

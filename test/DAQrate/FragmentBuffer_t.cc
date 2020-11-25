@@ -10,6 +10,7 @@
 
 #define MESSAGEFACILITY_DEBUG true
 
+#define RATE_TEST_COUNT 100000
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
 	do                                                                                                                           \
 	{                                                                                                                            \
@@ -2121,7 +2122,6 @@ BOOST_AUTO_TEST_CASE(SingleMode_StateMachine)
 	TLOG(TLVL_INFO) << "SingleMode_StateMachine test case END";
 }
 
-#define RATE_TEST_COUNT 1000000
 BOOST_AUTO_TEST_CASE(WindowMode_RateTests)
 {
 	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
@@ -2272,7 +2272,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RateTests_threaded)
 	ps.put<int>("fragment_id", 1);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
-	ps.put<size_t>("data_buffer_depth_fragments", RATE_TEST_COUNT );
+	ps.put<size_t>("data_buffer_depth_fragments", RATE_TEST_COUNT);
 	ps.put<bool>("circular_buffer_mode", false);
 	ps.put<std::string>("request_mode", "window");
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
