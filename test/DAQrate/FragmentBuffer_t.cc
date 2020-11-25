@@ -2324,7 +2324,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RateTests_threaded)
 		}
 		if (fps.size() < RATE_TEST_COUNT)
 		{
-			TLOG(TLVL_WARNING) << "Some requests did not return data. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(begin_Test) << ", " << fps.size() << " / " << RATE_TEST_COUNT << " Fragments received";
+			TLOG(TLVL_WARNING) << "Some requests did not return data. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(begin_test) << ", " << fps.size() << " / " << RATE_TEST_COUNT << " Fragments received";
 		}
 		else
 		{
