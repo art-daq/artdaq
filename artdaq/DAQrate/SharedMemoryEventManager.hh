@@ -362,7 +362,8 @@ public:
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
 		{
-			if (it->first == frag) {
+			if (it->first == frag)
+			{
 				return it->second->dataBegin();
 			}
 		}
