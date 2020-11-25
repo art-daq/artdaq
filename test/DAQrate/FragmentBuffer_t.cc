@@ -10,6 +10,7 @@
 
 #define MESSAGEFACILITY_DEBUG true
 
+#define RATE_TEST_COUNT 100000
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
 	do                                                                                                                           \
 	{                                                                                                                            \
@@ -2121,7 +2122,6 @@ BOOST_AUTO_TEST_CASE(SingleMode_StateMachine)
 	TLOG(TLVL_INFO) << "SingleMode_StateMachine test case END";
 }
 
-#define RATE_TEST_COUNT 1000000
 BOOST_AUTO_TEST_CASE(WindowMode_RateTests)
 {
 	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
