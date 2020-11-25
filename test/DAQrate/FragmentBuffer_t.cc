@@ -2314,7 +2314,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RateTests_threaded)
 		while (thread_sync < 3) {}
 		artdaq::FragmentPtrs fps;
 		auto begin_test = std::chrono::steady_clock::now();
-		while (fps.size() < RATE_TEST_COUNT && artdaq::TimeUtils::GetElapsedTime(begin_test) < RATE_TEST_COUNT / 10)  // 100 ms per request
+		while (fps.size() < RATE_TEST_COUNT && artdaq::TimeUtils::GetElapsedTime(begin_test) < RATE_TEST_COUNT / 1000)  // 1 ms per request
 		{
 			auto beginop = std::chrono::steady_clock::now();
 			TLOG(TLVL_INFO) << "Applying requests BEGIN";
