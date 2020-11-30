@@ -70,6 +70,14 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	if (broadcast_mode_ && !agg_pset.has_key("broadcast_mode"))
 	{
 		agg_pset.put<bool>("broadcast_mode", true);
+		if (!agg_pset.has_key("non_reliable_mode"))
+		{
+			agg_pset.put<bool>("non_reliable_mode", true);
+		}
+		if (!agg_pset.has_key("non_reliable_mode_retry_count"))
+		{
+			agg_pset.put<int>("non_reliable_mode_retry_count", 2);
+		}
 	}
 
 	agg_pset.erase("restart_crashed_art_processes");
