@@ -217,14 +217,15 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the queue and reliable mode is off.";
+			TLOG(TLVL_INFO) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the queue and reliable mode is off.";
 		}
-		dropped_data_[frag.fragment_id] = std::make_unique<Fragment>(frag.word_count - frag.num_words());
+		dropped_data_.emplace_back(frag, std::make_unique<Fragment>(frag.word_count - frag.num_words()));
+		auto it = dropped_data_.rbegin();
 
 		TLOG(TLVL_DEBUG + 3) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into "
-		                     << static_cast<void*>(dropped_data_[frag.fragment_id]->dataBegin()) << " sz=" << dropped_data_[frag.fragment_id]->dataSizeBytes();
+		                     << static_cast<void*>(it->second->dataBegin()) << " sz=" << it->second->dataSizeBytes();
 
-		return dropped_data_[frag.fragment_id]->dataBegin();
+		return it->second->dataBegin();
 	}
 
 	last_backpressure_report_time_ = std::chrono::steady_clock::now();
@@ -257,7 +258,8 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			reinterpret_cast<detail::RawFragmentHeader*>(hdrpos)->word_count = frag.num_words();         // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 			reinterpret_cast<detail::RawFragmentHeader*>(hdrpos)->type = Fragment::InvalidFragmentType;  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 			TLOG(TLVL_ERROR) << "Dropping over-size fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the current buffer for this Fragment! (Keeping header)";
-			dropped_data_[frag.fragment_id] = std::make_unique<Fragment>(frag.word_count - frag.num_words());
+			dropped_data_.emplace_back(frag, std::make_unique<Fragment>(frag.word_count - frag.num_words()));
+			auto it = dropped_data_.rbegin();
 
 			oversize_fragment_count_++;
 
@@ -267,8 +269,8 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			}
 
 			TLOG(TLVL_DEBUG + 3) << "Dropping over-size fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id
-			                     << " into " << static_cast<void*>(dropped_data_[frag.fragment_id]->dataBegin());
-			return dropped_data_[frag.fragment_id]->dataBegin();
+			                     << " into " << static_cast<void*>(it->second->dataBegin());
+			return it->second->dataBegin();
 		}
 	}
 	TLOG(14) << "WriteFragmentHeader END";
@@ -278,13 +280,25 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHeader frag)
 {
 	TLOG(TLVL_TRACE) << "DoneWritingFragment BEGIN";
+
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
+	if (buffer < 0)
+	{
+		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
+		{
+			if (it->first == frag)
+			{
+				dropped_data_.erase(it);
+				return;
+			}
+		}
 	if (buffer == -1)
 	{
 		Detach(true, "SharedMemoryEventManager",
 		       "getBufferForSequenceID_ returned -1 in DoneWritingFragment. This indicates a possible mismatch between expected Fragment count and the actual number of Fragments received.");
 	}
-	if (buffer == -2) { return; }
+		return;
+	}
 
 	statsHelper_.addSample(FRAGMENTS_RECEIVED_STAT_KEY, frag.word_count * sizeof(RawDataType));
 	{
@@ -886,6 +900,11 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 
+	// Don't re-rollover to an already-defined subrun
+	if (!subrun_event_map_.empty() && subrun_event_map_.rbegin()->second == subrun)
+	{
+		return;
+	}
 	TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
 	subrun_event_map_[boundary] = subrun;
 	while (subrun_event_map_.size() > max_subrun_event_map_length_)
