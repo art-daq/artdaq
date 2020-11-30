@@ -35,7 +35,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 
 	TLOG(TLVL_TRACE) << "Setting app_name";
 	app_name = artapp_str + "art" + std::to_string(incoming_events_->GetMyId());
-	artdaq::configureMessageFacility(app_name.c_str());
+	//artdaq::configureMessageFacility(app_name.c_str()); // ELF 11/20/2020: MessageFacility already configured by initialization pset
 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)
@@ -129,9 +129,10 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 			recvd_fragments[type] = incoming_events_->GetFragmentsByType(errflag, type);
 			if (!recvd_fragments[type])
 			{
-				TLOG(TLVL_ERROR) << "Error retrieving Fragments from shared memory! Aborting!";
+				TLOG(TLVL_ERROR) << "Error retrieving Fragments from shared memory! (Most likely due to a buffer overwrite) Retrying...";
 				incoming_events_->ReleaseBuffer();
-				return recvd_fragments;
+				recvd_fragments.clear();
+				continue;
 			}
 			/* Events coming out of the EventStore are not sorted but need to be
        sorted by sequence ID before they can be passed to art.
