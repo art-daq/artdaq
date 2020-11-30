@@ -733,7 +733,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(last_sequence_id_ + 1,last_timestamp_ + 1, artdaq::Fragment::EndOfRunFragmentType);
+	auto msg = prepareMessage(last_sequence_id_ + 1,rp.run() + 1, artdaq::Fragment::EndOfRunFragmentType);
 	//
 	//  Write message type code.
 	//
@@ -795,7 +795,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(last_sequence_id_ + 1, last_timestamp_ + 1, artdaq::Fragment::EndOfSubrunFragmentType);
+	auto msg = prepareMessage(last_sequence_id_ + 1, srp.subRun() + 1, artdaq::Fragment::EndOfSubrunFragmentType);
 	//
 	//  Write message type code.
 	//
