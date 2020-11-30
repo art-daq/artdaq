@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	hdr = GetHeader(frag);
 	auto fragLoc4 = t.WriteFragmentHeader(hdr);
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
-	BOOST_REQUIRE_EQUAL(fragLoc4, t.GetDroppedDataAddress(3));
+	BOOST_REQUIRE_EQUAL(fragLoc4, t.GetDroppedDataAddress(hdr));
 #endif
 	memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
@@ -728,7 +728,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		auto hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 #if !ART_SUPPORTS_DUPLICATE_EVENTS
-		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(1));
+		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(hdr));
 #endif
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
@@ -875,6 +875,12 @@ BOOST_AUTO_TEST_CASE(RunNumbers)
 	t.rolloverSubrun();
 	BOOST_REQUIRE_EQUAL(t.runID(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 3);
+
+	// Check repeated requests for same subrun
+	t.rolloverSubrun(3, 4);
+	t.rolloverSubrun(4, 4);
+	t.rolloverSubrun(5, 4);
+
 	t.startRun(3);
 	BOOST_REQUIRE_EQUAL(t.runID(), 3);
 	BOOST_REQUIRE_EQUAL(t.GetCurrentSubrun(), 1);
