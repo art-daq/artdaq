@@ -423,6 +423,10 @@ void artdaq::FragmentBuffer::applyRequestsIgnoredMode(artdaq::FragmentPtrs& frag
 	for (auto& id : dataBuffers_)
 	{
 		std::lock_guard<std::mutex> lk(id.second->DataBufferMutex);
+		if (id.second && !id.second->DataBuffer.empty() && id.second->DataBuffer.back()->sequenceID() >= next_sequence_id_)
+		{
+			next_sequence_id_ = id.second->DataBuffer.back()->sequenceID() + 1;
+		}
 		std::move(id.second->DataBuffer.begin(), id.second->DataBuffer.end(), std::inserter(frags, frags.end()));
 		id.second->DataBufferDepthBytes = 0;
 		id.second->DataBufferDepthFragments = 0;
