@@ -293,11 +293,11 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 				return;
 			}
 		}
-	if (buffer == -1)
-	{
-		Detach(true, "SharedMemoryEventManager",
-		       "getBufferForSequenceID_ returned -1 in DoneWritingFragment. This indicates a possible mismatch between expected Fragment count and the actual number of Fragments received.");
-	}
+		if (buffer == -1)
+		{
+			Detach(true, "SharedMemoryEventManager",
+			       "getBufferForSequenceID_ returned -1 in DoneWritingFragment. This indicates a possible mismatch between expected Fragment count and the actual number of Fragments received.");
+		}
 		return;
 	}
 
