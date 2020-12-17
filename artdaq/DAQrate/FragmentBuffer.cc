@@ -174,8 +174,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 		std::lock_guard<std::mutex> dlk(dataBuffer->DataBufferMutex);
 		switch (mode_)
 		{
-			case RequestMode::Single:
-			{
+			case RequestMode::Single: {
 				auto dataIter = type_it->second.rbegin();
 				TLOG(TLVL_TRACE) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 				dataBuffer->DataBuffer.clear();
@@ -285,12 +284,16 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 
 			if (first || (waittime != lastwaittime && waittime % 1000 == 0))
 			{
-				TLOG(TLVL_WARNING) << "Bad Omen: Data Buffer has exceeded its size limits. "
-				                   << "(seq_id=" << next_sequence_id_ << ", frag_id=" << id
-				                   << ", frags=" << dataBuffer->DataBufferDepthFragments << "/" << maxDataBufferDepthFragments_
-				                   << ", szB=" << dataBuffer->DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")"
-				                   << ", timestamps=" << dataBuffer->DataBuffer.front()->timestamp() << "-" << dataBuffer->DataBuffer.back()->timestamp();
-				TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
+				std::lock_guard<std::mutex> lk(dataBuffer->DataBufferMutex);
+				if (dataBufferIsTooLarge(id))
+				{
+					TLOG(TLVL_WARNING) << "Bad Omen: Data Buffer has exceeded its size limits. "
+					                   << "(seq_id=" << next_sequence_id_ << ", frag_id=" << id
+					                   << ", frags=" << dataBuffer->DataBufferDepthFragments << "/" << maxDataBufferDepthFragments_
+					                   << ", szB=" << dataBuffer->DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")"
+					                   << ", timestamps=" << dataBuffer->DataBuffer.front()->timestamp() << "-" << dataBuffer->DataBuffer.back()->timestamp();
+					TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
+				}
 				first = false;
 			}
 			if (waittime % 5 && waittime != lastwaittime)
