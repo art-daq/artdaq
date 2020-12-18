@@ -53,8 +53,8 @@ RequestSender::~RequestSender()
 		usleep(1000);
 	}
 	{
-		std::unique_lock<std::mutex> lk(request_mutex_);
-		std::unique_lock<std::mutex> lk2(request_send_mutex_);
+		std::lock_guard<std::mutex> lk(request_mutex_);
+		std::lock_guard<std::mutex> lk2(request_send_mutex_);
 	}
 	TLOG(TLVL_INFO) << "Shutting down RequestSender: request_socket_: " << request_socket_ << ", token_socket_: " << token_socket_;
 	if (request_socket_ != -1)
@@ -85,7 +85,10 @@ RequestSender::~RequestSender()
 
 void RequestSender::SetRequestMode(detail::RequestMessageMode mode)
 {
-	request_mode_ = mode;
+	{
+		std::lock_guard<std::mutex> lk(request_mutex_);
+		request_mode_ = mode;
+	}
 	SendRequest(true);
 }
 
@@ -202,18 +205,18 @@ void RequestSender::do_send_request_()
 	message.setRank(my_rank);
 	message.setRunNumber(run_number_);
 	{
-		std::unique_lock<std::mutex> lk(request_mutex_);
+		std::lock_guard<std::mutex> lk(request_mutex_);
 		for (auto& req : active_requests_)
 		{
 			TLOG(12) << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second << " to request message";
 			message.addRequest(req.first, req.second);
 		}
+		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
+		message.setMode(request_mode_);
 	}
-	TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
-	message.setMode(request_mode_);
 	char str[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
-	std::unique_lock<std::mutex> lk2(request_send_mutex_);
+	std::lock_guard<std::mutex> lk2(request_send_mutex_);
 	TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str
 	                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 	auto buf = message.GetMessage();
@@ -292,9 +295,12 @@ void RequestSender::SendRequest(bool endOfRunOnly)
 	{
 		return;
 	}
-	if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun)
 	{
-		return;
+		std::lock_guard<std::mutex> lk(request_mutex_);
+		if (endOfRunOnly && request_mode_ != detail::RequestMessageMode::EndOfRun)
+		{
+			return;
+		}
 	}
 	request_sending_++;
 	boost::thread request([=] { do_send_request_(); });
