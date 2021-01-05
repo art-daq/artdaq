@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_09_03a
+parent artdaq  v3_09_04
 defaultqual    e19:s96
 
 # These optional lines define the installed directories where
@@ -32,12 +32,12 @@ art_root_io     	v1_00_05    	s83
 art_root_io     	v1_00_04    	s82
 art             	v2_11_05    	s73
 art             	v2_11_01    	s67
-artdaq_core 		v3_06_06
-artdaq_utilities        v1_05_09a
+artdaq_core 		v3_06_08
+artdaq_utilities        v1_05_10
 xmlrpc_c		v1_51_06
 swig            	v4_0_2		-       optional
 nodejs          	v10_15_0       	-       optional
-artdaq_mfextensions     v1_05_03a        -       optional
+artdaq_mfextensions     v1_05_04        -       optional
 artdaq_epics_plugin     v1_02_16a        -       optional
 artdaq_ganglia_plugin	v1_02_22a        -       optional
 artdaq_pcp_mmv_plugin   v1_00_07a        -       optional
