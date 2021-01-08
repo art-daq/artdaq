@@ -2352,4 +2352,60 @@ BOOST_AUTO_TEST_CASE(WindowMode_RateTests_threaded)
 
 	TLOG(TLVL_INFO) << "WindowMode_RateTests_threaded test case END";
 }
+
+BOOST_AUTO_TEST_CASE(WaitForDataBufferReady_RaceCondition)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "WaitForDataBufferReady_RaceCondition test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 1);
+	ps.put<bool>("circular_buffer_mode", false);
+	ps.put<std::string>("request_mode", "window");
+
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	std::atomic<int> thread_sync = 0;
+
+	auto gen_frags = [&]() {
+		++thread_sync;
+		while (thread_sync < 2) {}
+		auto beginop = std::chrono::steady_clock::now();
+		TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments BEGIN";
+		for (int ii = 0; ii < RATE_TEST_COUNT; ++ii)
+			fp.AddFragmentsToBuffer(gen.Generate(1));
+		TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop)
+		                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " frags/s)";
+		thread_sync = 0;
+	};
+
+	auto reset_buffer = [&]() {
+		++thread_sync;
+		while (thread_sync < 2) {}
+		auto beginop = std::chrono::steady_clock::now();
+		TLOG(TLVL_INFO) << "Resetting loop BEGIN";
+		size_t counter = 0;
+		while (thread_sync > 0)
+		{
+			fp.Reset(false);
+			counter++;
+		}
+		TLOG(TLVL_INFO) << "Reset " << RATE_TEST_COUNT << " times during loop. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop);
+	};
+
+	std::thread t1(gen_frags);
+	std::thread t2(reset_buffer);
+
+	t1.join();
+	t2.join();
+
+	TLOG(TLVL_INFO) << "WaitForDataBufferReady_RaceCondition test case END";
+}
+
 BOOST_AUTO_TEST_SUITE_END()
