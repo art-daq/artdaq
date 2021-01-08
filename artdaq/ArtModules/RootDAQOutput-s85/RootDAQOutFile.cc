@@ -449,7 +449,7 @@ art::RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	{
 		createDatabaseTables();
 	}
-	TLOG(3) << "RootDAQOutFile ctor complete";
+	TLOG(TLVL_DEBUG + 0) << "RootDAQOutFile ctor complete";
 }
 
 art::RootDAQOutFile::~RootDAQOutFile()
@@ -458,14 +458,14 @@ art::RootDAQOutFile::~RootDAQOutFile()
 	int sts = sysinfo(&info);
 	unsigned free_percent = (unsigned)(info.freeram * 100 / info.totalram);
 	unsigned free_MB = (unsigned)(info.freeram * info.mem_unit >> 20);  // round down (1024.9 => 1024 MB)
-	TRACE(3, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u", free_percent, (float)info.freeram * info.mem_unit / (1024 * 1024), free_MB, (float)info.bufferram * info.mem_unit / (1024 * 1024 * 1024), info.mem_unit);
+	TRACE(TLVL_DEBUG + 0, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u", free_percent, (float)info.freeram * info.mem_unit / (1024 * 1024), free_MB, (float)info.bufferram * info.mem_unit / (1024 * 1024 * 1024), info.mem_unit);
 	if (free_percent < freePercent_ || free_MB < freeMB_)
 	{
-		TLOG(3) << "RootDAQOutFile Flush/DONTNEED";
+		TLOG(TLVL_DEBUG + 0) << "RootDAQOutFile Flush/DONTNEED";
 		filePtr_->Flush();
 		sts = posix_fadvise(filePtr_->GetFd(), 0, 0 /*len,0=all*/, POSIX_FADV_DONTNEED);
 	}
-	TLOG(3) << "~RootDAQOutFile complete sts=" << sts;
+	TLOG(TLVL_DEBUG + 0) << "~RootDAQOutFile complete sts=" << sts;
 }
 
 void art::RootDAQOutFile::createDatabaseTables()

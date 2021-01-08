@@ -17,7 +17,6 @@
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 
 #include <boost/program_options.hpp>
-#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQdata/Globals.hh"

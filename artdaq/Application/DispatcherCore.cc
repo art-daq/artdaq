@@ -17,7 +17,6 @@
 #include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DispatcherCore").c_str()
 
-#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 
 #include "artdaq/Application/DispatcherCore.hh"
@@ -70,6 +69,14 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	if (broadcast_mode_ && !agg_pset.has_key("broadcast_mode"))
 	{
 		agg_pset.put<bool>("broadcast_mode", true);
+		if (!agg_pset.has_key("non_reliable_mode"))
+		{
+			agg_pset.put<bool>("non_reliable_mode", true);
+		}
+		if (!agg_pset.has_key("non_reliable_mode_retry_count"))
+		{
+			agg_pset.put<int>("non_reliable_mode_retry_count", 2);
+		}
 	}
 
 	agg_pset.erase("restart_crashed_art_processes");
@@ -147,6 +154,7 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		return errmsg.str();
 	}
 
+	TLOG(TLVL_DEBUG) << "Successfully registered monitor";
 	return "Success";
 }
 
@@ -179,9 +187,11 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 	{
 		std::stringstream errmsg;
 		errmsg << "Unable to unregister transfer plugin with label \"" << label << "\"";
+		TLOG(TLVL_ERROR) << errmsg.str();
 		return errmsg.str();
 	}
 
+	TLOG(TLVL_DEBUG) << "unregister_monitor completed successfully";
 	return "Success";
 }
 

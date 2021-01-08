@@ -10,6 +10,7 @@
 
 #define MESSAGEFACILITY_DEBUG true
 
+#define RATE_TEST_COUNT 100000
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                \
 	do                                                                                                                           \
 	{                                                                                                                            \
@@ -39,6 +40,12 @@ public:
 	 */
 	explicit FragmentBufferTestGenerator(const fhicl::ParameterSet& ps);
 
+	/**
+	 * @brief Generate Fragments
+	 * @param n Number of Fragments to generate
+	 * @param fragmentIds List of Fragment IDs to generate Fragments for (if different than configured fragment IDs)
+	 * @return artdaq::FragmentPtrs containing generated Fragments
+	*/
 	artdaq::FragmentPtrs Generate(size_t n, std::vector<artdaq::Fragment::fragment_id_t> fragmentIds = std::vector<artdaq::Fragment::fragment_id_t>());
 
 public:
@@ -1981,4 +1988,424 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 
 	TLOG(TLVL_INFO) << "SequenceIDMode_MultipleIDs test case END";
 }
+
+BOOST_AUTO_TEST_CASE(IgnoreRequests_StateMachine)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "IgnoreRequests_StateMachine test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<std::string>("request_mode", "ignored");
+
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	buffer->push(53, 35);
+
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+
+	artdaq::FragmentPtrs fps;
+	auto sts = fp.applyRequests(fps);
+
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	fps.clear();
+
+	fp.Reset(false);
+	sts = fp.applyRequests(fps);
+
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+
+	sts = fp.applyRequests(fps);
+
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	fps.clear();
+
+	fp.Stop();
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+
+	sts = fp.applyRequests(fps);
+
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	TLOG(TLVL_INFO) << "IgnoreRequests_StateMachine test case END";
+}
+
+BOOST_AUTO_TEST_CASE(SingleMode_StateMachine)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "SingleMode_StateMachine test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<std::string>("request_mode", "single");
+
+	auto type = artdaq::Fragment::FirstUserFragmentType;
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	buffer->push(1, 1);
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
+
+	artdaq::FragmentPtrs fps;
+	auto sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 2);
+	fps.clear();
+
+	fp.Reset(false);
+	buffer->reset();
+	sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0u);
+
+	buffer->push(1, 1);
+	fp.AddFragmentsToBuffer(gen.Generate(1));
+	sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 2);
+	fps.clear();
+
+	fp.Stop();
+	buffer->push(2, 5);
+	sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), 1u);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 5);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 2);
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 3);
+	fps.clear();
+
+	buffer->setRunning(false);
+	fp.AddFragmentsToBuffer(gen.Generate(2));
+	buffer->push(4, 7);
+
+	sts = fp.applyRequests(fps);
+	TRACE_REQUIRE_EQUAL(sts, false);
+	TRACE_REQUIRE_EQUAL(fps.size(), 0);
+
+	TLOG(TLVL_INFO) << "SingleMode_StateMachine test case END";
+}
+
+BOOST_AUTO_TEST_CASE(WindowMode_RateTests)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "WindowMode_RateTests test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 2 * RATE_TEST_COUNT);
+	ps.put<bool>("circular_buffer_mode", false);
+	ps.put<std::string>("request_mode", "window");
+	ps.put<size_t>("missing_request_window_timeout_us", 500000);
+	ps.put<size_t>("window_close_timeout_us", 500000);
+
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	auto beginop = std::chrono::steady_clock::now();
+
+	TLOG(TLVL_INFO) << "Generating " << RATE_TEST_COUNT << " requests BEGIN";
+	size_t req_seq = 1;
+	for (; req_seq < RATE_TEST_COUNT + 1; ++req_seq)
+	{
+		buffer->push(req_seq, req_seq);
+	}
+	TLOG(TLVL_INFO) << "Generating " << RATE_TEST_COUNT << " requests END.Time elapsed = " << artdaq::TimeUtils::GetElapsedTime(beginop)
+	                << "(" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " reqs/s) ";
+
+	beginop = std::chrono::steady_clock::now();
+	TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments BEGIN";
+	fp.AddFragmentsToBuffer(gen.Generate(RATE_TEST_COUNT));
+	TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop)
+	                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " frags/s)";
+
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
+
+	beginop = std::chrono::steady_clock::now();
+	TLOG(TLVL_INFO) << "Applying requests BEGIN";
+	artdaq::FragmentPtrs fps;
+	auto sts = fp.applyRequests(fps);
+	TLOG(TLVL_INFO) << "Applying requests END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop)
+	                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " reqs/s)";
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), RATE_TEST_COUNT + 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), RATE_TEST_COUNT);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	auto type = artdaq::Fragment::ContainerFragmentType;
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	BOOST_REQUIRE_GE(fps.front()->sizeBytes(), 2 * sizeof(artdaq::detail::RawFragmentHeader) + sizeof(artdaq::ContainerFragment::Metadata));
+	auto cf = artdaq::ContainerFragment(*fps.front());
+	TRACE_REQUIRE_EQUAL(cf.block_count(), 1);
+	TRACE_REQUIRE_EQUAL(cf.missing_data(), false);
+	type = artdaq::Fragment::FirstUserFragmentType;
+	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
+	fps.clear();
+
+	TLOG(TLVL_INFO) << "Generating " << RATE_TEST_COUNT << " requests BEGIN";
+	for (; req_seq < (2 * RATE_TEST_COUNT) + 1; ++req_seq)
+	{
+		buffer->push(req_seq, req_seq);
+	}
+	TLOG(TLVL_INFO) << "Generating " << RATE_TEST_COUNT << " requests END. Time elapsed = " << artdaq::TimeUtils::GetElapsedTime(beginop)
+	                << "(" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " reqs/s) ";
+
+	beginop = std::chrono::steady_clock::now();
+	TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments Individually BEGIN";
+	for (int ii = 0; ii < RATE_TEST_COUNT; ++ii)
+		fp.AddFragmentsToBuffer(gen.Generate(1));
+	TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments Individually END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop)
+	                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " frags/s)";
+
+	TLOG(TLVL_INFO) << "WindowMode_RateTests test case END";
+}
+
+BOOST_AUTO_TEST_CASE(CircularBufferMode_RateTests)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "CircularBufferMode_RateTests test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", RATE_TEST_COUNT / 2);
+	ps.put<bool>("circular_buffer_mode", true);
+	ps.put<std::string>("request_mode", "window");
+	ps.put<size_t>("missing_request_window_timeout_us", 500000);
+	ps.put<size_t>("window_close_timeout_us", 500000);
+
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	auto beginop = std::chrono::steady_clock::now();
+
+	TLOG(TLVL_INFO) << "Generating " << RATE_TEST_COUNT << " requests BEGIN";
+	for (size_t ii = 1; ii < RATE_TEST_COUNT + 1; ++ii)
+	{
+		buffer->push(ii, ii);
+	}
+	TLOG(TLVL_INFO) << "Generating " << RATE_TEST_COUNT << " requests END. Time elapsed = " << artdaq::TimeUtils::GetElapsedTime(beginop)
+	                << "(" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " reqs / s) ";
+
+	beginop = std::chrono::steady_clock::now();
+	TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments BEGIN";
+	fp.AddFragmentsToBuffer(gen.Generate(RATE_TEST_COUNT));
+	TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop)
+	                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " frags/s)";
+
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), 1);
+
+	beginop = std::chrono::steady_clock::now();
+	TLOG(TLVL_INFO) << "Applying requests BEGIN";
+	artdaq::FragmentPtrs fps;
+	auto sts = fp.applyRequests(fps);
+	TLOG(TLVL_INFO) << "Applying requests END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop)
+	                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " reqs/s)";
+	TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), RATE_TEST_COUNT + 1);
+	TRACE_REQUIRE_EQUAL(sts, true);
+	TRACE_REQUIRE_EQUAL(fps.size(), RATE_TEST_COUNT);
+	TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+	TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+	auto type = artdaq::Fragment::ContainerFragmentType;
+	TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+	auto cf = artdaq::ContainerFragment(*fps.front());
+	TRACE_REQUIRE_EQUAL(cf.block_count(), 0);
+	TRACE_REQUIRE_EQUAL(cf.missing_data(), true);
+	type = artdaq::Fragment::EmptyFragmentType;
+	TRACE_REQUIRE_EQUAL(cf.fragment_type(), type);
+	fps.clear();
+
+	TLOG(TLVL_INFO) << "CircularBufferMode_RateTests test case END";
+}
+
+BOOST_AUTO_TEST_CASE(WindowMode_RateTests_threaded)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "WindowMode_RateTests_threaded test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", RATE_TEST_COUNT);
+	ps.put<bool>("circular_buffer_mode", false);
+	ps.put<std::string>("request_mode", "window");
+	ps.put<size_t>("missing_request_window_timeout_us", 500000);
+	ps.put<size_t>("window_close_timeout_us", 500000);
+
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	std::atomic<int> thread_sync = 0;
+	auto gen_requests = [&]() {
+		++thread_sync;
+		while (thread_sync < 3) {}
+		auto beginop = std::chrono::steady_clock::now();
+		TLOG(TLVL_INFO) << "Generating " << RATE_TEST_COUNT << " requests BEGIN";
+		for (size_t ii = 1; ii < RATE_TEST_COUNT + 1; ++ii)
+		{
+			buffer->push(ii, ii);
+		}
+		TLOG(TLVL_INFO) << "Generating " << RATE_TEST_COUNT << " requests END. Time elapsed = " << artdaq::TimeUtils::GetElapsedTime(beginop)
+		                << "(" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " reqs / s) ";
+	};
+
+	auto gen_frags = [&]() {
+		++thread_sync;
+		while (thread_sync < 3) {}
+		auto beginop = std::chrono::steady_clock::now();
+		TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments BEGIN";
+		for (int ii = 0; ii < RATE_TEST_COUNT; ++ii)
+			fp.AddFragmentsToBuffer(gen.Generate(1));
+		TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop)
+		                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " frags/s)";
+	};
+
+	auto apply_requests = [&]() {
+		++thread_sync;
+		while (thread_sync < 3) {}
+		artdaq::FragmentPtrs fps;
+		auto begin_test = std::chrono::steady_clock::now();
+		while (fps.size() < RATE_TEST_COUNT && artdaq::TimeUtils::GetElapsedTime(begin_test) < RATE_TEST_COUNT / 1000)  // 1 ms per request
+		{
+			auto beginop = std::chrono::steady_clock::now();
+			TLOG(TLVL_INFO) << "Applying requests BEGIN";
+			auto sts = fp.applyRequests(fps);
+			TRACE_REQUIRE_EQUAL(sts, true);
+			TLOG(TLVL_INFO) << "Applying requests END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop);
+		}
+		if (fps.size() < RATE_TEST_COUNT)
+		{
+			TLOG(TLVL_WARNING) << "Some requests did not return data. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(begin_test) << ", " << fps.size() << " / " << RATE_TEST_COUNT << " Fragments received";
+		}
+		else
+		{
+			TLOG(TLVL_INFO) << "All request replies received. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(begin_test)
+			                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(begin_test) << " reqs/s)";
+			TRACE_REQUIRE_EQUAL(fp.GetNextSequenceID(), RATE_TEST_COUNT + 1);
+
+			TRACE_REQUIRE_EQUAL(fps.size(), RATE_TEST_COUNT);
+		}
+		TRACE_REQUIRE_EQUAL(fps.front()->fragmentID(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->timestamp(), 1);
+		TRACE_REQUIRE_EQUAL(fps.front()->sequenceID(), 1);
+		auto type = artdaq::Fragment::ContainerFragmentType;
+		TRACE_REQUIRE_EQUAL(fps.front()->type(), type);
+		fps.clear();
+	};
+
+	std::thread t1(gen_requests);
+	std::thread t2(gen_frags);
+	std::thread t3(apply_requests);
+
+	t1.join();
+	t2.join();
+	t3.join();
+
+	TLOG(TLVL_INFO) << "WindowMode_RateTests_threaded test case END";
+}
+
+BOOST_AUTO_TEST_CASE(WaitForDataBufferReady_RaceCondition)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "WaitForDataBufferReady_RaceCondition test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<size_t>("data_buffer_depth_fragments", 1);
+	ps.put<bool>("circular_buffer_mode", false);
+	ps.put<std::string>("request_mode", "window");
+
+	auto buffer = std::make_shared<artdaq::RequestBuffer>();
+	buffer->setRunning(true);
+	artdaqtest::FragmentBufferTestGenerator gen(ps);
+	artdaq::FragmentBuffer fp(ps);
+	fp.SetRequestBuffer(buffer);
+
+	std::atomic<int> thread_sync = 0;
+
+	auto gen_frags = [&]() {
+		++thread_sync;
+		while (thread_sync < 2) {}
+		auto beginop = std::chrono::steady_clock::now();
+		TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments BEGIN";
+		for (int ii = 0; ii < RATE_TEST_COUNT; ++ii)
+			fp.AddFragmentsToBuffer(gen.Generate(1));
+		TLOG(TLVL_INFO) << "Generating/adding " << RATE_TEST_COUNT << " Fragments END. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop)
+		                << " (" << RATE_TEST_COUNT / artdaq::TimeUtils::GetElapsedTime(beginop) << " frags/s)";
+		thread_sync = 0;
+	};
+
+	auto reset_buffer = [&]() {
+		++thread_sync;
+		while (thread_sync < 2) {}
+		auto beginop = std::chrono::steady_clock::now();
+		TLOG(TLVL_INFO) << "Resetting loop BEGIN";
+		size_t counter = 0;
+		while (thread_sync > 0)
+		{
+			fp.Reset(false);
+			counter++;
+		}
+		TLOG(TLVL_INFO) << "Reset " << RATE_TEST_COUNT << " times during loop. Time elapsed=" << artdaq::TimeUtils::GetElapsedTime(beginop);
+	};
+
+	std::thread t1(gen_frags);
+	std::thread t2(reset_buffer);
+
+	t1.join();
+	t2.join();
+
+	TLOG(TLVL_INFO) << "WaitForDataBufferReady_RaceCondition test case END";
+}
+
 BOOST_AUTO_TEST_SUITE_END()

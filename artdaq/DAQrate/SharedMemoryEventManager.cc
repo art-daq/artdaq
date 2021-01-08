@@ -89,6 +89,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 	for (size_t ii = 0; ii < size(); ++ii)
 	{
 		buffer_writes_pending_[ii] = 0;
+		// Make sure the mutexes are created once
+		std::lock_guard<std::mutex> lk(buffer_mutexes_[ii]);
 	}
 
 	if (!IsValid())
@@ -217,14 +219,15 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		}
 		else
 		{
-			TLOG(TLVL_ERROR) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the queue and reliable mode is off.";
+			TLOG(TLVL_INFO) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the queue and reliable mode is off.";
 		}
-		dropped_data_[frag.fragment_id] = std::make_unique<Fragment>(frag.word_count - frag.num_words());
+		dropped_data_.emplace_back(frag, std::make_unique<Fragment>(frag.word_count - frag.num_words()));
+		auto it = dropped_data_.rbegin();
 
-		TLOG(6) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into "
-		        << static_cast<void*>(dropped_data_[frag.fragment_id]->dataBegin()) << " sz=" << dropped_data_[frag.fragment_id]->dataSizeBytes();
+		TLOG(TLVL_DEBUG + 3) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into "
+		                     << static_cast<void*>(it->second->dataBegin()) << " sz=" << it->second->dataSizeBytes();
 
-		return dropped_data_[frag.fragment_id]->dataBegin();
+		return it->second->dataBegin();
 	}
 
 	last_backpressure_report_time_ = std::chrono::steady_clock::now();
@@ -239,11 +242,10 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 	TLOG(TLVL_BUFLCK) << "WriteFragmentHeader: obtaining buffer_mutexes lock for buffer " << buffer;
 
-	std::unique_lock<std::mutex> lk(buffer_mutexes_[buffer]);
+	std::unique_lock<std::mutex> lk(buffer_mutexes_.at(buffer));
 
 	TLOG(TLVL_BUFLCK) << "WriteFragmentHeader: obtained buffer_mutexes lock for buffer " << buffer;
 
-	//TraceLock lk(buffer_mutexes_[buffer], 50, "WriteFragmentHeader");
 	auto hdrpos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	Write(buffer, &frag, frag.num_words() * sizeof(RawDataType));
 
@@ -257,7 +259,8 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 			reinterpret_cast<detail::RawFragmentHeader*>(hdrpos)->word_count = frag.num_words();         // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 			reinterpret_cast<detail::RawFragmentHeader*>(hdrpos)->type = Fragment::InvalidFragmentType;  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 			TLOG(TLVL_ERROR) << "Dropping over-size fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the current buffer for this Fragment! (Keeping header)";
-			dropped_data_[frag.fragment_id] = std::make_unique<Fragment>(frag.word_count - frag.num_words());
+			dropped_data_.emplace_back(frag, std::make_unique<Fragment>(frag.word_count - frag.num_words()));
+			auto it = dropped_data_.rbegin();
 
 			oversize_fragment_count_++;
 
@@ -266,9 +269,9 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 				throw cet::exception("Too many over-size Fragments received! Please adjust max_event_size_bytes or max_fragment_size_bytes!");
 			}
 
-			TLOG(6) << "Dropping over-size fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id
-			        << " into " << static_cast<void*>(dropped_data_[frag.fragment_id]->dataBegin());
-			return dropped_data_[frag.fragment_id]->dataBegin();
+			TLOG(TLVL_DEBUG + 3) << "Dropping over-size fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id
+			                     << " into " << static_cast<void*>(it->second->dataBegin());
+			return it->second->dataBegin();
 		}
 	}
 	TLOG(14) << "WriteFragmentHeader END";
@@ -278,23 +281,33 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHeader frag)
 {
 	TLOG(TLVL_TRACE) << "DoneWritingFragment BEGIN";
+
 	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
-	if (buffer == -1)
+	if (buffer < 0)
 	{
-		Detach(true, "SharedMemoryEventManager",
-		       "getBufferForSequenceID_ returned -1 in DoneWritingFragment. This indicates a possible mismatch between expected Fragment count and the actual number of Fragments received.");
+		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
+		{
+			if (it->first == frag)
+			{
+				dropped_data_.erase(it);
+				return;
+			}
+		}
+		if (buffer == -1)
+		{
+			Detach(true, "SharedMemoryEventManager",
+			       "getBufferForSequenceID_ returned -1 in DoneWritingFragment. This indicates a possible mismatch between expected Fragment count and the actual number of Fragments received.");
+		}
+		return;
 	}
-	if (buffer == -2) { return; }
 
 	statsHelper_.addSample(FRAGMENTS_RECEIVED_STAT_KEY, frag.word_count * sizeof(RawDataType));
 	{
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtaining buffer_mutexes lock for buffer " << buffer;
 
-		std::unique_lock<std::mutex> lk(buffer_mutexes_[buffer]);
+		std::unique_lock<std::mutex> lk(buffer_mutexes_.at(buffer));
 
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtained buffer_mutexes lock for buffer " << buffer;
-
-		//TraceLock lk(buffer_mutexes_[buffer], 50, "DoneWritingFragment");
 
 		TLOG(TLVL_DEBUG) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << " (type " << static_cast<int>(frag.type) << ")";
 		auto hdr = getEventHeader_(buffer);
@@ -602,16 +615,19 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
 		auto shutdown_start = std::chrono::steady_clock::now();
 
-		TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
-		for (int ii = 0; ii < graceful_wait_ms; ++ii)
+		if (!overwrite_mode_)
 		{
-			usleep(1000);
-
-			check_pids(false);
-			if (count_pids() == 0)
+			TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
+			for (int ii = 0; ii < graceful_wait_ms; ++ii)
 			{
-				TLOG(TLVL_INFO) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
-				return;
+				usleep(1000);
+
+				check_pids(false);
+				if (count_pids() == 0)
+				{
+					TLOG(TLVL_INFO) << "All art processes exited after " << TimeUtils::GetElapsedTimeMilliseconds(shutdown_start) << " ms.";
+					return;
+				}
 			}
 		}
 
@@ -883,6 +899,11 @@ void artdaq::SharedMemoryEventManager::rolloverSubrun(sequence_id_t boundary, su
 
 	std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 
+	// Don't re-rollover to an already-defined subrun
+	if (!subrun_event_map_.empty() && subrun_event_map_.rbegin()->second == subrun)
+	{
+		return;
+	}
 	TLOG(TLVL_INFO) << "Will roll over to subrun " << subrun << " when I reach Sequence ID " << boundary;
 	subrun_event_map_[boundary] = subrun;
 	while (subrun_event_map_.size() > max_subrun_event_map_length_)
@@ -1062,9 +1083,8 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		return -1;
 	}
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtaining buffer_mutexes lock for buffer " << new_buffer;
-	std::unique_lock<std::mutex> buffer_lk(buffer_mutexes_[new_buffer]);
+	std::unique_lock<std::mutex> buffer_lk(buffer_mutexes_.at(new_buffer));
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtained buffer_mutexes lock for buffer " << new_buffer;
-	//TraceLock(buffer_mutexes_[new_buffer], 34, "getBufferForSequenceID");
 	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;

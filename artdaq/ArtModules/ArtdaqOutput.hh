@@ -59,11 +59,11 @@
 #include <string>
 #include <vector>
 
-#define TLVL_OPENFILE 5
-#define TLVL_CLOSEFILE 6
-#define TLVL_RESPONDTOCLOSEINPUTFILE 7
-#define TLVL_RESPONDTOCLOSEOUTPUTFILE 8
-#define TLVL_ENDJOB 9
+#define TLVL_OPENFILE 16
+#define TLVL_CLOSEFILE 17
+#define TLVL_RESPONDTOCLOSEINPUTFILE 18
+#define TLVL_RESPONDTOCLOSEOUTPUTFILE 19
+#define TLVL_ENDJOB 20
 #define TLVL_SENDINIT 10
 #define TLVL_SENDINIT_VERBOSE1 32
 #define TLVL_SENDINIT_VERBOSE2 33
@@ -733,7 +733,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(last_sequence_id_ + 1,last_timestamp_ + 1, artdaq::Fragment::EndOfRunFragmentType);
+	auto msg = prepareMessage(last_sequence_id_ + 1,rp.run() + 1, artdaq::Fragment::EndOfRunFragmentType);
 	//
 	//  Write message type code.
 	//
@@ -795,7 +795,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	//
 	//  Begin preparing message.
 	//
-	auto msg = prepareMessage(last_sequence_id_ + 1, last_timestamp_ + 1, artdaq::Fragment::EndOfSubrunFragmentType);
+	auto msg = prepareMessage(last_sequence_id_ + 1, srp.subRun() + 1, artdaq::Fragment::EndOfSubrunFragmentType);
 	//
 	//  Write message type code.
 	//
