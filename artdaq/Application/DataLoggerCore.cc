@@ -11,7 +11,6 @@
 
 #include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DataLoggerCore").c_str()
-#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 

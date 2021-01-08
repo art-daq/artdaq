@@ -23,7 +23,7 @@ use_receiver: true  # default
 recevier_timeout_ms: 1000  # default
 
 ## Configuration for RequestReceiver, if used
-receiver_config: {
+request_receiver: {
 
 	## Whether this RequestReceiver will listen for requests
 	receive_requests: true

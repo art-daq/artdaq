@@ -47,6 +47,7 @@ void artdaq::RequestBuffer::push(artdaq::Fragment::sequence_id_t seq, artdaq::Fr
 
 void artdaq::RequestBuffer::reset()
 {
+	std::lock_guard<std::mutex> lk(request_mutex_);
 	requests_.clear();
 	request_timing_.clear();
 	highest_seen_request_ = 0;
