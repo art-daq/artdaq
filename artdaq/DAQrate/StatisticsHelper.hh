@@ -96,7 +96,7 @@ private:
 	int reporting_interval_fragments_;
 	double reporting_interval_seconds_;
 	size_t previous_reporting_index_{0};
-	MonitoredQuantityStats::TIME_POINT_T previous_stats_calc_time_{0.0};
+	std::atomic<MonitoredQuantityStats::TIME_POINT_T> previous_stats_calc_time_{0.0};
 };
 
 #endif /* artdaq_Application_MPI2_StatisticsHelper_hh */
