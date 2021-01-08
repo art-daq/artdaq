@@ -382,7 +382,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		std::unique_lock<std::mutex> lk(buffer_mutexes_.at(buffer));
 
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtained buffer_mutexes lock for buffer " << buffer;
-		
+
 		{
 			std::lock_guard<std::mutex> lk(fragment_ids_mutex_);
 			if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0 && !in_progress_fragment_ids_[frag.sequence_id].count(frag.fragment_id))
