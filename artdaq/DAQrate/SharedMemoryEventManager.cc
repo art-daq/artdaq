@@ -89,6 +89,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 	for (size_t ii = 0; ii < size(); ++ii)
 	{
 		buffer_writes_pending_[ii] = 0;
+		// Make sure the mutexes are created once
+		std::lock_guard<std::mutex> lk(buffer_mutexes_[ii]);
 	}
 
 	if (!IsValid())
@@ -240,11 +242,10 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 
 	TLOG(TLVL_BUFLCK) << "WriteFragmentHeader: obtaining buffer_mutexes lock for buffer " << buffer;
 
-	std::unique_lock<std::mutex> lk(buffer_mutexes_[buffer]);
+	std::unique_lock<std::mutex> lk(buffer_mutexes_.at(buffer));
 
 	TLOG(TLVL_BUFLCK) << "WriteFragmentHeader: obtained buffer_mutexes lock for buffer " << buffer;
 
-	//TraceLock lk(buffer_mutexes_[buffer], 50, "WriteFragmentHeader");
 	auto hdrpos = reinterpret_cast<RawDataType*>(GetWritePos(buffer));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	Write(buffer, &frag, frag.num_words() * sizeof(RawDataType));
 
@@ -304,11 +305,9 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	{
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtaining buffer_mutexes lock for buffer " << buffer;
 
-		std::unique_lock<std::mutex> lk(buffer_mutexes_[buffer]);
+		std::unique_lock<std::mutex> lk(buffer_mutexes_.at(buffer));
 
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtained buffer_mutexes lock for buffer " << buffer;
-
-		//TraceLock lk(buffer_mutexes_[buffer], 50, "DoneWritingFragment");
 
 		TLOG(TLVL_DEBUG) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << " (type " << static_cast<int>(frag.type) << ")";
 		auto hdr = getEventHeader_(buffer);
@@ -1084,9 +1083,8 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 		return -1;
 	}
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtaining buffer_mutexes lock for buffer " << new_buffer;
-	std::unique_lock<std::mutex> buffer_lk(buffer_mutexes_[new_buffer]);
+	std::unique_lock<std::mutex> buffer_lk(buffer_mutexes_.at(new_buffer));
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtained buffer_mutexes lock for buffer " << new_buffer;
-	//TraceLock(buffer_mutexes_[new_buffer], 34, "getBufferForSequenceID");
 	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
