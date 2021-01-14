@@ -2391,7 +2391,8 @@ BOOST_AUTO_TEST_CASE(WaitForDataBufferReady_RaceCondition)
 		auto beginop = std::chrono::steady_clock::now();
 		TLOG(TLVL_INFO) << "Resetting loop BEGIN";
 		size_t counter = 0;
-		while(thread_sync > 0) {
+		while (thread_sync > 0)
+		{
 			fp.Reset(false);
 			counter++;
 		}
