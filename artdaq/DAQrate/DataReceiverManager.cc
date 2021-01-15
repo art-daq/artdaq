@@ -140,6 +140,10 @@ void artdaq::DataReceiverManager::start_threads()
 			try
 			{
 				source_threads_[rank] = boost::thread(attrs, boost::bind(&DataReceiverManager::runReceiver_, this, rank));
+				char tname[16];
+				snprintf(tname, 16, "%d-%d RECV",rank, my_rank);  // NOLINT
+				auto handle = source_threads_[rank].native_handle();
+				pthread_setname_np(handle, tname);
 			}
 			catch (const boost::exception& e)
 			{

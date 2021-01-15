@@ -182,6 +182,10 @@ void artdaq::RequestReceiver::startRequestReception()
 	try
 	{
 		requestThread_ = boost::thread(&RequestReceiver::receiveRequestsLoop, this);
+		char tname[16];
+		snprintf(tname, 16, "%d-ReqRecv", my_rank);  // NOLINT
+		auto handle = requestThread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{

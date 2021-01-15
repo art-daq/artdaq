@@ -57,6 +57,10 @@ bool artdaq::RoutingManagerApp::do_start(art::RunID id, uint64_t timeout, uint64
 	try
 	{
 		routing_manager_thread_ = boost::thread(attrs, boost::bind(&RoutingManagerCore::process_event_table, routing_manager_ptr_.get()));
+		char tname[16];
+		snprintf(tname, 16, "%d-Routing", my_rank);  // NOLINT
+		auto handle = routing_manager_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{
@@ -129,6 +133,10 @@ bool artdaq::RoutingManagerApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	try
 	{
 		routing_manager_thread_ = boost::thread(attrs, boost::bind(&RoutingManagerCore::process_event_table, routing_manager_ptr_.get()));
+		char tname[16];
+		snprintf(tname, 16, "%d-Routing", my_rank);  // NOLINT
+		auto handle = routing_manager_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (boost::exception const& e)
 	{

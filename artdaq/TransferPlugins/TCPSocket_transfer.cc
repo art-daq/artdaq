@@ -935,6 +935,10 @@ void artdaq::TCPSocketTransfer::connect_()
 		try
 		{
 			ack_listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::receive_acks_, this);
+			char tname[16];
+			snprintf(tname, 16, "%d-AckListen", my_rank);  // NOLINT
+			auto handle = ack_listen_thread_.native_handle();
+			pthread_setname_np(handle, tname);
 		}
 		catch (const boost::exception& e)
 		{
@@ -970,6 +974,10 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 		try
 		{
 			listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, portMan->GetTCPSocketTransferPort(destination_rank()), rcvbuf_);
+			char tname[16];
+			snprintf(tname, 16, "%d-Listen", my_rank);  // NOLINT
+			auto handle = listen_thread_->native_handle();
+			pthread_setname_np(handle, tname);
 		}
 		catch (const boost::exception& e)
 		{

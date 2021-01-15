@@ -48,6 +48,10 @@ void artdaq::TokenReceiver::startTokenReception()
 	try
 	{
 		token_thread_ = boost::thread(attrs, boost::bind(&TokenReceiver::receiveTokensLoop_, this));
+		char tname[16];
+		snprintf(tname, 16, "%d-TokenRecv", my_rank);  // NOLINT
+		auto handle = token_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (boost::exception const& e)
 	{

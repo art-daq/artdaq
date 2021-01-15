@@ -409,6 +409,10 @@ void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 	try
 	{
 		monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
+		char tname[16];
+		snprintf(tname, 16, "%d-CFGMon", my_rank);  // NOLINT
+		auto handle = monitoringThread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{

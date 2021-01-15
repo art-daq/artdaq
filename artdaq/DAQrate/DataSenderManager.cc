@@ -221,6 +221,10 @@ void artdaq::DataSenderManager::startTableReceiverThread_()
 	try
 	{
 		routing_thread_ = boost::thread(&DataSenderManager::receiveTableUpdatesLoop_, this);
+		char tname[16];
+		snprintf(tname, 16, "%d-RouteRECV", my_rank);  // NOLINT
+		auto handle = routing_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{

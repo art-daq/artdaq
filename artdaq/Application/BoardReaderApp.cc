@@ -57,7 +57,14 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	try
 	{
 		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
+		char tname[16];
+		snprintf(tname, 16, "%d-FragOutput", my_rank);  // NOLINT
+		auto handle = fragment_output_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 		fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
+		snprintf(tname, 16, "%d-FragInput", my_rank);  // NOLINT
+		handle = fragment_input_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{
@@ -170,7 +177,15 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	try
 	{
 		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
+		char tname[16];
+		snprintf(tname, 16, "%d-FragOutput", my_rank);  // NOLINT
+		auto handle = fragment_output_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 		fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
+
+		snprintf(tname, 16, "%d-FragInput", my_rank);  // NOLINT
+		handle = fragment_input_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{
