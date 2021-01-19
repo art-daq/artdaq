@@ -903,7 +903,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		frag->setFragmentID(1);
 		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(1));  // Expect Fragment ID 1 to be dropped
+		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(hdr));  // Expect Fragment ID 1 to be dropped
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
@@ -923,7 +923,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		frag->setFragmentID(3);
 		hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc4 = t.WriteFragmentHeader(hdr);
-		BOOST_REQUIRE_EQUAL(fragLoc4, t.GetDroppedDataAddress(3));  // Expect Fragment ID 1 to be dropped (both because it's not in the list and event already released)
+		BOOST_REQUIRE_EQUAL(fragLoc4, t.GetDroppedDataAddress(hdr));  // Expect Fragment ID 1 to be dropped (both because it's not in the list and event already released)
 		memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
@@ -938,7 +938,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		frag->setFragmentID(1);
 		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(1));  // Expect Fragment ID 1 to be dropped
+		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(hdr));  // Expect Fragment ID 1 to be dropped
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
@@ -960,7 +960,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		frag->setFragmentID(1);
 		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc = t.WriteFragmentHeader(hdr);
-		BOOST_REQUIRE_EQUAL(fragLoc, t.GetDroppedDataAddress(1));  // Expect Fragment ID 1 to be dropped
+		BOOST_REQUIRE_EQUAL(fragLoc, t.GetDroppedDataAddress(hdr));  // Expect Fragment ID 1 to be dropped
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
@@ -1011,7 +1011,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		frag->setFragmentID(0);
 		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc = t.WriteFragmentHeader(hdr);
-		BOOST_REQUIRE_EQUAL(fragLoc, t.GetDroppedDataAddress(0));  // Expect Fragment ID 0 to be dropped
+		BOOST_REQUIRE_EQUAL(fragLoc, t.GetDroppedDataAddress(hdr));  // Expect Fragment ID 0 to be dropped
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
@@ -1042,7 +1042,7 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		frag->setFragmentID(4);
 		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
 		auto fragLoc = t.WriteFragmentHeader(hdr);
-		BOOST_REQUIRE_EQUAL(fragLoc, t.GetDroppedDataAddress(4));  // Expect Fragment ID 4 to be dropped
+		BOOST_REQUIRE_EQUAL(fragLoc, t.GetDroppedDataAddress(hdr));  // Expect Fragment ID 4 to be dropped
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
