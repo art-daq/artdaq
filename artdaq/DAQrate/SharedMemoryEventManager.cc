@@ -1449,7 +1449,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 						}
 					}
 					o << "]";
-					TLOG(TLVL_WARNING) << o.str();
+					TLOG(TLVL_DEBUG) << o.str();
 				}
 			}
 		}
