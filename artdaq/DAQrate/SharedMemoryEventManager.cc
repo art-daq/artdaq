@@ -1137,7 +1137,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 
 	TLOG(TLVL_DEBUG) << "broadcastFragments_ Marking buffer full";
 	broadcasts_.MarkBufferFull(buffer, -1);
-	TLOG(TLVL_DEBUG) << "broadcastFragment_s Complete";
+	TLOG(TLVL_DEBUG) << "broadcastFragments_ Complete";
 	return true;
 }
 
@@ -1433,6 +1433,24 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 					released_incomplete_events_[hdr->sequence_id] -= GetFragmentCountInBuffer(buf);
 				}
 				TLOG(TLVL_WARNING) << "Active event " << hdr->sequence_id << " is stale. Scheduling release of incomplete event (missing " << released_incomplete_events_[hdr->sequence_id] << " Fragments) to art.";
+				std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+				if (in_progress_fragment_ids_.count(hdr->sequence_id))
+				{
+					std::stringstream o;
+					o << "Missing Fragment IDs: [";
+					bool first = true;
+					for (auto& id : in_progress_fragment_ids_[hdr->sequence_id])
+					{
+						if (!id.second)
+						{
+							if (!first) o << ", ";
+							o << id.first;
+							first = false;
+						}
+					}
+					o << "]";
+					TLOG(TLVL_WARNING) << o.str();
+				}
 			}
 		}
 	}

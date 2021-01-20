@@ -1085,6 +1085,25 @@ BOOST_AUTO_TEST_CASE(FragmentIDChecking)
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 7);
 		BOOST_REQUIRE_EQUAL(fragLoc4 + frag->size(), fragLoc5);
 	}
+	{
+		TLOG(TLVL_INFO) << "Checking that incomplete events are handled correctly";
+		t.SetDefaultFragmentIDs({1, 3, 5, 6, 7, 12, 5432, 32});
+		frag->setSequenceID(8);
+		frag->setFragmentID(1);
+
+		auto hdr = *reinterpret_cast<artdaq::detail::RawFragmentHeader*>(frag->headerAddress());
+		auto fragLoc = t.WriteFragmentHeader(hdr);
+		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+		t.DoneWritingFragment(hdr);
+		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(8), 1);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 7);
+
+		usleep(200000);
+		t.CheckPendingBuffers();
+		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 8);
+	}
 
 	TLOG(TLVL_INFO) << "Test FragmentIDChecking END";
 }
