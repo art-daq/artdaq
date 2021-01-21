@@ -120,7 +120,10 @@ public:
 	/// </summary>
 	/// <param name="ps">ParameterSet used to configure art::OutputModule</param>
 	explicit ArtdaqOutput(fhicl::ParameterSet const& ps)
-	    : OutputModule(ps), productList_(), raw_data_label_(ps.get<std::string>("raw_data_label", "daq"))
+	    : OutputModule(ps)
+		, productList_()
+	    , fragment_id_(ps.get<artdaq::Fragment::fragment_id_t>("fragment_id", my_rank))
+		, raw_data_label_(ps.get<std::string>("raw_data_label", "daq"))
 	{
 #if ART_HEX_VERSION >= 0x30200
 		root::setup();
@@ -269,12 +272,13 @@ private:
 	size_t last_fragment_size_{10};
 	artdaq::Fragment::sequence_id_t last_sequence_id_{0};
 	artdaq::Fragment::timestamp_t last_timestamp_{0};
+	artdaq::Fragment::fragment_id_t fragment_id_;
 	std::string raw_data_label_;
 
 	std::unique_ptr<TBufferFile> prepareMessage(artdaq::Fragment::sequence_id_t seqID, artdaq::Fragment::timestamp_t ts, artdaq::Fragment::type_t type)
 	{
 		artdaq::NetMonHeader hdr;
-		outputFrag = std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, my_rank, type, hdr, ts);
+		outputFrag = std::make_unique<artdaq::Fragment>(last_fragment_size_, seqID, fragment_id_, type, hdr, ts);
 		auto msg = std::make_unique<TBufferFile>(TBuffer::kWrite, last_fragment_size_ * sizeof(artdaq::RawDataType), outputFrag->dataBegin(), kFALSE, &Fragment_ReAllocChar);
 		msg->SetWriteMode();
 

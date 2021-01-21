@@ -104,6 +104,10 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 		{
 			default_fragment_ids_.insert(f);
 		}
+		if (num_fragments_per_event_ > default_fragment_ids_.size())
+		{
+			TLOG(TLVL_WARNING) << "Potential configuration issue detected: expected_fragments_per_event (" << num_fragments_per_event_ << ") != expected_fragment_ids list size (" << default_fragment_ids_.size() << ")";
+		}
 	}
 
 	if (!IsValid())
