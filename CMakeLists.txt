@@ -100,7 +100,7 @@ find_ups_root( v5_34_20 )
 
 # Include at the top level to make sure include directory is visible
 # everywhere.
-include(ProcessSmc)
+#include(ProcessSmc)
 
 string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" ART_VERSION_LIST "$ENV{ART_VERSION}")
 list(GET ART_VERSION_LIST 0 ART_MAJOR_VERSION)
