@@ -42,7 +42,6 @@ artdaq_epics_plugin     v1_02_17        -       optional
 artdaq_ganglia_plugin	v1_02_23        -       optional
 artdaq_pcp_mmv_plugin   v1_00_08        -       optional
 cetbuildtools		v7_17_01	-	only_for_build
-smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
 
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
