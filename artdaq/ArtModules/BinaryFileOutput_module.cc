@@ -178,14 +178,10 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 
 	auto result_handles = std::vector<art::GroupQueryResult>();
 	auto const& wrapped = art::WrappedTypeID::make<RawEvent>();
-#if ART_HEX_VERSION >= 0x30000
 	ModuleContext const mc{moduleDescription()};
 	ProcessTag const processTag{"", mc.moduleDescription().processName()};
 
 	result_handles = ep.getMany(mc, wrapped, art::MatchAllSelector{}, processTag);
-#else
-	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
-#endif
 
 	for (auto const& result_handle : result_handles)
 	{
@@ -220,11 +216,7 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 			}
 		}
 	}
-#if ART_HEX_VERSION < 0x30000
-	fstats_.recordEvent(ep.id());
-#else
 	fstats_.recordEvent(ep.eventID());
-#endif
 }
 
 DEFINE_ART_MODULE(art::BinaryFileOutput)  // NOLINT(performance-unnecessary-value-param)
