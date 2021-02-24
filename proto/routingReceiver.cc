@@ -181,8 +181,9 @@ private:
 		try
 		{
 			routing_thread_ = boost::thread(&RoutingReceiver::receiveTableUpdatesLoop_, this);
-			char tname[16];
-			snprintf(tname, 16, "%s", "RoutingReceive");  // NOLINT
+			char tname[16]; // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+			snprintf(tname, sizeof(tname)-1, "%s", "RoutingReceive");  // NOLINT
+			tname[sizeof(tname)-1] = '\0'; // assure term. snprintf is not too evil :)
 			auto handle = routing_thread_.native_handle();
 			pthread_setname_np(handle, tname);
 		}
