@@ -107,7 +107,7 @@ simple_plugin(ArtdaqInput "source"
   art_Framework_Principal
   art_Persistency_Provenance
   art_Utilities
-  ${MESSAGEFACILITY_LIBS}
+  MF_MessageLogger
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}
@@ -171,7 +171,7 @@ simple_plugin(ArtdaqBuildInfo "module"
   artdaq-utilities_BuildInfo
   artdaq-core_BuildInfo
   art_Persistency_Provenance
-  ${MF_MESSAGELOGGER}
+  MF_MessageLogger
   ${FHICLCPP}
   ${CETLIB}
   ${CETLIB_EXCEPT}
