@@ -15,28 +15,6 @@ simple_plugin(FragmentSniffer "module"
 #    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
-if(${art_not_in_ups})
-else(${art_not_in_ups})
- set(artVersionLib $ENV{ART_LIB}/libart_Version.so)
-endif(${art_not_in_ups})
-
-if( ${ART_HEX_VERSION} LESS 0x20906 )
-cet_test(shared_memory_reader_t USE_BOOST_UNIT
-  LIBRARIES
-  artdaq_ArtModules
-  artdaq_DAQrate
-  artdaq_DAQdata
-  artdaq-core_Data_dict
-  art_Framework_Core
-  art_Framework_Principal
-  art_Persistency_Provenance
- # canvas_Persistency_Common_dict
- # canvas_Persistency_WrappedStdDictionaries_dict
-  art_Utilities
-  ${artVersionLib}
-  )
-  endif()
-
 cet_test(daq_flow_t
   LIBRARIES
   art_Framework_Art
