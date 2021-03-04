@@ -15,14 +15,8 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 
-#if ART_HEX_VERSION < 0x30000
-#include "art/Persistency/Provenance/MasterProductRegistry.h"
-#include "art/Persistency/Provenance/ProductMetaData.h"
-#endif
-#if ART_HEX_VERSION >= 0x30200
-#include "art_root_io/setup.h"
-#endif
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
+#include "art_root_io/setup.h"
 
 #include "canvas/Persistency/Common/EDProduct.h"
 #include "canvas/Persistency/Common/Wrapper.h"
@@ -73,18 +67,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#if ART_HEX_VERSION < 0x30000
-#define EVENT_ID id
-#define SUBRUN_ID id
-#define RUN_ID id
-#define HISTORY_PTR_T std::shared_ptr<art::History>
-#else
-#define EVENT_ID eventID
-#define SUBRUN_ID subRunID
-#define RUN_ID runID
-#define HISTORY_PTR_T std::unique_ptr<art::History>
-#endif
 
 namespace art {
 template<typename U>
@@ -193,7 +175,7 @@ private:
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
 	ProductList* productList_;
-	HISTORY_PTR_T history_to_use_;
+	std::unique_ptr<art::History> history_to_use_;
 	bool fragmentsOnlyMode_;
 	std::string pretend_module_name;                       ///< The module name to store data under
 	size_t bytesRead;                                      ///< running total of number of bytes received
@@ -213,9 +195,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
     , bytesRead(0)
     , last_read_time(std::chrono::steady_clock::now())
 {
-#if ART_HEX_VERSION >= 0x30200
 	root::setup();
-#endif
 	// Instantiate ArtdaqSharedMemoryService to set up artdaq Globals and MetricManager
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 
@@ -403,11 +383,8 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			    << "ArtdaqInputHelper: Product list sz=" << productList_->size();
 
 			// helper now owns productList_!
-#if ART_HEX_VERSION < 0x30000
-			helper.productList(productList_);
-#else
+
 			helper.productList(std::unique_ptr<art::ProductList>(productList_));
-#endif
 			TLOG(TLVL_DEBUG + 2, "ArtdaqInputHelper") << "ArtdaqInputHelper: got product list";
 		}
 
@@ -489,7 +466,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	std::unique_ptr<art::SubRunAuxiliary> subrun_aux;
 	std::unique_ptr<art::EventAuxiliary> event_aux;
 
-	HISTORY_PTR_T history_from_event;
+	std::unique_ptr<art::History> history_from_event;
 
 	// Establish default 'results'
 	outR = nullptr;
@@ -552,19 +529,11 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		art::Timestamp currentTime = time(nullptr);
 		if (inR != nullptr)
 		{
-#if ART_HEX_VERSION < 0x30000
-			inR->setEndTime(currentTime);
-#else
 			inR->endTime(currentTime);
-#endif
 		}
 		if (inSR != nullptr)
 		{
-#if ART_HEX_VERSION < 0x30000
-			inSR->setEndTime(currentTime);
-#else
 			inSR->endTime(currentTime);
-#endif
 		}
 
 		TLOG(15, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
@@ -612,7 +581,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		                              << (inSR ? std::to_string(inSR->run()) : "invalid") << "/" << event_aux->run()
 		                              << ", subrun/expected " << (inSR ? std::to_string(inSR->subRun()) : "invalid") << "/"
 		                              << event_aux->subRun();
-		if ((inR == nullptr) || !inR->RUN_ID().isValid() || (inR->run() != event_aux->run()))
+		if ((inR == nullptr) || !inR->runID().isValid() || (inR->run() != event_aux->run()))
 		{
 			// New run, either we have no input RunPrincipal, or the
 			// input run number does not match the event run number.
@@ -620,7 +589,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			outR = pm_.makeRunPrincipal(*run_aux);
 		}
 		art::SubRunID subrun_check(event_aux->run(), event_aux->subRun());
-		if (inSR == nullptr || subrun_check != inSR->SUBRUN_ID())
+		if (inSR == nullptr || subrun_check != inSR->subRunID())
 		{
 			// New SubRun, either we have no input SubRunPrincipal, or the
 			// input subRun number does not match the event subRun number.
@@ -629,7 +598,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux);
 		}
 		TLOG(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: making EventPrincipal ...";
-		auto historyPtr = HISTORY_PTR_T(new History(*(history_to_use_.get())));
+		auto historyPtr = std::unique_ptr<art::History>(new History(*(history_to_use_.get())));
 		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
 		{
 			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
@@ -712,7 +681,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 		{
 			TLOG(20, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 			outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
-			art::EventID const evid(art::EventID::flushEvent(outSR->SUBRUN_ID()));
+			art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
 			outE = pm_.makeEventPrincipal(evid, currentTime);
 		}
 		else
@@ -721,10 +690,10 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 			// subrun, then it must have been associated with a data event.  In that case, we need
 			// to generate a flush event with a valid run but flush subrun and event number in order
 			// to end the subrun.
-			if (inSR != nullptr && !inSR->SUBRUN_ID().isFlush() && inSR->subRun() == evtHeader->subrun_id)
+			if (inSR != nullptr && !inSR->subRunID().isFlush() && inSR->subRun() == evtHeader->subrun_id)
 			{
-				TLOG(20, "ArtdaqInputHelper") << "Flushing old run id " << inR->RUN_ID();
-				art::EventID const evid(art::EventID::flushEvent(inR->RUN_ID()));
+				TLOG(20, "ArtdaqInputHelper") << "Flushing old run id " << inR->runID();
+				art::EventID const evid(art::EventID::flushEvent(inR->runID()));
 				outSR = pm_.makeSubRunPrincipal(evid.subRunID(), currentTime);
 				outE = pm_.makeEventPrincipal(evid, currentTime);
 				// If this is either a new or another empty subrun, then generate a flush event with
@@ -735,7 +704,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 			{
 				TLOG(20, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 				outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
-				art::EventID const evid(art::EventID::flushEvent(outSR->SUBRUN_ID()));
+				art::EventID const evid(art::EventID::flushEvent(outSR->subRunID()));
 				outE = pm_.makeEventPrincipal(evid, currentTime);
 				// Possible error condition
 				//} else {
@@ -748,7 +717,7 @@ bool art::ArtdaqInputHelper<U>::constructPrincipal(artdaq::Fragment::type_t firs
 
 	// make new subrun if inSR is 0 or if the subrun has changed
 	art::SubRunID subrun_check(evtHeader->run_id, evtHeader->subrun_id);
-	if (inSR == nullptr || subrun_check != inSR->SUBRUN_ID())
+	if (inSR == nullptr || subrun_check != inSR->subRunID())
 	{
 		TLOG(20, "ArtdaqInputHelper") << "Making subrun principal with subrun_id " << evtHeader->subrun_id;
 		outSR = pm_.makeSubRunPrincipal(evtHeader->run_id, evtHeader->subrun_id, currentTime);
@@ -841,11 +810,7 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(RunPrincipal*& rp, std::unique_pt
                                                const BranchDescription& bd,
                                                std::unique_ptr<const ProductProvenance>&& prdprov)
 {
-#if ART_HEX_VERSION < 0x30000
-	rp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forRun(rp->RUN_ID()));
-#else
-	rp->put(bd, std::move(prdprov), std::move(prd), std::make_unique<RangeSet>(RangeSet::forRun(rp->RUN_ID())));
-#endif
+	rp->put(bd, std::move(prdprov), std::move(prd), std::make_unique<RangeSet>(RangeSet::forRun(rp->runID())));
 }
 
 template<typename U>
@@ -853,11 +818,7 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(SubRunPrincipal*& srp, std::uniqu
                                                const BranchDescription& bd,
                                                std::unique_ptr<const ProductProvenance>&& prdprov)
 {
-#if ART_HEX_VERSION < 0x30000
-	srp->put(std::move(prd), bd, std::move(prdprov), RangeSet::forSubRun(srp->SUBRUN_ID()));
-#else
-	srp->put(bd, std::move(prdprov), std::move(prd), std::make_unique<RangeSet>(RangeSet::forSubRun(srp->SUBRUN_ID())));
-#endif
+	srp->put(bd, std::move(prdprov), std::move(prd), std::make_unique<RangeSet>(RangeSet::forSubRun(srp->subRunID())));
 }
 
 template<typename U>
@@ -866,11 +827,9 @@ void art::ArtdaqInputHelper<U>::putInPrincipal(EventPrincipal*& ep, std::unique_
                                                std::unique_ptr<const ProductProvenance>&& prdprov)
 {
 	TLOG(19, "ArtdaqInputHelper") << "EventPrincipal size before put: " << ep->size();
-#if ART_HEX_VERSION < 0x30000
-	ep->put(std::move(prd), bd, std::move(prdprov));
-#else
+
 	ep->put(bd, std::move(prdprov), std::move(prd), std::make_unique<RangeSet>(RangeSet::invalid()));
-#endif
+
 	TLOG(19, "ArtdaqInputHelper") << "EventPrincipal size after put: " << ep->size();
 }
 
@@ -1071,8 +1030,8 @@ bool art::ArtdaqInputHelper<U>::readNext(art::RunPrincipal* const inR, art::SubR
 			// return new principals.
 			if (inR != nullptr && inSR != nullptr && outR != nullptr && outSR != nullptr)
 			{
-				if (inR->RUN_ID().isFlush() && inSR->SUBRUN_ID().isFlush() && outR->RUN_ID().isFlush() &&
-				    outSR->SUBRUN_ID().isFlush())
+				if (inR->runID().isFlush() && inSR->subRunID().isFlush() && outR->runID().isFlush() &&
+				    outSR->subRunID().isFlush())
 				{
 					outR = nullptr;
 					outSR = nullptr;
