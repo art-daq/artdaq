@@ -409,6 +409,11 @@ void artdaq::CommandableFragmentGenerator::startMonitoringThread()
 	try
 	{
 		monitoringThread_ = boost::thread(&CommandableFragmentGenerator::getMonitoringDataLoop, this);
+		char tname[16]; // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		snprintf(tname, sizeof(tname)-1, "%d-CFGMon", my_rank);  // NOLINT
+		tname[sizeof(tname)-1] = '\0'; // assure term. snprintf is not too evil :)
+		auto handle = monitoringThread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{

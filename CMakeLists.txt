@@ -97,6 +97,7 @@ find_ups_product( sqlite v3_08_05_00 )
 find_ups_product( tbb v4_1 )
 find_ups_product( xmlrpc_c v1_25_18 )
 find_ups_root( v5_34_20 )
+	find_ups_product( art_root_io v1_00_00 )
 
 # Include at the top level to make sure include directory is visible
 # everywhere.
@@ -129,9 +130,6 @@ message("-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH
 set(ART_HEX_VERSION 0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
 add_definitions(-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
 
-if( ${ART_HEX_VERSION} GREATER 0x30200 )
-	find_ups_product( art_root_io v1_00_00 )
-endif()
 
 
 string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" MESSAGEFACILITY_VERSION_LIST "$ENV{MESSAGEFACILITY_VERSION}")
@@ -141,14 +139,6 @@ list(GET MESSAGEFACILITY_VERSION_LIST 2 MESSAGEFACILITY_PATCH_VERSION)
 
 message("-DMESSAGEFACILITY_HEX_VERSION=0x${MESSAGEFACILITY_MAJOR_VERSION}${MESSAGEFACILITY_MINOR_VERSION}${MESSAGEFACILITY_PATCH_VERSION}")
 add_definitions(-DMESSAGEFACILITY_HEX_VERSION=0x${MESSAGEFACILITY_MAJOR_VERSION}${MESSAGEFACILITY_MINOR_VERSION}${MESSAGEFACILITY_PATCH_VERSION})
-
-# as of art v2_11_00, messagefacility has a single library
-check_ups_version(messagefacility $ENV{MESSAGEFACILITY_VERSION} v2_02_00 PRODUCT_MATCHES_VAR ONE_MF_LIBRARY)
-if(ONE_MF_LIBRARY)
-    set( MESSAGEFACILITY_LIBS MF_MessageLogger)
-else()
-    set( MESSAGEFACILITY_LIBS MF_MessageLogger MF_Utilities)
-endif()
 
 find_library( XMLRPC_SERVER_ABYSSPP NAMES xmlrpc_server_abyss++ PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
 find_library( XMLRPC_SERVER_ABYSS NAMES xmlrpc_server_abyss PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
