@@ -8,7 +8,7 @@ art_make( BASENAME_ONLY
   ${FHICLCPP}
   ${CETLIB}
   ${CETLIB_EXCEPT}
-  ${MESSAGEFACILITY_LIBS}
+  MF_MessageLogger
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   )

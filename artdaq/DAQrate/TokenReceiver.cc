@@ -48,6 +48,11 @@ void artdaq::TokenReceiver::startTokenReception()
 	try
 	{
 		token_thread_ = boost::thread(attrs, boost::bind(&TokenReceiver::receiveTokensLoop_, this));
+		char tname[16]; // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		snprintf(tname, sizeof(tname)-1, "%d-TokenRecv", my_rank);  // NOLINT
+		tname[sizeof(tname)-1] = '\0'; // assure term. snprintf is not too evil :)
+		auto handle = token_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (boost::exception const& e)
 	{
