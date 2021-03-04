@@ -364,9 +364,9 @@ uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int inde
 	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as uint64_t.";
 	try
 	{
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getI8(index);
-	return static_cast<uint64_t>(paramList.getI8(index));
-}
+		TLOG(TLVL_TRACE) << "Param value: " << paramList.getI8(index);
+		return static_cast<uint64_t>(paramList.getI8(index));
+	}
 	catch (...)
 	{
 		TLOG(TLVL_TRACE) << "Param value (int): " << paramList.getInt(index);
