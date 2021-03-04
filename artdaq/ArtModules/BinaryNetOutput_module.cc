@@ -161,14 +161,11 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 	auto result_handles = std::vector<art::GroupQueryResult>();
 
 	auto const& wrapped = art::WrappedTypeID::make<RawEvent>();
-#if ART_HEX_VERSION >= 0x30000
+
 	ModuleContext const mc{moduleDescription()};
 	ProcessTag const processTag{"", mc.moduleDescription().processName()};
 
 	result_handles = ep.getMany(mc, wrapped, art::MatchAllSelector{}, processTag);
-#else
-	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
-#endif
 
 	artdaq::Fragment::sequence_id_t sequence_id = 0;
 
