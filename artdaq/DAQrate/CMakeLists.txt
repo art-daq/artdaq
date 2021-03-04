@@ -19,7 +19,7 @@ art_make(BASENAME_ONLY
   artdaq-core_Utilities
   artdaq_RoutingPolicies
   ${FHICLCPP}
-  ${MESSAGEFACILITY_LIBS}
+  MF_MessageLogger
   ${Boost_THREAD_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   pthread
