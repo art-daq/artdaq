@@ -459,7 +459,6 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 		bool found = false;
 		for (auto const& ref : refs)
 		{
-
 			if (ref.second == productDescription)
 			{
 				found = true;
@@ -588,7 +587,6 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 
 	art::ProcessTag tag("", processName());
 	auto res = ep.getMany(art::ModuleContext::invalid(), art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector(), tag);
-
 
 	artdaq::Fragment::timestamp_t ts = 0;
 
