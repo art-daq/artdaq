@@ -10,12 +10,8 @@
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
-#if ART_HEX_VERSION < 0x30000
-#include "art/Persistency/Provenance/ProductMetaData.h"
-#endif
-#if ART_HEX_VERSION >= 0x30200
+
 #include "art_root_io/setup.h"
-#endif
 
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
@@ -77,22 +73,6 @@
 #define TLVL_EXTRACTPRODUCTS 15
 #define TLVL_EXTRACTPRODUCTS_VERBOSE 36
 
-#if ART_HEX_VERSION < 0x30000
-#define RUN_AUX aux
-#define SUBRUN_AUX aux
-#define EVENT_AUX aux
-#define RUN_ID id
-#define SUBRUN_ID id
-#define EVENT_ID id
-#else
-#define RUN_AUX runAux
-#define SUBRUN_AUX subRunAux
-#define EVENT_AUX eventAux
-#define RUN_ID runID
-#define SUBRUN_ID subRunID
-#define EVENT_ID eventID
-#endif
-
 namespace art {
 class ArtdaqOutput;
 }  // namespace art
@@ -122,9 +102,7 @@ public:
 	explicit ArtdaqOutput(fhicl::ParameterSet const& ps)
 	    : OutputModule(ps), productList_(), raw_data_label_(ps.get<std::string>("raw_data_label", "daq"))
 	{
-#if ART_HEX_VERSION >= 0x30200
 		root::setup();
-#endif
 	}
 
 	/// <summary>
@@ -481,22 +459,14 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 		bool found = false;
 		for (auto const& ref : refs)
 		{
-#if ART_HEX_VERSION < 0x30000
-			if (*ref == productDescription)
-			{
-#else
+
 			if (ref.second == productDescription)
 			{
-#endif
 				found = true;
 				break;
 			}
 		}
-#if ART_HEX_VERSION < 0x30000
-		if (I->second->productUnavailable() || !found)
-#else
 		if (!I->second->productAvailable() || !found)
-#endif
 		{
 			continue;
 		}
@@ -529,22 +499,13 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 		bool found = false;
 		for (auto const& ref : refs)
 		{
-#if ART_HEX_VERSION < 0x30000
-			if (*ref == productDescription)
-			{
-#else
 			if (ref.second == productDescription)
 			{
-#endif
 				found = true;
 				break;
 			}
 		}
-#if ART_HEX_VERSION < 0x30000
-		if (I->second->productUnavailable() || !found)
-#else
 		if (!I->second->productAvailable() || !found)
-#endif
 		{
 			continue;
 		}
@@ -574,11 +535,9 @@ inline void art::ArtdaqOutput::writeDataProducts(std::unique_ptr<TBufferFile>& m
 		                                "Streaming product provenance of class: '"
 		                             << bd.producedClassName() << "' modlbl: '" << bd.moduleLabel() << "' instnm: '"
 		                             << bd.productInstanceName() << "' procnm: '" << bd.processName() << "'";
-#if ART_HEX_VERSION < 0x30000
-		const ProductProvenance* prdprov = I->second->productProvenancePtr().get();
-#else
+
 		const ProductProvenance* prdprov = I->second->productProvenance().get();
-#endif
+
 		msg->WriteObjectAny(prdprov, prdprov_class);
 	}
 	TLOG(TLVL_WRITEDATAPRODUCTS) << "End:   ArtdaqOutput::writeDataProducts(...)";
@@ -625,14 +584,11 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 
 	// Subrun number starts at 1
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Setting Output Fragment Header Fields";
-	auto seqID = (static_cast<uint64_t>(ep.EVENT_ID().subRun() - 1) << 32) + ep.EVENT_ID().event();
+	auto seqID = (static_cast<uint64_t>(ep.eventID().subRun() - 1) << 32) + ep.eventID().event();
 
-#if ART_HEX_VERSION > 0x30000
 	art::ProcessTag tag("", processName());
 	auto res = ep.getMany(art::ModuleContext::invalid(), art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector(), tag);
-#else
-	auto res = ep.getMany(art::WrappedTypeID::make<artdaq::detail::RawEventHeader>(), art::MatchAllSelector());
-#endif
+
 
 	artdaq::Fragment::timestamp_t ts = 0;
 
@@ -661,14 +617,14 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//  Write RunAuxiliary.
 	//
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming RunAuxiliary ...";
-	msg->WriteObjectAny(&ep.subRunPrincipal().runPrincipal().RUN_AUX(), run_aux_class);
+	msg->WriteObjectAny(&ep.subRunPrincipal().runPrincipal().runAux(), run_aux_class);
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming RunAuxiliary.";
 
 	//
 	//  Write SubRunAuxiliary.
 	//
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming SubRunAuxiliary ...";
-	msg->WriteObjectAny(&ep.subRunPrincipal().SUBRUN_AUX(), subrun_aux_class);
+	msg->WriteObjectAny(&ep.subRunPrincipal().subRunAux(), subrun_aux_class);
 	TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming SubRunAuxiliary.";
 
 	//
@@ -676,7 +632,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	//
 	{
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming EventAuxiliary ...";
-		msg->WriteObjectAny(&ep.EVENT_AUX(), event_aux_class);
+		msg->WriteObjectAny(&ep.eventAux(), event_aux_class);
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming EventAuxiliary.";
 	}
 	//
@@ -716,11 +672,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
-#if ART_HEX_VERSION < 0x30000
-		send_init_message(art::History());
-#else
 		send_init_message(rp.history());
-#endif
 		initMsgSent_ = true;
 	}
 #if 0
@@ -747,7 +699,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	//
 	{
 		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streaming RunAuxiliary ...";
-		msg->WriteObjectAny(&rp.RUN_AUX(), run_aux_class);
+		msg->WriteObjectAny(&rp.runAux(), run_aux_class);
 		TLOG(TLVL_WRITERUN) << "ArtdaqOutput::writeRun: streamed RunAuxiliary.";
 	}
 	//
@@ -775,11 +727,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "Begin: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
-#if ART_HEX_VERSION < 0x30000
-		send_init_message(art::History());
-#else
 		send_init_message(srp.history());
-#endif
 		initMsgSent_ = true;
 	}
 	//
@@ -827,18 +775,18 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: phr: data.back().id(): '" << OS.str() << "'";
 			}
 		}
-		if (!srp.SUBRUN_AUX().processHistoryID().isValid())
+		if (!srp.subRunAux().processHistoryID().isValid())
 		{
 			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: ProcessHistoryID: 'INVALID'";
 		}
 		else
 		{
 			std::ostringstream OS;
-			srp.SUBRUN_AUX().processHistoryID().print(OS);
+			srp.subRunAux().processHistoryID().print(OS);
 			TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: ProcessHistoryID: '" << OS.str() << "'";
 			OS.str("");
 			ProcessHistory processHistory;
-			ProcessHistoryRegistry::get(srp.SUBRUN_AUX().processHistoryID(), processHistory);
+			ProcessHistoryRegistry::get(srp.subRunAux().processHistoryID(), processHistory);
 			if (!processHistory.data().empty())
 			{
 				// FIXME: Print something special on invalid id() here!
@@ -849,7 +797,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 				TLOG(TLVL_WRITESUBRUN_VERBOSE) << "ArtdaqOutput::writeSubRun: ProcessConfiguration: '" << OS.str();
 			}
 		}
-		msg->WriteObjectAny(&srp.SUBRUN_AUX(), subrun_aux_class);
+		msg->WriteObjectAny(&srp.subRunAux(), subrun_aux_class);
 		TLOG(TLVL_WRITESUBRUN) << "ArtdaqOutput::writeSubRun: streamed SubRunAuxiliary.";
 	}
 	//
@@ -876,10 +824,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu::unused]])
 {
 	TLOG(TLVL_EXTRACTPRODUCTS) << "Begin: ArtdaqOutput::extractProducts_(Principal const& principal) sz=" << principal.size();
-#if ART_HEX_VERSION < 0x30000
-	productList_ = art::ProductMetaData::instance().productList();
 
-#else
 	for (auto I = principal.begin(), E = principal.end(); I != E; ++I)
 	{
 		auto const& productDescription = I->second->productDescription();
@@ -896,7 +841,6 @@ inline void art::ArtdaqOutput::extractProducts_(Principal const& principal [[gnu
 			productList_[branchKey] = productDescription;
 		}
 	}
-#endif
 
 	TLOG(TLVL_EXTRACTPRODUCTS) << "End: ArtdaqOutput::extractProducts_(Principal const& principal) Product list sz=" << productList_.size();
 }
