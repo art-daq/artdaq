@@ -1,21 +1,7 @@
 
 
-set(TFILE_SERVICE_LIB art_Framework_Services_Optional_TFileService_service art_Framework_Services_Optional)
-if ( ${ART_HEX_VERSION} LESS 0x21200)
-	# s67 and s73
-	add_subdirectory(RootDAQOutput-s67)
-	set(ROOT_IO_LIBS art_Framework_IO_Root)
-elseif ( ${ART_HEX_VERSION} GREATER 0x30200)
-	# s82, s87
+
 	add_subdirectory(RootDAQOutput-s81)
-	set(ROOT_IO_LIBS art_root_io)
-	set(ROOT_IO_TFILE art_root_io_tfile_support)
-	set(TFILE_SERVICE_LIB art_root_io_TFileService_service)
-else()
-	# s85 is art v2_12_00
-	add_subdirectory(RootDAQOutput-s85)
-	set(ROOT_IO_LIBS art_Framework_IO_Root)
-endif()
 
 art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
@@ -32,8 +18,8 @@ art_make( BASENAME_ONLY
   artdaq_ExternalComms
   art_Framework_Core
   art_Framework_IO_Sources
-  ${ROOT_IO_LIBS}
-  ${ROOT_IO_TFILE}
+  art_root_io
+  art_root_io_tfile_support
   art_Framework_IO
   art_Framework_Principal
   artdaq_ArtModules_ArtdaqSharedMemoryService_service
@@ -55,7 +41,7 @@ art_make( BASENAME_ONLY
 simple_plugin(TransferOutput "module"
   artdaq_TransferPlugins
   artdaq_ArtModules
-  ${ROOT_IO_LIBS}
+ art_root_io
   MF_MessageLogger
   fhiclcpp
   cetlib
@@ -92,9 +78,9 @@ simple_plugin(MissingDataCheck "module"
   MF_MessageLogger
   art_Persistency_Provenance
   art_Framework_Services_Registry
-  ${ROOT_IO_LIBS}
-  ${ROOT_IO_TFILE}
-  ${TFILE_SERVICE_LIB}
+  art_root_io
+  art_root_io_tfile_support
+  art_root_io_TFileService_service
   ${ROOT_BASIC_LIB_LIST}
   ${ROOT_CORE}
   ${CETLIB_EXCEPT}
@@ -121,7 +107,7 @@ simple_plugin(ArtdaqInput "source"
   art_Framework_Principal
   art_Persistency_Provenance
   art_Utilities
-  ${MESSAGEFACILITY_LIBS}
+  MF_MessageLogger
   fhiclcpp
   cetlib
   ${CETLIB_EXCEPT}
@@ -133,7 +119,7 @@ simple_plugin(ArtdaqInput "source"
 simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
   artdaq-core_Data_dict
-  ${ROOT_IO_LIBS}
+  art_root_io
   MF_MessageLogger
   fhiclcpp
   cetlib
@@ -185,7 +171,7 @@ simple_plugin(ArtdaqBuildInfo "module"
   artdaq-utilities_BuildInfo
   artdaq-core_BuildInfo
   art_Persistency_Provenance
-  ${MF_MESSAGELOGGER}
+  MF_MessageLogger
   ${FHICLCPP}
   ${CETLIB}
   ${CETLIB_EXCEPT}
