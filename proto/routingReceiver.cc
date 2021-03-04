@@ -181,6 +181,11 @@ private:
 		try
 		{
 			routing_thread_ = boost::thread(&RoutingReceiver::receiveTableUpdatesLoop_, this);
+			char tname[16];                                              // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+			snprintf(tname, sizeof(tname) - 1, "%s", "RoutingReceive");  // NOLINT
+			tname[sizeof(tname) - 1] = '\0';                             // assure term. snprintf is not too evil :)
+			auto handle = routing_thread_.native_handle();
+			pthread_setname_np(handle, tname);
 		}
 		catch (const boost::exception& e)
 		{
@@ -336,7 +341,12 @@ static bool should_stop = false;
 static void signal_handler(int signum)
 {
 	// Messagefacility may already be gone at this point, TRACE ONLY!
-	TRACE_STREAMER(TLVL_ERROR, &("routingReceiver")[0], 0, 0, 0) << "A signal of type " << signum << " was caught by routingReceiver. Stopping receive loop!";
+#if TRACE_REVNUM < 1459
+	TRACE_STREAMER(TLVL_ERROR, &("routingReceiver")[0], 0, 0, 0)
+#else
+	TRACE_STREAMER(TLVL_ERROR, TLOG2("routingReceiver", 0), 0)
+#endif
+	    << "A signal of type " << signum << " was caught by routingReceiver. Stopping receive loop!";
 
 	should_stop = true;
 
@@ -345,7 +355,8 @@ static void signal_handler(int signum)
 	pthread_sigmask(SIG_UNBLOCK, &set, nullptr);
 }
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("RoutingReceiver", false, false);
 	static std::mutex sighandler_mutex;
