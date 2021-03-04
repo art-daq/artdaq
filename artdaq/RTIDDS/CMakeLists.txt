@@ -7,7 +7,7 @@ art_make_library( LIBRARY_NAME artdaq_RTIDDS
   RTIDDS.cc
   LIBRARIES
   artdaq-core_Data
-  ${MF_MESSAGELOGGER}
+  MF_MessageLogger
   ${MF_UTILS}
   $ENV{NDDSHOME}/lib/${ARCH}/libnddscpp.so
   $ENV{NDDSHOME}/lib/${ARCH}/libnddsc.so
