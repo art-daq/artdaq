@@ -23,11 +23,7 @@
 #include <set>
 #include <vector>
 
-#if ART_HEX_VERSION < 0x30200
-#include "art/Framework/Services/Optional/TFileService.h"
-#else
 #include "art_root_io/TFileService.h"
-#endif
 
 #include "TTree.h"
 
