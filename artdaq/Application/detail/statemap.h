@@ -47,934 +47,869 @@
 #if (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1))
 #if defined(SMC_USES_IOSTREAMS)
 #include <iostream>
-#endif // SMC_USES_IOSTREAMS
+#endif  // SMC_USES_IOSTREAMS
 #if defined(SMC_NO_EXCEPTIONS)
 #include <cassert>
-#endif // SMC_NO_EXCEPTIONS
+#endif  // SMC_NO_EXCEPTIONS
 #include <cstdio>
 #elif defined(WIN32)
 #if defined(SMC_USES_IOSTREAMS)
 #include <iostream>
-#endif // SMC_USES_IOSTREAMS
+#endif  // SMC_USES_IOSTREAMS
 #if defined(SMC_NO_EXCEPTIONS)
 #include <cassert>
-#endif // SMC_NO_EXCEPTIONS
+#endif  // SMC_NO_EXCEPTIONS
 #include <windows.h>
 #else
 #if defined(SMC_USES_IOSTREAMS)
 #include <iostream.h>
-#endif // SMC_USES_IOSTREAMS
+#endif  // SMC_USES_IOSTREAMS
 #if defined(SMC_NO_EXCEPTIONS)
 #include <assert.h>
-#endif // SMC_NO_EXCEPTIONS
+#endif  // SMC_NO_EXCEPTIONS
 #include <stdio.h>
 #endif
-#if ! defined(SMC_NO_EXCEPTIONS)
-#include <stdexcept>
+#if !defined(SMC_NO_EXCEPTIONS)
 #include <cstring>
+#include <stdexcept>
 #endif
 
 // Limit names to 100 ASCII characters.
 // Why 100? Because it is a round number.
 #define MAX_NAME_LEN 100
 
-namespace statemap
-{
+namespace statemap {
 //---------------------------------------------------------------
 // Routines.
 //
 
 #ifdef SMC_FIXED_STACK
-    // When static memory is used, a string has only one copy.
-    inline char* copyString(const char *s)
-    {
-        // Cast your const upon the waters and see what blows up.
-        return (const_cast<char *>(s));
-    }
-#else // ! SMC_FIXED_STACK
-    inline char* copyString(const char *s)
-    {
-        char *retval = NULL;
+// When static memory is used, a string has only one copy.
+inline char* copyString(const char* s)
+{
+	// Cast your const upon the waters and see what blows up.
+	return (const_cast<char*>(s));
+}
+#else   // ! SMC_FIXED_STACK
+inline char *copyString(const char *s)
+{
+	char *retval = NULL;
 
-        if (s != NULL)
-        {
-            retval = new char[MAX_NAME_LEN + 1];
-            retval[MAX_NAME_LEN] = '\0';
-            (void) std::strncpy(retval, s, MAX_NAME_LEN);
-        }
+	if (s != NULL)
+	{
+		retval = new char[MAX_NAME_LEN + 1];
+		retval[MAX_NAME_LEN] = '\0';
+		(void)std::strncpy(retval, s, MAX_NAME_LEN);
+	}
 
-        return (retval);
-    }
-#endif // ! SMC_FIXED_STACK
+	return (retval);
+}
+#endif  // ! SMC_FIXED_STACK
 
 //---------------------------------------------------------------
 // Exception Classes.
 //
 
 #ifndef SMC_NO_EXCEPTIONS
-    // Base class for all SMC exceptions.
-    class SmcException :
-        public std::runtime_error
-    {
-    //-----------------------------------------------------------
-    // Member methods
-    //
-    public:
+// Base class for all SMC exceptions.
+class SmcException : public std::runtime_error
+{
+	//-----------------------------------------------------------
+	// Member methods
+	//
+public:
+	// Destructor.
+	virtual ~SmcException() throw(){};
 
-        // Destructor.
-        virtual ~SmcException() throw()
-        {};
+protected:
+	// Constructor.
+	SmcException(const std::string& reason)
+	    : std::runtime_error(reason){};
 
-    protected:
+private:
+	// Default construction not allowed.
+	SmcException();
 
-        // Constructor.
-        SmcException(const std::string& reason)
-        : std::runtime_error(reason)
-        {};
-
-    private:
-
-        // Default construction not allowed.
-        SmcException();
-
-    //-----------------------------------------------------------
-    // Member data.
-    //
-    public:
-    protected:
-    private:
-    };
+	//-----------------------------------------------------------
+	// Member data.
+	//
+public:
+protected:
+private:
+};
 
 #ifdef SMC_FIXED_STACK
-    class PushOnFullStateStackException :
-        public SmcException
-    {
-    //-----------------------------------------------------------
-    // Member methods.
-    //
-    public:
+class PushOnFullStateStackException : public SmcException
+{
+	//-----------------------------------------------------------
+	// Member methods.
+	//
+public:
+	// Default constructor.
+	PushOnFullStateStackException()
+	    : SmcException("cannot push on full state stack"){};
 
-        // Default constructor.
-        PushOnFullStateStackException()
-        : SmcException("cannot push on full state stack")
-        {};
+	// Destructor.
+	virtual ~PushOnFullStateStackException() throw(){};
 
-        // Destructor.
-        virtual ~PushOnFullStateStackException() throw()
-        {};
-
-    protected:
-    private:
-
-    //-----------------------------------------------------------
-    // Member data.
-    //
-    public:
-    protected:
-    private:
-    };
+protected:
+private:
+	//-----------------------------------------------------------
+	// Member data.
+	//
+public:
+protected:
+private:
+};
 #endif
 
-    // This class is thrown when a pop is issued on an empty
-    // state stack.
-    class PopOnEmptyStateStackException :
-        public SmcException
-    {
-    //-----------------------------------------------------------
-    // Member methods.
-    //
-    public:
+// This class is thrown when a pop is issued on an empty
+// state stack.
+class PopOnEmptyStateStackException : public SmcException
+{
+	//-----------------------------------------------------------
+	// Member methods.
+	//
+public:
+	// Default constructor.
+	PopOnEmptyStateStackException()
+	    : SmcException("no state to pop from state stack"){};
 
-        // Default constructor.
-        PopOnEmptyStateStackException()
-        : SmcException("no state to pop from state stack")
-        {};
+	// Destructor.
+	virtual ~PopOnEmptyStateStackException() throw(){};
 
-        // Destructor.
-        virtual ~PopOnEmptyStateStackException() throw()
-        {};
+protected:
+private:
+	//-----------------------------------------------------------
+	// Member data.
+	//
+public:
+protected:
+private:
+};
 
-    protected:
-    private:
+// This class is thrown when a transition is issued
+// but there is no current state. This happens when
+// a transition is issued from within a transition
+// action.
+class StateUndefinedException : public SmcException
+{
+	//-----------------------------------------------------------
+	// Member methods.
+	//
+public:
+	// Default constructor.
+	StateUndefinedException()
+	    : SmcException("transition invoked while in transition"){};
 
-    //-----------------------------------------------------------
-    // Member data.
-    //
-    public:
-    protected:
-    private:
-    };
+	// Destructor.
+	virtual ~StateUndefinedException() throw(){};
 
-    // This class is thrown when a transition is issued
-    // but there is no current state. This happens when
-    // a transition is issued from within a transition
-    // action.
-    class StateUndefinedException :
-        public SmcException
-    {
-    //-----------------------------------------------------------
-    // Member methods.
-    //
-    public:
+protected:
+private:
+	//-----------------------------------------------------------
+	// Member data.
+	//
+public:
+protected:
+private:
+};
 
-        // Default constructor.
-        StateUndefinedException()
-        : SmcException("transition invoked while in transition")
-        {};
+// This class is thrown when a transition is issued
+// but there is no code to handle it.
+class TransitionUndefinedException : public SmcException
+{
+	//-----------------------------------------------------------
+	// Member methods.
+	//
+public:
+	// Default constructor.
+	TransitionUndefinedException()
+	    : SmcException("no such transition in current state"), _state(NULL), _transition(NULL){};
 
-        // Destructor.
-        virtual ~StateUndefinedException() throw()
-        {};
+	// Construct an exception using the specified state
+	// and transition.
+	TransitionUndefinedException(const char* state,
+	                             const char* transition)
+	    : SmcException("no such transition in current state"), _state(copyString(state)), _transition(copyString(transition)){};
 
-    protected:
-    private:
+	// Copy constructor.
+	TransitionUndefinedException(
+	    const TransitionUndefinedException& ex)
+	    : SmcException("no such transition in current state"), _state(copyString(ex._state)), _transition(copyString(ex._transition)){};
 
-    //-----------------------------------------------------------
-    // Member data.
-    //
-    public:
-    protected:
-    private:
-    };
+	// Destructor.
+	virtual ~TransitionUndefinedException() throw()
+	{
+		if (_state != NULL)
+		{
+			delete[] _state;
+			_state = NULL;
+		}
 
-    // This class is thrown when a transition is issued
-    // but there is no code to handle it.
-    class TransitionUndefinedException :
-        public SmcException
-    {
-    //-----------------------------------------------------------
-    // Member methods.
-    //
-    public:
+		if (_transition != NULL)
+		{
+			delete[] _transition;
+			_transition = NULL;
+		}
+	};
 
-        // Default constructor.
-        TransitionUndefinedException()
-        : SmcException("no such transition in current state"),
-          _state(NULL),
-          _transition(NULL)
-        {};
+	// Assignment operator.
+	const TransitionUndefinedException&
+	operator=(const TransitionUndefinedException& ex)
+	{
+		// Don't do self assignment.
+		if (this != &ex)
+		{
+			if (_state != NULL)
+			{
+				delete[] _state;
+				_state = NULL;
+			}
 
-        // Construct an exception using the specified state
-        // and transition.
-        TransitionUndefinedException(const char *state,
-                                     const char *transition)
-        : SmcException("no such transition in current state"),
-          _state(copyString(state)),
-          _transition(copyString(transition))
-        {};
+			if (_transition != NULL)
+			{
+				delete[] _transition;
+				_transition = NULL;
+			}
 
-        // Copy constructor.
-        TransitionUndefinedException(
-            const TransitionUndefinedException& ex)
-        : SmcException("no such transition in current state"),
-          _state(copyString(ex._state)),
-          _transition(copyString(ex._transition))
-        {};
+			_state = copyString(ex._state);
+			_transition = copyString(ex._transition);
+		}
 
-        // Destructor.
-        virtual ~TransitionUndefinedException() throw()
-        {
-            if (_state != NULL)
-            {
-                delete[] _state;
-                _state = NULL;
-            }
+		return (*this);
+	};
 
-            if (_transition != NULL)
-            {
-                delete[] _transition;
-                _transition = NULL;
-            }
-        };
+	// Returns the state. May be NULL.
+	const char* getState() const
+	{
+		return (_state);
+	};
 
-        // Assignment operator.
-        const TransitionUndefinedException&
-            operator=(const TransitionUndefinedException& ex)
-        {
-            // Don't do self assignment.
-            if (this != &ex)
-            {
-                if (_state != NULL)
-                {
-                    delete[] _state;
-                    _state = NULL;
-                }
+	// Returns the transition. May be NULL.
+	const char* getTransition() const
+	{
+		return (_transition);
+	};
 
-                if (_transition != NULL)
-                {
-                    delete[] _transition;
-                    _transition = NULL;
-                }
+protected:
+private:
+	//-----------------------------------------------------------
+	// Member data.
+	//
+public:
+protected:
+private:
+	char* _state;
+	char* _transition;
+};
 
-                _state = copyString(ex._state);
-                _transition = copyString(ex._transition);
-            }
+// This class is thrown when a state ID is either less than
+// the minimal value or greater than the maximal value.
+class IndexOutOfBoundsException : public SmcException
+{
+	//-----------------------------------------------------------
+	// Member methods.
+	//
+public:
+	// Default constructor.
+	IndexOutOfBoundsException()
+	    : SmcException("index out of bounds"), _index(0), _minIndex(0), _maxIndex(0){};
 
-            return (*this);
-        };
+	// Constructs an exception using the specified index,
+	// minimum index and maximum index.
+	IndexOutOfBoundsException(const int index,
+	                          const int minIndex,
+	                          const int maxIndex)
+	    : SmcException("index out of bounds"), _index(index), _minIndex(minIndex), _maxIndex(maxIndex){};
 
-        // Returns the state. May be NULL.
-        const char* getState() const
-        {
-            return(_state);
-        };
+	// Copy constructor.
+	IndexOutOfBoundsException(
+	    const IndexOutOfBoundsException& ex)
+	    : SmcException("index out of bounds"), _index(ex._index), _minIndex(ex._minIndex), _maxIndex(ex._maxIndex){};
 
-        // Returns the transition. May be NULL.
-        const char* getTransition() const
-        {
-            return (_transition);
-        };
+	// Destructor.
+	virtual ~IndexOutOfBoundsException() throw(){};
 
-    protected:
-    private:
+	// Assignment operator.
+	const IndexOutOfBoundsException&
+	operator=(const IndexOutOfBoundsException& ex)
+	{
+		// Don't do self assignment.
+		if (this != &ex)
+		{
+			_index = ex._index;
+			_minIndex = ex._minIndex;
+			_maxIndex = ex._maxIndex;
+		}
 
-    //-----------------------------------------------------------
-    // Member data.
-    //
-    public:
-    protected:
-    private:
+		return (*this);
+	};
 
-        char *_state;
-        char *_transition;
-    };
+	// Returns the out-of-bounds index.
+	int getIndex() const
+	{
+		return (_index);
+	};
 
-    // This class is thrown when a state ID is either less than
-    // the minimal value or greater than the maximal value.
-    class IndexOutOfBoundsException :
-        public SmcException
-    {
-    //-----------------------------------------------------------
-    // Member methods.
-    //
-    public:
+	// Returns the minimum allowed index value.
+	int getMinIndex() const
+	{
+		return (_minIndex);
+	};
 
-        // Default constructor.
-        IndexOutOfBoundsException()
-        : SmcException("index out of bounds"),
-          _index(0),
-          _minIndex(0),
-          _maxIndex(0)
-        {};
+	// Returns the maximum allowed index value.
+	int getMaxIndex() const
+	{
+		return (_maxIndex);
+	};
 
-        // Constructs an exception using the specified index,
-        // minimum index and maximum index.
-        IndexOutOfBoundsException(const int index,
-                                  const int minIndex,
-                                  const int maxIndex)
-        : SmcException("index out of bounds"),
-          _index(index),
-          _minIndex(minIndex),
-          _maxIndex(maxIndex)
-        {};
-
-        // Copy constructor.
-        IndexOutOfBoundsException(
-            const IndexOutOfBoundsException& ex)
-        : SmcException("index out of bounds"),
-          _index(ex._index),
-          _minIndex(ex._minIndex),
-          _maxIndex(ex._maxIndex)
-        {};
-
-        // Destructor.
-        virtual ~IndexOutOfBoundsException() throw()
-        {};
-
-        // Assignment operator.
-        const IndexOutOfBoundsException&
-            operator=(const IndexOutOfBoundsException& ex)
-        {
-            // Don't do self assignment.
-            if (this != &ex)
-            {
-                _index = ex._index;
-                _minIndex = ex._minIndex;
-                _maxIndex = ex._maxIndex;
-            }
-
-            return (*this);
-        };
-
-        // Returns the out-of-bounds index.
-        int getIndex() const
-        {
-            return(_index);
-        };
-
-        // Returns the minimum allowed index value.
-        int getMinIndex() const
-        {
-            return (_minIndex);
-        };
-
-        // Returns the maximum allowed index value.
-        int getMaxIndex() const
-        {
-            return (_maxIndex);
-        };
-
-    protected:
-    private:
-
-    //-----------------------------------------------------------
-    // Member data.
-    //
-    public:
-    protected:
-    private:
-
-        int _index;
-        int _minIndex;
-        int _maxIndex;
-    };
-#endif // !SMC_NO_EXCEPTIONS
+protected:
+private:
+	//-----------------------------------------------------------
+	// Member data.
+	//
+public:
+protected:
+private:
+	int _index;
+	int _minIndex;
+	int _maxIndex;
+};
+#endif  // !SMC_NO_EXCEPTIONS
 
 //
 // end of Exception Classes.
 //---------------------------------------------------------------
 
-    class State
-    {
-    //-----------------------------------------------------------
-    // Member functions.
-    //
-    public:
+class State
+{
+	//-----------------------------------------------------------
+	// Member functions.
+	//
+public:
+	const char* getName() const
+	{
+		return (_name);
+	};
 
-        const char* getName() const
-        {
-            return (_name);
-        };
+	int getId() const
+	{
+		return (_stateId);
+	}
 
-        int getId() const
-        {
-            return (_stateId);
-        }
+protected:
+	State(const char* name, int stateId)
+	    : _name(NULL), _stateId(stateId)
+	{
+		if (name != NULL)
+		{
+			_name = copyString(name);
+		}
+		else
+		{
+			_name = copyString("NAME NOT SET");
+		}
+	};
 
-    protected:
-
-        State(const char *name, int stateId)
-        : _name(NULL),
-          _stateId(stateId)
-        {
-            if (name != NULL)
-            {
-                _name = copyString(name);
-            }
-            else
-            {
-                _name = copyString("NAME NOT SET");
-            }
-        };
-
-        virtual ~State()
-        {
+	virtual ~State()
+	{
 #ifndef SMC_FIXED_STACK
-            if (_name != NULL)
-            {
-                // Delete the string iff static memory is
-                // *not* used.
-                delete[] _name;
-                _name = NULL;
-            }
+		if (_name != NULL)
+		{
+			// Delete the string iff static memory is
+			// *not* used.
+			delete[] _name;
+			_name = NULL;
+		}
 #endif
-        };
+	};
 
-    private:
+private:
+	// Make the default and copy constructors private to
+	// prevent their use.
+	State(){};
+	State(const State&){};
 
-        // Make the default and copy constructors private to
-        // prevent their use.
-        State() {};
-        State(const State&) {};
+	//-----------------------------------------------------------
+	// Member data.
+	//
+public:
+protected:
+	// This state's printable name.
+	char* _name;
 
-    //-----------------------------------------------------------
-    // Member data.
-    //
-    public:
-    protected:
+	// This state's unique identifier.
+	int _stateId;
 
-        // This state's printable name.
-        char *_name;
+private:
+};
 
-        // This state's unique identifier.
-        int _stateId;
+class FSMContext
+{
+	//-----------------------------------------------------------
+	// Nested classes.
+	//
+public:
+protected:
+private:
+	// Implements the state stack.
+	class StateEntry
+	{
+		//-------------------------------------------------------
+		// Member functions.
+		//
+	public:
+		StateEntry(State* state, StateEntry* next)
+		    : _state(state), _next(next){};
 
-    private:
-    };
+		~StateEntry()
+		{
+			_state = NULL;
+			_next = NULL;
+		};
 
-    class FSMContext
-    {
-    //-----------------------------------------------------------
-    // Nested classes.
-    //
-    public:
-    protected:
-    private:
+		State* getState()
+		{
+			return (_state);
+		};
 
-        // Implements the state stack.
-        class StateEntry
-        {
-        //-------------------------------------------------------
-        // Member functions.
-        //
-        public:
-            StateEntry(State *state, StateEntry *next)
-            : _state(state),
-              _next(next)
-            {};
+		StateEntry* getNext()
+		{
+			return (_next);
+		};
 
-            ~StateEntry()
-            {
-                _state = NULL;
-                _next = NULL;
-            };
+	protected:
+	private:
+		//-------------------------------------------------------
+		// Member data.
+		//
+	public:
+	protected:
+	private:
+		State* _state;
+		StateEntry* _next;
 
-            State* getState()
-            {
-                return(_state);
-            };
+		//-------------------------------------------------------
+		// Friends
+		//
+		friend class FSMContext;
+	};  // end of class StateEntry
 
-            StateEntry* getNext()
-            {
-                return(_next);
-            };
-
-        protected:
-        private:
-
-        //-------------------------------------------------------
-        // Member data.
-        //
-        public:
-        protected:
-        private:
-            State *_state;
-            StateEntry *_next;
-
-        //-------------------------------------------------------
-        // Friends
-        //
-            friend class FSMContext;
-        }; // end of class StateEntry
-
-    //-----------------------------------------------------------
-    // Member functions
-    //
-    public:
-
-        // Destructor.
-        virtual ~FSMContext()
-        {
+	//-----------------------------------------------------------
+	// Member functions
+	//
+public:
+	// Destructor.
+	virtual ~FSMContext()
+	{
 #ifdef SMC_FIXED_STACK
-            _transition = NULL;
-#else // ! SMC_FIXED_STACK
-            StateEntry *state;
+		_transition = NULL;
+#else   // ! SMC_FIXED_STACK
+		StateEntry *state;
 
-            if (_transition != NULL)
-            {
-                delete[] _transition;
-                _transition = NULL;
-            }
+		if (_transition != NULL)
+		{
+			delete[] _transition;
+			_transition = NULL;
+		}
 
-            // But we did allocate the state stack.
-            while (_state_stack != NULL)
-            {
-                state = _state_stack;
-                _state_stack = _state_stack->_next;
-                delete state;
-            }
-#endif // ! SMC_FIXED_STACK
-        };
+		// But we did allocate the state stack.
+		while (_state_stack != NULL)
+		{
+			state = _state_stack;
+			_state_stack = _state_stack->_next;
+			delete state;
+		}
+#endif  // ! SMC_FIXED_STACK
+	};
 
-        // Comparison and assignment operators
-        // Assignment operator
-        FSMContext& operator=(const FSMContext& fsm)
-        {
-            // Don't do the assignment if the left and right
-            // hand sides are the same object.
-            if (this != &fsm)
-            {
-                _state = fsm._state;
-            }
+	// Comparison and assignment operators
+	// Assignment operator
+	FSMContext& operator=(const FSMContext& fsm)
+	{
+		// Don't do the assignment if the left and right
+		// hand sides are the same object.
+		if (this != &fsm)
+		{
+			_state = fsm._state;
+		}
 
-            return(*this);
-        };
+		return (*this);
+	};
 
-        // Starts the finite state machine running by executing
-        // the initial state's entry actions.
-        virtual void enterStartState()=0;
+	// Starts the finite state machine running by executing
+	// the initial state's entry actions.
+	virtual void enterStartState() = 0;
 
-        // Exact same object (is it me?)
-        int same(const FSMContext& fsm) const
-        {
-            return(this == &fsm);
-        };
+	// Exact same object (is it me?)
+	int same(const FSMContext& fsm) const
+	{
+		return (this == &fsm);
+	};
 
-        // Returns the debug flag's current setting.
-        bool getDebugFlag()
-        {
-            return(_debug_flag);
-        };
+	// Returns the debug flag's current setting.
+	bool getDebugFlag()
+	{
+		return (_debug_flag);
+	};
 
-        // Sets the debug flag. A true value means debugging
-        // is on and false means off.
-        void setDebugFlag(bool flag)
-        {
-            _debug_flag = flag;
-            return;
-        };
+	// Sets the debug flag. A true value means debugging
+	// is on and false means off.
+	void setDebugFlag(bool flag)
+	{
+		_debug_flag = flag;
+		return;
+	};
 
 #ifdef SMC_USES_IOSTREAMS
-        // Returns the stream to which debug output is written.
-        std::ostream& getDebugStream()
-        {
-            return (*_debug_stream);
-        };
+	// Returns the stream to which debug output is written.
+	std::ostream& getDebugStream()
+	{
+		return (*_debug_stream);
+	};
 
-        // Sets the debug output stream.
-        void setDebugStream(std::ostream& debug_stream)
-        {
-            _debug_stream = &debug_stream;
-            return;
-        }
-#endif // SMC_USES_IOSTREAMS
+	// Sets the debug output stream.
+	void setDebugStream(std::ostream& debug_stream)
+	{
+		_debug_stream = &debug_stream;
+		return;
+	}
+#endif  // SMC_USES_IOSTREAMS
 
-        // Is this state machine already inside a transition?
-        // Yes if state is null.
-        bool isInTransition() const
-        {
-            return(_state == NULL ? true : false);
-        };
+	// Is this state machine already inside a transition?
+	// Yes if state is null.
+	bool isInTransition() const
+	{
+		return (_state == NULL ? true : false);
+	};
 
-        // Returns the current transition's name.
-        // Used only for debugging purposes.
-        char* getTransition()
-        {
-            return (_transition);
-        };
+	// Returns the current transition's name.
+	// Used only for debugging purposes.
+	char* getTransition()
+	{
+		return (_transition);
+	};
 
-        // Saves away the transition name only if debugging
-        // is turned on.
-        void setTransition(const char *transition)
-        {
+	// Saves away the transition name only if debugging
+	// is turned on.
+	void setTransition(const char* transition)
+	{
 #ifndef SMC_FIXED_STACK
-            if (_transition != NULL)
-            {
-                delete[] _transition;
-                _transition = NULL;
-            }
-#endif // ! SMC_FIXED_STACK
+		if (_transition != NULL)
+		{
+			delete[] _transition;
+			_transition = NULL;
+		}
+#endif  // ! SMC_FIXED_STACK
 
-            _transition = copyString(transition);
+		_transition = copyString(transition);
 
-            return;
-        };
+		return;
+	};
 
-        // Clears the current state.
-        void clearState()
-        {
-            _previous_state = _state;
-            _state = NULL;
-        };
+	// Clears the current state.
+	void clearState()
+	{
+		_previous_state = _state;
+		_state = NULL;
+	};
 
-        // Returns the state which a transition left.
-        // May be NULL.
-        State* getPreviousState()
-        {
-            return (_previous_state);
-        }
+	// Returns the state which a transition left.
+	// May be NULL.
+	State* getPreviousState()
+	{
+		return (_previous_state);
+	}
 
-        // Sets the current state to the specified state.
-        void setState(const State& state)
-        {
-            // clearState() is not called when a transition has
-            // no actions, so set _previous_state to _state in
-            // that situation. We know clearState() was not
-            // called when _state is not null.
-            if (_state != NULL)
-            {
-                _previous_state = _state;
-            }
+	// Sets the current state to the specified state.
+	void setState(const State& state)
+	{
+		// clearState() is not called when a transition has
+		// no actions, so set _previous_state to _state in
+		// that situation. We know clearState() was not
+		// called when _state is not null.
+		if (_state != NULL)
+		{
+			_previous_state = _state;
+		}
 
-            _state = const_cast<State *>(&state);
+		_state = const_cast<State*>(&state);
 
-            if (_debug_flag == true)
-            {
+		if (_debug_flag == true)
+		{
 #ifdef SMC_USES_IOSTREAMS
-                *_debug_stream << "ENTER STATE     : "
-                               << _state->getName()
-                               << std::endl;
+			*_debug_stream << "ENTER STATE     : "
+			               << _state->getName()
+			               << std::endl;
 #else
-                TRACE("ENTER STATE     : %s\n",
-                      _state->getName());
-#endif // SMC_USES_IOSTREAMS
-            }
-        };
+			TRACE("ENTER STATE     : %s\n",
+			      _state->getName());
+#endif  // SMC_USES_IOSTREAMS
+		}
+	};
 
 #ifdef SMC_FIXED_STACK
-        // Returns true if the state stack is empty and false
-        // otherwise.
-        bool isStateStackEmpty() const
-        {
-            return (_state_stack_depth == 0);
-        }
+	// Returns true if the state stack is empty and false
+	// otherwise.
+	bool isStateStackEmpty() const
+	{
+		return (_state_stack_depth == 0);
+	}
 
-        // Returns the state stack's depth.
-        int getStateStackDepth() const
-        {
-            return (_state_stack_depth);
-        }
+	// Returns the state stack's depth.
+	int getStateStackDepth() const
+	{
+		return (_state_stack_depth);
+	}
 
-        // Push the current state on top of the state stack
-        // and make the specified state the current state.
-        void pushState(const State& state)
-        {
+	// Push the current state on top of the state stack
+	// and make the specified state the current state.
+	void pushState(const State& state)
+	{
 #ifdef SMC_NO_EXCEPTIONS
-            assert (_state_stack_depth < SMC_STATE_STACK_SIZE);
+		assert(_state_stack_depth < SMC_STATE_STACK_SIZE);
 #else
-            if (_state_stack_depth == SMC_STATE_STACK_SIZE)
-            {
-                throw PushOnFullStateStackException();
-            }
+		if (_state_stack_depth == SMC_STATE_STACK_SIZE)
+		{
+			throw PushOnFullStateStackException();
+		}
 #endif
 
-            // Do the push only if there is a state to be pushed
-            // on the stack.
-            if (_state != NULL)
-            {
-                _state_stack[_state_stack_depth] = _state;
-                ++_state_stack_depth;
-            }
+		// Do the push only if there is a state to be pushed
+		// on the stack.
+		if (_state != NULL)
+		{
+			_state_stack[_state_stack_depth] = _state;
+			++_state_stack_depth;
+		}
 
-            _previous_state = _state;
-            _state = const_cast<State *>(&state);
+		_previous_state = _state;
+		_state = const_cast<State*>(&state);
 
-            if (_debug_flag == true)
-            {
+		if (_debug_flag == true)
+		{
 #ifdef SMC_USES_IOSTREAMS
-                *_debug_stream << "PUSH TO STATE   : "
-                               << _state->getName()
-                               << std::endl;
+			*_debug_stream << "PUSH TO STATE   : "
+			               << _state->getName()
+			               << std::endl;
 #else
-                TRACE("PUSH TO STATE   : %s\n",
-                      _state->getName());
-#endif // SMC_USES_IOSTREAMS
-            }
-        };
+			TRACE("PUSH TO STATE   : %s\n",
+			      _state->getName());
+#endif  // SMC_USES_IOSTREAMS
+		}
+	};
 
-        // Make the state on top of the state stack the
-        // current state.
-        void popState()
-        {
-            // Popping when there was no previous push is an error.
+	// Make the state on top of the state stack the
+	// current state.
+	void popState()
+	{
+		// Popping when there was no previous push is an error.
 #ifdef SMC_NO_EXCEPTIONS
-            assert(_state_stack_depth > 0);
+		assert(_state_stack_depth > 0);
 #else
-            if (_state_stack_depth == 0)
-            {
-                throw PopOnEmptyStateStackException();
-            }
+		if (_state_stack_depth == 0)
+		{
+			throw PopOnEmptyStateStackException();
+		}
 #endif
 
-            _previous_state = _state;
-            --_state_stack_depth;
-            _state = _state_stack[_state_stack_depth];
+		_previous_state = _state;
+		--_state_stack_depth;
+		_state = _state_stack[_state_stack_depth];
 
-            if (_debug_flag == true)
-            {
+		if (_debug_flag == true)
+		{
 #ifdef SMC_USES_IOSTREAMS
-                *_debug_stream << "POP TO STATE    : "
-                               << _state->getName()
-                               << std::endl;
+			*_debug_stream << "POP TO STATE    : "
+			               << _state->getName()
+			               << std::endl;
 #else
-                TRACE("POP TO STATE    : %s\n",
-                      _state->getName());
-#endif // SMC_USES_IOSTREAMS
-            }
-        };
+			TRACE("POP TO STATE    : %s\n",
+			      _state->getName());
+#endif  // SMC_USES_IOSTREAMS
+		}
+	};
 
-        // Remove all states from the state stack.
-        void emptyStateStack()
-        {
-            _state_stack_depth = 0;
-        };
-#else // ! SMC_FIXED_STACK
-        // Returns true if the state stack is empty and false
-        // otherwise.
-        bool isStateStackEmpty() const
-        {
-            return (_state_stack == NULL);
-        }
+	// Remove all states from the state stack.
+	void emptyStateStack()
+	{
+		_state_stack_depth = 0;
+	};
+#else  // ! SMC_FIXED_STACK                                  \
+       // Returns true if the state stack is empty and false \
+       // otherwise.
+	bool isStateStackEmpty() const
+	{
+		return (_state_stack == NULL);
+	}
 
-        // Returns the state stack's depth.
-        int getStateStackDepth() const
-        {
-            StateEntry *state_ptr;
-            int retval;
+	// Returns the state stack's depth.
+	int getStateStackDepth() const
+	{
+		StateEntry *state_ptr;
+		int retval;
 
-            for (state_ptr = _state_stack, retval = 0;
-                 state_ptr != NULL;
-                 state_ptr = state_ptr->getNext(), ++retval)
-                ;
+		for (state_ptr = _state_stack, retval = 0;
+		     state_ptr != NULL;
+		     state_ptr = state_ptr->getNext(), ++retval)
+			;
 
-            return (retval);
-        }
+		return (retval);
+	}
 
-        // Push the current state on top of the state stack
-        // and make the specified state the current state.
-        void pushState(const State& state)
-        {
-            StateEntry *new_entry;
+	// Push the current state on top of the state stack
+	// and make the specified state the current state.
+	void pushState(const State &state)
+	{
+		StateEntry *new_entry;
 
-            // Do the push only if there is a state to be pushed
-            // on the stack.
-            if (_state != NULL)
-            {
-                new_entry = new StateEntry(_state, _state_stack);
-                _state_stack = new_entry;
-            }
+		// Do the push only if there is a state to be pushed
+		// on the stack.
+		if (_state != NULL)
+		{
+			new_entry = new StateEntry(_state, _state_stack);
+			_state_stack = new_entry;
+		}
 
-            _previous_state = _state;
-            _state = const_cast<State *>(&state);
+		_previous_state = _state;
+		_state = const_cast<State *>(&state);
 
-            if (_debug_flag == true)
-            {
+		if (_debug_flag == true)
+		{
 #ifdef SMC_USES_IOSTREAMS
-                *_debug_stream << "PUSH TO STATE   : "
-                               << _state->getName()
-                               << std::endl;
+			*_debug_stream << "PUSH TO STATE   : "
+			               << _state->getName()
+			               << std::endl;
 #else
-                TRACE("PUSH TO STATE   : %s\n",
-                      _state->getName());
-#endif // SMC_USES_IOSTREAMS
-            }
-        };
+			TRACE("PUSH TO STATE   : %s\n",
+			      _state->getName());
+#endif  // SMC_USES_IOSTREAMS
+		}
+	};
 
-        // Make the state on top of the state stack the
-        // current state.
-        void popState()
-        {
-            StateEntry *entry;
+	// Make the state on top of the state stack the
+	// current state.
+	void popState()
+	{
+		StateEntry *entry;
 
-            // Popping when there was no previous push is an error.
+		// Popping when there was no previous push is an error.
 #ifdef SMC_NO_EXCEPTIONS
-            assert(_state_stack != NULL);
+		assert(_state_stack != NULL);
 #else
-            if (_state_stack == NULL)
-            {
-                throw PopOnEmptyStateStackException();
-            }
-#endif // SMC_NO_EXCEPTIONS
+		if (_state_stack == NULL)
+		{
+			throw PopOnEmptyStateStackException();
+		}
+#endif  // SMC_NO_EXCEPTIONS
 
-            _previous_state = _state;
-            _state = _state_stack->getState();
-            entry = _state_stack;
-            _state_stack = _state_stack->getNext();
-            delete entry;
+		_previous_state = _state;
+		_state = _state_stack->getState();
+		entry = _state_stack;
+		_state_stack = _state_stack->getNext();
+		delete entry;
 
-            if (_debug_flag == true)
-            {
+		if (_debug_flag == true)
+		{
 #ifdef SMC_USES_IOSTREAMS
-                *_debug_stream << "POP TO STATE    : "
-                               << _state->getName()
-                               << std::endl;
+			*_debug_stream << "POP TO STATE    : "
+			               << _state->getName()
+			               << std::endl;
 #else
-                TRACE("POP TO STATE    : %s\n",
-                      _state->getName());
-#endif // SMC_USES_IOSTREAMS
-            }
-        };
+			TRACE("POP TO STATE    : %s\n",
+			      _state->getName());
+#endif  // SMC_USES_IOSTREAMS
+		}
+	};
 
-        // Remove all states from the state stack.
-        void emptyStateStack()
-        {
-            StateEntry *state_ptr,
-                       *next_ptr;
+	// Remove all states from the state stack.
+	void emptyStateStack()
+	{
+		StateEntry *state_ptr,
+		    *next_ptr;
 
-            for (state_ptr = _state_stack;
-                 state_ptr != NULL;
-                 state_ptr = next_ptr)
-            {
-                next_ptr = state_ptr->getNext();
-                delete state_ptr;
-            }
+		for (state_ptr = _state_stack;
+		     state_ptr != NULL;
+		     state_ptr = next_ptr)
+		{
+			next_ptr = state_ptr->getNext();
+			delete state_ptr;
+		}
 
-            _state_stack = NULL;
-        };
-#endif // ! SMC_FIXED_STACK
+		_state_stack = NULL;
+	};
+#endif  // ! SMC_FIXED_STACK
 
-    protected:
-
-        // Default constructor.
-        FSMContext(const State& state)
-        : _state(const_cast<State *>(&state)),
-          _previous_state(NULL),
+protected:
+	// Default constructor.
+	FSMContext(const State& state)
+	    : _state(const_cast<State*>(&state)), _previous_state(NULL),
 #ifdef SMC_FIXED_STACK
-          _state_stack_depth(0),
+	    _state_stack_depth(0)
+	    ,
 #else
-          _state_stack(NULL),
+	    _state_stack(NULL)
+	    ,
 #endif
-          _transition(NULL),
+	    _transition(NULL)
+	    ,
 #ifdef SMC_USES_IOSTREAMS
-          _debug_flag(false),
-          _debug_stream(&std::cerr)
+	    _debug_flag(false)
+	    , _debug_stream(&std::cerr)
 #else
-          _debug_flag(false)
-#endif // SMC_USES_IOSTREAMS
-        {};
+	    _debug_flag(false)
+#endif  // SMC_USES_IOSTREAMS
+	          {};
 
-    private:
+private:
+	// I don't believe that it makes sense to copy a
+	// context. It may make sense to copy the application
+	// class but the new object is *not* in the same
+	// state as the old - the new object must start in
+	// the FSM's initial state. Therefore, the copy
+	// constructor is private in order to prevent it
+	// being used.
+	FSMContext(const FSMContext&){};
 
-        // I don't believe that it makes sense to copy a
-        // context. It may make sense to copy the application
-        // class but the new object is *not* in the same
-        // state as the old - the new object must start in
-        // the FSM's initial state. Therefore, the copy
-        // constructor is private in order to prevent it
-        // being used.
-        FSMContext(const FSMContext&)
-        {};
+	//-----------------------------------------------------------
+	// Member data
+	//
+public:
+protected:
+	// The current state of the finite state machine.
+	State* _state;
 
-    //-----------------------------------------------------------
-    // Member data
-    //
-    public:
-    protected:
+	// Remember which state a transition left.
+	State* _previous_state;
 
-        // The current state of the finite state machine.
-        State *_state;
-
-        // Remember which state a transition left.
-        State *_previous_state;
-
-        // The stack of pushed states.
+	// The stack of pushed states.
 #ifdef SMC_FIXED_STACK
-        State* _state_stack[SMC_STATE_STACK_SIZE];
-        int _state_stack_depth;
+	State* _state_stack[SMC_STATE_STACK_SIZE];
+	int _state_stack_depth;
 #else
-        StateEntry *_state_stack;
+	StateEntry *_state_stack;
 #endif
 
-        // The current transition *name*. Use for debugging
-        // purposes.
-        char *_transition;
+	// The current transition *name*. Use for debugging
+	// purposes.
+	char* _transition;
 
-    private:
-
-        // When this flag is set to true, this class will print
-        // out debug messages.
-        bool _debug_flag;
+private:
+	// When this flag is set to true, this class will print
+	// out debug messages.
+	bool _debug_flag;
 
 // Include the following only if C++ iostreams are being used.
 #ifdef SMC_USES_IOSTREAMS
-        // When FSM debugging is on, debug messages will be
-        // written to this output stream. This stream is set to
-        // standard error by default.
-        std::ostream *_debug_stream;
-#endif // SMC_USES_IOSTREAMS
+	// When FSM debugging is on, debug messages will be
+	// written to this output stream. This stream is set to
+	// standard error by default.
+	std::ostream* _debug_stream;
+#endif  // SMC_USES_IOSTREAMS
 
-    }; // end of class FSMContext
-}
+};  // end of class FSMContext
+}  // namespace statemap
 
 //
 // CHANGE LOG
