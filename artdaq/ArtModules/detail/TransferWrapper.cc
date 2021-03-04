@@ -168,7 +168,7 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 					// 02-Jun-2018, KAB: added status/result printout
 					// to-do: add another else clause that explicitly checks for RECV_TIMEOUT
 					TLOG(tlvl) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again"
-					                   << ", status = " << result << ", last received data " << last_received_milliseconds << " ms ago.";
+					           << ", status = " << result << ", last received data " << last_received_milliseconds << " ms ago.";
 				}
 			}
 			catch (...)
