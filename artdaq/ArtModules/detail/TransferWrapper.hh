@@ -98,6 +98,8 @@ private:
 	std::string getDispatcherStatus();
 
 	std::size_t timeoutInUsecs_;
+	std::chrono::steady_clock::time_point last_received_data_;
+	std::chrono::steady_clock::time_point last_report_;
 	std::unique_ptr<TransferInterface> transfer_;
 	std::unique_ptr<CommanderInterface> commander_;
 	const fhicl::ParameterSet pset_;
