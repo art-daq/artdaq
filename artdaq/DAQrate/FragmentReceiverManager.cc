@@ -161,8 +161,9 @@ void artdaq::FragmentReceiverManager::start_threads()
 			try
 			{
 				source_threads_[rank] = boost::thread(&FragmentReceiverManager::runReceiver_, this, rank);
-				char tname[16];
-				snprintf(tname, 16, "%d-%d FRecv", rank, my_rank);  // NOLINT
+				char tname[16]; // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+				snprintf(tname, sizeof(tname)-1, "%d-%d FRecv", rank, my_rank);  // NOLINT
+				tname[sizeof(tname)-1] = '\0'; // assure term. snprintf is not too evil :)
 				auto handle = source_threads_[rank].native_handle();
 				pthread_setname_np(handle, tname);
 			}

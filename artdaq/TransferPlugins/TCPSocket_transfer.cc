@@ -935,8 +935,9 @@ void artdaq::TCPSocketTransfer::connect_()
 		try
 		{
 			ack_listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::receive_acks_, this);
-			char tname[16];
-			snprintf(tname, 16, "%d-AckListen", my_rank);  // NOLINT
+			char tname[16]; // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+			snprintf(tname, sizeof(tname)-1, "%d-AckListen", my_rank);  // NOLINT
+			tname[sizeof(tname)-1] = '\0'; // assure term. snprintf is not too evil :)
 			auto handle = ack_listen_thread_.native_handle();
 			pthread_setname_np(handle, tname);
 		}
@@ -974,8 +975,9 @@ void artdaq::TCPSocketTransfer::start_listen_thread_()
 		try
 		{
 			listen_thread_ = std::make_unique<boost::thread>(&TCPSocketTransfer::listen_, portMan->GetTCPSocketTransferPort(destination_rank()), rcvbuf_);
-			char tname[16];
-			snprintf(tname, 16, "%d-Listen", my_rank);  // NOLINT
+			char tname[16]; // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+			snprintf(tname, sizeof(tname)-1, "%d-Listen", my_rank);  // NOLINT
+			tname[sizeof(tname)-1] = '\0'; // assure term. snprintf is not too evil :)
 			auto handle = listen_thread_->native_handle();
 			pthread_setname_np(handle, tname);
 		}

@@ -11,7 +11,7 @@ art_make( BASENAME_ONLY
   ${CETLIB_EXCEPT}
   ${Boost_SYSTEM_LIBRARY}
   fhiclcpp
-  ${MESSAGEFACILITY_LIBS}
+  MF_MessageLogger
   )
 
 simple_plugin(RoundRobin "policy"
