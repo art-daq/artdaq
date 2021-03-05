@@ -34,6 +34,7 @@ struct RoutingReceiverConfig
 	fhicl::OptionalTable<artdaq::TableReceiver::Config> routingTableConfig{fhicl::Name{"routing_table_config"}, fhicl::Comment{"Configuration for the TableReceiver"}};
 	fhicl::TableFragment<artdaq::artdaqapp::Config> artdaqAppConfig;  ///< Configuration for artdaq Application (BoardReader, etc)
 };
+
 }  // namespace artdaq
 
 static bool sighandler_init = false;

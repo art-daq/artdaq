@@ -144,6 +144,10 @@ void artdaq::TableReceiver::startTableReceiverThread_()
 	try
 	{
 		routing_thread_.reset(new boost::thread(&TableReceiver::receiveTableUpdatesLoop_, this));
+		char tname[16];
+		snprintf(tname, 16, "%s", "RoutingReceive");  // NOLINT
+		auto handle = routing_thread_->native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{
