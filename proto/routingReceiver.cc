@@ -56,8 +56,7 @@ static void signal_handler(int signum)
 	pthread_sigmask(SIG_UNBLOCK, &set, nullptr);
 }
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("RoutingReceiver", false, false);
 	static std::mutex sighandler_mutex;
