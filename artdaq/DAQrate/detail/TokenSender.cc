@@ -9,7 +9,6 @@
 #include <utility>
 #include "artdaq/DAQrate/detail/TokenSender.hh"
 
-#include "artdaq-core/Core/SimpleMemoryReader.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
