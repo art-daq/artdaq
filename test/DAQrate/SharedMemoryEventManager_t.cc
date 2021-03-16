@@ -132,12 +132,6 @@ BOOST_AUTO_TEST_CASE(EndOfData)
 
 	t.endOfData();
 
-
-	frag->setFragmentID(1);
-	hdr = GetHeader(frag);
-	auto fragLoc2 = t.WriteFragmentHeader(hdr);
-	BOOST_REQUIRE_EQUAL(fragLoc2, nullptr);
-
 	t.startRun(2);
 
 	frag->setFragmentID(2);
@@ -149,12 +143,18 @@ BOOST_AUTO_TEST_CASE(EndOfData)
 	    [&] { endComplete = t.endOfData(); }};
 
 	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+	usleep(100000);
 	BOOST_REQUIRE_EQUAL(endComplete.load(), false);
 	t.DoneWritingFragment(hdr);
 	thread.join();
 	BOOST_REQUIRE_EQUAL(endComplete.load(), true);
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+
+	frag->setFragmentID(1);
+	hdr = GetHeader(frag);
+	auto fragLoc2 = t.WriteFragmentHeader(hdr);
+	BOOST_REQUIRE_EQUAL(fragLoc2, nullptr);
 
 	TLOG(TLVL_INFO) << "Test EndOfData END";
 }
