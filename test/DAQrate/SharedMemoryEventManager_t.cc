@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(EndOfData)
 
 	t.startRun(2);
 
-	frag->setFragmentID(2);
+	frag->setSequenceID(1);
 	hdr = GetHeader(frag);
 	auto fragLoc3 = t.WriteFragmentHeader(hdr);
 
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(EndOfData)
 	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
-	frag->setFragmentID(1);
+	frag->setSequenceID(2);
 	hdr = GetHeader(frag);
 	auto fragLoc2 = t.WriteFragmentHeader(hdr);
 	BOOST_REQUIRE_EQUAL(fragLoc2, nullptr);
