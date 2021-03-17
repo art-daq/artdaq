@@ -35,6 +35,8 @@ void signal_handler(int signal)
 
 artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     : timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
+    , last_received_data_()
+    , last_report_(std::chrono::steady_clock::now())
     , transfer_(nullptr)
     , commander_(nullptr)
     , pset_(pset)
@@ -142,6 +144,7 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 					TLOG(TLVL_INFO) << "Received " << cntr << suffix << " event, "
 					                << "seqID == " << fragmentPtr->sequenceID()
 					                << ", type == " << fragmentPtr->typeString();
+					last_received_data_ = std::chrono::steady_clock::now();
 					continue;
 				}
 				if (result == artdaq::TransferInterface::DATA_END)
@@ -153,10 +156,19 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 				}
 				else
 				{
+					auto tlvl = TLVL_TRACE;
+					if (artdaq::TimeUtils::GetElapsedTime(last_report_) > 1.0 && artdaq::TimeUtils::GetElapsedTime(last_received_data_) > 1.0)
+					{
+						tlvl = TLVL_WARNING;
+						last_report_ = std::chrono::steady_clock::now();
+					}
+
+					auto last_received_milliseconds = artdaq::TimeUtils::GetElapsedTimeMilliseconds(last_received_data_);
+
 					// 02-Jun-2018, KAB: added status/result printout
 					// to-do: add another else clause that explicitly checks for RECV_TIMEOUT
-					TLOG(TLVL_WARNING) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again"
-					                   << ", status = " << result;
+					TLOG(tlvl) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again"
+					                   << ", status = " << result << ", last received data " << last_received_milliseconds << " ms ago.";
 				}
 			}
 			catch (...)
