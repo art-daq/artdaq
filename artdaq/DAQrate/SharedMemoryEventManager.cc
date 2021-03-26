@@ -323,10 +323,10 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		TLOG(TLVL_TRACE) << "DoneWritingFragment: Updating buffer touch time";
 		TouchBuffer(buffer);
 
-		buffer_writes_pending_[buffer]--;
-		if (buffer_writes_pending_[buffer] != 0)
+		if (buffer_writes_pending_[buffer] > 1)
 		{
 			TLOG(TLVL_TRACE) << "Done writing fragment, but there's another writer. Not doing bookkeeping steps.";
+			buffer_writes_pending_[buffer]--;
 			return;
 		}
 		TLOG(TLVL_TRACE) << "Done writing fragment, and no other writer. Doing bookkeeping steps.";
@@ -346,9 +346,12 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 			hdr->is_complete = frag_count >= released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
 		}
 #endif
-	}
 
-	complete_buffer_(buffer);
+		complete_buffer_(buffer);
+
+		// Move this down here to avoid race condition
+		buffer_writes_pending_[buffer]--;
+	}
 	if (requests_)
 	{
 		requests_->SendRequest(true);
@@ -363,7 +366,7 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCount(Fragment::sequence_id_
 
 size_t artdaq::SharedMemoryEventManager::GetFragmentCountInBuffer(int buffer, Fragment::type_t type)
 {
-	if (buffer == -1)
+	if (buffer < 0)
 	{
 		return 0;
 	}
@@ -1211,7 +1214,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		{
 			TLOG(15) << "check_pending_buffers_ Incomplete buffer detected, buf=" << buf << " active_bufers_.count(buf)=" << active_buffers_.count(buf) << " buffer_writes_pending_[buf]=" << buffer_writes_pending_[buf].load();
 			auto hdr = getEventHeader_(buf);
-			if ((active_buffers_.count(buf) != 0u) && buffer_writes_pending_[buf].load() == 0 )
+			if ((active_buffers_.count(buf) != 0u) && buffer_writes_pending_[buf].load() == 0)
 			{
 				if (requests_)
 				{
