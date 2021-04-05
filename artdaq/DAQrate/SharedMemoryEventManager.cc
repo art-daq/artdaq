@@ -39,6 +39,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , running_(false)
     , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
     , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+    , event_timing_(pset.get<size_t>("buffer_count"))
     , last_backpressure_report_time_(std::chrono::steady_clock::now())
     , last_fragment_header_write_time_(std::chrono::steady_clock::now())
     , broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
@@ -1100,6 +1101,9 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtaining buffer_mutexes lock for buffer " << new_buffer;
 	std::unique_lock<std::mutex> buffer_lk(buffer_mutexes_.at(new_buffer));
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtained buffer_mutexes lock for buffer " << new_buffer;
+
+	event_timing_[new_buffer] = std::chrono::steady_clock::now();
+
 	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
@@ -1245,6 +1249,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 	auto counter = 0;
 	double eventSize = 0;
+	double eventTime = 0;
 	for (auto buf : sorted_buffers)
 	{
 		auto hdr = getEventHeader_(buf);
@@ -1259,6 +1264,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		run_event_count_++;
 		counter++;
 		eventSize += thisEventSize;
+		eventTime += TimeUtils::GetElapsedTime(event_timing_[buf]);
 		pending_buffers_.erase(buf);
 		TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
 		                  << size() << ","
@@ -1305,6 +1311,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		if (counter > 0)
 		{
 			metricMan->sendMetric("Average Event Size", eventSize / counter, "Bytes", 1, MetricMode::Average);
+			metricMan->sendMetric("Average Event Building Time", eventTime / counter, "s", 1, MetricMode::Average);
 		}
 
 		metricMan->sendMetric("Events Released to art this run", run_event_count_, "Events", 1, MetricMode::LastPoint);

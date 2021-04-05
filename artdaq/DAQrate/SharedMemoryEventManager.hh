@@ -443,6 +443,7 @@ private:
 	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
 	std::chrono::steady_clock::time_point last_backpressure_report_time_;
 	std::chrono::steady_clock::time_point last_fragment_header_write_time_;
+	std::vector<std::chrono::steady_clock::time_point> event_timing_;
 
 	StatisticsHelper statsHelper_;
 
