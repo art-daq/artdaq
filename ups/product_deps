@@ -21,7 +21,7 @@ art_root_io         v1_05_02        s106
 art_root_io         v1_05_01        s105
 art_root_io         v1_05_00        s104
 art_root_io         v1_03_02        s103
-art_root_io         v1_03_01        s97
+art_root_io             v1_03_01        s97
 artdaq_core 		v3_06_10
 artdaq_utilities        v1_05_11
 xmlrpc_c		v1_51_06
@@ -32,7 +32,6 @@ artdaq_epics_plugin     v1_02_18        -       optional
 artdaq_ganglia_plugin	v1_02_24        -       optional
 artdaq_pcp_mmv_plugin   v1_00_09        -       optional
 cetbuildtools		v7_17_01	-	only_for_build
-smc_compiler		v6_6_0		-nq-	only_for_build
 end_product_list
 
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
