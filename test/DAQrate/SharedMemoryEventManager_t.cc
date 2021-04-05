@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(AddFragment)
 
 	bool sts = t.AddFragment(std::move(frag), 1000000, tmpFrag);
 	BOOST_REQUIRE_EQUAL(sts, true);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 	TLOG(TLVL_INFO) << "Test AddFragment END";
 }
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	auto fragLoc = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 
 	frag->setFragmentID(1);
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	auto fragLoc2 = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 2);
 	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
 	TLOG(TLVL_INFO) << "Test DataFlow END";
@@ -338,7 +338,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
@@ -351,7 +351,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 2);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 2);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
@@ -376,7 +376,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 2);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 2);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(3), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
@@ -404,17 +404,16 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount() + t.GetArtEventCount(), 3);
 
 		frag->setFragmentID(1);
 		hdr = GetHeader(frag);
 		auto fragLoc2 = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 4);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
+		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount() + t.GetArtEventCount(), 4);
 	}
 	{
 		frag->setSequenceID(1);
@@ -428,7 +427,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 #if ART_SUPPORTS_DUPLICATE_EVENTS
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 5);
 #else
