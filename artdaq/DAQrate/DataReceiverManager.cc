@@ -392,6 +392,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				metricMan->sendMetric("Avg Shared Memory Wait Time From Rank " + std::to_string(source_rank), store_delta_t, "s", 3, MetricMode::Average);
 				metricMan->sendMetric("Avg Fragment Wait Time From Rank " + std::to_string(source_rank), dead_t, "s", 3, MetricMode::Average);
 
+				metricMan->sendMetric("Rank", std::to_string(my_rank), "", 3, MetricMode::LastPoint);
+				metricMan->sendMetric("App Name", app_name, "", 3, MetricMode::LastPoint);
 				metricMan->sendMetric("Fragment Latency at Receive From Rank " + std::to_string(source_rank), latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
 				metricMan->sendMetric("Header Receive Wait Time From Rank" + std::to_string(source_rank), recv_wait_t, "s", 4, MetricMode::Average | MetricMode::Maximum | MetricMode::Minimum);
 
