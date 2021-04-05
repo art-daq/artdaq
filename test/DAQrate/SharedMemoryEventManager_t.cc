@@ -28,6 +28,8 @@ BOOST_AUTO_TEST_CASE(Construct)
 	BOOST_REQUIRE_EQUAL(t.runID(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetSubrunForSequenceID(1), 1);
 	BOOST_REQUIRE_EQUAL(t.GetLockedBufferCount(), 0);
+	t.startRun(1);
+	BOOST_REQUIRE_EQUAL(t.runID(), 1);
 	TLOG(TLVL_INFO) << "Test Construct END";
 }
 
@@ -41,6 +43,7 @@ BOOST_AUTO_TEST_CASE(AddFragment)
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 2);
 	artdaq::SharedMemoryEventManager t(pset, pset);
+	t.startRun(1);
 
 	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
 	frag->resize(4);
@@ -65,6 +68,7 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	pset.put("max_event_size_bytes", 1000);
 	pset.put("expected_fragments_per_event", 3);
 	artdaq::SharedMemoryEventManager t(pset, pset);
+	t.startRun(1);
 
 	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
 	frag->resize(4);
@@ -101,6 +105,60 @@ BOOST_AUTO_TEST_CASE(DataFlow)
 	TLOG(TLVL_INFO) << "Test DataFlow END";
 }
 
+BOOST_AUTO_TEST_CASE(EndOfData)
+{
+	TLOG(TLVL_INFO) << "Test EndOfData BEGIN";
+	fhicl::ParameterSet pset;
+	pset.put("use_art", false);
+	pset.put("buffer_count", 2);
+	pset.put("max_event_size_bytes", 1000);
+	pset.put("expected_fragments_per_event", 1);
+	artdaq::SharedMemoryEventManager t(pset, pset);
+	t.startRun(1);
+
+	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
+	frag->resize(4);
+	for (auto ii = 0; ii < 4; ++ii)
+	{
+		*(frag->dataBegin() + ii) = ii;
+	}
+
+	auto hdr = GetHeader(frag);
+	auto fragLoc = t.WriteFragmentHeader(hdr);
+	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+	t.DoneWritingFragment(hdr);
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+
+	t.endOfData();
+
+	t.startRun(2);
+
+	frag->setSequenceID(1);
+	hdr = GetHeader(frag);
+	auto fragLoc3 = t.WriteFragmentHeader(hdr);
+
+	std::atomic<bool> endComplete = false;
+	std::thread thread{
+	    [&] { endComplete = t.endOfData(); }};
+
+	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
+	usleep(100000);
+	BOOST_REQUIRE_EQUAL(endComplete.load(), false);
+	t.DoneWritingFragment(hdr);
+	thread.join();
+	BOOST_REQUIRE_EQUAL(endComplete.load(), true);
+	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
+
+	frag->setSequenceID(2);
+	hdr = GetHeader(frag);
+	auto fragLoc2 = t.WriteFragmentHeader(hdr);
+	BOOST_REQUIRE_EQUAL(fragLoc2, nullptr);
+
+	TLOG(TLVL_INFO) << "Test EndOfData END";
+}
+
 BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 {
 	TLOG(TLVL_INFO) << "Test TooManyFragments_InterleavedWrites BEGIN";
@@ -111,6 +169,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 	pset.put("expected_fragments_per_event", 3);
 	pset.put("stale_buffer_timeout_usec", 100000);
 	artdaq::SharedMemoryEventManager t(pset, pset);
+	t.startRun(1);
 
 	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
 	frag->resize(4);
@@ -187,6 +246,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	pset.put("expected_fragments_per_event", 3);
 	pset.put("stale_buffer_timeout_usec", 100000);
 	artdaq::SharedMemoryEventManager t(pset, pset);
+	t.startRun(1);
 
 	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
 	frag->resize(4);
@@ -253,374 +313,6 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	TLOG(TLVL_INFO) << "Test TooManyFragments_DiscreteWrites END";
 }
 
-/*
-// Need to check the following scenarios:
-// 1. Active buffer with lower sequence id than a completed buffer (b. timeout case)
-// 2a. Inactive buffer with lower sequence id than a completed buffer (b. timeout case)
-// 2c. Inactive buffer times out and then data arrives (Error case)
-BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer)
-{
-	TLOG(TLVL_INFO) << "Test Ordering_IncompleteActiveBuffer BEGIN" ;
-	fhicl::ParameterSet pset;
-	pset.put("use_art", false);
-	pset.put("buffer_count", 20);
-	pset.put("max_event_size_bytes", 1000);
-	pset.put("expected_fragments_per_event", 2);
-
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
-	frag->resize(4);
-	for (auto ii = 0; ii < 4; ++ii)
-	{
-		*(frag->dataBegin() + ii) = ii;
-	}
-
-	artdaq::SharedMemoryEventManager t(pset, pset);
-	{
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-	}
-	{
-		frag->setSequenceID(2);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
-		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-	}
-	{
-		frag->setSequenceID(3);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-	}
-
-	{
-		frag->setSequenceID(1);
-		frag->setFragmentID(1);
-		auto hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
-	}
-	TLOG(TLVL_INFO) << "Test Ordering_IncompleteActiveBuffer END" ;
-}
-
-BOOST_AUTO_TEST_CASE(Ordering_IncompleteActiveBuffer_Timeout)
-{
-	TLOG(TLVL_INFO) << "Test Ordering_IncompleteActiveBuffer_Timeout BEGIN" ;
-	fhicl::ParameterSet pset;
-	pset.put("use_art", false);
-	pset.put("buffer_count", 20);
-	pset.put("max_event_size_bytes", 1000);
-	pset.put("expected_fragments_per_event", 2);
-	pset.put("stale_buffer_timeout_usec", 100000);
-
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
-	frag->resize(4);
-	for (auto ii = 0; ii < 4; ++ii)
-	{
-		*(frag->dataBegin() + ii) = ii;
-	}
-
-	artdaq::SharedMemoryEventManager t(pset, pset);
-	{
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-	}
-	{
-		frag->setSequenceID(2);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
-
-	}
-	{
-		frag->setSequenceID(3);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-	}
-
-	sleep(1);
-
-	{
-		frag->setSequenceID(4);
-		frag->setFragmentID(0);
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 4);
-	}
-	TLOG(TLVL_INFO) << "Test Ordering_IncompleteActiveBuffer_Timeout END" ;
-}
-
-BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer)
-{
-	TLOG(TLVL_INFO) << "Test Ordering_InactiveBuffer BEGIN" ;
-	fhicl::ParameterSet pset;
-	pset.put("use_art", false);
-	pset.put("buffer_count", 20);
-	pset.put("max_event_size_bytes", 1000);
-	pset.put("expected_fragments_per_event", 2);
-
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
-	frag->resize(4);
-	for (auto ii = 0; ii < 4; ++ii)
-	{
-		*(frag->dataBegin() + ii) = ii;
-	}
-
-	artdaq::SharedMemoryEventManager t(pset, pset);
-	{
-		frag->setSequenceID(2);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
-		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-	}
-	{
-		frag->setSequenceID(3);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(3), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-	}
-
-	{
-		frag->setSequenceID(1);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		frag->setFragmentID(1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
-	}
-	TLOG(TLVL_INFO) << "Test Ordering_InactiveBuffer END" ;
-}
-
-BOOST_AUTO_TEST_CASE(Ordering_InactiveBuffer_Timeout)
-{
-	TLOG(TLVL_INFO) << "Test Ordering_InactiveBuffer_Timeout BEGIN" ;
-	fhicl::ParameterSet pset;
-	pset.put("use_art", false);
-	pset.put("buffer_count", 20);
-	pset.put("max_event_size_bytes", 1000);
-	pset.put("expected_fragments_per_event", 2);
-	pset.put("stale_buffer_timeout_usec", 100000);
-
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
-	frag->resize(4);
-	for (auto ii = 0; ii < 4; ++ii)
-	{
-		*(frag->dataBegin() + ii) = ii;
-	}
-
-	artdaq::SharedMemoryEventManager t(pset, pset);
-	{
-		frag->setSequenceID(2);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
-
-	}
-	{
-		frag->setSequenceID(3);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(3), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-	}
-
-	sleep(1);
-
-	{
-		frag->setSequenceID(4);
-		frag->setFragmentID(1);
-		auto hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
-	}
-	TLOG(TLVL_INFO) << "Test Ordering_InactiveBuffer_Timeout END" ;
-}
-*/
 //SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
 BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 {
@@ -640,6 +332,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 	}
 
 	artdaq::SharedMemoryEventManager t(pset, pset);
+	t.startRun(1);
 	{
 		auto hdr = GetHeader(frag);
 		auto fragLoc = t.WriteFragmentHeader(hdr);
@@ -744,117 +437,6 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 
 	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active END";
 }
-/*
-//SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
-BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Inactive)
-{
-	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Inactive BEGIN" ;
-	fhicl::ParameterSet pset;
-	pset.put("use_art", false);
-	pset.put("buffer_count", 20);
-	pset.put("max_event_size_bytes", 1000);
-	pset.put("expected_fragments_per_event", 2);
-	pset.put("stale_buffer_timeout_usec", 100000);
-
-	artdaq::FragmentPtr frag(new artdaq::Fragment(1, 0, artdaq::Fragment::FirstUserFragmentType, 0UL)), tmpFrag;
-	frag->resize(4);
-	for (auto ii = 0; ii < 4; ++ii)
-	{
-		*(frag->dataBegin() + ii) = ii;
-	}
-
-	artdaq::SharedMemoryEventManager t(pset, pset);
-	{
-		frag->setSequenceID(2);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);
-
-	}
-	{
-		frag->setSequenceID(3);
-		frag->setFragmentID(0);
-
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(3), 1);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(),1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 2);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-	}
-
-	sleep(1);
-
-	{
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
-		frag->setSequenceID(4);
-		frag->setFragmentID(1);
-		auto hdr = GetHeader(frag);
-		auto fragLoc = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
-
-		frag->setFragmentID(1);
-		hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
-	}
-	{
-		frag->setSequenceID(1);
-		frag->setFragmentID(1);
-		auto hdr = GetHeader(frag);
-		auto fragLoc2 = t.WriteFragmentHeader(hdr);
-		BOOST_REQUIRE_EQUAL(fragLoc2, t.GetDroppedDataAddress(1));
-		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
-		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 3);
-	}
-	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Inactive END" ;
-}
-*/
 
 BOOST_AUTO_TEST_CASE(RunNumbers)
 {

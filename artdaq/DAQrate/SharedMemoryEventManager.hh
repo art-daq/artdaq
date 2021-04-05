@@ -433,7 +433,7 @@ private:
 	bool use_sequence_id_for_event_number_;
 	bool overwrite_mode_;
 	size_t init_fragment_count_;
-	bool running_;
+	std::atomic<bool> running_;
 
 	std::unordered_map<int, std::atomic<int>> buffer_writes_pending_;
 	std::unordered_map<int, std::mutex> buffer_mutexes_;
