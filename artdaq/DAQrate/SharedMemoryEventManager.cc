@@ -76,7 +76,11 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 		TLOG(TLVL_INFO) << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:true";
 		TLOG(TLVL_TRACE) << "art_pset is " << art_pset.to_string();
 	}
-	current_art_config_file_ = std::make_shared<art_config_file>(art_pset /*, GetKey(), GetBroadcastKey()*/);
+
+	if (manual_art_)
+		current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+	else
+		current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 
 	if (overwrite_mode_ && num_art_processes_ > 0)
 	{
@@ -473,7 +477,19 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 			art_processes_.insert(pid);
 		}
 		siginfo_t status;
-		auto sts = waitid(P_PID, pid, &status, WEXITED);
+		auto sts = 0;
+		if (!manual_art_)
+		{
+			sts = waitid(P_PID, pid, &status, WEXITED);
+		}
+		else
+		{
+			while (kill(pid, 0) >= 0) usleep(10000);
+
+			TLOG(TLVL_INFO) << "Faking good exit status, please see art process for actual exit status!";
+			status.si_code = CLD_EXITED;
+			status.si_status = 0;
+		}
 		TLOG(TLVL_INFO) << "Removing PID " << pid << " from process list";
 		{
 			std::unique_lock<std::mutex> lk(art_process_mutex_);
@@ -541,7 +557,10 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	if (pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(pset /*, GetKey(), GetBroadcastKey()*/);
+		if (manual_art_)
+			current_art_config_file_ = std::make_shared<art_config_file>(pset, GetKey(), GetBroadcastKey());
+		else
+			current_art_config_file_ = std::make_shared<art_config_file>(pset);
 	}
 	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
 	boost::thread thread([=] { RunArt(current_art_config_file_, pid); });
@@ -704,8 +723,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			std::cout << "The following PIDs are running: ";
 			check_pids(true);
 			std::cout << std::endl;
-			std::string ignored;
-			std::cin >> ignored;
+			usleep(500000);
 		}
 	}
 }
@@ -729,7 +747,10 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_ps
 	if (art_pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = art_pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(art_pset /*, GetKey(), GetBroadcastKey()*/);
+		if (manual_art_)
+			current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+		else
+			current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 	}
 
 	if (n_art_processes != -1)
@@ -1399,7 +1420,10 @@ void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSe
 	if (art_pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = art_pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(art_pset /*, GetKey(), GetBroadcastKey()*/);
+		if (manual_art_)
+			current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+		else
+			current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 	}
 	TLOG(TLVL_DEBUG) << "UpdateArtConfiguration END";
 }
