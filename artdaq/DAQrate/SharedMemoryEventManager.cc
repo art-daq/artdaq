@@ -1223,7 +1223,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		{
 			TLOG(15) << "check_pending_buffers_ Incomplete buffer detected, buf=" << buf << " active_bufers_.count(buf)=" << active_buffers_.count(buf) << " buffer_writes_pending_[buf]=" << buffer_writes_pending_[buf].load();
 			auto hdr = getEventHeader_(buf);
-			if ((active_buffers_.count(buf) != 0u) && buffer_writes_pending_[buf].load() == 0 )
+			if ((active_buffers_.count(buf) != 0u) && buffer_writes_pending_[buf].load() == 0)
 			{
 				if (requests_)
 				{
