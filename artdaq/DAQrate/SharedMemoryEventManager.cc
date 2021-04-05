@@ -1123,16 +1123,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 
 	if (requests_)
 	{
-		if (timestamp != Fragment::InvalidTimestamp)
-		{
-			requests_->AddRequest(seqID, timestamp);
-		}
-		// 17-Aug-2018, KAB: only call SendRequest if AddRequest was *not* called so that we
-		// don't double-send requests, but still get the benefit of calling SendRequest 'often'.
-		else
-		{
-			requests_->SendRequest();
-		}
+		requests_->AddRequest(seqID, timestamp);
 	}
 	TLOG(14) << "getBufferForSequenceID " << seqID << " returning newly initialized buffer " << new_buffer;
 	return new_buffer;

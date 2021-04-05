@@ -684,6 +684,14 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode(artdaq::FragmentPtrs& frags
 		}
 		if (requests.size() == 0) break;
 
+		auto ts = req->second;
+		if (ts == Fragment::InvalidTimestamp)
+		{
+			TLOG(TLVL_ERROR) << "applyRequestsWindowMode: Received InvalidTimestamp in request " << req->first << ", cannot apply! Check that push-mode BRs are filling appropriate timestamps in their Fragments!";
+			req = requests.erase(req);
+			continue;
+		}
+
 		for (auto& id : dataBuffers_)
 		{
 			std::lock_guard<std::mutex> lk(id.second->DataBufferMutex);
