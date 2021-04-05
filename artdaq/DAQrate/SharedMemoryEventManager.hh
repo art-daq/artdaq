@@ -50,12 +50,6 @@ public:
 		}
 		of << ps.to_string();
 
-		if (ps.has_key("services.NetMonTransportServiceInterface"))
-		{
-			TLOG(TLVL_INFO) << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into NetMonTransportService config";
-			if (shm_key > 0) of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
-			if (broadcast_key > 0) of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-		}
 		if (!ps.has_key("services") || !ps.has_key("services.message"))
 		{
 			of << " services.message: { " << generateMessageFacilityConfiguration(mf::GetApplicationName().c_str(), true, false, "-art") << "} ";

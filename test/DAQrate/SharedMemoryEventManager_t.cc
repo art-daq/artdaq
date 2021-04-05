@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(EndOfData)
 	auto fragLoc = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
 	t.endOfData();
@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE(EndOfData)
 	t.DoneWritingFragment(hdr);
 	thread.join();
 	BOOST_REQUIRE_EQUAL(endComplete.load(), true);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
 	frag->setSequenceID(2);
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 	auto fragLoc = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 
 	frag->setFragmentID(1);
@@ -200,24 +200,24 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 
 	memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 	memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
 	memcpy(fragLoc5, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(fragLoc4 + frag->size(), fragLoc5);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
 	usleep(1000000);
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_InterleavedWrites)
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 	}
@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	auto fragLoc = t.WriteFragmentHeader(hdr);
 	memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 
 	frag->setFragmentID(1);
@@ -268,7 +268,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 
 	memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 	frag->setFragmentID(2);
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	memcpy(fragLoc3, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 	BOOST_REQUIRE_EQUAL(fragLoc2 + frag->size(), fragLoc3);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
 	frag->setFragmentID(3);
@@ -289,10 +289,10 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 	memcpy(fragLoc4, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 	t.DoneWritingFragment(hdr);
 #if ART_SUPPORTS_DUPLICATE_EVENTS
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 #else
-	BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 0);
+	BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 	BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 #endif
 
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 		auto fragLoc = t.WriteFragmentHeader(hdr);
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		//BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
@@ -388,7 +388,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
 		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		BOOST_REQUIRE_EQUAL(t.GetIncompleteEventCount(), 1);
+		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
 	}
 

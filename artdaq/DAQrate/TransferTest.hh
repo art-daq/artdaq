@@ -66,7 +66,7 @@ private:
 	bool validate_mode_;
 	int partition_number_;
 
-	int return_code_;
+	int return_code_{0};
 };
 
 inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)

@@ -40,9 +40,9 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , buffer_writes_pending_()
     , open_event_report_interval_ms_(pset.get<int>("open_event_report_interval_ms", pset.get<int>("incomplete_event_report_interval_ms", -1)))
     , last_open_event_report_time_(std::chrono::steady_clock::now())
-    , event_timing_(pset.get<size_t>("buffer_count"))
     , last_backpressure_report_time_(std::chrono::steady_clock::now())
     , last_fragment_header_write_time_(std::chrono::steady_clock::now())
+    , event_timing_(pset.get<size_t>("buffer_count"))
     , broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
     , run_event_count_(0)
     , run_incomplete_event_count_(0)
@@ -779,7 +779,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		pendingWriteCount = std::accumulate(buffer_writes_pending_.begin(), buffer_writes_pending_.end(), 0, [](int a, auto& b) { return a + b.second.load(); });
 	}
 
-	size_t initialStoreSize = GetIncompleteEventCount();
+	size_t initialStoreSize = GetOpenEventCount();
 	TLOG(TLVL_DEBUG) << "endOfData: Flushing " << initialStoreSize
 	                 << " stale events from the SharedMemoryEventManager.";
 	int counter = initialStoreSize;

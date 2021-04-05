@@ -178,24 +178,6 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 		}
 	}
 
-	// provide diagnostic TRACE message(s) about this event
-	TLOG(TLVL_TRACE) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event << ", missing_fragments="
-	                 << missing_fragments << ", empty_fragments=" << empty_fragment_count_this_event << " (" << events_processed_
-	                 << " events processed)";
-	if (!empty_fragmentID_list_this_event.empty())
-	{
-		std::ostringstream oss;
-		bool firstLoop = true;
-		for (auto const& fragID : empty_fragmentID_list_this_event)
-		{
-			if (!firstLoop) { oss << ", "; }
-			oss << fragID;
-			firstLoop = false;
-		}
-		TLOG(TLVL_WARNING) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event
-		                   << ", fragmentIDs for empty_fragments: " << oss.str();
-	}
-
 	// common metric reporting for multiple modes
 	if (metricMan != nullptr && (mode_bitset_.test(BASIC_COUNTS_MODE) || mode_bitset_.test(FRACTIONAL_COUNTS_MODE)))
 	{
@@ -223,7 +205,7 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 		                         << ", fragmentIDs for missing_fragments: " << oss.str();
 	}
 	// log TRACE message if there are empty fragments
-	if (empty_fragmentID_list_this_event.size() > 0)
+	if (!empty_fragmentID_list_this_event.empty())
 	{
 		std::ostringstream oss;
 		bool firstLoop = true;

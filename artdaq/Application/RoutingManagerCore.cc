@@ -689,13 +689,13 @@ void artdaq::RoutingManagerCore::sendMetrics_()
 			metricMan->sendMetric("Receiver Token Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
 			metricMan->sendMetric("Total Receiver Token Wait Time", mqPtr->getRecentValueSum(), "seconds", 3, MetricMode::Average);
 		}
-	}
 
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(CURRENT_TABLE_INTERVAL_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		artdaq::MonitoredQuantityStats stats;
-		mqPtr->getStats(stats);
-		metricMan->sendMetric("Table Update Interval", stats.recentValueAverage, "s", 3, MetricMode::Average);
+		mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(CURRENT_TABLE_INTERVAL_STAT_KEY);
+		if (mqPtr.get() != nullptr)
+		{
+			artdaq::MonitoredQuantityStats stats;
+			mqPtr->getStats(stats);
+			metricMan->sendMetric("Table Update Interval", stats.recentValueAverage, "s", 3, MetricMode::Average);
+		}
 	}
 }

@@ -11,6 +11,8 @@
 #define SMC_USES_IOSTREAMS
 
 #include <artdaq/Application/detail/statemap.h>
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
 // Forward declarations.
