@@ -220,7 +220,7 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 			firstLoop = false;
 		}
 		TLOG(TLVL_BAD_FRAGMENTS) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event
-		                         << ", fragmentIDs for missing_fragments: " << oss.str();
+		                         << ", fragmentIDs for " << missing_fragment_count_this_event << " missing_fragments: " << oss.str();
 	}
 	// log TRACE message if there are empty fragments
 	if (empty_fragmentID_list_this_event.size() > 0)
@@ -234,7 +234,7 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 			firstLoop = false;
 		}
 		TLOG(TLVL_BAD_FRAGMENTS) << "Event " << evt.event() << ": total_fragments=" << total_fragments_this_event
-		                         << ", fragmentIDs for empty_fragments: " << oss.str();
+		                         << ", fragmentIDs for " << empty_fragment_count_this_event << " empty_fragments: " << oss.str();
 	}
 
 	// reporting for the BASIC_COUNTS_MODE
