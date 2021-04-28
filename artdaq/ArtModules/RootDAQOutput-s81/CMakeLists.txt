@@ -5,7 +5,7 @@ art_make( BASENAME_ONLY
   ${ART_PERSISTENCY_PROVENANCE}
   ${CANVAS_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
-  artdaq-core_Data
+  artdaq_core::artdaq-core_Data
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_Application

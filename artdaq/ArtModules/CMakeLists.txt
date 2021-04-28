@@ -10,8 +10,8 @@ art_make( BASENAME_ONLY
   ${ART_PERSISTENCY_PROVENANCE}
   ${CANVAS_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
-  artdaq-core_Data
-  artdaq-core_Data_dict
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Data_dict
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_Application
@@ -52,8 +52,8 @@ simple_plugin(TransferOutput "module"
 )
 
 simple_plugin(TransferInput "source"
-  artdaq-core_Data
-  artdaq-core_Data_dict
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Data_dict
   artdaq_TransferPlugins
   artdaq_ArtModules
   ${TBB}
@@ -63,18 +63,18 @@ simple_plugin(TransferInput "source"
 simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
 
 simple_plugin(EventDump "module"
-  artdaq-core_Data
-  artdaq-core_Utilities
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Utilities
   art_Persistency_Provenance
 MF_MessageLogger
-  artdaq-core_Data
-  artdaq-core_Data_dict
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Data_dict
   ${CETLIB_EXCEPT})
 
 simple_plugin(MissingDataCheck "module"
-  artdaq-core_Data
-  artdaq-core_Data_dict
-  artdaq-core_Utilities
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Data_dict
+  artdaq_core::artdaq-core_Utilities
   MF_MessageLogger
   art_Persistency_Provenance
   art_Framework_Services_Registry
@@ -88,8 +88,8 @@ simple_plugin(MissingDataCheck "module"
 
 simple_plugin(FragmentWatcher "module"
   artdaq_DAQdata
-  artdaq-utilities_Plugins
-  artdaq-core_Utilities
+  artdaq_utilities::artdaq-utilities_Plugins
+  artdaq_core::artdaq-core_Utilities
   art_Framework_Services_Registry
   art_Utilities
   MF_MessageLogger
@@ -98,10 +98,10 @@ simple_plugin(FragmentWatcher "module"
 )
 
 simple_plugin(ArtdaqInput "source"
-  artdaq-core_Data
-  artdaq-core_Data_dict
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Data_dict
   artdaq_ArtModules
-  artdaq-core_Utilities
+  artdaq_core::artdaq-core_Utilities
   art_Framework_Core
   art_Framework_IO_Sources
   art_Framework_Principal
@@ -118,7 +118,7 @@ simple_plugin(ArtdaqInput "source"
 
 simple_plugin(RootNetOutput "module"
   artdaq_ArtModules
-  artdaq-core_Data_dict
+  artdaq_core::artdaq-core_Data_dict
   art_root_io
   MF_MessageLogger
   fhiclcpp
@@ -151,8 +151,8 @@ simple_plugin(BinaryFileOutput "module"
 )
 
 simple_plugin(ArtdaqSharedMemoryService "service"
-  artdaq-core_Data
-  artdaq-core_Data_dict
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Data_dict
   artdaq_DAQrate
   art_Framework_Services_Registry
   MF_MessageLogger
@@ -160,7 +160,7 @@ simple_plugin(ArtdaqSharedMemoryService "service"
 )
 
 simple_plugin(ArtdaqFragmentNamingService "service"
-artdaq-core_Data
+artdaq_core::artdaq-core_Data
   art_Framework_Services_Registry
   MF_MessageLogger
   fhiclcpp)
@@ -168,8 +168,8 @@ artdaq-core_Data
 simple_plugin(ArtdaqBuildInfo "module"
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-utilities_BuildInfo
-  artdaq-core_BuildInfo
+  artdaq_utilities::artdaq-utilities_BuildInfo
+  artdaq_core::artdaq-core_BuildInfo
   art_Persistency_Provenance
   MF_MessageLogger
   ${FHICLCPP}
@@ -178,6 +178,7 @@ simple_plugin(ArtdaqBuildInfo "module"
 )
 
 simple_plugin(PrintBuildInfo "module"
+  artdaq_core::artdaq-core_Data
   MF_MessageLogger
   fhiclcpp
   art_Persistency_Provenance
