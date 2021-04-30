@@ -621,10 +621,10 @@ void artdaq::TCPSocketTransfer::flush_buffers()
 			close(*it);
 			it = connected_fds_[rank].erase(it);
 		}
-		connected_fds_.erase(rank);
+		//connected_fds_.erase(rank);
 	}
-	active_receive_fds_[source_rank()] = -1;
-	last_active_receive_fds_[source_rank()] = -1;
+	active_receive_fds_[rank] = -1;
+	last_active_receive_fds_[rank] = -1;
 }
 
 // Send the given Fragment. Return the rank of the destination to which
