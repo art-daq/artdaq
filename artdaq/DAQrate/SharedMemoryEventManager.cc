@@ -744,6 +744,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 {
 	running_ = false;
 	init_fragments_.clear();
+	received_init_frags_.clear();
 	TLOG(TLVL_DEBUG) << "SharedMemoryEventManager::endOfData";
 	restart_art_ = false;
 
@@ -842,6 +843,7 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 {
 	running_ = true;
 	init_fragments_.clear();
+	received_init_frags_.clear();
 	statsHelper_.resetStatistics();
 	TLOG(TLVL_TRACE) << "startRun: Clearing broadcast buffers";
 	for (size_t ii = 0; ii < broadcasts_.size(); ++ii)
@@ -1363,7 +1365,7 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 {
 	if (init_fragments_.size() >= init_fragment_count_ && init_fragment_count_ > 0)
 	{
-		TLOG(TLVL_INFO) << "Broadcasting init fragment to all art subprocesses...";
+		TLOG(TLVL_INFO) << "Broadcasting " << init_fragments_.size() << " Init Fragment(s) to all art subprocesses...";
 
 #if 0
 		std::string fileName = "receiveInitMessage_" + std::to_string(my_rank) + ".bin";
@@ -1375,9 +1377,13 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 		broadcastFragments_(init_fragments_);
 		TLOG(TLVL_TRACE) << "Init Fragment sent";
 	}
+	else if (init_fragment_count_ > 0 && init_fragments_.size() == 0)
+	{
+		TLOG(TLVL_WARNING) << "Cannot send Init Fragment(s) because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
+	}
 	else if (init_fragment_count_ > 0)
 	{
-		TLOG(TLVL_WARNING) << "Cannot send init fragments because I haven't yet received them! Set send_init_fragments to false or init_fragment_count to 0 if this process does not receive serialized art events to avoid potentially lengthy timeouts!";
+		TLOG(TLVL_INFO) << "Cannot send Init Fragment(s) because I haven't yet received them (have " << init_fragments_.size() << " of " << init_fragment_count_ << ")!";
 	}
 	else
 	{
@@ -1391,8 +1397,24 @@ void artdaq::SharedMemoryEventManager::send_init_frags_()
 
 void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 {
-	init_fragments_.push_back(std::move(frag));
-	send_init_frags_();
+	static std::mutex init_fragment_mutex;
+	std::lock_guard<std::mutex> lk(init_fragment_mutex);
+	if (received_init_frags_.count(frag->fragmentID()) == 0)
+	{
+		TLOG(TLVL_DEBUG) << "Received Init Fragment from rank " << frag->fragmentID() << ". Now have " << init_fragments_.size() + 1 << " of " << init_fragment_count_;
+		received_init_frags_.insert(frag->fragmentID());
+		init_fragments_.push_back(std::move(frag));
+
+		// Don't send until all init fragments have been received
+		if (init_fragments_.size() >= init_fragment_count_)
+		{
+			send_init_frags_();
+		}
+	}
+	else
+	{
+		TLOG(TLVL_TRACE) << "Ignoring duplicate Init Fragment from rank " << frag->fragmentID();
+	}
 }
 
 void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSet art_pset)
