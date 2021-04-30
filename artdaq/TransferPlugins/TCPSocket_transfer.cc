@@ -599,29 +599,32 @@ bool artdaq::TCPSocketTransfer::isRunning()
 
 void artdaq::TCPSocketTransfer::flush_buffers()
 {
-	std::lock_guard<std::mutex> lk(fd_mutex_);
+	std::set<int> fds;
 	auto rank = TransferInterface::source_rank();
-	if (connected_fds_.count(rank) != 0u)
 	{
-		auto it = connected_fds_[rank].begin();
-		char discard_buf[0x1000];
-		while (it != connected_fds_[rank].end())
+		std::lock_guard<std::mutex> lk(fd_mutex_);
+		if (connected_fds_.count(rank) != 0)
 		{
-			TLOG(TLVL_INFO) << GetTraceName() << "flush_buffers: Checking for data in socket " << *it << " for rank " << rank;
-			size_t bytes_read = 0;
-			while (int sts = static_cast<int>(read(*it, discard_buf, sizeof(discard_buf)) > 0))
-			{
-				bytes_read += sts;
-			}
-			if (bytes_read > 0)
-			{
-				TLOG(TLVL_WARNING) << GetTraceName() << "flush_buffers: Flushed " << bytes_read << " bytes from socket " << *it << " for rank " << rank;
-			}
-			TLOG(TLVL_INFO) << GetTraceName() << "flush_buffers: Closing socket " << *it << " for rank " << rank;
-			close(*it);
-			it = connected_fds_[rank].erase(it);
+			fds = connected_fds_[rank];
+			connected_fds_.erase(rank);
 		}
-		//connected_fds_.erase(rank);
+	}
+
+	char discard_buf[0x1000];
+	for (auto& fd : fds)
+	{
+		TLOG(TLVL_INFO) << GetTraceName() << "flush_buffers: Checking for data in socket " << fd << " for rank " << rank;
+		size_t bytes_read = 0;
+		while (int sts = static_cast<int>(read(fd, discard_buf, sizeof(discard_buf)) > 0))
+		{
+			bytes_read += sts;
+		}
+		if (bytes_read > 0)
+		{
+			TLOG(TLVL_WARNING) << GetTraceName() << "flush_buffers: Flushed " << bytes_read << " bytes from socket " << fd << " for rank " << rank;
+		}
+		TLOG(TLVL_INFO) << GetTraceName() << "flush_buffers: Closing socket " << fd << " for rank " << rank;
+		close(fd);
 	}
 	active_receive_fds_[rank] = -1;
 	last_active_receive_fds_[rank] = -1;
