@@ -348,7 +348,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 		}
 #endif
 
-	complete_buffer_(buffer);
+		complete_buffer_(buffer);
 
 		// Move this down here to avoid race condition
 		buffer_writes_pending_[buffer]--;
@@ -622,7 +622,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 		int int_wait_ms = art_event_processing_time_us_ * size() / 1000;
 		auto shutdown_start = std::chrono::steady_clock::now();
 
-//		if (!overwrite_mode_)
+		//		if (!overwrite_mode_)
 		{
 			TLOG(TLVL_TRACE) << "Waiting up to " << graceful_wait_ms << " ms for all art processes to exit gracefully";
 			for (int ii = 0; ii < graceful_wait_ms; ++ii)
@@ -1415,13 +1415,13 @@ void artdaq::SharedMemoryEventManager::AddInitFragment(FragmentPtr& frag)
 	{
 		TLOG(TLVL_DEBUG) << "Received Init Fragment from rank " << frag->fragmentID() << ". Now have " << init_fragments_.size() + 1 << " of " << init_fragment_count_;
 		received_init_frags_.insert(frag->fragmentID());
-	init_fragments_.push_back(std::move(frag));
+		init_fragments_.push_back(std::move(frag));
 
 		// Don't send until all init fragments have been received
 		if (init_fragments_.size() >= init_fragment_count_)
 		{
-	send_init_frags_();
-}
+			send_init_frags_();
+		}
 	}
 	else
 	{
