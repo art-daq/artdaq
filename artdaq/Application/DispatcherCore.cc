@@ -103,7 +103,8 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 	TLOG(TLVL_DEBUG) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"";
 	check_filters_();
 
-	if(stop_requested_.load()) {
+	if (stop_requested_.load())
+	{
 		TLOG(TLVL_WARNING) << "DispatcherCore::register_monitor called after stop. NOT registering new monitor!";
 		return "Stopped";
 	}
