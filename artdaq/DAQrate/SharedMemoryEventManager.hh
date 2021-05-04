@@ -472,6 +472,7 @@ private:
 	fhicl::ParameterSet data_pset_;
 
 	FragmentPtrs init_fragments_;
+	std::set<Fragment::fragment_id_t> received_init_frags_;
 	std::list<std::pair<detail::RawFragmentHeader, FragmentPtr>> dropped_data_;
 
 	bool broadcastFragments_(FragmentPtrs& frags);
