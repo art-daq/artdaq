@@ -79,17 +79,20 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 	{
 		TLOG(TLVL_TRACE) << "ReceiveEvent: Waiting for available buffer";
 		bool got_event = false;
+		auto start_time = std::chrono::steady_clock::now();
+		auto read_timeout_to_use = read_timeout_ > 100000 ? 100000 : read_timeout_;
+		if (!resume_after_timeout_ || broadcast) read_timeout_to_use = read_timeout_;
 		while (!incoming_events_->IsEndOfData() && !got_event)
 		{
-			got_event = incoming_events_->ReadyForRead(broadcast, read_timeout_);
+			got_event = incoming_events_->ReadyForRead(broadcast, read_timeout_to_use);
 			if (!got_event && (!resume_after_timeout_ || broadcast))  // Only try broadcasts once!
 			{
-				TLOG(TLVL_ERROR) << "Timeout occurred! No data received after " << read_timeout_ << " us. Returning empty Fragment list!";
+				TLOG(TLVL_ERROR) << "Timeout occurred! No data received after " << read_timeout_to_use << " us. Returning empty Fragment list!";
 				return recvd_fragments;
 			}
-			if (!got_event)
+			if (!got_event && artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) > read_timeout_)
 			{
-				TLOG(TLVL_WARNING) << "Timeout occurred! No data received after " << read_timeout_ << " us. Retrying.";
+				TLOG(TLVL_WARNING) << "Timeout occurred! No data received after " << artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) << " us. Retrying.";
 			}
 		}
 		if (incoming_events_->IsEndOfData())
