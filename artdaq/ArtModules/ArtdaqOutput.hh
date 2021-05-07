@@ -13,6 +13,7 @@
 
 #include "art_root_io/setup.h"
 
+#include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/History.h"
@@ -26,6 +27,7 @@
 #include "canvas/Persistency/Provenance/SubRunAuxiliary.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
+#include "canvas/Utilities/WrappedTypeID.h"
 #include "cetlib/column_width.h"
 #include "cetlib/lpad.h"
 #include "cetlib/rpad.h"

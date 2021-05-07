@@ -11,8 +11,10 @@
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
+#include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
+#include "canvas/Utilities/WrappedTypeID.h"
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
