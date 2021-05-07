@@ -7,7 +7,7 @@
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "cetlib_except/exception.h"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <cstddef>
 #include <iostream>
@@ -43,8 +43,7 @@ int main(int argc, char* argv[]) try
 		pset.put("send_init_fragments", false);
 
 		auto temp = pset.to_string() + " source.waiting_time: 10";
-		pset = fhicl::ParameterSet();
-		fhicl::make_ParameterSet(temp, pset);
+		pset = artdaq::make_pset(temp);
 		// Eventually, this test should make a mixed-up streams of
 		// Fragments; this has too clean a pattern to be an interesting
 		// test of the EventStore's ability to deal with multiple events
