@@ -446,15 +446,15 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 				if (event_buffer_.count(hdr.sequence_id) == 0u)
 				{
 					event_buffer_[hdr.sequence_id].open_time = std::chrono::steady_clock::now();
-					event_buffer_[hdr.sequence_id].first_frag = artdaq::Fragment(hdr.word_count - hdr.num_words());
-					ptr = event_buffer_[hdr.sequence_id].first_frag.headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+					event_buffer_[hdr.sequence_id].first_frag.reset(new artdaq::Fragment(hdr.word_count - hdr.num_words()));
+					ptr = event_buffer_[hdr.sequence_id].first_frag->headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 					TLOG(TLVL_TRACE) << "Receiver " << sender_rank << "->" << receiver_rank << " opened event " << hdr.sequence_id
 					                 << " with Fragment from rank " << sender_rank;
 				}
 				else
 				{
-					event_buffer_[hdr.sequence_id].second_frag = artdaq::Fragment(hdr.word_count - hdr.num_words());
-					ptr = event_buffer_[hdr.sequence_id].second_frag.headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+					event_buffer_[hdr.sequence_id].second_frag.reset(new artdaq::Fragment(hdr.word_count - hdr.num_words()));
+					ptr = event_buffer_[hdr.sequence_id].second_frag->headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 					first = false;
 				}
 			}

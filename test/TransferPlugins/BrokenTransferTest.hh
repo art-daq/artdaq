@@ -72,8 +72,8 @@ public:
 private:
 	struct received_event
 	{
-		artdaq::Fragment first_frag;
-		artdaq::Fragment second_frag;
+		artdaq::FragmentPtr first_frag;
+		artdaq::FragmentPtr second_frag;
 		std::chrono::steady_clock::time_point open_time;
 	};
 
