@@ -1,7 +1,7 @@
 partition_number: 11
 
 ## The rate at which to generate Fragments, in Hz
-fragment_rate_hz: 10  # default
+fragment_rate_hz: 100  # default
 
 ## Whether to use reliable-mode transfers (true) or min-blocking (false)
 reliable_mode: true  # default
