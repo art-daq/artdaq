@@ -66,8 +66,8 @@ public:
 	/// <summary>
 	/// Run the "Receiver Reconnect" test
 	/// </summary>
-	/// <param name="send_throttle_us">Amount of time Sender should wait between sends</param>
-	void TestReceiverReconnect(int send_throttle_us = 0);
+	/// <param name="send_throttle_factor">Amount of time Sender should wait, in units of 1/fragment_rate</param>
+	void TestReceiverReconnect(int send_throttle_factor = 0);
 
 private:
 	struct received_event
@@ -101,11 +101,11 @@ private:
 	boost::thread sender_threads_[2];
 	boost::thread receiver_threads_[2];
 
-	std::unordered_map<size_t, std::atomic<bool>> sender_ready_;
-	std::unordered_map<size_t, std::atomic<bool>> receiver_ready_;
+	std::array< std::atomic<bool>, 2> sender_ready_;
+	std::array< std::atomic<bool>, 2> receiver_ready_;
 
-	std::unordered_map<size_t, std::atomic<artdaq::Fragment::sequence_id_t>> sender_current_fragment_;
-	std::unordered_map<size_t, std::atomic<int>> sender_tokens_;
+	std::array<std::atomic<artdaq::Fragment::sequence_id_t>, 2> sender_current_fragment_;
+	std::array<std::atomic<int>, 2> sender_tokens_;
 
 	fhicl::ParameterSet ps_;
 
