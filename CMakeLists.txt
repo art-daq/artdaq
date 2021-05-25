@@ -16,7 +16,9 @@
 # use cmake 3.17 or later
 cmake_minimum_required (VERSION 3.17)
 
-project(artdaq)
+find_package(cetbuildtools)
+
+project(artdaq VERSION 3.10.00)
 # cetbuildtools contains our cmake modules
 SET ( CETBUILDTOOLS_VERSION $ENV{CETBUILDTOOLS_VERSION} )
 IF (NOT CETBUILDTOOLS_VERSION)
@@ -97,11 +99,11 @@ find_ups_product( sqlite v3_08_05_00 )
 find_ups_product( tbb v4_1 )
 find_ups_product( xmlrpc_c v1_25_18 )
 find_ups_root( v5_34_20 )
-	find_ups_product( art_root_io v1_00_00 )
+find_ups_product( art_root_io v1_00_00 )
 
 # Include at the top level to make sure include directory is visible
 # everywhere.
-include(ProcessSmc)
+#include(ProcessSmc)
 
 string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" ART_VERSION_LIST "$ENV{ART_VERSION}")
 list(GET ART_VERSION_LIST 0 ART_MAJOR_VERSION)
@@ -139,6 +141,13 @@ list(GET MESSAGEFACILITY_VERSION_LIST 2 MESSAGEFACILITY_PATCH_VERSION)
 
 message("-DMESSAGEFACILITY_HEX_VERSION=0x${MESSAGEFACILITY_MAJOR_VERSION}${MESSAGEFACILITY_MINOR_VERSION}${MESSAGEFACILITY_PATCH_VERSION}")
 add_definitions(-DMESSAGEFACILITY_HEX_VERSION=0x${MESSAGEFACILITY_MAJOR_VERSION}${MESSAGEFACILITY_MINOR_VERSION}${MESSAGEFACILITY_PATCH_VERSION})
+
+# as of fhiclcpp v4_15_00 (s108), ParameterSet::make is the preferred way to make a ParameterSet
+check_ups_version(fhiclcpp $ENV{FHICLCPP_VERSION} v4_15_00 PRODUCT_MATCHES_VAR PSET_MAKE)
+if(PSET_MAKE)
+  add_definitions(-DSIMPLER_PSET_MAKE)
+endif()
+
 
 find_library( XMLRPC_SERVER_ABYSSPP NAMES xmlrpc_server_abyss++ PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
 find_library( XMLRPC_SERVER_ABYSS NAMES xmlrpc_server_abyss PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )

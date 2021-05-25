@@ -1,10 +1,10 @@
-process_smc(SMC_LIB_SOURCE Commandable.sm)
+#process_smc(SMC_LIB_SOURCE Commandable.sm)
 
 include_directories("${CMAKE_BINARY_DIR}")
 
 art_make_library( LIBRARY_NAME artdaq_Application
   SOURCE
-  ${SMC_LIB_SOURCE}
+  detail/Commandable_sm.cpp
   Commandable.cc
   BoardReaderApp.cc
   BoardReaderCore.cc
@@ -20,8 +20,8 @@ art_make_library( LIBRARY_NAME artdaq_Application
   LIBRARIES
   artdaq_DAQrate
   artdaq_Generators
-  artdaq-core_Data
-  artdaq-core_Utilities
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Utilities
   artdaq_RoutingPolicies
   MF_MessageLogger
   ${CETLIB}
@@ -33,6 +33,6 @@ art_make_library( LIBRARY_NAME artdaq_Application
   )
 
 
-install_headers()
-install_source()
+install_headers(SUBDIRS detail)
+install_source(SUBDIRS detail)
 install_fhicl()

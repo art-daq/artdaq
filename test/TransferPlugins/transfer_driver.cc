@@ -2,7 +2,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/TransferTest.hh"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 int main(int argc, char* argv[]) try
 {
@@ -26,10 +26,9 @@ int main(int argc, char* argv[]) try
 	my_rank = std::stoi(rankString);
 
 	cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
-	fhicl::ParameterSet ps;
 
 	auto fhicl = std::string(argv[2]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	make_ParameterSet(fhicl, lookup_policy, ps);
+	auto ps = artdaq::make_pset(fhicl, lookup_policy);
 
 	if (ps.has_key("partition_number"))
 	{

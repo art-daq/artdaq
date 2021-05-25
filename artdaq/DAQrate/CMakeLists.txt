@@ -13,10 +13,10 @@ art_make(BASENAME_ONLY
   LIB_LIBRARIES
   artdaq_DAQdata
   artdaq_TransferPlugins
-  artdaq-utilities_Plugins
-  artdaq-core_Core
-  artdaq-core_Data
-  artdaq-core_Utilities
+  artdaq_utilities::artdaq-utilities_Plugins
+  artdaq_core::artdaq-core_Core
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Utilities
   artdaq_RoutingPolicies
   ${FHICLCPP}
   MF_MessageLogger

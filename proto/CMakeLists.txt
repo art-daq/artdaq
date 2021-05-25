@@ -10,8 +10,8 @@ art_make_exec(NAME artdaqDriver
   artdaq_Generators
   artdaq_DAQrate
   artdaq_DAQdata
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   art_Utilities
   ${FHICLCPP}
   ${CETLIB}
@@ -49,8 +49,8 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -65,8 +65,8 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -81,8 +81,8 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -97,8 +97,8 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -113,8 +113,8 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
   ${FHICLCPP}
   ${CETLIB}
@@ -160,7 +160,7 @@ art_make_exec(NAME fhicl_test
 art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins
-  artdaq-core_Data
+  artdaq_core::artdaq-core_Data
   ${CETLIB}
   ${FHICLCPP}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -170,7 +170,7 @@ art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
 art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins
-  artdaq-core_Data
+  artdaq_core::artdaq-core_Data
   ${CETLIB}
   ${FHICLCPP}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -182,7 +182,7 @@ art_make_exec(NAME tracemf
 	tracemf.cc
 	LIBRARIES
 	artdaq_DAQdata
-	artdaq-core_Utilities
+	artdaq_core::artdaq-core_Utilities
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
 
@@ -190,7 +190,7 @@ art_make_exec(NAME tracemf
 	SOURCE PrintSharedMemory.cc
 	LIBRARIES
 	artdaq_DAQrate
-	artdaq-core_Core
+	artdaq_core::artdaq-core_Core
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
 

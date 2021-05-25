@@ -36,5 +36,5 @@ cet_test(requestsender HANDBUILT
 cet_test(FragmentBuffer_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate 
   artdaq_Generators
-  artdaq-core_Data
+  artdaq_core::artdaq-core_Data
   )

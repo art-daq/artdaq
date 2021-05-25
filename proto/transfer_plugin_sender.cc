@@ -5,7 +5,7 @@
 #include "cetlib/BasicPluginFactory.h"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
@@ -32,9 +32,8 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 
-	fhicl::ParameterSet pset;
 	cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-	fhicl::make_ParameterSet(fhicl_filename, lookup_policy, pset);
+	auto pset = artdaq::make_pset(fhicl_filename, lookup_policy);
 
 	return pset;
 }
