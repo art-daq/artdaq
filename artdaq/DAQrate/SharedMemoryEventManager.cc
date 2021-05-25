@@ -53,6 +53,7 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , manual_art_(pset.get<bool>("manual_art", false))
     , current_art_pset_(art_pset)
     , art_cmdline_(pset.get<std::string>("art_command_line", "art -c #CONFIG_FILE#"))
+    , art_process_index_offset_(pset.get<size_t>("art_index_offset", 0))
     , minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
     , art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 1000000))
     , requests_(nullptr)
