@@ -1358,7 +1358,8 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index)
 {
-	TLOG(16) << "parse_art_command_line_: Parsing command line " << art_cmdline_ << ", config_file: " << config_file->getFileName() << ", index: " << process_index;
+	auto offset_index = process_index + art_process_index_offset_;
+	TLOG(16) << "parse_art_command_line_: Parsing command line " << art_cmdline_ << ", config_file: " << config_file->getFileName() << ", index: " << process_index << " (w/offset: " << offset_index << ")";
 	std::string art_cmdline_tmp = art_cmdline_;
 	auto filenameit = art_cmdline_tmp.find("#CONFIG_FILE#");
 	if (filenameit != std::string::npos)
@@ -1368,7 +1369,7 @@ std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(con
 	auto indexit = art_cmdline_tmp.find("#PROCESS_INDEX#");
 	if (indexit != std::string::npos)
 	{
-		art_cmdline_tmp.replace(indexit, 15, std::to_string(process_index));
+		art_cmdline_tmp.replace(indexit, 15, std::to_string(offset_index));
 	}
 	TLOG(16) << "parse_art_command_line_: After replacing index and config parameters, command line is " << art_cmdline_tmp;
 
