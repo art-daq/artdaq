@@ -1363,12 +1363,12 @@ std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(con
 	auto filenameit = art_cmdline_tmp.find("#CONFIG_FILE#");
 	if (filenameit != std::string::npos)
 	{
-		art_cmdline_tmp.replace(filenameit, filenameit + 13, config_file->getFileName());
+		art_cmdline_tmp.replace(filenameit, 13, config_file->getFileName());
 	}
 	auto indexit = art_cmdline_tmp.find("#PROCESS_INDEX#");
 	if (indexit != std::string::npos)
 	{
-		art_cmdline_tmp.replace(indexit, indexit + 15, std::to_string(process_index));
+		art_cmdline_tmp.replace(indexit, 15, std::to_string(process_index));
 	}
 	TLOG(16) << "parse_art_command_line_: After replacing index and config parameters, command line is " << art_cmdline_tmp;
 
