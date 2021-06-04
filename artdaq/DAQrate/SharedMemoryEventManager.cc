@@ -54,6 +54,8 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , always_restart_art_(pset.get<bool>("restart_crashed_art_processes", true))
     , manual_art_(pset.get<bool>("manual_art", false))
     , current_art_pset_(art_pset)
+    , art_cmdline_(pset.get<std::string>("art_command_line", "art -c #CONFIG_FILE#"))
+    , art_process_index_offset_(pset.get<size_t>("art_index_offset", 0))
     , minimum_art_lifetime_s_(pset.get<double>("minimum_art_lifetime_s", 2.0))
     , art_event_processing_time_us_(pset.get<size_t>("expected_art_event_processing_time_us", 1000000))
     , requests_(nullptr)
@@ -396,7 +398,7 @@ size_t artdaq::SharedMemoryEventManager::GetFragmentCountInBuffer(int buffer, Fr
 	return count;
 }
 
-void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_file>& config_file, const std::shared_ptr<std::atomic<pid_t>>& pid_out)
+void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_file>& config_file, size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out)
 {
 	do
 	{
@@ -408,21 +410,6 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 
 		if (!manual_art_)
 		{
-			char* filename = new char[config_file->getFileName().length() + 1];
-			memcpy(filename, config_file->getFileName().c_str(), config_file->getFileName().length());
-			filename[config_file->getFileName().length()] = '\0';  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-
-#if DEBUG_ART
-			std::string debugArgS = "--config-out=" + app_name + "_art.out";
-			char* debugArg = new char[debugArgS.length() + 1];
-			memcpy(debugArg, debugArgS.c_str(), debugArgS.length());
-			debugArg[debugArgS.length()] = '\0';
-
-			std::vector<char*> args{const_cast<char*>("art"), const_cast<char*>("-c"), filename, debugArg, NULL};  // NOLINT(cppcoreguidelines-pro-type-const-cast)
-#else
-			std::vector<char*> args{const_cast<char*>("art"), const_cast<char*>("-c"), filename, nullptr};  // NOLINT(cppcoreguidelines-pro-type-const-cast)
-#endif
-
 			pid = fork();
 			if (pid == 0)
 			{ /* child */
@@ -455,11 +442,19 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 					                 << "\" in the environment of a child art process. ";
 				}
 
-				execvp("art", &args[0]);
-				delete[] filename;
+				TLOG(TLVL_TRACE) << "Parsing art command line";
+				auto args = parse_art_command_line_(config_file, process_index);
+
+				TLOG(TLVL_TRACE) << "Calling execvp with application name " << args[0];
+				execvp(args[0], &args[0]);
+
+				TLOG(TLVL_TRACE) << "Application exited, cleaning up";
+				for (auto& arg : args) {
+					delete[] arg;
+				}
+
 				exit(1);
 			}
-			delete[] filename;
 		}
 		else
 		{
@@ -542,11 +537,11 @@ void artdaq::SharedMemoryEventManager::StartArt()
 	}
 	for (size_t ii = 0; ii < num_art_processes_; ++ii)
 	{
-		StartArtProcess(current_art_pset_);
+		StartArtProcess(current_art_pset_, ii);
 	}
 }
 
-pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset)
+pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset, size_t process_index)
 {
 	static std::mutex start_art_mutex;
 	std::unique_lock<std::mutex> lk(start_art_mutex);
@@ -564,7 +559,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 			current_art_config_file_ = std::make_shared<art_config_file>(pset);
 	}
 	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
-	boost::thread thread([=] { RunArt(current_art_config_file_, pid); });
+	boost::thread thread([=] { RunArt(current_art_config_file_, process_index, pid); });
 	thread.detach();
 
 	auto currentCount = GetAttachedCount() - initialCount;
@@ -1046,7 +1041,7 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 
 	TLOG(TLVL_DEBUG) << "broadcastFragments_ Marking buffer full";
 	broadcasts_.MarkBufferFull(buffer, -1);
-	TLOG(TLVL_DEBUG) << "broadcastFragment_s Complete";
+	TLOG(TLVL_DEBUG) << "broadcastFragments_ Complete";
 	return true;
 }
 
@@ -1379,6 +1374,39 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		}
 	}
 	TLOG(14) << "check_pending_buffers_ END";
+}
+
+std::vector<char*> artdaq::SharedMemoryEventManager::parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index)
+{
+	auto offset_index = process_index + art_process_index_offset_;
+	TLOG(16) << "parse_art_command_line_: Parsing command line " << art_cmdline_ << ", config_file: " << config_file->getFileName() << ", index: " << process_index << " (w/offset: " << offset_index << ")";
+	std::string art_cmdline_tmp = art_cmdline_;
+	auto filenameit = art_cmdline_tmp.find("#CONFIG_FILE#");
+	if (filenameit != std::string::npos)
+	{
+		art_cmdline_tmp.replace(filenameit, 13, config_file->getFileName());
+	}
+	auto indexit = art_cmdline_tmp.find("#PROCESS_INDEX#");
+	if (indexit != std::string::npos)
+	{
+		art_cmdline_tmp.replace(indexit, 15, std::to_string(offset_index));
+	}
+	TLOG(16) << "parse_art_command_line_: After replacing index and config parameters, command line is " << art_cmdline_tmp;
+
+	std::istringstream iss(art_cmdline_tmp);
+	auto tokens = std::vector<std::string>{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
+	std::vector<char*> output;
+
+	for (auto& token : tokens)
+	{
+		TLOG(16) << "parse_art_command_line_: Adding cmdline token " << token << " to output list";
+		output.emplace_back(new char[token.length() + 1]);
+		memcpy(output.back(), token.c_str(), token.length());
+		output.back()[token.length()] = '\0';  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	}
+	output.emplace_back(nullptr);
+
+	return output;
 }
 
 void artdaq::SharedMemoryEventManager::send_init_frags_()

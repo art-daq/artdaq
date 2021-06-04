@@ -437,7 +437,7 @@ void artdaq::DispatcherCore::start_art_process_(std::string const& label)
 			}
 			fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
 			TLOG(TLVL_DEBUG) << "Starting art process with received fhicl";
-			auto pid = event_store_ptr_->StartArtProcess(ps);
+			auto pid = event_store_ptr_->StartArtProcess(ps, registered_monitors_.size() - 1);
 			{
 				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 				registered_monitor_pids_[label] = pid;
