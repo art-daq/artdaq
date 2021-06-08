@@ -146,6 +146,10 @@ public:
 		/// "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
 		/// A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 		fhicl::Atom<int> fragment_broadcast_timeout_ms{fhicl::Name{"fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000};
+		/// "art_command_line"  (Default: "art -c #CONFIG_FILE#"): Command line used to start analysis processes. Supports two special sequences: #CONFIG_FILE# will be replaced with the fhicl config file. #PROCESS_INDEX# will be replaced by the index of the art process.
+		fhicl::Atom<std::string> art_command_line{fhicl::Name{"art_command_line"}, fhicl::Comment{"Command line used to start analysis processes. Supports two special sequences: #CONFIG_FILE# will be replaced with the fhicl config file. #PROCESS_INDEX# will be replaced by the index of the art process."}, "art -c #CONFIG_FILE#"};
+		/// "art_index_offset" (Default: 0): Offset to add to art process index when replacing #PROCESS_INDEX#
+		fhicl::Atom<size_t> art_index_offset{fhicl::Name{"art_index_offset"}, fhicl::Comment{"Offset to add to art process index when replacing #PROCESS_INDEX#"}, 0};
 		/// "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
 		fhicl::Atom<double> minimum_art_lifetime_s{fhicl::Name{"minimum_art_lifetime_s"}, fhicl::Comment{"Amount of time that an art process should run to not be considered \"DOA\""}, 2.0};
 		/// "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers.
@@ -254,7 +258,7 @@ public:
 	/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 		 */
-	void RunArt(const std::shared_ptr<art_config_file>& config_file, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
+	void RunArt(const std::shared_ptr<art_config_file>& config_file, size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
 		 * \brief Start all the art processes
 		 */
@@ -263,9 +267,10 @@ public:
 	/**
 		 * \brief Start one art process
 		 * \param pset ParameterSet to send to this art process
+		 * \param process_index Index of this art process (when starting multiple)
 		 * \return pid_t of the started process
 		 */
-	pid_t StartArtProcess(fhicl::ParameterSet pset);
+	pid_t StartArtProcess(fhicl::ParameterSet pset, size_t process_index);
 
 	/**
 		 * \brief Shutdown a set of art processes
@@ -462,6 +467,8 @@ private:
 	std::atomic<bool> manual_art_;
 	fhicl::ParameterSet current_art_pset_;
 	std::shared_ptr<art_config_file> current_art_config_file_;
+	std::string art_cmdline_;
+	size_t art_process_index_offset_;
 	double minimum_art_lifetime_s_;
 	size_t art_event_processing_time_us_;
 
@@ -481,6 +488,7 @@ private:
 	void complete_buffer_(int buffer);
 	bool bufferComparator(int bufA, int bufB);
 	void check_pending_buffers_(std::unique_lock<std::mutex> const& lock);
+	std::vector<char*> parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index);
 
 	void send_init_frags_();
 	SharedMemoryManager broadcasts_;

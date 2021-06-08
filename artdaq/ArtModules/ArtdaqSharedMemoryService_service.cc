@@ -128,7 +128,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 
 		for (auto const& type : fragmentTypes)
 		{
-			TLOG(TLVL_TRACE) << "receiveMessage: Getting all Fragments of type " << type;
+			TLOG(TLVL_TRACE) << "ReceiveEvent: Getting all Fragments of type " << static_cast<int>(type);
 			recvd_fragments[type] = incoming_events_->GetFragmentsByType(errflag, type);
 			if (!recvd_fragments[type])
 			{
@@ -142,11 +142,11 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
     */
 			std::sort(recvd_fragments[type]->begin(), recvd_fragments[type]->end(), artdaq::fragmentSequenceIDCompare);
 		}
-		TLOG(TLVL_TRACE) << "receiveMessage: Releasing buffer";
+		TLOG(TLVL_TRACE) << "ReceiveEvent: Releasing buffer";
 		incoming_events_->ReleaseBuffer();
 	}
 
-	TLOG(TLVL_TRACE) << "receiveMessage END";
+	TLOG(TLVL_TRACE) << "ReceiveEvent END";
 	return recvd_fragments;
 }
 
