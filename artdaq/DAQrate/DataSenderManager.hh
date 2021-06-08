@@ -206,6 +206,7 @@ private:
 	mutable std::mutex routing_mutex_;
 	boost::thread routing_thread_;
 	mutable std::atomic<size_t> routing_wait_time_;
+	mutable std::atomic<size_t> routing_wait_time_count_;
 
 	int routing_timeout_ms_;
 	int routing_retry_count_;

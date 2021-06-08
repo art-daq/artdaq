@@ -91,9 +91,9 @@ inline char* copyString(const char* s)
 	return (const_cast<char*>(s));
 }
 #else   // ! SMC_FIXED_STACK
-inline char *copyString(const char *s)
+inline char* copyString(const char* s)
 {
-	char *retval = NULL;
+	char* retval = NULL;
 
 	if (s != NULL)
 	{
@@ -506,7 +506,7 @@ public:
 #ifdef SMC_FIXED_STACK
 		_transition = NULL;
 #else   // ! SMC_FIXED_STACK
-		StateEntry *state;
+		StateEntry* state;
 
 		if (_transition != NULL)
 		{
@@ -736,7 +736,7 @@ public:
 	{
 		_state_stack_depth = 0;
 	};
-#else  // ! SMC_FIXED_STACK
+#else  // ! SMC_FIXED_STACK  
 
 	// Returns true if the state stack is empty and false otherwise.
 	bool isStateStackEmpty() const
@@ -747,7 +747,7 @@ public:
 	// Returns the state stack's depth.
 	int getStateStackDepth() const
 	{
-		StateEntry *state_ptr;
+		StateEntry* state_ptr;
 		int retval;
 
 		for (state_ptr = _state_stack, retval = 0;
@@ -760,9 +760,9 @@ public:
 
 	// Push the current state on top of the state stack
 	// and make the specified state the current state.
-	void pushState(const State &state)
+	void pushState(const State& state)
 	{
-		StateEntry *new_entry;
+		StateEntry* new_entry;
 
 		// Do the push only if there is a state to be pushed
 		// on the stack.
@@ -773,7 +773,7 @@ public:
 		}
 
 		_previous_state = _state;
-		_state = const_cast<State *>(&state);
+		_state = const_cast<State*>(&state);
 
 		if (_debug_flag == true)
 		{
@@ -792,7 +792,7 @@ public:
 	// current state.
 	void popState()
 	{
-		StateEntry *entry;
+		StateEntry* entry;
 
 		// Popping when there was no previous push is an error.
 #ifdef SMC_NO_EXCEPTIONS
@@ -888,7 +888,7 @@ protected:
 	State* _state_stack[SMC_STATE_STACK_SIZE];
 	int _state_stack_depth;
 #else
-	StateEntry *_state_stack;
+	StateEntry* _state_stack;
 #endif
 
 	// The current transition *name*. Use for debugging

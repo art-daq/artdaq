@@ -27,7 +27,7 @@ public:
 		 * \brief art_config_file Constructor
 		 * \param ps ParameterSet to write to temporary file
 		 */
-	explicit art_config_file(fhicl::ParameterSet const& ps /*, uint32_t shm_key, uint32_t broadcast_key*/)
+	explicit art_config_file(fhicl::ParameterSet ps, uint32_t shm_key = 0, uint32_t broadcast_key = 0)
 	    : dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
 	    , file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 	{
@@ -50,19 +50,16 @@ public:
 		}
 		of << ps.to_string();
 
-		//if (ps.has_key("services.NetMonTransportServiceInterface"))
-		//{
-		//	of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
-		//	of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-		//	of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
-		//}
 		if (!ps.has_key("services") || !ps.has_key("services.message"))
 		{
 			of << " services.message: { " << generateMessageFacilityConfiguration(mf::GetApplicationName().c_str(), true, false, "-art") << "} ";
 		}
-		//of << " source.shared_memory_key: 0x" << std::hex << shm_key;
-		//of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-		//of << " source.rank: " << std::dec << my_rank;
+
+		TLOG(TLVL_INFO) << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into source config";
+		if (shm_key > 0) of << " source.shared_memory_key: 0x" << std::hex << shm_key;
+		if (broadcast_key > 0) of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
+
+		of.flush();
 		of.close();
 	}
 	~art_config_file()
@@ -141,8 +138,8 @@ public:
 		fhicl::Atom<size_t> max_event_list_length{fhicl::Name{"max_event_list_length"}, fhicl::Comment{" The maximum number of entries to store in the released events list"}, 100};
 		/// "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 		fhicl::Atom<bool> send_init_fragments{fhicl::Name{"send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true};
-		/// "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
-		fhicl::Atom<int> incomplete_event_report_interval_ms{fhicl::Name{"incomplete_event_report_interval_ms"}, fhicl::Comment{"Interval at which an incomplete event report should be written"}, -1};
+		/// "open_event_report_interval_ms" (Default: -1): Interval at which an open event report should be written
+		fhicl::Atom<int> open_event_report_interval_ms{fhicl::Name{"open_event_report_interval_ms"}, fhicl::Comment{"Interval at which an open event report should be written"}, -1};
 		/// "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
 		/// A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 		fhicl::Atom<int> fragment_broadcast_timeout_ms{fhicl::Name{"fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000};
@@ -219,7 +216,7 @@ public:
 		* \brief Returns the number of buffers which contain data but are not yet complete
 		* \return The number of buffers which contain data but are not yet complete
 		*/
-	size_t GetIncompleteEventCount() { return active_buffers_.size(); }
+	size_t GetOpenEventCount() { return active_buffers_.size(); }
 
 	/**
 		* \brief Returns the number of events which are complete but waiting on lower sequenced events to finish
@@ -444,10 +441,11 @@ private:
 	std::unordered_map<int, std::mutex> buffer_mutexes_;
 	static std::mutex sequence_id_mutex_;
 
-	int incomplete_event_report_interval_ms_;
-	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
+	int open_event_report_interval_ms_;
+	std::chrono::steady_clock::time_point last_open_event_report_time_;
 	std::chrono::steady_clock::time_point last_backpressure_report_time_;
 	std::chrono::steady_clock::time_point last_fragment_header_write_time_;
+	std::vector<std::chrono::steady_clock::time_point> event_timing_;
 
 	StatisticsHelper statsHelper_;
 

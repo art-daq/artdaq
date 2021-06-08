@@ -209,7 +209,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 
 			if (ec.value() != 0)
 			{
-				std::cerr << "boost::system::error_code with value " << ec << " was found in setting reuse_address option" << std::endl;
+				TLOG(TLVL_ERROR) << "boost::system::error_code with value " << ec << " was found in setting reuse_address option";
 			}
 
 			set_receive_buffer_size(pset.get<size_t>("receive_buffer_size", 0));
@@ -222,7 +222,7 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 
 			if (ec.value() != 0)
 			{
-				std::cerr << "boost::system::error_code with value " << ec << " was found in attempt to join multicast group" << std::endl;
+				TLOG(TLVL_ERROR) << "boost::system::error_code with value " << ec << " was found in attempt to join multicast group";
 			}
 		}
 	}
@@ -263,7 +263,7 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 	if (print_warning)
 	{
-		std::cerr << "Please note that MulticastTransfer::receiveFragmentFrom does not use its receiveTimeout argument" << std::endl;
+		TLOG(TLVL_WARNING) << "Please note that MulticastTransfer::receiveFragmentFrom does not use its receiveTimeout argument";
 		print_warning = false;
 	}
 
@@ -305,13 +305,11 @@ int artdaq::MulticastTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 					if (expected_subfragments != std::numeric_limits<size_t>::max())
 					{
-						std::cerr << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " << current_sequenceID << ", fragID = " << current_fragmentID << " (expected " << expected_subfragments << ")\n"
-						          << std::endl;
+						TLOG(TLVL_WARNING) << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " << current_sequenceID << ", fragID = " << current_fragmentID << " (expected " << expected_subfragments << ")";
 					}
 					else
 					{
-						std::cerr << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " << current_sequenceID << ", fragID = " << current_fragmentID << ", # of expected subfragments is unknown as fragment header was not received)\n"
-						          << std::endl;
+						TLOG(TLVL_WARNING) << "Warning: only received " << current_subfragments << " subfragments for fragment with seqID = " << current_sequenceID << ", fragID = " << current_fragmentID << ", # of expected subfragments is unknown as fragment header was not received)";
 					}
 				}
 
@@ -555,6 +553,7 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 
 	if (ec.value() != 0)
 	{
+		TLOG(TLVL_ERROR) << "boost::system::error_code with value " << ec << " was found in attempt to change receive buffer";
 		std::cerr << "boost::system::error_code with value " << ec << " was found in attempt to change receive buffer" << std::endl;
 	}
 

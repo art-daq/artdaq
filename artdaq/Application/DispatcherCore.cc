@@ -86,14 +86,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	agg_pset.put<int>("art_analyzer_count", 0);
 
 	// initialize the MetricManager and the names of our metrics
-	fhicl::ParameterSet metric_pset;
-
-	try
-	{
-		metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-	}
-	catch (...)
-	{}  // OK if there's no metrics table defined in the FHiCL
+	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 
 	return initializeDataReceiver(pset, agg_pset, metric_pset);
 }

@@ -19,9 +19,6 @@ bindir      fq_dir      bin
 product			version		optional
 art_root_io		v1_08_01	s109
 art_root_io		v1_08_00	s108
-art_root_io         v1_07_00        s107
-art_root_io         v1_05_02        s106
-art_root_io         v1_05_01        s105
 artdaq_core 		v3_07_01
 artdaq_utilities        v1_06_01
 xmlrpc_c		v1_51_06
@@ -51,27 +48,6 @@ e20:s108:debug	  	e20:debug	e20:s108:debug 	  e20:s108:debug	e20:debug	e20:s108:
 e20:s108:prof	   	e20:prof	e20:s108:prof  	  e20:s108:prof		e20:prof	e20:s108:prof	   	e20:s108:prof		e20:s108:prof	      e20:s108:prof		e20:prof    -nq- 
 e19:s108:debug	  	e19:debug	e19:s108:debug 	  e19:s108:debug	e19:debug	e19:s108:debug	   	e19:s108:debug      	e19:s108:debug	      e19:s108:debug		e19:debug   -nq- 
 e19:s108:prof	   	e19:prof	e19:s108:prof  	  e19:s108:prof		e19:prof	e19:s108:prof	   	e19:s108:prof		e19:s108:prof	      e19:s108:prof		e19:prof    -nq- 
-
-c7:s107:debug	  	c7:debug	c7:s107:debug  	  c7:s107:debug		c7:debug	c7:s107:debug	   	c7:s107:debug       	c7:s107:debug	      c7:s107:debug       	c7:debug    -nq- 
-c7:s107:prof	   	c7:prof		c7:s107:prof	  c7:s107:prof		c7:prof		c7:s107:prof	   	c7:s107:prof		c7:s107:prof	      c7:s107:prof		c7:prof     -nq- 
-e20:s107:debug	  	e20:debug	e20:s107:debug 	  e20:s107:debug	e20:debug	e20:s107:debug	   	e20:s107:debug      	e20:s107:debug	      e20:s107:debug		e20:debug   -nq- 
-e20:s107:prof	   	e20:prof	e20:s107:prof  	  e20:s107:prof		e20:prof	e20:s107:prof	   	e20:s107:prof		e20:s107:prof	      e20:s107:prof		e20:prof    -nq- 
-e19:s107:debug	  	e19:debug	e19:s107:debug 	  e19:s107:debug	e19:debug	e19:s107:debug	   	e19:s107:debug      	e19:s107:debug	      e19:s107:debug		e19:debug   -nq- 
-e19:s107:prof	   	e19:prof	e19:s107:prof  	  e19:s107:prof		e19:prof	e19:s107:prof	   	e19:s107:prof		e19:s107:prof	      e19:s107:prof		e19:prof    -nq- 
-
-c7:s106:debug	  	c7:debug	c7:s106:debug  	  c7:s106:debug		c7:debug	c7:s106:debug	   	c7:s106:debug       	c7:s106:debug	      c7:s106:debug       	c7:debug    -nq- 
-c7:s106:prof	   	c7:prof		c7:s106:prof	  c7:s106:prof		c7:prof		c7:s106:prof	   	c7:s106:prof		c7:s106:prof	      c7:s106:prof		c7:prof     -nq- 
-e20:s106:debug	  	e20:debug	e20:s106:debug 	  e20:s106:debug	e20:debug	e20:s106:debug	   	e20:s106:debug      	e20:s106:debug	      e20:s106:debug		e20:debug   -nq- 
-e20:s106:prof	   	e20:prof	e20:s106:prof  	  e20:s106:prof		e20:prof	e20:s106:prof	   	e20:s106:prof		e20:s106:prof	      e20:s106:prof		e20:prof    -nq- 
-e19:s106:debug	  	e19:debug	e19:s106:debug 	  e19:s106:debug	e19:debug	e19:s106:debug	   	e19:s106:debug      	e19:s106:debug	      e19:s106:debug		e19:debug   -nq- 
-e19:s106:prof	   	e19:prof	e19:s106:prof  	  e19:s106:prof		e19:prof	e19:s106:prof	   	e19:s106:prof		e19:s106:prof	      e19:s106:prof		e19:prof    -nq- 
-
-c7:s105:debug	  	c7:debug	c7:s105:debug  	  c7:s105:debug		c7:debug	c7:s105:debug	   	c7:s105:debug       	c7:s105:debug	      c7:s105:debug       	c7:debug    -nq- 
-c7:s105:prof	   	c7:prof		c7:s105:prof	  c7:s105:prof		c7:prof		c7:s105:prof	   	c7:s105:prof		c7:s105:prof	      c7:s105:prof		c7:prof     -nq- 
-e20:s105:debug	  	e20:debug	e20:s105:debug 	  e20:s105:debug	e20:debug	e20:s105:debug	   	e20:s105:debug      	e20:s105:debug	      e20:s105:debug		e20:debug   -nq- 
-e20:s105:prof	   	e20:prof	e20:s105:prof  	  e20:s105:prof		e20:prof	e20:s105:prof	   	e20:s105:prof		e20:s105:prof	      e20:s105:prof		e20:prof    -nq- 
-e19:s105:debug	  	e19:debug	e19:s105:debug 	  e19:s105:debug	e19:debug	e19:s105:debug	   	e19:s105:debug      	e19:s105:debug	      e19:s105:debug		e19:debug   -nq- 
-e19:s105:prof	   	e19:prof	e19:s105:prof  	  e19:s105:prof		e19:prof	e19:s105:prof	   	e19:s105:prof		e19:s105:prof	      e19:s105:prof		e19:prof    -nq- 
 
 end_qualifier_list
 

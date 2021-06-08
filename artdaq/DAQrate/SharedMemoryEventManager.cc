@@ -39,10 +39,12 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
     , overwrite_mode_(!pset.get<bool>("use_art", true) || pset.get<bool>("overwrite_mode", false) || pset.get<bool>("broadcast_mode", false))
     , init_fragment_count_(pset.get<size_t>("init_fragment_count", pset.get<bool>("send_init_fragments", true) ? 1 : 0))
     , running_(false)
-    , incomplete_event_report_interval_ms_(pset.get<int>("incomplete_event_report_interval_ms", -1))
-    , last_incomplete_event_report_time_(std::chrono::steady_clock::now())
+    , buffer_writes_pending_()
+    , open_event_report_interval_ms_(pset.get<int>("open_event_report_interval_ms", pset.get<int>("incomplete_event_report_interval_ms", -1)))
+    , last_open_event_report_time_(std::chrono::steady_clock::now())
     , last_backpressure_report_time_(std::chrono::steady_clock::now())
     , last_fragment_header_write_time_(std::chrono::steady_clock::now())
+    , event_timing_(pset.get<size_t>("buffer_count"))
     , broadcast_timeout_ms_(pset.get<int>("fragment_broadcast_timeout_ms", 3000))
     , run_event_count_(0)
     , run_incomplete_event_count_(0)
@@ -79,7 +81,11 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 		TLOG(TLVL_INFO) << "BEGIN SharedMemoryEventManager CONSTRUCTOR with use_art:true";
 		TLOG(TLVL_TRACE) << "art_pset is " << art_pset.to_string();
 	}
-	current_art_config_file_ = std::make_shared<art_config_file>(art_pset /*, GetKey(), GetBroadcastKey()*/);
+
+	if (manual_art_)
+		current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+	else
+		current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 
 	if (overwrite_mode_ && num_art_processes_ > 0)
 	{
@@ -469,7 +475,19 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 			art_processes_.insert(pid);
 		}
 		siginfo_t status;
-		auto sts = waitid(P_PID, pid, &status, WEXITED);
+		auto sts = 0;
+		if (!manual_art_)
+		{
+			sts = waitid(P_PID, pid, &status, WEXITED);
+		}
+		else
+		{
+			while (kill(pid, 0) >= 0) usleep(10000);
+
+			TLOG(TLVL_INFO) << "Faking good exit status, please see art process for actual exit status!";
+			status.si_code = CLD_EXITED;
+			status.si_status = 0;
+		}
 		TLOG(TLVL_INFO) << "Removing PID " << pid << " from process list";
 		{
 			std::unique_lock<std::mutex> lk(art_process_mutex_);
@@ -537,7 +555,10 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 	if (pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(pset /*, GetKey(), GetBroadcastKey()*/);
+		if (manual_art_)
+			current_art_config_file_ = std::make_shared<art_config_file>(pset, GetKey(), GetBroadcastKey());
+		else
+			current_art_config_file_ = std::make_shared<art_config_file>(pset);
 	}
 	std::shared_ptr<std::atomic<pid_t>> pid(new std::atomic<pid_t>(-1));
 	boost::thread thread([=] { RunArt(current_art_config_file_, process_index, pid); });
@@ -700,8 +721,7 @@ void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pid
 			std::cout << "The following PIDs are running: ";
 			check_pids(true);
 			std::cout << std::endl;
-			std::string ignored;
-			std::cin >> ignored;
+			usleep(500000);
 		}
 	}
 }
@@ -725,7 +745,10 @@ void artdaq::SharedMemoryEventManager::ReconfigureArt(fhicl::ParameterSet art_ps
 	if (art_pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = art_pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(art_pset /*, GetKey(), GetBroadcastKey()*/);
+		if (manual_art_)
+			current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+		else
+			current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 	}
 
 	if (n_art_processes != -1)
@@ -754,7 +777,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		pendingWriteCount = std::accumulate(buffer_writes_pending_.begin(), buffer_writes_pending_.end(), 0, [](int a, auto& b) { return a + b.second.load(); });
 	}
 
-	size_t initialStoreSize = GetIncompleteEventCount();
+	size_t initialStoreSize = GetOpenEventCount();
 	TLOG(TLVL_DEBUG) << "endOfData: Flushing " << initialStoreSize
 	                 << " stale events from the SharedMemoryEventManager.";
 	int counter = initialStoreSize;
@@ -763,7 +786,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 		complete_buffer_(*active_buffers_.begin());
 		counter--;
 	}
-	TLOG(TLVL_DEBUG) << "endOfData: Done flushing, there are now " << GetIncompleteEventCount()
+	TLOG(TLVL_DEBUG) << "endOfData: Done flushing, there are now " << GetOpenEventCount()
 	                 << " stale events in the SharedMemoryEventManager.";
 
 	TLOG(TLVL_DEBUG) << "Waiting for " << (ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_))) << " outstanding buffers...";
@@ -951,24 +974,24 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 {
 	if (metricMan)
 	{
-		metricMan->sendMetric("Incomplete Event Count", GetIncompleteEventCount(), "events", 1, MetricMode::LastPoint);
+		metricMan->sendMetric("Open Event Count", GetOpenEventCount(), "events", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Pending Event Count", GetPendingEventCount(), "events", 1, MetricMode::LastPoint);
 	}
 
-	if (incomplete_event_report_interval_ms_ > 0 && (GetLockedBufferCount() != 0u))
+	if (open_event_report_interval_ms_ > 0 && GetLockedBufferCount() != 0u)
 	{
-		if (TimeUtils::GetElapsedTimeMilliseconds(last_incomplete_event_report_time_) < static_cast<size_t>(incomplete_event_report_interval_ms_))
+		if (TimeUtils::GetElapsedTimeMilliseconds(last_open_event_report_time_) < static_cast<size_t>(open_event_report_interval_ms_))
 		{
 			return;
 		}
 
-		last_incomplete_event_report_time_ = std::chrono::steady_clock::now();
+		last_open_event_report_time_ = std::chrono::steady_clock::now();
 		std::ostringstream oss;
-		oss << "Incomplete Events (" << num_fragments_per_event_ << "): ";
+		oss << "Open Events (expecting " << num_fragments_per_event_ << " Fragments): ";
 		for (auto& ev : active_buffers_)
 		{
 			auto hdr = getEventHeader_(ev);
-			oss << hdr->sequence_id << " (" << GetFragmentCount(hdr->sequence_id) << "), ";
+			oss << hdr->sequence_id << " (has " << GetFragmentCount(hdr->sequence_id) << " Fragments), ";
 		}
 		TLOG(TLVL_DEBUG) << oss.str();
 	}
@@ -1099,6 +1122,9 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtaining buffer_mutexes lock for buffer " << new_buffer;
 	std::unique_lock<std::mutex> buffer_lk(buffer_mutexes_.at(new_buffer));
 	TLOG(TLVL_BUFLCK) << "getBufferForSequenceID_: obtained buffer_mutexes lock for buffer " << new_buffer;
+
+	event_timing_[new_buffer] = std::chrono::steady_clock::now();
+
 	auto hdr = getEventHeader_(new_buffer);
 	hdr->is_complete = false;
 	hdr->run_id = run_id_;
@@ -1122,16 +1148,7 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 
 	if (requests_)
 	{
-		if (timestamp != Fragment::InvalidTimestamp)
-		{
-			requests_->AddRequest(seqID, timestamp);
-		}
-		// 17-Aug-2018, KAB: only call SendRequest if AddRequest was *not* called so that we
-		// don't double-send requests, but still get the benefit of calling SendRequest 'often'.
-		else
-		{
-			requests_->SendRequest();
-		}
+		requests_->AddRequest(seqID, timestamp);
 	}
 	TLOG(14) << "getBufferForSequenceID " << seqID << " returning newly initialized buffer " << new_buffer;
 	return new_buffer;
@@ -1253,6 +1270,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 
 	auto counter = 0;
 	double eventSize = 0;
+	double eventTime = 0;
 	for (auto buf : sorted_buffers)
 	{
 		auto hdr = getEventHeader_(buf);
@@ -1267,6 +1285,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		run_event_count_++;
 		counter++;
 		eventSize += thisEventSize;
+		eventTime += TimeUtils::GetElapsedTime(event_timing_[buf]);
 		pending_buffers_.erase(buf);
 		TLOG(TLVL_BUFFER) << "Buffer occupancy now (total,full,reading,empty,pending,active)=("
 		                  << size() << ","
@@ -1313,6 +1332,7 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 		if (counter > 0)
 		{
 			metricMan->sendMetric("Average Event Size", eventSize / counter, "Bytes", 1, MetricMode::Average);
+			metricMan->sendMetric("Average Event Building Time", eventTime / counter, "s", 1, MetricMode::Average);
 		}
 
 		metricMan->sendMetric("Events Released to art this run", run_event_count_, "Events", 1, MetricMode::LastPoint);
@@ -1453,7 +1473,10 @@ void artdaq::SharedMemoryEventManager::UpdateArtConfiguration(fhicl::ParameterSe
 	if (art_pset != current_art_pset_ || !current_art_config_file_)
 	{
 		current_art_pset_ = art_pset;
-		current_art_config_file_ = std::make_shared<art_config_file>(art_pset /*, GetKey(), GetBroadcastKey()*/);
+		if (manual_art_)
+			current_art_config_file_ = std::make_shared<art_config_file>(art_pset, GetKey(), GetBroadcastKey());
+		else
+			current_art_config_file_ = std::make_shared<art_config_file>(art_pset);
 	}
 	TLOG(TLVL_DEBUG) << "UpdateArtConfiguration END";
 }

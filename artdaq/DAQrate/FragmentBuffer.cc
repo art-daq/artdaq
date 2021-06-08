@@ -27,21 +27,16 @@
 #include <iterator>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
-#define TLVL_GETNEXT 10
-#define TLVL_GETNEXT_VERBOSE 20
-#define TLVL_CHECKSTOP 11
-#define TLVL_EVCOUNTERINC 12
-#define TLVL_GETDATALOOP 13
-#define TLVL_GETDATALOOP_DATABUFFWAIT 21
-#define TLVL_GETDATALOOP_VERBOSE 20
-#define TLVL_WAITFORBUFFERREADY 15
-#define TLVL_GETBUFFERSTATS 16
-#define TLVL_CHECKDATABUFFER 17
-#define TLVL_GETMONITORINGDATA 18
-#define TLVL_APPLYREQUESTS 9
-#define TLVL_SENDEMPTYFRAGMENTS 19
-#define TLVL_CHECKWINDOWS 14
-#define TLVL_EMPTYFRAGMENT 22
+#define TLVL_ADDFRAGMENT TLVL_TRACE + 10
+#define TLVL_CHECKSTOP TLVL_TRACE + 11
+#define TLVL_WAITFORBUFFERREADY TLVL_TRACE + 15
+#define TLVL_GETBUFFERSTATS TLVL_TRACE + 16
+#define TLVL_CHECKDATABUFFER TLVL_TRACE + 17
+#define TLVL_APPLYREQUESTS TLVL_TRACE + 9
+#define TLVL_APPLYREQUESTS_VERBOSE TLVL_TRACE + 23
+#define TLVL_SENDEMPTYFRAGMENTS TLVL_TRACE + 19
+#define TLVL_CHECKWINDOWS TLVL_TRACE + 14
+#define TLVL_EMPTYFRAGMENT TLVL_TRACE + 22
 
 artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     : next_sequence_id_(1)
@@ -108,6 +103,10 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 	else if (modeString.find("sequence") != std::string::npos || modeString.find("Sequence") != std::string::npos)
 	{
 		mode_ = RequestMode::SequenceID;
+	}
+	if (!ps.get<bool>("receive_requests", false))
+	{
+		mode_ = RequestMode::Ignored;
 	}
 	TLOG(TLVL_DEBUG) << "Request mode is " << printMode_();
 }
@@ -177,7 +176,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 			case RequestMode::Single:
 			{
 				auto dataIter = type_it->second.rbegin();
-				TLOG(TLVL_TRACE) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
+				TLOG(TLVL_ADDFRAGMENT) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 				dataBuffer->DataBuffer.clear();
 				dataBuffer->DataBufferDepthBytes = (*dataIter)->sizeBytes();
 				dataBuffer->DataBuffer.emplace_back(std::move(*dataIter));
@@ -193,7 +192,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 				while (!type_it->second.empty())
 				{
 					auto dataIter = type_it->second.begin();
-					TLOG(TLVL_TRACE) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
+					TLOG(TLVL_ADDFRAGMENT) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 
 					dataBuffer->DataBufferDepthBytes += (*dataIter)->sizeBytes();
 					dataBuffer->DataBuffer.emplace_back(std::move(*dataIter));
@@ -460,7 +459,7 @@ void artdaq::FragmentBuffer::applyRequestsSingleMode(artdaq::FragmentPtrs& frags
 		if (id.second->DataBufferDepthFragments > 0)
 		{
 			assert(id.second->DataBufferDepthFragments == 1);
-			TLOG(TLVL_APPLYREQUESTS) << "Mode is Single; Sending copy of last event";
+			TLOG(TLVL_APPLYREQUESTS) << "Mode is Single; Sending copy of last event (SeqID " << next_sequence_id_ << ")";
 			for (auto& fragptr : id.second->DataBuffer)
 			{
 				// Return the latest data point
@@ -499,7 +498,7 @@ void artdaq::FragmentBuffer::applyRequestsBufferMode(artdaq::FragmentPtrs& frags
 
 	for (auto& id : dataBuffers_)
 	{
-		TLOG(TLVL_DEBUG) << "applyRequestsBufferMode: Creating ContainerFragment for Buffered Fragments";
+		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsBufferMode: Creating ContainerFragment for Buffered Fragments (SeqID " << next_sequence_id_ << ")";
 		frags.emplace_back(new artdaq::Fragment(next_sequence_id_, id.first));
 		frags.back()->setTimestamp(requests[next_sequence_id_]);
 		ContainerFragmentLoader cfl(*frags.back());
@@ -521,8 +520,12 @@ void artdaq::FragmentBuffer::applyRequestsBufferMode(artdaq::FragmentPtrs& frags
 
 		if (fragsToAdd.size() > 0)
 		{
-			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsBufferMode: Adding " << fragsToAdd.size() << " Fragments to Container";
+			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsBufferMode: Adding " << fragsToAdd.size() << " Fragments to Container (SeqID " << next_sequence_id_ << ")";
 			cfl.addFragments(fragsToAdd);
+		}
+		else
+		{
+			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsBufferMode: No Fragments to add (SeqID " << next_sequence_id_ << ")";
 		}
 
 		if (id.second->DataBuffer.size() == 1)
@@ -574,7 +577,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 	}
 	if (windowClosed || windowTimeout)
 	{
-		TLOG(TLVL_DEBUG) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Creating ContainerFragment for Window-requested Fragments";
+		TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Creating ContainerFragment for Window-requested Fragments (SeqID " << seq << ")";
 		frags.emplace_back(new artdaq::Fragment(seq, id));
 		frags.back()->setTimestamp(ts);
 		ContainerFragmentLoader cfl(*frags.back());
@@ -596,7 +599,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 			TLOG(TLVL_DEBUG) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
 			                 << " (requestWindowRange=[" << min << "," << max << "], "
 			                 << "buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
-			                 << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "}";
+			                 << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "} (SeqID " << seq << ")";
 			cfl.set_missing_data(true);
 		}
 
@@ -629,7 +632,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 			if (fragT > max || (fragT == max && windowWidth_ > 0))
 			{ break; }
 
-			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container";
+			TLOG(TLVL_APPLYREQUESTS_VERBOSE) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container (SeqID " << seq << ")";
 			if (uniqueWindows_)
 			{
 				dataBuffer->DataBufferDepthBytes -= (*it)->sizeBytes();
@@ -645,7 +648,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 
 		if (fragsToAdd.size() > 0)
 		{
-			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding " << fragsToAdd.size() << " Fragments to Container";
+			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding " << fragsToAdd.size() << " Fragments to Container (SeqID " << seq << ")";
 			cfl.addFragments(fragsToAdd);
 
 			// Don't delete Fragments which are still in the Fragment buffer
@@ -657,6 +660,10 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 				}
 			}
 			fragsToAdd.clear();
+		}
+		else
+		{
+			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: No Fragments to add (SeqID " << seq << ")";
 		}
 
 		dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
@@ -678,11 +685,19 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode(artdaq::FragmentPtrs& frags
 
 		while (req->first < next_sequence_id_ && requests.size() > 0)
 		{
-			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode: Clearing passed request for sequence ID " << req->first;
+			TLOG(TLVL_APPLYREQUESTS_VERBOSE) << "applyRequestsWindowMode: Clearing passed request for sequence ID " << req->first;
 			requestBuffer_->RemoveRequest(req->first);
 			req = requests.erase(req);
 		}
 		if (requests.size() == 0) break;
+
+		auto ts = req->second;
+		if (ts == Fragment::InvalidTimestamp)
+		{
+			TLOG(TLVL_ERROR) << "applyRequestsWindowMode: Received InvalidTimestamp in request " << req->first << ", cannot apply! Check that push-mode BRs are filling appropriate timestamps in their Fragments!";
+			req = requests.erase(req);
+			continue;
+		}
 
 		for (auto& id : dataBuffers_)
 		{
@@ -728,14 +743,14 @@ void artdaq::FragmentBuffer::applyRequestsSequenceIDMode(artdaq::FragmentPtrs& f
 			std::lock_guard<std::mutex> lk(id.second->DataBufferMutex);
 			if (!id.second->WindowsSent.count(req->first))
 			{
-				TLOG(29) << "Searching id " << id.first << " for Fragments with Sequence ID " << req->first;
+				TLOG(TLVL_APPLYREQUESTS_VERBOSE) << "Searching id " << id.first << " for Fragments with Sequence ID " << req->first;
 				for (auto it = id.second->DataBuffer.begin(); it != id.second->DataBuffer.end();)
 				{
 					auto seq = (*it)->sequenceID();
-					TLOG(29) << "applyRequestsSequenceIDMode: Fragment SeqID " << seq << ", request ID " << req->first;
+					TLOG(TLVL_APPLYREQUESTS_VERBOSE) << "applyRequestsSequenceIDMode: Fragment SeqID " << seq << ", request ID " << req->first;
 					if (seq == req->first)
 					{
-						TLOG(29) << "applyRequestsSequenceIDMode: Adding Fragment to output";
+						TLOG(TLVL_APPLYREQUESTS_VERBOSE) << "applyRequestsSequenceIDMode: Adding Fragment to output";
 						id.second->WindowsSent[req->first] = std::chrono::steady_clock::now();
 						id.second->DataBufferDepthBytes -= (*it)->sizeBytes();
 						frags.push_back(std::move(*it));

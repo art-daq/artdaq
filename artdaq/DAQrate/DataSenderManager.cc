@@ -25,6 +25,8 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
     , table_socket_(-1)
     , routing_table_last_(0)
     , routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
+    , routing_wait_time_(0)
+    , routing_wait_time_count_(0)
     , highest_sequence_id_routed_(0)
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
@@ -442,6 +444,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 						highest_sequence_id_routed_ = sequence_id;
 					}
 					routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
+					routing_wait_time_count_++;
 					return routing_table_.at(sequence_id);
 				}
 				if (routing_manager_mode_ == detail::RoutingManagerMode::RouteBySendCount && (routing_table_.count(sent_frag_count_.count() + 1) != 0u))
@@ -451,6 +454,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 						highest_sequence_id_routed_ = sent_frag_count_.count() + 1;
 					}
 					routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start));
+					routing_wait_time_count_++;
 					return routing_table_.at(sent_frag_count_.count() + 1);
 				}
 			}
@@ -653,15 +657,22 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 5, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 5, MetricMode::Average);
 		metricMan->sendMetric("Data Send Count to Rank " + std::to_string(dest), sent_frag_count_.slotCount(dest), "fragments", 3, MetricMode::LastPoint);
+
+		metricMan->sendMetric("Rank", std::to_string(my_rank), "", 3, MetricMode::LastPoint);
+		metricMan->sendMetric("App Name", app_name, "", 3, MetricMode::LastPoint);
+
 		metricMan->sendMetric("Fragment Latency at Send", latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
 
 		if (use_routing_manager_)
 		{
 			metricMan->sendMetric("Routing Table Size", GetRoutingTableEntryCount(), "events", 2, MetricMode::LastPoint);
-			if (routing_wait_time_ > 0)
+
+			auto routingWaitTime = routing_wait_time_.exchange(0);
+			auto routingWaitCount = routing_wait_time_count_.exchange(0);
+
+			if (routingWaitTime > 0 && routingWaitCount > 0)
 			{
-				metricMan->sendMetric("Routing Wait Time", static_cast<double>(routing_wait_time_.load()) / 1000000, "s", 2, MetricMode::Average);
-				routing_wait_time_ = 0;
+				metricMan->sendMetric("Avg Routing Wait Time", static_cast<double>(routingWaitTime / routingWaitCount) / 1000000, "s", 2, MetricMode::Average);
 			}
 		}
 	}

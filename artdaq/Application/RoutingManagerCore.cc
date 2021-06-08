@@ -25,6 +25,8 @@ const std::string artdaq::RoutingManagerCore::
     TABLE_UPDATES_STAT_KEY("RoutingManagerCoreTableUpdates");
 const std::string artdaq::RoutingManagerCore::
     TOKENS_RECEIVED_STAT_KEY("RoutingManagerCoreTokensReceived");
+const std::string artdaq::RoutingManagerCore::
+    CURRENT_TABLE_INTERVAL_STAT_KEY("RoutingManagerCoreCurrentTableInterval");
 
 artdaq::RoutingManagerCore::RoutingManagerCore()
     : shutdown_requested_(false)
@@ -35,6 +37,7 @@ artdaq::RoutingManagerCore::RoutingManagerCore()
 	TLOG(TLVL_DEBUG) << "Constructor";
 	statsHelperPtr_->addMonitoredQuantityName(TABLE_UPDATES_STAT_KEY);
 	statsHelperPtr_->addMonitoredQuantityName(TOKENS_RECEIVED_STAT_KEY);
+	statsHelperPtr_->addMonitoredQuantityName(CURRENT_TABLE_INTERVAL_STAT_KEY);
 }
 
 artdaq::RoutingManagerCore::~RoutingManagerCore()
@@ -159,6 +162,8 @@ bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uin
 	routing_mode_ = mode ? detail::RoutingManagerMode::RouteBySendCount : detail::RoutingManagerMode::RouteBySequenceID;
 	max_table_update_interval_ms_ = daq_pset.get<size_t>("table_update_interval_ms", 1000);
 	current_table_interval_ms_ = max_table_update_interval_ms_;
+	table_update_high_fraction_ = daq_pset.get<double>("table_update_interval_high_frac", 0.75);
+	table_update_low_fraction_ = daq_pset.get<double>("table_update_interval_low_frac", 0.5);
 	max_ack_cycle_count_ = daq_pset.get<size_t>("table_ack_retry_count", 5);
 	send_tables_port_ = daq_pset.get<int>("table_update_port", 35556);
 	receive_acks_port_ = daq_pset.get<int>("table_acknowledge_port", 35557);
@@ -320,31 +325,21 @@ void artdaq::RoutingManagerCore::process_event_table()
 			}
 			else
 			{
-				TLOG(TLVL_TRACE) << "No tokens received in this update interval (" << current_table_interval_ms_ << " ms)! This most likely means that the receivers are not keeping up!";
+				TLOG(TLVL_WARNING) << "Routing Policy generated Empty table for this routing interval (" << current_table_interval_ms_ << " ms)! This may indicate issues with the receivers, if it persists."
+				                   << "Next seqID=" << policy_->GetNextSequenceID() << ", Policy held tokens=" << policy_->GetHeldTokenCount();
 			}
 			auto max_tokens = policy_->GetMaxNumberOfTokens();
 			if (max_tokens > 0)
 			{
 				auto frac = table.size() / static_cast<double>(max_tokens);
-				if (frac > 0.75)
-				{
-					current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
-				}
-				if (frac < 0.5)
-				{
-					current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
-				}
-				if (current_table_interval_ms_ > max_table_update_interval_ms_)
-				{
-					current_table_interval_ms_ = max_table_update_interval_ms_;
-				}
-				if (current_table_interval_ms_ < 1)
-				{
-					current_table_interval_ms_ = 1;
-				}
+				if (frac > table_update_high_fraction_) current_table_interval_ms_ = 9 * current_table_interval_ms_ / 10;
+				if (frac < table_update_low_fraction_) current_table_interval_ms_ = 11 * current_table_interval_ms_ / 10;
+				if (current_table_interval_ms_ > max_table_update_interval_ms_) current_table_interval_ms_ = max_table_update_interval_ms_;
+				if (current_table_interval_ms_ < 1) current_table_interval_ms_ = 1;
 			}
 			nextSendTime = startTime + current_table_interval_ms_ / 1000.0;
-			TLOG(TLVL_TRACE) << "current_table_interval_ms is now " << current_table_interval_ms_;
+			TLOG(TLVL_DEBUG) << "current_table_interval_ms is now " << current_table_interval_ms_;
+			statsHelperPtr_->addSample(CURRENT_TABLE_INTERVAL_STAT_KEY, current_table_interval_ms_ / 1000.0);
 		}
 		else
 		{
@@ -693,6 +688,14 @@ void artdaq::RoutingManagerCore::sendMetrics_()
 			metricMan->sendMetric("Receiver Token Count", stats.fullSampleCount, "updates", 1, MetricMode::LastPoint);
 			metricMan->sendMetric("Receiver Token Rate", stats.recentSampleRate, "updates/sec", 1, MetricMode::Average);
 			metricMan->sendMetric("Total Receiver Token Wait Time", mqPtr->getRecentValueSum(), "seconds", 3, MetricMode::Average);
+		}
+
+		mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(CURRENT_TABLE_INTERVAL_STAT_KEY);
+		if (mqPtr.get() != nullptr)
+		{
+			artdaq::MonitoredQuantityStats stats;
+			mqPtr->getStats(stats);
+			metricMan->sendMetric("Table Update Interval", stats.recentValueAverage, "s", 3, MetricMode::Average);
 		}
 	}
 }
