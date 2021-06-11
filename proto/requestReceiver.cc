@@ -8,7 +8,7 @@
 #include "artdaq/DAQrate/RequestBuffer.hh"
 #include "artdaq/DAQrate/RequestReceiver.hh"
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
 {
 	artdaq::configureMessageFacility("requestReceiver");
 
@@ -17,7 +17,10 @@ int main(int argc, char* argv[]) try
 	int rc = 0;
 
 	fhicl::ParameterSet tempPset;
-	if (pset.has_key("request_receiver"))
+	if (pset.has_key("daq")) {
+		tempPset = pset.get<fhicl::ParameterSet>("daq").get<fhicl::ParameterSet>("request_receiver");
+	}
+	else if (pset.has_key("request_receiver"))
 	{
 		tempPset = pset.get<fhicl::ParameterSet>("request_receiver");
 	}
@@ -40,8 +43,4 @@ int main(int argc, char* argv[]) try
 	}
 
 	return rc;
-}
-catch (...)
-{
-	return -1;
 }
