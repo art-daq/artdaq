@@ -30,7 +30,13 @@ int main(int argc, char* argv[]) try
 
 	fhicl::ParameterSet tempPset;
 	if (pset.has_key("daq")) {
-		tempPset = pset.get<fhicl::ParameterSet>("daq");
+		fhicl::ParameterSet daqPset = pset.get<fhicl::ParameterSet>("daq");
+		for (auto& name : daqPset.get_pset_names()) {
+			auto thisPset = daqPset.get<fhicl::ParameterSet>(name);
+			if (thisPset.has_key("send_requests")) {
+				tempPset = thisPset;
+			}
+		}
 	}
 	else
 	{

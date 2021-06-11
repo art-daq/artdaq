@@ -30,7 +30,7 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     , tokens_sent_(0)
     , run_number_(0)
 {
-	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR";
+	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR pset=" << pset.to_string();
 	setup_requests_();
 
 	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
