@@ -66,7 +66,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 		{
 			auto report = "Error in FragmentBuffer: can't both define \"fragment_id\" and \"fragment_ids\" in FHiCL document";
 			TLOG(TLVL_ERROR) << report;
-			throw cet::exception(report);
+			throw cet::exception("FragmentBufferConfig") << report;
 		}
 		else
 		{
@@ -104,8 +104,9 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 	{
 		mode_ = RequestMode::SequenceID;
 	}
-	if (!ps.get<bool>("receive_requests", false))
+	if (mode_ != RequestMode::Ignored && !ps.get<bool>("receive_requests", false))
 	{
+		TLOG(TLVL_WARNING) << "Request Mode was requested as " << modeString << ", but is being set to Ignored because \"receive_requests\" was not set to true";
 		mode_ = RequestMode::Ignored;
 	}
 	TLOG(TLVL_DEBUG) << "Request mode is " << printMode_();
