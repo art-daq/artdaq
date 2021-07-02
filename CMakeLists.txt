@@ -77,7 +77,7 @@ if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})
 endif()
 
 
-cet_report_compiler_flags()
+#cet_report_compiler_flags()
 
 # JCF, 7/8/15 - not sure this is actually doing anything...
 SET( CMAKE_EXE_LINKER_FLAGS_${BTYPE_UC}  " -m64 -static-libgcc")
