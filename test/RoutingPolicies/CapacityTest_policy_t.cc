@@ -11,16 +11,16 @@ BOOST_AUTO_TEST_CASE(Simple)
 {
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case Simple BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4] tokens_used_per_table_percent: 50", ps);
+	fhicl::make_ParameterSet("tokens_used_per_table_percent: 50", ps);
 
 	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
-
-	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 4);
 
 	ct->AddReceiverToken(1, 10);
 	ct->AddReceiverToken(2, 10);
 	ct->AddReceiverToken(3, 10);
 	ct->AddReceiverToken(4, 10);
+	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 4);
+
 	auto firstTable = ct->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(firstTable.size(), 20);
 	BOOST_REQUIRE_EQUAL(firstTable[0].destination_rank, 1);
@@ -130,15 +130,15 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case DataFlowMode BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: DataFlow", ps);
+	fhicl::make_ParameterSet("routing_manager_mode: DataFlow", ps);
 
 	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
 
-	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 3);
 
 	ct->Reset();
 	ct->AddReceiverToken(1, 3);
 	ct->AddReceiverToken(2, 3);
+	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 2);
 	auto route = ct->GetRouteForSequenceID(1, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
@@ -182,15 +182,15 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case RequestBasedEventBuilding BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
+	fhicl::make_ParameterSet("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
 
 	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
 
-	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 3);
 
 	ct->Reset();
 	ct->AddReceiverToken(1, 3);
 	ct->AddReceiverToken(2, 3);
+	BOOST_REQUIRE_EQUAL(ct->GetReceiverCount(), 2);
 
 	auto route = ct->GetRouteForSequenceID(1, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);

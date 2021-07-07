@@ -11,23 +11,19 @@ BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case VerifyRMPSharedPtr BEGIN";
 	fhicl::ParameterSet ps4, ps3, ps2;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps4);
-	fhicl::make_ParameterSet("receiver_ranks: [7,8,9]", ps3);
-	fhicl::make_ParameterSet("receiver_ranks: [5,6]", ps2);
+	fhicl::make_ParameterSet("", ps4);
+	fhicl::make_ParameterSet("", ps3);
+	fhicl::make_ParameterSet("", ps2);
 
 	auto rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps4);
-	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
 
 	auto rrB = rrA;
-	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
-	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
+	BOOST_REQUIRE_EQUAL(rrA, rrB);
 
 	rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps3);
-	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 3);
-	BOOST_REQUIRE_EQUAL(rrB->GetReceiverCount(), 4);
+	BOOST_REQUIRE(rrA != rrB);
 
 	// force destructors to be run on first set of policies
-	rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps2);
 	rrB = artdaq::makeRoutingManagerPolicy("RoundRobin", ps2);
 
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case VerifyRMPSharedPtr END";
@@ -37,11 +33,10 @@ BOOST_AUTO_TEST_CASE(Simple)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case Simple BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps);
+	fhicl::make_ParameterSet("", ps);
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 4);
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -49,6 +44,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	rr->AddReceiverToken(2, 1);
 	rr->AddReceiverToken(4, 1);
 	rr->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 4);
 	auto secondTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(secondTable.size(), 4);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
@@ -85,11 +81,10 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case MinimumParticipants BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4] minimum_participants: 2", ps);
+	fhicl::make_ParameterSet("minimum_participants: 2", ps);
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 4);
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -97,6 +92,7 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	rr->AddReceiverToken(2, 1);
 	rr->AddReceiverToken(4, 1);
 	rr->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 4);
 	auto secondTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(secondTable.size(), 4);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
@@ -137,15 +133,15 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case MinimumParticipants END";
 }
 
+// RECENT CHANGE IN BEHAVIOR! Since the number of receivers is now dynamic as tokens are added, RoundRobin_policy will ALWAYS wait for at least minimum_participants to be available when it is positive!
 BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case LargeMinimumParticipants BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: 5", ps);
+	fhicl::make_ParameterSet("minimum_participants: 5", ps);
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -153,18 +149,24 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 	rr->AddReceiverToken(2, 1);
 	rr->AddReceiverToken(3, 1);
 	rr->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
+	auto firstTable = rr->GetCurrentTable();
+	BOOST_REQUIRE_EQUAL(firstTable.size(), 0);
+	
+	rr->AddReceiverToken(5, 1);
+	rr->AddReceiverToken(6, 1);
+
 	auto secondTable = rr->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(secondTable.size(), 3);
+	BOOST_REQUIRE_EQUAL(secondTable.size(), 5);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 2);
 	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 3);
+	BOOST_REQUIRE_EQUAL(secondTable[3].destination_rank, 5);
+	BOOST_REQUIRE_EQUAL(secondTable[4].destination_rank, 6);
 
 	rr->AddReceiverToken(1, 1);
 	auto thirdTable = rr->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(thirdTable.size(), 3);
-	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(thirdTable[2].destination_rank, 3);
+	BOOST_REQUIRE_EQUAL(thirdTable.size(), 0);
 
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case LargeMinimumParticipants END";
 }
@@ -173,11 +175,10 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case ManyMissingParticipants BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: -5", ps);
+	fhicl::make_ParameterSet("minimum_participants: -5", ps);
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -185,6 +186,7 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 	rr->AddReceiverToken(2, 1);
 	rr->AddReceiverToken(3, 1);
 	rr->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 	auto secondTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(secondTable.size(), 5);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
@@ -200,11 +202,10 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case DataFlowMode BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: DataFlow", ps);
+	fhicl::make_ParameterSet("routing_manager_mode: DataFlow", ps);
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -212,6 +213,7 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	rr->AddReceiverToken(2, 1);
 	rr->AddReceiverToken(3, 1);
 	rr->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 	auto route = rr->GetRouteForSequenceID(1, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
@@ -255,11 +257,10 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case RequestBasedEventBuilding BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
+	fhicl::make_ParameterSet("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -267,6 +268,7 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	rr->AddReceiverToken(2, 1);
 	rr->AddReceiverToken(3, 1);
 	rr->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 
 	auto route = rr->GetRouteForSequenceID(1, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);

@@ -20,9 +20,9 @@ artdaq::TableReceiver::TableReceiver(const fhicl::ParameterSet& pset)
     , table_socket_(-1)
     , routing_table_last_(0)
     , routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
-    , routing_timeout_ms_((pset.get<size_t>("routing_timeout_ms", 1000)))
     , routing_wait_time_(0)
     , routing_wait_time_count_(0)
+    , routing_timeout_ms_((pset.get<size_t>("routing_timeout_ms", 1000)))
     , highest_sequence_id_routed_(0)
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();

@@ -162,10 +162,6 @@ int RoundRobinPolicy::calculateMinimum_()
 	{
 		minimum = 1;  // Can't go below 1
 	}
-	if (minimum > static_cast<int>(GetReceiverCount()))
-	{
-		minimum = GetReceiverCount();  // Can't go above receiver count
-	}
 	return minimum;
 }
 

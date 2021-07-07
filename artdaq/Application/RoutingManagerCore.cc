@@ -541,7 +541,7 @@ void artdaq::RoutingManagerCore::listen_()
 				epoll_fd_ = epoll_create1(0);
 			}
 			epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev);
-			TLOG(TLVL_INFO) << "listen_: New fd is " << fd << " for source rank " << rch.rank;
+			TLOG(TLVL_INFO) << "listen_: New fd is " << fd << " for table receiver rank " << rch.rank;
 		}
 		else
 		{

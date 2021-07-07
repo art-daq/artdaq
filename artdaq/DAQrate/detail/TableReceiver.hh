@@ -131,7 +131,7 @@ private:
 	mutable std::atomic<size_t> routing_wait_time_count_;
 	mutable std::condition_variable routing_cv_;
 
-	int routing_timeout_ms_;
+	size_t routing_timeout_ms_;
 	int routing_retry_count_;
 
 	mutable std::atomic<uint64_t> highest_sequence_id_routed_;

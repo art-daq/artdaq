@@ -73,7 +73,6 @@ public:
 	*   "policy" (REQUIRED): FHiCL table containing the RoutingManagerPolicy configuration
 	*     "policy" (Default: ""): Name of the RoutingManagerPolicy plugin to load
 	*   "rt_priority" (Default: 0): Unix process priority to assign to RoutingManagerCore
-	*   "sender_ranks" (REQUIRED): List of ranks (integers) for the senders (that receive table updates)
 	*   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
 	*   "table_update_interval_high_frac" (Default: 0.75): Fraction of the maximum seen table size at which the interval should be reduced
 	*   "table_update_interval_low_frac" (Default: 0.5): Fraction of the maximum seen table size at which the interval should be increased

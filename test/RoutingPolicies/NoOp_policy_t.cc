@@ -11,11 +11,10 @@ BOOST_AUTO_TEST_CASE(Simple)
 {
 	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case Simple BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps);
+	fhicl::make_ParameterSet("", ps);
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
 
-	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 4);
 
 	noop->Reset();
 	noop->AddReceiverToken(1, 1);
@@ -23,6 +22,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	noop->AddReceiverToken(2, 1);
 	noop->AddReceiverToken(4, 1);
 	noop->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 4);
 	auto secondTable = noop->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(secondTable.size(), 5);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
@@ -47,11 +47,10 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
 	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case DataFlowMode BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: DataFlow", ps);
+	fhicl::make_ParameterSet("routing_manager_mode: DataFlow", ps);
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
 
-	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 3);
 
 	noop->Reset();
 	noop->AddReceiverToken(1, 1);
@@ -59,6 +58,7 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	noop->AddReceiverToken(2, 1);
 	noop->AddReceiverToken(3, 1);
 	noop->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 3);
 	auto route = noop->GetRouteForSequenceID(1, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
 	BOOST_REQUIRE_EQUAL(route.sequence_id, 1);
@@ -98,11 +98,10 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
 	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case RequestBasedEventBuilding BEGIN";
 	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
+	fhicl::make_ParameterSet("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2", ps);
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
 
-	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 3);
 
 	noop->Reset();
 	noop->AddReceiverToken(1, 1);
@@ -110,6 +109,7 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	noop->AddReceiverToken(2, 1);
 	noop->AddReceiverToken(3, 1);
 	noop->AddReceiverToken(2, 1);
+	BOOST_REQUIRE_EQUAL(noop->GetReceiverCount(), 3);
 
 	auto route = noop->GetRouteForSequenceID(1, 4);
 	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);

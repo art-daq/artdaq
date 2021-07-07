@@ -23,7 +23,6 @@ public:
 		 * 
 		 * \verbatim
 		 * RoutingManagerPolicy accepts the following Parameters:
-		 * "receiver_ranks" (REQUIRED): A list of integers indicating the ranks that the RoutingManagerPolicy should expect tokens from
 		 * \endverbatim
 		 */
 	explicit RoutingManagerPolicy(const fhicl::ParameterSet& ps);

@@ -8,9 +8,6 @@ artdaq::RoutingManagerPolicy::RoutingManagerPolicy(const fhicl::ParameterSet& ps
     , next_sequence_id_(1)
     , max_token_count_(0)
 {
-	auto receiver_ranks = ps.get<std::vector<int>>("receiver_ranks");
-	receiver_ranks_.insert(receiver_ranks.begin(), receiver_ranks.end());
-
 	routing_mode_ = detail::RoutingManagerModeConverter::stringToRoutingManagerMode(ps.get<std::string>("routing_manager_mode", "EventBuilding"));
 	routing_cache_max_size_ = ps.get<size_t>("routing_cache_size", 1000);
 }
@@ -36,7 +33,8 @@ void artdaq::RoutingManagerPolicy::AddReceiverToken(int rank, unsigned new_slots
 {
 	if (receiver_ranks_.count(rank) == 0u)
 	{
-		return;
+		TLOG(TLVL_WARNING) << "Adding rank " << rank << " to receivers list";
+		receiver_ranks_.insert(rank);
 	}
 	TLOG(10) << "AddReceiverToken BEGIN";
 	std::lock_guard<std::mutex> lk(tokens_mutex_);
@@ -70,6 +68,7 @@ void artdaq::RoutingManagerPolicy::Reset()
 	next_sequence_id_ = 1;
 	std::unique_lock<std::mutex> lk(tokens_mutex_);
 	tokens_.clear();
+	receiver_ranks_.clear();
 }
 
 artdaq::detail::RoutingPacketEntry artdaq::RoutingManagerPolicy::GetRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank)
