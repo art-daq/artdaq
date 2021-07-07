@@ -109,6 +109,10 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 	{
 		mode_ = RequestMode::SequenceID;
 	}
+	if (!ps.get<bool>("receive_requests", false))
+	{
+		mode_ = RequestMode::Ignored;
+	}
 	TLOG(TLVL_DEBUG) << "Request mode is " << printMode_();
 }
 
