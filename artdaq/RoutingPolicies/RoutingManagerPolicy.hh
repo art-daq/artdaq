@@ -33,14 +33,6 @@ public:
 	virtual ~RoutingManagerPolicy() = default;
 
 	/**
-		 * \brief Generate a Routing Table using received tokens
-		 * \return A detail::RoutingPacket containing the Routing Table
-		 * 
-		 * This function is pure virtual, it should be overridden by derived classes.
-		 */
-	virtual detail::RoutingPacket GetCurrentTable() = 0;
-
-	/**
 		 * \brief Get the number of configured receivers
 		 * \return The size of the receiver_ranks list
 		 */
@@ -51,6 +43,9 @@ public:
 		 * \return The largest number of tokens that the RoutingManagerPolicy has seen at any one time
 		 */
 	size_t GetMaxNumberOfTokens() const { return max_token_count_; }
+
+	size_t GetTokensUsedSinceLastUpdate() const { return tokens_used_since_last_update_; }
+	void ResetTokensUsedSinceLastUpdate() { tokens_used_since_last_update_ = 0; }
 
 	/**
 		 * \brief Add a token to the token list
@@ -64,6 +59,7 @@ public:
 		 */
 	void Reset();
 
+
 	Fragment::sequence_id_t GetNextSequenceID() const { return next_sequence_id_; }
 	size_t GetHeldTokenCount() const
 	{
@@ -71,21 +67,54 @@ public:
 		return tokens_.size();
 	}
 
-protected:
-	Fragment::sequence_id_t next_sequence_id_;  ///< The next sequence ID to be assigned
+	// EventBuilder and RequestBasedEventBuilder modes
+	detail::RoutingPacket GetCurrentTable();
 
-	std::unique_ptr<std::deque<int>> getTokensSnapshot();           ///< Gets the current token list, used for building Routing Tables
-	void addUnusedTokens(std::unique_ptr<std::deque<int>> tokens);  ///< If necessary, return unused tokens to the token list, for subsequent updates
+	// RequestBasedEventBuilder and DataFlow modes
+	detail::RoutingPacketEntry GetRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank);
+
+	detail::RoutingManagerMode GetRoutingMode() const { return routing_mode_; }
+
+protected:
+	// Building Tables
+	virtual void CreateRoutingTable(detail::RoutingPacket& tables) = 0;
+
+	// Route by Request
+	virtual detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) = 0;
+
+	// Tokens
+	std::deque<int> tokens_;
+	std::atomic<size_t> tokens_used_since_last_update_;
+
+	// Routing Information
+	Fragment::sequence_id_t next_sequence_id_;  ///< The next sequence ID to be assigned
+	std::unordered_set<int> receiver_ranks_;
+	detail::RoutingManagerMode routing_mode_;
+
 private:
 	RoutingManagerPolicy(RoutingManagerPolicy const&) = delete;
 	RoutingManagerPolicy(RoutingManagerPolicy&&) = delete;
 	RoutingManagerPolicy& operator=(RoutingManagerPolicy const&) = delete;
 	RoutingManagerPolicy& operator=(RoutingManagerPolicy&&) = delete;
 
-	mutable std::mutex tokens_mutex_;
-	std::unordered_set<int> receiver_ranks_;
-	std::deque<int> tokens_;
+	void CreateRoutingTableFromCache(detail::RoutingPacket& table);  ///< Cache is used when Routing on Request in EventBuilding mode only, otherwise just creates RoutingTables structure
+
+	struct RoutingCacheEntry
+	{
+		bool is_valid{false};
+		int destination_rank{-1};
+		Fragment::sequence_id_t sequence_id{artdaq::Fragment::InvalidSequenceID};
+		int requesting_rank{-1};
+
+		RoutingCacheEntry() {}
+		RoutingCacheEntry(Fragment::sequence_id_t seq, int dest, int source)
+		    : is_valid(true), destination_rank(dest), sequence_id(seq), requesting_rank(source) {}
+	};
+	std::map<Fragment::sequence_id_t, std::vector<RoutingCacheEntry>> routing_cache_;
+	size_t routing_cache_max_size_;
+	mutable std::mutex routing_cache_mutex_;
 	std::atomic<size_t> max_token_count_;
+	mutable std::mutex tokens_mutex_;
 };
 }  // namespace artdaq
 

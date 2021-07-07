@@ -1,6 +1,7 @@
 #ifndef artdaq_Application_MPI2_RoutingManagerCore_hh
 #define artdaq_Application_MPI2_RoutingManagerCore_hh
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -8,15 +9,17 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 
+#include <boost/thread.hpp>
+
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 #include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq/DAQrate/TokenReceiver.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/TokenReceiver.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 
 namespace artdaq {
@@ -173,15 +176,10 @@ private:
 	int rt_priority_;
 
 	size_t max_table_update_interval_ms_;
-	size_t max_ack_cycle_count_;
-	detail::RoutingManagerMode routing_mode_;
 	std::atomic<size_t> current_table_interval_ms_;
 	double table_update_high_fraction_;
 	double table_update_low_fraction_;
 	std::atomic<size_t> table_update_count_;
-
-	std::vector<int> sender_ranks_;
-	std::set<int> active_ranks_;
 
 	std::shared_ptr<RoutingManagerPolicy> policy_;
 	std::unique_ptr<TokenReceiver> token_receiver_;
@@ -190,6 +188,13 @@ private:
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;
 
+	std::unique_ptr<boost::thread> listen_thread_;
+	int table_listen_port_;
+
+	std::map<int, std::set<int>> connected_fds_;
+	int epoll_fd_{-1};
+	mutable std::mutex fd_mutex_;
+
 	// attributes and methods for statistics gathering & reporting
 	std::shared_ptr<artdaq::StatisticsHelper> statsHelperPtr_;
 
@@ -197,19 +202,9 @@ private:
 
 	void sendMetrics_();
 
-	// FHiCL-configurable variables. Note that the C++ variable names
-	// are the FHiCL variable names with a "_" appended
-	int send_tables_port_;
-	int receive_acks_port_;
-	std::string send_tables_address_;
-	std::string multicast_out_hostname_;
-	struct sockaddr_in send_tables_addr_;
-	std::vector<epoll_event> receive_ack_events_;
-
-	//Socket parameters
-	int table_socket_{-1};
-	int ack_socket_{-1};
-	mutable std::mutex request_mutex_;
+	void listen_();
+	void receive_();
+	int find_fd_(int fd) const;
 };
 
 #endif /* artdaq_Application_MPI2_RoutingManagerCore_hh */

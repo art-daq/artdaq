@@ -19,18 +19,17 @@ public:
 		 * NoOpPolicy takes no additional Parameters at this time
 		 */
 	explicit NoOpPolicy(fhicl::ParameterSet const& ps)
-	    : RoutingManagerPolicy(ps) {}
+	    : RoutingManagerPolicy(ps)
+	{
+	}
 
 	/**
 		 * \brief Default virtual Destructor
 		 */
 	~NoOpPolicy() override = default;
 
-	/**
-		 * \brief Using the tokens received so far, create a Routing Table
-		 * \return A detail::RoutingPacket containing the Routing Table
-		 */
-	detail::RoutingPacket GetCurrentTable() override;
+	void CreateRoutingTable(detail::RoutingPacket& table) override;
+	detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) override;
 
 private:
 	NoOpPolicy(NoOpPolicy const&) = delete;
@@ -39,17 +38,28 @@ private:
 	NoOpPolicy& operator=(NoOpPolicy&&) = delete;
 };
 
-detail::RoutingPacket NoOpPolicy::GetCurrentTable()
+void NoOpPolicy::CreateRoutingTable(detail::RoutingPacket& table)
 {
-	TLOG(12) << "NoOpPolicy::GetCurrentTable start";
-	auto tokens = getTokensSnapshot();
-	detail::RoutingPacket output;
-	for (auto token : *tokens)
+	while (!tokens_.empty())
 	{
-		output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, token));
+		table.emplace_back(next_sequence_id_, tokens_.front());
+		next_sequence_id_++;
+		tokens_.pop_front();
+		tokens_used_since_last_update_++;
+	}
+}
+
+detail::RoutingPacketEntry NoOpPolicy::CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int)
+{
+	detail::RoutingPacketEntry output;
+	if (!tokens_.empty())
+	{
+		auto dest = tokens_.front();  // No-Op: Use first token
+		output = detail::RoutingPacketEntry(seq, dest);
+		tokens_.pop_front();
+		tokens_used_since_last_update_++;
 	}
 
-	TLOG(12) << "NoOpPolicy::GetCurrentTable return";
 	return output;
 }
 

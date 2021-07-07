@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
-#include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
 
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
@@ -25,19 +25,12 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     , request_socket_(-1)
     , multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
     , request_mode_(detail::RequestMessageMode::Normal)
-    , token_socket_(-1)
     , request_sending_(0)
-    , tokens_sent_(0)
     , run_number_(0)
 {
 	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR pset=" << pset.to_string();
 	setup_requests_();
 
-	auto rmConfig = pset.get<fhicl::ParameterSet>("routing_token_config", fhicl::ParameterSet());
-	send_routing_tokens_ = rmConfig.get<bool>("use_routing_manager", false);
-	token_port_ = rmConfig.get<int>("routing_token_port", 35555);
-	token_address_ = rmConfig.get<std::string>("routing_manager_hostname", "localhost");
-	setup_tokens_();
 	TLOG(12) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
 	initialized_ = true;
 }
@@ -56,7 +49,7 @@ RequestSender::~RequestSender()
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		std::lock_guard<std::mutex> lk2(request_send_mutex_);
 	}
-	TLOG(TLVL_INFO) << "Shutting down RequestSender: request_socket_: " << request_socket_ << ", token_socket_: " << token_socket_;
+	TLOG(TLVL_INFO) << "Shutting down RequestSender: request_socket_: " << request_socket_;
 	if (request_socket_ != -1)
 	{
 		if (shutdown(request_socket_, 2) != 0 && errno == ENOTSOCK)
@@ -68,18 +61,6 @@ RequestSender::~RequestSender()
 			close(request_socket_);
 		}
 		request_socket_ = -1;
-	}
-	if (token_socket_ != -1)
-	{
-		if (shutdown(token_socket_, 2) != 0 && errno == ENOTSOCK)
-		{
-			TLOG(TLVL_ERROR) << "Shutdown of token_socket_ resulted in ENOTSOCK. NOT Closing file descriptor!";
-		}
-		else
-		{
-			close(token_socket_);
-		}
-		token_socket_ = -1;
 	}
 }
 
@@ -161,30 +142,6 @@ void RequestSender::setup_requests_()
 	}
 }
 
-void RequestSender::setup_tokens_()
-{
-	if (send_routing_tokens_)
-	{
-		TLOG(TLVL_DEBUG) << "Creating Routing Token sending socket";
-		auto start_time = std::chrono::steady_clock::now();
-		while (token_socket_ < 0 && TimeUtils::GetElapsedTime(start_time) < 30)
-		{
-			token_socket_ = TCPConnect(token_address_.c_str(), token_port_, 0, sizeof(detail::RoutingToken));
-			if (token_socket_ < 0)
-			{
-				TLOG(TLVL_TRACE) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Manager to open token socket";
-				usleep(100000);
-			}
-		}
-		if (token_socket_ < 0)
-		{
-			TLOG(TLVL_ERROR) << "I failed to create the socket for sending Routing Tokens! err=" << strerror(errno);
-			exit(1);
-		}
-		TLOG(TLVL_INFO) << "Routing Token sending socket created successfully for address " << token_address_;
-	}
-}
-
 void RequestSender::do_send_request_()
 {
 	if (!send_requests_)
@@ -230,58 +187,6 @@ void RequestSender::do_send_request_()
 	}
 	TLOG(TLVL_TRACE) << "Done sending request sts=" << sts;
 	request_sending_--;
-}
-
-void RequestSender::send_routing_token_(int nSlots, int run_number)
-{
-	TLOG(TLVL_TRACE) << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_;
-	if (!send_routing_tokens_)
-	{
-		return;
-	}
-	if (token_socket_ == -1)
-	{
-		setup_tokens_();
-	}
-	detail::RoutingToken token;
-	token.header = TOKEN_MAGIC;
-	token.rank = my_rank;
-	token.new_slots_free = nSlots;
-	token.run_number = run_number;
-
-	TLOG(TLVL_TRACE) << "Sending RoutingToken to " << token_address_ << ":" << token_port_;
-	size_t sts = 0;
-	while (sts < sizeof(detail::RoutingToken))
-	{
-		auto res = send(token_socket_, reinterpret_cast<uint8_t*>(&token) + sts, sizeof(detail::RoutingToken) - sts, 0);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
-		if (res < 0)
-		{
-			TLOG(TLVL_WARNING) << "Error on token_socket, reconnecting";
-			close(token_socket_);
-			token_socket_ = -1;
-			sts = 0;
-			setup_tokens_();
-			continue;
-		}
-		sts += res;
-	}
-	tokens_sent_ += nSlots;
-	TLOG(TLVL_TRACE) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
-}
-
-void RequestSender::SendRoutingToken(int nSlots, int run_number)
-{
-	while (!initialized_)
-	{
-		usleep(1000);
-	}
-	if (!send_routing_tokens_)
-	{
-		return;
-	}
-	boost::thread token([=] { send_routing_token_(nSlots, run_number); });
-	token.detach();
-	usleep(0);  // Give up time slice
 }
 
 void RequestSender::SendRequest(bool endOfRunOnly)

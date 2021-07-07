@@ -2,8 +2,8 @@
 #define TRACE_NAME (app_name + "_RequestReceiver").c_str()
 
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
+#include "artdaq/DAQrate/detail/RequestReceiver.hh"
 
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
