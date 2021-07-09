@@ -18,7 +18,7 @@ cmake_minimum_required (VERSION 3.17)
 
 find_package(cetbuildtools)
 
-project(artdaq VERSION 3.10.01)
+project(artdaq VERSION 3.10.02)
 # cetbuildtools contains our cmake modules
 SET ( CETBUILDTOOLS_VERSION $ENV{CETBUILDTOOLS_VERSION} )
 IF (NOT CETBUILDTOOLS_VERSION)
@@ -34,6 +34,7 @@ set(CMAKE_MODULE_PATH
 
 include(CetCMakeEnv)
 cet_cmake_env()
+set(artdaq_OLD_STYLE_CONFIG_VARS TRUE)
 
 cet_set_compiler_flags(DIAGS VIGILANT
   WERROR
@@ -41,36 +42,42 @@ cet_set_compiler_flags(DIAGS VIGILANT
   EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64 
 )
 
-string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
-if( ${BTYPE_UC} MATCHES "DEBUG" )
+string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC)
+if(BTYPE_UC STREQUAL DEBUG)
+  add_definitions(-DDEBUGME)
 	if(DEFINED ENV{USE_ASAN})
 		if($ENV{USE_ASAN} GREATER 0)
 			message("!!! Address Sanitizer Activated!!!")
-			cet_add_compiler_flags(-fsanitize=address -lasan -Wno-unused-command-line-argument)
+			add_compile_options(-fsanitize=address -Wno-unused-command-line-argument)
+			add_link_options(-lasan)
 		endif()
 	endif()
 	if(DEFINED ENV{USE_TSAN})
 		if($ENV{USE_TSAN} GREATER 0)
 			message("!!! Thread Sanitizer Activated!!!")
-			cet_add_compiler_flags(-fsanitize=thread -ltsan -Wno-unused-command-line-argument)
+			add_compile_options(-fsanitize=thread -Wno-unused-command-line-argument)
+			add_link_options(-ltsan)
 		endif()
 	endif()
 	if(DEFINED ENV{USE_GCOV})
-		cet_add_compiler_flags(-fprofile-arcs -ftest-coverage --coverage)
+		add_compile_options(-fprofile-arcs -ftest-coverage --coverage)
+		add_link_options(--coverage)
 	endif()
 endif()
 
-#exception stack trace
-if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})
-        if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
-                message("!!! Exception StackTrace Activated!!!")
-                add_definitions(-D EXCEPTIONSTACKTRACE)
-                set( EXCEPTIONSTACKTRACE_LIB  artdaq-core_Utilities_ExceptionStackTrace )
-                cet_add_compiler_flags( -rdynamic -Wno-unused-command-line-argument )
-        endif()
+#exeption stack trace
+if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})	
+	if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
+		message("!!! Exception StackTrace Activated!!!")
+		add_definitions(-D EXCEPTIONSTACKTRACE)
+		set( EXCEPTIONSTACKTRACE_LIB  artdaq-core_Utilities_ExceptionStackTrace )
+		add_compile_options( -rdynamic -Wno-unused-command-line-argument )
+		add_link_options( -rdynamic )
+	endif()
 endif()
 
-cet_report_compiler_flags()
+
+#cet_report_compiler_flags()
 
 # JCF, 7/8/15 - not sure this is actually doing anything...
 SET( CMAKE_EXE_LINKER_FLAGS_${BTYPE_UC}  " -m64 -static-libgcc")
