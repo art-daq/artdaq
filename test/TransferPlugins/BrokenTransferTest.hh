@@ -85,6 +85,7 @@ private:
 	void do_sending_(int sender_rank);
 	void do_receiving_(int sender_rank, int receiver_rank);
 
+	void throttle_sender_(int sender_rank);
 	artdaq::Fragment::sequence_id_t sequence_id_target_();
 	void usleep_for_n_fragments_(size_t n)
 	{

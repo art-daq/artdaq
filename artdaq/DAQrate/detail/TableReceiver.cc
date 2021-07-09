@@ -12,22 +12,21 @@
 #include "canvas/Utilities/Exception.h"
 
 artdaq::TableReceiver::TableReceiver(const fhicl::ParameterSet& pset)
-    : use_routing_manager_(pset.get<bool>("use_routing_manager", false))
-    , route_on_request_(pset.get<bool>("route_on_request_mode", false))
-    , should_stop_(false)
-    , table_port_(pset.get<int>("table_update_port", 35556))
-    , table_address_(pset.get<std::string>("routing_manager_hostname", "localhost"))
-    , table_socket_(-1)
-    , routing_table_last_(0)
-    , routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
-    , routing_wait_time_(0)
-    , routing_wait_time_count_(0)
-    , routing_timeout_ms_((pset.get<size_t>("routing_timeout_ms", 1000)))
-    , highest_sequence_id_routed_(0)
+	: use_routing_manager_(pset.get<bool>("use_routing_manager", false))
+	, should_stop_(false)
+	, table_port_(pset.get<int>("table_update_port", 35556))
+	, table_address_(pset.get<std::string>("routing_manager_hostname", "localhost"))
+	, table_socket_(-1)
+	, routing_table_last_(0)
+	, routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
+	, routing_wait_time_(0)
+	, routing_wait_time_count_(0)
+	, routing_timeout_ms_((pset.get<size_t>("routing_timeout_ms", 1000)))
+	, highest_sequence_id_routed_(0)
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
 
-	if (use_routing_manager_ && !route_on_request_)
+	if (use_routing_manager_)
 	{
 		startTableReceiverThread_();
 	}
@@ -74,34 +73,28 @@ int artdaq::TableReceiver::GetRoutingTableEntry(artdaq::Fragment::sequence_id_t 
 {
 	if (use_routing_manager_)
 	{
-		if (route_on_request_)
+		sendTableUpdateRequest_(seqID);
+		auto routing_timeout_ms = routing_timeout_ms_;
+		if (routing_timeout_ms == 0)
 		{
-			return sendTableUpdateRequest_(seqID);
+			routing_timeout_ms = 3600 * 1000;
 		}
-		else
+		auto condition_wait = routing_timeout_ms > 10 ? std::chrono::milliseconds(10) : std::chrono::milliseconds(routing_timeout_ms);
+		auto start_time = std::chrono::steady_clock::now();
+		while (!should_stop_ && TimeUtils::GetElapsedTimeMilliseconds(start_time) < routing_timeout_ms)
 		{
-			auto routing_timeout_ms = routing_timeout_ms_;
-			if (routing_timeout_ms == 0)
+			std::unique_lock<std::mutex> lk(routing_mutex_);
+			routing_cv_.wait_for(lk, condition_wait, [&]() { return routing_table_.count(seqID); });
+			if (routing_table_.count(seqID))
 			{
-				routing_timeout_ms = 3600 * 1000;
+				routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start_time));
+				return routing_table_.at(seqID);
 			}
-			auto condition_wait = routing_timeout_ms > 10 ? std::chrono::milliseconds(10) : std::chrono::milliseconds(routing_timeout_ms);
-			auto start_time = std::chrono::steady_clock::now();
-			while (!should_stop_ && TimeUtils::GetElapsedTimeMilliseconds(start_time) < routing_timeout_ms)
-			{
-				std::unique_lock<std::mutex> lk(routing_mutex_);
-				routing_cv_.wait_for(lk, condition_wait, [&]() { return routing_table_.count(seqID); });
-				if (routing_table_.count(seqID))
-				{
-					routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start_time));
-					return routing_table_.at(seqID);
-				}
-			}
-			TLOG(TLVL_WARNING) << "Bad Omen: Timeout receiving routing information for " << seqID
-			                   << " in routing_timeout_ms (" << routing_timeout_ms_ << " ms)!";
+		}
+		TLOG(TLVL_WARNING) << "Bad Omen: Timeout receiving routing information for " << seqID
+			<< " in routing_timeout_ms (" << routing_timeout_ms_ << " ms)!";
 
-			routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start_time));
-		}
+		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start_time));
 	}
 	return ROUTING_FAILED;
 }
@@ -249,8 +242,8 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 							if (routing_table_[entry.sequence_id] != entry.destination_rank)
 							{
 								TLOG(TLVL_ERROR) << __func__ << ": Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
-								                 << " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
-								                 << " I will use the original value!";
+									<< " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
+									<< " I will use the original value!";
 							}
 							continue;
 						}
@@ -260,7 +253,7 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 						}
 						routing_table_[entry.sequence_id] = entry.destination_rank;
 						TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
-						                 << " -> Rank " << entry.destination_rank;
+							<< " -> Rank " << entry.destination_rank;
 					}
 				}
 
@@ -307,15 +300,15 @@ void artdaq::TableReceiver::receiveTableUpdatesLoop_()
 	}
 }
 
-int artdaq::TableReceiver::sendTableUpdateRequest_(Fragment::sequence_id_t seq)
+void artdaq::TableReceiver::sendTableUpdateRequest_(Fragment::sequence_id_t seq)
 {
 	TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ BEGIN";
 	{
 		std::lock_guard<std::mutex> lck(routing_mutex_);
 		if (routing_table_.count(seq))
 		{
-			TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ END: " << routing_table_.at(seq);
-			return routing_table_.at(seq);
+			TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ END (no request sent): " << routing_table_.at(seq);
+			return;
 		}
 	}
 	if (table_socket_ == -1)
@@ -323,25 +316,11 @@ int artdaq::TableReceiver::sendTableUpdateRequest_(Fragment::sequence_id_t seq)
 		connectToRoutingManager_();
 	}
 
-	auto start_time = std::chrono::steady_clock::now();
-	while (TimeUtils::GetElapsedTimeMilliseconds(start_time) < routing_timeout_ms_)
-	{
-		TLOG(TLVL_DEBUG) << "sendTableUpdateRequest_: Sending table update request for " << my_rank << ", sequence ID " << seq;
-		detail::RoutingRequest pkt(my_rank, seq);
-		write(table_socket_, &pkt, sizeof(pkt));
+	TLOG(TLVL_DEBUG) << "sendTableUpdateRequest_: Sending table update request for " << my_rank << ", sequence ID " << seq;
+	detail::RoutingRequest pkt(my_rank, seq);
+	write(table_socket_, &pkt, sizeof(pkt));
 
-		receiveTableUpdate_();
-		{
-			std::lock_guard<std::mutex> lck(routing_mutex_);
-			if (routing_table_.count(seq))
-			{
-				TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ END: " << routing_table_.at(seq);
-				return routing_table_.at(seq);
-			}
-		}
-	}
-	TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ END: Routing Failed";
-	return ROUTING_FAILED;
+	TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ END";
 }
 
 size_t artdaq::TableReceiver::GetRoutingTableEntryCount() const

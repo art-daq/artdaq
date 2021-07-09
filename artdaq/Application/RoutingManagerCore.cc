@@ -314,7 +314,7 @@ void artdaq::RoutingManagerCore::process_event_table()
 				if (table.empty())
 				{
 					TLOG(TLVL_WARNING) << "Routing Policy generated Empty table for this routing interval (" << current_table_interval_ms_ << " ms)! This may indicate issues with the receivers, if it persists."
-					                   << "Next seqID=" << policy_->GetNextSequenceID() << ", Policy held tokens=" << policy_->GetHeldTokenCount();
+					                   << " Next seqID=" << policy_->GetNextSequenceID() << ", Policy held tokens=" << policy_->GetHeldTokenCount();
 				}
 				else
 				{

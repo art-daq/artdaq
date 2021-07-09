@@ -243,29 +243,30 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 
 	// Routing cache is sorted by sequence ID
 	auto secondTable = ct->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(secondTable.size(), 7);
+	BOOST_REQUIRE_EQUAL(secondTable.size(), 6);
 	BOOST_REQUIRE_EQUAL(secondTable[0].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(secondTable[0].sequence_id, 1);
-	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(secondTable[1].sequence_id, 4);
+	BOOST_REQUIRE_EQUAL(secondTable[0].sequence_id, 4);
+	BOOST_REQUIRE_EQUAL(secondTable[1].destination_rank, 2);
+	BOOST_REQUIRE_EQUAL(secondTable[1].sequence_id, 10);
 	BOOST_REQUIRE_EQUAL(secondTable[2].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 10);
+	BOOST_REQUIRE_EQUAL(secondTable[2].sequence_id, 11);
 	BOOST_REQUIRE_EQUAL(secondTable[3].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 11);
-	BOOST_REQUIRE_EQUAL(secondTable[4].destination_rank, 2);
-	BOOST_REQUIRE_EQUAL(secondTable[4].sequence_id, 12);
+	BOOST_REQUIRE_EQUAL(secondTable[3].sequence_id, 12);
+	BOOST_REQUIRE_EQUAL(secondTable[4].destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(secondTable[4].sequence_id, 50);
 	BOOST_REQUIRE_EQUAL(secondTable[5].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(secondTable[5].sequence_id, 50);
-	BOOST_REQUIRE_EQUAL(secondTable[6].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(secondTable[6].sequence_id, 12343);
+	BOOST_REQUIRE_EQUAL(secondTable[5].sequence_id, 12343);
 
 	// Since the routing cache has been set to 2, only the highest two events routed are here, as the cache is checked when generating tables
+	BOOST_REQUIRE_EQUAL(ct->GetCacheSize(), 2);
 	auto thirdTable = ct->GetCurrentTable();
-	BOOST_REQUIRE_EQUAL(thirdTable.size(), 2);
-	BOOST_REQUIRE_EQUAL(thirdTable[0].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(thirdTable[0].sequence_id, 50);
-	BOOST_REQUIRE_EQUAL(thirdTable[1].destination_rank, 1);
-	BOOST_REQUIRE_EQUAL(thirdTable[1].sequence_id, 12343);
+	BOOST_REQUIRE_EQUAL(thirdTable.size(), 0);
+
+	BOOST_REQUIRE(ct->CacheHasRoute(50));
+	BOOST_REQUIRE(!ct->CacheHasRoute(4));
+	route = ct->GetRouteForSequenceID(50, 6);
+	BOOST_REQUIRE_EQUAL(route.destination_rank, 1);
+	BOOST_REQUIRE_EQUAL(route.sequence_id, 50);
 
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case RequestBasedEventBuilding END";
 }

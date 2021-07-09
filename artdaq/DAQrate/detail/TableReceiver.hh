@@ -113,11 +113,10 @@ private:
 	bool receiveTableUpdate_();
 	void receiveTableUpdatesLoop_();
 
-	int sendTableUpdateRequest_(Fragment::sequence_id_t seq);
+	void sendTableUpdateRequest_(Fragment::sequence_id_t seq);
 
 private:
 	bool use_routing_manager_;
-	bool route_on_request_;
 	std::atomic<bool> should_stop_;
 	int table_port_;
 	std::string table_address_;

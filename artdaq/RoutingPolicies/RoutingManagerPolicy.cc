@@ -4,9 +4,9 @@
 #include "fhiclcpp/ParameterSet.h"
 
 artdaq::RoutingManagerPolicy::RoutingManagerPolicy(const fhicl::ParameterSet& ps)
-    : tokens_used_since_last_update_(0)
-    , next_sequence_id_(1)
-    , max_token_count_(0)
+	: tokens_used_since_last_update_(0)
+	, next_sequence_id_(1)
+	, max_token_count_(0)
 {
 	routing_mode_ = detail::RoutingManagerModeConverter::stringToRoutingManagerMode(ps.get<std::string>("routing_manager_mode", "EventBuilding"));
 	routing_cache_max_size_ = ps.get<size_t>("routing_cache_size", 1000);
@@ -20,6 +20,8 @@ artdaq::detail::RoutingPacket artdaq::RoutingManagerPolicy::GetCurrentTable()
 	{
 		std::lock_guard<std::mutex> lk(tokens_mutex_);
 		CreateRoutingTable(table);
+		UpdateCache(table);
+		CreateRoutingTableFromCache(table);
 	}
 	if (routing_mode_ == detail::RoutingManagerMode::RequestBasedEventBuilding)
 	{
@@ -33,7 +35,7 @@ void artdaq::RoutingManagerPolicy::AddReceiverToken(int rank, unsigned new_slots
 {
 	if (receiver_ranks_.count(rank) == 0u)
 	{
-		TLOG(TLVL_WARNING) << "Adding rank " << rank << " to receivers list";
+		TLOG(TLVL_INFO) << "Adding rank " << rank << " to receivers list (initial tokens=" << new_slots_free << ")";
 		receiver_ranks_.insert(rank);
 	}
 	TLOG(10) << "AddReceiverToken BEGIN";
@@ -73,7 +75,7 @@ void artdaq::RoutingManagerPolicy::Reset()
 
 artdaq::detail::RoutingPacketEntry artdaq::RoutingManagerPolicy::GetRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank)
 {
-	if (routing_mode_ == detail::RoutingManagerMode::RequestBasedEventBuilding)
+	if (routing_mode_ != detail::RoutingManagerMode::DataFlow)
 	{
 		std::lock_guard<std::mutex> lk(routing_cache_mutex_);
 		if (routing_cache_.count(seq))
@@ -91,7 +93,7 @@ artdaq::detail::RoutingPacketEntry artdaq::RoutingManagerPolicy::GetRouteForSequ
 			return entry;
 		}
 	}
-	else if (routing_mode_ == detail::RoutingManagerMode::DataFlow)
+	else
 	{
 		std::lock_guard<std::mutex> lk(routing_cache_mutex_);
 		if (routing_cache_.count(seq))
@@ -112,18 +114,33 @@ artdaq::detail::RoutingPacketEntry artdaq::RoutingManagerPolicy::GetRouteForSequ
 			routing_cache_[seq].emplace_back(seq, entry.destination_rank, requesting_rank);
 		}
 
-		// Trim cache
-		while (routing_cache_.size() > routing_cache_max_size_)
-		{
-			routing_cache_.erase(routing_cache_.begin());
-		}
+		TrimRoutingCache();
 		return entry;
 	}
-	else
-	{
-		TLOG(TLVL_WARNING) << "Ignoring request for routing information because I am in routing_manager_mode " << detail::RoutingManagerModeConverter::routingManagerModeToString(routing_mode_) << ", which is not request-based";
-	}
 	return detail::RoutingPacketEntry();
+}
+
+void artdaq::RoutingManagerPolicy::TrimRoutingCache()
+{
+	while (routing_cache_.size() > routing_cache_max_size_)
+	{
+		routing_cache_.erase(routing_cache_.begin());
+	}
+
+}
+
+void artdaq::RoutingManagerPolicy::UpdateCache(detail::RoutingPacket& table)
+{
+	std::lock_guard<std::mutex> lk(routing_cache_mutex_);
+
+	for(auto& entry : table)
+	{ 
+		if (!routing_cache_.count(entry.sequence_id)) {
+
+			routing_cache_[entry.sequence_id].emplace_back(entry.sequence_id, entry.destination_rank, my_rank);
+		}
+	}
+
 }
 
 void artdaq::RoutingManagerPolicy::CreateRoutingTableFromCache(detail::RoutingPacket& table)
@@ -134,17 +151,12 @@ void artdaq::RoutingManagerPolicy::CreateRoutingTableFromCache(detail::RoutingPa
 	{
 		for (auto& cache_entry : routing_cache_)
 		{
-			table.push_back(artdaq::detail::RoutingPacketEntry(cache_entry.second[0].sequence_id, cache_entry.second[0].destination_rank));
+			if (!cache_entry.second[0].included_in_table) {
+				table.push_back(artdaq::detail::RoutingPacketEntry(cache_entry.second[0].sequence_id, cache_entry.second[0].destination_rank));
+				cache_entry.second[0].included_in_table = true;
+			}
 		}
 
-		// Trim cache, all entries should be complete
-		while (routing_cache_.size() > routing_cache_max_size_)
-		{
-			routing_cache_.erase(routing_cache_.begin());
-		}
-	}
-	else
-	{
-		assert(routing_cache_.size() == 0);
+		TrimRoutingCache();
 	}
 }
