@@ -5,7 +5,6 @@
 
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \

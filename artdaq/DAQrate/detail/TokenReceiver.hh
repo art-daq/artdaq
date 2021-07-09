@@ -33,12 +33,10 @@ public:
 		 * \brief TokenReceiver Constructor 
 		 * \param ps ParameterSet used to configure TokenReceiver. See artdaq::TokenReceiver::Config
 		 * \param policy RoutingManagerPolicy that manages the received tokens
-		 * \param routing_mode Whether routing should occur by Sequence ID (i.e. BR->EB), or by send count (EB->DL). RouteBySendCount assumes no event building on receiver
-		 * \param number_of_senders For RouteBySendCount routing mode, the number of tokens needed to issue a new routing table entry
 		 * \param update_interval_msec The amount of time to wait in epoll_wait for a new update to arrive
 		 */
 	explicit TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingManagerPolicy> policy,
-	                       detail::RoutingManagerMode routing_mode, size_t number_of_senders, size_t update_interval_msec);
+	                       size_t update_interval_msec);
 
 	/**
 		 * \brief TokenReceiver Destructor
@@ -99,14 +97,12 @@ private:
 
 	int token_port_;
 	std::shared_ptr<RoutingManagerPolicy> policy_;
-	detail::RoutingManagerMode routing_mode_;
-	size_t number_of_senders_;
 	size_t update_interval_msec_;
 
-	int token_socket_;
+	int token_socket_{-1};
 	std::vector<epoll_event> receive_token_events_;
 	std::unordered_map<int, std::string> receive_token_addrs_;
-	int token_epoll_fd_;
+	int token_epoll_fd_{-1};
 
 	boost::thread token_thread_;
 	std::atomic<bool> thread_is_running_;

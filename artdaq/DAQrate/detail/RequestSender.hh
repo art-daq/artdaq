@@ -27,21 +27,6 @@ class RequestSender
 {
 public:
 	/// <summary>
-	/// Configuration for Routing token sending
-	///
-	/// This configuration should be the same for all processes sending routing tokens to a given RoutingManager.
-	/// </summary>
-	struct RoutingTokenConfig
-	{
-		/// "use_routing_manager" (Default: false) : Whether to send tokens to a RoutingManager
-		fhicl::Atom<bool> use_routing_manager{fhicl::Name{"use_routing_manager"}, fhicl::Comment{"True if using the Routing Manager"}, false};
-		/// "routing_token_port" (Default: 35555) : Port to send tokens on
-		fhicl::Atom<int> routing_token_port{fhicl::Name{"routing_token_port"}, fhicl::Comment{"Port to send tokens on"}, 35555};
-		/// "routing_manager_hostname" (Default: "localhost") : Hostname or IP of RoutingManager
-		fhicl::Atom<std::string> routing_token_host{fhicl::Name{"routing_manager_hostname"}, fhicl::Comment{"Hostname or IP of RoutingManager"}, "localhost"};
-	};
-
-	/// <summary>
 	/// Configuration of the RequestSender. May be used for parameter validation
 	/// </summary>
 	struct Config
@@ -58,7 +43,6 @@ public:
 		fhicl::Atom<std::string> output_address{fhicl::Name{"multicast_interface_ip"}, fhicl::Comment{"Use this hostname for multicast output(to assign to the proper NIC)"}, "0.0.0.0"};
 		/// "request_address" (Default: "227.128.12.26"): Multicast address to send DataRequests to
 		fhicl::Atom<std::string> request_address{fhicl::Name{"request_address"}, fhicl::Comment{"Multicast address to send DataRequests to"}, "227.128.12.26"};
-		fhicl::Table<RoutingTokenConfig> routing_token_config{fhicl::Name{"routing_token_config"}, fhicl::Comment{"FHiCL table containing RoutingToken configuration"}};  ///< Configuration for sending RoutingTokens. See artdaq::RequestSender::RoutingTokenConfig
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -124,29 +108,10 @@ public:
 	void RemoveRequest(Fragment::sequence_id_t seqID);
 
 	/**
-		 * \brief Send a RoutingToken message indicating that slots are available
-		 * \param nSlots Number of slots available
-		 * \param run_number Run number for token
-		 */
-	void SendRoutingToken(int nSlots, int run_number);
-
-	/**
-		 * \brief Get the count of number of tokens sent
-		 * \return The number of tokens sent by RequestSender
-		 */
-	size_t GetSentTokenCount() const { return tokens_sent_.load(); }
-
-	/**
 		 * \brief Set the run number to be used in request messages
 		 * \param run Run number
 		 */
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
-
-	/**
-	 * \brief Determine if routing token sends are enabled
-	 * \return If routing tokens will be sent by this RequestSender
-	 */
-	bool RoutingTokenSendsEnabled() { return send_routing_tokens_; }
 
 	/**
 	 * \brief Determine if the RequestSender is currently sending any requests
@@ -173,22 +138,13 @@ private:
 	std::string multicast_out_addr_;
 	detail::RequestMessageMode request_mode_;
 
-	bool send_routing_tokens_;
-	int token_port_;
-	int token_socket_;
-	std::string token_address_;
 	std::atomic<int> request_sending_;
-	std::atomic<size_t> tokens_sent_;
 	uint32_t run_number_;
 
 private:
 	void setup_requests_();
 
 	void do_send_request_();
-
-	void setup_tokens_();
-
-	void send_routing_token_(int nSlots, int run_number);
 };
 }  // namespace artdaq
 #endif /* artdaq_DAQrate_RequestSender_hh */
