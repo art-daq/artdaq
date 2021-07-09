@@ -132,7 +132,6 @@ private:
 	mutable std::condition_variable routing_cv_;
 
 	size_t routing_timeout_ms_;
-	int routing_retry_count_;
 
 	mutable std::atomic<uint64_t> highest_sequence_id_routed_;
 };
