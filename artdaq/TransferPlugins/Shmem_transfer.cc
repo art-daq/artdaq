@@ -70,6 +70,10 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 			++loopCount;
 		}
 	}
+	if (!shm_manager_->ReadyForRead() && shm_manager_->IsEndOfData())
+	{
+		return artdaq::TransferInterface::DATA_END;
+	}
 
 	TLOG(TLVL_TRACE) << GetTraceName() << "receiveFragment ReadyForRead=" << shm_manager_->ReadyForRead();
 

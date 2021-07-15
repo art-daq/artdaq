@@ -474,6 +474,10 @@ void artdaq::RoutingManagerCore::sendMetrics_()
 
 void artdaq::RoutingManagerCore::listen_()
 {
+	if (epoll_fd_ == -1)
+	{
+		epoll_fd_ = epoll_create1(0);
+	}
 	int listen_fd = -1;
 	while (shutdown_requested_ == false)
 	{
@@ -536,10 +540,6 @@ void artdaq::RoutingManagerCore::listen_()
 			struct epoll_event ev;
 			ev.data.fd = fd;
 			ev.events = EPOLLIN;
-			if (epoll_fd_ == -1)
-			{
-				epoll_fd_ = epoll_create1(0);
-			}
 			epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev);
 			TLOG(TLVL_INFO) << "listen_: New fd is " << fd << " for table receiver rank " << rch.rank;
 		}
