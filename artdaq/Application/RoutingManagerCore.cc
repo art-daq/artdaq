@@ -238,6 +238,10 @@ bool artdaq::RoutingManagerCore::resume(uint64_t /*unused*/, uint64_t /*unused*/
 bool artdaq::RoutingManagerCore::shutdown(uint64_t /*unused*/)
 {
 	shutdown_requested_.store(true);
+	if (listen_thread_ && listen_thread_->joinable())
+	{
+		listen_thread_->join();
+	}
 	token_receiver_->stopTokenReception();
 	policy_.reset();
 	metricMan->shutdown();
@@ -555,19 +559,15 @@ void artdaq::RoutingManagerCore::listen_()
 		close(listen_fd);
 	}
 	std::lock_guard<std::mutex> lk(fd_mutex_);
-	auto it = connected_fds_.begin();
-	while (it != connected_fds_.end())
+	for (auto& fd_set : connected_fds_)
 	{
-		auto& fd_set = it->second;
-		auto rank_it = fd_set.begin();
-		while (rank_it != fd_set.end())
+		for (auto & fd : fd_set.second)
 		{
-			epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, *rank_it, nullptr);
-			close(*rank_it);
-			rank_it = fd_set.erase(rank_it);
+			epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, nullptr);
+			close(fd);
 		}
-		it = connected_fds_.erase(it);
 	}
+	connected_fds_.clear();
 
 }  // listen_
 
