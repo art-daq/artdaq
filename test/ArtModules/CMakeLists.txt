@@ -6,8 +6,8 @@ simple_plugin(FragmentSniffer "module"
   art_Persistency_Provenance
   MF_MessageLogger
   fhiclcpp
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+  cetlib
+  cetlib_except
   )
 
 #get_cmake_property(_variableNames VARIABLES)
@@ -23,7 +23,6 @@ cet_test(daq_flow_t
   artdaq_DAQrate
   artdaq_DAQdata
   MF_MessageLogger
-  ${ROOT_CORE}
   fhiclcpp
   cetlib
   art_Utilities
@@ -39,7 +38,6 @@ cet_test(daq_flow_t
   artdaq_DAQrate
   artdaq_DAQdata
   MF_MessageLogger
-  ${ROOT_CORE}
   fhiclcpp
   cetlib
   art_Utilities

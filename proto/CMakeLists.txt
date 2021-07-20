@@ -13,8 +13,8 @@ art_make_exec(NAME artdaqDriver
   artdaq_core::artdaq-core_Utilities
   artdaq_core::artdaq-core_Generators
   art_Utilities
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${ROOT_CORE}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
@@ -23,10 +23,10 @@ art_make_exec(NAME fhicl_test
 	SOURCE
 	fhicl_test.cc
 	LIBRARIES
-	${FHICLCPP}
-	${CETLIB}
-	${CETLIB_EXCEPT}
-	${MF_MESSAGELOGGER}
+	fhiclcpp
+	cetlib
+	cetlib_except
+	MF_MessageLogger
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
 
@@ -35,8 +35,8 @@ art_make_exec(NAME fhicl_test
 	simple_metric_sender.cc
 	LIBRARIES
   artdaq_Application # needed for messagefacility
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -52,8 +52,8 @@ art_make_exec(NAME fhicl_test
   artdaq_core::artdaq-core_Utilities
   artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -68,8 +68,8 @@ art_make_exec(NAME fhicl_test
   artdaq_core::artdaq-core_Utilities
   artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -84,8 +84,8 @@ art_make_exec(NAME fhicl_test
   artdaq_core::artdaq-core_Utilities
   artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -100,8 +100,8 @@ art_make_exec(NAME fhicl_test
   artdaq_core::artdaq-core_Utilities
   artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -116,8 +116,8 @@ art_make_exec(NAME fhicl_test
   artdaq_core::artdaq-core_Utilities
   artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -142,7 +142,7 @@ art_make_exec(NAME fhicl_test
   artdaq_Application
   artdaq_BuildInfo
   artdaq_ExternalComms
-  ${FHICLCPP}
+  fhiclcpp
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -153,7 +153,7 @@ art_make_exec(NAME fhicl_test
   artdaq_Application
   artdaq_BuildInfo
   artdaq_ExternalComms
-  ${FHICLCPP}
+  fhiclcpp
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -161,8 +161,8 @@ art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins
   artdaq_core::artdaq-core_Data
-  ${CETLIB}
-  ${FHICLCPP}
+  cetlib
+  fhiclcpp
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   pthread
   )
@@ -171,8 +171,8 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
   LIBRARIES
   artdaq_TransferPlugins
   artdaq_core::artdaq-core_Data
-  ${CETLIB}
-  ${FHICLCPP}
+  cetlib
+  fhiclcpp
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   pthread
   )

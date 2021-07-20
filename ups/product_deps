@@ -15,6 +15,8 @@ incdir      product_dir include
 libdir      fq_dir      lib
 bindir      fq_dir      bin
 
+old_style_config_vars
+
 #
 product				version			optional
 art_root_io				v1_08_02	s111
@@ -32,7 +34,7 @@ artdaq_mfextensions		v1_06_02	-	optional
 artdaq_epics_plugin		v1_03_02	-	optional
 artdaq_ganglia_plugin	v1_03_02	-	optional
 artdaq_pcp_mmv_plugin	v1_01_02	-	optional
-cetbuildtools			v8_10_01	-	only_for_build
+cetbuildtools			v8_11_00	-	only_for_build
 end_product_list
 
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
