@@ -1,13 +1,6 @@
 
 simple_plugin(FragmentSniffer "module"
-  artdaq_DAQdata
-  art_Framework_Core
-  art_Framework_Principal
-  art_Persistency_Provenance
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  cetlib_except
+ artdaq_DAQdata
   )
 
 #get_cmake_property(_variableNames VARIABLES)
