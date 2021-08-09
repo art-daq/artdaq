@@ -10,6 +10,7 @@
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
+#include "art/Persistency/Provenance/ModuleContext.h"
 
 #include "art_root_io/setup.h"
 
@@ -29,6 +30,8 @@
 #include "canvas/Utilities/Exception.h"
 #if ART_HEX_VERSION < 0x30901
 #include "canvas/Utilities/WrappedTypeID.h"
+#else
+#include "canvas/Persistency/Common/WrappedTypeID.h"
 #endif
 #include "cetlib/column_width.h"
 #include "cetlib/lpad.h"
