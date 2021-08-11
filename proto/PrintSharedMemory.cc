@@ -4,8 +4,8 @@
 namespace bpo = boost::program_options;
 
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-utilities/Plugins/MakeParameterSet.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
 int main(int argc, char* argv[]) try
 {
