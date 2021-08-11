@@ -33,10 +33,10 @@
 #include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/DebugMacros.h"
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <TBufferFile.h>
 #include <TClass.h>
