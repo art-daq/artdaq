@@ -1,8 +1,8 @@
 #define TRACE_NAME "transfer_driver"
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/TransferTest.hh"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 int main(int argc, char* argv[]) try
 {
