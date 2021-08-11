@@ -31,7 +31,7 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "canvas/Persistency/Provenance/RunID.h"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 //#include "artdaq/Application/LoadParameterSet.hh"
@@ -456,7 +456,7 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 
 	try
 	{
-		fhicl::make_ParameterSet(configString, pset);
+		pset= artdaq::make_pset(configString);
 	}
 	catch (const fhicl::exception& e)
 	{
@@ -467,7 +467,7 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 			setenv("FHICL_FILE_PATH", ".", 0);
 		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-		fhicl::make_ParameterSet(configString, lookup_policy, pset);
+		pset = artdaq::make_pset(configString, lookup_policy);
 	}
 
 	TLOG(TLVL_INFO) << "Parameter Set Loaded." << std::endl;

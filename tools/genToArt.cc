@@ -23,7 +23,7 @@
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/container_algorithms.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <boost/program_options.hpp>
 
@@ -337,7 +337,6 @@ int main(int argc, char* argv[]) try
 		return (result);
 	}
 	// Read FHiCL configuration file.
-	fhicl::ParameterSet pset;
 	if (getenv("FHICL_FILE_PATH") == nullptr)
 	{
 		TLOG(TLVL_ERROR)
@@ -345,7 +344,7 @@ int main(int argc, char* argv[]) try
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 	artdaq::SimpleLookupPolicy lookup_policy("FHICL_FILE_PATH");
-	make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+	auto pset = artdaq::make_pset(vm["config"].as<std::string>(), lookup_policy);
 	return process_data(pset);
 }
 catch (std::exception& x)
