@@ -22,7 +22,7 @@ transfer_driver.cc
   artdaq_DAQrate
    artdaq_DAQdata
 artdaq_TransferPlugins
-  ${FHICLCPP}
+  fhiclcpp
    )
 
    art_make_exec(NAME broken_transfer_driver 
@@ -31,7 +31,7 @@ artdaq_TransferPlugins
    artdaq_DAQrate 
    artdaq_DAQdata 
    artdaq_TransferPlugins 
-   ${FHICLCPP}
+   fhiclcpp
    ${Boost_PROGRAM_OPTIONS_LIBRARY}
    )
 
