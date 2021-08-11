@@ -5,10 +5,10 @@ art_make( BASENAME_ONLY
   EXCLUDE RoundRobin_policy.cc NthEvent_policy.cc NoOp_policy.cc CapacityTest_policy.cc
   LIB_LIBRARIES
   artdaq_DAQdata
-  artdaq-core_Utilities
-  artdaq-core_Data
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Data
   cetlib
-  ${CETLIB_EXCEPT}
+  cetlib_except
   ${Boost_SYSTEM_LIBRARY}
   fhiclcpp
   MF_MessageLogger

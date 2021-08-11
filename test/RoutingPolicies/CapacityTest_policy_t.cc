@@ -3,15 +3,14 @@
 
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 BOOST_AUTO_TEST_SUITE(CapacityTest_policy_t)
 
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case Simple BEGIN";
-	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("tokens_used_per_table_percent: 50", ps);
+	fhicl::ParameterSet ps = artdaq::make_pset("receiver_ranks: [1,2,3,4] tokens_used_per_table_percent: 50");
 
 	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
 
