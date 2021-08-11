@@ -20,19 +20,19 @@ art_make_library( LIBRARY_NAME artdaq_Application
   LIBRARIES
   artdaq_DAQrate
   artdaq_Generators
-  artdaq-core_Data
-  artdaq-core_Utilities
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Utilities
   artdaq_RoutingPolicies
   MF_MessageLogger
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+  cetlib
+  cetlib_except
   canvas
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
-  ${FHICLCPP}
+  fhiclcpp
   )
 
 
-install_headers()
-install_source()
+install_headers(SUBDIRS detail)
+install_source(SUBDIRS detail)
 install_fhicl()

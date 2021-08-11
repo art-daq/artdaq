@@ -3,7 +3,7 @@
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 #include <thread>
-#include "fhiclcpp/make_ParameterSet.h"
+#include "fhiclcpp/ParameterSet.h"
 namespace bpo = boost::program_options;
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
