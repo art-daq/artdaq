@@ -13,7 +13,7 @@ art_make(BASENAME_ONLY
   LIB_LIBRARIES
   artdaq_DAQdata
   artdaq_DAQrate
-  artdaq-core_Data
+  artdaq_core::artdaq-core_Data
   )
 simple_plugin(CompositeDriver "generator" artdaq_DAQdata artdaq_Generators)
 
