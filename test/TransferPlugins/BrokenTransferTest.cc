@@ -111,10 +111,10 @@ void artdaqtest::BrokenTransferTest::TestSenderReconnect()
 	TLOG(TLVL_INFO) << "TestSenderReconnect END";
 }
 
-void artdaqtest::BrokenTransferTest::TestReceiverReconnect(int send_throttle_us)
+void artdaqtest::BrokenTransferTest::TestReceiverReconnect(int send_throttle_factor)
 {
 	TLOG(TLVL_INFO) << "TestReceiverReconnect BEGIN";
-	send_throttle_us_ = send_throttle_us;
+	send_throttle_us_ = send_throttle_factor * 1000000 / fragment_rate_hz_;
 	start_test_();
 	usleep_for_n_buffer_epochs_(2);
 
@@ -446,15 +446,15 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 				if (event_buffer_.count(hdr.sequence_id) == 0u)
 				{
 					event_buffer_[hdr.sequence_id].open_time = std::chrono::steady_clock::now();
-					event_buffer_[hdr.sequence_id].first_frag = artdaq::Fragment(hdr.word_count - hdr.num_words());
-					ptr = event_buffer_[hdr.sequence_id].first_frag.headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+					event_buffer_[hdr.sequence_id].first_frag.reset(new artdaq::Fragment(hdr.word_count - hdr.num_words()));
+					ptr = event_buffer_[hdr.sequence_id].first_frag->headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 					TLOG(TLVL_TRACE) << "Receiver " << sender_rank << "->" << receiver_rank << " opened event " << hdr.sequence_id
 					                 << " with Fragment from rank " << sender_rank;
 				}
 				else
 				{
-					event_buffer_[hdr.sequence_id].second_frag = artdaq::Fragment(hdr.word_count - hdr.num_words());
-					ptr = event_buffer_[hdr.sequence_id].second_frag.headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+					event_buffer_[hdr.sequence_id].second_frag.reset(new artdaq::Fragment(hdr.word_count - hdr.num_words()));
+					ptr = event_buffer_[hdr.sequence_id].second_frag->headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 					first = false;
 				}
 			}
@@ -495,7 +495,7 @@ artdaq::Fragment::sequence_id_t artdaqtest::BrokenTransferTest::sequence_id_targ
 	auto ret = 1 + (artdaq::TimeUtils::GetElapsedTimeMicroseconds(test_start_time_) * fragment_rate_hz_ / 1000000);
 	if (test_end_requested_)
 	{
-		ret = 1 + (artdaq::TimeUtils::GetElapsedTimeMicroseconds(test_end_time_) * fragment_rate_hz_ / 1000000);
+		ret = 1 + (artdaq::TimeUtils::GetElapsedTimeMicroseconds(test_start_time_, test_end_time_) * fragment_rate_hz_ / 1000000);
 	}
 	//TLOG(TLVL_DEBUG) << "sequence_id_target_ is " << ret;
 	return ret;

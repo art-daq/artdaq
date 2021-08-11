@@ -9,15 +9,15 @@ art_make( BASENAME_ONLY
   SUBDIRS detail
   EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc TCPSocket_transfer.cc Autodetect_transfer.cc
   LIB_LIBRARIES
-  artdaq-core_Utilities
-  artdaq-core_Data
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Data
   artdaq_DAQdata
   )
 
 
 simple_plugin(Shmem "transfer"
   artdaq_TransferPlugins
-  artdaq-core_Core
+  artdaq_core::artdaq-core_Core
 )
 
 simple_plugin(Null "transfer"
