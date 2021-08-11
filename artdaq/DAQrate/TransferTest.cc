@@ -7,7 +7,7 @@
 #define TRACE_NAME "TransferTest"
 #include "artdaq/DAQdata/Globals.hh"
 
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <cstdlib>
 #include <future>
@@ -100,7 +100,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	}
 	ss << "}" << std::endl;
 
-	make_ParameterSet(ss.str(), ps_);
+	ps_ = make_pset(ss.str());
 
 	TLOG(TLVL_DEBUG) << "Going to configure with ParameterSet: " << ps_.to_string() << std::endl;
 }
