@@ -4,9 +4,9 @@ art_make( BASENAME_ONLY
   LIB_LIBRARIES
   artdaq_utilities::artdaq-utilities_Plugins
   artdaq_core::artdaq-core_Utilities
-  ${FHICLCPP}
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+  fhiclcpp
+  cetlib
+  cetlib_except
   MF_MessageLogger
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
@@ -15,7 +15,7 @@ art_make( BASENAME_ONLY
 simple_plugin(GenericFragmentSimulator "generator"
   artdaq_DAQdata
   artdaq_core::artdaq-core_Data
-  ${CETLIB_EXCEPT}
+  cetlib_except
   )
 
 install_headers()

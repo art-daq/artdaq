@@ -24,12 +24,12 @@ art_make_library( LIBRARY_NAME artdaq_Application
   artdaq_core::artdaq-core_Utilities
   artdaq_RoutingPolicies
   MF_MessageLogger
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+  cetlib
+  cetlib_except
   canvas
   ${Boost_FILESYSTEM_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
-  ${FHICLCPP}
+  fhiclcpp
   )
 
 

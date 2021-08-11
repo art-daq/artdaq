@@ -7,185 +7,93 @@ art_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
   SUBDIRS detail
   NO_PLUGINS
-  ${ART_PERSISTENCY_PROVENANCE}
-  ${CANVAS_PERSISTENCY_PROVENANCE}
   LIB_LIBRARIES
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Data_dict
-  artdaq_DAQrate
   artdaq_DAQdata
-  artdaq_Application
   artdaq_ExternalComms
   art_Framework_Core
   art_Framework_IO_Sources
-  art_root_io
-  art_root_io_tfile_support
-  art_Framework_IO
-  art_Framework_Principal
-  artdaq_ArtModules_ArtdaqSharedMemoryService_service
-  art_Persistency_Provenance
-  #  art_Persistency_RootDB
-  canvas
-  MF_MessageLogger
-  ${SQLITE3}
-  ${ROOT_CINTEX}
-  ${ROOT_RIO}
-  ${ROOT_TREE}
-  ${ROOT_CORE}
-  ${ROOT_NET}
-  ${ROOT_REFLEX}
-  ${Boost_DATE_TIME_LIBRARY}
+  art_Framework_Services_Registry
   )
 
 
 simple_plugin(TransferOutput "module"
   artdaq_TransferPlugins
-  artdaq_ArtModules
- art_root_io
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  ${CETLIB_EXCEPT}
-  ${ROOT_RIO}
-  ${TBB}
-  ${HEP_CONCURRENCY}
+	hep_concurrency
+	art_root_io
+	${ROOT_RIO}
 )
 
 simple_plugin(TransferInput "source"
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Data_dict
+	artdaq_ArtModules
   artdaq_TransferPlugins
-  artdaq_ArtModules
-  ${TBB}
-  ${HEP_CONCURRENCY}
+  art_root_io
+  hep_concurrency
+  ${ROOT_RIO}
 )
 
-simple_plugin(RandomDelayFilter "module" artdaq_ArtModules)
+simple_plugin(RandomDelayFilter "module" 
+artdaq_DAQdata
+)
 
 simple_plugin(RequestSender "module" artdaq_ArtModules artdaq_DAQrate)
 
 simple_plugin(EventDump "module"
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Utilities
-  art_Persistency_Provenance
-MF_MessageLogger
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Data_dict
-  ${CETLIB_EXCEPT})
+artdaq_core::artdaq-core_Data
+)
 
 simple_plugin(MissingDataCheck "module"
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Data_dict
-  artdaq_core::artdaq-core_Utilities
-  MF_MessageLogger
-  art_Persistency_Provenance
-  art_Framework_Services_Registry
-  art_root_io
-  art_root_io_tfile_support
-  art_root_io_TFileService_service
-  ${ROOT_BASIC_LIB_LIST}
-  ${ROOT_CORE}
-  ${CETLIB_EXCEPT}
+art_root_io
+art_root_io_tfile_support
+art_root_io_TFileService_service
+  ${ROOT_TREE}
 )
 
 simple_plugin(FragmentWatcher "module"
-  artdaq_DAQdata
-  artdaq_utilities::artdaq-utilities_Plugins
-  artdaq_core::artdaq-core_Utilities
-  art_Framework_Services_Registry
-  art_Utilities
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
+artdaq_DAQdata
 )
 
 simple_plugin(ArtdaqInput "source"
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Data_dict
-  artdaq_ArtModules
-  artdaq_core::artdaq-core_Utilities
-  art_Framework_Core
-  art_Framework_IO_Sources
-  art_Framework_Principal
-  art_Persistency_Provenance
-  art_Utilities
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  ${CETLIB_EXCEPT}
-  ${TBB}
-  ${HEP_CONCURRENCY}
+	artdaq_ArtModules
+  art_root_io
+  hep_concurrency
+  ${ROOT_RIO}
 )
 
 
 simple_plugin(RootNetOutput "module"
-  artdaq_ArtModules
-  artdaq_core::artdaq-core_Data_dict
-  art_root_io
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  ${CETLIB_EXCEPT}
+artdaq_DAQdata
+artdaq_DAQrate
+	hep_concurrency
+	art_root_io
   ${ROOT_RIO}
-  ${TBB}
-  ${HEP_CONCURRENCY}
 )
 
 simple_plugin(BinaryNetOutput "module"
-  artdaq_ArtModules
-  art_Utilities
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  ${CETLIB_EXCEPT}
-  ${ROOT_RIO}
+artdaq_DAQdata
+artdaq_DAQrate
 )
 
 simple_plugin(BinaryFileOutput "module"
-  artdaq_ArtModules
-  art_Framework_IO
-  art_Utilities
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  ${CETLIB_EXCEPT}
-  ${ROOT_RIO}
+artdaq_DAQdata
+art_Framework_IO
 )
 
 simple_plugin(ArtdaqSharedMemoryService "service"
-  artdaq_core::artdaq-core_Data
-  artdaq_core::artdaq-core_Data_dict
-  artdaq_DAQrate
-  art_Framework_Services_Registry
-  MF_MessageLogger
-  fhiclcpp
+artdaq_DAQdata
+artdaq_DAQrate
 )
 
 simple_plugin(ArtdaqFragmentNamingService "service"
-artdaq_core::artdaq-core_Data
-  art_Framework_Services_Registry
   MF_MessageLogger
-  fhiclcpp)
+)
 
 simple_plugin(ArtdaqBuildInfo "module"
-  artdaq_DAQdata
-  artdaq_BuildInfo
-  artdaq_utilities::artdaq-utilities_BuildInfo
-  artdaq_core::artdaq-core_BuildInfo
-  art_Persistency_Provenance
-  MF_MessageLogger
-  ${FHICLCPP}
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+artdaq_BuildInfo
+artdaq_core::artdaq-core_BuildInfo
+artdaq_utilities::artdaq-utilities_BuildInfo
 )
 
 simple_plugin(PrintBuildInfo "module"
-  artdaq_core::artdaq-core_Data
-  MF_MessageLogger
-  fhiclcpp
-  art_Persistency_Provenance
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
   )
 
 
