@@ -23,9 +23,9 @@ art_make_exec(genToArt
   artdaq_core::artdaq-core_Utilities
   artdaq_core::artdaq-core_Generators
   canvas
-  ${FHICLCPP}
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+  fhiclcpp
+  cetlib
+  cetlib_except
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
