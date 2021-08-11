@@ -162,8 +162,12 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 	}
 
 	//get all the artdaq fragment collections in the event.
-	std::vector<art::Handle<std::vector<artdaq::Fragment> > > fragmentHandles;
+	std::vector<art::Handle<std::vector<artdaq::Fragment>>> fragmentHandles;
+#if ART_HEX_VERSION < 0x30900
 	e.getManyByType(fragmentHandles);
+#else
+	fragmentHandles = e.getMany<std::vector<artdaq::Fragment>>();
+#endif
 
 	//print basic fragment number info
 	if (verbosity_ > 2)
