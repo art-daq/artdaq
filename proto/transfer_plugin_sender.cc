@@ -2,10 +2,10 @@
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "cetlib/BasicPluginFactory.h"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
