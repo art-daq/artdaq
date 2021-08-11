@@ -16,7 +16,9 @@
 # use cmake 3.17 or later
 cmake_minimum_required (VERSION 3.17)
 
-project(artdaq)
+find_package(cetbuildtools)
+
+project(artdaq VERSION 3.10.03)
 # cetbuildtools contains our cmake modules
 SET ( CETBUILDTOOLS_VERSION $ENV{CETBUILDTOOLS_VERSION} )
 IF (NOT CETBUILDTOOLS_VERSION)
@@ -39,36 +41,42 @@ cet_set_compiler_flags(DIAGS VIGILANT
   EXTRA_FLAGS -pedantic -DRTI_UNIX -DRTI_LINUX -DRTI_64BIT -m64 
 )
 
-string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC )
-if( ${BTYPE_UC} MATCHES "DEBUG" )
+string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC)
+if(BTYPE_UC STREQUAL DEBUG)
+  add_definitions(-DDEBUGME)
 	if(DEFINED ENV{USE_ASAN})
 		if($ENV{USE_ASAN} GREATER 0)
 			message("!!! Address Sanitizer Activated!!!")
-			cet_add_compiler_flags(-fsanitize=address -lasan -Wno-unused-command-line-argument)
+			add_compile_options(-fsanitize=address -Wno-unused-command-line-argument)
+			add_link_options(-lasan)
 		endif()
 	endif()
 	if(DEFINED ENV{USE_TSAN})
 		if($ENV{USE_TSAN} GREATER 0)
 			message("!!! Thread Sanitizer Activated!!!")
-			cet_add_compiler_flags(-fsanitize=thread -ltsan -Wno-unused-command-line-argument)
+			add_compile_options(-fsanitize=thread -Wno-unused-command-line-argument)
+			add_link_options(-ltsan)
 		endif()
 	endif()
 	if(DEFINED ENV{USE_GCOV})
-		cet_add_compiler_flags(-fprofile-arcs -ftest-coverage --coverage)
+		add_compile_options(-fprofile-arcs -ftest-coverage --coverage)
+		add_link_options(--coverage)
 	endif()
 endif()
 
-#exception stack trace
-if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})
-        if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
-                message("!!! Exception StackTrace Activated!!!")
-                add_definitions(-D EXCEPTIONSTACKTRACE)
-                set( EXCEPTIONSTACKTRACE_LIB  artdaq-core_Utilities_ExceptionStackTrace )
-                cet_add_compiler_flags( -rdynamic -Wno-unused-command-line-argument )
-        endif()
+#exeption stack trace
+if(DEFINED ENV{USE_EXCEPTIONSTACKTRACE})	
+	if($ENV{USE_EXCEPTIONSTACKTRACE} GREATER 0)
+		message("!!! Exception StackTrace Activated!!!")
+		add_definitions(-D EXCEPTIONSTACKTRACE)
+		set( EXCEPTIONSTACKTRACE_LIB  artdaq-core_Utilities_ExceptionStackTrace )
+		add_compile_options( -rdynamic -Wno-unused-command-line-argument )
+		add_link_options( -rdynamic )
+	endif()
 endif()
 
-cet_report_compiler_flags()
+
+#cet_report_compiler_flags()
 
 # JCF, 7/8/15 - not sure this is actually doing anything...
 SET( CMAKE_EXE_LINKER_FLAGS_${BTYPE_UC}  " -m64 -static-libgcc")
@@ -97,11 +105,11 @@ find_ups_product( sqlite v3_08_05_00 )
 find_ups_product( tbb v4_1 )
 find_ups_product( xmlrpc_c v1_25_18 )
 find_ups_root( v5_34_20 )
-	find_ups_product( art_root_io v1_00_00 )
+find_ups_product( art_root_io v1_00_00 )
 
 # Include at the top level to make sure include directory is visible
 # everywhere.
-include(ProcessSmc)
+#include(ProcessSmc)
 
 string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" ART_VERSION_LIST "$ENV{ART_VERSION}")
 list(GET ART_VERSION_LIST 0 ART_MAJOR_VERSION)
@@ -140,23 +148,19 @@ list(GET MESSAGEFACILITY_VERSION_LIST 2 MESSAGEFACILITY_PATCH_VERSION)
 message("-DMESSAGEFACILITY_HEX_VERSION=0x${MESSAGEFACILITY_MAJOR_VERSION}${MESSAGEFACILITY_MINOR_VERSION}${MESSAGEFACILITY_PATCH_VERSION}")
 add_definitions(-DMESSAGEFACILITY_HEX_VERSION=0x${MESSAGEFACILITY_MAJOR_VERSION}${MESSAGEFACILITY_MINOR_VERSION}${MESSAGEFACILITY_PATCH_VERSION})
 
-find_library( XMLRPC_SERVER_ABYSSPP NAMES xmlrpc_server_abyss++ PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC_SERVER_ABYSS NAMES xmlrpc_server_abyss PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC_SERVERPP NAMES xmlrpc_server++ PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC_SERVER NAMES xmlrpc_server PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC_ABYSS NAMES xmlrpc_abyss PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC_CLIENTPP NAMES xmlrpc_client++ PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPCPP NAMES xmlrpc++ PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC NAMES xmlrpc PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC_UTIL NAMES xmlrpc_util PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC_UTILPP NAMES xmlrpc_util++ PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-# XMLRPC_UTILPP is new to v1_39_07:
-if(NOT XMLRPC_UTILPP)
-	set(XMLRPC_UTILPP "")
+# as of fhiclcpp v4_15_00 (s108), ParameterSet::make is the preferred way to make a ParameterSet
+check_ups_version(fhiclcpp $ENV{FHICLCPP_VERSION} v4_15_00 PRODUCT_MATCHES_VAR PSET_MAKE)
+if(PSET_MAKE)
+  add_definitions(-DSIMPLER_PSET_MAKE)
 endif()
-find_library( XMLRPC_XMLPARSE NAMES xmlrpc_xmlparse PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-find_library( XMLRPC_XMLTOK NAMES xmlrpc_xmltok PATHS $ENV{XMLRPC_C_LIBRARY} NO_DEFAULT_PATH )
-#find_library( TRACE trace PATHS $ENV{TRACE_LIB} )
+
+
+# Find XMLRPC-C Libraries
+#find_package(XMLRPC REQUIRED c++2 abyss-server client)
+include_directories($ENV{XMLRPC_C_INCLUDE_DIR})
+link_directories($ENV{XMLRPC_C_LIBRARY})
+
+#message("Found XMLRPC at ${XMLRPC_INCLUDE_DIRS} with ${XMLRPC_LIBRARIES}")
 
 # Debug streamer.
 string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC)
