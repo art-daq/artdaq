@@ -4,7 +4,7 @@
 // note: in header files (this LoadParameterSet.hh) consider if you want TRACE/LOG to use "name" from .cc or name for this file
 #include <boost/program_options.hpp>
 #include <iostream>
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "fhiclcpp/types/Table.h"
 #include "tracemf.h"
 namespace bpo = boost::program_options;
@@ -15,14 +15,14 @@ inline fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 
 	try
 	{
-		make_ParameterSet(psetOrFile, pset);
+		pset = artdaq::make_pset(psetOrFile);
 	}
 	catch (const fhicl::exception& e)
 	{
 		if (getenv("FHICL_FILE_PATH") == nullptr)
 			setenv("FHICL_FILE_PATH", ".", 0);
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-		make_ParameterSet(psetOrFile, lookup_policy, pset);
+		pset = artdaq::make_pset(psetOrFile, lookup_policy);
 	}
 
 	return pset;
@@ -82,7 +82,7 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string 
 			}
 			std::cin.clear();
 
-			make_ParameterSet(ss.str(), pset);
+			pset = artdaq::make_pset(ss.str());
 		}
 		else
 		{

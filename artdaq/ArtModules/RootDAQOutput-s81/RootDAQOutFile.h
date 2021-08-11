@@ -10,7 +10,12 @@
 #include "art/Persistency/Provenance/Selections.h"
 #include "art_root_io/DropMetaData.h"
 #include "art_root_io/RootOutputTree.h"
+#if ART_HEX_VERSION < 0x30800
 #include "art_root_io/detail/DummyProductCache.h"
+#define DummyProductCache detail::DummyProductCache
+#else
+#include "art_root_io/DummyProductCache.h"
+#endif
 #include "boost/filesystem.hpp"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
@@ -184,7 +189,7 @@ private:  // MEMBER DATA
 	std::array<ProductDescriptionsByID, NumBranchTypes> descriptionsToPersist_;
 	std::unique_ptr<cet::sqlite::Connection> rootFileDB_;
 	std::array<std::set<OutputItem>, NumBranchTypes> selectedOutputItemList_;
-	detail::DummyProductCache dummyProductCache_;
+	DummyProductCache dummyProductCache_;
 	unsigned subRunRSID_;
 	unsigned runRSID_;
 	std::chrono::steady_clock::time_point beginTime_;

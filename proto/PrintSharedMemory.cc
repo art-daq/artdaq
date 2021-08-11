@@ -5,7 +5,7 @@ namespace bpo = boost::program_options;
 
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 int main(int argc, char* argv[]) try
 {
@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) try
 			setenv("FHICL_FILE_PATH", ".", 0);
 		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-		fhicl::make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+		pset = artdaq::make_pset(vm["config"].as<std::string>(), lookup_policy);
 	}
 
 	if (!pset.has_key("shared_memory_key"))

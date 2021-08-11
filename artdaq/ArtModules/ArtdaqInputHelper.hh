@@ -36,7 +36,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <TBufferFile.h>
 #include <TClass.h>
@@ -302,7 +302,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 					TLOG(TLVL_DEBUG + 2, "ArtdaqInputHelper") << "ArtdaqInputHelper: parameter set: " << pset_str;
 
 					fhicl::ParameterSet pset;
-					fhicl::make_ParameterSet(pset_str, pset);
+					pset = artdaq::make_pset(pset_str);
 					// Force id calculation.
 					pset.id();
 					fhicl::ParameterSetRegistry::put(pset);
