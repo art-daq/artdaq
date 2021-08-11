@@ -8,7 +8,7 @@
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq/Application/Commandable_sm.h"  // must be included after others
+#include "artdaq/Application/detail/Commandable_sm.h"  // must be included after others
 
 namespace artdaq {
 class Commandable;
