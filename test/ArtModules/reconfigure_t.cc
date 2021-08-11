@@ -8,7 +8,7 @@
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <cstddef>
 #include <iostream>
@@ -47,8 +47,7 @@ int main(int argc, char* argv[]) try
 		pset.put("send_init_fragments", false);
 
 		auto temp = pset.to_string() + " source.waiting_time: 10";
-		pset = fhicl::ParameterSet();
-		fhicl::make_ParameterSet(temp, pset);
+		pset = artdaq::make_pset(temp);
 		// Eventually, this test should make a mixed-up streams of
 		// Fragments; this has too clean a pattern to be an interesting
 		// test of the EventStore's ability to deal with multiple events
@@ -97,8 +96,7 @@ int main(int argc, char* argv[]) try
 
 			size_t const NUM_EVENTS2 = 200;
 			auto temp_config = pset.to_string() + " source.waiting_time: 10 physics.analyzers.frags.num_events_expected: " + std::to_string(NUM_EVENTS2);
-			fhicl::ParameterSet sim_config2;
-			fhicl::make_ParameterSet(temp_config, sim_config2);
+			fhicl::ParameterSet sim_config2 = artdaq::make_pset(temp_config);
 			GenericFragmentSimulator sim2(sim_config2);
 			events->ReconfigureArt(sim_config2);
 			event_count = 0;
