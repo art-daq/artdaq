@@ -17,13 +17,13 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/container_algorithms.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <boost/program_options.hpp>
 
