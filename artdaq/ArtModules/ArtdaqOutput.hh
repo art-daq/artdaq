@@ -9,8 +9,8 @@
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "art/Persistency/Provenance/ModuleContext.h"
+#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 
 #include "art_root_io/setup.h"
 
