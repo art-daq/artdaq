@@ -23,7 +23,6 @@
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
 
 #include <csignal>
 #include <iostream>
