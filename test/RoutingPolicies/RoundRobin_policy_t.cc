@@ -1,18 +1,17 @@
 #define BOOST_TEST_MODULE RoundRobin_policy_t
 #include <boost/test/unit_test.hpp>
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
 
 BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)
 
 BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 {
-	fhicl::ParameterSet ps4, ps3, ps2;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps4);
-	fhicl::make_ParameterSet("receiver_ranks: [7,8,9]", ps3);
-	fhicl::make_ParameterSet("receiver_ranks: [5,6]", ps2);
+	auto ps4 = artdaq::make_pset("receiver_ranks: [1,2,3,4]");
+	auto ps3 = artdaq::make_pset("receiver_ranks: [7,8,9]");
+	auto ps2 = artdaq::make_pset("receiver_ranks: [5,6]");
 
 	auto rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps4);
 	BOOST_REQUIRE_EQUAL(rrA->GetReceiverCount(), 4);
@@ -32,8 +31,7 @@ BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 
 BOOST_AUTO_TEST_CASE(Simple)
 {
-	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4]", ps);
+	fhicl::ParameterSet ps = artdaq::make_pset("receiver_ranks: [1,2,3,4]");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
@@ -77,8 +75,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 BOOST_AUTO_TEST_CASE(MinimumParticipants)
 {
-	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3,4] minimum_participants: 2", ps);
+	fhicl::ParameterSet ps = artdaq::make_pset("receiver_ranks: [1,2,3,4] minimum_participants: 2");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
@@ -130,8 +127,7 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 
 BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 {
-	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: 5", ps);
+	fhicl::ParameterSet ps = artdaq::make_pset("receiver_ranks: [1,2,3] minimum_participants: 5");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
@@ -159,8 +155,7 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 
 BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 {
-	fhicl::ParameterSet ps;
-	fhicl::make_ParameterSet("receiver_ranks: [1,2,3] minimum_participants: -5", ps);
+	fhicl::ParameterSet ps = artdaq::make_pset("receiver_ranks: [1,2,3] minimum_participants: -5");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
