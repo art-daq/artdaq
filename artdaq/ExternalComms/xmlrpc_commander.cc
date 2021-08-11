@@ -30,8 +30,8 @@
 #include <exception>
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "canvas/Persistency/Provenance/RunID.h"
 #include "artdaq-utilities/Plugins/MakeParameterSet.hh"
+#include "canvas/Persistency/Provenance/RunID.h"
 
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 //#include "artdaq/Application/LoadParameterSet.hh"
@@ -485,7 +485,7 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 
 	try
 	{
-		pset= artdaq::make_pset(configString);
+		pset = artdaq::make_pset(configString);
 	}
 	catch (const fhicl::exception& e)
 	{
