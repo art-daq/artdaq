@@ -9,26 +9,21 @@ art_make( BASENAME_ONLY
   EXCLUDE xmlrpc_commander.cc
   NO_PLUGINS
   artdaq_DAQdata
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
 )
 
 simple_plugin(xmlrpc "commander"
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${XMLRPC_SERVER_ABYSSPP}
-  ${XMLRPC_SERVER_ABYSS}
-  ${XMLRPC_SERVERPP}
-  ${XMLRPC_CLIENT}
-  ${XMLRPC_CLIENTPP}
-  ${XMLRPC_SERVER}
-  ${XMLRPC_ABYSS}
-  ${XMLRPCPP}
-  ${XMLRPC}
-  ${XMLRPC_UTIL}
-  ${XMLRPC_UTILPP}
-  ${XMLRPC_XMLPARSE}
-  ${XMLRPC_XMLTOK}
+  fhiclcpp
+  xmlrpc
+  xmlrpc++
+  xmlrpc_client++
+  xmlrpc_server
+  xmlrpc_server++
+  xmlrpc_server_abyss++
+  xmlrpc_util
+  xmlrpc_util++
 )
 
 install_headers()

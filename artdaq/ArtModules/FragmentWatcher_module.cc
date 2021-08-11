@@ -121,8 +121,12 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 	events_processed_++;
 
 	// get all the artdaq fragment collections in the event.
-	std::vector<art::Handle<std::vector<artdaq::Fragment> > > fragmentHandles;
+	std::vector<art::Handle<std::vector<artdaq::Fragment>>> fragmentHandles;
+#if ART_HEX_VERSION < 0x30900
 	evt.getManyByType(fragmentHandles);
+#else
+	fragmentHandles = evt.getMany<std::vector<artdaq::Fragment>>();
+#endif
 
 	std::set<int> missing_fragmentID_list_this_event(expected_fragmentID_list_);
 	// Check for missing Fragment IDs, updating the master list as necessary
