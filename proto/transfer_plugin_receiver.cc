@@ -3,11 +3,11 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "cetlib/BasicPluginFactory.h"
 #include "cetlib/filepath_maker.h"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <boost/asio.hpp>
 
