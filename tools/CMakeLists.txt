@@ -20,12 +20,12 @@ art_make_exec(genToArt
   artdaq_Generators
   artdaq_DAQrate
   artdaq_DAQdata_GenericFragmentSimulator_generator
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   canvas
-  ${FHICLCPP}
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+  fhiclcpp
+  cetlib
+  cetlib_except
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
@@ -57,7 +57,7 @@ cet_make_library(LIBRARY_NAME swig_artdaq
                  SOURCE swig_artdaq.cpp
                  LIBRARIES
                  artdaq_DAQdata
-				 artdaq-core_Utilities
+				 artdaq_core::artdaq-core_Utilities
 				 )
 
 
