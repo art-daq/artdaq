@@ -3,6 +3,8 @@
 #include <sys/wait.h>
 
 #include <memory>
+#include <numeric>
+
 #include "artdaq-core/Core/StatisticsCollection.hh"
 #include "artdaq-core/Utilities/TraceLock.hh"
 
