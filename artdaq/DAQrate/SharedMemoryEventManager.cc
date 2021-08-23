@@ -452,7 +452,8 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 				execvp(args[0], &args[0]);
 
 				TLOG(TLVL_TRACE) << "Application exited, cleaning up";
-				for (auto& arg : args) {
+				for (auto& arg : args)
+				{
 					delete[] arg;
 				}
 
