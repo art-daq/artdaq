@@ -1,9 +1,9 @@
 #define BOOST_TEST_MODULE NoOp_policy_t
 #include <boost/test/unit_test.hpp>
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 BOOST_AUTO_TEST_SUITE(NoOp_policy_t)
 

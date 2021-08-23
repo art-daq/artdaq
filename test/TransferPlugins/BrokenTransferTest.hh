@@ -102,8 +102,8 @@ private:
 	boost::thread sender_threads_[2];
 	boost::thread receiver_threads_[2];
 
-	std::array< std::atomic<bool>, 2> sender_ready_;
-	std::array< std::atomic<bool>, 2> receiver_ready_;
+	std::array<std::atomic<bool>, 2> sender_ready_;
+	std::array<std::atomic<bool>, 2> receiver_ready_;
 
 	std::array<std::atomic<artdaq::Fragment::sequence_id_t>, 2> sender_current_fragment_;
 	std::array<std::atomic<int>, 2> sender_tokens_;
