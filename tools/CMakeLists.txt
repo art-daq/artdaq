@@ -29,7 +29,7 @@ art_make_exec(genToArt
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  cet_script(setupMpichPlugin.sh)
+  cet_script(ALWAYS_COPY setupMpichPlugin.sh)
 
 # Make sure tests have correct environment settings.
 include(CetTest)

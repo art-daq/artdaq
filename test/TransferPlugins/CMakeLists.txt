@@ -35,7 +35,7 @@ artdaq_TransferPlugins
    ${Boost_PROGRAM_OPTIONS_LIBRARY}
    )
 
-  cet_script(runTransferTest.sh runBrokenTransferTest.sh)
+  cet_script(ALWAYS_COPY runTransferTest.sh runBrokenTransferTest.sh)
 
   cet_test(transfer_driver_tcp_t HANDBUILT
 	TEST_EXEC runTransferTest.sh
