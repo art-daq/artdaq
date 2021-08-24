@@ -39,36 +39,36 @@ public:
 	                       size_t update_interval_msec);
 
 	/**
-		 * \brief TokenReceiver Destructor
-		 */
+	 * \brief TokenReceiver Destructor
+	 */
 	virtual ~TokenReceiver();
 
 	/**
-		 * \brief Starts the reception of event builder tokens
-		 */
+	 * \brief Starts the reception of event builder tokens
+	 */
 	void startTokenReception();
 
 	/**
-		 * \brief Temporarily suspends the reception of event builder tokens
-		 */
+	 * \brief Temporarily suspends the reception of event builder tokens
+	 */
 	void pauseTokenReception() { reception_is_paused_ = true; }
 
 	/**
-		 * \brief Resumes the reception of event builder tokens after a suspension
-		 */
+	 * \brief Resumes the reception of event builder tokens after a suspension
+	 */
 	void resumeTokenReception() { reception_is_paused_ = false; }
 
 	/**
-		 * \brief Stops the reception of event builder tokens
-		 * \param force Whether to suppress any error messages (used if called from destructor)
-		 */
+	 * \brief Stops the reception of event builder tokens
+	 * \param force Whether to suppress any error messages (used if called from destructor)
+	 */
 	void stopTokenReception(bool force = false);
 
 	/**
-		 * \brief Specifies a StatisticsHelper instance to use when gathering statistics
-		 * \param helper A shared pointer to the StatisticsHelper instance
-		 * \param stat_key Name to use for gathering statistics on tokens received
-		 */
+	 * \brief Specifies a StatisticsHelper instance to use when gathering statistics
+	 * \param helper A shared pointer to the StatisticsHelper instance
+	 * \param stat_key Name to use for gathering statistics on tokens received
+	 */
 	void setStatsHelper(std::shared_ptr<StatisticsHelper> const& helper, std::string const& stat_key)
 	{
 		statsHelperPtr_ = helper;
@@ -76,15 +76,15 @@ public:
 	}
 
 	/**
-		 * \brief Sets the current run number
-		 * \param run The current run number
-		 */
+	 * \brief Sets the current run number
+	 * \param run The current run number
+	 */
 	void setRunNumber(uint32_t run) { run_number_ = run; }
 
 	/**
-		 * \brief Returns the number of tokens that have been received
-		 * \return The number of tokens that have been received since the most recent start
-		 */
+	 * \brief Returns the number of tokens that have been received
+	 * \return The number of tokens that have been received since the most recent start
+	 */
 	size_t getReceivedTokenCount() const { return received_token_count_; }
 
 private:

@@ -26,9 +26,11 @@ class art_config_file
 {
 public:
 	/**
-		 * \brief art_config_file Constructor
-		 * \param ps ParameterSet to write to temporary file
-		 */
+	 * \brief art_config_file Constructor
+	 * \param ps ParameterSet to write to temporary file
+	 * \param shm_key Shared Memory key to use (if 0, child program will use parent PID to generate)
+	 * \param broadcast_key Shared Memory key to use for broadcasts (if 0, child program will use parent PID to generate)
+	 */
 	explicit art_config_file(fhicl::ParameterSet ps, uint32_t shm_key = 0, uint32_t broadcast_key = 0)
 	    : dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
 	    , file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
@@ -145,9 +147,9 @@ public:
 		/// "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
 		/// A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 		fhicl::Atom<int> fragment_broadcast_timeout_ms{fhicl::Name{"fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000};
-		/// "art_command_line"  (Default: "art -c #CONFIG_FILE#"): Command line used to start analysis processes. Supports two special sequences: #CONFIG_FILE# will be replaced with the fhicl config file. #PROCESS_INDEX# will be replaced by the index of the art process.
+		/// "art_command_line"  (Default: "art -c \#CONFIG_FILE\#"): Command line used to start analysis processes. Supports two special sequences: \#CONFIG_FILE\# will be replaced with the fhicl config file. \#PROCESS_INDEX\# will be replaced by the index of the art process.
 		fhicl::Atom<std::string> art_command_line{fhicl::Name{"art_command_line"}, fhicl::Comment{"Command line used to start analysis processes. Supports two special sequences: #CONFIG_FILE# will be replaced with the fhicl config file. #PROCESS_INDEX# will be replaced by the index of the art process."}, "art -c #CONFIG_FILE#"};
-		/// "art_index_offset" (Default: 0): Offset to add to art process index when replacing #PROCESS_INDEX#
+		/// "art_index_offset" (Default: 0): Offset to add to art process index when replacing \#PROCESS_INDEX\#
 		fhicl::Atom<size_t> art_index_offset{fhicl::Name{"art_index_offset"}, fhicl::Comment{"Offset to add to art process index when replacing #PROCESS_INDEX#"}, 0};
 		/// "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
 		fhicl::Atom<double> minimum_art_lifetime_s{fhicl::Name{"minimum_art_lifetime_s"}, fhicl::Comment{"Amount of time that an art process should run to not be considered \"DOA\""}, 2.0};
@@ -164,9 +166,9 @@ public:
 		fhicl::Atom<bool> use_art{fhicl::Name{"use_art"}, fhicl::Comment{"Whether to start and manage art threads (Sets art_analyzer count to 0 and overwrite_mode to true when false)"}, true};
 		/// "manual_art" (Default: false): Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind
 		fhicl::Atom<bool> manual_art{fhicl::Name{"manual_art"}, fhicl::Comment{"Prints the startup command line for the art process so that the user may (for example) run it in GDB or valgrind"}, false};
-
-		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;  ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
-		                                                                          /// Configuration of the TokenSender. See artdaq::TokenSender::Config
+		/// Configuration of the RequestSender. See artdaq::RequestSender::Config
+		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;
+		/// Configuration of the TokenSender. See artdaq::TokenSender::Config
 		fhicl::OptionalTable<artdaq::TokenSender::Config> tokenSenderConfig{fhicl::Name{"routing_token_config"}, fhicl::Comment{"Configuration for the Routing TokenSender"}};
 	};
 	/// Used for ParameterSet validation (if desired)

@@ -7,10 +7,10 @@ namespace artdaq {
 namespace detail {
 struct RoutingPacketEntry;
 /**
-		 * \brief A RoutingPacket is simply a vector of RoutingPacketEntry objects.
-		 * It is not suitable for network transmission, rather a RoutingPacketHeader
-		 * should be sent, followed by &RoutingPacket.at(0) (the physical storage of the vector)
-		 */
+ * \brief A RoutingPacket is simply a vector of RoutingPacketEntry objects.
+ * It is not suitable for network transmission, rather a RoutingPacketHeader
+ * should be sent, followed by &RoutingPacket.at(0) (the physical storage of the vector)
+ */
 using RoutingPacket = std::vector<RoutingPacketEntry>;
 struct RoutingPacketHeader;
 struct RoutingConnectHeader;
@@ -18,8 +18,8 @@ struct RoutingRequest;
 struct RoutingToken;
 
 /**
-		 * \brief Mode indicating whether the RoutingManager is routing events by Sequence ID or by Send Count
-		 */
+ * \brief Mode indicating whether the RoutingManager is routing events by Sequence ID or by Send Count
+ */
 enum class RoutingManagerMode : uint8_t
 {
 	EventBuilding,              ///< Multiple sources sending to a single destination. RoutingManager pushes table updates to all senders
@@ -27,9 +27,17 @@ enum class RoutingManagerMode : uint8_t
 	DataFlow,                   ///< One source sending to one destination (i.e. moving around completed events). Uses request-based routing
 	INVALID
 };
+/**
+ * @brief Convert RoutingManagerMode to/from strings
+ */
 class RoutingManagerModeConverter
 {
 public:
+	/**
+	 * @brief Convert String to RoutingManagerMode
+	 * @param modeString String to convert
+	 * @return Resultant RoutingManagerMode, RoutingManagerMode::INVALID if no match
+	 */
 	static RoutingManagerMode stringToRoutingManagerMode(std::string const& modeString)
 	{
 		if (modeString == "EventBuilding" || modeString == "eventbuilding") return RoutingManagerMode::EventBuilding;
@@ -37,6 +45,11 @@ public:
 		if (modeString == "DataFlow" || modeString == "dataflow") return RoutingManagerMode::DataFlow;
 		return RoutingManagerMode::INVALID;
 	}
+	/**
+	 * @brief Convert RoutingManagerMode to string
+	 * @param mode Mode to convert
+	 * @return String representation of mode
+	 */
 	static std::string routingManagerModeToString(RoutingManagerMode mode)
 	{
 		switch (mode)
@@ -101,8 +114,14 @@ struct artdaq::detail::RoutingPacketHeader
 	RoutingPacketHeader() {}
 };
 
+/**
+ * @brief Represents a request sent to the RoutingManager for routing information
+*/
 struct artdaq::detail::RoutingRequest
 {
+	/**
+	 * @brief The mode of this request, whether Request or Connect/Disconnect control messages
+	*/
 	enum class RequestMode : uint8_t
 	{
 		Connect = 0,
@@ -110,6 +129,12 @@ struct artdaq::detail::RoutingRequest
 		Request = 2,
 		Invalid = 255,
 	};
+
+	/**
+	 * @brief Convert a RequestMode enumeration value to string
+	 * @param m RequestMode to convert
+	 * @return String representation of RequestMode
+	*/
 	static std::string RequestModeToString(RequestMode m)
 	{
 		switch (m)
@@ -125,18 +150,31 @@ struct artdaq::detail::RoutingRequest
 		}
 		return "UNKNOWN";
 	}
-	uint32_t header{0};
-	int32_t rank{-1};
-	Fragment::sequence_id_t sequence_id{artdaq::Fragment::InvalidSequenceID};  ///< The sequence ID being requested in Request mode
-	RequestMode mode{RequestMode::Invalid};
 
+	uint32_t header{0}; ///< Magic bytes for identifying message type on wire
+	int32_t rank{-1}; ///< The rank of the request sender
+	Fragment::sequence_id_t sequence_id{artdaq::Fragment::InvalidSequenceID};  ///< The sequence ID being requested in Request mode
+	RequestMode mode{RequestMode::Invalid}; ///< Mode of the request
+
+	/**
+	 * @brief Create a request using the given rank and mode
+	 * @param r Rank of the requestor
+	 * @param m Mode of this request
+	 * 
+	 * This constructor is primarily used to sed RequestMode::Connect and RequestMode::Disconnect control messages
+	*/
 	RoutingRequest(int r, RequestMode m = RequestMode::Connect)
 	    : header(ROUTING_MAGIC), rank(r), mode(m) {}
 
+	/**
+	 * @brief Create a RoutingRequest using the given rank and sequence ID
+	 * @param r Rank of the requestor
+	 * @param seq Sequence ID of request
+	*/
 	RoutingRequest(int r, Fragment::sequence_id_t seq)
 	    : header(ROUTING_MAGIC), rank(r), sequence_id(seq), mode(RequestMode::Request) {}
 
-	RoutingRequest() {}
+	RoutingRequest() {} ///< Default constructor
 };
 
 /**

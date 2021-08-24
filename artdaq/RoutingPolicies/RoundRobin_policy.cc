@@ -34,14 +34,20 @@ public:
 	~RoundRobinPolicy() override = default;
 
 	/**
-		 * \brief Generate a set of Routing Tables using received tokens
-		 * \return A map<int, detail::RoutingPacket> containing the Routing Tables indexed by sender rank
-		 * 
-		 * RoundRobinPolicy will go through the list of receivers as many times
-		 * as it can, until one or more receivers have no tokens. It always does full
-		 * "turns" through the recevier list.
-		 */
+	 * @brief Add entries to the given RoutingPacket using currently-held tokens
+	 * @param output RoutingPacket to add entries to
+	 * 
+	 * RoundRobinPolicy will go through the list of receivers as many times
+	 * as it can, until one or more receivers have no tokens. It always does full
+	 * "turns" through the recevier list.
+	 */
 	void CreateRoutingTable(detail::RoutingPacket& output) override;
+	/**
+	 * @brief Get an artdaq::detail::RoutingPacketEntry for a given sequence ID and rank. Used by RequestBasedEventBuilder and DataFlow RoutingManagerMode
+	 * @param seq Sequence Number to get route for
+	 * @param requesting_rank Rank to route for
+	 * @return artdaq::detail::RoutingPacketEntry connecting sequence ID to destination rank
+	 */
 	detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) override;
 
 private:

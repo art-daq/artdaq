@@ -27,16 +27,22 @@ public:
 	~CapacityTestPolicy() override = default;
 
 	/**
-		 * \brief Generate a set of Routing Tables using received tokens
-		 * \return A map<int, detail::RoutingPacket> containing the Routing Tables indexed by sender rank
-		 * 
-		 * CapacityTestPolicy will assign available tokens from the first receiver, then the second, and so on
-		 * until it has assigned tokens equal to the inital_token_count * tokens_used_per_table_percent / 100.
-		 * The idea is that in steady-state, the load on the receivers should reflect the workload relative to
-		 * the capacity of the system. (i.e. if you have 5 receivers, and 3 of them are 100% busy, then your load
-		 * factor is approximately 60%.)
-		 */
+	 * @brief Add entries to the given RoutingPacket using currently-held tokens
+	 * @param output RoutingPacket to add entries to
+	 * 
+	 * CapacityTestPolicy will assign available tokens from the first receiver, then the second, and so on
+	 * until it has assigned tokens equal to the inital_token_count * tokens_used_per_table_percent / 100.
+	 * The idea is that in steady-state, the load on the receivers should reflect the workload relative to
+	 * the capacity of the system. (i.e. if you have 5 receivers, and 3 of them are 100% busy, then your load
+	 * factor is approximately 60%.)
+	 */
 	virtual void CreateRoutingTable(detail::RoutingPacket& output) override;
+	/**
+		 * @brief Get an artdaq::detail::RoutingPacketEntry for a given sequence ID and rank. Used by RequestBasedEventBuilder and DataFlow RoutingManagerMode
+		 * @param seq Sequence Number to get route for
+		 * @param requesting_rank Rank to route for
+		 * @return artdaq::detail::RoutingPacketEntry connecting sequence ID to destination rank
+		 */
 	virtual detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) override;
 
 private:

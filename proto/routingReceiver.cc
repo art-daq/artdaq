@@ -31,6 +31,7 @@ struct RoutingReceiverConfig
 	fhicl::Atom<bool> print_verbose_info{fhicl::Name{"print_verbose_info"}, fhicl::Comment{"Print verbose information about each receiver detected in routing tables"}, true};
 	/// "graph_width": Width of the summary graph
 	fhicl::Atom<size_t> graph_width{fhicl::Name{"graph_width"}, fhicl::Comment{"Width of the summary graph"}, 40};
+	/// Configuration for the TableReceiver. See artdaq::TableReceiver::Config
 	fhicl::OptionalTable<artdaq::TableReceiver::Config> routingTableConfig{fhicl::Name{"routing_table_config"}, fhicl::Comment{"Configuration for the TableReceiver"}};
 	fhicl::TableFragment<artdaq::artdaqapp::Config> artdaqAppConfig;  ///< Configuration for artdaq Application (BoardReader, etc)
 };

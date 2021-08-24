@@ -49,7 +49,15 @@ public:
    */
 	void analyze(art::Event const& evt) override;
 
+	/**
+	 * @brief Perform begin Run actions
+	 * @param run Run object
+	 */
 	void beginRun(art::Run const& run) override;
+	/**
+	 * @brief PErform end Run actions
+	 * @param run Run object
+	 */
 	void endRun(art::Run const& run) override;
 
 private:
