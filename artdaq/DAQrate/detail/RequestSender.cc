@@ -25,13 +25,14 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
     , request_socket_(-1)
     , multicast_out_addr_(pset.get<std::string>("multicast_interface_ip", pset.get<std::string>("output_address", "0.0.0.0")))
     , request_mode_(detail::RequestMessageMode::Normal)
+    , min_request_interval_ms_(pset.get<size_t>("min_request_interval_ms", 100))
     , request_sending_(0)
     , run_number_(0)
 {
 	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR pset=" << pset.to_string();
 	setup_requests_();
 
-	TLOG(12) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
+	TLOG(TLVL_DEBUG + 5) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
 	initialized_ = true;
 }
 
@@ -165,10 +166,10 @@ void RequestSender::do_send_request_()
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		for (auto& req : active_requests_)
 		{
-			TLOG(12) << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second << " to request message";
+			TLOG(TLVL_DEBUG + 6) << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second << " to request message";
 			message.addRequest(req.first, req.second);
 		}
-		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << request_mode_;
+		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << static_cast<int>(request_mode_);
 		message.setMode(request_mode_);
 	}
 	char str[INET_ADDRSTRLEN];
@@ -207,6 +208,7 @@ void RequestSender::SendRequest(bool endOfRunOnly)
 			return;
 		}
 	}
+	last_request_send_time_ = std::chrono::steady_clock::now();
 	request_sending_++;
 	boost::thread request([=] { do_send_request_(); });
 	request.detach();
@@ -223,11 +225,17 @@ void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestam
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		if (active_requests_.count(seqID) == 0u)
 		{
-			TLOG(12) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
+			TLOG(TLVL_DEBUG + 7) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
 			active_requests_[seqID] = timestamp;
 		}
+
+		while (active_requests_.size() > detail::RequestMessage::max_request_count())
+		{
+			TLOG(TLVL_WARNING) << "Erasing request with seqID " << active_requests_.begin()->first << " due to over-large request list size! (" << active_requests_.size() << " / " << detail::RequestMessage::max_request_count() << ")";
+			active_requests_.erase(active_requests_.begin());
+		}
 	}
-	SendRequest();
+	SendRequest(TimeUtils::GetElapsedTimeMilliseconds(last_request_send_time_) < min_request_interval_ms_);
 }
 
 void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)
@@ -237,7 +245,7 @@ void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)
 		usleep(1000);
 	}
 	std::lock_guard<std::mutex> lk(request_mutex_);
-	TLOG(12) << "Removing request for sequence ID " << seqID << " from request list.";
+	TLOG(TLVL_DEBUG + 8) << "Removing request for sequence ID " << seqID << " from request list.";
 	active_requests_.erase(seqID);
 }
 }  // namespace artdaq

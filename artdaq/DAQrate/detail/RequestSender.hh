@@ -43,6 +43,8 @@ public:
 		fhicl::Atom<std::string> output_address{fhicl::Name{"multicast_interface_ip"}, fhicl::Comment{"Use this hostname for multicast output(to assign to the proper NIC)"}, "0.0.0.0"};
 		/// "request_address" (Default: "227.128.12.26"): Multicast address to send DataRequests to
 		fhicl::Atom<std::string> request_address{fhicl::Name{"request_address"}, fhicl::Comment{"Multicast address to send DataRequests to"}, "227.128.12.26"};
+		/// "min_request_interval_ms" (Default: 500): Minimum time between automatic sends (ignored in EndOfRun RequetsMode)
+		fhicl::Atom<size_t> min_request_interval_ms{fhicl::Name{"min_request_interval_ms"}, fhicl::Comment{"Minimum time between automatic sends (ignored in EndOfRun RequetsMode)"}, 100};
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -137,6 +139,8 @@ private:
 	struct sockaddr_in request_addr_;
 	std::string multicast_out_addr_;
 	detail::RequestMessageMode request_mode_;
+	std::chrono::steady_clock::time_point last_request_send_time_;
+	size_t min_request_interval_ms_;
 
 	std::atomic<int> request_sending_;
 	uint32_t run_number_;
