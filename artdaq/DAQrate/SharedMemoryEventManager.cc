@@ -1017,6 +1017,11 @@ bool artdaq::SharedMemoryEventManager::broadcastFragments_(FragmentPtrs& frags)
 		TLOG(TLVL_ERROR) << "Requested broadcast but no Fragments given!";
 		return false;
 	}
+	if (!broadcasts_.IsValid())
+	{
+		TLOG(TLVL_ERROR) << "Broadcast attempted but broadcast shared memory is unavailable!";
+		return false;
+	}
 	TLOG(TLVL_DEBUG) << "Broadcasting Fragments with seqID=" << frags.front()->sequenceID()
 	                 << ", type " << detail::RawFragmentHeader::SystemTypeToString(frags.front()->type())
 	                 << ", size=" << frags.front()->sizeBytes() << "B.";
