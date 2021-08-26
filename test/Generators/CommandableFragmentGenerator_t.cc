@@ -309,6 +309,7 @@ BOOST_AUTO_TEST_CASE(MultipleIDs)
 	fhicl::ParameterSet ps;
 	ps.put<int>("board_id", 1);
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
+	ps.put<int>("generated_fragments_per_event", 3);
 
 	artdaqtest::CommandableFragmentGeneratorTest testGen(ps);
 	testGen.StartCmd(3, 1, 1);
