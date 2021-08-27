@@ -1,6 +1,6 @@
 # The parent line must be the first non-comment line in the file
 # This line defines the product name and version
-parent artdaq  v3_09_06
+parent artdaq  v3_09_06a
 defaultqual    e19:s97
 
 # These optional lines define the installed directories where
@@ -17,13 +17,14 @@ bindir      fq_dir      bin
 
 #
 product			version		optional
+art_root_io         v1_05_03	s110
 art_root_io         v1_05_02        s106
 art_root_io         v1_05_01        s105
 art_root_io         v1_05_00        s104
 art_root_io         v1_03_02        s103
 art_root_io         v1_03_01        s97
-artdaq_core 		v3_06_12
-artdaq_utilities        v1_05_11
+artdaq_core 		v3_06_12a
+artdaq_utilities        v1_05_11a
 xmlrpc_c		v1_51_06
 swig            	v4_0_2		-       optional
 nodejs          	v10_15_0       	-       optional
@@ -39,6 +40,13 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier	  	art_root_io	artdaq_core	  artdaq_utilities	xmlrpc_c	artdaq_mfextensions	artdaq_epics_plugin	artdaq_ganglia_plugin artdaq_pcp_mmv_plugin	swig        nodejs
+c7:s110:debug	  	c7:debug	c7:s110:debug  	  c7:s110:debug		c7:debug	c7:s110:debug	   	c7:s110:debug       	c7:s110:debug	      c7:s110:debug       	c7:debug    -nq- 
+c7:s110:prof	   	c7:prof		c7:s110:prof	  c7:s110:prof		c7:prof		c7:s110:prof	   	c7:s110:prof		c7:s110:prof	      c7:s110:prof		c7:prof     -nq- 
+e20:s110:debug	  	e20:debug	e20:s110:debug 	  e20:s110:debug	e20:debug	e20:s110:debug	   	e20:s110:debug      	e20:s110:debug	      e20:s110:debug		e20:debug   -nq- 
+e20:s110:prof	   	e20:prof	e20:s110:prof  	  e20:s110:prof		e20:prof	e20:s110:prof	   	e20:s110:prof		e20:s110:prof	      e20:s110:prof		e20:prof    -nq- 
+e19:s110:debug	  	e19:debug	e19:s110:debug 	  e19:s110:debug	e19:debug	e19:s110:debug	   	e19:s110:debug      	e19:s110:debug	      e19:s110:debug		e19:debug   -nq- 
+e19:s110:prof	   	e19:prof	e19:s110:prof  	  e19:s110:prof		e19:prof	e19:s110:prof	   	e19:s110:prof		e19:s110:prof	      e19:s110:prof		e19:prof    -nq- 
+
 c7:s106:debug	  	c7:debug	c7:s106:debug  	  c7:s106:debug		c7:debug	c7:s106:debug	   	c7:s106:debug       	c7:s106:debug	      c7:s106:debug       	c7:debug    -nq- 
 c7:s106:prof	   	c7:prof		c7:s106:prof	  c7:s106:prof		c7:prof		c7:s106:prof	   	c7:s106:prof		c7:s106:prof	      c7:s106:prof		c7:prof     -nq- 
 e20:s106:debug	  	e20:debug	e20:s106:debug 	  e20:s106:debug	e20:debug	e20:s106:debug	   	e20:s106:debug      	e20:s106:debug	      e20:s106:debug		e20:debug   -nq- 
