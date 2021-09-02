@@ -3,7 +3,7 @@
 
 	add_subdirectory(RootDAQOutput-s81)
 
-art_make( BASENAME_ONLY
+cet_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
   SUBDIRS detail
   NO_PLUGINS
