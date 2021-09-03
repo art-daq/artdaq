@@ -23,6 +23,10 @@ basic_plugin(NoOp "policy"
 basic_plugin(CapacityTest "policy"
 artdaq_RoutingPolicies
 )
+simple_plugin(PreferSameHost "policy"
+artdaq_RoutingPolicies
+)
+
 
 install_headers()
 install_fhicl(SUBDIRS fcl)

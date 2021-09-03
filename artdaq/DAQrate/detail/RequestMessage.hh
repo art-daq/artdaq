@@ -168,6 +168,14 @@ public:
 		packets_.emplace_back(RequestPacket(seq, time));
 	}
 
+	/**
+	 * @brief Get the maximum number of requests that can be sent in a single RequestMessage
+	 * @return The maximum number of reqeusts that fit in a single UDP datagram
+	*/
+	static size_t max_request_count() {
+		return (MAX_REQUEST_MESSAGE_SIZE - sizeof(RequestHeader)) / sizeof(RequestPacket);
+	}
+
 private:
 	RequestHeader header_;
 	std::vector<RequestPacket> packets_;

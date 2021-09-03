@@ -35,6 +35,8 @@ simple_plugin(RandomDelayFilter "module"
 artdaq_DAQdata
 )
 
+simple_plugin(RequestSender "module" artdaq_ArtModules artdaq_DAQrate)
+
 simple_plugin(EventDump "module"
 artdaq_core::artdaq-core_Data
 )

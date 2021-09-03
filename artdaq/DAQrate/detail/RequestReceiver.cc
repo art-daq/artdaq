@@ -2,8 +2,8 @@
 #define TRACE_NAME (app_name + "_RequestReceiver").c_str()
 
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
+#include "artdaq/DAQrate/detail/RequestReceiver.hh"
 
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
@@ -50,6 +50,7 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps, std::sha
     , end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
     , requests_(output_buffer)
 {
+	TLOG(TLVL_DEBUG) << "RequestReceiver CONSTRUCTOR ps: " << ps.to_string();
 	if (receive_requests_)
 	{
 		setupRequestListener();
