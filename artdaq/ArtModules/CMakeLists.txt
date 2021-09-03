@@ -94,6 +94,7 @@ artdaq_utilities::artdaq-utilities_BuildInfo
 )
 
 simple_plugin(PrintBuildInfo "module"
+	MF_MessageLogger
   )
 
 
