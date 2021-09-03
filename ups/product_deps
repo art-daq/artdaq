@@ -35,7 +35,7 @@ artdaq_mfextensions		v1_06_03	-	optional
 artdaq_epics_plugin		v1_03_03	-	optional
 artdaq_ganglia_plugin	v1_03_03	-	optional
 artdaq_pcp_mmv_plugin	v1_01_03	-	optional
-cetbuildtools			v8_13_04	-	only_for_build
+cetmodules				v2_26_00		-	only_for_build
 end_product_list
 
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used

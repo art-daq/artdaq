@@ -2,7 +2,7 @@
 
 include_directories("${CMAKE_BINARY_DIR}")
 
-art_make_library( LIBRARY_NAME artdaq_Application
+cet_make_library( LIBRARY_NAME artdaq_Application
   SOURCE
   detail/Commandable_sm.cpp
   Commandable.cc

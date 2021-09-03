@@ -1,5 +1,5 @@
 
-art_make( BASENAME_ONLY
+cet_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_RoutingPolicies
   NO_PLUGINS
   EXCLUDE RoundRobin_policy.cc NthEvent_policy.cc NoOp_policy.cc CapacityTest_policy.cc
@@ -14,13 +14,13 @@ art_make( BASENAME_ONLY
   MF_MessageLogger
   )
 
-simple_plugin(RoundRobin "policy"
+basic_plugin(RoundRobin "policy"
   artdaq_RoutingPolicies
 )
-simple_plugin(NoOp "policy"
+basic_plugin(NoOp "policy"
   artdaq_RoutingPolicies
 )
-simple_plugin(CapacityTest "policy"
+basic_plugin(CapacityTest "policy"
 artdaq_RoutingPolicies
 )
 
