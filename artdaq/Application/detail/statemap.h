@@ -736,7 +736,7 @@ public:
 	{
 		_state_stack_depth = 0;
 	};
-#else  // ! SMC_FIXED_STACK
+#else  // ! SMC_FIXED_STACK  
 
 	// Returns true if the state stack is empty and false otherwise.
 	bool isStateStackEmpty() const

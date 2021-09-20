@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------
 # Build this project's library:
 
-art_make(BASENAME_ONLY
+cet_make(BASENAME_ONLY
   LIBRARY_NAME artdaq_Generators
   NO_PLUGINS
   LIB_LIBRARIES
@@ -15,7 +15,7 @@ art_make(BASENAME_ONLY
   artdaq_DAQrate
   artdaq_core::artdaq-core_Data
   )
-simple_plugin(CompositeDriver "generator" artdaq_DAQdata artdaq_Generators)
+basic_plugin(CompositeDriver "generator" artdaq_DAQdata artdaq_Generators)
 
 install_headers(SUBDIRS detail)
 install_source(SUBDIRS detail)

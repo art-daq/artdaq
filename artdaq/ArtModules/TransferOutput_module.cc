@@ -73,7 +73,7 @@ art::TransferOutput::~TransferOutput()
 
 void art::TransferOutput::SendMessage(artdaq::FragmentPtr& fragment)
 {
-	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << fragment->sequenceID() << ", type=" << fragment->type()
+	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << fragment->sequenceID() << ", type=" << static_cast<int>(fragment->type())
 	                 << ", length=" << fragment->dataSizeBytes();
 	auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
 	size_t retries = 0;

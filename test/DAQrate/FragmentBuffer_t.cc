@@ -6,7 +6,7 @@
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq/DAQrate/FragmentBuffer.hh"
-#include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
 
 #define MESSAGEFACILITY_DEBUG true
 
@@ -102,6 +102,29 @@ artdaq::FragmentPtrs artdaqtest::FragmentBufferTestGenerator::Generate(size_t n,
 
 BOOST_AUTO_TEST_SUITE(FragmentBuffer_t)
 
+BOOST_AUTO_TEST_CASE(ImproperConfiguration)
+{
+	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
+	TLOG(TLVL_INFO) << "ImproperConfiguration test case BEGIN";
+	fhicl::ParameterSet ps;
+	ps.put<int>("fragment_id", 1);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<std::string>("request_mode", "window");
+
+	artdaq::FragmentBuffer fp(ps);
+	BOOST_REQUIRE_EQUAL(static_cast<int>(fp.request_mode()), static_cast<int>(artdaq::RequestMode::Ignored));
+
+	ps.put<bool>("receive_requests", true);
+	artdaq::FragmentBuffer fpp(ps);
+	BOOST_REQUIRE_EQUAL(static_cast<int>(fpp.request_mode()), static_cast<int>(artdaq::RequestMode::Window));
+
+	ps.put<std::vector<int>>("fragment_ids", {2,3,4});
+	BOOST_REQUIRE_EXCEPTION(artdaq::FragmentBuffer ffp(ps), cet::exception, [](cet::exception const& e) { return e.category() == "FragmentBufferConfig"; });
+
+	TLOG(TLVL_INFO) << "ImproperConfiguration test case END";
+}
+
 BOOST_AUTO_TEST_CASE(IgnoreRequests)
 {
 	artdaq::configureMessageFacility("FragmentBuffer_t", true, MESSAGEFACILITY_DEBUG);
@@ -144,6 +167,7 @@ BOOST_AUTO_TEST_CASE(SingleMode)
 	ps.put<int>("fragment_id", 1);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "single");
 
 	auto buffer = std::make_shared<artdaq::RequestBuffer>();
@@ -210,6 +234,7 @@ BOOST_AUTO_TEST_CASE(BufferMode)
 	ps.put<int>("fragment_id", 1);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "buffer");
 
 	auto buffer = std::make_shared<artdaq::RequestBuffer>();
@@ -297,6 +322,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_KeepLatest)
 	ps.put<int>("fragment_id", 1);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "buffer");
 	ps.put("buffer_mode_keep_latest", true);
 
@@ -383,6 +409,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode)
 	ps.put<int>("fragment_id", 1);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<int>("data_buffer_depth_fragments", 3);
 	ps.put<std::string>("request_mode", "buffer");
@@ -500,6 +527,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function)
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<std::string>("request_mode", "window");
+	ps.put<bool>("receive_requests", true);
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
 	ps.put<size_t>("window_close_timeout_us", 500000);
 
@@ -682,6 +710,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestBeforeBuffer)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<bool>("circular_buffer_mode", true);
+	ps.put<bool>("receive_requests", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
 
@@ -728,6 +757,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestStartsBeforeBuffer)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<bool>("circular_buffer_mode", true);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "window");
 
 	auto buffer = std::make_shared<artdaq::RequestBuffer>();
@@ -773,6 +803,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestOutsideBuffer)
 	ps.put<size_t>("window_close_timeout_us", 500000);
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "window");
 
 	auto buffer = std::make_shared<artdaq::RequestBuffer>();
@@ -864,6 +895,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestInBuffer)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "window");
 
 	auto buffer = std::make_shared<artdaq::RequestBuffer>();
@@ -908,6 +940,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestEndsAfterBuffer)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<size_t>("window_close_timeout_us", 500000);
 	ps.put<bool>("circular_buffer_mode", true);
+	ps.put<bool>("receive_requests", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
 
@@ -982,6 +1015,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RequestAfterBuffer)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 3);
 	ps.put<size_t>("window_close_timeout_us", 500000);
 	ps.put<bool>("circular_buffer_mode", true);
+	ps.put<bool>("receive_requests", true);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<std::string>("request_mode", "window");
 
@@ -1060,6 +1094,7 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode)
 	ps.put<int>("fragment_id", 1);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "SequenceID");
 
 	auto buffer = std::make_shared<artdaq::RequestBuffer>();
@@ -1184,6 +1219,7 @@ BOOST_AUTO_TEST_CASE(SingleMode_MultipleIDs)
 	fhicl::ParameterSet ps;
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<std::string>("request_mode", "single");
 
@@ -1311,6 +1347,7 @@ BOOST_AUTO_TEST_CASE(BufferMode_MultipleIDs)
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "buffer");
 
 	auto buffer = std::make_shared<artdaq::RequestBuffer>();
@@ -1434,6 +1471,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_MultipleIDs)
 	ps.put<std::vector<int>>("fragment_ids", {1, 2, 3});
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<bool>("circular_buffer_mode", true);
 	ps.put<int>("data_buffer_depth_fragments", 3);
 	ps.put<std::string>("request_mode", "buffer");
@@ -1595,6 +1633,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_Function_MultipleIDs)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<size_t>("data_buffer_depth_fragments", 5);
 	ps.put<bool>("circular_buffer_mode", true);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "window");
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
 	ps.put<size_t>("window_close_timeout_us", 500000);
@@ -1877,6 +1916,7 @@ BOOST_AUTO_TEST_CASE(SequenceIDMode_MultipleIDs)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<bool>("separate_data_thread", true);
 	ps.put<bool>("separate_monitoring_thread", false);
+	ps.put<bool>("receive_requests", true);
 	ps.put<int64_t>("hardware_poll_interval_us", 0);
 	ps.put<std::string>("request_mode", "SequenceID");
 
@@ -2057,6 +2097,7 @@ BOOST_AUTO_TEST_CASE(SingleMode_StateMachine)
 	ps.put<int>("fragment_id", 1);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_offset", 0);
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "single");
 
 	auto type = artdaq::Fragment::FirstUserFragmentType;
@@ -2133,6 +2174,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RateTests)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<size_t>("data_buffer_depth_fragments", 2 * RATE_TEST_COUNT);
 	ps.put<bool>("circular_buffer_mode", false);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "window");
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
 	ps.put<size_t>("window_close_timeout_us", 500000);
@@ -2212,6 +2254,7 @@ BOOST_AUTO_TEST_CASE(CircularBufferMode_RateTests)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<size_t>("data_buffer_depth_fragments", RATE_TEST_COUNT / 2);
 	ps.put<bool>("circular_buffer_mode", true);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "window");
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
 	ps.put<size_t>("window_close_timeout_us", 500000);
@@ -2275,6 +2318,7 @@ BOOST_AUTO_TEST_CASE(WindowMode_RateTests_threaded)
 	ps.put<size_t>("data_buffer_depth_fragments", RATE_TEST_COUNT);
 	ps.put<bool>("circular_buffer_mode", false);
 	ps.put<std::string>("request_mode", "window");
+	ps.put<bool>("receive_requests", true);
 	ps.put<size_t>("missing_request_window_timeout_us", 500000);
 	ps.put<size_t>("window_close_timeout_us", 500000);
 
@@ -2363,6 +2407,7 @@ BOOST_AUTO_TEST_CASE(WaitForDataBufferReady_RaceCondition)
 	ps.put<artdaq::Fragment::timestamp_t>("request_window_width", 0);
 	ps.put<size_t>("data_buffer_depth_fragments", 1);
 	ps.put<bool>("circular_buffer_mode", false);
+	ps.put<bool>("receive_requests", true);
 	ps.put<std::string>("request_mode", "window");
 
 	auto buffer = std::make_shared<artdaq::RequestBuffer>();
