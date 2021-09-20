@@ -17,7 +17,8 @@ int main(int argc, char* argv[])
 	int rc = 0;
 
 	fhicl::ParameterSet tempPset;
-	if (pset.has_key("daq"))	{
+	if (pset.has_key("daq"))
+	{
 		fhicl::ParameterSet daqPset = pset.get<fhicl::ParameterSet>("daq");
 		for (auto& name : daqPset.get_pset_names())
 		{

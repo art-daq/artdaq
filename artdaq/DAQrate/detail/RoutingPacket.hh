@@ -151,10 +151,10 @@ struct artdaq::detail::RoutingRequest
 		return "UNKNOWN";
 	}
 
-	uint32_t header{0}; ///< Magic bytes for identifying message type on wire
-	int32_t rank{-1}; ///< The rank of the request sender
+	uint32_t header{0};                                                        ///< Magic bytes for identifying message type on wire
+	int32_t rank{-1};                                                          ///< The rank of the request sender
 	Fragment::sequence_id_t sequence_id{artdaq::Fragment::InvalidSequenceID};  ///< The sequence ID being requested in Request mode
-	RequestMode mode{RequestMode::Invalid}; ///< Mode of the request
+	RequestMode mode{RequestMode::Invalid};                                    ///< Mode of the request
 
 	/**
 	 * @brief Create a request using the given rank and mode
@@ -174,7 +174,7 @@ struct artdaq::detail::RoutingRequest
 	RoutingRequest(int r, Fragment::sequence_id_t seq)
 	    : header(ROUTING_MAGIC), rank(r), sequence_id(seq), mode(RequestMode::Request) {}
 
-	RoutingRequest() {} ///< Default constructor
+	RoutingRequest() {}  ///< Default constructor
 };
 
 /**

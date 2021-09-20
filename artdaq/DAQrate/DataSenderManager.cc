@@ -154,18 +154,18 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 	{
 		return *enabled_destinations_.begin();  // Trivial case
 	}
-		auto index = sequence_id % enabled_destinations_.size();
-		auto it = enabled_destinations_.begin();
-		for (; index > 0; --index)
+	auto index = sequence_id % enabled_destinations_.size();
+	auto it = enabled_destinations_.begin();
+	for (; index > 0; --index)
+	{
+		++it;
+		if (it == enabled_destinations_.end())
 		{
-			++it;
-			if (it == enabled_destinations_.end())
-			{
-				it = enabled_destinations_.begin();
-			}
+			it = enabled_destinations_.begin();
 		}
-		return *it;
 	}
+	return *it;
+}
 
 void artdaq::DataSenderManager::RemoveRoutingTableEntry(Fragment::sequence_id_t seq)
 {
@@ -242,9 +242,9 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	{
 		dest = calcDest_(seqID);
 		if (dest == TableReceiver::ROUTING_FAILED)
-			{
+		{
 			TLOG(TLVL_WARNING) << "Could not get destination for seqID " << seqID;
-			}
+		}
 
 		if (dest != TableReceiver::ROUTING_FAILED && (destinations_.count(dest) != 0u) && (enabled_destinations_.count(dest) != 0u))
 		{
