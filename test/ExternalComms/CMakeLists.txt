@@ -15,7 +15,7 @@
 #  TEST_PROPERTIES RUN_SERIAL 1
 #  )
 
- art_make_exec(NAME commander_test # NO_INSTALL -- comment out to install
+ cet_make_exec(NAME commander_test # NO_INSTALL -- comment out to install
 SOURCE
 commander_test.cc
    LIBRARIES
