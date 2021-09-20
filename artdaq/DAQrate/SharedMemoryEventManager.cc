@@ -1373,8 +1373,8 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 
 	if (requests_)
 	{
-			requests_->AddRequest(seqID, timestamp);
-		}
+		requests_->AddRequest(seqID, timestamp);
+	}
 	TLOG(14) << "getBufferForSequenceID " << seqID << " returning newly initialized buffer " << new_buffer;
 	return new_buffer;
 }
