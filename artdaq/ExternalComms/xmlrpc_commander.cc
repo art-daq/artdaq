@@ -491,7 +491,8 @@ fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramLis
 	{
 		if (getenv("FHICL_FILE_PATH") == nullptr)
 		{
-			std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+			TLOG(TLVL_ERROR) << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"";
+			std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"" << std::endl;
 			setenv("FHICL_FILE_PATH", ".", 0);
 		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
@@ -1225,6 +1226,8 @@ void xmlrpc_commander::run_server() try
 	if (env.fault_occurred) throw(girerr::error(env.fault_string));              \
 	xmlrpc_env_clean(&env)
 
+#define unregister_method(m) delete ptr_##m;
+
 	register_method2(init, 0x200000);
 	register_method(soft_init);
 	register_method(reinit);
@@ -1332,6 +1335,28 @@ void xmlrpc_commander::run_server() try
 	}
 
 	close(socket_file_descriptor);
+
+	unregister_method(init);
+	unregister_method(soft_init);
+	unregister_method(reinit);
+	unregister_method(start);
+	unregister_method(status);
+	unregister_method(report);
+	unregister_method(stop);
+	unregister_method(pause);
+	unregister_method(resume);
+	unregister_method(register_monitor);
+	unregister_method(unregister_monitor);
+	unregister_method(legal_commands);
+	unregister_method(trace_set);
+	unregister_method(trace_get);
+	unregister_method(meta_command);
+	unregister_method(rollover_subrun);
+	unregister_method(add_config_archive_entry);
+	unregister_method(clear_config_archive);
+
+	unregister_method(shutdown);
+
 	TLOG(TLVL_DEBUG) << "server terminated";
 }
 catch (...)

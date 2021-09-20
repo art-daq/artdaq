@@ -2,7 +2,7 @@
 # Build this project's executables:
 
 # Nominally a test exec (no MPI) but we want this to be available to other packages.
-art_make_exec(NAME artdaqDriver
+cet_make_exec(NAME artdaqDriver
 	SOURCE
 	driver.cc
   LIBRARIES
@@ -19,7 +19,7 @@ art_make_exec(NAME artdaqDriver
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-art_make_exec(NAME fhicl_test
+cet_make_exec(NAME fhicl_test
 	SOURCE
 	fhicl_test.cc
 	LIBRARIES
@@ -30,7 +30,7 @@ art_make_exec(NAME fhicl_test
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
 
-	art_make_exec(simple_metric_sender
+	cet_make_exec(simple_metric_sender
 	SOURCE
 	simple_metric_sender.cc
 	LIBRARIES
@@ -41,7 +41,7 @@ art_make_exec(NAME fhicl_test
   )
 
 
-  art_make_exec(NAME artdaq
+  cet_make_exec(NAME artdaq
 	SOURCE
 	artdaq.cc
   LIBRARIES
@@ -57,7 +57,7 @@ art_make_exec(NAME fhicl_test
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME boardreader
+  cet_make_exec(NAME boardreader
 	SOURCE
 	boardreader.cc
   LIBRARIES
@@ -73,7 +73,7 @@ art_make_exec(NAME fhicl_test
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME eventbuilder
+  cet_make_exec(NAME eventbuilder
 	SOURCE
 	eventbuilder.cc
   LIBRARIES
@@ -89,7 +89,7 @@ art_make_exec(NAME fhicl_test
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME datalogger
+  cet_make_exec(NAME datalogger
 	SOURCE
 	datalogger.cc
   LIBRARIES
@@ -105,7 +105,7 @@ art_make_exec(NAME fhicl_test
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME dispatcher
+  cet_make_exec(NAME dispatcher
 	SOURCE
 	dispatcher.cc
   LIBRARIES
@@ -121,21 +121,21 @@ art_make_exec(NAME fhicl_test
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME requestReceiver
+  cet_make_exec(NAME requestReceiver
 	  SOURCE requestReceiver.cc
 	  LIBRARIES
 	  artdaq_Application
 	  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME requestSender
+  cet_make_exec(NAME requestSender
 	  SOURCE requestSender.cc
 	  LIBRARIES
 	  artdaq_Application
 	  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME routing_manager
+  cet_make_exec(NAME routing_manager
   SOURCE
   routing_manager.cc
   LIBRARIES
@@ -146,7 +146,7 @@ art_make_exec(NAME fhicl_test
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME routingReceiver
+  cet_make_exec(NAME routingReceiver
   SOURCE
   routingReceiver.cc
   LIBRARIES
@@ -157,7 +157,7 @@ art_make_exec(NAME fhicl_test
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
+cet_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins
   artdaq_core::artdaq-core_Data
@@ -167,7 +167,7 @@ art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   pthread
   )
 
-art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
+cet_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins
   artdaq_core::artdaq-core_Data
@@ -177,7 +177,7 @@ art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to insta
   pthread
   )
 
-art_make_exec(NAME tracemf
+cet_make_exec(NAME tracemf
 	SOURCE
 	tracemf.cc
 	LIBRARIES
@@ -186,7 +186,7 @@ art_make_exec(NAME tracemf
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
 
-	art_make_exec(NAME PrintSharedMemory
+	cet_make_exec(NAME PrintSharedMemory
 	SOURCE PrintSharedMemory.cc
 	LIBRARIES
 	artdaq_DAQrate

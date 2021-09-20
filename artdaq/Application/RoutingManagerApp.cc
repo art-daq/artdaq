@@ -142,6 +142,7 @@ bool artdaq::RoutingManagerApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	}
 	catch (boost::exception const& e)
 	{
+		TLOG(TLVL_ERROR) << "Exception encountered starting Routing Manager thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
 		std::cerr << "Exception encountered starting Routing Manager thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
 		exit(3);
 	}

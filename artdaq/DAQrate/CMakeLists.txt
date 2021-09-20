@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------
 # Build this project's library:
 
-art_make(BASENAME_ONLY
+cet_make(BASENAME_ONLY
   LIBRARY_NAME artdaq_DAQrate
   SUBDIRS detail
   LIB_LIBRARIES

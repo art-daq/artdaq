@@ -1,5 +1,5 @@
 
-art_make( BASENAME_ONLY
+cet_make( BASENAME_ONLY
     LIBRARY_NAME artdaq_ArtModules_RootDAQOutput
   NO_PLUGINS
   LIB_LIBRARIES

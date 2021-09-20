@@ -10,9 +10,11 @@
 #include <set>
 #include "artdaq-core/Core/SharedMemoryManager.hh"
 #include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq/DAQrate/RequestSender.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
+#include "artdaq/DAQrate/detail/TokenSender.hh"
 #include "fhiclcpp/fwd.h"
+#include "fhiclcpp/types/Table.h"
 #define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 namespace artdaq {
@@ -26,8 +28,10 @@ public:
 	/**
 		 * \brief art_config_file Constructor
 		 * \param ps ParameterSet to write to temporary file
+	 * \param shm_key Shared Memory key to use (if 0, child program will use parent PID to generate)
+	 * \param broadcast_key Shared Memory key to use for broadcasts (if 0, child program will use parent PID to generate)
 		 */
-	explicit art_config_file(fhicl::ParameterSet const& ps /*, uint32_t shm_key, uint32_t broadcast_key*/)
+	explicit art_config_file(fhicl::ParameterSet ps, uint32_t shm_key = 0, uint32_t broadcast_key = 0)
 	    : dir_name_("/tmp/partition_" + std::to_string(GetPartitionNumber()))
 	    , file_name_(dir_name_ + "/artConfig_" + std::to_string(my_rank) + "_" + std::to_string(artdaq::TimeUtils::gettimeofday_us()) + ".fcl")
 	{
@@ -50,19 +54,16 @@ public:
 		}
 		of << ps.to_string();
 
-		//if (ps.has_key("services.NetMonTransportServiceInterface"))
-		//{
-		//	of << " services.NetMonTransportServiceInterface.shared_memory_key: 0x" << std::hex << shm_key;
-		//	of << " services.NetMonTransportServiceInterface.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-		//	of << " services.NetMonTransportServiceInterface.rank: " << std::dec << my_rank;
-		//}
 		if (!ps.has_key("services") || !ps.has_key("services.message"))
 		{
 			of << " services.message: { " << generateMessageFacilityConfiguration(mf::GetApplicationName().c_str(), true, false, "-art") << "} ";
 		}
-		//of << " source.shared_memory_key: 0x" << std::hex << shm_key;
-		//of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
-		//of << " source.rank: " << std::dec << my_rank;
+
+		TLOG(TLVL_INFO) << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into source config";
+		if (shm_key > 0) of << " source.shared_memory_key: 0x" << std::hex << shm_key;
+		if (broadcast_key > 0) of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
+
+		of.flush();
 		of.close();
 	}
 	~art_config_file()
@@ -141,11 +142,15 @@ public:
 		fhicl::Atom<size_t> max_event_list_length{fhicl::Name{"max_event_list_length"}, fhicl::Comment{" The maximum number of entries to store in the released events list"}, 100};
 		/// "send_init_fragments" (Default: true): Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available.
 		fhicl::Atom<bool> send_init_fragments{fhicl::Name{"send_init_fragments"}, fhicl::Comment{"Whether Init Fragments are expected to be sent to art. If true, a Warning message is printed when an Init Fragment is requested but none are available."}, true};
-		/// "incomplete_event_report_interval_ms" (Default: -1): Interval at which an incomplete event report should be written
-		fhicl::Atom<int> incomplete_event_report_interval_ms{fhicl::Name{"incomplete_event_report_interval_ms"}, fhicl::Comment{"Interval at which an incomplete event report should be written"}, -1};
+		/// "open_event_report_interval_ms" (Default: -1): Interval at which an open event report should be written
+		fhicl::Atom<int> open_event_report_interval_ms{fhicl::Name{"open_event_report_interval_ms"}, fhicl::Comment{"Interval at which an open event report should be written"}, -1};
 		/// "fragment_broadcast_timeout_ms" (Default: 3000): Amount of time broadcast fragments should live in the broadcast shared memory segment
 		/// A "Broadcast shared memory segment" is used for all system-level fragments, such as Init, Start/End Run, Start/End Subrun and EndOfData
 		fhicl::Atom<int> fragment_broadcast_timeout_ms{fhicl::Name{"fragment_broadcast_timeout_ms"}, fhicl::Comment{"Amount of time broadcast fragments should live in the broadcast shared memory segment"}, 3000};
+		/// "art_command_line"  (Default: "art -c \#CONFIG_FILE\#"): Command line used to start analysis processes. Supports two special sequences: \#CONFIG_FILE\# will be replaced with the fhicl config file. \#PROCESS_INDEX\# will be replaced by the index of the art process.
+		fhicl::Atom<std::string> art_command_line{fhicl::Name{"art_command_line"}, fhicl::Comment{"Command line used to start analysis processes. Supports two special sequences: #CONFIG_FILE# will be replaced with the fhicl config file. #PROCESS_INDEX# will be replaced by the index of the art process."}, "art -c #CONFIG_FILE#"};
+		/// "art_index_offset" (Default: 0): Offset to add to art process index when replacing \#PROCESS_INDEX\#
+		fhicl::Atom<size_t> art_index_offset{fhicl::Name{"art_index_offset"}, fhicl::Comment{"Offset to add to art process index when replacing #PROCESS_INDEX#"}, 0};
 		/// "minimum_art_lifetime_s" (Default: 2 seconds): Amount of time that an art process should run to not be considered "DOA"
 		fhicl::Atom<double> minimum_art_lifetime_s{fhicl::Name{"minimum_art_lifetime_s"}, fhicl::Comment{"Amount of time that an art process should run to not be considered \"DOA\""}, 2.0};
 		/// "expected_art_event_processing_time_us" (Default: 100000 us): During shutdown, SMEM will wait for this amount of time while it is checking that the art threads are done reading buffers.
@@ -165,8 +170,10 @@ public:
 		fhicl::Atom<size_t> maximum_fragment_override_count{fhicl::Name{"maximum_fragment_history_count"}, fhicl::Comment{"The maximum number of fragment ID sets to retain"}, 1000};
 		/// "expected_fragment_ids" (Default: None): List of Fragment IDs which should be expected for each event. Overridable on a per-event basis and updateable
 		fhicl::Sequence<Fragment::fragment_id_t> expected_fragment_ids{fhicl::Name{"expected_fragment_ids"}, fhicl::Comment{"List of Fragment IDs which should be expected for each event. Overridable on a per-event basis and updateable"}, std::vector<Fragment::fragment_id_t>()};
-
-		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;  ///< Configuration of the RequestSender. See artdaq::RequestSender::Config
+		/// Configuration of the RequestSender. See artdaq::RequestSender::Config
+		fhicl::TableFragment<artdaq::RequestSender::Config> requestSenderConfig;
+		/// Configuration of the TokenSender. See artdaq::TokenSender::Config
+		fhicl::OptionalTable<artdaq::TokenSender::Config> tokenSenderConfig{fhicl::Name{"routing_token_config"}, fhicl::Comment{"Configuration for the Routing TokenSender"}};
 	};
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
@@ -219,7 +226,7 @@ public:
 		* \brief Returns the number of buffers which contain data but are not yet complete
 		* \return The number of buffers which contain data but are not yet complete
 		*/
-	size_t GetIncompleteEventCount() { return active_buffers_.size(); }
+	size_t GetOpenEventCount() { return active_buffers_.size(); }
 
 	/**
 		* \brief Returns the number of events which are complete but waiting on lower sequenced events to finish
@@ -258,7 +265,7 @@ public:
 	/**
 		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
 		 */
-	void RunArt(const std::shared_ptr<art_config_file>& config_file, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
+	void RunArt(const std::shared_ptr<art_config_file>& config_file, size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
 		 * \brief Start all the art processes
 		 */
@@ -267,9 +274,10 @@ public:
 	/**
 		 * \brief Start one art process
 		 * \param pset ParameterSet to send to this art process
+		 * \param process_index Index of this art process (when starting multiple)
 		 * \return pid_t of the started process
 		 */
-	pid_t StartArtProcess(fhicl::ParameterSet pset);
+	pid_t StartArtProcess(fhicl::ParameterSet pset, size_t process_index);
 
 	/**
 		 * \brief Shutdown a set of art processes
@@ -462,10 +470,11 @@ private:
 	std::unordered_map<int, std::mutex> buffer_mutexes_;
 	static std::mutex sequence_id_mutex_;
 
-	int incomplete_event_report_interval_ms_;
-	std::chrono::steady_clock::time_point last_incomplete_event_report_time_;
+	int open_event_report_interval_ms_;
+	std::chrono::steady_clock::time_point last_open_event_report_time_;
 	std::chrono::steady_clock::time_point last_backpressure_report_time_;
 	std::chrono::steady_clock::time_point last_fragment_header_write_time_;
+	std::vector<std::chrono::steady_clock::time_point> event_timing_;
 
 	StatisticsHelper statsHelper_;
 
@@ -485,10 +494,13 @@ private:
 	std::atomic<bool> manual_art_;
 	fhicl::ParameterSet current_art_pset_;
 	std::shared_ptr<art_config_file> current_art_config_file_;
+	std::string art_cmdline_;
+	size_t art_process_index_offset_;
 	double minimum_art_lifetime_s_;
 	size_t art_event_processing_time_us_;
 
 	std::unique_ptr<RequestSender> requests_;
+	std::unique_ptr<TokenSender> tokens_;
 	fhicl::ParameterSet data_pset_;
 
 	FragmentPtrs init_fragments_;
@@ -504,6 +516,7 @@ private:
 	void complete_buffer_(int buffer);
 	bool bufferComparator(int bufA, int bufB);
 	void check_pending_buffers_(std::unique_lock<std::mutex> const& lock);
+	std::vector<char*> parse_art_command_line_(const std::shared_ptr<art_config_file>& config_file, size_t process_index);
 
 	void send_init_frags_();
 	SharedMemoryManager broadcasts_;
