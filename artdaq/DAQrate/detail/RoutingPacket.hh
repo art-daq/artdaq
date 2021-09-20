@@ -2,29 +2,69 @@
 #define artdaq_DAQrate_detail_RoutingPacket_hh
 
 #include "artdaq-core/Data/Fragment.hh"
-#define MAX_ROUTING_TABLE_SIZE 65000
 
 namespace artdaq {
 namespace detail {
 struct RoutingPacketEntry;
 /**
-		 * \brief A RoutingPacket is simply a vector of RoutingPacketEntry objects.
-		 * It is not suitable for network transmission, rather a RoutingPacketHeader
-		 * should be sent, followed by &RoutingPacket.at(0) (the physical storage of the vector)
-		 */
+ * \brief A RoutingPacket is simply a vector of RoutingPacketEntry objects.
+ * It is not suitable for network transmission, rather a RoutingPacketHeader
+ * should be sent, followed by &RoutingPacket.at(0) (the physical storage of the vector)
+ */
 using RoutingPacket = std::vector<RoutingPacketEntry>;
 struct RoutingPacketHeader;
-struct RoutingAckPacket;
+struct RoutingConnectHeader;
+struct RoutingRequest;
 struct RoutingToken;
 
 /**
-		 * \brief Mode indicating whether the RoutingManager is routing events by Sequence ID or by Send Count
-		 */
+ * \brief Mode indicating whether the RoutingManager is routing events by Sequence ID or by Send Count
+ */
 enum class RoutingManagerMode : uint8_t
 {
-	RouteBySequenceID,  ///< Events should be routed by sequence ID (BR -> EB)
-	RouteBySendCount,   ///< Events should be routed by send count (EB -> Agg)
+	EventBuilding,              ///< Multiple sources sending to a single destination. RoutingManager pushes table updates to all senders
+	RequestBasedEventBuilding,  ///< Multiple sources sending to a single destination. Table updates are triggered by senders requesting routing information
+	DataFlow,                   ///< One source sending to one destination (i.e. moving around completed events). Uses request-based routing
 	INVALID
+};
+/**
+ * @brief Convert RoutingManagerMode to/from strings
+ */
+class RoutingManagerModeConverter
+{
+public:
+	/**
+	 * @brief Convert String to RoutingManagerMode
+	 * @param modeString String to convert
+	 * @return Resultant RoutingManagerMode, RoutingManagerMode::INVALID if no match
+	 */
+	static RoutingManagerMode stringToRoutingManagerMode(std::string const& modeString)
+	{
+		if (modeString == "EventBuilding" || modeString == "eventbuilding") return RoutingManagerMode::EventBuilding;
+		if (modeString == "RequestBasedEventBuilding" || modeString == "requestbasedeventbuilding" || modeString == "RequestBased" || modeString == "requestbased") return RoutingManagerMode::RequestBasedEventBuilding;
+		if (modeString == "DataFlow" || modeString == "dataflow") return RoutingManagerMode::DataFlow;
+		return RoutingManagerMode::INVALID;
+	}
+	/**
+	 * @brief Convert RoutingManagerMode to string
+	 * @param mode Mode to convert
+	 * @return String representation of mode
+	 */
+	static std::string routingManagerModeToString(RoutingManagerMode mode)
+	{
+		switch (mode)
+		{
+			case RoutingManagerMode::EventBuilding:
+				return "EventBuilding";
+			case RoutingManagerMode::RequestBasedEventBuilding:
+				return "RequestBasedEventBuilding";
+			case RoutingManagerMode::DataFlow:
+				return "DataFlow";
+			case RoutingManagerMode::INVALID:
+				return "INVALID";
+		}
+		return "Unknown Mode";
+	}
 };
 }  // namespace detail
 }  // namespace artdaq
@@ -46,7 +86,7 @@ struct artdaq::detail::RoutingPacketEntry
 	    : sequence_id(seq), destination_rank(rank) {}
 
 	Fragment::sequence_id_t sequence_id{Fragment::InvalidSequenceID};  ///< The sequence ID of the RoutingPacketEntry
-	int destination_rank{-1};                                          ///< The destination rank for this sequence ID
+	int32_t destination_rank{-1};                                      ///< The destination rank for this sequence ID
 };
 
 /**
@@ -59,18 +99,15 @@ struct artdaq::detail::RoutingPacketEntry
  */
 struct artdaq::detail::RoutingPacketHeader
 {
-	uint32_t header{0};                                    ///< Magic bytes to make sure the packet wasn't garbled
-	RoutingManagerMode mode{RoutingManagerMode::INVALID};  ///< The current mode of the RoutingManager
-	size_t nEntries{0};                                    ///< The number of RoutingPacketEntries in the RoutingPacket
-	std::bitset<1024> already_acknowledged_ranks{0};       ///< Bitset of ranks which have already sent valid acknowledgements and therefore do not need to send again
+	uint32_t header{0};    ///< Magic bytes to make sure the packet wasn't garbled
+	uint64_t nEntries{0};  ///< The number of RoutingPacketEntries in the RoutingPacket
 
 	/**
 	 * \brief Construct a RoutingPacketHeader declaring a given number of entries
-	 * \param m The RoutingManagerMode that senders are supposed to be operating in
 	 * \param n The number of RoutingPacketEntries in the associated RoutingPacket
 	 */
-	explicit RoutingPacketHeader(RoutingManagerMode m, size_t n)
-	    : header(ROUTING_MAGIC), mode(m), nEntries(n) {}
+	explicit RoutingPacketHeader(size_t n)
+	    : header(ROUTING_MAGIC), nEntries(n) {}
 	/**
 	 * \brief Default Constructor
 	 */
@@ -78,37 +115,66 @@ struct artdaq::detail::RoutingPacketHeader
 };
 
 /**
- * \brief A RoutingAckPacket contains the rank of the table receiver, plus the first and last sequence IDs in the Routing Table (for verification)
- */
-struct artdaq::detail::RoutingAckPacket
+ * @brief Represents a request sent to the RoutingManager for routing information
+*/
+struct artdaq::detail::RoutingRequest
 {
-	int rank;                                   ///< The rank from which the RoutingAckPacket came
-	Fragment::sequence_id_t first_sequence_id;  ///< The first sequence ID in the received RoutingPacket
-	Fragment::sequence_id_t last_sequence_id;   ///< The last sequence ID in the received RoutingPacket
+	/**
+	 * @brief The mode of this request, whether Request or Connect/Disconnect control messages
+	*/
+	enum class RequestMode : uint8_t
+	{
+		Connect = 0,
+		Disconnect = 1,
+		Request = 2,
+		Invalid = 255,
+	};
 
 	/**
-	 * @brief Create an EndOfData RoutingAckPacket
-	 * @param rank Rank of sender sending EndOfData
-	 * @return EndOfData RoutingAckPacket
+	 * @brief Convert a RequestMode enumeration value to string
+	 * @param m RequestMode to convert
+	 * @return String representation of RequestMode
 	*/
-	static RoutingAckPacket makeEndOfDataRoutingAckPacket(int rank)
+	static std::string RequestModeToString(RequestMode m)
 	{
-		RoutingAckPacket out;
-		out.rank = rank;
-		out.first_sequence_id = -3;
-		out.last_sequence_id = -2;
-		return out;
+		switch (m)
+		{
+			case RequestMode::Connect:
+				return "Connect";
+			case RequestMode::Disconnect:
+				return "Disconnect";
+			case RequestMode::Request:
+				return "Request";
+			case RequestMode::Invalid:
+				return "Invalid";
+		}
+		return "UNKNOWN";
 	}
 
+	uint32_t header{0}; ///< Magic bytes for identifying message type on wire
+	int32_t rank{-1}; ///< The rank of the request sender
+	Fragment::sequence_id_t sequence_id{artdaq::Fragment::InvalidSequenceID};  ///< The sequence ID being requested in Request mode
+	RequestMode mode{RequestMode::Invalid}; ///< Mode of the request
+
 	/**
-	 * @brief Check if a RoutingAckPacket is an EndOfData RoutingAckPacket
-	 * @param pkt RoutingAckPacket to check
-	 * @return Whether the RoutingAckPacket is an EndOfData RoutingAckPacket
+	 * @brief Create a request using the given rank and mode
+	 * @param r Rank of the requestor
+	 * @param m Mode of this request
+	 * 
+	 * This constructor is primarily used to sed RequestMode::Connect and RequestMode::Disconnect control messages
 	*/
-	static bool isEndOfDataRoutingAckPacket(RoutingAckPacket pkt)
-	{
-		return pkt.first_sequence_id == static_cast<Fragment::sequence_id_t>(-3) && pkt.last_sequence_id == static_cast<Fragment::sequence_id_t>(-2);
-	}
+	RoutingRequest(int r, RequestMode m = RequestMode::Connect)
+	    : header(ROUTING_MAGIC), rank(r), mode(m) {}
+
+	/**
+	 * @brief Create a RoutingRequest using the given rank and sequence ID
+	 * @param r Rank of the requestor
+	 * @param seq Sequence ID of request
+	*/
+	RoutingRequest(int r, Fragment::sequence_id_t seq)
+	    : header(ROUTING_MAGIC), rank(r), sequence_id(seq), mode(RequestMode::Request) {}
+
+	RoutingRequest() {} ///< Default constructor
 };
 
 /**

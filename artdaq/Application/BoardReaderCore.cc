@@ -23,8 +23,6 @@ const std::string artdaq::BoardReaderCore::
 const std::string artdaq::BoardReaderCore::BUFFER_WAIT_STAT_KEY("BoardReaderCoreBufferWaitTime");
 const std::string artdaq::BoardReaderCore::REQUEST_WAIT_STAT_KEY("BoardReaderCoreRequestWaitTime");
 const std::string artdaq::BoardReaderCore::
-    BRSYNC_WAIT_STAT_KEY("BoardReaderCoreBRSyncWaitTime");
-const std::string artdaq::BoardReaderCore::
     OUTPUT_WAIT_STAT_KEY("BoardReaderCoreOutputWaitTime");
 const std::string artdaq::BoardReaderCore::
     FRAGMENTS_PER_READ_STAT_KEY("BoardReaderCoreFragmentsPerRead");
@@ -45,7 +43,6 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application)
 	statsHelper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(BUFFER_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(REQUEST_WAIT_STAT_KEY);
-	statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
 }
@@ -195,7 +192,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
 
 	// check if we should skip the sequence ID test...
-	skip_seqId_test_ = (generator_ptr_->fragmentIDs().size() > 1 || fragment_buffer_ptr_->request_mode() != RequestMode::Ignored);
+	skip_seqId_test_ = (fr_pset.get<bool>("skip_seqID_test", false) || generator_ptr_->fragmentIDs().size() > 1 || fragment_buffer_ptr_->request_mode() != RequestMode::Ignored);
 
 	verbose_ = fr_pset.get<bool>("verbose", true);
 
@@ -684,13 +681,6 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
 	}
 
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		oss << ", BRsync wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
-	}
-
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != nullptr)
 	{
@@ -741,12 +731,6 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	{
 		metricMan->sendMetric("Avg Request Response Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		metricMan->sendMetric("Avg BoardReader Sync Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
-	}
-
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != nullptr)
 	{

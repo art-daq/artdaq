@@ -3,7 +3,7 @@
 #    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
-art_make( BASENAME_ONLY
+cet_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ExternalComms
   LIB_LIBRARIES artdaq_Application
   EXCLUDE xmlrpc_commander.cc
@@ -13,7 +13,7 @@ art_make( BASENAME_ONLY
   cetlib
 )
 
-simple_plugin(xmlrpc "commander"
+basic_plugin(xmlrpc "commander"
   artdaq_ExternalComms
   fhiclcpp
   xmlrpc

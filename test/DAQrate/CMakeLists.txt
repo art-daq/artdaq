@@ -1,4 +1,4 @@
-art_make_exec(NAME GenToBuffer_t SOURCE GenToBuffer_t.cc 
+cet_make_exec(NAME GenToBuffer_t SOURCE GenToBuffer_t.cc 
 	LIBRARIES artdaq_DAQrate
 	artdaq_Generators
   ${Boost_SYSTEM_LIBRARY}

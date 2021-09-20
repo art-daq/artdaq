@@ -41,6 +41,12 @@ public:
 		 */
 	int runTest();
 
+	/**
+	 * @brief Get the result of the test
+	 * @return Test result (Unix-style, 0 is success)
+	 */
+	int returnCode() { return return_code_; }
+
 private:
 	std::pair<size_t, double> do_sending(int thread_index);
 
@@ -63,6 +69,8 @@ private:
 	fhicl::ParameterSet ps_;
 	bool validate_mode_;
 	int partition_number_;
+
+	int return_code_{0};
 };
 
 inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)

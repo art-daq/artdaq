@@ -1,6 +1,7 @@
 #ifndef artdaq_Application_MPI2_RoutingManagerCore_hh
 #define artdaq_Application_MPI2_RoutingManagerCore_hh
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -8,15 +9,17 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 
+#include <boost/thread.hpp>
+
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 
 #include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq/DAQrate/TokenReceiver.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/TokenReceiver.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 
 namespace artdaq {
@@ -31,8 +34,9 @@ class RoutingManagerCore;
 class artdaq::RoutingManagerCore
 {
 public:
-	static const std::string TABLE_UPDATES_STAT_KEY;    ///< Key for Table Update count MonnitoredQuantity
-	static const std::string TOKENS_RECEIVED_STAT_KEY;  ///< Key for the Tokens Received MonitoredQuantity
+	static const std::string TABLE_UPDATES_STAT_KEY;           ///< Key for Table Update count MonnitoredQuantity
+	static const std::string TOKENS_RECEIVED_STAT_KEY;         ///< Key for the Tokens Received MonitoredQuantity
+	static const std::string CURRENT_TABLE_INTERVAL_STAT_KEY;  ///< Key for the Current Table Interval MonitoredQuantity
 
 	/**
 	 * \brief RoutingManagerCore Constructor.
@@ -69,8 +73,9 @@ public:
 	*   "policy" (REQUIRED): FHiCL table containing the RoutingManagerPolicy configuration
 	*     "policy" (Default: ""): Name of the RoutingManagerPolicy plugin to load
 	*   "rt_priority" (Default: 0): Unix process priority to assign to RoutingManagerCore
-	*   "sender_ranks" (REQUIRED): List of ranks (integers) for the senders (that receive table updates)
 	*   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
+	*   "table_update_interval_high_frac" (Default: 0.75): Fraction of the maximum seen table size at which the interval should be reduced
+	*   "table_update_interval_low_frac" (Default: 0.5): Fraction of the maximum seen table size at which the interval should be increased
 	*   "senders_send_by_send_count" (Default: false): If true, senders will use the current send count to lookup routing information in the table, instead of sequence ID.
 	*   "table_ack_retry_count" (Default: 5): The number of times the table will be resent while waiting for acknowledements
 	*   "table_update_port" (Default: 35556): The port on which to send table updates
@@ -170,13 +175,10 @@ private:
 	int rt_priority_;
 
 	size_t max_table_update_interval_ms_;
-	size_t max_ack_cycle_count_;
-	detail::RoutingManagerMode routing_mode_;
 	std::atomic<size_t> current_table_interval_ms_;
+	double table_update_high_fraction_;
+	double table_update_low_fraction_;
 	std::atomic<size_t> table_update_count_;
-
-	std::vector<int> sender_ranks_;
-	std::set<int> active_ranks_;
 
 	std::shared_ptr<RoutingManagerPolicy> policy_;
 	std::unique_ptr<TokenReceiver> token_receiver_;
@@ -185,6 +187,13 @@ private:
 	std::atomic<bool> stop_requested_;
 	std::atomic<bool> pause_requested_;
 
+	std::unique_ptr<boost::thread> listen_thread_;
+	int table_listen_port_;
+
+	std::map<int, std::set<int>> connected_fds_;
+	int epoll_fd_{-1};
+	mutable std::mutex fd_mutex_;
+
 	// attributes and methods for statistics gathering & reporting
 	std::shared_ptr<artdaq::StatisticsHelper> statsHelperPtr_;
 
@@ -192,19 +201,9 @@ private:
 
 	void sendMetrics_();
 
-	// FHiCL-configurable variables. Note that the C++ variable names
-	// are the FHiCL variable names with a "_" appended
-	int send_tables_port_;
-	int receive_acks_port_;
-	std::string send_tables_address_;
-	std::string multicast_out_hostname_;
-	struct sockaddr_in send_tables_addr_;
-	std::vector<epoll_event> receive_ack_events_;
-
-	//Socket parameters
-	int table_socket_{-1};
-	int ack_socket_{-1};
-	mutable std::mutex request_mutex_;
+	void listen_();
+	void receive_();
+	int find_fd_(int fd) const;
 };
 
 #endif /* artdaq_Application_MPI2_RoutingManagerCore_hh */
