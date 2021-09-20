@@ -14,7 +14,6 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
 
-
 	noop->Reset();
 	noop->AddReceiverToken(1, 1);
 	noop->AddReceiverToken(3, 1);
@@ -48,7 +47,6 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: DataFlow");
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
-
 
 	noop->Reset();
 	noop->AddReceiverToken(1, 1);
@@ -98,7 +96,6 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2");
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
-
 
 	noop->Reset();
 	noop->AddReceiverToken(1, 1);

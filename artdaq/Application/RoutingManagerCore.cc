@@ -561,7 +561,7 @@ void artdaq::RoutingManagerCore::listen_()
 	std::lock_guard<std::mutex> lk(fd_mutex_);
 	for (auto& fd_set : connected_fds_)
 	{
-		for (auto & fd : fd_set.second)
+		for (auto& fd : fd_set.second)
 		{
 			epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, nullptr);
 			close(fd);

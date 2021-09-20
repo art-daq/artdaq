@@ -12,17 +12,17 @@
 #include "canvas/Utilities/Exception.h"
 
 artdaq::TableReceiver::TableReceiver(const fhicl::ParameterSet& pset)
-	: use_routing_manager_(pset.get<bool>("use_routing_manager", false))
-	, should_stop_(false)
-	, table_port_(pset.get<int>("table_update_port", 35556))
-	, table_address_(pset.get<std::string>("routing_manager_hostname", "localhost"))
-	, table_socket_(-1)
-	, routing_table_last_(0)
-	, routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
-	, routing_wait_time_(0)
-	, routing_wait_time_count_(0)
-	, routing_timeout_ms_((pset.get<size_t>("routing_timeout_ms", 1000)))
-	, highest_sequence_id_routed_(0)
+    : use_routing_manager_(pset.get<bool>("use_routing_manager", false))
+    , should_stop_(false)
+    , table_port_(pset.get<int>("table_update_port", 35556))
+    , table_address_(pset.get<std::string>("routing_manager_hostname", "localhost"))
+    , table_socket_(-1)
+    , routing_table_last_(0)
+    , routing_table_max_size_(pset.get<size_t>("routing_table_max_size", 1000))
+    , routing_wait_time_(0)
+    , routing_wait_time_count_(0)
+    , routing_timeout_ms_((pset.get<size_t>("routing_timeout_ms", 1000)))
+    , highest_sequence_id_routed_(0)
 {
 	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
 
@@ -92,7 +92,7 @@ int artdaq::TableReceiver::GetRoutingTableEntry(artdaq::Fragment::sequence_id_t 
 			}
 		}
 		TLOG(TLVL_WARNING) << "Bad Omen: Timeout receiving routing information for " << seqID
-			<< " in routing_timeout_ms (" << routing_timeout_ms_ << " ms)!";
+		                   << " in routing_timeout_ms (" << routing_timeout_ms_ << " ms)!";
 
 		routing_wait_time_.fetch_add(TimeUtils::GetElapsedTimeMicroseconds(start_time));
 	}
@@ -242,8 +242,8 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 							if (routing_table_[entry.sequence_id] != entry.destination_rank)
 							{
 								TLOG(TLVL_ERROR) << __func__ << ": Detected routing table corruption! Recevied update specifying that sequence ID " << entry.sequence_id
-									<< " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
-									<< " I will use the original value!";
+								                 << " should go to rank " << entry.destination_rank << ", but I had already been told to send it to " << routing_table_[entry.sequence_id] << "!"
+								                 << " I will use the original value!";
 							}
 							continue;
 						}
@@ -253,7 +253,7 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 						}
 						routing_table_[entry.sequence_id] = entry.destination_rank;
 						TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
-							<< " -> Rank " << entry.destination_rank;
+						                 << " -> Rank " << entry.destination_rank;
 					}
 				}
 

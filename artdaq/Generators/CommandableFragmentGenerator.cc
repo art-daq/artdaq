@@ -82,7 +82,8 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 	}
 
 	auto generated_fragments_per_event = ps.get<size_t>("generated_fragments_per_event", 1);
-	if (generated_fragments_per_event != fragment_ids.size()) {
+	if (generated_fragments_per_event != fragment_ids.size())
+	{
 		latest_exception_report_ = R"(Error in CommandableFragmentGenerator: "generated_fragments_per_event" disagrees with size of "fragment_ids" list!)";
 		TLOG(TLVL_ERROR) << latest_exception_report_;
 		throw cet::exception(latest_exception_report_);

@@ -4,9 +4,9 @@
 #include "fhiclcpp/ParameterSet.h"
 
 artdaq::RoutingManagerPolicy::RoutingManagerPolicy(const fhicl::ParameterSet& ps)
-	: tokens_used_since_last_update_(0)
-	, next_sequence_id_(1)
-	, max_token_count_(0)
+    : tokens_used_since_last_update_(0)
+    , next_sequence_id_(1)
+    , max_token_count_(0)
 {
 	routing_mode_ = detail::RoutingManagerModeConverter::stringToRoutingManagerMode(ps.get<std::string>("routing_manager_mode", "EventBuilding"));
 	routing_cache_max_size_ = ps.get<size_t>("routing_cache_size", 1000);
@@ -126,21 +126,19 @@ void artdaq::RoutingManagerPolicy::TrimRoutingCache()
 	{
 		routing_cache_.erase(routing_cache_.begin());
 	}
-
 }
 
 void artdaq::RoutingManagerPolicy::UpdateCache(detail::RoutingPacket& table)
 {
 	std::lock_guard<std::mutex> lk(routing_cache_mutex_);
 
-	for(auto& entry : table)
-	{ 
-		if (!routing_cache_.count(entry.sequence_id)) {
-
+	for (auto& entry : table)
+	{
+		if (!routing_cache_.count(entry.sequence_id))
+		{
 			routing_cache_[entry.sequence_id].emplace_back(entry.sequence_id, entry.destination_rank, my_rank);
 		}
 	}
-
 }
 
 void artdaq::RoutingManagerPolicy::CreateRoutingTableFromCache(detail::RoutingPacket& table)
@@ -151,7 +149,8 @@ void artdaq::RoutingManagerPolicy::CreateRoutingTableFromCache(detail::RoutingPa
 	{
 		for (auto& cache_entry : routing_cache_)
 		{
-			if (!cache_entry.second[0].included_in_table) {
+			if (!cache_entry.second[0].included_in_table)
+			{
 				table.push_back(artdaq::detail::RoutingPacketEntry(cache_entry.second[0].sequence_id, cache_entry.second[0].destination_rank));
 				cache_entry.second[0].included_in_table = true;
 			}

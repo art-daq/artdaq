@@ -35,7 +35,6 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
 	rr->AddReceiverToken(3, 1);
@@ -81,7 +80,6 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	fhicl::ParameterSet ps = artdaq::make_pset("minimum_participants: 2");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
-
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -138,7 +136,6 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
 	rr->AddReceiverToken(3, 1);
@@ -148,7 +145,7 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 	BOOST_REQUIRE_EQUAL(rr->GetReceiverCount(), 3);
 	auto firstTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(firstTable.size(), 0);
-	
+
 	rr->AddReceiverToken(5, 1);
 	rr->AddReceiverToken(6, 1);
 
@@ -174,7 +171,6 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
-
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
 	rr->AddReceiverToken(3, 1);
@@ -199,7 +195,6 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: DataFlow");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
-
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -253,7 +248,6 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
-
 
 	rr->Reset();
 	rr->AddReceiverToken(1, 1);
@@ -319,7 +313,7 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 	BOOST_REQUIRE_EQUAL(rr->GetCacheSize(), 2);
 	auto thirdTable = rr->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 0);
-	
+
 	BOOST_REQUIRE(rr->CacheHasRoute(50));
 	BOOST_REQUIRE(!rr->CacheHasRoute(4));
 	route = rr->GetRouteForSequenceID(50, 6);
