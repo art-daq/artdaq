@@ -1,14 +1,15 @@
-#ifndef ARTDAQ_TRANSFERPLUGINS_DETAIL_HOSTMAP_HH
-#define ARTDAQ_TRANSFERPLUGINS_DETAIL_HOSTMAP_HH
+#ifndef ARTDAQ_DAQDATA_HOSTMAP_HH
+#define ARTDAQ_DAQDATA_HOSTMAP_HH
 
 #include <map>
 #include <string>
 #include <vector>
-#include "artdaq/TransferPlugins/TransferInterface.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Sequence.h"
 #include "fhiclcpp/types/Table.h"
+
+#include "artdaq/DAQdata/Globals.hh"
 
 namespace artdaq {
 
@@ -83,4 +84,4 @@ inline hostMap_t MakeHostMap(fhicl::ParameterSet const& pset, hostMap_t map = ho
 }
 }  // namespace artdaq
 
-#endif
+#endif  // ARTDAQ_DAQDATA_HOSTMAP_HH

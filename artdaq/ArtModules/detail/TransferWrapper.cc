@@ -21,7 +21,7 @@
 #include <string>
 
 namespace {
-volatile std::sig_atomic_t gSignalStatus = 0;  ///< Stores singal from signal handler
+	volatile std::sig_atomic_t gSignalStatus = 0;  ///< Stores singal from signal handler
 }
 
 /**
@@ -34,22 +34,22 @@ void signal_handler(int signal)
 }
 
 artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
-    : timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
-    , last_received_data_()
-    , last_report_(std::chrono::steady_clock::now())
-    , transfer_(nullptr)
-    , commander_(nullptr)
-    , pset_(pset)
-    , dispatcherHost_(pset.get<std::string>("dispatcherHost", "localhost"))
-    , dispatcherPort_(pset.get<std::string>("dispatcherPort", "5266"))
-    , serverUrl_(pset.get<std::string>("server_url", "http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2"))
-    , maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
-    , allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", {226, 227, 229}))
-    , runningStateTimeout_(pset.get<double>("dispatcherConnectTimeout", 0))
-    , runningStateInterval_us_(pset.get<size_t>("dispatcherConnectRetryInterval_us", 1000000))
-    , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
-    , multi_run_mode_(pset.get<bool>("allowMultipleRuns", false))
-    , monitorRegistered_(false)
+	: timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
+	, last_received_data_()
+	, last_report_(std::chrono::steady_clock::now())
+	, transfer_(nullptr)
+	, commander_(nullptr)
+	, pset_(pset)
+	, dispatcherHost_(pset.get<std::string>("dispatcherHost", "localhost"))
+	, dispatcherPort_(pset.get<std::string>("dispatcherPort", "5266"))
+	, serverUrl_(pset.get<std::string>("server_url", "http://" + dispatcherHost_ + ":" + dispatcherPort_ + "/RPC2"))
+	, maxEventsBeforeInit_(pset.get<std::size_t>("maxEventsBeforeInit", 5))
+	, allowedFragmentTypes_(pset.get<std::vector<int>>("allowedFragmentTypes", { 226, 227, 229 }))
+	, runningStateTimeout_(pset.get<double>("dispatcherConnectTimeout", 0))
+	, runningStateInterval_us_(pset.get<size_t>("dispatcherConnectRetryInterval_us", 1000000))
+	, quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
+	, multi_run_mode_(pset.get<bool>("allowMultipleRuns", false))
+	, monitorRegistered_(false)
 {
 	std::signal(SIGINT, signal_handler);
 
@@ -142,17 +142,20 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 						suffix = "-rd";
 					}
 					TLOG(TLVL_INFO) << "Received " << cntr << suffix << " event, "
-					                << "seqID == " << fragmentPtr->sequenceID()
-					                << ", type == " << fragmentPtr->typeString();
+						<< "seqID == " << fragmentPtr->sequenceID()
+						<< ", type == " << fragmentPtr->typeString();
 					last_received_data_ = std::chrono::steady_clock::now();
 					continue;
 				}
 				if (result == artdaq::TransferInterface::DATA_END)
 				{
 					TLOG(TLVL_ERROR) << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
-					unregisterMonitor();
-					initialized = false;
-					continue;
+					if (multi_run_mode_) {
+						unregisterMonitor();
+						initialized = false;
+						continue;
+					}
+					return fragmentPtrs;
 				}
 				else
 				{
@@ -168,13 +171,13 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 					// 02-Jun-2018, KAB: added status/result printout
 					// to-do: add another else clause that explicitly checks for RECV_TIMEOUT
 					TLOG(tlvl) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again"
-					           << ", status = " << result << ", last received data " << last_received_milliseconds << " ms ago.";
+						<< ", status = " << result << ", last received data " << last_received_milliseconds << " ms ago.";
 				}
 			}
 			catch (...)
 			{
 				ExceptionHandler(ExceptionHandlerRethrow::yes,
-				                 "Problem receiving data in TransferWrapper::receiveMessage");
+					"Problem receiving data in TransferWrapper::receiveMessage");
 			}
 		}
 
@@ -237,7 +240,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) const
 {
 	const size_t artdaqheader = artdaq::detail::RawFragmentHeader::num_words() *
-	                            sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
+		sizeof(artdaq::detail::RawFragmentHeader::RawDataType);
 	const auto payload = static_cast<size_t>(fragment.dataEndBytes() - fragment.dataBeginBytes());
 	const size_t metadata = sizeof(artdaq::NetMonHeader);
 	const size_t totalsize = fragment.sizeBytes();
@@ -248,7 +251,7 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 	{
 		std::stringstream errmsg;
 		errmsg << "Error: artdaq fragment of type " << fragment.typeString() << ", sequence ID " << fragment.sequenceID() << " has internally inconsistent measures of its size, signalling data corruption: in bytes,"
-		       << " total size = " << totalsize << ", artdaq fragment header = " << artdaqheader << ", metadata = " << metadata << ", payload = " << payload;
+			<< " total size = " << totalsize << ", artdaq fragment header = " << artdaqheader << ", metadata = " << metadata << ", payload = " << payload;
 
 		TLOG(TLVL_ERROR) << errmsg.str();
 
@@ -266,7 +269,7 @@ void artdaq::TransferWrapper::checkIntegrity(const artdaq::Fragment& fragment) c
 	{
 		std::stringstream errmsg;
 		errmsg << "Error: artdaq fragment appears to have type "
-		       << type << ", not found in the allowed fragment types list";
+			<< type << ", not found in the allowed fragment types list";
 
 		TLOG(TLVL_ERROR) << errmsg.str();
 		if (quitOnFragmentIntegrityProblem_)
@@ -288,7 +291,7 @@ void artdaq::TransferWrapper::registerMonitor()
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::yes,
-		                 "TransferWrapper: failure in call to MakeTransferPlugin");
+			"TransferWrapper: failure in call to MakeTransferPlugin");
 	}
 
 	auto start = std::chrono::steady_clock::now();
@@ -317,7 +320,7 @@ void artdaq::TransferWrapper::registerMonitor()
 	while (retry > 0)
 	{
 		TLOG(TLVL_INFO) << "Attempting to register this monitor (\"" << transfer_->uniqueLabel()
-		                << "\") with the dispatcher aggregator";
+			<< "\") with the dispatcher aggregator";
 
 		auto status = commander_->send_register_monitor(dispatcherConfig.to_string());
 
@@ -377,7 +380,7 @@ void artdaq::TransferWrapper::unregisterMonitor()
 	while (retry > 0)
 	{
 		TLOG(TLVL_INFO) << "Requesting that this monitor (" << transfer_->uniqueLabel()
-		                << ") be unregistered from the dispatcher aggregator";
+			<< ") be unregistered from the dispatcher aggregator";
 
 		auto status = commander_->send_unregister_monitor(transfer_->uniqueLabel());
 
@@ -428,7 +431,7 @@ artdaq::TransferWrapper::~TransferWrapper()
 		catch (...)
 		{
 			ExceptionHandler(ExceptionHandlerRethrow::no,
-			                 "An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
+				"An exception occurred when trying to unregister monitor during TransferWrapper's destruction");
 		}
 	}
 	artdaq::Globals::CleanUpGlobals();

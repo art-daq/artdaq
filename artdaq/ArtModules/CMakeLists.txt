@@ -3,7 +3,7 @@
 
 	add_subdirectory(RootDAQOutput-s81)
 
-art_make( BASENAME_ONLY
+cet_make( BASENAME_ONLY
   LIBRARY_NAME artdaq_ArtModules
   SUBDIRS detail
   NO_PLUGINS
@@ -34,6 +34,8 @@ simple_plugin(TransferInput "source"
 simple_plugin(RandomDelayFilter "module" 
 artdaq_DAQdata
 )
+
+simple_plugin(RequestSender "module" artdaq_ArtModules artdaq_DAQrate)
 
 simple_plugin(EventDump "module"
 artdaq_core::artdaq-core_Data
@@ -92,6 +94,7 @@ artdaq_utilities::artdaq-utilities_BuildInfo
 )
 
 simple_plugin(PrintBuildInfo "module"
+	MF_MessageLogger
   )
 
 

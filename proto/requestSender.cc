@@ -6,8 +6,8 @@
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
-#include "artdaq/DAQrate/RequestSender.hh"
+#include "artdaq/DAQrate/detail/RequestReceiver.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
 
 int main(int argc, char* argv[]) try
 {
@@ -28,26 +28,41 @@ int main(int argc, char* argv[]) try
 
 	auto pset = LoadParameterSet<Config>(argc, argv, "sender", "This test application sends Data Request messages and optionally receives them to detect issues in the network transport");
 
+	fhicl::ParameterSet tempPset;
+	if (pset.has_key("daq")) {
+		fhicl::ParameterSet daqPset = pset.get<fhicl::ParameterSet>("daq");
+		for (auto& name : daqPset.get_pset_names()) {
+			auto thisPset = daqPset.get<fhicl::ParameterSet>(name);
+			if (thisPset.has_key("send_requests")) {
+				tempPset = thisPset;
+			}
+		}
+	}
+	else
+	{
+		tempPset = pset;
+	}
+
 	int rc = 0;
 
-	artdaq::RequestSender sender(pset);
+	artdaq::RequestSender sender(tempPset);
 
 	std::unique_ptr<artdaq::RequestReceiver> receiver(nullptr);
 	std::shared_ptr<artdaq::RequestBuffer> request_buffer(nullptr);
-	int num_requests = pset.get<int>("num_requests", 1);
-	if (pset.get<bool>("use_receiver", false))
+	int num_requests = tempPset.get<int>("num_requests", 1);
+	if (tempPset.get<bool>("use_receiver", false))
 	{
-		auto receiver_pset = pset.get<fhicl::ParameterSet>("request_receiver", fhicl::ParameterSet());
+		auto receiver_pset = tempPset.get<fhicl::ParameterSet>("request_receiver", fhicl::ParameterSet());
 		request_buffer = std::make_shared<artdaq::RequestBuffer>(receiver_pset.get<artdaq::Fragment::sequence_id_t>("request_increment", 1));
 		receiver = std::make_unique<artdaq::RequestReceiver>(receiver_pset, request_buffer);
 		receiver->startRequestReception();
 	}
 
-	auto seq = pset.get<artdaq::Fragment::sequence_id_t>("starting_sequence_id", 1);
-	auto seq_scale = pset.get<artdaq::Fragment::sequence_id_t>("sequence_id_scale", 1);
-	auto ts = pset.get<artdaq::Fragment::timestamp_t>("starting_timestamp", 1);
-	auto ts_scale = pset.get<artdaq::Fragment::timestamp_t>("timestamp_scale", 1);
-	auto tmo = pset.get<size_t>("recevier_timeout_ms", 1000);
+	auto seq = tempPset.get<artdaq::Fragment::sequence_id_t>("starting_sequence_id", 1);
+	auto seq_scale = tempPset.get<artdaq::Fragment::sequence_id_t>("sequence_id_scale", 1);
+	auto ts = tempPset.get<artdaq::Fragment::timestamp_t>("starting_timestamp", 1);
+	auto ts_scale = tempPset.get<artdaq::Fragment::timestamp_t>("timestamp_scale", 1);
+	auto tmo = tempPset.get<size_t>("recevier_timeout_ms", 1000);
 
 	for (auto ii = 0; ii < num_requests; ++ii)
 	{
