@@ -129,7 +129,8 @@ void artdaqtest::BrokenTransferTest::TestReceiverReconnect(int send_throttle_fac
 	start_test_();
 	usleep_for_n_buffer_epochs_(2);
 
-	TLOG(TLVL_INFO) << "Killing Receiver duration=" << artdaq::TimeUtils::GetElapsedTime(start_time);;
+	TLOG(TLVL_INFO) << "Killing Receiver duration=" << artdaq::TimeUtils::GetElapsedTime(start_time);
+	;
 	kill_receiver_ = true;
 	if (receiver_threads_[0].joinable())
 	{
@@ -365,9 +366,9 @@ void artdaqtest::BrokenTransferTest::do_sending_(int sender_rank)
 		}
 		auto duration = artdaq::TimeUtils::GetElapsedTime(start_time);
 		TLOG(TLVL_SENDER) << "Sender " << sender_rank << " Transferred Fragment " << sender_current_fragment_[sender_rank]
-		                 << " with size " << fragment_size_ << " words in " << fm_(duration, "s")
-		                 << " (approx " << fm_(static_cast<double>(fragment_size_ * sizeof(artdaq::detail::RawFragmentHeader::RawDataType)) / duration, "B/s")
-		                 << ") throttle " << send_throttle_us_;
+		                  << " with size " << fragment_size_ << " words in " << fm_(duration, "s")
+		                  << " (approx " << fm_(static_cast<double>(fragment_size_ * sizeof(artdaq::detail::RawFragmentHeader::RawDataType)) / duration, "B/s")
+		                  << ") throttle " << send_throttle_us_;
 		++sender_current_fragment_[sender_rank];
 		sender_tokens_[sender_rank]--;
 		throttle_sender_(sender_rank);
@@ -458,7 +459,7 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 					event_buffer_[hdr.sequence_id].first_frag.reset(new artdaq::Fragment(hdr.word_count - hdr.num_words()));
 					ptr = event_buffer_[hdr.sequence_id].first_frag->headerAddress() + hdr.num_words();  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 					TLOG(TLVL_RECEIVER) << "Receiver " << sender_rank << "->" << receiver_rank << " opened event " << hdr.sequence_id
-					                 << " with Fragment from rank " << sender_rank;
+					                    << " with Fragment from rank " << sender_rank;
 				}
 				else
 				{
@@ -479,7 +480,7 @@ void artdaqtest::BrokenTransferTest::do_receiving_(int sender_rank, int receiver
 		if (!first)
 		{
 			TLOG(TLVL_RECEIVER) << "Receiver " << sender_rank << "->" << receiver_rank << " completed event " << hdr.sequence_id
-			                 << " in " << fm_(artdaq::TimeUtils::GetElapsedTime(event_buffer_[hdr.sequence_id].open_time), "s") << ".";
+			                    << " in " << fm_(artdaq::TimeUtils::GetElapsedTime(event_buffer_[hdr.sequence_id].open_time), "s") << ".";
 
 			std::unique_lock<std::mutex> lk(event_buffer_mutex_);
 			complete_events_.insert(hdr.sequence_id);
