@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(ImproperConfiguration)
 	artdaq::FragmentBuffer fpp(ps);
 	BOOST_REQUIRE_EQUAL(static_cast<int>(fpp.request_mode()), static_cast<int>(artdaq::RequestMode::Window));
 
-	ps.put<std::vector<int>>("fragment_ids", {2,3,4});
+	ps.put<std::vector<int>>("fragment_ids", {2, 3, 4});
 	BOOST_REQUIRE_EXCEPTION(artdaq::FragmentBuffer ffp(ps), cet::exception, [](cet::exception const& e) { return e.category() == "FragmentBufferConfig"; });
 
 	TLOG(TLVL_INFO) << "ImproperConfiguration test case END";
