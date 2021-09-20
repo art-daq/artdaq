@@ -4,9 +4,9 @@
 #include <utility>
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_DataReceiverManager").c_str()
+#include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
-#include "artdaq/TransferPlugins/detail/HostMap.hh"
 #include "cetlib_except/exception.h"
 
 artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset, std::shared_ptr<SharedMemoryEventManager> shm)
@@ -392,6 +392,8 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				metricMan->sendMetric("Avg Shared Memory Wait Time From Rank " + std::to_string(source_rank), store_delta_t, "s", 3, MetricMode::Average);
 				metricMan->sendMetric("Avg Fragment Wait Time From Rank " + std::to_string(source_rank), dead_t, "s", 3, MetricMode::Average);
 
+				metricMan->sendMetric("Rank", std::to_string(my_rank), "", 3, MetricMode::LastPoint);
+				metricMan->sendMetric("App Name", app_name, "", 3, MetricMode::LastPoint);
 				metricMan->sendMetric("Fragment Latency at Receive From Rank " + std::to_string(source_rank), latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
 				metricMan->sendMetric("Header Receive Wait Time From Rank" + std::to_string(source_rank), recv_wait_t, "s", 4, MetricMode::Average | MetricMode::Maximum | MetricMode::Minimum);
 

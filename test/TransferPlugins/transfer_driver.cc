@@ -36,10 +36,10 @@ int main(int argc, char* argv[]) try
 	}
 
 	artdaq::TransferTest theTest(ps);
-	theTest.runTest();
+	auto ret = theTest.runTest();
 
-	TLOG(TLVL_INFO) << "END";
-	return 0;
+	TLOG(TLVL_INFO) << "END: retcode=" << ret;
+	return ret;
 }
 catch (...)
 {

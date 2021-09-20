@@ -86,14 +86,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	agg_pset.put<int>("art_analyzer_count", 0);
 
 	// initialize the MetricManager and the names of our metrics
-	fhicl::ParameterSet metric_pset;
-
-	try
-	{
-		metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-	}
-	catch (...)
-	{}  // OK if there's no metrics table defined in the FHiCL
+	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 
 	return initializeDataReceiver(pset, agg_pset, metric_pset);
 }
@@ -445,7 +438,7 @@ void artdaq::DispatcherCore::start_art_process_(std::string const& label)
 			}
 			fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
 			TLOG(TLVL_DEBUG) << "Starting art process with received fhicl";
-			auto pid = event_store_ptr_->StartArtProcess(ps);
+			auto pid = event_store_ptr_->StartArtProcess(ps, registered_monitors_.size() - 1);
 			{
 				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 				registered_monitor_pids_[label] = pid;

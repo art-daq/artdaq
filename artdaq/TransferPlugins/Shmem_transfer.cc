@@ -34,7 +34,7 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 
 	if (role == Role::kReceive)
 	{
-		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, buffer_count_, max_fragment_size_words_ * sizeof(artdaq::RawDataType));
+		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey, buffer_count_, max_fragment_size_words_ * sizeof(artdaq::RawDataType), pset.get<size_t>("stale_buffer_timeout_usec", 100 * 1000000));
 	}
 	else
 	{
@@ -69,6 +69,10 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 			usleep(sleepTime);
 			++loopCount;
 		}
+	}
+	if (!shm_manager_->ReadyForRead() && shm_manager_->IsEndOfData())
+	{
+		return artdaq::TransferInterface::DATA_END;
 	}
 
 	TLOG(TLVL_TRACE) << GetTraceName() << "receiveFragment ReadyForRead=" << shm_manager_->ReadyForRead();

@@ -15,6 +15,9 @@
 #include <utility>
 #include <vector>
 
+#include "tracemf.h"
+#define TRACE_NAME "BuildInfo"
+
 namespace artdaq {
 /**
 	 * \brief BuildInfo is an art::EDProducer which saves information about package builds to the data file
@@ -116,6 +119,10 @@ void BuildInfo<instanceName, Pkgs...>::beginRun(art::Run& r)
 	auto packages_deep_copy_ptr = std::make_unique<std::vector<PackageBuildInfo>>(*packages_);
 
 	TLOG(TLVL_INFO, "BuildInfo") << "Placing BuildInfo with instance name \"" << instanceName_ << "\"";
+	for (auto& pbi : *packages_)
+	{
+		TLOG(TLVL_DEBUG) << "Package " << pbi.getPackageName() << ": version " << pbi.getPackageVersion() << " built at " << pbi.getBuildTimestamp();
+	}
 	r.put(std::move(packages_deep_copy_ptr), instanceName_);
 }
 
