@@ -154,7 +154,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 	try
 	{
-		fragment_buffer_ptr_.reset(new FragmentBuffer(fr_pset));
+		fragment_buffer_ptr_ = new FragmentBuffer(fr_pset);
 	}
 	catch (...)
 	{
@@ -174,6 +174,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	{
 		request_receiver_ptr_.reset(new RequestReceiver(fr_pset, request_buffer));
 		generator_ptr_->SetRequestBuffer(request_buffer);
+		generator_ptr_->SetFragmentBuffer(fragment_buffer_ptr_);
 		fragment_buffer_ptr_->SetRequestBuffer(request_buffer);
 	}
 	catch (...)

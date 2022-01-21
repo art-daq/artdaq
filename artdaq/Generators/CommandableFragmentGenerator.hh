@@ -367,6 +367,8 @@ protected:
 	*/
 	std::shared_ptr<RequestBuffer> GetRequestBuffer() { return requestBuffer_; }
 
+	std::shared_ptr<FragmentBuffer> GetFragmentBuffer() { return fragmentBuffer_; }
+
 private:
 	CommandableFragmentGenerator(CommandableFragmentGenerator const&) = delete;
 	CommandableFragmentGenerator(CommandableFragmentGenerator&&) = delete;
@@ -418,6 +420,7 @@ private:
 
 	// So that derived classes can access information about requests
 	std::shared_ptr<RequestBuffer> requestBuffer_;
+	std::shared_ptr<FragmentBuffer> fragmentBuffer_;
 
 protected:
 	/// <summary>
