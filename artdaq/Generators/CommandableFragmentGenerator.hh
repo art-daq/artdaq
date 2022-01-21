@@ -270,6 +270,8 @@ public:
 	*/
 	void SetRequestBuffer(std::shared_ptr<RequestBuffer> buffer) { requestBuffer_ = buffer; }
 
+	void SetFragmentBuffer(std::shared_ptr<FragmentBuffer> buffer) { fragmentBuffer_ = buffer; }
+
 protected:
 	// John F., 12/6/13 -- need to figure out which of these getter
 	// functions should be promoted to "public"

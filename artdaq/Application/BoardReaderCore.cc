@@ -154,7 +154,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 	try
 	{
-		fragment_buffer_ptr_ = new FragmentBuffer(fr_pset);
+		fragment_buffer_ptr_ = std::make_shared<FragmentBuffer>(fr_pset);
 	}
 	catch (...)
 	{
