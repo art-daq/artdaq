@@ -883,14 +883,17 @@ bool artdaq::FragmentBuffer::sendEmptyFragment(artdaq::FragmentPtrs& frags, size
 
 void artdaq::FragmentBuffer::sendEmptyFragments(artdaq::FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests)
 {
-	if (requests.size() > 0 && sendMissingFragments_)
+	if (requests.size() > 0)
 	{
 		TLOG(TLVL_SENDEMPTYFRAGMENTS) << "Sending Empty Fragments for Sequence IDs from " << next_sequence_id_ << " up to but not including " << requests.begin()->first;
 		while (requests.begin()->first > next_sequence_id_)
 		{
-			for (auto& fid : dataBuffers_)
+			if (sendMissingFragments_)
 			{
-				sendEmptyFragment(frags, next_sequence_id_, fid.first, "Missed request for");
+				for (auto& fid : dataBuffers_)
+				{
+					sendEmptyFragment(frags, next_sequence_id_, fid.first, "Missed request for");
+				}
 			}
 			++next_sequence_id_;
 		}
