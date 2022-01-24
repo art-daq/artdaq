@@ -47,6 +47,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     , staleTimeout_(ps.get<Fragment::timestamp_t>("stale_fragment_timeout", 0))
     , expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
     , uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
+    , sendMissingFragments_(ps.get<bool>("send_missing_request_fragments", true))
     , missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
     , window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
     , circularDataBufferMode_(ps.get<bool>("circular_buffer_mode", false))
@@ -882,7 +883,7 @@ bool artdaq::FragmentBuffer::sendEmptyFragment(artdaq::FragmentPtrs& frags, size
 
 void artdaq::FragmentBuffer::sendEmptyFragments(artdaq::FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests)
 {
-	if (requests.size() > 0)
+	if (requests.size() > 0 && sendMissingFragments_)
 	{
 		TLOG(TLVL_SENDEMPTYFRAGMENTS) << "Sending Empty Fragments for Sequence IDs from " << next_sequence_id_ << " up to but not including " << requests.begin()->first;
 		while (requests.begin()->first > next_sequence_id_)
