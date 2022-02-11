@@ -21,7 +21,7 @@ set(CET_CETBUILDTOOLS_COMPAT TRUE)
 include(Compatibility)
 set(CET_WARN_DEPRECATED)
 
-project(artdaq VERSION 3.11.00)
+project(artdaq VERSION 3.11.01)
 
 set(CMAKE_MODULE_PATH
 			  $ENV{ARTDAQ_UTILITIES_DIR}/Modules
