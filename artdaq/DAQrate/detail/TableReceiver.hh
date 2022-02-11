@@ -53,9 +53,9 @@ public:
 	/// Used for ParameterSet validation (if desired)
 	using Parameters = fhicl::WrappedTable<Config>;
 
-	using RoutingTable = std::map<artdaq::Fragment::sequence_id_t, int>; ///< Internal representation of a routing table, relating a sequence ID to a destination rank
+	using RoutingTable = std::map<artdaq::Fragment::sequence_id_t, int>;  ///< Internal representation of a routing table, relating a sequence ID to a destination rank
 
-	static constexpr int ROUTING_FAILED = -1111; ///< Value used to indicate that a route was not properly generated
+	static constexpr int ROUTING_FAILED = -1111;  ///< Value used to indicate that a route was not properly generated
 
 	/**
 	 * \brief TableReceiver Constructor
@@ -72,12 +72,12 @@ public:
 	 * @brief Get a copy of the current RoutingTable
 	*/
 	RoutingTable GetRoutingTable() const;
-	
+
 	/**
 	 * @brief Get the current RoutingTable and remove all entries
 	*/
 	RoutingTable GetAndClearRoutingTable();
-	
+
 	/**
 	 * @brief Get the destination rank for the given sequence ID
 	 * @param seqID Sequence ID to query

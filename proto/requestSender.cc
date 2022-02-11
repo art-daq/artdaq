@@ -29,11 +29,14 @@ int main(int argc, char* argv[]) try
 	auto pset = LoadParameterSet<Config>(argc, argv, "sender", "This test application sends Data Request messages and optionally receives them to detect issues in the network transport");
 
 	fhicl::ParameterSet tempPset;
-	if (pset.has_key("daq")) {
+	if (pset.has_key("daq"))
+	{
 		fhicl::ParameterSet daqPset = pset.get<fhicl::ParameterSet>("daq");
-		for (auto& name : daqPset.get_pset_names()) {
+		for (auto& name : daqPset.get_pset_names())
+		{
 			auto thisPset = daqPset.get<fhicl::ParameterSet>(name);
-			if (thisPset.has_key("send_requests")) {
+			if (thisPset.has_key("send_requests"))
+			{
 				tempPset = thisPset;
 			}
 		}

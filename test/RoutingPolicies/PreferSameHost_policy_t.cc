@@ -1,9 +1,9 @@
 #define BOOST_TEST_MODULE PreferSameHost_policy_t
 #include <boost/test/unit_test.hpp>
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 BOOST_AUTO_TEST_SUITE(PreferSameHost_policy_t)
 
@@ -12,7 +12,6 @@ BOOST_AUTO_TEST_CASE(Simple)
 	fhicl::ParameterSet ps = artdaq::make_pset("");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
-
 
 	psh->Reset();
 	psh->AddReceiverToken(1, 1);
@@ -56,7 +55,6 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 	fhicl::ParameterSet ps = artdaq::make_pset("minimum_participants: 2");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
-
 
 	psh->Reset();
 	psh->AddReceiverToken(1, 1);
@@ -145,7 +143,6 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
 
-
 	psh->Reset();
 	psh->AddReceiverToken(1, 1);
 	psh->AddReceiverToken(3, 1);
@@ -171,11 +168,9 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
                                          {rank: 3 host: \"testHost2\"}, \
                                          {rank: 4 host: \"testHost1\"}, \
                                          {rank: 5 host: \"testHost2\"}, \
-                                         {rank: 6 host: \"testHost3\"}]"
-	    );
+                                         {rank: 6 host: \"testHost3\"}]");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
-
 
 	psh->Reset();
 	psh->AddReceiverToken(1, 1);
@@ -227,11 +222,9 @@ BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
                                          {rank: 3 host: \"testHost2\"}, \
                                          {rank: 4 host: \"testHost1\"}, \
                                          {rank: 5 host: \"testHost2\"}, \
-                                         {rank: 6 host: \"testHost3\"}]"
-	   );
+                                         {rank: 6 host: \"testHost3\"}]");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
-
 
 	psh->Reset();
 	psh->AddReceiverToken(1, 1);
