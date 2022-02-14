@@ -52,7 +52,6 @@
 #include "fhiclcpp/ParameterSetRegistry.h"
 #include "tracemf.h"  // TLOG
 #define TRACE_NAME (app_name + "_RootDAQOutFile").c_str()
-#include "hep_concurrency/RecursiveMutex.h"
 
 #include "Rtypes.h"
 #include "TBranchElement.h"
@@ -396,8 +395,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
                                DropMetaData dropMetaData,
                                bool const dropMetaDataForDroppedData,
                                bool const fastCloningRequested)
-    : mutex_{"RootDAQOutFile::mutex_"}
-    , compressionLevel_{compressionLevel}
+    : compressionLevel_{compressionLevel}
     , freePercent_{freePercent}
     , freeMB_{freeMB}
     , saveMemoryObjectThreshold_{saveMemoryObjectThreshold}
@@ -555,20 +553,20 @@ void art::RootDAQOutFile::createDatabaseTables()
 
 void RootDAQOutFile::setFileStatus(OutputFileStatus const ofs)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	status_ = ofs;
 }
 
 string const&
 RootDAQOutFile::currentFileName() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	return file_;
 }
 
 void RootDAQOutFile::selectProducts()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	auto selectProductsToWrite = [this](BranchType const bt) {
 		auto& items = selectedOutputItemList_[bt];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 		for (auto const& pr : om_->keptProducts()[bt])
@@ -603,7 +601,7 @@ void RootDAQOutFile::selectProducts()
 void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
                                     bool const fastCloneFromOutputModule)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	// FIXME: the logic here is nasty.
 	bool shouldFastClone{fastCloningEnabledAtConstruction_ &&
 	                     fastCloneFromOutputModule && (rfb != nullptr)};
@@ -646,19 +644,19 @@ void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 
 void RootDAQOutFile::incrementInputFileNumber()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	fp_.update_inputFile();
 }
 
 void RootDAQOutFile::respondToCloseInputFile(FileBlock const& /*unused*/)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	cet::for_all(treePointers_, [](auto const& p) { p->setEntries(); });
 }
 
 bool RootDAQOutFile::requestsToCloseFile()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	using namespace chrono;
 	unsigned int constexpr oneK{1024u};
 	fp_.updateSize(filePtr_->GetSize() / oneK);
@@ -668,7 +666,7 @@ bool RootDAQOutFile::requestsToCloseFile()
 
 void RootDAQOutFile::writeOne(EventPrincipal const& e)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeOne";
 	// Auxiliary branch.
 	// Note: pEventAux_ must be set before calling fillBranches
@@ -708,7 +706,7 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 
 void RootDAQOutFile::writeSubRun(SubRunPrincipal const& sr)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	pSubRunAux_ = &sr.subRunAux();
 	pSubRunAux_->setRangeSetID(subRunRSID_);
 	fillBranches<InSubRun>(sr, pSubRunProductProvenanceVector_);
@@ -719,7 +717,7 @@ void RootDAQOutFile::writeSubRun(SubRunPrincipal const& sr)
 
 void RootDAQOutFile::writeRun(RunPrincipal const& r)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	pRunAux_ = &r.runAux();
 	pRunAux_->setRangeSetID(runRSID_);
 	fillBranches<InRun>(r, pRunProductProvenanceVector_);
@@ -730,7 +728,7 @@ void RootDAQOutFile::writeRun(RunPrincipal const& r)
 
 void RootDAQOutFile::writeParentageRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	auto pid = root::getObjectRequireDict<ParentageID>();
 	ParentageID const* hash = &pid;
 	if (parentageTree_->Branch(
@@ -763,7 +761,7 @@ void RootDAQOutFile::writeParentageRegistry()
 
 void RootDAQOutFile::writeFileFormatVersion()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	FileFormatVersion const ver{getFileFormatVersion(), getFileFormatEra()};
 	auto const* pver = &ver;
 	TBranch* b = metaDataTree_->Branch(
@@ -775,7 +773,7 @@ void RootDAQOutFile::writeFileFormatVersion()
 
 void RootDAQOutFile::writeFileIndex()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	fileIndex_.sortBy_Run_SubRun_Event();
 	FileIndex::Element elem{};
 	auto const* findexElemPtr = &elem;
@@ -793,7 +791,7 @@ void RootDAQOutFile::writeFileIndex()
 
 void RootDAQOutFile::writeEventHistory()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	RootOutputTree::writeTTree(eventHistoryTree_);
 }
 
@@ -805,7 +803,7 @@ void RootDAQOutFile::writeProcessConfigurationRegistry()
 
 void RootDAQOutFile::writeProcessHistoryRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	ProcessHistoryMap pHistMap;
 	for (auto const& pr : ProcessHistoryRegistry::get())
 	{
@@ -829,7 +827,7 @@ void RootDAQOutFile::writeFileCatalogMetadata(
     FileCatalogMetadata::collection_type const& md,
     FileCatalogMetadata::collection_type const& ssmd)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	using namespace cet::sqlite;
 	Ntuple<string, string> fileCatalogMetadata{
 	    *rootFileDB_, "FileCatalog_metadata", {{"Name", "Value"}}, true};
@@ -923,13 +921,13 @@ void RootDAQOutFile::writeFileCatalogMetadata(
 
 void RootDAQOutFile::writeParameterSetRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	fhicl::ParameterSetRegistry::exportTo(*rootFileDB_);
 }
 
 void RootDAQOutFile::writeProductDescriptionRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	// Make a local copy of the UpdateOutputCallbacks's ProductList,
 	// removing any transient or pruned products.
 	ProductRegistry reg;
@@ -951,7 +949,7 @@ void RootDAQOutFile::writeProductDescriptionRegistry()
 
 void RootDAQOutFile::writeProductDependencies()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	BranchChildren const* ppDeps = &om_->branchChildren();
 	TBranch* b = metaDataTree_->Branch(
 	    metaBranchRootName<BranchChildren>(), &ppDeps, basketSize_, 0);
@@ -962,7 +960,7 @@ void RootDAQOutFile::writeProductDependencies()
 
 void RootDAQOutFile::writeResults(ResultsPrincipal& resp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	pResultsAux_ = &resp.resultsAux();
 	fillBranches<InResults>(resp, pResultsProductProvenanceVector_);
 }
@@ -970,7 +968,7 @@ void RootDAQOutFile::writeResults(ResultsPrincipal& resp)
 void RootDAQOutFile::writeTTrees()
 {
 	TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeTTrees";
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	RootOutputTree::writeTTree(metaDataTree_);
 	TLOG(TLVL_TRACE) << "RootDAQOutFile::writeTTrees after writing metaDataTree_";
 	RootOutputTree::writeTTree(fileIndexTree_);
@@ -984,7 +982,7 @@ void RootDAQOutFile::writeTTrees()
 
 void RootDAQOutFile::setSubRunAuxiliaryRangeSetID(RangeSet const& ranges)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	subRunRSID_ = getNewRangeSetID(*rootFileDB_, InSubRun, ranges.run());
 	insertIntoEventRanges(*rootFileDB_, ranges);
 	auto const& eventRangesIDs = getExistingRangeSetIDs(*rootFileDB_, ranges);
@@ -993,7 +991,7 @@ void RootDAQOutFile::setSubRunAuxiliaryRangeSetID(RangeSet const& ranges)
 
 void RootDAQOutFile::setRunAuxiliaryRangeSetID(RangeSet const& ranges)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	runRSID_ = getNewRangeSetID(*rootFileDB_, InRun, ranges.run());
 	insertIntoEventRanges(*rootFileDB_, ranges);
 	auto const& eventRangesIDs = getExistingRangeSetIDs(*rootFileDB_, ranges);
@@ -1006,7 +1004,7 @@ RootDAQOutFile::getProduct(OutputHandle const& oh,
                            RangeSet const& prunedProductRS,
                            string const& wrappedName)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if constexpr (detail::range_sets_supported(BT))
 	{
 		{
@@ -1024,7 +1022,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
                                   vector<ProductProvenance>* vpp)
 {
 	TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::fillBranches";
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	bool const fastCloning = ((BT == InEvent) && wasFastCloned_);
 	map<unsigned, unsigned> checksumToIndex;
 	auto const& principalRS = principal.seenRanges();
