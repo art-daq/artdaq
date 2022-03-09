@@ -27,7 +27,11 @@
 #include "canvas/Persistency/Provenance/EventAuxiliary.h"
 #include "canvas/Persistency/Provenance/EventID.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
+#if ART_HEX_VERSION < 0x31100
 #include "canvas/Persistency/Provenance/History.h"
+#else
+#include "canvas/Persistency/Provenance/Compatibility/History.h"
+#endif
 #include "canvas/Persistency/Provenance/ParameterSetBlob.h"
 #include "canvas/Persistency/Provenance/Parentage.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
@@ -422,14 +426,6 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	    filePtr_.get(), rootNames::fileIndexTreeName(), 0);
 	parentageTree_ = RootOutputTree::makeTTree(
 	    filePtr_.get(), rootNames::parentageTreeName(), 0);
-	// Create the tree that will carry (event) History objects.
-	eventHistoryTree_ = RootOutputTree::makeTTree(
-	    filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
-	if (eventHistoryTree_ == nullptr)
-	{
-		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
-		    << "Failed to create the tree for History objects\n";
-	}
 	pEventAux_ = nullptr;
 	pSubRunAux_ = nullptr;
 	pRunAux_ = nullptr;
@@ -438,6 +434,15 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	pSubRunProductProvenanceVector_ = &subRunProductProvenanceVector_;
 	pRunProductProvenanceVector_ = &runProductProvenanceVector_;
 	pResultsProductProvenanceVector_ = &resultsProductProvenanceVector_;
+#if ART_HEX_VERSION < 0x31100
+        // Create the tree that will carry (event) History objects.
+        eventHistoryTree_ = RootOutputTree::makeTTree(
+            filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
+        if (eventHistoryTree_ == nullptr)
+        {
+                throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
+                    << "Failed to create the tree for History objects\n";
+        }
 	pHistory_ = new History;
 	if (eventHistoryTree_->Branch(rootNames::eventHistoryBranchName().c_str(),
 	                              &pHistory_,
@@ -449,6 +454,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	}
 	delete pHistory_;
 	pHistory_ = nullptr;
+#endif
 	treePointers_[0] =
 	    make_unique<RootOutputTree>(filePtr_.get(),
 	                                InEvent,
@@ -677,6 +683,7 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 	// to the file about this event.
 	fillBranches<InEvent>(e, pEventProductProvenanceVector_);
 	// History branch.
+#if ART_HEX_VERSION < 0x31100
 	History historyForOutput{e.history()};
 	historyForOutput.addEventSelectionEntry(om_->selectorConfig());
 	pHistory_ = &historyForOutput;
@@ -687,6 +694,8 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 		    << "Failed to fill the History tree for event: " << e.eventID()
 		    << "\nTTree::Fill() returned " << sz << " bytes written." << endl;
 	}
+        pHistory_ = &e.history();
+#endif
 	// Add the dataType to the job report if it hasn't already been done
 	if (!dataTypeReported_)
 	{
@@ -697,7 +706,6 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 		}
 		dataTypeReported_ = true;
 	}
-	pHistory_ = &e.history();
 	// Add event to index
 	fileIndex_.addEntry(pEventAux_->eventID(), fp_.eventEntryNumber());
 	fp_.update_event();
@@ -789,11 +797,14 @@ void RootDAQOutFile::writeFileIndex()
 	b->SetAddress(nullptr);
 }
 
+
+#if ART_HEX_VERSION < 0x31100
 void RootDAQOutFile::writeEventHistory()
 {
 	std::lock_guard sentry{mutex_};
 	RootOutputTree::writeTTree(eventHistoryTree_);
 }
+#endif
 
 void RootDAQOutFile::writeProcessConfigurationRegistry()
 {

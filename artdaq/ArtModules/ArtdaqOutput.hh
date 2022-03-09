@@ -17,7 +17,11 @@
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
+#if ART_HEX_VERSION < 0x31100
 #include "canvas/Persistency/Provenance/History.h"
+#else
+#include "canvas/Persistency/Provenance/Compatibility/History.h"
+#endif
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
 #include "canvas/Persistency/Provenance/ProcessConfiguration.h"
 #include "canvas/Persistency/Provenance/ProcessConfigurationID.h"
@@ -235,7 +239,7 @@ protected:
 	/// Send an init message downstream. Use the given History for initializing downstream art processes.
 	/// </summary>
 	/// <param name="history">History to use for downstream art processes</param>
-	void send_init_message(History const& history);
+        void send_init_message(History const& history);
 
 	/// <summary>
 	/// Send the serialized art Event downstream. Artdaq output modules should define this function.
@@ -248,6 +252,16 @@ private:
 	ArtdaqOutput(ArtdaqOutput&&) = delete;
 	ArtdaqOutput& operator=(ArtdaqOutput const&) = delete;
 	ArtdaqOutput& operator=(ArtdaqOutput&&) = delete;
+
+        art::History const& history(art::Principal const& p [[maybe_unused]])
+        {
+#if ART_HEX_VERSION < 0x31100
+                return p.history();
+#else
+                static art::History const empty_history_for_compatibility{};
+                return empty_history_for_compatibility;
+#endif
+        }
 
 	bool initMsgSent_{false};
 	ProductList productList_;
@@ -557,8 +571,8 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	TLOG(TLVL_WRITE) << "Begin: ArtdaqOutput::write(const EventPrincipal& ep)";
 	if (!initMsgSent_)
 	{
-		send_init_message(ep.history());
-		initMsgSent_ = true;
+                send_init_message(history(ep));
+                initMsgSent_ = true;
 	}
 	//
 	//  Get root classes needed for I/O.
@@ -640,12 +654,18 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 		msg->WriteObjectAny(&ep.eventAux(), event_aux_class);
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming EventAuxiliary.";
 	}
+
 	//
 	//  Write History.
 	//
 	{
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming History ...";
+#if ART_HEX_VERSION < 0x31100
 		msg->WriteObjectAny(&ep.history(), history_class);
+#else
+                static art::History const empty_history_for_compatibility{};
+                msg->WriteObjectAny(&empty_history_for_compatibility, history_class);
+#endif
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming History.";
 	}
 	//
@@ -677,7 +697,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
-		send_init_message(rp.history());
+                send_init_message(history(rp));
 		initMsgSent_ = true;
 	}
 #if 0
@@ -732,7 +752,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "Begin: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
-		send_init_message(srp.history());
+                send_init_message(history(srp));
 		initMsgSent_ = true;
 	}
 	//

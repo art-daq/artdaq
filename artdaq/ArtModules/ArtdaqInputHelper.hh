@@ -21,7 +21,11 @@
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
+#if ART_HEX_VERSION < 0x31100
 #include "canvas/Persistency/Provenance/History.h"
+#else
+#include "canvas/Persistency/Provenance/Compatibility/History.h"
+#endif
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
 #include "canvas/Persistency/Provenance/ProcessConfiguration.h"
 #include "canvas/Persistency/Provenance/ProcessHistory.h"
@@ -173,7 +177,9 @@ private:
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
 	ProductList* productList_;
+#if ART_HEX_VERSION < 0x31100
 	std::unique_ptr<art::History> history_to_use_;
+#endif
 	bool fragmentsOnlyMode_;
 	std::string pretend_module_name;                       ///< The module name to store data under
 	size_t bytesRead;                                      ///< running total of number of bytes received
@@ -357,6 +363,8 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			for (auto& hist : processHistories)
 			{
 				auto const& id = hist->processHistoryID();
+                                if (!id.isValid()) continue;
+
 				ProcessHistory thisProcessHistory;
 				if (ProcessHistoryRegistry::get(id, thisProcessHistory))
 				{
@@ -367,16 +375,10 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			art::ProcessHistoryMap fake_process_history_map;
 			fake_process_history_map[fake_process_history.id()] = fake_process_history;
 			ProcessHistoryRegistry::put(fake_process_history_map);
+#if ART_HEX_VERSION < 0x31100
 			history_to_use_.reset(new History());
 			history_to_use_->setProcessHistoryID(fake_process_history.id());
-			for (auto& hist : processHistories)
-			{
-				for (auto& es : hist->eventSelectionIDs())
-				{
-					history_to_use_->addEventSelectionEntry(es);
-				}
-			}
-
+#endif
 			TLOG(TLVL_DEBUG + 2, "ArtdaqInputHelper")
 			    << "ArtdaqInputHelper: Product list sz=" << productList_->size();
 
@@ -464,8 +466,6 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 	std::unique_ptr<art::SubRunAuxiliary> subrun_aux;
 	std::unique_ptr<art::EventAuxiliary> event_aux;
 
-	std::unique_ptr<art::History> history_from_event;
-
 	// Establish default 'results'
 	outR = nullptr;
 	outSR = nullptr;
@@ -524,6 +524,8 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		//    events from the EBs to the AG, and b) because presumably that would
 		//    be too late, also.
 
+#if ART_HEX_VERSION < 0x31100
+                // 9-Mar-2022, KJK: Setting times of input principals is suspect.
 		art::Timestamp currentTime = time(nullptr);
 		if (inR != nullptr)
 		{
@@ -533,6 +535,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		{
 			inSR->endTime(currentTime);
 		}
+#endif
 
 		TLOG(15, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                              << "making flush SubRunPrincipal ...";
@@ -561,11 +564,18 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		event_aux.reset(
 		    ReadObjectAny<art::EventAuxiliary>(msg, "art::EventAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
 
-		history_from_event.reset(ReadObjectAny<art::History>(msg, "art::History", "ArtdaqInputHelper::readAndConstructPrincipal"));
+                // The ProcessHistoryID is obtained from the art::History object in art 3.10 and earlier, and
+                // from the art::EventAuxiliary object in art 3.11 and later.
+                std::unique_ptr<art::History> history_from_event(ReadObjectAny<art::History>(msg, "art::History", "ArtdaqInputHelper::readAndConstructPrincipal"));
 		printProcessHistoryID("readAndConstructPrincipal", history_from_event.get());
 
+#if ART_HEX_VERSION < 0x31100
+                bool const valid_process_history_id = history_from_event->processHistoryID().isValid();
+#else
+                bool const valid_process_history_id = event_aux->processHistoryID().isValid();
+#endif
 		// Every event should have a valid history
-		if (!history_from_event->processHistoryID().isValid())
+                if (valid_process_history_id)
 		{
 			throw art::Exception(art::errors::Unknown)  // NOLINT(cert-err60-cpp)
 			    << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
@@ -596,13 +606,16 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux);
 		}
 		TLOG(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: making EventPrincipal ...";
+#if ART_HEX_VERSION < 0x31100
 		auto historyPtr = std::unique_ptr<art::History>(new History(*(history_to_use_.get())));
 		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
 		{
 			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
 		}
 		outE = pm_.makeEventPrincipal(*event_aux, std::move(historyPtr));
-
+#else
+                outE = pm_.makeEventPrincipal(*event_aux);
+#endif
 		TLOG(16, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                              << "finished processing Event message.";
 	}

@@ -178,7 +178,9 @@ private:
 	void startEndFile() override;
 	void writeFileFormatVersion() override;
 	void writeFileIndex() override;
+#if ART_HEX_VERSION < 0x31100
 	void writeEventHistory() override;
+#endif
 	void writeProcessConfigurationRegistry() override;
 	void writeProcessHistoryRegistry() override;
 	void writeParameterSetRegistry() override;
@@ -233,7 +235,11 @@ private:
 RootDAQOut::~RootDAQOut() = default;
 
 RootDAQOut::RootDAQOut(Parameters const& config)
+#if ART_HEX_VERSION < 0x31100
     : OutputModule{config().omConfig, config.get_PSet()}
+#else
+    : OutputModule{config().omConfig}
+#endif
     , catalog_{config().catalog()}
     , dropAllSubRuns_{config().dropAllSubRuns()}
     , moduleLabel_{config.get_PSet().get<string>("module_label")}
@@ -319,9 +325,7 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 	}
 	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
 	bool fastCloneThisOne = fastCloningEnabled_ && (rfb != nullptr) &&
-	                        (rfb->tree() != nullptr) &&
-	                        ((remainingEvents() < 0) ||
-	                         (remainingEvents() >= rfb->tree()->GetEntries()));
+                                (rfb->tree() != nullptr);
 	if (fastCloningEnabled_ && !fastCloneThisOne)
 	{
 		mf::LogWarning("FastCloning")
@@ -414,7 +418,11 @@ void RootDAQOut::startEndFile()
 	auto resp = make_unique<ResultsPrincipal>(
 	    ResultsAuxiliary{}, moduleDescription().processConfiguration(), nullptr);
 	resp->createGroupsForProducedProducts(producedResultsProducts_);
+#if ART_HEX_VERSION < 0x31100
 	resp->enableLookupOfProducedProducts(producedResultsProducts_);
+#else
+        resp->enableLookupOfProducedProducts();
+#endif
 	if (!producedResultsProducts_.descriptions(InResults).empty() ||
 	    hasNewlyDroppedBranch()[InResults])
 	{
@@ -437,11 +445,13 @@ void RootDAQOut::writeFileIndex()
 	rootOutputFile_->writeFileIndex();
 }
 
+#if ART_HEX_VERSION < 0x31100
 void RootDAQOut::writeEventHistory()
 {
 	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeEventHistory();
 }
+#endif
 
 void RootDAQOut::writeProcessConfigurationRegistry()
 {

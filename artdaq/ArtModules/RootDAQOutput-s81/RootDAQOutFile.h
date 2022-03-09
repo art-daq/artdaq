@@ -113,7 +113,9 @@ public:  // MEMBER FUNCTIONS
 	void writeRun(RunPrincipal const&);
 	void writeFileFormatVersion();
 	void writeFileIndex();
+#if ART_HEX_VERSION < 0x31100
 	void writeEventHistory();
+#endif
 	void writeProcessConfigurationRegistry();
 	void writeProcessHistoryRegistry();
 	void writeParameterSetRegistry();
