@@ -575,7 +575,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
                 bool const valid_process_history_id = event_aux->processHistoryID().isValid();
 #endif
 		// Every event should have a valid history
-                if (valid_process_history_id)
+                if (!valid_process_history_id)
 		{
 			throw art::Exception(art::errors::Unknown)  // NOLINT(cert-err60-cpp)
 			    << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
