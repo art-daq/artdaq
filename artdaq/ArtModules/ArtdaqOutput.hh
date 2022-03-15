@@ -236,10 +236,9 @@ protected:
 	void extractProducts_(Principal const& principal);
 
 	/// <summary>
-	/// Send an init message downstream. Use the given History for initializing downstream art processes.
+	/// Send an init message downstream.
 	/// </summary>
-	/// <param name="history">History to use for downstream art processes</param>
-        void send_init_message(History const& history);
+        void send_init_message();
 
 	/// <summary>
 	/// Send the serialized art Event downstream. Artdaq output modules should define this function.
@@ -252,16 +251,6 @@ private:
 	ArtdaqOutput(ArtdaqOutput&&) = delete;
 	ArtdaqOutput& operator=(ArtdaqOutput const&) = delete;
 	ArtdaqOutput& operator=(ArtdaqOutput&&) = delete;
-
-        art::History const& history(art::Principal const& p [[maybe_unused]])
-        {
-#if ART_HEX_VERSION < 0x31100
-                return p.history();
-#else
-                static art::History const empty_history_for_compatibility{};
-                return empty_history_for_compatibility;
-#endif
-        }
 
 	bool initMsgSent_{false};
 	ProductList productList_;
@@ -294,7 +283,7 @@ private:
 	}
 };
 
-inline void art::ArtdaqOutput::send_init_message(History const& history)
+inline void art::ArtdaqOutput::send_init_message()
 {
 	TLOG(TLVL_SENDINIT) << "Begin: ArtdaqOutput::send_init_message()";
 	//
@@ -333,13 +322,6 @@ inline void art::ArtdaqOutput::send_init_message(History const& history)
 		                                                         "Could not get class for ParentageMap.";
 	}
 	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << static_cast<void*>(parentage_map_class);
-
-	static TClass* history_class = TClass::GetClass("art::History");
-	if (history_class == nullptr)
-	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "  // NOLINT(cert-err60-cpp)
-		                                                         "Could not get TClass for art::History!";
-	}
 
 	//
 	//  Construct and send the init message.
@@ -436,10 +418,6 @@ inline void art::ArtdaqOutput::send_init_message(History const& history)
 	msg->WriteObjectAny(&parentageMap, parentage_map_class);
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming ParentageRegistry.";
-
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming History";
-	msg->WriteObjectAny(&history, history_class);
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Done streaming History";
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Sending init message";
 	sendMessage(msg);
@@ -571,7 +549,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	TLOG(TLVL_WRITE) << "Begin: ArtdaqOutput::write(const EventPrincipal& ep)";
 	if (!initMsgSent_)
 	{
-                send_init_message(history(ep));
+                send_init_message();
                 initMsgSent_ = true;
 	}
 	//
@@ -656,19 +634,6 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	}
 
 	//
-	//  Write History.
-	//
-	{
-		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming History ...";
-#if ART_HEX_VERSION < 0x31100
-		msg->WriteObjectAny(&ep.history(), history_class);
-#else
-                static art::History const empty_history_for_compatibility{};
-                msg->WriteObjectAny(&empty_history_for_compatibility, history_class);
-#endif
-		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming History.";
-	}
-	//
 	//  Write data products.
 	//
 	std::vector<BranchKey*> bkv;
@@ -697,7 +662,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
-                send_init_message(history(rp));
+                send_init_message();
 		initMsgSent_ = true;
 	}
 #if 0
@@ -752,7 +717,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "Begin: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
-                send_init_message(history(srp));
+                send_init_message();
 		initMsgSent_ = true;
 	}
 	//

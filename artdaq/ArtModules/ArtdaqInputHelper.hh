@@ -177,9 +177,7 @@ private:
 	art::SourceHelper const& pm_;
 	U communicationWrapper_;
 	ProductList* productList_;
-#if ART_HEX_VERSION < 0x31100
 	std::unique_ptr<art::History> history_to_use_;
-#endif
 	bool fragmentsOnlyMode_;
 	std::string pretend_module_name;                       ///< The module name to store data under
 	size_t bytesRead;                                      ///< running total of number of bytes received
@@ -248,7 +246,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, nullptr));
 			}
 
-			std::list<History*> processHistories;
+			std::vector<art::ProcessHistoryID> history_ids;
 
 			for (auto& msg : msgs)
 			{
@@ -341,6 +339,10 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputHelper::ArtdaqInputHelper");
 				printProcessMap(*phm, "ArtdaqInputHelper's ProcessHistoryMap");
 
+				for (auto& proc_hist : *phm) {
+					history_ids.push_back(proc_hist.second.id());
+				}
+
 				ProcessHistoryRegistry::put(*phm);
 				printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInputHelper's ProcessHistoryRegistry");
 
@@ -350,23 +352,18 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				TLOG(TLVL_DEBUG + 2, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading ParentageMap";
 				auto parentageMap = ReadObjectAny<ParentageMap>(msg, "art::ParentageMap", "ArtdaqInputHelper::ArtdaqInputHelper");
 				ParentageRegistry::put(*parentageMap);
-
-				//
-				// Read the History
-				//
-				TLOG(TLVL_DEBUG + 2, "ArtdaqInputHelper") << "ArtdaqInputHelper: Reading History";
-				processHistories.push_back(ReadObjectAny<History>(msg, "art::History", "ArtdaqInputHelper::ArtdaqInputHelper"));
 			}
 
 			// We're going to make a fake History using the collected process histories!
 			art::ProcessHistory fake_process_history;
-			for (auto& hist : processHistories)
+			for (auto& hist : history_ids)
 			{
-				auto const& id = hist->processHistoryID();
-                                if (!id.isValid()) continue;
+                                if (!hist.isValid()) {
+									TLOG(TLVL_WARNING, "ArtdaqInputHelper") << "Encountered invalid history ID!";
+									continue; }
 
 				ProcessHistory thisProcessHistory;
-				if (ProcessHistoryRegistry::get(id, thisProcessHistory))
+				if (ProcessHistoryRegistry::get(hist, thisProcessHistory))
 				{
 					for (auto& conf : thisProcessHistory)
 						fake_process_history.push_back(conf);
@@ -375,10 +372,11 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			art::ProcessHistoryMap fake_process_history_map;
 			fake_process_history_map[fake_process_history.id()] = fake_process_history;
 			ProcessHistoryRegistry::put(fake_process_history_map);
-#if ART_HEX_VERSION < 0x31100
+				printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInputHelper's ProcessHistoryRegistry w/fake history");
+
 			history_to_use_.reset(new History());
 			history_to_use_->setProcessHistoryID(fake_process_history.id());
-#endif
+
 			TLOG(TLVL_DEBUG + 2, "ArtdaqInputHelper")
 			    << "ArtdaqInputHelper: Product list sz=" << productList_->size();
 
@@ -564,23 +562,6 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		event_aux.reset(
 		    ReadObjectAny<art::EventAuxiliary>(msg, "art::EventAuxiliary", "ArtdaqInputHelper::readAndConstructPrincipal"));
 
-                // The ProcessHistoryID is obtained from the art::History object in art 3.10 and earlier, and
-                // from the art::EventAuxiliary object in art 3.11 and later.
-                std::unique_ptr<art::History> history_from_event(ReadObjectAny<art::History>(msg, "art::History", "ArtdaqInputHelper::readAndConstructPrincipal"));
-		printProcessHistoryID("readAndConstructPrincipal", history_from_event.get());
-
-#if ART_HEX_VERSION < 0x31100
-                bool const valid_process_history_id = history_from_event->processHistoryID().isValid();
-#else
-                bool const valid_process_history_id = event_aux->processHistoryID().isValid();
-#endif
-		// Every event should have a valid history
-                if (!valid_process_history_id)
-		{
-			throw art::Exception(art::errors::Unknown)  // NOLINT(cert-err60-cpp)
-			    << "readAndConstructPrincipal: processHistoryID of history in Event message is invalid!";
-		}
-
 		TLOG(16, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                              << "inR: " << static_cast<void*>(inR) << " run/expected "
 		                              << (inR ? std::to_string(inR->run()) : "invalid") << "/" << event_aux->run();
@@ -594,6 +575,11 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			// New run, either we have no input RunPrincipal, or the
 			// input run number does not match the event run number.
 			TLOG(16, "ArtdaqInputHelper") << "readAndConstructPrincipal: making RunPrincipal ...";
+		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
+		{
+			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
+		}
+		run_aux->setProcessHistoryID(history_to_use_->processHistoryID());
 			outR = pm_.makeRunPrincipal(*run_aux);
 		}
 		art::SubRunID subrun_check(event_aux->run(), event_aux->subRun());
@@ -603,6 +589,11 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			// input subRun number does not match the event subRun number.
 			TLOG(16, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 			                              << "making SubRunPrincipal ...";
+		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
+		{
+			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
+		}
+		subrun_aux->setProcessHistoryID(history_to_use_->processHistoryID());
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux);
 		}
 		TLOG(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: making EventPrincipal ...";
@@ -614,7 +605,13 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		}
 		outE = pm_.makeEventPrincipal(*event_aux, std::move(historyPtr));
 #else
+		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
+		{
+			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
+		}
+		event_aux->setProcessHistoryID(history_to_use_->processHistoryID());
                 outE = pm_.makeEventPrincipal(*event_aux);
+		printProcessHistoryID("readAndConstructPrincipal", event_aux.get());
 #endif
 		TLOG(16, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                              << "finished processing Event message.";
