@@ -94,55 +94,55 @@ class art::ArtdaqInputHelper
 {
 public:
 	/**
-   * \brief Copy Constructor is deleted
-   */
+	 * \brief Copy Constructor is deleted
+	 */
 	ArtdaqInputHelper(const ArtdaqInputHelper&) = delete;
 
 	/**
-   * \brief Copy Assignment operator is deleted
-   * \return ArtdaqInputHelper copy
-   */
+	 * \brief Copy Assignment operator is deleted
+	 * \return ArtdaqInputHelper copy
+	 */
 	ArtdaqInputHelper& operator=(const ArtdaqInputHelper&) = delete;
 
 	/**
-   * \brief ArtdaqInputHelper Destructor
-   */
+	 * \brief ArtdaqInputHelper Destructor
+	 */
 	~ArtdaqInputHelper();
 
 	/**
-   * \brief ArtdaqInputHelper Constructor
-   * \param ps ParameterSet used to confiugre communication wrapper class
-   * \param helper An art::ProductRegistryHelper for registering products
-   * \param pm An art::SourceHelper for handling provenance
-   */
+	 * \brief ArtdaqInputHelper Constructor
+	 * \param ps ParameterSet used to confiugre communication wrapper class
+	 * \param helper An art::ProductRegistryHelper for registering products
+	 * \param pm An art::SourceHelper for handling provenance
+	 */
 	ArtdaqInputHelper(const fhicl::ParameterSet& ps, art::ProductRegistryHelper& helper, art::SourceHelper const& pm);
 
 	/**
-   * \brief Called by art to close the input source. No-Op
-   */
+	 * \brief Called by art to close the input source. No-Op
+	 */
 	void closeCurrentFile();
 
 	/**
-   * \brief Emulate reading a file
-   * \param fb Output art::FileBlock object
-   */
+	 * \brief Emulate reading a file
+	 * \param fb Output art::FileBlock object
+	 */
 	void readFile(const std::string&, art::FileBlock*& fb);
 
 	/**
-   * \brief Whether additional events are expected from the source
-   * \return True if ArtdaqInputHelper has not been shut down
-   */
+	 * \brief Whether additional events are expected from the source
+	 * \return True if ArtdaqInputHelper has not been shut down
+	 */
 	bool hasMoreData() const;
 
 	/**
-   * \brief Read the next event from the communication wrapper
-   * \param inR RunPrincipal input pointer
-   * \param inSR SubRunPrincipal input pointer
-   * \param outR RunPrincipal output pointer
-   * \param outSR SubRunPrincipal output pointer
-   * \param outE EventPrincipal output pointer
-   * \return Whether an event was successfully read from the communication wrapper
-   */
+	 * \brief Read the next event from the communication wrapper
+	 * \param inR RunPrincipal input pointer
+	 * \param inSR SubRunPrincipal input pointer
+	 * \param outR RunPrincipal output pointer
+	 * \param outSR SubRunPrincipal output pointer
+	 * \param outE EventPrincipal output pointer
+	 * \return Whether an event was successfully read from the communication wrapper
+	 */
 	bool readNext(art::RunPrincipal* const inR, art::SubRunPrincipal* const inSR, art::RunPrincipal*& outR,
 	              art::SubRunPrincipal*& outSR, art::EventPrincipal*& outE);
 
@@ -246,7 +246,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				msgs.emplace_back(new TBufferFile(TBuffer::kRead, header->data_length, initFrag->dataBegin(), kFALSE, nullptr));
 			}
 
-			std::vector<art::ProcessHistoryID> history_ids;
+			std::set<art::ProcessHistoryID> history_ids;
 
 			for (auto& msg : msgs)
 			{
@@ -339,8 +339,9 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				    msg, "std::map<const art::Hash<2>,art::ProcessHistory>", "ArtdaqInputHelper::ArtdaqInputHelper");
 				printProcessMap(*phm, "ArtdaqInputHelper's ProcessHistoryMap");
 
-				for (auto& proc_hist : *phm) {
-					history_ids.push_back(proc_hist.second.id());
+				for (auto& proc_hist : *phm)
+				{
+					history_ids.insert(proc_hist.second.id());
 				}
 
 				ProcessHistoryRegistry::put(*phm);
@@ -358,9 +359,11 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			art::ProcessHistory fake_process_history;
 			for (auto& hist : history_ids)
 			{
-                                if (!hist.isValid()) {
-									TLOG(TLVL_WARNING, "ArtdaqInputHelper") << "Encountered invalid history ID!";
-									continue; }
+				if (!hist.isValid())
+				{
+					TLOG(TLVL_WARNING, "ArtdaqInputHelper") << "Encountered invalid history ID!";
+					continue;
+				}
 
 				ProcessHistory thisProcessHistory;
 				if (ProcessHistoryRegistry::get(hist, thisProcessHistory))
@@ -372,7 +375,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 			art::ProcessHistoryMap fake_process_history_map;
 			fake_process_history_map[fake_process_history.id()] = fake_process_history;
 			ProcessHistoryRegistry::put(fake_process_history_map);
-				printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInputHelper's ProcessHistoryRegistry w/fake history");
+			printProcessMap(ProcessHistoryRegistry::get(), "ArtdaqInputHelper's ProcessHistoryRegistry w/fake history");
 
 			history_to_use_.reset(new History());
 			history_to_use_->setProcessHistoryID(fake_process_history.id());
@@ -523,7 +526,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 		//    be too late, also.
 
 #if ART_HEX_VERSION < 0x31100
-                // 9-Mar-2022, KJK: Setting times of input principals is suspect.
+		// 9-Mar-2022, KJK: Setting times of input principals is suspect.
 		art::Timestamp currentTime = time(nullptr);
 		if (inR != nullptr)
 		{
@@ -575,11 +578,6 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			// New run, either we have no input RunPrincipal, or the
 			// input run number does not match the event run number.
 			TLOG(16, "ArtdaqInputHelper") << "readAndConstructPrincipal: making RunPrincipal ...";
-		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
-		{
-			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
-		}
-		run_aux->setProcessHistoryID(history_to_use_->processHistoryID());
 			outR = pm_.makeRunPrincipal(*run_aux);
 		}
 		art::SubRunID subrun_check(event_aux->run(), event_aux->subRun());
@@ -589,11 +587,6 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			// input subRun number does not match the event subRun number.
 			TLOG(16, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 			                              << "making SubRunPrincipal ...";
-		if (!art::ProcessHistoryRegistry::get().count(history_to_use_->processHistoryID()))
-		{
-			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
-		}
-		subrun_aux->setProcessHistoryID(history_to_use_->processHistoryID());
 			outSR = pm_.makeSubRunPrincipal(*subrun_aux);
 		}
 		TLOG(11, "ArtdaqInputHelper") << "readAndConstructPrincipal: making EventPrincipal ...";
@@ -610,8 +603,7 @@ void art::ArtdaqInputHelper<U>::readAndConstructPrincipal(std::unique_ptr<TBuffe
 			TLOG_WARNING("ArtdaqInputHelper") << "Stored history is not in ProcessHistoryRegistry, this event may have issues!";
 		}
 		event_aux->setProcessHistoryID(history_to_use_->processHistoryID());
-                outE = pm_.makeEventPrincipal(*event_aux);
-		printProcessHistoryID("readAndConstructPrincipal", event_aux.get());
+		outE = pm_.makeEventPrincipal(*event_aux);
 #endif
 		TLOG(16, "ArtdaqInputHelper") << "readAndConstructPrincipal: "
 		                              << "finished processing Event message.";

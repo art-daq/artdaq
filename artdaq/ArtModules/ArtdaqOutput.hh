@@ -17,11 +17,6 @@
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
-#if ART_HEX_VERSION < 0x31100
-#include "canvas/Persistency/Provenance/History.h"
-#else
-#include "canvas/Persistency/Provenance/Compatibility/History.h"
-#endif
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
 #include "canvas/Persistency/Provenance/ProcessConfiguration.h"
 #include "canvas/Persistency/Provenance/ProcessConfigurationID.h"
@@ -340,7 +335,7 @@ inline void art::ArtdaqOutput::send_init_message()
 	// ELF: 6/11/2019: This is being done so that if the receiver is a newer version of art/ROOT, it can still understand our version.
 	TList infos;
 	std::vector<std::string> classNames{"std::map<art::BranchKey,art::BranchDescription>", "std::map<const art::Hash<2>,art::ProcessHistory>", "art::ParentageMap",
-	                                    "art::History", "art::BranchKey", "art::ProductProvenance", "art::RunAuxiliary", "art::SubRunAuxiliary", "art::EventAuxiliary"};
+	                                    "art::BranchKey", "art::ProductProvenance", "art::RunAuxiliary", "art::SubRunAuxiliary", "art::EventAuxiliary"};
 	for (auto& className : classNames)
 	{
 		TClass* class_ptr = TClass::GetClass(className.c_str());
@@ -572,12 +567,6 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	{
 		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::EventAuxiliary!";
-	}
-	static TClass* history_class = TClass::GetClass("art::History");
-	if (history_class == nullptr)
-	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
-		                                                         "Could not get TClass for art::History!";
 	}
 
 	// Subrun number starts at 1
