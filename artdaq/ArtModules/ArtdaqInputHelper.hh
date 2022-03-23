@@ -369,7 +369,12 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 				if (ProcessHistoryRegistry::get(hist, thisProcessHistory))
 				{
 					for (auto& conf : thisProcessHistory)
-						fake_process_history.push_back(conf);
+					{
+						if (auto e = fake_process_history.end();
+							std::find(fake_process_history.begin(), e, conf) == e) {
+							fake_process_history.push_back(conf);
+						}
+					}
 				}
 			}
 			art::ProcessHistoryMap fake_process_history_map;
