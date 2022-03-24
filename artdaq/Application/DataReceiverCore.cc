@@ -57,10 +57,14 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		art_pset.erase("daq");
 	}
 
-	auto art_source_pset = art_pset.get<fhicl::ParameterSet>("source");
-	art_source_pset.put<fhicl::ParameterSet>("metrics", metric_pset);
-	art_pset.erase("source");
-	art_pset.put<fhicl::ParameterSet>("source", art_source_pset);
+	// Add the "metrics" block 
+	auto art_services_pset = art_pset.get<fhicl::ParameterSet>("services");
+	auto art_services_ArtdaqSharedMemoryServiceInterface_pset = art_services_pset.get<fhicl::ParameterSet>("ArtdaqSharedMemoryServiceInterface");
+	art_services_ArtdaqSharedMemoryServiceInterface_pset.put<fhicl::ParameterSet>("metrics", metric_pset);
+	art_services_pset.erase("ArtdaqSharedMemoryServiceInterface");
+	art_services_pset.put<fhicl::ParameterSet>("ArtdaqSharedMemoryServiceInterface", art_services_ArtdaqSharedMemoryServiceInterface_pset);
+	art_pset.erase("services");
+	art_pset.put<fhicl::ParameterSet>("services", art_services_pset);
 
 	fhicl::ParameterSet data_tmp = data_pset;
 	if (data_pset.has_key("expected_events_per_bunch"))
