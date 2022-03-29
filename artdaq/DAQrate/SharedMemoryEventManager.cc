@@ -1278,7 +1278,11 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				{
 					released_incomplete_events_[hdr->sequence_id] -= GetFragmentCountInBuffer(buf);
 				}
-				TLOG(TLVL_WARNING) << "Active event " << hdr->sequence_id << " is stale. Scheduling release of incomplete event (missing " << released_incomplete_events_[hdr->sequence_id] << " Fragments) to art.";
+				
+				TLOG(TLVL_WARNING) << "Event " << hdr->sequence_id 
+					<< " was opened " << TimeUtils::GetElapsedTime(event_timing_[buf]) << " s ago" 
+					<< " and has timed out (missing " << released_incomplete_events_[hdr->sequence_id] << " Fragments)."
+					<< "Scheduling release to art.";
 			}
 		}
 	}
