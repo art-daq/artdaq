@@ -27,16 +27,16 @@
 #include <iterator>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
-#define TLVL_ADDFRAGMENT TLVL_TRACE + 10
-#define TLVL_CHECKSTOP TLVL_TRACE + 11
-#define TLVL_WAITFORBUFFERREADY TLVL_TRACE + 15
-#define TLVL_GETBUFFERSTATS TLVL_TRACE + 16
-#define TLVL_CHECKDATABUFFER TLVL_TRACE + 17
-#define TLVL_APPLYREQUESTS TLVL_TRACE + 9
-#define TLVL_APPLYREQUESTS_VERBOSE TLVL_TRACE + 23
-#define TLVL_SENDEMPTYFRAGMENTS TLVL_TRACE + 19
-#define TLVL_CHECKWINDOWS TLVL_TRACE + 14
-#define TLVL_EMPTYFRAGMENT TLVL_TRACE + 22
+#define TLVL_ADDFRAGMENT 32
+#define TLVL_CHECKSTOP 33
+#define TLVL_WAITFORBUFFERREADY 34
+#define TLVL_GETBUFFERSTATS 35
+#define TLVL_CHECKDATABUFFER 36
+#define TLVL_APPLYREQUESTS 37
+#define TLVL_APPLYREQUESTS_VERBOSE 38
+#define TLVL_SENDEMPTYFRAGMENTS 39
+#define TLVL_CHECKWINDOWS 40
+#define TLVL_EMPTYFRAGMENT 41
 
 artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     : next_sequence_id_(1)
@@ -59,7 +59,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 {
 	auto fragment_ids = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
 
-	TLOG(TLVL_TRACE) << "artdaq::FragmentBuffer::FragmentBuffer(ps)";
+	TLOG(TLVL_DEBUG + 33) << "artdaq::FragmentBuffer::FragmentBuffer(ps)";
 	int fragment_id = ps.get<int>("fragment_id", -99);
 
 	if (fragment_id != -99)
@@ -111,7 +111,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 		TLOG(TLVL_WARNING) << "Request Mode was requested as " << modeString << ", but is being set to Ignored because \"receive_requests\" was not set to true";
 		mode_ = RequestMode::Ignored;
 	}
-	TLOG(TLVL_DEBUG) << "Request mode is " << printMode_();
+	TLOG(TLVL_DEBUG + 32) << "Request mode is " << printMode_();
 }
 
 artdaq::FragmentBuffer::~FragmentBuffer()
@@ -222,7 +222,7 @@ bool artdaq::FragmentBuffer::check_stop()
 	if (requestBuffer_ != nullptr)
 	{
 		// check_stop returns true if the CFG should stop. We should wait for the Request Buffer to report Request Receiver stopped before stopping.
-		TLOG(TLVL_DEBUG) << "should_stop is true, requestBuffer_->isRunning() is " << std::boolalpha << requestBuffer_->isRunning();
+		TLOG(TLVL_DEBUG + 32) << "should_stop is true, requestBuffer_->isRunning() is " << std::boolalpha << requestBuffer_->isRunning();
 		if (!requestBuffer_->isRunning())
 		{
 			return true;
@@ -277,7 +277,7 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 		{
 			if (should_stop_.load())
 			{
-				TLOG(TLVL_DEBUG) << "Run ended while waiting for buffer to shrink!";
+				TLOG(TLVL_DEBUG + 32) << "Run ended while waiting for buffer to shrink!";
 				getDataBufferStats(id);
 				dataCondition_.notify_all();
 				return false;
@@ -294,7 +294,7 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 					                   << ", frags=" << dataBuffer->DataBufferDepthFragments << "/" << maxDataBufferDepthFragments_
 					                   << ", szB=" << dataBuffer->DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")"
 					                   << ", timestamps=" << dataBuffer->DataBuffer.front()->timestamp() << "-" << dataBuffer->DataBuffer.back()->timestamp();
-					TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
+					TLOG(TLVL_DEBUG + 33) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
 				}
 				first = false;
 			}
@@ -598,7 +598,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 		// If the dataBuffer has size 0, then windowClosed will be false
 		if (!windowClosed || (dataBuffer->DataBufferDepthFragments > 0 && dataBuffer->DataBuffer.front()->timestamp() > min))
 		{
-			TLOG(TLVL_DEBUG) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
+			TLOG(TLVL_DEBUG + 32) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
 			                 << " (requestWindowRange=[" << min << "," << max << "], "
 			                 << "buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
 			                 << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "} (SeqID " << seq << ")";

@@ -669,14 +669,14 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	// Make sure that the shared memory is connected
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 
-	TLOG(TLVL_DEBUG) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
+	TLOG(TLVL_DEBUG + 32) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
 
 	// fetch the firstLoggerRank and fileNameSubstitutions (if provided) for use in
 	// substituting keywords in the filename pattern
 	int firstLoggerRank = config.firstLoggerRank();
 	std::vector<Config::FileNameSubstitution> subs;
 	config.fileNameSubstitutions(subs);
-	TLOG(TLVL_TRACE) << __func__ << ": firstLoggerRank=" << firstLoggerRank
+	TLOG(TLVL_DEBUG + 33) << __func__ << ": firstLoggerRank=" << firstLoggerRank
 	                 << ", numberOfSubstitutionsProvided=" << subs.size();
 
 	// initialization
@@ -690,49 +690,49 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 		zeroBasedRelativeRank -= firstLoggerRank;
 		oneBasedRelativeRank -= firstLoggerRank;
 	}
-	TLOG(TLVL_TRACE) << __func__ << ": my_rank=" << my_rank << ", zeroBasedRelativeRank=" << zeroBasedRelativeRank
+	TLOG(TLVL_DEBUG + 33) << __func__ << ": my_rank=" << my_rank << ", zeroBasedRelativeRank=" << zeroBasedRelativeRank
 	                 << ", oneBasedRelativeRank=" << oneBasedRelativeRank;
 
 	// if the "ZeroBasedRelativeRank" keyword was specified in the filename pattern,
 	// perform the substitution
 	searchString = "${ZeroBasedRelativeRank}";
 	targetLocation = modifiedPattern.find(searchString);
-	TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	while (targetLocation != std::string::npos)
 	{
 		std::ostringstream oss;
 		oss << zeroBasedRelativeRank;
 		modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
 		targetLocation = modifiedPattern.find(searchString);
-		TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
 
 	// if the "OneBasedRelativeRank" keyword was specified in the filename pattern,
 	// perform the substitution
 	searchString = "${OneBasedRelativeRank}";
 	targetLocation = modifiedPattern.find(searchString);
-	TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	while (targetLocation != std::string::npos)
 	{
 		std::ostringstream oss;
 		oss << oneBasedRelativeRank;
 		modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
 		targetLocation = modifiedPattern.find(searchString);
-		TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
 
 	// if the "Rank" keyword was specified in the filename pattern,
 	// perform the substitution
 	searchString = "${Rank}";
 	targetLocation = modifiedPattern.find(searchString);
-	TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	while (targetLocation != std::string::npos)
 	{
 		std::ostringstream oss;
 		oss << my_rank;
 		modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
 		targetLocation = modifiedPattern.find(searchString);
-		TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
 
 	// if one or more free-form substitutions were provided, we'll do them here
@@ -750,35 +750,35 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 				break;
 			}
 		}
-		TLOG(TLVL_TRACE) << __func__ << ": app_name=" << artdaq::Globals::app_name_ << ", newString=" << newString;
+		TLOG(TLVL_DEBUG + 33) << __func__ << ": app_name=" << artdaq::Globals::app_name_ << ", newString=" << newString;
 		if (newString != BLAH)
 		{
 			// first, add the expected surrounding text, and search for that
 			searchString = "${" + sub.targetString() + "}";
 			targetLocation = modifiedPattern.find(searchString);
-			TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+			TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			while (targetLocation != std::string::npos)
 			{
 				modifiedPattern.replace(targetLocation, searchString.length(), newString);
 				targetLocation = modifiedPattern.find(searchString);
-				TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+				TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			}
 
 			// then, search for the provided string, verbatim, in case the user specified
 			// the enclosing text in the configuration document
 			searchString = sub.targetString();
 			targetLocation = modifiedPattern.find(searchString);
-			TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+			TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			while (targetLocation != std::string::npos)
 			{
 				modifiedPattern.replace(targetLocation, searchString.length(), newString);
 				targetLocation = modifiedPattern.find(searchString);
-				TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+				TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			}
 		}
 	}
 
-	TLOG(TLVL_DEBUG) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
+	TLOG(TLVL_DEBUG + 32) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
 	return modifiedPattern;
 }
 

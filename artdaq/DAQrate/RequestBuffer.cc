@@ -30,11 +30,11 @@ void artdaq::RequestBuffer::push(artdaq::Fragment::sequence_id_t seq, artdaq::Fr
 	else if (!requests_.count(seq))
 	{
 		int delta = seq - highest_seen_request_;
-		TLOG(11) << "Received request for sequence ID " << seq
+		TLOG(TLVL_DEBUG + 36) << "Received request for sequence ID " << seq
 		         << " and timestamp " << ts << " (delta: " << delta << ")";
 		if (delta <= 0 || out_of_order_requests_.count(seq))
 		{
-			TLOG(11) << "Already serviced this request ( sequence ID " << seq << ")! Ignoring...";
+			TLOG(TLVL_DEBUG + 36) << "Already serviced this request ( sequence ID " << seq << ")! Ignoring...";
 		}
 		else
 		{
@@ -89,13 +89,13 @@ std::pair<artdaq::Fragment::sequence_id_t, artdaq::Fragment::timestamp_t> artdaq
 
 void artdaq::RequestBuffer::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)
 {
-	TLOG(10) << "RemoveRequest: Removing request for id " << reqID;
+	TLOG(TLVL_DEBUG + 35) << "RemoveRequest: Removing request for id " << reqID;
 	std::lock_guard<std::mutex> lk(request_mutex_);
 	requests_.erase(reqID);
 
 	if (reqID > highest_seen_request_)
 	{
-		TLOG(10) << "RemoveRequest: out_of_order_requests_.size() == " << out_of_order_requests_.size() << ", reqID=" << reqID << ", expected=" << highest_seen_request_ + request_increment_;
+		TLOG(TLVL_DEBUG + 35) << "RemoveRequest: out_of_order_requests_.size() == " << out_of_order_requests_.size() << ", reqID=" << reqID << ", expected=" << highest_seen_request_ + request_increment_;
 		if (out_of_order_requests_.size() || reqID != highest_seen_request_ + request_increment_)
 		{
 			out_of_order_requests_.insert(reqID);
@@ -118,7 +118,7 @@ void artdaq::RequestBuffer::RemoveRequest(artdaq::Fragment::sequence_id_t reqID)
 		{
 			highest_seen_request_ = reqID;
 		}
-		TLOG(10) << "RemoveRequest: reqID=" << reqID << " Setting highest_seen_request_ to " << highest_seen_request_;
+		TLOG(TLVL_DEBUG + 35) << "RemoveRequest: reqID=" << reqID << " Setting highest_seen_request_ to " << highest_seen_request_;
 	}
 	if (metricMan && request_timing_.count(reqID))
 	{

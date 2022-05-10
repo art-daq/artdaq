@@ -50,7 +50,7 @@ artdaq::RequestReceiver::RequestReceiver(const fhicl::ParameterSet& ps, std::sha
     , end_of_run_timeout_ms_(ps.get<size_t>("end_of_run_quiet_timeout_ms", 1000))
     , requests_(output_buffer)
 {
-	TLOG(TLVL_DEBUG) << "RequestReceiver CONSTRUCTOR ps: " << ps.to_string();
+	TLOG(TLVL_DEBUG + 32) << "RequestReceiver CONSTRUCTOR ps: " << ps.to_string();
 	if (receive_requests_)
 	{
 		setupRequestListener();
@@ -130,7 +130,7 @@ void artdaq::RequestReceiver::stopRequestReception(bool force)
 	should_stop_ = true;
 	if (running_)
 	{
-		TLOG(TLVL_DEBUG) << "Joining requestThread";
+		TLOG(TLVL_DEBUG + 32) << "Joining requestThread";
 		try
 		{
 			if (requestThread_.joinable())
@@ -204,7 +204,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 	requests_->setRunning(true);
 	while (!should_stop_)
 	{
-		TLOG(16) << "receiveRequestsLoop: Polling Request socket for new requests";
+		TLOG(TLVL_DEBUG + 35) << "receiveRequestsLoop: Polling Request socket for new requests";
 
 		if (request_socket_ == -1)
 		{
@@ -232,7 +232,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 			continue;
 		}
 
-		TLOG(11) << "Received packet on Request channel";
+		TLOG(TLVL_DEBUG + 34) << "Received packet on Request channel";
 		std::vector<uint8_t> buffer(MAX_REQUEST_MESSAGE_SIZE);
 		struct sockaddr_in from;
 		socklen_t len = sizeof(from);
@@ -246,7 +246,7 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 		}
 
 		auto hdr_buffer = reinterpret_cast<artdaq::detail::RequestHeader*>(&buffer[0]);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-		TLOG(11) << "Request header word: 0x" << std::hex << hdr_buffer->header << std::dec << ", packet_count: " << hdr_buffer->packet_count << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port << ", run number: " << hdr_buffer->run_number;
+		TLOG(TLVL_DEBUG + 34) << "Request header word: 0x" << std::hex << hdr_buffer->header << std::dec << ", packet_count: " << hdr_buffer->packet_count << " from rank " << hdr_buffer->rank << ", " << inet_ntoa(from.sin_addr) << ":" << from.sin_port << ", run number: " << hdr_buffer->run_number;
 		if (!hdr_buffer->isValid())
 		{
 			continue;
@@ -280,12 +280,12 @@ void artdaq::RequestReceiver::receiveRequestsLoop()
 
 		for (auto& buffer : pkt_buffer)
 		{
-			TLOG(20) << "Request Packet: hdr=" << /*std::dec <<*/ buffer.header << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
+			TLOG(TLVL_DEBUG + 36) << "Request Packet: hdr=" << /*std::dec <<*/ buffer.header << ", seq=" << buffer.sequence_id << ", ts=" << buffer.timestamp;
 			if (!buffer.isValid()) continue;
 			requests_->push(buffer.sequence_id, buffer.timestamp);
 		}
 	}
-	TLOG(TLVL_DEBUG) << "Ending Request Thread";
+	TLOG(TLVL_DEBUG + 32) << "Ending Request Thread";
 	running_ = false;
 	requests_->setRunning(false);
 }

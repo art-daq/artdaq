@@ -508,7 +508,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	checker.reportMissingDictionaries();
 
 	createDatabaseTables();
-	TLOG(TLVL_DEBUG + 0) << "RootDAQOutFile ctor complete";
+	TLOG(TLVL_DEBUG + 32) << "RootDAQOutFile ctor complete";
 }
 
 art::RootDAQOutFile::~RootDAQOutFile()
@@ -517,16 +517,16 @@ art::RootDAQOutFile::~RootDAQOutFile()
 	int sts = sysinfo(&info);
 	auto free_percent = static_cast<unsigned>(info.freeram * 100 / info.totalram);
 	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);                // round down (1024.9 => 1024 MB)
-	TRACE(TLVL_DEBUG + 0, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u",  // NOLINT
+	TRACE(TLVL_DEBUG + 32, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u",  // NOLINT
 	      free_percent, static_cast<float>(info.freeram * info.mem_unit / (1024 * 1024.0)),
 	      free_MB, static_cast<float>(info.bufferram * info.mem_unit / (1024 * 1024 * 1024.0)), info.mem_unit);
 	if (free_percent < freePercent_ || free_MB < freeMB_)
 	{
-		TLOG(TLVL_DEBUG + 0) << "RootDAQOutFile Flush/DONTNEED";
+		TLOG(TLVL_DEBUG + 32) << "RootDAQOutFile Flush/DONTNEED";
 		filePtr_->Flush();
 		sts = posix_fadvise(filePtr_->GetFd(), 0, 0 /*len,0=all*/, POSIX_FADV_DONTNEED);
 	}
-	TLOG(TLVL_DEBUG + 0) << "~RootDAQOutFile complete sts=" << sts;
+	TLOG(TLVL_DEBUG + 32) << "~RootDAQOutFile complete sts=" << sts;
 }
 
 void art::RootDAQOutFile::createDatabaseTables()
@@ -673,7 +673,7 @@ bool RootDAQOutFile::requestsToCloseFile()
 void RootDAQOutFile::writeOne(EventPrincipal const& e)
 {
 	std::lock_guard sentry{mutex_};
-	TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeOne";
+	TLOG(TLVL_DEBUG + 33) << "Start of RootDAQOutFile::writeOne";
 	// Auxiliary branch.
 	// Note: pEventAux_ must be set before calling fillBranches
 	// since it gets written out in that routine.
@@ -709,7 +709,7 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 	// Add event to index
 	fileIndex_.addEntry(pEventAux_->eventID(), fp_.eventEntryNumber());
 	fp_.update_event();
-	TLOG(TLVL_TRACE) << "End of RootDAQOutFile::writeOne";
+	TLOG(TLVL_DEBUG + 33) << "End of RootDAQOutFile::writeOne";
 }
 
 void RootDAQOutFile::writeSubRun(SubRunPrincipal const& sr)
@@ -978,17 +978,17 @@ void RootDAQOutFile::writeResults(ResultsPrincipal& resp)
 
 void RootDAQOutFile::writeTTrees()
 {
-	TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::writeTTrees";
+	TLOG(TLVL_DEBUG + 33) << "Start of RootDAQOutFile::writeTTrees";
 	std::lock_guard sentry{mutex_};
 	RootOutputTree::writeTTree(metaDataTree_);
-	TLOG(TLVL_TRACE) << "RootDAQOutFile::writeTTrees after writing metaDataTree_";
+	TLOG(TLVL_DEBUG + 33) << "RootDAQOutFile::writeTTrees after writing metaDataTree_";
 	RootOutputTree::writeTTree(fileIndexTree_);
-	TLOG(TLVL_TRACE) << "RootDAQOutFile::writeTTrees after writing fileIndexTree_";
+	TLOG(TLVL_DEBUG + 33) << "RootDAQOutFile::writeTTrees after writing fileIndexTree_";
 	RootOutputTree::writeTTree(parentageTree_);
-	TLOG(TLVL_TRACE) << "RootDAQOutFile::writeTTrees after writing parentageTree_";
+	TLOG(TLVL_DEBUG + 33) << "RootDAQOutFile::writeTTrees after writing parentageTree_";
 	for_each_branch_type(
 	    [this](BranchType const bt) { treePointers_[bt]->writeTree(); });
-	TLOG(TLVL_TRACE) << "End of RootDAQOutFile::writeTTrees";
+	TLOG(TLVL_DEBUG + 33) << "End of RootDAQOutFile::writeTTrees";
 }
 
 void RootDAQOutFile::setSubRunAuxiliaryRangeSetID(RangeSet const& ranges)
@@ -1032,7 +1032,7 @@ template<BranchType BT>
 void RootDAQOutFile::fillBranches(Principal const& principal,
                                   vector<ProductProvenance>* vpp)
 {
-	TLOG(TLVL_TRACE) << "Start of RootDAQOutFile::fillBranches";
+	TLOG(TLVL_DEBUG + 33) << "Start of RootDAQOutFile::fillBranches";
 	std::lock_guard sentry{mutex_};
 	bool const fastCloning = ((BT == InEvent) && wasFastCloned_);
 	map<unsigned, unsigned> checksumToIndex;
@@ -1178,11 +1178,11 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 		}
 	}
 
-	TLOG(TLVL_TRACE) << "RootDAQOutFile::fillBranches before fillTree call";
+	TLOG(TLVL_DEBUG + 33) << "RootDAQOutFile::fillBranches before fillTree call";
 	treePointers_[BT]->fillTree();
-	TLOG(TLVL_TRACE) << "RootDAQOutFile::fillBranches after fillTree call";
+	TLOG(TLVL_DEBUG + 33) << "RootDAQOutFile::fillBranches after fillTree call";
 	vpp->clear();
-	TLOG(TLVL_TRACE) << "End of RootDAQOutFile::fillBranches";
+	TLOG(TLVL_DEBUG + 33) << "End of RootDAQOutFile::fillBranches";
 }
 
 }  // namespace art
