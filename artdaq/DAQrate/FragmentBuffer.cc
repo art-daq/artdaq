@@ -50,6 +50,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     , sendMissingFragments_(ps.get<bool>("send_missing_request_fragments", true))
     , missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
     , window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
+    , error_on_empty_(ps.get<bool>("error_on_empty_fragment", false))
     , circularDataBufferMode_(ps.get<bool>("circular_buffer_mode", false))
     , maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
     , maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
@@ -175,8 +176,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 		std::lock_guard<std::mutex> dlk(dataBuffer->DataBufferMutex);
 		switch (mode_)
 		{
-			case RequestMode::Single:
-			{
+			case RequestMode::Single: {
 				auto dataIter = type_it->second.rbegin();
 				TLOG(TLVL_ADDFRAGMENT) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 				dataBuffer->DataBuffer.clear();
@@ -586,12 +586,12 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 
 		// In the spirit of NOvA's MegaPool: (RS = Request start (min), RE = Request End (max))
 		//  --- | Buffer Start | --- | Buffer End | ---
-		//1. RS RE |           |     |            |
-		//2. RS |              |  RE |            |
-		//3. RS |              |     |            | RE
-		//4.    |              | RS RE |          |
-		//5.    |              | RS  |            | RE
-		//6.    |              |     |            | RS RE
+		// 1. RS RE |           |     |            |
+		// 2. RS |              |  RE |            |
+		// 3. RS |              |     |            | RE
+		// 4.    |              | RS RE |          |
+		// 5.    |              | RS  |            | RE
+		// 6.    |              |     |            | RS RE
 		//
 		// If RE (or RS) is after the end of the buffer, we wait for window_close_timeout_us_. If we're here, then that means that windowClosed is false, and the missing_data flag should be set.
 		// If RS (or RE) is before the start of the buffer, then missing_data should be set to true, as data is assumed to arrive in the buffer in timestamp order
@@ -632,7 +632,9 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 				continue;
 			}
 			if (fragT > max || (fragT == max && windowWidth_ > 0))
-			{ break; }
+			{
+				break;
+			}
 
 			TLOG(TLVL_APPLYREQUESTS_VERBOSE) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container (SeqID " << seq << ")";
 			if (uniqueWindows_)
@@ -665,7 +667,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 		}
 		else
 		{
-			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: No Fragments to add (SeqID " << seq << ")";
+			TLOG(error_on_empty_ ? TLVL_ERROR : TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: No Fragments match request (SeqID " << seq << ", window " << min << " - " << max << ")";
 		}
 
 		dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
