@@ -20,18 +20,18 @@ old_style_config_vars
 
 #
 product				version			optional
-art_root_io				v1_10_00	s115
+art_root_io				v1_10_01	s116
 art_root_io				v1_09_00	s114
 art_root_io				v1_08_03	s112
 art_root_io				v1_05_03	s110
-artdaq_core             v3_08_02
+artdaq_core             v3_08_04
 artdaq_utilities		v1_07_02
 xmlrpc_c				v1_51_06
 swig					v4_0_2		-	optional
 nodejs					v10_15_0	-	optional
-artdaq_mfextensions		v1_07_01	-	optional
-artdaq_epics_plugin		v1_04_01	-	optional
-artdaq_pcp_mmv_plugin	v1_02_01	-	optional
+artdaq_mfextensions		v1_07_02	-	optional
+artdaq_epics_plugin		v1_04_02	-	optional
+artdaq_pcp_mmv_plugin	v1_02_02	-	optional
 cetmodules				v2_26_00		-	only_for_build
 end_product_list
 
@@ -39,12 +39,12 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		art_root_io	artdaq_core		artdaq_utilities	xmlrpc_c	artdaq_mfextensions	artdaq_epics_plugin	artdaq_pcp_mmv_plugin	swig		nodejs
-c7:s115:debug	c7:debug	c7:s115:debug	c7:s115:debug		c7:debug	c7:s115:debug		c7:s115:debug		c7:s115:debug			c7:debug	-nq-
-c7:s115:prof	c7:prof		c7:s115:prof	c7:s115:prof		c7:prof		c7:s115:prof		c7:s115:prof		c7:s115:prof			c7:prof		-nq-
-e20:s115:debug	e20:debug	e20:s115:debug	e20:s115:debug		e20:debug	e20:s115:debug		e20:s115:debug		e20:s115:debug			e20:debug	-nq-
-e20:s115:prof	e20:prof	e20:s115:prof	e20:s115:prof		e20:prof	e20:s115:prof		e20:s115:prof		e20:s115:prof			e20:prof	-nq-
-e19:s115:debug	e19:debug	e19:s115:debug	e19:s115:debug		e19:debug	e19:s115:debug		e19:s115:debug		e19:s115:debug			e19:debug	-nq-
-e19:s115:prof	e19:prof	e19:s115:prof	e19:s115:prof		e19:prof	e19:s115:prof		e19:s115:prof		e19:s115:prof			e19:prof	-nq-
+c7:s116:debug	c7:debug	c7:s116:debug	c7:s116:debug		c7:debug	c7:s116:debug		c7:s116:debug		c7:s116:debug			c7:debug	-nq-
+c7:s116:prof	c7:prof		c7:s116:prof	c7:s116:prof		c7:prof		c7:s116:prof		c7:s116:prof		c7:s116:prof			c7:prof		-nq-
+e20:s116:debug	e20:debug	e20:s116:debug	e20:s116:debug		e20:debug	e20:s116:debug		e20:s116:debug		e20:s116:debug			e20:debug	-nq-
+e20:s116:prof	e20:prof	e20:s116:prof	e20:s116:prof		e20:prof	e20:s116:prof		e20:s116:prof		e20:s116:prof			e20:prof	-nq-
+e19:s116:debug	e19:debug	e19:s116:debug	e19:s116:debug		e19:debug	e19:s116:debug		e19:s116:debug		e19:s116:debug			e19:debug	-nq-
+e19:s116:prof	e19:prof	e19:s116:prof	e19:s116:prof		e19:prof	e19:s116:prof		e19:s116:prof		e19:s116:prof			e19:prof	-nq-
 
 c7:s114:debug	c7:debug	c7:s114:debug	c7:s114:debug		c7:debug	c7:s114:debug		c7:s114:debug		c7:s114:debug			c7:debug	-nq-	
 c7:s114:prof	c7:prof		c7:s114:prof	c7:s114:prof		c7:prof		c7:s114:prof		c7:s114:prof		c7:s114:prof			c7:prof		-nq-	
