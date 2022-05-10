@@ -136,17 +136,17 @@ int artdaq::FragmentReceiverManager::get_next_source_() const
 		auto iter = ready_sources.find(last_source_);
 		if (iter == ready_sources.end() || ++iter == ready_sources.end())
 		{
-			TLOG(TLVL_DEBUG + 35 << "get_next_source returning " << *ready_sources.begin();
+			TLOG(TLVL_DEBUG + 35) << "get_next_source returning " << *ready_sources.begin();
 			last_source_ = *ready_sources.begin();
 			return *ready_sources.begin();
 		}
 
-		TLOG(TLVL_DEBUG + 35 << "get_next_source returning " << *iter;
+		TLOG(TLVL_DEBUG + 35) << "get_next_source returning " << *iter;
 		last_source_ = *iter;
 		return *iter;
 	}
 
-	TLOG(TLVL_DEBUG + 35 << "get_next_source returning -1";
+	TLOG(TLVL_DEBUG + 35) << "get_next_source returning -1";
 	return -1;
 }
 
@@ -253,7 +253,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 {
 	while (!stop_requested_ && (enabled_sources_.count(source_rank) != 0u))
 	{
-		TLOG(TLVL_DEBUG + 36 << "runReceiver_ " << source_rank << ": Begin loop";
+		TLOG(TLVL_DEBUG + 36) << "runReceiver_ " << source_rank << ": Begin loop";
 		auto is_suppressed = suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount();
 		while (!stop_requested_ && is_suppressed)
 		{
@@ -283,16 +283,16 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		}
 
 		auto start_time = std::chrono::steady_clock::now();
-		TLOG(TLVL_DEBUG + 36 << "runReceiver_: Calling receiveFragment";
+		TLOG(TLVL_DEBUG + 36) << "runReceiver_: Calling receiveFragment";
 		auto fragment = std::make_unique<Fragment>();
 #if 0
 		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
-		TLOG(TLVL_DEBUG + 36 << "runReceiver_: Done with receiveFragment, ret=" << ret << " (should be " << source_rank << ")";
+		TLOG(TLVL_DEBUG + 36) << "runReceiver_: Done with receiveFragment, ret=" << ret << " (should be " << source_rank << ")";
 		if (ret != source_rank) continue; // Receive timeout or other oddness
 #else
 		artdaq::detail::RawFragmentHeader hdr;
 		auto ret1 = source_plugins_[source_rank]->receiveFragmentHeader(hdr, receive_timeout_);
-		TLOG(TLVL_DEBUG + 36 << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")";
+		TLOG(TLVL_DEBUG + 36) << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")";
 
 		if (ret1 != source_rank)
 		{
