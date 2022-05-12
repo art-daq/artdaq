@@ -32,7 +32,7 @@ nodejs					v10_15_0	-	optional
 artdaq_mfextensions		v1_07_02	-	optional
 artdaq_epics_plugin		v1_04_02	-	optional
 artdaq_pcp_mmv_plugin	v1_02_02	-	optional
-cetmodules				v2_26_00		-	only_for_build
+cetmodules				v3_08_00		-	only_for_build
 end_product_list
 
 # See https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers for information about the qualifiers used
