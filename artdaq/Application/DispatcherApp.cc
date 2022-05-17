@@ -146,7 +146,7 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 
 std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& info)
 {
-	TLOG(TLVL_DEBUG) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"";
+	TLOG(TLVL_DEBUG + 32) << "DispatcherApp::register_monitor called with argument \"" << info.to_string() << "\"";
 
 	if (Dispatcher_ptr_)
 	{
@@ -170,7 +170,7 @@ std::string artdaq::DispatcherApp::register_monitor(fhicl::ParameterSet const& i
 
 std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 {
-	TLOG(TLVL_DEBUG) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"";
+	TLOG(TLVL_DEBUG + 32) << "DispatcherApp::unregister_monitor called with argument \"" << label << "\"";
 
 	if (Dispatcher_ptr_)
 	{

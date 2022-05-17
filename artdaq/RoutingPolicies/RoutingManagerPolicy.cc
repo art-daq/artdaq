@@ -38,7 +38,7 @@ void artdaq::RoutingManagerPolicy::AddReceiverToken(int rank, unsigned new_slots
 		TLOG(TLVL_INFO) << "Adding rank " << rank << " to receivers list (initial tokens=" << new_slots_free << ")";
 		receiver_ranks_.insert(rank);
 	}
-	TLOG(10) << "AddReceiverToken BEGIN";
+	TLOG(TLVL_DEBUG + 35) << "AddReceiverToken BEGIN";
 	std::lock_guard<std::mutex> lk(tokens_mutex_);
 	if (new_slots_free == 1)
 	{
@@ -62,7 +62,7 @@ void artdaq::RoutingManagerPolicy::AddReceiverToken(int rank, unsigned new_slots
 	{
 		max_token_count_ = tokens_.size();
 	}
-	TLOG(10) << "AddReceiverToken END";
+	TLOG(TLVL_DEBUG + 35) << "AddReceiverToken END";
 }
 
 void artdaq::RoutingManagerPolicy::Reset()

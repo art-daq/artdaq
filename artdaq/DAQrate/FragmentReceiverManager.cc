@@ -18,7 +18,7 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
     , receive_timeout_(pset.get<size_t>("receive_timeout_usec", 100000))
     , last_source_(-1)
 {
-	TLOG(TLVL_DEBUG) << "Constructor";
+	TLOG(TLVL_DEBUG + 32) << "Constructor";
 	auto enabled_srcs = pset.get<std::vector<int>>("enabled_sources", std::vector<int>());
 	auto enabled_srcs_empty = enabled_srcs.empty();
 	if (enabled_srcs_empty)
@@ -76,14 +76,14 @@ artdaq::FragmentReceiverManager::FragmentReceiverManager(const fhicl::ParameterS
 
 artdaq::FragmentReceiverManager::~FragmentReceiverManager()
 {
-	TLOG(TLVL_DEBUG) << "Destructor";
-	TLOG(TLVL_DEBUG + 2) << "~FragmentReceiverManager: BEGIN: Setting stop_requested to true, frags=" << count() << ", bytes=" << byteCount();
+	TLOG(TLVL_DEBUG + 32) << "Destructor";
+	TLOG(TLVL_DEBUG + 34) << "~FragmentReceiverManager: BEGIN: Setting stop_requested to true, frags=" << count() << ", bytes=" << byteCount();
 	stop_requested_ = true;
 
-	TLOG(TLVL_DEBUG + 2) << "~FragmentReceiverManager: Notifying all threads";
+	TLOG(TLVL_DEBUG + 34) << "~FragmentReceiverManager: Notifying all threads";
 	output_cv_.notify_all();
 
-	TLOG(TLVL_DEBUG + 2) << "~FragmentReceiverManager: Joining all threads";
+	TLOG(TLVL_DEBUG + 34) << "~FragmentReceiverManager: Joining all threads";
 	for (auto& s : source_threads_)
 	{
 		auto& thread = s.second;
@@ -99,7 +99,7 @@ artdaq::FragmentReceiverManager::~FragmentReceiverManager()
 			// IGNORED
 		}
 	}
-	TLOG(TLVL_DEBUG + 2) << "~FragmentReceiverManager: DONE";
+	TLOG(TLVL_DEBUG + 34) << "~FragmentReceiverManager: DONE";
 }
 
 bool artdaq::FragmentReceiverManager::fragments_ready_() const
@@ -136,17 +136,17 @@ int artdaq::FragmentReceiverManager::get_next_source_() const
 		auto iter = ready_sources.find(last_source_);
 		if (iter == ready_sources.end() || ++iter == ready_sources.end())
 		{
-			TLOG(10) << "get_next_source returning " << *ready_sources.begin();
+			TLOG(TLVL_DEBUG + 35) << "get_next_source returning " << *ready_sources.begin();
 			last_source_ = *ready_sources.begin();
 			return *ready_sources.begin();
 		}
 
-		TLOG(10) << "get_next_source returning " << *iter;
+		TLOG(TLVL_DEBUG + 35) << "get_next_source returning " << *iter;
 		last_source_ = *iter;
 		return *iter;
 	}
 
-	TLOG(10) << "get_next_source returning -1";
+	TLOG(TLVL_DEBUG + 35) << "get_next_source returning -1";
 	return -1;
 }
 
@@ -179,7 +179,7 @@ void artdaq::FragmentReceiverManager::start_threads()
 
 artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, size_t timeout_usec)
 {
-	TLOG(TLVL_DEBUG + 2) << "recvFragment entered tmo=" << timeout_usec << " us";
+	TLOG(TLVL_DEBUG + 34) << "recvFragment entered tmo=" << timeout_usec << " us";
 
 	if (timeout_usec == 0)
 	{
@@ -189,7 +189,7 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 	auto ready = fragments_ready_();
 	size_t waited = 0;
 	auto wait_amount = timeout_usec / 1000 > 1000 ? timeout_usec / 1000 : 1000;
-	TLOG(TLVL_DEBUG + 2) << "recvFragment fragment_ready_=" << ready << " before wait";
+	TLOG(TLVL_DEBUG + 34) << "recvFragment fragment_ready_=" << ready << " before wait";
 	while (!ready && waited < timeout_usec)
 	{
 		{
@@ -203,10 +203,10 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 			break;
 		}
 	}
-	TLOG(TLVL_DEBUG + 2) << "recvFragment fragment_ready_=" << ready << " after waited=" << waited;
+	TLOG(TLVL_DEBUG + 34) << "recvFragment fragment_ready_=" << ready << " after waited=" << waited;
 	if (!ready)
 	{
-		TLOG(TLVL_DEBUG + 2) << "recvFragment: No fragments ready, returning empty";
+		TLOG(TLVL_DEBUG + 34) << "recvFragment: No fragments ready, returning empty";
 		rank = TransferInterface::RECV_TIMEOUT;
 		return std::unique_ptr<Fragment>{};
 	}
@@ -218,7 +218,7 @@ artdaq::FragmentPtr artdaq::FragmentReceiverManager::recvFragment(int& rank, siz
 
 	if (current_fragment != nullptr)
 	{
-		TLOG(TLVL_DEBUG + 2) << "recvFragment: Done  rank=" << rank << ", fragment size=" << std::to_string(current_fragment->size()) << " words, seqId=" << current_fragment->sequenceID();
+		TLOG(TLVL_DEBUG + 34) << "recvFragment: Done  rank=" << rank << ", fragment size=" << std::to_string(current_fragment->size()) << " words, seqId=" << current_fragment->sequenceID();
 	}
 	return current_fragment;
 }
@@ -253,11 +253,11 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 {
 	while (!stop_requested_ && (enabled_sources_.count(source_rank) != 0u))
 	{
-		TLOG(16) << "runReceiver_ " << source_rank << ": Begin loop";
+		TLOG(TLVL_DEBUG + 36) << "runReceiver_ " << source_rank << ": Begin loop";
 		auto is_suppressed = suppress_noisy_senders_ && recv_seq_count_.slotCount(source_rank) > suppression_threshold_ + recv_seq_count_.minCount();
 		while (!stop_requested_ && is_suppressed)
 		{
-			TLOG(TLVL_DEBUG + 3) << "runReceiver_: Suppressing receiver rank " << source_rank;
+			TLOG(TLVL_DEBUG + 37) << "runReceiver_: Suppressing receiver rank " << source_rank;
 			if (!is_suppressed)
 			{
 				input_cv_.notify_all();
@@ -277,22 +277,22 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 		if (fragment_store_[source_rank].GetEndOfData() <= recv_frag_count_.slotCount(source_rank) && !source_plugins_[source_rank]->isRunning())
 		{
-			TLOG(TLVL_DEBUG) << "runReceiver_: EndOfData conditions satisfied, ending receive loop";
+			TLOG(TLVL_DEBUG + 32) << "runReceiver_: EndOfData conditions satisfied, ending receive loop";
 			running_sources_[source_rank] = false;
 			return;
 		}
 
 		auto start_time = std::chrono::steady_clock::now();
-		TLOG(16) << "runReceiver_: Calling receiveFragment";
+		TLOG(TLVL_DEBUG + 36) << "runReceiver_: Calling receiveFragment";
 		auto fragment = std::make_unique<Fragment>();
 #if 0
 		auto ret = source_plugins_[source_rank]->receiveFragment(*fragment, receive_timeout_);
-		TLOG(16) << "runReceiver_: Done with receiveFragment, ret=" << ret << " (should be " << source_rank << ")";
+		TLOG(TLVL_DEBUG + 36) << "runReceiver_: Done with receiveFragment, ret=" << ret << " (should be " << source_rank << ")";
 		if (ret != source_rank) continue; // Receive timeout or other oddness
 #else
 		artdaq::detail::RawFragmentHeader hdr;
 		auto ret1 = source_plugins_[source_rank]->receiveFragmentHeader(hdr, receive_timeout_);
-		TLOG(16) << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")";
+		TLOG(TLVL_DEBUG + 36) << "runReceiver_: Done with receiveFragmentHeader, ret1=" << ret1 << " (should be " << source_rank << ")";
 
 		if (ret1 != source_rank)
 		{
@@ -311,12 +311,12 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 		if (fragment->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
-			TLOG(TLVL_TRACE) << "runReceiver_: EndOfData Fragment received!";
+			TLOG(TLVL_DEBUG + 33) << "runReceiver_: EndOfData Fragment received!";
 			fragment_store_[source_rank].SetEndOfData(*reinterpret_cast<size_t*>(fragment->dataBegin()));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 		}
 		else if (fragment->type() == artdaq::Fragment::DataFragmentType || fragment->type() == artdaq::Fragment::ContainerFragmentType || fragment->isUserFragmentType(fragment->type()))
 		{
-			TLOG(TLVL_TRACE) << "runReceiver_: Data Fragment received!";
+			TLOG(TLVL_DEBUG + 33) << "runReceiver_: Data Fragment received!";
 			recv_frag_count_.incSlot(source_rank);
 			recv_frag_size_.incSlot(source_rank, fragment->size() * sizeof(RawDataType));
 			recv_seq_count_.setSlot(source_rank, fragment->sequenceID());
@@ -332,7 +332,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 
 		if (metricMan && TimeUtils::GetElapsedTime(source_metric_send_time_[source_rank]) > 1)
 		{
-			TLOG(TLVL_DEBUG + 3) << "runReceiver_: Sending receive stats";
+			TLOG(TLVL_DEBUG + 37) << "runReceiver_: Sending receive stats";
 			metricMan->sendMetric("Data Receive Time From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].second, "s", 1, MetricMode::Accumulate);
 			metricMan->sendMetric("Data Receive Size From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].first, "B", 1, MetricMode::Accumulate);
 			metricMan->sendMetric("Data Receive Rate From Rank " + std::to_string(source_rank), source_metric_data_[source_rank].first / source_metric_data_[source_rank].second, "B/s", 1, MetricMode::Average);
@@ -343,7 +343,7 @@ void artdaq::FragmentReceiverManager::runReceiver_(int source_rank)
 		}
 
 		fragment_store_[source_rank].emplace_back(std::move(fragment));
-		TLOG(TLVL_TRACE) << "runReceiver_: There are now " << fragment_store_[source_rank].size() << " Fragments stored from this source";
+		TLOG(TLVL_DEBUG + 33) << "runReceiver_: There are now " << fragment_store_[source_rank].size() << " Fragments stored from this source";
 		input_cv_.notify_all();
 	}
 

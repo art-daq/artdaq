@@ -17,7 +17,6 @@
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
-#include "canvas/Persistency/Provenance/History.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
 #include "canvas/Persistency/Provenance/ProcessConfiguration.h"
 #include "canvas/Persistency/Provenance/ProcessConfigurationID.h"
@@ -62,23 +61,23 @@
 #include <string>
 #include <vector>
 
-#define TLVL_OPENFILE 16
-#define TLVL_CLOSEFILE 17
-#define TLVL_RESPONDTOCLOSEINPUTFILE 18
-#define TLVL_RESPONDTOCLOSEOUTPUTFILE 19
-#define TLVL_ENDJOB 20
-#define TLVL_SENDINIT 10
-#define TLVL_SENDINIT_VERBOSE1 32
-#define TLVL_SENDINIT_VERBOSE2 33
-#define TLVL_WRITEDATAPRODUCTS 11
-#define TLVL_WRITEDATAPRODUCTS_VERBOSE 34
-#define TLVL_WRITE 12
-#define TLVL_WRITERUN 13
-#define TLVL_WRITERUN_VERBOSE 37
-#define TLVL_WRITESUBRUN 14
-#define TLVL_WRITESUBRUN_VERBOSE 35
-#define TLVL_EXTRACTPRODUCTS 15
-#define TLVL_EXTRACTPRODUCTS_VERBOSE 36
+#define TLVL_OPENFILE 34
+#define TLVL_CLOSEFILE 35
+#define TLVL_RESPONDTOCLOSEINPUTFILE 36
+#define TLVL_RESPONDTOCLOSEOUTPUTFILE 37
+#define TLVL_ENDJOB 38
+#define TLVL_SENDINIT 39
+#define TLVL_SENDINIT_VERBOSE1 40
+#define TLVL_SENDINIT_VERBOSE2 41
+#define TLVL_WRITEDATAPRODUCTS 42
+#define TLVL_WRITEDATAPRODUCTS_VERBOSE 43
+#define TLVL_WRITE 44
+#define TLVL_WRITERUN 45
+#define TLVL_WRITERUN_VERBOSE 46
+#define TLVL_WRITESUBRUN 47
+#define TLVL_WRITESUBRUN_VERBOSE 48
+#define TLVL_EXTRACTPRODUCTS 49
+#define TLVL_EXTRACTPRODUCTS_VERBOSE 50
 
 namespace art {
 class ArtdaqOutput;
@@ -232,10 +231,9 @@ protected:
 	void extractProducts_(Principal const& principal);
 
 	/// <summary>
-	/// Send an init message downstream. Use the given History for initializing downstream art processes.
+	/// Send an init message downstream.
 	/// </summary>
-	/// <param name="history">History to use for downstream art processes</param>
-	void send_init_message(History const& history);
+        void send_init_message();
 
 	/// <summary>
 	/// Send the serialized art Event downstream. Artdaq output modules should define this function.
@@ -280,7 +278,7 @@ private:
 	}
 };
 
-inline void art::ArtdaqOutput::send_init_message(History const& history)
+inline void art::ArtdaqOutput::send_init_message()
 {
 	TLOG(TLVL_SENDINIT) << "Begin: ArtdaqOutput::send_init_message()";
 	//
@@ -320,13 +318,6 @@ inline void art::ArtdaqOutput::send_init_message(History const& history)
 	}
 	TLOG(TLVL_SENDINIT) << "parentage_map_class: " << static_cast<void*>(parentage_map_class);
 
-	static TClass* history_class = TClass::GetClass("art::History");
-	if (history_class == nullptr)
-	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::send_init_message(): "  // NOLINT(cert-err60-cpp)
-		                                                         "Could not get TClass for art::History!";
-	}
-
 	//
 	//  Construct and send the init message.
 	//
@@ -344,7 +335,7 @@ inline void art::ArtdaqOutput::send_init_message(History const& history)
 	// ELF: 6/11/2019: This is being done so that if the receiver is a newer version of art/ROOT, it can still understand our version.
 	TList infos;
 	std::vector<std::string> classNames{"std::map<art::BranchKey,art::BranchDescription>", "std::map<const art::Hash<2>,art::ProcessHistory>", "art::ParentageMap",
-	                                    "art::History", "art::BranchKey", "art::ProductProvenance", "art::RunAuxiliary", "art::SubRunAuxiliary", "art::EventAuxiliary"};
+	                                    "art::BranchKey", "art::ProductProvenance", "art::RunAuxiliary", "art::SubRunAuxiliary", "art::EventAuxiliary"};
 	for (auto& className : classNames)
 	{
 		TClass* class_ptr = TClass::GetClass(className.c_str());
@@ -422,10 +413,6 @@ inline void art::ArtdaqOutput::send_init_message(History const& history)
 	msg->WriteObjectAny(&parentageMap, parentage_map_class);
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Finished streaming ParentageRegistry.";
-
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Streaming History";
-	msg->WriteObjectAny(&history, history_class);
-	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Done streaming History";
 
 	TLOG(TLVL_SENDINIT) << "ArtdaqOutput::send_init_message(): Sending init message";
 	sendMessage(msg);
@@ -557,8 +544,8 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	TLOG(TLVL_WRITE) << "Begin: ArtdaqOutput::write(const EventPrincipal& ep)";
 	if (!initMsgSent_)
 	{
-		send_init_message(ep.history());
-		initMsgSent_ = true;
+                send_init_message();
+                initMsgSent_ = true;
 	}
 	//
 	//  Get root classes needed for I/O.
@@ -580,12 +567,6 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	{
 		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
 		                                                         "Could not get TClass for art::EventAuxiliary!";
-	}
-	static TClass* history_class = TClass::GetClass("art::History");
-	if (history_class == nullptr)
-	{
-		throw art::Exception(art::errors::DictionaryNotFound) << "ArtdaqOutput::write(const EventPrincipal& ep): "  // NOLINT(cert-err60-cpp)
-		                                                         "Could not get TClass for art::History!";
 	}
 
 	// Subrun number starts at 1
@@ -640,14 +621,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 		msg->WriteObjectAny(&ep.eventAux(), event_aux_class);
 		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming EventAuxiliary.";
 	}
-	//
-	//  Write History.
-	//
-	{
-		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Streaming History ...";
-		msg->WriteObjectAny(&ep.history(), history_class);
-		TLOG(TLVL_WRITE) << "ArtdaqOutput::write(const EventPrincipal& ep): Finished streaming History.";
-	}
+
 	//
 	//  Write data products.
 	//
@@ -677,7 +651,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
-		send_init_message(rp.history());
+                send_init_message();
 		initMsgSent_ = true;
 	}
 #if 0
@@ -732,7 +706,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "Begin: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
-		send_init_message(srp.history());
+                send_init_message();
 		initMsgSent_ = true;
 	}
 	//

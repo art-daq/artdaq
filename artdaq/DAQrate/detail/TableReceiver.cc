@@ -24,7 +24,7 @@ artdaq::TableReceiver::TableReceiver(const fhicl::ParameterSet& pset)
     , routing_timeout_ms_((pset.get<size_t>("routing_timeout_ms", 1000)))
     , highest_sequence_id_routed_(0)
 {
-	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
+	TLOG(TLVL_DEBUG + 32) << "Received pset: " << pset.to_string();
 
 	if (use_routing_manager_)
 	{
@@ -34,7 +34,7 @@ artdaq::TableReceiver::TableReceiver(const fhicl::ParameterSet& pset)
 
 artdaq::TableReceiver::~TableReceiver()
 {
-	TLOG(TLVL_DEBUG) << "Shutting down TableReceiver BEGIN";
+	TLOG(TLVL_DEBUG + 32) << "Shutting down TableReceiver BEGIN";
 	should_stop_ = true;
 	disconnectFromRoutingManager_();
 
@@ -51,7 +51,7 @@ artdaq::TableReceiver::~TableReceiver()
 		{  // IGNORED
 		}
 	}
-	TLOG(TLVL_DEBUG) << "Shutting down TableReceiver END.";
+	TLOG(TLVL_DEBUG + 32) << "Shutting down TableReceiver END.";
 }
 
 artdaq::TableReceiver::RoutingTable artdaq::TableReceiver::GetRoutingTable() const
@@ -107,7 +107,7 @@ void artdaq::TableReceiver::connectToRoutingManager_()
 		table_socket_ = TCPConnect(table_address_.c_str(), table_port_);
 		if (table_socket_ < 0)
 		{
-			TLOG(TLVL_TRACE) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Manager to open table listen socket";
+			TLOG(TLVL_DEBUG + 33) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Manager to open table listen socket";
 			usleep(100000);
 		}
 	}
@@ -154,15 +154,15 @@ void artdaq::TableReceiver::startTableReceiverThread_()
 
 bool artdaq::TableReceiver::receiveTableUpdate_()
 {
-	TLOG(TLVL_TRACE) << __func__ << ": Polling table socket for new routes (address:port = " << table_address_ << ":" << table_port_ << ")";
+	TLOG(TLVL_DEBUG + 33) << __func__ << ": Polling table socket for new routes (address:port = " << table_address_ << ":" << table_port_ << ")";
 	if (table_socket_ == -1)
 	{
-		TLOG(TLVL_DEBUG) << __func__ << ": Opening table socket";
+		TLOG(TLVL_DEBUG + 32) << __func__ << ": Opening table socket";
 		connectToRoutingManager_();
 	}
 	if (table_socket_ == -1)
 	{
-		TLOG(TLVL_DEBUG) << __func__ << ": The table socket was not opened successfully.";
+		TLOG(TLVL_DEBUG + 32) << __func__ << ": The table socket was not opened successfully.";
 		return false;
 	}
 
@@ -175,7 +175,7 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 	{
 		if (fd.revents & (POLLIN | POLLPRI))
 		{
-			TLOG(TLVL_DEBUG) << __func__ << ": Going to receive RoutingPacketHeader";
+			TLOG(TLVL_DEBUG + 32) << __func__ << ": Going to receive RoutingPacketHeader";
 			artdaq::detail::RoutingPacketHeader hdr;
 			ssize_t stss = recv(table_socket_, &hdr, sizeof(hdr), MSG_WAITALL);
 			if (stss != sizeof(hdr))
@@ -185,15 +185,15 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 				return false;
 			}
 
-			TLOG(TLVL_DEBUG) << "receiveTableUpdatesLoop_: Checking for valid header with nEntries=" << hdr.nEntries << " header=" << std::hex << hdr.header;
+			TLOG(TLVL_DEBUG + 32) << "receiveTableUpdatesLoop_: Checking for valid header with nEntries=" << hdr.nEntries << " header=" << std::hex << hdr.header;
 			if (hdr.header != ROUTING_MAGIC)
 			{
-				TLOG(TLVL_TRACE) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC.";
+				TLOG(TLVL_DEBUG + 33) << __func__ << ": non-RoutingPacket received. No ROUTING_MAGIC.";
 				return false;
 			}
 			if (hdr.nEntries == 0)
 			{
-				TLOG(TLVL_TRACE) << __func__ << ": Empty Routing Table update received.";
+				TLOG(TLVL_DEBUG + 33) << __func__ << ": Empty Routing Table update received.";
 				return false;
 			}
 
@@ -204,7 +204,7 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 			{
 				stss = read(table_socket_, reinterpret_cast<char*>(&buffer[0]) + sts, total - sts);
 				sts += stss;
-				TLOG(TLVL_DEBUG) << "Read " << stss << " bytes, total " << sts << " / " << total;
+				TLOG(TLVL_DEBUG + 32) << "Read " << stss << " bytes, total " << sts << " / " << total;
 				if (stss < 0)
 				{
 					TLOG(TLVL_ERROR) << "Error reading Table Data from Table socket, errno=" << errno << " (" << strerror(errno) << ")";
@@ -252,21 +252,21 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 							continue;
 						}
 						routing_table_[entry.sequence_id] = entry.destination_rank;
-						TLOG(TLVL_DEBUG) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
+						TLOG(TLVL_DEBUG + 32) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
 						                 << " -> Rank " << entry.destination_rank;
 					}
 				}
 
-				TLOG(TLVL_DEBUG) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
+				TLOG(TLVL_DEBUG + 32) << __func__ << ": There are now " << routing_table_.size() << " entries in the Routing Table";
 				if (!routing_table_.empty())
 				{
-					TLOG(TLVL_DEBUG) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
+					TLOG(TLVL_DEBUG + 32) << __func__ << ": Last routing table entry is seqID=" << routing_table_.rbegin()->first;
 				}
 
 				auto counter = 0;
 				for (auto& entry : routing_table_)
 				{
-					TLOG(45) << "Routing Table Entry" << counter << ": " << entry.first << " -> " << entry.second;
+					TLOG(TLVL_DEBUG + 40) << "Routing Table Entry" << counter << ": " << entry.first << " -> " << entry.second;
 					counter++;
 				}
 			}
@@ -277,7 +277,7 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 		}
 		else
 		{
-			TLOG(TLVL_DEBUG) << "Poll indicates socket closure. Disconnecting from Routing Manager";
+			TLOG(TLVL_DEBUG + 32) << "Poll indicates socket closure. Disconnecting from Routing Manager";
 			disconnectFromRoutingManager_();
 			return false;
 		}
@@ -291,7 +291,7 @@ void artdaq::TableReceiver::receiveTableUpdatesLoop_()
 	{
 		if (should_stop_)
 		{
-			TLOG(TLVL_DEBUG) << __func__ << ": should_stop is " << std::boolalpha << should_stop_ << ", stopping";
+			TLOG(TLVL_DEBUG + 32) << __func__ << ": should_stop is " << std::boolalpha << should_stop_ << ", stopping";
 			disconnectFromRoutingManager_();
 			return;
 		}
@@ -302,12 +302,12 @@ void artdaq::TableReceiver::receiveTableUpdatesLoop_()
 
 void artdaq::TableReceiver::sendTableUpdateRequest_(Fragment::sequence_id_t seq)
 {
-	TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ BEGIN";
+	TLOG(TLVL_DEBUG + 33) << "sendTableUpdateRequest_ BEGIN";
 	{
 		std::lock_guard<std::mutex> lck(routing_mutex_);
 		if (routing_table_.count(seq))
 		{
-			TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ END (no request sent): " << routing_table_.at(seq);
+			TLOG(TLVL_DEBUG + 33) << "sendTableUpdateRequest_ END (no request sent): " << routing_table_.at(seq);
 			return;
 		}
 	}
@@ -316,11 +316,11 @@ void artdaq::TableReceiver::sendTableUpdateRequest_(Fragment::sequence_id_t seq)
 		connectToRoutingManager_();
 	}
 
-	TLOG(TLVL_DEBUG) << "sendTableUpdateRequest_: Sending table update request for " << my_rank << ", sequence ID " << seq;
+	TLOG(TLVL_DEBUG + 32) << "sendTableUpdateRequest_: Sending table update request for " << my_rank << ", sequence ID " << seq;
 	detail::RoutingRequest pkt(my_rank, seq);
 	write(table_socket_, &pkt, sizeof(pkt));
 
-	TLOG(TLVL_TRACE) << "sendTableUpdateRequest_ END";
+	TLOG(TLVL_DEBUG + 33) << "sendTableUpdateRequest_ END";
 }
 
 size_t artdaq::TableReceiver::GetRoutingTableEntryCount() const
@@ -339,7 +339,7 @@ size_t artdaq::TableReceiver::GetRemainingRoutingTableEntries() const
 
 void artdaq::TableReceiver::RemoveRoutingTableEntry(Fragment::sequence_id_t seq)
 {
-	TLOG(15) << "RemoveRoutingTableEntry: Removing sequence ID " << seq << " from routing table.";
+	TLOG(TLVL_DEBUG + 35) << "RemoveRoutingTableEntry: Removing sequence ID " << seq << " from routing table.";
 	std::lock_guard<std::mutex> lck(routing_mutex_);
 	//	while (routing_table_.size() > routing_table_max_size_)
 	//	{
@@ -355,7 +355,7 @@ void artdaq::TableReceiver::SendMetrics() const
 {
 	if (metricMan)
 	{
-		TLOG(5) << "sending metrics";
+		TLOG(TLVL_DEBUG + 34) << "sending metrics";
 		if (use_routing_manager_)
 		{
 			metricMan->sendMetric("Routing Table Size", GetRoutingTableEntryCount(), "events", 2, MetricMode::LastPoint);
