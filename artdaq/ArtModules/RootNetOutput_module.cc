@@ -110,7 +110,7 @@ void art::RootNetOutput::SendMessage(artdaq::FragmentPtr& fragment)
 
 		auto sequenceId = fragment->sequenceID();
 		TLOG(TLVL_DEBUG + 32) << "Sending message with sequenceID=" << sequenceId << ", type=" << static_cast<int>(fragment->type())
-		                 << ", length=" << fragment->dataSizeBytes();
+		                      << ", length=" << fragment->dataSizeBytes();
 
 		sender_ptr_->sendFragment(std::move(*fragment));
 		// Events are unique in art, so this will be the only send with this sequence ID!

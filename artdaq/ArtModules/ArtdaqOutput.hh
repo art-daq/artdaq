@@ -236,7 +236,7 @@ protected:
 	/// <summary>
 	/// Send an init message downstream.
 	/// </summary>
-        void send_init_message();
+	void send_init_message();
 
 	/// <summary>
 	/// Send the serialized art Event downstream. Artdaq output modules should define this function.
@@ -548,7 +548,7 @@ inline void art::ArtdaqOutput::write(EventPrincipal& ep)
 	TLOG(TLVL_WRITE) << "Begin: ArtdaqOutput::write(const EventPrincipal& ep)";
 	if (!initMsgSent_)
 	{
-                send_init_message();
+		send_init_message();
 		initMsgSent_ = true;
 	}
 	//
@@ -655,7 +655,7 @@ inline void art::ArtdaqOutput::writeRun(RunPrincipal& rp)
 	(void)rp;
 	if (!initMsgSent_)
 	{
-                send_init_message();
+		send_init_message();
 		initMsgSent_ = true;
 	}
 #if 0
@@ -710,7 +710,7 @@ inline void art::ArtdaqOutput::writeSubRun(SubRunPrincipal& srp)
 	TLOG(TLVL_WRITESUBRUN) << "Begin: ArtdaqOutput::writeSubRun(const SubRunPrincipal& srp)";
 	if (!initMsgSent_)
 	{
-                send_init_message();
+		send_init_message();
 		initMsgSent_ = true;
 	}
 	//

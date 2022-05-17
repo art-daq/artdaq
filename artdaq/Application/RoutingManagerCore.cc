@@ -49,8 +49,8 @@ artdaq::RoutingManagerCore::~RoutingManagerCore()
 bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_DEBUG + 32) << "initialize method called with "
-	                 << "ParameterSet = \"" << pset.to_string()
-	                 << "\".";
+	                      << "ParameterSet = \"" << pset.to_string()
+	                      << "\".";
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;

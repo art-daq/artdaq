@@ -424,7 +424,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		TLOG(9) << GetTraceName() << "receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
 		TLOG(TLVL_DEBUG + 33) << GetTraceName() << "receiveFragmentData: Polled fd to see if there's data"
-		                 << ", num_fds_ready = " << num_fds_ready;
+		                      << ", num_fds_ready = " << num_fds_ready;
 		if (num_fds_ready <= 0)
 		{
 			if (num_fds_ready == 0)
@@ -756,7 +756,7 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 	do_again:
 #ifndef __OPTIMIZE__  // This can be an expensive TRACE call (even if disabled) due to multiplicity of calls
 		TLOG(TLVL_DEBUG + 44) << GetTraceName() << "sendFragment b4 writev " << std::setw(7) << total_written_bytes << " total_written_bytes send_fd_=" << send_fd_ << " in_idx=" << in_iov_idx
-		         << " iovcnt=" << out_iov_idx << " 1st.len=" << iovv[0].iov_len;
+		                      << " iovcnt=" << out_iov_idx << " 1st.len=" << iovv[0].iov_len;
 #endif
 //TLOG(TLVL_DEBUG + 32) << GetTraceName() << " calling writev" ;
 #if USE_SENDMSG
@@ -828,9 +828,9 @@ artdaq::TransferInterface::CopyStatus artdaq::TCPSocketTransfer::sendData_(const
 			}
 			++out_iov_idx;  // done with
 			TLOG(TLVL_DEBUG + 33) << GetTraceName() << "sendFragment writev sts!=: this_write_bytes=" << this_write_bytes
-			                 << " out_iov_idx=" << out_iov_idx
-			                 << " additional=" << additional
-			                 << " ii=" << ii;
+			                      << " out_iov_idx=" << out_iov_idx
+			                      << " additional=" << additional
+			                      << " ii=" << ii;
 		}
 		else
 		{
