@@ -31,7 +31,7 @@ void artdaq::RequestBuffer::push(artdaq::Fragment::sequence_id_t seq, artdaq::Fr
 	{
 		int delta = seq - highest_seen_request_;
 		TLOG(TLVL_DEBUG + 36) << "Received request for sequence ID " << seq
-		         << " and timestamp " << ts << " (delta: " << delta << ")";
+		                      << " and timestamp " << ts << " (delta: " << delta << ")";
 		if (delta <= 0 || out_of_order_requests_.count(seq))
 		{
 			TLOG(TLVL_DEBUG + 36) << "Already serviced this request ( sequence ID " << seq << ")! Ignoring...";

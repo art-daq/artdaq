@@ -57,7 +57,7 @@ bool artdaq::DataReceiverCore::initializeDataReceiver(fhicl::ParameterSet const&
 		art_pset.erase("daq");
 	}
 
-	// Add the "metrics" block 
+	// Add the "metrics" block
 	auto art_services_pset = art_pset.get<fhicl::ParameterSet>("services");
 	auto art_services_ArtdaqSharedMemoryServiceInterface_pset = art_services_pset.get<fhicl::ParameterSet>("ArtdaqSharedMemoryServiceInterface");
 	art_services_ArtdaqSharedMemoryServiceInterface_pset.put<fhicl::ParameterSet>("metrics", metric_pset);
@@ -230,16 +230,16 @@ bool artdaq::DataReceiverCore::shutdown()
 bool artdaq::DataReceiverCore::soft_initialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG + 32) << "soft_initialize method called with DAQ "
-	                 << "ParameterSet = \"" << pset.to_string()
-	                 << "\".";
+	                      << "ParameterSet = \"" << pset.to_string()
+	                      << "\".";
 	return true;
 }
 
 bool artdaq::DataReceiverCore::reinitialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG + 32) << "reinitialize method called with DAQ "
-	                 << "ParameterSet = \"" << pset.to_string()
-	                 << "\".";
+	                      << "ParameterSet = \"" << pset.to_string()
+	                      << "\".";
 	event_store_ptr_ = nullptr;
 	return initialize(pset);
 }
