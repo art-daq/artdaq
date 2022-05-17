@@ -176,7 +176,7 @@ void RequestSender::do_send_request_()
 	inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 	std::lock_guard<std::mutex> lk2(request_send_mutex_);
 	TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
-	                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
+	                      << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 	auto buf = message.GetMessage();
 	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts < 0 || static_cast<size_t>(sts) != buf.size())

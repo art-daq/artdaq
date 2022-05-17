@@ -235,10 +235,10 @@ bool artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fr
 		dds_octets_queue_.pop();
 
 		TLOG(TLVL_DEBUG + 32) << name_
-		                 << ": Received fragment from DDS, type ="
-		                 << ((int)fragment.type()) << ", sequenceID = "
-		                 << fragment.sequenceID() << ", size in bytes = "
-		                 << fragment.sizeBytes();
+		                      << ": Received fragment from DDS, type ="
+		                      << ((int)fragment.type()) << ", sequenceID = "
+		                      << fragment.sequenceID() << ", size in bytes = "
+		                      << fragment.sizeBytes();
 
 		return true;
 	}
