@@ -11,8 +11,15 @@
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
+#include "art/Persistency/Provenance/ModuleContext.h"
+#include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
+#if ART_HEX_VERSION < 0x30901
+#include "canvas/Utilities/WrappedTypeID.h"
+#else
+#include "canvas/Persistency/Common/WrappedTypeID.h"
+#endif
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -92,25 +99,25 @@ private:
 art::BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)
     : OutputModule(ps), fstats_{name_, processName()}
 {
-	TLOG(TLVL_DEBUG) << "Begin: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";
+	TLOG(TLVL_DEBUG + 32) << "Begin: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";
 	readParameterSet_(ps);
-	TLOG(TLVL_DEBUG) << "End: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";
+	TLOG(TLVL_DEBUG + 32) << "End: BinaryFileOutput::BinaryFileOutput(ParameterSet const& ps)\n";
 }
 
-art::BinaryFileOutput::~BinaryFileOutput() { TLOG(TLVL_DEBUG) << "Begin/End: BinaryFileOutput::~BinaryFileOutput()\n"; }
+art::BinaryFileOutput::~BinaryFileOutput() { TLOG(TLVL_DEBUG + 32) << "Begin/End: BinaryFileOutput::~BinaryFileOutput()\n"; }
 
 void art::BinaryFileOutput::beginJob()
 {
-	TLOG(TLVL_DEBUG) << "Begin: BinaryFileOutput::beginJob()\n";
+	TLOG(TLVL_DEBUG + 32) << "Begin: BinaryFileOutput::beginJob()\n";
 	initialize_FILE_();
-	TLOG(TLVL_DEBUG) << "End:   BinaryFileOutput::beginJob()\n";
+	TLOG(TLVL_DEBUG + 32) << "End:   BinaryFileOutput::beginJob()\n";
 }
 
 void art::BinaryFileOutput::endJob()
 {
-	TLOG(TLVL_DEBUG) << "Begin: BinaryFileOutput::endJob()\n";
+	TLOG(TLVL_DEBUG + 32) << "Begin: BinaryFileOutput::endJob()\n";
 	deinitialize_FILE_();
-	TLOG(TLVL_DEBUG) << "End:   BinaryFileOutput::endJob()\n";
+	TLOG(TLVL_DEBUG + 32) << "End:   BinaryFileOutput::endJob()\n";
 }
 
 void art::BinaryFileOutput::initialize_FILE_()
@@ -119,12 +126,12 @@ void art::BinaryFileOutput::initialize_FILE_()
 	if (do_direct_)
 	{
 		fd_ = open(file_name.c_str(), O_WRONLY | O_CREAT | O_DIRECT, 0660);  // O_DIRECT - ref. artdaq-core/Core/QuickVec.hh:#define QV_ALIGN 512 and artdaq issue #24437
-		TLOG(TLVL_TRACE) << "initialize_FILE_ fd_=" << fd_;
+		TLOG(TLVL_DEBUG + 33) << "initialize_FILE_ fd_=" << fd_;
 	}
 	else
 	{
 		file_ptr_ = std::make_unique<std::ofstream>(file_name, std::ofstream::binary);
-		TLOG(TLVL_TRACE) << "BinaryFileOutput::initialize_FILE_ file_ptr_=" << static_cast<void*>(file_ptr_.get()) << " errno=" << errno;
+		TLOG(TLVL_DEBUG + 33) << "BinaryFileOutput::initialize_FILE_ file_ptr_=" << static_cast<void*>(file_ptr_.get()) << " errno=" << errno;
 		//file_ptr_->rdbuf()->pubsetbuf(0, 0);
 	}
 	fstats_.recordFileOpen();
@@ -146,7 +153,7 @@ void art::BinaryFileOutput::deinitialize_FILE_()
 
 bool art::BinaryFileOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 {
-	TLOG(TLVL_DEBUG) << name_ << "BinaryFileOutput::readParameterSet_ method called with "
+	TLOG(TLVL_DEBUG + 32) << name_ << "BinaryFileOutput::readParameterSet_ method called with "
 	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 	// determine the data sending parameters
 	try
@@ -178,14 +185,10 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 
 	auto result_handles = std::vector<art::GroupQueryResult>();
 	auto const& wrapped = art::WrappedTypeID::make<RawEvent>();
-#if ART_HEX_VERSION >= 0x30000
 	ModuleContext const mc{moduleDescription()};
 	ProcessTag const processTag{"", mc.moduleDescription().processName()};
 
 	result_handles = ep.getMany(mc, wrapped, art::MatchAllSelector{}, processTag);
-#else
-	result_handles = ep.getMany(wrapped, art::MatchAllSelector{});
-#endif
 
 	for (auto const& result_handle : result_handles)
 	{
@@ -200,13 +203,13 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 		{
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
-			TLOG(TLVL_TRACE) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " "
+			TLOG(TLVL_DEBUG + 33) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " "
 			                 << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 			                 << fragment.sizeBytes() << " start";
 			if (do_direct_)
 			{
 				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-				TLOG(TLVL_DEBUG + 2) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done sts=" << sts
+				TLOG(TLVL_DEBUG + 34) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done sts=" << sts
 				                     << " errno=" << errno;
 			}
 			else
@@ -216,15 +219,11 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 #else
 				file_ptr_->write(reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 #endif
-				TLOG(TLVL_DEBUG + 2) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done errno=" << errno;
+				TLOG(TLVL_DEBUG + 34) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done errno=" << errno;
 			}
 		}
 	}
-#if ART_HEX_VERSION < 0x30000
-	fstats_.recordEvent(ep.id());
-#else
 	fstats_.recordEvent(ep.eventID());
-#endif
 }
 
 DEFINE_ART_MODULE(art::BinaryFileOutput)  // NOLINT(performance-unnecessary-value-param)

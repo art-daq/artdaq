@@ -106,7 +106,7 @@ int GetIPOfInterface(const std::string &interface_name, in_addr &addr)
 		{
 			auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
-			TLOG(15) << "IF: " << ifa->ifa_name << " Desired: " << interface_name << " IP: " << if_addr->sin_addr.s_addr;
+			TLOG(TLVL_DEBUG + 35) << "IF: " << ifa->ifa_name << " Desired: " << interface_name << " IP: " << if_addr->sin_addr.s_addr;
 
 			if (std::string(ifa->ifa_name) == interface_name)
 			{
@@ -177,7 +177,7 @@ int AutodetectPrivateInterface(in_addr &addr)
 		{
 			auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
-			TLOG(15) << "IF: " << ifa->ifa_name << " IP: " << if_addr->sin_addr.s_addr;
+			TLOG(TLVL_DEBUG + 35) << "IF: " << ifa->ifa_name << " IP: " << if_addr->sin_addr.s_addr;
 
 			if (preference_map.count(IP_192) == 0 && (if_addr->sin_addr.s_addr & nm_16.s_addr) == addr_192.s_addr)
 			{
@@ -277,7 +277,7 @@ int GetInterfaceForNetwork(char const *host_in, in_addr &addr)
 				auto if_addr = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 				auto sa = reinterpret_cast<struct sockaddr_in *>(ifa->ifa_netmask);    // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
-				TLOG(15) << "IF: " << ifa->ifa_name << " Desired: " << desired_host.s_addr << " netmask: " << sa->sin_addr.s_addr << " this interface: " << if_addr->sin_addr.s_addr;
+				TLOG(TLVL_DEBUG + 35) << "IF: " << ifa->ifa_name << " Desired: " << desired_host.s_addr << " netmask: " << sa->sin_addr.s_addr << " this interface: " << if_addr->sin_addr.s_addr;
 
 				if ((if_addr->sin_addr.s_addr & sa->sin_addr.s_addr) == (desired_host.s_addr & sa->sin_addr.s_addr))
 				{
@@ -404,7 +404,7 @@ int TCPConnect(char const *host_in, int dflt_port, int64_t flags, int sndbufsiz)
 	if (flags != 0)
 	{
 		sts = fcntl(s_fd, F_SETFL, flags);
-		TLOG(TLVL_TRACE) << "TCPConnect fcntl(fd=" << s_fd << ",flags=0x" << std::hex << flags << std::dec << ") =" << sts;
+		TLOG(TLVL_DEBUG + 33) << "TCPConnect fcntl(fd=" << s_fd << ",flags=0x" << std::hex << flags << std::dec << ") =" << sts;
 	}
 
 	if (sndbufsiz > 0)
@@ -413,7 +413,7 @@ int TCPConnect(char const *host_in, int dflt_port, int64_t flags, int sndbufsiz)
 		socklen_t lenlen = sizeof(len);
 		len = 0;
 		sts = getsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, &lenlen);
-		TLOG(TLVL_DEBUG) << "TCPConnect SNDBUF initial: " << len << " sts/errno=" << sts << "/" << errno << " lenlen=" << lenlen;
+		TLOG(TLVL_DEBUG + 32) << "TCPConnect SNDBUF initial: " << len << " sts/errno=" << sts << "/" << errno << " lenlen=" << lenlen;
 		len = sndbufsiz;
 		sts = setsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, &len, lenlen);
 		if (sts == -1)
@@ -428,7 +428,7 @@ int TCPConnect(char const *host_in, int dflt_port, int64_t flags, int sndbufsiz)
 		}
 		else
 		{
-			TLOG(TLVL_DEBUG) << "SNDBUF " << len << " sts/errno=" << sts << "/" << errno;
+			TLOG(TLVL_DEBUG + 32) << "SNDBUF " << len << " sts/errno=" << sts << "/" << errno;
 		}
 	}
 	return (s_fd);

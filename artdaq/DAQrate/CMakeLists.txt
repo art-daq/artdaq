@@ -7,19 +7,19 @@
 # ----------------------------------------------------------------------
 # Build this project's library:
 
-art_make(BASENAME_ONLY
+cet_make(BASENAME_ONLY
   LIBRARY_NAME artdaq_DAQrate
   SUBDIRS detail
   LIB_LIBRARIES
   artdaq_DAQdata
   artdaq_TransferPlugins
-  artdaq-utilities_Plugins
-  artdaq-core_Core
-  artdaq-core_Data
-  artdaq-core_Utilities
+  artdaq_utilities::artdaq-utilities_Plugins
+  artdaq_core::artdaq-core_Core
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Utilities
   artdaq_RoutingPolicies
-  ${FHICLCPP}
-  ${MESSAGEFACILITY_LIBS}
+  fhiclcpp
+  MF_MessageLogger
   ${Boost_THREAD_LIBRARY}
   ${Boost_SYSTEM_LIBRARY}
   pthread

@@ -57,6 +57,11 @@ bool artdaq::RoutingManagerApp::do_start(art::RunID id, uint64_t timeout, uint64
 	try
 	{
 		routing_manager_thread_ = boost::thread(attrs, boost::bind(&RoutingManagerCore::process_event_table, routing_manager_ptr_.get()));
+		char tname[16];                                             // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		snprintf(tname, sizeof(tname) - 1, "%d-Routing", my_rank);  // NOLINT
+		tname[sizeof(tname) - 1] = '\0';                            // assure term. snprintf is not too evil :)
+		auto handle = routing_manager_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{
@@ -84,7 +89,7 @@ bool artdaq::RoutingManagerApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		routing_manager_thread_.join();
 	}
 
-	TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
+	TLOG(TLVL_DEBUG + 32, app_name + "App") << "do_stop(uint64_t, uint64_t): "
 	                             << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
 	                             << ".";
 
@@ -105,7 +110,7 @@ bool artdaq::RoutingManagerApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		routing_manager_thread_.join();
 	}
 
-	TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
+	TLOG(TLVL_DEBUG + 32, app_name + "App") << "do_pause(uint64_t, uint64_t): "
 	                             << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
 	                             << ".";
 
@@ -129,9 +134,15 @@ bool artdaq::RoutingManagerApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	try
 	{
 		routing_manager_thread_ = boost::thread(attrs, boost::bind(&RoutingManagerCore::process_event_table, routing_manager_ptr_.get()));
+		char tname[16];                                             // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		snprintf(tname, sizeof(tname) - 1, "%d-Routing", my_rank);  // NOLINT
+		tname[sizeof(tname) - 1] = '\0';                            // assure term. snprintf is not too evil :)
+		auto handle = routing_manager_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (boost::exception const& e)
 	{
+		TLOG(TLVL_ERROR) << "Exception encountered starting Routing Manager thread: " << boost::diagnostic_information(e) << ", errno=" << errno;
 		std::cerr << "Exception encountered starting Routing Manager thread: " << boost::diagnostic_information(e) << ", errno=" << errno << std::endl;
 		exit(3);
 	}
@@ -179,7 +190,7 @@ bool artdaq::RoutingManagerApp::do_reinitialize(fhicl::ParameterSet const& pset,
 
 void artdaq::RoutingManagerApp::BootedEnter()
 {
-	TLOG_DEBUG(app_name + "App") << "Booted state entry action called.";
+	TLOG(TLVL_DEBUG + 32, app_name + "App") << "Booted state entry action called.";
 
 	// the destruction of any existing RoutingManagerCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

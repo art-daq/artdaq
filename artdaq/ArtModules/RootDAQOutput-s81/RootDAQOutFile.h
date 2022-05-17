@@ -2,7 +2,6 @@
 #define art_root_io_RootDAQOutFile_h
 // vim: set sw=2 expandtab :
 
-#include "art/Framework/Core/Frameworkfwd.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/IO/ClosingCriteria.h"
 #include "art/Framework/IO/FileStatsCollector.h"
@@ -10,7 +9,12 @@
 #include "art/Persistency/Provenance/Selections.h"
 #include "art_root_io/DropMetaData.h"
 #include "art_root_io/RootOutputTree.h"
+#if ART_HEX_VERSION < 0x30800
 #include "art_root_io/detail/DummyProductCache.h"
+#define DummyProductCache detail::DummyProductCache
+#else
+#include "art_root_io/DummyProductCache.h"
+#endif
 #include "boost/filesystem.hpp"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
@@ -20,7 +24,6 @@
 #include "canvas/Persistency/Provenance/ProductID.h"
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
 #include "cetlib/sqlite/Connection.h"
-#include "hep_concurrency/RecursiveMutex.h"
 
 #include <array>
 #include <map>
@@ -110,7 +113,9 @@ public:  // MEMBER FUNCTIONS
 	void writeRun(RunPrincipal const&);
 	void writeFileFormatVersion();
 	void writeFileIndex();
+#if ART_HEX_VERSION < 0x31100
 	void writeEventHistory();
+#endif
 	void writeProcessConfigurationRegistry();
 	void writeProcessHistoryRegistry();
 	void writeParameterSetRegistry();
@@ -143,7 +148,7 @@ private:  // MEMBER FUNCTIONS
 	                            std::string const& wrappedName);
 
 private:  // MEMBER DATA
-	mutable hep::concurrency::RecursiveMutex mutex_;
+	mutable std::recursive_mutex mutex_;
 	OutputModule const* om_;
 	std::string file_;
 	ClosingCriteria fileSwitchCriteria_;
@@ -184,7 +189,7 @@ private:  // MEMBER DATA
 	std::array<ProductDescriptionsByID, NumBranchTypes> descriptionsToPersist_;
 	std::unique_ptr<cet::sqlite::Connection> rootFileDB_;
 	std::array<std::set<OutputItem>, NumBranchTypes> selectedOutputItemList_;
-	detail::DummyProductCache dummyProductCache_;
+	DummyProductCache dummyProductCache_;
 	unsigned subRunRSID_;
 	unsigned runRSID_;
 	std::chrono::steady_clock::time_point beginTime_;

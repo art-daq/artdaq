@@ -53,14 +53,14 @@ private:
 art::TransferOutput::TransferOutput(fhicl::ParameterSet const& ps)
     : ArtdaqOutput(ps), send_timeout_us_(ps.get<size_t>("send_timeout_us", 5000000)), send_retry_count_(ps.get<size_t>("send_retry_count", 5))
 {
-	TLOG(TLVL_DEBUG) << "Begin: TransferOutput::TransferOutput(ParameterSet const& ps)";
+	TLOG(TLVL_DEBUG + 32) << "Begin: TransferOutput::TransferOutput(ParameterSet const& ps)";
 	transfer_ = artdaq::MakeTransferPlugin(ps, "transfer_plugin", artdaq::TransferInterface::Role::kSend);
-	TLOG(TLVL_DEBUG) << "END: TransferOutput::TransferOutput";
+	TLOG(TLVL_DEBUG + 32) << "END: TransferOutput::TransferOutput";
 }
 
 art::TransferOutput::~TransferOutput()
 {
-	TLOG(TLVL_DEBUG) << "Begin: TransferOutput::~TransferOutput()";
+	TLOG(TLVL_DEBUG + 32) << "Begin: TransferOutput::~TransferOutput()";
 
 	auto sts = transfer_->transfer_fragment_min_blocking_mode(*artdaq::Fragment::eodFrag(0), 10000);
 	if (sts != artdaq::TransferInterface::CopyStatus::kSuccess)
@@ -68,12 +68,12 @@ art::TransferOutput::~TransferOutput()
 		TLOG(TLVL_ERROR) << "Error sending EOD Fragment!";
 	}
 	transfer_.reset(nullptr);
-	TLOG(TLVL_DEBUG) << "End: TransferOutput::~TransferOutput()";
+	TLOG(TLVL_DEBUG + 32) << "End: TransferOutput::~TransferOutput()";
 }
 
 void art::TransferOutput::SendMessage(artdaq::FragmentPtr& fragment)
 {
-	TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << fragment->sequenceID() << ", type=" << fragment->type()
+	TLOG(TLVL_DEBUG + 32) << "Sending message with sequenceID=" << fragment->sequenceID() << ", type=" << static_cast<int>(fragment->type())
 	                 << ", length=" << fragment->dataSizeBytes();
 	auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
 	size_t retries = 0;

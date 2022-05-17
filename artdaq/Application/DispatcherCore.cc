@@ -24,7 +24,7 @@
 
 bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG(TLVL_DEBUG) << "initialize method called with DAQ "
+	TLOG(TLVL_DEBUG + 32) << "initialize method called with DAQ "
 	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	pset_ = pset;
@@ -37,7 +37,7 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	pset_.erase("physics");
 	pset_.erase("daq");
 
-	TLOG(TLVL_DEBUG) << "Pieces of the input pset that are saved for later: \"" << pset_.to_string() << "\".";
+	TLOG(TLVL_DEBUG + 32) << "Pieces of the input pset that are saved for later: \"" << pset_.to_string() << "\".";
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -86,28 +86,27 @@ bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 	agg_pset.put<int>("art_analyzer_count", 0);
 
 	// initialize the MetricManager and the names of our metrics
-	fhicl::ParameterSet metric_pset;
-
-	try
-	{
-		metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-	}
-	catch (...)
-	{}  // OK if there's no metrics table defined in the FHiCL
+	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 
 	return initializeDataReceiver(pset, agg_pset, metric_pset);
 }
 
 std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& pset)
 {
-	TLOG(TLVL_DEBUG) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"";
+	TLOG(TLVL_DEBUG + 32) << "DispatcherCore::register_monitor called with argument \"" << pset.to_string() << "\"";
 	check_filters_();
+
+	if (stop_requested_.load())
+	{
+		TLOG(TLVL_WARNING) << "DispatcherCore::register_monitor called after stop. NOT registering new monitor!";
+		return "Stopped";
+	}
 
 	try
 	{
-		TLOG(TLVL_DEBUG) << "Getting unique_label from input ParameterSet";
+		TLOG(TLVL_DEBUG + 32) << "Getting unique_label from input ParameterSet";
 		auto const& label = pset.get<std::string>("unique_label");
-		TLOG(TLVL_DEBUG) << "Unique label is " << label;
+		TLOG(TLVL_DEBUG + 32) << "Unique label is " << label;
 		{
 			std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 			if (registered_monitors_.count(label) != 0u)
@@ -154,13 +153,13 @@ std::string artdaq::DispatcherCore::register_monitor(fhicl::ParameterSet const& 
 		return errmsg.str();
 	}
 
-	TLOG(TLVL_DEBUG) << "Successfully registered monitor";
+	TLOG(TLVL_DEBUG + 32) << "Successfully registered monitor";
 	return "Success";
 }
 
 std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 {
-	TLOG(TLVL_DEBUG) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"";
+	TLOG(TLVL_DEBUG + 32) << "DispatcherCore::unregister_monitor called with argument \"" << label << "\"";
 	check_filters_();
 
 	try
@@ -191,7 +190,7 @@ std::string artdaq::DispatcherCore::unregister_monitor(std::string const& label)
 		return errmsg.str();
 	}
 
-	TLOG(TLVL_DEBUG) << "unregister_monitor completed successfully";
+	TLOG(TLVL_DEBUG + 32) << "unregister_monitor completed successfully";
 	return "Success";
 }
 
@@ -205,7 +204,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 	fhicl::ParameterSet generated_physics_filters;
 	std::unordered_map<std::string, std::vector<std::string>> generated_physics_filter_paths;
 
-	TLOG(TLVL_DEBUG) << "merge_parameter_sets_: Generating fhicl for monitor " << label;
+	TLOG(TLVL_DEBUG + 32) << "merge_parameter_sets_: Generating fhicl for monitor " << label;
 
 	try
 	{
@@ -366,7 +365,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 		TLOG(TLVL_ERROR) << "merge_parameter_sets_: Error processing input fhicl: " << e.what();
 	}
 
-	TLOG(TLVL_DEBUG) << "merge_parameter_sets_: Building final ParameterSet";
+	TLOG(TLVL_DEBUG + 32) << "merge_parameter_sets_: Building final ParameterSet";
 	generated_pset.put("outputs", generated_outputs);
 
 	generated_physics.put("analyzers", generated_physics_analyzers);
@@ -385,7 +384,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 
 fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 {
-	TLOG(TLVL_DEBUG) << "generate_filter_fhicl_ BEGIN";
+	TLOG(TLVL_DEBUG + 32) << "generate_filter_fhicl_ BEGIN";
 	std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 	fhicl::ParameterSet generated_pset = pset_;
 
@@ -396,7 +395,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::generate_filter_fhicl_()
 		generated_pset = merge_parameter_sets_(generated_pset, label, pset);
 	}
 
-	TLOG(TLVL_DEBUG) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string();
+	TLOG(TLVL_DEBUG + 32) << "generate_filter_fhicl_ returning ParameterSet: " << generated_pset.to_string();
 	return generated_pset;
 }
 
@@ -438,8 +437,8 @@ void artdaq::DispatcherCore::start_art_process_(std::string const& label)
 				pset = registered_monitors_[label];
 			}
 			fhicl::ParameterSet ps = merge_parameter_sets_(pset_, label, pset);
-			TLOG(TLVL_DEBUG) << "Starting art process with received fhicl";
-			auto pid = event_store_ptr_->StartArtProcess(ps);
+			TLOG(TLVL_DEBUG + 32) << "Starting art process with received fhicl";
+			auto pid = event_store_ptr_->StartArtProcess(ps, registered_monitors_.size() - 1);
 			{
 				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 				registered_monitor_pids_[label] = pid;
@@ -447,14 +446,14 @@ void artdaq::DispatcherCore::start_art_process_(std::string const& label)
 		}
 		else
 		{
-			TLOG(TLVL_DEBUG) << "Calling ReconfigureArt";
+			TLOG(TLVL_DEBUG + 32) << "Calling ReconfigureArt";
 			fhicl::ParameterSet generated_fhicl;
 			{
 				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 				generated_fhicl = generate_filter_fhicl_();
 			}
 			event_store_ptr_->ReconfigureArt(generated_fhicl);
-			TLOG(TLVL_DEBUG) << "Done with ReconfigureArt";
+			TLOG(TLVL_DEBUG + 32) << "Done with ReconfigureArt";
 		}
 	}
 	else
@@ -477,21 +476,21 @@ void artdaq::DispatcherCore::stop_art_process_(std::string const& label)
 					pids.insert(registered_monitor_pids_[label]);
 					registered_monitor_pids_.erase(label);
 				}
-				TLOG(TLVL_DEBUG) << "Calling ShutdownArtProcesses";
+				TLOG(TLVL_DEBUG + 32) << "Calling ShutdownArtProcesses";
 				event_store_ptr_->ShutdownArtProcesses(pids);
-				TLOG(TLVL_DEBUG) << "Done with ShutdownArtProcesses";
+				TLOG(TLVL_DEBUG + 32) << "Done with ShutdownArtProcesses";
 			}
 		}
 		else
 		{
-			TLOG(TLVL_DEBUG) << "Calling ReconfigureArt";
+			TLOG(TLVL_DEBUG + 32) << "Calling ReconfigureArt";
 			fhicl::ParameterSet generated_fhicl;
 			{
 				std::lock_guard<std::mutex> lock(dispatcher_transfers_mutex_);
 				generated_fhicl = generate_filter_fhicl_();
 			}
 			event_store_ptr_->ReconfigureArt(generated_fhicl);
-			TLOG(TLVL_DEBUG) << "Done with ReconfigureArt";
+			TLOG(TLVL_DEBUG + 32) << "Done with ReconfigureArt";
 		}
 	}
 }

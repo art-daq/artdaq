@@ -1,8 +1,8 @@
 #define TRACE_NAME "transfer_driver"
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/TransferTest.hh"
-#include "fhiclcpp/make_ParameterSet.h"
 
 int main(int argc, char* argv[]) try
 {
@@ -26,10 +26,9 @@ int main(int argc, char* argv[]) try
 	my_rank = std::stoi(rankString);
 
 	cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
-	fhicl::ParameterSet ps;
 
 	auto fhicl = std::string(argv[2]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	make_ParameterSet(fhicl, lookup_policy, ps);
+	auto ps = artdaq::make_pset(fhicl, lookup_policy);
 
 	if (ps.has_key("partition_number"))
 	{
@@ -37,10 +36,10 @@ int main(int argc, char* argv[]) try
 	}
 
 	artdaq::TransferTest theTest(ps);
-	theTest.runTest();
+	auto ret = theTest.runTest();
 
-	TLOG(TLVL_INFO) << "END";
-	return 0;
+	TLOG(TLVL_INFO) << "END: retcode=" << ret;
+	return ret;
 }
 catch (...)
 {

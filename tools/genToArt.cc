@@ -17,13 +17,13 @@
 #include "artdaq-core/Generators/FragmentGenerator.hh"
 #include "artdaq-core/Generators/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "canvas/Utilities/Exception.h"
 #include "cetlib/container_algorithms.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
 
 #include <boost/program_options.hpp>
 
@@ -262,13 +262,13 @@ int process_data(fhicl::ParameterSet const& pset)
 		{
 			done |= !gen.getNext(frags);
 		}
-		TLOG(TLVL_TRACE) << "There are " << frags.size() << " Fragments in event " << event_count << ".";
+		TLOG(TLVL_DEBUG + 33) << "There are " << frags.size() << " Fragments in event " << event_count << ".";
 		artdaq::Fragment::sequence_id_t current_sequence_id = -1;
 		for (auto& val : frags)
 		{
 			if (reset_sequenceID)
 			{
-				TLOG(TLVL_DEBUG) << "Setting fragment sequence id to " << event_count;
+				TLOG(TLVL_DEBUG + 32) << "Setting fragment sequence id to " << event_count;
 				val->setSequenceID(event_count);
 			}
 			if (current_sequence_id ==
@@ -309,7 +309,7 @@ int process_data(fhicl::ParameterSet const& pset)
 			}
 		}
 		frags.clear();
-		TLOG(TLVL_TRACE) << "Event " << event_count << " END";
+		TLOG(TLVL_DEBUG + 33) << "Event " << event_count << " END";
 	}
 	for (auto& gen : generators)
 	{
@@ -337,7 +337,6 @@ int main(int argc, char* argv[]) try
 		return (result);
 	}
 	// Read FHiCL configuration file.
-	fhicl::ParameterSet pset;
 	if (getenv("FHICL_FILE_PATH") == nullptr)
 	{
 		TLOG(TLVL_ERROR)
@@ -345,7 +344,7 @@ int main(int argc, char* argv[]) try
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 	artdaq::SimpleLookupPolicy lookup_policy("FHICL_FILE_PATH");
-	make_ParameterSet(vm["config"].as<std::string>(), lookup_policy, pset);
+	auto pset = artdaq::make_pset(vm["config"].as<std::string>(), lookup_policy);
 	return process_data(pset);
 }
 catch (std::exception& x)

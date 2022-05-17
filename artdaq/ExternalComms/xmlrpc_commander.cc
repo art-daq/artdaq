@@ -30,8 +30,8 @@
 #include <exception>
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "canvas/Persistency/Provenance/RunID.h"
-#include "fhiclcpp/make_ParameterSet.h"
 
 #include "artdaq/ExternalComms/xmlrpc_commander.hh"
 //#include "artdaq/Application/LoadParameterSet.hh"
@@ -361,9 +361,17 @@ T cmd_::getParam(const xmlrpc_c::paramList& /*unused*/, int /*unused*/)
 template<>
 uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as uint64_t.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getI8(index);
-	return static_cast<uint64_t>(paramList.getI8(index));
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as uint64_t.";
+	try
+	{
+		TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getI8(index);
+		return static_cast<uint64_t>(paramList.getI8(index));
+	}
+	catch (...)
+	{
+		TLOG(TLVL_DEBUG + 33) << "Param value (int): " << paramList.getInt(index);
+		return static_cast<uint64_t>(paramList.getInt(index));
+	}
 }
 
 /**
@@ -377,8 +385,8 @@ uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int inde
 template<>
 uint32_t cmd_::getParam<uint32_t>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as uint32_t.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as uint32_t.";
+	TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getInt(index);
 	return static_cast<uint32_t>(paramList.getInt(index));
 }
 
@@ -393,8 +401,8 @@ uint32_t cmd_::getParam<uint32_t>(const xmlrpc_c::paramList& paramList, int inde
 template<>
 std::string cmd_::getParam<std::string>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as string.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as string.";
+	TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getString(index);
 	return static_cast<std::string>(paramList.getString(index));
 }
 
@@ -409,19 +417,19 @@ std::string cmd_::getParam<std::string>(const xmlrpc_c::paramList& paramList, in
 template<>
 art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as Run Number.";
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as Run Number.";
 	art::RunNumber_t run_number;
 	try
 	{
-		TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
+		TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getInt(index);
 		run_number = art::RunNumber_t(paramList.getInt(index));
 	}
 	catch (...)
 	{
-		TLOG(TLVL_TRACE) << "Parameter is not an int. Trying string...";
+		TLOG(TLVL_DEBUG + 33) << "Parameter is not an int. Trying string...";
 
 		auto runNumber = paramList.getString(index);
-		TLOG(TLVL_TRACE) << "Got run number string " << runNumber;
+		TLOG(TLVL_DEBUG + 33) << "Got run number string " << runNumber;
 		run_number = art::RunNumber_t(std::stoi(runNumber));
 	}
 
@@ -440,25 +448,26 @@ art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int 
 template<>
 fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as ParameterSet.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as ParameterSet.";
+	TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getString(index);
 	std::string configString = std::string(paramList.getString(index));
-	TLOG(TLVL_DEBUG) << "Loading Parameter Set from string: " << configString << std::endl;
+	TLOG(TLVL_DEBUG + 32) << "Loading Parameter Set from string: " << configString << std::endl;
 	fhicl::ParameterSet pset;
 
 	try
 	{
-		fhicl::make_ParameterSet(configString, pset);
+		pset = artdaq::make_pset(configString);
 	}
 	catch (const fhicl::exception& e)
 	{
 		if (getenv("FHICL_FILE_PATH") == nullptr)
 		{
-			std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"\n";
+			TLOG(TLVL_ERROR) << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"";
+			std::cerr << "INFO: environment variable FHICL_FILE_PATH was not set. Using \".\"" << std::endl;
 			setenv("FHICL_FILE_PATH", ".", 0);
 		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-		fhicl::make_ParameterSet(configString, lookup_policy, pset);
+		pset = artdaq::make_pset(configString, lookup_policy);
 	}
 
 	TLOG(TLVL_INFO) << "Parameter Set Loaded." << std::endl;
@@ -480,7 +489,7 @@ T cmd_::getParam(const xmlrpc_c::paramList& paramList, int index,
 
 void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)
 {
-	TLOG(TLVL_TRACE) << "Received Request to " << _help << ", attempting to get lock";
+	TLOG(TLVL_DEBUG + 33) << "Received Request to " << _help << ", attempting to get lock";
 	std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::defer_lock);
 	lk.try_lock_for(std::chrono::milliseconds(250));
 
@@ -1126,6 +1135,8 @@ void xmlrpc_commander::run_server() try
 	if (env.fault_occurred) throw(girerr::error(env.fault_string));              \
 	xmlrpc_env_clean(&env)
 
+#define unregister_method(m) delete ptr_##m;
+
 	register_method2(init, 0x200000);
 	register_method(soft_init);
 	register_method(reinit);
@@ -1208,7 +1219,7 @@ void xmlrpc_commander::run_server() try
 		registry.setShutdown(&shutdown_obj);
 #endif
 
-	TLOG(TLVL_DEBUG) << "running server";
+	TLOG(TLVL_DEBUG + 32) << "running server";
 
 	// JCF, 6/3/15
 
@@ -1231,7 +1242,29 @@ void xmlrpc_commander::run_server() try
 	}
 
 	close(socket_file_descriptor);
-	TLOG(TLVL_DEBUG) << "server terminated";
+
+	unregister_method(init);
+	unregister_method(soft_init);
+	unregister_method(reinit);
+	unregister_method(start);
+	unregister_method(status);
+	unregister_method(report);
+	unregister_method(stop);
+	unregister_method(pause);
+	unregister_method(resume);
+	unregister_method(register_monitor);
+	unregister_method(unregister_monitor);
+	unregister_method(legal_commands);
+	unregister_method(trace_set);
+	unregister_method(trace_get);
+	unregister_method(meta_command);
+	unregister_method(rollover_subrun);
+	unregister_method(add_config_archive_entry);
+	unregister_method(clear_config_archive);
+
+	unregister_method(shutdown);
+
+	TLOG(TLVL_DEBUG + 32) << "server terminated";
 }
 catch (...)
 {

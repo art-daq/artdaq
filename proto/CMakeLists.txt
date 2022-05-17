@@ -2,7 +2,7 @@
 # Build this project's executables:
 
 # Nominally a test exec (no MPI) but we want this to be available to other packages.
-art_make_exec(NAME artdaqDriver
+cet_make_exec(NAME artdaqDriver
 	SOURCE
 	driver.cc
   LIBRARIES
@@ -10,38 +10,38 @@ art_make_exec(NAME artdaqDriver
   artdaq_Generators
   artdaq_DAQrate
   artdaq_DAQdata
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   art_Utilities
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${ROOT_CORE}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-art_make_exec(NAME fhicl_test
+cet_make_exec(NAME fhicl_test
 	SOURCE
 	fhicl_test.cc
 	LIBRARIES
-	${FHICLCPP}
-	${CETLIB}
-	${CETLIB_EXCEPT}
-	${MF_MESSAGELOGGER}
+	fhiclcpp
+	cetlib
+	cetlib_except
+	MF_MessageLogger
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
 
-	art_make_exec(simple_metric_sender
+	cet_make_exec(simple_metric_sender
 	SOURCE
 	simple_metric_sender.cc
 	LIBRARIES
   artdaq_Application # needed for messagefacility
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
 
-  art_make_exec(NAME artdaq
+  cet_make_exec(NAME artdaq
 	SOURCE
 	artdaq.cc
   LIBRARIES
@@ -49,15 +49,15 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME boardreader
+  cet_make_exec(NAME boardreader
 	SOURCE
 	boardreader.cc
   LIBRARIES
@@ -65,15 +65,15 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME eventbuilder
+  cet_make_exec(NAME eventbuilder
 	SOURCE
 	eventbuilder.cc
   LIBRARIES
@@ -81,15 +81,15 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME datalogger
+  cet_make_exec(NAME datalogger
 	SOURCE
 	datalogger.cc
   LIBRARIES
@@ -97,15 +97,15 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME dispatcher
+  cet_make_exec(NAME dispatcher
 	SOURCE
 	dispatcher.cc
   LIBRARIES
@@ -113,84 +113,84 @@ art_make_exec(NAME fhicl_test
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_BuildInfo
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   artdaq_ExternalComms
-  ${FHICLCPP}
-  ${CETLIB}
+  fhiclcpp
+  cetlib
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME requestReceiver
+  cet_make_exec(NAME requestReceiver
 	  SOURCE requestReceiver.cc
 	  LIBRARIES
 	  artdaq_Application
 	  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME requestSender
+  cet_make_exec(NAME requestSender
 	  SOURCE requestSender.cc
 	  LIBRARIES
 	  artdaq_Application
 	  ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME routing_manager
+  cet_make_exec(NAME routing_manager
   SOURCE
   routing_manager.cc
   LIBRARIES
   artdaq_Application
   artdaq_BuildInfo
   artdaq_ExternalComms
-  ${FHICLCPP}
+  fhiclcpp
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  art_make_exec(NAME routingReceiver
+  cet_make_exec(NAME routingReceiver
   SOURCE
   routingReceiver.cc
   LIBRARIES
   artdaq_Application
   artdaq_BuildInfo
   artdaq_ExternalComms
-  ${FHICLCPP}
+  fhiclcpp
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-art_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
+cet_make_exec(NAME transfer_plugin_sender # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins
-  artdaq-core_Data
-  ${CETLIB}
-  ${FHICLCPP}
+  artdaq_core::artdaq-core_Data
+  cetlib
+  fhiclcpp
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   pthread
   )
 
-art_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
+cet_make_exec(NAME transfer_plugin_receiver # NO_INSTALL -- comment out to install
   LIBRARIES
   artdaq_TransferPlugins
-  artdaq-core_Data
-  ${CETLIB}
-  ${FHICLCPP}
+  artdaq_core::artdaq-core_Data
+  cetlib
+  fhiclcpp
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   pthread
   )
 
-art_make_exec(NAME tracemf
+cet_make_exec(NAME tracemf
 	SOURCE
 	tracemf.cc
 	LIBRARIES
 	artdaq_DAQdata
-	artdaq-core_Utilities
+	artdaq_core::artdaq-core_Utilities
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
 
-	art_make_exec(NAME PrintSharedMemory
+	cet_make_exec(NAME PrintSharedMemory
 	SOURCE PrintSharedMemory.cc
 	LIBRARIES
 	artdaq_DAQrate
-	artdaq-core_Core
+	artdaq_core::artdaq-core_Core
 	${Boost_PROGRAM_OPTIONS_LIBRARY}
 	)
 

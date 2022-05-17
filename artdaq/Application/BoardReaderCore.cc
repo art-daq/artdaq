@@ -23,8 +23,6 @@ const std::string artdaq::BoardReaderCore::
 const std::string artdaq::BoardReaderCore::BUFFER_WAIT_STAT_KEY("BoardReaderCoreBufferWaitTime");
 const std::string artdaq::BoardReaderCore::REQUEST_WAIT_STAT_KEY("BoardReaderCoreRequestWaitTime");
 const std::string artdaq::BoardReaderCore::
-    BRSYNC_WAIT_STAT_KEY("BoardReaderCoreBRSyncWaitTime");
-const std::string artdaq::BoardReaderCore::
     OUTPUT_WAIT_STAT_KEY("BoardReaderCoreOutputWaitTime");
 const std::string artdaq::BoardReaderCore::
     FRAGMENTS_PER_READ_STAT_KEY("BoardReaderCoreFragmentsPerRead");
@@ -40,27 +38,26 @@ artdaq::BoardReaderCore::BoardReaderCore(Commandable& parent_application)
     , stop_requested_(false)
     , pause_requested_(false)
 {
-	TLOG(TLVL_DEBUG) << "Constructor";
+	TLOG(TLVL_DEBUG + 32) << "Constructor";
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PROCESSED_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(INPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(BUFFER_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(REQUEST_WAIT_STAT_KEY);
-	statsHelper_.addMonitoredQuantityName(BRSYNC_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(OUTPUT_WAIT_STAT_KEY);
 	statsHelper_.addMonitoredQuantityName(FRAGMENTS_PER_READ_STAT_KEY);
 }
 
 artdaq::BoardReaderCore::~BoardReaderCore()
 {
-	TLOG(TLVL_DEBUG) << "Destructor";
-	TLOG(TLVL_DEBUG) << "Stopping Request Receiver BEGIN";
+	TLOG(TLVL_DEBUG + 32) << "Destructor";
+	TLOG(TLVL_DEBUG + 32) << "Stopping Request Receiver BEGIN";
 	request_receiver_ptr_.reset(nullptr);
-	TLOG(TLVL_DEBUG) << "Stopping Request Receiver END";
+	TLOG(TLVL_DEBUG + 32) << "Stopping Request Receiver END";
 }
 
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
-	TLOG(TLVL_DEBUG) << "initialize method called with "
+	TLOG(TLVL_DEBUG + 32) << "initialize method called with "
 	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// pull out the relevant parts of the ParameterSet
@@ -150,14 +147,14 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
 
-		TLOG(TLVL_DEBUG) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string();
+		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the fragment generator which threw an exception: " << fr_pset.to_string();
 
 		return false;
 	}
 
 	try
 	{
-		fragment_buffer_ptr_.reset(new FragmentBuffer(fr_pset));
+		fragment_buffer_ptr_ = std::make_shared<FragmentBuffer>(fr_pset);
 	}
 	catch (...)
 	{
@@ -166,7 +163,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 		ExceptionHandler(ExceptionHandlerRethrow::no, exception_string.str());
 
-		TLOG(TLVL_DEBUG) << "FHiCL parameter set used to initialize the fragment buffer which threw an exception: " << fr_pset.to_string();
+		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the fragment buffer which threw an exception: " << fr_pset.to_string();
 
 		return false;
 	}
@@ -177,13 +174,14 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	{
 		request_receiver_ptr_.reset(new RequestReceiver(fr_pset, request_buffer));
 		generator_ptr_->SetRequestBuffer(request_buffer);
+		generator_ptr_->SetFragmentBuffer(fragment_buffer_ptr_);
 		fragment_buffer_ptr_->SetRequestBuffer(request_buffer);
 	}
 	catch (...)
 	{
 		ExceptionHandler(ExceptionHandlerRethrow::no, "Exception thrown during initialization of request receiver");
 
-		TLOG(TLVL_DEBUG) << "FHiCL parameter set used to initialize the request receiver which threw an exception: " << fr_pset.to_string();
+		TLOG(TLVL_DEBUG + 32) << "FHiCL parameter set used to initialize the request receiver which threw an exception: " << fr_pset.to_string();
 
 		return false;
 	}
@@ -195,7 +193,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 	statsHelper_.createCollectors(fr_pset, 100, 30.0, 60.0, FRAGMENTS_PROCESSED_STAT_KEY);
 
 	// check if we should skip the sequence ID test...
-	skip_seqId_test_ = (generator_ptr_->fragmentIDs().size() > 1 || fragment_buffer_ptr_->request_mode() != RequestMode::Ignored);
+	skip_seqId_test_ = (fr_pset.get<bool>("skip_seqID_test", false) || generator_ptr_->fragmentIDs().size() > 1 || fragment_buffer_ptr_->request_mode() != RequestMode::Ignored);
 
 	verbose_ = fr_pset.get<bool>("verbose", true);
 
@@ -204,7 +202,7 @@ bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64
 
 bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t timestamp)
 {
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Starting run " << id.run();
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Starting run " << id.run();
 	stop_requested_.store(false);
 	pause_requested_.store(false);
 
@@ -222,70 +220,70 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 	request_receiver_ptr_->startRequestReception();
 
 	running_ = true;
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Start transition (Started run) for run " << run_id_.run()
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Completed the Start transition (Started run) for run " << run_id_.run()
 	                                          << ", timeout = " << timeout << ", timestamp = " << timestamp;
 	return true;
 }
 
 bool artdaq::BoardReaderCore::stop(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Stopping run " << run_id_.run() << " after " << fragment_count_ << " fragments.";
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Stopping run " << run_id_.run() << " after " << fragment_count_ << " fragments.";
 	stop_requested_.store(true);
 
-	TLOG(TLVL_DEBUG) << "Stopping Request reception BEGIN";
+	TLOG(TLVL_DEBUG + 32) << "Stopping Request reception BEGIN";
 	request_receiver_ptr_->stopRequestReception();
-	TLOG(TLVL_DEBUG) << "Stopping Request reception END";
+	TLOG(TLVL_DEBUG + 32) << "Stopping Request reception END";
 
-	TLOG(TLVL_DEBUG) << "Stopping CommandableFragmentGenerator BEGIN";
+	TLOG(TLVL_DEBUG + 32) << "Stopping CommandableFragmentGenerator BEGIN";
 	generator_ptr_->StopCmd(timeout, timestamp);
-	TLOG(TLVL_DEBUG) << "Stopping CommandableFragmentGenerator END";
+	TLOG(TLVL_DEBUG + 32) << "Stopping CommandableFragmentGenerator END";
 
-	TLOG(TLVL_DEBUG) << "Stopping FragmentBuffer";
+	TLOG(TLVL_DEBUG + 32) << "Stopping FragmentBuffer";
 	fragment_buffer_ptr_->Stop();
 
-	TLOG(TLVL_DEBUG) << "Stopping DataSenderManager";
+	TLOG(TLVL_DEBUG + 32) << "Stopping DataSenderManager";
 	if (sender_ptr_)
 	{
 		sender_ptr_->StopSender();
 	}
 
 	running_ = false;
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Stop transition for run " << run_id_.run();
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Completed the Stop transition for run " << run_id_.run();
 	return true;
 }
 
 bool artdaq::BoardReaderCore::pause(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Pausing run " << run_id_.run() << " after " << fragment_count_ << " fragments.";
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Pausing run " << run_id_.run() << " after " << fragment_count_ << " fragments.";
 	pause_requested_.store(true);
 	generator_ptr_->PauseCmd(timeout, timestamp);
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Pause transition for run " << run_id_.run();
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Completed the Pause transition for run " << run_id_.run();
 	return true;
 }
 
 bool artdaq::BoardReaderCore::resume(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Resuming run " << run_id_.run();
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Resuming run " << run_id_.run();
 	pause_requested_.store(false);
 	metricMan->do_start();
 	generator_ptr_->ResumeCmd(timeout, timestamp);
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed the Resume transition for run " << run_id_.run();
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Completed the Resume transition for run " << run_id_.run();
 	return true;
 }
 
 bool artdaq::BoardReaderCore::shutdown(uint64_t /*unused*/)
 {
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Starting Shutdown transition";
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Starting Shutdown transition";
 	generator_ptr_->joinThreads();  // Cleanly shut down the CommandableFragmentGenerator
 	generator_ptr_.reset(nullptr);
 	metricMan->shutdown();
-	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG)) << "Completed Shutdown transition";
+	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Completed Shutdown transition";
 	return true;
 }
 
 bool artdaq::BoardReaderCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
-	TLOG(TLVL_DEBUG) << "soft_initialize method called with "
+	TLOG(TLVL_DEBUG + 32) << "soft_initialize method called with "
 	                 << "ParameterSet = \"" << pset.to_string()
 	                 << "\". Forwarding to initialize.";
 	return initialize(pset, timeout, timestamp);
@@ -293,7 +291,7 @@ bool artdaq::BoardReaderCore::soft_initialize(fhicl::ParameterSet const& pset, u
 
 bool artdaq::BoardReaderCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
-	TLOG(TLVL_DEBUG) << "reinitialize method called with "
+	TLOG(TLVL_DEBUG + 32) << "reinitialize method called with "
 	                 << "ParameterSet = \"" << pset.to_string()
 	                 << "\". Forwarding to initalize.";
 	return initialize(pset, timeout, timestamp);
@@ -331,7 +329,7 @@ void artdaq::BoardReaderCore::receive_fragments()
 #pragma GCC diagnostic pop
 	}
 
-	TLOG(TLVL_DEBUG) << "Waiting for first fragment.";
+	TLOG(TLVL_DEBUG + 32) << "Waiting for first fragment.";
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime, after_input, after_buffer;
 	artdaq::FragmentPtrs frags;
 
@@ -352,9 +350,9 @@ void artdaq::BoardReaderCore::receive_fragments()
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
-		TLOG(18) << "receive_fragments getNext start";
+		TLOG(TLVL_DEBUG + 35) << "receive_fragments getNext start";
 		receiver_thread_active_ = generator_ptr_->getNext(frags);
-		TLOG(18) << "receive_fragments getNext done (receiver_thread_active_=" << receiver_thread_active_ << ")";
+		TLOG(TLVL_DEBUG + 35) << "receive_fragments getNext done (receiver_thread_active_=" << receiver_thread_active_ << ")";
 
 		// 08-May-2015, KAB & JCF: if the generator getNext() method returns false
 		// (which indicates that the data flow has stopped) *and* the reason that
@@ -374,13 +372,13 @@ void artdaq::BoardReaderCore::receive_fragments()
 
 		if (frags.size() > 0)
 		{
-			TLOG(18) << "receive_fragments AddFragmentsToBuffer start";
+			TLOG(TLVL_DEBUG + 35) << "receive_fragments AddFragmentsToBuffer start";
 			fragment_buffer_ptr_->AddFragmentsToBuffer(std::move(frags));
-			TLOG(18) << "receive_fragments AddFragmentsToBuffer done";
+			TLOG(TLVL_DEBUG + 35) << "receive_fragments AddFragmentsToBuffer done";
 		}
 
 		after_buffer = artdaq::MonitoredQuantity::getCurrentTime();
-		TLOG(16) << "receive_fragments INPUT_WAIT=" << (after_input - startTime) << ", BUFFER_WAIT=" << (after_buffer - after_input);
+		TLOG(TLVL_DEBUG + 34) << "receive_fragments INPUT_WAIT=" << (after_input - startTime) << ", BUFFER_WAIT=" << (after_buffer - after_input);
 		statsHelper_.addSample(INPUT_WAIT_STAT_KEY, after_input - startTime);
 		statsHelper_.addSample(BUFFER_WAIT_STAT_KEY, after_buffer - after_input);
 		if (statsHelper_.statsRollingWindowHasMoved()) { sendMetrics_(); }
@@ -392,7 +390,7 @@ void artdaq::BoardReaderCore::receive_fragments()
 	// there is no data flowing
 	metricMan->do_stop();
 
-	TLOG(TLVL_DEBUG) << "receive_fragments loop end";
+	TLOG(TLVL_DEBUG + 32) << "receive_fragments loop end";
 }
 void artdaq::BoardReaderCore::send_fragments()
 {
@@ -428,10 +426,10 @@ void artdaq::BoardReaderCore::send_fragments()
 #pragma GCC diagnostic pop
 	}
 
-	TLOG(TLVL_DEBUG) << "Initializing DataSenderManager. my_rank=" << my_rank;
+	TLOG(TLVL_DEBUG + 32) << "Initializing DataSenderManager. my_rank=" << my_rank;
 	sender_ptr_ = std::make_unique<artdaq::DataSenderManager>(data_pset_);
 
-	TLOG(TLVL_DEBUG) << "Waiting for first fragment.";
+	TLOG(TLVL_DEBUG + 32) << "Waiting for first fragment.";
 	artdaq::MonitoredQuantityStats::TIME_POINT_T startTime;
 	double delta_time;
 	artdaq::FragmentPtrs frags;
@@ -454,9 +452,9 @@ void artdaq::BoardReaderCore::send_fragments()
 	{
 		startTime = artdaq::MonitoredQuantity::getCurrentTime();
 
-		TLOG(18) << "send_fragments applyRequests start";
+		TLOG(TLVL_DEBUG + 35) << "send_fragments applyRequests start";
 		sender_thread_active_ = fragment_buffer_ptr_->applyRequests(frags);
-		TLOG(18) << "send_fragments applyRequests done (sender_thread_active_=" << sender_thread_active_ << ")";
+		TLOG(TLVL_DEBUG + 35) << "send_fragments applyRequests done (sender_thread_active_=" << sender_thread_active_ << ")";
 		// 08-May-2015, KAB & JCF: if the generator getNext() method returns false
 		// (which indicates that the data flow has stopped) *and* the reason that
 		// it has stopped is because there was an exception that wasn't handled by
@@ -470,7 +468,7 @@ void artdaq::BoardReaderCore::send_fragments()
 
 		delta_time = artdaq::MonitoredQuantity::getCurrentTime() - startTime;
 
-		TLOG(16) << "send_fragments REQUEST_WAIT=" << delta_time;
+		TLOG(TLVL_DEBUG + 34) << "send_fragments REQUEST_WAIT=" << delta_time;
 		statsHelper_.addSample(REQUEST_WAIT_STAT_KEY, delta_time);
 
 		if (!sender_thread_active_) { break; }
@@ -485,7 +483,7 @@ void artdaq::BoardReaderCore::send_fragments()
 			}
 			if (fragment_count_ == 0)
 			{
-				TLOG(TLVL_DEBUG) << "Received first Fragment from Fragment Generator, sequence ID " << fragPtr->sequenceID() << ", size = " << fragPtr->sizeBytes() << " bytes.";
+				TLOG(TLVL_DEBUG + 32) << "Received first Fragment from Fragment Generator, sequence ID " << fragPtr->sequenceID() << ", size = " << fragPtr->sizeBytes() << " bytes.";
 			}
 
 			if (fragPtr->type() == Fragment::EndOfRunFragmentType || fragPtr->type() == Fragment::EndOfSubrunFragmentType || fragPtr->type() == Fragment::InitFragmentType)
@@ -495,9 +493,9 @@ void artdaq::BoardReaderCore::send_fragments()
 				statsHelper_.addSample(FRAGMENTS_PROCESSED_STAT_KEY, fragPtr->sizeBytes());
 
 				startTime = artdaq::MonitoredQuantity::getCurrentTime();
-				TLOG(17) << "send_fragments seq=" << sequence_id << " sendFragment start";
+				TLOG(TLVL_DEBUG + 36) << "send_fragments seq=" << sequence_id << " sendFragment start";
 				auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
-				TLOG(17) << "send_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
+				TLOG(TLVL_DEBUG + 36) << "send_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
 				++fragment_count_;
 				statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 				                       artdaq::MonitoredQuantity::getCurrentTime() - startTime);
@@ -510,7 +508,7 @@ void artdaq::BoardReaderCore::send_fragments()
 
 			/*if ((fragment_count_ % 250) == 0)
 			{
-				TLOG(TLVL_DEBUG)
+				TLOG(TLVL_DEBUG + 32)
 					<< "Sending fragment " << fragment_count_
 					<< " with sequence id " << sequence_id << ".";
 			}*/
@@ -526,13 +524,13 @@ void artdaq::BoardReaderCore::send_fragments()
 			prev_seq_id_ = sequence_id;
 
 			startTime = artdaq::MonitoredQuantity::getCurrentTime();
-			TLOG(17) << "send_fragments seq=" << sequence_id << " sendFragment start";
+			TLOG(TLVL_DEBUG + 36) << "send_fragments seq=" << sequence_id << " sendFragment start";
 			auto res = sender_ptr_->sendFragment(std::move(*fragPtr));
 			if (sender_ptr_->GetSentSequenceIDCount(sequence_id) == targetFragCount)
 			{
 				sender_ptr_->RemoveRoutingTableEntry(sequence_id);
 			}
-			TLOG(17) << "send_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
+			TLOG(TLVL_DEBUG + 36) << "send_fragments seq=" << sequence_id << " sendFragment done (dest=" << res.first << ", sts=" << TransferInterface::CopyStatusToString(res.second) << ")";
 			++fragment_count_;
 			statsHelper_.addSample(OUTPUT_WAIT_STAT_KEY,
 			                       artdaq::MonitoredQuantity::getCurrentTime() - startTime);
@@ -544,8 +542,8 @@ void artdaq::BoardReaderCore::send_fragments()
 			}
 
 			// Turn on lvls (mem and/or slow) 3,13,14 to log every send.
-			TLOG(((fragment_count_ == 1) ? TLVL_DEBUG
-			                             : (((fragment_count_ % 250) == 0 || readyToReport) ? 13 : 14)))
+			TLOG(((fragment_count_ == 1) ? TLVL_DEBUG + 32
+			                             : (((fragment_count_ % 250) == 0 || readyToReport) ? TLVL_DEBUG + 36 : TLVL_DEBUG + 37)))
 			    << ((fragment_count_ == 1)
 			            ? "Sent first Fragment"
 			            : "Sending fragment " + std::to_string(fragment_count_))
@@ -563,7 +561,7 @@ void artdaq::BoardReaderCore::send_fragments()
 	// there is no data flowing
 	metricMan->do_stop();
 
-	TLOG(TLVL_DEBUG) << "send_fragments loop end";
+	TLOG(TLVL_DEBUG + 32) << "send_fragments loop end";
 }
 
 std::string artdaq::BoardReaderCore::report(std::string const& which) const
@@ -596,7 +594,7 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 
 bool artdaq::BoardReaderCore::metaCommand(std::string const& command, std::string const& arg)
 {
-	TLOG(TLVL_DEBUG) << "metaCommand method called with "
+	TLOG(TLVL_DEBUG + 32) << "metaCommand method called with "
 	                 << "command = \"" << command << "\""
 	                 << ", arg = \"" << arg << "\""
 	                 << ".";
@@ -684,13 +682,6 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
 	}
 
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		oss << ", BRsync wait time = "
-		    << (mqPtr->getRecentValueSum() / fragmentsOutputCount) << " s/fragment";
-	}
-
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != nullptr)
 	{
@@ -703,7 +694,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 
 void artdaq::BoardReaderCore::sendMetrics_()
 {
-	//TLOG(TLVL_DEBUG) << "Sending metrics " << __LINE__ ;
+	//TLOG(TLVL_DEBUG + 32) << "Sending metrics " << __LINE__ ;
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);
 	if (mqPtr.get() != nullptr)
@@ -741,12 +732,6 @@ void artdaq::BoardReaderCore::sendMetrics_()
 	{
 		metricMan->sendMetric("Avg Request Response Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
 	}
-	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(BRSYNC_WAIT_STAT_KEY);
-	if (mqPtr.get() != nullptr)
-	{
-		metricMan->sendMetric("Avg BoardReader Sync Wait Time", (mqPtr->getRecentValueSum() / fragmentCount), "seconds/fragment", 3, MetricMode::Average);
-	}
-
 	mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(OUTPUT_WAIT_STAT_KEY);
 	if (mqPtr.get() != nullptr)
 	{

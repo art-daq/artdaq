@@ -25,10 +25,10 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	// instance, then create a new one.  Doing it in one step does not
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
-	TLOG(TLVL_DEBUG) << "Initializing first deleting old instance " << static_cast<void*>(fragment_receiver_ptr_.get());
+	TLOG(TLVL_DEBUG + 32) << "Initializing first deleting old instance " << static_cast<void*>(fragment_receiver_ptr_.get());
 	fragment_receiver_ptr_.reset(nullptr);
 	fragment_receiver_ptr_ = std::make_unique<BoardReaderCore>(*this);
-	TLOG(TLVL_DEBUG) << "Initializing new BoardReaderCore at " << static_cast<void*>(fragment_receiver_ptr_.get()) << " with pset " << pset.to_string();
+	TLOG(TLVL_DEBUG + 32) << "Initializing new BoardReaderCore at " << static_cast<void*>(fragment_receiver_ptr_.get()) << " with pset " << pset.to_string();
 	external_request_status_ = fragment_receiver_ptr_->initialize(pset, timeout, timestamp);
 	if (!external_request_status_)
 	{
@@ -37,7 +37,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 		report_string_.append("with ParameterSet = \"" + pset.to_string() + "\".");
 	}
 
-	TLOG(TLVL_DEBUG) << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
+	TLOG(TLVL_DEBUG + 32) << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
 	                 << "Done initializing.";
 	return external_request_status_;
 }
@@ -57,7 +57,16 @@ bool artdaq::BoardReaderApp::do_start(art::RunID id, uint64_t timeout, uint64_t 
 	try
 	{
 		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
+		char tname[16];                                                // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		snprintf(tname, sizeof(tname) - 1, "%d-FragOutput", my_rank);  // NOLINT
+		tname[sizeof(tname) - 1] = '\0';                               // assure term. snprintf is not too evil :)
+		auto handle = fragment_output_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 		fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
+		snprintf(tname, sizeof(tname) - 1, "%d-FragInput", my_rank);  // NOLINT
+		tname[sizeof(tname) - 1] = '\0';                              // assure term. snprintf is not too evil :)
+		handle = fragment_input_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{
@@ -114,22 +123,22 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	}
 	if (fragment_input_thread_.joinable())
 	{
-		TLOG(TLVL_DEBUG) << "Joining fragment input (Generator) thread";
+		TLOG(TLVL_DEBUG + 32) << "Joining fragment input (Generator) thread";
 		fragment_input_thread_.join();
 	}
 	if (fragment_output_thread_.joinable())
 	{
-		TLOG(TLVL_DEBUG) << "Joining fragment output (Sender) thread";
+		TLOG(TLVL_DEBUG + 32) << "Joining fragment output (Sender) thread";
 		fragment_output_thread_.join();
 	}
 
-	TLOG(TLVL_DEBUG) << "BoardReader Stopped. Getting run statistics";
+	TLOG(TLVL_DEBUG + 32) << "BoardReader Stopped. Getting run statistics";
 	int number_of_fragments_sent = -1;
 	if (fragment_receiver_ptr_)
 	{
 		number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	}
-	TLOG(TLVL_DEBUG) << "do_stop(uint64_t, uint64_t): "
+	TLOG(TLVL_DEBUG + 32) << "do_stop(uint64_t, uint64_t): "
 	                 << "Number of fragments sent = " << number_of_fragments_sent
 	                 << ".";
 
@@ -149,7 +158,7 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (fragment_input_thread_.joinable()) fragment_input_thread_.join();
 	if (fragment_output_thread_.joinable()) fragment_output_thread_.join();
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
-	TLOG(TLVL_DEBUG) << "do_pause(uint64_t, uint64_t): "
+	TLOG(TLVL_DEBUG + 32) << "do_pause(uint64_t, uint64_t): "
 	                 << "Number of fragments sent = " << number_of_fragments_sent
 	                 << ".";
 
@@ -170,7 +179,17 @@ bool artdaq::BoardReaderApp::do_resume(uint64_t timeout, uint64_t timestamp)
 	try
 	{
 		fragment_output_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::send_fragments, fragment_receiver_ptr_.get()));
+		char tname[16];                                                // Size 16 - see man page pthread_setname_np(3) and/or prctl(2)
+		snprintf(tname, sizeof(tname) - 1, "%d-FragOutput", my_rank);  // NOLINT
+		tname[sizeof(tname) - 1] = '\0';                               // assure term. snprintf is not too evil :)
+		auto handle = fragment_output_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 		fragment_input_thread_ = boost::thread(attrs, boost::bind(&BoardReaderCore::receive_fragments, fragment_receiver_ptr_.get()));
+
+		snprintf(tname, sizeof(tname) - 1, "%d-FragInput", my_rank);  // NOLINT
+		tname[sizeof(tname) - 1] = '\0';                              // assure term. snprintf is not too evil :)
+		handle = fragment_input_thread_.native_handle();
+		pthread_setname_np(handle, tname);
 	}
 	catch (const boost::exception& e)
 	{
@@ -249,7 +268,7 @@ bool artdaq::BoardReaderApp::do_reinitialize(fhicl::ParameterSet const& pset, ui
 
 void artdaq::BoardReaderApp::BootedEnter()
 {
-	TLOG(TLVL_DEBUG) << "Booted state entry action called.";
+	TLOG(TLVL_DEBUG + 32) << "Booted state entry action called.";
 
 	// the destruction of any existing BoardReaderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

@@ -15,27 +15,27 @@
 #  TEST_PROPERTIES RUN_SERIAL 1
 #  )
 
- art_make_exec(NAME transfer_driver # NO_INSTALL -- comment out to install
+ cet_make_exec(NAME transfer_driver # NO_INSTALL -- comment out to install
 SOURCE
 transfer_driver.cc
    LIBRARIES
   artdaq_DAQrate
    artdaq_DAQdata
 artdaq_TransferPlugins
-  ${FHICLCPP}
+  fhiclcpp
    )
 
-   art_make_exec(NAME broken_transfer_driver 
+   cet_make_exec(NAME broken_transfer_driver 
    SOURCE broken_transfer_driver.cc BrokenTransferTest.cc 
    LIBRARIES 
    artdaq_DAQrate 
    artdaq_DAQdata 
    artdaq_TransferPlugins 
-   ${FHICLCPP}
+   fhiclcpp
    ${Boost_PROGRAM_OPTIONS_LIBRARY}
    )
 
-  cet_script(runTransferTest.sh runBrokenTransferTest.sh)
+  cet_script(ALWAYS_COPY runTransferTest.sh runBrokenTransferTest.sh)
 
   cet_test(transfer_driver_tcp_t HANDBUILT
 	TEST_EXEC runTransferTest.sh

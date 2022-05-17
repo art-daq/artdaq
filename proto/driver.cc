@@ -23,7 +23,6 @@
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 #include "cetlib/filepath_maker.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/make_ParameterSet.h"
 
 #include <csignal>
 #include <iostream>
@@ -60,7 +59,9 @@ int main(int argc, char* argv[]) try
 	auto timeout = pset.get<uint64_t>("transition_timeout", 30);
 	uint64_t timestamp = 0;
 
-	artdaq::configureMessageFacility("artdaqDriver", true, debug);
+	app_name = "artdaqDriver";
+
+	artdaq::configureMessageFacility(app_name.c_str(), true, debug);
 
 	auto fragment_receiver_pset = pset.get<fhicl::ParameterSet>("fragment_receiver");
 
@@ -87,7 +88,7 @@ int main(int argc, char* argv[]) try
 	}
 	try
 	{
-		metricMan->initialize(metric_pset, "artdaqDriver");
+		metricMan->initialize(metric_pset, app_name);
 		metricMan->do_start();
 	}
 	catch (...)

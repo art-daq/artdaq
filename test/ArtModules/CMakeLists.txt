@@ -1,41 +1,12 @@
 
 simple_plugin(FragmentSniffer "module"
-  artdaq_DAQdata
-  art_Framework_Core
-  art_Framework_Principal
-  art_Persistency_Provenance
-  MF_MessageLogger
-  fhiclcpp
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+ artdaq_DAQdata
   )
 
 #get_cmake_property(_variableNames VARIABLES)
 #foreach (_variableName ${_variableNames})
 #    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
-
-if(${art_not_in_ups})
-else(${art_not_in_ups})
- set(artVersionLib $ENV{ART_LIB}/libart_Version.so)
-endif(${art_not_in_ups})
-
-if( ${ART_HEX_VERSION} LESS 0x20906 )
-cet_test(shared_memory_reader_t USE_BOOST_UNIT
-  LIBRARIES
-  artdaq_ArtModules
-  artdaq_DAQrate
-  artdaq_DAQdata
-  artdaq-core_Data_dict
-  art_Framework_Core
-  art_Framework_Principal
-  art_Persistency_Provenance
- # canvas_Persistency_Common_dict
- # canvas_Persistency_WrappedStdDictionaries_dict
-  art_Utilities
-  ${artVersionLib}
-  )
-  endif()
 
 cet_test(daq_flow_t
   LIBRARIES
@@ -45,7 +16,6 @@ cet_test(daq_flow_t
   artdaq_DAQrate
   artdaq_DAQdata
   MF_MessageLogger
-  ${ROOT_CORE}
   fhiclcpp
   cetlib
   art_Utilities
@@ -61,7 +31,6 @@ cet_test(daq_flow_t
   artdaq_DAQrate
   artdaq_DAQdata
   MF_MessageLogger
-  ${ROOT_CORE}
   fhiclcpp
   cetlib
   art_Utilities

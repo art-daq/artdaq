@@ -12,7 +12,7 @@
 
 bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG(TLVL_DEBUG) << "initialize method called with DAQ "
+	TLOG(TLVL_DEBUG + 32) << "initialize method called with DAQ "
 	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// pull out the relevant parts of the ParameterSet
@@ -48,13 +48,7 @@ bool artdaq::EventBuilderCore::initialize(fhicl::ParameterSet const& pset)
 		return false;
 	}
 
-	fhicl::ParameterSet metric_pset;
-	try
-	{
-		metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics");
-	}
-	catch (...)
-	{}  // OK if there's no metrics table defined in the FHiCL
+	fhicl::ParameterSet metric_pset = daq_pset.get<fhicl::ParameterSet>("metrics", fhicl::ParameterSet());
 
 	return initializeDataReceiver(pset, evb_pset, metric_pset);
 }

@@ -6,30 +6,30 @@ cet_test_env("FHICL_FILE_PATH=.")
 
 install_scripts( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh disk_stats.sh)
 
-art_make_exec( periodic_cmd_stats )
+cet_make_exec( periodic_cmd_stats )
 
-art_make_exec(StateResponder
+cet_make_exec(StateResponder
   LIBRARIES
   artdaq_Application
   artdaq_ExternalComms
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-art_make_exec(genToArt
+cet_make_exec(genToArt
   LIBRARIES
   artdaq_Generators
   artdaq_DAQrate
   artdaq_DAQdata_GenericFragmentSimulator_generator
-  artdaq-core_Utilities
-  artdaq-core_Generators
+  artdaq_core::artdaq-core_Utilities
+  artdaq_core::artdaq-core_Generators
   canvas
-  ${FHICLCPP}
-  ${CETLIB}
-  ${CETLIB_EXCEPT}
+  fhiclcpp
+  cetlib
+  cetlib_except
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-  cet_script(setupMpichPlugin.sh)
+  cet_script(ALWAYS_COPY setupMpichPlugin.sh)
 
 # Make sure tests have correct environment settings.
 include(CetTest)
@@ -57,7 +57,7 @@ cet_make_library(LIBRARY_NAME swig_artdaq
                  SOURCE swig_artdaq.cpp
                  LIBRARIES
                  artdaq_DAQdata
-				 artdaq-core_Utilities
+				 artdaq_core::artdaq-core_Utilities
 				 )
 
 

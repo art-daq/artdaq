@@ -4,8 +4,8 @@
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
-#include "artdaq/DAQrate/RequestReceiver.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/RequestReceiver.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
 #include "canvas/Persistency/Provenance/RunID.h"
@@ -202,7 +202,7 @@ private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
 	std::unique_ptr<RequestReceiver> request_receiver_ptr_;
-	std::unique_ptr<FragmentBuffer> fragment_buffer_ptr_;
+	std::shared_ptr<FragmentBuffer> fragment_buffer_ptr_;
 	art::RunID run_id_;
 
 	fhicl::ParameterSet data_pset_;

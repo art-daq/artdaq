@@ -15,7 +15,7 @@
 #  TEST_PROPERTIES RUN_SERIAL 1
 #  )
 
- art_make_exec(NAME commander_test # NO_INSTALL -- comment out to install
+ cet_make_exec(NAME commander_test # NO_INSTALL -- comment out to install
 SOURCE
 commander_test.cc
    LIBRARIES
@@ -24,7 +24,7 @@ commander_test.cc
    artdaq_ExternalComms
    ${Boost_SYSTEM_LIBRARY}
    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  ${FHICLCPP}
+  fhiclcpp
    )
 
 

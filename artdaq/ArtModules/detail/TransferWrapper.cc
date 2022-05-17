@@ -35,6 +35,8 @@ void signal_handler(int signal)
 
 artdaq::TransferWrapper::TransferWrapper(const fhicl::ParameterSet& pset)
     : timeoutInUsecs_(pset.get<std::size_t>("timeoutInUsecs", 100000))
+    , last_received_data_()
+    , last_report_(std::chrono::steady_clock::now())
     , transfer_(nullptr)
     , commander_(nullptr)
     , pset_(pset)
@@ -142,21 +144,35 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 					TLOG(TLVL_INFO) << "Received " << cntr << suffix << " event, "
 					                << "seqID == " << fragmentPtr->sequenceID()
 					                << ", type == " << fragmentPtr->typeString();
+					last_received_data_ = std::chrono::steady_clock::now();
 					continue;
 				}
 				if (result == artdaq::TransferInterface::DATA_END)
 				{
 					TLOG(TLVL_ERROR) << "Transfer Plugin disconnected or other unrecoverable error. Shutting down.";
-					unregisterMonitor();
-					initialized = false;
-					continue;
+					if (multi_run_mode_)
+					{
+						unregisterMonitor();
+						initialized = false;
+						continue;
+					}
+					return fragmentPtrs;
 				}
 				else
 				{
+					auto tlvl = TLVL_DEBUG + 33;
+					if (artdaq::TimeUtils::GetElapsedTime(last_report_) > 1.0 && artdaq::TimeUtils::GetElapsedTime(last_received_data_) > 1.0)
+					{
+						tlvl = TLVL_WARNING;
+						last_report_ = std::chrono::steady_clock::now();
+					}
+
+					auto last_received_milliseconds = artdaq::TimeUtils::GetElapsedTimeMilliseconds(last_received_data_);
+
 					// 02-Jun-2018, KAB: added status/result printout
 					// to-do: add another else clause that explicitly checks for RECV_TIMEOUT
-					TLOG(TLVL_WARNING) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again"
-					                   << ", status = " << result;
+					TLOG(tlvl) << "Timeout occurred in call to transfer_->receiveFragmentFrom; will try again"
+					           << ", status = " << result << ", last received data " << last_received_milliseconds << " ms ago.";
 				}
 			}
 			catch (...)
@@ -283,7 +299,7 @@ void artdaq::TransferWrapper::registerMonitor()
 	auto sts = getDispatcherStatus();
 	while (sts != "Running" && (runningStateTimeout_ == 0 || TimeUtils::GetElapsedTime(start) < runningStateTimeout_))
 	{
-		TLOG(TLVL_DEBUG) << "Dispatcher state: " << sts;
+		TLOG(TLVL_DEBUG + 32) << "Dispatcher state: " << sts;
 		if (gSignalStatus != 0)
 		{
 			TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
@@ -377,7 +393,7 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		}
 		else if (status == "busy")
 		{
-			TLOG(TLVL_DEBUG) << "The Dispatcher returned \"busy\", will retry in 0.5s";
+			TLOG(TLVL_DEBUG + 32) << "The Dispatcher returned \"busy\", will retry in 0.5s";
 		}
 		else
 		{

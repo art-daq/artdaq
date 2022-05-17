@@ -1,9 +1,9 @@
-art_make_exec(NAME GenToBuffer_t SOURCE GenToBuffer_t.cc 
+cet_make_exec(NAME GenToBuffer_t SOURCE GenToBuffer_t.cc 
 	LIBRARIES artdaq_DAQrate
 	artdaq_Generators
   ${Boost_SYSTEM_LIBRARY}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  ${FHICLCPP})
+  fhiclcpp)
 
 cet_test(FragCounter_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate
@@ -36,5 +36,5 @@ cet_test(requestsender HANDBUILT
 cet_test(FragmentBuffer_t USE_BOOST_UNIT
   LIBRARIES artdaq_DAQrate 
   artdaq_Generators
-  artdaq-core_Data
+  artdaq_core::artdaq-core_Data
   )

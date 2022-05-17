@@ -7,7 +7,7 @@
 #define TRACE_NAME "TransferTest"
 #include "artdaq/DAQdata/Globals.hh"
 
-#include "fhiclcpp/make_ParameterSet.h"
+#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include <future>
 
@@ -23,7 +23,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
     , validate_mode_(psi.get<bool>("validate_data_mode", false))
     , partition_number_(psi.get<int>("partition_number", rand() % 0x7F))  // NOLINT(cert-msc50-cpp)
 {
-	TLOG(10) << "CONSTRUCTOR";
+	TLOG(TLVL_DEBUG + 35) << "CONSTRUCTOR";
 
 	if (fragment_size_ < artdaq::detail::RawFragmentHeader::num_words() * sizeof(artdaq::RawDataType))
 	{
@@ -61,13 +61,13 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 		{
 			if (senders_ * sending_threads_ * sends_each_sender_ % receivers_ != 0)
 			{
-				TLOG(TLVL_TRACE) << "Adding sends so that sends_each_sender * num_sending_ranks is a multiple of num_receiving_ranks" << std::endl;
+				TLOG(TLVL_DEBUG + 33) << "Adding sends so that sends_each_sender * num_sending_ranks is a multiple of num_receiving_ranks" << std::endl;
 				while (senders_ * sends_each_sender_ % receivers_ != 0)
 				{
 					sends_each_sender_++;
 				}
 				receives_each_receiver_ = senders_ * sending_threads_ * sends_each_sender_ / receivers_;
-				TLOG(TLVL_TRACE) << "sends_each_sender is now " << sends_each_sender_ << std::endl;
+				TLOG(TLVL_DEBUG + 33) << "sends_each_sender is now " << sends_each_sender_ << std::endl;
 				psi.put_or_replace("sends_per_sender", sends_each_sender_);
 			}
 			else
@@ -99,9 +99,9 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	}
 	ss << "}" << std::endl;
 
-	make_ParameterSet(ss.str(), ps_);
+	ps_ = make_pset(ss.str());
 
-	TLOG(TLVL_DEBUG) << "Going to configure with ParameterSet: " << ps_.to_string() << std::endl;
+	TLOG(TLVL_DEBUG + 32) << "Going to configure with ParameterSet: " << ps_.to_string() << std::endl;
 }
 
 int artdaq::TransferTest::runTest()
@@ -139,13 +139,13 @@ int artdaq::TransferTest::runTest()
 	TLOG(TLVL_INFO) << "Rate of " << (my_rank < senders_ ? "sending" : "receiving") << ": " << formatBytes(result.first / result.second) << "/s." << std::endl;
 	metricMan->do_stop();
 	metricMan->shutdown();
-	TLOG(11) << "runTest DONE";
-	return 0;
+	TLOG(TLVL_DEBUG + 36) << "runTest DONE";
+	return return_code_;
 }
 
 std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 {
-	TLOG(TLVL_DEBUG + 4) << "do_sending entered RawFragmentHeader::num_words()=" << artdaq::detail::RawFragmentHeader::num_words();
+	TLOG(TLVL_DEBUG + 34) << "do_sending entered RawFragmentHeader::num_words()=" << artdaq::detail::RawFragmentHeader::num_words();
 
 	size_t totalSize = 0;
 	double totalTime = 0;
@@ -164,7 +164,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			if (*(frag.dataBegin() + ii) != ii + 1)
 			{
 				TLOG(TLVL_ERROR) << "Data corruption detected! (" << (*(frag.dataBegin() + ii)) << " != " << (ii + 1) << ") Aborting!";
-				exit(1);
+				return_code_ = 255;
+				return std::make_pair(0, 0.0);
 			}
 		}
 	}
@@ -179,7 +180,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 	for (int ii = 0; ii < sends_each_sender_; ++ii)
 	{
 		auto loop_start = std::chrono::steady_clock::now();
-		TLOG(TLVL_DEBUG + 4) << "sender rank " << my_rank << " #" << ii << " resized bytes=" << frag.sizeBytes();
+		TLOG(TLVL_DEBUG + 34) << "sender rank " << my_rank << " #" << ii << " resized bytes=" << frag.sizeBytes();
 		totalSize += frag.sizeBytes();
 
 		//unsigned sndDatSz = data_size_wrds;
@@ -193,10 +194,10 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 				*++it = sndDatSz;*/
 
 		auto send_start = std::chrono::steady_clock::now();
-		TLOG(TLVL_DEBUG) << "Sender " << my_rank << " sending fragment " << ii;
+		TLOG(TLVL_DEBUG + 32) << "Sender " << my_rank << " sending fragment " << ii;
 		auto stspair = sender.sendFragment(std::move(frag));
 		auto after_send = std::chrono::steady_clock::now();
-		TLOG(TLVL_TRACE) << "Sender " << my_rank << " sent fragment " << ii;
+		TLOG(TLVL_DEBUG + 33) << "Sender " << my_rank << " sent fragment " << ii;
 		sender.RemoveRoutingTableEntry(ii * sending_threads_ + index);
 		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
@@ -206,7 +207,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 			if (error_count >= error_count_max_)
 			{
 				TLOG(TLVL_ERROR) << "Too many errors sending fragments! Aborting... (sent=" << ii << "/" << sends_each_sender_ << ")";
-				exit(sends_each_sender_ - ii);
+				return_code_ = sends_each_sender_ - ii;
+				return std::make_pair(0, 0.0);
 			}
 		}
 
@@ -221,11 +223,12 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 				if (*(frag.dataBegin() + jj) != (ii + 1) + jj + 1)
 				{
 					TLOG(TLVL_ERROR) << "Input Data corruption detected! (" << *(frag.dataBegin() + jj) << " != " << ii + jj + 2 << " at position " << ii << ") Aborting!";
-					exit(1);
+					return_code_ = 254;
+					return std::make_pair(0, 0.0);
 				}
 			}
 		}
-		TLOG(9) << "sender rank " << my_rank << " frag replaced";
+		TLOG(TLVL_DEBUG + 37) << "sender rank " << my_rank << " frag replaced";
 
 		auto total_send_time = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(after_send - send_start).count();
 		totalTime += total_send_time;
@@ -253,7 +256,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 
 std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 {
-	TLOG(TLVL_DEBUG + 4) << "do_receiving entered";
+	TLOG(TLVL_DEBUG + 34) << "do_receiving entered";
 
 	artdaq::FragmentReceiverManager receiver(ps_);
 	receiver.start_threads();
@@ -275,7 +278,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	while ((activeSenders > 0 || (counter > receives_each_receiver_ / 10 && !nonblocking_mode)) && counter > 0)
 	{
 		auto start_loop = std::chrono::steady_clock::now();
-		TLOG(TLVL_DEBUG + 4) << "do_receiving: Counter is " << counter << ", calling recvFragment (activeSenders=" << activeSenders << ")";
+		TLOG(TLVL_DEBUG + 34) << "do_receiving: Counter is " << counter << ", calling recvFragment (activeSenders=" << activeSenders << ")";
 		int senderSlot = artdaq::TransferInterface::RECV_TIMEOUT;
 		auto before_receive = std::chrono::steady_clock::now();
 
@@ -289,7 +292,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 			{
 				TLOG(TLVL_INFO) << "Receiver " << my_rank << " received EndOfData Fragment from Sender " << senderSlot;
 				activeSenders--;
-				TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;
+				TLOG(TLVL_DEBUG + 32) << "Active Senders is now " << activeSenders;
 			}
 			else if (ignoreFragPtr->type() != artdaq::Fragment::DataFragmentType)
 			{
@@ -314,7 +317,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 						if (*(ignoreFragPtr->dataBegin() + ii) != ignoreFragPtr->sequenceID() + ii + 1)
 						{
 							TLOG(TLVL_ERROR) << "Output Data corruption detected! (" << *(ignoreFragPtr->dataBegin() + ii) << " != " << (ignoreFragPtr->sequenceID() + ii + 1) << " at position " << ii << ") Aborting!";
-							exit(1);
+							return_code_ = -3;
+							return std::make_pair(0, 0.0);
 						}
 					}
 				}
@@ -325,9 +329,9 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 		{
 			TLOG(TLVL_ERROR) << "Receiver " << my_rank << " detected fatal protocol error! Reducing active sender count by one!" << std::endl;
 			activeSenders--;
-			TLOG(TLVL_DEBUG) << "Active Senders is now " << activeSenders;
+			TLOG(TLVL_DEBUG + 32) << "Active Senders is now " << activeSenders;
 		}
-		TLOG(TLVL_DEBUG + 4) << "do_receiving: Recv Loop end, counter is " << counter;
+		TLOG(TLVL_DEBUG + 34) << "do_receiving: Recv Loop end, counter is " << counter;
 
 		auto total_recv_time = std::chrono::duration_cast<artdaq::TimeUtils::seconds>(after_receive - before_receive).count();
 		recv_time_metric += total_recv_time;
@@ -352,7 +356,8 @@ std::pair<size_t, double> artdaq::TransferTest::do_receiving()
 	if (counter != 0 && !nonblocking_mode)
 	{
 		TLOG(TLVL_ERROR) << "Did not receive all expected Fragments! Missing " << counter << " Fragments!";
-		exit(counter);
+		return_code_ = counter;
+		return std::make_pair(0, 0.0);
 	}
 
 	return std::make_pair(totalSize, totalTime);
