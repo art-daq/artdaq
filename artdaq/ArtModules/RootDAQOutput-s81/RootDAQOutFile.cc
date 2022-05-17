@@ -435,14 +435,14 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	pRunProductProvenanceVector_ = &runProductProvenanceVector_;
 	pResultsProductProvenanceVector_ = &resultsProductProvenanceVector_;
 #if ART_HEX_VERSION < 0x31100
-        // Create the tree that will carry (event) History objects.
-        eventHistoryTree_ = RootOutputTree::makeTTree(
-            filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
-        if (eventHistoryTree_ == nullptr)
-        {
-                throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
-                    << "Failed to create the tree for History objects\n";
-        }
+	// Create the tree that will carry (event) History objects.
+	eventHistoryTree_ = RootOutputTree::makeTTree(
+	    filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
+	if (eventHistoryTree_ == nullptr)
+	{
+		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
+		    << "Failed to create the tree for History objects\n";
+	}
 	pHistory_ = new History;
 	if (eventHistoryTree_->Branch(rootNames::eventHistoryBranchName().c_str(),
 	                              &pHistory_,
@@ -516,7 +516,7 @@ art::RootDAQOutFile::~RootDAQOutFile()
 	struct sysinfo info;
 	int sts = sysinfo(&info);
 	auto free_percent = static_cast<unsigned>(info.freeram * 100 / info.totalram);
-	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);                // round down (1024.9 => 1024 MB)
+	auto free_MB = static_cast<unsigned>(info.freeram * info.mem_unit >> 20);                 // round down (1024.9 => 1024 MB)
 	TRACE(TLVL_DEBUG + 32, "~RootDAQOutFile free %%%u %.1fMB (%u) buffers=%fGB mem_unit=%u",  // NOLINT
 	      free_percent, static_cast<float>(info.freeram * info.mem_unit / (1024 * 1024.0)),
 	      free_MB, static_cast<float>(info.bufferram * info.mem_unit / (1024 * 1024 * 1024.0)), info.mem_unit);
@@ -694,7 +694,7 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 		    << "Failed to fill the History tree for event: " << e.eventID()
 		    << "\nTTree::Fill() returned " << sz << " bytes written." << endl;
 	}
-        pHistory_ = &e.history();
+	pHistory_ = &e.history();
 #endif
 	// Add the dataType to the job report if it hasn't already been done
 	if (!dataTypeReported_)
@@ -796,7 +796,6 @@ void RootDAQOutFile::writeFileIndex()
 	}
 	b->SetAddress(nullptr);
 }
-
 
 #if ART_HEX_VERSION < 0x31100
 void RootDAQOutFile::writeEventHistory()

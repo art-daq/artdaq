@@ -38,7 +38,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	}
 
 	TLOG(TLVL_DEBUG + 32) << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
-	                 << "Done initializing.";
+	                      << "Done initializing.";
 	return external_request_status_;
 }
 
@@ -139,8 +139,8 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	}
 	TLOG(TLVL_DEBUG + 32) << "do_stop(uint64_t, uint64_t): "
-	                 << "Number of fragments sent = " << number_of_fragments_sent
-	                 << ".";
+	                      << "Number of fragments sent = " << number_of_fragments_sent
+	                      << ".";
 
 	return external_request_status_;
 }
@@ -159,8 +159,8 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (fragment_output_thread_.joinable()) fragment_output_thread_.join();
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG + 32) << "do_pause(uint64_t, uint64_t): "
-	                 << "Number of fragments sent = " << number_of_fragments_sent
-	                 << ".";
+	                      << "Number of fragments sent = " << number_of_fragments_sent
+	                      << ".";
 
 	return external_request_status_;
 }
