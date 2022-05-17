@@ -123,7 +123,7 @@ void BuildInfo<instanceName, Pkgs...>::beginRun(art::Run& r)
 	{
 		TLOG(TLVL_DEBUG) << "Package " << pbi.getPackageName() << ": version " << pbi.getPackageVersion() << " built at " << pbi.getBuildTimestamp();
 	}
-        r.put(std::move(packages_deep_copy_ptr), instanceName_, art::fullRun());
+	r.put(std::move(packages_deep_copy_ptr), instanceName_, art::fullRun());
 }
 
 template<std::string* instanceName, typename... Pkgs>

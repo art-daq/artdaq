@@ -138,7 +138,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
 			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Recvd fragment header from shmem, type=" << static_cast<int>(header.type)
-			        << ", sequenceID=" << header.sequence_id << ", source_rank=" << source_rank();
+			                      << ", sequenceID=" << header.sequence_id << ", source_rank=" << source_rank();
 		}
 
 		return source_rank();
