@@ -25,7 +25,7 @@
 bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG + 32) << "initialize method called with DAQ "
-	                 << "ParameterSet = \"" << pset.to_string() << "\".";
+	                      << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	pset_ = pset;
 	// 04-Apr-2019, KAB: added support for art config params to be in an "art" block

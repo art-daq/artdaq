@@ -252,8 +252,8 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 			tmospecs_[idx].tmo_tod_us += period_us;
 			active_time_.insert(std::pair<uint64_t, size_t>(tmospecs_[idx].tmo_tod_us, idx));
 			TLOG(TLVL_DEBUG + 38) << "get_clear_next_expired_timeout - periodic timeout desc=" << tmo.desc
-			         << " period_us=" << period_us << " delta_us=" << delta_us
-			         << " skipped=" << skipped << " next tmo at:" << tmospecs_[idx].tmo_tod_us;
+			                      << " period_us=" << period_us << " delta_us=" << delta_us
+			                      << " skipped=" << skipped << " next tmo at:" << tmospecs_[idx].tmo_tod_us;
 		}
 		else
 		{

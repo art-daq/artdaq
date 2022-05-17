@@ -143,7 +143,7 @@ void art::BinaryNetOutput::deinitialize_MPI_() { sender_ptr_.reset(nullptr); }
 bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG + 32) << name_ << "BinaryNetOutput::readParameterSet_ method called with "
-	                 << "ParameterSet = \"" << pset.to_string() << "\".";
+	                      << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// determine the data sending parameters
 	data_pset_ = pset;

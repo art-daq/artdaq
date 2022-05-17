@@ -437,7 +437,7 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 		if (should_stop() || monitoringInterval_ <= 0)
 		{
 			TLOG(TLVL_DEBUG + 32) << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
-			                 << " and monitoringInterval is " << monitoringInterval_ << ", returning";
+			                      << " and monitoringInterval is " << monitoringInterval_ << ", returning";
 			return;
 		}
 		TLOG(TLVL_GETMONITORINGDATA) << "getMonitoringDataLoop: Determining whether to call checkHWStatus_";
