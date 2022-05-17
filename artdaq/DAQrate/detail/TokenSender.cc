@@ -24,10 +24,10 @@ TokenSender::TokenSender(const fhicl::ParameterSet& pset)
     , tokens_sent_(0)
     , run_number_(0)
 {
-	TLOG(TLVL_DEBUG) << "TokenSender CONSTRUCTOR";
+	TLOG(TLVL_DEBUG + 32) << "TokenSender CONSTRUCTOR";
 
 	setup_tokens_();
-	TLOG(12) << "artdaq::TokenSender::TokenSender ctor - reader_thread_ initialized";
+	TLOG(TLVL_DEBUG + 35) << "artdaq::TokenSender::TokenSender ctor - reader_thread_ initialized";
 	initialized_ = true;
 }
 
@@ -53,14 +53,14 @@ void TokenSender::setup_tokens_()
 {
 	if (send_routing_tokens_)
 	{
-		TLOG(TLVL_DEBUG) << "Creating Routing Token sending socket";
+		TLOG(TLVL_DEBUG + 32) << "Creating Routing Token sending socket";
 		auto start_time = std::chrono::steady_clock::now();
 		while (token_socket_ < 0 && TimeUtils::GetElapsedTime(start_time) < 30)
 		{
 			token_socket_ = TCPConnect(token_address_.c_str(), token_port_, 0, sizeof(detail::RoutingToken));
 			if (token_socket_ < 0)
 			{
-				TLOG(TLVL_TRACE) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Manager to open token socket";
+				TLOG(TLVL_DEBUG + 33) << "Waited " << TimeUtils::GetElapsedTime(start_time) << " s for Routing Manager to open token socket";
 				usleep(100000);
 			}
 		}
@@ -75,7 +75,7 @@ void TokenSender::setup_tokens_()
 
 void TokenSender::send_routing_token_(int nSlots, int run_number, int rank)
 {
-	TLOG(TLVL_TRACE) << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_;
+	TLOG(TLVL_DEBUG + 33) << "send_routing_token_ called, send_routing_tokens_=" << std::boolalpha << send_routing_tokens_;
 	if (!send_routing_tokens_)
 	{
 		return;
@@ -90,7 +90,7 @@ void TokenSender::send_routing_token_(int nSlots, int run_number, int rank)
 	token.new_slots_free = nSlots;
 	token.run_number = run_number;
 
-	TLOG(TLVL_TRACE) << "Sending RoutingToken to " << token_address_ << ":" << token_port_;
+	TLOG(TLVL_DEBUG + 33) << "Sending RoutingToken to " << token_address_ << ":" << token_port_;
 	size_t sts = 0;
 	while (sts < sizeof(detail::RoutingToken))
 	{
@@ -107,7 +107,7 @@ void TokenSender::send_routing_token_(int nSlots, int run_number, int rank)
 		sts += res;
 	}
 	tokens_sent_ += nSlots;
-	TLOG(TLVL_TRACE) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
+	TLOG(TLVL_DEBUG + 33) << "Done sending RoutingToken to " << token_address_ << ":" << token_port_;
 }
 
 void TokenSender::SendRoutingToken(int nSlots, int run_number, int rank)

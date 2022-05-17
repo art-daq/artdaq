@@ -160,7 +160,7 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 				}
 				else
 				{
-					auto tlvl = TLVL_TRACE;
+					auto tlvl = TLVL_DEBUG + 33;
 					if (artdaq::TimeUtils::GetElapsedTime(last_report_) > 1.0 && artdaq::TimeUtils::GetElapsedTime(last_received_data_) > 1.0)
 					{
 						tlvl = TLVL_WARNING;
@@ -299,7 +299,7 @@ void artdaq::TransferWrapper::registerMonitor()
 	auto sts = getDispatcherStatus();
 	while (sts != "Running" && (runningStateTimeout_ == 0 || TimeUtils::GetElapsedTime(start) < runningStateTimeout_))
 	{
-		TLOG(TLVL_DEBUG) << "Dispatcher state: " << sts;
+		TLOG(TLVL_DEBUG + 32) << "Dispatcher state: " << sts;
 		if (gSignalStatus != 0)
 		{
 			TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
@@ -393,7 +393,7 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		}
 		else if (status == "busy")
 		{
-			TLOG(TLVL_DEBUG) << "The Dispatcher returned \"busy\", will retry in 0.5s";
+			TLOG(TLVL_DEBUG + 32) << "The Dispatcher returned \"busy\", will retry in 0.5s";
 		}
 		else
 		{

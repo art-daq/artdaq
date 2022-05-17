@@ -32,7 +32,7 @@ RequestSender::RequestSender(const fhicl::ParameterSet& pset)
 	TLOG(TLVL_DEBUG) << "RequestSender CONSTRUCTOR pset=" << pset.to_string();
 	setup_requests_();
 
-	TLOG(TLVL_DEBUG + 5) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
+	TLOG(TLVL_DEBUG + 35) << "artdaq::RequestSender::RequestSender ctor - reader_thread_ initialized";
 	initialized_ = true;
 }
 
@@ -155,10 +155,10 @@ void RequestSender::do_send_request_()
 		setup_requests_();
 	}
 
-	TLOG(TLVL_TRACE) << "Waiting for " << request_delay_ << " microseconds.";
+	TLOG(TLVL_DEBUG + 33) << "Waiting for " << request_delay_ << " microseconds.";
 	std::this_thread::sleep_for(std::chrono::microseconds(request_delay_));
 
-	TLOG(TLVL_TRACE) << "Creating RequestMessage";
+	TLOG(TLVL_DEBUG + 33) << "Creating RequestMessage";
 	detail::RequestMessage message;
 	message.setRank(my_rank);
 	message.setRunNumber(run_number_);
@@ -166,16 +166,16 @@ void RequestSender::do_send_request_()
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		for (auto& req : active_requests_)
 		{
-			TLOG(TLVL_DEBUG + 6) << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second << " to request message";
+			TLOG(TLVL_DEBUG + 36) << "Adding a request with sequence ID " << req.first << ", timestamp " << req.second << " to request message";
 			message.addRequest(req.first, req.second);
 		}
-		TLOG(TLVL_TRACE) << "Setting mode flag in Message Header to " << static_cast<int>(request_mode_);
+		TLOG(TLVL_DEBUG + 33) << "Setting mode flag in Message Header to " << static_cast<int>(request_mode_);
 		message.setMode(request_mode_);
 	}
 	char str[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 	std::lock_guard<std::mutex> lk2(request_send_mutex_);
-	TLOG(TLVL_TRACE) << "Sending request for " << message.size() << " events to multicast group " << str
+	TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
 	                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 	auto buf = message.GetMessage();
 	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -186,7 +186,7 @@ void RequestSender::do_send_request_()
 		request_sending_--;
 		return;
 	}
-	TLOG(TLVL_TRACE) << "Done sending request sts=" << sts;
+	TLOG(TLVL_DEBUG + 33) << "Done sending request sts=" << sts;
 	request_sending_--;
 }
 
@@ -225,7 +225,7 @@ void RequestSender::AddRequest(Fragment::sequence_id_t seqID, Fragment::timestam
 		std::lock_guard<std::mutex> lk(request_mutex_);
 		if (active_requests_.count(seqID) == 0u)
 		{
-			TLOG(TLVL_DEBUG + 7) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
+			TLOG(TLVL_DEBUG + 37) << "Adding request for sequence ID " << seqID << " and timestamp " << timestamp << " to request list.";
 			active_requests_[seqID] = timestamp;
 		}
 
@@ -245,7 +245,7 @@ void RequestSender::RemoveRequest(Fragment::sequence_id_t seqID)
 		usleep(1000);
 	}
 	std::lock_guard<std::mutex> lk(request_mutex_);
-	TLOG(TLVL_DEBUG + 8) << "Removing request for sequence ID " << seqID << " from request list.";
+	TLOG(TLVL_DEBUG + 38) << "Removing request for sequence ID " << seqID << " from request list.";
 	active_requests_.erase(seqID);
 }
 }  // namespace artdaq

@@ -2,7 +2,6 @@
 #define art_root_io_RootDAQOutFile_h
 // vim: set sw=2 expandtab :
 
-#include "art/Framework/Core/Frameworkfwd.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/IO/ClosingCriteria.h"
 #include "art/Framework/IO/FileStatsCollector.h"
@@ -25,7 +24,6 @@
 #include "canvas/Persistency/Provenance/ProductID.h"
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
 #include "cetlib/sqlite/Connection.h"
-#include "hep_concurrency/RecursiveMutex.h"
 
 #include <array>
 #include <map>
@@ -115,7 +113,9 @@ public:  // MEMBER FUNCTIONS
 	void writeRun(RunPrincipal const&);
 	void writeFileFormatVersion();
 	void writeFileIndex();
+#if ART_HEX_VERSION < 0x31100
 	void writeEventHistory();
+#endif
 	void writeProcessConfigurationRegistry();
 	void writeProcessHistoryRegistry();
 	void writeParameterSetRegistry();
@@ -148,7 +148,7 @@ private:  // MEMBER FUNCTIONS
 	                            std::string const& wrappedName);
 
 private:  // MEMBER DATA
-	mutable hep::concurrency::RecursiveMutex mutex_;
+	mutable std::recursive_mutex mutex_;
 	OutputModule const* om_;
 	std::string file_;
 	ClosingCriteria fileSwitchCriteria_;

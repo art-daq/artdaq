@@ -112,7 +112,7 @@ void artdaq::RequestSenderModule::analyze(art::Event const& evt)
 
 	if (seq != 0 && timestamp != 0)
 	{
-		TLOG(TLVL_DEBUG + 5) << "Adding request for sequence ID " << seq << ", timestamp " << timestamp;
+		TLOG(TLVL_DEBUG + 35) << "Adding request for sequence ID " << seq << ", timestamp " << timestamp;
 		the_sender_.AddRequest(seq, timestamp);
 		active_requests_.insert(seq);
 		trim_active_requests();
@@ -143,10 +143,10 @@ void artdaq::RequestSenderModule::clear_active_requests()
 
 void artdaq::RequestSenderModule::trim_active_requests()
 {
-	TLOG(TLVL_TRACE) << "Going to remove extra active requests";
+	TLOG(TLVL_DEBUG + 33) << "Going to remove extra active requests";
 	while (active_requests_.size() > max_active_requests_)
 	{
-		TLOG(TLVL_DEBUG + 6) << "Removing request with sequence ID " << *active_requests_.begin();
+		TLOG(TLVL_DEBUG + 36) << "Removing request with sequence ID " << *active_requests_.begin();
 		the_sender_.RemoveRequest(*active_requests_.begin());
 		active_requests_.erase(active_requests_.begin());
 	}
