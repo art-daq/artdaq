@@ -7,8 +7,8 @@
 ArtdaqFragmentNamingService::ArtdaqFragmentNamingService(fhicl::ParameterSet const& ps, art::ActivityRegistry& /*unused*/)
     : ArtdaqFragmentNamingServiceInterface(ps)
 {
-	TLOG(TLVL_DEBUG) << "ArtdaqFragmentNamingService CONSTRUCTOR START";
-	TLOG(TLVL_DEBUG) << "ArtdaqFragmentNamingService CONSTRUCTOR END";
+	TLOG(TLVL_DEBUG + 32) << "ArtdaqFragmentNamingService CONSTRUCTOR START";
+	TLOG(TLVL_DEBUG + 32) << "ArtdaqFragmentNamingService CONSTRUCTOR END";
 }
 
 ArtdaqFragmentNamingService::~ArtdaqFragmentNamingService() = default;

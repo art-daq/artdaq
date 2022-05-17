@@ -130,7 +130,7 @@ bool artdaq::EventBuilderApp::do_reinitialize(fhicl::ParameterSet const& pset, u
 
 bool artdaq::EventBuilderApp::do_rollover_subrun(uint64_t boundary, uint32_t subrun)
 {
-	TLOG(TLVL_DEBUG) << "do_rollover_subrun BEGIN boundary=" << boundary << ", subrun=" << subrun;
+	TLOG(TLVL_DEBUG + 32) << "do_rollover_subrun BEGIN boundary=" << boundary << ", subrun=" << subrun;
 	report_string_ = "";
 	external_request_status_ = event_builder_ptr_->rollover_subrun(boundary, subrun);
 	if (!external_request_status_)
@@ -138,13 +138,13 @@ bool artdaq::EventBuilderApp::do_rollover_subrun(uint64_t boundary, uint32_t sub
 		report_string_ = "Error rolling over subrun in ";
 		report_string_.append(app_name + "!");
 	}
-	TLOG(TLVL_DEBUG) << "do_rollover_subrun END sts=" << std::boolalpha << external_request_status_;
+	TLOG(TLVL_DEBUG + 32) << "do_rollover_subrun END sts=" << std::boolalpha << external_request_status_;
 	return external_request_status_;
 }
 
 void artdaq::EventBuilderApp::BootedEnter()
 {
-	TLOG_DEBUG(app_name + "App") << "Booted state entry action called.";
+	TLOG(TLVL_DEBUG + 32, app_name + "App") << "Booted state entry action called.";
 
 	// the destruction of any existing EventBuilderCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

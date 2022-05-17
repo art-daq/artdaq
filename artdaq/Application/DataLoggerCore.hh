@@ -31,7 +31,7 @@ public:
 	*/
 	~DataLoggerCore()
 	{
-		TLOG(TLVL_DEBUG) << "Destructor";
+		TLOG(TLVL_DEBUG + 32) << "Destructor";
 	}
 
 	/**

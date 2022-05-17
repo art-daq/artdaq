@@ -29,21 +29,21 @@
 #include <memory>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
-#define TLVL_GETNEXT 10
-#define TLVL_GETNEXT_VERBOSE 20
-#define TLVL_CHECKSTOP 11
-#define TLVL_EVCOUNTERINC 12
-#define TLVL_GETDATALOOP 13
-#define TLVL_GETDATALOOP_DATABUFFWAIT 21
-#define TLVL_GETDATALOOP_VERBOSE 20
-#define TLVL_WAITFORBUFFERREADY 15
-#define TLVL_GETBUFFERSTATS 16
-#define TLVL_CHECKDATABUFFER 17
-#define TLVL_GETMONITORINGDATA 18
-#define TLVL_APPLYREQUESTS 9
-#define TLVL_SENDEMPTYFRAGMENTS 19
-#define TLVL_CHECKWINDOWS 14
-#define TLVL_EMPTYFRAGMENT 22
+#define TLVL_GETNEXT 35
+#define TLVL_GETNEXT_VERBOSE 36
+#define TLVL_CHECKSTOP 37
+#define TLVL_EVCOUNTERINC 38
+#define TLVL_GETDATALOOP 39
+#define TLVL_GETDATALOOP_DATABUFFWAIT 40
+#define TLVL_GETDATALOOP_VERBOSE 41
+#define TLVL_WAITFORBUFFERREADY 42
+#define TLVL_GETBUFFERSTATS 43
+#define TLVL_CHECKDATABUFFER 44
+#define TLVL_GETMONITORINGDATA 45
+#define TLVL_APPLYREQUESTS 46
+#define TLVL_SENDEMPTYFRAGMENTS 47
+#define TLVL_CHECKWINDOWS 48
+#define TLVL_EMPTYFRAGMENT 49
 
 artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::ParameterSet& ps)
     : mutex_()
@@ -66,7 +66,7 @@ artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(const fhicl::
 
 	auto fragment_ids = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
 
-	TLOG(TLVL_TRACE) << "artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(ps)";
+	TLOG(TLVL_DEBUG + 33) << "artdaq::CommandableFragmentGenerator::CommandableFragmentGenerator(ps)";
 	int fragment_id = ps.get<int>("fragment_id", -99);
 
 	if (fragment_id != -99)
@@ -105,7 +105,7 @@ artdaq::CommandableFragmentGenerator::~CommandableFragmentGenerator()
 void artdaq::CommandableFragmentGenerator::joinThreads()
 {
 	should_stop_ = true;
-	TLOG(TLVL_DEBUG) << "Joining monitoringThread";
+	TLOG(TLVL_DEBUG + 32) << "Joining monitoringThread";
 	try
 	{
 		if (monitoringThread_.joinable())
@@ -117,7 +117,7 @@ void artdaq::CommandableFragmentGenerator::joinThreads()
 	{
 		// IGNORED
 	}
-	TLOG(TLVL_DEBUG) << "joinThreads complete";
+	TLOG(TLVL_DEBUG + 32) << "joinThreads complete";
 }
 
 bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
@@ -149,7 +149,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 			TLOG(TLVL_ERROR) << "Stopping CFG because the hardware reports bad status!";
 			return false;
 		}
-		TLOG(TLVL_TRACE) << "getNext: Calling getNext_ w/ ev_counter()=" << ev_counter();
+		TLOG(TLVL_DEBUG + 33) << "getNext: Calling getNext_ w/ ev_counter()=" << ev_counter();
 		try
 		{
 			result = getNext_(output);
@@ -158,7 +158,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 		{
 			throw;
 		}
-		TLOG(TLVL_TRACE) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
+		TLOG(TLVL_DEBUG + 33) << "getNext: Done with getNext_ - ev_counter() now " << ev_counter();
 		for (auto& dataIter : output)
 		{
 			TLOG(TLVL_GETNEXT_VERBOSE) << "getNext: getNext_() returned fragment with sequenceID = " << dataIter->sequenceID()
@@ -221,7 +221,7 @@ bool artdaq::CommandableFragmentGenerator::getNext(FragmentPtrs& output)
 
 	if (!result)
 	{
-		TLOG(TLVL_DEBUG) << "getNext: Either getNext_ or applyRequests returned false, stopping";
+		TLOG(TLVL_DEBUG + 32) << "getNext: Either getNext_ or applyRequests returned false, stopping";
 	}
 
 	if (metricMan && !output.empty())
@@ -262,7 +262,7 @@ size_t artdaq::CommandableFragmentGenerator::ev_counter_inc(size_t step)
 
 void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, uint64_t timestamp)
 {
-	TLOG(TLVL_TRACE) << "Start Command received.";
+	TLOG(TLVL_DEBUG + 33) << "Start Command received.";
 	if (run < 0)
 	{
 		TLOG(TLVL_ERROR) << "negative run number";
@@ -283,12 +283,12 @@ void artdaq::CommandableFragmentGenerator::StartCmd(int run, uint64_t timeout, u
 
 	std::unique_lock<std::mutex> lk(mutex_);
 	if (useMonitoringThread_) startMonitoringThread();
-	TLOG(TLVL_TRACE) << "Start Command complete.";
+	TLOG(TLVL_DEBUG + 33) << "Start Command complete.";
 }
 
 void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG(TLVL_TRACE) << "Stop Command received.";
+	TLOG(TLVL_DEBUG + 33) << "Stop Command received.";
 
 	timeout_ = timeout;
 	timestamp_ = timestamp;
@@ -299,12 +299,12 @@ void artdaq::CommandableFragmentGenerator::StopCmd(uint64_t timeout, uint64_t ti
 	stop();
 
 	joinThreads();
-	TLOG(TLVL_TRACE) << "Stop Command complete.";
+	TLOG(TLVL_DEBUG + 33) << "Stop Command complete.";
 }
 
 void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG(TLVL_TRACE) << "Pause Command received.";
+	TLOG(TLVL_DEBUG + 33) << "Pause Command received.";
 	timeout_ = timeout;
 	timestamp_ = timestamp;
 
@@ -317,7 +317,7 @@ void artdaq::CommandableFragmentGenerator::PauseCmd(uint64_t timeout, uint64_t t
 
 void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t timestamp)
 {
-	TLOG(TLVL_TRACE) << "Resume Command received.";
+	TLOG(TLVL_DEBUG + 33) << "Resume Command received.";
 	timeout_ = timeout;
 	timestamp_ = timestamp;
 
@@ -330,12 +330,12 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 	std::unique_lock<std::mutex> lk(mutex_);
 	//if (useDataThread_) startDataThread();
 	//if (useMonitoringThread_) startMonitoringThread();
-	TLOG(TLVL_TRACE) << "Resume Command complete.";
+	TLOG(TLVL_DEBUG + 33) << "Resume Command complete.";
 }
 
 std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& which)
 {
-	TLOG(TLVL_TRACE) << "Report Command received.";
+	TLOG(TLVL_DEBUG + 33) << "Report Command received.";
 	std::lock_guard<std::mutex> lk(mutex_);
 
 	// 14-May-2015, KAB: please see the comments associated with the report()
@@ -364,7 +364,7 @@ std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& w
 	tmpString.append(metricsReportingInstanceName());
 	tmpString.append(" fragment generator.");
 	*/
-	TLOG(TLVL_TRACE) << "Report Command complete.";
+	TLOG(TLVL_DEBUG + 33) << "Report Command complete.";
 	return "";  //tmpString;
 }
 
@@ -436,7 +436,7 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 	{
 		if (should_stop() || monitoringInterval_ <= 0)
 		{
-			TLOG(TLVL_DEBUG) << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
+			TLOG(TLVL_DEBUG + 32) << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
 			                 << " and monitoringInterval is " << monitoringInterval_ << ", returning";
 			return;
 		}

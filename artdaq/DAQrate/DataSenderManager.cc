@@ -22,7 +22,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
     , should_stop_(false)
     , highest_sequence_id_routed_(0)
 {
-	TLOG(TLVL_DEBUG) << "Received pset: " << pset.to_string();
+	TLOG(TLVL_DEBUG + 32) << "Received pset: " << pset.to_string();
 
 	// Validate parameters
 	if (send_timeout_us_ == 0)
@@ -73,7 +73,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 		}
 		catch (const std::invalid_argument&)
 		{
-			TLOG(TLVL_DEBUG) << "Invalid destination specification: " << d;
+			TLOG(TLVL_DEBUG + 32) << "Invalid destination specification: " << d;
 		}
 		catch (const cet::exception& ex)
 		{
@@ -111,7 +111,7 @@ artdaq::DataSenderManager::DataSenderManager(const fhicl::ParameterSet& pset)
 
 artdaq::DataSenderManager::~DataSenderManager()
 {
-	TLOG(TLVL_DEBUG) << "Shutting down DataSenderManager BEGIN";
+	TLOG(TLVL_DEBUG + 32) << "Shutting down DataSenderManager BEGIN";
 	should_stop_ = true;
 	for (auto& dest : enabled_destinations_)
 	{
@@ -125,7 +125,7 @@ artdaq::DataSenderManager::~DataSenderManager()
 			//  sendFragTo(std::move(*Fragment::eodFrag(nFragments)), dest, true);
 		}
 	}
-	TLOG(TLVL_DEBUG) << "Shutting down DataSenderManager END. Sent " << count() << " fragments.";
+	TLOG(TLVL_DEBUG + 32) << "Shutting down DataSenderManager END. Sent " << count() << " fragments.";
 }
 
 size_t artdaq::DataSenderManager::GetRoutingTableEntryCount() const
@@ -147,7 +147,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 
 	if (table_receiver_->RoutingManagerEnabled())
 	{
-		TLOG(15) << "calcDest_ use_routing_manager check for routing info for seqID=" << sequence_id << " should_stop_=" << should_stop_;
+		TLOG(TLVL_DEBUG + 35) << "calcDest_ use_routing_manager check for routing info for seqID=" << sequence_id << " should_stop_=" << should_stop_;
 		return table_receiver_->GetRoutingTableEntry(sequence_id);
 	}
 	if (enabled_destinations_.size() == 1)
@@ -169,7 +169,7 @@ int artdaq::DataSenderManager::calcDest_(Fragment::sequence_id_t sequence_id) co
 
 void artdaq::DataSenderManager::RemoveRoutingTableEntry(Fragment::sequence_id_t seq)
 {
-	TLOG(15) << "RemoveRoutingTableEntry: Removing sequence ID " << seq << " from routing table. Sent " << GetSentSequenceIDCount(seq) << " Fragments with this Sequence ID.";
+	TLOG(TLVL_DEBUG + 35) << "RemoveRoutingTableEntry: Removing sequence ID " << seq << " from routing table. Sent " << GetSentSequenceIDCount(seq) << " Fragments with this Sequence ID.";
 	table_receiver_->RemoveRoutingTableEntry(seq);
 
 	std::unique_lock<std::mutex> lck(sent_sequence_id_mutex_);
@@ -206,7 +206,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	auto isSystemBroadcast = frag.type() == Fragment::EndOfRunFragmentType || frag.type() == Fragment::EndOfSubrunFragmentType || frag.type() == Fragment::InitFragmentType;
 
 	double latency = latency_s.tv_sec + (latency_s.tv_nsec / 1000000000.0);
-	TLOG(13) << "sendFragment start frag.fragmentHeader()=" << std::hex << static_cast<void*>(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
+	TLOG(TLVL_DEBUG + 36) << "sendFragment start frag.fragmentHeader()=" << std::hex << static_cast<void*>(frag.headerBeginBytes()) << ", szB=" << std::dec << fragSize
 	         << ", seqID=" << seqID << ", fragID=" << frag.fragmentID() << ", type=" << frag.typeString();
 	int dest = TableReceiver::ROUTING_FAILED;
 	auto outsts = TransferInterface::CopyStatus::kSuccess;
@@ -214,7 +214,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	{
 		for (auto& bdest : enabled_destinations_)
 		{
-			TLOG(TLVL_TRACE) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
+			TLOG(TLVL_DEBUG + 33) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
 			// Gross, we have to copy.
 			auto sts = TransferInterface::CopyStatus::kTimeout;
 			size_t retries = 0;  // Have NOT yet tried, so retries <= send_retry_count_ will have it RETRY send_retry_count_ times
@@ -247,7 +247,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 
 		if (dest != TableReceiver::ROUTING_FAILED && (destinations_.count(dest) != 0u) && (enabled_destinations_.count(dest) != 0u))
 		{
-			TLOG(TLVL_TRACE) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
+			TLOG(TLVL_DEBUG + 33) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 			auto lastWarnTime = std::chrono::steady_clock::now();
 			size_t retries = 0;  // Have NOT yet tried, so retries <= send_retry_count_ will have it RETRY send_retry_count_ times
@@ -288,7 +288,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		}
 		if (dest != TableReceiver::ROUTING_FAILED && (destinations_.count(dest) != 0u) && (enabled_destinations_.count(dest) != 0u))
 		{
-			TLOG(TLVL_DEBUG + 2) << "DataSenderManager::sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
+			TLOG(TLVL_DEBUG + 34) << "DataSenderManager::sendFragment: Sending fragment with seqId " << seqID << " to destination " << dest;
 			TransferInterface::CopyStatus sts = TransferInterface::CopyStatus::kErrorNotRequiringException;
 
 			sts = destinations_[dest]->transfer_fragment_reliable_mode(std::move(frag));
@@ -319,7 +319,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 
 	if (metricMan)
 	{
-		TLOG(TLVL_DEBUG + 2) << "sendFragment: sending metrics";
+		TLOG(TLVL_DEBUG + 34) << "sendFragment: sending metrics";
 		metricMan->sendMetric("Data Send Time to Rank " + std::to_string(dest), delta_t, "s", 5, MetricMode::Accumulate);
 		metricMan->sendMetric("Data Send Size to Rank " + std::to_string(dest), fragSize, "B", 5, MetricMode::Accumulate | MetricMode::Maximum);
 		metricMan->sendMetric("Data Send Rate to Rank " + std::to_string(dest), fragSize / delta_t, "B/s", 5, MetricMode::Average);
@@ -331,6 +331,6 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 		metricMan->sendMetric("Fragment Latency at Send", latency, "s", 4, MetricMode::Average | MetricMode::Maximum);
 	}
 
-	TLOG(TLVL_DEBUG + 2) << "sendFragment: Done sending fragment " << seqID << " to dest=" << dest;
+	TLOG(TLVL_DEBUG + 34) << "sendFragment: Done sending fragment " << seqID << " to dest=" << dest;
 	return std::make_pair(dest, outsts);
 }  // artdaq::DataSenderManager::sendFragment

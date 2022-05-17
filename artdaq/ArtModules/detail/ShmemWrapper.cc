@@ -15,8 +15,8 @@ art::ShmemWrapper::ShmemWrapper(fhicl::ParameterSet const& ps)
 
 artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 {
-	TLOG(TLVL_DEBUG + 2) << "Receiving Fragment from NetMonTransportService";
-	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
+	TLOG(TLVL_DEBUG + 34) << "Receiving Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 33) << "receiveMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	artdaq::FragmentPtrs output;
 
@@ -39,13 +39,13 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 
 		if (eventMap.empty())
 		{
-			TLOG(TLVL_DEBUG) << "Did not receive event after timeout, returning from receiveMessage ";
+			TLOG(TLVL_DEBUG + 32) << "Did not receive event after timeout, returning from receiveMessage ";
 			return output;
 		}
 
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)) != 0u)
 		{
-			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
+			TLOG(TLVL_DEBUG + 32) << "Received shutdown message, returning";
 			return output;
 		}
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::DataFragmentType)) != 0u)
@@ -55,10 +55,10 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 		std::sort(recvd_fragments.begin(), recvd_fragments.end(), artdaq::fragmentSequenceIDCompare);
 	}
 
-	TLOG(TLVL_TRACE) << "receiveMessage: Returning top Fragment";
+	TLOG(TLVL_DEBUG + 33) << "receiveMessage: Returning top Fragment";
 	for (auto& frag : recvd_fragments)
 	{
-		TLOG(TLVL_TRACE) << "receiveMessage: Returning Fragment, length="
+		TLOG(TLVL_DEBUG + 33) << "receiveMessage: Returning Fragment, length="
 		                 << frag.metadata<artdaq::NetMonHeader>()->data_length;
 		output.emplace_back(new artdaq::Fragment(std::move(frag)));
 	}
@@ -71,16 +71,16 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 	ostream.close();
 #endif
 
-	TLOG(TLVL_TRACE) << "receiveMessage END";
+	TLOG(TLVL_DEBUG + 33) << "receiveMessage END";
 
-	TLOG(TLVL_DEBUG + 2) << "Done Receiving Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 34) << "Done Receiving Fragment from NetMonTransportService";
 	return output;
 }
 
 std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> art::ShmemWrapper::receiveMessages()
 {
-	TLOG(TLVL_DEBUG + 2) << "Receiving Fragment from NetMonTransportService";
-	TLOG(TLVL_TRACE) << "receiveMessage BEGIN";
+	TLOG(TLVL_DEBUG + 34) << "Receiving Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 33) << "receiveMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> output;
 
@@ -99,22 +99,22 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 
 	if (output.empty())
 	{
-		TLOG(TLVL_DEBUG) << "Did not receive event after timeout, returning from receiveMessage ";
+		TLOG(TLVL_DEBUG + 32) << "Did not receive event after timeout, returning from receiveMessage ";
 		return output;
 	}
 
 	hdr_ptr_ = shm->GetEventHeader();
-	TLOG(TLVL_TRACE) << "receiveMessage END";
+	TLOG(TLVL_DEBUG + 33) << "receiveMessage END";
 
-	TLOG(TLVL_DEBUG + 2) << "Done Receiving Fragments from Shared Memory";
+	TLOG(TLVL_DEBUG + 34) << "Done Receiving Fragments from Shared Memory";
 	return output;
 }
 
 artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 {
-	TLOG(TLVL_DEBUG + 2) << "Receiving Init Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 34) << "Receiving Init Fragment from NetMonTransportService";
 
-	TLOG(TLVL_TRACE) << "receiveInitMessage BEGIN";
+	TLOG(TLVL_DEBUG + 33) << "receiveInitMessage BEGIN";
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	auto start = std::chrono::steady_clock::now();
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> eventMap;
@@ -124,7 +124,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 
 		if (eventMap.count(artdaq::Fragment::type_t(artdaq::Fragment::EndOfDataFragmentType)) != 0u)
 		{
-			TLOG(TLVL_DEBUG) << "Received shutdown message, returning";
+			TLOG(TLVL_DEBUG + 32) << "Received shutdown message, returning";
 			artdaq::FragmentPtrs output;
 			for (auto& frag : *eventMap[artdaq::Fragment::EndOfDataFragmentType])
 			{
@@ -151,7 +151,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 	//   2) the event we read was the end-of-data marker: a null
 	//      pointer
 
-	TLOG(TLVL_TRACE) << "receiveInitMessage: Returning top Fragment";
+	TLOG(TLVL_DEBUG + 33) << "receiveInitMessage: Returning top Fragment";
 	artdaq::FragmentPtrs output;
 	for (auto& frag : *eventMap[artdaq::Fragment::InitFragmentType])
 	{
@@ -165,9 +165,9 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveInitMessage()
 	ostream.close();
 #endif
 
-	TLOG(TLVL_TRACE) << "receiveInitMessage END";
+	TLOG(TLVL_DEBUG + 33) << "receiveInitMessage END";
 	init_received_ = true;
 
-	TLOG(TLVL_DEBUG + 2) << "Done Receiving Init Fragment from NetMonTransportService";
+	TLOG(TLVL_DEBUG + 34) << "Done Receiving Init Fragment from NetMonTransportService";
 	return output;
 }

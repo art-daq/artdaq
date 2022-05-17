@@ -361,15 +361,15 @@ T cmd_::getParam(const xmlrpc_c::paramList& /*unused*/, int /*unused*/)
 template<>
 uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as uint64_t.";
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as uint64_t.";
 	try
 	{
-		TLOG(TLVL_TRACE) << "Param value: " << paramList.getI8(index);
+		TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getI8(index);
 		return static_cast<uint64_t>(paramList.getI8(index));
 	}
 	catch (...)
 	{
-		TLOG(TLVL_TRACE) << "Param value (int): " << paramList.getInt(index);
+		TLOG(TLVL_DEBUG + 33) << "Param value (int): " << paramList.getInt(index);
 		return static_cast<uint64_t>(paramList.getInt(index));
 	}
 }
@@ -385,8 +385,8 @@ uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int inde
 template<>
 uint32_t cmd_::getParam<uint32_t>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as uint32_t.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as uint32_t.";
+	TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getInt(index);
 	return static_cast<uint32_t>(paramList.getInt(index));
 }
 
@@ -430,8 +430,8 @@ std::vector<uint32_t> cmd_::getParam<std::vector<uint32_t>>(const xmlrpc_c::para
 template<>
 std::string cmd_::getParam<std::string>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as string.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as string.";
+	TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getString(index);
 	return static_cast<std::string>(paramList.getString(index));
 }
 
@@ -446,19 +446,19 @@ std::string cmd_::getParam<std::string>(const xmlrpc_c::paramList& paramList, in
 template<>
 art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as Run Number.";
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as Run Number.";
 	art::RunNumber_t run_number;
 	try
 	{
-		TLOG(TLVL_TRACE) << "Param value: " << paramList.getInt(index);
+		TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getInt(index);
 		run_number = art::RunNumber_t(paramList.getInt(index));
 	}
 	catch (...)
 	{
-		TLOG(TLVL_TRACE) << "Parameter is not an int. Trying string...";
+		TLOG(TLVL_DEBUG + 33) << "Parameter is not an int. Trying string...";
 
 		auto runNumber = paramList.getString(index);
-		TLOG(TLVL_TRACE) << "Got run number string " << runNumber;
+		TLOG(TLVL_DEBUG + 33) << "Got run number string " << runNumber;
 		run_number = art::RunNumber_t(std::stoi(runNumber));
 	}
 
@@ -477,10 +477,10 @@ art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int 
 template<>
 fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramList& paramList, int index)
 {
-	TLOG(TLVL_TRACE) << "Getting parameter " << index << " from list as ParameterSet.";
-	TLOG(TLVL_TRACE) << "Param value: " << paramList.getString(index);
+	TLOG(TLVL_DEBUG + 33) << "Getting parameter " << index << " from list as ParameterSet.";
+	TLOG(TLVL_DEBUG + 33) << "Param value: " << paramList.getString(index);
 	std::string configString = std::string(paramList.getString(index));
-	TLOG(TLVL_DEBUG) << "Loading Parameter Set from string: " << configString << std::endl;
+	TLOG(TLVL_DEBUG + 32) << "Loading Parameter Set from string: " << configString << std::endl;
 	fhicl::ParameterSet pset;
 
 	try
@@ -518,7 +518,7 @@ T cmd_::getParam(const xmlrpc_c::paramList& paramList, int index,
 
 void cmd_::execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* const retvalP)
 {
-	TLOG(TLVL_TRACE) << "Received Request to " << _help << ", attempting to get lock";
+	TLOG(TLVL_DEBUG + 33) << "Received Request to " << _help << ", attempting to get lock";
 	std::unique_lock<std::timed_mutex> lk(_c.mutex_, std::defer_lock);
 	lk.try_lock_for(std::chrono::milliseconds(250));
 
@@ -1312,7 +1312,7 @@ void xmlrpc_commander::run_server() try
 		registry.setShutdown(&shutdown_obj);
 #endif
 
-	TLOG(TLVL_DEBUG) << "running server";
+	TLOG(TLVL_DEBUG + 32) << "running server";
 
 	// JCF, 6/3/15
 
@@ -1357,7 +1357,7 @@ void xmlrpc_commander::run_server() try
 
 	unregister_method(shutdown);
 
-	TLOG(TLVL_DEBUG) << "server terminated";
+	TLOG(TLVL_DEBUG + 32) << "server terminated";
 }
 catch (...)
 {

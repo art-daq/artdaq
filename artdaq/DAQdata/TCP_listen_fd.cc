@@ -77,7 +77,7 @@ int TCP_listen_fd(int port, int rcvbuf)
 		}
 		else
 		{
-			TLOG(TLVL_DEBUG) << "RCVBUF " << len << " sts/errno=" << sts << "/" << errno;
+			TLOG(TLVL_DEBUG + 32) << "RCVBUF " << len << " sts/errno=" << sts << "/" << errno;
 		}
 	}
 
