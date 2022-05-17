@@ -37,7 +37,6 @@
 #include "fhiclcpp/types/OptionalAtom.h"
 #include "fhiclcpp/types/OptionalSequence.h"
 #include "fhiclcpp/types/Table.h"
-#include "hep_concurrency/RecursiveMutex.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "tracemf.h"  // TLOG
 #define TRACE_NAME (app_name + "_RootDAQOut").c_str()
@@ -179,7 +178,9 @@ private:
 	void startEndFile() override;
 	void writeFileFormatVersion() override;
 	void writeFileIndex() override;
+#if ART_HEX_VERSION < 0x31100
 	void writeEventHistory() override;
+#endif
 	void writeProcessConfigurationRegistry() override;
 	void writeProcessHistoryRegistry() override;
 	void writeParameterSetRegistry() override;
@@ -200,7 +201,7 @@ private:
 
 	// Data Members.
 private:
-	mutable RecursiveMutex mutex_{"RootDAQOut::mutex"};
+	mutable std::recursive_mutex mutex_;
 	string const catalog_;
 	bool dropAllEvents_{false};
 	bool dropAllSubRuns_;
@@ -234,7 +235,11 @@ private:
 RootDAQOut::~RootDAQOut() = default;
 
 RootDAQOut::RootDAQOut(Parameters const& config)
+#if ART_HEX_VERSION < 0x31100
     : OutputModule{config().omConfig, config.get_PSet()}
+#else
+    : OutputModule{config().omConfig}
+#endif
     , catalog_{config().catalog()}
     , dropAllSubRuns_{config().dropAllSubRuns()}
     , moduleLabel_{config.get_PSet().get<string>("module_label")}
@@ -289,7 +294,7 @@ RootDAQOut::RootDAQOut(Parameters const& config)
 
 void RootDAQOut::openFile(FileBlock const& fb)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	// Note: The file block here refers to the currently open
 	//       input file, so we can find out about the available
 	//       products by looping over the branches of the input
@@ -303,7 +308,7 @@ void RootDAQOut::openFile(FileBlock const& fb)
 
 void RootDAQOut::postSelectProducts()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (isFileOpen())
 	{
 		rootOutputFile_->selectProducts();
@@ -312,7 +317,7 @@ void RootDAQOut::postSelectProducts()
 
 void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	++inputFileCount_;
 	if (!isFileOpen())
 	{
@@ -320,9 +325,7 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 	}
 	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
 	bool fastCloneThisOne = fastCloningEnabled_ && (rfb != nullptr) &&
-	                        (rfb->tree() != nullptr) &&
-	                        ((remainingEvents() < 0) ||
-	                         (remainingEvents() >= rfb->tree()->GetEntries()));
+                                (rfb->tree() != nullptr);
 	if (fastCloningEnabled_ && !fastCloneThisOne)
 	{
 		mf::LogWarning("FastCloning")
@@ -342,14 +345,14 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 
 void RootDAQOut::readResults(ResultsPrincipal const& resp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker(
 	    [&resp](RPWorker& w) { w.rp().doReadResults(resp); });
 }
 
 void RootDAQOut::respondToCloseInputFile(FileBlock const& fb)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (isFileOpen())
 	{
 		rootOutputFile_->respondToCloseInputFile(fb);
@@ -358,7 +361,7 @@ void RootDAQOut::respondToCloseInputFile(FileBlock const& fb)
 
 void RootDAQOut::write(EventPrincipal& ep)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (dropAllEvents_)
 	{
 		return;
@@ -373,13 +376,13 @@ void RootDAQOut::write(EventPrincipal& ep)
 
 void RootDAQOut::setSubRunAuxiliaryRangeSetID(RangeSet const& rs)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->setSubRunAuxiliaryRangeSetID(rs);
 }
 
 void RootDAQOut::writeSubRun(SubRunPrincipal& sr)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (dropAllSubRuns_)
 	{
 		return;
@@ -394,13 +397,13 @@ void RootDAQOut::writeSubRun(SubRunPrincipal& sr)
 
 void RootDAQOut::setRunAuxiliaryRangeSetID(RangeSet const& rs)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->setRunAuxiliaryRangeSetID(rs);
 }
 
 void RootDAQOut::writeRun(RunPrincipal& rp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (hasNewlyDroppedBranch()[InRun])
 	{
 		rp.addToProcessHistory();
@@ -411,11 +414,15 @@ void RootDAQOut::writeRun(RunPrincipal& rp)
 
 void RootDAQOut::startEndFile()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	auto resp = make_unique<ResultsPrincipal>(
 	    ResultsAuxiliary{}, moduleDescription().processConfiguration(), nullptr);
 	resp->createGroupsForProducedProducts(producedResultsProducts_);
+#if ART_HEX_VERSION < 0x31100
 	resp->enableLookupOfProducedProducts(producedResultsProducts_);
+#else
+        resp->enableLookupOfProducedProducts();
+#endif
 	if (!producedResultsProducts_.descriptions(InResults).empty() ||
 	    hasNewlyDroppedBranch()[InResults])
 	{
@@ -428,37 +435,39 @@ void RootDAQOut::startEndFile()
 
 void RootDAQOut::writeFileFormatVersion()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeFileFormatVersion();
 }
 
 void RootDAQOut::writeFileIndex()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeFileIndex();
 }
 
+#if ART_HEX_VERSION < 0x31100
 void RootDAQOut::writeEventHistory()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeEventHistory();
 }
+#endif
 
 void RootDAQOut::writeProcessConfigurationRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeProcessConfigurationRegistry();
 }
 
 void RootDAQOut::writeProcessHistoryRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeProcessHistoryRegistry();
 }
 
 void RootDAQOut::writeParameterSetRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (writeParameterSets_)
 	{
 		rootOutputFile_->writeParameterSetRegistry();
@@ -467,13 +476,13 @@ void RootDAQOut::writeParameterSetRegistry()
 
 void RootDAQOut::writeProductDescriptionRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeProductDescriptionRegistry();
 }
 
 void RootDAQOut::writeParentageRegistry()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeParentageRegistry();
 }
 
@@ -481,19 +490,19 @@ void RootDAQOut::doWriteFileCatalogMetadata(
     FileCatalogMetadata::collection_type const& md,
     FileCatalogMetadata::collection_type const& ssmd)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeFileCatalogMetadata(fstats_, md, ssmd);
 }
 
 void RootDAQOut::writeProductDependencies()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rootOutputFile_->writeProductDependencies();
 }
 
 void RootDAQOut::finishEndFile()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	string const currentFileName{rootOutputFile_->currentFileName()};
 	rootOutputFile_->writeTTrees();
 	rootOutputFile_.reset();
@@ -506,7 +515,7 @@ void RootDAQOut::finishEndFile()
 void RootDAQOut::doRegisterProducts(ProductDescriptions& producedProducts,
                                     ModuleDescription const& md)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	// Register Results products from ResultsProducers.
 	rpm_.for_each_RPWorker([&producedProducts, &md](RPWorker& w) {
 		auto const& params = w.params();
@@ -527,7 +536,7 @@ void RootDAQOut::doRegisterProducts(ProductDescriptions& producedProducts,
 
 void RootDAQOut::setFileStatus(OutputFileStatus const ofs)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (isFileOpen())
 	{
 		rootOutputFile_->setFileStatus(ofs);
@@ -536,13 +545,13 @@ void RootDAQOut::setFileStatus(OutputFileStatus const ofs)
 
 bool RootDAQOut::isFileOpen() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	return rootOutputFile_ != nullptr;
 }
 
 void RootDAQOut::incrementInputFileNumber()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (isFileOpen())
 	{
 		rootOutputFile_->incrementInputFileNumber();
@@ -551,20 +560,20 @@ void RootDAQOut::incrementInputFileNumber()
 
 bool RootDAQOut::requestsToCloseFile() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	return isFileOpen() ? rootOutputFile_->requestsToCloseFile() : false;
 }
 
 Granularity
 RootDAQOut::fileGranularity() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	return fileProperties_.granularity();
 }
 
 void RootDAQOut::doOpenFile()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (inputFileCount_ == 0)
 	{
 		throw Exception(errors::LogicError)  // NOLINT(cert-err60-cpp)
@@ -603,7 +612,7 @@ RootDAQOut::fileNameAtClose(std::string const& currentFileName)
 string const&
 RootDAQOut::lastClosedFileName() const
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	if (lastClosedFileName_.empty())
 	{
 		throw Exception(errors::LogicError, "RootDAQOut::currentFileName(): ")  // NOLINT(cert-err60-cpp)
@@ -614,43 +623,43 @@ RootDAQOut::lastClosedFileName() const
 
 void RootDAQOut::beginJob()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rpm_.invoke(&ResultsProducer::doBeginJob);
 }
 
 void RootDAQOut::endJob()
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rpm_.invoke(&ResultsProducer::doEndJob);
 }
 
 void RootDAQOut::event(EventPrincipal const& ep)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&ep](RPWorker& w) { w.rp().doEvent(ep); });
 }
 
 void RootDAQOut::beginSubRun(SubRunPrincipal const& srp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&srp](RPWorker& w) { w.rp().doBeginSubRun(srp); });
 }
 
 void RootDAQOut::endSubRun(SubRunPrincipal const& srp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&srp](RPWorker& w) { w.rp().doEndSubRun(srp); });
 }
 
 void RootDAQOut::beginRun(RunPrincipal const& rp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doBeginRun(rp); });
 }
 
 void RootDAQOut::endRun(RunPrincipal const& rp)
 {
-	RecursiveMutexSentry sentry{mutex_, __func__};
+	std::lock_guard sentry{mutex_};
 	rpm_.for_each_RPWorker([&rp](RPWorker& w) { w.rp().doEndRun(rp); });
 }
 
@@ -660,14 +669,14 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	// Make sure that the shared memory is connected
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 
-	TLOG(TLVL_DEBUG) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
+	TLOG(TLVL_DEBUG + 32) << __func__ << ": inputPattern=\"" << inputPattern << "\"";
 
 	// fetch the firstLoggerRank and fileNameSubstitutions (if provided) for use in
 	// substituting keywords in the filename pattern
 	int firstLoggerRank = config.firstLoggerRank();
 	std::vector<Config::FileNameSubstitution> subs;
 	config.fileNameSubstitutions(subs);
-	TLOG(TLVL_TRACE) << __func__ << ": firstLoggerRank=" << firstLoggerRank
+	TLOG(TLVL_DEBUG + 33) << __func__ << ": firstLoggerRank=" << firstLoggerRank
 	                 << ", numberOfSubstitutionsProvided=" << subs.size();
 
 	// initialization
@@ -681,49 +690,49 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 		zeroBasedRelativeRank -= firstLoggerRank;
 		oneBasedRelativeRank -= firstLoggerRank;
 	}
-	TLOG(TLVL_TRACE) << __func__ << ": my_rank=" << my_rank << ", zeroBasedRelativeRank=" << zeroBasedRelativeRank
+	TLOG(TLVL_DEBUG + 33) << __func__ << ": my_rank=" << my_rank << ", zeroBasedRelativeRank=" << zeroBasedRelativeRank
 	                 << ", oneBasedRelativeRank=" << oneBasedRelativeRank;
 
 	// if the "ZeroBasedRelativeRank" keyword was specified in the filename pattern,
 	// perform the substitution
 	searchString = "${ZeroBasedRelativeRank}";
 	targetLocation = modifiedPattern.find(searchString);
-	TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	while (targetLocation != std::string::npos)
 	{
 		std::ostringstream oss;
 		oss << zeroBasedRelativeRank;
 		modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
 		targetLocation = modifiedPattern.find(searchString);
-		TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
 
 	// if the "OneBasedRelativeRank" keyword was specified in the filename pattern,
 	// perform the substitution
 	searchString = "${OneBasedRelativeRank}";
 	targetLocation = modifiedPattern.find(searchString);
-	TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	while (targetLocation != std::string::npos)
 	{
 		std::ostringstream oss;
 		oss << oneBasedRelativeRank;
 		modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
 		targetLocation = modifiedPattern.find(searchString);
-		TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
 
 	// if the "Rank" keyword was specified in the filename pattern,
 	// perform the substitution
 	searchString = "${Rank}";
 	targetLocation = modifiedPattern.find(searchString);
-	TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+	TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	while (targetLocation != std::string::npos)
 	{
 		std::ostringstream oss;
 		oss << my_rank;
 		modifiedPattern.replace(targetLocation, searchString.length(), oss.str());
 		targetLocation = modifiedPattern.find(searchString);
-		TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+		TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 	}
 
 	// if one or more free-form substitutions were provided, we'll do them here
@@ -741,35 +750,35 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 				break;
 			}
 		}
-		TLOG(TLVL_TRACE) << __func__ << ": app_name=" << artdaq::Globals::app_name_ << ", newString=" << newString;
+		TLOG(TLVL_DEBUG + 33) << __func__ << ": app_name=" << artdaq::Globals::app_name_ << ", newString=" << newString;
 		if (newString != BLAH)
 		{
 			// first, add the expected surrounding text, and search for that
 			searchString = "${" + sub.targetString() + "}";
 			targetLocation = modifiedPattern.find(searchString);
-			TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+			TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			while (targetLocation != std::string::npos)
 			{
 				modifiedPattern.replace(targetLocation, searchString.length(), newString);
 				targetLocation = modifiedPattern.find(searchString);
-				TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+				TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			}
 
 			// then, search for the provided string, verbatim, in case the user specified
 			// the enclosing text in the configuration document
 			searchString = sub.targetString();
 			targetLocation = modifiedPattern.find(searchString);
-			TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+			TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			while (targetLocation != std::string::npos)
 			{
 				modifiedPattern.replace(targetLocation, searchString.length(), newString);
 				targetLocation = modifiedPattern.find(searchString);
-				TLOG(TLVL_TRACE) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
+				TLOG(TLVL_DEBUG + 33) << __func__ << ":" << __LINE__ << " searchString=" << searchString << ", targetLocation=" << targetLocation;
 			}
 		}
 	}
 
-	TLOG(TLVL_DEBUG) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
+	TLOG(TLVL_DEBUG + 32) << __func__ << ": modifiedPattern = \"" << modifiedPattern << "\"";
 	return modifiedPattern;
 }
 

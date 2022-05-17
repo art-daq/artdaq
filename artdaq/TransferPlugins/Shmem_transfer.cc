@@ -8,7 +8,7 @@
 artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
     : TransferInterface(pset, role)
 {
-	TLOG(TLVL_DEBUG) << GetTraceName() << "Constructor BEGIN";
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "Constructor BEGIN";
 	// char* keyChars = getenv("ARTDAQ_SHM_KEY");
 	// if (keyChars != NULL && shm_key_ == static_cast<int>(std::hash<std::string>()(unique_label_))) {
 	//   std::string keyString(keyChars);
@@ -40,14 +40,14 @@ artdaq::ShmemTransfer::ShmemTransfer(fhicl::ParameterSet const& pset, Role role)
 	{
 		shm_manager_ = std::make_unique<SharedMemoryFragmentManager>(shmKey);
 	}
-	TLOG(TLVL_DEBUG) << GetTraceName() << "Constructor END";
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "Constructor END";
 }
 
 artdaq::ShmemTransfer::~ShmemTransfer() noexcept
 {
-	TLOG(TLVL_DEBUG + 2) << GetTraceName() << " ~ShmemTransfer called - " << uniqueLabel();
+	TLOG(TLVL_DEBUG + 34) << GetTraceName() << " ~ShmemTransfer called - " << uniqueLabel();
 	shm_manager_.reset(nullptr);
-	TLOG(TLVL_DEBUG + 2) << GetTraceName() << " ~ShmemTransfer done - " << uniqueLabel();
+	TLOG(TLVL_DEBUG + 34) << GetTraceName() << " ~ShmemTransfer done - " << uniqueLabel();
 }
 
 int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
@@ -75,7 +75,7 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 		return artdaq::TransferInterface::DATA_END;
 	}
 
-	TLOG(TLVL_TRACE) << GetTraceName() << "receiveFragment ReadyForRead=" << shm_manager_->ReadyForRead();
+	TLOG(TLVL_DEBUG + 33) << GetTraceName() << "receiveFragment ReadyForRead=" << shm_manager_->ReadyForRead();
 
 	if (shm_manager_->ReadyForRead())
 	{
@@ -83,13 +83,13 @@ int artdaq::ShmemTransfer::receiveFragment(artdaq::Fragment& fragment,
 
 		if (sts != 0)
 		{
-			TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragment, returning...";
+			TLOG(TLVL_DEBUG + 33) << "Non-zero status (" << sts << ") returned from ReadFragment, returning...";
 			return RECV_TIMEOUT;
 		}
 
 		if (fragment.type() != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG(8) << GetTraceName() << "Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << fragment.sequenceID() << ", source_rank=" << source_rank();
+			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Recvd frag from shmem, type=" << fragment.typeString() << ", sequenceID=" << fragment.sequenceID() << ", source_rank=" << source_rank();
 		}
 
 		return source_rank();
@@ -123,7 +123,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 		return artdaq::TransferInterface::DATA_END;
 	}
 
-	//TLOG(TLVL_TRACE) << GetTraceName() << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops ;
+	//TLOG(TLVL_DEBUG + 33) << GetTraceName() << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops ;
 
 	if (shm_manager_->ReadyForRead())
 	{
@@ -131,13 +131,13 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 
 		if (sts != 0)
 		{
-			TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragmentHeader, returning...";
+			TLOG(TLVL_DEBUG + 33) << "Non-zero status (" << sts << ") returned from ReadFragmentHeader, returning...";
 			return RECV_TIMEOUT;
 		}
 
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
-			TLOG(8) << GetTraceName() << "Recvd fragment header from shmem, type=" << static_cast<int>(header.type)
+			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Recvd fragment header from shmem, type=" << static_cast<int>(header.type)
 			        << ", sequenceID=" << header.sequence_id << ", source_rank=" << source_rank();
 		}
 
@@ -151,11 +151,11 @@ int artdaq::ShmemTransfer::receiveFragmentData(RawDataType* destination, size_t 
 {
 	auto sts = shm_manager_->ReadFragmentData(destination, word_count);
 
-	TLOG(TLVL_TRACE) << GetTraceName() << "Return status from ReadFragmentData is " << sts;
+	TLOG(TLVL_DEBUG + 33) << GetTraceName() << "Return status from ReadFragmentData is " << sts;
 
 	if (sts != 0)
 	{
-		TLOG(TLVL_TRACE) << "Non-zero status (" << sts << ") returned from ReadFragmentData, returning...";
+		TLOG(TLVL_DEBUG + 33) << "Non-zero status (" << sts << ") returned from ReadFragmentData, returning...";
 		return RECV_TIMEOUT;
 	}
 
@@ -191,7 +191,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	shm_manager_->SetRank(my_rank);
 	// wait for the shm to become free, if requested
 
-	TLOG(TLVL_DEBUG + 2) << GetTraceName() << "Sending fragment with seqID=" << fragment.sequenceID();
+	TLOG(TLVL_DEBUG + 34) << GetTraceName() << "Sending fragment with seqID=" << fragment.sequenceID();
 	artdaq::RawDataType* fragAddr = fragment.headerAddress();
 	size_t fragSize = fragment.size() * sizeof(artdaq::RawDataType);
 
@@ -200,7 +200,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 	if (fragment.type() != artdaq::Fragment::InvalidFragmentType && fragSize < (max_fragment_size_words_ * sizeof(artdaq::RawDataType)))
 	{
 		auto seq = fragment.sequenceID();
-		TLOG(TLVL_DEBUG + 2) << GetTraceName() << "Writing fragment with seqID=" << seq;
+		TLOG(TLVL_DEBUG + 34) << GetTraceName() << "Writing fragment with seqID=" << seq;
 		auto sts = shm_manager_->WriteFragment(std::move(fragment), !reliableMode, send_timeout_usec);
 		if (sts == -3)
 		{
@@ -213,7 +213,7 @@ artdaq::ShmemTransfer::sendFragment(artdaq::Fragment&& fragment, size_t send_tim
 			return CopyStatus::kErrorNotRequiringException;
 		}
 
-		TLOG(TLVL_DEBUG + 2) << GetTraceName() << "Successfully sent Fragment with seqID=" << seq;
+		TLOG(TLVL_DEBUG + 34) << GetTraceName() << "Successfully sent Fragment with seqID=" << seq;
 		return CopyStatus::kSuccess;
 	}
 

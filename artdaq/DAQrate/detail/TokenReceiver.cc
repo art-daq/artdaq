@@ -71,9 +71,9 @@ void artdaq::TokenReceiver::stopTokenReception(bool force)
 	{
 		if (received_token_count_ == 0 && !force)
 		{
-			TLOG(TLVL_DEBUG) << "Stop request received by TokenReceiver, but no tokens have ever been received.";
+			TLOG(TLVL_DEBUG + 32) << "Stop request received by TokenReceiver, but no tokens have ever been received.";
 		}
-		TLOG(TLVL_DEBUG) << "Joining tokenThread";
+		TLOG(TLVL_DEBUG + 32) << "Joining tokenThread";
 		try
 		{
 			if (token_thread_.joinable())
@@ -100,10 +100,10 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 {
 	while (!shutdown_requested_)
 	{
-		TLOG(TLVL_TRACE) << "Receive Token loop start";
+		TLOG(TLVL_DEBUG + 33) << "Receive Token loop start";
 		if (token_socket_ == -1)
 		{
-			TLOG(TLVL_DEBUG) << "Opening token listener socket";
+			TLOG(TLVL_DEBUG + 32) << "Opening token listener socket";
 			token_socket_ = TCP_listen_fd(token_port_, 3 * sizeof(detail::RoutingToken));
 
 			if (token_epoll_fd_ != -1)
@@ -122,7 +122,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 		}
 		if (token_socket_ == -1 || token_epoll_fd_ == -1)
 		{
-			TLOG(TLVL_DEBUG) << "One of the listen sockets was not opened successfully.";
+			TLOG(TLVL_DEBUG + 32) << "One of the listen sockets was not opened successfully.";
 			return;
 		}
 
@@ -139,12 +139,12 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 			usleep(10000);
 		}
 
-		TLOG(13) << "Received " << nfds << " events on token sockets";
+		TLOG(TLVL_DEBUG + 35) << "Received " << nfds << " events on token sockets";
 		for (auto n = 0; n < nfds; ++n)
 		{
 			if (receive_token_events_[n].data.fd == token_socket_)
 			{
-				TLOG(TLVL_DEBUG) << "Accepting new connection on token_socket";
+				TLOG(TLVL_DEBUG + 32) << "Accepting new connection on token_socket";
 				sockaddr_in addr;
 				socklen_t arglen = sizeof(addr);
 				auto conn_sock = accept(token_socket_, reinterpret_cast<struct sockaddr*>(&addr), &arglen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -158,7 +158,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				}
 
 				receive_token_addrs_[conn_sock] = std::string(inet_ntoa(addr.sin_addr));
-				TLOG(TLVL_DEBUG) << "New fd is " << conn_sock << " for data-receiver at " << receive_token_addrs_[conn_sock];
+				TLOG(TLVL_DEBUG + 32) << "New fd is " << conn_sock << " for data-receiver at " << receive_token_addrs_[conn_sock];
 				struct epoll_event ev;
 				ev.events = EPOLLIN;
 				ev.data.fd = conn_sock;
@@ -184,7 +184,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				}
 				else if (sts < 0 && errno == EAGAIN)
 				{
-					TLOG(TLVL_DEBUG) << "No more tokens from this rank. Continuing poll loop.";
+					TLOG(TLVL_DEBUG + 32) << "No more tokens from this rank. Continuing poll loop.";
 				}
 				else if (sts < 0)
 				{
@@ -199,10 +199,10 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 				}
 				else if (sts == sizeof(detail::RoutingToken))
 				{
-					TLOG(TLVL_DEBUG) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free. (run=" << buff.run_number << ")";
+					TLOG(TLVL_DEBUG + 32) << "Received token from " << buff.rank << " indicating " << buff.new_slots_free << " slots are free. (run=" << buff.run_number << ")";
 					if (buff.run_number != run_number_)
 					{
-						TLOG(TLVL_DEBUG) << "Received token from a different run number! Current = " << run_number_ << ", token = " << buff.run_number << ", ignoring (n=" << buff.new_slots_free << ")";
+						TLOG(TLVL_DEBUG + 32) << "Received token from a different run number! Current = " << run_number_ << ", token = " << buff.run_number << ", ignoring (n=" << buff.new_slots_free << ")";
 					}
 					else
 					{
@@ -215,7 +215,7 @@ void artdaq::TokenReceiver::receiveTokensLoop_()
 			}
 			else
 			{
-				TLOG(TLVL_DEBUG) << "Received event mask " << receive_token_events_[n].events << " from token fd " << receive_token_events_[n].data.fd;
+				TLOG(TLVL_DEBUG + 32) << "Received event mask " << receive_token_events_[n].events << " from token fd " << receive_token_events_[n].data.fd;
 			}
 		}
 	}
