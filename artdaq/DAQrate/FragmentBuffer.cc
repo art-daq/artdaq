@@ -27,16 +27,16 @@
 #include <iterator>
 #include "artdaq/DAQdata/TCPConnect.hh"
 
-#define TLVL_ADDFRAGMENT TLVL_TRACE + 10
-#define TLVL_CHECKSTOP TLVL_TRACE + 11
-#define TLVL_WAITFORBUFFERREADY TLVL_TRACE + 15
-#define TLVL_GETBUFFERSTATS TLVL_TRACE + 16
-#define TLVL_CHECKDATABUFFER TLVL_TRACE + 17
-#define TLVL_APPLYREQUESTS TLVL_TRACE + 9
-#define TLVL_APPLYREQUESTS_VERBOSE TLVL_TRACE + 23
-#define TLVL_SENDEMPTYFRAGMENTS TLVL_TRACE + 19
-#define TLVL_CHECKWINDOWS TLVL_TRACE + 14
-#define TLVL_EMPTYFRAGMENT TLVL_TRACE + 22
+#define TLVL_ADDFRAGMENT 32
+#define TLVL_CHECKSTOP 33
+#define TLVL_WAITFORBUFFERREADY 34
+#define TLVL_GETBUFFERSTATS 35
+#define TLVL_CHECKDATABUFFER 36
+#define TLVL_APPLYREQUESTS 37
+#define TLVL_APPLYREQUESTS_VERBOSE 38
+#define TLVL_SENDEMPTYFRAGMENTS 39
+#define TLVL_CHECKWINDOWS 40
+#define TLVL_EMPTYFRAGMENT 41
 
 artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     : next_sequence_id_(1)
@@ -47,8 +47,10 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
     , staleTimeout_(ps.get<Fragment::timestamp_t>("stale_fragment_timeout", 0))
     , expectedType_(ps.get<Fragment::type_t>("expected_fragment_type", Fragment::type_t(Fragment::EmptyFragmentType)))
     , uniqueWindows_(ps.get<bool>("request_windows_are_unique", true))
+    , sendMissingFragments_(ps.get<bool>("send_missing_request_fragments", true))
     , missing_request_window_timeout_us_(ps.get<size_t>("missing_request_window_timeout_us", 5000000))
     , window_close_timeout_us_(ps.get<size_t>("window_close_timeout_us", 2000000))
+    , error_on_empty_(ps.get<bool>("error_on_empty_fragment", false))
     , circularDataBufferMode_(ps.get<bool>("circular_buffer_mode", false))
     , maxDataBufferDepthFragments_(ps.get<int>("data_buffer_depth_fragments", 1000))
     , maxDataBufferDepthBytes_(ps.get<size_t>("data_buffer_depth_mb", 1000) * 1024 * 1024)
@@ -57,7 +59,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 {
 	auto fragment_ids = ps.get<std::vector<artdaq::Fragment::fragment_id_t>>("fragment_ids", std::vector<artdaq::Fragment::fragment_id_t>());
 
-	TLOG(TLVL_TRACE) << "artdaq::FragmentBuffer::FragmentBuffer(ps)";
+	TLOG(TLVL_DEBUG + 33) << "artdaq::FragmentBuffer::FragmentBuffer(ps)";
 	int fragment_id = ps.get<int>("fragment_id", -99);
 
 	if (fragment_id != -99)
@@ -109,7 +111,7 @@ artdaq::FragmentBuffer::FragmentBuffer(const fhicl::ParameterSet& ps)
 		TLOG(TLVL_WARNING) << "Request Mode was requested as " << modeString << ", but is being set to Ignored because \"receive_requests\" was not set to true";
 		mode_ = RequestMode::Ignored;
 	}
-	TLOG(TLVL_DEBUG) << "Request mode is " << printMode_();
+	TLOG(TLVL_DEBUG + 32) << "Request mode is " << printMode_();
 }
 
 artdaq::FragmentBuffer::~FragmentBuffer()
@@ -174,8 +176,7 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 		std::lock_guard<std::mutex> dlk(dataBuffer->DataBufferMutex);
 		switch (mode_)
 		{
-			case RequestMode::Single:
-			{
+			case RequestMode::Single: {
 				auto dataIter = type_it->second.rbegin();
 				TLOG(TLVL_ADDFRAGMENT) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 				dataBuffer->DataBuffer.clear();
@@ -221,7 +222,7 @@ bool artdaq::FragmentBuffer::check_stop()
 	if (requestBuffer_ != nullptr)
 	{
 		// check_stop returns true if the CFG should stop. We should wait for the Request Buffer to report Request Receiver stopped before stopping.
-		TLOG(TLVL_DEBUG) << "should_stop is true, requestBuffer_->isRunning() is " << std::boolalpha << requestBuffer_->isRunning();
+		TLOG(TLVL_DEBUG + 32) << "should_stop is true, requestBuffer_->isRunning() is " << std::boolalpha << requestBuffer_->isRunning();
 		if (!requestBuffer_->isRunning())
 		{
 			return true;
@@ -276,7 +277,7 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 		{
 			if (should_stop_.load())
 			{
-				TLOG(TLVL_DEBUG) << "Run ended while waiting for buffer to shrink!";
+				TLOG(TLVL_DEBUG + 32) << "Run ended while waiting for buffer to shrink!";
 				getDataBufferStats(id);
 				dataCondition_.notify_all();
 				return false;
@@ -293,7 +294,7 @@ bool artdaq::FragmentBuffer::waitForDataBufferReady(Fragment::fragment_id_t id)
 					                   << ", frags=" << dataBuffer->DataBufferDepthFragments << "/" << maxDataBufferDepthFragments_
 					                   << ", szB=" << dataBuffer->DataBufferDepthBytes << "/" << maxDataBufferDepthBytes_ << ")"
 					                   << ", timestamps=" << dataBuffer->DataBuffer.front()->timestamp() << "-" << dataBuffer->DataBuffer.back()->timestamp();
-					TLOG(TLVL_TRACE) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
+					TLOG(TLVL_DEBUG + 33) << "Bad Omen: Possible causes include requests not getting through or Ignored-mode BR issues";
 				}
 				first = false;
 			}
@@ -585,19 +586,19 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 
 		// In the spirit of NOvA's MegaPool: (RS = Request start (min), RE = Request End (max))
 		//  --- | Buffer Start | --- | Buffer End | ---
-		//1. RS RE |           |     |            |
-		//2. RS |              |  RE |            |
-		//3. RS |              |     |            | RE
-		//4.    |              | RS RE |          |
-		//5.    |              | RS  |            | RE
-		//6.    |              |     |            | RS RE
+		// 1. RS RE |           |     |            |
+		// 2. RS |              |  RE |            |
+		// 3. RS |              |     |            | RE
+		// 4.    |              | RS RE |          |
+		// 5.    |              | RS  |            | RE
+		// 6.    |              |     |            | RS RE
 		//
 		// If RE (or RS) is after the end of the buffer, we wait for window_close_timeout_us_. If we're here, then that means that windowClosed is false, and the missing_data flag should be set.
 		// If RS (or RE) is before the start of the buffer, then missing_data should be set to true, as data is assumed to arrive in the buffer in timestamp order
 		// If the dataBuffer has size 0, then windowClosed will be false
 		if (!windowClosed || (dataBuffer->DataBufferDepthFragments > 0 && dataBuffer->DataBuffer.front()->timestamp() > min))
 		{
-			TLOG(TLVL_DEBUG) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
+			TLOG(TLVL_DEBUG + 32) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
 			                 << " (requestWindowRange=[" << min << "," << max << "], "
 			                 << "buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
 			                 << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "} (SeqID " << seq << ")";
@@ -631,7 +632,9 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 				continue;
 			}
 			if (fragT > max || (fragT == max && windowWidth_ > 0))
-			{ break; }
+			{
+				break;
+			}
 
 			TLOG(TLVL_APPLYREQUESTS_VERBOSE) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Adding Fragment with timestamp " << (*it)->timestamp() << " to Container (SeqID " << seq << ")";
 			if (uniqueWindows_)
@@ -664,7 +667,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 		}
 		else
 		{
-			TLOG(TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: No Fragments to add (SeqID " << seq << ")";
+			TLOG(error_on_empty_ ? TLVL_ERROR : TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: No Fragments match request (SeqID " << seq << ", window " << min << " - " << max << ")";
 		}
 
 		dataBuffer->DataBufferDepthFragments = dataBuffer->DataBuffer.size();
@@ -887,9 +890,12 @@ void artdaq::FragmentBuffer::sendEmptyFragments(artdaq::FragmentPtrs& frags, std
 		TLOG(TLVL_SENDEMPTYFRAGMENTS) << "Sending Empty Fragments for Sequence IDs from " << next_sequence_id_ << " up to but not including " << requests.begin()->first;
 		while (requests.begin()->first > next_sequence_id_)
 		{
-			for (auto& fid : dataBuffers_)
+			if (sendMissingFragments_)
 			{
-				sendEmptyFragment(frags, next_sequence_id_, fid.first, "Missed request for");
+				for (auto& fid : dataBuffers_)
+				{
+					sendEmptyFragment(frags, next_sequence_id_, fid.first, "Missed request for");
+				}
 			}
 			++next_sequence_id_;
 		}

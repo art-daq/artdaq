@@ -67,19 +67,19 @@ private:
 
 void PreferSameHostPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 {
-	TLOG(12) << "PreferSameHostPolicy::GetCurrentTable token list size is " << tokens_.size();
+	TLOG(TLVL_DEBUG + 35) << "PreferSameHostPolicy::GetCurrentTable token list size is " << tokens_.size();
 	auto table = sortTokens_();
-	TLOG(13) << "PreferSameHostPolicy::GetCurrentTable table size is " << table.size();
+	TLOG(TLVL_DEBUG + 36) << "PreferSameHostPolicy::GetCurrentTable table size is " << table.size();
 
 	int minimum = calculateMinimum_();
 	bool endCondition = table.size() < static_cast<size_t>(minimum);
-	TLOG(15) << "PreferSameHostPolicy::GetCurrentTable initial endCondition is " << endCondition << ", minimum is " << minimum;
+	TLOG(TLVL_DEBUG + 37) << "PreferSameHostPolicy::GetCurrentTable initial endCondition is " << endCondition << ", minimum is " << minimum;
 
 	while (!endCondition)
 	{
 		for (auto it = table.begin(); it != table.end();)
 		{
-			TLOG(16) << "PreferSameHostPolicy::GetCurrentTable assigning sequenceID " << next_sequence_id_ << " to rank " << it->first;
+			TLOG(TLVL_DEBUG + 38) << "PreferSameHostPolicy::GetCurrentTable assigning sequenceID " << next_sequence_id_ << " to rank " << it->first;
 			output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, it->first));
 			table[it->first]--;
 
@@ -96,9 +96,9 @@ void PreferSameHostPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 	}
 
 	restoreUnusedTokens_(table);
-	TLOG(13) << "PreferSameHostPolicy::GetCurrentTable " << tokens_.size() << " unused tokens will be saved for later";
+	TLOG(TLVL_DEBUG + 36) << "PreferSameHostPolicy::GetCurrentTable " << tokens_.size() << " unused tokens will be saved for later";
 
-	TLOG(12) << "PreferSameHostPolicy::GetCurrentTable return with table size " << output.size();
+	TLOG(TLVL_DEBUG + 35) << "PreferSameHostPolicy::GetCurrentTable return with table size " << output.size();
 }
 detail::RoutingPacketEntry PreferSameHostPolicy::CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank)
 {

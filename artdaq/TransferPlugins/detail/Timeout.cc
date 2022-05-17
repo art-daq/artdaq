@@ -31,18 +31,18 @@ Timeout::timeoutspec::timeoutspec()
 	, ts(), period()
 	, missed_periods(), check()
 {
-	TLOG(18) << "Timeout::timeoutspec ctor this=" << this;
+	TLOG(TLVL_DEBUG + 38) << "Timeout::timeoutspec ctor this=" << this;
 }
 Timeout::timeoutspec::timeoutspec(const timeoutspec & other)
 	: desc(other.desc), tag(other.tag), function(other.function)
 	, ts(other.ts), period(other.period)
 	, missed_periods(other.missed_periods), check(other.check)
 {
-	TLOG(18) << "Timeout::timeoutspec copy ctor";
+	TLOG(TLVL_DEBUG + 38) << "Timeout::timeoutspec copy ctor";
 }
 Timeout::timeoutspec & Timeout::timeoutspec::operator=(const Timeout::timeoutspec & other)
 {
-	TLOG(18) << "Timeout::timeoutspec copy assignment (operator= other.desc=" << other.desc << ")";
+	TLOG(TLVL_DEBUG + 38) << "Timeout::timeoutspec copy assignment (operator= other.desc=" << other.desc << ")";
 	desc = other.desc;
 	tag = other.tag;
 	function = other.function;
@@ -57,7 +57,7 @@ Timeout::timeoutspec & Timeout::timeoutspec::operator=(const Timeout::timeoutspe
 Timeout::Timeout(int max_tmos)
     : tmospecs_(max_tmos)
 {
-	TLOG(16) << "Timeout ctor";
+	TLOG(TLVL_DEBUG + 36) << "Timeout ctor";
 	timeoutlist_init();
 }
 
@@ -87,7 +87,7 @@ void Timeout::add_periodic(const char* desc, void* tag, std::function<void()>& f
 
 void Timeout::add_periodic(const char* desc, uint64_t period_us, uint64_t start_us)
 {
-	TLOG(19) << "add_periodic - desc=" << desc << " period_us=" << period_us << " start_us=" << start_us;
+	TLOG(TLVL_DEBUG + 39) << "add_periodic - desc=" << desc << " period_us=" << period_us << " start_us=" << start_us;
 	timeoutspec tmo;
 	tmo.desc = desc;
 	tmo.tag = nullptr;
@@ -131,7 +131,7 @@ Timeout::get_next_expired_timeout(std::string& desc, void** tag, std::function<v
 	skipped = get_clear_next_expired_timeout(tmo, artdaq::TimeUtils::gettimeofday_us());
 	if (skipped == -1)
 	{
-		TLOG(18) << "get_next_expired_timeout - get_clear_next_expired_timeout returned false";
+		TLOG(TLVL_DEBUG + 38) << "get_next_expired_timeout - get_clear_next_expired_timeout returned false";
 		desc = std::string("");  // 2 ways to check for none timed out
 	}
 	else
@@ -150,12 +150,12 @@ void Timeout::get_next_timeout_delay(int64_t* delay_us)
 	size_t active_time_size = active_time_.size();
 	if (active_time_size == 0)
 	{
-		TLOG(17) << "get_next_timeout_delay active_.size() == 0";
+		TLOG(TLVL_DEBUG + 37) << "get_next_timeout_delay active_.size() == 0";
 		*delay_us = -1;  // usually means a very very long time
 	}
 	else
 	{
-		TLOG(17) << "get_next_timeout_delay active_.size() != 0: " << active_time_size;
+		TLOG(TLVL_DEBUG + 37) << "get_next_timeout_delay active_.size() != 0: " << active_time_size;
 		uint64_t tod_us = artdaq::TimeUtils::gettimeofday_us();
 		timeoutspec* tmo = &tmospecs_[(*(active_time_.begin())).second];
 		*delay_us = tmo->tmo_tod_us - tod_us;
@@ -222,7 +222,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 	int skipped = 0;
 	if (active_time_.empty())
 	{
-		TLOG(17) << "get_clear_next_expired_timeout - nothing to get/clear!";
+		TLOG(TLVL_DEBUG + 37) << "get_clear_next_expired_timeout - nothing to get/clear!";
 		return static_cast<int>(false);
 	}
 
@@ -232,7 +232,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 	if (tmospecs_[idx].tmo_tod_us < tod_now_us)
 	{
 		tmo = tmospecs_[idx];
-		TLOG(17) << "get_clear_next_expired_timeout - clearing tag=" << tmo.tag << " desc=" << tmo.desc << " period=" << tmo.period_us << " idx=" << idx;
+		TLOG(TLVL_DEBUG + 37) << "get_clear_next_expired_timeout - clearing tag=" << tmo.tag << " desc=" << tmo.desc << " period=" << tmo.period_us << " idx=" << idx;
 
 		active_time_.erase(itfront);
 		// now, be effecient -- if periodic, add back at new time, else
@@ -251,7 +251,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 			period_us += period_us * skipped;
 			tmospecs_[idx].tmo_tod_us += period_us;
 			active_time_.insert(std::pair<uint64_t, size_t>(tmospecs_[idx].tmo_tod_us, idx));
-			TLOG(18) << "get_clear_next_expired_timeout - periodic timeout desc=" << tmo.desc
+			TLOG(TLVL_DEBUG + 38) << "get_clear_next_expired_timeout - periodic timeout desc=" << tmo.desc
 			         << " period_us=" << period_us << " delta_us=" << delta_us
 			         << " skipped=" << skipped << " next tmo at:" << tmospecs_[idx].tmo_tod_us;
 		}
@@ -274,7 +274,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 	}
 	else
 	{
-		TLOG(17) << "get_clear_next_expired_timeout - front " << tmospecs_[idx].tmo_tod_us << " NOT before ts_now " << tod_now_us << " - not clearing!";
+		TLOG(TLVL_DEBUG + 37) << "get_clear_next_expired_timeout - front " << tmospecs_[idx].tmo_tod_us << " NOT before ts_now " << tod_now_us << " - not clearing!";
 		return (-1);
 	}
 
@@ -284,7 +284,7 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 // this doesn't do anything (function undefined)
 void Timeout::copy_in_timeout(const char* desc, uint64_t period_us, uint64_t start_us)
 {
-	TLOG(18) << "copy_in_timeout desc=" + std::string(desc);
+	TLOG(TLVL_DEBUG + 38) << "copy_in_timeout desc=" + std::string(desc);
 	timeoutspec tos;
 	tos.desc = desc;
 	tos.tag = nullptr;
@@ -305,7 +305,7 @@ void Timeout::copy_in_timeout(timeoutspec& tmo)
 	size_t idx = free_.front();
 	free_.pop_front();
 	tmospecs_[idx] = tmo;
-	TLOG(20) << "copy_in_timeout timeoutspec desc=" + tmo.desc;
+	TLOG(TLVL_DEBUG + 40) << "copy_in_timeout timeoutspec desc=" + tmo.desc;
 	active_time_.insert(std::pair<uint64_t, size_t>(tmo.tmo_tod_us, idx));
 	active_desc_.insert(std::pair<std::string, size_t>(tmo.desc, idx));
 }
@@ -345,7 +345,7 @@ bool Timeout::cancel_timeout(void* tag, const std::string& desc)
 			break;
 		}
 	}
-	TLOG(22) << "cancel_timeout returning " << retsts;
+	TLOG(TLVL_DEBUG + 42) << "cancel_timeout returning " << retsts;
 	return retsts;
 }  // cancel_timeout
 
@@ -354,6 +354,6 @@ void Timeout::list_active_time()
 	auto ii = active_time_.begin(), ee = active_time_.end();
 	for (; ii != ee; ++ii)
 	{
-		TLOG(TLVL_DEBUG) << "list_active_time " << (*ii).first << " desc=" << tmospecs_[(*ii).second].desc;
+		TLOG(TLVL_DEBUG + 32) << "list_active_time " << (*ii).first << " desc=" << tmospecs_[(*ii).second].desc;
 	}
 }

@@ -96,25 +96,25 @@ private:
 art::BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)
     : OutputModule(ps)
 {
-	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
+	TLOG(TLVL_DEBUG + 32) << "Begin: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
 	readParameterSet_(ps);
-	TLOG(TLVL_DEBUG) << "End: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
+	TLOG(TLVL_DEBUG + 32) << "End: BinaryNetOutput::BinaryNetOutput(ParameterSet const& ps)\n";
 }
 
-art::BinaryNetOutput::~BinaryNetOutput() { TLOG(TLVL_DEBUG) << "Begin/End: BinaryNetOutput::~BinaryNetOutput()\n"; }
+art::BinaryNetOutput::~BinaryNetOutput() { TLOG(TLVL_DEBUG + 32) << "Begin/End: BinaryNetOutput::~BinaryNetOutput()\n"; }
 
 void art::BinaryNetOutput::beginJob()
 {
-	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::beginJob()\n";
+	TLOG(TLVL_DEBUG + 32) << "Begin: BinaryNetOutput::beginJob()\n";
 	initialize_MPI_();
-	TLOG(TLVL_DEBUG) << "End:   BinaryNetOutput::beginJob()\n";
+	TLOG(TLVL_DEBUG + 32) << "End:   BinaryNetOutput::beginJob()\n";
 }
 
 void art::BinaryNetOutput::endJob()
 {
-	TLOG(TLVL_DEBUG) << "Begin: BinaryNetOutput::endJob()\n";
+	TLOG(TLVL_DEBUG + 32) << "Begin: BinaryNetOutput::endJob()\n";
 	deinitialize_MPI_();
-	TLOG(TLVL_DEBUG) << "End:   BinaryNetOutput::endJob()\n";
+	TLOG(TLVL_DEBUG + 32) << "End:   BinaryNetOutput::endJob()\n";
 }
 
 void art::BinaryNetOutput::initialize_MPI_()
@@ -142,7 +142,7 @@ void art::BinaryNetOutput::deinitialize_MPI_() { sender_ptr_.reset(nullptr); }
 
 bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 {
-	TLOG(TLVL_DEBUG) << name_ << "BinaryNetOutput::readParameterSet_ method called with "
+	TLOG(TLVL_DEBUG + 32) << name_ << "BinaryNetOutput::readParameterSet_ method called with "
 	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// determine the data sending parameters
@@ -150,7 +150,7 @@ bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 	name_ = pset.get<std::string>("module_name", "BinaryNetOutput");
 	rt_priority_ = pset.get<int>("rt_priority", 0);
 
-	TLOG(TLVL_TRACE) << "BinaryNetOutput::readParameterSet()";
+	TLOG(TLVL_DEBUG + 33) << "BinaryNetOutput::readParameterSet()";
 
 	return true;
 }
@@ -190,9 +190,9 @@ void art::BinaryNetOutput::write(EventPrincipal& ep)
 			auto fragment_copy = fragment;
 			auto fragid_id = fragment_copy.fragmentID();
 			sequence_id = fragment_copy.sequenceID();
-			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " start";
+			TLOG(TLVL_DEBUG + 32) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " start";
 			sender_ptr_->sendFragment(std::move(fragment_copy));
-			TLOG(TLVL_DEBUG) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done";
+			TLOG(TLVL_DEBUG + 32) << "BinaryNetOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done";
 		}
 	}
 

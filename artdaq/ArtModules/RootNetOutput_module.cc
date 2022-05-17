@@ -71,19 +71,19 @@ art::RootNetOutput::RootNetOutput(fhicl::ParameterSet const& ps)
     , sender_ptr_(nullptr)
     , data_pset_(ps)
 {
-	TLOG(TLVL_DEBUG) << "Begin: RootNetOutput::RootNetOutput(ParameterSet const& ps)";
+	TLOG(TLVL_DEBUG + 32) << "Begin: RootNetOutput::RootNetOutput(ParameterSet const& ps)";
 	// Make sure the ArtdaqSharedMemoryService is available
 	art::ServiceHandle<ArtdaqSharedMemoryServiceInterface> shm;
 	init_timeout_s_ = ps.get<double>("init_fragment_timeout_seconds", 1.0);
 	connect();
-	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::RootNetOutput(ParameterSet const& ps)";
+	TLOG(TLVL_DEBUG + 32) << "End:   RootNetOutput::RootNetOutput(ParameterSet const& ps)";
 }
 
 art::RootNetOutput::~RootNetOutput()
 {
-	TLOG(TLVL_DEBUG) << "Begin: RootNetOutput::~RootNetOutput()";
+	TLOG(TLVL_DEBUG + 32) << "Begin: RootNetOutput::~RootNetOutput()";
 	disconnect();
-	TLOG(TLVL_DEBUG) << "End:   RootNetOutput::~RootNetOutput()";
+	TLOG(TLVL_DEBUG + 32) << "End:   RootNetOutput::~RootNetOutput()";
 }
 
 void art::RootNetOutput::SendMessage(artdaq::FragmentPtr& fragment)
@@ -96,7 +96,7 @@ void art::RootNetOutput::SendMessage(artdaq::FragmentPtr& fragment)
 		                 << artdaq::detail::RawFragmentHeader::SystemTypeToString(fragment->type());
 		if (sender_ptr_ == nullptr)
 		{
-			TLOG(TLVL_DEBUG) << "Reconnecting DataSenderManager";
+			TLOG(TLVL_DEBUG + 32) << "Reconnecting DataSenderManager";
 			connect();
 		}
 
@@ -109,7 +109,7 @@ void art::RootNetOutput::SendMessage(artdaq::FragmentPtr& fragment)
 #endif
 
 		auto sequenceId = fragment->sequenceID();
-		TLOG(TLVL_DEBUG) << "Sending message with sequenceID=" << sequenceId << ", type=" << static_cast<int>(fragment->type())
+		TLOG(TLVL_DEBUG + 32) << "Sending message with sequenceID=" << sequenceId << ", type=" << static_cast<int>(fragment->type())
 		                 << ", length=" << fragment->dataSizeBytes();
 
 		sender_ptr_->sendFragment(std::move(*fragment));

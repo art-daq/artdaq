@@ -20,7 +20,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
     , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 600.0) * 1000000)))
     , resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
 {
-	TLOG(TLVL_TRACE) << "ArtdaqSharedMemoryService CONSTRUCTOR";
+	TLOG(TLVL_DEBUG + 33) << "ArtdaqSharedMemoryService CONSTRUCTOR";
 
 	incoming_events_ = std::make_unique<artdaq::SharedMemoryEventReceiver>(
 	    pset.get<int>("shared_memory_key", build_key(0xEE000000)),
@@ -33,19 +33,19 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 		artapp_str = std::string(artapp_env) + "_";
 	}
 
-	TLOG(TLVL_TRACE) << "Setting app_name";
+	TLOG(TLVL_DEBUG + 33) << "Setting app_name";
 	app_name = artapp_str + "art" + std::to_string(incoming_events_->GetMyId());
 	//artdaq::configureMessageFacility(app_name.c_str()); // ELF 11/20/2020: MessageFacility already configured by initialization pset
 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)
 	{
-		TLOG(TLVL_TRACE) << "Setting rank from envrionment";
+		TLOG(TLVL_DEBUG + 33) << "Setting rank from envrionment";
 		my_rank = strtol(artapp_env, nullptr, 10);
 	}
 	else
 	{
-		TLOG(TLVL_TRACE) << "Setting my_rank from shared memory";
+		TLOG(TLVL_DEBUG + 33) << "Setting my_rank from shared memory";
 		my_rank = incoming_events_->GetRank();
 	}
 
@@ -72,12 +72,12 @@ ArtdaqSharedMemoryService::~ArtdaqSharedMemoryService()
 
 std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ArtdaqSharedMemoryService::ReceiveEvent(bool broadcast)
 {
-	TLOG(TLVL_TRACE) << "ReceiveEvent BEGIN";
+	TLOG(TLVL_DEBUG + 33) << "ReceiveEvent BEGIN";
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> recvd_fragments;
 
 	while (recvd_fragments.empty())
 	{
-		TLOG(TLVL_TRACE) << "ReceiveEvent: Waiting for available buffer";
+		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Waiting for available buffer";
 		bool got_event = false;
 		auto start_time = std::chrono::steady_clock::now();
 		auto read_timeout_to_use = read_timeout_ > 100000 ? 100000 : read_timeout_;
@@ -101,7 +101,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 			return recvd_fragments;
 		}
 
-		TLOG(TLVL_TRACE) << "ReceiveEvent: Reading buffer header";
+		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Reading buffer header";
 		auto errflag = false;
 		auto hdrPtr = incoming_events_->ReadHeader(errflag);
 		if (errflag || hdrPtr == nullptr)
@@ -111,7 +111,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 			           //return recvd_fragments;
 		}
 		evtHeader_ = std::make_shared<artdaq::detail::RawEventHeader>(*hdrPtr);
-		TLOG(TLVL_TRACE) << "ReceiveEvent: Getting Fragment types";
+		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Getting Fragment types";
 		auto fragmentTypes = incoming_events_->GetFragmentTypes(errflag);
 		if (errflag)
 		{  // Buffer was changed out from under reader!
@@ -128,7 +128,7 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 
 		for (auto const& type : fragmentTypes)
 		{
-			TLOG(TLVL_TRACE) << "ReceiveEvent: Getting all Fragments of type " << static_cast<int>(type);
+			TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Getting all Fragments of type " << static_cast<int>(type);
 			recvd_fragments[type] = incoming_events_->GetFragmentsByType(errflag, type);
 			if (!recvd_fragments[type])
 			{
@@ -142,11 +142,11 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
     */
 			std::sort(recvd_fragments[type]->begin(), recvd_fragments[type]->end(), artdaq::fragmentSequenceIDCompare);
 		}
-		TLOG(TLVL_TRACE) << "ReceiveEvent: Releasing buffer";
+		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Releasing buffer";
 		incoming_events_->ReleaseBuffer();
 	}
 
-	TLOG(TLVL_TRACE) << "ReceiveEvent END";
+	TLOG(TLVL_DEBUG + 33) << "ReceiveEvent END";
 	return recvd_fragments;
 }
 

@@ -113,7 +113,7 @@ artdaq::AutodetectTransfer::AutodetectTransfer(const fhicl::ParameterSet& pset, 
 	TLOG(TLVL_INFO) << GetTraceName() << "Begin AutodetectTransfer constructor";
 	auto hosts = MakeHostMap(pset);
 
-	TLOG(TLVL_DEBUG) << GetTraceName() << "srcHost=" << hosts[source_rank()] << ", destHost=" << hosts[destination_rank()];
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "srcHost=" << hosts[source_rank()] << ", destHost=" << hosts[destination_rank()];
 	if (hosts[source_rank()] == hosts[destination_rank()])
 	{
 		TLOG(TLVL_INFO) << GetTraceName() << "Constructing ShmemTransfer";
