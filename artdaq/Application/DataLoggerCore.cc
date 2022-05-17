@@ -20,7 +20,7 @@
 
 bool artdaq::DataLoggerCore::initialize(fhicl::ParameterSet const& pset)
 {
-	TLOG(TLVL_DEBUG) << "initialize method called with DAQ "
+	TLOG(TLVL_DEBUG + 32) << "initialize method called with DAQ "
 	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// pull out the relevant parts of the ParameterSet

@@ -66,19 +66,19 @@ private:
 
 void RoundRobinPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 {
-	TLOG(12) << "RoundRobinPolicy::GetCurrentTable token list size is " << tokens_.size();
+	TLOG(TLVL_DEBUG + 35) << "RoundRobinPolicy::GetCurrentTable token list size is " << tokens_.size();
 	auto table = sortTokens_();
-	TLOG(13) << "RoundRobinPolicy::GetCurrentTable table size is " << table.size();
+	TLOG(TLVL_DEBUG + 36) << "RoundRobinPolicy::GetCurrentTable table size is " << table.size();
 
 	int minimum = calculateMinimum_();
 	bool endCondition = table.size() < static_cast<size_t>(minimum);
-	TLOG(15) << "RoundRobinPolicy::GetCurrentTable initial endCondition is " << endCondition << ", minimum is " << minimum;
+	TLOG(TLVL_DEBUG + 37) << "RoundRobinPolicy::GetCurrentTable initial endCondition is " << endCondition << ", minimum is " << minimum;
 
 	while (!endCondition)
 	{
 		for (auto it = table.begin(); it != table.end();)
 		{
-			TLOG(16) << "RoundRobinPolicy::GetCurrentTable assigning sequenceID " << next_sequence_id_ << " to rank " << it->first;
+			TLOG(TLVL_DEBUG + 38) << "RoundRobinPolicy::GetCurrentTable assigning sequenceID " << next_sequence_id_ << " to rank " << it->first;
 			output.emplace_back(detail::RoutingPacketEntry(next_sequence_id_++, it->first));
 			table[it->first]--;
 
@@ -95,9 +95,9 @@ void RoundRobinPolicy::CreateRoutingTable(detail::RoutingPacket& output)
 	}
 
 	restoreUnusedTokens_(table);
-	TLOG(13) << "RoundRobinPolicy::GetCurrentTable " << tokens_.size() << " unused tokens will be saved for later";
+	TLOG(TLVL_DEBUG + 36) << "RoundRobinPolicy::GetCurrentTable " << tokens_.size() << " unused tokens will be saved for later";
 
-	TLOG(12) << "RoundRobinPolicy::GetCurrentTable return with table size " << output.size();
+	TLOG(TLVL_DEBUG + 35) << "RoundRobinPolicy::GetCurrentTable return with table size " << output.size();
 }
 detail::RoutingPacketEntry RoundRobinPolicy::CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int)
 {

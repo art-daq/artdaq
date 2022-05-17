@@ -182,8 +182,8 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 		auto multicast_address = boost::asio::ip::address::from_string(portMan->GetMulticastTransferGroupAddress());
 		auto local_address = boost::asio::ip::address::from_string(pset.get<std::string>("local_address"));
 
-		TLOG(TLVL_DEBUG) << GetTraceName() << "multicast address is set to " << multicast_address;
-		TLOG(TLVL_DEBUG) << GetTraceName() << "local address is set to " << local_address;
+		TLOG(TLVL_DEBUG + 32) << GetTraceName() << "multicast address is set to " << multicast_address;
+		TLOG(TLVL_DEBUG + 32) << GetTraceName() << "local address is set to " << local_address;
 
 		if (TransferInterface::role() == Role::kSend)
 		{
@@ -241,8 +241,8 @@ artdaq::MulticastTransfer::MulticastTransfer(fhicl::ParameterSet const& pset, Ro
 		book_container_of_buffers(receive_buffers_, max_fragment_size_words_, max_subfragments, 0, max_subfragments - 1);
 	}
 
-	TLOG(TLVL_DEBUG) << GetTraceName() << "max_subfragments is " << max_subfragments;
-	TLOG(TLVL_DEBUG) << GetTraceName() << "Staging buffer size is " << staging_memory_.size();
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "max_subfragments is " << max_subfragments;
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "Staging buffer size is " << staging_memory_.size();
 }
 
 #pragma GCC diagnostic push
@@ -456,7 +456,7 @@ artdaq::MulticastTransfer::transfer_fragment_min_blocking_mode(artdaq::Fragment 
 void artdaq::MulticastTransfer::fill_staging_memory(const artdaq::Fragment& fragment)
 {
 	auto num_subfragments = static_cast<size_t>(std::ceil(fragment.sizeBytes() / static_cast<float>(subfragment_size_)));
-	TLOG(TLVL_DEBUG) << GetTraceName() << "# of subfragments to use is " << num_subfragments;
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "# of subfragments to use is " << num_subfragments;
 
 	for (auto i_s = 0; i_s < num_subfragments; ++i_s)
 	{
@@ -544,7 +544,7 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	boost::asio::socket_base::receive_buffer_size actual_recv_buff_size;
 	socket_->get_option(actual_recv_buff_size);
 
-	TLOG(TLVL_DEBUG) << GetTraceName() << "Receive buffer size is currently " << actual_recv_buff_size.value() << " bytes, will try to change it to " << recv_buff_size;
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "Receive buffer size is currently " << actual_recv_buff_size.value() << " bytes, will try to change it to " << recv_buff_size;
 
 	boost::asio::socket_base::receive_buffer_size recv_buff_option(recv_buff_size);
 
@@ -558,7 +558,7 @@ void artdaq::MulticastTransfer::set_receive_buffer_size(size_t recv_buff_size)
 	}
 
 	socket_->get_option(actual_recv_buff_size);
-	TLOG(TLVL_DEBUG) << GetTraceName() << "After attempted change, receive buffer size is now " << actual_recv_buff_size.value();
+	TLOG(TLVL_DEBUG + 32) << GetTraceName() << "After attempted change, receive buffer size is now " << actual_recv_buff_size.value();
 }
 
 #pragma GCC diagnostic pop

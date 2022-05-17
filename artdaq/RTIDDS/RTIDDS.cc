@@ -163,7 +163,7 @@ void artdaq::RTIDDS::OctetsListener::on_data_available(DDSDataReader* reader)
 	DDS_SampleInfo info;
 	DDS_ReturnCode_t retcode;
 
-	TLOG(TLVL_DEBUG) << name_ << ": In OctetsListener::on_data_available";
+	TLOG(TLVL_DEBUG + 32) << name_ << ": In OctetsListener::on_data_available";
 
 	octets_reader = DDSOctetsDataReader::narrow(reader);
 	if (octets_reader == nullptr)
@@ -234,7 +234,7 @@ bool artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fr
 
 		dds_octets_queue_.pop();
 
-		TLOG(TLVL_DEBUG) << name_
+		TLOG(TLVL_DEBUG + 32) << name_
 		                 << ": Received fragment from DDS, type ="
 		                 << ((int)fragment.type()) << ", sequenceID = "
 		                 << fragment.sequenceID() << ", size in bytes = "

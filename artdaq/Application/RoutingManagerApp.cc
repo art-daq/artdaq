@@ -89,7 +89,7 @@ bool artdaq::RoutingManagerApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		routing_manager_thread_.join();
 	}
 
-	TLOG_DEBUG(app_name + "App") << "do_stop(uint64_t, uint64_t): "
+	TLOG(TLVL_DEBUG + 32, app_name + "App") << "do_stop(uint64_t, uint64_t): "
 	                             << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
 	                             << ".";
 
@@ -110,7 +110,7 @@ bool artdaq::RoutingManagerApp::do_pause(uint64_t timeout, uint64_t timestamp)
 		routing_manager_thread_.join();
 	}
 
-	TLOG_DEBUG(app_name + "App") << "do_pause(uint64_t, uint64_t): "
+	TLOG(TLVL_DEBUG + 32, app_name + "App") << "do_pause(uint64_t, uint64_t): "
 	                             << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
 	                             << ".";
 
@@ -190,7 +190,7 @@ bool artdaq::RoutingManagerApp::do_reinitialize(fhicl::ParameterSet const& pset,
 
 void artdaq::RoutingManagerApp::BootedEnter()
 {
-	TLOG_DEBUG(app_name + "App") << "Booted state entry action called.";
+	TLOG(TLVL_DEBUG + 32, app_name + "App") << "Booted state entry action called.";
 
 	// the destruction of any existing RoutingManagerCore has to happen in the
 	// Booted Entry action rather than the Initialized Exit action because the

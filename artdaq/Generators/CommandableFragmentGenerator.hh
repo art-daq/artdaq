@@ -270,6 +270,8 @@ public:
 	*/
 	void SetRequestBuffer(std::shared_ptr<RequestBuffer> buffer) { requestBuffer_ = buffer; }
 
+	void SetFragmentBuffer(std::shared_ptr<FragmentBuffer> buffer) { fragmentBuffer_ = buffer; }
+
 protected:
 	// John F., 12/6/13 -- need to figure out which of these getter
 	// functions should be promoted to "public"
@@ -367,6 +369,8 @@ protected:
 	*/
 	std::shared_ptr<RequestBuffer> GetRequestBuffer() { return requestBuffer_; }
 
+	std::shared_ptr<FragmentBuffer> GetFragmentBuffer() { return fragmentBuffer_; }
+
 private:
 	CommandableFragmentGenerator(CommandableFragmentGenerator const&) = delete;
 	CommandableFragmentGenerator(CommandableFragmentGenerator&&) = delete;
@@ -418,6 +422,7 @@ private:
 
 	// So that derived classes can access information about requests
 	std::shared_ptr<RequestBuffer> requestBuffer_;
+	std::shared_ptr<FragmentBuffer> fragmentBuffer_;
 
 protected:
 	/// <summary>

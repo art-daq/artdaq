@@ -48,7 +48,7 @@ public:
 			of.open(file_name_, std::ofstream::trunc);
 			if (of.fail())
 			{
-				TLOG(TLVL_ERROR) << "Failed to open configuration file after two attemps! ABORTING!";
+				TLOG(TLVL_ERROR, "ArtConfigFile") << "Failed to open configuration file after two attemps! ABORTING!";
 				exit(46);
 			}
 		}
@@ -59,7 +59,7 @@ public:
 			of << " services.message: { " << generateMessageFacilityConfiguration(mf::GetApplicationName().c_str(), true, false, "-art") << "} ";
 		}
 
-		TLOG(TLVL_INFO) << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into source config";
+		TLOG(TLVL_INFO, "ArtConfigFile") << "Inserting Shared memory keys (0x" << std::hex << shm_key << ", 0x" << std::hex << broadcast_key << ") into source config";
 		if (shm_key > 0) of << " source.shared_memory_key: 0x" << std::hex << shm_key;
 		if (broadcast_key > 0) of << " source.broadcast_shared_memory_key: 0x" << std::hex << broadcast_key;
 

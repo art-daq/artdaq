@@ -410,8 +410,10 @@ private:
 	Fragment::timestamp_t staleTimeout_;
 	Fragment::type_t expectedType_;
 	bool uniqueWindows_;
+	bool sendMissingFragments_;
 	size_t missing_request_window_timeout_us_;
 	size_t window_close_timeout_us_;
+	bool error_on_empty_;
 
 	bool circularDataBufferMode_;
 

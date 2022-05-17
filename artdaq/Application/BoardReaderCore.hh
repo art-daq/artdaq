@@ -210,7 +210,7 @@ private:
 	Commandable& parent_application_;
 	std::unique_ptr<CommandableFragmentGenerator> generator_ptr_;
 	std::unique_ptr<RequestReceiver> request_receiver_ptr_;
-	std::unique_ptr<FragmentBuffer> fragment_buffer_ptr_;
+	std::shared_ptr<FragmentBuffer> fragment_buffer_ptr_;
 	art::RunID run_id_;
 
 	fhicl::ParameterSet data_pset_;

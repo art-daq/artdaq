@@ -86,7 +86,7 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string 
 		}
 		else
 		{
-			TLOG_DEBUG("LoadParameterSet") << config << std::endl;
+			TLOG(TLVL_DEBUG + 32, "LoadParameterSet") << config << std::endl;
 			auto pset_tmp = LoadParameterSet(config);
 			if (pset_tmp.has_key(name)) { pset = pset_tmp.get<fhicl::ParameterSet>(name); }
 			else
