@@ -553,6 +553,8 @@ void artdaq::FragmentBuffer::applyRequestsBufferMode(artdaq::FragmentPtrs& frags
 	++next_sequence_id_;
 }
 
+uint64_t g_empty_fragment_count = 0;
+
 void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts)
 {
 	auto dataBuffer = dataBuffers_[id];
@@ -570,6 +572,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 	bool windowTimeout = !windowClosed && TimeUtils::GetElapsedTimeMicroseconds(requestBuffer_->GetRequestTime(seq)) > window_close_timeout_us_;
 	if (windowTimeout)
 	{
+		metricMan->sendMetric("Requests With Window Timeout", 1, "Requests", 3, artdaq::MetricMode::Rate);
 		TLOG(TLVL_WARNING) << "applyRequestsWindowMode_CheckAndFillDataBuffer: A timeout occurred waiting for data to close the request window ({" << min << "-" << max
 		                   << "}, buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
 		                   << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0)
@@ -599,6 +602,7 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 		if (!windowClosed || (dataBuffer->DataBufferDepthFragments > 0 && dataBuffer->DataBuffer.front()->timestamp() > min))
 		{
 			TLOG(TLVL_DEBUG + 32) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
+			metricMan->sendMetric("Requests With Missing Data", 1, "Requests", 3, artdaq::MetricMode::Rate);
 			                 << " (requestWindowRange=[" << min << "," << max << "], "
 			                 << "buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
 			                 << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "} (SeqID " << seq << ")";
@@ -621,18 +625,49 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 			}
 		}
 
+		auto rightEdge = Fragment::timestamp_t{0};
+		auto leftEdge = Fragment::timestamp_t{0};
+
+		auto isValidTime_ns = [](uint64_t frag_time_ns) -> bool {
+			static_assert(sizeof(uint64_t) == sizeof(artdaq::Fragment::timestamp_t),
+			              "Fragment::timestamp_t size changed");
+			using std::chrono::nanoseconds;
+			using clock = std::chrono::system_clock;
+			uint64_t host_time_ns =
+			    std::chrono::duration_cast<nanoseconds>(clock::time_point{clock::now()}.time_since_epoch()).count();
+			if (frag_time_ns > host_time_ns)
+			{
+				TLOG(TLVL_WARN) << "Wrong TDC sample time, check the NTP and WhiteRabbit timing systems; sample_time-host_time="
+				                << frag_time_ns - host_time_ns << " ns.";
+				return false;
+			}
+
+			auto delta = host_time_ns - frag_time_ns;
+			TLOG(TLVL_ERROR) << "host_time_ns=" << std::setw(20) << host_time_ns << ", frag_time_ns=" << std::setw(20) << frag_time_ns << ", delta=" << delta;
+			return (delta < 100000000000);
+		};
+
 		FragmentPtrs fragsToAdd;
 		// Do a little bit more work to decide which fragments to send for a given request
 		for (; it != dataBuffer->DataBuffer.end();)
 		{
 			Fragment::timestamp_t fragT = (*it)->timestamp();
+			if (isValidTime_ns(fragT) == false)
+			{
+				TLOG(TLVL_ERROR) << "Fragment seq=" << (*it)->sequenceID() << ", timestamp=" << std::setw(20)
+				                 << (*it)->timestamp();
+			}
+
 			if (fragT < min)
 			{
 				++it;
+				leftEdge = fragT;
 				continue;
 			}
+
 			if (fragT > max || (fragT == max && windowWidth_ > 0))
 			{
+				rightEdge = fragT;
 				break;
 			}
 
@@ -667,6 +702,16 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 		}
 		else
 		{
+			if (!windowTimeout)
+			{
+				metricMan->sendMetric("Requests Yielding Empty Fragments", 1, "Requests", 3, artdaq::MetricMode::Rate);
+				metricMan->sendMetric("No Data Window Around Request", (rightEdge - leftEdge), "us", 3, artdaq::MetricMode::Average);
+				metricMan->sendMetric("No Data Before Begin Window", (min - leftEdge), "us", 3, artdaq::MetricMode::Average);
+				metricMan->sendMetric("No Data After End Window", (rightEdge - max), "us", 3, artdaq::MetricMode::Average);
+				TLOG(TLVL_APPLYREQUESTS) << "*+*" << seq << "," << leftEdge << "," << min << "," << max << "," << rightEdge << "," << (rightEdge - leftEdge);
+			}
+			++g_empty_fragment_count;
+			metricMan->sendMetric("Empty Container Fragments", g_empty_fragment_count, "Fragments", 3, artdaq::MetricMode::LastPoint);
 			TLOG(error_on_empty_ ? TLVL_ERROR : TLVL_APPLYREQUESTS) << "applyRequestsWindowMode_CheckAndFillDataBuffer: No Fragments match request (SeqID " << seq << ", window " << min << " - " << max << ")";
 		}
 
