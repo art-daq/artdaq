@@ -83,6 +83,12 @@ artdaq_DAQdata
 artdaq_DAQrate
 )
 
+simple_plugin(ArtdaqGlobalsService "service"
+artdaq_DAQdata
+artdaq_DAQrate
+)
+
+
 simple_plugin(ArtdaqFragmentNamingService "service"
   MF_MessageLogger
 )

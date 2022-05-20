@@ -15,16 +15,16 @@
 static fhicl::ParameterSet empty_pset;
 
 ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& pset, art::ActivityRegistry& /*unused*/)
-    : incoming_events_(nullptr)
-    , evtHeader_(nullptr)
-    , read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 600.0) * 1000000)))
-    , resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
+	: incoming_events_(nullptr)
+	, evtHeader_(nullptr)
+	, read_timeout_(pset.get<size_t>("read_timeout_us", static_cast<size_t>(pset.get<double>("waiting_time", 600.0) * 1000000)))
+	, resume_after_timeout_(pset.get<bool>("resume_after_timeout", true))
 {
 	TLOG(TLVL_DEBUG + 33) << "ArtdaqSharedMemoryService CONSTRUCTOR";
 
 	incoming_events_ = std::make_unique<artdaq::SharedMemoryEventReceiver>(
-	    pset.get<int>("shared_memory_key", build_key(0xEE000000)),
-	    pset.get<int>("broadcast_shared_memory_key", build_key(0xBB000000)));
+		pset.get<int>("shared_memory_key", build_key(0xEE000000)),
+		pset.get<int>("broadcast_shared_memory_key", build_key(0xBB000000)));
 
 	char const* artapp_env = getenv("ARTDAQ_APPLICATION_NAME");
 	std::string artapp_str;
