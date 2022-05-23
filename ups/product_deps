@@ -20,8 +20,6 @@ old_style_config_vars
 
 #
 product				version			optional
-art_root_io				v1_10_01	s116
-art_root_io				v1_09_00	s114
 art_root_io				v1_08_03	s112
 art_root_io				v1_05_03	s110
 artdaq_core             v3_07_04
@@ -39,19 +37,6 @@ end_product_list
 # -nq- means there is no qualifier
 # a "-" means the dependent product is not required by the parent and will not be setup
 qualifier		art_root_io	artdaq_core		artdaq_utilities	xmlrpc_c	artdaq_mfextensions	artdaq_epics_plugin	artdaq_pcp_mmv_plugin	swig		nodejs
-c7:s116:debug	c7:debug	c7:s116:debug	c7:s116:debug		c7:debug	c7:s116:debug		c7:s116:debug		c7:s116:debug			c7:debug	-nq-
-c7:s116:prof	c7:prof		c7:s116:prof	c7:s116:prof		c7:prof		c7:s116:prof		c7:s116:prof		c7:s116:prof			c7:prof		-nq-
-e20:s116:debug	e20:debug	e20:s116:debug	e20:s116:debug		e20:debug	e20:s116:debug		e20:s116:debug		e20:s116:debug			e20:debug	-nq-
-e20:s116:prof	e20:prof	e20:s116:prof	e20:s116:prof		e20:prof	e20:s116:prof		e20:s116:prof		e20:s116:prof			e20:prof	-nq-
-e19:s116:debug	e19:debug	e19:s116:debug	e19:s116:debug		e19:debug	e19:s116:debug		e19:s116:debug		e19:s116:debug			e19:debug	-nq-
-e19:s116:prof	e19:prof	e19:s116:prof	e19:s116:prof		e19:prof	e19:s116:prof		e19:s116:prof		e19:s116:prof			e19:prof	-nq-
-
-c7:s114:debug	c7:debug	c7:s114:debug	c7:s114:debug		c7:debug	c7:s114:debug		c7:s114:debug		c7:s114:debug			c7:debug	-nq-	
-c7:s114:prof	c7:prof		c7:s114:prof	c7:s114:prof		c7:prof		c7:s114:prof		c7:s114:prof		c7:s114:prof			c7:prof		-nq-	
-e20:s114:debug	e20:debug	e20:s114:debug	e20:s114:debug		e20:debug	e20:s114:debug		e20:s114:debug		e20:s114:debug			e20:debug	-nq-	
-e20:s114:prof	e20:prof	e20:s114:prof	e20:s114:prof		e20:prof	e20:s114:prof		e20:s114:prof		e20:s114:prof			e20:prof	-nq-	
-e19:s114:debug	e19:debug	e19:s114:debug	e19:s114:debug		e19:debug	e19:s114:debug		e19:s114:debug		e19:s114:debug			e19:debug	-nq-	
-e19:s114:prof	e19:prof	e19:s114:prof	e19:s114:prof		e19:prof	e19:s114:prof		e19:s114:prof		e19:s114:prof			e19:prof	-nq-	
 
 c7:s112:debug	c7:debug	c7:s112:debug	c7:s112:debug		c7:debug	c7:s112:debug		c7:s112:debug		c7:s112:debug			c7:debug	-nq-	
 c7:s112:prof	c7:prof		c7:s112:prof	c7:s112:prof		c7:prof		c7:s112:prof		c7:s112:prof		c7:s112:prof			c7:prof		-nq-	
