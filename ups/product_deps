@@ -24,7 +24,7 @@ art_root_io				v1_10_01	s116
 art_root_io				v1_09_00	s114
 art_root_io				v1_08_03	s112
 art_root_io				v1_05_03	s110
-artdaq_core             v3_08_04
+artdaq_core             v3_07_04
 artdaq_utilities		v1_07_02
 xmlrpc_c				v1_51_06
 swig					v4_0_2		-	optional
