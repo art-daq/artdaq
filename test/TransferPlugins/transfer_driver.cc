@@ -1,6 +1,5 @@
 #define TRACE_NAME "transfer_driver"
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/TransferTest.hh"
 
@@ -28,7 +27,7 @@ int main(int argc, char* argv[]) try
 	cet::filepath_lookup lookup_policy("FHICL_FILE_PATH");
 
 	auto fhicl = std::string(argv[2]);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-	auto ps = artdaq::make_pset(fhicl, lookup_policy);
+	auto ps = fhicl::ParameterSet::make(fhicl, lookup_policy);
 
 	if (ps.has_key("partition_number"))
 	{

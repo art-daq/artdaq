@@ -6,22 +6,22 @@ cet_test_env("FHICL_FILE_PATH=.")
 
 install_scripts( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh disk_stats.sh)
 
-cet_make_exec( periodic_cmd_stats )
+cet_make_exec(NAME periodic_cmd_stats )
 
-cet_make_exec(StateResponder
+cet_make_exec(NAME StateResponder
   LIBRARIES
   artdaq_Application
   artdaq_ExternalComms
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
   )
 
-cet_make_exec(genToArt
+cet_make_exec(NAME genToArt
   LIBRARIES
   artdaq_Generators
   artdaq_DAQrate
   artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Generators
+  artdaq_core::artdaq-core_Plugins
   canvas
   fhiclcpp
   cetlib

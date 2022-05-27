@@ -12,12 +12,12 @@
 
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 
 #include <boost/program_options.hpp>
-#include "artdaq-core/Generators/makeFragmentGenerator.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"

@@ -2,7 +2,7 @@
 #define artdaq_DAQdata_GenericFragmentSimulator_hh
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "fhiclcpp/fwd.h"
 

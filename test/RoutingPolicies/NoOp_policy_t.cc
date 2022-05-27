@@ -1,7 +1,6 @@
 #define BOOST_TEST_MODULE NoOp_policy_t
 #include <boost/test/unit_test.hpp>
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
@@ -10,7 +9,7 @@ BOOST_AUTO_TEST_SUITE(NoOp_policy_t)
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case Simple BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("");
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
 
@@ -44,7 +43,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
 	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case DataFlowMode BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: DataFlow");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("routing_manager_mode: DataFlow");
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
 
@@ -93,7 +92,7 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
 	TLOG(TLVL_INFO) << "NoOp_policy_t Test Case RequestBasedEventBuilding BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2");
 
 	auto noop = artdaq::makeRoutingManagerPolicy("NoOp", ps);
 

@@ -20,7 +20,7 @@
 #include "fhiclcpp/fwd.h"
 
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/FragmentBuffer.hh"

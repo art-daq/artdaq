@@ -1,7 +1,6 @@
 #define BOOST_TEST_MODULE PreferSameHost_policy_t
 #include <boost/test/unit_test.hpp>
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
@@ -9,7 +8,7 @@ BOOST_AUTO_TEST_SUITE(PreferSameHost_policy_t)
 
 BOOST_AUTO_TEST_CASE(Simple)
 {
-	fhicl::ParameterSet ps = artdaq::make_pset("");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
 
@@ -52,7 +51,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 BOOST_AUTO_TEST_CASE(MinimumParticipants)
 {
-	fhicl::ParameterSet ps = artdaq::make_pset("minimum_participants: 2");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("minimum_participants: 2");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
 
@@ -105,7 +104,7 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 {
 	TLOG(TLVL_INFO) << "PreferSameHost_policy_t Test Case LargeMinimumParticipants BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("minimum_participants: 5");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("minimum_participants: 5");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
 
@@ -139,7 +138,7 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 
 BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 {
-	fhicl::ParameterSet ps = artdaq::make_pset("minimum_participants: -5");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("minimum_participants: -5");
 
 	auto psh = artdaq::makeRoutingManagerPolicy("PreferSameHost", ps);
 
@@ -161,7 +160,7 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 
 BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
-	fhicl::ParameterSet ps = artdaq::make_pset(
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make(
 	    "routing_manager_mode: DataFlow \
                               host_map: [{rank: 1 host: \"testHost1\"}, \
                                          {rank: 2 host: \"testHost1\"}, \
@@ -215,7 +214,7 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 
 BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
-	fhicl::ParameterSet ps = artdaq::make_pset(
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make(
 	    "routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2 \
                               host_map: [{rank: 1 host: \"testHost1\"}, \
                                          {rank: 2 host: \"testHost1\"}, \

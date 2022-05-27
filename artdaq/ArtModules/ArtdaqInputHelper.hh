@@ -35,7 +35,6 @@
 #include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/DebugMacros.h"
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
@@ -304,7 +303,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 					TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "ArtdaqInputHelper: parameter set: " << pset_str;
 
 					fhicl::ParameterSet pset;
-					pset = artdaq::make_pset(pset_str);
+					pset = fhicl::ParameterSet::make(pset_str);
 					// Force id calculation.
 					pset.id();
 					fhicl::ParameterSetRegistry::put(pset);

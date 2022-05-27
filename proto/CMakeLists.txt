@@ -11,7 +11,7 @@ cet_make_exec(NAME artdaqDriver
   artdaq_DAQrate
   artdaq_DAQdata
   artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Generators
+  artdaq_core::artdaq-core_Plugins
   art_Utilities
   fhiclcpp
   cetlib
@@ -50,7 +50,7 @@ cet_make_exec(NAME fhicl_test
   artdaq_DAQdata
   artdaq_BuildInfo
   artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Generators
+  artdaq_core::artdaq-core_Plugins
   artdaq_ExternalComms
   fhiclcpp
   cetlib
@@ -66,7 +66,7 @@ cet_make_exec(NAME fhicl_test
   artdaq_DAQdata
   artdaq_BuildInfo
   artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Generators
+  artdaq_core::artdaq-core_Plugins
   artdaq_ExternalComms
   fhiclcpp
   cetlib
@@ -82,7 +82,7 @@ cet_make_exec(NAME fhicl_test
   artdaq_DAQdata
   artdaq_BuildInfo
   artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Generators
+  artdaq_core::artdaq-core_Plugins
   artdaq_ExternalComms
   fhiclcpp
   cetlib
@@ -98,7 +98,7 @@ cet_make_exec(NAME fhicl_test
   artdaq_DAQdata
   artdaq_BuildInfo
   artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Generators
+  artdaq_core::artdaq-core_Plugins
   artdaq_ExternalComms
   fhiclcpp
   cetlib
@@ -114,7 +114,7 @@ cet_make_exec(NAME fhicl_test
   artdaq_DAQdata
   artdaq_BuildInfo
   artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Generators
+  artdaq_core::artdaq-core_Plugins
   artdaq_ExternalComms
   fhiclcpp
   cetlib

@@ -14,10 +14,9 @@
 #include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
-#include "artdaq-core/Generators/makeFragmentGenerator.hh"
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
@@ -344,7 +343,7 @@ int main(int argc, char* argv[]) try
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 	artdaq::SimpleLookupPolicy lookup_policy("FHICL_FILE_PATH");
-	auto pset = artdaq::make_pset(vm["config"].as<std::string>(), lookup_policy);
+	auto pset = fhicl::ParameterSet::make(vm["config"].as<std::string>(), lookup_policy);
 	return process_data(pset);
 }
 catch (std::exception& x)

@@ -2,7 +2,7 @@
 #define artdaq_ArtModules_ArtdaqFragmentNamingService_h
 
 #include "art/Framework/Services/Registry/ServiceMacros.h"
-#include "artdaq-core/Data/FragmentNameHelper.hh"
+#include "artdaq-core/Plugins/FragmentNameHelper.hh"
 #include "fhiclcpp/types/Atom.h"
 
 /**
