@@ -9,12 +9,7 @@
 #include "art/Persistency/Provenance/Selections.h"
 #include "art_root_io/DropMetaData.h"
 #include "art_root_io/RootOutputTree.h"
-#if ART_HEX_VERSION < 0x30800
-#include "art_root_io/detail/DummyProductCache.h"
-#define DummyProductCache detail::DummyProductCache
-#else
 #include "art_root_io/DummyProductCache.h"
-#endif
 #include "boost/filesystem.hpp"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchType.h"

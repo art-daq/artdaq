@@ -1,21 +1,15 @@
-cet_make( BASENAME_ONLY
-  LIBRARY_NAME artdaq_DAQdata
+cet_make(LIBRARY_NAME artdaq_DAQData  
   EXCLUDE GenericFragmentSimulator_generator.cc
-  LIB_LIBRARIES
+  EXPORT_SET artdaq
+  LIBRARIES
   artdaq_utilities::artdaq-utilities_Plugins
   artdaq_core::artdaq-core_Utilities
-  fhiclcpp
-  cetlib
-  cetlib_except
-  MF_MessageLogger
-  ${Boost_FILESYSTEM_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
   )
 
-basic_plugin(GenericFragmentSimulator "generator"
-  artdaq_DAQdata
+  include(generator)
+  cet_build_plugin(GenericFragmentSimulator generator LIBRARIES REG
+  artdaq::artdaq_DAQdata
   artdaq_core::artdaq-core_Data
-  cetlib_except
   )
 
 install_headers()

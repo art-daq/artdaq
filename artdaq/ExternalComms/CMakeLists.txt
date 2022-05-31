@@ -1,30 +1,24 @@
-#get_cmake_property(_variableNames VARIABLES)
-#foreach (_variableName ${_variableNames})
-#    message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
-
-cet_make( BASENAME_ONLY
-  LIBRARY_NAME artdaq_ExternalComms
-  LIB_LIBRARIES artdaq_Application
+cet_make( 
   EXCLUDE xmlrpc_commander.cc
-  NO_PLUGINS
+	LIBRARIES artdaq_Application
   artdaq_DAQdata
-  fhiclcpp
-  cetlib
 )
 
-basic_plugin(xmlrpc "commander"
-  artdaq_ExternalComms
-  fhiclcpp
-  xmlrpc
-  xmlrpc++
-  xmlrpc_client++
-  xmlrpc_server
-  xmlrpc_server++
-  xmlrpc_server_abyss++
-  xmlrpc_util
-  xmlrpc_util++
-)
+cet_make_library(LIBRARY_NAME commander INTERFACE
+				 EXPORT_SET PluginTypes
+				 SOURCE CommanderInterface.hh
+				 LIBRARIES INTERFACE
+				 art_plugin_support::plugin_config_macros
+				 art_plugin_support::support_macros
+				 artdaq::artdaq_ExternalComms)
+
+
+include(BasicPlugin)
+  cet_make_plugin_builder(commander commander Modules
+    LIBRARIES REG artdaq_plugin_types::commander)
+
+include(commander)
+cet_build_plugin(xmlrpc commander)
 
 install_headers()
 install_source()

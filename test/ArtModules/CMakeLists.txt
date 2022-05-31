@@ -1,7 +1,4 @@
-
-simple_plugin(FragmentSniffer "module"
- artdaq_DAQdata
-  )
+cet_build_plugin(FragmentSniffer art::module LIBRARIES REG artdaq_DAQdata)
 
 #get_cmake_property(_variableNames VARIABLES)
 #foreach (_variableName ${_variableNames})
@@ -10,30 +7,16 @@ simple_plugin(FragmentSniffer "module"
 
 cet_test(daq_flow_t
   LIBRARIES
-  art_Framework_Art
-  ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq_DAQrate
   artdaq_DAQdata
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  art_Utilities
   TEST_ARGS -c daq_flow_t.fcl
   DATAFILES daq_flow_t.fcl
   )
 
   cet_test(reconfigure_t
    LIBRARIES
-  art_Framework_Art
-  ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  artdaq_DAQdata_GenericFragmentSimulator_generator
   artdaq_DAQrate
   artdaq_DAQdata
-  MF_MessageLogger
-  fhiclcpp
-  cetlib
-  art_Utilities
   TEST_ARGS -c daq_flow_t.fcl
   DATAFILES daq_flow_t.fcl
   )

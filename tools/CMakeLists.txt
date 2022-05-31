@@ -4,7 +4,7 @@ include(CetTest)
 # re-initialize the test environment.
 cet_test_env("FHICL_FILE_PATH=.")
 
-install_scripts( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh disk_stats.sh)
+cet_script(ALWAYS_COPY installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh disk_stats.sh)
 
 cet_make_exec(NAME periodic_cmd_stats )
 
@@ -50,7 +50,7 @@ cet_test(genToArt_outToBinaryFileOutput_t HANDBUILT
 )
 
 # Make Modules
-include(NodeJSAddon)
+#include(NodeJSAddon)
 include(PythonAddon)
 
 cet_make_library(LIBRARY_NAME swig_artdaq
@@ -61,7 +61,7 @@ cet_make_library(LIBRARY_NAME swig_artdaq
 				 )
 
 
-create_nodejs_addon (ADDON_NAME "node_artdaq" LIBRARIES swig_artdaq)
+#create_nodejs_addon (ADDON_NAME "node_artdaq" LIBRARIES swig_artdaq)
 create_python_addon (ADDON_NAME "python_artdaq" LIBRARIES swig_artdaq)
 
 #cet_test(genToArt_outToBinaryNetOutput_t HANDBUILT

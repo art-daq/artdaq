@@ -15,11 +15,7 @@
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
-#if ART_HEX_VERSION < 0x30901
-#include "canvas/Utilities/WrappedTypeID.h"
-#else
 #include "canvas/Persistency/Common/WrappedTypeID.h"
-#endif
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"

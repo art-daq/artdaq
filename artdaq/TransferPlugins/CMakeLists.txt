@@ -3,52 +3,39 @@ if (${USING_RTIDDS})
 include_directories($ENV{NDDSHOME}/include $ENV{NDDSHOME}/include/ndds )
 endif()
 
-cet_make( BASENAME_ONLY
-  LIBRARY_NAME artdaq_TransferPlugins
-  NO_PLUGINS
+cet_make( 
   SUBDIRS detail
   EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc TCPSocket_transfer.cc Autodetect_transfer.cc
-  LIB_LIBRARIES
+  LIBRARIES
   artdaq_core::artdaq-core_Utilities
   artdaq_core::artdaq-core_Data
-  artdaq_DAQdata
+  artdaq::artdaq_DAQdata
   )
 
+  
+cet_make_library(LIBRARY_NAME transfer INTERFACE
+				 EXPORT_SET PluginTypes
+				 SOURCE TransferInterface.hh
+				 LIBRARIES INTERFACE
+				 art_plugin_support::plugin_config_macros
+				 art_plugin_support::support_macros
+				 artdaq::artdaq_TransferPlugins)
 
-basic_plugin(Shmem "transfer"
-  artdaq_TransferPlugins
-  artdaq_core::artdaq-core_Core
-)
 
-basic_plugin(Null "transfer"
-  artdaq_TransferPlugins
-  )
+include(BasicPlugin)
+  cet_make_plugin_builder(transfer transfer Modules
+    LIBRARIES REG artdaq_plugin_types::transfer)
 
-basic_plugin(Multicast "transfer"
-  artdaq_TransferPlugins
-  ${Boost_SYSTEM_LIBRARY}
-  pthread
-)
+include(transfer)
 
-basic_plugin(TCPSocket "transfer"
-  artdaq_TransferPlugins
-  ${Boost_THREAD_LIBRARY}
-  pthread
-)
-
-basic_plugin(Autodetect "transfer"
-  artdaq_TransferPlugins
-  artdaq_TransferPlugins_Shmem_transfer
-  artdaq_TransferPlugins_TCPSocket_transfer
-)
+cet_build_plugin(Shmem transfer)
+cet_build_plugin(Null transfer)
+cet_build_plugin(Multicast transfer)
+cet_build_plugin(TCPSocket transfer)
+cet_build_plugin(Autodetect transfer)
 
 if (${USING_RTIDDS})
-
-basic_plugin(RTIDDS "transfer"
-  artdaq_TransferPlugins
-  artdaq_RTIDDS
-)
-
+  cet_build_plugin(RTIDDS transfer LIBRARIES REG artdaq::artdaq_RTIDDS)
 endif()
 
 install_headers(SUBDIRS detail)

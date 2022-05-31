@@ -3,99 +3,72 @@
 
 	add_subdirectory(RootDAQOutput-s81)
 
-cet_make( BASENAME_ONLY
-  LIBRARY_NAME artdaq_ArtModules
+cet_make(
   SUBDIRS detail
   NO_PLUGINS
-  LIB_LIBRARIES
-  artdaq_DAQdata
-  artdaq_ExternalComms
-  art_Framework_Core
-  art_Framework_IO_Sources
-  art_Framework_Services_Registry
+  LIBRARIES
+  TRACE::TRACE
   )
 
 
-simple_plugin(TransferOutput "module"
+cet_build_plugin(TransferOutput art::module LIBRARIES REG
   artdaq_TransferPlugins
-	hep_concurrency
-	art_root_io
-	${ROOT_RIO}
 )
 
-simple_plugin(TransferInput "source"
+cet_build_plugin(TransferInput art::source LIBRARIES REG
 	artdaq_ArtModules
   artdaq_TransferPlugins
-  art_root_io
-  hep_concurrency
-  ${ROOT_RIO}
 )
 
-simple_plugin(RandomDelayFilter "module" 
+cet_build_plugin(RandomDelayFilter art::module  LIBRARIES REG
 artdaq_DAQdata
 )
 
-simple_plugin(RequestSender "module" artdaq_ArtModules artdaq_DAQrate)
+cet_build_plugin(RequestSender art::module LIBRARIES REG artdaq_ArtModules artdaq_DAQrate)
 
-simple_plugin(EventDump "module"
+cet_build_plugin(EventDump art::module LIBRARIES REG
 artdaq_core::artdaq-core_Data
 )
 
-simple_plugin(MissingDataCheck "module"
-art_root_io
-art_root_io_tfile_support
-art_root_io_TFileService_service
-  ${ROOT_TREE}
-)
+cet_build_plugin(MissingDataCheck art::module)
 
-simple_plugin(FragmentWatcher "module"
+cet_build_plugin(FragmentWatcher art::module LIBRARIES REG
 artdaq_DAQdata
 )
 
-simple_plugin(ArtdaqInput "source"
+cet_build_plugin(ArtdaqInput art::source LIBRARIES REG
 	artdaq_ArtModules
-  art_root_io
-  hep_concurrency
-  ${ROOT_RIO}
 )
 
 
-simple_plugin(RootNetOutput "module"
-artdaq_DAQdata
-artdaq_DAQrate
-	hep_concurrency
-	art_root_io
-  ${ROOT_RIO}
-)
-
-simple_plugin(BinaryNetOutput "module"
+cet_build_plugin(RootNetOutput art::module LIBRARIES REG
 artdaq_DAQdata
 artdaq_DAQrate
 )
 
-simple_plugin(BinaryFileOutput "module"
-artdaq_DAQdata
-art_Framework_IO
-)
-
-simple_plugin(ArtdaqSharedMemoryService "service"
+cet_build_plugin(BinaryNetOutput art::module LIBRARIES REG
 artdaq_DAQdata
 artdaq_DAQrate
 )
 
-simple_plugin(ArtdaqFragmentNamingService "service"
-  MF_MessageLogger
+cet_build_plugin(BinaryFileOutput art::module LIBRARIES REG
+artdaq_DAQdata
 )
 
-simple_plugin(ArtdaqBuildInfo "module"
+cet_build_plugin(ArtdaqSharedMemoryService art::service LIBRARIES REG
+artdaq_DAQdata
+artdaq_DAQrate
+)
+
+cet_build_plugin(ArtdaqFragmentNamingService art::service)
+
+cet_build_plugin(ArtdaqBuildInfo art::module LIBRARIES REG
 artdaq_BuildInfo
 artdaq_core::artdaq-core_BuildInfo
 artdaq_utilities::artdaq-utilities_BuildInfo
 )
 
-simple_plugin(PrintBuildInfo "module"
-	MF_MessageLogger
-  )
+cet_build_plugin(PrintBuildInfo art::module  )
 
 
 install_headers(SUBDIRS detail)
