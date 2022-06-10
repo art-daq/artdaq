@@ -15,16 +15,17 @@
 // use 'tonM -n <appname>_FragmentWatcher 4'.
 ////////////////////////////////////////////////////////////////////////
 
-#define TRACE_NAME (app_name + "_FragmentWatcher").c_str()
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_FragmentWatcher").c_str()
+
+#include "artdaq-core/Data/ContainerFragment.hh"
+#include "artdaq-core/Data/Fragment.hh"
 
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
-
-#include "artdaq-core/Data/ContainerFragment.hh"
-#include "artdaq-core/Data/Fragment.hh"
 
 #include <bitset>
 #include <iostream>

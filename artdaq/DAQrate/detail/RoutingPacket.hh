@@ -1,7 +1,11 @@
 #ifndef artdaq_DAQrate_detail_RoutingPacket_hh
 #define artdaq_DAQrate_detail_RoutingPacket_hh
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
+
+#include <string>
+#include <vector>
 
 namespace artdaq {
 namespace detail {

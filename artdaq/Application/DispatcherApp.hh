@@ -1,10 +1,12 @@
 #ifndef artdaq_Application_MPI2_DispatcherApp_hh
 #define artdaq_Application_MPI2_DispatcherApp_hh
 
-#include <future>
-
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/DispatcherCore.hh"
+
+#include "canvas/Persistency/Provenance/RunID.h"
+
+#include <memory>
 
 namespace artdaq {
 class DispatcherApp;

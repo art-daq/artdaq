@@ -1,6 +1,9 @@
 #include "artdaq/ArtModules/ArtdaqInputHelper.hh"
 #include "artdaq/ArtModules/detail/TransferWrapper.hh"
 
+#include "art/Framework/Core/InputSourceMacros.h"
+#include "art/Framework/IO/Sources/Source.h"
+
 namespace art {
 /**
 	 * \brief Trait definition (must precede source typedef).

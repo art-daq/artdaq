@@ -5,6 +5,7 @@
 // $RCSfile: just_user.cc,v $
 
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 
 #include <boost/program_options.hpp>
 

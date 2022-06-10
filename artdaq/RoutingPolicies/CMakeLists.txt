@@ -1,32 +1,61 @@
+cet_register_export_set(SET_NAME EPPluginTypes NAMESPACE artdaq_plugin_types)
+cet_register_export_set(SET_NAME EPPluginSupport NAMESPACE artdaq_plugin_support)
 
-cet_make(
-  EXCLUDE CapacityTest_policy.cc NoOp_policy.cc PreferSameHost_policy.cc RoundRobin_policy.cc
+cet_make_library(LIBRARY_NAME policy
+  EXPORT_SET EPPluginTypes
+  SOURCE RoutingManagerPolicy.cc
   LIBRARIES
-  artdaq_DAQdata
-  artdaq_core::artdaq-core_Utilities
+  PUBLIC
   artdaq_core::artdaq-core_Data
-  )
-  
-cet_make_library(LIBRARY_NAME policy INTERFACE
-				 EXPORT_SET PluginTypes
-				 SOURCE RoutingManagerPolicy.hh
-				 LIBRARIES INTERFACE
-				 art_plugin_support::plugin_config_macros
-				 art_plugin_support::support_macros
-				 artdaq::artdaq_RoutingPolicies)
+  PRIVATE
+  artdaq::DAQdata
+  fhiclcpp::fhiclcpp
+  TRACE::MF
+)
 
+cet_make_library(LIBRARY_NAME policyMaker
+  EXPORT_SET EPPluginSupport
+  SOURCE makeRoutingManagerPolicy.cc
+  LIBRARIES
+  PRIVATE
+  artdaq_plugin_types::policy
+  cetlib::cetlib
+)
+
+cet_make_library(LIBRARY_NAME PolicyMacros INTERFACE
+  EXPORT_SET EPPluginSupport
+  SOURCE PolicyMacros.hh
+  LIBRARIES INTERFACE
+  artdaq_plugin_types::policy
+  cetlib::headers
+)
 
 include(BasicPlugin)
-  cet_make_plugin_builder(policy policy Modules
-    LIBRARIES REG artdaq_plugin_types::policy)
+cet_write_plugin_builder(artdaq::policy art::plugin Modules
+  SUFFIX policy
+  LIBRARIES
+  CONDITIONAL artdaq_plugin_types::policy
+  REG artdaq_plugin_support::PolicyMacros)
 	
-cet_collect_plugin_builders(Modules PolicyPlugins)
+cet_collect_plugin_builders(Modules PolicyPlugins LIST artdaq::policy)
 include(PolicyPlugins)
 
-cet_build_plugin(RoundRobin policy)
-cet_build_plugin(NoOp policy)
-cet_build_plugin(CapacityTest policy)
-cet_build_plugin(PreferSameHost policy)
+cet_build_plugin(RoundRobin artdaq::policy
+  LIBRARIES PRIVATE
+  artdaq::DAQdata
+)
+
+cet_build_plugin(NoOp artdaq::policy
+  LIBRARIES PRIVATE
+  TRACE::MF
+)
+
+cet_build_plugin(CapacityTest artdaq::policy)
+
+cet_build_plugin(PreferSameHost artdaq::policy
+  LIBRARIES PRIVATE
+  artdaq::DAQdata
+)
 
 install_headers()
 install_source()

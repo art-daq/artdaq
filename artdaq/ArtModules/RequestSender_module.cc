@@ -5,8 +5,8 @@
 // Description: Sends artdaq requests for events
 ////////////////////////////////////////////////////////////////////////
 
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "RequestSenderModule"
-#include "artdaq/DAQdata/Globals.hh"
 
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"

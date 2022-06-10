@@ -3,6 +3,7 @@
 #include "artdaq/RTIDDS/RTIDDS.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
+#include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 
 #include <iostream>

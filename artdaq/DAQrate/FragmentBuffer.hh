@@ -1,6 +1,19 @@
 #ifndef artdaq_Application_FragmentBuffer_hh
 #define artdaq_Application_FragmentBuffer_hh
 
+#include "fhiclcpp/types/Sequence.h" // Must pre-empt fhiclcpp/types/Atom.h
+
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq/DAQrate/RequestBuffer.hh"
+
+namespace fhicl { class ParameterSet; }
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+
 // Socket Includes
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -15,14 +28,6 @@
 #include <list>
 #include <mutex>
 #include <queue>
-
-#include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/fwd.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/RequestBuffer.hh"
 
 namespace artdaq {
 /**

@@ -1,11 +1,13 @@
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "daq_flow_t"
-
-#include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
+
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "fhiclcpp/types/TableFragment.h"
+#include "fhiclcpp/ParameterSet.h"
 #include "cetlib_except/exception.h"
 
 #include <cstddef>

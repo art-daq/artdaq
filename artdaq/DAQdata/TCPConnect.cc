@@ -5,7 +5,10 @@
 //  $RCSfile: TCPConnect.cpp,v $
 //  rev="$Revision: 1.4 $$Date: 2010/06/24 03:49:45 $";
 
+#include "artdaq/DAQdata/TCPConnect.hh"
+
 #include "artdaq/DAQdata/Globals.hh"
+#include "TRACE/tracemf.h"
 #define TRACE_NAME (app_name + "_TCPConnect").c_str()
 
 #include <arpa/inet.h>   // inet_aton
@@ -26,8 +29,6 @@
 #include <map>
 #include <regex>
 #include <string>
-
-#include "artdaq/DAQdata/TCPConnect.hh"
 
 // Return sts, put result in addr
 int ResolveHost(char const *host_in, in_addr &addr)

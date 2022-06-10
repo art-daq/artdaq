@@ -1,5 +1,7 @@
 #include "artdaq/DAQrate/StatisticsHelper.hh"
 
+#include "fhiclcpp/ParameterSet.h"
+
 // This class is really nothing more than a collection of code that
 // would be repeated throughout artdaq "application" classes if it
 // weren't centralized here.  So, we should be careful not to put

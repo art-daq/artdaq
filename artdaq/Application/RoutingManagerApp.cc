@@ -1,8 +1,15 @@
+#include "TRACE/tracemf.h"
+#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME "RoutingManagerApp"
 
-#include <memory>
-
 #include "artdaq/Application/RoutingManagerApp.hh"
+
+#include <boost/bind.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
+
+#include <memory>
 
 /**
 * Default constructor.

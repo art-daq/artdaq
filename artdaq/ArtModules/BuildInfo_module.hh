@@ -1,22 +1,20 @@
 #ifndef ARTDAQ_ARTDAQ_ARTMODULES_BUILDINFO_MODULE_HH_
 #define ARTDAQ_ARTDAQ_ARTMODULES_BUILDINFO_MODULE_HH_
 
+#include "TRACE/tracemf.h"
+#define TRACE_NAME "BuildInfo"
+
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
-#include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Run.h"
 #include "artdaq-core/Data/PackageBuildInfo.hh"
 #include "fhiclcpp/ParameterSet.h"
-#include "tracemf.h"
 
 #include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "tracemf.h"
-#define TRACE_NAME "BuildInfo"
 
 namespace artdaq {
 /**
@@ -57,7 +55,7 @@ public:
 		 * 
 		 * This function is a required override for EDProducer, and is a No-Op in BuildInfo_module.
 		 */
-	void produce(art::Event& e) override;
+	void produce(art::Event& e) final override;
 
 private:
 	BuildInfo(BuildInfo const&) = delete;

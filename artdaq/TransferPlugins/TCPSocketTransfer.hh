@@ -7,23 +7,26 @@
 // $RCSfile: .emacs.gnu,v $
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
+// artdaq Includes
+#include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "artdaq/TransferPlugins/detail/SRSockets.hh"
+#include "artdaq/DAQdata/HostMap.hh"
+
 // C Includes
 #include <sys/uio.h>  // iovec
 #include <cstdint>    // uint64_t
 
 // C++ Includes
 #include <boost/thread.hpp>
+
+#include <atomic>
+#include <chrono>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility> // std::move()
 #include <condition_variable>
-
-// Products includes
-#include "fhiclcpp/fwd.h"
-
-// artdaq Includes
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/HostMap.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/TransferPlugins/detail/SRSockets.hh"
-#include "artdaq/TransferPlugins/detail/Timeout.hh"  // Timeout
 
 #ifndef USE_ACKS
 #define USE_ACKS 0

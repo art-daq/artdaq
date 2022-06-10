@@ -2,11 +2,20 @@
 #define artdaq_proto_LoadParameterSet_hh 1
 
 // note: in header files (this LoadParameterSet.hh) consider if you want TRACE/LOG to use "name" from .cc or name for this file
-#include <boost/program_options.hpp>
-#include <iostream>
+#include "TRACE/tracemf.h"
+
+#include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/types/Name.h"
 #include "fhiclcpp/types/Table.h"
-#include "tracemf.h"
+
+#include "cetlib/filepath_maker.h"
+
+#include <boost/program_options.hpp>
 namespace bpo = boost::program_options;
+
+#include <iostream>
+#include <sstream>
+#include <string>
 
 inline fhicl::ParameterSet LoadParameterSet(std::string const& psetOrFile)
 {

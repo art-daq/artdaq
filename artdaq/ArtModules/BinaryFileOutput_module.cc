@@ -1,5 +1,4 @@
-
-
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "BinaryFileOutput"
 
 #include "art/Framework/Core/ModuleMacros.h"

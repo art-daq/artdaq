@@ -2,6 +2,7 @@
 
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/TransferTest.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 
 int main(int argc, char* argv[]) try
 {

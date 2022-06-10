@@ -1,20 +1,23 @@
 #ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQOUTPUT_HH_
 #define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQOUTPUT_HH_
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq/DAQdata/NetMonHeader.hh"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq-core/Data/RawEvent.hh"
+#include "artdaq-core/Data/detail/ParentageMap.hh"
+
+#include "art_root_io/setup.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/OutputHandle.h"
 #include "art/Framework/Principal/RunPrincipal.h"
 #include "art/Framework/Principal/SubRunPrincipal.h"
-
-#include "art/Framework/Core/ModuleMacros.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Persistency/Provenance/ModuleContext.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 
-#include "art_root_io/setup.h"
-
-#include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
@@ -25,22 +28,10 @@
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
 #include "canvas/Persistency/Provenance/RunAuxiliary.h"
 #include "canvas/Persistency/Provenance/SubRunAuxiliary.h"
-#include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
 #include "canvas/Persistency/Common/WrappedTypeID.h"
-#include "cetlib/column_width.h"
-#include "cetlib/lpad.h"
-#include "cetlib/rpad.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQdata/NetMonHeader.hh"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq-core/Data/detail/ParentageMap.hh"
 
 #include <TBufferFile.h>
 #include <TClass.h>

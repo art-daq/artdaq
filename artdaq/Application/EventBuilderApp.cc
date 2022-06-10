@@ -1,9 +1,15 @@
-#include <memory>
-
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DataLoggerApp").c_str()
 
 #include "artdaq/Application/EventBuilderApp.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/lexical_cast.hpp>
+
+#include <iomanip>
+#include <memory>
 
 artdaq::EventBuilderApp::EventBuilderApp() = default;
 

@@ -16,7 +16,7 @@
 # use cmake 3.17 or later
 cmake_minimum_required (VERSION 3.19 FATAL_ERROR)
 
-find_package(cetmodules 3.08.00 REQUIRED)
+find_package(cetmodules 3.16.00 REQUIRED)
 
 project(artdaq VERSION 3.11.02)
 
@@ -68,12 +68,21 @@ endif()
 
 
 #cet_report_compiler_flags()
-find_package(TRACE 3.17.04 REQUIRED)
-find_package(artdaq_core 3.08.04 REQUIRED)
-find_package(artdaq_utilities 1.07.02 REQUIRED)
+find_package(TRACE 3.17.04 REQUIRED EXPORT)
+find_package(artdaq_core 3.08.04 REQUIRED EXPORT)
+find_package(artdaq_utilities 1.07.02 REQUIRED EXPORT)
 
-find_package(art_root_io 1.08.03 REQUIRED)
-find_package(art 3.09.03 REQUIRED)
+find_package(art_root_io 1.08.03 REQUIRED EXPORT)
+find_package(art 3.09.03 REQUIRED EXPORT)
+find_package(canvas_root_io REQUIRED EXPORT)
+find_package(canvas REQUIRED EXPORT)
+find_package(messagefacility REQUIRED EXPORT)
+find_package(fhiclcpp REQUIRED EXPORT)
+find_package(cetlib REQUIRED EXPORT)
+find_package(cetlib_except REQUIRED EXPORT)
+find_package(Boost COMPONENTS date_time program_options thread REQUIRED EXPORT)
+find_package(XMLRPC COMPONENTS c++2 client abyss-server REQUIRED EXPORT)
+
 include(BuildPlugins)
 
 string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" ART_VERSION_LIST "${art_VERSION}")
@@ -91,7 +100,6 @@ if(BTYPE_UC STREQUAL DEBUG)
   add_definitions(-DDEBUGME)
 endif()
 
-
 if (DEFINED ENV{NDDSHOME})
    set( USING_RTIDDS TRUE )
    message("\"NDDSHOME\" environment variable defined; will build RTI-DDS code")
@@ -100,14 +108,9 @@ else()
    message("\"NDDSHOME\" environment variable not defined; will ignore RTI-DDS code")
 endif()
 
-cet_register_export_set(SET_NAME artdaq NAMESPACE artdaq)
-cet_register_export_set(SET_NAME Framework NAMESPACE artdaq)
-cet_register_export_set(SET_NAME FrameworkUsers NAMESPACE artdaq)
-cet_register_export_set(SET_NAME PluginTypes NAMESPACE artdaq_plugin_types)
-cet_register_export_set(SET_NAME PluginUsers NAMESPACE artdaq)
-
 # source
 add_subdirectory(artdaq)
+cet_register_export_set(SET_NAME artdaqUsers SET_DEFAULT)
 
 # testing
 add_subdirectory(test)

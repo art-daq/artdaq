@@ -1,18 +1,19 @@
 #ifndef ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
 #include <condition_variable>
 #include <map>
 #include <memory>
 #include <set>
 
-#include "fhiclcpp/fwd.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+
+namespace fhicl { class ParameterSet; }
 
 namespace artdaq {
 class DataReceiverManager;

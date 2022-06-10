@@ -3,13 +3,20 @@
 
 #include "artdaq/DAQrate/StatisticsHelper.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
-#include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/types/Atom.h"
-#include "fhiclcpp/types/ConfigurationTable.h"
 
-#include <sys/epoll.h>
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+
 #include <boost/thread.hpp>
+
+#include <atomic>
+#include <sys/epoll.h>
 #include <map>
+#include <unordered_map>
+#include <string>
+#include <vector>
 
 namespace artdaq {
 /**

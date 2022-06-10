@@ -1,9 +1,10 @@
 #ifndef artdaq_ArtModules_ArtdaqFragmentNamingService_h
 #define artdaq_ArtModules_ArtdaqFragmentNamingService_h
 
-#include "art/Framework/Services/Registry/ServiceMacros.h"
+#include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "artdaq-core/Plugins/FragmentNameHelper.hh"
-#include "fhiclcpp/types/Atom.h"
+
+namespace fhicl { class ParameterSet; }
 
 /**
  * \brief Interface for ArtdaqFragmentNamingService. This interface is declared to art as part of the required registration of an art Service
@@ -73,35 +74,6 @@ private:
 	ArtdaqFragmentNamingServiceInterface& operator=(ArtdaqFragmentNamingServiceInterface&&) = delete;
 };
 DECLARE_ART_SERVICE_INTERFACE(ArtdaqFragmentNamingServiceInterface, LEGACY)
-
-// ----------------------------------------------------------------------
-
-/**
- * \brief ArtdaqFragmentNamingService extends ArtdaqFragmentNamingServiceInterface.
- * This implementation uses the default SystemTypeMap and directly assigns names based on it
- */
-class ArtdaqFragmentNamingService : public ArtdaqFragmentNamingServiceInterface
-{
-public:
-	/**
-	 * \brief DefaultArtdaqFragmentNamingService Destructor
-	 */
-	virtual ~ArtdaqFragmentNamingService();
-
-	/**
-	 * \brief NetMonTransportService Constructor
-	 * \param pset ParameterSet used to configure NetMonTransportService and DataSenderManager. See NetMonTransportService::Config
-	 */
-	ArtdaqFragmentNamingService(fhicl::ParameterSet const& pset, art::ActivityRegistry&);
-
-private:
-	ArtdaqFragmentNamingService(ArtdaqFragmentNamingService const&) = delete;
-	ArtdaqFragmentNamingService(ArtdaqFragmentNamingService&&) = delete;
-	ArtdaqFragmentNamingService& operator=(ArtdaqFragmentNamingService const&) = delete;
-	ArtdaqFragmentNamingService& operator=(ArtdaqFragmentNamingService&&) = delete;
-};
-
-DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqFragmentNamingService, ArtdaqFragmentNamingServiceInterface, LEGACY)
 
 #endif /* artdaq_ArtModules_ArtdaqFragmentNamingService_h */
 

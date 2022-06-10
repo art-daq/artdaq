@@ -1,10 +1,11 @@
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 
 #include <boost/program_options.hpp>
-#include <sstream>
 namespace bpo = boost::program_options;
 
-#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
-#include "artdaq/DAQdata/Globals.hh"
+#include <sstream>
 
 int main(int argc, char* argv[]) try
 {

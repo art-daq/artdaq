@@ -1,75 +1,222 @@
+add_subdirectory(RootDAQOutput-s81)
 
+cet_register_export_set(SET_NAME AMPluginTypes NAMESPACE artdaq_plugin_types)
 
+cet_make_library(LIBRARY_NAME ArtConfig INTERFACE
+  SOURCE detail/ArtConfig.hh
+  LIBRARIES INTERFACE
+  artdaq_utilities::artdaq-utilities_Plugins
+  art::Framework_Core
+  art::Framework_IO
+  fhiclcpp::types
+  fhiclcpp::fhiclcpp
+)
 
-	add_subdirectory(RootDAQOutput-s81)
+cet_make_library(LIBRARY_NAME ArtdaqSharedMemoryService INTERFACE
+  EXPORT_SET AMPluginTypes
+  SOURCE ArtdaqSharedMemoryService.h
+  LIBRARIES INTERFACE
+  artdaq_core::artdaq-core_Data
+  art_plugin_types::serviceDeclaration
+  TRACE::MF
+)
 
-cet_make(
-  SUBDIRS detail
-  NO_PLUGINS
+cet_register_export_set(SET_NAME AMPUsers SET_DEFAULT)
+
+cet_build_plugin(ArtdaqSharedMemoryService art::service
+  LIBRARIES PRIVATE
+  artdaq_plugin_types::ArtdaqSharedMemoryService
+  artdaq::DAQdata
+  artdaq_core::artdaq-core_Core
+  artdaq_core::artdaq-core_Utilities
+  fhiclcpp::types
+  fhiclcpp::fhiclcpp
+  TRACE::MF
+)
+
+cet_make_library(SOURCE
+  detail/ShmemWrapper.cc
+  detail/TransferWrapper.cc
   LIBRARIES
-  TRACE::TRACE
-  )
-
-
-cet_build_plugin(TransferOutput art::module LIBRARIES REG
-  artdaq_TransferPlugins
+  PUBLIC
+  artdaq_plugin_types::commander
+  artdaq_plugin_types::transfer
+  artdaq_core::artdaq-core_Data
+  fhiclcpp::fhiclcpp
+  TRACE::MF
+  PRIVATE
+  artdaq_plugin_support::transferMaker
+  artdaq_plugin_support::commanderMaker
+  artdaq_plugin_types::ArtdaqSharedMemoryService
+  artdaq::DAQdata
+  art::Framework_Services_Registry
 )
 
-cet_build_plugin(TransferInput art::source LIBRARIES REG
-	artdaq_ArtModules
-  artdaq_TransferPlugins
+cet_make_library(LIBRARY_NAME ArtdaqFragmentNamingService INTERFACE
+  EXPORT_SET AMPluginTypes
+  SOURCE ArtdaqFragmentNamingService.h
+  LIBRARIES INTERFACE
+  artdaq_core::artdaq-core_Plugins
+  artdaq_core::artdaq-core_Data
+  art_plugin_types::serviceDeclaration
 )
 
-cet_build_plugin(RandomDelayFilter art::module  LIBRARIES REG
-artdaq_DAQdata
+cet_build_plugin(ArtdaqFragmentNamingService art::service
+  LIBRARIES PRIVATE
+  artdaq_plugin_types::ArtdaqFragmentNamingService
 )
 
-cet_build_plugin(RequestSender art::module LIBRARIES REG artdaq_ArtModules artdaq_DAQrate)
-
-cet_build_plugin(EventDump art::module LIBRARIES REG
-artdaq_core::artdaq-core_Data
+cet_make_library(LIBRARY_NAME ArtdaqBuildInfo INTERFACE
+  EXPORT_SET AMPluginTypes
+  SOURCE ArtdaqBuildInfo_module.hh
+  LIBRARIES INTERFACE
+  artdaq_core::headers
+  art_plugin_types::EDProducer
 )
 
-cet_build_plugin(MissingDataCheck art::module)
-
-cet_build_plugin(FragmentWatcher art::module LIBRARIES REG
-artdaq_DAQdata
+cet_build_plugin(ArtdaqBuildInfo art::EDProducer
+  LIBRARIES PRIVATE
+  artdaq_core::artdaq-core_BuildInfo
+  artdaq_utilities::artdaq-utilities_BuildInfo
+  artdaq::BuildInfo
 )
 
-cet_build_plugin(ArtdaqInput art::source LIBRARIES REG
-	artdaq_ArtModules
+cet_build_plugin(EventDump art::EDAnalyzer
+  LIBRARIES PRIVATE
+  artdaq_core::artdaq-core_Data
 )
 
-
-cet_build_plugin(RootNetOutput art::module LIBRARIES REG
-artdaq_DAQdata
-artdaq_DAQrate
+cet_build_plugin(FragmentWatcher art::EDAnalyzer
+  LIBRARIES PRIVATE
+  artdaq::DAQdata
+  artdaq_core::artdaq-core_Data
+  TRACE::MF
 )
 
-cet_build_plugin(BinaryNetOutput art::module LIBRARIES REG
-artdaq_DAQdata
-artdaq_DAQrate
+cet_build_plugin(MissingDataCheck art::EDAnalyzer
+  LIBRARIES PRIVATE
+  artdaq_core::artdaq-core_Data
+  art_root_io::tfile_support
+  ROOT::Tree
 )
 
-cet_build_plugin(BinaryFileOutput art::module LIBRARIES REG
-artdaq_DAQdata
+cet_build_plugin(PrintBuildInfo art::Analyzer
+  LIBRARIES PRIVATE
+  artdaq_core::headers
+  TRACE::MF
 )
 
-cet_build_plugin(ArtdaqSharedMemoryService art::service LIBRARIES REG
-artdaq_DAQdata
-artdaq_DAQrate
+cet_build_plugin(RandomDelayFilter art::EDFilter
+  LIBRARIES PRIVATE
+  artdaq_core::artdaq-core_Utilities
+  TRACE::MF
 )
 
-cet_build_plugin(ArtdaqFragmentNamingService art::service)
-
-cet_build_plugin(ArtdaqBuildInfo art::module LIBRARIES REG
-artdaq_BuildInfo
-artdaq_core::artdaq-core_BuildInfo
-artdaq_utilities::artdaq-utilities_BuildInfo
+cet_build_plugin(RequestSender art::EDAnalyzer
+  LIBRARIES PRIVATE
+  artdaq::DAQrate
+  artdaq_core::artdaq-core_Data
+  TRACE::MF
 )
 
-cet_build_plugin(PrintBuildInfo art::module  )
+include(art::SourceT OPTIONAL)
+if (COMMAND art::SourceT AND TARGET art_plugin_types::SourceT)
+  set(stype art::SourceT)
+else()
+  set(stype art::source)
+endif()
 
+cet_make_library(LIBRARY_NAME InputUtilities INTERFACE
+  SOURCE InputUtilities.hh
+  LIBRARIES INTERFACE
+  canvas::canvas
+  ROOT::Core
+  TRACE::MF
+)
+
+cet_make_library(LIBRARY_NAME ArtdaqInputHelper INTERFACE
+  SOURCE ArtdaqInputHelper.hh
+  LIBRARIES INTERFACE
+  artdaq_plugin_types::ArtdaqFragmentNamingService
+  artdaq_plugin_types::ArtdaqSharedMemoryService
+  artdaq::DAQdata
+  artdaq::InputUtilities
+  artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Utilities
+  art_root_io::art_root_io
+  art::Framework_Core
+  art::Framework_IO_Sources
+  art::Framework_Principal
+  art::Framework_Services_Registry
+  canvas::canvas
+  fhiclcpp::fhiclcpp
+  ROOT::Core
+)
+  
+cet_build_plugin(TransferInput ${stype}
+  LIBRARIES PRIVATE
+  artdaq::ArtModules
+  artdaq::ArtdaqInputHelper
+)
+
+cet_build_plugin(ArtdaqInput ${stype}
+  LIBRARIES PRIVATE
+  artdaq::ArtModules
+  artdaq::ArtdaqInputHelper
+)
+
+cet_make_library(LIBRARY_NAME ArtdaqOutput INTERFACE
+  SOURCE ArtdaqOutput.hh
+  LIBRARIES INTERFACE
+  artdaq::DAQdata
+  artdaq_core::artdaq-core_Data
+  art_root_io::art_root_io
+  art::Framework_Core
+  art::Framework_Principal
+  art::Persistency_Provenance
+  canvas::canvas
+  fhiclcpp::fhiclcpp
+  ROOT::Core
+  TRACE::MF
+)
+  
+cet_build_plugin(RootNetOutput art::Output
+  LIBRARIES PRIVATE
+  artdaq::ArtdaqOutput
+  artdaq_plugin_types::ArtdaqSharedMemoryService
+  artdaq::DAQrate
+  artdaq::DAQdata
+  fhiclcpp::fhiclcpp
+  TRACE::MF
+)
+
+cet_build_plugin(BinaryNetOutput art::Output
+  LIBRARIES PRIVATE
+  artdaq::ArtdaqOutput
+  artdaq::DAQrate
+  artdaq::DAQdata
+  artdaq_core::artdaq-core_Data
+  fhiclcpp::fhiclcpp
+  TRACE::MF
+)
+
+cet_build_plugin(BinaryFileOutput art::Output
+  LIBRARIES PRIVATE
+  artdaq::ArtdaqOutput
+  artdaq::DAQrate
+  artdaq::DAQdata
+  artdaq_core::artdaq-core_Data
+  fhiclcpp::fhiclcpp
+  TRACE::MF
+)
+
+cet_build_plugin(TransferOutput art::Output
+  LIBRARIES PRIVATE
+  artdaq::ArtdaqOutput
+  artdaq::DAQdata
+  artdaq_plugin_support::transferMaker
+  TRACE::MF
+)
 
 install_headers(SUBDIRS detail)
 install_source(SUBDIRS detail)

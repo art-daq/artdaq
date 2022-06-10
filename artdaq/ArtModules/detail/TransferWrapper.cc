@@ -1,17 +1,18 @@
-#include "artdaq/DAQdata/Globals.hh"
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
 #define TRACE_NAME "TransferWrapper"
 
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/ArtModules/detail/TransferWrapper.hh"
+
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
 
-#include "cetlib/BasicPluginFactory.h"
-#include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
+#include "cetlib_except/exception.h"
 
 #include <csignal>
 #include <iostream>

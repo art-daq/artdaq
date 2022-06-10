@@ -11,6 +11,11 @@ OR
 */
 
 #define TRACE_NAME "Timeout"
+#include "TRACE/tracemf.h"
+
+#include "artdaq/TransferPlugins/detail/Timeout.hh"
+
+#include "artdaq-core/Utilities/TimeUtils.hh"
 
 #include <sys/time.h> /* struct timeval */
 #include <cassert>    /* assert */
@@ -19,9 +24,6 @@ OR
 #include <cstring>    /* strcmp */
 #include <list>
 using std::list;
-#include "artdaq-core/Utilities/TimeUtils.hh"
-#include "artdaq/DAQdata/Globals.hh"  // TRACE
-#include "artdaq/TransferPlugins/detail/Timeout.hh"
 
 // public:
 

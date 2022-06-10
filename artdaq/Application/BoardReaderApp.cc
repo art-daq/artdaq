@@ -1,8 +1,10 @@
+#include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()  // NOLINT
+
 #include "artdaq/Application/BoardReaderApp.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "artdaq/DAQdata/Globals.hh"
-#define TRACE_NAME (app_name + "_BoardReaderApp").c_str()  // NOLINT
+#include <boost/lexical_cast.hpp>
 
 #include <memory>
 #include <string>

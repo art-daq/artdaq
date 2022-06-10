@@ -1,8 +1,15 @@
 #include "artdaq/DAQdata/PortManager.hh"
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "PortManager"
-#include <sstream>
-#include "artdaq/DAQdata/Globals.hh"
+
 #include "artdaq/DAQdata/TCPConnect.hh"
+#include "artdaq/DAQdata/Globals.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+
+#include <cstdlib>
+#include <sstream>
+#include <string>
 
 artdaq::PortManager::PortManager()
     : multicast_interface_address_()

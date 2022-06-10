@@ -3,7 +3,8 @@
 
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "cetlib/compiler_macros.h"
-#include "fhiclcpp/fwd.h"
+
+namespace fhicl { class ParameterSet; }
 
 #include <memory>
 

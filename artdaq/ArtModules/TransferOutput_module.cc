@@ -1,3 +1,4 @@
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "TransferOutput"
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 

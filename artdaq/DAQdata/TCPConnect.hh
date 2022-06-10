@@ -2,6 +2,8 @@
 #define TCPConnect_hh
 #include <netinet/in.h>
 
+#include <string>
+
 // This file (TCPConnect.hh) was created by Ron Rechenmacher <ron@fnal.gov> on
 // Sep 15, 2016. "TERMS AND CONDITIONS" governing this file are in the README
 // or COPYING file. If you do not have such a file, one can be obtained by

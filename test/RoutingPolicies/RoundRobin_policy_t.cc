@@ -2,6 +2,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)

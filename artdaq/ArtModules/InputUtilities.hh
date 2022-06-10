@@ -1,38 +1,22 @@
 #ifndef artdaq_ArtModules_InputUtilities_hh
 #define artdaq_ArtModules_InputUtilities_hh
 
-#include "art/Framework/Core/FileBlock.h"
-#include "art/Framework/Core/InputSourceMacros.h"
-#include "art/Framework/Core/ProductRegistryHelper.h"
-#include "art/Framework/IO/Sources/Source.h"
-#include "art/Framework/IO/Sources/SourceHelper.h"
-#include "art/Framework/IO/Sources/SourceTraits.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
+#include "TRACE/tracemf.h"  // TLOG - note: no #define TRACE_NAME in .hh files -
+//  could conflict with TRACE_NAME in .cc files.
 
-#include "canvas/Persistency/Common/EDProduct.h"
-#include "canvas/Persistency/Common/Wrapper.h"
-#include "canvas/Persistency/Provenance/BranchDescription.h"
-#include "canvas/Persistency/Provenance/BranchKey.h"
-#include "canvas/Persistency/Provenance/ParentageRegistry.h"
-#include "canvas/Persistency/Provenance/ProcessConfiguration.h"
-#include "canvas/Persistency/Provenance/ProcessHistory.h"
-#include "canvas/Persistency/Provenance/ProcessHistoryID.h"
-#include "canvas/Persistency/Provenance/ProductList.h"
-#include "canvas/Persistency/Provenance/ProductProvenance.h"
-#include "canvas/Utilities/DebugMacros.h"
+#include "canvas/Utilities/Exception.h"
 
 #include <TBufferFile.h>
+#include <TClass.h>
+
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
 
 #define TLVL_READOBJANY 32
 #define TLVL_PROCESSHISTORYID 33
 #define TLVL_PROCESSMAP 34
-
-#include "tracemf.h"  // TLOG - note: no #define TRACE_NAME in .hh files -
-//  could conflict with TRACE_NAME in .cc files.
-#include <iostream>
-#include <memory>
-#include <string>
 
 namespace art {
 /**

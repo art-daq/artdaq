@@ -9,9 +9,9 @@
 // eventbuilder.
 ////////////////////////////////////////////////////////////////////////
 
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "genToArt"
 
-#include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
 #include "artdaq-core/Plugins/FragmentGenerator.hh"

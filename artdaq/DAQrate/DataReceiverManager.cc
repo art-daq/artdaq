@@ -1,13 +1,21 @@
-#include <chrono>
-
-#include <iomanip>
-#include <utility>
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_DataReceiverManager").c_str()
+
 #include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+
+#include "fhiclcpp/ParameterSet.h"
 #include "cetlib_except/exception.h"
+
+#include <boost/bind.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/thread.hpp>
+
+#include <chrono>
+#include <iomanip>
+#include <thread>
+#include <utility>
 
 artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset, std::shared_ptr<SharedMemoryEventManager> shm)
     : stop_requested_(false)

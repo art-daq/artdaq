@@ -3,39 +3,62 @@ if (${USING_RTIDDS})
 include_directories($ENV{NDDSHOME}/include $ENV{NDDSHOME}/include/ndds )
 endif()
 
-cet_make( 
-  SUBDIRS detail
-  EXCLUDE RTIDDS_transfer.cc Shmem_transfer.cc Multicast_transfer.cc TCPSocket_transfer.cc Autodetect_transfer.cc
+cet_make_library(SOURCE
+  MakeTransferPlugin.cc
+  TransferInterface.cc
+  detail/Timeout.cc
   LIBRARIES
-  artdaq_core::artdaq-core_Utilities
+  PUBLIC
+  artdaq::DAQdata
+  artdaq_core::artdaq-core_Core
   artdaq_core::artdaq-core_Data
-  artdaq::artdaq_DAQdata
-  )
+  cetlib::compiler_macros
+  fhiclcpp::types
+  PRIVATE
+  artdaq_core::artdaq-core_Utilities
+  fhiclcpp::fhiclcpp
+  cetlib::cetlib
+  cetlib_except::cetlib_except
+)
 
-  
-cet_make_library(LIBRARY_NAME transfer INTERFACE
-				 EXPORT_SET PluginTypes
-				 SOURCE TransferInterface.hh
-				 LIBRARIES INTERFACE
-				 art_plugin_support::plugin_config_macros
-				 art_plugin_support::support_macros
-				 artdaq::artdaq_TransferPlugins)
+cet_register_export_set(SET_NAME TPPluginTypes NAMESPACE artdaq_plugin_types)
+cet_register_export_set(SET_NAME TPPluginSupport NAMESPACE artdaq_plugin_support)
 
+# Export convenience aliases.
+cet_make_alias(NAME transfer EXPORT_SET TPPluginTypes
+  TARGET artdaq::TransferPlugins)
+cet_make_alias(NAME transferMaker EXPORT_SET TPPluginSupport
+  TARGET artdaq::TransferPlugins)
 
 include(BasicPlugin)
-  cet_make_plugin_builder(transfer transfer Modules
-    LIBRARIES REG artdaq_plugin_types::transfer)
+cet_write_plugin_builder(artdaq::transfer art::plugin Modules
+  SUFFIX transfer
+  LIBRARIES CONDITIONAL artdaq_plugin_types::transfer)
 
-include(transfer)
+include(artdaq::transfer)
 
-cet_build_plugin(Shmem transfer)
-cet_build_plugin(Null transfer)
-cet_build_plugin(Multicast transfer)
-cet_build_plugin(TCPSocket transfer)
-cet_build_plugin(Autodetect transfer)
+cet_build_plugin(Shmem artdaq::transfer
+  IMPL_SOURCE ShmemTransfer.cc
+  LIBRARIES PRIVATE
+  Boost::headers
+)
+
+cet_build_plugin(Null artdaq::transfer)
+
+cet_build_plugin(Multicast artdaq::transfer)
+
+cet_build_plugin(TCPSocket artdaq::transfer
+  IMPL_SOURCE TCPSocketTransfer.cc)
+
+cet_build_plugin(Autodetect artdaq::transfer
+  LIBRARIES PRIVATE
+  artdaq::TransferPlugins_Shmem_transfer
+  artdaq::TransferPlugins_TCPSocket_transfer
+)
 
 if (${USING_RTIDDS})
-  cet_build_plugin(RTIDDS transfer LIBRARIES REG artdaq::artdaq_RTIDDS)
+  cet_build_plugin(RTIDDS artdaq::transfer
+    LIBRARIES PRIVATE artdaq::RTIDDS)
 endif()
 
 install_headers(SUBDIRS detail)
