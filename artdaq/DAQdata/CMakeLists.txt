@@ -8,7 +8,6 @@ cet_make_library(SOURCE
   artdaq_utilities::artdaq-utilities_Plugins
   fhiclcpp::types
   Threads::Threads
-  PRIVATE
   TRACE::MF
 )
 

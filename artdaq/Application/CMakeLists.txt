@@ -1,4 +1,4 @@
-include(ProcessSmc)
+#include(ProcessSmc)
 
 cet_make_library(LIBRARY_NAME_VAR APP_TARGET
   SOURCE
@@ -14,6 +14,7 @@ cet_make_library(LIBRARY_NAME_VAR APP_TARGET
   DispatcherCore.cc
   RoutingManagerApp.cc
   RoutingManagerCore.cc
+  detail/Commandable_sm.cpp
   LIBRARIES
   PUBLIC
   artdaq_plugin_types::CommandableFragmentGenerator
@@ -35,7 +36,7 @@ cet_make_library(LIBRARY_NAME_VAR APP_TARGET
   artdaq_core::artdaq-core_Utilities
 )
 
-process_smc(${APP_TARGET} OUTPUT_DIR detail detail/Commandable.sm)
+#process_smc(${APP_TARGET} OUTPUT_DIR detail detail/Commandable.sm)
 
 install_headers(SUBDIRS detail)
 install_source(SUBDIRS detail)
