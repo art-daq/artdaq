@@ -6,6 +6,7 @@
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "art/Framework/Core/ModuleMacros.h"
 
 namespace art {
 class TransferOutput;

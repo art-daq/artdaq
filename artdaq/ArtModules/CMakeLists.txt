@@ -96,11 +96,11 @@ cet_build_plugin(FragmentWatcher art::EDAnalyzer
 cet_build_plugin(MissingDataCheck art::EDAnalyzer
   LIBRARIES PRIVATE
   artdaq_core::artdaq-core_Data
-  art_root_io::tfile_support
+  art_root_io::TFileService_service
   ROOT::Tree
 )
 
-cet_build_plugin(PrintBuildInfo art::Analyzer
+cet_build_plugin(PrintBuildInfo art::EDAnalyzer
   LIBRARIES PRIVATE
   artdaq_core::headers
   TRACE::MF
@@ -180,7 +180,8 @@ cet_make_library(LIBRARY_NAME ArtdaqOutput INTERFACE
   TRACE::MF
 )
   
-cet_build_plugin(RootNetOutput art::Output
+# Use art::module due to issue with art::Output in v3_09_03
+cet_build_plugin(RootNetOutput art::module
   LIBRARIES PRIVATE
   artdaq::ArtdaqOutput
   artdaq_plugin_types::ArtdaqSharedMemoryService
@@ -190,7 +191,7 @@ cet_build_plugin(RootNetOutput art::Output
   TRACE::MF
 )
 
-cet_build_plugin(BinaryNetOutput art::Output
+cet_build_plugin(BinaryNetOutput art::module
   LIBRARIES PRIVATE
   artdaq::ArtdaqOutput
   artdaq::DAQrate
@@ -200,7 +201,7 @@ cet_build_plugin(BinaryNetOutput art::Output
   TRACE::MF
 )
 
-cet_build_plugin(BinaryFileOutput art::Output
+cet_build_plugin(BinaryFileOutput art::module
   LIBRARIES PRIVATE
   artdaq::ArtdaqOutput
   artdaq::DAQrate
@@ -210,7 +211,7 @@ cet_build_plugin(BinaryFileOutput art::Output
   TRACE::MF
 )
 
-cet_build_plugin(TransferOutput art::Output
+cet_build_plugin(TransferOutput art::module
   LIBRARIES PRIVATE
   artdaq::ArtdaqOutput
   artdaq::DAQdata

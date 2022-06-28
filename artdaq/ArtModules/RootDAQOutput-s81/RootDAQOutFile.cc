@@ -693,7 +693,7 @@ void RootDAQOutFile::writeOne(art::EventPrincipal const& e)
 	{
 		throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to fill the History tree for event: " << e.eventID()
-		    << "\nTTree::Fill() returned " << sz << " bytes written." << endl;
+		    << "\nTTree::Fill() returned " << sz << " bytes written." << std::endl;
 	}
         pHistory_ = &e.history();
 #endif

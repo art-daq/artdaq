@@ -33,6 +33,7 @@ cet_make_library(LIBRARY_NAME PolicyMacros INTERFACE
 include(BasicPlugin)
 cet_write_plugin_builder(artdaq::policy art::plugin Modules
   SUFFIX policy
+  INSTALL_BUILDER
   LIBRARIES
   CONDITIONAL artdaq_plugin_types::policy
   REG artdaq_plugin_support::PolicyMacros)

@@ -29,7 +29,8 @@ cet_make_library(LIBRARY_NAME RootDAQOutput USE_PROJECT_NAME NO_EXPORT
   Boost::date_time
 )
 
-cet_build_plugin(RootDAQOut art::Output
+# Use art::module due to issue with art::Output in v3_09_03
+cet_build_plugin(RootDAQOut art::module 
   LIBRARIES PRIVATE
   artdaq::RootDAQOutput
   artdaq::ArtModules

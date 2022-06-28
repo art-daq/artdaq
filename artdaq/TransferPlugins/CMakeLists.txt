@@ -33,6 +33,7 @@ cet_make_alias(NAME transferMaker EXPORT_SET TPPluginSupport
 include(BasicPlugin)
 cet_write_plugin_builder(artdaq::transfer art::plugin Modules
   SUFFIX transfer
+  INSTALL_BUILDER
   LIBRARIES CONDITIONAL artdaq_plugin_types::transfer)
 
 include(artdaq::transfer)

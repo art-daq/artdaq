@@ -3,8 +3,7 @@ cet_make_library(SOURCE
   PortManager.cc
   TCPConnect.cc
   TCP_listen_fd.cc
-  LIBRARIES
-  PUBLIC
+  LIBRARIES PUBLIC
   artdaq_utilities::artdaq-utilities_Plugins
   fhiclcpp::types
   Threads::Threads
