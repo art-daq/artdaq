@@ -1,3 +1,5 @@
+
+#define TRACE_DEFINE
 #include "artdaq/DAQdata/Globals.hh"
 
 int artdaq::Globals::my_rank_ = -1;
