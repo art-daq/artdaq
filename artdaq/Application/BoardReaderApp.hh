@@ -129,7 +129,7 @@ public:
 	 */
 	std::string report(std::string const& which) const override;
 
-	CommandableFragmentGenerator* const GetGeneratorPointer()
+	CommandableFragmentGenerator const* GetGeneratorPointer()
 	{
 		if (fragment_receiver_ptr_)
 			return fragment_receiver_ptr_->GetGeneratorPointer();

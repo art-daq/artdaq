@@ -180,7 +180,7 @@ public:
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 
-	CommandableFragmentGenerator* const GetGeneratorPointer()
+	CommandableFragmentGenerator const* GetGeneratorPointer()
 	{
 		if (generator_ptr_)
 			return generator_ptr_.get();
