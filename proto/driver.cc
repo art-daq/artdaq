@@ -12,16 +12,16 @@
 #define TRACE_NAME "artdaqDriver"
 #include "artdaq-core/Data/Fragment.hh"
 
-#include "artdaq/ArtModules/detail/ArtConfig.hh"
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq/ArtModules/detail/ArtConfig.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq-core/Plugins/FragmentGenerator.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 
@@ -39,7 +39,8 @@ template<typename B, typename D>
 std::unique_ptr<D>
 dynamic_unique_ptr_cast(std::unique_ptr<B>& p);
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	struct Config
 	{
@@ -158,7 +159,7 @@ int main(int argc, char* argv[]) try
 				if (!sts)
 				{
 					loop_count++;
-					//usleep(10000);
+					// usleep(10000);
 				}
 			}
 		}

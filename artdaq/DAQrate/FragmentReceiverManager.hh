@@ -1,13 +1,15 @@
 #ifndef ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
 
-#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
 #include "artdaq/DAQrate/detail/FragCounter.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 #include <condition_variable>
 #include <map>
@@ -87,9 +89,9 @@ public:
 	std::set<int> enabled_sources() const;
 
 	/**
-	* \brief Get the list of sources which are still receiving data
-	* \return std::set containing ranks of sources which are still receiving data
-	*/
+	 * \brief Get the list of sources which are still receiving data
+	 * \return std::set containing ranks of sources which are still receiving data
+	 */
 	std::set<int> running_sources() const;
 
 private:
@@ -238,4 +240,4 @@ artdaq::FragmentReceiverManager::
 {
 	return recv_frag_size_.count();
 }
-#endif  //ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH
+#endif  // ARTDAQ_DAQRATE_DATATRANSFERMANAGER_HH

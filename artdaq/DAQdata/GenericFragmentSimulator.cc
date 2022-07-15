@@ -1,7 +1,7 @@
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 
-#include "fhiclcpp/ParameterSet.h"
 #include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include <algorithm>
 #include <functional>
@@ -27,7 +27,7 @@ artdaq::GenericFragmentSimulator::GenericFragmentSimulator(fhicl::ParameterSet c
 bool artdaq::GenericFragmentSimulator::getNext_(FragmentPtrs& frags)
 {
 	++current_event_num_;
-	//frags.reserve(frags.size() + fragment_ids_.size());
+	// frags.reserve(frags.size() + fragment_ids_.size());
 	for (auto fragID : fragment_ids_)
 	{
 		frags.emplace_back();

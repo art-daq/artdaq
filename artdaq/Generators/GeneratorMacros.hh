@@ -3,7 +3,9 @@
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 #include "cetlib/compiler_macros.h"
 
@@ -11,10 +13,10 @@ namespace fhicl { class ParameterSet; }
 
 namespace artdaq {
 /**
-	* \brief Constructs a CommandableFragmentGenerator instance, and returns a pointer to it
-	* \param ps Parameter set for initializing the CommandableFragmentGenerator
-	* \return A smart pointer to the CommandableFragmentGenerator
-	*/
+ * \brief Constructs a CommandableFragmentGenerator instance, and returns a pointer to it
+ * \param ps Parameter set for initializing the CommandableFragmentGenerator
+ * \return A smart pointer to the CommandableFragmentGenerator
+ */
 typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::ParameterSet const& ps);
 }  // namespace artdaq
 

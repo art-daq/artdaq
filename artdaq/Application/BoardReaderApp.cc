@@ -1,8 +1,8 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_BoardReaderApp").c_str()  // NOLINT
 
-#include "artdaq/Application/BoardReaderApp.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/Application/BoardReaderApp.hh"
 
 #include <boost/lexical_cast.hpp>
 
@@ -40,7 +40,7 @@ bool artdaq::BoardReaderApp::do_initialize(fhicl::ParameterSet const& pset, uint
 	}
 
 	TLOG(TLVL_DEBUG + 32) << "do_initialize(fhicl::ParameterSet, uint64_t, uint64_t): "
-	                 << "Done initializing.";
+	                      << "Done initializing.";
 	return external_request_status_;
 }
 
@@ -141,8 +141,8 @@ bool artdaq::BoardReaderApp::do_stop(uint64_t timeout, uint64_t timestamp)
 		number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	}
 	TLOG(TLVL_DEBUG + 32) << "do_stop(uint64_t, uint64_t): "
-	                 << "Number of fragments sent = " << number_of_fragments_sent
-	                 << ".";
+	                      << "Number of fragments sent = " << number_of_fragments_sent
+	                      << ".";
 
 	return external_request_status_;
 }
@@ -161,8 +161,8 @@ bool artdaq::BoardReaderApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	if (fragment_output_thread_.joinable()) fragment_output_thread_.join();
 	int number_of_fragments_sent = fragment_receiver_ptr_->GetFragmentsProcessed();
 	TLOG(TLVL_DEBUG + 32) << "do_pause(uint64_t, uint64_t): "
-	                 << "Number of fragments sent = " << number_of_fragments_sent
-	                 << ".";
+	                      << "Number of fragments sent = " << number_of_fragments_sent
+	                      << ".";
 
 	return external_request_status_;
 }
@@ -305,11 +305,11 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	//if (report_string_.length() > 0) {
-	//  resultString.append("*** Overall status message:\r\n");
-	//  resultString.append(report_string_ + "\r\n");
-	//  resultString.append("*** Requested report response:\r\n");
-	//}
+	// if (report_string_.length() > 0) {
+	//   resultString.append("*** Overall status message:\r\n");
+	//   resultString.append(report_string_ + "\r\n");
+	//   resultString.append("*** Requested report response:\r\n");
+	// }
 
 	// pass the request to the BoardReaderCore instance, if it's available
 	if (fragment_receiver_ptr_ != nullptr)

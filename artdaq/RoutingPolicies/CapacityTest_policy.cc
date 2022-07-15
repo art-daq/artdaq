@@ -5,31 +5,31 @@
 
 namespace artdaq {
 /**
-	 * \brief A RoutingManagerPolicy which tries to fully load the first receiver, then the second, and so on
-	 */
+ * \brief A RoutingManagerPolicy which tries to fully load the first receiver, then the second, and so on
+ */
 class CapacityTestPolicy : public RoutingManagerPolicy
 {
 public:
 	/**
-		 * \brief CapacityTestPolicy Constructor
-		 * \param ps ParameterSet used to configure the CapacityTestPolicy
-		 * 
-		 * \verbatim
-		 * CapacityTestPolicy accepts the following Parameters:
-		 * "tokens_used_per_table_percent" (Default: 50): Percentage of available tokens to be used on each iteration.
-		 * \endverbatim
-		 */
+	 * \brief CapacityTestPolicy Constructor
+	 * \param ps ParameterSet used to configure the CapacityTestPolicy
+	 *
+	 * \verbatim
+	 * CapacityTestPolicy accepts the following Parameters:
+	 * "tokens_used_per_table_percent" (Default: 50): Percentage of available tokens to be used on each iteration.
+	 * \endverbatim
+	 */
 	explicit CapacityTestPolicy(const fhicl::ParameterSet& ps);
 
 	/**
-		 * \brief Default virtual Destructor
-		 */
+	 * \brief Default virtual Destructor
+	 */
 	~CapacityTestPolicy() override = default;
 
 	/**
 	 * @brief Add entries to the given RoutingPacket using currently-held tokens
 	 * @param output RoutingPacket to add entries to
-	 * 
+	 *
 	 * CapacityTestPolicy will assign available tokens from the first receiver, then the second, and so on
 	 * until it has assigned tokens equal to the inital_token_count * tokens_used_per_table_percent / 100.
 	 * The idea is that in steady-state, the load on the receivers should reflect the workload relative to
@@ -38,11 +38,11 @@ public:
 	 */
 	virtual void CreateRoutingTable(detail::RoutingPacket& output) override;
 	/**
-		 * @brief Get an artdaq::detail::RoutingPacketEntry for a given sequence ID and rank. Used by RequestBasedEventBuilder and DataFlow RoutingManagerMode
-		 * @param seq Sequence Number to get route for
-		 * @param requesting_rank Rank to route for
-		 * @return artdaq::detail::RoutingPacketEntry connecting sequence ID to destination rank
-		 */
+	 * @brief Get an artdaq::detail::RoutingPacketEntry for a given sequence ID and rank. Used by RequestBasedEventBuilder and DataFlow RoutingManagerMode
+	 * @param seq Sequence Number to get route for
+	 * @param requesting_rank Rank to route for
+	 * @return artdaq::detail::RoutingPacketEntry connecting sequence ID to destination rank
+	 */
 	virtual detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) override;
 
 private:

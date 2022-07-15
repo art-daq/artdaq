@@ -4,7 +4,9 @@
 #include "artdaq-core/Core/MonitoredQuantity.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 #include <atomic>
 #include <string>
@@ -64,7 +66,7 @@ public:
 	 * \param defaultMonitorWindow Default monitoring window
 	 * \param primaryStatKeyName The primary (default) MonitoredQuantity
 	 * \return Whether the primary MonitoredQuantity exists
-	 * 
+	 *
 	 * StatisitcsHelper accpets the following Parameters:
 	 * "reporting_interval_fragments" (Default given above): The reporting interval in Fragments
 	 * "reporting_interval_seconds" (Default given above): The reporting interval in Seconds

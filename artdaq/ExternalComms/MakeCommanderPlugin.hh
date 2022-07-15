@@ -14,18 +14,20 @@
 
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 #include <memory>
 #include <string>
 
 namespace artdaq {
 /**
-	 * \brief Load a CommanderInterface plugin
-	 * \param pset ParameterSet used to configure the CommanderInterface
-	 * \param commandable artdaq::Commandable object to send transition commands to
-	 * \return Pointer to the new CommanderInterface instance
-	 */
+ * \brief Load a CommanderInterface plugin
+ * \param pset ParameterSet used to configure the CommanderInterface
+ * \param commandable artdaq::Commandable object to send transition commands to
+ * \return Pointer to the new CommanderInterface instance
+ */
 std::unique_ptr<CommanderInterface>
 MakeCommanderPlugin(const fhicl::ParameterSet& pset,
                     artdaq::Commandable& commandable);

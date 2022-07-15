@@ -2,11 +2,11 @@
 #define art_root_io_RootDAQOutFile_h
 // vim: set sw=2 expandtab :
 
+#include "art/Framework/IO/ClosingCriteria.h"
+#include "art/Framework/Services/System/FileCatalogMetadata.h"
 #include "art_root_io/DropMetaData.h"
 #include "art_root_io/DummyProductCache.h"
 #include "art_root_io/RootOutputTree.h"
-#include "art/Framework/IO/ClosingCriteria.h"
-#include "art/Framework/Services/System/FileCatalogMetadata.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/FileIndex.h"
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
@@ -26,24 +26,24 @@
 class TTree;
 
 namespace art {
-  class EDProduct;
-  class EventAuxiliary;
-  class EventPrincipal;
-  class FileBlock;
-  class FileStatsCollector;
-  class History;
-  class OutputHandle;
-  class OutputModule;
-  class Principal;
-  class RangeSet;
-  class ResultsAuxiliary;
-  class ResultsPrincipal;
-  class RootFileBlock;
-  class RunAuxiliary;
-  class RunPrincipal;
-  class SubRunAuxiliary;
-  class SubRunPrincipal;
-  class RootDAQOutFile
+class EDProduct;
+class EventAuxiliary;
+class EventPrincipal;
+class FileBlock;
+class FileStatsCollector;
+class History;
+class OutputHandle;
+class OutputModule;
+class Principal;
+class RangeSet;
+class ResultsAuxiliary;
+class ResultsPrincipal;
+class RootFileBlock;
+class RunAuxiliary;
+class RunPrincipal;
+class SubRunAuxiliary;
+class SubRunPrincipal;
+class RootDAQOutFile
 {
 public:  // TYPES
 	enum class ClosureRequestMode

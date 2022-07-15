@@ -48,7 +48,7 @@ public:
 	 * @param n Number of Fragments to generate
 	 * @param fragmentIds List of Fragment IDs to generate Fragments for (if different than configured fragment IDs)
 	 * @return artdaq::FragmentPtrs containing generated Fragments
-	*/
+	 */
 	artdaq::FragmentPtrs Generate(size_t n, std::vector<artdaq::Fragment::fragment_id_t> fragmentIds = std::vector<artdaq::Fragment::fragment_id_t>());
 
 public:

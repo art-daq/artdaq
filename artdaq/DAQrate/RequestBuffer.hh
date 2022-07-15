@@ -1,7 +1,7 @@
 #ifndef _artdaq_DAQrate_RequestBuffer_hh_
 #define _artdaq_DAQrate_RequestBuffer_hh_
 
-#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
 #include <condition_variable>
@@ -11,31 +11,31 @@
 namespace artdaq {
 /**
  * @brief Holds requests from RequestReceiver while they are being processed
-*/
+ */
 class RequestBuffer
 {
 public:
 	/**
 	 * @brief RequestBuffer Constructor
 	 * @param request_increment Expected increase in request sequence ID each request
-	*/
+	 */
 	explicit RequestBuffer(Fragment::sequence_id_t request_increment = 1);
 
 	/**
 	 * @brief RequestBuffer Destructor
-	*/
+	 */
 	virtual ~RequestBuffer();
 
 	/**
 	 * @brief Add a Request to the buffer
 	 * @param seq Sequence ID of the request
 	 * @param ts Timestamp for the request
-	*/
+	 */
 	void push(artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
 
 	/**
 	 * @brief Reset RequestBuffer, discarding all requests and tracking information
-	*/
+	 */
 	void reset();
 
 	/// <summary>
@@ -89,13 +89,13 @@ public:
 
 	/**
 	 * @brief Determine whether the RequestBuffer is active
-	 * @return 
-	*/
+	 * @return
+	 */
 	bool isRunning() const { return receiver_running_; }
 	/**
 	 * @brief Set whether the RequestBuffer is active
 	 * @param running Whether the RequestBuffer is active
-	*/
+	 */
 	void setRunning(bool running) { receiver_running_ = running; }
 
 private:

@@ -7,8 +7,8 @@
 
 #include "artdaq/DAQdata/TCPConnect.hh"
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "TRACE/tracemf.h"
+#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_TCPConnect").c_str()
 
 #include <arpa/inet.h>   // inet_aton
@@ -397,7 +397,7 @@ int TCPConnect(char const *host_in, int dflt_port, int64_t flags, int sndbufsiz)
 	sts = connect(s_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
-		//perror( "connect error" );
+		// perror( "connect error" );
 		close(s_fd);
 		return (-1);
 	}

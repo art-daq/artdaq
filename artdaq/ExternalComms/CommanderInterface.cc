@@ -117,4 +117,4 @@ inline std::string CommanderInterface::clear_config_archive()
 	return "NOT IMPLEMENTED";
 }
 
-}  //namespace artdaq
+}  // namespace artdaq

@@ -2,11 +2,12 @@
 
 #define TRACE_NAME "broken_transfer_driver"
 
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("broken_transfer_driver", true, true);
 	TLOG(TLVL_INFO) << "BEGIN";

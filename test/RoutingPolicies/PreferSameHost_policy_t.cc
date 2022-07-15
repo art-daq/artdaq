@@ -3,8 +3,8 @@
 
 #include "TRACE/tracemf.h"
 
-#include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 BOOST_AUTO_TEST_SUITE(PreferSameHost_policy_t)

@@ -98,14 +98,14 @@ void RequestSender::setup_requests_()
 
 		/*		if (multicast_out_addr_ == "0.0.0.0")
 		{
-			char hostname[HOST_NAME_MAX];
-			sts = gethostname(hostname, HOST_NAME_MAX);
-			multicast_out_addr_ = std::string(hostname);
-			if (sts < 0)
-			{
-				TLOG(TLVL_ERROR) << "Could not get current hostname,  err=" << strerror(errno);
-				exit(1);
-			}
+		    char hostname[HOST_NAME_MAX];
+		    sts = gethostname(hostname, HOST_NAME_MAX);
+		    multicast_out_addr_ = std::string(hostname);
+		    if (sts < 0)
+		    {
+		        TLOG(TLVL_ERROR) << "Could not get current hostname,  err=" << strerror(errno);
+		        exit(1);
+		    }
 		}*/
 
 		// For 0.0.0.0, use system-specified IP_MULTICAST_IF
@@ -113,7 +113,7 @@ void RequestSender::setup_requests_()
 		{
 			struct in_addr addr;
 			sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), addr);
-			//sts = ResolveHost(multicast_out_addr_.c_str(), addr);
+			// sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 			if (sts == -1)
 			{
 				TLOG(TLVL_ERROR) << "Unable to determine the  multicast interface address for " << multicast_out_addr_ << ", err=" << strerror(errno);
@@ -181,7 +181,7 @@ void RequestSender::do_send_request_()
 	inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 	std::lock_guard<std::mutex> lk2(request_send_mutex_);
 	TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
-	                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
+	                      << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 	auto buf = message.GetMessage();
 	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts < 0 || static_cast<size_t>(sts) != buf.size())

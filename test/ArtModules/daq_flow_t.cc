@@ -6,9 +6,9 @@
 #include "artdaq/ArtModules/detail/ArtConfig.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
-#include "fhiclcpp/types/TableFragment.h"
-#include "fhiclcpp/ParameterSet.h"
 #include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/types/TableFragment.h"
 
 #include <cstddef>
 #include <iostream>
@@ -20,7 +20,8 @@ using artdaq::GenericFragmentSimulator;
 using artdaq::SharedMemoryEventManager;
 using std::size_t;
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	struct Config
 	{

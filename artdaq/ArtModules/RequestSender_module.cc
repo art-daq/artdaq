@@ -45,9 +45,9 @@ public:
 	~RequestSenderModule() override;
 
 	/**
-   * \brief Analyze each event, using the configured mode bitmask
-   * \param evt art::Event to analyze
-   */
+	 * \brief Analyze each event, using the configured mode bitmask
+	 * \param evt art::Event to analyze
+	 */
 	void analyze(art::Event const& evt) override;
 
 	/**

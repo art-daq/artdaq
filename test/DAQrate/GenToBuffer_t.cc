@@ -1,13 +1,13 @@
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "GenToBuffer"
 
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/Generators/CommandableFragmentGenerator.hh"
-#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/FragmentBuffer.hh"
 #include "artdaq/DAQrate/RequestBuffer.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
@@ -25,14 +25,14 @@ namespace bpo = boost::program_options;
 namespace artdaq {
 /**
  * @brief Test fixture for GenToBuffer_t
-*/
+ */
 class GenToBufferTest
 {
 public:
 	/**
 	 * @brief GenToBufferTest constructor
 	 * @param ps ParameterSet for GenToBufferTest
-	*/
+	 */
 	explicit GenToBufferTest(fhicl::ParameterSet const& ps)
 	    : generator_ptr_(nullptr)
 	    , fragment_buffer_ptr_(new FragmentBuffer(ps))
@@ -48,7 +48,7 @@ public:
 	/**
 	 * @brief Start the test fixture
 	 * @param run_number Run Number to use in Start commands
-	*/
+	 */
 	void start(int run_number)
 	{
 		metricMan->do_start();
@@ -63,7 +63,7 @@ public:
 	}
 	/**
 	 * @brief Stop the test fixture
-	*/
+	 */
 	void stop()
 	{
 		generator_ptr_->StopCmd(0, 0);
@@ -79,7 +79,7 @@ public:
 	/**
 	 * @brief Get a handle to the RequestBuffer
 	 * @return RequestBuffer shared_ptr handle
-	*/
+	 */
 	std::shared_ptr<RequestBuffer> GetRequestBuffer() { return request_buffer_ptr_; }
 
 private:

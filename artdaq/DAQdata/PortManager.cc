@@ -2,8 +2,8 @@
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "PortManager"
 
-#include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 
@@ -40,7 +40,7 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 		ports_per_partition_ = newVal;
 	}
 
-	auto bp = getenv("ARTDAQ_BASE_PORT");  //Environment overrides configuration
+	auto bp = getenv("ARTDAQ_BASE_PORT");  // Environment overrides configuration
 	if (bp != nullptr)
 	{
 		try
@@ -62,7 +62,7 @@ void artdaq::PortManager::UpdateConfiguration(fhicl::ParameterSet const& ps)
 		{}
 	}
 
-	auto ppp = getenv("ARTDAQ_PORTS_PER_PARTITION");  //Environment overrides configuration
+	auto ppp = getenv("ARTDAQ_PORTS_PER_PARTITION");  // Environment overrides configuration
 	if (ppp != nullptr)
 	{
 		try
