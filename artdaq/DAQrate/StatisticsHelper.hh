@@ -1,9 +1,16 @@
 #ifndef artdaq_Application_MPI2_StatisticsHelper_hh
 #define artdaq_Application_MPI2_StatisticsHelper_hh
 
-#include <vector>
+#include "artdaq-core/Core/MonitoredQuantity.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
-#include "fhiclcpp/ParameterSet.h"
+
+namespace fhicl {
+class ParameterSet;
+}
+
+#include <atomic>
+#include <string>
+#include <vector>
 
 namespace artdaq {
 class StatisticsHelper;
@@ -59,7 +66,7 @@ public:
 	 * \param defaultMonitorWindow Default monitoring window
 	 * \param primaryStatKeyName The primary (default) MonitoredQuantity
 	 * \return Whether the primary MonitoredQuantity exists
-	 * 
+	 *
 	 * StatisitcsHelper accpets the following Parameters:
 	 * "reporting_interval_fragments" (Default given above): The reporting interval in Fragments
 	 * "reporting_interval_seconds" (Default given above): The reporting interval in Seconds

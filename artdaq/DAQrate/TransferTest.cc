@@ -7,8 +7,6 @@
 #define TRACE_NAME "TransferTest"
 #include "artdaq/DAQdata/Globals.hh"
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
-
 #include <future>
 
 artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
@@ -99,7 +97,7 @@ artdaq::TransferTest::TransferTest(fhicl::ParameterSet psi)
 	}
 	ss << "}" << std::endl;
 
-	ps_ = make_pset(ss.str());
+	ps_ = fhicl::ParameterSet::make(ss.str());
 
 	TLOG(TLVL_DEBUG + 32) << "Going to configure with ParameterSet: " << ps_.to_string() << std::endl;
 }
@@ -183,15 +181,15 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 		TLOG(TLVL_DEBUG + 34) << "sender rank " << my_rank << " #" << ii << " resized bytes=" << frag.sizeBytes();
 		totalSize += frag.sizeBytes();
 
-		//unsigned sndDatSz = data_size_wrds;
+		// unsigned sndDatSz = data_size_wrds;
 		frag.setSequenceID(ii * sending_threads_ + index);
 		frag.setFragmentID(my_rank);
 		frag.setSystemType(artdaq::Fragment::DataFragmentType);
 		/*
-				artdaq::Fragment::iterator it = frag.dataBegin();
-				*it = my_rank;
-				*++it = ii;
-				*++it = sndDatSz;*/
+		        artdaq::Fragment::iterator it = frag.dataBegin();
+		        *it = my_rank;
+		        *++it = ii;
+		        *++it = sndDatSz;*/
 
 		auto send_start = std::chrono::steady_clock::now();
 		TLOG(TLVL_DEBUG + 32) << "Sender " << my_rank << " sending fragment " << ii;
@@ -199,7 +197,7 @@ std::pair<size_t, double> artdaq::TransferTest::do_sending(int index)
 		auto after_send = std::chrono::steady_clock::now();
 		TLOG(TLVL_DEBUG + 33) << "Sender " << my_rank << " sent fragment " << ii;
 		sender.RemoveRoutingTableEntry(ii * sending_threads_ + index);
-		//usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
+		// usleep( (data_size_wrds*sizeof(artdaq::RawDataType))/233 );
 
 		if (stspair.second != artdaq::TransferInterface::CopyStatus::kSuccess)
 		{

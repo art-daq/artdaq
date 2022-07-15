@@ -1,10 +1,10 @@
 #ifndef artdaq_Application_MPI2_DataLoggerApp_hh
 #define artdaq_Application_MPI2_DataLoggerApp_hh
 
-#include <future>
-
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
+
+#include <memory>
 
 namespace artdaq {
 class DataLoggerApp;
@@ -61,21 +61,21 @@ public:
 	bool do_stop(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Pause the DataLoggerCore
-	* \return Whether the pause transition succeeded
-	*/
+	 * \brief Pause the DataLoggerCore
+	 * \return Whether the pause transition succeeded
+	 */
 	bool do_pause(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Resume the DataLoggerCore
-	* \return Whether the resume transition succeeded
-	*/
+	 * \brief Resume the DataLoggerCore
+	 * \return Whether the resume transition succeeded
+	 */
 	bool do_resume(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Shutdown the DataLoggerCore
-	* \return Whether the shutdown transition succeeded
-	*/
+	 * \brief Shutdown the DataLoggerCore
+	 * \return Whether the shutdown transition succeeded
+	 */
 	bool do_shutdown(uint64_t) override;
 
 	/**
@@ -85,9 +85,9 @@ public:
 	bool do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
 
 	/**
-	* \brief Reinitialize the DataLoggerCore. No-Op
-	* \return This function always returns true
-	*/
+	 * \brief Reinitialize the DataLoggerCore. No-Op
+	 * \return This function always returns true
+	 */
 	bool do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
 
 	/**
@@ -98,15 +98,15 @@ public:
 	std::string report(std::string const& which) const override;
 
 	/**
-	* \brief Add the specified configuration archive entry to the DataLoggerCore
-	* \return Whether the command succeeded
-	*/
+	 * \brief Add the specified configuration archive entry to the DataLoggerCore
+	 * \return Whether the command succeeded
+	 */
 	bool do_add_config_archive_entry(std::string const&, std::string const&) override;
 
 	/**
-	* \brief Clear the configuration archive list in the DataLoggerCore
-	* \return Whether the command succeeded
-	*/
+	 * \brief Clear the configuration archive list in the DataLoggerCore
+	 * \return Whether the command succeeded
+	 */
 	bool do_clear_config_archive() override;
 
 private:

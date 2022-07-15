@@ -9,7 +9,8 @@
 
 #include <iostream>
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("commandable");
 

@@ -7,23 +7,26 @@
 // $RCSfile: .emacs.gnu,v $
 // rev="$Revision: 1.30 $$Date: 2016/03/01 14:27:27 $";
 
+// artdaq Includes
+#include "artdaq/DAQdata/HostMap.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "artdaq/TransferPlugins/detail/SRSockets.hh"
+
 // C Includes
 #include <sys/uio.h>  // iovec
 #include <cstdint>    // uint64_t
 
 // C++ Includes
 #include <boost/thread.hpp>
+
+#include <atomic>
+#include <chrono>
 #include <condition_variable>
-
-// Products includes
-#include "fhiclcpp/fwd.h"
-
-// artdaq Includes
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/HostMap.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "artdaq/TransferPlugins/detail/SRSockets.hh"
-#include "artdaq/TransferPlugins/detail/Timeout.hh"  // Timeout
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>  // std::move()
 
 #ifndef USE_ACKS
 #define USE_ACKS 0
@@ -43,7 +46,7 @@ public:
 	 * \brief TCPSocketTransfer Constructor
 	 * \param ps ParameterSet used to configure TCPSocketTransfer
 	 * \param role Role of this TCPSocketTransfer instance (kSend or kReceive)
-	 * 
+	 *
 	 * \verbatim
 	 * TCPSocketTransfer accepts the following Parameters:
 	 * "tcp_receive_buffer_size" (Default: 0): The TCP buffer size on the receive socket
@@ -62,46 +65,46 @@ public:
 	virtual ~TCPSocketTransfer() noexcept;
 
 	/**
-	* \brief Receive a Fragment Header from the transport mechanism
-	* \param[out] header Received Fragment Header
-	* \param timeout_usec Timeout for receive
-	* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-	*/
+	 * \brief Receive a Fragment Header from the transport mechanism
+	 * \param[out] header Received Fragment Header
+	 * \param timeout_usec Timeout for receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 */
 	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t timeout_usec) override;
 
 	/**
-	* \brief Receive the body of a Fragment to the given destination pointer
-	* \param destination Pointer to memory region where Fragment data should be stored
-	* \param wordCount Number of RawDataType words to receive
-	* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-	*/
+	 * \brief Receive the body of a Fragment to the given destination pointer
+	 * \param destination Pointer to memory region where Fragment data should be stored
+	 * \param wordCount Number of RawDataType words to receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 */
 	int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
 
 	/**
-	* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
-	* \param frag Fragment to transfer
-	* \param timeout_usec Timeout for send, in microseconds
-	* \return CopyStatus detailing result of transfer
-	*/
+	 * \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
+	 * \param frag Fragment to transfer
+	 * \param timeout_usec Timeout for send, in microseconds
+	 * \return CopyStatus detailing result of transfer
+	 */
 	CopyStatus transfer_fragment_min_blocking_mode(Fragment const& frag, size_t timeout_usec) override { return sendFragment_(Fragment(frag), timeout_usec); }
 
 	/**
-	* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
-	* \param frag Fragment to transfer
-	* \return CopyStatus detailing result of copy
-	*/
+	 * \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
+	 * \param frag Fragment to transfer
+	 * \return CopyStatus detailing result of copy
+	 */
 	CopyStatus transfer_fragment_reliable_mode(Fragment&& frag) override { return sendFragment_(std::move(frag), 0); }
 
 	/**
-	* \brief Determine whether the TransferInterface plugin is able to send/receive data
-	* \return True if the TransferInterface plugin is currently able to send/receive data
-	*/
+	 * \brief Determine whether the TransferInterface plugin is able to send/receive data
+	 * \return True if the TransferInterface plugin is currently able to send/receive data
+	 */
 	bool isRunning() override;
 
 	/**
-         * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
-         * ended.
-         */
+	 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
+	 * ended.
+	 */
 	void flush_buffers() override;
 
 private:

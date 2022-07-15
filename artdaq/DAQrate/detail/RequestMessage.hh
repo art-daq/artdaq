@@ -1,8 +1,14 @@
 #ifndef artdaq_DAQrate_detail_RequestMessage_hh
 #define artdaq_DAQrate_detail_RequestMessage_hh
 
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 #define MAX_REQUEST_MESSAGE_SIZE 65000
+
+#include "artdaq/DAQdata/Globals.hh"
+
+#include <iostream>
+#include <vector>
 
 namespace artdaq {
 namespace detail {
@@ -11,8 +17,8 @@ struct RequestHeader;
 class RequestMessage;
 
 /**
-		 * \brief Mode used to indicate current run conditions to the request receiver
-		 */
+ * \brief Mode used to indicate current run conditions to the request receiver
+ */
 enum class RequestMessageMode : uint8_t
 {
 	Normal = 0,    ///< Normal running
@@ -20,11 +26,11 @@ enum class RequestMessageMode : uint8_t
 };
 
 /**
-		 * \brief Converts the RequestMessageMode to a string and sends it to the output stream
-		 * \param o Stream to send string to
-		 * \param m RequestMessageMode to convert to string
-		 * \return o with string sent to it
-		 */
+ * \brief Converts the RequestMessageMode to a string and sends it to the output stream
+ * \param o Stream to send string to
+ * \param m RequestMessageMode to convert to string
+ * \return o with string sent to it
+ */
 inline std::ostream& operator<<(std::ostream& o, RequestMessageMode m)
 {
 	switch (m)
@@ -49,7 +55,7 @@ struct artdaq::detail::RequestPacket
 {
 public:
 	/** The magic bytes for the request packet */
-	uint32_t header{0};                                                //TRIG, or 0x54524947
+	uint32_t header{0};                                                // TRIG, or 0x54524947
 	Fragment::sequence_id_t sequence_id{Fragment::InvalidSequenceID};  ///< The sequence ID that responses to this request should use
 	Fragment::timestamp_t timestamp{Fragment::InvalidTimestamp};       ///< The timestamp of the request
 
@@ -79,7 +85,7 @@ public:
 struct artdaq::detail::RequestHeader
 {
 	/** The magic bytes for the request header */
-	uint32_t header{0x48454452};                          //HEDR, or 0x48454452
+	uint32_t header{0x48454452};                          // HEDR, or 0x48454452
 	uint32_t packet_count{0};                             ///< The number of RequestPackets in this Request message
 	int rank{my_rank};                                    ///< Rank of the sender
 	uint32_t run_number{0};                               ///< The Run with which this request should be associated
@@ -88,9 +94,9 @@ struct artdaq::detail::RequestHeader
 	RequestHeader() = default;
 
 	/**
-	* \brief Check the magic bytes of the packet
-	* \return Whether the correct magic bytes were found
-	*/
+	 * \brief Check the magic bytes of the packet
+	 * \return Whether the correct magic bytes were found
+	 */
 	bool isValid() const { return header == 0x48454452; }
 };
 
@@ -171,7 +177,7 @@ public:
 	/**
 	 * @brief Get the maximum number of requests that can be sent in a single RequestMessage
 	 * @return The maximum number of reqeusts that fit in a single UDP datagram
-	*/
+	 */
 	static size_t max_request_count()
 	{
 		return (MAX_REQUEST_MESSAGE_SIZE - sizeof(RequestHeader)) / sizeof(RequestPacket);

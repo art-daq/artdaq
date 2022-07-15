@@ -1,12 +1,13 @@
 #ifndef artdaq_Application_MPI2_DispatcherCore_hh
 #define artdaq_Application_MPI2_DispatcherCore_hh
 
-#include <string>
+#include "artdaq/Application/DataReceiverCore.hh"
 
-#include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq/Application/DataReceiverCore.hh"
+#include <mutex>
+#include <string>
+#include <unordered_map>
 
 namespace artdaq {
 class DispatcherCore;
@@ -20,8 +21,8 @@ class artdaq::DispatcherCore : public DataReceiverCore
 {
 public:
 	/**
-	* \brief DispatcherCore Constructor.
-	*/
+	 * \brief DispatcherCore Constructor.
+	 */
 	DispatcherCore() = default;
 
 	/**
@@ -30,8 +31,8 @@ public:
 	DispatcherCore(DispatcherCore const&) = delete;
 
 	/**
-	* Destructor.
-	*/
+	 * Destructor.
+	 */
 	~DispatcherCore()
 	{
 		TLOG(TLVL_DEBUG + 32) << "Destructor";
@@ -46,32 +47,32 @@ public:
 	DispatcherCore& operator=(DispatcherCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
-	* \brief Processes the initialize request.
-	* \param pset ParameterSet used to configure the DispatcherCore
-	* \return Whether the initialize attempt succeeded
-	*
-	* \verbatim
-	* DispatcherCore accepts the following Parameters:
-	* "daq" (REQUIRED): FHiCL table containing DAQ configuration
-	*   "Dispatcher" (REQUIRED): FHiCL table containing Dispatcher paramters
-	*     "expected_events_per_bunch" (REQUIRED): Number of events to collect before sending them to art
-	*     "enq_timeout" (Default: 5.0): Maximum amount of time to wait while enqueueing events to the ConcurrentQueue
-	*     "is_data_logger": True if the Dispatcher is a Data Logger
-	*     "is_online_monitor": True if the Dispatcher is an Online Monitor. is_data_logger takes precedence
-	*     "is_dispatcher": True if the Dispatcher is a Dispatcher. is_data_logger and is_online_monitor take precedence
-	*       NOTE: At least ONE of these three parameters must be specified.
-	*     "inrun_recv_timeout_usec" (Default: 100000): Amount of time to wait for new events while running
-	*     "endrun_recv_timeout_usec" (Default: 20000000): Amount of time to wait for additional events at EndOfRun
-	*     "pause_recv_timeout_usec" (Default: 3000000): Amount of time to wait for additional events at PauseRun
-	*     "onmon_event_prescale" (Default: 1): Only send 1/N events to art for online monitoring (requires is_data_logger: true)
-	*     "verbose" (Default: true): Whether to print transition messages
-	*   "metrics": FHiCL table containing configuration for MetricManager
-	* "outputs" (REQUIRED): FHiCL table containing output parameters
-	*   "normalOutput" (REQUIRED): FHiCL table containing default output parameters
-	*     "fileName" (Default: ""): Name template of the output file. Used to determine output directory
-	* \endverbatim
-	*  Note that the "Dispatcher" ParameterSet is also used to configure the EventStore. See that class' documentation for more information.
-	*/
+	 * \brief Processes the initialize request.
+	 * \param pset ParameterSet used to configure the DispatcherCore
+	 * \return Whether the initialize attempt succeeded
+	 *
+	 * \verbatim
+	 * DispatcherCore accepts the following Parameters:
+	 * "daq" (REQUIRED): FHiCL table containing DAQ configuration
+	 *   "Dispatcher" (REQUIRED): FHiCL table containing Dispatcher paramters
+	 *     "expected_events_per_bunch" (REQUIRED): Number of events to collect before sending them to art
+	 *     "enq_timeout" (Default: 5.0): Maximum amount of time to wait while enqueueing events to the ConcurrentQueue
+	 *     "is_data_logger": True if the Dispatcher is a Data Logger
+	 *     "is_online_monitor": True if the Dispatcher is an Online Monitor. is_data_logger takes precedence
+	 *     "is_dispatcher": True if the Dispatcher is a Dispatcher. is_data_logger and is_online_monitor take precedence
+	 *       NOTE: At least ONE of these three parameters must be specified.
+	 *     "inrun_recv_timeout_usec" (Default: 100000): Amount of time to wait for new events while running
+	 *     "endrun_recv_timeout_usec" (Default: 20000000): Amount of time to wait for additional events at EndOfRun
+	 *     "pause_recv_timeout_usec" (Default: 3000000): Amount of time to wait for additional events at PauseRun
+	 *     "onmon_event_prescale" (Default: 1): Only send 1/N events to art for online monitoring (requires is_data_logger: true)
+	 *     "verbose" (Default: true): Whether to print transition messages
+	 *   "metrics": FHiCL table containing configuration for MetricManager
+	 * "outputs" (REQUIRED): FHiCL table containing output parameters
+	 *   "normalOutput" (REQUIRED): FHiCL table containing default output parameters
+	 *     "fileName" (Default: ""): Name template of the output file. Used to determine output directory
+	 * \endverbatim
+	 *  Note that the "Dispatcher" ParameterSet is also used to configure the EventStore. See that class' documentation for more information.
+	 */
 	bool initialize(fhicl::ParameterSet const& pset) override;
 
 	/**

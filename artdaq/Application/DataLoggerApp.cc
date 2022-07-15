@@ -5,6 +5,8 @@
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
 
+#include <boost/lexical_cast.hpp>
+
 #include <iostream>
 #include <memory>
 
@@ -18,7 +20,7 @@ bool artdaq::DataLoggerApp::do_initialize(fhicl::ParameterSet const& pset, uint6
 {
 	report_string_ = "";
 
-	//DataLogger_ptr_.reset(nullptr);
+	// DataLogger_ptr_.reset(nullptr);
 	if (DataLogger_ptr_ == nullptr)
 	{
 		DataLogger_ptr_ = std::make_unique<DataLoggerCore>();
@@ -126,11 +128,11 @@ std::string artdaq::DataLoggerApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	//if (report_string_.length() > 0) {
-	//  resultString.append("*** Overall status message:\r\n");
-	//  resultString.append(report_string_ + "\r\n");
-	//  resultString.append("*** Requested report response:\r\n");
-	//}
+	// if (report_string_.length() > 0) {
+	//   resultString.append("*** Overall status message:\r\n");
+	//   resultString.append(report_string_ + "\r\n");
+	//   resultString.append("*** Requested report response:\r\n");
+	// }
 
 	// pass the request to the DataLoggerCore instance, if it's available
 	if (DataLogger_ptr_ != nullptr)

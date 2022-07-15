@@ -1,15 +1,16 @@
-#include "artdaq/DAQdata/Globals.hh"
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
 #define TRACE_NAME "TransferWrapper"
 
-#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/ArtModules/detail/TransferWrapper.hh"
+
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
-#include "artdaq/ArtModules/detail/TransferWrapper.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
-#include "cetlib/BasicPluginFactory.h"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
@@ -184,10 +185,10 @@ artdaq::FragmentPtrs artdaq::TransferWrapper::receiveMessage()
 
 		if (fragmentPtr->type() == artdaq::Fragment::EndOfDataFragmentType)
 		{
-			//if (monitorRegistered_)
+			// if (monitorRegistered_)
 			//{
 			//	unregisterMonitor();
-			//}
+			// }
 			if (multi_run_mode_)
 			{
 				unregisterMonitor();
@@ -398,7 +399,7 @@ void artdaq::TransferWrapper::unregisterMonitor()
 		else
 		{
 			TLOG(TLVL_WARNING) << "The Dispatcher returned status " << status << " when attempting to unregister this monitor!";
-			//throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to unregister with dispatcher did not result in the \"Success\" response";
+			// throw cet::exception("TransferWrapper") << "Error in TransferWrapper: attempt to unregister with dispatcher did not result in the \"Success\" response";
 		}
 		retry--;
 		usleep(500000);

@@ -3,6 +3,7 @@
 #include "artdaq/RTIDDS/RTIDDS.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
+#include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 
 #include <iostream>
@@ -235,10 +236,10 @@ bool artdaq::RTIDDS::OctetsListener::receiveFragmentFromDDS(artdaq::Fragment& fr
 		dds_octets_queue_.pop();
 
 		TLOG(TLVL_DEBUG + 32) << name_
-		                 << ": Received fragment from DDS, type ="
-		                 << ((int)fragment.type()) << ", sequenceID = "
-		                 << fragment.sequenceID() << ", size in bytes = "
-		                 << fragment.sizeBytes();
+		                      << ": Received fragment from DDS, type ="
+		                      << ((int)fragment.type()) << ", sequenceID = "
+		                      << fragment.sequenceID() << ", size in bytes = "
+		                      << fragment.sizeBytes();
 
 		return true;
 	}

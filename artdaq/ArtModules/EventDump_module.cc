@@ -36,7 +36,7 @@ public:
 	/**
 	 * \brief EventDump Constructor
 	 * \param pset ParameterSet used to configure EventDump
-	 * 
+	 *
 	 * \verbatim
 	 * EventDump accepts the following Parameters:
 	 * "raw_data_label" (Default: "daq"): The label used to store artdaq data
@@ -53,7 +53,7 @@ public:
 	/**
 	 * \brief This method is called for each art::Event in a file or run
 	 * \param e The art::Event to analyze
-	 * 
+	 *
 	 * This module simply prints the event number, and art by default
 	 * prints the products found in the event.
 	 */
@@ -81,11 +81,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 		std::cout << "***** Start of EventDump for event " << e.event() << " *****" << std::endl;
 
 		std::vector<art::Handle<detail::RawEventHeader>> header_handles;
-#if ART_HEX_VERSION < 0x30900
-		e.getManyByType(header_handles);
-#else
 		header_handles = e.getMany<detail::RawEventHeader>();
-#endif
 
 		for (auto const& header_handle : header_handles)
 		{
@@ -99,11 +95,7 @@ void artdaq::EventDump::analyze(art::Event const& e)
 		}
 
 		std::vector<art::Handle<std::vector<artdaq::Fragment>>> fragmentHandles;
-#if ART_HEX_VERSION < 0x30900
-		e.getManyByType(fragmentHandles);
-#else
 		fragmentHandles = e.getMany<std::vector<artdaq::Fragment>>();
-#endif
 
 		for (auto const& handle : fragmentHandles)
 		{

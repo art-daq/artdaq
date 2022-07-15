@@ -8,6 +8,8 @@
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
+#include <thread>
+
 BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
 artdaq::detail::RawFragmentHeader GetHeader(artdaq::FragmentPtr const& frag)
@@ -306,14 +308,14 @@ BOOST_AUTO_TEST_CASE(TooManyFragments_DiscreteWrites)
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
+		// BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 	}
 	TLOG(TLVL_INFO) << "Test TooManyFragments_DiscreteWrites END";
 }
 
-//SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
+// SharedMemoryEventManager should print error messages, but consume data for buffers which have timed out
 BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 {
 	TLOG(TLVL_INFO) << "Test ConsumeDroppedData_Active BEGIN";
@@ -339,7 +341,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
+		// BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(1), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 	}
@@ -352,7 +354,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 2);
-		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
+		// BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 0);
 
@@ -363,8 +365,8 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
-		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
-		//BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
+		// BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
+		// BOOST_REQUIRE_EQUAL(t.GetFragmentCount(2), 2);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 		BOOST_REQUIRE_EQUAL(fragLoc + frag->size(), fragLoc2);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 	}
@@ -377,7 +379,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 2);
-		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
+		// BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetFragmentCount(3), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 1);
 
@@ -387,7 +389,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
+		// BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 2);
 	}
@@ -403,7 +405,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		memcpy(fragLoc, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
+		// BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 1);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount() + t.GetArtEventCount(), 3);
 
@@ -426,7 +428,7 @@ BOOST_AUTO_TEST_CASE(ConsumeDroppedData_Active)
 		memcpy(fragLoc2, frag->dataBegin(), 4 * sizeof(artdaq::RawDataType));
 		t.DoneWritingFragment(hdr);
 		BOOST_REQUIRE_EQUAL(t.GetPendingEventCount(), 0);
-		//BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
+		// BOOST_REQUIRE_EQUAL(t.GetInactiveEventCount(), 0);
 		BOOST_REQUIRE_EQUAL(t.GetOpenEventCount(), 0);
 #if ART_SUPPORTS_DUPLICATE_EVENTS
 		BOOST_REQUIRE_EQUAL(t.GetArtEventCount(), 5);

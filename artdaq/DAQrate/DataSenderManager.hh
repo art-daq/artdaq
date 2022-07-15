@@ -1,23 +1,28 @@
 #ifndef ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 
+#include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
+
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq/DAQdata/HostMap.hh"
+#include "artdaq/DAQrate/detail/FragCounter.hh"
+#include "artdaq/DAQrate/detail/TableReceiver.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+#include "fhiclcpp/types/OptionalTable.h"
+#include "fhiclcpp/types/TableFragment.h"
+
 #include <netinet/in.h>
+#include <atomic>
 #include <map>
 #include <memory>
 #include <set>
-
-#include "fhiclcpp/fwd.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/HostMap.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq/DAQrate/detail/TableReceiver.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "fhiclcpp/types/Atom.h"
-#include "fhiclcpp/types/OptionalTable.h"
-#include "fhiclcpp/types/TableFragment.h"
 
 namespace artdaq {
 class DataSenderManager;
@@ -83,16 +88,16 @@ public:
 	std::pair<int, TransferInterface::CopyStatus> sendFragment(Fragment&& frag);
 
 	/**
-	* \brief Return the count of Fragment objects sent by this DataSenderManagerq
-	* \return The count of Fragment objects sent by this DataSenderManager
-	*/
+	 * \brief Return the count of Fragment objects sent by this DataSenderManagerq
+	 * \return The count of Fragment objects sent by this DataSenderManager
+	 */
 	size_t count() const;
 
 	/**
-	* \brief Get the count of Fragment objects sent by this DataSenderManager to a given destination
-	* \param rank Destination rank to get count for
-	* \return The  count of Fragment objects sent by this DataSenderManager to the destination
-	*/
+	 * \brief Get the count of Fragment objects sent by this DataSenderManager to a given destination
+	 * \param rank Destination rank to get count for
+	 * \return The  count of Fragment objects sent by this DataSenderManager to the destination
+	 */
 	size_t slotCount(size_t rank) const;
 
 	/**
@@ -178,4 +183,4 @@ artdaq::DataSenderManager::
 {
 	return sent_frag_count_.slotCount(rank);
 }
-#endif  //ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
+#endif  // ARTDAQ_DAQRATE_DATASENDERMANAGER_HH

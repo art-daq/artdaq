@@ -1,27 +1,35 @@
 #ifndef ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
 #define ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
 
-#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq-core/Core/SharedMemoryManager.hh"
+#include "artdaq-core/Data/RawEvent.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
+#include "artdaq/DAQrate/detail/TokenSender.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/OptionalTable.h"
+#include "fhiclcpp/types/TableFragment.h"
+
+#define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 #include <sys/stat.h>
 #include <deque>
 #include <fstream>
 #include <iomanip>
 #include <set>
-#include "artdaq-core/Core/SharedMemoryManager.hh"
-#include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq/DAQrate/detail/RequestSender.hh"
-#include "artdaq/DAQrate/detail/TokenSender.hh"
-#include "fhiclcpp/fwd.h"
-#include "fhiclcpp/types/Table.h"
-#define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 namespace artdaq {
 
 /**
-	 * \brief art_config_file wraps a temporary file used to configure art
-	 */
+ * \brief art_config_file wraps a temporary file used to configure art
+ */
 class art_config_file
 {
 public:
@@ -72,9 +80,9 @@ public:
 		rmdir(dir_name_.c_str());  // Will only delete directory if no config files are left over
 	}
 	/**
-		 * \brief Get the path of the temporary file
-		 * \return The path of the temporary file
-		 */
+	 * \brief Get the path of the temporary file
+	 * \return The path of the temporary file
+	 */
 	std::string getFileName() const { return file_name_; }
 
 private:
@@ -88,8 +96,8 @@ private:
 };
 
 /**
-	 * \brief The SharedMemoryEventManager is a SharedMemoryManger which tracks events as they are built
-	 */
+ * \brief The SharedMemoryEventManager is a SharedMemoryManger which tracks events as they are built
+ */
 class SharedMemoryEventManager : public SharedMemoryManager
 {
 public:
@@ -175,197 +183,197 @@ public:
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
-		 * \brief SharedMemoryEventManager Constructor
-		 * \param pset ParameterSet used to configure SharedMemoryEventManager. See artdaq::SharedMemoryEventManager::Config for description of parameters
-		 * \param art_pset ParameterSet used to configure art. See art::Config for description of expected document format
-		 */
+	 * \brief SharedMemoryEventManager Constructor
+	 * \param pset ParameterSet used to configure SharedMemoryEventManager. See artdaq::SharedMemoryEventManager::Config for description of parameters
+	 * \param art_pset ParameterSet used to configure art. See art::Config for description of expected document format
+	 */
 	SharedMemoryEventManager(const fhicl::ParameterSet& pset, fhicl::ParameterSet art_pset);
 	/**
-		 * \brief SharedMemoryEventManager Destructor
-		 */
+	 * \brief SharedMemoryEventManager Destructor
+	 */
 	virtual ~SharedMemoryEventManager();
 
 private:
 	/**
-		 * \brief Add a Fragment to the SharedMemoryEventManager
-		 * \param frag Header of the Fragment (seq ID and size info)
-		 * \param dataPtr Pointer to the fragment's data (i.e. Fragment::headerAddress())
-		 * \return Whether the Fragment was successfully added
-		 */
+	 * \brief Add a Fragment to the SharedMemoryEventManager
+	 * \param frag Header of the Fragment (seq ID and size info)
+	 * \param dataPtr Pointer to the fragment's data (i.e. Fragment::headerAddress())
+	 * \return Whether the Fragment was successfully added
+	 */
 	bool AddFragment(detail::RawFragmentHeader frag, void* dataPtr);
 
 public:
 	/**
-		* \brief Copy a Fragment into the SharedMemoryEventManager
-		* \param frag FragmentPtr object
-		* \param timeout_usec Timeout for adding Fragment to the Shared Memory
-		* \param [out] outfrag Rejected Fragment if timeout occurs
-		* \return Whether the Fragment was successfully added
-		*/
+	 * \brief Copy a Fragment into the SharedMemoryEventManager
+	 * \param frag FragmentPtr object
+	 * \param timeout_usec Timeout for adding Fragment to the Shared Memory
+	 * \param [out] outfrag Rejected Fragment if timeout occurs
+	 * \return Whether the Fragment was successfully added
+	 */
 	bool AddFragment(FragmentPtr frag, size_t timeout_usec, FragmentPtr& outfrag);
 
 	/**
-		 * \brief Get a pointer to a reserved memory area for the given Fragment header
-		 * \param frag Fragment header (contains sequence ID and size information)
-		 * \param dropIfNoBuffersAvailable Whether to drop the fragment (instead of returning nullptr) when no buffers are available (Default: false)
-		 * \return Pointer to memory location for Fragment body (Header is copied into buffer here)
-		 */
+	 * \brief Get a pointer to a reserved memory area for the given Fragment header
+	 * \param frag Fragment header (contains sequence ID and size information)
+	 * \param dropIfNoBuffersAvailable Whether to drop the fragment (instead of returning nullptr) when no buffers are available (Default: false)
+	 * \return Pointer to memory location for Fragment body (Header is copied into buffer here)
+	 */
 	RawDataType* WriteFragmentHeader(detail::RawFragmentHeader frag, bool dropIfNoBuffersAvailable = false);
 
 	/**
-		 * \brief Used to indicate that the given Fragment is now completely in the buffer. Will check for buffer completeness, and unset the pending flag.
-		 * \param frag Fragment that is now completely in the buffer.
-		 */
+	 * \brief Used to indicate that the given Fragment is now completely in the buffer. Will check for buffer completeness, and unset the pending flag.
+	 * \param frag Fragment that is now completely in the buffer.
+	 */
 	void DoneWritingFragment(detail::RawFragmentHeader frag);
 
 	/**
-		* \brief Returns the number of buffers which contain data but are not yet complete
-		* \return The number of buffers which contain data but are not yet complete
-		*/
+	 * \brief Returns the number of buffers which contain data but are not yet complete
+	 * \return The number of buffers which contain data but are not yet complete
+	 */
 	size_t GetOpenEventCount() { return active_buffers_.size(); }
 
 	/**
-		* \brief Returns the number of events which are complete but waiting on lower sequenced events to finish
-		* \return The number of events which are complete but waiting on lower sequenced events to finish
-		*/
+	 * \brief Returns the number of events which are complete but waiting on lower sequenced events to finish
+	 * \return The number of events which are complete but waiting on lower sequenced events to finish
+	 */
 	size_t GetPendingEventCount() { return pending_buffers_.size(); }
 
 	/**
-		* \brief Returns the number of buffers currently owned by this manager
-		* \return The number of buffers currently owned by this manager
-		*/
+	 * \brief Returns the number of buffers currently owned by this manager
+	 * \return The number of buffers currently owned by this manager
+	 */
 	size_t GetLockedBufferCount() { return GetBuffersOwnedByManager().size(); }
 
 	/**
-		 * \brief Returns the number of events sent to art this run
-		 * \return The number of events sent to art this run
-		 */
+	 * \brief Returns the number of events sent to art this run
+	 * \return The number of events sent to art this run
+	 */
 	size_t GetArtEventCount() { return run_event_count_; }
 
 	/**
-		 * \brief Get the count of Fragments of a given type in an event
-		 * \param seqID Sequence ID of Fragments
-		 * \param type Type of fragments to count. Use InvalidFragmentType to count all fragments (default)
-		 * \return Number of Fragments in event of given type
-		 */
+	 * \brief Get the count of Fragments of a given type in an event
+	 * \param seqID Sequence ID of Fragments
+	 * \param type Type of fragments to count. Use InvalidFragmentType to count all fragments (default)
+	 * \return Number of Fragments in event of given type
+	 */
 	size_t GetFragmentCount(Fragment::sequence_id_t seqID, Fragment::type_t type = Fragment::InvalidFragmentType);
 
 	/**
-		* \brief Get the count of Fragments of a given type in a buffer
-		* \param buffer Buffer to count
-		* \param type Type of fragments to count. Use InvalidFragmentType to count all fragments (default)
-		* \return Number of Fragments in buffer of given type
-		*/
+	 * \brief Get the count of Fragments of a given type in a buffer
+	 * \param buffer Buffer to count
+	 * \param type Type of fragments to count. Use InvalidFragmentType to count all fragments (default)
+	 * \return Number of Fragments in buffer of given type
+	 */
 	size_t GetFragmentCountInBuffer(int buffer, Fragment::type_t type = Fragment::InvalidFragmentType);
 
 	/**
-		 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
-		 */
+	 * \brief Run an art instance, recording the return codes and restarting it until the end flag is raised
+	 */
 	void RunArt(const std::shared_ptr<art_config_file>& config_file, size_t process_index, const std::shared_ptr<std::atomic<pid_t>>& pid_out);
 	/**
-		 * \brief Start all the art processes
-		 */
+	 * \brief Start all the art processes
+	 */
 	void StartArt();
 
 	/**
-		 * \brief Start one art process
-		 * \param pset ParameterSet to send to this art process
-		 * \param process_index Index of this art process (when starting multiple)
-		 * \return pid_t of the started process
-		 */
+	 * \brief Start one art process
+	 * \param pset ParameterSet to send to this art process
+	 * \param process_index Index of this art process (when starting multiple)
+	 * \return pid_t of the started process
+	 */
 	pid_t StartArtProcess(fhicl::ParameterSet pset, size_t process_index);
 
 	/**
-		 * \brief Shutdown a set of art processes
-		 * \param pids PIDs of the art processes
-		 */
+	 * \brief Shutdown a set of art processes
+	 * \param pids PIDs of the art processes
+	 */
 	void ShutdownArtProcesses(std::set<pid_t>& pids);
 
 	/**
-		 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
-		 * \param art_pset ParameterSet used to configure art
-		 * \param newRun New Run number for reconfigured art
-		 * \param n_art_processes Number of art processes to start, -1 (default) leaves the number unchanged
-		 */
+	 * \brief Restart all art processes, using the given fhicl code to configure the new art processes
+	 * \param art_pset ParameterSet used to configure art
+	 * \param newRun New Run number for reconfigured art
+	 * \param n_art_processes Number of art processes to start, -1 (default) leaves the number unchanged
+	 */
 	void ReconfigureArt(fhicl::ParameterSet art_pset, run_id_t newRun = 0, int n_art_processes = -1);
 
 	/**
-		* \brief Indicate that the end of input has been reached to the art processes.
-		* \return True if the end proceeded correctly
-		*
-		* Put the end-of-data marker onto the RawEvent queue (if possible),
-		* wait for the reader function to exit, and fill in the reader return
-		* value.  This scenario returns true.  If the end-of-data marker
-		* can not be pushed onto the RawEvent queue, false is returned.
-		*/
+	 * \brief Indicate that the end of input has been reached to the art processes.
+	 * \return True if the end proceeded correctly
+	 *
+	 * Put the end-of-data marker onto the RawEvent queue (if possible),
+	 * wait for the reader function to exit, and fill in the reader return
+	 * value.  This scenario returns true.  If the end-of-data marker
+	 * can not be pushed onto the RawEvent queue, false is returned.
+	 */
 	bool endOfData();
 
 	/**
-		* \brief Start a Run
-		* \param runID Run number of the new run
-		*/
+	 * \brief Start a Run
+	 * \param runID Run number of the new run
+	 */
 	void startRun(run_id_t runID);
 
 	/**
-		 * \brief Get the current Run number
-		 * \return The current Run number
-		 */
+	 * \brief Get the current Run number
+	 * \return The current Run number
+	 */
 	run_id_t runID() const { return run_id_; }
 
 	/**
-		* \brief Send an EndOfRunFragment to the art thread
-		* \return True if enqueue successful
-		*/
+	 * \brief Send an EndOfRunFragment to the art thread
+	 * \return True if enqueue successful
+	 */
 	bool endRun();
 
 	/**
-		 * \brief Rollover the subrun after the specified event
-		 * \param boundary sequence ID of the boundary (Event with seqID == boundary will be in new subrun)
-		 * \param subrun Subrun number of subrun after boundary
-		 */
+	 * \brief Rollover the subrun after the specified event
+	 * \param boundary sequence ID of the boundary (Event with seqID == boundary will be in new subrun)
+	 * \param subrun Subrun number of subrun after boundary
+	 */
 	void rolloverSubrun(sequence_id_t boundary, subrun_id_t subrun);
 
-	/** 
-		 * \brief Add a subrun transition immediately after the highest currently define sequence ID
-		 */
+	/**
+	 * \brief Add a subrun transition immediately after the highest currently define sequence ID
+	 */
 	void rolloverSubrun();
 
 	/**
-		* \brief Send metrics to the MetricManager, if one has been instantiated in the application
-		*/
+	 * \brief Send metrics to the MetricManager, if one has been instantiated in the application
+	 */
 	void sendMetrics();
 
 	/**
-		 * \brief Set the RequestMessageMode for all outgoing data requests
-		 * \param mode Mode to set
-		 */
+	 * \brief Set the RequestMessageMode for all outgoing data requests
+	 * \param mode Mode to set
+	 */
 	void setRequestMode(detail::RequestMessageMode mode)
 	{
 		if (requests_) requests_->SetRequestMode(mode);
 	}
 
 	/**
-		 * \brief Set the overwrite flag (non-reliable data transfer) for the Shared Memory
-		 * \param overwrite Whether to allow the writer to overwrite data that has not yet been read
-		 */
+	 * \brief Set the overwrite flag (non-reliable data transfer) for the Shared Memory
+	 * \param overwrite Whether to allow the writer to overwrite data that has not yet been read
+	 */
 	void setOverwrite(bool overwrite) { overwrite_mode_ = overwrite; }
 
 	/**
-		 * \brief Set the stored Init fragment, if one has not yet been set already.
-		 */
+	 * \brief Set the stored Init fragment, if one has not yet been set already.
+	 */
 	void AddInitFragment(FragmentPtr& frag);
 
 	/**
-		 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
-		 * \return The shared memory key of the broadcast SharedMemoryManager
-		 */
+	 * \brief Gets the shared memory key of the broadcast SharedMemoryManager
+	 * \return The shared memory key of the broadcast SharedMemoryManager
+	 */
 	uint32_t GetBroadcastKey() { return broadcasts_.GetKey(); }
 
 	/**
-		 * \brief Gets the address of the "dropped data" fragment. Used for testing.
-		 * \param frag Fragment ID to get "dropped data" for
-		 * \return Pointer to the data payload of the "dropped data" fragment
-		 */
+	 * \brief Gets the address of the "dropped data" fragment. Used for testing.
+	 * \param frag Fragment ID to get "dropped data" for
+	 * \return Pointer to the data payload of the "dropped data" fragment
+	 */
 	RawDataType* GetDroppedDataAddress(detail::RawFragmentHeader frag)
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
@@ -379,26 +387,26 @@ public:
 	}
 
 	/**
-		 * \brief Updates the internally-stored copy of the art configuration.
-		 * \param art_pset ParameterSet used to configure art
-		 *
-		 * This method updates the internally-stored copy of the art configuration, but it does not
-		 * restart art processes.  So, if this method is called while art processes are running, it will
-		 * have no effect until the next restart, such as the next Start of run.  Typically, this
-		 * method is intended to be called between runs, when no art processes are running.
-		 */
+	 * \brief Updates the internally-stored copy of the art configuration.
+	 * \param art_pset ParameterSet used to configure art
+	 *
+	 * This method updates the internally-stored copy of the art configuration, but it does not
+	 * restart art processes.  So, if this method is called while art processes are running, it will
+	 * have no effect until the next restart, such as the next Start of run.  Typically, this
+	 * method is intended to be called between runs, when no art processes are running.
+	 */
 	void UpdateArtConfiguration(fhicl::ParameterSet art_pset);
 
 	/**
-		 * \brief Check for buffers which are ready to be marked incomplete and released to art and issue tokens for any buffers which are avaialble
-		 */
+	 * \brief Check for buffers which are ready to be marked incomplete and released to art and issue tokens for any buffers which are avaialble
+	 */
 	void CheckPendingBuffers();
 
 	/**
-		 * \brief Get the subrun number that the given Sequence ID would be assigned to
-		 * \param seqID Sequence ID to check
-		 * \return Subrun number that the given sequence ID will be associated with 
-		 */
+	 * \brief Get the subrun number that the given Sequence ID would be assigned to
+	 * \param seqID Sequence ID to check
+	 * \return Subrun number that the given sequence ID will be associated with
+	 */
 	subrun_id_t GetSubrunForSequenceID(Fragment::sequence_id_t seqID);
 
 	/**
@@ -500,4 +508,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  //ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
+#endif  // ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH

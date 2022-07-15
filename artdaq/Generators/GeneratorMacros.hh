@@ -2,17 +2,21 @@
 #define artdaq_Application_GeneratorMacros_hh
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
-#include "fhiclcpp/fwd.h"
+
+namespace fhicl {
+class ParameterSet;
+}
+
+#include "cetlib/compiler_macros.h"
 
 #include <memory>
-#include "cetlib/compiler_macros.h"
 
 namespace artdaq {
 /**
-	* \brief Constructs a CommandableFragmentGenerator instance, and returns a pointer to it
-	* \param ps Parameter set for initializing the CommandableFragmentGenerator
-	* \return A smart pointer to the CommandableFragmentGenerator
-	*/
+ * \brief Constructs a CommandableFragmentGenerator instance, and returns a pointer to it
+ * \param ps Parameter set for initializing the CommandableFragmentGenerator
+ * \return A smart pointer to the CommandableFragmentGenerator
+ */
 typedef std::unique_ptr<artdaq::CommandableFragmentGenerator> makeFunc_t(fhicl::ParameterSet const& ps);
 }  // namespace artdaq
 

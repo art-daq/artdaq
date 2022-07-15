@@ -1,31 +1,31 @@
-#include <bitset>
-#include <cerrno>
-#include <iomanip>
-#include <sstream>
-
-#include <csignal>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/exception/all.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/throw_exception.hpp>
-#include <boost/tokenizer.hpp>
-#include <utility>
-
-#include "fhiclcpp/ParameterSet.h"
-
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DispatcherCore").c_str()
 
-#include "artdaq-core/Data/RawEvent.hh"
-
 #include "artdaq/Application/DispatcherCore.hh"
-#include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/algorithm/string.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/throw_exception.hpp>
+#include <boost/tokenizer.hpp>
+
+#include <bitset>
+#include <cerrno>
+#include <csignal>
+#include <iomanip>
+#include <set>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 bool artdaq::DispatcherCore::initialize(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG + 32) << "initialize method called with DAQ "
-	                 << "ParameterSet = \"" << pset.to_string() << "\".";
+	                      << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	pset_ = pset;
 	// 04-Apr-2019, KAB: added support for art config params to be in an "art" block
@@ -267,7 +267,7 @@ fhicl::ParameterSet artdaq::DispatcherCore::merge_parameter_sets_(fhicl::Paramet
 			path.push_back(label + output_name);
 		}
 
-		//physics section
+		// physics section
 		auto physics_pset = pset.get<fhicl::ParameterSet>("physics");
 
 		if (physics_pset.has_key("analyzers"))

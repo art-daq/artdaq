@@ -3,16 +3,19 @@
 
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "cetlib/compiler_macros.h"
-#include "fhiclcpp/fwd.h"
+
+namespace fhicl {
+class ParameterSet;
+}
 
 #include <memory>
 
 namespace artdaq {
 /**
-* \brief Constructs a RoutingManagerPolicy instance, and returns a pointer to it
-* \param ps Parameter set for initializing the RoutingManagerPolicy
-* \return A smart pointer to the RoutingManagerPolicy
-*/
+ * \brief Constructs a RoutingManagerPolicy instance, and returns a pointer to it
+ * \param ps Parameter set for initializing the RoutingManagerPolicy
+ * \return A smart pointer to the RoutingManagerPolicy
+ */
 typedef std::unique_ptr<artdaq::RoutingManagerPolicy> makeFunc_t(fhicl::ParameterSet const& ps);
 }  // namespace artdaq
 

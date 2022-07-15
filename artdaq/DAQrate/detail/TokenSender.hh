@@ -1,28 +1,30 @@
 #ifndef artdaq_DAQrate_TokenSender_hh
 #define artdaq_DAQrate_TokenSender_hh
 
-#include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
-#include "artdaq/DAQrate/detail/RequestMessage.hh"
-#include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/types/Table.h"
+namespace fhicl {
+class ParameterSet;
+}
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
-#include <future>
 #include <map>
 #include <memory>
+#include <string>
 
 namespace artdaq {
 
 /**
-	 * \brief The TokenSender contains methods used to send data requests and Routing tokens
-	 */
+ * \brief The TokenSender contains methods used to send data requests and Routing tokens
+ */
 class TokenSender
 {
 public:
@@ -44,52 +46,52 @@ public:
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
-		 * \brief Default Constructor is deleted
-		 */
+	 * \brief Default Constructor is deleted
+	 */
 	TokenSender() = delete;
 
 	/**
-		 * \brief Copy Constructor is deleted
-		 */
+	 * \brief Copy Constructor is deleted
+	 */
 	TokenSender(TokenSender const&) = delete;
 
 	/**
-		 * \brief Copy Assignment operator is deleted
-		 * \return TokenSender copy
-		 */
+	 * \brief Copy Assignment operator is deleted
+	 * \return TokenSender copy
+	 */
 	TokenSender& operator=(TokenSender const&) = delete;
 
 	TokenSender(TokenSender&&) = delete;             ///< Move Constructor is deleted
 	TokenSender& operator=(TokenSender&&) = delete;  ///< Move-assignment operator is deleted
 
 	/**
-		 * \brief TokenSender Constructor
-		 * \param pset ParameterSet used to configured TokenSender. See artdaq::TokenSender::Config
-		 */
+	 * \brief TokenSender Constructor
+	 * \param pset ParameterSet used to configured TokenSender. See artdaq::TokenSender::Config
+	 */
 	explicit TokenSender(const fhicl::ParameterSet& pset);
 	/**
-		 * \brief TokenSender Destructor
-		 */
+	 * \brief TokenSender Destructor
+	 */
 	virtual ~TokenSender();
 
 	/**
-		 * \brief Send a RoutingToken message indicating that slots are available
-		 * \param nSlots Number of slots available
-		 * \param run_number Run number for token
-		 * \param rank Rank of token
-		 */
+	 * \brief Send a RoutingToken message indicating that slots are available
+	 * \param nSlots Number of slots available
+	 * \param run_number Run number for token
+	 * \param rank Rank of token
+	 */
 	void SendRoutingToken(int nSlots, int run_number, int rank = my_rank);
 
 	/**
-		 * \brief Get the count of number of tokens sent
-		 * \return The number of tokens sent by TokenSender
-		 */
+	 * \brief Get the count of number of tokens sent
+	 * \return The number of tokens sent by TokenSender
+	 */
 	size_t GetSentTokenCount() const { return tokens_sent_.load(); }
 
 	/**
-		 * \brief Set the run number to be used in request messages
-		 * \param run Run number
-		 */
+	 * \brief Set the run number to be used in request messages
+	 * \param run Run number
+	 */
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
 	/**

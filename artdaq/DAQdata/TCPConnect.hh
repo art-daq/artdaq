@@ -2,6 +2,8 @@
 #define TCPConnect_hh
 #include <netinet/in.h>
 
+#include <string>
+
 // This file (TCPConnect.hh) was created by Ron Rechenmacher <ron@fnal.gov> on
 // Sep 15, 2016. "TERMS AND CONDITIONS" governing this file are in the README
 // or COPYING file. If you do not have such a file, one can be obtained by
@@ -23,24 +25,24 @@
 int ResolveHost(char const* host_in, in_addr& addr);
 
 /**
-* \brief Get the IP address associated with a given interface name
-* \param interface_name Name of the interface to resolve
-* \param[out] addr in_addr object populated with interface IP
-* \return 0 if success, -1 if gethostbyname fails, 2 if defaulted to 0.0.0.0 (No matching interfaces)
-*/
+ * \brief Get the IP address associated with a given interface name
+ * \param interface_name Name of the interface to resolve
+ * \param[out] addr in_addr object populated with interface IP
+ * \return 0 if success, -1 if gethostbyname fails, 2 if defaulted to 0.0.0.0 (No matching interfaces)
+ */
 int GetIPOfInterface(const std::string& interface_name, in_addr& addr);
 /**
-* \brief Pick a private IP address on this host
-* \param[out] addr in_addr object populated with resolved host
-* \return 0 if success, -1 if gethostbyname fails, 2 if defaulted to 0.0.0.0 (No matching interfaces)
-*
-* The following preference order is used:
-* 1. 192.168.0.0/16
-* 2. 172.16.0.0/12
-* 3. 10.0.0.0/8
-* 4. 131.225.0.0/16
-* 5. 0.0.0.0 (returns 2)
-*/
+ * \brief Pick a private IP address on this host
+ * \param[out] addr in_addr object populated with resolved host
+ * \return 0 if success, -1 if gethostbyname fails, 2 if defaulted to 0.0.0.0 (No matching interfaces)
+ *
+ * The following preference order is used:
+ * 1. 192.168.0.0/16
+ * 2. 172.16.0.0/12
+ * 3. 10.0.0.0/8
+ * 4. 131.225.0.0/16
+ * 5. 0.0.0.0 (returns 2)
+ */
 int AutodetectPrivateInterface(in_addr& addr);
 /**
  * \brief Convert an IP address to the network address of the interface sharing the subnet mask

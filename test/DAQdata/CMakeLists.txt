@@ -1,6 +1,9 @@
 
 cet_test(GenericFragmentSimulator_t USE_BOOST_UNIT
-  LIBRARIES artdaq_DAQdata_GenericFragmentSimulator_generator
+  LIBRARIES PRIVATE
+  artdaq_core::artdaq-core_Plugins
+  artdaq_core::artdaq-core_Data
+  fhiclcpp::fhiclcpp
   )
   
 cet_test(tracemf_t HANDBUILT

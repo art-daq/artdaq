@@ -1,11 +1,12 @@
 #ifndef artdaq_DAQrate_RequestSender_hh
 #define artdaq_DAQrate_RequestSender_hh
 
-#include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #include "artdaq/DAQrate/detail/RequestMessage.hh"
-#include "fhiclcpp/ParameterSet.h"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
 #include "fhiclcpp/types/Table.h"
 
 #include <arpa/inet.h>
@@ -14,15 +15,14 @@
 #include <sys/types.h>
 #include <chrono>
 #include <cstdint>
-#include <future>
 #include <map>
 #include <memory>
 
 namespace artdaq {
 
 /**
-	 * \brief The RequestSender contains methods used to send data requests and Routing tokens
-	 */
+ * \brief The RequestSender contains methods used to send data requests and Routing tokens
+ */
 class RequestSender
 {
 public:
@@ -50,69 +50,69 @@ public:
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
-		 * \brief Default Constructor is deleted
-		 */
+	 * \brief Default Constructor is deleted
+	 */
 	RequestSender() = delete;
 
 	/**
-		 * \brief Copy Constructor is deleted
-		 */
+	 * \brief Copy Constructor is deleted
+	 */
 	RequestSender(RequestSender const&) = delete;
 
 	/**
-		 * \brief Copy Assignment operator is deleted
-		 * \return RequestSender copy
-		 */
+	 * \brief Copy Assignment operator is deleted
+	 * \return RequestSender copy
+	 */
 	RequestSender& operator=(RequestSender const&) = delete;
 
 	RequestSender(RequestSender&&) = delete;             ///< Move Constructor is deleted
 	RequestSender& operator=(RequestSender&&) = delete;  ///< Move-assignment operator is deleted
 
 	/**
-		 * \brief RequestSender Constructor
-		 * \param pset ParameterSet used to configured RequestSender. See artdaq::RequestSender::Config
-		 */
+	 * \brief RequestSender Constructor
+	 * \param pset ParameterSet used to configured RequestSender. See artdaq::RequestSender::Config
+	 */
 	explicit RequestSender(const fhicl::ParameterSet& pset);
 	/**
-		 * \brief RequestSender Destructor
-		 */
+	 * \brief RequestSender Destructor
+	 */
 	virtual ~RequestSender();
 
 	/**
-		 * \brief Set the mode for RequestMessages. Used to indicate when RequestSender should enter "EndOfRun" mode
-		 * \param mode Mode to set
-		 */
+	 * \brief Set the mode for RequestMessages. Used to indicate when RequestSender should enter "EndOfRun" mode
+	 * \param mode Mode to set
+	 */
 	void SetRequestMode(detail::RequestMessageMode mode);
 
 	/**
-		 * \brief Get the mode for RequestMessages.
-		 * \return Current RequestMessageMode of the RequestSender
-		 */
+	 * \brief Get the mode for RequestMessages.
+	 * \return Current RequestMessageMode of the RequestSender
+	 */
 	detail::RequestMessageMode GetRequestMode() const { return request_mode_; }
 
 	/**
-		 * \brief Send a request message containing all current requests
-		 * \param endOfRunOnly Whether the request should only be sent in EndOfRun RequestMessageMode (default: false)
-		 */
+	 * \brief Send a request message containing all current requests
+	 * \param endOfRunOnly Whether the request should only be sent in EndOfRun RequestMessageMode (default: false)
+	 */
 	void SendRequest(bool endOfRunOnly = false);
 
 	/**
-		 * \brief Add a request to the request list
-		 * \param seqID Sequence ID for request
-		 * \param timestamp Timestamp to request
-		 */
+	 * \brief Add a request to the request list
+	 * \param seqID Sequence ID for request
+	 * \param timestamp Timestamp to request
+	 */
 	void AddRequest(Fragment::sequence_id_t seqID, Fragment::timestamp_t timestamp);
 
 	/**
-		 * \brief Remove a request from the request list
-		 * \param seqID Sequence ID of request
-		 */
+	 * \brief Remove a request from the request list
+	 * \param seqID Sequence ID of request
+	 */
 	void RemoveRequest(Fragment::sequence_id_t seqID);
 
 	/**
-		 * \brief Set the run number to be used in request messages
-		 * \param run Run number
-		 */
+	 * \brief Set the run number to be used in request messages
+	 * \param run Run number
+	 */
 	void SetRunNumber(uint32_t run) { run_number_ = run; }
 
 	/**

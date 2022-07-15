@@ -1,5 +1,4 @@
-
-
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "BinaryFileOutput"
 
 #include "art/Framework/Core/ModuleMacros.h"
@@ -12,14 +11,10 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
 #include "art/Persistency/Provenance/ModuleContext.h"
+#include "canvas/Persistency/Common/WrappedTypeID.h"
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
-#if ART_HEX_VERSION < 0x30901
-#include "canvas/Utilities/WrappedTypeID.h"
-#else
-#include "canvas/Persistency/Common/WrappedTypeID.h"
-#endif
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -132,7 +127,7 @@ void art::BinaryFileOutput::initialize_FILE_()
 	{
 		file_ptr_ = std::make_unique<std::ofstream>(file_name, std::ofstream::binary);
 		TLOG(TLVL_DEBUG + 33) << "BinaryFileOutput::initialize_FILE_ file_ptr_=" << static_cast<void*>(file_ptr_.get()) << " errno=" << errno;
-		//file_ptr_->rdbuf()->pubsetbuf(0, 0);
+		// file_ptr_->rdbuf()->pubsetbuf(0, 0);
 	}
 	fstats_.recordFileOpen();
 }
@@ -154,7 +149,7 @@ void art::BinaryFileOutput::deinitialize_FILE_()
 bool art::BinaryFileOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG + 32) << name_ << "BinaryFileOutput::readParameterSet_ method called with "
-	                 << "ParameterSet = \"" << pset.to_string() << "\".";
+	                      << "ParameterSet = \"" << pset.to_string() << "\".";
 	// determine the data sending parameters
 	try
 	{
@@ -204,13 +199,13 @@ void art::BinaryFileOutput::write(EventPrincipal& ep)
 			auto sequence_id = fragment.sequenceID();
 			auto fragid_id = fragment.fragmentID();
 			TLOG(TLVL_DEBUG + 33) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " "
-			                 << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-			                 << fragment.sizeBytes() << " start";
+			                      << reinterpret_cast<const void*>(fragment.headerBeginBytes()) << " bytes=0x" << std::hex  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+			                      << fragment.sizeBytes() << " start";
 			if (do_direct_)
 			{
 				ssize_t sts = ::write(fd_, reinterpret_cast<const char*>(fragment.headerBeginBytes()), fragment.sizeBytes());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 				TLOG(TLVL_DEBUG + 34) << "BinaryFileOutput::write seq=" << sequence_id << " frag=" << fragid_id << " done sts=" << sts
-				                     << " errno=" << errno;
+				                      << " errno=" << errno;
 			}
 			else
 			{

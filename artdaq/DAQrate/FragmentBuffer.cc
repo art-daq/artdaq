@@ -599,9 +599,9 @@ void artdaq::FragmentBuffer::applyRequestsWindowMode_CheckAndFillDataBuffer(artd
 		if (!windowClosed || (dataBuffer->DataBufferDepthFragments > 0 && dataBuffer->DataBuffer.front()->timestamp() > min))
 		{
 			TLOG(TLVL_DEBUG + 32) << "applyRequestsWindowMode_CheckAndFillDataBuffer: Request window starts before and/or ends after the current data buffer, setting ContainerFragment's missing_data flag!"
-			                 << " (requestWindowRange=[" << min << "," << max << "], "
-			                 << "buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
-			                 << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "} (SeqID " << seq << ")";
+			                      << " (requestWindowRange=[" << min << "," << max << "], "
+			                      << "buffer={" << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.front()->timestamp() : 0) << "-"
+			                      << (dataBuffer->DataBufferDepthFragments > 0 ? dataBuffer->DataBuffer.back()->timestamp() : 0) << "} (SeqID " << seq << ")";
 			cfl.set_missing_data(true);
 		}
 

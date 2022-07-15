@@ -7,6 +7,10 @@
 // from cetpkgsupport v1_05_02.
 ////////////////////////////////////////////////////////////////////////
 
+#include "TRACE/tracemf.h"
+
+#include "artdaq-core/Data/PackageBuildInfo.hh"
+
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -15,9 +19,6 @@
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "tracemf.h"
-
-#include "artdaq-core/Data/PackageBuildInfo.hh"
 
 #include <iostream>
 
@@ -36,13 +37,13 @@ public:
 	/**
 	 * \brief PrintBuildInfo Constructor
 	 * \param p ParameterSet used to configure PrintBuildInfo
-	 * 
+	 *
 	 * \verbatim
 	 * PrintBuildInfo accepts the following Parameters:
 	 * "buildinfo_module_label" (REQUIRED): The module label for the BuildInfo objects
 	 * "buildinfo_instance_label" (REQUIRED): The instance label for the BuildInfo objects
 	 * \endverbatim
-	 * 
+	 *
 	 * These parameters should match those given to the BuildInfo module
 	 */
 	explicit PrintBuildInfo(fhicl::ParameterSet const& p);
@@ -60,7 +61,7 @@ public:
 	/**
 	 * \brief Perform actions at the beginning of the run
 	 * \param run art::Run object
-	 * 
+	 *
 	 * This function pretty-prints the BuildInfo information form the run object with the
 	 * configured module label and instance label.
 	 */

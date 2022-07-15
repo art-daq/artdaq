@@ -1,4 +1,10 @@
 // vim: set sw=2 expandtab :
+#include "TRACE/tracemf.h"  // TLOG
+#include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_RootDAQOut").c_str()
+
+#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
@@ -25,9 +31,6 @@
 #include "art_root_io/RootFileBlock.h"
 #include "art_root_io/detail/rootOutputConfigurationTools.h"
 #include "art_root_io/setup.h"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
-#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
-#include "artdaq/DAQdata/Globals.hh"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/Exception.h"
@@ -37,9 +40,8 @@
 #include "fhiclcpp/types/OptionalAtom.h"
 #include "fhiclcpp/types/OptionalSequence.h"
 #include "fhiclcpp/types/Table.h"
+#include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "tracemf.h"  // TLOG
-#define TRACE_NAME (app_name + "_RootDAQOut").c_str()
 
 #include <iomanip>
 #include <iostream>
@@ -236,9 +238,11 @@ RootDAQOut::~RootDAQOut() = default;
 
 RootDAQOut::RootDAQOut(Parameters const& config)
 #if ART_HEX_VERSION < 0x31100
-    : OutputModule{config().omConfig, config.get_PSet()}
+    : OutputModule{
+          config().omConfig, config.get_PSet()}
 #else
-    : OutputModule{config().omConfig}
+    : OutputModule{
+          config().omConfig}
 #endif
     , catalog_{config().catalog()}
     , dropAllSubRuns_{config().dropAllSubRuns()}
@@ -257,11 +261,9 @@ RootDAQOut::RootDAQOut(Parameters const& config)
     , dropMetaData_{config().dropMetaData()}
     , dropMetaDataForDroppedData_{config().dropMetaDataForDroppedData()}
     , writeParameterSets_{config().writeParameterSets()}
-    , fileProperties_{(
-          detail::validateFileNamePattern(
-              config.get_PSet().has_key(config().fileProperties.name()),
-              filePattern_),  // comma operator!
-          config().fileProperties())}
+    , fileProperties_{(detail::validateFileNamePattern(config.get_PSet().has_key(config().fileProperties.name()),
+                                                       filePattern_),  // comma operator!
+                       config().fileProperties())}
     , rpm_{config.get_PSet()}
 {
 	TLOG(TLVL_INFO) << "RootDAQOut_module (s81 version) CONSTRUCTOR Start";
@@ -325,7 +327,7 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 	}
 	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
 	bool fastCloneThisOne = fastCloningEnabled_ && (rfb != nullptr) &&
-                                (rfb->tree() != nullptr);
+	                        (rfb->tree() != nullptr);
 	if (fastCloningEnabled_ && !fastCloneThisOne)
 	{
 		mf::LogWarning("FastCloning")
@@ -421,7 +423,7 @@ void RootDAQOut::startEndFile()
 #if ART_HEX_VERSION < 0x31100
 	resp->enableLookupOfProducedProducts(producedResultsProducts_);
 #else
-        resp->enableLookupOfProducedProducts();
+	resp->enableLookupOfProducedProducts();
 #endif
 	if (!producedResultsProducts_.descriptions(InResults).empty() ||
 	    hasNewlyDroppedBranch()[InResults])
@@ -677,7 +679,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	std::vector<Config::FileNameSubstitution> subs;
 	config.fileNameSubstitutions(subs);
 	TLOG(TLVL_DEBUG + 33) << __func__ << ": firstLoggerRank=" << firstLoggerRank
-	                 << ", numberOfSubstitutionsProvided=" << subs.size();
+	                      << ", numberOfSubstitutionsProvided=" << subs.size();
 
 	// initialization
 	std::string modifiedPattern = inputPattern;
@@ -691,7 +693,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 		oneBasedRelativeRank -= firstLoggerRank;
 	}
 	TLOG(TLVL_DEBUG + 33) << __func__ << ": my_rank=" << my_rank << ", zeroBasedRelativeRank=" << zeroBasedRelativeRank
-	                 << ", oneBasedRelativeRank=" << oneBasedRelativeRank;
+	                      << ", oneBasedRelativeRank=" << oneBasedRelativeRank;
 
 	// if the "ZeroBasedRelativeRank" keyword was specified in the filename pattern,
 	// perform the substitution

@@ -21,8 +21,8 @@
 
 namespace artdaq {
 /**
-	 * \brief Class which receives routing tables and prints updates
-	 */
+ * \brief Class which receives routing tables and prints updates
+ */
 struct RoutingReceiverConfig
 {
 	/// "collection_time_ms": Time to collect routing table updates between printing summaries
@@ -57,7 +57,8 @@ static void signal_handler(int signum)
 	pthread_sigmask(SIG_UNBLOCK, &set, nullptr);
 }
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("RoutingReceiver", false, false);
 	static std::mutex sighandler_mutex;
@@ -72,8 +73,8 @@ int main(int argc, char* argv[]) try
 			struct sigaction old_action;
 			sigaction(signal, nullptr, &old_action);
 
-			//If the old handler wasn't SIG_IGN (it's a handler that just
-			// "ignore" the signal)
+			// If the old handler wasn't SIG_IGN (it's a handler that just
+			//  "ignore" the signal)
 			if (old_action.sa_handler != SIG_IGN)  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
 			{
 				struct sigaction action;
@@ -85,7 +86,7 @@ int main(int argc, char* argv[]) try
 				}
 				action.sa_flags = 0;
 
-				//Replace the signal handler of SIGINT with the one described by new_action
+				// Replace the signal handler of SIGINT with the one described by new_action
 				sigaction(signal, &action, nullptr);
 			}
 		}

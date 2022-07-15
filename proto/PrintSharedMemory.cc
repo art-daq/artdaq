@@ -1,13 +1,14 @@
-
-#include <boost/program_options.hpp>
-#include <sstream>
-namespace bpo = boost::program_options;
-
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
-int main(int argc, char* argv[]) try
+#include <boost/program_options.hpp>
+namespace bpo = boost::program_options;
+
+#include <sstream>
+
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("PrintSharedMemory");
 
@@ -60,7 +61,7 @@ int main(int argc, char* argv[]) try
 			setenv("FHICL_FILE_PATH", ".", 0);
 		}
 		cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-		pset = artdaq::make_pset(vm["config"].as<std::string>(), lookup_policy);
+		pset = fhicl::ParameterSet::make(vm["config"].as<std::string>(), lookup_policy);
 	}
 
 	if (!pset.has_key("shared_memory_key"))

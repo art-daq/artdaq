@@ -1,13 +1,14 @@
 #ifndef ARTDAQ_ARTDAQ_ARTMODULES_BUILDINFO_MODULE_HH_
 #define ARTDAQ_ARTDAQ_ARTMODULES_BUILDINFO_MODULE_HH_
 
+#include "TRACE/tracemf.h"
+#define TRACE_NAME "BuildInfo"
+
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
-#include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Run.h"
 #include "artdaq-core/Data/PackageBuildInfo.hh"
 #include "fhiclcpp/ParameterSet.h"
-#include "tracemf.h"
 
 #include <iostream>
 #include <memory>
@@ -15,49 +16,46 @@
 #include <utility>
 #include <vector>
 
-#include "tracemf.h"
-#define TRACE_NAME "BuildInfo"
-
 namespace artdaq {
 /**
-	 * \brief BuildInfo is an art::EDProducer which saves information about package builds to the data file
-	 * \tparam instanceName Tag which the BuildInfo objects will be saved under
-	 * \tparam Pkgs List of package BuildInfo types
-	 */
+ * \brief BuildInfo is an art::EDProducer which saves information about package builds to the data file
+ * \tparam instanceName Tag which the BuildInfo objects will be saved under
+ * \tparam Pkgs List of package BuildInfo types
+ */
 template<std::string* instanceName, typename... Pkgs>
 class BuildInfo : public art::EDProducer
 {
 public:
 	/**
-		 * \brief BuildInfo module Constructor
-		 * \param p ParameterSet used to configure BuildInfo module
-		 * 
-		 * BuildInfo_module expects the following Parameters:
-		 * "instance_name": Name which the BuildInfo information will be saved under
-		 */
+	 * \brief BuildInfo module Constructor
+	 * \param p ParameterSet used to configure BuildInfo module
+	 *
+	 * BuildInfo_module expects the following Parameters:
+	 * "instance_name": Name which the BuildInfo information will be saved under
+	 */
 	explicit BuildInfo(fhicl::ParameterSet const& p);
 
 	/**
-		 * \brief Default Destructor
-		 */
+	 * \brief Default Destructor
+	 */
 	virtual ~BuildInfo() = default;
 
 	/**
-		 * \brief Perform actions at the beginning of the Run
-		 * \param r art::Run object
-		 * 
-		 * The BuildInfo information is stored in the Run-level provenance, so this
-		 * method performs most of the "work" for this module.
-		 */
+	 * \brief Perform actions at the beginning of the Run
+	 * \param r art::Run object
+	 *
+	 * The BuildInfo information is stored in the Run-level provenance, so this
+	 * method performs most of the "work" for this module.
+	 */
 	void beginRun(art::Run& r) override;
 
 	/**
-		 * \brief Perform actions for each event
-		 * \param e art::Event object
-		 * 
-		 * This function is a required override for EDProducer, and is a No-Op in BuildInfo_module.
-		 */
-	void produce(art::Event& e) override;
+	 * \brief Perform actions for each event
+	 * \param e art::Event object
+	 *
+	 * This function is a required override for EDProducer, and is a No-Op in BuildInfo_module.
+	 */
+	void produce(art::Event& e) final override;
 
 private:
 	BuildInfo(BuildInfo const&) = delete;
@@ -123,7 +121,7 @@ void BuildInfo<instanceName, Pkgs...>::beginRun(art::Run& r)
 	{
 		TLOG(TLVL_DEBUG) << "Package " << pbi.getPackageName() << ": version " << pbi.getPackageVersion() << " built at " << pbi.getBuildTimestamp();
 	}
-        r.put(std::move(packages_deep_copy_ptr), instanceName_, art::fullRun());
+	r.put(std::move(packages_deep_copy_ptr), instanceName_, art::fullRun());
 }
 
 template<std::string* instanceName, typename... Pkgs>

@@ -1,8 +1,12 @@
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 
-#include "artdaq/RoutingPolicies/PolicyMacros.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+
 #include "cetlib/BasicPluginFactory.h"
-#include "fhiclcpp/ParameterSet.h"
+
+namespace fhicl {
+class ParameterSet;
+}
 
 std::shared_ptr<artdaq::RoutingManagerPolicy>
 artdaq::makeRoutingManagerPolicy(std::string const& policy_plugin_spec,

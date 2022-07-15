@@ -4,32 +4,32 @@ include(CetTest)
 # re-initialize the test environment.
 cet_test_env("FHICL_FILE_PATH=.")
 
-install_scripts( installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh disk_stats.sh)
+cet_script(ALWAYS_COPY installMessageViewer.sh installEpicsPlugin.sh installGangliaPlugin.sh disk_stats.sh)
 
-cet_make_exec( periodic_cmd_stats )
+cet_make_exec(NAME periodic_cmd_stats )
 
-cet_make_exec(StateResponder
+cet_make_exec(NAME StateResponder
   LIBRARIES
-  artdaq_Application
-  artdaq_ExternalComms
-  ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  )
+  artdaq_plugin_support::commanderMaker
+  artdaq::Application
+  Boost::program_options
+)
 
-cet_make_exec(genToArt
+cet_make_exec(NAME genToArt
   LIBRARIES
-  artdaq_Generators
-  artdaq_DAQrate
-  artdaq_DAQdata_GenericFragmentSimulator_generator
+  artdaq_plugin_support::CFGMaker
+  artdaq::DAQrate
+  artdaq::DAQdata_GenericFragmentSimulator_generator
   artdaq_core::artdaq-core_Utilities
-  artdaq_core::artdaq-core_Generators
-  canvas
-  fhiclcpp
-  cetlib
-  cetlib_except
-  ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  )
+  artdaq_core::artdaq-core_Plugins
+  canvas::canvas
+  fhiclcpp::fhiclcpp
+  cetlib::cetlib
+  cetlib_except::cetlib_except
+  Boost::program_options
+)
 
-  cet_script(ALWAYS_COPY setupMpichPlugin.sh)
+cet_script(ALWAYS_COPY setupMpichPlugin.sh)
 
 # Make sure tests have correct environment settings.
 include(CetTest)
@@ -50,18 +50,20 @@ cet_test(genToArt_outToBinaryFileOutput_t HANDBUILT
 )
 
 # Make Modules
-include(NodeJSAddon)
+#include(NodeJSAddon)
 include(PythonAddon)
 
 cet_make_library(LIBRARY_NAME swig_artdaq
-                 SOURCE swig_artdaq.cpp
-                 LIBRARIES
-                 artdaq_DAQdata
-				 artdaq_core::artdaq-core_Utilities
-				 )
+  SOURCE swig_artdaq.cc
+  LIBRARIES
+  PUBLIC
+  TRACE::MF
+  PRIVATE
+  artdaq::Application
+  artdaq::DAQdata
+)
 
-
-create_nodejs_addon (ADDON_NAME "node_artdaq" LIBRARIES swig_artdaq)
+#create_nodejs_addon (ADDON_NAME "node_artdaq" LIBRARIES swig_artdaq)
 create_python_addon (ADDON_NAME "python_artdaq" LIBRARIES swig_artdaq)
 
 #cet_test(genToArt_outToBinaryNetOutput_t HANDBUILT

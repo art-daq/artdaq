@@ -1,19 +1,34 @@
 #ifndef artdaq_ArtModules_TransferInterface_hh
 #define artdaq_ArtModules_TransferInterface_hh
 
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "cetlib/compiler_macros.h"
-#include "fhiclcpp/ParameterSet.h"
+
+#include "artdaq/DAQdata/Globals.hh"  // my_rank
+
+#include "artdaq-core/Data/detail/RawFragmentHeader.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+
+namespace fhicl {
+class ParameterSet;
+}
+
+#include "cetlib/compiler_macros.h"  // EXTERN_C_FUNC_*
 
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <sstream>
+#include <string>
 
 namespace artdaq {
 /**
-	 * \brief This interface defines the functions used to transfer data between artdaq applications.
-	 */
+ * \brief This interface defines the functions used to transfer data between artdaq applications.
+ */
 class TransferInterface
 {
 public:
@@ -48,8 +63,8 @@ public:
 	};
 
 	/**
-		 * \brief Used to determine if a TransferInterface is a Sender or Receiver
-		 */
+	 * \brief Used to determine if a TransferInterface is a Sender or Receiver
+	 */
 	enum class Role
 	{
 		kSend,    ///< This TransferInterface is a Sender
@@ -57,9 +72,9 @@ public:
 	};
 
 	/**
-		 * \brief Returned from the send functions, this enumeration describes the possible return codes.
-		 * If an exception occurs, it will be thrown and should be handled normally.
-		 */
+	 * \brief Returned from the send functions, this enumeration describes the possible return codes.
+	 * If an exception occurs, it will be thrown and should be handled normally.
+	 */
 	enum class CopyStatus
 	{
 		kSuccess,                    ///< The send operation completed successfully
@@ -89,96 +104,96 @@ public:
 	}
 
 	/**
-		 * \brief TransferInterface Constructor
-		 * \param ps ParameterSet used for configuring the TransferInterface. See artdaq::TransferInterface::Config
-		 * \param role Role of the TransferInterface (See TransferInterface::Role)
-		 */
+	 * \brief TransferInterface Constructor
+	 * \param ps ParameterSet used for configuring the TransferInterface. See artdaq::TransferInterface::Config
+	 * \param role Role of the TransferInterface (See TransferInterface::Role)
+	 */
 	TransferInterface(const fhicl::ParameterSet& ps, Role role);
 
 	/**
-		 * \brief Copy Constructor is deleted
-		 */
+	 * \brief Copy Constructor is deleted
+	 */
 	TransferInterface(const TransferInterface&) = delete;
 
 	/**
-		 * \brief Copy Assignment operator is deleted
-		 * \return TransferInterface Copy
-		 */
+	 * \brief Copy Assignment operator is deleted
+	 * \return TransferInterface Copy
+	 */
 	TransferInterface& operator=(const TransferInterface&) = delete;
 
 	/**
-		 * \brief Default virtual Destructor
-		 */
+	 * \brief Default virtual Destructor
+	 */
 	virtual ~TransferInterface() = default;
 
 	/**
-		 * \brief Receive a Fragment from the transport mechanism
-		 * \param[out] fragment Received Fragment
-		 * \param receive_timeout Timeout for receive
-		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-		 */
+	 * \brief Receive a Fragment from the transport mechanism
+	 * \param[out] fragment Received Fragment
+	 * \param receive_timeout Timeout for receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 */
 	virtual int receiveFragment(artdaq::Fragment& fragment, size_t receive_timeout);
 
 	/**
-		 * \brief Receive a Fragment Header from the transport mechanism
-		 * \param[out] header Received Fragment Header
-		 * \param receiveTimeout Timeout for receive
-		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-		 */
+	 * \brief Receive a Fragment Header from the transport mechanism
+	 * \param[out] header Received Fragment Header
+	 * \param receiveTimeout Timeout for receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 */
 	virtual int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) = 0;
 
 	/**
-		 * \brief Receive the body of a Fragment to the given destination pointer
-		 * \param destination Pointer to memory region where Fragment data should be stored
-		 * \param wordCount Number of words of Fragment data to receive
-		 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-		 *
-		 * The precondition for calling this function is that you have received a valid header, therefore it does
-		 * not have a , as the Fragment data should immediately be available.
-		 */
+	 * \brief Receive the body of a Fragment to the given destination pointer
+	 * \param destination Pointer to memory region where Fragment data should be stored
+	 * \param wordCount Number of words of Fragment data to receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 *
+	 * The precondition for calling this function is that you have received a valid header, therefore it does
+	 * not have a , as the Fragment data should immediately be available.
+	 */
 	virtual int receiveFragmentData(RawDataType* destination, size_t wordCount) = 0;
 
 	/**
-		* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
-		* \param fragment Fragment to transfer
-		* \param send_timeout_usec Timeout for send, in microseconds
-		* \return CopyStatus detailing result of transfer
-		*/
+	 * \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
+	 * \param fragment Fragment to transfer
+	 * \param send_timeout_usec Timeout for send, in microseconds
+	 * \return CopyStatus detailing result of transfer
+	 */
 	virtual CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment, size_t send_timeout_usec) = 0;
 
 	/**
-		* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
-		* \param fragment Fragment to transfer
-		* \return CopyStatus detailing result of copy
-		*/
+	 * \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
+	 * \param fragment Fragment to transfer
+	 * \return CopyStatus detailing result of copy
+	 */
 	virtual CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& fragment) = 0;
 
 	/**
-		 * \brief Get the unique label of this TransferInterface instance
-		 * \return The unique label of this TransferInterface instance
-		 */
+	 * \brief Get the unique label of this TransferInterface instance
+	 * \return The unique label of this TransferInterface instance
+	 */
 	std::string uniqueLabel() const { return unique_label_; }
 
 	/**
-		 * \brief Get the source rank for this TransferInterface instance
-		 * \return The source rank for this Transferinterface instance
-		 */
+	 * \brief Get the source rank for this TransferInterface instance
+	 * \return The source rank for this Transferinterface instance
+	 */
 	virtual int source_rank() const { return source_rank_; }
 	/**
-		 * \brief Get the destination rank for this TransferInterface instance
-		 * \return The destination rank for this TransferInterface instance
-		 */
+	 * \brief Get the destination rank for this TransferInterface instance
+	 * \return The destination rank for this TransferInterface instance
+	 */
 	virtual int destination_rank() const { return destination_rank_; }
 
 	/**
-		 * \brief Determine whether the TransferInterface plugin is able to send/receive data
-		 * \return True if the TransferInterface plugin is currently able to send/receive data
-		 */
+	 * \brief Determine whether the TransferInterface plugin is able to send/receive data
+	 * \return True if the TransferInterface plugin is currently able to send/receive data
+	 */
 	virtual bool isRunning() { return false; }
 
 	/**
-		 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has ended.
-		 */
+	 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has ended.
+	 */
 	virtual void flush_buffers() = 0;
 
 /** \cond */
@@ -200,9 +215,9 @@ protected:
 
 protected:
 	/**
-		 * \brief Get the TransferInterface::Role of this TransferInterface
-		 * \return The Role of this TransferInterface
-		 */
+	 * \brief Get the TransferInterface::Role of this TransferInterface
+	 * \return The Role of this TransferInterface
+	 */
 	Role role() const { return role_; }
 };
 }  // namespace artdaq

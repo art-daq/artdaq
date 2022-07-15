@@ -6,7 +6,9 @@
 #include <vector>
 
 #include "canvas/Persistency/Provenance/RunID.h"
-#include "fhiclcpp/ParameterSet.h"
+namespace fhicl {
+class ParameterSet;
+}
 
 #include "artdaq/Application/detail/Commandable_sm.h"  // must be included after others
 
@@ -21,8 +23,8 @@ class artdaq::Commandable
 {
 public:
 	/**
-	* Default constructor.
-	*/
+	 * Default constructor.
+	 */
 	Commandable();
 
 	/**
@@ -45,12 +47,12 @@ public:
 	Commandable& operator=(Commandable&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
-	* \brief Processes the initialize request
-	* \param pset ParameterSet used to configure the Commandable
-	* \param timeout Timeout for init step
-	* \param timestamp Timestamp of init step
-	* \return Whether the transition was successful
-	*/
+	 * \brief Processes the initialize request
+	 * \param pset ParameterSet used to configure the Commandable
+	 * \param timeout Timeout for init step
+	 * \param timestamp Timestamp of init step
+	 * \return Whether the transition was successful
+	 */
 	bool initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
@@ -63,52 +65,52 @@ public:
 	bool start(art::RunID id, uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Processes the stop transition
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return Whether the transition was successful
-	*/
+	 * \brief Processes the stop transition
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return Whether the transition was successful
+	 */
 	bool stop(uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Processes the pause transition
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return Whether the transition was successful
-	*/
+	 * \brief Processes the pause transition
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return Whether the transition was successful
+	 */
 	bool pause(uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Processes the resume transition
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return Whether the transition was successful
-	*/
+	 * \brief Processes the resume transition
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return Whether the transition was successful
+	 */
 	bool resume(uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Processes the shutdown transition
-	* \param timeout Timeout for transition
-	* \return Whether the transition was successful
-	*/
+	 * \brief Processes the shutdown transition
+	 * \param timeout Timeout for transition
+	 * \return Whether the transition was successful
+	 */
 	bool shutdown(uint64_t timeout);
 
 	/**
-	* \brief Processes the soft-initialize request
-	* \param pset ParameterSet used to configure the Commandable
-	* \param timeout Timeout for init step
-	* \param timestamp Timestamp of init step
-	* \return Whether the transition was successful
-	*/
+	 * \brief Processes the soft-initialize request
+	 * \param pset ParameterSet used to configure the Commandable
+	 * \param timeout Timeout for init step
+	 * \param timestamp Timestamp of init step
+	 * \return Whether the transition was successful
+	 */
 	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Processes the reinitialize request
-	* \param pset ParameterSet used to configure the Commandable
-	* \param timeout Timeout for init step
-	* \param timestamp Timestamp of init step
-	* \return Whether the transition was successful
-	*/
+	 * \brief Processes the reinitialize request
+	 * \param pset ParameterSet used to configure the Commandable
+	 * \param timeout Timeout for init step
+	 * \param timestamp Timestamp of init step
+	 * \return Whether the transition was successful
+	 */
 	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
@@ -134,22 +136,22 @@ public:
 	std::string status() const;
 
 	/**
-	* \brief Perform the register_monitor action.
-	* \return A report on the status of the command
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the register_monitor action.
+	 * \return A report on the status of the command
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual std::string register_monitor(fhicl::ParameterSet const&)
 	{
 		return "This string is returned from Commandable::register_monitor; register_monitor should either be overridden in a derived class or this process should not have been sent the register_monitor call";
 	}
 
 	/**
-	* \brief Perform the unregister_monitor action.
-	* \return A report on the status of the command
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the unregister_monitor action.
+	 * \return A report on the status of the command
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual std::string unregister_monitor(std::string const&)
 	{
 		return "This string is returned from Commandable::unregister_monitor; unregister_monitor should either be overridden in a derived class or this process should not have been sent the unregister_monitor call";
@@ -165,73 +167,73 @@ public:
 	/**
 	 * \brief Perform the initialize transition.
 	 * \return Whether the transition succeeded
-	 * 
+	 *
 	 * This function is a No-Op. Derived classes should override it.
 	 */
 	virtual bool do_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t);
 
 	/**
-	* \brief Perform the start transition.
-	* \return Whether the transition succeeded
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the start transition.
+	 * \return Whether the transition succeeded
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_start(art::RunID, uint64_t, uint64_t);
 
 	/**
-	* \brief Perform the stop transition.
-	* \return Whether the transition succeeded
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the stop transition.
+	 * \return Whether the transition succeeded
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_stop(uint64_t, uint64_t);
 
 	/**
-	* \brief Perform the pause transition.
-	* \return Whether the transition succeeded
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the pause transition.
+	 * \return Whether the transition succeeded
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_pause(uint64_t, uint64_t);
 
 	/**
-	* \brief Perform the resume transition.
-	* \return Whether the transition succeeded
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the resume transition.
+	 * \return Whether the transition succeeded
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_resume(uint64_t, uint64_t);
 
 	/**
-	* \brief Perform the shutdown transition.
-	* \return Whether the transition succeeded
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the shutdown transition.
+	 * \return Whether the transition succeeded
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_shutdown(uint64_t);
 
 	/**
-	* \brief Perform the reinitialize transition.
-	* \return Whether the transition succeeded
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the reinitialize transition.
+	 * \return Whether the transition succeeded
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t);
 
 	/**
-	* \brief Perform the soft_initialize transition.
-	* \return Whether the transition succeeded
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform the soft_initialize transition.
+	 * \return Whether the transition succeeded
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t);
 
 	/**
-	* \brief Perform the rollover_subrun transition.
-	* \param eventNum Sequence ID of boundary
-	* \param subrunNum New Subrun Number
-	* \return Whether the transition succeeded
-	*/
+	 * \brief Perform the rollover_subrun transition.
+	 * \param eventNum Sequence ID of boundary
+	 * \param subrunNum New Subrun Number
+	 * \return Whether the transition succeeded
+	 */
 	virtual bool do_rollover_subrun(uint64_t eventNum, uint32_t subrunNum);
 
 	/**
@@ -242,63 +244,63 @@ public:
 
 	/**
 	 * \brief Perform actions upon entering the Booted state
-	 * 
+	 *
 	 * This function is a No-Op. Derived classes should override it.
 	 */
 	virtual void BootedEnter();
 
 	/**
-	* \brief Perform actions upon leaving the InRun state
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Perform actions upon leaving the InRun state
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual void InRunExit();
 
 	/**
-	* \brief Get the TRACE mask for the given TRACE name
-	* If name is "ALL", then all TRACE masks will be printed
-	*
-	* This function is implemented in Commandable, derived classes may override if necessary.
-	* \param name TRACE name to print mask for. "ALL" prints all TRACE masks
-	* \return TRACE mask of the given TRACE name
-	*/
+	 * \brief Get the TRACE mask for the given TRACE name
+	 * If name is "ALL", then all TRACE masks will be printed
+	 *
+	 * This function is implemented in Commandable, derived classes may override if necessary.
+	 * \param name TRACE name to print mask for. "ALL" prints all TRACE masks
+	 * \return TRACE mask of the given TRACE name
+	 */
 	virtual std::string do_trace_get(std::string const& name);
 
 	/**
-	* \brief Set the given TRACE mask for the given TRACE name
-	*
-	* This function is implemented in Commandable, derived classes may override if necessary.
-	* \param name Name of the TRACE level to set mask for
-	* \param type Type of TRACE mask to set (either M, S, or T)
-	* \param mask_in_string_form Mask to set
-	* \return Whether the command succeeded (always true)
-	*/
+	 * \brief Set the given TRACE mask for the given TRACE name
+	 *
+	 * This function is implemented in Commandable, derived classes may override if necessary.
+	 * \param name Name of the TRACE level to set mask for
+	 * \param type Type of TRACE mask to set (either M, S, or T)
+	 * \param mask_in_string_form Mask to set
+	 * \return Whether the command succeeded (always true)
+	 */
 	virtual bool do_trace_set(std::string const& name, std::string const& type, std::string const& mask_in_string_form);
 
 	/**
-	* \brief Run a module-defined command with the given parameter string
-	*
-	* This function is a No-Op. Derived classes should override it.
-	* \param cmd Name of the command to run (implementation-defined)
-	* \param args Any arguments for the command (implementation-defined)
-	* \return Whether the command succeeded (always true)
-	*/
+	 * \brief Run a module-defined command with the given parameter string
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 * \param cmd Name of the command to run (implementation-defined)
+	 * \param args Any arguments for the command (implementation-defined)
+	 * \return Whether the command succeeded (always true)
+	 */
 	virtual bool do_meta_command(std::string const& cmd, std::string const& args);
 
 	/**
-	* \brief Add the specified key-value pair to the configuration archive list
-	* \return Whether the command succeeded (always true)
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Add the specified key-value pair to the configuration archive list
+	 * \return Whether the command succeeded (always true)
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_add_config_archive_entry(std::string const&, std::string const&);
 
 	/**
-	* \brief Clears the configuration archive list
-	* \return Whether the command succeeded (always true)
-	*
-	* This function is a No-Op. Derived classes should override it.
-	*/
+	 * \brief Clears the configuration archive list
+	 * \return Whether the command succeeded (always true)
+	 *
+	 * This function is a No-Op. Derived classes should override it.
+	 */
 	virtual bool do_clear_config_archive();
 
 protected:

@@ -14,21 +14,17 @@
 # ======================================================================
 
 # use cmake 3.17 or later
-cmake_minimum_required (VERSION 3.17)
+cmake_minimum_required (VERSION 3.19 FATAL_ERROR)
 
-find_package(cetmodules)
-set(CET_CETBUILDTOOLS_COMPAT TRUE)
-include(Compatibility)
-set(CET_WARN_DEPRECATED)
+find_package(cetmodules 3.16.00 REQUIRED)
 
-project(artdaq VERSION 3.11.02)
-
-set(CMAKE_MODULE_PATH
-			  $ENV{ARTDAQ_UTILITIES_DIR}/Modules
-	${CMAKE_MODULE_PATH})
+project(artdaq VERSION 3.12.00)
 
 include(CetCMakeEnv)
 cet_cmake_env()
+
+# Find our own CMake modules, and tell everyone else where to find them.
+cet_cmake_module_directories(Modules BINARY)
 
 cet_set_compiler_flags(DIAGS VIGILANT
   WERROR
@@ -72,97 +68,37 @@ endif()
 
 
 #cet_report_compiler_flags()
+find_package(TRACE 3.17.04 REQUIRED EXPORT)
+find_package(artdaq_core 3.08.04 REQUIRED EXPORT)
+find_package(artdaq_utilities 1.07.02 REQUIRED EXPORT)
 
-# JCF, 7/8/15 - not sure this is actually doing anything...
-SET( CMAKE_EXE_LINKER_FLAGS_${BTYPE_UC}  " -m64 -static-libgcc")
+find_package(art_root_io 1.08.03 REQUIRED EXPORT)
+find_package(art 3.09.03 REQUIRED EXPORT)
+find_package(canvas_root_io REQUIRED EXPORT)
+find_package(canvas REQUIRED EXPORT)
+find_package(messagefacility REQUIRED EXPORT)
+find_package(fhiclcpp REQUIRED EXPORT)
+find_package(cetlib REQUIRED EXPORT)
+find_package(cetlib_except REQUIRED EXPORT)
+find_package(Boost COMPONENTS date_time program_options thread REQUIRED EXPORT)
+find_package(XMLRPC COMPONENTS c++2 client abyss-server REQUIRED EXPORT)
 
-# these are minimum required versions, not the actual product versions
-find_ups_boost(v1_53_0)
-find_ups_product (cetbuildtools v4_09_02)
-find_ups_product( TRACE v3_03_00 )
-find_ups_product( art v1_08_10 )
-find_ups_product( canvas v1_00_00 )
-find_ups_product( canvas_root_io v1_00_00 )
+include(BuildPlugins)
 
-# JCF, May-9-2019
-# Removing ups product minimums for the artdaq packages so that
-# dev-versioning can be used on ProtoDUNE
-find_ups_product( artdaq_core ) # v1_03_01 )
-find_ups_product( artdaq_utilities ) # v1_00_00)
-
-find_ups_product( cetlib v1_08_00 )
-find_ups_product( cetpkgsupport v1_08_03 )
-find_ups_product( clhep v2_2_0_3 )
-find_ups_product( fhiclcpp v3_04_00 )
-find_ups_product( messagefacility v1_14_01 )
-find_ups_product( sqlite v3_08_05_00 )
-#cet_find_library(SQLITE3 NAMES sqlite3_ups PATHS ENV SQLITE_LIB NO_DEFAULT_PATH)
-find_ups_product( tbb v4_1 )
-find_ups_product( xmlrpc_c v1_25_18 )
-find_ups_root( v5_34_20 )
-find_ups_product( art_root_io v1_00_00 )
-
-# Include at the top level to make sure include directory is visible
-# everywhere.
-#include(ProcessSmc)
-
-string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" ART_VERSION_LIST "$ENV{ART_VERSION}")
+string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" ART_VERSION_LIST "${art_VERSION}")
 list(GET ART_VERSION_LIST 0 ART_MAJOR_VERSION)
 list(GET ART_VERSION_LIST 1 ART_MINOR_VERSION)
 list(GET ART_VERSION_LIST 2 ART_PATCH_VERSION)
 
-# string(LENGTH ${ART_MINOR_VERSION} TMP_LEN)
-# if (${TMP_LEN} GREATER 1)
-#     string(SUBSTRING ${ART_MINOR_VERSION} 0 1 TMP_STRING)
-#     if (${TMP_STRING} EQUAL "0")
-#         string(SUBSTRING ${ART_MINOR_VERSION} 1 ${TMP_LEN} ART_MINOR_VERSION)
-#     endif()
-# endif()
-
-# string(LENGTH ${ART_PATCH_VERSION} TMP_LEN)
-# if (${TMP_LEN} GREATER 1)
-#     string(SUBSTRING ${ART_PATCH_VERSION} 0 1 TMP_STRING)
-#     if (${TMP_STRING} EQUAL "0")
-#         string(SUBSTRING ${ART_PATCH_VERSION} 1 ${TMP_LEN} ART_PATCH_VERSION)
-#     endif()
-# endif()
-
-# message("-DART_MAJOR_VERSION=${ART_MAJOR_VERSION} -DART_MINOR_VERSION=${ART_MINOR_VERSION} -DART_PATCH_VERSION=${ART_PATCH_VERSION}")
-# add_definitions(-DART_MAJOR_VERSION=${ART_MAJOR_VERSION} -DART_MINOR_VERSION=${ART_MINOR_VERSION} -DART_PATCH_VERSION=${ART_PATCH_VERSION})
 message("-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION}")
 set(ART_HEX_VERSION 0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
 add_definitions(-DART_HEX_VERSION=0x${ART_MAJOR_VERSION}${ART_MINOR_VERSION}${ART_PATCH_VERSION})
-
-
-
-string(REGEX MATCHALL "[0-9][0-9]?[0-9]?" MESSAGEFACILITY_VERSION_LIST "$ENV{MESSAGEFACILITY_VERSION}")
-list(GET MESSAGEFACILITY_VERSION_LIST 0 MESSAGEFACILITY_MAJOR_VERSION)
-list(GET MESSAGEFACILITY_VERSION_LIST 1 MESSAGEFACILITY_MINOR_VERSION)
-list(GET MESSAGEFACILITY_VERSION_LIST 2 MESSAGEFACILITY_PATCH_VERSION)
-
-message("-DMESSAGEFACILITY_HEX_VERSION=0x${MESSAGEFACILITY_MAJOR_VERSION}${MESSAGEFACILITY_MINOR_VERSION}${MESSAGEFACILITY_PATCH_VERSION}")
-add_definitions(-DMESSAGEFACILITY_HEX_VERSION=0x${MESSAGEFACILITY_MAJOR_VERSION}${MESSAGEFACILITY_MINOR_VERSION}${MESSAGEFACILITY_PATCH_VERSION})
-
-# as of fhiclcpp v4_15_00 (s108), ParameterSet::make is the preferred way to make a ParameterSet
-check_ups_version(fhiclcpp $ENV{FHICLCPP_VERSION} v4_15_00 PRODUCT_MATCHES_VAR PSET_MAKE)
-if(PSET_MAKE)
-  add_definitions(-DSIMPLER_PSET_MAKE)
-endif()
-
-
-# Find XMLRPC-C Libraries
-#find_package(XMLRPC REQUIRED c++2 abyss-server client)
-include_directories($ENV{XMLRPC_C_INCLUDE_DIR})
-link_directories($ENV{XMLRPC_C_LIBRARY})
-
-#message("Found XMLRPC at ${XMLRPC_INCLUDE_DIRS} with ${XMLRPC_LIBRARIES}")
 
 # Debug streamer.
 string(TOUPPER ${CMAKE_BUILD_TYPE} BTYPE_UC)
 if(BTYPE_UC STREQUAL DEBUG)
   add_definitions(-DDEBUGME)
 endif()
-
 
 if (DEFINED ENV{NDDSHOME})
    set( USING_RTIDDS TRUE )
@@ -172,15 +108,12 @@ else()
    message("\"NDDSHOME\" environment variable not defined; will ignore RTI-DDS code")
 endif()
 
-# macros for artdaq_dictionary and simple_plugin
-include(ArtMake)
-include(BuildPlugins)
+# source
+add_subdirectory(artdaq)
+cet_register_export_set(SET_NAME artdaqUsers SET_DEFAULT)
 
 # testing
 add_subdirectory(test)
-
-# source
-add_subdirectory(artdaq)
 
 # Prototype stuff (kept around for tests)
 add_subdirectory(proto)

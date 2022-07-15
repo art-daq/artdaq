@@ -1,5 +1,7 @@
 #ifndef artdaq_ArtModules_ArtdaqSharedMemoryService_h
 #define artdaq_ArtModules_ArtdaqSharedMemoryService_h
+#include "TRACE/tracemf.h"
+#include "artdaq-core/Data/Fragment.hh"
 
 #include "art/Framework/Services/Registry/ServiceMacros.h"
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
@@ -52,11 +54,13 @@ public:
 	 * \return The number of events which can be read
 	 */
 	size_t GetQueueSize() override { return incoming_events_->ReadReadyCount(); }
+
 	/** 
 	 * \brief Get the maximum number of events which can be stored in the shared memory
 	 * \return The maximum number of events which can be stored in the shared memory
 	 */
 	size_t GetQueueCapacity() override { return incoming_events_->size(); }
+
 	/**
 	 * \brief Get a shared_ptr to the current event header, if any
 	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
@@ -77,7 +81,6 @@ private:
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqSharedMemoryService, ArtdaqSharedMemoryServiceInterface, LEGACY)
-
 
 #endif /* artdaq_ArtModules_ArtdaqSharedMemoryService_h */
 

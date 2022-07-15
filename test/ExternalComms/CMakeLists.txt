@@ -15,22 +15,23 @@
 #  TEST_PROPERTIES RUN_SERIAL 1
 #  )
 
- cet_make_exec(NAME commander_test # NO_INSTALL -- comment out to install
-SOURCE
-commander_test.cc
-   LIBRARIES
-   artdaq_DAQdata
-   artdaq_Application
-   artdaq_ExternalComms
-   ${Boost_SYSTEM_LIBRARY}
-   ${Boost_PROGRAM_OPTIONS_LIBRARY}
-  fhiclcpp
-   )
+cet_make_exec(NAME commander_test # NO_INSTALL -- comment out to install
+  SOURCE
+  commander_test.cc
+  LIBRARIES
+  artdaq_plugin_support::commanderMaker
+  artdaq_plugin_types::commander
+  artdaq::Application
+  artdaq::DAQdata
+  artdaq_core::artdaq-core_Utilities
+  fhiclcpp::types
+  fhiclcpp::fhiclcpp
+  Boost::thread
+)
 
-
-  cet_test(commander_test_xmlrpc_t HANDBUILT
+cet_test(commander_test_xmlrpc_t HANDBUILT
 	TEST_EXEC commander_test
 	TEST_ARGS -c xmlrpc_commander_test.fcl
 	DATAFILES fcl/xmlrpc_commander_test.fcl
   #TEST_PROPERTIES RUN_SERIAL 1
-	)
+)

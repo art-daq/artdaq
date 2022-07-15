@@ -1,9 +1,10 @@
-#include "tracemf.h"
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "ShmemWrapper"
+
+#include "artdaq/ArtModules/detail/ShmemWrapper.hh"
 
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
-#include "artdaq/ArtModules/detail/ShmemWrapper.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 
 art::ShmemWrapper::ShmemWrapper(fhicl::ParameterSet const& ps)
@@ -59,7 +60,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 	for (auto& frag : recvd_fragments)
 	{
 		TLOG(TLVL_DEBUG + 33) << "receiveMessage: Returning Fragment, length="
-		                 << frag.metadata<artdaq::NetMonHeader>()->data_length;
+		                      << frag.metadata<artdaq::NetMonHeader>()->data_length;
 		output.emplace_back(new artdaq::Fragment(std::move(frag)));
 	}
 
