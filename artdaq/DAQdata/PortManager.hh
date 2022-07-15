@@ -1,10 +1,14 @@
 #ifndef ARTDAQ_DAQDATA_PORTMANAGER_HH
 #define ARTDAQ_DAQDATA_PORTMANAGER_HH
 
-#include <fhiclcpp/fwd.h>
 #include <netinet/in.h>
 #include <string>
+
+namespace fhicl { class ParameterSet; }
+
 #include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/Name.h"
 #include "fhiclcpp/types/ConfigurationTable.h"
 
 #define DEFAULT_BASE 10000

@@ -1,14 +1,21 @@
 #ifndef artdaq_test_TransferPlugins_BrokenTransferTest_hh
 #define artdaq_test_TransferPlugins_BrokenTransferTest_hh
 
-#include "artdaq-core/Core/SharedMemoryManager.hh"
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
+
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "artdaq-core/Core/SharedMemoryManager.hh"
 
 #include <fhiclcpp/ParameterSet.h>
 #include <fhiclcpp/types/Atom.h>
+#include <fhiclcpp/types/Comment.h>
+#include <fhiclcpp/types/ConfigurationTable.h>
+#include <fhiclcpp/types/Name.h>
 #include <fhiclcpp/types/Table.h>
+
 #include <boost/thread.hpp>
+
 #include <condition_variable>
 #include <mutex>
 #include <unordered_set>

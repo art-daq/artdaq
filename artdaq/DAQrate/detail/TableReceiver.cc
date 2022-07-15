@@ -2,14 +2,16 @@
 #define TRACE_NAME (app_name + "_TableReceiver").c_str()
 #include "artdaq/DAQrate/detail/TableReceiver.hh"
 
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
+#include "canvas/Utilities/Exception.h"
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
-#include "artdaq/DAQdata/TCPConnect.hh"
-#include "canvas/Utilities/Exception.h"
 
 artdaq::TableReceiver::TableReceiver(const fhicl::ParameterSet& pset)
     : use_routing_manager_(pset.get<bool>("use_routing_manager", false))
@@ -253,7 +255,7 @@ bool artdaq::TableReceiver::receiveTableUpdate_()
 						}
 						routing_table_[entry.sequence_id] = entry.destination_rank;
 						TLOG(TLVL_DEBUG + 32) << __func__ << ": (my_rank=" << my_rank << ") received update: SeqID " << entry.sequence_id
-						                      << " -> Rank " << entry.destination_rank;
+						                 << " -> Rank " << entry.destination_rank;
 					}
 				}
 

@@ -1,8 +1,6 @@
 #ifndef artdaq_Application_TaskType_hh
 #define artdaq_Application_TaskType_hh
 
-#include "artdaq/DAQdata/Globals.hh"
-
 /**
  * \brief The artdaq namespace
  */

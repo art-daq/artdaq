@@ -1,6 +1,7 @@
 #ifndef artdaq_RTIDDS_RTIDDS_hh
 #define artdaq_RTIDDS_RTIDDS_hh
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
 #include <ndds/ndds_cpp.h>

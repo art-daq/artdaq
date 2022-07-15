@@ -5,6 +5,8 @@
 #include "artdaq/Application/DataLoggerApp.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
 
+#include <boost/lexical_cast.hpp>
+
 #include <iostream>
 #include <memory>
 

@@ -1,8 +1,10 @@
 #ifndef artdaq_Application_CompositeDriver_hh
 #define artdaq_Application_CompositeDriver_hh
 
-#include <vector>
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
+
+#include <vector>
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "fhiclcpp/fwd.h"
 

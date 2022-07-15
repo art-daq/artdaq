@@ -1,10 +1,13 @@
+#define TRACE_NAME "NoOp_policy"
+#include "TRACE/tracemf.h"
+
 #include <utility>
 
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+
 #include "fhiclcpp/ParameterSet.h"
-#include "tracemf.h"
-#define TRACE_NAME "NoOp_policy"
+
 namespace artdaq {
 /**
 	 * \brief A RoutingManagerPolicy which simply assigns Sequence IDs to tokens in the order they were received

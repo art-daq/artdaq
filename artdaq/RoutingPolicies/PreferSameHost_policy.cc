@@ -1,12 +1,14 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_PreferSameHost_policy").c_str()
+#include "TRACE/tracemf.h"
 
 #include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 
 #include "fhiclcpp/ParameterSet.h"
-#include "tracemf.h"
+
+#include <map>
 
 namespace artdaq {
 /**

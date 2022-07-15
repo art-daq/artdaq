@@ -1,10 +1,6 @@
 #ifndef artdaq_ArtModules_TransferWrapper_hh
 #define artdaq_ArtModules_TransferWrapper_hh
 
-#include <iostream>
-#include <memory>
-#include <string>
-
 #include "artdaq-core/Data/RawEvent.hh"
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
@@ -12,6 +8,11 @@
 namespace fhicl {
 class ParameterSet;
 }
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <unordered_map>
 
 namespace artdaq {
 class Fragment;

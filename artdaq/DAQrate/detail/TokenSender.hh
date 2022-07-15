@@ -1,22 +1,22 @@
 #ifndef artdaq_DAQrate_TokenSender_hh
 #define artdaq_DAQrate_TokenSender_hh
 
-#include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
-#include "artdaq/DAQrate/detail/RequestMessage.hh"
-#include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/types/Table.h"
+namespace fhicl { class ParameterSet; }
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
-#include <future>
 #include <map>
 #include <memory>
+#include <string>
 
 namespace artdaq {
 

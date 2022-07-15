@@ -13,11 +13,7 @@
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
-#if ART_HEX_VERSION < 0x30901
-#include "canvas/Utilities/WrappedTypeID.h"
-#else
 #include "canvas/Persistency/Common/WrappedTypeID.h"
-#endif
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -143,7 +139,7 @@ void art::BinaryNetOutput::deinitialize_MPI_() { sender_ptr_.reset(nullptr); }
 bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG + 32) << name_ << "BinaryNetOutput::readParameterSet_ method called with "
-	                      << "ParameterSet = \"" << pset.to_string() << "\".";
+	                 << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// determine the data sending parameters
 	data_pset_ = pset;

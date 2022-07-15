@@ -1,10 +1,7 @@
-#process_smc(SMC_LIB_SOURCE Commandable.sm)
+#include(ProcessSmc)
 
-include_directories("${CMAKE_BINARY_DIR}")
-
-cet_make_library( LIBRARY_NAME artdaq_Application
+cet_make_library(LIBRARY_NAME_VAR APP_TARGET
   SOURCE
-  detail/Commandable_sm.cpp
   Commandable.cc
   BoardReaderApp.cc
   BoardReaderCore.cc
@@ -17,21 +14,29 @@ cet_make_library( LIBRARY_NAME artdaq_Application
   DispatcherCore.cc
   RoutingManagerApp.cc
   RoutingManagerCore.cc
+  detail/Commandable_sm.cpp
   LIBRARIES
-  artdaq_DAQrate
-  artdaq_Generators
+  PUBLIC
+  artdaq_plugin_types::CommandableFragmentGenerator
+  artdaq_plugin_types::policy
+  artdaq::DAQrate
+  canvas::canvas
+  fhiclcpp::types
+  fhiclcpp::fhiclcpp
+  cetlib::cetlib
+  Boost::program_options
+  Threads::Threads
+  TRACE::MF
+  PRIVATE
+  artdaq_plugin_support::CFGMaker
+  artdaq_plugin_support::policyMaker
+  artdaq::DAQdata
   artdaq_core::artdaq-core_Data
+  artdaq_core::artdaq-core_Core
   artdaq_core::artdaq-core_Utilities
-  artdaq_RoutingPolicies
-  MF_MessageLogger
-  cetlib
-  cetlib_except
-  canvas
-  ${Boost_FILESYSTEM_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
-  fhiclcpp
-  )
+)
 
+#process_smc(${APP_TARGET} OUTPUT_DIR detail detail/Commandable.sm)
 
 install_headers(SUBDIRS detail)
 install_source(SUBDIRS detail)

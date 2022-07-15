@@ -1,8 +1,15 @@
+#include "TRACE/tracemf.h"
+#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME "RoutingManagerApp"
 
-#include <memory>
-
 #include "artdaq/Application/RoutingManagerApp.hh"
+
+#include <boost/bind.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
+
+#include <memory>
 
 /**
 * Default constructor.
@@ -90,8 +97,8 @@ bool artdaq::RoutingManagerApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	}
 
 	TLOG(TLVL_DEBUG + 32, app_name + "App") << "do_stop(uint64_t, uint64_t): "
-	                                        << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
-	                                        << ".";
+	                             << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
+	                             << ".";
 
 	return external_request_status_;
 }
@@ -111,8 +118,8 @@ bool artdaq::RoutingManagerApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	}
 
 	TLOG(TLVL_DEBUG + 32, app_name + "App") << "do_pause(uint64_t, uint64_t): "
-	                                        << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
-	                                        << ".";
+	                             << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
+	                             << ".";
 
 	return external_request_status_;
 }

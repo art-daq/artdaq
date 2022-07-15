@@ -12,12 +12,9 @@
 
 // The send/receive role of the plugin
 
-#include "TransferInterface.hh"
-
-#include "fhiclcpp/fwd.h"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
 
 #include <memory>
-#include <string>
 
 namespace artdaq {
 /**

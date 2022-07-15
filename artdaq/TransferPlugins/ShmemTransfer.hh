@@ -1,10 +1,10 @@
 #ifndef artdaq_TransferPlugins_ShmemTransfer_hh
 #define artdaq_TransferPlugins_ShmemTransfer_hh
 
-#include "fhiclcpp/fwd.h"
-
 #include "artdaq-core/Core/SharedMemoryFragmentManager.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+
+#include <memory>
 
 namespace artdaq {
 /**

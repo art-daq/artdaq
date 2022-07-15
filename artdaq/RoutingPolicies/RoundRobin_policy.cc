@@ -1,11 +1,11 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RoundRobin_policy").c_str()
+#include "TRACE/tracemf.h"
 
 #include "artdaq/RoutingPolicies/PolicyMacros.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 
 #include "fhiclcpp/ParameterSet.h"
-#include "tracemf.h"
 
 namespace artdaq {
 /**

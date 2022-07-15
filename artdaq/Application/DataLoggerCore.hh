@@ -2,8 +2,6 @@
 #define artdaq_Application_MPI2_DataLoggerCore_hh
 
 #include "artdaq/Application/DataReceiverCore.hh"
-#include "canvas/Persistency/Provenance/RunID.h"
-#include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
 class DataLoggerCore;

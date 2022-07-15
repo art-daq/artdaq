@@ -1,12 +1,18 @@
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "commander_test"
 
 #include "artdaq/ExternalComms/CommanderInterface.hh"
-
-#include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/Name.h"
+#include "fhiclcpp/types/TableFragment.h"
 
 #include <boost/thread.hpp>
-#include "artdaq/DAQdata/Globals.hh"
 
 // NOLINTNEXTLINE(readability-function-size)
 int main(int argc, char** argv) try

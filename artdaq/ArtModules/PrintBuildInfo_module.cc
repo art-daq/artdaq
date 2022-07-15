@@ -7,6 +7,10 @@
 // from cetpkgsupport v1_05_02.
 ////////////////////////////////////////////////////////////////////////
 
+#include "TRACE/tracemf.h"
+
+#include "artdaq-core/Data/PackageBuildInfo.hh"
+
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -15,9 +19,6 @@
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "tracemf.h"
-
-#include "artdaq-core/Data/PackageBuildInfo.hh"
 
 #include <iostream>
 

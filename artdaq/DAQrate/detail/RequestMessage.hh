@@ -1,8 +1,14 @@
 #ifndef artdaq_DAQrate_detail_RequestMessage_hh
 #define artdaq_DAQrate_detail_RequestMessage_hh
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 #define MAX_REQUEST_MESSAGE_SIZE 65000
+
+#include "artdaq/DAQdata/Globals.hh"
+
+#include <iostream>
+#include <vector>
 
 namespace artdaq {
 namespace detail {

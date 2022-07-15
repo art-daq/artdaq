@@ -1,33 +1,33 @@
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_CommandableFragmentGenerator").c_str()  // include these 2 first -
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
-#include <boost/exception/all.hpp>
-#include <boost/throw_exception.hpp>
-
-#include <iterator>
-#include <limits>
-#include <thread>
-
-#include "canvas/Utilities/Exception.h"
-#include "cetlib_except/exception.h"
-#include "fhiclcpp/ParameterSet.h"
-
+#include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+#include "cetlib_except/exception.h"
+
+#include <boost/exception/all.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
 
 #include <sys/poll.h>
 #include <algorithm>
+#include <chrono>
+#include <exception>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <memory>
-#include "artdaq/DAQdata/TCPConnect.hh"
+#include <mutex>
+#include <thread>
 
 #define TLVL_GETNEXT 35
 #define TLVL_GETNEXT_VERBOSE 36
@@ -437,7 +437,7 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 		if (should_stop() || monitoringInterval_ <= 0)
 		{
 			TLOG(TLVL_DEBUG + 32) << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
-			                      << " and monitoringInterval is " << monitoringInterval_ << ", returning";
+			                 << " and monitoringInterval is " << monitoringInterval_ << ", returning";
 			return;
 		}
 		TLOG(TLVL_GETMONITORINGDATA) << "getMonitoringDataLoop: Determining whether to call checkHWStatus_";

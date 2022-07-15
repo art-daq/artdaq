@@ -4,9 +4,9 @@
 #include <chrono>
 #include <cmath>
 #include <string>
+#include <utility> // std::pair<>
 #include <vector>
 
-#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {

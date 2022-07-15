@@ -1,3 +1,4 @@
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "TransferOutput"
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 
@@ -5,6 +6,7 @@
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "art/Framework/Core/ModuleMacros.h"
 
 namespace art {
 class TransferOutput;
@@ -74,7 +76,7 @@ art::TransferOutput::~TransferOutput()
 void art::TransferOutput::SendMessage(artdaq::FragmentPtr& fragment)
 {
 	TLOG(TLVL_DEBUG + 32) << "Sending message with sequenceID=" << fragment->sequenceID() << ", type=" << static_cast<int>(fragment->type())
-	                      << ", length=" << fragment->dataSizeBytes();
+	                 << ", length=" << fragment->dataSizeBytes();
 	auto sts = artdaq::TransferInterface::CopyStatus::kErrorNotRequiringException;
 	size_t retries = 0;
 	while (sts != artdaq::TransferInterface::CopyStatus::kSuccess && retries <= send_retry_count_)

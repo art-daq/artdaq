@@ -2,12 +2,17 @@
 
 #include <boost/program_options.hpp>
 #include <memory>
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQrate/detail/RequestReceiver.hh"
 #include "artdaq/DAQrate/detail/RequestSender.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/Name.h"
+#include "fhiclcpp/types/TableFragment.h"
+#include "fhiclcpp/ParameterSet.h"
 
 int main(int argc, char* argv[]) try
 {

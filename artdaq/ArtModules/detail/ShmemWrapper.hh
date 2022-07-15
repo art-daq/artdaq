@@ -1,14 +1,16 @@
 #ifndef artdaq_ArtModules_ShmemWrapper_hh
 #define artdaq_ArtModules_ShmemWrapper_hh
 
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace art {
 /**

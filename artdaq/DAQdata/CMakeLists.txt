@@ -1,22 +1,32 @@
-cet_make( BASENAME_ONLY
-  LIBRARY_NAME artdaq_DAQdata
-  EXCLUDE GenericFragmentSimulator_generator.cc
-  LIB_LIBRARIES
+cet_make_library(SOURCE
+  Globals.cc
+  PortManager.cc
+  TCPConnect.cc
+  TCP_listen_fd.cc
+  LIBRARIES PUBLIC
   artdaq_utilities::artdaq-utilities_Plugins
-  artdaq_core::artdaq-core_Utilities
-  fhiclcpp
-  cetlib
-  cetlib_except
-  MF_MessageLogger
-  ${Boost_FILESYSTEM_LIBRARY}
-  ${Boost_SYSTEM_LIBRARY}
-  )
+  fhiclcpp::types
+  Threads::Threads
+  TRACE::MF
+)
 
-basic_plugin(GenericFragmentSimulator "generator"
-  artdaq_DAQdata
+cet_make_library(LIBRARY_NAME HostMap INTERFACE
+  SOURCE HostMap.hh
+  LIBRARIES INTERFACE
+  fhiclcpp::types
+  fhiclcpp::fhiclcpp
+)
+
+include(artdaq::generator)
+cet_build_plugin(GenericFragmentSimulator artdaq::generator
+  LIBRARIES
+  PUBLIC
+  artdaq_plugin_types::generator
   artdaq_core::artdaq-core_Data
-  cetlib_except
-  )
+  fhiclcpp::types
+  PRIVATE
+  fhiclcpp::fhiclcpp
+)
 
 install_headers()
 install_source()

@@ -5,7 +5,11 @@
 //  $RCSfile: TCP_listen_fd.cpp,v $
 //  rev="$Revision: 1.3 $$Date: 2010/06/04 14:00:32 $";
 
+#include "artdaq/DAQdata/TCP_listen_fd.hh"
+
 #include "artdaq/DAQdata/Globals.hh"
+#include "TRACE/tracemf.h"
+
 #define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 
 #include <arpa/inet.h>  /* inet_aton */
@@ -16,8 +20,6 @@
 #include <cerrno>       // errno
 #include <cstdio>       // printf
 #include <cstdlib>      // exit
-
-#include "artdaq/DAQdata/TCP_listen_fd.hh"
 
 int TCP_listen_fd(int port, int rcvbuf)
 {
