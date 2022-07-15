@@ -1,6 +1,9 @@
 #ifndef ARTDAQ_DAQDATA_GLOBALS_HH
 #define ARTDAQ_DAQDATA_GLOBALS_HH
 
+#ifndef TRACE_DEFINE  // as set in Globals.cc
+#define TRACE_DECLARE
+#endif
 #include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/DAQdata/PortManager.hh"
 
