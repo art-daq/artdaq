@@ -2,8 +2,8 @@
 #define artdaq_ArtModules_ArtdaqGlobalsService_h
 
 #include "art/Framework/Services/Registry/ServiceMacros.h"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "artdaq-core/Data/RawEvent.hh"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "fhiclcpp/types/Atom.h"
 
 // ----------------------------------------------------------------------
@@ -40,7 +40,8 @@ public:
 	 * \brief Pretend to receive an event from the shared memory
 	 * \return Map of Fragment types retrieved from shared memory
 	 */
-	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ReceiveEvent(bool) override {
+	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ReceiveEvent(bool) override
+	{
 		return std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>();
 	}
 
@@ -65,7 +66,6 @@ private:
 	ArtdaqGlobalsService(ArtdaqGlobalsService&&) = delete;
 	ArtdaqGlobalsService& operator=(ArtdaqGlobalsService const&) = delete;
 	ArtdaqGlobalsService& operator=(ArtdaqGlobalsService&&) = delete;
-
 };
 
 DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqGlobalsService, ArtdaqSharedMemoryServiceInterface, LEGACY)

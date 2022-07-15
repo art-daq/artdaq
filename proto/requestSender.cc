@@ -14,8 +14,7 @@
 #include "fhiclcpp/types/Name.h"
 #include "fhiclcpp/types/TableFragment.h"
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("RequestSender");
 

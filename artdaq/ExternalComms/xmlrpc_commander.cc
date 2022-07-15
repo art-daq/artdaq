@@ -1333,8 +1333,7 @@ xmlrpc_commander::xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Comman
 	TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
 }
 
-void xmlrpc_commander::run_server()
-try
+void xmlrpc_commander::run_server() try
 {
 	// std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 	xmlrpc_c::registry registry;

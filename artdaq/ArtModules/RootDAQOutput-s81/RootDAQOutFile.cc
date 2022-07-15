@@ -493,7 +493,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	                                     saveMemoryObjectThreshold);
 	dataTypeReported_ = false;
 	rootFileDB_.reset(
-	    art::ServiceHandle<art::DatabaseConnection> {} -> get<TKeyVFSOpenPolicy>(
+	    art::ServiceHandle<art::DatabaseConnection> {}->get<TKeyVFSOpenPolicy>(
 	        "RootFileDB",
 	        filePtr_.get(),
 	        SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE));
