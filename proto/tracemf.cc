@@ -4,8 +4,8 @@
 // contacting Ron or Fermi Lab in Batavia IL, 60510, phone: 630-840-3000.
 // $RCSfile: just_user.cc,v $
 
-#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "artdaq/DAQdata/Globals.hh"
 
 #include <boost/program_options.hpp>
 
@@ -49,7 +49,8 @@ std::string formatTime(double time)
 	return o.str();
 }
 
-int main(int argc, char *argv[]) try
+int main(int argc, char *argv[])
+try
 {
 	std::ostringstream descstr;
 	descstr << *argv

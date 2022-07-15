@@ -60,7 +60,7 @@ artdaq::FragmentPtrs art::ShmemWrapper::receiveMessage()
 	for (auto& frag : recvd_fragments)
 	{
 		TLOG(TLVL_DEBUG + 33) << "receiveMessage: Returning Fragment, length="
-		                 << frag.metadata<artdaq::NetMonHeader>()->data_length;
+		                      << frag.metadata<artdaq::NetMonHeader>()->data_length;
 		output.emplace_back(new artdaq::Fragment(std::move(frag)));
 	}
 

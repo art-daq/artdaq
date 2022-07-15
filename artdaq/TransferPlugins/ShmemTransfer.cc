@@ -127,7 +127,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 		return artdaq::TransferInterface::DATA_END;
 	}
 
-	//TLOG(TLVL_DEBUG + 33) << GetTraceName() << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops ;
+	// TLOG(TLVL_DEBUG + 33) << GetTraceName() << "delta_=" << delta_() << ", rp=" << (int)shm_ptr_->read_pos << ", wp=" << (int)shm_ptr_->write_pos << ", loopCount=" << loopCount << ", nloops=" << nloops ;
 
 	if (shm_manager_->ReadyForRead())
 	{
@@ -142,7 +142,7 @@ int artdaq::ShmemTransfer::receiveFragmentHeader(detail::RawFragmentHeader& head
 		if (header.type != artdaq::Fragment::DataFragmentType)
 		{
 			TLOG(TLVL_DEBUG + 38) << GetTraceName() << "Recvd fragment header from shmem, type=" << static_cast<int>(header.type)
-			        << ", sequenceID=" << header.sequence_id << ", source_rank=" << source_rank();
+			                      << ", sequenceID=" << header.sequence_id << ", source_rank=" << source_rank();
 		}
 
 		return source_rank();

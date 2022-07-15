@@ -5,9 +5,9 @@
 //  $RCSfile: Timeout.cxx,v $
 //  rev="$Revision: 1.13 $$Date: 2016/10/12 21:00:13 $";
 /*
-	g++ -Wall -g -std=c++0x -c Timeout.cxx
+    g++ -Wall -g -std=c++0x -c Timeout.cxx
 OR
-	g++ -Wall -g -std=c++0x -shared -fPIC -o Timeout.so Timeout.cxx -lrt
+    g++ -Wall -g -std=c++0x -shared -fPIC -o Timeout.so Timeout.cxx -lrt
 */
 
 #define TRACE_NAME "Timeout"
@@ -214,7 +214,7 @@ void Timeout::timeoutlist_init()
 {
 	size_t list_sz = tmospecs_.size();
 	for (size_t ii = 0; ii < list_sz; ++ii)
-	{  //bzero( &tmospecs_[list_sz], sizeof(tmospecs_[0]) );
+	{  // bzero( &tmospecs_[list_sz], sizeof(tmospecs_[0]) );
 		free_.push_front(ii);
 	}
 }
@@ -254,8 +254,8 @@ int Timeout::get_clear_next_expired_timeout(timeoutspec& tmo, uint64_t tod_now_u
 			tmospecs_[idx].tmo_tod_us += period_us;
 			active_time_.insert(std::pair<uint64_t, size_t>(tmospecs_[idx].tmo_tod_us, idx));
 			TLOG(TLVL_DEBUG + 38) << "get_clear_next_expired_timeout - periodic timeout desc=" << tmo.desc
-			         << " period_us=" << period_us << " delta_us=" << delta_us
-			         << " skipped=" << skipped << " next tmo at:" << tmospecs_[idx].tmo_tod_us;
+			                      << " period_us=" << period_us << " delta_us=" << delta_us
+			                      << " skipped=" << skipped << " next tmo at:" << tmospecs_[idx].tmo_tod_us;
 		}
 		else
 		{

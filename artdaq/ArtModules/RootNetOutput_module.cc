@@ -2,8 +2,8 @@
 
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 #include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
-#include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
@@ -113,7 +113,7 @@ void art::RootNetOutput::SendMessage(artdaq::FragmentPtr& fragment)
 
 		auto sequenceId = fragment->sequenceID();
 		TLOG(TLVL_DEBUG + 32) << "Sending message with sequenceID=" << sequenceId << ", type=" << static_cast<int>(fragment->type())
-		                 << ", length=" << fragment->dataSizeBytes();
+		                      << ", length=" << fragment->dataSizeBytes();
 
 		sender_ptr_->sendFragment(std::move(*fragment));
 		// Events are unique in art, so this will be the only send with this sequence ID!

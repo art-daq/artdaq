@@ -9,19 +9,19 @@
 
 namespace artdaq {
 /**
-	 * \brief A RoutingManagerPolicy which evenly distributes Sequence IDs to all receivers.
-	 * If an uneven number of tokens have been received, extra tokens are stored for the next table update.
-	 */
+ * \brief A RoutingManagerPolicy which evenly distributes Sequence IDs to all receivers.
+ * If an uneven number of tokens have been received, extra tokens are stored for the next table update.
+ */
 class RoundRobinPolicy : public RoutingManagerPolicy
 {
 public:
 	/**
-		 * \brief RoundRobinPolicy Constructor
-		 * \param ps ParameterSet used to configure RoundRobinPolicy
-		 * 
-		 * RoundRobinPolicy accepts the following Parameter:
-		 * "minimum_participants" (Default: 0): Minimum number of receivers to distribute between. Use negative number to indicate how many can be missing from total. If the number of allowed missing receivers is greater than the number that exist, then the minimum number of participants will be set to 1.
-		 */
+	 * \brief RoundRobinPolicy Constructor
+	 * \param ps ParameterSet used to configure RoundRobinPolicy
+	 *
+	 * RoundRobinPolicy accepts the following Parameter:
+	 * "minimum_participants" (Default: 0): Minimum number of receivers to distribute between. Use negative number to indicate how many can be missing from total. If the number of allowed missing receivers is greater than the number that exist, then the minimum number of participants will be set to 1.
+	 */
 	explicit RoundRobinPolicy(const fhicl::ParameterSet& ps)
 	    : RoutingManagerPolicy(ps)
 	    , minimum_participants_(ps.get<int>("minimum_participants", 0))
@@ -29,14 +29,14 @@ public:
 	}
 
 	/**
-		 * \brief Default virtual Destructor
-		 */
+	 * \brief Default virtual Destructor
+	 */
 	~RoundRobinPolicy() override = default;
 
 	/**
 	 * @brief Add entries to the given RoutingPacket using currently-held tokens
 	 * @param output RoutingPacket to add entries to
-	 * 
+	 *
 	 * RoundRobinPolicy will go through the list of receivers as many times
 	 * as it can, until one or more receivers have no tokens. It always does full
 	 * "turns" through the recevier list.

@@ -5,11 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "fhiclcpp/types/Sequence.h" // Must pre-empt fhiclcpp/types/Atom.h
+#include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
 #include "fhiclcpp/types/Table.h"
-#include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
 

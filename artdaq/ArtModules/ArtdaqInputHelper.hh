@@ -1,10 +1,10 @@
 #ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQINPUTHELPER_HH_
 #define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQINPUTHELPER_HH_
 
-#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 
-#include "artdaq/ArtModules/InputUtilities.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/ArtModules/InputUtilities.hh"
 
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"

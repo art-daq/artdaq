@@ -10,10 +10,10 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
 #include "art/Persistency/Provenance/ModuleContext.h"
+#include "canvas/Persistency/Common/WrappedTypeID.h"
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
-#include "canvas/Persistency/Common/WrappedTypeID.h"
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -139,7 +139,7 @@ void art::BinaryNetOutput::deinitialize_MPI_() { sender_ptr_.reset(nullptr); }
 bool art::BinaryNetOutput::readParameterSet_(fhicl::ParameterSet const& pset)
 {
 	TLOG(TLVL_DEBUG + 32) << name_ << "BinaryNetOutput::readParameterSet_ method called with "
-	                 << "ParameterSet = \"" << pset.to_string() << "\".";
+	                      << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// determine the data sending parameters
 	data_pset_ = pset;

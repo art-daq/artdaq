@@ -1,8 +1,8 @@
 #define TRACE_NAME "RoutingManagerPolicy"
 #include "TRACE/tracemf.h"
 
-#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 

@@ -1,16 +1,16 @@
-#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_CommandableFragmentGenerator").c_str()  // include these 2 first -
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
-#include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq-core/Data/ContainerFragmentLoader.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 
-#include "fhiclcpp/ParameterSet.h"
 #include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include <boost/exception/all.hpp>
 #include <boost/lexical_cast.hpp>
@@ -328,8 +328,8 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 	resume();
 
 	std::unique_lock<std::mutex> lk(mutex_);
-	//if (useDataThread_) startDataThread();
-	//if (useMonitoringThread_) startMonitoringThread();
+	// if (useDataThread_) startDataThread();
+	// if (useMonitoringThread_) startMonitoringThread();
 	TLOG(TLVL_DEBUG + 33) << "Resume Command complete.";
 }
 
@@ -365,7 +365,7 @@ std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& w
 	tmpString.append(" fragment generator.");
 	*/
 	TLOG(TLVL_DEBUG + 33) << "Report Command complete.";
-	return "";  //tmpString;
+	return "";  // tmpString;
 }
 
 // Default implemenetations of state functions
@@ -437,7 +437,7 @@ void artdaq::CommandableFragmentGenerator::getMonitoringDataLoop()
 		if (should_stop() || monitoringInterval_ <= 0)
 		{
 			TLOG(TLVL_DEBUG + 32) << "getMonitoringDataLoop: should_stop() is " << std::boolalpha << should_stop()
-			                 << " and monitoringInterval is " << monitoringInterval_ << ", returning";
+			                      << " and monitoringInterval is " << monitoringInterval_ << ", returning";
 			return;
 		}
 		TLOG(TLVL_GETMONITORINGDATA) << "getMonitoringDataLoop: Determining whether to call checkHWStatus_";

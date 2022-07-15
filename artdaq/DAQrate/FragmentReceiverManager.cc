@@ -117,7 +117,7 @@ bool artdaq::FragmentReceiverManager::fragments_ready_() const
 
 int artdaq::FragmentReceiverManager::get_next_source_() const
 {
-	//std::unique_lock<std::mutex> lck(fragment_store_mutex_);
+	// std::unique_lock<std::mutex> lck(fragment_store_mutex_);
 	std::set<int> ready_sources;
 	for (auto& it : fragment_store_)
 	{

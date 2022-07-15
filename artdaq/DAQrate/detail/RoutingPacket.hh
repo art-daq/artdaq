@@ -1,7 +1,7 @@
 #ifndef artdaq_DAQrate_detail_RoutingPacket_hh
 #define artdaq_DAQrate_detail_RoutingPacket_hh
 
-#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
 #include <string>
@@ -120,12 +120,12 @@ struct artdaq::detail::RoutingPacketHeader
 
 /**
  * @brief Represents a request sent to the RoutingManager for routing information
-*/
+ */
 struct artdaq::detail::RoutingRequest
 {
 	/**
 	 * @brief The mode of this request, whether Request or Connect/Disconnect control messages
-	*/
+	 */
 	enum class RequestMode : uint8_t
 	{
 		Connect = 0,
@@ -138,7 +138,7 @@ struct artdaq::detail::RoutingRequest
 	 * @brief Convert a RequestMode enumeration value to string
 	 * @param m RequestMode to convert
 	 * @return String representation of RequestMode
-	*/
+	 */
 	static std::string RequestModeToString(RequestMode m)
 	{
 		switch (m)
@@ -164,9 +164,9 @@ struct artdaq::detail::RoutingRequest
 	 * @brief Create a request using the given rank and mode
 	 * @param r Rank of the requestor
 	 * @param m Mode of this request
-	 * 
+	 *
 	 * This constructor is primarily used to sed RequestMode::Connect and RequestMode::Disconnect control messages
-	*/
+	 */
 	RoutingRequest(int r, RequestMode m = RequestMode::Connect)
 	    : header(ROUTING_MAGIC), rank(r), mode(m) {}
 
@@ -174,7 +174,7 @@ struct artdaq::detail::RoutingRequest
 	 * @brief Create a RoutingRequest using the given rank and sequence ID
 	 * @param r Rank of the requestor
 	 * @param seq Sequence ID of request
-	*/
+	 */
 	RoutingRequest(int r, Fragment::sequence_id_t seq)
 	    : header(ROUTING_MAGIC), rank(r), sequence_id(seq), mode(RequestMode::Request) {}
 
@@ -187,7 +187,7 @@ struct artdaq::detail::RoutingRequest
 #define TOKEN_MAGIC 0xbeefcafe
 
 /**
- * \brief The RoutingToken contains the magic bytes, the rank of the token sender, and the number of slots free. This is 
+ * \brief The RoutingToken contains the magic bytes, the rank of the token sender, and the number of slots free. This is
  * a TCP message, so additional verification is not necessary.
  */
 struct artdaq::detail::RoutingToken
@@ -198,4 +198,4 @@ struct artdaq::detail::RoutingToken
 	unsigned run_number;      ///< The Run with which this token should be associated
 };
 
-#endif  //artdaq_Application_Routing_RoutingPacket_hh
+#endif  // artdaq_Application_Routing_RoutingPacket_hh

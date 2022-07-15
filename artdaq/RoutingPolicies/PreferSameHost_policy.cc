@@ -12,18 +12,18 @@
 
 namespace artdaq {
 /**
-	 * \brief A RoutingManagerPolicy which tries to keep data on the same host. For EventBuilding mode, performs RoundRobin.
-	 */
+ * \brief A RoutingManagerPolicy which tries to keep data on the same host. For EventBuilding mode, performs RoundRobin.
+ */
 class PreferSameHostPolicy : public RoutingManagerPolicy
 {
 public:
 	/**
-		 * \brief PreferSameHostPolicy Constructor
-		 * \param ps ParameterSet used to configure PreferSameHostPolicy
-		 * 
-		 * PreferSameHostPolicy accepts the following Parameter:
-		 * "minimum_participants" (Default: 0): Minimum number of receivers to distribute between. Use negative number to indicate how many can be missing from total. If the number of allowed missing receivers is greater than the number that exist, then the minimum number of participants will be set to 1.
-		 */
+	 * \brief PreferSameHostPolicy Constructor
+	 * \param ps ParameterSet used to configure PreferSameHostPolicy
+	 *
+	 * PreferSameHostPolicy accepts the following Parameter:
+	 * "minimum_participants" (Default: 0): Minimum number of receivers to distribute between. Use negative number to indicate how many can be missing from total. If the number of allowed missing receivers is greater than the number that exist, then the minimum number of participants will be set to 1.
+	 */
 	explicit PreferSameHostPolicy(const fhicl::ParameterSet& ps)
 	    : RoutingManagerPolicy(ps)
 	    , minimum_participants_(ps.get<int>("minimum_participants", 0))
@@ -32,25 +32,25 @@ public:
 	}
 
 	/**
-		 * \brief Default virtual Destructor
-		 */
+	 * \brief Default virtual Destructor
+	 */
 	~PreferSameHostPolicy() override = default;
 
 	/**
-		 * \brief Generate a set of Routing Tables using received tokens
-		 * \param output The RoutingPacket to add entries to
-		 * 
-		 * PreferSameHostPolicy will go through the list of receivers as many times
-		 * as it can, until one or more receivers have no tokens. It always does full
-		 * "turns" through the recevier list.
-		 */
+	 * \brief Generate a set of Routing Tables using received tokens
+	 * \param output The RoutingPacket to add entries to
+	 *
+	 * PreferSameHostPolicy will go through the list of receivers as many times
+	 * as it can, until one or more receivers have no tokens. It always does full
+	 * "turns" through the recevier list.
+	 */
 	void CreateRoutingTable(detail::RoutingPacket& output) override;
 	/**
-		 * @brief Get an artdaq::detail::RoutingPacketEntry for a given sequence ID and rank. Used by RequestBasedEventBuilder and DataFlow RoutingManagerMode
-		 * @param seq Sequence Number to get route for
-		 * @param requesting_rank Rank to route for
-		 * @return artdaq::detail::RoutingPacketEntry connecting sequence ID to destination rank
-		 */
+	 * @brief Get an artdaq::detail::RoutingPacketEntry for a given sequence ID and rank. Used by RequestBasedEventBuilder and DataFlow RoutingManagerMode
+	 * @param seq Sequence Number to get route for
+	 * @param requesting_rank Rank to route for
+	 * @return artdaq::detail::RoutingPacketEntry connecting sequence ID to destination rank
+	 */
 	detail::RoutingPacketEntry CreateRouteForSequenceID(artdaq::Fragment::sequence_id_t seq, int requesting_rank) override;
 
 private:

@@ -36,7 +36,7 @@ public:
 	/**
 	 * \brief EventDump Constructor
 	 * \param pset ParameterSet used to configure EventDump
-	 * 
+	 *
 	 * \verbatim
 	 * EventDump accepts the following Parameters:
 	 * "raw_data_label" (Default: "daq"): The label used to store artdaq data
@@ -53,7 +53,7 @@ public:
 	/**
 	 * \brief This method is called for each art::Event in a file or run
 	 * \param e The art::Event to analyze
-	 * 
+	 *
 	 * This module simply prints the event number, and art by default
 	 * prints the products found in the event.
 	 */

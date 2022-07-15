@@ -1,10 +1,12 @@
 #ifndef ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
 #define ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
 
-#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
@@ -15,8 +17,8 @@ namespace fhicl { class ParameterSet; }
 
 #include "boost/thread.hpp"
 
-#include <condition_variable>
 #include <netinet/in.h>
+#include <condition_variable>
 #include <map>
 #include <memory>
 #include <set>
@@ -74,19 +76,19 @@ public:
 
 	/**
 	 * @brief Get a copy of the current RoutingTable
-	*/
+	 */
 	RoutingTable GetRoutingTable() const;
 
 	/**
 	 * @brief Get the current RoutingTable and remove all entries
-	*/
+	 */
 	RoutingTable GetAndClearRoutingTable();
 
 	/**
 	 * @brief Get the destination rank for the given sequence ID
 	 * @param seqID Sequence ID to query
 	 * @return Destination rank for given Sequence ID
-	*/
+	 */
 	int GetRoutingTableEntry(artdaq::Fragment::sequence_id_t seqID);
 
 	/**
@@ -114,12 +116,12 @@ public:
 
 	/**
 	 * @brief Report metrics to MetricManager
-	*/
+	 */
 	void SendMetrics() const;
 
 	/**
 	 * @brief Whether the TableReceiver will receive tables from the RoutingManager
-	*/
+	 */
 	bool RoutingManagerEnabled() const { return use_routing_manager_; }
 
 private:
@@ -158,4 +160,4 @@ private:
 	mutable std::atomic<uint64_t> highest_sequence_id_routed_;
 };
 
-#endif  //ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
+#endif  // ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
