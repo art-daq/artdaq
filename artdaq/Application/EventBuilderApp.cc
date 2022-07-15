@@ -26,7 +26,7 @@ bool artdaq::EventBuilderApp::do_initialize(fhicl::ParameterSet const& pset, uin
 	// instance, then create a new one.  Doing it in one step does not
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
-	// event_builder_ptr_.reset(nullptr);
+	//event_builder_ptr_.reset(nullptr);
 	if (event_builder_ptr_ == nullptr)
 	{
 		event_builder_ptr_ = std::make_unique<EventBuilderCore>();
@@ -156,7 +156,7 @@ void artdaq::EventBuilderApp::BootedEnter()
 	// Booted Entry action rather than the Initialized Exit action because the
 	// Initialized Exit action is only called after the "init" transition guard
 	// condition is executed.
-	// event_builder_ptr_.reset(nullptr);
+	//event_builder_ptr_.reset(nullptr);
 }
 
 std::string artdaq::EventBuilderApp::report(std::string const& which) const
@@ -173,11 +173,11 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	// if (report_string_.length() > 0) {
-	//   resultString.append("*** Overall status message:\r\n");
-	//   resultString.append(report_string_ + "\r\n");
-	//   resultString.append("*** Requested report response:\r\n");
-	// }
+	//if (report_string_.length() > 0) {
+	//  resultString.append("*** Overall status message:\r\n");
+	//  resultString.append(report_string_ + "\r\n");
+	//  resultString.append("*** Requested report response:\r\n");
+	//}
 
 	// pass the request to the EventBuilderCore instance, if it's available
 	if (event_builder_ptr_ != nullptr)
@@ -217,6 +217,40 @@ bool artdaq::EventBuilderApp::do_clear_config_archive()
 		report_string_ = "Error clearing the configuration archive in ";
 		report_string_.append(app_name + ".");
 	}
+
+	return external_request_status_;
+}
+
+bool artdaq::EventBuilderApp::do_override_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags)
+{
+	report_string_ = "";
+	external_request_status_ = true;
+
+	std::set<Fragment::fragment_id_t> frags_set;
+	for (auto& f : frags)
+	{
+		if (!frags_set.count(f))
+			frags_set.insert(f);
+	}
+
+	event_builder_ptr_->OverrideFragmentIDsForEvent(seqID, frags_set);
+
+	return external_request_status_;
+}
+
+bool artdaq::EventBuilderApp::do_update_default_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags)
+{
+	report_string_ = "";
+	external_request_status_ = true;
+
+	std::set<Fragment::fragment_id_t> frags_set;
+	for (auto& f : frags)
+	{
+		if (!frags_set.count(f))
+			frags_set.insert(f);
+	}
+
+	event_builder_ptr_->SetDefaultFragmentIDs(frags_set, seqID);
 
 	return external_request_status_;
 }

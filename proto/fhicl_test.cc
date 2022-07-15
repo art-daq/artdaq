@@ -6,8 +6,7 @@
 #include <iostream>
 #include "artdaq/Application/LoadParameterSet.hh"
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	struct Config
 	{};

@@ -1,8 +1,7 @@
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "proto/artdaqapp.hh"
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	struct Config
 	{

@@ -20,7 +20,7 @@ bool artdaq::DispatcherApp::do_initialize(fhicl::ParameterSet const& pset, uint6
 {
 	report_string_ = "";
 
-	// Dispatcher_ptr_.reset(nullptr);
+	//Dispatcher_ptr_.reset(nullptr);
 	if (Dispatcher_ptr_ == nullptr)
 	{
 		Dispatcher_ptr_ = std::make_unique<DispatcherCore>();
@@ -127,11 +127,11 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	// if (report_string_.length() > 0) {
-	//   resultString.append("*** Overall status message:\r\n");
-	//   resultString.append(report_string_ + "\r\n");
-	//   resultString.append("*** Requested report response:\r\n");
-	// }
+	//if (report_string_.length() > 0) {
+	//  resultString.append("*** Overall status message:\r\n");
+	//  resultString.append(report_string_ + "\r\n");
+	//  resultString.append("*** Requested report response:\r\n");
+	//}
 
 	// pass the request to the DispatcherCore instance, if it's available
 	if (Dispatcher_ptr_ != nullptr)
@@ -193,4 +193,37 @@ std::string artdaq::DispatcherApp::unregister_monitor(std::string const& label)
 	{
 		return "Error in artdaq::DispatcherApp::unregister_monitor: DispatcherCore object wasn't initialized";
 	}
+}
+
+bool artdaq::DispatcherApp::do_override_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags)
+{
+	report_string_ = "";
+	external_request_status_ = true;
+
+	std::set<Fragment::fragment_id_t> frags_set;
+	for (auto& f : frags)
+	{
+		if (!frags_set.count(f))
+			frags_set.insert(f);
+	}
+
+	Dispatcher_ptr_->OverrideFragmentIDsForEvent(seqID, frags_set);
+
+	return external_request_status_;
+}
+
+bool artdaq::DispatcherApp::do_update_default_fragment_ids(uint64_t seqID, std::vector<uint32_t> frags)
+{
+	report_string_ = "";
+	external_request_status_ = true;
+	std::set<Fragment::fragment_id_t> frags_set;
+	for (auto& f : frags)
+	{
+		if (!frags_set.count(f))
+			frags_set.insert(f);
+	}
+
+	Dispatcher_ptr_->SetDefaultFragmentIDs(frags_set, seqID);
+
+	return external_request_status_;
 }

@@ -30,6 +30,10 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
                           !pset.get<bool>("broadcast_mode", false))
     , num_art_processes_(pset.get<size_t>("art_analyzer_count", 1))
     , num_fragments_per_event_(pset.get<size_t>("expected_fragments_per_event"))
+    , default_fragment_ids_()
+    , fragment_id_overrides_()
+    , max_fragment_id_list_size_(pset.get<size_t>("maximum_fragment_history_count", 1000))
+    , in_progress_fragment_ids_()
     , queue_size_(pset.get<size_t>("buffer_count"))
     , run_id_(0)
     , max_subrun_event_map_length_(pset.get<size_t>("max_subrun_lookup_table_size", 100))
@@ -104,6 +108,19 @@ artdaq::SharedMemoryEventManager::SharedMemoryEventManager(const fhicl::Paramete
 		std::lock_guard<std::mutex> lk(buffer_mutexes_[ii]);
 	}
 
+	if (pset.has_key("expected_fragment_ids"))
+	{
+		auto conf = pset.get<std::vector<Fragment::fragment_id_t>>("expected_fragment_ids");
+		for (auto f : conf)
+		{
+			default_fragment_ids_.insert(f);
+		}
+		if (num_fragments_per_event_ > default_fragment_ids_.size())
+		{
+			TLOG(TLVL_WARNING) << "Potential configuration issue detected: expected_fragments_per_event (" << num_fragments_per_event_ << ") != expected_fragment_ids list size (" << default_fragment_ids_.size() << ")";
+		}
+	}
+
 	if (!IsValid())
 	{
 		throw cet::exception(app_name + "_SharedMemoryEventManager") << "Unable to attach to Shared Memory!";  // NOLINT(cert-err60-cpp)
@@ -145,7 +162,7 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 
 	TLOG(TLVL_DEBUG + 33) << "AddFragment(Header, ptr) BEGIN frag.word_count=" << frag.word_count
 	                      << ", sequence_id=" << frag.sequence_id;
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp, frag.fragment_id);
 	TLOG(TLVL_DEBUG + 33) << "Using buffer " << buffer << " for seqid=" << frag.sequence_id;
 	if (buffer == -1)
 	{
@@ -153,8 +170,26 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	}
 	if (buffer == -2)
 	{
-		TLOG(TLVL_ERROR) << "Dropping event because data taking has already passed this event number: " << frag.sequence_id;
+		TLOG(TLVL_ERROR) << "Dropping fragment because data taking has already passed this event number: " << frag.sequence_id;
 		return true;
+	}
+
+	{
+		std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+		if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
+		{
+			if (!in_progress_fragment_ids_[frag.sequence_id].count(frag.fragment_id))
+			{
+				TLOG(TLVL_ERROR) << "Dropping fragment because " << frag.fragment_id << " is not in the list of expected Fragment IDs for event " << frag.sequence_id << "!";
+				return true;
+			}
+			if (in_progress_fragment_ids_[frag.sequence_id][frag.fragment_id])
+			{
+				TLOG(TLVL_ERROR) << "Dropping fragment because " << frag.fragment_id << " has already been added to event " << frag.sequence_id << "!";
+				return true;
+			}
+			in_progress_fragment_ids_[frag.sequence_id][frag.fragment_id] = true;
+		}
 	}
 
 	auto hdr = getEventHeader_(buffer);
@@ -168,12 +203,27 @@ bool artdaq::SharedMemoryEventManager::AddFragment(detail::RawFragmentHeader fra
 	Write(buffer, dataPtr, frag.word_count * sizeof(RawDataType));
 
 	TLOG(TLVL_DEBUG + 33) << "Checking for complete event";
-	auto fragmentCount = GetFragmentCount(frag.sequence_id);
-	hdr->is_complete = fragmentCount == num_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
-	TLOG(TLVL_DEBUG + 33) << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
-	                      << ", fragmentCount=" << fragmentCount
-	                      << ", num_fragments_per_event=" << num_fragments_per_event_
-	                      << ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
+	{
+		std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+		if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
+		{
+			size_t count = std::count_if(in_progress_fragment_ids_[frag.sequence_id].begin(), in_progress_fragment_ids_[frag.sequence_id].end(), [](std::pair<Fragment::fragment_id_t, bool> p) { return p.second; });
+			hdr->is_complete = count == in_progress_fragment_ids_[frag.sequence_id].size() && buffer_writes_pending_[buffer] == 0;
+			TLOG(TLVL_DEBUG + 33) << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
+			                      << ", fragmentCount=" << count
+			                      << ", expected=" << in_progress_fragment_ids_[frag.sequence_id].size()
+			                      << ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
+		}
+		else
+		{
+			auto fragmentCount = GetFragmentCount(frag.sequence_id);
+			hdr->is_complete = fragmentCount == num_fragments_per_event_ && buffer_writes_pending_[buffer] == 0;
+			TLOG(TLVL_DEBUG + 33) << "hdr->is_complete=" << std::boolalpha << hdr->is_complete
+			                      << ", fragmentCount=" << fragmentCount
+			                      << ", max_fragments_per_event=" << num_fragments_per_event_
+			                      << ", buffer_writes_pending_[buffer]=" << buffer_writes_pending_[buffer];
+		}
+	}
 
 	complete_buffer_(buffer);
 	if (requests_)
@@ -213,7 +263,7 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 {
 	if (!running_) return nullptr;
 	TLOG(TLVL_DEBUG + 34) << "WriteFragmentHeader BEGIN";
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, true, frag.timestamp, frag.fragment_id);
 
 	if (buffer < 0)
 	{
@@ -231,6 +281,10 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		{
 			TLOG(TLVL_ERROR) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because data taking has already passed this event.";
 		}
+		else if (buffer == -3)
+		{
+			TLOG(TLVL_ERROR) << "Dropping event because " << frag.fragment_id << " is not in the list of expected Fragment IDs for event " << frag.sequence_id << "!";
+		}
 		else
 		{
 			TLOG(TLVL_INFO) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " because there is no room in the queue and reliable mode is off.";
@@ -242,6 +296,38 @@ artdaq::RawDataType* artdaq::SharedMemoryEventManager::WriteFragmentHeader(detai
 		                      << static_cast<void*>(it->second->dataBegin()) << " sz=" << it->second->dataSizeBytes();
 
 		return it->second->dataBegin();
+	}
+
+	{
+		std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+		if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
+		{
+			if (!in_progress_fragment_ids_[frag.sequence_id].count(frag.fragment_id))
+			{
+				TLOG(TLVL_ERROR) << "Dropping event because " << frag.fragment_id << " is not in the list of expected Fragment IDs for event " << frag.sequence_id << "!";
+
+				dropped_data_.emplace_back(frag, std::make_unique<Fragment>(frag.word_count - frag.num_words()));
+				auto it = dropped_data_.rbegin();
+
+				TLOG(TLVL_DEBUG + 3) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into "
+				                     << static_cast<void*>(it->second->dataBegin()) << " sz=" << it->second->dataSizeBytes();
+
+				return it->second->dataBegin();
+			}
+			if (in_progress_fragment_ids_[frag.sequence_id][frag.fragment_id])
+			{
+				TLOG(TLVL_ERROR) << "Dropping event because " << frag.fragment_id << " has already been added to event " << frag.sequence_id << "!";
+
+				dropped_data_.emplace_back(frag, std::make_unique<Fragment>(frag.word_count - frag.num_words()));
+				auto it = dropped_data_.rbegin();
+
+				TLOG(TLVL_DEBUG + 3) << "Dropping fragment with sequence id " << frag.sequence_id << " and fragment id " << frag.fragment_id << " into "
+				                     << static_cast<void*>(it->second->dataBegin()) << " sz=" << it->second->dataSizeBytes();
+
+				return it->second->dataBegin();
+			}
+			in_progress_fragment_ids_[frag.sequence_id][frag.fragment_id] = true;
+		}
 	}
 
 	last_backpressure_report_time_ = std::chrono::steady_clock::now();
@@ -296,7 +382,7 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 {
 	TLOG(TLVL_DEBUG + 33) << "DoneWritingFragment BEGIN";
 
-	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp);
+	auto buffer = getBufferForSequenceID_(frag.sequence_id, false, frag.timestamp, frag.fragment_id);
 	if (buffer < 0)
 	{
 		for (auto it = dropped_data_.begin(); it != dropped_data_.end(); ++it)
@@ -312,6 +398,8 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 			Detach(true, "SharedMemoryEventManager",
 			       "getBufferForSequenceID_ returned -1 in DoneWritingFragment. This indicates a possible mismatch between expected Fragment count and the actual number of Fragments received.");
 		}
+		if (buffer == -2) { return; }
+		if (buffer == -3) { return; }
 		return;
 	}
 
@@ -319,9 +407,18 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 	{
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtaining buffer_mutexes lock for buffer " << buffer;
 
-		std::unique_lock<std::mutex> lk(buffer_mutexes_.at(buffer));
+		std::unique_lock<std::mutex> buffer_lk(buffer_mutexes_.at(buffer));
 
 		TLOG(TLVL_BUFLCK) << "DoneWritingFragment: obtained buffer_mutexes lock for buffer " << buffer;
+
+		{
+			std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+			if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0 && !in_progress_fragment_ids_[frag.sequence_id].count(frag.fragment_id))
+			{
+				TLOG(TLVL_DEBUG + 33) << "DoneWritingFragment: Fragment ID " << frag.fragment_id << " was dropped for sequence ID " << frag.sequence_id << ", ignoring DoneWritingFragment call";
+				return;
+			}
+		}
 
 		TLOG(TLVL_DEBUG + 32) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << " (type " << static_cast<int>(frag.type) << ")";
 		auto hdr = getEventHeader_(buffer);
@@ -341,20 +438,37 @@ void artdaq::SharedMemoryEventManager::DoneWritingFragment(detail::RawFragmentHe
 			return;
 		}
 		TLOG(TLVL_DEBUG + 33) << "Done writing fragment, and no other writer. Doing bookkeeping steps.";
-		auto frag_count = GetFragmentCount(frag.sequence_id);
-		hdr->is_complete = frag_count >= num_fragments_per_event_;
-
-		if (frag_count > num_fragments_per_event_)
+		size_t frag_count = 0;
 		{
-			TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << frag_count << " ) than specified in configuration ( " << num_fragments_per_event_ << " )!"
-			                   << " This is probably due to a misconfiguration and is *not* a reliable mode!";
-		}
+			std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+			if (in_progress_fragment_ids_.count(frag.sequence_id) && in_progress_fragment_ids_[frag.sequence_id].size() > 0)
+			{
+				frag_count = std::count_if(in_progress_fragment_ids_[frag.sequence_id].begin(), in_progress_fragment_ids_[frag.sequence_id].end(), [](std::pair<Fragment::fragment_id_t, bool> p) { return p.second; });
+				hdr->is_complete = frag_count >= in_progress_fragment_ids_[frag.sequence_id].size();
+				if (frag_count > in_progress_fragment_ids_[frag.sequence_id].size())
+				{
+					TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << frag_count << " ) than specified in configuration ( " << in_progress_fragment_ids_[frag.sequence_id].size() << " )!"
+					                   << " This is probably due to a misconfiguration and is *not* a reliable mode!";
+				}
+				TLOG(TLVL_TRACE) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << frag_count << "/" << in_progress_fragment_ids_[frag.sequence_id].size();
+			}
+			else
+			{
+				frag_count = GetFragmentCountInBuffer(buffer);
+				hdr->is_complete = frag_count >= num_fragments_per_event_;
 
-		TLOG(TLVL_DEBUG + 33) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << frag_count << "/" << num_fragments_per_event_;
+				if (frag_count > num_fragments_per_event_)
+				{
+					TLOG(TLVL_WARNING) << "DoneWritingFragment: This Event has more Fragments ( " << frag_count << " ) than specified in configuration ( " << num_fragments_per_event_ << " )!"
+					                   << " This is probably due to a misconfiguration and is *not* a reliable mode!";
+				}
+				TLOG(TLVL_DEBUG + 33) << "DoneWritingFragment: Received Fragment with sequence ID " << frag.sequence_id << " and fragment id " << frag.fragment_id << ", count/expected = " << frag_count << "/" << num_fragments_per_event_;
+			}
+		}
 #if ART_SUPPORTS_DUPLICATE_EVENTS
 		if (!hdr->is_complete && released_incomplete_events_.count(frag.sequence_id))
 		{
-			hdr->is_complete = frag_count >= released_incomplete_events_[frag.sequence_id] && buffer_writes_pending_[buffer] == 0;
+			hdr->is_complete = frag_count >= released_incomplete_events_[frag.sequence_id];
 		}
 #endif
 
@@ -462,7 +576,7 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 		}
 		else
 		{
-			// Using cin/cout here to ensure console is active (artdaqDriver)
+			//Using cin/cout here to ensure console is active (artdaqDriver)
 			std::cout << "Please run the following command in a separate terminal:" << std::endl
 			          << "art -c " << config_file->getFileName() << std::endl
 			          << "Then, in a third terminal, execute: \"ps aux|grep [a]rt -c " << config_file->getFileName() << "\" and note the PID of the art process." << std::endl
@@ -549,7 +663,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 {
 	static std::mutex start_art_mutex;
 	std::unique_lock<std::mutex> lk(start_art_mutex);
-	// TraceLock lk(start_art_mutex, 15, "StartArtLock");
+	//TraceLock lk(start_art_mutex, 15, "StartArtLock");
 	restart_art_ = always_restart_art_;
 	auto initialCount = GetAttachedCount();
 	auto startTime = std::chrono::steady_clock::now();
@@ -593,8 +707,8 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pids)
 {
 	restart_art_ = false;
-	// current_art_config_file_ = nullptr;
-	// current_art_pset_ = fhicl::ParameterSet();
+	//current_art_config_file_ = nullptr;
+	//current_art_pset_ = fhicl::ParameterSet();
 
 	auto check_pids = [&](bool print) {
 		std::unique_lock<std::mutex> lk(art_process_mutex_);
@@ -794,7 +908,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	TLOG(TLVL_DEBUG + 32) << "Waiting for " << (ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_))) << " outstanding buffers...";
 	start = std::chrono::steady_clock::now();
 	auto lastReadCount = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
-	auto end_of_data_wait_us = art_event_processing_time_us_ * (lastReadCount > 0 ? lastReadCount : 1);  // size();
+	auto end_of_data_wait_us = art_event_processing_time_us_ * (lastReadCount > 0 ? lastReadCount : 1);  //size();
 
 	auto outstanding_buffer_wait_time = art_event_processing_time_us_ > 100000 ? 100000 : art_event_processing_time_us_;
 
@@ -881,6 +995,11 @@ void artdaq::SharedMemoryEventManager::startRun(run_id_t runID)
 		subrun_event_map_.clear();
 		subrun_event_map_[0] = 1;
 	}
+	{
+		std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+		fragment_id_overrides_.clear();
+		in_progress_fragment_ids_.clear();
+	}
 	run_event_count_ = 0;
 	run_incomplete_event_count_ = 0;
 	requests_ = std::make_unique<RequestSender>(data_pset_);
@@ -935,6 +1054,11 @@ bool artdaq::SharedMemoryEventManager::endRun()
 		std::unique_lock<std::mutex> lk(subrun_event_map_mutex_);
 		subrun_event_map_.clear();
 		subrun_event_map_[0] = 1;
+	}
+	{
+		std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+		fragment_id_overrides_.clear();
+		in_progress_fragment_ids_.clear();
 	}
 	return true;
 }
@@ -1007,6 +1131,17 @@ void artdaq::SharedMemoryEventManager::sendMetrics()
 			oss << hdr->sequence_id << " (has " << GetFragmentCount(hdr->sequence_id) << " Fragments), ";
 		}
 		TLOG(TLVL_DEBUG + 32) << oss.str();
+
+		std::ostringstream oss2;
+		std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+		for (auto& ev : in_progress_fragment_ids_)
+		{
+			oss2 << ev.first << ": ";
+			for (auto& fragment_id : ev.second)
+			{
+				oss2 << "ID " << fragment_id.first << " [" << (fragment_id.second ? "X" : " ") << "], ";
+			}
+		}
 	}
 }
 
@@ -1089,7 +1224,49 @@ artdaq::SharedMemoryEventManager::subrun_id_t artdaq::SharedMemoryEventManager::
 	return subrun;
 }
 
-int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp)
+void artdaq::SharedMemoryEventManager::OverrideFragmentIDsForEvent(Fragment::sequence_id_t seqID, std::set<Fragment::fragment_id_t> frags)
+{
+	std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+	if (fragment_id_overrides_.count(seqID))
+	{
+		TLOG(TLVL_WARNING) << "Sequence ID " << seqID << " already has overridden Fragment IDs!";
+	}
+	if (in_progress_fragment_ids_.count(seqID))
+	{
+		TLOG(TLVL_WARNING) << "Sequence ID " << seqID << " has already started event building, cannot override";
+		return;
+	}
+
+	fragment_id_overrides_[seqID] = frags;
+
+	while (fragment_id_overrides_.size() > max_fragment_id_list_size_)
+	{
+		fragment_id_overrides_.erase(fragment_id_overrides_.begin());
+	}
+}
+
+void artdaq::SharedMemoryEventManager::SetDefaultFragmentIDs(std::set<Fragment::fragment_id_t> frags, Fragment::sequence_id_t when)
+{
+	std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+
+	Fragment::sequence_id_t seqID = 1;
+	if (in_progress_fragment_ids_.size() > 0)
+	{
+		seqID = in_progress_fragment_ids_.rbegin()->first;
+	}
+
+	while (seqID < when)
+	{
+		if (!fragment_id_overrides_.count(seqID) && !in_progress_fragment_ids_.count(seqID))
+		{
+			fragment_id_overrides_[seqID] = default_fragment_ids_;
+		}
+		seqID++;
+	}
+	default_fragment_ids_ = frags;
+}
+
+int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence_id_t seqID, bool create_new, Fragment::timestamp_t timestamp, Fragment::fragment_id_t fragID)
 {
 	TLOG(TLVL_DEBUG + 34) << "getBufferForSequenceID " << seqID << " BEGIN";
 	std::unique_lock<std::mutex> lk(sequence_id_mutex_);
@@ -1120,10 +1297,40 @@ int artdaq::SharedMemoryEventManager::getBufferForSequenceID_(Fragment::sequence
 	}
 #endif
 
-	if (!create_new)
 	{
-		return -1;
+		std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+		if (!in_progress_fragment_ids_.count(seqID))
+		{
+			auto fragment_ids = default_fragment_ids_;
+			if (fragment_id_overrides_.count(seqID))
+			{
+				fragment_ids = fragment_id_overrides_[seqID];
+			}
+
+			while (in_progress_fragment_ids_.size() > max_fragment_id_list_size_)
+			{
+				in_progress_fragment_ids_.erase(in_progress_fragment_ids_.begin());
+			}
+
+			in_progress_fragment_ids_[seqID] = std::map<Fragment::fragment_id_t, bool>();
+			for (auto fragment_id : fragment_ids)
+			{
+				in_progress_fragment_ids_[seqID][fragment_id] = false;
+			}
+
+			if (fragment_id_overrides_.count(seqID))
+			{
+				fragment_id_overrides_.erase(seqID);
+			}
+		}
+		if (fragID != Fragment::InvalidFragmentID && !in_progress_fragment_ids_[seqID].count(fragID) && in_progress_fragment_ids_[seqID].size() > 0)
+		{
+			TLOG(TLVL_ERROR) << "Fragment ID received (" << fragID << ") is not in Fragment IDs list for sequence ID " << seqID << "!";
+			return -3;
+		}
 	}
+
+	if (!create_new) return -1;
 
 	check_pending_buffers_(lk);
 	int new_buffer = GetBufferForWriting(false);
@@ -1278,11 +1485,28 @@ void artdaq::SharedMemoryEventManager::check_pending_buffers_(std::unique_lock<s
 				{
 					released_incomplete_events_[hdr->sequence_id] -= GetFragmentCountInBuffer(buf);
 				}
-
 				TLOG(TLVL_WARNING) << "Event " << hdr->sequence_id
 				                   << " was opened " << TimeUtils::GetElapsedTime(event_timing_[buf]) << " s ago"
 				                   << " and has timed out (missing " << released_incomplete_events_[hdr->sequence_id] << " Fragments)."
 				                   << "Scheduling release to art.";
+				std::lock_guard<std::mutex> fragment_ids_lock(fragment_ids_mutex_);
+				if (in_progress_fragment_ids_.count(hdr->sequence_id))
+				{
+					std::stringstream o;
+					o << "Missing Fragment IDs: [";
+					bool first = true;
+					for (auto& id : in_progress_fragment_ids_[hdr->sequence_id])
+					{
+						if (!id.second)
+						{
+							if (!first) o << ", ";
+							o << id.first;
+							first = false;
+						}
+					}
+					o << "]";
+					TLOG(TLVL_DEBUG) << o.str();
+				}
 			}
 		}
 	}
