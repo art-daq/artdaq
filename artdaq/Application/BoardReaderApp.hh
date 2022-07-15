@@ -129,6 +129,14 @@ public:
 	 */
 	std::string report(std::string const& which) const override;
 
+	CommandableFragmentGenerator* const GetGeneratorPointer()
+	{
+		if (fragment_receiver_ptr_)
+			return fragment_receiver_ptr_->GetGeneratorPointer();
+		else
+			return nullptr;
+	}
+
 private:
 	std::unique_ptr<artdaq::BoardReaderCore> fragment_receiver_ptr_;
 	boost::thread fragment_input_thread_;
