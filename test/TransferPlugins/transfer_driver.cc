@@ -4,8 +4,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/TransferTest.hh"
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	artdaq::configureMessageFacility("transfer_driver");
 	TLOG(TLVL_INFO) << "BEGIN";

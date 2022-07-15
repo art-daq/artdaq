@@ -91,9 +91,9 @@ void create_table(sqlite3* const db,
 		    << "is zero.\n";
 	}
 	std::string ddl = "DROP TABLE IF EXISTS " + name +
-	             "; "
-	             "CREATE TABLE " +
-	             name + "(" + columns.front();
+	                  "; "
+	                  "CREATE TABLE " +
+	                  name + "(" + columns.front();
 	for_each(columns.begin() + 1, columns.end(), [&ddl](auto const& col) {
 		ddl += "," + col;
 	});
@@ -458,42 +458,42 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 #endif
 	treePointers_[0] =
 	    std::make_unique<RootOutputTree>(filePtr_.get(),
-	                                InEvent,
-	                                pEventAux_,
-	                                pEventProductProvenanceVector_,
-	                                basketSize,
-	                                splitLevel,
-	                                treeMaxVirtualSize,
-	                                saveMemoryObjectThreshold);
+	                                     InEvent,
+	                                     pEventAux_,
+	                                     pEventProductProvenanceVector_,
+	                                     basketSize,
+	                                     splitLevel,
+	                                     treeMaxVirtualSize,
+	                                     saveMemoryObjectThreshold);
 	treePointers_[1] =
 	    std::make_unique<RootOutputTree>(filePtr_.get(),
-	                                InSubRun,
-	                                pSubRunAux_,
-	                                pSubRunProductProvenanceVector_,
-	                                basketSize,
-	                                splitLevel,
-	                                treeMaxVirtualSize,
-	                                saveMemoryObjectThreshold);
+	                                     InSubRun,
+	                                     pSubRunAux_,
+	                                     pSubRunProductProvenanceVector_,
+	                                     basketSize,
+	                                     splitLevel,
+	                                     treeMaxVirtualSize,
+	                                     saveMemoryObjectThreshold);
 	treePointers_[2] = std::make_unique<RootOutputTree>(filePtr_.get(),
-	                                               InRun,
-	                                               pRunAux_,
-	                                               pRunProductProvenanceVector_,
-	                                               basketSize,
-	                                               splitLevel,
-	                                               treeMaxVirtualSize,
-	                                               saveMemoryObjectThreshold);
+	                                                    InRun,
+	                                                    pRunAux_,
+	                                                    pRunProductProvenanceVector_,
+	                                                    basketSize,
+	                                                    splitLevel,
+	                                                    treeMaxVirtualSize,
+	                                                    saveMemoryObjectThreshold);
 	treePointers_[3] =
 	    std::make_unique<RootOutputTree>(filePtr_.get(),
-	                                InResults,
-	                                pResultsAux_,
-	                                pResultsProductProvenanceVector_,
-	                                basketSize,
-	                                splitLevel,
-	                                treeMaxVirtualSize,
-	                                saveMemoryObjectThreshold);
+	                                     InResults,
+	                                     pResultsAux_,
+	                                     pResultsProductProvenanceVector_,
+	                                     basketSize,
+	                                     splitLevel,
+	                                     treeMaxVirtualSize,
+	                                     saveMemoryObjectThreshold);
 	dataTypeReported_ = false;
 	rootFileDB_.reset(
-	    art::ServiceHandle<art::DatabaseConnection> {} -> get<TKeyVFSOpenPolicy>(
+	    art::ServiceHandle<art::DatabaseConnection> {}->get<TKeyVFSOpenPolicy>(
 	        "RootFileDB",
 	        filePtr_.get(),
 	        SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE));

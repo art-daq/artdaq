@@ -35,8 +35,7 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 
 int do_check(const artdaq::Fragment& frag);
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	if (argc != 2)
 	{
