@@ -3,7 +3,7 @@
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_RootDAQOut").c_str()
 
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
 
 #include "art/Framework/Core/ModuleMacros.h"

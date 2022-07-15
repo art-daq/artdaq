@@ -1,7 +1,7 @@
 #include "TRACE/tracemf.h"
 
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 

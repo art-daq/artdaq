@@ -9,7 +9,7 @@
 #include "artdaq-core/Data/detail/ParentageMap.hh"
 #include "artdaq-core/Utilities/TimeUtils.hh"
 #include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 

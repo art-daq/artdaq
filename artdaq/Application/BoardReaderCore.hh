@@ -180,6 +180,14 @@ public:
 	/// <returns>The number of Fragments processed this run</returns>
 	size_t GetFragmentsProcessed() { return fragment_count_; }
 
+	CommandableFragmentGenerator const* GetGeneratorPointer()
+	{
+		if (generator_ptr_)
+			return generator_ptr_.get();
+		else
+			return nullptr;
+	}
+
 	/**
 	 * @brief Get whether the sender thread is still running
 	 * @return Whether the sender thread (applying requests to FragmentBuffer and sending to DataSenderManager) is still running

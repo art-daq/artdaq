@@ -1,7 +1,7 @@
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "ArtdaqSharedMemoryService"
 
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
 #include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq-core/Core/SharedMemoryEventReceiver.hh"

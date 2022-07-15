@@ -11,6 +11,8 @@
 #include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
 #include "fhiclcpp/types/Table.h"
 
+#include "TRACE/trace.h"
+
 namespace artdaq {
 
 struct HostMap
