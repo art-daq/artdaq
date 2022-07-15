@@ -6,7 +6,7 @@
 #include "cetlib/BasicPluginFactory.h"
 
 #include <sstream>
-#include <utility> // std::move()
+#include <utility>  // std::move()
 
 namespace artdaq {
 std::unique_ptr<artdaq::TransferInterface>

@@ -33,7 +33,7 @@ class RandomDelayFilter;
  * \brief A filter which delays for a random amount of time, then
  * drops a random fraction of events. Used to simulate the delays
  * and efficiency of real filters.
- * 
+ *
  * Multiple RandomDelayFilters in series can simulate the effect of multiple layers of filtering
  */
 class artdaq::RandomDelayFilter : public art::EDFilter
@@ -42,14 +42,14 @@ public:
 	/**
 	 * \brief RandomDelayFilter Constructor
 	 * \param p ParameterSet used to confgure RandomDelayFilter
-	 * 
+	 *
 	 * RandomDelayFilter accepts the following Parametrs:
 	 * "minimum_delay_ms" (Default: 0): The minimum amount of time to delay, in ms
 	 * "maximum_delay_ms" (Default: 1000): The maximum amount of time to delay, in ms
 	 * "mean_delay_ms" (Default: 500): If using a non-uniform distribution for delay times, the mean of the distribution, in ms (This value will be used for Fixed delays)
 	 * "sigma_delay_ms" (Default: 100): If using a Normal distribution for delay times, the sigma of the distribution, in ms
 	 * "pass_filter_percentage" (Default: 100): The fraction of events which will pass the filter
-     * "distribution_type" (Default: "Uniform"): The distribution to sample for delays (Uniform, Normal, Exponential, Fixed)
+	 * "distribution_type" (Default: "Uniform"): The distribution to sample for delays (Uniform, Normal, Exponential, Fixed)
 	 * "cpu_load_ratio" (Default: 0.5): The fraction of the delay time which should be active (spinning) versis passive (sleeping)
 	 * "random_seed" (Default: time(0)): The seed for the ditribution
 	 */
@@ -83,7 +83,7 @@ public:
 	 * \brief Filter is a required override of art::EDFilter, and is called for each event
 	 * \param e The art::Event to filter
 	 * \return Whether the event passes the filter
-	 * 
+	 *
 	 * This function is where RandomDelayFilter performs its work, using the delay distribution
 	 * to pick a delay time, spinning and/or sleeping for that amount of time, then picking
 	 * an integer from the pass distribution to determine if the event should pass or not.

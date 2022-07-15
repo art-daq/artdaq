@@ -1,12 +1,14 @@
 #ifndef ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
 #define ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
 
-#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
 #include "artdaq/DAQrate/RequestBuffer.hh"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
@@ -43,15 +45,15 @@ public:
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
-		 * \brief RequestReceiver Default Constructor
-		 */
+	 * \brief RequestReceiver Default Constructor
+	 */
 	RequestReceiver();
 
 	/**
-		 * \brief RequestReceiver Constructor 
-		 * \param ps ParameterSet used to configure RequestReceiver. See artdaq::RequestReceiver::Config
-		 * \param output_buffer Pointer to RequestBuffer where Requests should be stored
-		 */
+	 * \brief RequestReceiver Constructor
+	 * \param ps ParameterSet used to configure RequestReceiver. See artdaq::RequestReceiver::Config
+	 * \param output_buffer Pointer to RequestBuffer where Requests should be stored
+	 */
 	RequestReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RequestBuffer> output_buffer);
 
 	/**
@@ -60,24 +62,24 @@ public:
 	virtual ~RequestReceiver();
 
 	/**
-		* \brief Opens the socket used to listen for data requests
-		*/
+	 * \brief Opens the socket used to listen for data requests
+	 */
 	void setupRequestListener();
 
 	/**
-		* \brief Disables (stops) the reception of data requests
-		* \param force Whether to suppress any error messages (used if called from destructor)
-		*/
+	 * \brief Disables (stops) the reception of data requests
+	 * \param force Whether to suppress any error messages (used if called from destructor)
+	 */
 	void stopRequestReception(bool force = false);
 
 	/**
-		* \brief Enables (starts) the reception of data requests
-		*/
+	 * \brief Enables (starts) the reception of data requests
+	 */
 	void startRequestReception();
 
 	/**
-		* \brief This function receives data request packets, adding new requests to the request list
-		*/
+	 * \brief This function receives data request packets, adding new requests to the request list
+	 */
 	void receiveRequestsLoop();
 
 	/// <summary>
@@ -109,7 +111,7 @@ private:
 	std::string multicast_in_addr_;
 	bool receive_requests_;
 
-	//Socket parameters
+	// Socket parameters
 	int request_socket_{-1};
 	std::chrono::steady_clock::time_point request_stop_timeout_;
 	size_t end_of_run_timeout_ms_{1000};
@@ -120,4 +122,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  //ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
+#endif  // ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH

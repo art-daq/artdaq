@@ -1,8 +1,8 @@
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "ArtdaqFragmentNamingService"
 
-#include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
 #include "art/Framework/Services/Registry/ServiceDefinitionMacros.h"
+#include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
 
 // ----------------------------------------------------------------------
 

@@ -11,23 +11,23 @@
 
 #include <boost/thread.hpp>
 
-#include <atomic>
 #include <sys/epoll.h>
+#include <atomic>
 #include <map>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace artdaq {
 /**
-	 * \brief Receives event builder "free buffer" tokens and adds them to a specified RoutingPolicy.
-	 */
+ * \brief Receives event builder "free buffer" tokens and adds them to a specified RoutingPolicy.
+ */
 class TokenReceiver
 {
 public:
 	/**
-		 * \brief Configuration of the TokenReceiver. May be used for parameter validation.
-		 */
+	 * \brief Configuration of the TokenReceiver. May be used for parameter validation.
+	 */
 	struct Config
 	{
 		/// "routing_token_port" (Default: 35555) : Port on which routing tokens will be received
@@ -37,11 +37,11 @@ public:
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
-		 * \brief TokenReceiver Constructor 
-		 * \param ps ParameterSet used to configure TokenReceiver. See artdaq::TokenReceiver::Config
-		 * \param policy RoutingManagerPolicy that manages the received tokens
-		 * \param update_interval_msec The amount of time to wait in epoll_wait for a new update to arrive
-		 */
+	 * \brief TokenReceiver Constructor
+	 * \param ps ParameterSet used to configure TokenReceiver. See artdaq::TokenReceiver::Config
+	 * \param policy RoutingManagerPolicy that manages the received tokens
+	 * \param update_interval_msec The amount of time to wait in epoll_wait for a new update to arrive
+	 */
 	explicit TokenReceiver(const fhicl::ParameterSet& ps, std::shared_ptr<RoutingManagerPolicy> policy,
 	                       size_t update_interval_msec);
 
@@ -124,4 +124,4 @@ private:
 };
 }  // namespace artdaq
 
-#endif  //ARTDAQ_DAQRATE_TOKEN_RECEIVER_HH
+#endif  // ARTDAQ_DAQRATE_TOKEN_RECEIVER_HH

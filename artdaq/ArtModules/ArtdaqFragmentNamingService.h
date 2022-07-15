@@ -4,7 +4,9 @@
 #include "art/Framework/Services/Registry/ServiceDeclarationMacros.h"
 #include "artdaq-core/Plugins/FragmentNameHelper.hh"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 /**
  * \brief Interface for ArtdaqFragmentNamingService. This interface is declared to art as part of the required registration of an art Service
@@ -36,32 +38,32 @@ public:
 	}
 
 	/**
-			 * \brief Returns the basic translation for the specified type. Must be implemented by derived classes
-			 */
+	 * \brief Returns the basic translation for the specified type. Must be implemented by derived classes
+	 */
 	std::string GetInstanceNameForType(artdaq::Fragment::type_t type_id) const { return nameHelper_->GetInstanceNameForType(type_id); }
 
 	/**
-			 * \brief Returns the full set of product instance names which may be present in the data, based on
-			 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
-			 *        *does* include "container" types, if the container type mapping is part of the basic types.
-			 *  Must be implemented by derived classes
-			 */
+	 * \brief Returns the full set of product instance names which may be present in the data, based on
+	 *        the types that have been specified in the SetBasicTypes() and AddExtraType() methods.  This
+	 *        *does* include "container" types, if the container type mapping is part of the basic types.
+	 *  Must be implemented by derived classes
+	 */
 	std::set<std::string> GetAllProductInstanceNames() const { return nameHelper_->GetAllProductInstanceNames(); }
 
 	/**
-			 * \brief Returns the product instance name for the specified fragment, based on the types that have
-			 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
-			 *        use of "container" types, if the container type mapping is part of the basic types.  If no
-			 *        mapping is found, the specified unidentified_instance_name is returned.
-			 * Must be implemented by derived classes
-			 */
+	 * \brief Returns the product instance name for the specified fragment, based on the types that have
+	 *        been specified in the SetBasicTypes() and AddExtraType() methods.  This *does* include the
+	 *        use of "container" types, if the container type mapping is part of the basic types.  If no
+	 *        mapping is found, the specified unidentified_instance_name is returned.
+	 * Must be implemented by derived classes
+	 */
 	std::pair<bool, std::string>
 	GetInstanceNameForFragment(artdaq::Fragment const& fragment) const { return nameHelper_->GetInstanceNameForFragment(fragment); }
 
 	/**
 	 * @brief Get the name used for unidentified Fragment types
 	 * @return The name used for unidentified Fragment types
-	*/
+	 */
 	std::string GetUnidentifiedInstanceName() const { return nameHelper_->GetUnidentifiedInstanceName(); }
 
 protected:

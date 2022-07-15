@@ -1,15 +1,15 @@
 #include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_BoardReaderCore").c_str()
 
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Core/MonitoredQuantity.hh"
+#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
-#include "fhiclcpp/ParameterSet.h"
 #include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -61,7 +61,7 @@ artdaq::BoardReaderCore::~BoardReaderCore()
 bool artdaq::BoardReaderCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_DEBUG + 32) << "initialize method called with "
-	                 << "ParameterSet = \"" << pset.to_string() << "\".";
+	                      << "ParameterSet = \"" << pset.to_string() << "\".";
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -224,7 +224,7 @@ bool artdaq::BoardReaderCore::start(art::RunID id, uint64_t timeout, uint64_t ti
 
 	running_ = true;
 	TLOG((verbose_ ? TLVL_INFO : TLVL_DEBUG + 32)) << "Completed the Start transition (Started run) for run " << run_id_.run()
-	                                          << ", timeout = " << timeout << ", timestamp = " << timestamp;
+	                                               << ", timeout = " << timeout << ", timestamp = " << timestamp;
 	return true;
 }
 
@@ -287,16 +287,16 @@ bool artdaq::BoardReaderCore::shutdown(uint64_t /*unused*/)
 bool artdaq::BoardReaderCore::soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_DEBUG + 32) << "soft_initialize method called with "
-	                 << "ParameterSet = \"" << pset.to_string()
-	                 << "\". Forwarding to initialize.";
+	                      << "ParameterSet = \"" << pset.to_string()
+	                      << "\". Forwarding to initialize.";
 	return initialize(pset, timeout, timestamp);
 }
 
 bool artdaq::BoardReaderCore::reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp)
 {
 	TLOG(TLVL_DEBUG + 32) << "reinitialize method called with "
-	                 << "ParameterSet = \"" << pset.to_string()
-	                 << "\". Forwarding to initalize.";
+	                      << "ParameterSet = \"" << pset.to_string()
+	                      << "\". Forwarding to initalize.";
 	return initialize(pset, timeout, timestamp);
 }
 
@@ -511,9 +511,9 @@ void artdaq::BoardReaderCore::send_fragments()
 
 			/*if ((fragment_count_ % 250) == 0)
 			{
-				TLOG(TLVL_DEBUG + 32)
-					<< "Sending fragment " << fragment_count_
-					<< " with sequence id " << sequence_id << ".";
+			    TLOG(TLVL_DEBUG + 32)
+			        << "Sending fragment " << fragment_count_
+			        << " with sequence id " << sequence_id << ".";
 			}*/
 
 			// check for continous sequence IDs
@@ -598,9 +598,9 @@ std::string artdaq::BoardReaderCore::report(std::string const& which) const
 bool artdaq::BoardReaderCore::metaCommand(std::string const& command, std::string const& arg)
 {
 	TLOG(TLVL_DEBUG + 32) << "metaCommand method called with "
-	                 << "command = \"" << command << "\""
-	                 << ", arg = \"" << arg << "\""
-	                 << ".";
+	                      << "command = \"" << command << "\""
+	                      << ", arg = \"" << arg << "\""
+	                      << ".";
 
 	if (generator_ptr_)
 	{
@@ -697,7 +697,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 
 void artdaq::BoardReaderCore::sendMetrics_()
 {
-	//TLOG(TLVL_DEBUG + 32) << "Sending metrics " << __LINE__ ;
+	// TLOG(TLVL_DEBUG + 32) << "Sending metrics " << __LINE__ ;
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);
 	if (mqPtr.get() != nullptr)

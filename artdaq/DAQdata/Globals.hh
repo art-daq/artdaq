@@ -16,22 +16,22 @@
 #define SetMFModuleName(name) artdaq::Globals::SetMFModuleName_(name)
 #define SetMFIteration(name) artdaq::Globals::SetMFIteration_(name)
 
-//https://stackoverflow.com/questions/21594140/c-how-to-ensure-different-random-number-generation-in-c-when-program-is-execut
-#include <cstdlib>
+// https://stackoverflow.com/questions/21594140/c-how-to-ensure-different-random-number-generation-in-c-when-program-is-execut
 #include <fcntl.h>
+#include <unistd.h>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
-#include <unistd.h>
 
 /**
  * \brief The artdaq namespace
  */
 namespace artdaq {
 /**
-	 * \brief The artdaq::Globals class contains several variables which are useful across the entire artdaq system
-	 */
+ * \brief The artdaq::Globals class contains several variables which are useful across the entire artdaq system
+ */
 class Globals
 {
 public:
@@ -46,9 +46,9 @@ public:
 	static std::string mftrace_iteration_;  ///< MessageFacility's module and iteration are thread-local, but we want to use them to represent global state in artdaq.
 
 	/**
-		 * \brief Seed the C random number generator with the current time (if that has not been done already) and generate a random value
-		 * \return A random number.
-		 */
+	 * \brief Seed the C random number generator with the current time (if that has not been done already) and generate a random value
+	 * \return A random number.
+	 */
 	static uint32_t seedAndRandom_()
 	{
 		static bool initialized_ = false;
@@ -72,9 +72,9 @@ public:
 	}
 
 	/**
-		* \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
-		* \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
-		*/
+	 * \brief Get the current partition number, as defined by the ARTDAQ_PARTITION_NUMBER environment variable
+	 * \return The current partition number (defaults to 0 if unset, will be between 0 and 127)
+	 */
 	static int getPartitionNumber_()
 	{
 		uint32_t part_u = 0;
@@ -108,9 +108,9 @@ public:
 	}
 
 	/**
-		 * \brief Get the current iteration for MessageFacility messages
-		 * \return The current iteration
-		 */
+	 * \brief Get the current iteration for MessageFacility messages
+	 * \return The current iteration
+	 */
 	static std::string GetMFIteration_()
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
@@ -118,9 +118,9 @@ public:
 	}
 
 	/**
-		 * \brief Get the current module name for MessageFacility messages
-		 * \return The current module name
-		 */
+	 * \brief Get the current module name for MessageFacility messages
+	 * \return The current module name
+	 */
 	static std::string GetMFModuleName_()
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
@@ -128,9 +128,9 @@ public:
 	}
 
 	/**
-		 * \brief Set the current iteration for MessageFacility messages
-		 * \param name The current iteration
-		 */
+	 * \brief Set the current iteration for MessageFacility messages
+	 * \param name The current iteration
+	 */
 	static void SetMFIteration_(std::string const &name)
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
@@ -138,9 +138,9 @@ public:
 	}
 
 	/**
-		 * \brief Set the current module name for MessageFacility messages
-		 * \param name The current module name
-		 */
+	 * \brief Set the current module name for MessageFacility messages
+	 * \param name The current module name
+	 */
 	static void SetMFModuleName_(std::string const &name)
 	{
 		std::unique_lock<std::mutex> lk(mftrace_mutex_);
@@ -148,8 +148,8 @@ public:
 	}
 
 	/**
-		 * \brief Clean up statically-allocated Manager class instances
-		 */
+	 * \brief Clean up statically-allocated Manager class instances
+	 */
 	static void CleanUpGlobals()
 	{
 		metricMan_.reset(nullptr);

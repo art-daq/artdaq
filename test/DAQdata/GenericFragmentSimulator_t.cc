@@ -3,8 +3,8 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
-#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "artdaq-core/Plugins/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 #include <cstddef>

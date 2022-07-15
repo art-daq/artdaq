@@ -462,7 +462,7 @@ void artdaq::SharedMemoryEventManager::RunArt(const std::shared_ptr<art_config_f
 		}
 		else
 		{
-			//Using cin/cout here to ensure console is active (artdaqDriver)
+			// Using cin/cout here to ensure console is active (artdaqDriver)
 			std::cout << "Please run the following command in a separate terminal:" << std::endl
 			          << "art -c " << config_file->getFileName() << std::endl
 			          << "Then, in a third terminal, execute: \"ps aux|grep [a]rt -c " << config_file->getFileName() << "\" and note the PID of the art process." << std::endl
@@ -549,7 +549,7 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 {
 	static std::mutex start_art_mutex;
 	std::unique_lock<std::mutex> lk(start_art_mutex);
-	//TraceLock lk(start_art_mutex, 15, "StartArtLock");
+	// TraceLock lk(start_art_mutex, 15, "StartArtLock");
 	restart_art_ = always_restart_art_;
 	auto initialCount = GetAttachedCount();
 	auto startTime = std::chrono::steady_clock::now();
@@ -593,8 +593,8 @@ pid_t artdaq::SharedMemoryEventManager::StartArtProcess(fhicl::ParameterSet pset
 void artdaq::SharedMemoryEventManager::ShutdownArtProcesses(std::set<pid_t>& pids)
 {
 	restart_art_ = false;
-	//current_art_config_file_ = nullptr;
-	//current_art_pset_ = fhicl::ParameterSet();
+	// current_art_config_file_ = nullptr;
+	// current_art_pset_ = fhicl::ParameterSet();
 
 	auto check_pids = [&](bool print) {
 		std::unique_lock<std::mutex> lk(art_process_mutex_);
@@ -794,7 +794,7 @@ bool artdaq::SharedMemoryEventManager::endOfData()
 	TLOG(TLVL_DEBUG + 32) << "Waiting for " << (ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_))) << " outstanding buffers...";
 	start = std::chrono::steady_clock::now();
 	auto lastReadCount = ReadReadyCount() + (size() - WriteReadyCount(overwrite_mode_));
-	auto end_of_data_wait_us = art_event_processing_time_us_ * (lastReadCount > 0 ? lastReadCount : 1);  //size();
+	auto end_of_data_wait_us = art_event_processing_time_us_ * (lastReadCount > 0 ? lastReadCount : 1);  // size();
 
 	auto outstanding_buffer_wait_time = art_event_processing_time_us_ > 100000 ? 100000 : art_event_processing_time_us_;
 

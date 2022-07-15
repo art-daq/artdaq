@@ -1,11 +1,11 @@
 #include "TRACE/tracemf.h"
 #define TRACE_NAME "commander_test"
 
-#include "artdaq/ExternalComms/CommanderInterface.hh"
-#include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/Globals.hh"
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "artdaq/ExternalComms/CommanderInterface.hh"
+#include "artdaq/ExternalComms/MakeCommanderPlugin.hh"
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"
@@ -15,7 +15,8 @@
 #include <boost/thread.hpp>
 
 // NOLINTNEXTLINE(readability-function-size)
-int main(int argc, char** argv) try
+int main(int argc, char** argv)
+try
 {
 	struct Config
 	{

@@ -265,7 +265,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 			{
 				outsts = sts;
 			}
-			//sendFragTo(std::move(frag), dest);
+			// sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}
 		else if (!should_stop_)
@@ -298,7 +298,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				                 << dest << " failed! Data has been lost!";
 			}
 
-			//sendFragTo(std::move(frag), dest);
+			// sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 			outsts = sts;
 		}

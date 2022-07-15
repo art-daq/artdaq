@@ -5,8 +5,8 @@
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 
-#include "fhiclcpp/ParameterSet.h"
 #include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include <boost/bind.hpp>
 #include <boost/exception/all.hpp>
@@ -181,7 +181,7 @@ void artdaq::DataReceiverManager::stop_threads()
 		if (TimeUtils::GetElapsedTime(last_report) > 1.0)
 		{
 			TLOG(TLVL_DEBUG + 32) << "stop_threads: Waited " << TimeUtils::GetElapsedTime(wait_start) << " s for " << initial_count
-			                 << " receiver threads to end (" << running_sources().size() << " remain)";
+			                      << " receiver threads to end (" << running_sources().size() << " remain)";
 			last_report = std::chrono::steady_clock::now();
 		}
 	}
@@ -350,7 +350,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				hdrLoc->type = Fragment::ErrorFragmentType;
 
 				shm_manager_->DoneWritingFragment(header);
-				//throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
+				// throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
 				continue;
 			}
 
@@ -363,7 +363,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 			if (endOfDataCount != static_cast<size_t>(-1))
 			{
 				TLOG(TLVL_DEBUG + 32) << "Received fragment " << header.sequence_id << " from rank " << source_rank
-				                 << " (" << recv_frag_count_.slotCount(source_rank) << "/" << endOfDataCount << ")";
+				                      << " (" << recv_frag_count_.slotCount(source_rank) << "/" << endOfDataCount << ")";
 			}
 
 			after_body = std::chrono::steady_clock::now();
@@ -436,7 +436,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 						endOfDataCount += *(frag->dataBegin());
 					}
 					TLOG(TLVL_DEBUG + 32) << "EndOfData Fragment indicates that " << endOfDataCount << " fragments are expected from rank " << source_rank
-					                 << " (recvd " << recv_frag_count_.slotCount(source_rank) << ").";
+					                      << " (recvd " << recv_frag_count_.slotCount(source_rank) << ").";
 					break;
 				case Fragment::InitFragmentType:
 					TLOG(TLVL_DEBUG + 32) << "Received Init Fragment from rank " << source_rank << ".";
@@ -445,12 +445,12 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					break;
 				case Fragment::EndOfRunFragmentType:
 					shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
-					//shm_manager_->endRun();
+					// shm_manager_->endRun();
 					break;
 				case Fragment::EndOfSubrunFragmentType:
-					//shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
+					// shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 					TLOG(TLVL_DEBUG + 32) << "Received EndOfSubrun Fragment from rank " << source_rank
-					                 << " with sequence_id " << header.sequence_id << ".";
+					                      << " with sequence_id " << header.sequence_id << ".";
 					if (header.sequence_id != Fragment::InvalidSequenceID)
 					{
 						shm_manager_->rolloverSubrun(header.sequence_id, header.timestamp);

@@ -1,16 +1,9 @@
-#include "TRACE/tracemf.h"
 #include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
+#include "TRACE/tracemf.h"
 // vim: set sw=2 expandtab :
 
 #include "artdaq/DAQdata/Globals.hh"
 
-#include "art_root_io/GetFileFormatEra.h"
-#include "art_root_io/GetFileFormatVersion.h"
-#include "art_root_io/RootDB/TKeyVFSOpenPolicy.h"
-#include "art_root_io/RootFileBlock.h"
-#include "art_root_io/checkDictionaries.h"
-#include "art_root_io/detail/getObjectRequireDict.h"
-#include "canvas_root_io/Utilities/DictionaryChecker.h"
 #include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/IO/FileStatsCollector.h"
 #include "art/Framework/Principal/EventPrincipal.h"
@@ -21,11 +14,18 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Framework/Services/System/DatabaseConnection.h"
 #include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
+#include "art_root_io/GetFileFormatEra.h"
+#include "art_root_io/GetFileFormatVersion.h"
+#include "art_root_io/RootDB/TKeyVFSOpenPolicy.h"
+#include "art_root_io/RootFileBlock.h"
+#include "art_root_io/checkDictionaries.h"
+#include "art_root_io/detail/getObjectRequireDict.h"
 #include "canvas/Persistency/Provenance/BranchChildren.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
 #include "canvas/Persistency/Provenance/EventAuxiliary.h"
 #include "canvas/Persistency/Provenance/EventID.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
+#include "canvas_root_io/Utilities/DictionaryChecker.h"
 #if ART_HEX_VERSION < 0x31100
 #include "canvas/Persistency/Provenance/History.h"
 #else
@@ -90,10 +90,10 @@ void create_table(sqlite3* const db,
 		    << "Number of sqlite columns specified for table: " << name << '\n'
 		    << "is zero.\n";
 	}
-  std::string ddl = "DROP TABLE IF EXISTS " + name +
-	             "; "
-	             "CREATE TABLE " +
-	             name + "(" + columns.front();
+	std::string ddl = "DROP TABLE IF EXISTS " + name +
+	                  "; "
+	                  "CREATE TABLE " +
+	                  name + "(" + columns.front();
 	for_each(columns.begin() + 1, columns.end(), [&ddl](auto const& col) {
 		ddl += "," + col;
 	});
@@ -141,7 +141,7 @@ getExistingRangeSetIDs(sqlite3* db, art::RangeSet const& rs)
 	std::vector<unsigned> rangeSetIDs;
 	cet::transform_all(rs, back_inserter(rangeSetIDs), [db](auto const& range) {
 		cet::sqlite::query_result<unsigned> r;
-    using std::to_string;
+		using std::to_string;
 		r << cet::sqlite::select("ROWID")
 		         .from(db, "EventRanges")
 		         .where("SubRun=" + to_string(range.subRun()) +
@@ -160,7 +160,7 @@ void insertIntoEventRanges(sqlite3* db, art::RangeSet const& rs)
 {
 	cet::sqlite::Transaction txn{db};
 	sqlite3_stmt* stmt{nullptr};
-  std::string const ddl{
+	std::string const ddl{
 	    "INSERT INTO EventRanges(SubRun, begin, end) "
 	    "VALUES(?, ?, ?);"};
 	sqlite3_prepare_v2(db, ddl.c_str(), -1, &stmt, nullptr);
@@ -179,7 +179,7 @@ void insertIntoJoinTable(sqlite3* db,
 {
 	cet::sqlite::Transaction txn{db};
 	sqlite3_stmt* stmt{nullptr};
-  std::string const ddl{
+	std::string const ddl{
 	    "INSERT INTO " + art::BranchTypeToString(bt) +
 	    "RangeSets_EventRanges(RangeSetsID, EventRangesID) Values(?,?);"};
 	sqlite3_prepare_v2(db, ddl.c_str(), -1, &stmt, nullptr);
@@ -437,11 +437,11 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	pResultsProductProvenanceVector_ = &resultsProductProvenanceVector_;
 #if ART_HEX_VERSION < 0x31100
 	// Create the tree that will carry (event) History objects.
-  eventHistoryTree_ = art::RootOutputTree::makeTTree(
-    filePtr_.get(), art::rootNames::eventHistoryTreeName(), splitLevel);
+	eventHistoryTree_ = art::RootOutputTree::makeTTree(
+	    filePtr_.get(), art::rootNames::eventHistoryTreeName(), splitLevel);
 	if (eventHistoryTree_ == nullptr)
 	{
-    throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
+		throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create the tree for History objects\n";
 	}
 	pHistory_ = new art::History;
@@ -458,42 +458,42 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 #endif
 	treePointers_[0] =
 	    std::make_unique<RootOutputTree>(filePtr_.get(),
-	                                InEvent,
-	                                pEventAux_,
-	                                pEventProductProvenanceVector_,
-	                                basketSize,
-	                                splitLevel,
-	                                treeMaxVirtualSize,
-	                                saveMemoryObjectThreshold);
+	                                     InEvent,
+	                                     pEventAux_,
+	                                     pEventProductProvenanceVector_,
+	                                     basketSize,
+	                                     splitLevel,
+	                                     treeMaxVirtualSize,
+	                                     saveMemoryObjectThreshold);
 	treePointers_[1] =
 	    std::make_unique<RootOutputTree>(filePtr_.get(),
-	                                InSubRun,
-	                                pSubRunAux_,
-	                                pSubRunProductProvenanceVector_,
-	                                basketSize,
-	                                splitLevel,
-	                                treeMaxVirtualSize,
-	                                saveMemoryObjectThreshold);
+	                                     InSubRun,
+	                                     pSubRunAux_,
+	                                     pSubRunProductProvenanceVector_,
+	                                     basketSize,
+	                                     splitLevel,
+	                                     treeMaxVirtualSize,
+	                                     saveMemoryObjectThreshold);
 	treePointers_[2] = std::make_unique<RootOutputTree>(filePtr_.get(),
-	                                               InRun,
-	                                               pRunAux_,
-	                                               pRunProductProvenanceVector_,
-	                                               basketSize,
-	                                               splitLevel,
-	                                               treeMaxVirtualSize,
-	                                               saveMemoryObjectThreshold);
+	                                                    InRun,
+	                                                    pRunAux_,
+	                                                    pRunProductProvenanceVector_,
+	                                                    basketSize,
+	                                                    splitLevel,
+	                                                    treeMaxVirtualSize,
+	                                                    saveMemoryObjectThreshold);
 	treePointers_[3] =
 	    std::make_unique<RootOutputTree>(filePtr_.get(),
-	                                InResults,
-	                                pResultsAux_,
-	                                pResultsProductProvenanceVector_,
-	                                basketSize,
-	                                splitLevel,
-	                                treeMaxVirtualSize,
-	                                saveMemoryObjectThreshold);
+	                                     InResults,
+	                                     pResultsAux_,
+	                                     pResultsProductProvenanceVector_,
+	                                     basketSize,
+	                                     splitLevel,
+	                                     treeMaxVirtualSize,
+	                                     saveMemoryObjectThreshold);
 	dataTypeReported_ = false;
 	rootFileDB_.reset(
-    art::ServiceHandle<art::DatabaseConnection> {}->get<TKeyVFSOpenPolicy>(
+	    art::ServiceHandle<art::DatabaseConnection> {} -> get<TKeyVFSOpenPolicy>(
 	        "RootFileDB",
 	        filePtr_.get(),
 	        SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE));
@@ -685,7 +685,7 @@ void RootDAQOutFile::writeOne(art::EventPrincipal const& e)
 	fillBranches<InEvent>(e, pEventProductProvenanceVector_);
 	// History branch.
 #if ART_HEX_VERSION < 0x31100
-  art::History historyForOutput{e.history()};
+	art::History historyForOutput{e.history()};
 	historyForOutput.addEventSelectionEntry(om_->selectorConfig());
 	pHistory_ = &historyForOutput;
 	int sz = eventHistoryTree_->Fill();
@@ -802,7 +802,7 @@ void RootDAQOutFile::writeFileIndex()
 void RootDAQOutFile::writeEventHistory()
 {
 	std::lock_guard sentry{mutex_};
-  art::RootOutputTree::writeTTree(eventHistoryTree_);
+	art::RootOutputTree::writeTTree(eventHistoryTree_);
 }
 #endif
 
@@ -1037,7 +1037,7 @@ void RootDAQOutFile::fillBranches(art::Principal const& principal,
 	bool const fastCloning = ((BT == InEvent) && wasFastCloned_);
 	std::map<unsigned, unsigned> checksumToIndex;
 	auto const& principalRS = principal.seenRanges();
-  std::set<ProductProvenance> keptprv;
+	std::set<ProductProvenance> keptprv;
 	for (auto const& val : selectedOutputItemList_[BT])
 	{
 		auto const& bd = val.branchDescription_;

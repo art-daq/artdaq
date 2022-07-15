@@ -14,10 +14,8 @@
 #include "fhiclcpp/types/ConfigurationTable.h"
 #include "fhiclcpp/types/Name.h"
 
-
 #include <cstdint>
 #include <memory>
-
 
 // ----------------------------------------------------------------------
 
@@ -67,7 +65,7 @@ public:
 	 * \return The number of events which can be read
 	 */
 	size_t GetQueueSize() override { return incoming_events_->ReadReadyCount(); }
-	/** 
+	/**
 	 * \brief Get the maximum number of events which can be stored in the shared memory
 	 * \return The maximum number of events which can be stored in the shared memory
 	 */
@@ -118,7 +116,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 
 	TLOG(TLVL_DEBUG + 33) << "Setting app_name";
 	app_name = artapp_str + "art" + std::to_string(incoming_events_->GetMyId());
-	//artdaq::configureMessageFacility(app_name.c_str()); // ELF 11/20/2020: MessageFacility already configured by initialization pset
+	// artdaq::configureMessageFacility(app_name.c_str()); // ELF 11/20/2020: MessageFacility already configured by initialization pset
 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)
@@ -190,8 +188,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		if (errflag || hdrPtr == nullptr)
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
-			continue;  //retry
-			           //return recvd_fragments;
+			continue;  // retry
+			           // return recvd_fragments;
 		}
 		evtHeader_ = std::make_shared<artdaq::detail::RawEventHeader>(*hdrPtr);
 		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Getting Fragment types";
@@ -199,8 +197,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		if (errflag)
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
-			continue;  //retry
-			           //return recvd_fragments;
+			continue;  // retry
+			           // return recvd_fragments;
 		}
 		if (fragmentTypes.empty())
 		{
@@ -221,8 +219,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 				continue;
 			}
 			/* Events coming out of the EventStore are not sorted but need to be
-       sorted by sequence ID before they can be passed to art.
-    */
+	   sorted by sequence ID before they can be passed to art.
+	*/
 			std::sort(recvd_fragments[type]->begin(), recvd_fragments[type]->end(), artdaq::fragmentSequenceIDCompare);
 		}
 		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Releasing buffer";

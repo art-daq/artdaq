@@ -3,8 +3,8 @@
 
 #include "TRACE/tracemf.h"
 
-#include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+#include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 BOOST_AUTO_TEST_SUITE(CapacityTest_policy_t)
@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 	ct->ResetTokensUsedSinceLastUpdate();
 
-	//ct->Reset();
+	// ct->Reset();
 	ct->AddReceiverToken(1, 1);
 	ct->AddReceiverToken(3, 1);
 	ct->AddReceiverToken(2, 1);
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(secondTable[12].sequence_id, 33);
 
 	ct->ResetTokensUsedSinceLastUpdate();
-	//ct->Reset();
+	// ct->Reset();
 	ct->AddReceiverToken(1, 0);
 	auto thirdTable = ct->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 6);

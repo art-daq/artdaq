@@ -4,11 +4,11 @@
 #include "tracemf.h"
 #define TRACE_NAME "RequestSender_t"
 
-#include "artdaq/DAQrate/detail/RequestSender.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
 
 #include <sys/poll.h>
 

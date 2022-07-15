@@ -1,12 +1,14 @@
 #ifndef artdaq_DAQdata_GenericFragmentSimulator_hh
 #define artdaq_DAQdata_GenericFragmentSimulator_hh
 
-#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
 #include "artdaq-core/Plugins/FragmentGenerator.hh"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 #include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/types/Comment.h"

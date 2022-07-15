@@ -12,8 +12,8 @@
 #include <memory>
 
 /**
-* Default constructor.
-*/
+ * Default constructor.
+ */
 artdaq::RoutingManagerApp::RoutingManagerApp() = default;
 
 // *******************************************************************
@@ -97,8 +97,8 @@ bool artdaq::RoutingManagerApp::do_stop(uint64_t timeout, uint64_t timestamp)
 	}
 
 	TLOG(TLVL_DEBUG + 32, app_name + "App") << "do_stop(uint64_t, uint64_t): "
-	                             << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
-	                             << ".";
+	                                        << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
+	                                        << ".";
 
 	return external_request_status_;
 }
@@ -118,8 +118,8 @@ bool artdaq::RoutingManagerApp::do_pause(uint64_t timeout, uint64_t timestamp)
 	}
 
 	TLOG(TLVL_DEBUG + 32, app_name + "App") << "do_pause(uint64_t, uint64_t): "
-	                             << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
-	                             << ".";
+	                                        << "Number of table entries sent = " << routing_manager_ptr_->get_update_count()
+	                                        << ".";
 
 	return external_request_status_;
 }
@@ -220,11 +220,11 @@ std::string artdaq::RoutingManagerApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	//if (report_string_.length() > 0) {
-	//  resultString.append("*** Overall status message:\r\n");
-	//  resultString.append(report_string_ + "\r\n");
-	//  resultString.append("*** Requested report response:\r\n");
-	//}
+	// if (report_string_.length() > 0) {
+	//   resultString.append("*** Overall status message:\r\n");
+	//   resultString.append(report_string_ + "\r\n");
+	//   resultString.append("*** Requested report response:\r\n");
+	// }
 
 	// pass the request to the RoutingManagerCore instance, if it's available
 	if (routing_manager_ptr_ != nullptr)

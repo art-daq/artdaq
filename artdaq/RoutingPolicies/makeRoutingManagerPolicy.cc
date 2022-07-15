@@ -4,7 +4,9 @@
 
 #include "cetlib/BasicPluginFactory.h"
 
-namespace fhicl { class ParameterSet; }
+namespace fhicl {
+class ParameterSet;
+}
 
 std::shared_ptr<artdaq::RoutingManagerPolicy>
 artdaq::makeRoutingManagerPolicy(std::string const& policy_plugin_spec,

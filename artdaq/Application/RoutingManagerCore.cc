@@ -4,9 +4,9 @@
 
 #include "artdaq/Application/RoutingManagerCore.hh"
 
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "fhiclcpp/ParameterSet.h"
 
@@ -48,8 +48,8 @@ artdaq::RoutingManagerCore::~RoutingManagerCore()
 bool artdaq::RoutingManagerCore::initialize(fhicl::ParameterSet const& pset, uint64_t /*unused*/, uint64_t /*unused*/)
 {
 	TLOG(TLVL_DEBUG + 32) << "initialize method called with "
-	                 << "ParameterSet = \"" << pset.to_string()
-	                 << "\".";
+	                      << "ParameterSet = \"" << pset.to_string()
+	                      << "\".";
 
 	// pull out the relevant parts of the ParameterSet
 	fhicl::ParameterSet daq_pset;
@@ -297,7 +297,7 @@ void artdaq::RoutingManagerCore::process_event_table()
 #pragma GCC diagnostic pop
 	}
 
-	//MPI_Barrier(local_group_comm_);
+	// MPI_Barrier(local_group_comm_);
 
 	TLOG(TLVL_DEBUG + 32) << "Sending initial table.";
 	auto startTime = artdaq::MonitoredQuantity::getCurrentTime();
