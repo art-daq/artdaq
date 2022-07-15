@@ -7,6 +7,7 @@
 #include "fhiclcpp/types/OptionalTable.h"
 #include "fhiclcpp/types/Sequence.h"
 #include "fhiclcpp/types/Table.h"
+#include "fhiclcpp/types/TableFragment.h"
 #include "fhiclcpp/types/Tuple.h"
 
 namespace art {

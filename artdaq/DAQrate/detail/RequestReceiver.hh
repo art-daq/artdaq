@@ -1,15 +1,20 @@
 #ifndef ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
 #define ARTDAQ_DAQRATE_REQUEST_RECEVIER_HH
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq/DAQrate/RequestBuffer.hh"
+
+namespace fhicl { class ParameterSet; }
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+
 #include <boost/thread.hpp>
 #include <mutex>
-
-#include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/types/Atom.h"
-#include "fhiclcpp/types/ConfigurationTable.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQrate/RequestBuffer.hh"
 
 namespace artdaq {
 /// <summary>

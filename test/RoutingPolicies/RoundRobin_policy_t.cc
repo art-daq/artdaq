@@ -1,8 +1,8 @@
 #define BOOST_TEST_MODULE RoundRobin_policy_t
 #include <boost/test/unit_test.hpp>
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)
@@ -10,9 +10,9 @@ BOOST_AUTO_TEST_SUITE(RoundRobin_policy_t)
 BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case VerifyRMPSharedPtr BEGIN";
-	auto ps4 = artdaq::make_pset("");
-	auto ps3 = artdaq::make_pset("");
-	auto ps2 = artdaq::make_pset("");
+	auto ps4 = fhicl::ParameterSet::make("");
+	auto ps3 = fhicl::ParameterSet::make("");
+	auto ps2 = fhicl::ParameterSet::make("");
 
 	auto rrA = artdaq::makeRoutingManagerPolicy("RoundRobin", ps4);
 
@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(VerifyRMPSharedPtr)
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case Simple BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 BOOST_AUTO_TEST_CASE(MinimumParticipants)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case MinimumParticipants BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("minimum_participants: 2");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("minimum_participants: 2");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(MinimumParticipants)
 BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case LargeMinimumParticipants BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("minimum_participants: 5");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("minimum_participants: 5");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(LargeMinimumParticipants)
 BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case ManyMissingParticipants BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("minimum_participants: -5");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("minimum_participants: -5");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(ManyMissingParticipants)
 BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case DataFlowMode BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: DataFlow");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("routing_manager_mode: DataFlow");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 
@@ -245,7 +245,7 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
 	TLOG(TLVL_INFO) << "RoundRobin_policy_t Test Case RequestBasedEventBuilding BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2");
 
 	auto rr = artdaq::makeRoutingManagerPolicy("RoundRobin", ps);
 

@@ -1,6 +1,9 @@
 #include "artdaq/ArtModules/ArtdaqInputHelper.hh"
 #include "artdaq/ArtModules/detail/ShmemWrapper.hh"
 
+#include "art/Framework/Core/InputSourceMacros.h"
+#include "art/Framework/IO/Sources/Source.h"
+
 /**
  * \brief Namespace used for classes that interact directly with art
  */

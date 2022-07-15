@@ -1,11 +1,14 @@
-#define TRACE_NAME "CommandableFragmentGenerator_t"
-
 #define BOOST_TEST_MODULE CommandableFragmentGenerator_t
 #include <boost/test/unit_test.hpp>
 
+#include "TRACE/tracemf.h"
+#define TRACE_NAME "CommandableFragmentGenerator_t"
+
+#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/Generators/CommandableFragmentGenerator.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
 	do                                                                                                                               \

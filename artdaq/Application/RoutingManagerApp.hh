@@ -4,6 +4,10 @@
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/RoutingManagerCore.hh"
 
+#include <boost/thread.hpp>
+
+#include <memory>
+
 namespace artdaq {
 class RoutingManagerApp;
 }

@@ -1,17 +1,26 @@
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "GenToBuffer"
 
-#include <boost/program_options.hpp>
-#include <boost/thread.hpp>
-#include <thread>
-#include "fhiclcpp/ParameterSet.h"
-namespace bpo = boost::program_options;
-
-#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/DAQrate/FragmentBuffer.hh"
-#include "artdaq/DAQrate/RequestBuffer.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
+#include "artdaq/DAQrate/FragmentBuffer.hh"
+#include "artdaq/DAQrate/RequestBuffer.hh"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/Name.h"
+#include "fhiclcpp/types/Table.h"
+#include "fhiclcpp/types/TableFragment.h"
+
+#include <boost/program_options.hpp>
+namespace bpo = boost::program_options;
+#include <boost/thread.hpp>
+
+#include <thread>
 
 namespace artdaq {
 /**

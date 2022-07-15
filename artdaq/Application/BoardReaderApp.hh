@@ -1,8 +1,6 @@
 #ifndef artdaq_Application_MPI2_BoardReaderApp_hh
 #define artdaq_Application_MPI2_BoardReaderApp_hh
 
-#include <future>
-
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq/Application/Commandable.hh"
 

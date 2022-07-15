@@ -15,16 +15,17 @@
 // use 'tonM -n <appname>_FragmentWatcher 4'.
 ////////////////////////////////////////////////////////////////////////
 
-#define TRACE_NAME (app_name + "_FragmentWatcher").c_str()
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_FragmentWatcher").c_str()
+
+#include "artdaq-core/Data/ContainerFragment.hh"
+#include "artdaq-core/Data/Fragment.hh"
 
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
-
-#include "artdaq-core/Data/ContainerFragment.hh"
-#include "artdaq-core/Data/Fragment.hh"
 
 #include <bitset>
 #include <iostream>
@@ -122,11 +123,7 @@ void artdaq::FragmentWatcher::analyze(art::Event const& evt)
 
 	// get all the artdaq fragment collections in the event.
 	std::vector<art::Handle<std::vector<artdaq::Fragment>>> fragmentHandles;
-#if ART_HEX_VERSION < 0x30900
-	evt.getManyByType(fragmentHandles);
-#else
 	fragmentHandles = evt.getMany<std::vector<artdaq::Fragment>>();
-#endif
 
 	std::set<int> missing_fragmentID_list_this_event(expected_fragmentID_list_);
 	// Check for missing Fragment IDs, updating the master list as necessary

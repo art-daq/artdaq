@@ -1,29 +1,42 @@
+cet_make_library(LIBRARY_NAME RootDAQOutput USE_PROJECT_NAME NO_EXPORT
+  SOURCE
+  RootDAQOutFile.cc
+  LIBRARIES
+  PUBLIC
+  art_root_io::art_root_io
+  art::Framework_IO
+  art::Framework_Services_System_FileCatalogMetadata_service
+  canvas::canvas
+  cetlib::sqlite
+  ROOT::Core
+  ROOT::RIO
+  PRIVATE
+  artdaq::DAQdata
+  art_root_io::RootDB
+  art_root_io::detail
+  canvas_root_io::canvas_root_io
+  art::Framework_Core
+  art::Framework_Principal
+  art::Framework_Services_Registry
+  art::Persistency_Provenance
+  fhiclcpp::fhiclcpp
+  cetlib::cetlib
+  cetlib::container_algorithms
+  ROOT::Core
+  ROOT::RIO
+  ROOT::Tree
+  TRACE::MF
+  Boost::date_time
+)
 
-cet_make( BASENAME_ONLY
-    LIBRARY_NAME artdaq_ArtModules_RootDAQOutput
-  NO_PLUGINS
-  LIB_LIBRARIES
-  artdaq_DAQdata
-  art_Framework_Core
-  art_Framework_IO
-  art_Framework_Principal
-  art_Framework_Services_Registry
-  art_Utilities
-  art_root_io
-  art_root_io_RootDB
-  art_root_io_detail
-  canvas_root_io
-  canvas
-  ${SQLITE3}
-  cetlib
-  hep_concurrency
-  ${ROOT_RIO}
-  ${ROOT_TREE}
-  )
-
-simple_plugin(RootDAQOut "module"
-  artdaq_ArtModules_RootDAQOutput
-  art_Framework_IO_detail
+# Use art::module due to issue with art::Output in v3_09_03
+cet_build_plugin(RootDAQOut art::module 
+  LIBRARIES PRIVATE
+  artdaq::RootDAQOutput
+  artdaq::ArtModules
+  art_root_io::detail
+  art::Framework_IO_detail
+  TRACE::MF
 )
 
 

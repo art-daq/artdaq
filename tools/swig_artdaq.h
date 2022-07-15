@@ -1,7 +1,7 @@
 #ifndef ARTDAQ_TOOLS_ARTDAQ_H
 #define ARTDAQ_TOOLS_ARTDAQ_H
 
-#include "artdaq/DAQdata/Globals.hh"
+#include "TRACE/tracemf.h"
 
 /**
  * \file swig_artdaq.h This file serves as an entry point for a SWIG module which can be used to send MessageFacility messages or metrics

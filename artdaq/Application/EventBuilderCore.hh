@@ -2,8 +2,8 @@
 #define artdaq_Application_MPI2_EventBuilderCore_hh
 
 #include "artdaq/Application/DataReceiverCore.hh"
-#include "canvas/Persistency/Provenance/RunID.h"
-#include "fhiclcpp/ParameterSet.h"
+
+namespace fhicl { class ParameterSet; }
 
 namespace artdaq {
 class EventBuilderCore;

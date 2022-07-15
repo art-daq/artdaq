@@ -1,27 +1,26 @@
+#include "TRACE/tracemf.h"
 #include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
 // vim: set sw=2 expandtab :
 
-#include "art/Framework/Core/OutputFileGranularity.h"
-#include "art/Framework/IO/ClosingCriteria.h"
-#include "art/Framework/IO/FileStatsCollector.h"
-#include "art/Framework/Principal/EventPrincipal.h"
-#include "art/Framework/Principal/ResultsPrincipal.h"
-#include "art/Framework/Principal/RunPrincipal.h"
-#include "art/Framework/Principal/SubRunPrincipal.h"
-#include "art/Framework/Services/System/DatabaseConnection.h"
-#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
-#include "art/Version/GetReleaseVersion.h"
-#include "art_root_io/DropMetaData.h"
+#include "artdaq/DAQdata/Globals.hh"
+
 #include "art_root_io/GetFileFormatEra.h"
 #include "art_root_io/GetFileFormatVersion.h"
-#include "art_root_io/RootDB/SQLErrMsg.h"
 #include "art_root_io/RootDB/TKeyVFSOpenPolicy.h"
 #include "art_root_io/RootFileBlock.h"
 #include "art_root_io/checkDictionaries.h"
-#include "art_root_io/detail/KeptProvenance.h"
 #include "art_root_io/detail/getObjectRequireDict.h"
-#include "artdaq/DAQdata/Globals.hh"
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include "canvas_root_io/Utilities/DictionaryChecker.h"
+#include "art/Framework/Core/OutputModule.h"
+#include "art/Framework/IO/FileStatsCollector.h"
+#include "art/Framework/Principal/EventPrincipal.h"
+#include "art/Framework/Principal/RangeSetsSupported.h"
+#include "art/Framework/Principal/ResultsPrincipal.h"
+#include "art/Framework/Principal/RunPrincipal.h"
+#include "art/Framework/Principal/SubRunPrincipal.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Framework/Services/System/DatabaseConnection.h"
+#include "art/Persistency/Provenance/ProcessHistoryRegistry.h"
 #include "canvas/Persistency/Provenance/BranchChildren.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
 #include "canvas/Persistency/Provenance/EventAuxiliary.h"
@@ -32,7 +31,6 @@
 #else
 #include "canvas/Persistency/Provenance/Compatibility/History.h"
 #endif
-#include "canvas/Persistency/Provenance/ParameterSetBlob.h"
 #include "canvas/Persistency/Provenance/Parentage.h"
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
 #include "canvas/Persistency/Provenance/ProcessHistoryID.h"
@@ -42,10 +40,8 @@
 #include "canvas/Persistency/Provenance/SubRunAuxiliary.h"
 #include "canvas/Persistency/Provenance/rootNames.h"
 #include "canvas/Utilities/Exception.h"
-#include "canvas_root_io/Utilities/DictionaryChecker.h"
 #include "cetlib/canonical_string.h"
 #include "cetlib/container_algorithms.h"
-#include "cetlib/exempt_ptr.h"
 #include "cetlib/sqlite/Ntuple.h"
 #include "cetlib/sqlite/Transaction.h"
 #include "cetlib/sqlite/create_table.h"
@@ -54,7 +50,9 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
-#include "tracemf.h"  // TLOG
+
+#include "boost/date_time/posix_time/posix_time.hpp"
+
 #define TRACE_NAME (app_name + "_RootDAQOutFile").c_str()
 
 #include "Rtypes.h"
@@ -63,15 +61,17 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include "sqlite3.h"
+
 #include <fcntl.h>        // posix_fadvise POSIX_FADV_DONTNEED
 #include <sys/sysinfo.h>  // sysinfo(sysinfo*)
 #include <algorithm>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <sstream>
 #include <utility>
 #include <vector>
-
-using namespace cet;
-using namespace std;
-using namespace hep::concurrency;
 
 using art::BranchType;
 using art::RootDAQOutFile;
@@ -80,9 +80,9 @@ using art::rootNames::metaBranchRootName;
 namespace {
 
 void create_table(sqlite3* const db,
-                  string const& name,
-                  vector<string> const& columns,
-                  string const& suffix = {})
+                  std::string const& name,
+                  std::vector<std::string> const& columns,
+                  std::string const& suffix = {})
 {
 	if (columns.empty())
 	{
@@ -90,7 +90,7 @@ void create_table(sqlite3* const db,
 		    << "Number of sqlite columns specified for table: " << name << '\n'
 		    << "is zero.\n";
 	}
-	string ddl = "DROP TABLE IF EXISTS " + name +
+  std::string ddl = "DROP TABLE IF EXISTS " + name +
 	             "; "
 	             "CREATE TABLE " +
 	             name + "(" + columns.front();
@@ -100,7 +100,7 @@ void create_table(sqlite3* const db,
 	ddl += ") ";
 	ddl += suffix;
 	ddl += ";";
-	sqlite::exec(db, ddl);
+	cet::sqlite::exec(db, ddl);
 }
 
 void insert_eventRanges_row(sqlite3_stmt* stmt,
@@ -130,18 +130,19 @@ getNewRangeSetID(sqlite3* db,
                  art::BranchType const bt,
                  art::RunNumber_t const r)
 {
-	sqlite::insert_into(db, art::BranchTypeToString(bt) + "RangeSets")
+	cet::sqlite::insert_into(db, art::BranchTypeToString(bt) + "RangeSets")
 	    .values(r);
 	return sqlite3_last_insert_rowid(db);
 }
 
-vector<unsigned>
+std::vector<unsigned>
 getExistingRangeSetIDs(sqlite3* db, art::RangeSet const& rs)
 {
-	vector<unsigned> rangeSetIDs;
+	std::vector<unsigned> rangeSetIDs;
 	cet::transform_all(rs, back_inserter(rangeSetIDs), [db](auto const& range) {
-		sqlite::query_result<unsigned> r;
-		r << sqlite::select("ROWID")
+		cet::sqlite::query_result<unsigned> r;
+    using std::to_string;
+		r << cet::sqlite::select("ROWID")
 		         .from(db, "EventRanges")
 		         .where("SubRun=" + to_string(range.subRun()) +
 		                " AND "
@@ -157,9 +158,9 @@ getExistingRangeSetIDs(sqlite3* db, art::RangeSet const& rs)
 
 void insertIntoEventRanges(sqlite3* db, art::RangeSet const& rs)
 {
-	sqlite::Transaction txn{db};
+	cet::sqlite::Transaction txn{db};
 	sqlite3_stmt* stmt{nullptr};
-	string const ddl{
+  std::string const ddl{
 	    "INSERT INTO EventRanges(SubRun, begin, end) "
 	    "VALUES(?, ?, ?);"};
 	sqlite3_prepare_v2(db, ddl.c_str(), -1, &stmt, nullptr);
@@ -174,11 +175,11 @@ void insertIntoEventRanges(sqlite3* db, art::RangeSet const& rs)
 void insertIntoJoinTable(sqlite3* db,
                          art::BranchType const bt,
                          unsigned const rsID,
-                         vector<unsigned> const& eventRangesIDs)
+                         std::vector<unsigned> const& eventRangesIDs)
 {
-	sqlite::Transaction txn{db};
+	cet::sqlite::Transaction txn{db};
 	sqlite3_stmt* stmt{nullptr};
-	string const ddl{
+  std::string const ddl{
 	    "INSERT INTO " + art::BranchTypeToString(bt) +
 	    "RangeSets_EventRanges(RangeSetsID, EventRangesID) Values(?,?);"};
 	sqlite3_prepare_v2(db, ddl.c_str(), -1, &stmt, nullptr);
@@ -293,7 +294,7 @@ template<BranchType BT>
 void setProductRangeSetID(art::RangeSet const& rs,
                           sqlite3* db,
                           art::EDProduct* product,
-                          map<unsigned, unsigned>& checksumToIndexLookup)
+                          std::map<unsigned, unsigned>& checksumToIndexLookup)
 {
 	if constexpr (!art::detail::range_sets_supported(BT))
 	{
@@ -325,7 +326,7 @@ void setProductRangeSetID(art::RangeSet const& rs,
 
 bool maxCriterionSpecified(art::ClosingCriteria const& cc)
 {
-	auto fp = mem_fn(&art::ClosingCriteria::fileProperties);
+	auto fp = std::mem_fn(&art::ClosingCriteria::fileProperties);
 	return (fp(cc).nEvents() !=
 	        art::ClosingCriteria::Defaults::unsigned_max()) ||
 	       (fp(cc).nSubRuns() !=
@@ -346,7 +347,7 @@ RootDAQOutFile::OutputItem::OutputItem(BranchDescription bd)
     : branchDescription_{std::move(bd)}, product_{nullptr}
 {}
 
-string const&
+std::string const&
 RootDAQOutFile::OutputItem::branchName() const
 {
 	return branchDescription_.branchName();
@@ -366,7 +367,7 @@ bool RootDAQOutFile::shouldFastClone(bool const fastCloningSet,
 	bool result = fastCloning;
 	mf::LogInfo("FastCloning")
 	    << "Initial fast cloning configuration "
-	    << (fastCloningSet ? "(user-set): " : "(from default): ") << boolalpha
+	    << (fastCloningSet ? "(user-set): " : "(from default): ") << std::boolalpha
 	    << fastCloning;
 	if (fastCloning && !wantAllEvents)
 	{
@@ -387,7 +388,7 @@ bool RootDAQOutFile::shouldFastClone(bool const fastCloningSet,
 }
 
 RootDAQOutFile::RootDAQOutFile(OutputModule* om,
-                               string const& fileName,
+                               std::string const& fileName,
                                ClosingCriteria const& fileSwitchCriteria,
                                int const compressionLevel,
                                unsigned freePercent,
@@ -436,27 +437,27 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	pResultsProductProvenanceVector_ = &resultsProductProvenanceVector_;
 #if ART_HEX_VERSION < 0x31100
 	// Create the tree that will carry (event) History objects.
-	eventHistoryTree_ = RootOutputTree::makeTTree(
-	    filePtr_.get(), rootNames::eventHistoryTreeName(), splitLevel);
+  eventHistoryTree_ = art::RootOutputTree::makeTTree(
+    filePtr_.get(), art::rootNames::eventHistoryTreeName(), splitLevel);
 	if (eventHistoryTree_ == nullptr)
 	{
-		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
+    throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create the tree for History objects\n";
 	}
-	pHistory_ = new History;
-	if (eventHistoryTree_->Branch(rootNames::eventHistoryBranchName().c_str(),
+	pHistory_ = new art::History;
+	if (eventHistoryTree_->Branch(art::rootNames::eventHistoryBranchName().c_str(),
 	                              &pHistory_,
 	                              basketSize,
 	                              0) == nullptr)
 	{
-		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
+		throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to create a branch for History in the output file\n";
 	}
 	delete pHistory_;
 	pHistory_ = nullptr;
 #endif
 	treePointers_[0] =
-	    make_unique<RootOutputTree>(filePtr_.get(),
+	    std::make_unique<RootOutputTree>(filePtr_.get(),
 	                                InEvent,
 	                                pEventAux_,
 	                                pEventProductProvenanceVector_,
@@ -465,7 +466,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	                                treeMaxVirtualSize,
 	                                saveMemoryObjectThreshold);
 	treePointers_[1] =
-	    make_unique<RootOutputTree>(filePtr_.get(),
+	    std::make_unique<RootOutputTree>(filePtr_.get(),
 	                                InSubRun,
 	                                pSubRunAux_,
 	                                pSubRunProductProvenanceVector_,
@@ -473,7 +474,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	                                splitLevel,
 	                                treeMaxVirtualSize,
 	                                saveMemoryObjectThreshold);
-	treePointers_[2] = make_unique<RootOutputTree>(filePtr_.get(),
+	treePointers_[2] = std::make_unique<RootOutputTree>(filePtr_.get(),
 	                                               InRun,
 	                                               pRunAux_,
 	                                               pRunProductProvenanceVector_,
@@ -482,7 +483,7 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	                                               treeMaxVirtualSize,
 	                                               saveMemoryObjectThreshold);
 	treePointers_[3] =
-	    make_unique<RootOutputTree>(filePtr_.get(),
+	    std::make_unique<RootOutputTree>(filePtr_.get(),
 	                                InResults,
 	                                pResultsAux_,
 	                                pResultsProductProvenanceVector_,
@@ -492,13 +493,13 @@ RootDAQOutFile::RootDAQOutFile(OutputModule* om,
 	                                saveMemoryObjectThreshold);
 	dataTypeReported_ = false;
 	rootFileDB_.reset(
-	    ServiceHandle<DatabaseConnection> {}->get<TKeyVFSOpenPolicy>(
+    art::ServiceHandle<art::DatabaseConnection> {}->get<TKeyVFSOpenPolicy>(
 	        "RootFileDB",
 	        filePtr_.get(),
 	        SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE));
 	subRunRSID_ = -1U;
 	runRSID_ = -1U;
-	beginTime_ = chrono::steady_clock::now();
+	beginTime_ = std::chrono::steady_clock::now();
 	// Check that dictionaries for the auxiliaries exist
 	root::DictionaryChecker checker;
 	checker.checkDictionaries<EventAuxiliary>();
@@ -563,7 +564,7 @@ void RootDAQOutFile::setFileStatus(OutputFileStatus const ofs)
 	status_ = ofs;
 }
 
-string const&
+std::string const&
 RootDAQOutFile::currentFileName() const
 {
 	std::lock_guard sentry{mutex_};
@@ -663,14 +664,14 @@ void RootDAQOutFile::respondToCloseInputFile(FileBlock const& /*unused*/)
 bool RootDAQOutFile::requestsToCloseFile()
 {
 	std::lock_guard sentry{mutex_};
-	using namespace chrono;
+	using namespace std::chrono;
 	unsigned int constexpr oneK{1024u};
 	fp_.updateSize(filePtr_->GetSize() / oneK);
 	fp_.updateAge(duration_cast<seconds>(steady_clock::now() - beginTime_));
 	return fileSwitchCriteria_.should_close(fp_);
 }
 
-void RootDAQOutFile::writeOne(EventPrincipal const& e)
+void RootDAQOutFile::writeOne(art::EventPrincipal const& e)
 {
 	std::lock_guard sentry{mutex_};
 	TLOG(TLVL_DEBUG + 33) << "Start of RootDAQOutFile::writeOne";
@@ -684,22 +685,22 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 	fillBranches<InEvent>(e, pEventProductProvenanceVector_);
 	// History branch.
 #if ART_HEX_VERSION < 0x31100
-	History historyForOutput{e.history()};
+  art::History historyForOutput{e.history()};
 	historyForOutput.addEventSelectionEntry(om_->selectorConfig());
 	pHistory_ = &historyForOutput;
 	int sz = eventHistoryTree_->Fill();
 	if (sz <= 0)
 	{
-		throw Exception(errors::FatalRootError)  // NOLINT(cert-err60-cpp)
+		throw art::Exception(art::errors::FatalRootError)  // NOLINT(cert-err60-cpp)
 		    << "Failed to fill the History tree for event: " << e.eventID()
-		    << "\nTTree::Fill() returned " << sz << " bytes written." << endl;
+		    << "\nTTree::Fill() returned " << sz << " bytes written." << std::endl;
 	}
 	pHistory_ = &e.history();
 #endif
 	// Add the dataType to the job report if it hasn't already been done
 	if (!dataTypeReported_)
 	{
-		string dataType{"MC"};
+		std::string dataType{"MC"};
 		if (pEventAux_->isRealData())
 		{
 			dataType = "Data";
@@ -712,7 +713,7 @@ void RootDAQOutFile::writeOne(EventPrincipal const& e)
 	TLOG(TLVL_DEBUG + 33) << "End of RootDAQOutFile::writeOne";
 }
 
-void RootDAQOutFile::writeSubRun(SubRunPrincipal const& sr)
+void RootDAQOutFile::writeSubRun(art::SubRunPrincipal const& sr)
 {
 	std::lock_guard sentry{mutex_};
 	pSubRunAux_ = &sr.subRunAux();
@@ -723,7 +724,7 @@ void RootDAQOutFile::writeSubRun(SubRunPrincipal const& sr)
 	fp_.update_subRun(status_);
 }
 
-void RootDAQOutFile::writeRun(RunPrincipal const& r)
+void RootDAQOutFile::writeRun(art::RunPrincipal const& r)
 {
 	std::lock_guard sentry{mutex_};
 	pRunAux_ = &r.runAux();
@@ -801,7 +802,7 @@ void RootDAQOutFile::writeFileIndex()
 void RootDAQOutFile::writeEventHistory()
 {
 	std::lock_guard sentry{mutex_};
-	RootOutputTree::writeTTree(eventHistoryTree_);
+  art::RootOutputTree::writeTTree(eventHistoryTree_);
 }
 #endif
 
@@ -839,7 +840,7 @@ void RootDAQOutFile::writeFileCatalogMetadata(
 {
 	std::lock_guard sentry{mutex_};
 	using namespace cet::sqlite;
-	Ntuple<string, string> fileCatalogMetadata{
+	Ntuple<std::string, std::string> fileCatalogMetadata{
 	    *rootFileDB_, "FileCatalog_metadata", {{"Name", "Value"}}, true};
 	Transaction txn{*rootFileDB_};
 	for (auto const& kv : md)
@@ -869,7 +870,7 @@ void RootDAQOutFile::writeFileCatalogMetadata(
 		});
 		if (I != md.crend())
 		{
-			ostringstream buf;
+			std::ostringstream buf;
 			buf << "[ ";
 			for (auto const& srid : stats.seenSubRuns())
 			{
@@ -877,7 +878,7 @@ void RootDAQOutFile::writeFileCatalogMetadata(
 				    << cet::canonical_string(I->second) << " ], ";
 			}
 			// Rewind over last delimiter.
-			buf.seekp(-2, ios_base::cur);
+			buf.seekp(-2, std::ios_base::cur);
 			buf << " ]";
 			fileCatalogMetadata.insert("runs", buf.str());
 		}
@@ -892,22 +893,22 @@ void RootDAQOutFile::writeFileCatalogMetadata(
 	// File parents.
 	if (!stats.parents().empty())
 	{
-		ostringstream pstring;
+		std::ostringstream pstring;
 		pstring << "[ ";
 		for (auto const& parent : stats.parents())
 		{
 			pstring << cet::canonical_string(parent) << ", ";
 		}
 		// Rewind over last delimiter.
-		pstring.seekp(-2, ios_base::cur);
+		pstring.seekp(-2, std::ios_base::cur);
 		pstring << " ]";
 		fileCatalogMetadata.insert("parents", pstring.str());
 	}
 
 	// The following need to be encapsulated in an art table
 	// first_event and last_event.
-	auto eidToTuple = [](EventID const& eid) -> string {
-		ostringstream eidStr;
+	auto eidToTuple = [](EventID const& eid) -> std::string {
+		std::ostringstream eidStr;
 		eidStr << "[ " << eid.run() << ", " << eid.subRun() << ", " << eid.event()
 		       << " ]";
 		return eidStr.str();
@@ -968,7 +969,7 @@ void RootDAQOutFile::writeProductDependencies()
 	b->Fill();
 }
 
-void RootDAQOutFile::writeResults(ResultsPrincipal& resp)
+void RootDAQOutFile::writeResults(art::ResultsPrincipal& resp)
 {
 	std::lock_guard sentry{mutex_};
 	pResultsAux_ = &resp.resultsAux();
@@ -1009,10 +1010,10 @@ void RootDAQOutFile::setRunAuxiliaryRangeSetID(RangeSet const& ranges)
 }
 
 template<BranchType BT>
-EDProduct const*
+art::EDProduct const*
 RootDAQOutFile::getProduct(OutputHandle const& oh,
                            RangeSet const& prunedProductRS,
-                           string const& wrappedName)
+                           std::string const& wrappedName)
 {
 	std::lock_guard sentry{mutex_};
 	if constexpr (detail::range_sets_supported(BT))
@@ -1028,15 +1029,15 @@ RootDAQOutFile::getProduct(OutputHandle const& oh,
 }
 
 template<BranchType BT>
-void RootDAQOutFile::fillBranches(Principal const& principal,
-                                  vector<ProductProvenance>* vpp)
+void RootDAQOutFile::fillBranches(art::Principal const& principal,
+                                  std::vector<ProductProvenance>* vpp)
 {
 	TLOG(TLVL_DEBUG + 33) << "Start of RootDAQOutFile::fillBranches";
 	std::lock_guard sentry{mutex_};
 	bool const fastCloning = ((BT == InEvent) && wasFastCloned_);
-	map<unsigned, unsigned> checksumToIndex;
+	std::map<unsigned, unsigned> checksumToIndex;
 	auto const& principalRS = principal.seenRanges();
-	set<ProductProvenance> keptprv;
+  std::set<ProductProvenance> keptprv;
 	for (auto const& val : selectedOutputItemList_[BT])
 	{
 		auto const& bd = val.branchDescription_;
@@ -1060,7 +1061,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 				    !dropMetaDataForDroppedData_)
 				{
 					{
-						vector<ProductProvenance const*> stacked_pp;
+						std::vector<ProductProvenance const*> stacked_pp;
 						stacked_pp.push_back(&*oh.productProvenance());
 						while (true)
 						{
@@ -1162,7 +1163,7 @@ void RootDAQOutFile::fillBranches(Principal const& principal,
 			}
 			auto const* product = getProduct<BT>(oh, rs, bd.wrappedName());
 			setProductRangeSetID<BT>(
-			    rs, *rootFileDB_, const_cast<EDProduct*>(product), checksumToIndex);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
+			    rs, *rootFileDB_, const_cast<art::EDProduct*>(product), checksumToIndex);  // NOLINT(cppcoreguidelines-pro-type-const-cast)
 			val.product_ = product;
 		}
 	}

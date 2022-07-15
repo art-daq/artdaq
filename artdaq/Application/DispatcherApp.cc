@@ -1,8 +1,11 @@
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "DispatcherApp"
 
 #include "artdaq/Application/DispatcherApp.hh"
+
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq/Application/DispatcherCore.hh"
+
+#include <boost/lexical_cast.hpp>
 
 #include <iostream>
 #include <memory>

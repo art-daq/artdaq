@@ -1,8 +1,13 @@
-#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_TransferInterface").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+
 #include "cetlib_except/exception.h"
+
+#include <string>
 
 artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role role)
     : role_(role)
@@ -13,7 +18,7 @@ artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role
     , max_fragment_size_words_(ps.get<size_t>("max_fragment_size_words", 1024))
 {
 	TLOG(TLVL_DEBUG + 32) << GetTraceName() << " TransferInterface constructor has "
-	                      << ps.to_string();
+	                 << ps.to_string();
 }
 
 int artdaq::TransferInterface::receiveFragment(artdaq::Fragment& frag, size_t receive_timeout)

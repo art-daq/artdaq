@@ -1,7 +1,6 @@
 #define TRACE_NAME "requestReceiver"
 
 #include <boost/program_options.hpp>
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 
 #include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/Application/LoadParameterSet.hh"

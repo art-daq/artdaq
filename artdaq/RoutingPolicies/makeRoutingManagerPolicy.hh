@@ -3,13 +3,14 @@
 // Using LibraryManager, find the correct library and return an instance
 // of the specified generator.
 
-#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
-#include "fhiclcpp/fwd.h"
+namespace fhicl { class ParameterSet; }
 
 #include <memory>
 #include <string>
 
 namespace artdaq {
+  class RoutingManagerPolicy;
+
 /**
 	 * \brief Load a RoutingManagerPolicy plugin
 	 * \param policy_plugin_spec Name of the RoutingManagerPolicy

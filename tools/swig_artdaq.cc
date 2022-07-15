@@ -1,6 +1,8 @@
+#include "TRACE/tracemf.h"
 #include "swig_artdaq.h"
-
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 
 swig_artdaq::swig_artdaq(std::string const& config_string)
 {

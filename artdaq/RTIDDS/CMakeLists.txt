@@ -12,6 +12,8 @@ cet_make_library( LIBRARY_NAME artdaq_RTIDDS
   $ENV{NDDSHOME}/lib/${ARCH}/libnddscpp.so
   $ENV{NDDSHOME}/lib/${ARCH}/libnddsc.so
   $ENV{NDDSHOME}/lib/${ARCH}/libnddscore.so
+  PRIVATE
+  Boost::headers
 )
 
 install_headers()

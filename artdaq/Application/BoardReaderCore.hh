@@ -1,7 +1,6 @@
 #ifndef ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
 #define ARTDAQ_ARTDAQ_APPLICATION_BOARDREADERCORE_HH_
 
-#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/DAQrate/DataSenderManager.hh"
 #include "artdaq/DAQrate/StatisticsHelper.hh"
@@ -11,6 +10,7 @@
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
 
+#include <atomic>
 #include <string>
 
 namespace artdaq {

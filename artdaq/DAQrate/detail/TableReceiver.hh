@@ -1,21 +1,25 @@
 #ifndef ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
 #define ARTDAQ_DAQRATE_DETAIL_TABLERECEIVER_HH
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+namespace fhicl { class ParameterSet; }
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+#include "fhiclcpp/types/OptionalTable.h"
+#include "fhiclcpp/types/TableFragment.h"
+
+#include "boost/thread.hpp"
+
+#include <condition_variable>
 #include <netinet/in.h>
 #include <map>
 #include <memory>
 #include <set>
-
-#include "fhiclcpp/fwd.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "fhiclcpp/types/Atom.h"
-#include "fhiclcpp/types/OptionalTable.h"
-#include "fhiclcpp/types/TableFragment.h"
 
 namespace artdaq {
 class TableReceiver;

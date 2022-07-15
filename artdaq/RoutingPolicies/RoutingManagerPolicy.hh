@@ -1,14 +1,17 @@
 #ifndef artdaq_Application_Routing_RoutingManagerPolicy_hh
 #define artdaq_Application_Routing_RoutingManagerPolicy_hh
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
+
+#include "artdaq/DAQrate/detail/RoutingPacket.hh" // No library dependence.
+
+namespace fhicl { class ParameterSet; }
 
 #include <deque>
 #include <mutex>
 #include <unordered_set>
-#include "fhiclcpp/fwd.h"
+
 
 namespace artdaq {
 /**

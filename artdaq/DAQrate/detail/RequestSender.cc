@@ -1,18 +1,23 @@
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #define TRACE_NAME (app_name + "_RequestSender").c_str()
+#include "artdaq/DAQrate/detail/RequestSender.hh"
+
+#include "artdaq/DAQdata/TCPConnect.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/thread.hpp>
+
 #include <dlfcn.h>
 #include <chrono>
 #include <cstring>
 #include <fstream>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
+#include <thread>
 #include <utility>
-#include "artdaq/DAQrate/detail/RequestSender.hh"
-
-#include "artdaq-core/Core/StatisticsCollection.hh"
-#include "artdaq/DAQdata/TCPConnect.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "cetlib_except/exception.h"
 
 namespace artdaq {
 RequestSender::RequestSender(const fhicl::ParameterSet& pset)
@@ -176,7 +181,7 @@ void RequestSender::do_send_request_()
 	inet_ntop(AF_INET, &(request_addr_.sin_addr), str, INET_ADDRSTRLEN);
 	std::lock_guard<std::mutex> lk2(request_send_mutex_);
 	TLOG(TLVL_DEBUG + 33) << "Sending request for " << message.size() << " events to multicast group " << str
-	                      << ", port " << request_port_ << ", interface " << multicast_out_addr_;
+	                 << ", port " << request_port_ << ", interface " << multicast_out_addr_;
 	auto buf = message.GetMessage();
 	auto sts = sendto(request_socket_, &buf[0], buf.size(), 0, reinterpret_cast<struct sockaddr*>(&request_addr_), sizeof(request_addr_));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts < 0 || static_cast<size_t>(sts) != buf.size())

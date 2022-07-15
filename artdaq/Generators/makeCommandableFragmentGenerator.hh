@@ -4,7 +4,7 @@
 // of the specified generator.
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
-#include "fhiclcpp/fwd.h"
+namespace fhicl { class ParameterSet; }
 
 #include <memory>
 #include <string>

@@ -14,7 +14,7 @@
 
 #include "artdaq/ExternalComms/CommanderInterface.hh"
 
-#include "fhiclcpp/fwd.h"
+namespace fhicl { class ParameterSet; }
 
 #include <memory>
 #include <string>

@@ -2,10 +2,12 @@
 #define artdaq_Application_GeneratorMacros_hh
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
-#include "fhiclcpp/fwd.h"
+
+namespace fhicl { class ParameterSet; }
+
+#include "cetlib/compiler_macros.h"
 
 #include <memory>
-#include "cetlib/compiler_macros.h"
 
 namespace artdaq {
 /**

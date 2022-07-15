@@ -1,33 +1,63 @@
+cet_register_export_set(SET_NAME EPPluginTypes NAMESPACE artdaq_plugin_types)
+cet_register_export_set(SET_NAME EPPluginSupport NAMESPACE artdaq_plugin_support)
 
-cet_make( BASENAME_ONLY
-  LIBRARY_NAME artdaq_RoutingPolicies
-  NO_PLUGINS
-  EXCLUDE RoundRobin_policy.cc NthEvent_policy.cc NoOp_policy.cc CapacityTest_policy.cc
-  LIB_LIBRARIES
-  artdaq_DAQdata
-  artdaq_core::artdaq-core_Utilities
+cet_make_library(LIBRARY_NAME policy
+  EXPORT_SET EPPluginTypes
+  SOURCE RoutingManagerPolicy.cc
+  LIBRARIES
+  PUBLIC
   artdaq_core::artdaq-core_Data
-  cetlib
-  cetlib_except
-  ${Boost_SYSTEM_LIBRARY}
-  fhiclcpp
-  MF_MessageLogger
-  )
-
-basic_plugin(RoundRobin "policy"
-  artdaq_RoutingPolicies
-)
-basic_plugin(NoOp "policy"
-  artdaq_RoutingPolicies
-)
-basic_plugin(CapacityTest "policy"
-artdaq_RoutingPolicies
-)
-basic_plugin(PreferSameHost "policy"
-artdaq_RoutingPolicies
+  PRIVATE
+  artdaq::DAQdata
+  fhiclcpp::fhiclcpp
+  TRACE::MF
 )
 
+cet_make_library(LIBRARY_NAME policyMaker
+  EXPORT_SET EPPluginSupport
+  SOURCE makeRoutingManagerPolicy.cc
+  LIBRARIES
+  PRIVATE
+  artdaq_plugin_types::policy
+  cetlib::cetlib
+)
+
+cet_make_library(LIBRARY_NAME PolicyMacros INTERFACE
+  EXPORT_SET EPPluginSupport
+  SOURCE PolicyMacros.hh
+  LIBRARIES INTERFACE
+  artdaq_plugin_types::policy
+  cetlib::headers
+)
+
+include(BasicPlugin)
+cet_write_plugin_builder(artdaq::policy art::plugin Modules
+  SUFFIX policy
+  INSTALL_BUILDER
+  LIBRARIES
+  CONDITIONAL artdaq_plugin_types::policy
+  REG artdaq_plugin_support::PolicyMacros)
+	
+cet_collect_plugin_builders(Modules PolicyPlugins LIST artdaq::policy)
+include(PolicyPlugins)
+
+cet_build_plugin(RoundRobin artdaq::policy
+  LIBRARIES PRIVATE
+  artdaq::DAQdata
+)
+
+cet_build_plugin(NoOp artdaq::policy
+  LIBRARIES PRIVATE
+  TRACE::MF
+)
+
+cet_build_plugin(CapacityTest artdaq::policy)
+
+cet_build_plugin(PreferSameHost artdaq::policy
+  LIBRARIES PRIVATE
+  artdaq::DAQdata
+)
 
 install_headers()
-install_fhicl(SUBDIRS fcl)
 install_source()
+install_fhicl(SUBDIRS fcl)

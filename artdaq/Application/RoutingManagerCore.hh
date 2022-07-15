@@ -1,26 +1,26 @@
 #ifndef artdaq_Application_MPI2_RoutingManagerCore_hh
 #define artdaq_Application_MPI2_RoutingManagerCore_hh
 
-#include <memory>
-#include <string>
-#include <vector>
+#include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/TokenReceiver.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/thread.hpp>
 
 // Socket Includes
 #include <netinet/in.h>
 #include <sys/epoll.h>
 
-#include <boost/thread.hpp>
-
-#include "canvas/Persistency/Provenance/RunID.h"
-#include "fhiclcpp/ParameterSet.h"
-
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-
-#include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq/DAQrate/detail/TokenReceiver.hh"
-#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+#include <atomic>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <set>
+#include <string>
 
 namespace artdaq {
 class RoutingManagerCore;

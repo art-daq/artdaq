@@ -1,14 +1,27 @@
 #ifndef artdaq_ArtModules_TransferInterface_hh
 #define artdaq_ArtModules_TransferInterface_hh
 
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "cetlib/compiler_macros.h"
-#include "fhiclcpp/ParameterSet.h"
+
+#include "artdaq/DAQdata/Globals.hh" // my_rank
+
+#include "artdaq-core/Data/detail/RawFragmentHeader.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+
+namespace fhicl { class ParameterSet; }
+
+#include "cetlib/compiler_macros.h" // EXTERN_C_FUNC_*
 
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <sstream>
+#include <string>
 
 namespace artdaq {
 /**

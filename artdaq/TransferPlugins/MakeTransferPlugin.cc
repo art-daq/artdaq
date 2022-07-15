@@ -1,10 +1,12 @@
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "cetlib/BasicPluginFactory.h"
 #include "fhiclcpp/ParameterSet.h"
 
+#include "cetlib/BasicPluginFactory.h"
+
 #include <sstream>
+#include <utility> // std::move()
 
 namespace artdaq {
 std::unique_ptr<artdaq::TransferInterface>

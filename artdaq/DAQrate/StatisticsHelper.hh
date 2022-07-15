@@ -1,9 +1,14 @@
 #ifndef artdaq_Application_MPI2_StatisticsHelper_hh
 #define artdaq_Application_MPI2_StatisticsHelper_hh
 
-#include <vector>
+#include "artdaq-core/Core/MonitoredQuantity.hh"
 #include "artdaq-core/Core/StatisticsCollection.hh"
-#include "fhiclcpp/ParameterSet.h"
+
+namespace fhicl { class ParameterSet; }
+
+#include <atomic>
+#include <string>
+#include <vector>
 
 namespace artdaq {
 class StatisticsHelper;

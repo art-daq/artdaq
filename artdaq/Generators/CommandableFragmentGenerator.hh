@@ -1,29 +1,38 @@
 #ifndef artdaq_Application_CommandableFragmentGenerator_hh
 #define artdaq_Application_CommandableFragmentGenerator_hh
 
-// Socket Includes
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "fhiclcpp/types/Sequence.h" // Must pre-empt fhiclcpp/types/Atom.h
+
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq/DAQrate/FragmentBuffer.hh"
+#include "artdaq/DAQrate/RequestBuffer.hh"
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+namespace fhicl { class ParameterSet; }
+
+#include <boost/thread.hpp>
 
 #include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <queue>
 
-#include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/fwd.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/FragmentBuffer.hh"
+// Socket Includes
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace artdaq {
 

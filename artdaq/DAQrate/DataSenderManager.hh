@@ -1,23 +1,28 @@
 #ifndef ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 #define ARTDAQ_DAQRATE_DATASENDERMANAGER_HH
 
+#include "fhiclcpp/types/Sequence.h" // Must pre-empt fhiclcpp/types/Atom.h
+
+#include "TRACE/tracemf.h" // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq/DAQrate/detail/FragCounter.hh"
+#include "artdaq/DAQrate/detail/TableReceiver.hh"
+#include "artdaq/TransferPlugins/TransferInterface.hh"
+#include "artdaq/DAQdata/HostMap.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+#include "fhiclcpp/types/OptionalTable.h"
+#include "fhiclcpp/types/TableFragment.h"
+
+#include <atomic>
 #include <netinet/in.h>
 #include <map>
 #include <memory>
 #include <set>
-
-#include "fhiclcpp/fwd.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/HostMap.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq/DAQrate/detail/TableReceiver.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
-#include "fhiclcpp/types/Atom.h"
-#include "fhiclcpp/types/OptionalTable.h"
-#include "fhiclcpp/types/TableFragment.h"
 
 namespace artdaq {
 class DataSenderManager;

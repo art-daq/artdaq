@@ -1,4 +1,10 @@
 // vim: set sw=2 expandtab :
+#include "TRACE/tracemf.h"  // TLOG
+#include "artdaq/DAQdata/Globals.hh"
+#define TRACE_NAME (app_name + "_RootDAQOut").c_str()
+
+#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/OutputModule.h"
@@ -25,9 +31,6 @@
 #include "art_root_io/RootFileBlock.h"
 #include "art_root_io/detail/rootOutputConfigurationTools.h"
 #include "art_root_io/setup.h"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
-#include "artdaq/ArtModules/RootDAQOutput-s81/RootDAQOutFile.h"
-#include "artdaq/DAQdata/Globals.hh"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
 #include "canvas/Persistency/Provenance/ProductTables.h"
 #include "canvas/Utilities/Exception.h"
@@ -37,9 +40,8 @@
 #include "fhiclcpp/types/OptionalAtom.h"
 #include "fhiclcpp/types/OptionalSequence.h"
 #include "fhiclcpp/types/Table.h"
+#include "fhiclcpp/types/TableFragment.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "tracemf.h"  // TLOG
-#define TRACE_NAME (app_name + "_RootDAQOut").c_str()
 
 #include <iomanip>
 #include <iostream>
