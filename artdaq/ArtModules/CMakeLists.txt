@@ -1,4 +1,4 @@
-add_subdirectory(RootDAQOutput-s81)
+	add_subdirectory(RootDAQOutput-s81)
 
 cet_register_export_set(SET_NAME AMPluginTypes NAMESPACE artdaq_plugin_types)
 
@@ -10,11 +10,11 @@ cet_make_library(LIBRARY_NAME ArtConfig INTERFACE
   art::Framework_IO
   fhiclcpp::types
   fhiclcpp::fhiclcpp
-)
+  )
 
 cet_make_library(LIBRARY_NAME ArtdaqSharedMemoryService INTERFACE
   EXPORT_SET AMPluginTypes
-  SOURCE ArtdaqSharedMemoryService.h
+  SOURCE ArtdaqSharedMemoryServiceInterface.h
   LIBRARIES INTERFACE
   artdaq_core::artdaq-core_Data
   art_plugin_types::serviceDeclaration
@@ -32,6 +32,13 @@ cet_build_plugin(ArtdaqSharedMemoryService art::service
   fhiclcpp::types
   fhiclcpp::fhiclcpp
   TRACE::MF
+)
+
+cet_build_plugin(ArtdaqGlobalsService art::service
+  LIBRARIES PRIVATE
+  artdaq_plugin_types::ArtdaqSharedMemoryService
+  artdaq::DAQdata
+  artdaq::DAQrate
 )
 
 cet_make_library(SOURCE
@@ -83,7 +90,7 @@ cet_build_plugin(ArtdaqBuildInfo art::EDProducer
 
 cet_build_plugin(EventDump art::EDAnalyzer
   LIBRARIES PRIVATE
-  artdaq_core::artdaq-core_Data
+artdaq_core::artdaq-core_Data
 )
 
 cet_build_plugin(FragmentWatcher art::EDAnalyzer
@@ -152,7 +159,7 @@ cet_make_library(LIBRARY_NAME ArtdaqInputHelper INTERFACE
   fhiclcpp::fhiclcpp
   ROOT::Core
 )
-  
+
 cet_build_plugin(TransferInput ${stype}
   LIBRARIES PRIVATE
   artdaq::ArtModules
@@ -178,8 +185,8 @@ cet_make_library(LIBRARY_NAME ArtdaqOutput INTERFACE
   fhiclcpp::fhiclcpp
   ROOT::Core
   TRACE::MF
-)
-  
+  )
+
 # Use art::module due to issue with art::Output in v3_09_03
 cet_build_plugin(RootNetOutput art::module
   LIBRARIES PRIVATE
