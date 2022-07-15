@@ -72,8 +72,8 @@ inline hostMap_t MakeHostMap(fhicl::ParameterSet const& pset, hostMap_t map = ho
 		auto hosts = pset.get<std::vector<fhicl::ParameterSet>>("host_map");
 		for (auto& ps : hosts)
 		{
-			auto rank = ps.get<int>("rank");
-			auto hostname = ps.get<std::string>("host");
+			auto rank = ps.get<int>("rank", -1);
+			auto hostname = ps.get<std::string>("host", "localhost");
 
 			if (map.count(rank) && (map[rank] != hostname))
 			{

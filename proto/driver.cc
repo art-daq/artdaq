@@ -39,8 +39,7 @@ template<typename B, typename D>
 std::unique_ptr<D>
 dynamic_unique_ptr_cast(std::unique_ptr<B>& p);
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	struct Config
 	{

@@ -214,6 +214,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 	{
 		for (auto& bdest : enabled_destinations_)
 		{
+			outsts = TransferInterface::CopyStatus::kSuccess;
 			TLOG(TLVL_DEBUG + 33) << "sendFragment: Sending fragment with seqId " << seqID << " to destination " << bdest << " (broadcast)";
 			// Gross, we have to copy.
 			auto sts = TransferInterface::CopyStatus::kTimeout;
@@ -261,10 +262,7 @@ std::pair<int, artdaq::TransferInterface::CopyStatus> artdaq::DataSenderManager:
 				}
 				++retries;
 			}
-			if (sts != TransferInterface::CopyStatus::kSuccess)
-			{
-				outsts = sts;
-			}
+			outsts = sts;
 			// sendFragTo(std::move(frag), dest);
 			sent_frag_count_.incSlot(dest);
 		}

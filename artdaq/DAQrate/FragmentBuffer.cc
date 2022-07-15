@@ -176,7 +176,8 @@ void artdaq::FragmentBuffer::AddFragmentsToBuffer(FragmentPtrs frags)
 		std::lock_guard<std::mutex> dlk(dataBuffer->DataBufferMutex);
 		switch (mode_)
 		{
-			case RequestMode::Single: {
+			case RequestMode::Single:
+			{
 				auto dataIter = type_it->second.rbegin();
 				TLOG(TLVL_ADDFRAGMENT) << "Adding Fragment with Fragment ID " << frag_id << ", Sequence ID " << (*dataIter)->sequenceID() << ", and Timestamp " << (*dataIter)->timestamp() << " to buffer";
 				dataBuffer->DataBuffer.clear();

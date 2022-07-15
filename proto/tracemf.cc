@@ -49,8 +49,7 @@ std::string formatTime(double time)
 	return o.str();
 }
 
-int main(int argc, char *argv[])
-try
+int main(int argc, char *argv[]) try
 {
 	std::ostringstream descstr;
 	descstr << *argv

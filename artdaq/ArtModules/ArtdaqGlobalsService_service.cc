@@ -33,7 +33,8 @@ ArtdaqGlobalsService::ArtdaqGlobalsService(fhicl::ParameterSet const& pset, art:
 		my_rank = strtol(artapp_env, nullptr, 10);
 		app_name = artapp_str + "art" + std::string(artapp_env);
 	}
-	else {
+	else
+	{
 		TLOG(TLVL_DEBUG + 33) << "Setting default rank and name";
 		my_rank = -1;
 		app_name = artapp_str + "art";

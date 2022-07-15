@@ -238,33 +238,20 @@ RootDAQOut::~RootDAQOut() = default;
 
 RootDAQOut::RootDAQOut(Parameters const& config)
 #if ART_HEX_VERSION < 0x31100
-    : OutputModule{
-          config().omConfig, config.get_PSet()}
+    : OutputModule
+{
+	config().omConfig, config.get_PSet()
+}
 #else
-    : OutputModule{
-          config().omConfig}
+    : OutputModule
+{
+	config().omConfig
+}
 #endif
-    , catalog_{config().catalog()}
-    , dropAllSubRuns_{config().dropAllSubRuns()}
-    , moduleLabel_{config.get_PSet().get<string>("module_label")}
-    , fstats_{moduleLabel_, processName()}
-    , fRenamer_{fstats_}
-    , filePattern_{modifyFilePattern(config().omConfig().fileName(), config())}
-    , tmpDir_{config().tmpDir() == default_tmpDir ? parent_path(filePattern_) : config().tmpDir()}
-    , compressionLevel_{config().compressionLevel()}
-    , freePercent_{config().freePercent()}
-    , freeMB_{config().freeMB()}
-    , saveMemoryObjectThreshold_{config().saveMemoryObjectThreshold()}
-    , treeMaxVirtualSize_{config().treeMaxVirtualSize()}
-    , splitLevel_{config().splitLevel()}
-    , basketSize_{config().basketSize()}
-    , dropMetaData_{config().dropMetaData()}
-    , dropMetaDataForDroppedData_{config().dropMetaDataForDroppedData()}
-    , writeParameterSets_{config().writeParameterSets()}
-    , fileProperties_{(detail::validateFileNamePattern(config.get_PSet().has_key(config().fileProperties.name()),
-                                                       filePattern_),  // comma operator!
-                       config().fileProperties())}
-    , rpm_{config.get_PSet()}
+, catalog_{config().catalog()}, dropAllSubRuns_{config().dropAllSubRuns()}, moduleLabel_{config.get_PSet().get<string>("module_label")}, fstats_{moduleLabel_, processName()}, fRenamer_{fstats_}, filePattern_{modifyFilePattern(config().omConfig().fileName(), config())}, tmpDir_{config().tmpDir() == default_tmpDir ? parent_path(filePattern_) : config().tmpDir()}, compressionLevel_{config().compressionLevel()}, freePercent_{config().freePercent()}, freeMB_{config().freeMB()}, saveMemoryObjectThreshold_{config().saveMemoryObjectThreshold()}, treeMaxVirtualSize_{config().treeMaxVirtualSize()}, splitLevel_{config().splitLevel()}, basketSize_{config().basketSize()}, dropMetaData_{config().dropMetaData()}, dropMetaDataForDroppedData_{config().dropMetaDataForDroppedData()}, writeParameterSets_{config().writeParameterSets()}, fileProperties_{(detail::validateFileNamePattern(config.get_PSet().has_key(config().fileProperties.name()),
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             filePattern_),  // comma operator!
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             config().fileProperties())},
+    rpm_{config.get_PSet()}
 {
 	TLOG(TLVL_INFO) << "RootDAQOut_module (s81 version) CONSTRUCTOR Start";
 	// Setup the streamers and error handlers.

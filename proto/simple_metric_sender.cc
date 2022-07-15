@@ -11,8 +11,7 @@ struct Config
 	fhicl::TableFragment<artdaq::MetricManager::Config> metricmanager_config;  ///< Configuration for MetricManager
 };
 
-int main(int argc, char* argv[])
-try
+int main(int argc, char* argv[]) try
 {
 	auto config_ps = LoadParameterSet<Config>(argc, argv, "simple_metric_sender", "A simple application that can be used to send artdaq Metrics from the command line.");
 	artdaq::MetricManager mm;
