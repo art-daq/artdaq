@@ -1,14 +1,17 @@
+#include "TRACE/tracemf.h"
+
+#include "artdaq/ArtModules/ArtdaqOutput.hh"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/DataSenderManager.hh"
+
+#include "art/Framework/Core/ModuleMacros.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "fhiclcpp/ParameterSet.h"
 
 #include <memory>
 
-#include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "artdaq/ArtModules/ArtdaqOutput.hh"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQdata/NetMonHeader.hh"
-#include "artdaq/DAQrate/DataSenderManager.hh"
-
-// if TRACE_NAME has varible, it is safest to define after includes
+// if TRACE_NAME has variable, it is safest to define after includes
 #define TRACE_NAME (app_name + "_RootNetOutput").c_str()
 
 #define DUMP_SEND_MESSAGE 0

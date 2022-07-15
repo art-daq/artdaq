@@ -1,8 +1,10 @@
-#include "artdaq/Application/BoardReaderApp.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_BoardReaderApp").c_str()  // NOLINT
+
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq/Application/BoardReaderApp.hh"
+
+#include <boost/lexical_cast.hpp>
 
 #include <memory>
 #include <string>
@@ -303,11 +305,11 @@ std::string artdaq::BoardReaderApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	//if (report_string_.length() > 0) {
-	//  resultString.append("*** Overall status message:\r\n");
-	//  resultString.append(report_string_ + "\r\n");
-	//  resultString.append("*** Requested report response:\r\n");
-	//}
+	// if (report_string_.length() > 0) {
+	//   resultString.append("*** Overall status message:\r\n");
+	//   resultString.append(report_string_ + "\r\n");
+	//   resultString.append("*** Requested report response:\r\n");
+	// }
 
 	// pass the request to the BoardReaderCore instance, if it's available
 	if (fragment_receiver_ptr_ != nullptr)

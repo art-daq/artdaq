@@ -5,7 +5,11 @@
 //  $RCSfile: TCP_listen_fd.cpp,v $
 //  rev="$Revision: 1.3 $$Date: 2010/06/04 14:00:32 $";
 
+#include "artdaq/DAQdata/TCP_listen_fd.hh"
+
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"
+
 #define TRACE_NAME (app_name + "_TCP_listen_fd").c_str()
 
 #include <arpa/inet.h>  /* inet_aton */
@@ -16,8 +20,6 @@
 #include <cerrno>       // errno
 #include <cstdio>       // printf
 #include <cstdlib>      // exit
-
-#include "artdaq/DAQdata/TCP_listen_fd.hh"
 
 int TCP_listen_fd(int port, int rcvbuf)
 {
@@ -47,7 +49,7 @@ int TCP_listen_fd(int port, int rcvbuf)
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = INADDR_ANY;
 
-	//printf( "bind..." );fflush(stdout);
+	// printf( "bind..." );fflush(stdout);
 	sts = bind(listener_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
@@ -55,7 +57,7 @@ int TCP_listen_fd(int port, int rcvbuf)
 		perror("bind error");
 		exit(3);
 	}
-	//printf( " OK\n" );
+	// printf( " OK\n" );
 
 	int len = 0;
 	socklen_t arglen = sizeof(len);
@@ -81,7 +83,7 @@ int TCP_listen_fd(int port, int rcvbuf)
 		}
 	}
 
-	//printf( "listen..." );fflush(stdout);
+	// printf( "listen..." );fflush(stdout);
 	sts = listen(listener_fd, 5 /*QLEN*/);
 	if (sts == -1)
 	{
@@ -89,7 +91,7 @@ int TCP_listen_fd(int port, int rcvbuf)
 		perror("listen error");
 		exit(1);
 	}
-	//printf( " OK\n" );
+	// printf( " OK\n" );
 
 	return (listener_fd);
 }  // TCP_listen_fd

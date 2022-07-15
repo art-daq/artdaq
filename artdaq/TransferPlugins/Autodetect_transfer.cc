@@ -9,32 +9,32 @@
 
 namespace artdaq {
 /**
-	 * \brief The AutodetectTransfer TransferInterface plugin sets up a
-	 * Shmem_transfer plugin or TCPSocket_transfer plugin depending if
-	 * the source and destination are on the same host, to maximize
-	 * throughput.
-	 */
+ * \brief The AutodetectTransfer TransferInterface plugin sets up a
+ * Shmem_transfer plugin or TCPSocket_transfer plugin depending if
+ * the source and destination are on the same host, to maximize
+ * throughput.
+ */
 class AutodetectTransfer : public TransferInterface
 {
 public:
 	/**
-		 * \brief AutodetectTransfer Constructor
-		 * \param pset ParameterSet used to configure AutodetectTransfer
-		 * \param role Role of this TransferInterface, either kReceive or kSend
-		 */
+	 * \brief AutodetectTransfer Constructor
+	 * \param pset ParameterSet used to configure AutodetectTransfer
+	 * \param role Role of this TransferInterface, either kReceive or kSend
+	 */
 	AutodetectTransfer(const fhicl::ParameterSet& pset, Role role);
 
 	/**
-		 * \brief AutodetectTransfer default Destructor
-		 */
+	 * \brief AutodetectTransfer default Destructor
+	 */
 	~AutodetectTransfer() override = default;
 
 	/**
-		 * \brief Receive a Fragment, using the underlying transfer plugin
-		 * \param fragment Output Fragment
-		 * \param receiveTimeout Time to wait before returning TransferInterface::RECV_TIMEOUT
-		 * \return Rank of sender
-		 */
+	 * \brief Receive a Fragment, using the underlying transfer plugin
+	 * \param fragment Output Fragment
+	 * \param receiveTimeout Time to wait before returning TransferInterface::RECV_TIMEOUT
+	 * \return Rank of sender
+	 */
 	int receiveFragment(artdaq::Fragment& fragment,
 	                    size_t receiveTimeout) override
 	{
@@ -42,58 +42,58 @@ public:
 	}
 
 	/**
-		* \brief Receive a Fragment Header from the transport mechanism
-		* \param[out] header Received Fragment Header
-		* \param receiveTimeout Timeout for receive
-		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-		*/
+	 * \brief Receive a Fragment Header from the transport mechanism
+	 * \param[out] header Received Fragment Header
+	 * \param receiveTimeout Timeout for receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 */
 	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override
 	{
 		return theTransfer_->receiveFragmentHeader(header, receiveTimeout);
 	}
 
 	/**
-		* \brief Receive the body of a Fragment to the given destination pointer
-		* \param destination Pointer to memory region where Fragment data should be stored
-		* \param wordCount Number of words of Fragment data to receive
-		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-		*/
+	 * \brief Receive the body of a Fragment to the given destination pointer
+	 * \param destination Pointer to memory region where Fragment data should be stored
+	 * \param wordCount Number of words of Fragment data to receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 */
 	int receiveFragmentData(RawDataType* destination, size_t wordCount) override
 	{
 		return theTransfer_->receiveFragmentData(destination, wordCount);
 	}
 
 	/**
-		 * \brief Send a Fragment in non-reliable mode, using the underlying transfer plugin
-		 * \param fragment The Fragment to send
-		 * \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
-		 * \return A TransferInterface::CopyStatus result variable
-		 */
+	 * \brief Send a Fragment in non-reliable mode, using the underlying transfer plugin
+	 * \param fragment The Fragment to send
+	 * \param send_timeout_usec How long to wait before aborting. Defaults to size_t::MAX_VALUE
+	 * \return A TransferInterface::CopyStatus result variable
+	 */
 	CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment, size_t send_timeout_usec) override
 	{
 		return theTransfer_->transfer_fragment_min_blocking_mode(fragment, send_timeout_usec);
 	}
 
 	/**
-		* \brief Send a Fragment in reliable mode, using the underlying transfer plugin
-		* \param fragment The Fragment to send
-		* \return A TransferInterface::CopyStatus result variable
-		*/
+	 * \brief Send a Fragment in reliable mode, using the underlying transfer plugin
+	 * \param fragment The Fragment to send
+	 * \return A TransferInterface::CopyStatus result variable
+	 */
 	CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& fragment) override
 	{
 		return theTransfer_->transfer_fragment_reliable_mode(std::move(fragment));
 	}
 
 	/**
-		* \brief Determine whether the TransferInterface plugin is able to send/receive data
-		* \return True if the TransferInterface plugin is currently able to send/receive data
-		*/
+	 * \brief Determine whether the TransferInterface plugin is able to send/receive data
+	 * \return True if the TransferInterface plugin is currently able to send/receive data
+	 */
 	bool isRunning() override { return theTransfer_->isRunning(); }
 
 	/**
-                 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
-                 * ended.
-                 */
+	 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
+	 * ended.
+	 */
 	void flush_buffers() override { theTransfer_->flush_buffers(); }
 
 private:

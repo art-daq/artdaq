@@ -4,22 +4,22 @@
 #include <chrono>
 #include <cmath>
 #include <string>
+#include <utility>  // std::pair<>
 #include <vector>
 
-#include "artdaq-utilities/Plugins/MetricManager.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 namespace artdaq {
 /**
-	 * \brief Test a set of TransferInterface plugins
-	 */
+ * \brief Test a set of TransferInterface plugins
+ */
 class TransferTest
 {
 public:
 	/**
 	 * \brief TransferTest Constructor
 	 * \param psi ParameterSet used to configure TransferTest
-	 * 
+	 *
 	 * \verbatim
 	 * TransferTest accepts the following Parameters:
 	 * "num_senders" (REQUIRED): Number of sending TransferTest instances
@@ -52,7 +52,7 @@ private:
 
 	std::pair<size_t, double> do_receiving();
 
-	//Helper functions
+	// Helper functions
 	const std::vector<std::string> suffixes{" B", " KB", " MB", " GB", " TB"};
 
 	std::string formatBytes(double bytes, size_t suffixIndex = 0);
@@ -85,4 +85,4 @@ inline std::string TransferTest::formatBytes(double bytes, size_t suffixIndex)
 	return std::to_string(bytes) + suffixes[suffixIndex];
 }
 }  // namespace artdaq
-#endif  //ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH
+#endif  // ARTDAQ_TEST_DAQRATE_TRANSFERTEST_HH

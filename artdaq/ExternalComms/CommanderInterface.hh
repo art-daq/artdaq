@@ -2,9 +2,18 @@
 #define artdaq_ExternalComms_CommanderInterface_hh
 
 #include "artdaq/Application/Commandable.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "cetlib/compiler_macros.h"
+
 #include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+
+#include "cetlib/compiler_macros.h"
+
+#include <atomic>
+#include <memory>
+#include <string>
 
 namespace artdaq {
 /**

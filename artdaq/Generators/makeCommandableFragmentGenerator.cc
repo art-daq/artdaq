@@ -1,8 +1,6 @@
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
-#include "artdaq/Generators/GeneratorMacros.hh"
 #include "cetlib/BasicPluginFactory.h"
-#include "fhiclcpp/ParameterSet.h"
 
 std::unique_ptr<artdaq::CommandableFragmentGenerator>
 artdaq::makeCommandableFragmentGenerator(std::string const& generator_plugin_spec,

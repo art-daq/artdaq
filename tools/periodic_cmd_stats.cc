@@ -323,7 +323,7 @@ void perror_exit(const char *msg, ...)
 	exit(1);
 }
 
-//void atfork_trace(void) { TRACE( 3, "process %d forking", getpid() ); }
+// void atfork_trace(void) { TRACE( 3, "process %d forking", getpid() ); }
 /* iofd is in/out
    if iofd[x]==-1 then create a pipe for that index, x, and return the appropriate pipe fd in iofd[x]
    else if iofd[x]!=x, dup2(iofd[x],x)
@@ -360,7 +360,7 @@ pid_t fork_execv(int close_start, int close_cnt, int sleepB4exec_us, int iofd[3]
 		if (sleepB4exec_us != 0)
 		{
 			// Do sleep before dealing with stdout/err incase we want TRACE to go to console
-			//int sts=pthread_atfork( atfork_trace, NULL, NULL );
+			// int sts=pthread_atfork( atfork_trace, NULL, NULL );
 			usleep(sleepB4exec_us);
 			TRACE(TLVL_WARNING, "fork_execv sleep complete. sleepB4exec_us=%d sts=%d", sleepB4exec_us, 0 /*sts*/);
 		}
@@ -420,7 +420,7 @@ uint64_t swapPtr(void *X)
 /*
  *  Input to AWK can either be a file spec or a string.
  *  If input is string, the fork_execv call is told to create pipe for input.
- *  
+ *
  *  The run time duration of the AWK prooces can be determined via TRACE:
 /home/ron/src
 mu2edaq01 :^) tshow|egrep 'AWK b4 |AWK after read' |tdelta -d 1 -post /b4/ -stats | tail
@@ -458,7 +458,7 @@ std::string AWK(std::string const &awk_cmd, const char *file, const char *input)
 	{
 		infd = -1;
 	}
-	//int iofd[3]={infd,-1,g_devnullfd};
+	// int iofd[3]={infd,-1,g_devnullfd};
 	int iofd[3] = {infd, -1, 2};  // make stdin=infd, create pipr for stdout, inherit stderr
 	TRACE(TLVL_DEBUG + 0, "AWK b4 fork_execv input=%p", (void *)input);
 	char *env[1];
@@ -520,7 +520,7 @@ void string_addto_vector(std::string &instr, std::vector<std::string> &outvec, c
 	}
 }
 
-uint64_t gettimeofday_us()  //struct timespec *ts )
+uint64_t gettimeofday_us()  // struct timespec *ts )
 {
 	struct timeval tv;
 	gettimeofday(&tv, nullptr);
@@ -732,10 +732,10 @@ int main(int argc, char *argv[])
 	sigaction_s.sa_flags = SA_SIGINFO;
 	sigaction(SIGINT, &sigaction_s, nullptr);
 
-	//may return 0 when not able to detect
-	//long long unsigned concurentThreadsSupported = std::thread::hardware_concurrency();
+	// may return 0 when not able to detect
+	// long long unsigned concurentThreadsSupported = std::thread::hardware_concurrency();
 	long long unsigned concurentThreadsSupported = sysconf(_SC_NPROCESSORS_ONLN);
-	//TRACE_CNTL( "reset" ); TRACE_CNTL( "modeM", 1L );
+	// TRACE_CNTL( "reset" ); TRACE_CNTL( "modeM", 1L );
 	TRACE(TLVL_ERROR, "main concurentThreadsSupported=%u opt_stats=" + opt_stats, concurentThreadsSupported);
 
 	char run_time[80];
@@ -785,7 +785,7 @@ int main(int argc, char *argv[])
 		close(fd);  // the output file has been given to the subprocess
 		std::string pidstr = std::to_string((long long int)g_pid_vec[ii]);
 		pidfile.push_back("/proc/" + pidstr + "/stat");
-		//pidfile.push_back( "/proc/"+pidstr+"/task/"+pidstr+"/stat" );
+		// pidfile.push_back( "/proc/"+pidstr+"/task/"+pidstr+"/stat" );
 		char desc[128], ss[1024];
 		// field 14-17: Documentation/filesystems/proc.txt Table 1-4: utime stime cutime cstime
 		snprintf(ss, sizeof(ss), "CPUcmd%zd?%s?NR==1?$14+$15?1?yes", ii, pidfile[ii].c_str());
@@ -827,7 +827,7 @@ int main(int argc, char *argv[])
 		close(fd);  // the output file has been given to the subprocess
 		std::string pidstr = std::to_string((long long int)g_pid_vec[ii]);
 		pidfile.push_back("/proc/" + pidstr + "/stat");
-		//pidfile.push_back( "/proc/"+pidstr+"/task/"+pidstr+"/stat" );
+		// pidfile.push_back( "/proc/"+pidstr+"/task/"+pidstr+"/stat" );
 		char desc[128], ss[1024];
 		snprintf(desc, sizeof(desc), "CPU+cmd%zd", ii + opt_cmd.size());
 		snprintf(ss, sizeof(ss), "CPUcmd%zd?%s?NR==1?$14+$15?1?yes", ii + opt_cmd.size(), pidfile[ii].c_str());
@@ -904,7 +904,7 @@ int main(int argc, char *argv[])
 			stats.push_back(statstr);
 			stat_spec.clear();
 			string_addto_vector(statstr, stat_spec, '?');
-			//graphs.push_back( stat_spec[s_desc] ); // don't add read by default -- can be added with --graph
+			// graphs.push_back( stat_spec[s_desc] ); // don't add read by default -- can be added with --graph
 		}
 	}
 
@@ -929,7 +929,7 @@ int main(int argc, char *argv[])
 	std::string header_str("#" DATA_START "\n#_______time_______");
 
 	int outfd = open(dat_file_out.c_str(), O_WRONLY | O_CREAT, 0777);
-	//FILE *outfp=stdout;
+	// FILE *outfp=stdout;
 	FILE *outfp = fdopen(outfd, "w");
 
 	std::string cmd_comment;
@@ -978,7 +978,7 @@ int main(int argc, char *argv[])
 		string_addto_vector(stats[ii], spec2[ii], '?');
 		char awk_cmd[1024];
 		snprintf(awk_cmd, sizeof(awk_cmd), "%s{vv+=%s}END{print vv}"
-		         //snprintf(  awk_cmd, sizeof(awk_cmd), "%s{vv+=%s;print \"vv now\",vv > \"/dev/stderr\";}END{print vv}"
+		         // snprintf(  awk_cmd, sizeof(awk_cmd), "%s{vv+=%s;print \"vv now\",vv > \"/dev/stderr\";}END{print vv}"
 		         ,
 		         spec2[ii][s_linespec].c_str(), spec2[ii][s_fieldspec].c_str());
 		awkCmd.emplace_back(awk_cmd);
@@ -987,7 +987,7 @@ int main(int argc, char *argv[])
 
 		pre_vals.push_back(atol(stat.c_str()));
 		multipliers.push_back(atof(AWK("BEGIN{print " + spec2[ii][s_multiplier] + "}", "/dev/null", nullptr).c_str()));
-		//fprintf( stderr, " l=%s", spec2[ii][s_linespec].c_str() );
+		// fprintf( stderr, " l=%s", spec2[ii][s_linespec].c_str() );
 		for (const auto &graph : graphs)
 		{
 			if (graph == stat_spec[s_desc])
@@ -1047,7 +1047,7 @@ exit\n");
 	fflush(outfp);
 
 	std::string tmpdbg("main lp=%d done stat%zd=%ld rate=%f ");
-	//char tmpdbgbuf[128];
+	// char tmpdbgbuf[128];
 	char proc_stats[8192];
 	char *awk_in;
 	int lp;
@@ -1072,7 +1072,7 @@ eintr1:
 		char str[80];
 		gettimeofday(&tv, nullptr);
 		strftime(str, sizeof(str), "%FT%T", localtime(&tv.tv_sec));
-		//fprintf(outfp, "%s.%ld", str, tv.tv_usec/100000 );
+		// fprintf(outfp, "%s.%ld", str, tv.tv_usec/100000 );
 		fprintf(outfp, "%s", str);
 		std::string prv_file;
 		for (size_t ii = 0; ii < stats.size(); ++ii)
@@ -1118,7 +1118,7 @@ eintr1:
 				if (rate < 0.0 && spec2[ii][s_file] == "/proc/diskstats")
 				{
 					TRACE(TLVL_ERROR, "main stat:" + spec2[ii][s_desc] + " rate=%f pre_val=%ld stat=%ld stat_str=\"" + stat_str + "\" awkCmd=" + awkCmd[ii] + " proc_diskstats=" + proc_stats, rate, pre_vals[ii], stat);
-					//TRACE_CNTL( "modeM", 0L );
+					// TRACE_CNTL( "modeM", 0L );
 				}
 				pre_vals[ii] = stat;
 			}
@@ -1160,10 +1160,10 @@ eintr1:
 		fprintf(outfp, "# MAX_LP abort\n");
 	}
 
-	//TRACE( 0, "main waiting for pid=%d", pid );
-	//wait(&status);
-	//TRACE( 0, "main status=%d",status );
+	// TRACE( 0, "main waiting for pid=%d", pid );
+	// wait(&status);
+	// TRACE( 0, "main status=%d",status );
 	TRACE(TLVL_ERROR, "main done/complete/returning");
-	//TRACE_CNTL( "modeM", 0L );
+	// TRACE_CNTL( "modeM", 0L );
 	return (0);
 }  // main

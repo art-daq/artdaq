@@ -38,33 +38,33 @@ class artdaq::MissingDataCheck : public art::EDAnalyzer
 {
 public:
 	/**
-   * \brief MissingDataCheck Constructor
-   * \param pset ParameterSet used to configure MissingDataCheck
-   * 
-   * \verbatim
-   * MissingDataCheck accepts the following Parameters:
-   * "raw_data_label" (Default: "daq"): The label used to store artdaq data
-   * "expected_n_fragments" (Default: -1): number of expected fragments. Uses n_frags in first event if -1
-   * "verbosity" (Default: 0): verboseness level
-   * \endverbatim
-   */
+	 * \brief MissingDataCheck Constructor
+	 * \param pset ParameterSet used to configure MissingDataCheck
+	 *
+	 * \verbatim
+	 * MissingDataCheck accepts the following Parameters:
+	 * "raw_data_label" (Default: "daq"): The label used to store artdaq data
+	 * "expected_n_fragments" (Default: -1): number of expected fragments. Uses n_frags in first event if -1
+	 * "verbosity" (Default: 0): verboseness level
+	 * \endverbatim
+	 */
 	explicit MissingDataCheck(fhicl::ParameterSet const& pset);
 
 	/**
-   * \brief Default virtual Destructor
-   */
+	 * \brief Default virtual Destructor
+	 */
 	~MissingDataCheck() override = default;
 
 	/**
-   * \brief This method is called for each art::Event in a file or run
-   * \param e The art::Event to analyze
-   * 
-   */
+	 * \brief This method is called for each art::Event in a file or run
+	 * \param e The art::Event to analyze
+	 *
+	 */
 	void analyze(art::Event const& e) override;
 
 	/**
-   * \brief This method is called at the end of the job, used to print a summary
-   */
+	 * \brief This method is called at the end of the job, used to print a summary
+	 */
 	void endJob() override;
 
 private:
@@ -150,7 +150,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 	timeHigh_ = e.time().timeHigh();
 	timeLow_ = e.time().timeLow();
 
-	//print basic run info
+	// print basic run info
 	if (verbosity_ > 2)
 	{
 		std::cout << "Processing:"
@@ -161,15 +161,11 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 		          << std::endl;
 	}
 
-	//get all the artdaq fragment collections in the event.
+	// get all the artdaq fragment collections in the event.
 	std::vector<art::Handle<std::vector<artdaq::Fragment>>> fragmentHandles;
-#if ART_HEX_VERSION < 0x30900
-	e.getManyByType(fragmentHandles);
-#else
 	fragmentHandles = e.getMany<std::vector<artdaq::Fragment>>();
-#endif
 
-	//print basic fragment number info
+	// print basic fragment number info
 	if (verbosity_ > 2)
 	{
 		std::cout << "\tFound " << fragmentHandles.size() << " fragment collections." << std::endl;
@@ -183,7 +179,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 		}
 	}
 
-	//count total fragments
+	// count total fragments
 	total_n_frags_ = 0;
 	total_data_size_ = 0;
 	for (auto const& h : fragmentHandles)
@@ -195,7 +191,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 		}
 	}
 
-	//first time through, if this is -1, set it to total fragments seen
+	// first time through, if this is -1, set it to total fragments seen
 	if (expected_n_fragments_ == -1)
 	{
 		expected_n_fragments_ = total_n_frags_;
@@ -207,7 +203,7 @@ void artdaq::MissingDataCheck::analyze(art::Event const& e)
 		          << " / " << expected_n_fragments_ << std::endl;
 		std::cout << "\tTotal data size in fragments = " << total_data_size_ << std::endl;
 	}
-	//count number of container fragments
+	// count number of container fragments
 	total_n_CFs_ = 0;
 	total_n_CFs_missing_ = 0;
 	total_n_frags_in_CFs_ = 0;

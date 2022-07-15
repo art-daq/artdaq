@@ -1,14 +1,95 @@
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "ArtdaqSharedMemoryService"
+
+#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
+#include "artdaq/DAQdata/Globals.hh"
+
+#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+
+#include "art/Framework/Services/Registry/ServiceDefinitionMacros.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
 
 #include <cstdint>
 #include <memory>
 
-#include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "artdaq-core/Core/SharedMemoryEventReceiver.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
+// ----------------------------------------------------------------------
 
-#include "artdaq/DAQdata/Globals.hh"
+/**
+ * \brief ArtdaqSharedMemoryService extends ArtdaqSharedMemoryServiceInterface.
+ * It receives events from shared memory using SharedMemoryEventReceiver. It also manages the artdaq Global varaibles my_rank and app_name.
+ * Users should retrieve a ServiceHandle to this class before using artdaq Globals to ensure the correct values are used.
+ */
+class ArtdaqSharedMemoryService : public ArtdaqSharedMemoryServiceInterface
+{
+public:
+	/// <summary>
+	/// Allowed Configuration parameters of NetMonTransportService. May be used for configuration validation
+	/// </summary>
+	struct Config
+	{
+		/// "shared_memory_key" (Default: 0xBEE70000 + pid): Key to use when connecting to shared memory. Will default to 0xBEE70000 + getppid().
+		fhicl::Atom<uint32_t> shared_memory_key{fhicl::Name{"shared_memory_key"}, fhicl::Comment{"Key to use when connecting to shared memory. Will default to 0xBEE70000 + getppid()."}, 0xBEE70000};
+		/// "shared_memory_key" (Default: 0xCEE70000 + pid): Key to use when connecting to broadcast shared memory. Will default to 0xCEE70000 + getppid().
+		fhicl::Atom<uint32_t> broadcast_shared_memory_key{fhicl::Name{"broadcast_shared_memory_key"}, fhicl::Comment{"Key to use when connecting to broadcast shared memory. Will default to 0xCEE70000 + getppid()."}, 0xCEE70000};
+		/// "rank" (OPTIONAL) : The rank of this applicaiton, for use by non - artdaq applications running NetMonTransportService
+		fhicl::Atom<int> rank{fhicl::Name{"rank"}, fhicl::Comment{"Rank of this artdaq application. Used for data transfers"}};
+	};
+	/// Used for ParameterSet validation (if desired)
+	using Parameters = fhicl::WrappedTable<Config>;
+
+	/**
+	 * \brief NetMonTransportService Destructor. Calls disconnect().
+	 */
+	virtual ~ArtdaqSharedMemoryService();
+
+	/**
+	 * \brief NetMonTransportService Constructor
+	 * \param pset ParameterSet used to configure NetMonTransportService and DataSenderManager. See NetMonTransportService::Config
+	 */
+	ArtdaqSharedMemoryService(fhicl::ParameterSet const& pset, art::ActivityRegistry&);
+
+	/**
+	 * \brief Receive an event from the shared memory
+	 * \param broadcast Whether to only attempt to receive a broadcast (broadcasts are always preferentially received over data)
+	 * \return Map of Fragment types retrieved from shared memory
+	 */
+	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> ReceiveEvent(bool broadcast) override;
+
+	/**
+	 * \brief Get the number of events which are ready to be read
+	 * \return The number of events which can be read
+	 */
+	size_t GetQueueSize() override { return incoming_events_->ReadReadyCount(); }
+	/**
+	 * \brief Get the maximum number of events which can be stored in the shared memory
+	 * \return The maximum number of events which can be stored in the shared memory
+	 */
+	size_t GetQueueCapacity() override { return incoming_events_->size(); }
+	/**
+	 * \brief Get a shared_ptr to the current event header, if any
+	 * \return std::shared_ptr to current event header. May be nullptr if no event is currently being read
+	 */
+	std::shared_ptr<artdaq::detail::RawEventHeader> GetEventHeader() override { return evtHeader_; }
+
+private:
+	ArtdaqSharedMemoryService(ArtdaqSharedMemoryService const&) = delete;
+	ArtdaqSharedMemoryService(ArtdaqSharedMemoryService&&) = delete;
+	ArtdaqSharedMemoryService& operator=(ArtdaqSharedMemoryService const&) = delete;
+	ArtdaqSharedMemoryService& operator=(ArtdaqSharedMemoryService&&) = delete;
+
+private:
+	std::unique_ptr<artdaq::SharedMemoryEventReceiver> incoming_events_;
+	std::shared_ptr<artdaq::detail::RawEventHeader> evtHeader_;
+	size_t read_timeout_;
+	bool resume_after_timeout_;
+};
+
+DECLARE_ART_SERVICE_INTERFACE_IMPL(ArtdaqSharedMemoryService, ArtdaqSharedMemoryServiceInterface, LEGACY)
 
 #define build_key(seed) ((seed) + ((GetPartitionNumber() + 1) << 16) + (getppid() & 0xFFFF))
 
@@ -35,7 +116,7 @@ ArtdaqSharedMemoryService::ArtdaqSharedMemoryService(fhicl::ParameterSet const& 
 
 	TLOG(TLVL_DEBUG + 33) << "Setting app_name";
 	app_name = artapp_str + "art" + std::to_string(incoming_events_->GetMyId());
-	//artdaq::configureMessageFacility(app_name.c_str()); // ELF 11/20/2020: MessageFacility already configured by initialization pset
+	// artdaq::configureMessageFacility(app_name.c_str()); // ELF 11/20/2020: MessageFacility already configured by initialization pset
 
 	artapp_env = getenv("ARTDAQ_RANK");
 	if (artapp_env != nullptr && my_rank < 0)
@@ -107,8 +188,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		if (errflag || hdrPtr == nullptr)
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
-			continue;  //retry
-			           //return recvd_fragments;
+			continue;  // retry
+			           // return recvd_fragments;
 		}
 		evtHeader_ = std::make_shared<artdaq::detail::RawEventHeader>(*hdrPtr);
 		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Getting Fragment types";
@@ -116,8 +197,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 		if (errflag)
 		{  // Buffer was changed out from under reader!
 			incoming_events_->ReleaseBuffer();
-			continue;  //retry
-			           //return recvd_fragments;
+			continue;  // retry
+			           // return recvd_fragments;
 		}
 		if (fragmentTypes.empty())
 		{
@@ -138,8 +219,8 @@ std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>>
 				continue;
 			}
 			/* Events coming out of the EventStore are not sorted but need to be
-       sorted by sequence ID before they can be passed to art.
-    */
+	   sorted by sequence ID before they can be passed to art.
+	*/
 			std::sort(recvd_fragments[type]->begin(), recvd_fragments[type]->end(), artdaq::fragmentSequenceIDCompare);
 		}
 		TLOG(TLVL_DEBUG + 33) << "ReceiveEvent: Releasing buffer";

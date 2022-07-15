@@ -1,33 +1,33 @@
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_CommandableFragmentGenerator").c_str()  // include these 2 first -
 
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
-#include <boost/exception/all.hpp>
-#include <boost/throw_exception.hpp>
+#include "artdaq-core/Data/ContainerFragmentLoader.hh"
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
+#include "artdaq/DAQdata/TCPConnect.hh"
 
-#include <iterator>
-#include <limits>
-#include <thread>
-
-#include "canvas/Utilities/Exception.h"
 #include "cetlib_except/exception.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-core/Data/ContainerFragmentLoader.hh"
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
-#include "artdaq-core/Utilities/TimeUtils.hh"
+#include <boost/exception/all.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
 
 #include <sys/poll.h>
 #include <algorithm>
+#include <chrono>
+#include <exception>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <memory>
-#include "artdaq/DAQdata/TCPConnect.hh"
+#include <mutex>
+#include <thread>
 
 #define TLVL_GETNEXT 35
 #define TLVL_GETNEXT_VERBOSE 36
@@ -328,8 +328,8 @@ void artdaq::CommandableFragmentGenerator::ResumeCmd(uint64_t timeout, uint64_t 
 	resume();
 
 	std::unique_lock<std::mutex> lk(mutex_);
-	//if (useDataThread_) startDataThread();
-	//if (useMonitoringThread_) startMonitoringThread();
+	// if (useDataThread_) startDataThread();
+	// if (useMonitoringThread_) startMonitoringThread();
 	TLOG(TLVL_DEBUG + 33) << "Resume Command complete.";
 }
 
@@ -365,7 +365,7 @@ std::string artdaq::CommandableFragmentGenerator::ReportCmd(std::string const& w
 	tmpString.append(" fragment generator.");
 	*/
 	TLOG(TLVL_DEBUG + 33) << "Report Command complete.";
-	return "";  //tmpString;
+	return "";  // tmpString;
 }
 
 // Default implemenetations of state functions

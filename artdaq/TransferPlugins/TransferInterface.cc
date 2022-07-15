@@ -1,8 +1,13 @@
-#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_TransferInterface").c_str()
+#include "artdaq/DAQdata/Globals.hh"
 
 #include "artdaq/TransferPlugins/TransferInterface.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+
 #include "cetlib_except/exception.h"
+
+#include <string>
 
 artdaq::TransferInterface::TransferInterface(const fhicl::ParameterSet& ps, Role role)
     : role_(role)

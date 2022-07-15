@@ -5,12 +5,17 @@
 //  $RCSfile: Timeout.cxx,v $
 //  rev="$Revision: 1.13 $$Date: 2016/10/12 21:00:13 $";
 /*
-	g++ -Wall -g -std=c++0x -c Timeout.cxx
+    g++ -Wall -g -std=c++0x -c Timeout.cxx
 OR
-	g++ -Wall -g -std=c++0x -shared -fPIC -o Timeout.so Timeout.cxx -lrt
+    g++ -Wall -g -std=c++0x -shared -fPIC -o Timeout.so Timeout.cxx -lrt
 */
 
 #define TRACE_NAME "Timeout"
+#include "TRACE/tracemf.h"
+
+#include "artdaq/TransferPlugins/detail/Timeout.hh"
+
+#include "artdaq-core/Utilities/TimeUtils.hh"
 
 #include <sys/time.h> /* struct timeval */
 #include <cassert>    /* assert */
@@ -19,9 +24,6 @@ OR
 #include <cstring>    /* strcmp */
 #include <list>
 using std::list;
-#include "artdaq-core/Utilities/TimeUtils.hh"
-#include "artdaq/DAQdata/Globals.hh"  // TRACE
-#include "artdaq/TransferPlugins/detail/Timeout.hh"
 
 // public:
 
@@ -212,7 +214,7 @@ void Timeout::timeoutlist_init()
 {
 	size_t list_sz = tmospecs_.size();
 	for (size_t ii = 0; ii < list_sz; ++ii)
-	{  //bzero( &tmospecs_[list_sz], sizeof(tmospecs_[0]) );
+	{  // bzero( &tmospecs_[list_sz], sizeof(tmospecs_[0]) );
 		free_.push_front(ii);
 	}
 }

@@ -3,7 +3,6 @@
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "cetlib/BasicPluginFactory.h"
 #include "cetlib/filepath_maker.h"
 #include "cetlib_except/exception.h"
@@ -29,14 +28,15 @@ fhicl::ParameterSet ReadParameterSet(const std::string& fhicl_filename)
 	}
 
 	cet::filepath_lookup_after1 lookup_policy("FHICL_FILE_PATH");
-	auto pset = artdaq::make_pset(fhicl_filename, lookup_policy);
+	auto pset = fhicl::ParameterSet::make(fhicl_filename, lookup_policy);
 
 	return pset;
 }
 
 int do_check(const artdaq::Fragment& frag);
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	if (argc != 2)
 	{

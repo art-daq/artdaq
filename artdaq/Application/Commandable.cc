@@ -1,8 +1,9 @@
-
-#include "artdaq/Application/Commandable.hh"
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"
-
 #define TRACE_NAME (app_name + "_CommandableInterface").c_str()  // definition with variable should be after includes (which may or may not have TLOG/TRACE statements)
+
+#include "artdaq-core/Utilities/TimeUtils.hh"
+#include "artdaq/Application/Commandable.hh"
 
 // ELF 3/22/18:
 // We may want to separate these onto different levels later,

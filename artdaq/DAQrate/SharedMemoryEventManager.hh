@@ -1,21 +1,29 @@
 #ifndef ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
 #define ARTDAQ_DAQRATE_SHAREDMEMORYEVENTMANAGER_HH
 
-#include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq-core/Core/SharedMemoryManager.hh"
+#include "artdaq-core/Data/RawEvent.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
+#include "artdaq/DAQrate/detail/TokenSender.hh"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/OptionalTable.h"
+#include "fhiclcpp/types/TableFragment.h"
+
+#define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 #include <sys/stat.h>
 #include <deque>
 #include <fstream>
 #include <iomanip>
 #include <set>
-#include "artdaq-core/Core/SharedMemoryManager.hh"
-#include "artdaq-core/Data/RawEvent.hh"
-#include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq/DAQrate/detail/RequestSender.hh"
-#include "artdaq/DAQrate/detail/TokenSender.hh"
-#include "fhiclcpp/fwd.h"
-#include "fhiclcpp/types/Table.h"
-#define ART_SUPPORTS_DUPLICATE_EVENTS 0
 
 namespace artdaq {
 

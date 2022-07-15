@@ -1,17 +1,16 @@
 #ifndef artdaq_Application_MPI2_DataReceiverCore_hh
 #define artdaq_Application_MPI2_DataReceiverCore_hh
 
-#include <atomic>
-#include <map>
-#include <string>
-
 #include "canvas/Persistency/Provenance/RunID.h"
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-
 #include "artdaq/DAQrate/DataReceiverManager.hh"
-#include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+
+#include <atomic>
+#include <map>
+#include <memory>
+#include <string>
 
 namespace artdaq {
 class DataReceiverCore;

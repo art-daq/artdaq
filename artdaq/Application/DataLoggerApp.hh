@@ -1,10 +1,10 @@
 #ifndef artdaq_Application_MPI2_DataLoggerApp_hh
 #define artdaq_Application_MPI2_DataLoggerApp_hh
 
-#include <future>
-
 #include "artdaq/Application/Commandable.hh"
 #include "artdaq/Application/DataLoggerCore.hh"
+
+#include <memory>
 
 namespace artdaq {
 class DataLoggerApp;

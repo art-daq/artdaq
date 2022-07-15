@@ -8,6 +8,8 @@
 #include "cetlib/quiet_unit_test.hpp"
 #include "cetlib_except/exception.h"
 
+#include <thread>
+
 BOOST_AUTO_TEST_SUITE(SharedMemoryEventManager_test)
 
 artdaq::detail::RawFragmentHeader GetHeader(artdaq::FragmentPtr const& frag)

@@ -9,15 +9,14 @@
 // eventbuilder.
 ////////////////////////////////////////////////////////////////////////
 
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "genToArt"
 
-#include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
-#include "artdaq-core/Generators/makeFragmentGenerator.hh"
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/SimpleLookupPolicy.hh"
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
 #include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
@@ -38,12 +37,12 @@ namespace bpo = boost::program_options;
 
 namespace {
 /**
-	 * \brief Process the command line
-	 * \param argc Number of arguments
-	 * \param argv Array of arguments as strings
-	 * \param[out] vm Output boost::program_options::variables_map
-	 * \return 0 if success, -1 if excpetion, 1 if help was requested, and 2 if missing required arguments
-	 */
+ * \brief Process the command line
+ * \param argc Number of arguments
+ * \param argv Array of arguments as strings
+ * \param[out] vm Output boost::program_options::variables_map
+ * \return 0 if success, -1 if excpetion, 1 if help was requested, and 2 if missing required arguments
+ */
 int process_cmd_line(int argc, char** argv,
                      bpo::variables_map& vm)
 {
@@ -81,39 +80,39 @@ int process_cmd_line(int argc, char** argv,
 }
 
 /**
-	 * \brief ThrottledGenerator: ensure that we only get one fragment per type
-	 * at a time from the generator.
-	 */
+ * \brief ThrottledGenerator: ensure that we only get one fragment per type
+ * at a time from the generator.
+ */
 class ThrottledGenerator
 {
 public:
 	/**
-		 * \brief ThrottledGenerator Constructor
-		 * \param generator Name of the generator plugin to load
-		 * \param ps ParameterSet for configuring the FragmentGenerator
-		 */
+	 * \brief ThrottledGenerator Constructor
+	 * \param generator Name of the generator plugin to load
+	 * \param ps ParameterSet for configuring the FragmentGenerator
+	 */
 	ThrottledGenerator(std::string const& generator,
 	                   fhicl::ParameterSet const& ps);
 
 	/**
-		 * \brief Get the next fragment from the generator
-		 * \param[out] newFrags New Fragment objects are added to this list
-		 * \return Whether there is more data forthcoming
-		 */
+	 * \brief Get the next fragment from the generator
+	 * \param[out] newFrags New Fragment objects are added to this list
+	 * \return Whether there is more data forthcoming
+	 */
 	bool getNext(artdaq::FragmentPtrs& newFrags);
 
 	/**
-		 * \brief Get the number of Fragment IDs handled by this generator
-		 * \return
-		 */
+	 * \brief Get the number of Fragment IDs handled by this generator
+	 * \return
+	 */
 	size_t numFragIDs() const;
 
 	/**
-		 * \brief Send start signal to FragmentGenerator, if it's a CommandableFragmentGenerator
-		 * \param run Run number  to pass to StartCmd
-		 * \param timeout Timeout to pass to StartCmd
-		 * \param timestamp Timestamp to pass to StartCmd
-		 */
+	 * \brief Send start signal to FragmentGenerator, if it's a CommandableFragmentGenerator
+	 * \param run Run number  to pass to StartCmd
+	 * \param timeout Timeout to pass to StartCmd
+	 * \param timestamp Timestamp to pass to StartCmd
+	 */
 	void start(int run, uint64_t timeout, uint64_t timestamp) const
 	{
 		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
@@ -123,10 +122,10 @@ public:
 		}
 	}
 	/**
-		 * \brief Send stop signal to FragmentGenerator, if it's a CommandableFragmentGenerator
-		 * \param timeout Timeout to pass to StopCmd
-		 * \param timestamp Timestamp to pass to StopCmd
-		 */
+	 * \brief Send stop signal to FragmentGenerator, if it's a CommandableFragmentGenerator
+	 * \param timeout Timeout to pass to StopCmd
+	 * \param timestamp Timestamp to pass to StopCmd
+	 */
 	void stop(uint64_t timeout, uint64_t timestamp) const
 	{
 		auto gen_ptr = dynamic_cast<artdaq::CommandableFragmentGenerator*>(generator_.get());
@@ -206,22 +205,22 @@ ThrottledGenerator::
 //  }
 
 /**
-	 * \brief Run the test, instantiating configured generators and an EventStore
-	 * \param pset ParameterSet used to configure genToArt
-	 * \return Art return code, of 15 if EventStore::endOfData fails
-	 *
-	 * \verbatim
-	 * genToArt accepts the following Parameters:
-	 * "reset_sequenceID" (Default: true): Set the sequence IDs on generated Fragment objects to the expected value
-	 * "genToArt" (REQUIRED): FHiCL table containing genToArt parameters
-	 *   "fragment_receivers" (REQUIRED): List of FHiCL tables configuring the Fragment receivers
-	 *     Each table should contain parameter "generator", the FragmentGenerator plugin to load, and any other parameters that generator requires
-	 *   "event_builder" (Default: {}): ParameterSet for EventStore. See documentation for configuration parameters.
-	 *   "run_number" (REQUIRED): Run number to use
-	 *   "events_to_generate" (Default: -1): Number of events to generate
-	 *
-	 * \endverbatim
-	 */
+ * \brief Run the test, instantiating configured generators and an EventStore
+ * \param pset ParameterSet used to configure genToArt
+ * \return Art return code, of 15 if EventStore::endOfData fails
+ *
+ * \verbatim
+ * genToArt accepts the following Parameters:
+ * "reset_sequenceID" (Default: true): Set the sequence IDs on generated Fragment objects to the expected value
+ * "genToArt" (REQUIRED): FHiCL table containing genToArt parameters
+ *   "fragment_receivers" (REQUIRED): List of FHiCL tables configuring the Fragment receivers
+ *     Each table should contain parameter "generator", the FragmentGenerator plugin to load, and any other parameters that generator requires
+ *   "event_builder" (Default: {}): ParameterSet for EventStore. See documentation for configuration parameters.
+ *   "run_number" (REQUIRED): Run number to use
+ *   "events_to_generate" (Default: -1): Number of events to generate
+ *
+ * \endverbatim
+ */
 int process_data(fhicl::ParameterSet const& pset)
 {
 	auto const gta_pset = pset.get<fhicl::ParameterSet>("genToArt");
@@ -326,7 +325,8 @@ int process_data(fhicl::ParameterSet const& pset)
 }
 }  // namespace
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("genToArt");
 	// Command line handling.
@@ -344,7 +344,7 @@ int main(int argc, char* argv[]) try
 		setenv("FHICL_FILE_PATH", ".", 0);
 	}
 	artdaq::SimpleLookupPolicy lookup_policy("FHICL_FILE_PATH");
-	auto pset = artdaq::make_pset(vm["config"].as<std::string>(), lookup_policy);
+	auto pset = fhicl::ParameterSet::make(vm["config"].as<std::string>(), lookup_policy);
 	return process_data(pset);
 }
 catch (std::exception& x)

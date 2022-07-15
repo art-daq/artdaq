@@ -1,7 +1,9 @@
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "TransferOutput"
 #include "artdaq/ArtModules/ArtdaqOutput.hh"
 
 #include <csignal>
+#include "art/Framework/Core/ModuleMacros.h"
 #include "artdaq/DAQdata/NetMonHeader.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
 #include "artdaq/TransferPlugins/TransferInterface.hh"
@@ -19,17 +21,17 @@ class art::TransferOutput : public ArtdaqOutput
 {
 public:
 	/**
-   * \brief TransferOutput Constructor
-   * \param ps ParameterSet used to configure TransferOutput
-   *
-   * TransferOutput accepts no Parameters beyond those which art::OutputModule takes.
-   * See the art::OutputModule documentation for more details on those Parameters.
-   */
+	 * \brief TransferOutput Constructor
+	 * \param ps ParameterSet used to configure TransferOutput
+	 *
+	 * TransferOutput accepts no Parameters beyond those which art::OutputModule takes.
+	 * See the art::OutputModule documentation for more details on those Parameters.
+	 */
 	explicit TransferOutput(fhicl::ParameterSet const& ps);
 
 	/**
-   * \brief TransferOutput Destructor
-   */
+	 * \brief TransferOutput Destructor
+	 */
 	~TransferOutput() override;
 
 protected:

@@ -1,5 +1,4 @@
-
-
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "BinaryFileOutput"
 
 #include "art/Framework/Core/ModuleMacros.h"
@@ -12,14 +11,10 @@
 #include "art/Framework/Principal/SubRunPrincipal.h"
 #include "art/Persistency/Common/GroupQueryResult.h"
 #include "art/Persistency/Provenance/ModuleContext.h"
+#include "canvas/Persistency/Common/WrappedTypeID.h"
 #include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Utilities/DebugMacros.h"
 #include "canvas/Utilities/Exception.h"
-#if ART_HEX_VERSION < 0x30901
-#include "canvas/Utilities/WrappedTypeID.h"
-#else
-#include "canvas/Persistency/Common/WrappedTypeID.h"
-#endif
 #include "fhiclcpp/ParameterSet.h"
 
 #include "artdaq-core/Data/Fragment.hh"
@@ -132,7 +127,7 @@ void art::BinaryFileOutput::initialize_FILE_()
 	{
 		file_ptr_ = std::make_unique<std::ofstream>(file_name, std::ofstream::binary);
 		TLOG(TLVL_DEBUG + 33) << "BinaryFileOutput::initialize_FILE_ file_ptr_=" << static_cast<void*>(file_ptr_.get()) << " errno=" << errno;
-		//file_ptr_->rdbuf()->pubsetbuf(0, 0);
+		// file_ptr_->rdbuf()->pubsetbuf(0, 0);
 	}
 	fstats_.recordFileOpen();
 }

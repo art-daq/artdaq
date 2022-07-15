@@ -1,6 +1,21 @@
 #ifndef artdaq_Application_FragmentBuffer_hh
 #define artdaq_Application_FragmentBuffer_hh
 
+#include "fhiclcpp/types/Sequence.h"  // Must pre-empt fhiclcpp/types/Atom.h
+
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
+#include "artdaq/DAQrate/RequestBuffer.hh"
+
+namespace fhicl {
+class ParameterSet;
+}
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Comment.h"
+#include "fhiclcpp/types/ConfigurationTable.h"
+#include "fhiclcpp/types/Name.h"
+
 // Socket Includes
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -16,18 +31,10 @@
 #include <mutex>
 #include <queue>
 
-#include "fhiclcpp/ParameterSet.h"
-#include "fhiclcpp/fwd.h"
-
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQrate/RequestBuffer.hh"
-
 namespace artdaq {
 /**
-	 * \brief The RequestMode enumeration contains the possible ways which FragmentBuffer responds to data requests.
-	 */
+ * \brief The RequestMode enumeration contains the possible ways which FragmentBuffer responds to data requests.
+ */
 enum class RequestMode
 {
 	Single,
@@ -38,47 +45,47 @@ enum class RequestMode
 };
 
 /**
-	 * \brief FragmentBuffer is a FragmentGenerator-derived
-	 * abstract class that defines the interface for a FragmentGenerator
-	 * designed as a state machine with start, stop, etc., transition
-	 * commands.
-	 *
-	 * Users of classes derived from
-	 * FragmentBuffer will call these transitions via the
-	 * publically defined StartCmd(), StopCmd(), etc.; these public
-	 * functions contain functionality considered properly universal to
-	 * all FragmentBuffer-derived classes, including calls
-	 * to private virtual functions meant to be overridden in derived
-	 * classes. The same applies to this class's implementation of the
-	 * FragmentGenerator::getNext() pure virtual function, which is
-	 * declared final (i.e., non-overridable in derived classes) and which
-	 * itself calls a pure virtual getNext_() function to be implemented
-	 * in derived classes.
-	 *
-	 * State-machine related interface functions will be called only from a
-	 * single thread. getNext() will be called only from a single
-	 * thread. The thread from which state-machine interfaces functions are
-	 * called may be a different thread from the one that calls getNext().
-	 *
-	 * John F., 3/24/14
-	 *
-	 * After some discussion with Kurt, FragmentBuffer has
-	 * been updated such that it now contains a member vector
-	 * fragment_ids_ ; if "fragment_id" is set in the FHiCL document
-	 * controlling a class derived from FragmentBuffer,
-	 * fragment_ids_ will be booked as a length-1 vector, and the value in
-	 * this vector will be returned by fragment_id(). fragment_id() will
-	 * throw an exception if the length of the vector isn't 1. If
-	 * "fragment_ids" is set in the FHiCL document, then fragment_ids_ is
-	 * filled with the values in the list which "fragment_ids" refers to,
-	 * otherwise it is set to the empty vector (this is what should happen
-	 * if the user sets the "fragment_id" variable in the FHiCL document,
-	 * otherwise exceptions will end up thrown due to the logical
-	 * conflict). If neither "fragment_id" nor "fragment_ids" is set in
-	 * the FHiCL document, writers of classes derived from this one will
-	 * be expected to override the virtual fragmentIDs() function with
-	 * their own code (the CompositeDriver class is an example of this)
-	 */
+ * \brief FragmentBuffer is a FragmentGenerator-derived
+ * abstract class that defines the interface for a FragmentGenerator
+ * designed as a state machine with start, stop, etc., transition
+ * commands.
+ *
+ * Users of classes derived from
+ * FragmentBuffer will call these transitions via the
+ * publically defined StartCmd(), StopCmd(), etc.; these public
+ * functions contain functionality considered properly universal to
+ * all FragmentBuffer-derived classes, including calls
+ * to private virtual functions meant to be overridden in derived
+ * classes. The same applies to this class's implementation of the
+ * FragmentGenerator::getNext() pure virtual function, which is
+ * declared final (i.e., non-overridable in derived classes) and which
+ * itself calls a pure virtual getNext_() function to be implemented
+ * in derived classes.
+ *
+ * State-machine related interface functions will be called only from a
+ * single thread. getNext() will be called only from a single
+ * thread. The thread from which state-machine interfaces functions are
+ * called may be a different thread from the one that calls getNext().
+ *
+ * John F., 3/24/14
+ *
+ * After some discussion with Kurt, FragmentBuffer has
+ * been updated such that it now contains a member vector
+ * fragment_ids_ ; if "fragment_id" is set in the FHiCL document
+ * controlling a class derived from FragmentBuffer,
+ * fragment_ids_ will be booked as a length-1 vector, and the value in
+ * this vector will be returned by fragment_id(). fragment_id() will
+ * throw an exception if the length of the vector isn't 1. If
+ * "fragment_ids" is set in the FHiCL document, then fragment_ids_ is
+ * filled with the values in the list which "fragment_ids" refers to,
+ * otherwise it is set to the empty vector (this is what should happen
+ * if the user sets the "fragment_id" variable in the FHiCL document,
+ * otherwise exceptions will end up thrown due to the logical
+ * conflict). If neither "fragment_id" nor "fragment_ids" is set in
+ * the FHiCL document, writers of classes derived from this one will
+ * be expected to override the virtual fragmentIDs() function with
+ * their own code (the CompositeDriver class is an example of this)
+ */
 class FragmentBuffer
 {
 public:
@@ -143,33 +150,33 @@ public:
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
-		 * \brief FragmentBuffer Constructor
-		 * \param ps ParameterSet used to configure FragmentBuffer. See artdaq::FragmentBuffer::Config.
-		 */
+	 * \brief FragmentBuffer Constructor
+	 * \param ps ParameterSet used to configure FragmentBuffer. See artdaq::FragmentBuffer::Config.
+	 */
 	explicit FragmentBuffer(const fhicl::ParameterSet& ps);
 
 	/**
-		 * \brief FragmentBuffer Destructor
-		 *
-		 * Joins all threads before returning
-		 */
+	 * \brief FragmentBuffer Destructor
+	 *
+	 * Joins all threads before returning
+	 */
 	virtual ~FragmentBuffer();
 
 	/**
 	 * @brief Add Fragments to the FragmentBuffer
 	 * @param frags Fragments to add
-	*/
+	 */
 	void AddFragmentsToBuffer(FragmentPtrs frags);
 
 	/**
 	 * @brief Inform the FragmentBuffer that it should stop
-	*/
+	 */
 	void Stop() { should_stop_ = true; }
 
 	/**
 	 * @brief Reset the FragmentBuffer (flushes all Fragments from buffers)
 	 * @param stop Whether the FragmentBuffer should be stopped during the Reset
-	*/
+	 */
 	void Reset(bool stop);
 
 	/// <summary>
@@ -216,87 +223,87 @@ public:
 	void applyRequestsWindowMode_CheckAndFillDataBuffer(artdaq::FragmentPtrs& frags, artdaq::Fragment::fragment_id_t id, artdaq::Fragment::sequence_id_t seq, artdaq::Fragment::timestamp_t ts);
 
 	/**
-		 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
-		 * \param[out] frags list of FragmentPtr objects ready for transmission
-		 * \return True if not stopped
-		 */
+	 * \brief See if any requests have been received, and add the corresponding data Fragment objects to the output list
+	 * \param[out] frags list of FragmentPtr objects ready for transmission
+	 * \return True if not stopped
+	 */
 	bool applyRequests(FragmentPtrs& frags);
 
 	/**
-		 * \brief Send an EmptyFragmentType Fragment
-		 * \param[out] frags Output list to append EmptyFragmentType to
-		 * \param sequenceId Sequence ID of Empty Fragment
-		 * \param fragmentId Fragment ID of Empty Fragment
-		 * \param desc Message to log with reasoning for sending Empty Fragment
-		 * \return True if no exceptions
-		 */
+	 * \brief Send an EmptyFragmentType Fragment
+	 * \param[out] frags Output list to append EmptyFragmentType to
+	 * \param sequenceId Sequence ID of Empty Fragment
+	 * \param fragmentId Fragment ID of Empty Fragment
+	 * \param desc Message to log with reasoning for sending Empty Fragment
+	 * \return True if no exceptions
+	 */
 	bool sendEmptyFragment(FragmentPtrs& frags, size_t sequenceId, Fragment::fragment_id_t fragmentId, std::string desc);
 
 	/**
-		 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
-		 * If the request message seqID > ev_counter, simply send empties until they're equal
-		 * \param[out] frags Output list to append EmptyFragmentType to
-		 * \param requests List of requests to process
-		 */
+	 * \brief This function is for Buffered and Single request modes, as they can only respond to one data request at a time
+	 * If the request message seqID > ev_counter, simply send empties until they're equal
+	 * \param[out] frags Output list to append EmptyFragmentType to
+	 * \param requests List of requests to process
+	 */
 	void sendEmptyFragments(FragmentPtrs& frags, std::map<Fragment::sequence_id_t, Fragment::timestamp_t>& requests);
 
 	/**
-		 * \brief Check the windows_sent_ooo_ map for sequence IDs that may be removed
-		 * \param seq Sequence ID of current window
-		 */
+	 * \brief Check the windows_sent_ooo_ map for sequence IDs that may be removed
+	 * \param seq Sequence ID of current window
+	 */
 	void checkSentWindows(Fragment::sequence_id_t seq);
 
 	/**
-		 * \brief Wait for the data buffer to drain (dataBufferIsTooLarge returns false), periodically reporting status.
-		 * \param id Fragment ID of data buffer
-		 * \return True if wait ended without something else disrupting the run
-		 */
+	 * \brief Wait for the data buffer to drain (dataBufferIsTooLarge returns false), periodically reporting status.
+	 * \param id Fragment ID of data buffer
+	 * \return True if wait ended without something else disrupting the run
+	 */
 	bool waitForDataBufferReady(Fragment::fragment_id_t id);
 
 	/**
-		 * \brief Test the configured constraints on the data buffer
-		 * \param id Fragment ID of data buffer
-		 * \return Whether the data buffer is full
-		 */
+	 * \brief Test the configured constraints on the data buffer
+	 * \param id Fragment ID of data buffer
+	 * \return Whether the data buffer is full
+	 */
 	bool dataBufferIsTooLarge(Fragment::fragment_id_t id);
 
 	/**
-		 * \brief Calculate the size of the dataBuffer and report appropriate metrics
-		 * \param id Fragment ID of buffer
-		 */
+	 * \brief Calculate the size of the dataBuffer and report appropriate metrics
+	 * \param id Fragment ID of buffer
+	 */
 	void getDataBufferStats(Fragment::fragment_id_t id);
 
 	/**
-		 * \brief Calculate the size of all dataBuffers and report appropriate metrics
-		 */
+	 * \brief Calculate the size of all dataBuffers and report appropriate metrics
+	 */
 	void getDataBuffersStats()
 	{
 		for (auto& id : dataBuffers_) getDataBufferStats(id.first);
 	}
 
 	/**
-		 * \brief Perform data buffer pruning operations for the given buffer. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
-		 * \param id Fragment ID of buffer
-		 * In Window and Buffer RequestModes, this function discards the oldest Fragment objects until the data buffer is below its size constraints,
-		 * then also checks for stale Fragments, based on the timestamp of the most recent Fragment.
-		 */
+	 * \brief Perform data buffer pruning operations for the given buffer. If the RequestMode is Single, removes all but the latest Fragment from the data buffer.
+	 * \param id Fragment ID of buffer
+	 * In Window and Buffer RequestModes, this function discards the oldest Fragment objects until the data buffer is below its size constraints,
+	 * then also checks for stale Fragments, based on the timestamp of the most recent Fragment.
+	 */
 	void checkDataBuffer(Fragment::fragment_id_t id);
 
 	/**
-		 * \brief Perform data buffer pruning operations for all buffers.
-		 */
+	 * \brief Perform data buffer pruning operations for all buffers.
+	 */
 	void checkDataBuffers()
 	{
 		for (auto& id : dataBuffers_) checkDataBuffer(id.first);
 	}
 
 	/**
-		 * \brief Get the map of Window-mode requests fulfilled by this Fragment Geneerator for the given Fragment ID
-		 * \param id Fragment ID of buffer
-		 * \return Map of sequence_id and time_point for sent Window-mode requests
-		 *
-		 * This function is used in FragmentBuffer_t to verify correct functioning of Window mode
-		 */
+	 * \brief Get the map of Window-mode requests fulfilled by this Fragment Geneerator for the given Fragment ID
+	 * \param id Fragment ID of buffer
+	 * \return Map of sequence_id and time_point for sent Window-mode requests
+	 *
+	 * This function is used in FragmentBuffer_t to verify correct functioning of Window mode
+	 */
 	std::map<Fragment::sequence_id_t, std::chrono::steady_clock::time_point> GetSentWindowList(Fragment::fragment_id_t id)
 	{
 		if (!dataBuffers_.count(id))
@@ -308,9 +315,9 @@ public:
 	}
 
 	/**
-		 * \brief Get the list of Fragment IDs handled by this FragmentBuffer
-		 * \return A std::vector<Fragment::fragment_id_t> containing the Fragment IDs handled by this FragmentBuffer
-		 */
+	 * \brief Get the list of Fragment IDs handled by this FragmentBuffer
+	 * \return A std::vector<Fragment::fragment_id_t> containing the Fragment IDs handled by this FragmentBuffer
+	 */
 	std::vector<Fragment::fragment_id_t> fragmentIDs()
 	{
 		std::vector<Fragment::fragment_id_t> output;
@@ -348,13 +355,13 @@ public:
 	/**
 	 * @brief Set the pointer to the RequestBuffer used to retrieve requests
 	 * @param buffer Pointer to the RequestBuffer
-	*/
+	 */
 	void SetRequestBuffer(std::shared_ptr<RequestBuffer> buffer) { requestBuffer_ = buffer; }
 
 	/**
 	 * @brief Get the next sequence ID expected by this FragmentBuffer. This is used to track sent windows and missed requests
 	 * @return The next sequence ID expected by this FragmentBuffer
-	*/
+	 */
 	artdaq::Fragment::sequence_id_t GetNextSequenceID() const { return next_sequence_id_; }
 
 protected:
@@ -367,10 +374,10 @@ protected:
 	// they're probably fine as is
 
 	/**
-		 * \brief Get the Fragment ID of this Fragment generator
-		 * \throws cet::exception("FragmentID") if there is more that one Fragment ID configured for this Fragment Generator
-		 * \return Fragment ID for the Fragment Generator
-		 */
+	 * \brief Get the Fragment ID of this Fragment generator
+	 * \throws cet::exception("FragmentID") if there is more that one Fragment ID configured for this Fragment Generator
+	 * \return Fragment ID for the Fragment Generator
+	 */
 	artdaq::Fragment::fragment_id_t fragment_id() const
 	{
 		if (dataBuffers_.size() > 1) throw cet::exception("FragmentID") << "fragment_id() was called, indicating that Fragment Generator was expecting one and only one Fragment ID, but " << dataBuffers_.size() << " were declared!";
@@ -378,28 +385,28 @@ protected:
 	}
 
 	/**
-		 * \brief Routine used by applyRequests to make sure that all outstanding requests have been fulfilled before returning
-		 * \return The logical AND of should_stop, mode is not Ignored, and requests list size equal to 0
-		 */
+	 * \brief Routine used by applyRequests to make sure that all outstanding requests have been fulfilled before returning
+	 * \return The logical AND of should_stop, mode is not Ignored, and requests list size equal to 0
+	 */
 	bool check_stop();
 
 	/**
-		 * \brief Return the string representation of the current RequestMode
-		 * \return The string representation of the current RequestMode
-		 */
+	 * \brief Return the string representation of the current RequestMode
+	 * \return The string representation of the current RequestMode
+	 */
 	std::string printMode_();
 
 	/**
-		 * \brief Get the total number of Fragments in all data buffers
-		 * \return Number of Fragments in all data buffers
-		 */
+	 * \brief Get the total number of Fragments in all data buffers
+	 * \return Number of Fragments in all data buffers
+	 */
 	size_t dataBufferFragmentCount_();
 
 private:
 	// FHiCL-configurable variables. Note that the C++ variable names
 	// are the FHiCL variable names with a "_" appended
 
-	//Socket parameters
+	// Socket parameters
 	Fragment::sequence_id_t next_sequence_id_;
 	std::shared_ptr<RequestBuffer> requestBuffer_;
 

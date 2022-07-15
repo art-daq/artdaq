@@ -1,12 +1,12 @@
 #ifndef TIMEOUT_HH
 #define TIMEOUT_HH
 /*  This file (Timeout.h) was created by Ron Rechenmacher <ron@fnal.gov> on
-	Sep 28, 2009. "TERMS AND CONDITIONS" governing this file are in the README
-	or COPYING file. If you do not have such a file, one can be obtained by
-	contacting Ron or Fermi Lab in Batavia IL, 60510, phone: 630-840-3000.
-	$RCSfile: Timeout.h,v $
-	rev="$Revision: 1.9 $$Date: 2016/10/12 07:11:55 $";
-	*/
+    Sep 28, 2009. "TERMS AND CONDITIONS" governing this file are in the README
+    or COPYING file. If you do not have such a file, one can be obtained by
+    contacting Ron or Fermi Lab in Batavia IL, 60510, phone: 630-840-3000.
+    $RCSfile: Timeout.h,v $
+    rev="$Revision: 1.9 $$Date: 2016/10/12 07:11:55 $";
+    */
 #include <ctime>       // struct timespec
 #include <functional>  // std::function
 #include <list>
@@ -54,50 +54,50 @@ public:
 	 * \param function Function to execute at timeout
 	 * \param period_us Period for timeouts
 	 * \param start_us When to start (defaults to 0)
-	 * 
-	 * maybe need to return a timeout id??   
+	 *
+	 * maybe need to return a timeout id??
 	 */
 	void add_periodic(const char* desc, void* tag, std::function<void()>& function, uint64_t period_us, uint64_t start_us = 0);
 
 	/**
-	* \brief Add a periodic timeout to the Timeout container
-	* \param desc Description of the periodic timeout
-	* \param tag Tag (fd or other) to apply to timeout
-	* \param function Function to execute at timeout
-	* \param rel_ms Timeout in rem_ms milliseconds
-	*
-	* maybe need to return a timeout id??
-	*/
+	 * \brief Add a periodic timeout to the Timeout container
+	 * \param desc Description of the periodic timeout
+	 * \param tag Tag (fd or other) to apply to timeout
+	 * \param function Function to execute at timeout
+	 * \param rel_ms Timeout in rem_ms milliseconds
+	 *
+	 * maybe need to return a timeout id??
+	 */
 	void add_periodic(const char* desc, void* tag, std::function<void()>& function, int rel_ms);
 
 	/**
-	* \brief Add a periodic timeout to the Timeout container
-	* \param desc Description of the periodic timeout
-	* \param period_us Period for timeouts
-	* \param start_us When to start (defaults to 0)
-	*
-	* maybe need to return a timeout id??
-	*/
+	 * \brief Add a periodic timeout to the Timeout container
+	 * \param desc Description of the periodic timeout
+	 * \param period_us Period for timeouts
+	 * \param start_us When to start (defaults to 0)
+	 *
+	 * maybe need to return a timeout id??
+	 */
 	void add_periodic(const char* desc, uint64_t period_us, uint64_t start_us = 0);
 
 	/**
-	* \brief Add a periodic timeout to the Timeout container
-	* \param desc Description of the periodic timeout
-	* \param tag Tag (fd or other) to apply to timeout
-	* \param function Function to execute at timeout
-	* \param rel_ms Timeout in rem_ms milliseconds
-	*
-	* maybe need to return a timeout id??
-	*/
+	 * \brief Add a periodic timeout to the Timeout container
+	 * \param desc Description of the periodic timeout
+	 * \param tag Tag (fd or other) to apply to timeout
+	 * \param function Function to execute at timeout
+	 * \param rel_ms Timeout in rem_ms milliseconds
+	 *
+	 * maybe need to return a timeout id??
+	 */
 	void add_relative(const char* desc, void* tag, std::function<void()>& function, int rel_ms);
 
 	/**
-	* \brief Add a periodic timeout to the Timeout container
-	* \param desc Description of the periodic timeout
-	* \param rel_ms Timeout in rem_ms milliseconds
-	*
-	* maybe need to return a timeout id??
-	*/
+	 * \brief Add a periodic timeout to the Timeout container
+	 * \param desc Description of the periodic timeout
+	 * \param rel_ms Timeout in rem_ms milliseconds
+	 *
+	 * maybe need to return a timeout id??
+	 */
 	void add_relative(const std::string& desc, int rel_ms);
 
 	/**

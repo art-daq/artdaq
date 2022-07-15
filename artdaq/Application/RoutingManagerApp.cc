@@ -1,12 +1,19 @@
+#include "TRACE/tracemf.h"
+#include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME "RoutingManagerApp"
-
-#include <memory>
 
 #include "artdaq/Application/RoutingManagerApp.hh"
 
+#include <boost/bind.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
+
+#include <memory>
+
 /**
-* Default constructor.
-*/
+ * Default constructor.
+ */
 artdaq::RoutingManagerApp::RoutingManagerApp() = default;
 
 // *******************************************************************
@@ -213,11 +220,11 @@ std::string artdaq::RoutingManagerApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	//if (report_string_.length() > 0) {
-	//  resultString.append("*** Overall status message:\r\n");
-	//  resultString.append(report_string_ + "\r\n");
-	//  resultString.append("*** Requested report response:\r\n");
-	//}
+	// if (report_string_.length() > 0) {
+	//   resultString.append("*** Overall status message:\r\n");
+	//   resultString.append(report_string_ + "\r\n");
+	//   resultString.append("*** Requested report response:\r\n");
+	// }
 
 	// pass the request to the RoutingManagerCore instance, if it's available
 	if (routing_manager_ptr_ != nullptr)

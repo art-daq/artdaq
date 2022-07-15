@@ -18,7 +18,7 @@ struct MessHead
 
 	/**
 	 * \brief The Message Type
-	 * 
+	 *
 	 * Only add to the end!
 	 */
 	enum MessType

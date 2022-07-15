@@ -8,29 +8,29 @@
 // that data are transmitted without corruption from the
 // artdaq::Eventevent_manager through to the artdaq::RawInput source.
 //
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "artdaqDriver"
-
-#include "art/Framework/Art/artapp.h"
 #include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Generators/FragmentGenerator.hh"
+
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "artdaq-utilities/Plugins/MetricManager.hh"
+#include "artdaq/Application/LoadParameterSet.hh"
+#include "artdaq/ArtModules/detail/ArtConfig.hh"
 #include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
+#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
+
+#include "fhiclcpp/ParameterSet.h"
 
 #include <boost/program_options.hpp>
-#include "artdaq-core/Generators/makeFragmentGenerator.hh"
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
-#include "cetlib/filepath_maker.h"
-#include "fhiclcpp/ParameterSet.h"
 
 #include <csignal>
 #include <iostream>
 #include <memory>
 #include <utility>
-#include "artdaq/Application/LoadParameterSet.hh"
-#include "artdaq/ArtModules/detail/ArtConfig.hh"
-#include "artdaq/DAQrate/SharedMemoryEventManager.hh"
 
 volatile int events_to_generate;
 void sig_handler(int /*unused*/) { events_to_generate = -1; }
@@ -39,7 +39,8 @@ template<typename B, typename D>
 std::unique_ptr<D>
 dynamic_unique_ptr_cast(std::unique_ptr<B>& p);
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	struct Config
 	{
@@ -158,7 +159,7 @@ int main(int argc, char* argv[]) try
 				if (!sts)
 				{
 					loop_count++;
-					//usleep(10000);
+					// usleep(10000);
 				}
 			}
 		}

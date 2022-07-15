@@ -6,7 +6,9 @@
 #include <vector>
 
 #include "canvas/Persistency/Provenance/RunID.h"
-#include "fhiclcpp/ParameterSet.h"
+namespace fhicl {
+class ParameterSet;
+}
 
 #include "artdaq/Application/detail/Commandable_sm.h"  // must be included after others
 

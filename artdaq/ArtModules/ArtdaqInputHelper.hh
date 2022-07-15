@@ -1,12 +1,21 @@
 #ifndef ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQINPUTHELPER_HH_
 #define ARTDAQ_ARTDAQ_ARTMODULES_ARTDAQINPUTHELPER_HH_
 
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
+
+#include "artdaq-core/Data/Fragment.hh"
+#include "artdaq/ArtModules/InputUtilities.hh"
+
+#include "artdaq-core/Data/detail/ParentageMap.hh"
+#include "artdaq-core/Utilities/TimeUtils.hh"
+#include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
+#include "artdaq/ArtModules/ArtdaqSharedMemoryServiceInterface.h"
+#include "artdaq/DAQdata/Globals.hh"
+#include "artdaq/DAQdata/NetMonHeader.hh"
+
 #include "art/Framework/Core/FileBlock.h"
-#include "art/Framework/Core/InputSourceMacros.h"
 #include "art/Framework/Core/ProductRegistryHelper.h"
-#include "art/Framework/IO/Sources/Source.h"
 #include "art/Framework/IO/Sources/SourceHelper.h"
-#include "art/Framework/IO/Sources/SourceTraits.h"
 #include "art/Framework/IO/Sources/put_product_in_principal.h"
 #include "art/Framework/Principal/EventPrincipal.h"
 #include "art/Framework/Principal/RunPrincipal.h"
@@ -17,7 +26,6 @@
 #include "art_root_io/setup.h"
 
 #include "canvas/Persistency/Common/EDProduct.h"
-#include "canvas/Persistency/Common/Wrapper.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
 #include "canvas/Persistency/Provenance/BranchKey.h"
 #include "canvas/Persistency/Provenance/FileFormatVersion.h"
@@ -27,15 +35,11 @@
 #include "canvas/Persistency/Provenance/Compatibility/History.h"
 #endif
 #include "canvas/Persistency/Provenance/ParentageRegistry.h"
-#include "canvas/Persistency/Provenance/ProcessConfiguration.h"
 #include "canvas/Persistency/Provenance/ProcessHistory.h"
 #include "canvas/Persistency/Provenance/ProcessHistoryID.h"
 #include "canvas/Persistency/Provenance/ProductList.h"
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
-#include "canvas/Persistency/Provenance/ProductTables.h"
-#include "canvas/Utilities/DebugMacros.h"
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/ParameterSetID.h"
 #include "fhiclcpp/ParameterSetRegistry.h"
@@ -45,18 +49,8 @@
 #include <TList.h>
 #include <TStreamerInfo.h>
 
-#include "artdaq-core/Data/ContainerFragment.hh"
-#include "artdaq-core/Data/Fragment.hh"
-#include "artdaq-core/Data/detail/ParentageMap.hh"
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
-#include "artdaq-core/Utilities/TimeUtils.hh"
-#include "artdaq/ArtModules/ArtdaqFragmentNamingService.h"
-#include "artdaq/ArtModules/ArtdaqSharedMemoryService.h"
-#include "artdaq/ArtModules/InputUtilities.hh"
-#include "artdaq/DAQdata/Globals.hh"
-#include "artdaq/DAQdata/NetMonHeader.hh"
-
 #include <sys/time.h>
+#include <chrono>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
@@ -304,7 +298,7 @@ art::ArtdaqInputHelper<U>::ArtdaqInputHelper(const fhicl::ParameterSet& ps, art:
 					TLOG(TLVL_DEBUG + 33, "ArtdaqInputHelper") << "ArtdaqInputHelper: parameter set: " << pset_str;
 
 					fhicl::ParameterSet pset;
-					pset = artdaq::make_pset(pset_str);
+					pset = fhicl::ParameterSet::make(pset_str);
 					// Force id calculation.
 					pset.id();
 					fhicl::ParameterSetRegistry::put(pset);

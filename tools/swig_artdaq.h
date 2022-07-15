@@ -1,7 +1,7 @@
 #ifndef ARTDAQ_TOOLS_ARTDAQ_H
 #define ARTDAQ_TOOLS_ARTDAQ_H
 
-#include "artdaq/DAQdata/Globals.hh"
+#include "TRACE/tracemf.h"
 
 /**
  * \file swig_artdaq.h This file serves as an entry point for a SWIG module which can be used to send MessageFacility messages or metrics
@@ -24,7 +24,7 @@ public:
 	 */
 	~swig_artdaq();
 
-	/** 
+	/**
 	 * \brief Send a metric using the artdaq MetricManager to the configured backends. Only the last point in a reporting_interval will be sent to the backend.
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -32,7 +32,7 @@ public:
 	 * \param unit Units of the metric, should be consistent across all calls of the metric with this name
 	 */
 	void send_metric(std::string const& name, int level, std::string const& value, std::string const& unit);
-	/** 
+	/**
 	 * \brief Send a metric using the artdaq MetricManager to the configured backends. Only the last point in a reporting_interval will be sent to the backend.
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -40,7 +40,7 @@ public:
 	 * \param unit Units of the metric, should be consistent across all calls of the metric with this name
 	 */
 	void send_metric(std::string const& name, int level, int value, std::string const& unit);
-	/** 
+	/**
 	 * \brief Send a metric using the artdaq MetricManager to the configured backends. Only the last point in a reporting_interval will be sent to the backend.
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -49,7 +49,7 @@ public:
 	 */
 	void send_metric(std::string const& name, int level, double value, std::string const& unit);
 
-	/** 
+	/**
 	 * \brief Send a metric using the artdaq MetricManager to the configured backends. Metric instances will be summed for the configured reporting_intervals.
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -57,7 +57,7 @@ public:
 	 * \param unit Units of the metric, should be consistent across all calls of the metric with this name
 	 */
 	void send_sum_metric(std::string const& name, int level, std::string const& value, std::string const& unit);
-	/** 
+	/**
 	 * \brief Send a metric using the artdaq MetricManager to the configured backends. Metric instances will be summed for the configured reporting_intervals.
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -65,7 +65,7 @@ public:
 	 * \param unit Units of the metric, should be consistent across all calls of the metric with this name
 	 */
 	void send_sum_metric(std::string const& name, int level, int value, std::string const& unit);
-	/** 
+	/**
 	 * \brief Send a metric using the artdaq MetricManager to the configured backends. Metric instances will be summed for the configured reporting_intervals.
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -74,8 +74,8 @@ public:
 	 */
 	void send_sum_metric(std::string const& name, int level, double value, std::string const& unit);
 
-	/** 
-	 * \brief Send a metric using the artdaq MetricManager to the configured backends. 
+	/**
+	 * \brief Send a metric using the artdaq MetricManager to the configured backends.
 	          Metric instances will be summed for the configured reporting_intervals, and the result will be reported as a rate (sum / reporting interval).
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -83,8 +83,8 @@ public:
 	 * \param unit Units of the metric, should be consistent across all calls of the metric with this name
 	 */
 	void send_rate_metric(std::string const& name, int level, std::string const& value, std::string const& unit);
-	/** 
-	 * \brief Send a metric using the artdaq MetricManager to the configured backends. 
+	/**
+	 * \brief Send a metric using the artdaq MetricManager to the configured backends.
 	          Metric instances will be summed for the configured reporting_intervals, and the result will be reported as a rate (sum / reporting interval).
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -92,8 +92,8 @@ public:
 	 * \param unit Units of the metric, should be consistent across all calls of the metric with this name
 	 */
 	void send_rate_metric(std::string const& name, int level, int value, std::string const& unit);
-	/** 
-	 * \brief Send a metric using the artdaq MetricManager to the configured backends. 
+	/**
+	 * \brief Send a metric using the artdaq MetricManager to the configured backends.
 	          Metric instances will be summed for the configured reporting_intervals, and the result will be reported as a rate (sum / reporting interval).
 	 * \param name Name of the metric
 	 * \param level Level to report at
@@ -135,4 +135,4 @@ public:
 	void write_trace(int level, std::string const& name, std::string const& message);
 };
 
-#endif  //ARTDAQ_TOOLS_ARTDAQ_H
+#endif  // ARTDAQ_TOOLS_ARTDAQ_H

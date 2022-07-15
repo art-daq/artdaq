@@ -5,6 +5,9 @@
 //  $RCSfile: TCPConnect.cpp,v $
 //  rev="$Revision: 1.4 $$Date: 2010/06/24 03:49:45 $";
 
+#include "artdaq/DAQdata/TCPConnect.hh"
+
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_TCPConnect").c_str()
 
@@ -26,8 +29,6 @@
 #include <map>
 #include <regex>
 #include <string>
-
-#include "artdaq/DAQdata/TCPConnect.hh"
 
 // Return sts, put result in addr
 int ResolveHost(char const *host_in, in_addr &addr)
@@ -396,7 +397,7 @@ int TCPConnect(char const *host_in, int dflt_port, int64_t flags, int sndbufsiz)
 	sts = connect(s_fd, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 	if (sts == -1)
 	{
-		//perror( "connect error" );
+		// perror( "connect error" );
 		close(s_fd);
 		return (-1);
 	}

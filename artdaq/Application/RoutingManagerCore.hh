@@ -1,36 +1,36 @@
 #ifndef artdaq_Application_MPI2_RoutingManagerCore_hh
 #define artdaq_Application_MPI2_RoutingManagerCore_hh
 
-#include <memory>
-#include <string>
-#include <vector>
+#include "artdaq/DAQrate/StatisticsHelper.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "artdaq/DAQrate/detail/TokenReceiver.hh"
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+
+#include "canvas/Persistency/Provenance/RunID.h"
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/thread.hpp>
 
 // Socket Includes
 #include <netinet/in.h>
 #include <sys/epoll.h>
 
-#include <boost/thread.hpp>
-
-#include "canvas/Persistency/Provenance/RunID.h"
-#include "fhiclcpp/ParameterSet.h"
-
-#include "artdaq-utilities/Plugins/MetricManager.hh"
-
-#include "artdaq/DAQrate/StatisticsHelper.hh"
-#include "artdaq/DAQrate/detail/FragCounter.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "artdaq/DAQrate/detail/TokenReceiver.hh"
-#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
+#include <atomic>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <set>
+#include <string>
 
 namespace artdaq {
 class RoutingManagerCore;
 }
 
 /**
-* \brief RoutingManagerCore implements the state machine for the RoutingManager artdaq application.
-* RoutingManagerCore collects tokens from receivers, and at regular intervals uses these tokens to build
-* Routing Tables that are sent to the senders.
-*/
+ * \brief RoutingManagerCore implements the state machine for the RoutingManager artdaq application.
+ * RoutingManagerCore collects tokens from receivers, and at regular intervals uses these tokens to build
+ * Routing Tables that are sent to the senders.
+ */
 class artdaq::RoutingManagerCore
 {
 public:
@@ -44,96 +44,96 @@ public:
 	RoutingManagerCore();
 
 	/**
-	* \brief Copy Constructor is deleted
-	*/
+	 * \brief Copy Constructor is deleted
+	 */
 	RoutingManagerCore(RoutingManagerCore const&) = delete;
 
 	/**
-	* Destructor.
-	*/
+	 * Destructor.
+	 */
 	~RoutingManagerCore();
 
 	/**
-	* \brief Copy Assignment operator is deleted
-	* \return RoutingManagerCore copy
-	*/
+	 * \brief Copy Assignment operator is deleted
+	 * \return RoutingManagerCore copy
+	 */
 	RoutingManagerCore& operator=(RoutingManagerCore const&) = delete;
 
 	RoutingManagerCore(RoutingManagerCore&&) = delete;             ///< Move Constructor is deleted
 	RoutingManagerCore& operator=(RoutingManagerCore&&) = delete;  ///< Move Assignment Operator is deleted
 
 	/**
-	* \brief Processes the initialize request.
-	* \param pset ParameterSet used to configure the RoutingManagerCore
-	* \return Whether the initialize attempt succeeded
-	*
-	* \verbatim
-	* RoutingManagerCore accepts the following Parameters:
-	* "daq" (REQUIRED): FHiCL table containing DAQ configuration
-	*   "policy" (REQUIRED): FHiCL table containing the RoutingManagerPolicy configuration
-	*     "policy" (Default: ""): Name of the RoutingManagerPolicy plugin to load
-	*   "rt_priority" (Default: 0): Unix process priority to assign to RoutingManagerCore
-	*   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
-	*   "table_update_interval_high_frac" (Default: 0.75): Fraction of the maximum seen table size at which the interval should be reduced
-	*   "table_update_interval_low_frac" (Default: 0.5): Fraction of the maximum seen table size at which the interval should be increased
-	*   "senders_send_by_send_count" (Default: false): If true, senders will use the current send count to lookup routing information in the table, instead of sequence ID.
-	*   "table_ack_retry_count" (Default: 5): The number of times the table will be resent while waiting for acknowledements
-	*   "table_update_port" (Default: 35556): The port on which to send table updates
-	*   "table_acknowledge_port" (Default: 35557): The port on which to listen for RoutingAckPacket datagrams
-	*   "table_update_address" (Default: "227.128.12.28"): Multicast address to send table updates to
-	*   "routing_manager_hostname" (Default: "localhost"): Hostname to send table updates from
-	*   "metrics": FHiCL table containing configuration for MetricManager
-	* \endverbatim
-	*/
+	 * \brief Processes the initialize request.
+	 * \param pset ParameterSet used to configure the RoutingManagerCore
+	 * \return Whether the initialize attempt succeeded
+	 *
+	 * \verbatim
+	 * RoutingManagerCore accepts the following Parameters:
+	 * "daq" (REQUIRED): FHiCL table containing DAQ configuration
+	 *   "policy" (REQUIRED): FHiCL table containing the RoutingManagerPolicy configuration
+	 *     "policy" (Default: ""): Name of the RoutingManagerPolicy plugin to load
+	 *   "rt_priority" (Default: 0): Unix process priority to assign to RoutingManagerCore
+	 *   "table_update_interval_ms" (Default: 1000): Maximum amount of time between table updates
+	 *   "table_update_interval_high_frac" (Default: 0.75): Fraction of the maximum seen table size at which the interval should be reduced
+	 *   "table_update_interval_low_frac" (Default: 0.5): Fraction of the maximum seen table size at which the interval should be increased
+	 *   "senders_send_by_send_count" (Default: false): If true, senders will use the current send count to lookup routing information in the table, instead of sequence ID.
+	 *   "table_ack_retry_count" (Default: 5): The number of times the table will be resent while waiting for acknowledements
+	 *   "table_update_port" (Default: 35556): The port on which to send table updates
+	 *   "table_acknowledge_port" (Default: 35557): The port on which to listen for RoutingAckPacket datagrams
+	 *   "table_update_address" (Default: "227.128.12.28"): Multicast address to send table updates to
+	 *   "routing_manager_hostname" (Default: "localhost"): Hostname to send table updates from
+	 *   "metrics": FHiCL table containing configuration for MetricManager
+	 * \endverbatim
+	 */
 	bool initialize(fhicl::ParameterSet const& pset, uint64_t, uint64_t);
 
 	/**
-	* \brief Start the RoutingManagerCore
-	* \param id Run ID of the current run
-	* \return True if no exception
-	*/
+	 * \brief Start the RoutingManagerCore
+	 * \param id Run ID of the current run
+	 * \return True if no exception
+	 */
 	bool start(art::RunID id, uint64_t, uint64_t);
 
 	/**
-	* \brief Stops the RoutingManagerCore
-	* \return True if no exception
-	*/
+	 * \brief Stops the RoutingManagerCore
+	 * \return True if no exception
+	 */
 	bool stop(uint64_t, uint64_t);
 
 	/**
-	* \brief Pauses the RoutingManagerCore
-	* \return True if no exception
-	*/
+	 * \brief Pauses the RoutingManagerCore
+	 * \return True if no exception
+	 */
 	bool pause(uint64_t, uint64_t);
 
 	/**
-	* \brief Resumes the RoutingManagerCore
-	* \return True if no exception
-	*/
+	 * \brief Resumes the RoutingManagerCore
+	 * \return True if no exception
+	 */
 	bool resume(uint64_t, uint64_t);
 
 	/**
-	* \brief Shuts Down the RoutingManagerCore
-	* \return If the shutdown was successful
-	*/
+	 * \brief Shuts Down the RoutingManagerCore
+	 * \return If the shutdown was successful
+	 */
 	bool shutdown(uint64_t);
 
 	/**
-	* \brief Soft-Initializes the RoutingManagerCore.
-	* \param pset ParameterSet for configuring RoutingManagerCore
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return Returns initialize status
-	*/
+	 * \brief Soft-Initializes the RoutingManagerCore.
+	 * \param pset ParameterSet for configuring RoutingManagerCore
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return Returns initialize status
+	 */
 	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Reinitializes the RoutingManagerCore.
-	* \param pset ParameterSet for configuring RoutingManagerCore
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return Returns initialize status
-	*/
+	 * \brief Reinitializes the RoutingManagerCore.
+	 * \param pset ParameterSet for configuring RoutingManagerCore
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return Returns initialize status
+	 */
 	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
@@ -155,16 +155,16 @@ public:
 	void send_event_table(detail::RoutingPacket packet);
 
 	/**
-	* \brief Send a report on the current status of the RoutingManagerCore
-	* \return A string containing the report on the current status of the RoutingManagerCore
-	*
-	*/
+	 * \brief Send a report on the current status of the RoutingManagerCore
+	 * \return A string containing the report on the current status of the RoutingManagerCore
+	 *
+	 */
 	std::string report(std::string const&) const;
 
 	/**
-	* \brief Get the number of table updates sent by this RoutingManager this run
-	* \return The number of table updates sent by this RoutingManager this run
-	*/
+	 * \brief Get the number of table updates sent by this RoutingManager this run
+	 * \return The number of table updates sent by this RoutingManager this run
+	 */
 	size_t get_update_count() const { return table_update_count_; }
 
 private:

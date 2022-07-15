@@ -1,43 +1,45 @@
 #ifndef artdaq_ArtModules_ShmemWrapper_hh
 #define artdaq_ArtModules_ShmemWrapper_hh
 
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
+#include "artdaq-core/Data/Fragment.hh"
+
 #include "fhiclcpp/ParameterSet.h"
 
-#include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/RawEvent.hh"
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace art {
 /**
-	 * \brief This class wraps ArtdaqSharedMemoryService so that it can act as an ArtdaqInput
-	 * template class.
-	 * 
-	 * JCF, May-27-2016
-	 *
-	 * This class is written with functionality such that it satisfies the
-	 * requirements needed to be a template in the ArtdaqInput class
-	 */
+ * \brief This class wraps ArtdaqSharedMemoryService so that it can act as an ArtdaqInput
+ * template class.
+ *
+ * JCF, May-27-2016
+ *
+ * This class is written with functionality such that it satisfies the
+ * requirements needed to be a template in the ArtdaqInput class
+ */
 class ShmemWrapper
 {
 public:
 	/**
-		 * \brief ShmemWrapper Constructor
-		 * \param ps ParameterSet for ShmemWrapper
-		 */
+	 * \brief ShmemWrapper Constructor
+	 * \param ps ParameterSet for ShmemWrapper
+	 */
 	ShmemWrapper(fhicl::ParameterSet const& ps);
 
 	/**
-		 * \brief ShmemWrapper Destructor
-		 */
+	 * \brief ShmemWrapper Destructor
+	 */
 	virtual ~ShmemWrapper() = default;
 
 	/**
-		 * \brief Receive a message from the ArtdaqSharedMemoryService
-		* \return A list of unique_ptrs to received Fragments
-		 */
+	 * \brief Receive a message from the ArtdaqSharedMemoryService
+	 * \return A list of unique_ptrs to received Fragments
+	 */
 	artdaq::FragmentPtrs receiveMessage();
 	/**
 	 * \brief Receive all messsages for an event from ArtdaqSharedMemoryService
@@ -46,9 +48,9 @@ public:
 	std::unordered_map<artdaq::Fragment::type_t, std::unique_ptr<artdaq::Fragments>> receiveMessages();
 
 	/**
-		* \brief Receive an init message from the ArtdaqSharedMemoryService
-		* \return A list of unique_ptrs to InitFragments
-		*/
+	 * \brief Receive an init message from the ArtdaqSharedMemoryService
+	 * \return A list of unique_ptrs to InitFragments
+	 */
 	artdaq::FragmentPtrs receiveInitMessage();
 
 	/**

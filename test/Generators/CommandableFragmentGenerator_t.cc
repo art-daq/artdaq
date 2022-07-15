@@ -1,10 +1,13 @@
-#define TRACE_NAME "CommandableFragmentGenerator_t"
-
 #define BOOST_TEST_MODULE CommandableFragmentGenerator_t
 #include <boost/test/unit_test.hpp>
 
+#include "TRACE/tracemf.h"
+#define TRACE_NAME "CommandableFragmentGenerator_t"
+
 #include "artdaq-core/Data/ContainerFragment.hh"
 #include "artdaq-core/Data/Fragment.hh"
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
+#include "artdaq/DAQdata/Globals.hh"
 #include "artdaq/Generators/CommandableFragmentGenerator.hh"
 
 #define TRACE_REQUIRE_EQUAL(l, r)                                                                                                    \
@@ -85,8 +88,8 @@ protected:
 	void stopNoMutex() override;
 
 	/**
-	* \brief Perform stop actions. No-Op
-	*/
+	 * \brief Perform stop actions. No-Op
+	 */
 	void stop() override;
 
 	/**

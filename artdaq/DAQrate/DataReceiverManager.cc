@@ -1,13 +1,21 @@
-#include <chrono>
-
-#include <iomanip>
-#include <utility>
 #include "artdaq/DAQdata/Globals.hh"
 #define TRACE_NAME (app_name + "_DataReceiverManager").c_str()
+
 #include "artdaq/DAQdata/HostMap.hh"
 #include "artdaq/DAQrate/DataReceiverManager.hh"
 #include "artdaq/TransferPlugins/MakeTransferPlugin.hh"
+
 #include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/bind.hpp>
+#include <boost/exception/all.hpp>
+#include <boost/thread.hpp>
+
+#include <chrono>
+#include <iomanip>
+#include <thread>
+#include <utility>
 
 artdaq::DataReceiverManager::DataReceiverManager(const fhicl::ParameterSet& pset, std::shared_ptr<SharedMemoryEventManager> shm)
     : stop_requested_(false)
@@ -342,7 +350,7 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 				hdrLoc->type = Fragment::ErrorFragmentType;
 
 				shm_manager_->DoneWritingFragment(header);
-				//throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
+				// throw cet::exception("DataReceiverManager") << "Unexpected return code from receiveFragmentData after receiveFragmentHeader! (Expected: " << ret << ", Got: " << ret2 << ")";
 				continue;
 			}
 
@@ -437,10 +445,10 @@ void artdaq::DataReceiverManager::runReceiver_(int source_rank)
 					break;
 				case Fragment::EndOfRunFragmentType:
 					shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
-					//shm_manager_->endRun();
+					// shm_manager_->endRun();
 					break;
 				case Fragment::EndOfSubrunFragmentType:
-					//shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
+					// shm_manager_->setRequestMode(detail::RequestMessageMode::EndOfRun);
 					TLOG(TLVL_DEBUG + 32) << "Received EndOfSubrun Fragment from rank " << source_rank
 					                      << " with sequence_id " << header.sequence_id << ".";
 					if (header.sequence_id != Fragment::InvalidSequenceID)

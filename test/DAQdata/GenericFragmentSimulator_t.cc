@@ -3,7 +3,8 @@
 
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Data/detail/RawFragmentHeader.hh"
-#include "artdaq/DAQdata/GenericFragmentSimulator.hh"
+#include "artdaq-core/Plugins/FragmentGenerator.hh"
+#include "artdaq-core/Plugins/makeFragmentGenerator.hh"
 #include "fhiclcpp/ParameterSet.h"
 
 #include <cstddef>
@@ -20,10 +21,10 @@ BOOST_AUTO_TEST_CASE(Simple)
 	sim_config.put("fragments_per_event", NUM_FRAGS_PER_EVENT);
 	sim_config.put("want_random_payload_size", false);
 	sim_config.put("payload_size", FRAGMENT_SIZE);
-	artdaq::GenericFragmentSimulator sim(sim_config);
+	auto sim = artdaq::makeFragmentGenerator("GenericFragmentSimulator", sim_config);
 	artdaq::FragmentPtrs fragments;
 	std::size_t num_events_seen = 0;
-	while (fragments.clear(), num_events_seen < NUM_EVENTS && sim.getNext(fragments))
+	while (fragments.clear(), num_events_seen < NUM_EVENTS && sim->getNext(fragments))
 	{
 		BOOST_REQUIRE_EQUAL(fragments.size(), NUM_FRAGS_PER_EVENT);
 		for (auto&& fragptr : fragments)

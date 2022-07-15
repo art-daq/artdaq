@@ -1,20 +1,23 @@
-
 #include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_BoardReaderCore").c_str()
 
+#include "artdaq-core/Core/MonitoredQuantity.hh"
 #include "artdaq-core/Data/Fragment.hh"
 #include "artdaq-core/Utilities/ExceptionHandler.hh"
 #include "artdaq/Application/BoardReaderCore.hh"
 #include "artdaq/Application/TaskType.hh"
 #include "artdaq/Generators/makeCommandableFragmentGenerator.hh"
 
+#include "cetlib_except/exception.h"
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/lexical_cast.hpp>
+
 #include <pthread.h>
 #include <sched.h>
 #include <algorithm>
 #include <memory>
 #include <thread>
-#include "canvas/Utilities/Exception.h"
-#include "cetlib_except/exception.h"
 
 const std::string artdaq::BoardReaderCore::
     FRAGMENTS_PROCESSED_STAT_KEY("BoardReaderCoreFragmentsProcessed");
@@ -508,9 +511,9 @@ void artdaq::BoardReaderCore::send_fragments()
 
 			/*if ((fragment_count_ % 250) == 0)
 			{
-				TLOG(TLVL_DEBUG + 32)
-					<< "Sending fragment " << fragment_count_
-					<< " with sequence id " << sequence_id << ".";
+			    TLOG(TLVL_DEBUG + 32)
+			        << "Sending fragment " << fragment_count_
+			        << " with sequence id " << sequence_id << ".";
 			}*/
 
 			// check for continous sequence IDs
@@ -694,7 +697,7 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 
 void artdaq::BoardReaderCore::sendMetrics_()
 {
-	//TLOG(TLVL_DEBUG + 32) << "Sending metrics " << __LINE__ ;
+	// TLOG(TLVL_DEBUG + 32) << "Sending metrics " << __LINE__ ;
 	double fragmentCount = 1.0;
 	artdaq::MonitoredQuantityPtr mqPtr = artdaq::StatisticsCollection::getInstance().getMonitoredQuantity(FRAGMENTS_PROCESSED_STAT_KEY);
 	if (mqPtr.get() != nullptr)

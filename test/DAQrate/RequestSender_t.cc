@@ -1,14 +1,16 @@
+#define BOOST_TEST_MODULE RequestSender_t
+#include "boost/test/unit_test.hpp"
+
+#include "tracemf.h"
 #define TRACE_NAME "RequestSender_t"
 
-#include "artdaq/DAQrate/detail/RequestSender.hh"
-
-#define BOOST_TEST_MODULE RequestSender_t
-#include <sys/poll.h>
+#include "artdaq-core/Utilities/configureMessageFacility.hh"
 #include "artdaq/DAQdata/TCPConnect.hh"
 #include "artdaq/DAQdata/TCP_listen_fd.hh"
+#include "artdaq/DAQrate/detail/RequestSender.hh"
 #include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "cetlib/quiet_unit_test.hpp"
-#include "cetlib_except/exception.h"
+
+#include <sys/poll.h>
 
 BOOST_AUTO_TEST_SUITE(RequestSender_test)
 

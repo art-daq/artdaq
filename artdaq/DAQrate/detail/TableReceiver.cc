@@ -2,14 +2,16 @@
 #define TRACE_NAME (app_name + "_TableReceiver").c_str()
 #include "artdaq/DAQrate/detail/TableReceiver.hh"
 
+#include "artdaq/DAQdata/TCPConnect.hh"
+#include "artdaq/DAQrate/detail/RoutingPacket.hh"
+#include "canvas/Utilities/Exception.h"
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <chrono>
-#include "artdaq/DAQdata/TCPConnect.hh"
-#include "canvas/Utilities/Exception.h"
 
 artdaq::TableReceiver::TableReceiver(const fhicl::ParameterSet& pset)
     : use_routing_manager_(pset.get<bool>("use_routing_manager", false))

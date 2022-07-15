@@ -1,15 +1,13 @@
-#include "art/Framework/Art/artapp.h"
-#include "canvas/Utilities/Exception.h"
-
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"  // include these 2 first -
 #define TRACE_NAME (app_name + "_DataReceiverCore").c_str()
-#include "artdaq-core/Utilities/ExceptionHandler.hh"
 
 #include "artdaq/Application/DataReceiverCore.hh"
-#include "artdaq/TransferPlugins/TransferInterface.hh"
 
-#include <iomanip>
+#include "artdaq-core/Utilities/ExceptionHandler.hh"
+
 #include <memory>
+#include <string>
 
 artdaq::DataReceiverCore::DataReceiverCore()
     : stop_requested_(false)

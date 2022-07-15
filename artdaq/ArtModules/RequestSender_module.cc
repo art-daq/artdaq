@@ -5,8 +5,8 @@
 // Description: Sends artdaq requests for events
 ////////////////////////////////////////////////////////////////////////
 
+#include "TRACE/tracemf.h"
 #define TRACE_NAME "RequestSenderModule"
-#include "artdaq/DAQdata/Globals.hh"
 
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
@@ -45,9 +45,9 @@ public:
 	~RequestSenderModule() override;
 
 	/**
-   * \brief Analyze each event, using the configured mode bitmask
-   * \param evt art::Event to analyze
-   */
+	 * \brief Analyze each event, using the configured mode bitmask
+	 * \param evt art::Event to analyze
+	 */
 	void analyze(art::Event const& evt) override;
 
 	/**
@@ -90,11 +90,7 @@ void artdaq::RequestSenderModule::analyze(art::Event const& evt)
 {
 	// get all the artdaq fragment collections in the event.
 	std::vector<art::Handle<std::vector<artdaq::Fragment>>> fragmentHandles;
-#if ART_HEX_VERSION < 0x30900
-	evt.getManyByType(fragmentHandles);
-#else
 	fragmentHandles = evt.getMany<std::vector<artdaq::Fragment>>();
-#endif
 
 	artdaq::Fragment::sequence_id_t seq = 0;
 	artdaq::Fragment::timestamp_t timestamp = 0;

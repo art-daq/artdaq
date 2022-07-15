@@ -1,7 +1,9 @@
 #define BOOST_TEST_MODULE CapacityTest_policy_t
 #include <boost/test/unit_test.hpp>
 
-#include "artdaq-utilities/Plugins/MakeParameterSet.hh"
+#include "TRACE/tracemf.h"
+
+#include "artdaq/RoutingPolicies/RoutingManagerPolicy.hh"
 #include "artdaq/RoutingPolicies/makeRoutingManagerPolicy.hh"
 #include "fhiclcpp/ParameterSet.h"
 
@@ -10,7 +12,7 @@ BOOST_AUTO_TEST_SUITE(CapacityTest_policy_t)
 BOOST_AUTO_TEST_CASE(Simple)
 {
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case Simple BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("tokens_used_per_table_percent: 50");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("tokens_used_per_table_percent: 50");
 
 	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
 
@@ -29,7 +31,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 
 	ct->ResetTokensUsedSinceLastUpdate();
 
-	//ct->Reset();
+	// ct->Reset();
 	ct->AddReceiverToken(1, 1);
 	ct->AddReceiverToken(3, 1);
 	ct->AddReceiverToken(2, 1);
@@ -65,7 +67,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 	BOOST_REQUIRE_EQUAL(secondTable[12].sequence_id, 33);
 
 	ct->ResetTokensUsedSinceLastUpdate();
-	//ct->Reset();
+	// ct->Reset();
 	ct->AddReceiverToken(1, 0);
 	auto thirdTable = ct->GetCurrentTable();
 	BOOST_REQUIRE_EQUAL(thirdTable.size(), 6);
@@ -128,7 +130,7 @@ BOOST_AUTO_TEST_CASE(Simple)
 BOOST_AUTO_TEST_CASE(DataFlowMode)
 {
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case DataFlowMode BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: DataFlow");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("routing_manager_mode: DataFlow");
 
 	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
 
@@ -178,7 +180,7 @@ BOOST_AUTO_TEST_CASE(DataFlowMode)
 BOOST_AUTO_TEST_CASE(RequestBasedEventBuilding)
 {
 	TLOG(TLVL_INFO) << "CapacityTest_policy_t Test Case RequestBasedEventBuilding BEGIN";
-	fhicl::ParameterSet ps = artdaq::make_pset("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2");
+	fhicl::ParameterSet ps = fhicl::ParameterSet::make("routing_manager_mode: RequestBasedEventBuilding routing_cache_size: 2");
 
 	auto ct = artdaq::makeRoutingManagerPolicy("CapacityTest", ps);
 

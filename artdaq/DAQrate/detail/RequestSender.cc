@@ -1,18 +1,23 @@
+#include "TRACE/tracemf.h"
 #include "artdaq/DAQdata/Globals.hh"  // Before trace.h gets included in ConcurrentQueue (from GlobalQueue)
 #define TRACE_NAME (app_name + "_RequestSender").c_str()
+#include "artdaq/DAQrate/detail/RequestSender.hh"
+
+#include "artdaq/DAQdata/TCPConnect.hh"
+
+#include "fhiclcpp/ParameterSet.h"
+
+#include <boost/thread.hpp>
+
 #include <dlfcn.h>
 #include <chrono>
 #include <cstring>
 #include <fstream>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
+#include <thread>
 #include <utility>
-#include "artdaq/DAQrate/detail/RequestSender.hh"
-
-#include "artdaq-core/Core/StatisticsCollection.hh"
-#include "artdaq/DAQdata/TCPConnect.hh"
-#include "artdaq/DAQrate/detail/RoutingPacket.hh"
-#include "cetlib_except/exception.h"
 
 namespace artdaq {
 RequestSender::RequestSender(const fhicl::ParameterSet& pset)
@@ -93,14 +98,14 @@ void RequestSender::setup_requests_()
 
 		/*		if (multicast_out_addr_ == "0.0.0.0")
 		{
-			char hostname[HOST_NAME_MAX];
-			sts = gethostname(hostname, HOST_NAME_MAX);
-			multicast_out_addr_ = std::string(hostname);
-			if (sts < 0)
-			{
-				TLOG(TLVL_ERROR) << "Could not get current hostname,  err=" << strerror(errno);
-				exit(1);
-			}
+		    char hostname[HOST_NAME_MAX];
+		    sts = gethostname(hostname, HOST_NAME_MAX);
+		    multicast_out_addr_ = std::string(hostname);
+		    if (sts < 0)
+		    {
+		        TLOG(TLVL_ERROR) << "Could not get current hostname,  err=" << strerror(errno);
+		        exit(1);
+		    }
 		}*/
 
 		// For 0.0.0.0, use system-specified IP_MULTICAST_IF
@@ -108,7 +113,7 @@ void RequestSender::setup_requests_()
 		{
 			struct in_addr addr;
 			sts = GetInterfaceForNetwork(multicast_out_addr_.c_str(), addr);
-			//sts = ResolveHost(multicast_out_addr_.c_str(), addr);
+			// sts = ResolveHost(multicast_out_addr_.c_str(), addr);
 			if (sts == -1)
 			{
 				TLOG(TLVL_ERROR) << "Unable to determine the  multicast interface address for " << multicast_out_addr_ << ", err=" << strerror(errno);

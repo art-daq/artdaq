@@ -1,6 +1,7 @@
 #ifndef artdaq_RTIDDS_RTIDDS_hh
 #define artdaq_RTIDDS_RTIDDS_hh
 
+#include "TRACE/tracemf.h"  // Pre-empt TRACE/trace.h from Fragment.hh.
 #include "artdaq-core/Data/Fragment.hh"
 
 #include <ndds/ndds_cpp.h>
@@ -47,7 +48,7 @@ public:
 	/**
 	 * \brief Copy a Fragment to DDS
 	 * \param fragment Fragment to copy
-	 * 
+	 *
 	 * This function may be non-reliable, and induces a memcpy of the Fragment
 	 */
 	void transfer_fragment_min_blocking_mode_via_DDS_(artdaq::Fragment const& fragment);
@@ -55,7 +56,7 @@ public:
 	/**
 	 * \brief Move a Fragment to DDS
 	 * \param fragment Fragment to move
-	 * 
+	 *
 	 * This function should be reliable, and minimize copies.
 	 * Currently implemented via transfer_fragment_min_blocking_mode_via_DDS_
 	 */

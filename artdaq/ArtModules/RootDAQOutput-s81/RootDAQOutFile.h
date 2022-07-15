@@ -2,32 +2,20 @@
 #define art_root_io_RootDAQOutFile_h
 // vim: set sw=2 expandtab :
 
-#include "art/Framework/Core/OutputModule.h"
 #include "art/Framework/IO/ClosingCriteria.h"
-#include "art/Framework/IO/FileStatsCollector.h"
-#include "art/Framework/Principal/RangeSetsSupported.h"
-#include "art/Persistency/Provenance/Selections.h"
+#include "art/Framework/Services/System/FileCatalogMetadata.h"
 #include "art_root_io/DropMetaData.h"
-#include "art_root_io/RootOutputTree.h"
-#if ART_HEX_VERSION < 0x30800
-#include "art_root_io/detail/DummyProductCache.h"
-#define DummyProductCache detail::DummyProductCache
-#else
 #include "art_root_io/DummyProductCache.h"
-#endif
-#include "boost/filesystem.hpp"
+#include "art_root_io/RootOutputTree.h"
 #include "canvas/Persistency/Provenance/BranchDescription.h"
-#include "canvas/Persistency/Provenance/BranchType.h"
 #include "canvas/Persistency/Provenance/FileIndex.h"
-#include "canvas/Persistency/Provenance/ParameterSetBlob.h"
-#include "canvas/Persistency/Provenance/ParameterSetMap.h"
-#include "canvas/Persistency/Provenance/ProductID.h"
 #include "canvas/Persistency/Provenance/ProductProvenance.h"
 #include "cetlib/sqlite/Connection.h"
 
 #include <array>
-#include <map>
+#include <chrono>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <string>
 #include <vector>
@@ -38,15 +26,23 @@
 class TTree;
 
 namespace art {
-class ResultsPrincipal;
-class RootDAQOut;
-class History;
-class FileBlock;
+class EDProduct;
 class EventAuxiliary;
-class SubRunAuxiliary;
-class RunAuxiliary;
+class EventPrincipal;
+class FileBlock;
+class FileStatsCollector;
+class History;
+class OutputHandle;
+class OutputModule;
+class Principal;
+class RangeSet;
 class ResultsAuxiliary;
+class ResultsPrincipal;
 class RootFileBlock;
+class RunAuxiliary;
+class RunPrincipal;
+class SubRunAuxiliary;
+class SubRunPrincipal;
 class RootDAQOutFile
 {
 public:  // TYPES
