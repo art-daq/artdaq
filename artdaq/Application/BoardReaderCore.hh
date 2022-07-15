@@ -62,7 +62,7 @@ public:
 	 * \param timeout Timeout for transition
 	 * \param timestamp Timestamp of transition
 	 * \return True if the initialize attempt succeeded
-	 * 
+	 *
 	 * \verbatim
 	 * BoardReaderCore accepts the following Parameters:
 	 * "daq" (REQUIRED): FHiCL table containing DAQ configuration.
@@ -74,7 +74,7 @@ public:
 	 *   "metrics": FHiCL table containing MetricManager configuration.
 	 *     See MetricManager for configuration options.
 	 * \endverbatim
-	 *   
+	 *
 	 */
 	bool initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
@@ -88,57 +88,57 @@ public:
 	bool start(art::RunID id, uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Stop the BoardReader, and the CommandableFragmentGenerator
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return True unless exception occurred
-	*/
+	 * \brief Stop the BoardReader, and the CommandableFragmentGenerator
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return True unless exception occurred
+	 */
 	bool stop(uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Pause the BoardReader, and the CommandableFragmentGenerator
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return True unless exception occurred
-	*/
+	 * \brief Pause the BoardReader, and the CommandableFragmentGenerator
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return True unless exception occurred
+	 */
 	bool pause(uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Resume the BoardReader, and the CommandableFragmentGenerator
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return True unless exception occurred
-	*/
+	 * \brief Resume the BoardReader, and the CommandableFragmentGenerator
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return True unless exception occurred
+	 */
 	bool resume(uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Shutdown the BoardReader, and the CommandableFragmentGenerator
-	* \param timeout Timeout for transition
-	* \return True unless exception occurred
-	*/
+	 * \brief Shutdown the BoardReader, and the CommandableFragmentGenerator
+	 * \param timeout Timeout for transition
+	 * \return True unless exception occurred
+	 */
 	bool shutdown(uint64_t timeout);
 
 	/**
-	* \brief Soft-Initialize the BoardReader. No-Op
+	 * \brief Soft-Initialize the BoardReader. No-Op
 	 * \param pset ParameterSet used to configure the BoardReaderCore
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return True unless exception occurred
-	*/
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return True unless exception occurred
+	 */
 	bool soft_initialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
-	* \brief Reinitialize the BoardReader. No-Op
+	 * \brief Reinitialize the BoardReader. No-Op
 	 * \param pset ParameterSet used to configure the BoardReaderCore
-	* \param timeout Timeout for transition
-	* \param timestamp Timestamp of transition
-	* \return True unless exception occurred
-	*/
+	 * \param timeout Timeout for transition
+	 * \param timestamp Timestamp of transition
+	 * \return True unless exception occurred
+	 */
 	bool reinitialize(fhicl::ParameterSet const& pset, uint64_t timeout, uint64_t timestamp);
 
 	/**
 	 * \brief Main working loop of the BoardReaderCore
-	 * 
+	 *
 	 * This loop calls the CommandableFragmentGenerator::getNext method and gives the result to the FragmentBuffer
 	 */
 	void receive_fragments();
@@ -147,25 +147,25 @@ public:
 	 * @brief Main working loop of the BoardReaderCore, pt. 2
 	 *
 	 * This loop calls the FragmentBuffer::applyRequests method and sends the result using DataSenderManager
-	*/
+	 */
 	void send_fragments();
 
 	/**
 	 * \brief Send a report on a given run-time quantity
 	 * \param which Which quantity to report
 	 * \return A string containing the requested quantity.
-	 * 
+	 *
 	 * If the CommandableFragmentGenerator has been initialized, CommandableFragmentGenerator::report(std::string const& which) will be called.
 	 * Otherwise, the BoardReaderCore will return the current run number and an error message.
 	 */
 	std::string report(std::string const& which) const;
 
 	/**
-	* \brief Run a user-defined command on the CommandableFragmentGenerator
-	* \param command Command name to run
-	* \param arg Argument(s) for command
-	* \return Whether command completed successfully. (By convention, unsupported commands should return true)
-	*/
+	 * \brief Run a user-defined command on the CommandableFragmentGenerator
+	 * \param command Command name to run
+	 * \param arg Argument(s) for command
+	 * \return Whether command completed successfully. (By convention, unsupported commands should return true)
+	 */
 	bool metaCommand(std::string const& command, std::string const& arg);
 
 	/**
@@ -193,9 +193,9 @@ public:
 	/**
 	 * @brief Set the timeout for starting the sender and receiver threads
 	 * @param timeout Timeout, in seconds, for starting the sender and receiver threads
-	 * 
+	 *
 	 * This function is used to communicate the start transition timeout from BoardReaderApp to the BoardReaderCore threads
-	*/
+	 */
 	void SetStartTransitionTimeout(double timeout) { start_transition_timeout_ = timeout; }
 
 private:

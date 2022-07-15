@@ -367,18 +367,18 @@ c_executeMethod(xmlrpc_env* const envP,
 
 namespace artdaq {
 /**
-	 * \brief Write an exception message
-	 * \param er A std::runtime_error to print
-	 * \param helpText Additional information about the exception context. Default: "execute request"
-	 * \return Exception message
-	 */
+ * \brief Write an exception message
+ * \param er A std::runtime_error to print
+ * \param helpText Additional information about the exception context. Default: "execute request"
+ * \return Exception message
+ */
 std::string exception_msg(const std::runtime_error& er,
                           const std::string& helpText = "execute request")
 {
 	std::string msg("Exception when trying to ");
 	msg.append(helpText);
 	msg.append(": ");
-	msg.append(er.what());  //std::string(er.what ()).substr (2);
+	msg.append(er.what());  // std::string(er.what ()).substr (2);
 	if (msg[msg.size() - 1] == '\n')
 	{
 		msg.erase(msg.size() - 1);
@@ -387,11 +387,11 @@ std::string exception_msg(const std::runtime_error& er,
 }
 
 /**
-	* \brief Write an exception message
-	* \param er An art::Exception to print
-	* \param helpText Additional information abou the exception context
-	* \return Exception message
-	*/
+ * \brief Write an exception message
+ * \param er An art::Exception to print
+ * \param helpText Additional information abou the exception context
+ * \return Exception message
+ */
 std::string exception_msg(const art::Exception& er,
                           const std::string& helpText)
 {
@@ -407,11 +407,11 @@ std::string exception_msg(const art::Exception& er,
 }
 
 /**
-	* \brief Write an exception message
-	* \param er A cet::exception to print
-	* \param helpText Additional information abou the exception context
-	* \return Exception message
-	*/
+ * \brief Write an exception message
+ * \param er A cet::exception to print
+ * \param helpText Additional information abou the exception context
+ * \return Exception message
+ */
 std::string exception_msg(const cet::exception& er,
                           const std::string& helpText)
 {
@@ -427,11 +427,11 @@ std::string exception_msg(const cet::exception& er,
 }
 
 /**
-	* \brief Write an exception message
-	* \param er A boost::exception to print
-	* \param helpText Additional information abou the exception context
-	* \return Exception message
-	*/
+ * \brief Write an exception message
+ * \param er A boost::exception to print
+ * \param helpText Additional information abou the exception context
+ * \return Exception message
+ */
 std::string exception_msg(const boost::exception& er,
                           const std::string& helpText)
 {
@@ -443,11 +443,11 @@ std::string exception_msg(const boost::exception& er,
 	return msg;
 }
 /**
-	* \brief Write an exception message
-	* \param er A std::exception to print
-	* \param helpText Additional information abou the exception context
-	* \return Exception message
-	*/
+ * \brief Write an exception message
+ * \param er A std::exception to print
+ * \param helpText Additional information abou the exception context
+ * \return Exception message
+ */
 std::string exception_msg(const std::exception& er,
                           const std::string& helpText)
 {
@@ -460,11 +460,11 @@ std::string exception_msg(const std::exception& er,
 }
 
 /**
-	* \brief Write an exception message
-	* \param erText A std::string to print
-	* \param helpText Additional information abou the exception context
-	* \return Exception message
-	*/
+ * \brief Write an exception message
+ * \param erText A std::string to print
+ * \param helpText Additional information abou the exception context
+ * \return Exception message
+ */
 std::string exception_msg(const std::string& erText,
                           const std::string& helpText)
 {
@@ -480,32 +480,32 @@ std::string exception_msg(const std::string& erText,
 }
 
 /**
-	 * \brief The "cmd_" class serves as the base class for all artdaq's XML-RPC commands.
-	 *
-	 * JCF, 9/5/14
-	 *
-	 * The "cmd_" class serves as the base class for all artdaq's
-	 * XML-RPC commands, all of which use the code in the "execute()"
-	 * function; each specific command type deriving from cmd_ is
-	 * implemented in the execute_() function which execute() calls
-	 * (notice the underscore), and optionally sets the retvalP
-	 * parameter
-	 *
-	 * cmd_ contains a set of template functions, getParam<T>(), which
-	 * are designed to prevent implementors of derived classes from
-	 * having to worry about interfacing directly with xmlrpc_c's
-	 * parameter-getting functionality
-	 */
+ * \brief The "cmd_" class serves as the base class for all artdaq's XML-RPC commands.
+ *
+ * JCF, 9/5/14
+ *
+ * The "cmd_" class serves as the base class for all artdaq's
+ * XML-RPC commands, all of which use the code in the "execute()"
+ * function; each specific command type deriving from cmd_ is
+ * implemented in the execute_() function which execute() calls
+ * (notice the underscore), and optionally sets the retvalP
+ * parameter
+ *
+ * cmd_ contains a set of template functions, getParam<T>(), which
+ * are designed to prevent implementors of derived classes from
+ * having to worry about interfacing directly with xmlrpc_c's
+ * parameter-getting functionality
+ */
 class cmd_ : public xmlrpc_c::method
 {
 public:
 	// Can't seem to initialize "_signature" and "_help" in the initialization list...
 	/**
-		 * \brief cmd_ Constructor
-		 * \param c xmlrpc_commander instance
-		 * \param signature  Signature of the command
-		 * \param description Description of the command
-		 */
+	 * \brief cmd_ Constructor
+	 * \param c xmlrpc_commander instance
+	 * \param signature  Signature of the command
+	 * \param description Description of the command
+	 */
 	cmd_(xmlrpc_commander& c, const std::string& signature, const std::string& description)
 	    : _c(c)
 	{
@@ -514,57 +514,57 @@ public:
 	}
 
 	/**
-		 * \brief Execute trhe command with the given parameters
-		 * \param paramList List of parameters for the command (i.e. a fhicl string for init transitions)
-		 * \param retvalP Pointer to the return value (usually a string describing result of command)
-		 */
+	 * \brief Execute trhe command with the given parameters
+	 * \param paramList List of parameters for the command (i.e. a fhicl string for init transitions)
+	 * \param retvalP Pointer to the return value (usually a string describing result of command)
+	 */
 	void execute(const xmlrpc_c::paramList& paramList, xmlrpc_c::value* retvalP) final;
 
 protected:
 	xmlrpc_commander& _c;  ///< The xmlrpc_commander instance that the command will be sent to
 
 	/**
-		 * \brief "execute_" is a wrapper function around the call to the commandable object's function
-		 * \param retvalP Pointer to the return value (usually a string describing result of command)
-		 * \return Whether the command succeeded
-		 */
+	 * \brief "execute_" is a wrapper function around the call to the commandable object's function
+	 * \param retvalP Pointer to the return value (usually a string describing result of command)
+	 * \return Whether the command succeeded
+	 */
 	virtual bool execute_(const xmlrpc_c::paramList&, xmlrpc_c::value* retvalP) = 0;
 
 	/**
-		 * \brief Get a parameter from the parameter list
-		 * \tparam T Type of the parameter
-		 * \param paramList The parameter list
-		 * \param index Index of the parameter in the parameter list
-		 * \return The requested parameter
-		 *
-		 * Template specilization is used to provide valid overloads
-		 */
+	 * \brief Get a parameter from the parameter list
+	 * \tparam T Type of the parameter
+	 * \param paramList The parameter list
+	 * \param index Index of the parameter in the parameter list
+	 * \return The requested parameter
+	 *
+	 * Template specilization is used to provide valid overloads
+	 */
 	template<typename T>
 	T getParam(const xmlrpc_c::paramList& paramList, int index);
 
 	/**
-		 * \brief Get a parameter from the parameter list, returning a default value if not found at specified location
-		 * \tparam T Type of the parameter
-		 * \param paramList The parameter list
-		 * \param index Index of the parameter in the parameter list
-		 * \param default_value Default value to return if exception retrieving parameter
-		 * \return The requested parameter, or the default value if there was an exception retrieving the parameter
-		 *
-		 * JCF, 9/5/14
-		 *
-		 * Here, if getParam throws an exception due to a lack of an
-		 * existing parameter, swallow the exception and return the
-		 * default value passed to the function
-		 *
-		 * Surprisingly, if an invalid index is supplied, although getParam
-		 * throws an exception that exception is neither xmlrpc_c's
-		 * girerr:error nor boost::bad_lexical_cast. Although it's less than
-		 * ideal, we'll swallow almost all exceptions in the call to
-		 * getParam, as an invalid index value simply means the user wishes
-		 * to employ the default_value. I say "almost" because the only
-		 * exception we don't swallow here is if an invalid parameter type
-		 * "T" was supplied
-		 */
+	 * \brief Get a parameter from the parameter list, returning a default value if not found at specified location
+	 * \tparam T Type of the parameter
+	 * \param paramList The parameter list
+	 * \param index Index of the parameter in the parameter list
+	 * \param default_value Default value to return if exception retrieving parameter
+	 * \return The requested parameter, or the default value if there was an exception retrieving the parameter
+	 *
+	 * JCF, 9/5/14
+	 *
+	 * Here, if getParam throws an exception due to a lack of an
+	 * existing parameter, swallow the exception and return the
+	 * default value passed to the function
+	 *
+	 * Surprisingly, if an invalid index is supplied, although getParam
+	 * throws an exception that exception is neither xmlrpc_c's
+	 * girerr:error nor boost::bad_lexical_cast. Although it's less than
+	 * ideal, we'll swallow almost all exceptions in the call to
+	 * getParam, as an invalid index value simply means the user wishes
+	 * to employ the default_value. I say "almost" because the only
+	 * exception we don't swallow here is if an invalid parameter type
+	 * "T" was supplied
+	 */
 	template<typename T>
 	T getParam(const xmlrpc_c::paramList& paramList, int index, T default_value);
 };
@@ -579,13 +579,13 @@ T cmd_::getParam(const xmlrpc_c::paramList& /*unused*/, int /*unused*/)
 }
 
 /**
-	* \brief Get a parameter from the parameter list
-	* \param paramList The parameter list
-	* \param index Index of the parameter in the parameter list
-	* \return The requested parameter
-	*
-	* This specialized cmd_getParam for the uint64_t type
-	*/
+ * \brief Get a parameter from the parameter list
+ * \param paramList The parameter list
+ * \param index Index of the parameter in the parameter list
+ * \return The requested parameter
+ *
+ * This specialized cmd_getParam for the uint64_t type
+ */
 template<>
 uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int index)
 {
@@ -603,13 +603,13 @@ uint64_t cmd_::getParam<uint64_t>(const xmlrpc_c::paramList& paramList, int inde
 }
 
 /**
-	* \brief Get a parameter from the parameter list
-	* \param paramList The parameter list
-	* \param index Index of the parameter in the parameter list
-	* \return The requested parameter
-	*
-	* This specialized cmd_getParam for the uint64_t type
-	*/
+ * \brief Get a parameter from the parameter list
+ * \param paramList The parameter list
+ * \param index Index of the parameter in the parameter list
+ * \return The requested parameter
+ *
+ * This specialized cmd_getParam for the uint64_t type
+ */
 template<>
 uint32_t cmd_::getParam<uint32_t>(const xmlrpc_c::paramList& paramList, int index)
 {
@@ -619,13 +619,13 @@ uint32_t cmd_::getParam<uint32_t>(const xmlrpc_c::paramList& paramList, int inde
 }
 
 /**
-	* \brief Get a parameter from the parameter list
-	* \param paramList The parameter list
-	* \param index Index of the parameter in the parameter list
-	* \return The requested parameter
-	*
-	* This specialized cmd_getParam for the std::string type
-	*/
+ * \brief Get a parameter from the parameter list
+ * \param paramList The parameter list
+ * \param index Index of the parameter in the parameter list
+ * \return The requested parameter
+ *
+ * This specialized cmd_getParam for the std::string type
+ */
 template<>
 std::string cmd_::getParam<std::string>(const xmlrpc_c::paramList& paramList, int index)
 {
@@ -635,13 +635,13 @@ std::string cmd_::getParam<std::string>(const xmlrpc_c::paramList& paramList, in
 }
 
 /**
-	* \brief Get a parameter from the parameter list
-	* \param paramList The parameter list
-	* \param index Index of the parameter in the parameter list
-	* \return The requested parameter
-	*
-	* This specialized cmd_getParam for the art::RunID type
-	*/
+ * \brief Get a parameter from the parameter list
+ * \param paramList The parameter list
+ * \param index Index of the parameter in the parameter list
+ * \return The requested parameter
+ *
+ * This specialized cmd_getParam for the art::RunID type
+ */
 template<>
 art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int index)
 {
@@ -666,13 +666,13 @@ art::RunID cmd_::getParam<art::RunID>(const xmlrpc_c::paramList& paramList, int 
 }
 
 /**
-	* \brief Get a parameter from the parameter list
-	* \param paramList The parameter list
-	* \param index Index of the parameter in the parameter list
-	* \return The requested parameter
-	*
-	* This specialized cmd_getParam for the fhicl::ParameterSet type
-	*/
+ * \brief Get a parameter from the parameter list
+ * \param paramList The parameter list
+ * \param index Index of the parameter in the parameter list
+ * \return The requested parameter
+ *
+ * This specialized cmd_getParam for the fhicl::ParameterSet type
+ */
 template<>
 fhicl::ParameterSet cmd_::getParam<fhicl::ParameterSet>(const xmlrpc_c::paramList& paramList, int index)
 {
@@ -848,15 +848,15 @@ GENERATE_INIT_TRANSITION(reinit, reinitialize, "re-initialize the program")
 //////////////////////////////////////////////////////////////////////
 
 /**
-			 * \brief Command class representing a start transition
-			 */
+ * \brief Command class representing a start transition
+ */
 class start_ : public cmd_
 {
 public:
 	/**
-		 * \brief start_ Command (cmd_ derived class) Constructor
-		 * \param c xmlrpc_commander instance to command
-		 */
+	 * \brief start_ Command (cmd_ derived class) Constructor
+	 * \param c xmlrpc_commander instance to command
+	 */
 	explicit start_(xmlrpc_commander& c)
 	    : cmd_(c, "s:iII", "start the run")
 	{}
@@ -924,8 +924,8 @@ GENERATE_TIMEOUT_TIMESTAMP_TRANSITION(stop, stop, "stop the program", 45)
 #undef GENERATE_TIMEOUT_TIMESTAMP_TRANSITION
 
 /**
-		 * \brief shutdown_ Command class
-		 */
+ * \brief shutdown_ Command class
+ */
 class shutdown_ : public cmd_
 {
 public:
@@ -957,15 +957,15 @@ private:
 };
 
 /**
-	* \brief status_ Command class
-	*/
+ * \brief status_ Command class
+ */
 class status_ : public cmd_
 {
 public:
 	/**
-		* \brief status_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief status_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	status_(xmlrpc_commander& c)
 	    : cmd_(c, "s:n", "report the current state")
 	{}
@@ -979,15 +979,15 @@ private:
 };
 
 /**
-	* \brief report_ Command class
-	*/
+ * \brief report_ Command class
+ */
 class report_ : public cmd_
 {
 public:
 	/**
-		* \brief report_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief report_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	report_(xmlrpc_commander& c)
 	    : cmd_(c, "s:s", "report statistics")
 	{}
@@ -1011,15 +1011,15 @@ private:
 };
 
 /**
-	* \brief legal_commands_ Command class
-	*/
+ * \brief legal_commands_ Command class
+ */
 class legal_commands_ : public cmd_
 {
 public:
 	/**
-		* \brief legal_commands_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief legal_commands_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	legal_commands_(xmlrpc_commander& c)
 	    : cmd_(c, "s:n", "return the currently legal commands")
 	{}
@@ -1045,15 +1045,15 @@ private:
 };
 
 /**
-	* \brief register_monitor_ Command class
-	*/
+ * \brief register_monitor_ Command class
+ */
 class register_monitor_ : public cmd_
 {
 public:
 	/**
-		* \brief register_monitor_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief register_monitor_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	register_monitor_(xmlrpc_commander& c)
 	    : cmd_(c, "s:s", "Get notified of a new monitor")
 	{}
@@ -1077,15 +1077,15 @@ private:
 };
 
 /**
-	* \brief unregister_monitor_ Command class
-	*/
+ * \brief unregister_monitor_ Command class
+ */
 class unregister_monitor_ : public cmd_
 {
 public:
 	/**
-		* \brief unregister_monitor_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief unregister_monitor_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	unregister_monitor_(xmlrpc_commander& c)
 	    : cmd_(c, "s:s", "Remove a monitor")
 	{}
@@ -1109,15 +1109,15 @@ private:
 };
 
 /**
-	* \brief trace_set_ Command class
-	*/
+ * \brief trace_set_ Command class
+ */
 class trace_set_ : public cmd_
 {
 public:
 	/**
-		* \brief unregister_monitor_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief unregister_monitor_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	trace_set_(xmlrpc_commander& c)
 	    : cmd_(c, "s:ssI", "Set TRACE mask")
 	{}
@@ -1142,15 +1142,15 @@ private:
 };
 
 /**
-	* \brief trace_get_ Command class
-	*/
+ * \brief trace_get_ Command class
+ */
 class trace_get_ : public cmd_
 {
 public:
 	/**
-		* \brief trace_msgfacility_set_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief trace_msgfacility_set_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	trace_get_(xmlrpc_commander& c)
 	    : cmd_(c, "s:s", "Get TRACE mask")
 	{}
@@ -1174,15 +1174,15 @@ private:
 };
 
 /**
-	* \brief meta_command_ Command class
-	*/
+ * \brief meta_command_ Command class
+ */
 class meta_command_ : public cmd_
 {
 public:
 	/**
-		* \brief meta_command_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief meta_command_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	meta_command_(xmlrpc_commander& c)
 	    : cmd_(c, "s:ss", "Run custom command")
 	{}
@@ -1206,15 +1206,15 @@ private:
 };
 
 /**
-	* \brief rollover_subrun_ Command class
-	*/
+ * \brief rollover_subrun_ Command class
+ */
 class rollover_subrun_ : public cmd_
 {
 public:
 	/**
-		* \brief shutdown_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief shutdown_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	rollover_subrun_(xmlrpc_commander& c)
 	    : cmd_(c, "s:Ii", "create a new subrun")
 	{}
@@ -1231,15 +1231,15 @@ private:
 };
 
 /**
-	* \brief add_config_archive_entry_ Command class
-	*/
+ * \brief add_config_archive_entry_ Command class
+ */
 class add_config_archive_entry_ : public cmd_
 {
 public:
 	/**
-		* \brief add_config_archive_entry_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief add_config_archive_entry_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	add_config_archive_entry_(xmlrpc_commander& c)
 	    : cmd_(c, "s:ss", "Add an entry to the configuration archive list")
 	{}
@@ -1263,15 +1263,15 @@ private:
 };
 
 /**
-	* \brief clear_config_archive_ Command class
-	*/
+ * \brief clear_config_archive_ Command class
+ */
 class clear_config_archive_ : public cmd_
 {
 public:
 	/**
-		* \brief clear_config_archive_ Constructor
-		* \param c xmlrpc_commander to send transition commands to
-		*/
+	 * \brief clear_config_archive_ Constructor
+	 * \param c xmlrpc_commander to send transition commands to
+	 */
 	clear_config_archive_(xmlrpc_commander& c)
 	    : cmd_(c, "s:n", "Clear the configuration archive list")
 	{}
@@ -1333,16 +1333,17 @@ xmlrpc_commander::xmlrpc_commander(const fhicl::ParameterSet& ps, artdaq::Comman
 	TLOG(TLVL_INFO) << "XMLRPC COMMANDER CONSTRUCTOR: Port: " << port_ << ", Server Url: " << serverUrl_;
 }
 
-void xmlrpc_commander::run_server() try
+void xmlrpc_commander::run_server()
+try
 {
-	//std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
+	// std::cout << "XMLRPC_COMMANDER RUN_SERVER CALLED!" << std::endl;
 	xmlrpc_c::registry registry;
 	struct xmlrpc_method_info3 methodInfo;
 	memset(&methodInfo, 0, sizeof(methodInfo));
 
 	/*#define register_method(m) \
-		//  xmlrpc_c::methodPtr const ptr_ ## m(new m ## _(*this));\
-		   registry.addMethod ("daq." #m, ptr_ ## m) */
+	    //  xmlrpc_c::methodPtr const ptr_ ## m(new m ## _(*this));\
+	       registry.addMethod ("daq." #m, ptr_ ## m) */
 #define register_method(m) register_method2(m, 0x400000)
 
 	xmlrpc_env env;  // xmlrpc_env_init(&env);

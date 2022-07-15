@@ -20,7 +20,7 @@ bool artdaq::DispatcherApp::do_initialize(fhicl::ParameterSet const& pset, uint6
 {
 	report_string_ = "";
 
-	//Dispatcher_ptr_.reset(nullptr);
+	// Dispatcher_ptr_.reset(nullptr);
 	if (Dispatcher_ptr_ == nullptr)
 	{
 		Dispatcher_ptr_ = std::make_unique<DispatcherCore>();
@@ -127,11 +127,11 @@ std::string artdaq::DispatcherApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	//if (report_string_.length() > 0) {
-	//  resultString.append("*** Overall status message:\r\n");
-	//  resultString.append(report_string_ + "\r\n");
-	//  resultString.append("*** Requested report response:\r\n");
-	//}
+	// if (report_string_.length() > 0) {
+	//   resultString.append("*** Overall status message:\r\n");
+	//   resultString.append(report_string_ + "\r\n");
+	//   resultString.append("*** Requested report response:\r\n");
+	// }
 
 	// pass the request to the DispatcherCore instance, if it's available
 	if (Dispatcher_ptr_ != nullptr)

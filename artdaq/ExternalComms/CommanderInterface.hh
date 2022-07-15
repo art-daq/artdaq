@@ -17,8 +17,8 @@
 
 namespace artdaq {
 /**
-	 * \brief This interface defines the functions used to transfer data between artdaq applications.
-	 */
+ * \brief This interface defines the functions used to transfer data between artdaq applications.
+ */
 class CommanderInterface
 {
 public:
@@ -36,29 +36,29 @@ public:
 	using Parameters = fhicl::WrappedTable<Config>;
 
 	/**
-		 * \brief CommanderInterface Constructor
-		 * \param ps ParameterSet used for configuring the CommanderInterface. See artdaq::CommanderInterface::Config
-		 * \param commandable artdaq::Commandable object to send transition commands to
-		 */
+	 * \brief CommanderInterface Constructor
+	 * \param ps ParameterSet used for configuring the CommanderInterface. See artdaq::CommanderInterface::Config
+	 * \param commandable artdaq::Commandable object to send transition commands to
+	 */
 	CommanderInterface(const fhicl::ParameterSet& ps, artdaq::Commandable& commandable)
 	    : _commandable(commandable)
 	    , _id(ps.get<int>("id", 0))
 	{}
 
 	/**
-		 * \brief Copy Constructor is deleted
-		 */
+	 * \brief Copy Constructor is deleted
+	 */
 	CommanderInterface(const CommanderInterface&) = delete;
 
 	/**
-		 * \brief Copy Assignment operator is deleted
-		 * \return CommanderInterface Copy
-		 */
+	 * \brief Copy Assignment operator is deleted
+	 * \return CommanderInterface Copy
+	 */
 	CommanderInterface& operator=(const CommanderInterface&) = delete;
 
 	/**
-		 * \brief Default virtual Destructor
-		 */
+	 * \brief Default virtual Destructor
+	 */
 	virtual ~CommanderInterface();
 
 	/// <summary>

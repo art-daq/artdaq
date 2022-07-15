@@ -9,8 +9,8 @@
  */
 namespace art {
 /**
-	 * \brief Trait definition (must precede source typedef).
-	 */
+ * \brief Trait definition (must precede source typedef).
+ */
 template<>
 struct Source_generator<ArtdaqInputHelper<ShmemWrapper>>
 {
@@ -19,8 +19,8 @@ struct Source_generator<ArtdaqInputHelper<ShmemWrapper>>
 
 // Source declaration.
 /**
-	 * \brief ArtdaqInput is an art::Source using an ArtdaqInputHelper-wrapped ShmemWrapper
-	 */
+ * \brief ArtdaqInput is an art::Source using an ArtdaqInputHelper-wrapped ShmemWrapper
+ */
 using ArtdaqInput = art::Source<ArtdaqInputHelper<ShmemWrapper>>;
 }  // namespace art
 

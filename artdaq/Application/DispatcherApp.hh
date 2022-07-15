@@ -63,21 +63,21 @@ public:
 	bool do_stop(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Pause the DispatcherCore
-	* \return Whether the pause transition succeeded
-	*/
+	 * \brief Pause the DispatcherCore
+	 * \return Whether the pause transition succeeded
+	 */
 	bool do_pause(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Resume the DispatcherCore
-	* \return Whether the resume transition succeeded
-	*/
+	 * \brief Resume the DispatcherCore
+	 * \return Whether the resume transition succeeded
+	 */
 	bool do_resume(uint64_t, uint64_t) override;
 
 	/**
-	* \brief Shutdown the DispatcherCore
-	* \return Whether the shutdown transition succeeded
-	*/
+	 * \brief Shutdown the DispatcherCore
+	 * \return Whether the shutdown transition succeeded
+	 */
 	bool do_shutdown(uint64_t) override;
 
 	/**
@@ -87,9 +87,9 @@ public:
 	bool do_soft_initialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
 
 	/**
-	* \brief Reinitialize the DispatcherCore. No-Op
-	* \return This function always returns true
-	*/
+	 * \brief Reinitialize the DispatcherCore. No-Op
+	 * \return This function always returns true
+	 */
 	bool do_reinitialize(fhicl::ParameterSet const&, uint64_t, uint64_t) override;
 
 	/**

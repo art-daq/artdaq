@@ -327,7 +327,7 @@ void RootDAQOut::respondToOpenInputFile(FileBlock const& fb)
 	}
 	auto const* rfb = dynamic_cast<RootFileBlock const*>(&fb);
 	bool fastCloneThisOne = fastCloningEnabled_ && (rfb != nullptr) &&
-                                (rfb->tree() != nullptr);
+	                        (rfb->tree() != nullptr);
 	if (fastCloningEnabled_ && !fastCloneThisOne)
 	{
 		mf::LogWarning("FastCloning")
@@ -423,7 +423,7 @@ void RootDAQOut::startEndFile()
 #if ART_HEX_VERSION < 0x31100
 	resp->enableLookupOfProducedProducts(producedResultsProducts_);
 #else
-        resp->enableLookupOfProducedProducts();
+	resp->enableLookupOfProducedProducts();
 #endif
 	if (!producedResultsProducts_.descriptions(InResults).empty() ||
 	    hasNewlyDroppedBranch()[InResults])
@@ -679,7 +679,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 	std::vector<Config::FileNameSubstitution> subs;
 	config.fileNameSubstitutions(subs);
 	TLOG(TLVL_DEBUG + 33) << __func__ << ": firstLoggerRank=" << firstLoggerRank
-	                 << ", numberOfSubstitutionsProvided=" << subs.size();
+	                      << ", numberOfSubstitutionsProvided=" << subs.size();
 
 	// initialization
 	std::string modifiedPattern = inputPattern;
@@ -693,7 +693,7 @@ RootDAQOut::modifyFilePattern(std::string const& inputPattern, Config const& con
 		oneBasedRelativeRank -= firstLoggerRank;
 	}
 	TLOG(TLVL_DEBUG + 33) << __func__ << ": my_rank=" << my_rank << ", zeroBasedRelativeRank=" << zeroBasedRelativeRank
-	                 << ", oneBasedRelativeRank=" << oneBasedRelativeRank;
+	                      << ", oneBasedRelativeRank=" << oneBasedRelativeRank;
 
 	// if the "ZeroBasedRelativeRank" keyword was specified in the filename pattern,
 	// perform the substitution

@@ -515,7 +515,7 @@ artdaq::Fragment::sequence_id_t artdaqtest::BrokenTransferTest::sequence_id_targ
 	{
 		ret = 1 + (artdaq::TimeUtils::GetElapsedTimeMicroseconds(test_start_time_, test_end_time_) * fragment_rate_hz_ / 1000000);
 	}
-	//TLOG(TLVL_DEBUG) << "sequence_id_target_ is " << ret;
+	// TLOG(TLVL_DEBUG) << "sequence_id_target_ is " << ret;
 	return ret;
 }
 

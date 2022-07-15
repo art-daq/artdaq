@@ -6,8 +6,8 @@
 
 namespace art {
 /**
-	 * \brief Trait definition (must precede source typedef).
-	 */
+ * \brief Trait definition (must precede source typedef).
+ */
 template<>
 struct Source_generator<ArtdaqInputHelper<artdaq::TransferWrapper>>
 {
@@ -15,8 +15,8 @@ struct Source_generator<ArtdaqInputHelper<artdaq::TransferWrapper>>
 };
 
 /**
-	 * \brief TransferInput is an art::Source using the artdaq::TransferWrapper class as the data source
-	 */
+ * \brief TransferInput is an art::Source using the artdaq::TransferWrapper class as the data source
+ */
 using TransferInput = art::Source<ArtdaqInputHelper<artdaq::TransferWrapper>>;
 }  // namespace art
 

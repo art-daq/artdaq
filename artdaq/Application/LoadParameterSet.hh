@@ -114,4 +114,4 @@ inline fhicl::ParameterSet LoadParameterSet(int argc, char* argv[], std::string 
 	}
 	return pset;
 }
-#endif  //artdaq_proto_LoadParameterSet_hh
+#endif  // artdaq_proto_LoadParameterSet_hh

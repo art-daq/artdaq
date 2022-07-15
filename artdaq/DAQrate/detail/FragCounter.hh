@@ -69,10 +69,10 @@ public:
 	size_t minCount() const;
 
 	/**
-	* \brief Get the current count for the requested slot
-	* \param slot Slot to get count for
-	* \return The current count for the requested slot
-	*/
+	 * \brief Get the current count for the requested slot
+	 * \param slot Slot to get count for
+	 * \return The current count for the requested slot
+	 */
 	size_t operator[](size_t slot) const { return slotCount(slot); }
 
 private:

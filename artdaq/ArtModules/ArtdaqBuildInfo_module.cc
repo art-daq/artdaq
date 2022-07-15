@@ -10,8 +10,8 @@ namespace artdaq {
 static std::string instanceName = "ArtdaqBuildInfo";  ///< Name of this BuildInfo instance
 
 /**
-	 * \brief Specialized artdaq::BuildInfo object for the Artdaq build info
-	 */
+ * \brief Specialized artdaq::BuildInfo object for the Artdaq build info
+ */
 typedef artdaq::BuildInfo<&instanceName, artdaqcore::GetPackageBuildInfo, artdaqutilities::GetPackageBuildInfo, artdaq::GetPackageBuildInfo> ArtdaqBuildInfo;
 
 DEFINE_ART_MODULE(ArtdaqBuildInfo)  // NOLINT(performance-unnecessary-value-param)

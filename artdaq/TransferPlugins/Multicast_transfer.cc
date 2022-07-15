@@ -23,87 +23,87 @@
 
 namespace artdaq {
 /**
-	 * \brief MulticastTransfer is a TransferInterface implementation plugin that transfers data using Multicast
-	 */
+ * \brief MulticastTransfer is a TransferInterface implementation plugin that transfers data using Multicast
+ */
 class MulticastTransfer : public TransferInterface
 {
 public:
 	using byte_t = artdaq::Fragment::byte_t;  ///< Copy Fragment::byte_t into local scope
 
 	/**
-		 * \brief Default destructor
-		 */
+	 * \brief Default destructor
+	 */
 	~MulticastTransfer() override = default;
 
 	/**
-		 * \brief MulticastTransfer Constructor
-		 * \param ps ParameterSet used to configure MulticastTransfer
-		 * \param role Role of this MulticastTransfer instance (kSend or kReceive)
-		 *
-		 * \verbatim
-		 * MulticastTransfer accepts the following Parameters:
-		 * "subfragment_size" (REQUIRED): Size of the sub-Fragments
-		 * "subfragments_per_send" (REQUIRED): How many sub-Fragments to send in each batch
-		 * "pause_on_copy_usecs" (Default: 0): Pause after sending a batch of sub-Fragments for this many microseconds
-		 * "multicast_port" (REQUIRED): Port number to connect to
-		 * "multicast_address" (REQUIRED): Multicast address to send to/receive from
-		 * "local_address" (REQUIRED): Local origination address for multicast
-		 * "receive_buffer_size" (Default: 0): The UDP receive buffer size. 0 uses automatic size.
-		 * \endverbatim
-		 * MulticastTransfer also requires all Parameters for configuring a TransferInterface
-		 */
+	 * \brief MulticastTransfer Constructor
+	 * \param ps ParameterSet used to configure MulticastTransfer
+	 * \param role Role of this MulticastTransfer instance (kSend or kReceive)
+	 *
+	 * \verbatim
+	 * MulticastTransfer accepts the following Parameters:
+	 * "subfragment_size" (REQUIRED): Size of the sub-Fragments
+	 * "subfragments_per_send" (REQUIRED): How many sub-Fragments to send in each batch
+	 * "pause_on_copy_usecs" (Default: 0): Pause after sending a batch of sub-Fragments for this many microseconds
+	 * "multicast_port" (REQUIRED): Port number to connect to
+	 * "multicast_address" (REQUIRED): Multicast address to send to/receive from
+	 * "local_address" (REQUIRED): Local origination address for multicast
+	 * "receive_buffer_size" (Default: 0): The UDP receive buffer size. 0 uses automatic size.
+	 * \endverbatim
+	 * MulticastTransfer also requires all Parameters for configuring a TransferInterface
+	 */
 	MulticastTransfer(fhicl::ParameterSet const& ps, Role role);
 
 	/**
-		* \brief Receive a Fragment using Multicast
-		* \param[out] fragment Received Fragment
-		* \param receiveTimeout Timeout for receive, in microseconds
-		* \return Rank of sender or RECV_TIMEOUT
-		*/
+	 * \brief Receive a Fragment using Multicast
+	 * \param[out] fragment Received Fragment
+	 * \param receiveTimeout Timeout for receive, in microseconds
+	 * \return Rank of sender or RECV_TIMEOUT
+	 */
 	int receiveFragment(artdaq::Fragment& fragment,
 	                    size_t receiveTimeout) override;
 
 	/**
-		* \brief Receive a Fragment Header from the transport mechanism
-		* \param[out] header Received Fragment Header
-		* \param receiveTimeout Timeout for receive
-		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-		*/
+	 * \brief Receive a Fragment Header from the transport mechanism
+	 * \param[out] header Received Fragment Header
+	 * \param receiveTimeout Timeout for receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 */
 	int receiveFragmentHeader(detail::RawFragmentHeader& header, size_t receiveTimeout) override;
 
 	/**
-		* \brief Receive the body of a Fragment to the given destination pointer
-		* \param destination Pointer to memory region where Fragment data should be stored
-		 * \param wordCount Number of words of Fragment data to receive
-		* \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
-		*/
+	 * \brief Receive the body of a Fragment to the given destination pointer
+	 * \param destination Pointer to memory region where Fragment data should be stored
+	 * \param wordCount Number of words of Fragment data to receive
+	 * \return The rank the Fragment was received from (should be source_rank), or RECV_TIMEOUT
+	 */
 	int receiveFragmentData(RawDataType* destination, size_t wordCount) override;
 
 	/**
-		* \brief Copy a Fragment to the destination. Multicast is always unreliable
-		* \param fragment Fragment to copy
-		* \param send_timeout_usec How long to try to send before discarding data
-		* \return CopyStatus detailing result of copy
-		*/
+	 * \brief Copy a Fragment to the destination. Multicast is always unreliable
+	 * \param fragment Fragment to copy
+	 * \param send_timeout_usec How long to try to send before discarding data
+	 * \return CopyStatus detailing result of copy
+	 */
 	CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment, size_t send_timeout_usec) override;
 
 	/**
-		* \brief Move a Fragment to the destination. Multicast is always unreliable
-		* \param fragment Fragment to move
-		* \return CopyStatus detailing result of copy
-		*/
+	 * \brief Move a Fragment to the destination. Multicast is always unreliable
+	 * \param fragment Fragment to move
+	 * \return CopyStatus detailing result of copy
+	 */
 	CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& fragment) override;
 
 	/**
-		* \brief Determine whether the TransferInterface plugin is able to send/receive data
-		* \return True if the TransferInterface plugin is currently able to send/receive data
-		*/
+	 * \brief Determine whether the TransferInterface plugin is able to send/receive data
+	 * \return True if the TransferInterface plugin is currently able to send/receive data
+	 */
 	bool isRunning() override { return socket_ != nullptr; }
 
 	/**
-                 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
-                 * ended.
-                 */
+	 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
+	 * ended.
+	 */
 	void flush_buffers() override {}
 
 private:

@@ -14,57 +14,57 @@ class ParameterSet;
 
 namespace artdaq {
 /**
-	* \brief RTIDDSTransfer is a TransferInterface implementation plugin that transfers data using RTI DDS
-	*/
+ * \brief RTIDDSTransfer is a TransferInterface implementation plugin that transfers data using RTI DDS
+ */
 class RTIDDSTransfer : public TransferInterface
 {
 public:
 	/**
-		 * \brief RTIDDSTransfer default Destructor
-		 */
+	 * \brief RTIDDSTransfer default Destructor
+	 */
 	virtual ~RTIDDSTransfer() = default;
 
 	/**
-		* \brief RTIDDSTransfer Constructor
-		* \param ps ParameterSet used to configure RTIDDSTransfer
-		* \param role Role of this RTIDDSTransfer instance (kSend or kReceive)
-		*
-		* RTIDDSTransfer only requires the Parameters for configuring a TransferInterface
-		*/
+	 * \brief RTIDDSTransfer Constructor
+	 * \param ps ParameterSet used to configure RTIDDSTransfer
+	 * \param role Role of this RTIDDSTransfer instance (kSend or kReceive)
+	 *
+	 * RTIDDSTransfer only requires the Parameters for configuring a TransferInterface
+	 */
 	RTIDDSTransfer(fhicl::ParameterSet const& ps, Role role)
 	    : TransferInterface(ps, role)
 	    , rtidds_reader_(std::make_unique<artdaq::RTIDDS>("RTIDDSTransfer_reader", artdaq::RTIDDS::IOType::reader))
 	    , rtidds_writer_(std::make_unique<artdaq::RTIDDS>("RTIDDSTransfer_writer", artdaq::RTIDDS::IOType::writer)) {}
 
 	/**
-		* \brief Receive a Fragment using DDS
-		* \param[out] fragment Received Fragment
-		* \param receiveTimeout Timeout for receive, in microseconds
-		* \return Rank of sender or RECV_TIMEOUT
-		*/
+	 * \brief Receive a Fragment using DDS
+	 * \param[out] fragment Received Fragment
+	 * \param receiveTimeout Timeout for receive, in microseconds
+	 * \return Rank of sender or RECV_TIMEOUT
+	 */
 	int receiveFragment(artdaq::Fragment& fragment,
 	                    size_t receiveTimeout) override;
 
 	/**
-		* \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
-		* \param fragment Fragment to transfer
-		* \param send_timeout_usec Timeout for send, in microseconds
-		* \return CopyStatus detailing result of transfer
-		*/
+	 * \brief Transfer a Fragment to the destination. May not necessarily be reliable, but will not block longer than send_timeout_usec.
+	 * \param fragment Fragment to transfer
+	 * \param send_timeout_usec Timeout for send, in microseconds
+	 * \return CopyStatus detailing result of transfer
+	 */
 	CopyStatus transfer_fragment_min_blocking_mode(artdaq::Fragment const& fragment,
 	                                               size_t send_timeout_usec = std::numeric_limits<size_t>::max()) override;
 
 	/**
-		* \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
-		* \param fragment Fragment to transfer
-		* \return CopyStatus detailing result of copy
-		*/
+	 * \brief Transfer a Fragment to the destination. This should be reliable, if the underlying transport mechanism supports reliable sending
+	 * \param fragment Fragment to transfer
+	 * \return CopyStatus detailing result of copy
+	 */
 	CopyStatus transfer_fragment_reliable_mode(artdaq::Fragment&& fragment) override;
 
 	/**
-		* \brief Determine whether the TransferInterface plugin is able to send/receive data
-		* \return True if the TransferInterface plugin is currently able to send/receive data
-		*/
+	 * \brief Determine whether the TransferInterface plugin is able to send/receive data
+	 * \return True if the TransferInterface plugin is currently able to send/receive data
+	 */
 	bool isRunning() override
 	{
 		switch (role())
@@ -77,9 +77,9 @@ public:
 	}
 
 	/**
-                 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
-                 * ended.
-                 */
+	 * \brief Flush any in-flight data. This should be used by the receiver after the receive loop has
+	 * ended.
+	 */
 	void flush_buffers() override {}
 
 private:
