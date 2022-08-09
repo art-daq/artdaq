@@ -6,7 +6,8 @@
 #include "artdaq/Application/LoadParameterSet.hh"
 #include "artdaq/DAQdata/Globals.hh"
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("broken_transfer_driver", true, true);
 	TLOG(TLVL_INFO) << "BEGIN";
