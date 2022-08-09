@@ -325,7 +325,8 @@ int process_data(fhicl::ParameterSet const& pset)
 }
 }  // namespace
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("genToArt");
 	// Command line handling.

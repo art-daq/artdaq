@@ -20,7 +20,8 @@ using artdaq::GenericFragmentSimulator;
 using artdaq::SharedMemoryEventManager;
 using std::size_t;
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	struct Config
 	{

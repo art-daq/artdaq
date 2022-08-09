@@ -193,7 +193,7 @@ bool artdaq::Commandable::shutdown(uint64_t timeout)
 	if (external_request_status_)
 	{
 		std::string finalState = fsm_.getState().getName();
-		//SetMFModuleName(finalState); // ELF, 12/17/20: We may have already shut down MessageFacility
+		// SetMFModuleName(finalState); // ELF, 12/17/20: We may have already shut down MessageFacility
 		TLOG(TLVL_DEBUG + 32)
 		    << "States before and after a shutdown transition: "
 		    << initialState << " and " << finalState << ". Transition Duration: " << TimeUtils::GetElapsedTime(start_time) << " s.";

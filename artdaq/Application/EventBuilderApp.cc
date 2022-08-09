@@ -26,7 +26,7 @@ bool artdaq::EventBuilderApp::do_initialize(fhicl::ParameterSet const& pset, uin
 	// instance, then create a new one.  Doing it in one step does not
 	// produce the desired result since that creates a new instance and
 	// then deletes the old one, and we need the opposite order.
-	//event_builder_ptr_.reset(nullptr);
+	// event_builder_ptr_.reset(nullptr);
 	if (event_builder_ptr_ == nullptr)
 	{
 		event_builder_ptr_ = std::make_unique<EventBuilderCore>();
@@ -156,7 +156,7 @@ void artdaq::EventBuilderApp::BootedEnter()
 	// Booted Entry action rather than the Initialized Exit action because the
 	// Initialized Exit action is only called after the "init" transition guard
 	// condition is executed.
-	//event_builder_ptr_.reset(nullptr);
+	// event_builder_ptr_.reset(nullptr);
 }
 
 std::string artdaq::EventBuilderApp::report(std::string const& which) const
@@ -173,11 +173,11 @@ std::string artdaq::EventBuilderApp::report(std::string const& which) const
 
 	//// if there is an outstanding report/message at the Commandable/Application
 	//// level, prepend that
-	//if (report_string_.length() > 0) {
-	//  resultString.append("*** Overall status message:\r\n");
-	//  resultString.append(report_string_ + "\r\n");
-	//  resultString.append("*** Requested report response:\r\n");
-	//}
+	// if (report_string_.length() > 0) {
+	//   resultString.append("*** Overall status message:\r\n");
+	//   resultString.append(report_string_ + "\r\n");
+	//   resultString.append("*** Requested report response:\r\n");
+	// }
 
 	// pass the request to the EventBuilderCore instance, if it's available
 	if (event_builder_ptr_ != nullptr)

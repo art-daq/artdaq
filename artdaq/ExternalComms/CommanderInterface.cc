@@ -128,4 +128,4 @@ inline std::string CommanderInterface::send_update_default_fragment_ids(uint64_t
 #pragma message "Using default implementation of update_default_fragment_ids!"
 	return "NOT IMPLEMENTED";
 }
-}  //namespace artdaq
+}  // namespace artdaq

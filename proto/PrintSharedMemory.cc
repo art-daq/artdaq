@@ -7,7 +7,8 @@ namespace bpo = boost::program_options;
 
 #include <sstream>
 
-int main(int argc, char* argv[]) try
+int main(int argc, char* argv[])
+try
 {
 	artdaq::configureMessageFacility("PrintSharedMemory");
 
