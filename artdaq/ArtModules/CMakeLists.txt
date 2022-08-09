@@ -166,6 +166,12 @@ cet_build_plugin(TransferInput ${stype}
   artdaq::ArtdaqInputHelper
 )
 
+cet_build_plugin(TransferListenerInput ${stype}
+  LIBRARIES PRIVATE
+  artdaq::ArtModules
+  artdaq::ArtdaqInputHelper
+)
+
 cet_build_plugin(ArtdaqInput ${stype}
   LIBRARIES PRIVATE
   artdaq::ArtModules
