@@ -649,11 +649,11 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 		oss << "  Fragment output statistics: "
 		    << stats.recentSampleCount << " fragments sent at "
 		    << stats.recentSampleRate << " fragments/sec, effective data rate = "
-		    << (stats.recentValueRate * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0) << " MB/sec, monitor window = "
+		    << (stats.recentValueRate / 1024.0 / 1024.0) << " MB/sec, monitor window = "
 		    << stats.recentDuration << " sec, min::max event size = "
-		    << (stats.recentValueMin * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+		    << (stats.recentValueMin / 1024.0 / 1024.0)
 		    << "::"
-		    << (stats.recentValueMax * sizeof(artdaq::RawDataType) / 1024.0 / 1024.0)
+		    << (stats.recentValueMax / 1024.0 / 1024.0)
 		    << " MB" << std::endl;
 		fragmentsOutputCount = std::max(double(stats.recentSampleCount), 1.0);
 	}
@@ -707,8 +707,8 @@ void artdaq::BoardReaderCore::sendMetrics_()
 		fragmentCount = std::max(double(stats.recentSampleCount), 1.0);
 		metricMan->sendMetric("Fragment Count", stats.fullSampleCount, "fragments", 1, MetricMode::LastPoint);
 		metricMan->sendMetric("Fragment Rate", stats.recentSampleRate, "fragments/sec", 1, MetricMode::Average);
-		metricMan->sendMetric("Average Fragment Size", (stats.recentValueAverage * sizeof(artdaq::RawDataType)), "bytes/fragment", 2, MetricMode::Average);
-		metricMan->sendMetric("Data Rate", (stats.recentValueRate * sizeof(artdaq::RawDataType)), "bytes/sec", 2, MetricMode::Average);
+		metricMan->sendMetric("Average Fragment Size", stats.recentValueAverage, "bytes/fragment", 2, MetricMode::Average);
+		metricMan->sendMetric("Data Rate", stats.recentValueRate , "bytes/sec", 2, MetricMode::Average);
 	}
 
 	// 31-Dec-2014, KAB - Just a reminder that using "fragmentCount" in the
