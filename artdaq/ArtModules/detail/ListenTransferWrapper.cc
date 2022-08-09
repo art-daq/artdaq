@@ -20,16 +20,16 @@
 #include <string>
 
 namespace {
-volatile std::sig_atomic_t gSignalStatus = 0;  ///< Stores singal from signal handler
+volatile std::sig_atomic_t gListenSignalStatus = 0;  ///< Stores singal from signal handler
 }
 
 /**
  * \brief Handle a Unix signal
  * \param signal Signal to handle
  */
-void signal_handler(int signal)
+void listen_signal_handler(int signal)
 {
-	gSignalStatus = signal;
+	gListenSignalStatus = signal;
 }
 
 artdaq::ListenTransferWrapper::ListenTransferWrapper(const fhicl::ParameterSet& pset)
@@ -45,7 +45,7 @@ artdaq::ListenTransferWrapper::ListenTransferWrapper(const fhicl::ParameterSet& 
     , quitOnFragmentIntegrityProblem_(pset.get<bool>("quitOnFragmentIntegrityProblem", true))
     , multi_run_mode_(pset.get<bool>("allowMultipleRuns", true))
 {
-	std::signal(SIGINT, signal_handler);
+	std::signal(SIGINT, listen_signal_handler);
 
 	try
 	{
@@ -89,14 +89,14 @@ artdaq::FragmentPtrs artdaq::ListenTransferWrapper::receiveMessage()
 	static bool initialized = false;
 	static size_t fragments_received = 0;
 
-	while (gSignalStatus == 0)
+	while (gListenSignalStatus == 0)
 	{
 		receivedFragment = false;
 		auto fragmentPtr = std::make_unique<artdaq::Fragment>();
 
 		while (!receivedFragment)
 		{
-			if (gSignalStatus != 0)
+			if (gListenSignalStatus != 0)
 			{
 				TLOG(TLVL_INFO) << "Ctrl-C appears to have been hit";
 				return fragmentPtrs;

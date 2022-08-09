@@ -44,6 +44,7 @@ cet_build_plugin(ArtdaqGlobalsService art::service
 cet_make_library(SOURCE
   detail/ShmemWrapper.cc
   detail/TransferWrapper.cc
+  detail/ListenTransferWrapper.cc
   LIBRARIES
   PUBLIC
   artdaq_plugin_types::commander
