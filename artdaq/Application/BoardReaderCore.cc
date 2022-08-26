@@ -623,8 +623,8 @@ std::string artdaq::BoardReaderCore::buildStatisticsString_()
 	{
 		artdaq::MonitoredQuantityStats stats;
 		mqPtr->getStats(stats);
-		oss << stats.recentSampleCount << " fragments generated at "
-		    << stats.recentSampleRate << " reads/sec, fragment rate = "
+		oss << stats.recentValueSum << " fragments generated at "
+		    << stats.recentSampleRate << " getNext calls/sec, fragment rate = "
 		    << stats.recentValueRate << " fragments/sec, monitor window = "
 		    << stats.recentDuration << " sec, min::max read size = "
 		    << stats.recentValueMin
