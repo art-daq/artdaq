@@ -367,7 +367,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentHeader(detail::RawFragmentHeader& 
 				else
 				{
 					ret_rank = source_rank();
-					TLOG(8) << GetTraceName() << "receiveFragmentHeader done sts=" << sts << " src=" << ret_rank;
+					TLOG(TLVL_DEBUG + 35) << GetTraceName() << "receiveFragmentHeader done sts=" << sts << " src=" << ret_rank;
 					TLOG(TLVL_DEBUG + 36) << GetTraceName() << "receiveFragmentHeader: Done receiving fragment header. Moving into output.";
 
 					done = true;  // no more polls
@@ -424,7 +424,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	last_recv_time_ = std::chrono::steady_clock::now();
 	while (!done)
 	{
-		TLOG(9) << GetTraceName() << "receiveFragmentData: Polling fd to see if there's data";
+		TLOG(TLVL_DEBUG + 33) << GetTraceName() << "receiveFragmentData: Polling fd to see if there's data";
 		int num_fds_ready = poll(&pollfd_s, 1, 1000);
 		TLOG(TLVL_DEBUG + 33) << GetTraceName() << "receiveFragmentData: Polled fd to see if there's data"
 		                      << ", num_fds_ready = " << num_fds_ready;
@@ -532,7 +532,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 			sts = offset += sts;
 			if (sts >= target_bytes)
 			{
-				TLOG(9) << GetTraceName() << "receiveFragmentData: Target read bytes reached. Changing state";
+				TLOG(TLVL_DEBUG + 42) << GetTraceName() << "receiveFragmentData: Target read bytes reached. Changing state";
 				offset = 0;
 				if (state == SocketState::Metadata)
 				{
@@ -551,7 +551,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 				{
 					ret_rank = source_rank();
 					TLOG(TLVL_DEBUG + 41) << GetTraceName() << "receiveFragmentData done sts=" << sts << " src=" << ret_rank;
-					TLOG(9) << GetTraceName() << "receiveFragmentData: Done receiving fragment. Moving into output.";
+					TLOG(TLVL_DEBUG + 39) << GetTraceName() << "receiveFragmentData: Done receiving fragment. Moving into output.";
 
 #if USE_ACKS
 					send_ack_(active_receive_fd_);
@@ -568,7 +568,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			ret_rank = source_rank();
 			TLOG(TLVL_DEBUG + 41) << GetTraceName() << "receiveFragmentData done sts=" << sts << " src=" << ret_rank;
-			TLOG(9) << GetTraceName() << "receiveFragmentData: Done receiving fragment. Moving into output.";
+			TLOG(TLOG_DEBUG + 39) << GetTraceName() << "receiveFragmentData: Done receiving fragment. Moving into output.";
 
 #if USE_ACKS
 			send_ack_(active_receive_fd_);
@@ -582,7 +582,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 	setLastActiveFD_(source_rank(), getActiveFD_(source_rank()));
 	setActiveFD_(source_rank(), -1);
 
-	TLOG(9) << GetTraceName() << "receiveFragmentData: Returning rank " << ret_rank;
+	TLOG(TLVL_DEBUG + 39) << GetTraceName() << "receiveFragmentData: Returning rank " << ret_rank;
 	return ret_rank;
 }
 
