@@ -129,7 +129,7 @@ Timeout::get_next_expired_timeout(std::string& desc, void** tag, std::function<v
 {
 	int skipped = 0;
 	timeoutspec tmo;
-	TLOG(15) << "get_next_expired_timeout b4 get_clear_next_expired_timeout";
+	TLOG(TLVL_DEBUG + 38) << "get_next_expired_timeout b4 get_clear_next_expired_timeout";
 	skipped = get_clear_next_expired_timeout(tmo, artdaq::TimeUtils::gettimeofday_us());
 	if (skipped == -1)
 	{
