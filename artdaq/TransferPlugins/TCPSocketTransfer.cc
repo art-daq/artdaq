@@ -568,7 +568,7 @@ int artdaq::TCPSocketTransfer::receiveFragmentData(RawDataType* destination, siz
 		{
 			ret_rank = source_rank();
 			TLOG(TLVL_DEBUG + 41) << GetTraceName() << "receiveFragmentData done sts=" << sts << " src=" << ret_rank;
-			TLOG(TLOG_DEBUG + 39) << GetTraceName() << "receiveFragmentData: Done receiving fragment. Moving into output.";
+			TLOG(TLVL_DEBUG + 39) << GetTraceName() << "receiveFragmentData: Done receiving fragment. Moving into output.";
 
 #if USE_ACKS
 			send_ack_(active_receive_fd_);
