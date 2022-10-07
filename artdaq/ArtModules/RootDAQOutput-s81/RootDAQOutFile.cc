@@ -644,7 +644,9 @@ void RootDAQOutFile::beginInputFile(RootFileBlock const* rfb,
 		mf::LogWarning("FastCloning")
 		    << "Fast cloning reactivated for this input file.";
 	}
+#if ART_HEX_VERSION < 0x31200
 	treePointers_[InEvent]->beginInputFile(shouldFastClone);
+#endif
 	auto tree = ((rfb != nullptr) && rfb->tree()) ? rfb->tree() : nullptr;
 	wasFastCloned_ = treePointers_[InEvent]->fastCloneTree(tree);
 }

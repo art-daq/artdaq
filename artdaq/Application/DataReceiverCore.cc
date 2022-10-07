@@ -267,7 +267,7 @@ std::string artdaq::DataReceiverCore::report(std::string const& which) const
 	{
 		if (receiver_ptr_ != nullptr)
 		{
-			return std::to_string(receiver_ptr_->GetReceivedFragmentCount()->count());
+			return std::to_string(receiver_ptr_->count());
 		}
 
 		return "0";

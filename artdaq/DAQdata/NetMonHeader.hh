@@ -12,7 +12,7 @@ struct NetMonHeader;
  */
 struct artdaq::NetMonHeader
 {
-	uint64_t data_length;  ///< The length of the message
+	uint64_t data_length{0};  ///< The length of the message
 };
 
 #endif /* artdaq_DAQdata_NetMonHeader_hh */
